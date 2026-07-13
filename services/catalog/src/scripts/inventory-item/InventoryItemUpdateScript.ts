@@ -5,14 +5,13 @@ import {
   type UserError,
 } from "../../kernel/BaseScript.js";
 import type { InventoryItem } from "../../repositories/models/index.js";
+import type { CurrencyCode } from "@shopana/shared-references";
 import {
   type ScriptResult,
   singleError,
   successResult,
   unchangedResult,
 } from "../types/ScriptResult.js";
-
-type Currency = "UAH" | "USD" | "EUR";
 
 interface StockUpdateParams {
   readonly warehouseId: string;
@@ -70,7 +69,7 @@ export interface InventoryItemUpdateChanges {
   dimensions?: DimensionsUpdateParams;
   weight?: number;
   unitCostMinor?: number;
-  costCurrency?: Currency;
+  costCurrency?: CurrencyCode;
 }
 
 export type InventoryItemUpdateResult = ScriptResult<
@@ -83,8 +82,6 @@ class InventoryItemUpdateRollbackError extends Error {
     super(userErrors[0]?.message ?? "Inventory item update failed");
   }
 }
-
-const SUPPORTED_CURRENCIES = new Set<Currency>(["UAH", "USD", "EUR"]);
 
 /**
  * Script for updating inventory item data (stock, SKU, physical data, and unit cost).
@@ -375,7 +372,7 @@ export class InventoryItemUpdateScript extends BaseScript<
 
   private getUnitCostInput(
     params: InventoryItemUpdateParams,
-  ): { currency: Currency; amountMinor: number } | undefined {
+  ): { currency: CurrencyCode; amountMinor: number } | undefined {
     const rawUnitCost =
       params.unitCost ??
       (params.unitCostMinor != null
@@ -390,7 +387,7 @@ export class InventoryItemUpdateScript extends BaseScript<
     }
 
     return {
-      currency: rawUnitCost.currency as Currency,
+      currency: rawUnitCost.currency as CurrencyCode,
       amountMinor: Number(rawUnitCost.amountMinor),
     };
   }
@@ -399,7 +396,7 @@ export class InventoryItemUpdateScript extends BaseScript<
     item: InventoryItem,
     stockInput: StockUpdateParams | undefined,
     weightGrams: number | undefined,
-    unitCostInput: { currency: Currency; amountMinor: number } | undefined,
+    unitCostInput: { currency: CurrencyCode; amountMinor: number } | undefined,
     params: InventoryItemUpdateParams,
   ): Promise<InventoryItemUpdateResult | null> {
     if (stockInput) {
@@ -502,13 +499,6 @@ export class InventoryItemUpdateScript extends BaseScript<
     }
 
     if (unitCostInput) {
-      if (!SUPPORTED_CURRENCIES.has(unitCostInput.currency)) {
-        return singleError("Unsupported currency", "INVALID_CURRENCY", [
-          "unitCost",
-          "currency",
-        ]);
-      }
-
       if (
         !Number.isInteger(unitCostInput.amountMinor) ||
         unitCostInput.amountMinor < 0

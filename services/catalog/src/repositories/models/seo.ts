@@ -5,7 +5,7 @@ import {
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
-import { catalogSchema } from "./schema";
+import { catalogSchema, localeCodeEnum } from "./schema";
 import { product } from "./products";
 import { category } from "./categories";
 
@@ -22,7 +22,7 @@ export const productSeo = catalogSchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     // SEO fields (for search engines)
     seoTitle: varchar("seo_title", { length: 70 }),
@@ -47,7 +47,7 @@ export const categorySeo = catalogSchema.table(
     categoryId: uuid("category_id")
       .notNull()
       .references(() => category.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     seoTitle: varchar("seo_title", { length: 70 }),
     seoDescription: varchar("seo_description", { length: 160 }),

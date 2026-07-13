@@ -7,10 +7,7 @@ import {
   singleError,
 } from "../types/ScriptResult.js";
 import type { PricingChanges } from "../types/ProductChanges.js";
-
-type Currency = "UAH" | "USD" | "EUR";
-
-const VALID_CURRENCIES: Currency[] = ["UAH", "USD", "EUR"];
+import type { CurrencyCode } from "@shopana/shared-references";
 
 export interface VariantUpdatePricingParams {
   readonly variantId: string;
@@ -32,15 +29,6 @@ export class VariantUpdatePricingScript extends BaseScript<
     params: VariantUpdatePricingParams
   ): Promise<VariantUpdatePricingResult> {
     const { variantId, currency, amountMinor, compareAtMinor } = params;
-
-    // Validate currency
-    if (!VALID_CURRENCIES.includes(currency as Currency)) {
-      return singleError(
-        `Invalid currency: ${currency}. Must be one of: ${VALID_CURRENCIES.join(", ")}`,
-        "INVALID_CURRENCY",
-        ["currency"]
-      );
-    }
 
     // Validate variant exists
     const variantExists = await this.repository.variant.exists(variantId);
@@ -69,7 +57,7 @@ export class VariantUpdatePricingScript extends BaseScript<
       );
     }
 
-    const typedCurrency = currency as Currency;
+    const typedCurrency = currency as CurrencyCode;
 
     // Get current pricing to compare
     const currentPricing = await this.repository.pricing.getCurrentPrice({

@@ -9,6 +9,7 @@ import {
   CURRENCY_CODES,
   LOCALE_CODES,
 } from "@shopana/shared-references";
+import { storeSchema } from "./schema.js";
 
 export const referenceSchema = pgSchema("reference");
 
@@ -22,14 +23,14 @@ export const dimensionUnitEnum = referenceSchema.enum(
   DIMENSION_UNITS as [string, ...string[]]
 );
 
-export const currencyCodeEnum = referenceSchema.enum(
+export const currencyCodeEnum = storeSchema.enum(
   "currency_code",
-  CURRENCY_CODES as [string, ...string[]]
+  CURRENCY_CODES as [CurrencyCodeEnum, ...CurrencyCodeEnum[]]
 );
 
-export const localeCodeEnum = referenceSchema.enum(
+export const localeCodeEnum = storeSchema.enum(
   "locale_code",
-  LOCALE_CODES as [string, ...string[]]
+  LOCALE_CODES as [LocaleCodeEnum, ...LocaleCodeEnum[]]
 );
 
 export type WeightUnit = WeightUnitEnum;

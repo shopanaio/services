@@ -38,6 +38,12 @@ function compileProductSortPageQuerySql(request: ListingSqlRequest): SQL {
     request.request.cursor,
     shouldUseAvailabilityOrderBucket(request),
   );
+  const localePredicate = productConfig.locale === null
+    ? sql`s.locale IS NULL`
+    : sql`s.locale = ${productConfig.locale}`;
+  const currencyPredicate = productConfig.currency === null
+    ? sql`s.currency IS NULL`
+    : sql`s.currency = ${productConfig.currency}`;
   const limitSql = sql`(SELECT first + 1 FROM input)`;
 
   return sql`
@@ -74,8 +80,8 @@ function compileProductSortPageQuerySql(request: ListingSqlRequest): SQL {
       CROSS JOIN product_matches m
       WHERE s.store_id = i.store_id
         AND s.sort_kind = ${productConfig.sortKind}
-        AND s.locale = ${productConfig.locale}
-        AND s.currency = ${productConfig.currency}
+        AND ${localePredicate}
+        AND ${currencyPredicate}
         AND s.manual_scope_id = ${productConfig.manualScopeId}::uuid
         AND m.bitmap @> s.product_doc_id
         ${productSeek}
@@ -136,8 +142,8 @@ function compileMatchedVariantPricePageQuerySql(
        AND availability.product_doc_id = pli.product_doc_id
        AND availability.product_id = pli.product_id
        AND availability.sort_kind = 'availability'
-       AND availability.locale = ''
-       AND availability.currency = ''
+       AND availability.locale IS NULL
+       AND availability.currency IS NULL
        AND availability.manual_scope_id = ${ZERO_UUID}::uuid
       CROSS JOIN product_matches pm
       CROSS JOIN matching_variants mv
@@ -298,8 +304,8 @@ function isMatchedVariantPricePage(request: ListingSqlRequest): boolean {
 function productSortConfig(request: ListingSqlRequest): {
   sort: ProductSortCollectKind;
   sortKind: string;
-  locale: string;
-  currency: string;
+  locale: string | null;
+  currency: string | null;
   manualScopeId: string;
   orderBy: SQL;
 } {
@@ -311,8 +317,8 @@ function productSortConfig(request: ListingSqlRequest): {
       return {
         sort: "manual",
         sortKind: "manual",
-        locale: "",
-        currency: "",
+        locale: null,
+        currency: null,
         manualScopeId: request.manualScopeId,
         orderBy: sql`${availabilityOrder} s.text_value ASC NULLS LAST, s.product_id ASC`,
       };
@@ -320,8 +326,8 @@ function productSortConfig(request: ListingSqlRequest): {
       return {
         sort: "created",
         sortKind: "created",
-        locale: "",
-        currency: "",
+        locale: null,
+        currency: null,
         manualScopeId: ZERO_UUID,
         orderBy: sql`${availabilityOrder} s.timestamptz_value DESC, s.product_id ASC`,
       };
@@ -330,7 +336,7 @@ function productSortConfig(request: ListingSqlRequest): {
         sort: "name_asc",
         sortKind: "name",
         locale: request.locale,
-        currency: "",
+        currency: null,
         manualScopeId: ZERO_UUID,
         orderBy: sql`${availabilityOrder} s.text_value ASC NULLS LAST, s.product_id ASC`,
       };
@@ -339,7 +345,7 @@ function productSortConfig(request: ListingSqlRequest): {
         sort: "name_desc",
         sortKind: "name",
         locale: request.locale,
-        currency: "",
+        currency: null,
         manualScopeId: ZERO_UUID,
         orderBy: sql`${availabilityOrder} s.text_value DESC NULLS LAST, s.product_id ASC`,
       };
@@ -347,7 +353,7 @@ function productSortConfig(request: ListingSqlRequest): {
       return {
         sort: "price_asc",
         sortKind: "price_asc",
-        locale: "",
+        locale: null,
         currency: request.currency,
         manualScopeId: ZERO_UUID,
         orderBy: sql`${availabilityOrder} s.bigint_value ASC NULLS LAST, s.product_id ASC`,
@@ -356,7 +362,7 @@ function productSortConfig(request: ListingSqlRequest): {
       return {
         sort: "price_desc",
         sortKind: "price_desc",
-        locale: "",
+        locale: null,
         currency: request.currency,
         manualScopeId: ZERO_UUID,
         orderBy: sql`${availabilityOrder} s.bigint_value DESC NULLS LAST, s.product_id ASC`,
@@ -366,8 +372,8 @@ function productSortConfig(request: ListingSqlRequest): {
       return {
         sort: "newest",
         sortKind: "newest",
-        locale: "",
-        currency: "",
+        locale: null,
+        currency: null,
         manualScopeId: ZERO_UUID,
         orderBy: sql`${availabilityOrder} s.timestamptz_value DESC NULLS LAST, s.timestamptz_value_2 DESC NULLS LAST, s.product_id ASC`,
       };

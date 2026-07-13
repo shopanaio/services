@@ -142,7 +142,7 @@ CREATE UNIQUE INDEX "bundle_item_option_value_selection_value_unique"
 CREATE TABLE "catalog"."bundle_item_translation" (
   "store_id" uuid NOT NULL,
   "item_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "name" text NOT NULL,
   CONSTRAINT "bundle_item_translation_pkey" PRIMARY KEY ("item_id", "locale"),
   CONSTRAINT "bundle_item_translation_item_id_fk"

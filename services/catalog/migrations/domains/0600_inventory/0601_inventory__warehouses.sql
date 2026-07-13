@@ -20,7 +20,7 @@ CREATE UNIQUE INDEX "idx_warehouses_default_unique"
 CREATE TABLE "catalog"."warehouse_translation" (
   "store_id" uuid NOT NULL,
   "warehouse_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "name" text NOT NULL,
   CONSTRAINT "warehouse_translation_pkey" PRIMARY KEY ("warehouse_id", "locale"),
   CONSTRAINT "warehouse_translation_warehouse_id_fk"

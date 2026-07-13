@@ -8,6 +8,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
+import type { CurrencyCode } from "@shopana/shared-references";
 import {
 	  product,
 	  bundle,
@@ -81,8 +82,6 @@ const EMPTY_PRODUCT_WHERE: ProductRelayInput["where"] = {
   id: { _in: ["00000000-0000-0000-0000-000000000000"] },
 };
 
-type Currency = "UAH" | "USD" | "EUR";
-
 export interface ProductConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
   pageInfo: PageInfo;
@@ -94,8 +93,8 @@ export class ProductRepository extends BaseRepository {
     return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
-  private get currency(): Currency {
-    return (this.ctx.currency ?? "UAH") as Currency;
+  private get currency(): CurrencyCode {
+    return (this.ctx.currency ?? this.ctx.store.defaultCurrency) as CurrencyCode;
   }
 
   // ============ CRUD ============

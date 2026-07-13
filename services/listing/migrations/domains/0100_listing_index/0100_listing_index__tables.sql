@@ -68,7 +68,7 @@ CREATE INDEX idx_product_listing_vendor
 CREATE TABLE listing.product_listing_price_index (
   store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
-  currency               varchar(3) NOT NULL,
+  currency               "listing"."currency_code" NOT NULL,
 
   min_price_minor        bigint,
   max_price_minor        bigint,
@@ -190,7 +190,7 @@ CREATE TABLE listing.listing_index_item_state (
 CREATE TABLE listing.variant_listing_price_index (
   store_id             uuid NOT NULL,
   variant_id             uuid NOT NULL,
-  currency               varchar(3) NOT NULL,
+  currency               "listing"."currency_code" NOT NULL,
   variant_doc_id         int NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
@@ -310,8 +310,8 @@ CREATE TABLE listing.listing_posting_product_sort (
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
   sort_kind              varchar(32) NOT NULL,
-  locale                 varchar(16) NOT NULL DEFAULT '',
-  currency               varchar(3) NOT NULL DEFAULT '',
+  locale                 "listing"."locale_code",
+  currency               "listing"."currency_code",
   manual_scope_id        uuid NOT NULL
     DEFAULT '00000000-0000-0000-0000-000000000000'::uuid,
   bool_value             boolean,
@@ -321,7 +321,8 @@ CREATE TABLE listing.listing_posting_product_sort (
   text_value             text,
   numeric_value          numeric,
 
-  PRIMARY KEY (
+  CONSTRAINT listing_posting_product_sort_key
+  UNIQUE NULLS NOT DISTINCT (
     store_id,
     product_doc_id,
     sort_kind,

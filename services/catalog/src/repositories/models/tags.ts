@@ -8,7 +8,7 @@ import {
   uniqueIndex,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { catalogSchema } from "./schema";
+import { catalogSchema, localeCodeEnum } from "./schema";
 import { product } from "./products";
 import { category } from "./categories";
 
@@ -51,7 +51,7 @@ export const tagTranslation = catalogSchema.table(
     tagId: uuid("tag_id")
       .notNull()
       .references(() => tag.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     // Display name
     name: text("name").notNull(),

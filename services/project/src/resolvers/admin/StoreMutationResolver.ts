@@ -113,6 +113,8 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       timezone: input.timezone ?? undefined,
       defaultWeightUnit: input.defaultWeightUnit ?? undefined,
       defaultDimensionUnit: input.defaultDimensionUnit ?? undefined,
+      locales: input.locales ?? undefined,
+      currencies: input.currencies ?? undefined,
     });
 
     if (!result.store) {

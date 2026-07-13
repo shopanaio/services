@@ -16,7 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { productListingIndex } from "./listingIndex.js";
 import { tsvector } from "./postgresTypes.js";
-import { listingSchema } from "./schema.js";
+import { listingSchema, localeCodeEnum } from "./schema.js";
 
 const uuidV7 = (column: unknown) =>
   sql`substring(${column}::text FROM 15 FOR 1) = '7'`;
@@ -27,7 +27,7 @@ export const productSearchText = listingSchema.table(
     storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     productDocId: integer("product_doc_id").notNull(),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     field: varchar("field", { length: 32 }).notNull(),
     elementId: uuid("element_id").notNull(),
     preparedText: text("prepared_text").notNull(),
@@ -64,10 +64,6 @@ export const productSearchText = listingSchema.table(
     check(
       "chk_product_search_text_product_doc_positive",
       sql`${table.productDocId} > 0`,
-    ),
-    check(
-      "chk_product_search_text_locale",
-      sql`${table.locale} <> '' AND ${table.locale} = lower(${table.locale})`,
     ),
     check(
       "chk_product_search_text_field",
@@ -107,7 +103,7 @@ export const productSearchIdentifier = listingSchema.table(
     storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     productDocId: integer("product_doc_id").notNull(),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     elementId: uuid("element_id").notNull(),
     kind: varchar("kind", { length: 16 }).notNull(),
     normalizedValue: text("normalized_value").notNull(),
@@ -134,10 +130,6 @@ export const productSearchIdentifier = listingSchema.table(
     check(
       "chk_product_search_identifier_product_doc_positive",
       sql`${table.productDocId} > 0`,
-    ),
-    check(
-      "chk_product_search_identifier_locale",
-      sql`${table.locale} <> '' AND ${table.locale} = lower(${table.locale})`,
     ),
     check("chk_product_search_identifier_kind", sql`${table.kind} = 'SKU'`),
     check(
@@ -170,7 +162,7 @@ export const searchTermDictionary = listingSchema.table(
   "search_term_dictionary",
   {
     storeId: uuid("store_id").notNull(),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     term: text("term").notNull(),
     codePointLength: smallint("code_point_length").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
@@ -187,10 +179,6 @@ export const searchTermDictionary = listingSchema.table(
       table.term,
     ),
     check("chk_search_term_dictionary_store_uuid_v7", uuidV7(table.storeId)),
-    check(
-      "chk_search_term_dictionary_locale",
-      sql`${table.locale} <> '' AND ${table.locale} = lower(${table.locale})`,
-    ),
     check(
       "chk_search_term_dictionary_term",
       sql`${table.term} <> '' AND char_length(${table.term}) <= 128`,
@@ -263,7 +251,7 @@ export const searchSynonymGroup = listingSchema.table(
   {
     storeId: uuid("store_id").notNull(),
     groupId: uuid("group_id").primaryKey(),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     name: varchar("name", { length: 128 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
     version: integer("version").notNull().default(1),
@@ -294,10 +282,6 @@ export const searchSynonymGroup = listingSchema.table(
     check(
       "chk_search_synonym_group_uuid_v7",
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.groupId)} AND ${uuidV7(table.createdBy)} AND ${uuidV7(table.updatedBy)}`,
-    ),
-    check(
-      "chk_search_synonym_group_locale",
-      sql`${table.locale} <> '' AND ${table.locale} = lower(${table.locale})`,
     ),
     check("chk_search_synonym_group_name", sql`${table.name} <> ''`),
     check("chk_search_synonym_group_version", sql`${table.version} > 0`),
@@ -363,7 +347,7 @@ export const searchSynonymClaim = listingSchema.table(
   "search_synonym_claim",
   {
     storeId: uuid("store_id").notNull(),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     normalizedValue: text("normalized_value").notNull(),
     groupId: uuid("group_id").notNull(),
   },
@@ -386,10 +370,6 @@ export const searchSynonymClaim = listingSchema.table(
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.groupId)}`,
     ),
     check(
-      "chk_search_synonym_claim_locale",
-      sql`${table.locale} <> '' AND ${table.locale} = lower(${table.locale})`,
-    ),
-    check(
       "chk_search_synonym_claim_value",
       sql`${table.normalizedValue} <> '' AND char_length(${table.normalizedValue}) <= 128`,
     ),
@@ -401,7 +381,7 @@ export const searchProductBoost = listingSchema.table(
   {
     storeId: uuid("store_id").notNull(),
     boostId: uuid("boost_id").primaryKey(),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     name: varchar("name", { length: 128 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
     version: integer("version").notNull().default(1),
@@ -427,10 +407,6 @@ export const searchProductBoost = listingSchema.table(
     check(
       "chk_search_product_boost_uuid_v7",
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.boostId)} AND ${uuidV7(table.createdBy)} AND ${uuidV7(table.updatedBy)}`,
-    ),
-    check(
-      "chk_search_product_boost_locale",
-      sql`${table.locale} <> '' AND ${table.locale} = lower(${table.locale})`,
     ),
     check("chk_search_product_boost_name", sql`${table.name} <> ''`),
     check("chk_search_product_boost_version", sql`${table.version} > 0`),

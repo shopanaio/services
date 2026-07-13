@@ -261,8 +261,8 @@ export class ListingPostingBitmapRepository extends BaseRepository {
          AND availability_sort.product_doc_id = pli.product_doc_id
          AND availability_sort.product_id = pli.product_id
          AND availability_sort.sort_kind = 'availability'
-         AND availability_sort.locale = ''
-         AND availability_sort.currency = ''
+         AND availability_sort.locale IS NULL
+         AND availability_sort.currency IS NULL
          AND availability_sort.manual_scope_id = ${ZERO_UUID}::uuid
         WHERE pli.store_id = ${this.storeId}::uuid
         GROUP BY

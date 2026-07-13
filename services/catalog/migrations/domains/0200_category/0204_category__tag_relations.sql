@@ -18,7 +18,7 @@ CREATE INDEX "idx_tag_store_id"
 CREATE TABLE "catalog"."tag_translation" (
   "store_id" uuid NOT NULL,
   "tag_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "name" text NOT NULL,
   CONSTRAINT "tag_translation_pkey" PRIMARY KEY ("tag_id", "locale"),
   CONSTRAINT "tag_translation_tag_id_fk"

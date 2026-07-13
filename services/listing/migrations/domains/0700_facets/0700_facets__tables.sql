@@ -24,7 +24,7 @@ CREATE INDEX "idx_facet_rank"
 
 CREATE TABLE "listing"."facet_translation" (
   "facet_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "listing"."locale_code" NOT NULL,
   "store_id" uuid NOT NULL,
   "label" text NOT NULL,
   CONSTRAINT "facet_translation_pkey" PRIMARY KEY ("facet_id", "locale"),

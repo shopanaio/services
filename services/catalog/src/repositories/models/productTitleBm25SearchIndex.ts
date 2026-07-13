@@ -10,7 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { catalogSchema } from "./schema";
+import { catalogSchema, localeCodeEnum } from "./schema";
 import { product, productKindEnum } from "./products";
 
 export const productTitleBm25SearchIndex = catalogSchema.table(
@@ -19,7 +19,7 @@ export const productTitleBm25SearchIndex = catalogSchema.table(
     searchId: uuid("search_id").notNull(),
     storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     kind: productKindEnum("kind").notNull(),
     status: varchar("status", { length: 16 }).notNull(),
     publishedAt: timestamp("published_at", {

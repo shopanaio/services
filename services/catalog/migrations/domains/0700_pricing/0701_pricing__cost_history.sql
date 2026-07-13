@@ -4,7 +4,7 @@ CREATE TABLE "catalog"."product_variant_cost_history" (
   "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
-  "currency" "catalog"."currency" NOT NULL,
+  "currency" "catalog"."currency_code" NOT NULL,
   "unit_cost_minor" bigint NOT NULL,
   "effective_from" timestamp with time zone NOT NULL DEFAULT now(),
   "effective_to" timestamp with time zone,

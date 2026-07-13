@@ -14,6 +14,7 @@ import type { Variant } from "../../repositories/models/index.js";
 import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
 import { CatalogType } from "./CatalogType.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
+import type { CurrencyCode } from "@shopana/shared-references";
 
 /**
  * Variant resolver for Catalog Service.
@@ -99,7 +100,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
     const current = filtered[0];
     return {
       id: current.id,
-      currency: current.currency as "UAH" | "USD" | "EUR",
+      currency: current.currency as CurrencyCode,
       amountMinor: current.amountMinor,
       compareAtMinor: current.compareAtMinor,
       effectiveFrom: current.effectiveFrom,

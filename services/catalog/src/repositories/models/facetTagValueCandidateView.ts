@@ -1,12 +1,12 @@
 import { sql } from "drizzle-orm";
 import { text, uuid, varchar } from "drizzle-orm/pg-core";
-import { catalogSchema } from "./schema";
+import { catalogSchema, localeCodeEnum } from "./schema";
 
 export const facetTagValueCandidateView = catalogSchema
   .view("facet_tag_value_candidate_view", {
     id: text("id").notNull(),
     storeId: uuid("store_id").notNull(),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
     sourceHandle: text("source_handle").notNull(),
     handle: text("handle").notNull(),

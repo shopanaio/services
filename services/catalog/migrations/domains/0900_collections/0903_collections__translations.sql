@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."collection_translation" (
   "collection_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "store_id" uuid NOT NULL,
   "name" text NOT NULL,
   "description_text" text,

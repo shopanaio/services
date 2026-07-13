@@ -3,7 +3,7 @@
 CREATE TABLE "catalog"."category_seo" (
   "store_id" uuid NOT NULL,
   "category_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "seo_title" varchar(70),
   "seo_description" varchar(160),
   "og_title" varchar(95),

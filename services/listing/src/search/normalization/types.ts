@@ -1,6 +1,7 @@
 import type { SearchTextField } from "../../repositories/search/searchRepositoryTypes.js";
 
-export type SupportedSearchLocale = "en" | "ru" | "uk";
+/** Canonical locale code supplied by the Store bounded context. */
+export type SearchLocale = string;
 
 export type SearchTokenKind =
   | "language"
@@ -10,7 +11,7 @@ export type SearchTokenKind =
   | "stopword";
 
 export interface SearchNormalizationProfileMetadata {
-  readonly locale: SupportedSearchLocale;
+  readonly locale: SearchLocale;
   readonly contractVersion: string;
   readonly profileRevision: string;
   readonly nodeVersion: string;
@@ -74,7 +75,7 @@ export interface SearchDocumentElementInput {
 }
 
 export interface NormalizedSearchDocumentElement {
-  readonly locale: SupportedSearchLocale;
+  readonly locale: SearchLocale;
   readonly field: SearchTextField;
   readonly elementId: string;
   readonly preparedText: string;

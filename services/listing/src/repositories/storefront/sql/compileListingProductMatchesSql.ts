@@ -357,8 +357,8 @@ function compileSearchCandidateRowsCte(request: ListingSqlRequest): SQL {
        AND availability.product_doc_id = pli.product_doc_id
        AND availability.product_id = pli.product_id
        AND availability.sort_kind = 'availability'
-       AND availability.locale = ''
-       AND availability.currency = ''
+       AND availability.locale IS NULL
+       AND availability.currency IS NULL
        AND availability.manual_scope_id = ${ZERO_UUID}::uuid
       WHERE ranked.store_id = ${request.storeId}::uuid
         AND pli.status = 'published'

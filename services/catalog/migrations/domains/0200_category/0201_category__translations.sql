@@ -3,7 +3,7 @@
 CREATE TABLE "catalog"."category_translation" (
   "store_id" uuid NOT NULL,
   "category_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "name" text NOT NULL,
   "description_text" text,
   "description_html" text,

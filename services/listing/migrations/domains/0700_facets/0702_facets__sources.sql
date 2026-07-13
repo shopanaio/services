@@ -29,7 +29,7 @@ CREATE INDEX "idx_facet_source_store_type_handle"
 
 CREATE TABLE "listing"."facet_source_translation" (
   "facet_source_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "listing"."locale_code" NOT NULL,
   "store_id" uuid NOT NULL,
   "name" text NOT NULL,
   CONSTRAINT "facet_source_translation_pkey" PRIMARY KEY ("facet_source_id", "locale"),

@@ -7,10 +7,10 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { catalogSchema } from "./schema";
+import { catalogSchema, currencyCodeEnum } from "./schema";
 import { variant } from "./products";
 
-export const currencyEnum = catalogSchema.enum("currency", ["UAH", "USD", "EUR"]);
+export const currencyEnum = currencyCodeEnum;
 
 export const itemPricing = catalogSchema.table(
   "item_pricing",

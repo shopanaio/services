@@ -29,6 +29,9 @@ export interface RunScriptContext {
   organizationId: string;
   locale?: string;
   defaultLocale?: string;
+  defaultCurrency?: string;
+  locales?: string[];
+  currencies?: string[];
   userId?: string;
   requestId?: string;
 }

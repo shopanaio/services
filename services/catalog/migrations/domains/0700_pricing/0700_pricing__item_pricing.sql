@@ -4,7 +4,7 @@ CREATE TABLE "catalog"."item_pricing" (
   "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
-  "currency" "catalog"."currency" NOT NULL,
+  "currency" "catalog"."currency_code" NOT NULL,
   "amount_minor" bigint NOT NULL,
   "compare_at_minor" bigint,
   "effective_from" timestamp with time zone NOT NULL DEFAULT now(),

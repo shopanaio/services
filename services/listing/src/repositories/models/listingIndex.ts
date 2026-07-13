@@ -15,7 +15,11 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { listingSchema } from "./schema.js";
+import {
+  currencyCodeEnum,
+  listingSchema,
+  localeCodeEnum,
+} from "./schema.js";
 import { roaringbitmap } from "./postgresTypes.js";
 
 export const listingDocIdAllocator = listingSchema.table(
@@ -154,7 +158,7 @@ export const productListingPriceIndex = listingSchema.table(
   {
     storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
-    currency: varchar("currency", { length: 3 }).notNull(),
+    currency: currencyCodeEnum("currency").notNull(),
     minPriceMinor: bigint("min_price_minor", { mode: "number" }),
     maxPriceMinor: bigint("max_price_minor", { mode: "number" }),
     hasPrice: boolean("has_price").notNull().default(false),
@@ -285,7 +289,7 @@ export const variantListingPriceIndex = listingSchema.table(
   {
     storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id").notNull(),
-    currency: varchar("currency", { length: 3 }).notNull(),
+    currency: currencyCodeEnum("currency").notNull(),
     variantDocId: integer("variant_doc_id").notNull(),
     productDocId: integer("product_doc_id").notNull(),
     productId: uuid("product_id").notNull(),
@@ -418,8 +422,8 @@ export const listingPostingProductSort = listingSchema.table(
     productDocId: integer("product_doc_id").notNull(),
     productId: uuid("product_id").notNull(),
     sortKind: varchar("sort_kind", { length: 32 }).notNull(),
-    locale: varchar("locale", { length: 16 }).notNull().default(""),
-    currency: varchar("currency", { length: 3 }).notNull().default(""),
+    locale: localeCodeEnum("locale"),
+    currency: currencyCodeEnum("currency"),
     manualScopeId: uuid("manual_scope_id")
       .notNull()
       .default(sql`'00000000-0000-0000-0000-000000000000'::uuid`),
@@ -437,16 +441,16 @@ export const listingPostingProductSort = listingSchema.table(
     numericValue: numeric("numeric_value", { mode: "string" }),
   },
   (table) => [
-    primaryKey({
-      columns: [
+    unique("listing_posting_product_sort_key")
+      .on(
         table.storeId,
         table.productDocId,
         table.sortKind,
         table.locale,
         table.currency,
         table.manualScopeId,
-      ],
-    }),
+      )
+      .nullsNotDistinct(),
     foreignKey({
       name: "fk_listing_posting_product_sort_doc",
       columns: [table.storeId, table.productDocId, table.productId],

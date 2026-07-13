@@ -9,6 +9,7 @@ import {
   WorkflowStep,
 } from "@shopana/shared-kernel";
 import type { Catalog, Listing } from "@shopana/broker-types";
+import type { ContextStore } from "@shopana/shared-context";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
 import {
@@ -47,12 +48,7 @@ import type {
 } from "../scripts/listingIndexActionTypes.js";
 
 type GetStoreByIdResult = {
-  store: {
-    id: string;
-    organizationId: string;
-    defaultLocale: string;
-    locales: string[];
-  } | null;
+  store: ContextStore | null;
   userErrors: Array<{
     code: string;
     message: string;
@@ -500,6 +496,6 @@ function buildRunScriptContext(
     organizationId: action.organizationId,
     requestId: params.meta.source.requestId ?? params.meta.operationId,
     locale: content?.defaultLocale,
-    defaultLocale: content?.defaultLocale ?? "uk",
+    defaultLocale: content?.defaultLocale,
   };
 }

@@ -15,7 +15,7 @@ import {
 import { productOption, productOptionValue } from "./options";
 import { currencyEnum } from "./pricing";
 import { product, variant } from "./products";
-import { catalogSchema } from "./schema";
+import { catalogSchema, localeCodeEnum } from "./schema";
 
 // ==============================
 // Bundle Root
@@ -216,7 +216,7 @@ export const bundleGroupTranslation = catalogSchema.table(
     groupId: uuid("group_id")
       .notNull()
       .references(() => bundleGroup.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     name: text("name").notNull(),
   },
   (table) => [
@@ -381,7 +381,7 @@ export const bundleItemTranslation = catalogSchema.table(
     itemId: uuid("item_id")
       .notNull()
       .references(() => bundleItem.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     name: text("name").notNull(),
   },
   (table) => [

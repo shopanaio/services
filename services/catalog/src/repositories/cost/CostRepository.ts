@@ -1,6 +1,7 @@
 import { and, eq, isNull, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
+import type { CurrencyCode } from "@shopana/shared-references";
 import {
   productVariantCostHistory,
   variantCostsCurrent,
@@ -8,12 +9,10 @@ import {
   type NewProductVariantCostHistory,
 } from "../models";
 
-type Currency = "UAH" | "USD" | "EUR";
-
 export class CostRepository extends BaseRepository {
   async getCurrentCost(input: {
     variantId: string;
-    currency: Currency;
+    currency: CurrencyCode;
   }): Promise<ProductVariantCostHistory | null> {
     const result = await this.connection
       .select()
@@ -34,7 +33,7 @@ export class CostRepository extends BaseRepository {
    * Close current cost record for a variant and currency
    * Sets effectiveTo = NOW() on the active record (where effectiveTo IS NULL)
    */
-  async closeCurrent(variantId: string, currency: Currency): Promise<void> {
+  async closeCurrent(variantId: string, currency: CurrencyCode): Promise<void> {
     await this.connection
       .update(productVariantCostHistory)
       .set({ effectiveTo: new Date().toISOString() })
@@ -55,7 +54,7 @@ export class CostRepository extends BaseRepository {
   async create(
     variantId: string,
     data: {
-      currency: Currency;
+      currency: CurrencyCode;
       unitCostMinor: number;
     }
   ): Promise<ProductVariantCostHistory> {
@@ -87,7 +86,7 @@ export class CostRepository extends BaseRepository {
   async setCost(
     variantId: string,
     data: {
-      currency: Currency;
+      currency: CurrencyCode;
       unitCostMinor: number;
     }
   ): Promise<ProductVariantCostHistory> {

@@ -18,7 +18,7 @@ import type {
   SearchQueryNormalizationResult,
   SearchTokenKind,
   SearchTokenMetadata,
-  SupportedSearchLocale,
+  SearchLocale,
 } from "./types.js";
 
 const CONTROL_CHARACTERS = /[\p{Cc}\p{Cf}]+/gu;
@@ -399,18 +399,23 @@ function lexicalize(input: {
 
 function classifyToken(
   token: string,
-  locale: SupportedSearchLocale,
+  locale: SearchLocale,
 ): Exclude<SearchTokenKind, "stopword"> {
   const hasLatin = LATIN.test(token);
   const hasCyrillic = CYRILLIC.test(token);
   if (hasLatin && hasCyrillic) return "mixed_script";
   if (NUMBER.test(token) || !LETTER.test(token)) return "code";
 
-  const expectedScript = locale === "en" ? hasLatin : hasCyrillic;
+  const language = new Intl.Locale(locale).language;
+  const expectedScript = language === "en"
+    ? hasLatin
+    : language === "ru" || language === "uk"
+      ? hasCyrillic
+      : false;
   return expectedScript ? "language" : "foreign";
 }
 
-function segmentWords(text: string, locale: SupportedSearchLocale) {
+function segmentWords(text: string, locale: SearchLocale) {
   return [...new Intl.Segmenter(locale, { granularity: "word" }).segment(text)]
     .filter((segment) => segment.isWordLike);
 }
@@ -434,14 +439,14 @@ function normalizeDisplay(value: string): string {
 
 function normalizeIdentifierValue(
   value: string,
-  locale: SupportedSearchLocale,
+  locale: SearchLocale,
 ): string {
   return localeCaseFold(normalizeDisplay(value), locale);
 }
 
 function localeCaseFold(
   value: string,
-  locale: SupportedSearchLocale,
+  locale: SearchLocale,
 ): string {
   return normalizePunctuation(value.toLocaleLowerCase(locale).normalize("NFKC"));
 }

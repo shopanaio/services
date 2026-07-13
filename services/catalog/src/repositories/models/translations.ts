@@ -6,7 +6,7 @@ import {
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
-import { catalogSchema } from "./schema";
+import { catalogSchema, localeCodeEnum } from "./schema";
 import { product, variant } from "./products";
 import { productOption, productOptionValue } from "./options";
 import { productFeature, productFeatureValue } from "./features";
@@ -24,7 +24,7 @@ export const productTranslation = catalogSchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     // Content fields
     name: text("name").notNull(),
@@ -68,7 +68,7 @@ export const variantTranslation = catalogSchema.table(
     variantId: uuid("variant_id")
       .notNull()
       .references(() => variant.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     title: text("title"),
   },
@@ -91,7 +91,7 @@ export const productOptionTranslation = catalogSchema.table(
     optionId: uuid("option_id")
       .notNull()
       .references(() => productOption.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     name: text("name").notNull(),
   },
@@ -114,7 +114,7 @@ export const productOptionValueTranslation = catalogSchema.table(
     optionValueId: uuid("option_value_id")
       .notNull()
       .references(() => productOptionValue.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     name: text("name").notNull(),
   },
@@ -136,7 +136,7 @@ export const productFeatureTranslation = catalogSchema.table(
     featureId: uuid("feature_id")
       .notNull()
       .references(() => productFeature.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     name: text("name").notNull(),
   },
@@ -158,7 +158,7 @@ export const productFeatureValueTranslation = catalogSchema.table(
     featureValueId: uuid("feature_value_id")
       .notNull()
       .references(() => productFeatureValue.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     name: text("name").notNull(),
   },

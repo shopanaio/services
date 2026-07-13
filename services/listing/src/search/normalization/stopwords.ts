@@ -1,4 +1,4 @@
-import type { SupportedSearchLocale } from "./types.js";
+import type { SearchLocale } from "./types.js";
 
 export const SEARCH_STOPWORDS_VERSION = "2026-07-12.1";
 
@@ -36,14 +36,16 @@ const UK = [
   "що", "щоб", "я", "як",
 ] as const;
 
-const STOPWORDS: Readonly<Record<SupportedSearchLocale, ReadonlySet<string>>> = {
+const STOPWORDS: Readonly<Record<string, ReadonlySet<string>>> = {
   en: new Set(EN),
   ru: new Set(RU),
   uk: new Set(UK),
 };
+const EMPTY_STOPWORDS: ReadonlySet<string> = new Set();
 
 export function getSearchStopwords(
-  locale: SupportedSearchLocale,
+  locale: SearchLocale,
 ): ReadonlySet<string> {
-  return STOPWORDS[locale];
+  const language = new Intl.Locale(locale).language;
+  return STOPWORDS[language] ?? EMPTY_STOPWORDS;
 }

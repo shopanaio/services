@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."collection_seo" (
   "collection_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "store_id" uuid NOT NULL,
   "seo_title" varchar(70),
   "seo_description" varchar(160),

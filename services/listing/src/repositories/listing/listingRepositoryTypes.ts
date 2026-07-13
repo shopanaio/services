@@ -281,14 +281,14 @@ export function assertValueKeysMatchPrefixes(
 }
 
 export function normalizeSortKey<T extends ProductSortKeyInput>(input: T): T & {
-  locale: string;
-  currency: string;
+  locale: string | null;
+  currency: string | null;
   manualScopeId: string;
 } {
   return {
     ...input,
-    locale: input.locale ?? "",
-    currency: input.currency ?? "",
+    locale: input.locale ?? null,
+    currency: input.currency ?? null,
     manualScopeId: input.manualScopeId ?? ZERO_UUID,
   };
 }

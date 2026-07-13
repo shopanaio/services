@@ -1,4 +1,5 @@
 import type { UserError } from "@shopana/shared-kernel";
+import type { LocaleCode } from "../../../repositories/models/index.js";
 
 export interface LocaleUpdatePayload {
   success: boolean;
@@ -7,7 +8,7 @@ export interface LocaleUpdatePayload {
 
 export interface LocaleSetDefaultParams {
   storeId: string;
-  locale: string;
+  locale: LocaleCode;
 }
 
 export type LocaleSetDefaultResult = LocaleUpdatePayload;

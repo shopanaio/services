@@ -11,7 +11,7 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { catalogSchema } from "./schema";
+import { catalogSchema, localeCodeEnum } from "./schema";
 import { product } from "./products";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -116,7 +116,7 @@ export const categoryTranslation = catalogSchema.table(
     categoryId: uuid("category_id")
       .notNull()
       .references(() => category.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     // Content
     name: text("name").notNull(),

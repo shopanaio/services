@@ -30,6 +30,10 @@ export interface IntegrationInfo<TConfig = Record<string, unknown>> {
  * Store with loaded integrations - main Store type used throughout the app
  */
 export interface Store extends StoreRecord {
+  /** Active locale codes configured for this store. */
+  locales: LocaleCode[];
+  /** Active currency codes configured for this store. */
+  currencies: CurrencyCode[];
   integrations: {
     payment?: IntegrationInfo;
     shipping?: IntegrationInfo;
@@ -72,6 +76,10 @@ export interface UpdateStoreData {
   timezone?: string;
   defaultWeightUnit?: WeightUnit;
   defaultDimensionUnit?: DimensionUnit;
+  locales?: LocaleCode[];
+  currencies?: CurrencyCode[];
+  defaultLocale?: LocaleCode;
+  defaultCurrency?: CurrencyCode;
 }
 
 export class StoreRepository extends BaseRepository {
@@ -79,13 +87,29 @@ export class StoreRepository extends BaseRepository {
    * Load integrations for a store and attach to store object
    */
   private async loadIntegrations(storeRecord: StoreRecord): Promise<Store> {
-    const integrations = await this.connection
-      .select()
-      .from(storeIntegration)
-      .where(eq(storeIntegration.storeId, storeRecord.id));
+    const [integrations, activeLocales, activeCurrencies] = await Promise.all([
+      this.connection
+        .select()
+        .from(storeIntegration)
+        .where(eq(storeIntegration.storeId, storeRecord.id)),
+      this.connection
+        .select({ code: locale.code })
+        .from(locale)
+        .where(
+          and(eq(locale.storeId, storeRecord.id), eq(locale.isActive, true)),
+        ),
+      this.connection
+        .select({ code: currency.code })
+        .from(currency)
+        .where(
+          and(eq(currency.storeId, storeRecord.id), eq(currency.isActive, true)),
+        ),
+    ]);
 
     const result: Store = {
       ...storeRecord,
+      locales: activeLocales.map(({ code }) => code),
+      currencies: activeCurrencies.map(({ code }) => code),
       integrations: {},
     };
 
@@ -234,8 +258,63 @@ export class StoreRepository extends BaseRepository {
 
   @Transactional()
   async update(id: string, data: UpdateStoreData): Promise<Store | null> {
+    const now = new Date();
+
+    if (data.locales !== undefined) {
+      await this.connection
+        .update(locale)
+        .set({ isActive: false, updatedAt: now })
+        .where(eq(locale.storeId, id));
+
+      if (data.locales.length > 0) {
+        await this.connection
+          .insert(locale)
+          .values(
+            data.locales.map((code) => ({
+              storeId: id,
+              code,
+              isActive: true,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: [locale.storeId, locale.code],
+            set: { isActive: true, updatedAt: now },
+          });
+      }
+    }
+
+    if (data.currencies !== undefined) {
+      await this.connection
+        .update(currency)
+        .set({ isActive: false, updatedAt: now })
+        .where(eq(currency.storeId, id));
+
+      if (data.currencies.length > 0) {
+        await this.connection
+          .insert(currency)
+          .values(
+            data.currencies.map((code) => ({
+              storeId: id,
+              code,
+              isActive: true,
+              exchangeRateAmount: BigInt(1),
+              exchangeRateScale: 0,
+              exchangeRate: 1,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: [currency.storeId, currency.code],
+            set: { isActive: true, updatedAt: now },
+          });
+      }
+    }
+
     const updateData: Record<string, unknown> = {
-      updatedAt: new Date(),
+      updatedAt: now,
     };
 
     if (data.name !== undefined) updateData.name = data.name;
@@ -246,6 +325,10 @@ export class StoreRepository extends BaseRepository {
       updateData.defaultWeightUnit = data.defaultWeightUnit;
     if (data.defaultDimensionUnit !== undefined)
       updateData.defaultDimensionUnit = data.defaultDimensionUnit;
+    if (data.defaultLocale !== undefined)
+      updateData.defaultLocale = data.defaultLocale;
+    if (data.defaultCurrency !== undefined)
+      updateData.defaultCurrency = data.defaultCurrency;
 
     const [result] = await this.connection
       .update(store)

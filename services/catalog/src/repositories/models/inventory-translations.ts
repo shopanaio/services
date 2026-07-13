@@ -5,7 +5,7 @@ import {
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
-import { catalogSchema } from "./schema";
+import { catalogSchema, localeCodeEnum } from "./schema";
 import { warehouses } from "./stock";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ export const warehouseTranslation = catalogSchema.table(
     warehouseId: uuid("warehouse_id")
       .notNull()
       .references(() => warehouses.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
 
     name: text("name").notNull(),
   },

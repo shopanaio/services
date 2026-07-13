@@ -12,6 +12,7 @@ import {
   type StoreCreateResult,
 } from "./dto/index.js";
 import type { StoreCreateOutput } from "../../sagas/index.js";
+import { validateStoreSettings } from "./storeSettingsRules.js";
 
 export class StoreCreateScript extends BaseScript<
   StoreCreateParams,
@@ -26,6 +27,16 @@ export class StoreCreateScript extends BaseScript<
   protected async execute(
     params: StoreCreateParams,
   ): Promise<StoreCreateResult> {
+    const settingsErrors = validateStoreSettings({
+      locales: params.locales,
+      currencies: params.currencies,
+      defaultLocale: params.locales[0],
+      defaultCurrency: params.defaultCurrency,
+    });
+    if (settingsErrors.length > 0) {
+      return { store: null, userErrors: settingsErrors };
+    }
+
     // Check for existing name before running workflow
     const existingStore = await this.repository.store.findByName(params.name);
     if (existingStore) {

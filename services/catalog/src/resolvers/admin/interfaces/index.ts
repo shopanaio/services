@@ -62,8 +62,8 @@ export interface RichText {
 
 // --- Pricing ---
 
-/** Supported currency codes */
-export type CurrencyCode = "UAH" | "USD" | "EUR";
+import type { CurrencyCode } from "@shopana/shared-references";
+export type { CurrencyCode } from "@shopana/shared-references";
 
 /**
  * Represents a price for a variant

@@ -12,7 +12,7 @@ import {
 } from "./stopwords.js";
 import type {
   SearchNormalizationProfileMetadata,
-  SupportedSearchLocale,
+  SearchLocale,
 } from "./types.js";
 
 export const SEARCH_NORMALIZATION_CONTRACT_VERSION = "1";
@@ -26,44 +26,49 @@ export interface SearchNormalizationProfile {
   readonly stem: (token: string) => string;
 }
 
-const STEMMERS: Readonly<Record<SupportedSearchLocale, Stemmer>> = {
+const STEMMERS: Readonly<Record<string, Stemmer>> = {
   en: PorterStemmer,
   ru: PorterStemmerRu,
   uk: PorterStemmerUk,
 };
 
-const SUPPORTED_LOCALES = new Set<SupportedSearchLocale>(["en", "ru", "uk"]);
-
 export class SearchNormalizationProfileRegistry {
   private readonly profiles = new Map<
-    SupportedSearchLocale,
+    SearchLocale,
     SearchNormalizationProfile
   >();
 
   resolve(locale: string): SearchNormalizationProfile {
-    const normalizedLocale = locale.trim().toLowerCase();
-    if (!SUPPORTED_LOCALES.has(normalizedLocale as SupportedSearchLocale)) {
+    let normalizedLocale: SearchLocale;
+    try {
+      const candidate = locale.trim().replaceAll("_", "-");
+      normalizedLocale = Intl.getCanonicalLocales(candidate)[0];
+      if (!normalizedLocale) throw new Error("Locale is empty");
+    } catch (error) {
       throw normalizationFailure(
-        `Unsupported search normalization locale: ${locale}`,
+        `Invalid search normalization locale: ${locale}`,
+        error,
       );
     }
 
-    const supportedLocale = normalizedLocale as SupportedSearchLocale;
-    const cached = this.profiles.get(supportedLocale);
+    const cached = this.profiles.get(normalizedLocale);
     if (cached) return cached;
 
     try {
-      const metadata = buildMetadata(supportedLocale);
-      const stemmer = STEMMERS[supportedLocale];
+      const metadata = buildMetadata(normalizedLocale);
+      const language = new Intl.Locale(normalizedLocale).language;
+      const stemmer = STEMMERS[language];
       const profile: SearchNormalizationProfile = Object.freeze({
         metadata,
-        segmenter: new Intl.Segmenter(supportedLocale, {
+        segmenter: new Intl.Segmenter(normalizedLocale, {
           granularity: "word",
         }),
-        stopwords: getSearchStopwords(supportedLocale),
-        stem: (token: string) => stemmer.stem(token),
+        stopwords: getSearchStopwords(normalizedLocale),
+        stem: stemmer
+          ? (token: string) => stemmer.stem(token)
+          : (token: string) => token,
       });
-      this.profiles.set(supportedLocale, profile);
+      this.profiles.set(normalizedLocale, profile);
       return profile;
     } catch (error) {
       throw normalizationFailure(
@@ -73,13 +78,10 @@ export class SearchNormalizationProfileRegistry {
     }
   }
 
-  listSupportedLocales(): readonly SupportedSearchLocale[] {
-    return ["en", "ru", "uk"];
-  }
 }
 
 function buildMetadata(
-  locale: SupportedSearchLocale,
+  locale: SearchLocale,
 ): SearchNormalizationProfileMetadata {
   const nodeVersion = process.versions.node ?? "unknown";
   const icuVersion = process.versions.icu ?? "unknown";

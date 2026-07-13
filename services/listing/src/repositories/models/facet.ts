@@ -14,7 +14,7 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { listingSchema } from "./schema.js";
+import { listingSchema, localeCodeEnum } from "./schema.js";
 
 export const referenceStatusEnum = listingSchema.enum("reference_status", [
   "VALID",
@@ -52,7 +52,7 @@ export const facetTranslation = listingSchema.table(
     facetId: uuid("facet_id")
       .notNull()
       .references(() => facet.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     storeId: uuid("store_id").notNull(),
     label: text("label").notNull(),
   },
@@ -120,7 +120,7 @@ export const facetSourceTranslation = listingSchema.table(
     facetSourceId: uuid("facet_source_id")
       .notNull()
       .references(() => facetSource.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     storeId: uuid("store_id").notNull(),
     name: text("name").notNull(),
   },
@@ -214,7 +214,7 @@ export const facetValueTranslation = listingSchema.table(
     facetValueId: uuid("facet_value_id")
       .notNull()
       .references(() => facetValue.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     storeId: uuid("store_id").notNull(),
     label: text("label").notNull(),
   },

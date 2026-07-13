@@ -153,7 +153,7 @@ export class CategoryRepository extends BaseRepository {
   }
 
   private get currency(): string {
-    return this.ctx.currency ?? "UAH";
+    return this.ctx.currency ?? this.ctx.store.defaultCurrency;
   }
 
   // ============ CRUD ============

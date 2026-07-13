@@ -35,7 +35,7 @@ CREATE INDEX "idx_bundle_group_sort"
 CREATE TABLE "catalog"."bundle_group_translation" (
   "store_id" uuid NOT NULL,
   "group_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "name" text NOT NULL,
   CONSTRAINT "bundle_group_translation_pkey" PRIMARY KEY ("group_id", "locale"),
   CONSTRAINT "bundle_group_translation_group_id_fk"

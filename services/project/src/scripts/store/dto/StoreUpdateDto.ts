@@ -1,6 +1,8 @@
 import type {
+  CurrencyCode,
   WeightUnit,
   DimensionUnit,
+  LocaleCode,
 } from "../../../repositories/models/index.js";
 import type { StorePayload } from "./shared.js";
 
@@ -16,6 +18,8 @@ export interface StoreUpdateParams {
   timezone?: string;
   defaultWeightUnit?: WeightUnit;
   defaultDimensionUnit?: DimensionUnit;
+  locales?: LocaleCode[];
+  currencies?: CurrencyCode[];
 }
 
 export type StoreUpdateResult = StorePayload;

@@ -17,7 +17,7 @@
         "code": {
           "name": "code",
           "type": "locale_code",
-          "typeSchema": "reference",
+          "typeSchema": "store",
           "primaryKey": false,
           "notNull": true
         },
@@ -101,7 +101,7 @@
         "code": {
           "name": "code",
           "type": "currency_code",
-          "typeSchema": "reference",
+          "typeSchema": "store",
           "primaryKey": false,
           "notNull": true
         },
@@ -255,21 +255,21 @@
         "default_locale": {
           "name": "default_locale",
           "type": "locale_code",
-          "typeSchema": "reference",
+          "typeSchema": "store",
           "primaryKey": false,
           "notNull": true
         },
         "base_currency": {
           "name": "base_currency",
           "type": "currency_code",
-          "typeSchema": "reference",
+          "typeSchema": "store",
           "primaryKey": false,
           "notNull": true
         },
         "default_currency": {
           "name": "default_currency",
           "type": "currency_code",
-          "typeSchema": "reference",
+          "typeSchema": "store",
           "primaryKey": false,
           "notNull": true
         },
@@ -792,9 +792,9 @@
     }
   },
   "enums": {
-    "reference.currency_code": {
+    "store.currency_code": {
       "name": "currency_code",
-      "schema": "reference",
+      "schema": "store",
       "values": [
         "AED",
         "AFN",
@@ -970,9 +970,9 @@
         "ft"
       ]
     },
-    "reference.locale_code": {
+    "store.locale_code": {
       "name": "locale_code",
-      "schema": "reference",
+      "schema": "store",
       "values": [
         "ak",
         "sq",

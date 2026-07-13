@@ -126,6 +126,8 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
   }
 
   private buildServiceContext(ctx: RunScriptContext): ServiceContext {
+    const defaultLocale = this.resolveDefaultLocale(ctx);
+    const defaultCurrency = this.resolveDefaultCurrency(ctx);
     return new ServiceContext({
       requestId: ctx.requestId ?? `workflow-${Date.now()}`,
       kernel: this,
@@ -138,8 +140,10 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
         organizationId: ctx.organizationId,
         timezone: "UTC",
         email: null,
-        defaultLocale: this.resolveDefaultLocale(ctx),
-        defaultCurrency: "UAH",
+        defaultLocale,
+        defaultCurrency,
+        locales: ctx.locales ?? [defaultLocale],
+        currencies: ctx.currencies ?? (defaultCurrency ? [defaultCurrency] : []),
       },
       user: ctx.userId
         ? { id: ctx.userId, name: "workflow-user" }
@@ -148,11 +152,11 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
   }
 
   private resolveDefaultLocale(ctx: RunScriptContext): string {
-    const defaultLocale = ctx.defaultLocale ?? ctx.locale;
-    if (!defaultLocale) {
-      throw new Error("RunScriptContext requires defaultLocale or locale");
-    }
-    return defaultLocale;
+    return ctx.defaultLocale ?? ctx.locale ?? "";
+  }
+
+  private resolveDefaultCurrency(ctx: RunScriptContext): string {
+    return ctx.defaultCurrency ?? ctx.currencies?.[0] ?? "";
   }
 }
 

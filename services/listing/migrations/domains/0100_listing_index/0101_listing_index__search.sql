@@ -6,7 +6,7 @@ CREATE TABLE listing.product_search_text (
   store_id uuid NOT NULL,
   product_id uuid NOT NULL,
   product_doc_id int NOT NULL,
-  locale varchar(8) NOT NULL,
+  locale "listing"."locale_code" NOT NULL,
   field varchar(32) NOT NULL,
   element_id uuid NOT NULL,
   prepared_text text NOT NULL,
@@ -29,7 +29,6 @@ CREATE TABLE listing.product_search_text (
       AND substring(element_id::text FROM 15 FOR 1) = '7'
     ),
   CONSTRAINT chk_product_search_text_product_doc_positive CHECK (product_doc_id > 0),
-  CONSTRAINT chk_product_search_text_locale CHECK (locale <> '' AND locale = lower(locale)),
   CONSTRAINT chk_product_search_text_field
     CHECK (field IN ('product_title', 'variant_title', 'vendor_name', 'category_name')),
   CONSTRAINT chk_product_search_text_prepared_text
@@ -57,7 +56,7 @@ CREATE TABLE listing.product_search_identifier (
   store_id uuid NOT NULL,
   product_id uuid NOT NULL,
   product_doc_id int NOT NULL,
-  locale varchar(8) NOT NULL,
+  locale "listing"."locale_code" NOT NULL,
   element_id uuid NOT NULL,
   kind varchar(16) NOT NULL,
   normalized_value text NOT NULL,
@@ -75,7 +74,6 @@ CREATE TABLE listing.product_search_identifier (
       AND substring(element_id::text FROM 15 FOR 1) = '7'
     ),
   CONSTRAINT chk_product_search_identifier_product_doc_positive CHECK (product_doc_id > 0),
-  CONSTRAINT chk_product_search_identifier_locale CHECK (locale <> '' AND locale = lower(locale)),
   CONSTRAINT chk_product_search_identifier_kind CHECK (kind = 'SKU'),
   CONSTRAINT chk_product_search_identifier_value
     CHECK (normalized_value <> '' AND char_length(normalized_value) <= 255)
@@ -98,7 +96,7 @@ CREATE INDEX product_search_identifier_product_doc_idx
 
 CREATE TABLE listing.search_term_dictionary (
   store_id uuid NOT NULL,
-  locale varchar(8) NOT NULL,
+  locale "listing"."locale_code" NOT NULL,
   term text NOT NULL,
   code_point_length smallint NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -108,7 +106,6 @@ CREATE TABLE listing.search_term_dictionary (
     UNIQUE (store_id, locale, term),
   CONSTRAINT chk_search_term_dictionary_store_uuid_v7
     CHECK (substring(store_id::text FROM 15 FOR 1) = '7'),
-  CONSTRAINT chk_search_term_dictionary_locale CHECK (locale <> '' AND locale = lower(locale)),
   CONSTRAINT chk_search_term_dictionary_term
     CHECK (term <> '' AND char_length(term) <= 128),
   CONSTRAINT chk_search_term_dictionary_code_point_length
@@ -154,7 +151,7 @@ CREATE TABLE listing.search_settings (
 CREATE TABLE listing.search_synonym_group (
   store_id uuid NOT NULL,
   group_id uuid NOT NULL,
-  locale varchar(8) NOT NULL,
+  locale "listing"."locale_code" NOT NULL,
   name varchar(128) NOT NULL,
   enabled boolean NOT NULL DEFAULT true,
   version int NOT NULL DEFAULT 1,
@@ -174,7 +171,6 @@ CREATE TABLE listing.search_synonym_group (
       AND substring(created_by::text FROM 15 FOR 1) = '7'
       AND substring(updated_by::text FROM 15 FOR 1) = '7'
     ),
-  CONSTRAINT chk_search_synonym_group_locale CHECK (locale <> '' AND locale = lower(locale)),
   CONSTRAINT chk_search_synonym_group_name CHECK (name <> ''),
   CONSTRAINT chk_search_synonym_group_version CHECK (version > 0)
 );
@@ -222,7 +218,7 @@ CREATE INDEX search_synonym_group_enabled_locale_idx
 
 CREATE TABLE listing.search_synonym_claim (
   store_id uuid NOT NULL,
-  locale varchar(8) NOT NULL,
+  locale "listing"."locale_code" NOT NULL,
   normalized_value text NOT NULL,
   group_id uuid NOT NULL,
 
@@ -237,7 +233,6 @@ CREATE TABLE listing.search_synonym_claim (
       substring(store_id::text FROM 15 FOR 1) = '7'
       AND substring(group_id::text FROM 15 FOR 1) = '7'
     ),
-  CONSTRAINT chk_search_synonym_claim_locale CHECK (locale <> '' AND locale = lower(locale)),
   CONSTRAINT chk_search_synonym_claim_value
     CHECK (normalized_value <> '' AND char_length(normalized_value) <= 128)
 );
@@ -245,7 +240,7 @@ CREATE TABLE listing.search_synonym_claim (
 CREATE TABLE listing.search_product_boost (
   store_id uuid NOT NULL,
   boost_id uuid NOT NULL,
-  locale varchar(8) NOT NULL,
+  locale "listing"."locale_code" NOT NULL,
   name varchar(128) NOT NULL,
   enabled boolean NOT NULL DEFAULT true,
   version int NOT NULL DEFAULT 1,
@@ -264,7 +259,6 @@ CREATE TABLE listing.search_product_boost (
       AND substring(created_by::text FROM 15 FOR 1) = '7'
       AND substring(updated_by::text FROM 15 FOR 1) = '7'
     ),
-  CONSTRAINT chk_search_product_boost_locale CHECK (locale <> '' AND locale = lower(locale)),
   CONSTRAINT chk_search_product_boost_name CHECK (name <> ''),
   CONSTRAINT chk_search_product_boost_version CHECK (version > 0)
 );

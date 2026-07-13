@@ -11,7 +11,7 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { catalogSchema } from "./schema";
+import { catalogSchema, localeCodeEnum } from "./schema";
 import { product } from "./products";
 
 export const collection = catalogSchema.table(
@@ -77,7 +77,7 @@ export const collectionTranslation = catalogSchema.table(
     collectionId: uuid("collection_id")
       .notNull()
       .references(() => collection.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     storeId: uuid("store_id").notNull(),
     name: text("name").notNull(),
     descriptionText: text("description_text"),
@@ -102,7 +102,7 @@ export const collectionSeo = catalogSchema.table(
     collectionId: uuid("collection_id")
       .notNull()
       .references(() => collection.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     storeId: uuid("store_id").notNull(),
     seoTitle: varchar("seo_title", { length: 70 }),
     seoDescription: varchar("seo_description", { length: 160 }),

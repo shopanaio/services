@@ -1,5 +1,11 @@
 import { z } from "zod";
-import type { StoreStatus, CurrencyCode, LocaleCode } from "../../../repositories/models/index.js";
+import {
+  CurrencyCodeEnum,
+  LocaleCodeEnum,
+  type StoreStatus,
+  type CurrencyCode,
+  type LocaleCode,
+} from "../../../repositories/models/index.js";
 import type { StorePayload } from "./shared.js";
 
 /**
@@ -27,9 +33,13 @@ export const storeCreateInputSchema = z.object({
   name: storeNameSchema,
   /** Human-readable display name (e.g., "My Store") */
   displayName: z.string().min(1, "Display name is required").max(255),
-  locales: z.array(z.string()).min(1, "At least one locale is required"),
-  currencies: z.array(z.string()).min(1, "At least one currency is required"),
-  defaultCurrency: z.string().min(1, "Default currency is required"),
+  locales: z
+    .array(z.nativeEnum(LocaleCodeEnum))
+    .min(1, "At least one locale is required"),
+  currencies: z
+    .array(z.nativeEnum(CurrencyCodeEnum))
+    .min(1, "At least one currency is required"),
+  defaultCurrency: z.nativeEnum(CurrencyCodeEnum),
   status: z.enum(["active", "inactive"]).optional(),
   timezone: z.string().optional(),
   email: z.string().email("Invalid email format").optional().nullable(),

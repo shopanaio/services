@@ -12,6 +12,7 @@ import {
   WorkflowStep,
 } from "@shopana/shared-kernel";
 import type { Catalog } from "@shopana/broker-types";
+import type { ContextStore } from "@shopana/shared-context";
 import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
@@ -116,14 +117,7 @@ interface ReconciliationResult {
   affectedValueIds: string[];
 }
 
-type StoreContextStore = {
-  id: string;
-  organizationId: string;
-  defaultLocale: string;
-  timezone?: string | null;
-  email?: string | null;
-  defaultCurrency?: string | null;
-};
+type StoreContextStore = ContextStore;
 
 type StoreContextResult = {
   store: StoreContextStore | null;
@@ -558,7 +552,9 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
         timezone: store.timezone ?? "UTC",
         email: store.email ?? null,
         defaultLocale: store.defaultLocale,
-        defaultCurrency: store.defaultCurrency ?? "UAH",
+        defaultCurrency: store.defaultCurrency,
+        locales: store.locales,
+        currencies: store.currencies,
       },
       user: input.userId ? { id: input.userId, name: "workflow-user" } : undefined,
     });

@@ -18,7 +18,7 @@ CREATE INDEX "idx_bundle_price_rule_configuration_id"
 CREATE TABLE "catalog"."bundle_price_rule_amount" (
   "store_id" uuid NOT NULL,
   "price_rule_id" uuid NOT NULL,
-  "currency" "catalog"."currency" NOT NULL,
+  "currency" "catalog"."currency_code" NOT NULL,
   "amount_minor" bigint NOT NULL,
   CONSTRAINT "bundle_price_rule_amount_pkey" PRIMARY KEY ("price_rule_id", "currency"),
   CONSTRAINT "bundle_price_rule_amount_price_rule_id_fk"

@@ -1,6 +1,7 @@
 import { Policy, AuthorizationError } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { StoreUpdateParams, StoreUpdateResult } from "./dto/index.js";
+import { validateStoreSettings } from "./storeSettingsRules.js";
 
 export class StoreUpdateScript extends BaseScript<
   StoreUpdateParams,
@@ -34,6 +35,17 @@ export class StoreUpdateScript extends BaseScript<
       };
     }
 
+    const settingsErrors = validateStoreSettings({
+      locales: params.locales ?? existingStore.locales,
+      currencies: params.currencies ?? existingStore.currencies,
+      defaultLocale: existingStore.defaultLocale,
+      defaultCurrency: existingStore.defaultCurrency,
+      baseCurrency: existingStore.baseCurrency,
+    });
+    if (settingsErrors.length > 0) {
+      return { store: null, userErrors: settingsErrors };
+    }
+
     const {
       name,
       displayName,
@@ -41,6 +53,8 @@ export class StoreUpdateScript extends BaseScript<
       timezone,
       defaultWeightUnit,
       defaultDimensionUnit,
+      locales,
+      currencies,
     } = params;
 
     const store = await this.repository.store.update(params.id, {
@@ -50,6 +64,8 @@ export class StoreUpdateScript extends BaseScript<
       timezone,
       defaultWeightUnit,
       defaultDimensionUnit,
+      locales,
+      currencies,
     });
 
     return {

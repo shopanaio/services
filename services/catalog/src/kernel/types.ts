@@ -44,6 +44,12 @@ export interface RunScriptContext {
   locale?: string;
   /** Store default locale for translation fallback */
   defaultLocale?: string;
+  /** Store default currency for pricing fallback */
+  defaultCurrency?: string;
+  /** Active Store locales when a full Store snapshot is available. */
+  locales?: string[];
+  /** Active Store currencies when a full Store snapshot is available. */
+  currencies?: string[];
   /** User ID if authenticated */
   userId?: string;
   /** Request/correlation ID if available */

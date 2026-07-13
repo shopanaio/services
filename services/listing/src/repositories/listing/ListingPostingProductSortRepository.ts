@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -325,8 +325,8 @@ export class ListingPostingProductSortRepository extends BaseRepository {
   }
 
   private normalizeKey(key: ProductSortKeyInput): ProductSortKeyInput & {
-    locale: string;
-    currency: string;
+    locale: string | null;
+    currency: string | null;
     manualScopeId: string;
   } {
     assertPositiveDocId(key.productDocId, "productDocId");
@@ -346,16 +346,20 @@ export class ListingPostingProductSortRepository extends BaseRepository {
   }
 
   private keyWhere(key: ProductSortKeyInput & {
-    locale: string;
-    currency: string;
+    locale: string | null;
+    currency: string | null;
     manualScopeId: string;
   }) {
     return and(
       eq(listingPostingProductSort.storeId, this.storeId),
       eq(listingPostingProductSort.productDocId, key.productDocId),
       eq(listingPostingProductSort.sortKind, key.sortKind),
-      eq(listingPostingProductSort.locale, key.locale),
-      eq(listingPostingProductSort.currency, key.currency),
+      key.locale === null
+        ? isNull(listingPostingProductSort.locale)
+        : eq(listingPostingProductSort.locale, key.locale),
+      key.currency === null
+        ? isNull(listingPostingProductSort.currency)
+        : eq(listingPostingProductSort.currency, key.currency),
       eq(listingPostingProductSort.manualScopeId, key.manualScopeId)
     );
   }

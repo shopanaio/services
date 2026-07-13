@@ -1,10 +1,10 @@
 import { normalizationFailure } from "../errors.js";
 import { SearchQueryNormalizer } from "./SearchQueryNormalizer.js";
-import type { SupportedSearchLocale } from "./types.js";
+import type { SearchLocale } from "./types.js";
 
 export interface SearchNormalizationCompatibilityCase {
   readonly id: string;
-  readonly locale: SupportedSearchLocale;
+  readonly locale: SearchLocale;
   readonly input: string;
   readonly expectedDisplay: string;
   readonly expectedLookupKey: string;

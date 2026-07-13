@@ -3,7 +3,7 @@
 CREATE TABLE "catalog"."product_translation" (
   "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "name" text NOT NULL,
   "description_text" text,
   "description_html" text,
@@ -27,7 +27,7 @@ CREATE INDEX "idx_product_translation_store_locale"
 CREATE TABLE "catalog"."variant_translation" (
   "store_id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
-  "locale" varchar(8) NOT NULL,
+  "locale" "catalog"."locale_code" NOT NULL,
   "title" text,
   CONSTRAINT "variant_translation_pkey" PRIMARY KEY ("variant_id", "locale"),
   CONSTRAINT "variant_translation_variant_id_fk"

@@ -95,16 +95,10 @@ export class StoreResolver extends BaseResolver<Store, Store> {
   }
 
   async locales(): Promise<LocaleCode[]> {
-    const locales = await this.$ctx.kernel
-      .getServices()
-      .repository.locale.findByStoreId(this.$props.id);
-    return locales?.map((l) => l.code as LocaleCode) ?? [];
+    return this.$props.locales;
   }
 
   async currencies(): Promise<CurrencyCode[]> {
-    const currencies = await this.$ctx.kernel
-      .getServices()
-      .repository.currency.findByStoreId(this.$props.id);
-    return currencies?.map((c) => c.code as CurrencyCode) ?? [];
+    return this.$props.currencies;
   }
 }

@@ -70,8 +70,6 @@ interface VariantBatchValidationResult {
   userErrors: UserError[];
 }
 
-const SUPPORTED_CURRENCIES = new Set(["UAH", "USD", "EUR"]);
-
 /**
  * ProductUpdateWorkflow for Catalog Service.
  * Handles atomic product updates with:
@@ -442,13 +440,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
 
       if (params.pricing) {
-        if (!SUPPORTED_CURRENCIES.has(params.pricing.currency)) {
-          addError(index, {
-            message: "Unsupported currency",
-            code: "INVALID_CURRENCY",
-            field: fieldPath(op, "pricing", "currency"),
-          });
-        }
         if (params.pricing.amountMinor < 0) {
           addError(index, {
             message: "Price amount must be a non-negative value",
@@ -494,16 +485,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             message: "Unit cost must be a non-negative integer",
             code: "INVALID_COST",
             field: fieldPath(op, "inventory", "unitCostMinor"),
-          });
-        }
-        if (
-          params.inventory.costCurrency &&
-          !SUPPORTED_CURRENCIES.has(params.inventory.costCurrency)
-        ) {
-          addError(index, {
-            message: "Unsupported currency",
-            code: "INVALID_CURRENCY",
-            field: fieldPath(op, "inventory", "costCurrency"),
           });
         }
         if (params.inventory.sku) {

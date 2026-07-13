@@ -3,6 +3,7 @@ import {
   type ServiceBroker,
 } from "@shopana/shared-kernel";
 import type { Catalog, Listing } from "@shopana/broker-types";
+import type { ContextStore } from "@shopana/shared-context";
 import type { ListingIndexHydratedSyncAction } from "../../scripts/listingIndexActionTypes.js";
 import { ListingIndexActionScriptError } from "../../scripts/listingIndexActionTypes.js";
 import { mapCatalogProductToListingSnapshot } from "../catalogListingSnapshotMapper.js";
@@ -14,23 +15,13 @@ import {
 import type { ListingIndexProductUpdateBatchInput } from "../ListingBatchProductIndexWorkflow.js";
 
 export type ListingBatchHydrationStepResult = {
-  store: {
-    id: string;
-    organizationId: string;
-    defaultLocale: string;
-    locales: string[];
-  };
+  store: ContextStore;
   found: ListingIndexHydratedSyncAction[];
   missing: Listing.ListingUpdateResult[];
 };
 
 export type ListingBatchGetStoreByIdResult = {
-  store: {
-    id: string;
-    organizationId: string;
-    defaultLocale: string;
-    locales: string[];
-  } | null;
+  store: ContextStore | null;
   userErrors: Array<{
     code: string;
     message: string;

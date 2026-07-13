@@ -4,6 +4,7 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
+import type { CurrencyCode } from "@shopana/shared-references";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
 import { BundleResolver } from "./BundleResolver.js";
@@ -131,7 +132,7 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
     return new PricingWidgetResolver(
       {
         variantId,
-        currency: args.input.currency as "UAH" | "USD" | "EUR",
+        currency: args.input.currency as CurrencyCode,
         from: args.input.from,
         to: args.input.to,
         first: args.input.first,

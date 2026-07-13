@@ -10,6 +10,7 @@ import {
   type PageInfo,
 } from "@shopana/drizzle-query";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
+import type { CurrencyCode } from "@shopana/shared-references";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   itemPricing,
@@ -17,8 +18,6 @@ import {
   type ItemPricing,
   type NewItemPricing,
 } from "../models/index.js";
-
-type Currency = "UAH" | "USD" | "EUR";
 
 const pricingQuery = createQuery(itemPricing).maxLimit(100).defaultLimit(20);
 
@@ -43,17 +42,17 @@ export interface PriceHistoryStatistics {
   minPriceMinor: number;
   maxPriceMinor: number;
   avgPriceMinor: number;
-  currency: Currency;
+  currency: CurrencyCode;
 }
 
 export interface GetCurrentPriceInput {
   variantId: string;
-  currency: Currency;
+  currency: CurrencyCode;
 }
 
 export interface GetPriceHistoryInput {
   variantId: string;
-  currency: Currency;
+  currency: CurrencyCode;
   from: Date;
   to: Date;
   first?: number;
@@ -68,7 +67,7 @@ export interface PriceHistoryConnectionResult {
 
 export interface GetPriceStatisticsInput {
   variantId: string;
-  currency: Currency;
+  currency: CurrencyCode;
   from: Date;
   to: Date;
 }
@@ -90,7 +89,7 @@ export class PricingRepository extends BaseRepository {
   async create(
     variantId: string,
     data: {
-      currency: Currency;
+      currency: CurrencyCode;
       amountMinor: number;
       compareAtMinor?: number | null;
     }
@@ -122,7 +121,7 @@ export class PricingRepository extends BaseRepository {
   async setPrice(
     variantId: string,
     data: {
-      currency: Currency;
+      currency: CurrencyCode;
       amountMinor: number;
       compareAtMinor?: number | null;
     }
