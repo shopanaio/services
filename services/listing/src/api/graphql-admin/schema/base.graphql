@@ -12,17 +12,20 @@ extend schema
     ]
   )
 
-extend type Query {
+type Query {
   """Listing query namespace."""
   listingQuery: ListingQuery!
 }
 
-extend type Mutation {
+type Mutation {
   """Listing mutation namespace."""
   listingMutation: ListingMutation!
 }
 
 type ListingQuery {
+  """Search configuration and diagnostics namespace."""
+  search: ListingSearchQuery!
+
   """Get a node by its global ID."""
   node(id: ID!): Node
 
@@ -121,6 +124,9 @@ type ListingQuery {
 }
 
 type ListingMutation {
+  """Search configuration mutation namespace."""
+  search: ListingSearchMutation!
+
   """
   Create a new facet.
   """

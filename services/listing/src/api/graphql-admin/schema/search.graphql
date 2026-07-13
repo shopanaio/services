@@ -1,13 +1,3 @@
-extend type ListingQuery {
-  """Search configuration and diagnostics namespace."""
-  search: ListingSearchQuery!
-}
-
-extend type ListingMutation {
-  """Search configuration mutation namespace."""
-  search: ListingSearchMutation!
-}
-
 type ListingSearchQuery {
   """Current search settings for the selected store, if initialized."""
   settings: SearchSettings
