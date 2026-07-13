@@ -17,9 +17,20 @@ import type {
 } from "../search/searchRepositoryTypes.js";
 
 export interface ListingSearchIndexProductWriteModel {
-  readonly textElements: readonly SearchTextElementInput[];
-  readonly identifiers: readonly SearchIdentifierInput[];
+  readonly textElements: readonly Omit<SearchTextElementInput, "productDocId">[];
+  readonly identifiers: readonly ListingSearchIndexIdentifierWriteModel[];
   readonly terms: readonly SearchTermInput[];
+}
+
+export interface ListingSearchIndexIdentifierWriteModel
+  extends Omit<SearchIdentifierInput, "productDocId"> {
+  readonly normalizationContractVersion: string;
+  readonly normalizationProfileRevision: string;
+}
+
+export interface ListingSearchIndexAllocatedProductWriteModel {
+  readonly productDocId: number;
+  readonly writeModel: ListingSearchIndexProductWriteModel;
 }
 
 export interface ListingSearchIndexProductSnapshot {
@@ -67,17 +78,19 @@ export class ListingSearchIndexRepository extends BaseRepository {
   @Transactional()
   async replaceForProduct(
     productId: string,
+    productDocId: number,
     writeModel: ListingSearchIndexProductWriteModel,
   ): Promise<ListingSearchIndexWriteResult> {
     this.assertProductWriteModel(productId, writeModel);
+    const allocated = this.attachProductDocId(productDocId, writeModel);
 
     const textElements = await this.textElements.replaceForProduct(
       productId,
-      writeModel.textElements,
+      allocated.textElements,
     );
     const identifiers = await this.identifiers.replaceForProduct(
       productId,
-      writeModel.identifiers,
+      allocated.identifiers,
     );
     const terms = await this.terms.upsertMany(writeModel.terms);
 
@@ -88,7 +101,7 @@ export class ListingSearchIndexRepository extends BaseRepository {
   async replaceForProducts(
     writeModelsByProductId: ReadonlyMap<
       string,
-      ListingSearchIndexProductWriteModel
+      ListingSearchIndexAllocatedProductWriteModel
     >,
   ): Promise<ListingSearchIndexWriteResult> {
     if (writeModelsByProductId.size === 0) {
@@ -105,10 +118,12 @@ export class ListingSearchIndexRepository extends BaseRepository {
     >();
     const terms: SearchTermInput[] = [];
 
-    for (const [productId, writeModel] of writeModelsByProductId) {
+    for (const [productId, allocatedWriteModel] of writeModelsByProductId) {
+      const { productDocId, writeModel } = allocatedWriteModel;
       this.assertProductWriteModel(productId, writeModel);
-      textElementsByProductId.set(productId, writeModel.textElements);
-      identifiersByProductId.set(productId, writeModel.identifiers);
+      const allocated = this.attachProductDocId(productDocId, writeModel);
+      textElementsByProductId.set(productId, allocated.textElements);
+      identifiersByProductId.set(productId, allocated.identifiers);
       terms.push(...writeModel.terms);
     }
 
@@ -153,26 +168,12 @@ export class ListingSearchIndexRepository extends BaseRepository {
     productId: string,
     writeModel: ListingSearchIndexProductWriteModel,
   ): void {
-    let productDocId: number | null = null;
-    const assertProductDocId = (value: number): void => {
-      if (productDocId === null) {
-        productDocId = value;
-        return;
-      }
-      if (productDocId !== value) {
-        throw new Error(
-          "Search index rows for one product must use one productDocId",
-        );
-      }
-    };
-
     for (const row of writeModel.textElements) {
       if (row.productId !== productId) {
         throw new Error(
           "Search text element productId must match listing write key",
         );
       }
-      assertProductDocId(row.productDocId);
     }
     for (const row of writeModel.identifiers) {
       if (row.productId !== productId) {
@@ -180,7 +181,33 @@ export class ListingSearchIndexRepository extends BaseRepository {
           "Search identifier productId must match listing write key",
         );
       }
-      assertProductDocId(row.productDocId);
     }
+  }
+
+  private attachProductDocId(
+    productDocId: number,
+    writeModel: ListingSearchIndexProductWriteModel,
+  ): {
+    textElements: SearchTextElementInput[];
+    identifiers: SearchIdentifierInput[];
+  } {
+    if (!Number.isInteger(productDocId) || productDocId <= 0) {
+      throw new Error("Search index productDocId must be a positive integer");
+    }
+
+    return {
+      textElements: writeModel.textElements.map((row) => ({
+        ...row,
+        productDocId,
+      })),
+      identifiers: writeModel.identifiers.map((row) => ({
+        productId: row.productId,
+        productDocId,
+        locale: row.locale,
+        elementId: row.elementId,
+        kind: row.kind,
+        normalizedValue: row.normalizedValue,
+      })),
+    };
   }
 }

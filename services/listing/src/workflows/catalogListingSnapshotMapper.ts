@@ -3,6 +3,7 @@ import type { Catalog, Listing } from "@shopana/broker-types";
 export function mapCatalogProductToListingSnapshot(input: {
   product: Catalog.CatalogProductSnapshot;
   defaultLocale: string;
+  locales: readonly string[];
 }): Listing.ListingSellableItemSnapshot {
   const product = input.product;
   const entityType: Listing.ListingSellableItemEntityType =
@@ -18,6 +19,7 @@ export function mapCatalogProductToListingSnapshot(input: {
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
     content: mapContent(product, input.defaultLocale),
+    searchContent: mapSearchContent(product, input.locales),
     availability: {
       availableForSale: product.availability.availableForSale,
       totalQuantity: product.availability.totalQuantity ?? null,
@@ -155,6 +157,7 @@ function mapVariant(
 ): Listing.ListingVariantSnapshot {
   return {
     id: variant.id,
+    handle: variant.handle,
     status: "active",
     availability: {
       availableForSale: variant.availability.availableForSale,
@@ -181,6 +184,63 @@ function mapVariant(
       }))
       .sort(compareFacetSelections),
   };
+}
+
+function mapSearchContent(
+  product: Catalog.CatalogProductSnapshot,
+  locales: readonly string[]
+): Listing.ListingSearchContentSnapshot {
+  const productTitles = new Map(
+    product.content.map((content) => [content.locale, content.title])
+  );
+  const localeSnapshots = [...new Set(locales)]
+    .sort((left, right) => left.localeCompare(right))
+    .map((locale) => ({
+      locale,
+      productTitle: productTitles.has(locale)
+        ? { elementId: product.id, value: productTitles.get(locale)! }
+        : null,
+      variantTitles: product.variants
+        .flatMap((variant) =>
+          variant.content
+            .filter((content) => content.locale === locale)
+            .map((content) => ({
+              elementId: variant.id,
+              value: content.title,
+            }))
+        )
+        .sort(compareSearchValues),
+      categoryNames: product.categories
+        .flatMap((category) =>
+          category.content
+            .filter((content) => content.locale === locale)
+            .map((content) => ({
+              elementId: category.id,
+              value: content.name,
+            }))
+        )
+        .sort(compareSearchValues),
+    }));
+
+  return {
+    locales: localeSnapshots,
+    vendor: product.vendor
+      ? { elementId: product.vendor.id, value: product.vendor.name }
+      : null,
+    skus: product.variants
+      .flatMap((variant) => {
+        const sku = variant.inventoryItem?.sku;
+        return sku ? [{ elementId: variant.id, value: sku }] : [];
+      })
+      .sort(compareSearchValues),
+  };
+}
+
+function compareSearchValues(
+  left: Listing.ListingSearchTextValueSnapshot,
+  right: Listing.ListingSearchTextValueSnapshot
+): number {
+  return left.elementId.localeCompare(right.elementId) || left.value.localeCompare(right.value);
 }
 
 function compareFacetSelections(

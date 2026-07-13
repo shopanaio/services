@@ -51,6 +51,7 @@ type GetStoreByIdResult = {
     id: string;
     organizationId: string;
     defaultLocale: string;
+    locales: string[];
   } | null;
   userErrors: Array<{
     code: string;
@@ -429,6 +430,7 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
       item: mapCatalogProductToListingSnapshot({
         product,
         defaultLocale: storeResult.store.defaultLocale,
+        locales: storeResult.store.locales,
       }),
     };
 

@@ -97,11 +97,30 @@ export interface ListingFacetValueRef {
 
 export interface ListingVariantSnapshot {
   id: string;
+  handle: string;
   productRevision?: number;
   status: "active" | "inactive" | "archived";
   availability: ListingAvailabilitySnapshot;
   prices: ListingVariantPriceSnapshot[];
   facets: ListingFacetSelectionSnapshot[];
+}
+
+export interface ListingSearchTextValueSnapshot {
+  elementId: string;
+  value: string;
+}
+
+export interface ListingSearchLocaleContentSnapshot {
+  locale: string;
+  productTitle: ListingSearchTextValueSnapshot | null;
+  variantTitles: ListingSearchTextValueSnapshot[];
+  categoryNames: ListingSearchTextValueSnapshot[];
+}
+
+export interface ListingSearchContentSnapshot {
+  locales: ListingSearchLocaleContentSnapshot[];
+  vendor: ListingSearchTextValueSnapshot | null;
+  skus: ListingSearchTextValueSnapshot[];
 }
 
 export interface ListingSellableItemSnapshot extends ListingSellableItemRef {
@@ -112,6 +131,7 @@ export interface ListingSellableItemSnapshot extends ListingSellableItemRef {
   createdAt: string;
   updatedAt: string;
   content: ListingContentSnapshot;
+  searchContent: ListingSearchContentSnapshot;
   availability: ListingAvailabilitySnapshot;
   priceRanges: ListingPriceRangeSnapshot[];
   vendorId?: string | null;

@@ -18,6 +18,7 @@ export type ListingBatchHydrationStepResult = {
     id: string;
     organizationId: string;
     defaultLocale: string;
+    locales: string[];
   };
   found: ListingIndexHydratedSyncAction[];
   missing: Listing.ListingUpdateResult[];
@@ -28,6 +29,7 @@ export type ListingBatchGetStoreByIdResult = {
     id: string;
     organizationId: string;
     defaultLocale: string;
+    locales: string[];
   } | null;
   userErrors: Array<{
     code: string;
@@ -161,6 +163,7 @@ export async function fetchCatalogListingSnapshotsBatch(input: {
       item: mapCatalogProductToListingSnapshot({
         product,
         defaultLocale: storeResult.store.defaultLocale,
+        locales: storeResult.store.locales,
       }),
     };
 

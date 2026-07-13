@@ -125,6 +125,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
     if (writeModel.searchIndex) {
       await this.repository.listingSearchIndex.replaceForProduct(
         productId,
+        productDocId,
         writeModel.searchIndex
       );
     }

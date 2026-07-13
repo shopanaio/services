@@ -94,7 +94,7 @@ export type ListingSyncWriteModelJson = {
   productKind: ProductKind;
   productPrices: readonly ProductListingPriceRowInput[];
   productSortRows: readonly Omit<ProductSortRowInput, "productDocId">[];
-  /** Populated by the application integration layer after bounded normalization. */
+  /** Null preserves existing rows; an explicit payload replaces all product-bound rows. */
   searchIndex: ListingSearchIndexProductWriteModel | null;
   productPostingValueKeys: {
     category: readonly string[];

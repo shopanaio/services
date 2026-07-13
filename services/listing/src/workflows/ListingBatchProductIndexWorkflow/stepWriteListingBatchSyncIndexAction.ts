@@ -14,7 +14,7 @@ import type {
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
 } from "../../repositories/listing/listingRepositoryTypes.js";
-import type { ListingSearchIndexProductWriteModel } from "../../repositories/listing/ListingSearchIndexRepository.js";
+import type { ListingSearchIndexAllocatedProductWriteModel } from "../../repositories/listing/ListingSearchIndexRepository.js";
 import type { VariantListingIndex } from "../../repositories/models/index.js";
 import type {
   ListingPreparedSyncAction,
@@ -65,7 +65,7 @@ type MergedBatchSyncPayload = {
   productBootstrapRows: ProductListingIndexBootstrapInput[];
   productRows: ProductListingIndexUpsertInput[];
   productPricesByProductId: Map<string, ProductListingPriceRowInput[]>;
-  searchIndexByProductId: Map<string, ListingSearchIndexProductWriteModel>;
+  searchIndexByProductId: Map<string, ListingSearchIndexAllocatedProductWriteModel>;
   productSortRowsByProductDocId: Map<number, ProductSortRowInput[]>;
   productMemberships: ProductMembershipReplacement[];
   variantRows: VariantListingIndexUpsertInput[];
@@ -281,7 +281,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
     >();
     const searchIndexByProductId = new Map<
       string,
-      ListingSearchIndexProductWriteModel
+      ListingSearchIndexAllocatedProductWriteModel
     >();
     const productSortRowsByProductDocId = new Map<
       number,
@@ -326,7 +326,10 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
         [...writeModel.productPrices].sort(compareCurrencyRows)
       );
       if (writeModel.searchIndex) {
-        searchIndexByProductId.set(productId, writeModel.searchIndex);
+        searchIndexByProductId.set(productId, {
+          productDocId,
+          writeModel: writeModel.searchIndex,
+        });
       }
       productSortRowsByProductDocId.set(
         productDocId,

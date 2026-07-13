@@ -13,11 +13,17 @@ import {
   materializeListingVariantTerms,
   type ListingVariantTerm,
 } from "../listing/variantTerms/index.js";
+import { SearchQueryNormalizer } from "../search/normalization/SearchQueryNormalizer.js";
+import type { SearchDocumentElementInput } from "../search/normalization/types.js";
+import type { SearchTextField } from "../repositories/search/searchRepositoryTypes.js";
+import type { ListingSearchIndexProductWriteModel } from "../repositories/listing/ListingSearchIndexRepository.js";
 
 export class ListingBuildSyncWriteModelScript extends BaseScript<
   { action: ListingPreparedSyncAction },
   ListingSyncWriteModel
 > {
+  private readonly searchNormalizer = new SearchQueryNormalizer();
+
   protected async execute(input: {
     action: ListingPreparedSyncAction;
   }): Promise<ListingSyncWriteModel> {
@@ -72,10 +78,7 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
         }))
         .sort((left, right) => left.currency.localeCompare(right.currency)),
       productSortRows: buildProductSortRows(item, productAvailable),
-      // Search content is populated by the integration layer after bounded
-      // normalization. Null means "not prepared" and must preserve existing
-      // search rows; an explicit empty payload means "replace with no rows".
-      searchIndex: null,
+      searchIndex: buildSearchIndex(item, this.searchNormalizer),
       productPostingValueKeys: {
         category: item.scopes
           .filter((scope) => scope.scopeType === "category")
@@ -133,6 +136,173 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
   protected handleError(error: unknown): never {
     throw error;
   }
+}
+
+function buildSearchIndex(
+  item: ListingPreparedSyncAction["params"]["item"],
+  normalizer: SearchQueryNormalizer
+): ListingSearchIndexProductWriteModel {
+  const documentInputs: SearchDocumentElementInput[] = [];
+  const seenDocumentKeys = new Set<string>();
+  const locales = new Set<string>();
+  const variantIds = new Set(item.variants.map((variant) => variant.id));
+  const categoryIds = new Set(
+    item.scopes
+      .filter((scope) => scope.scopeType === "category")
+      .map((scope) => scope.categoryId)
+  );
+
+  for (const localeContent of item.searchContent.locales) {
+    const locale = localeContent.locale.trim();
+    if (!locale) {
+      throw new Error("Search content locale must not be empty");
+    }
+    if (locales.has(locale)) {
+      throw new Error(`Duplicate search content locale: ${locale}`);
+    }
+    locales.add(locale);
+
+    if (localeContent.productTitle) {
+      if (localeContent.productTitle.elementId !== item.id) {
+        throw new Error("Product title search elementId must match product id");
+      }
+      addSearchDocumentInput({
+        inputs: documentInputs,
+        seenKeys: seenDocumentKeys,
+        locale,
+        field: "product_title",
+        source: localeContent.productTitle,
+      });
+    }
+    for (const source of localeContent.variantTitles) {
+      if (!variantIds.has(source.elementId)) {
+        throw new Error(`Unknown variant title search elementId: ${source.elementId}`);
+      }
+      addSearchDocumentInput({
+        inputs: documentInputs,
+        seenKeys: seenDocumentKeys,
+        locale,
+        field: "variant_title",
+        source,
+      });
+    }
+    if (item.searchContent.vendor) {
+      if (
+        item.vendorId &&
+        item.searchContent.vendor.elementId !== item.vendorId
+      ) {
+        throw new Error("Vendor search elementId must match product vendorId");
+      }
+      addSearchDocumentInput({
+        inputs: documentInputs,
+        seenKeys: seenDocumentKeys,
+        locale,
+        field: "vendor_name",
+        source: item.searchContent.vendor,
+      });
+    }
+    for (const source of localeContent.categoryNames) {
+      if (!categoryIds.has(source.elementId)) {
+        throw new Error(`Unknown category name search elementId: ${source.elementId}`);
+      }
+      addSearchDocumentInput({
+        inputs: documentInputs,
+        seenKeys: seenDocumentKeys,
+        locale,
+        field: "category_name",
+        source,
+      });
+    }
+  }
+
+  const normalizedElements = normalizer.normalizeDocumentBatch(documentInputs);
+  const textElements = normalizedElements.map((element) => ({
+    productId: item.id,
+    locale: element.locale,
+    field: element.field,
+    elementId: element.elementId,
+    preparedText: element.preparedText,
+    normalizationContractVersion: element.normalizationContractVersion,
+    normalizationProfileRevision: element.normalizationProfileRevision,
+  }));
+  const identifiers = [...locales]
+    .sort(compareStrings)
+    .flatMap((locale) =>
+      item.searchContent.skus.map((source) => {
+        if (!variantIds.has(source.elementId)) {
+          throw new Error(`Unknown SKU search elementId: ${source.elementId}`);
+        }
+        const normalized = normalizer.normalizeIdentifier({
+          locale,
+          value: requiredSearchValue(source.value, "SKU"),
+        });
+        return {
+          productId: item.id,
+          locale,
+          elementId: source.elementId,
+          kind: "SKU" as const,
+          normalizedValue: normalized.normalizedValue,
+          normalizationContractVersion: normalized.normalizationContractVersion,
+          normalizationProfileRevision: normalized.normalizationProfileRevision,
+        };
+      })
+    )
+    .sort(
+      (left, right) =>
+        left.locale.localeCompare(right.locale) ||
+        left.elementId.localeCompare(right.elementId)
+    );
+  const terms = [
+    ...new Map(
+      normalizedElements.flatMap((element) =>
+        element.surfaceTerms.map((term) => [
+          JSON.stringify([element.locale, term]),
+          { locale: element.locale, term },
+        ] as const)
+      )
+    ).values(),
+  ].sort(
+    (left, right) =>
+      left.locale.localeCompare(right.locale) || left.term.localeCompare(right.term)
+  );
+
+  return { textElements, identifiers, terms };
+}
+
+function addSearchDocumentInput(input: {
+  inputs: SearchDocumentElementInput[];
+  seenKeys: Set<string>;
+  locale: string;
+  field: SearchTextField;
+  source: { elementId: string; value: string };
+}): void {
+  const elementId = input.source.elementId.trim();
+  if (!elementId) {
+    throw new Error(`${input.field} search elementId must not be empty`);
+  }
+  const key = JSON.stringify([input.locale, input.field, elementId]);
+  if (input.seenKeys.has(key)) {
+    throw new Error(`Duplicate search content element: ${key}`);
+  }
+  input.seenKeys.add(key);
+  input.inputs.push({
+    locale: input.locale,
+    field: input.field,
+    elementId,
+    sourceText: requiredSearchValue(input.source.value, input.field),
+  });
+}
+
+function requiredSearchValue(value: string, label: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new Error(`${label} search value must not be empty`);
+  }
+  return trimmed;
+}
+
+function compareStrings(left: string, right: string): number {
+  return left.localeCompare(right);
 }
 
 function buildProductSortRows(
