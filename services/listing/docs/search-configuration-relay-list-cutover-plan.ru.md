@@ -147,6 +147,7 @@ services/listing/src/api/graphql-admin/schema/__generated__/filters.graphql
 Изменяемые source files:
 
 ```text
+packages/cli/src/scripts/codegen.ts
 services/listing/src/repositories/models/index.ts
 services/listing/src/repositories/search/SearchSynonymRepository.ts
 services/listing/src/repositories/search/SearchProductBoostRepository.ts
@@ -417,9 +418,15 @@ Default order:
 ```ts
 [
   { field: "updatedAt", direction: "desc" },
-  { field: "id", direction: "desc" },
 ]
 ```
+
+`id` здесь намеренно отсутствует: relay builder добавляет configured
+`tieBreaker` самостоятельно.
+
+Существующий `@shopana/drizzle-query` relay contract уже корректно обрабатывает
+configured tie-breaker и explicit public sorting по `id`; менять package в этом
+cutover не нужно.
 
 Pagination normalization до вызова relay builder:
 
@@ -509,9 +516,11 @@ Default order идентичен synonym connection:
 ```ts
 [
   { field: "updatedAt", direction: "desc" },
-  { field: "id", direction: "desc" },
 ]
 ```
+
+Фактический `id DESC` добавляется relay builder как configured tie-breaker по
+описанному выше существующему contract.
 
 ### Connection result
 
@@ -923,10 +932,23 @@ __generated__/filters.graphql
 
 Generation order обязателен:
 
-1. Сгенерировать listing filter SDL из relay queries.
-2. Запустить listing service GraphQL codegen через shopana-cli.
-3. Export/compose Admin schema через shopana-cli.
-4. Запустить Admin GraphQL codegen approved project flow.
+1. Запустить listing service codegen через shopana-cli. Одна команда сначала
+   генерирует listing filter SDL из relay queries, затем запускает service
+   GraphQL codegen.
+2. Export/compose Admin schema через shopana-cli.
+3. Запустить Admin GraphQL codegen approved project flow.
+
+Для этого расширить `packages/cli/src/scripts/codegen.ts`: перед
+`graphql-codegen` CLI проверяет наличие service-local
+`scripts/generate-filters.ts` и, если файл существует, запускает его через
+workspace `tsx` с `cwd` соответствующего service. Ошибка filter generation
+останавливает codegen этого service; запуск `graphql-codegen` со stale generated
+SDL запрещён.
+
+Это общий optional pre-codegen hook: services без
+`scripts/generate-filters.ts` сохраняют текущий flow. Для Listing отдельная
+ручная команда генерации не является частью acceptance — canonical entrypoint
+для обоих этапов один, через shopana-cli.
 
 Не редактировать вручную:
 
@@ -946,16 +968,17 @@ Generation order обязателен:
 3. Добавить relay query builders и connection result types.
 4. Реализовать repository `getConnection()` и exact product scope.
 5. Добавить filter generator и generated SDL.
-6. Переключить GraphQL SDL с offset/nodes на Relay edges/pageInfo.
-7. Добавить connection resolvers и registry factories.
-8. Переключить `ListingSearchQueryResolver` на connections.
-9. Удалить legacy `listPage`, page interfaces и offset validation.
-10. Запустить service codegen, schema export/composition и Admin codegen.
-11. Применить migration к disposable dev database через shopana-cli и выполнить
+6. Добавить optional filter-generation pre-hook в shopana-cli service codegen.
+7. Переключить GraphQL SDL с offset/nodes на Relay edges/pageInfo.
+8. Добавить connection resolvers и registry factories.
+9. Переключить `ListingSearchQueryResolver` на connections.
+10. Удалить legacy `listPage`, page interfaces и offset validation.
+11. Запустить service codegen, schema export/composition и Admin codegen.
+12. Применить migration к disposable dev database через shopana-cli и выполнить
     manual GraphQL verification.
-12. Выполнить build через shopana-cli, поскольку cutover создаёт новую версию
+13. Выполнить build через shopana-cli, поскольку cutover создаёт новую версию
     backend/schema code.
-13. Проверить diff и создать один commit, содержащий весь cutover.
+14. Проверить diff и создать один commit, содержащий весь cutover.
 
 Запрещено добавлять:
 
@@ -983,7 +1006,9 @@ disposable database. Dual schema не поддерживается.
 - `storeId`, JSON aggregates и UUID array не попали в public generated inputs;
 - repositories используют `this.connection`;
 - `execute` и `count` получают один `mergedWhere`;
-- product scope содержит `storeId`.
+- product scope содержит `storeId`;
+- shopana-cli запускает service-local filter generator до GraphQL codegen и не
+  продолжает codegen после ошибки генерации.
 
 ### Migration/view checks
 
@@ -1001,7 +1026,8 @@ disposable database. Dual schema не поддерживается.
 1. Default first page обеих connections.
 2. Forward pagination `first/after` без повторов и пропусков.
 3. Backward pagination `last/before`.
-4. Sort по `name ASC` и `updatedAt DESC`.
+4. Sort по `name ASC`, `updatedAt DESC` и explicit `id ASC`; pagination каждого
+   sort не содержит повторов и пропусков.
 5. Synonym filter по `name`.
 6. Synonym filter по `terms`.
 7. Boost filter по `name`.
@@ -1012,9 +1038,13 @@ disposable database. Dual schema не поддерживается.
 12. Text search строится через `_or` name/terms или name/phrases.
 13. `totalCount` совпадает с полным filtered set, а не с размером page или всеми
     store rows.
-14. Cursor от другого sort/filter/product scope игнорируется как seek cursor;
-    query возвращает страницу нового request и repository result фиксирует
-    `filtersChanged = true` согласно drizzle relay contract.
+14. Cursor от другого sort/filter/product scope игнорируется как seek cursor:
+    через GraphQL наблюдается первая forward page или последняя backward page
+    нового request scope; stale seek position не применяется. Для forward
+    request `hasPreviousPage = false`, для backward request
+    `hasNextPage = false`; возвращённые start/end cursors принадлежат новому
+    filter fingerprint и продолжают pagination нового scope при следующем
+    запросе.
 15. Другой store не видит rows, counts или product membership текущего store.
 16. Singular queries и `settingsUpdate` mutation продолжают работать.
 
@@ -1043,7 +1073,8 @@ breaking cutover build обязателен в финальной проверк
 - Public `where` не может переопределить tenant scope.
 - `execute()` и `count()` используют один merged filter.
 - Default order стабилен через `updatedAt DESC, id DESC`.
-- Public custom order остаётся cursor-stable через `id` tie-breaker.
+- Public custom order остаётся cursor-stable через существующий relay
+  `id` tie-breaker contract.
 - Exact product scope принимает Product global IDs и работает по association
   table, не по serialized text.
 
@@ -1062,6 +1093,9 @@ breaking cutover build обязателен в финальной проверк
 ### Generation/operations
 
 - Generated SDL/TS/Admin types получены генераторами, не ручными edits.
+- Listing filter SDL и service GraphQL types воспроизводимо генерируются одним
+  shopana-cli codegen flow; GraphQL codegen не запускается после ошибки filter
+  generation.
 - Admin supergraph composition проходит с новым breaking contract.
 - Listing build проходит через shopana-cli.
 - `test` и `tsc` не запускались.
