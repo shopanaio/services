@@ -11,9 +11,37 @@ registerModule({
   },
   items: [
     {
-      key: "search-page",
-      path: "/:orgName/:storeName/search",
-      component: dynamic(() => import("@/domains/discovery/search/page/page")),
+      key: "search-product-boosts",
+      path: "/:orgName/:storeName/search/product-boosts",
+      component: dynamic(
+        () => import("@/domains/discovery/search/product-boosts/page/page"),
+      ),
+      sidebar: {
+        label: "Product boosts",
+        order: 1,
+      },
+    },
+    {
+      key: "search-synonyms",
+      path: "/:orgName/:storeName/search/synonyms",
+      component: dynamic(
+        () => import("@/domains/discovery/search/synonyms/page/page"),
+      ),
+      sidebar: {
+        label: "Synonyms",
+        order: 2,
+      },
+    },
+    {
+      key: "search-settings",
+      path: "/:orgName/:storeName/search/settings",
+      component: dynamic(
+        () => import("@/domains/discovery/search/settings/page/page"),
+      ),
+      sidebar: {
+        label: "Settings",
+        order: 3,
+      },
     },
   ],
 });

@@ -2,9 +2,9 @@
 
 import { DataLayout } from "@/layouts/data";
 
-export default function SearchPage() {
+export default function ProductBoostsPage() {
   return (
-    <DataLayout name="search" title="Search">
+    <DataLayout name="product-boosts" title="Product boosts">
       {null}
     </DataLayout>
   );
