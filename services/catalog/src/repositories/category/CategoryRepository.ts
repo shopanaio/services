@@ -1,5 +1,4 @@
 import { and, eq, inArray, isNull, count, sql, asc, desc } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import {
   createQuery,
   createRelayQuery,
@@ -231,7 +230,7 @@ export class CategoryRepository extends BaseRepository {
     parentId?: string | null;
     publishedAt?: Date | string | null;
   }): Promise<Category> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
     const now = new Date().toISOString();
 
     // Calculate path and depth

@@ -1,5 +1,4 @@
 import { and, eq, inArray, count } from "drizzle-orm";
-import { v7 as uuidv7 } from "uuid";
 import {
   createQuery,
   createRelayQuery,
@@ -74,12 +73,13 @@ export class StockRepository extends BaseRepository {
     quantity: number,
   ): Promise<WarehouseStock> {
     const now = new Date().toISOString();
+    const id = await this.generateUuidV7();
 
     const result = await this.connection
       .insert(warehouseStock)
       .values({
         storeId: this.storeId,
-        id: uuidv7(),
+        id,
         variantId,
         warehouseId,
         quantityOnHand: quantity,
@@ -190,7 +190,7 @@ export class StockRepository extends BaseRepository {
       newUnavailable <= newOnHand;
 
     // 5. Insert stock change record
-    const changeId = uuidv7();
+    const changeId = await this.generateUuidV7();
     await this.connection.insert(stockChanges).values({
       id: changeId,
       storeId: this.storeId,
@@ -221,7 +221,7 @@ export class StockRepository extends BaseRepository {
       if (currentStock.length === 0) {
         // Insert new stock record
         await this.connection.insert(warehouseStock).values({
-          id: uuidv7(),
+          id: await this.generateUuidV7(),
           storeId: this.storeId,
           warehouseId: input.warehouseId,
           variantId: input.variantId,

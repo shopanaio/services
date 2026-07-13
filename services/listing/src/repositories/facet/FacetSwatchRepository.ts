@@ -1,5 +1,4 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   facetSwatch,
@@ -43,7 +42,7 @@ export class FacetSwatchRepository extends BaseRepository {
     metadata?: unknown;
   }): Promise<FacetSwatch> {
     const insert: NewFacetSwatch = {
-      id: randomUUID(),
+      id: await this.generateUuidV7(),
       storeId: this.storeId,
       swatchType: data.swatchType,
       colorOne: data.colorOne ?? null,

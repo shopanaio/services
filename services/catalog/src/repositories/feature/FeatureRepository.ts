@@ -1,5 +1,4 @@
 import { and, eq, inArray, notInArray } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   productFeature,
@@ -111,7 +110,7 @@ export class FeatureRepository extends BaseRepository {
       index: number[];
     }
   ): Promise<ProductFeature> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
 
     const newFeature: NewProductFeature = {
       id,
@@ -305,7 +304,7 @@ export class FeatureRepository extends BaseRepository {
     featureId: string,
     data: { slug: string; index: number }
   ): Promise<ProductFeatureValue> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
 
     const newValue: NewProductFeatureValue = {
       id,

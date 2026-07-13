@@ -1093,7 +1093,7 @@ transaction-aware `this.connection` и context store.
 
 Каждая mutation до transaction выполняет bounded normalization и внешнюю
 validation, затем в короткой transaction блокирует только изменяемый resource,
-проверяет его optimistic `version`, записывает rows и audit. После commit
+проверяет его optimistic `version` и записывает rows. После commit
 инвалидируется только соответствующий cache key:
 
 ```text
@@ -1125,11 +1125,7 @@ normalized whole query, подготовленный тем же текущим 
 Product проверяется tenant-scoped через внешний Catalog contract; cross-service
 FK отсутствует. Rules объединяют product set без stacking.
 
-### 3.4. Audit
-
-Append-only `search_configuration_audit` хранит resource type/id/version,
-action, before/after JSON, actor, request и timestamp. Raw query, SQL, lexemes,
-AST и headers не сохраняются.
+### 3.4. Operational status
 
 Canonical item freshness остаётся в `listing_index_item_state`. Operational
 status вычисляется on demand из canonical item/workflow state, доступности
@@ -1181,7 +1177,7 @@ action-specific required/forbidden fields и преобразует секцио
 `listing.searchSettingsUpdate` с request/payload-based idempotency. Batch
 validation и aggregate version CAS выполняются до operations. Scripts не
 увеличивают aggregate version; их короткие локальные repository transactions и
-audit сохраняются. Общей database transaction на workflow нет.
+изменения сохраняются независимо. Общей database transaction на workflow нет.
 
 ## 5. GraphQL backend Listing
 
@@ -1321,15 +1317,14 @@ failed transaction сохраняет previous search rows/item state; engine н
 
 ### Этап 3. Configuration persistence
 
-1. Создать settings, synonym, boost и audit tables; configuration state,
+1. Создать settings, synonym и boost tables; configuration state,
    revision, apply job и persisted runtime snapshot не создавать.
 2. Реализовать repositories через `this.connection` и context store.
 3. Реализовать store-scoped aggregate version CAS в
    `SearchSettingsRepository` и короткую локальную transaction для каждой
    settings, synonym group и product boost operation.
 4. Добавить batch normalization/validation до CAS.
-5. Записывать audit в той же локальной operation transaction.
-6. Опубликовать единую GraphQL `settingsUpdate` mutation с operation results.
+5. Опубликовать единую GraphQL `settingsUpdate` mutation с operation results.
 
 ### Этап 5. Normalization pipeline, PRIMARY planner и PostgreSQL FTS compiler
 
@@ -1508,9 +1503,8 @@ error — нет.
 - runtime search tables не partitioned, а storefront plans подтверждают
   tenant-scoped composite GIN scan по bound `store_id`;
 - единая configuration mutation использует предварительную batch-validation,
-  store-scoped aggregate CAS, последовательные operations и partial failure;
-  audit остаётся в локальной resource transaction, а cache invalidation
-  выполняется отдельным replay-safe DBOS step;
+  store-scoped aggregate CAS, последовательные operations и partial failure, а
+  cache invalidation выполняется отдельным replay-safe DBOS step;
 - persisted global configuration snapshot/apply state отсутствует; document sync
   использует canonical Listing item workflow без дублирующего freshness state;
 - optimistic conflict и stale item event не перезаписывают новое состояние;

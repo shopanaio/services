@@ -28,7 +28,7 @@ CREATE INDEX "idx_warehouse_stock_variant"
   ON "catalog"."warehouse_stock" ("store_id", "variant_id");
 
 CREATE TABLE "catalog"."stock_changes" (
-  "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+  "id" uuid NOT NULL DEFAULT uuidv7(),
   "seq" bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   "store_id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,

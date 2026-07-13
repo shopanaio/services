@@ -1,13 +1,10 @@
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, asc, count, eq, getTableColumns, inArray } from "drizzle-orm";
-import { v7 as uuidv7 } from "uuid";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  searchConfigurationAudit,
   searchProductBoost,
   searchProductBoostPhrase,
   searchProductBoostProduct,
-  type NewSearchConfigurationAudit,
   type NewSearchProductBoost,
   type NewSearchProductBoostPhrase,
   type NewSearchProductBoostProduct,
@@ -18,13 +15,13 @@ import {
 import {
   assertNonEmpty,
   assertUnique,
-  type SearchAuditInput,
   type SearchOptimisticMutationResult,
   type SearchProductBoostAggregate,
   type SearchProductBoostPhraseInput,
 } from "./searchRepositoryTypes.js";
 
-export interface SearchProductBoostCreateInput extends SearchAuditInput {
+export interface SearchProductBoostCreateInput {
+  actorId: string;
   locale: string;
   name: string;
   enabled: boolean;
@@ -37,7 +34,7 @@ export interface SearchProductBoostUpdateInput
   boostId: string;
 }
 
-export interface SearchProductBoostDeleteInput extends SearchAuditInput {
+export interface SearchProductBoostDeleteInput {
   boostId: string;
 }
 
@@ -189,7 +186,7 @@ export class SearchProductBoostRepository extends BaseRepository {
   ): Promise<SearchProductBoostAggregate> {
     this.assertWriteInput(input);
     const now = new Date().toISOString();
-    const boostId = uuidv7();
+    const boostId = await this.generateUuidV7();
     const row: NewSearchProductBoost = {
       storeId: this.storeId,
       boostId,
@@ -211,15 +208,6 @@ export class SearchProductBoostRepository extends BaseRepository {
     const phrases = await this.insertPhrases(boostId, input.phrases);
     const products = await this.insertProducts(boostId, input.productIds);
     const aggregate = { boost, phrases, products };
-    await this.insertAudit({
-      boostId,
-      version: 1,
-      action: "create",
-      beforeValue: null,
-      afterValue: this.toAuditValue(aggregate),
-      actorId: input.actorId,
-      requestId: input.requestId,
-    });
     return aggregate;
   }
 
@@ -230,8 +218,6 @@ export class SearchProductBoostRepository extends BaseRepository {
     this.assertWriteInput(input);
     const current = await this.lockBoost(input.boostId);
     if (!current) return { status: "not_found" };
-    const before = await this.aggregateForLockedBoost(current);
-
     await this.connection
       .delete(searchProductBoostPhrase)
       .where(
@@ -273,15 +259,6 @@ export class SearchProductBoostRepository extends BaseRepository {
     const phrases = await this.insertPhrases(input.boostId, input.phrases);
     const products = await this.insertProducts(input.boostId, input.productIds);
     const aggregate = { boost, phrases, products };
-    await this.insertAudit({
-      boostId: input.boostId,
-      version: nextVersion,
-      action: "update",
-      beforeValue: this.toAuditValue(before),
-      afterValue: this.toAuditValue(aggregate),
-      actorId: input.actorId,
-      requestId: input.requestId,
-    });
     return { status: "applied", value: aggregate };
   }
 
@@ -289,7 +266,6 @@ export class SearchProductBoostRepository extends BaseRepository {
   async delete(
     input: SearchProductBoostDeleteInput,
   ): Promise<Exclude<SearchOptimisticMutationResult<SearchProductBoostAggregate>, { status: "conflict" }>> {
-    this.assertAudit(input);
     const current = await this.lockBoost(input.boostId);
     if (!current) return { status: "not_found" };
     const aggregate = await this.aggregateForLockedBoost(current);
@@ -306,15 +282,6 @@ export class SearchProductBoostRepository extends BaseRepository {
     if (rows.length !== 1) {
       throw new Error("Search product boost delete lost its locked row");
     }
-    await this.insertAudit({
-      boostId: input.boostId,
-      version: current.version,
-      action: "delete",
-      beforeValue: this.toAuditValue(aggregate),
-      afterValue: null,
-      actorId: input.actorId,
-      requestId: input.requestId,
-    });
     return { status: "applied", value: aggregate };
   }
 
@@ -408,10 +375,11 @@ export class SearchProductBoostRepository extends BaseRepository {
     boostId: string,
     phrases: readonly SearchProductBoostPhraseInput[],
   ): Promise<SearchProductBoostPhrase[]> {
+    const ids = await this.generateUuidV7s(phrases.length);
     const rows: NewSearchProductBoostPhrase[] = phrases.map((phrase, index) => ({
       storeId: this.storeId,
       boostId,
-      phraseId: uuidv7(),
+      phraseId: ids[index],
       position: index + 1,
       ...phrase,
     }));
@@ -439,53 +407,8 @@ export class SearchProductBoostRepository extends BaseRepository {
       .returning();
   }
 
-  private async insertAudit(input: {
-    boostId: string;
-    version: number;
-    action: "create" | "update" | "delete";
-    beforeValue: unknown | null;
-    afterValue: unknown | null;
-    actorId: string;
-    requestId: string;
-  }): Promise<void> {
-    const audit: NewSearchConfigurationAudit = {
-      storeId: this.storeId,
-      auditId: uuidv7(),
-      resourceVersion: input.version,
-      resourceType: "product_boost",
-      resourceId: input.boostId,
-      action: input.action,
-      beforeValue: input.beforeValue,
-      afterValue: input.afterValue,
-      actorId: input.actorId,
-      requestId: input.requestId,
-    };
-    await this.connection.insert(searchConfigurationAudit).values(audit);
-  }
-
-  private toAuditValue(
-    aggregate: SearchProductBoostAggregate,
-  ): Record<string, unknown> {
-    return {
-      boostId: aggregate.boost.boostId,
-      locale: aggregate.boost.locale,
-      name: aggregate.boost.name,
-      enabled: aggregate.boost.enabled,
-      version: aggregate.boost.version,
-      phrases: aggregate.phrases.map((phrase) => ({
-        phraseId: phrase.phraseId,
-        position: phrase.position,
-        displayPhrase: phrase.displayPhrase,
-      })),
-      products: aggregate.products.map((product) => ({
-        productId: product.productId,
-        position: product.position,
-      })),
-    };
-  }
-
   private assertWriteInput(input: SearchProductBoostCreateInput): void {
-    this.assertAudit(input);
+    assertNonEmpty(input.actorId, "actorId");
     assertNonEmpty(input.locale, "locale");
     assertNonEmpty(input.name, "name");
     if (input.phrases.length < 1 || input.phrases.length > 20) {
@@ -521,11 +444,6 @@ export class SearchProductBoostRepository extends BaseRepository {
         throw new Error("All boost phrases must use one normalization profile");
       }
     }
-  }
-
-  private assertAudit(input: SearchAuditInput): void {
-    assertNonEmpty(input.actorId, "actorId");
-    assertNonEmpty(input.requestId, "requestId");
   }
 
   private assertPage(limit: number, offset: number): void {

@@ -73,7 +73,6 @@ Example repository implementation:
 // repositories/warehouse/WarehouseRepository.ts
 
 import { and, eq, inArray, count } from "drizzle-orm";
-import { v7 as uuidv7 } from "uuid";
 import { BaseRepository } from "../BaseRepository.js";
 import { warehouses, type Warehouse, type NewWarehouse } from "../models/index.js";
 
@@ -130,7 +129,7 @@ export class WarehouseRepository extends BaseRepository {
     name: string;
     isDefault?: boolean;
   }): Promise<Warehouse> {
-    const id = uuidv7();
+    const id = await this.generateUuidV7();
     const now = new Date().toISOString();
 
     const newWarehouse: NewWarehouse = {
@@ -400,12 +399,12 @@ const result = await this.db.select()...
 
 ### 3. UUID Generation
 
-Use UUIDv7 for time-ordered, sortable IDs:
+Generate persisted IDs with the service-owned PostgreSQL UUIDv7 function through
+the transaction-aware base repository helper:
 
 ```typescript
-import { v7 as uuidv7 } from "uuid";
-
-const id = uuidv7();
+const id = await this.generateUuidV7();
+const ids = await this.generateUuidV7s(items.length);
 ```
 
 ### 4. Timestamp Handling

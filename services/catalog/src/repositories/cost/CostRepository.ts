@@ -1,5 +1,4 @@
 import { and, eq, isNull, inArray } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import type { CurrencyCode } from "@shopana/shared-references";
 import {
@@ -58,7 +57,7 @@ export class CostRepository extends BaseRepository {
       unitCostMinor: number;
     }
   ): Promise<ProductVariantCostHistory> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
     const now = new Date().toISOString();
 
     const newCost: NewProductVariantCostHistory = {

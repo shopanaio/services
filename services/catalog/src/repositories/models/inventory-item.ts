@@ -6,6 +6,7 @@ import {
   index,
   unique,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 
 /**
@@ -22,7 +23,7 @@ import { catalogSchema } from "./schema";
 export const inventoryItem = catalogSchema.table(
   "inventory_item",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
 
     // Reference to Catalog.Variant

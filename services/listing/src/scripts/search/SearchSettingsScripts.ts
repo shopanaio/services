@@ -25,8 +25,6 @@ export class SearchSettingsUpdateScript extends BaseScript<
     const values = validateAndNormalizeSearchSettings(params);
     const result = await this.repository.searchSettings.update({
       ...values,
-      actorId: this.currentUser.id,
-      requestId: this.context.requestId,
     });
 
     if (result.status === "not_found") {

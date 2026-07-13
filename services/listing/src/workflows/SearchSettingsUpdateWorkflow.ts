@@ -397,8 +397,6 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
       storeId: input.context.storeId,
       expectedVersion: input.expectedVersion,
       initialValues: input.expectedVersion === 0 ? initialValues : undefined,
-      actorId: input.context.userId!,
-      requestId: input.context.requestId,
     });
 
     if (result.status === "not_found") {

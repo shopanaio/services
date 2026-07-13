@@ -43,7 +43,6 @@ export class SearchSynonymGroupCreateScript extends BaseScript<
       enabled: params.enabled,
       values,
       actorId: this.currentUser.id,
-      requestId: this.context.requestId,
     });
     return {
       synonymGroup,
@@ -123,7 +122,6 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
       enabled: params.enabled,
       values,
       actorId: this.currentUser.id,
-      requestId: this.context.requestId,
     });
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" }] };
@@ -156,8 +154,6 @@ export class SearchSynonymGroupDeleteScript extends BaseScript<
     }
     const result = await this.repository.searchSynonym.delete({
       groupId: params.groupId,
-      actorId: this.currentUser.id,
-      requestId: this.context.requestId,
     });
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" }] };

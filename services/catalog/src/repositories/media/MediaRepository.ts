@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { eq, and, inArray, asc, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -105,6 +104,11 @@ export class MediaRepository extends BaseRepository {
         );
     }
 
+    const newMediaCount = uniqueFileIds.filter(
+      (fileId) => !existingByFileId.has(fileId)
+    ).length;
+    const newMediaIds = await this.generateUuidV7s(newMediaCount);
+    let newMediaIndex = 0;
     const inserts: NewProductMedia[] = [];
     for (let sortIndex = 0; sortIndex < uniqueFileIds.length; sortIndex++) {
       const fileId = uniqueFileIds[sortIndex];
@@ -112,7 +116,7 @@ export class MediaRepository extends BaseRepository {
 
       if (!existingMedia) {
         inserts.push({
-          id: randomUUID(),
+          id: newMediaIds[newMediaIndex++],
           storeId: this.storeId,
           productId,
           fileId,

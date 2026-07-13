@@ -1,5 +1,4 @@
 import { and, eq, inArray, count } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import {
   createQuery,
   createRelayQuery,
@@ -88,7 +87,7 @@ export class WarehouseRepository extends BaseRepository {
   }
 
   async create(data: { code: string; name: string; isDefault?: boolean }): Promise<Warehouse> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
     const now = new Date().toISOString();
 
     const newWarehouse: NewWarehouse = {

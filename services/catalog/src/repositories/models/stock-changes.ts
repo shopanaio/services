@@ -44,7 +44,7 @@ export const stockApplyStatusEnum = catalogSchema.enum("stock_apply_status", [
 export const stockChanges = catalogSchema.table(
   "stock_changes",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`uuidv7()`),
     seq: bigint("seq", { mode: "number" })
       .notNull()
       .generatedAlwaysAsIdentity(),

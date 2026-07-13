@@ -1,5 +1,4 @@
 import { and, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
-import { v7 as uuidv7 } from "uuid";
 import {
   createQuery,
   createCursorQuery,
@@ -94,7 +93,7 @@ export class PricingRepository extends BaseRepository {
       compareAtMinor?: number | null;
     }
   ): Promise<ItemPricing> {
-    const id = uuidv7();
+    const id = await this.generateUuidV7();
     const now = new Date().toISOString();
 
     const newPricing: NewItemPricing = {
@@ -139,7 +138,7 @@ export class PricingRepository extends BaseRepository {
         )
       );
 
-    const id = uuidv7();
+    const id = await this.generateUuidV7();
     const result = await this.connection
       .insert(itemPricing)
       .values({

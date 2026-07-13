@@ -1,13 +1,10 @@
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, asc, count, eq, inArray, ne } from "drizzle-orm";
-import { v7 as uuidv7 } from "uuid";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  searchConfigurationAudit,
   searchSynonymClaim,
   searchSynonymGroup,
   searchSynonymValue,
-  type NewSearchConfigurationAudit,
   type NewSearchSynonymClaim,
   type NewSearchSynonymGroup,
   type NewSearchSynonymValue,
@@ -17,13 +14,13 @@ import {
 import {
   assertNonEmpty,
   assertUnique,
-  type SearchAuditInput,
   type SearchOptimisticMutationResult,
   type SearchSynonymGroupAggregate,
   type SearchSynonymValueInput,
 } from "./searchRepositoryTypes.js";
 
-export interface SearchSynonymGroupCreateInput extends SearchAuditInput {
+export interface SearchSynonymGroupCreateInput {
+  actorId: string;
   locale: string;
   name: string;
   enabled: boolean;
@@ -35,7 +32,7 @@ export interface SearchSynonymGroupUpdateInput
   groupId: string;
 }
 
-export interface SearchSynonymGroupDeleteInput extends SearchAuditInput {
+export interface SearchSynonymGroupDeleteInput {
   groupId: string;
 }
 
@@ -213,7 +210,7 @@ export class SearchSynonymRepository extends BaseRepository {
   ): Promise<SearchSynonymGroupAggregate> {
     this.assertWriteInput(input);
     const now = new Date().toISOString();
-    const groupId = uuidv7();
+    const groupId = await this.generateUuidV7();
     const groupRow: NewSearchSynonymGroup = {
       storeId: this.storeId,
       groupId,
@@ -237,15 +234,6 @@ export class SearchSynonymRepository extends BaseRepository {
       await this.insertClaims(groupId, input.locale, input.values);
     }
     const aggregate = { group, values };
-    await this.insertAudit({
-      groupId,
-      version: 1,
-      action: "create",
-      beforeValue: null,
-      afterValue: this.toAuditValue(aggregate),
-      actorId: input.actorId,
-      requestId: input.requestId,
-    });
     return aggregate;
   }
 
@@ -256,11 +244,6 @@ export class SearchSynonymRepository extends BaseRepository {
     this.assertWriteInput(input);
     const current = await this.lockGroup(input.groupId);
     if (!current) return { status: "not_found" };
-    const before: SearchSynonymGroupAggregate = {
-      group: current,
-      values: await this.getValues([input.groupId]),
-    };
-
     await this.connection
       .delete(searchSynonymClaim)
       .where(
@@ -304,15 +287,6 @@ export class SearchSynonymRepository extends BaseRepository {
       await this.insertClaims(input.groupId, input.locale, input.values);
     }
     const aggregate = { group, values };
-    await this.insertAudit({
-      groupId: input.groupId,
-      version: nextVersion,
-      action: "update",
-      beforeValue: this.toAuditValue(before),
-      afterValue: this.toAuditValue(aggregate),
-      actorId: input.actorId,
-      requestId: input.requestId,
-    });
     return { status: "applied", value: aggregate };
   }
 
@@ -320,7 +294,6 @@ export class SearchSynonymRepository extends BaseRepository {
   async delete(
     input: SearchSynonymGroupDeleteInput,
   ): Promise<Exclude<SearchOptimisticMutationResult<SearchSynonymGroupAggregate>, { status: "conflict" }>> {
-    this.assertAudit(input);
     const current = await this.lockGroup(input.groupId);
     if (!current) return { status: "not_found" };
     const aggregate = {
@@ -340,15 +313,6 @@ export class SearchSynonymRepository extends BaseRepository {
     if (rows.length !== 1) {
       throw new Error("Search synonym delete lost its locked row");
     }
-    await this.insertAudit({
-      groupId: input.groupId,
-      version: current.version,
-      action: "delete",
-      beforeValue: this.toAuditValue(aggregate),
-      afterValue: null,
-      actorId: input.actorId,
-      requestId: input.requestId,
-    });
     return { status: "applied", value: aggregate };
   }
 
@@ -385,10 +349,11 @@ export class SearchSynonymRepository extends BaseRepository {
     groupId: string,
     values: readonly SearchSynonymValueInput[],
   ): Promise<SearchSynonymValue[]> {
+    const ids = await this.generateUuidV7s(values.length);
     const rows: NewSearchSynonymValue[] = values.map((value, index) => ({
       storeId: this.storeId,
       groupId,
-      valueId: uuidv7(),
+      valueId: ids[index],
       position: index + 1,
       ...value,
     }));
@@ -425,49 +390,8 @@ export class SearchSynonymRepository extends BaseRepository {
     }));
   }
 
-  private async insertAudit(input: {
-    groupId: string;
-    version: number;
-    action: "create" | "update" | "delete";
-    beforeValue: unknown | null;
-    afterValue: unknown | null;
-    actorId: string;
-    requestId: string;
-  }): Promise<void> {
-    const audit: NewSearchConfigurationAudit = {
-      storeId: this.storeId,
-      auditId: uuidv7(),
-      resourceVersion: input.version,
-      resourceType: "synonym_group",
-      resourceId: input.groupId,
-      action: input.action,
-      beforeValue: input.beforeValue,
-      afterValue: input.afterValue,
-      actorId: input.actorId,
-      requestId: input.requestId,
-    };
-    await this.connection.insert(searchConfigurationAudit).values(audit);
-  }
-
-  private toAuditValue(
-    aggregate: SearchSynonymGroupAggregate,
-  ): Record<string, unknown> {
-    return {
-      groupId: aggregate.group.groupId,
-      locale: aggregate.group.locale,
-      name: aggregate.group.name,
-      enabled: aggregate.group.enabled,
-      version: aggregate.group.version,
-      values: aggregate.values.map((value) => ({
-        valueId: value.valueId,
-        position: value.position,
-        displayValue: value.displayValue,
-      })),
-    };
-  }
-
   private assertWriteInput(input: SearchSynonymGroupCreateInput): void {
-    this.assertAudit(input);
+    assertNonEmpty(input.actorId, "actorId");
     assertNonEmpty(input.locale, "locale");
     assertNonEmpty(input.name, "name");
     if (input.values.length < 2 || input.values.length > 20) {
@@ -495,11 +419,6 @@ export class SearchSynonymRepository extends BaseRepository {
         throw new Error("All synonym values must use one normalization profile");
       }
     }
-  }
-
-  private assertAudit(input: SearchAuditInput): void {
-    assertNonEmpty(input.actorId, "actorId");
-    assertNonEmpty(input.requestId, "requestId");
   }
 
   private assertPage(limit: number, offset: number): void {

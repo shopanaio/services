@@ -49,11 +49,6 @@ export interface SearchSettingsValueInput {
   outOfStockPolicy: SearchOutOfStockPolicy;
 }
 
-export interface SearchAuditInput {
-  actorId: string;
-  requestId: string;
-}
-
 export interface SearchSynonymValueInput {
   displayValue: string;
   normalizedValue: string;

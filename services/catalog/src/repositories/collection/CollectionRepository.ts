@@ -1,5 +1,4 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   collection,
@@ -83,7 +82,7 @@ export class CollectionRepository extends BaseRepository {
   }): Promise<Collection> {
     const now = new Date().toISOString();
     const insert: NewCollection = {
-      id: randomUUID(),
+      id: await this.generateUuidV7(),
       storeId: this.storeId,
       handle: data.handle ?? null,
       type: data.type,

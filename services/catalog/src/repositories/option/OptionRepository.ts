@@ -1,5 +1,4 @@
 import { and, asc, eq, inArray, notInArray, sql } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   productOption,
@@ -72,7 +71,7 @@ export class OptionRepository extends BaseRepository {
     productId: string,
     data: { slug: string; displayType: string; sortIndex?: number }
   ): Promise<ProductOption> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
 
     const newOption: NewProductOption = {
       id,
@@ -293,7 +292,7 @@ export class OptionRepository extends BaseRepository {
     optionId: string,
     data: { slug: string; sortIndex: number; swatchId?: string | null }
   ): Promise<ProductOptionValue> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
 
     const newValue: NewProductOptionValue = {
       id,
@@ -363,7 +362,7 @@ export class OptionRepository extends BaseRepository {
     imageId?: string | null;
     metadata?: unknown;
   }): Promise<ProductOptionSwatch> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
 
     const newSwatch: NewProductOptionSwatch = {
       id,

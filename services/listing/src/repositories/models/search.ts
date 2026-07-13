@@ -499,59 +499,6 @@ export const searchProductBoostProduct = listingSchema.table(
   ],
 );
 
-export const searchConfigurationAudit = listingSchema.table(
-  "search_configuration_audit",
-  {
-    storeId: uuid("store_id").notNull(),
-    auditId: uuid("audit_id").primaryKey(),
-    resourceVersion: integer("resource_version").notNull(),
-    resourceType: varchar("resource_type", { length: 32 }).notNull(),
-    resourceId: uuid("resource_id"),
-    action: varchar("action", { length: 32 }).notNull(),
-    beforeValue: jsonb("before_value"),
-    afterValue: jsonb("after_value"),
-    actorId: uuid("actor_id").notNull(),
-    requestId: varchar("request_id", { length: 128 }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    check(
-      "chk_search_configuration_audit_uuid_v7",
-      sql`${uuidV7(table.storeId)} AND ${uuidV7(table.auditId)} AND (${table.resourceId} IS NULL OR ${uuidV7(table.resourceId)}) AND ${uuidV7(table.actorId)}`,
-    ),
-    check(
-      "chk_search_configuration_audit_resource_version",
-      sql`${table.resourceVersion} > 0`,
-    ),
-    check(
-      "chk_search_configuration_audit_resource",
-      sql`(${table.resourceType} = 'settings' AND ${table.resourceId} IS NULL) OR (${table.resourceType} IN ('synonym_group', 'product_boost') AND ${table.resourceId} IS NOT NULL)`,
-    ),
-    check(
-      "chk_search_configuration_audit_action",
-      sql`${table.action} IN ('create', 'update', 'delete')`,
-    ),
-    check(
-      "chk_search_configuration_audit_values",
-      sql`(${table.action} = 'create' AND ${table.beforeValue} IS NULL AND ${table.afterValue} IS NOT NULL) OR (${table.action} = 'update' AND ${table.beforeValue} IS NOT NULL AND ${table.afterValue} IS NOT NULL) OR (${table.action} = 'delete' AND ${table.beforeValue} IS NOT NULL AND ${table.afterValue} IS NULL)`,
-    ),
-    check(
-      "chk_search_configuration_audit_request",
-      sql`${table.requestId} <> ''`,
-    ),
-    index("search_configuration_audit_resource_idx").on(
-      table.storeId,
-      table.resourceType,
-      table.resourceId,
-      table.resourceVersion,
-      table.createdAt,
-      table.auditId,
-    ),
-  ],
-);
-
 export type ProductSearchText = typeof productSearchText.$inferSelect;
 export type NewProductSearchText = typeof productSearchText.$inferInsert;
 export type ProductSearchIdentifier =
@@ -578,7 +525,3 @@ export type SearchProductBoostProduct =
   typeof searchProductBoostProduct.$inferSelect;
 export type NewSearchProductBoostProduct =
   typeof searchProductBoostProduct.$inferInsert;
-export type SearchConfigurationAudit =
-  typeof searchConfigurationAudit.$inferSelect;
-export type NewSearchConfigurationAudit =
-  typeof searchConfigurationAudit.$inferInsert;

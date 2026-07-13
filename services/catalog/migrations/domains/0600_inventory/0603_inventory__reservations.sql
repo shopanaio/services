@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."reservations" (
-  "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+  "id" uuid NOT NULL DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
   "warehouse_id" uuid NOT NULL,

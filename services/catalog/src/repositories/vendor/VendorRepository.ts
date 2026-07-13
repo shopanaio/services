@@ -1,5 +1,4 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import {
   createQuery,
   createRelayQuery,
@@ -53,7 +52,7 @@ export class VendorRepository extends BaseRepository {
   async create(data: { name: string }): Promise<Vendor> {
     const newVendor: NewVendor = {
       storeId: this.storeId,
-      id: randomUUID(),
+      id: await this.generateUuidV7(),
       name: data.name,
     };
 

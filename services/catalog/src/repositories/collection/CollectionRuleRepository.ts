@@ -1,5 +1,4 @@
 import { and, asc, eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   collectionRule,
@@ -39,8 +38,9 @@ export class CollectionRuleRepository extends BaseRepository {
     }
 
     const now = new Date().toISOString();
+    const ids = await this.generateUuidV7s(rules.length);
     const inserts: NewCollectionRule[] = rules.map((rule, index) => ({
-      id: randomUUID(),
+      id: ids[index],
       collectionId,
       storeId: this.storeId,
       field: rule.field,

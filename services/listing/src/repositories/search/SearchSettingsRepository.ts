@@ -1,27 +1,21 @@
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, sql } from "drizzle-orm";
-import { v7 as uuidv7 } from "uuid";
 import { BaseRepository } from "../BaseRepository.js";
 import { SearchFieldRegistry } from "../../search/planner/SearchFieldRegistry.js";
 import {
-  searchConfigurationAudit,
   searchSettings,
-  type NewSearchConfigurationAudit,
   type NewSearchSettings,
   type SearchSettings,
 } from "../models/index.js";
 import {
   assertNonEmpty,
-  type SearchAuditInput,
   type SearchSettingsValueInput,
   type SearchTextField,
 } from "./searchRepositoryTypes.js";
 
-export interface SearchSettingsUpdateInput
-  extends SearchSettingsValueInput,
-    SearchAuditInput {}
+export type SearchSettingsUpdateInput = SearchSettingsValueInput;
 
-export interface SearchSettingsVersionAcquireInput extends SearchAuditInput {
+export interface SearchSettingsVersionAcquireInput {
   storeId: string;
   expectedVersion: number;
   initialValues?: SearchSettingsValueInput;
@@ -104,7 +98,6 @@ export class SearchSettingsRepository extends BaseRepository {
     input: SearchSettingsUpdateInput,
   ): Promise<SearchSettingsValueUpdateResult> {
     this.assertValues(input);
-    this.assertAudit(input);
 
     const currentRows = await this.connection
       .select()
@@ -129,15 +122,6 @@ export class SearchSettingsRepository extends BaseRepository {
     const updated = rows[0];
     if (!updated) throw new Error("Search settings update lost its locked row");
 
-    await this.insertAudit({
-      storeId: this.storeId,
-      version: updated.version,
-      action: "update",
-      beforeValue: this.toAuditValue(current),
-      afterValue: this.toAuditValue(updated),
-      actorId: input.actorId,
-      requestId: input.requestId,
-    });
     return { status: "applied", value: updated };
   }
 
@@ -168,67 +152,17 @@ export class SearchSettingsRepository extends BaseRepository {
     const created = rows[0];
     if (!created) throw new Error("Failed to create search settings");
 
-    await this.insertAudit({
-      storeId: input.storeId,
-      version: 1,
-      action: "create",
-      beforeValue: null,
-      afterValue: this.toAuditValue(created),
-      actorId: input.actorId,
-      requestId: input.requestId,
-    });
     return created;
-  }
-
-  private async insertAudit(input: {
-    storeId: string;
-    version: number;
-    action: "create" | "update";
-    beforeValue: unknown | null;
-    afterValue: unknown;
-    actorId: string;
-    requestId: string;
-  }): Promise<void> {
-    const audit: NewSearchConfigurationAudit = {
-      storeId: input.storeId,
-      auditId: uuidv7(),
-      resourceVersion: input.version,
-      resourceType: "settings",
-      resourceId: null,
-      action: input.action,
-      beforeValue: input.beforeValue,
-      afterValue: input.afterValue,
-      actorId: input.actorId,
-      requestId: input.requestId,
-    };
-    await this.connection.insert(searchConfigurationAudit).values(audit);
-  }
-
-  private toAuditValue(row: SearchSettings): Record<string, unknown> {
-    return {
-      version: row.version,
-      enabledFields: row.enabledFields,
-      fieldWeights: row.fieldWeights,
-      typoToleranceEnabled: row.typoToleranceEnabled,
-      outOfStockPolicy: row.outOfStockPolicy,
-      updatedAt: row.updatedAt,
-    };
   }
 
   private assertVersionAcquireInput(
     input: SearchSettingsVersionAcquireInput,
   ): void {
     assertNonEmpty(input.storeId, "storeId");
-    this.assertAudit(input);
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 0) {
       throw new Error("expectedVersion must be a non-negative integer");
     }
     if (input.initialValues) this.assertValues(input.initialValues);
-  }
-
-  private assertAudit(input: SearchAuditInput): void {
-    assertNonEmpty(input.actorId, "actorId");
-    assertNonEmpty(input.requestId, "requestId");
   }
 
   private assertValues(input: SearchSettingsValueInput): void {

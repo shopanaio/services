@@ -1,5 +1,4 @@
 import { and, asc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   facet,
@@ -195,7 +194,7 @@ export class FacetValueRepository extends BaseRepository {
   }
 
   async createValue(data: FacetValueCreateData): Promise<FacetValue> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
     const now = new Date().toISOString();
     const insert: NewFacetValue = {
       id,

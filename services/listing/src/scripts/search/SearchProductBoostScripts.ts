@@ -48,7 +48,6 @@ export class SearchProductBoostCreateScript extends BaseScript<
       phrases,
       productIds: params.productIds,
       actorId: this.currentUser.id,
-      requestId: this.context.requestId,
     });
     return {
       productBoost,
@@ -101,7 +100,6 @@ export class SearchProductBoostUpdateScript extends BaseScript<
       phrases,
       productIds: params.productIds,
       actorId: this.currentUser.id,
-      requestId: this.context.requestId,
     });
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };
@@ -134,8 +132,6 @@ export class SearchProductBoostDeleteScript extends BaseScript<
     }
     const result = await this.repository.searchProductBoost.delete({
       boostId: params.boostId,
-      actorId: this.currentUser.id,
-      requestId: this.context.requestId,
     });
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };

@@ -1,5 +1,4 @@
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { GraphQLError } from "graphql";
 import { BaseRepository } from "../BaseRepository.js";
@@ -254,7 +253,7 @@ export class FacetRepository extends BaseRepository {
     lexoRank?: string;
     sources?: FacetSourceInput[];
   }): Promise<Facet> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
     const now = new Date().toISOString();
     const lexoRank = data.lexoRank ?? (await this.getNextFacetRank());
 
@@ -748,8 +747,9 @@ export class FacetRepository extends BaseRepository {
     }
 
     const now = new Date().toISOString();
-    const inserts: NewFacetValue[] = args.values.map((value) => ({
-      id: randomUUID(),
+    const ids = await this.generateUuidV7s(args.values.length);
+    const inserts: NewFacetValue[] = args.values.map((value, index) => ({
+      id: ids[index],
       storeId: this.storeId,
       facetId: args.facetId,
       parentId: null,
@@ -836,10 +836,11 @@ export class FacetRepository extends BaseRepository {
         ])
       ).values()
     );
+    const ids = await this.generateUuidV7s(uniqueSources.length);
 
     const inserted = await this.connection.insert(facetSource).values(
-      uniqueSources.map((source) => ({
-        id: randomUUID(),
+      uniqueSources.map((source, index) => ({
+        id: ids[index],
         storeId: this.storeId,
         facetId,
         facetType: facetRow.facetType,

@@ -7,7 +7,6 @@ import {
   type InferRelayInput,
   type PageInfo,
 } from "@shopana/drizzle-query";
-import { randomUUID } from "crypto";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -154,7 +153,7 @@ export class VariantRepository extends BaseRepository {
       externalId?: string | null;
     }
   ): Promise<Variant> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
     const now = new Date().toISOString();
 
     const newVariant: NewVariant = {

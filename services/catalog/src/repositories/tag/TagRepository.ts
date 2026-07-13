@@ -1,5 +1,4 @@
 import { and, eq, inArray, count, sql } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import {
   createQuery,
   createRelayQuery,
@@ -87,7 +86,7 @@ export class TagRepository extends BaseRepository {
   }
 
   async create(data: { handle: string }): Promise<Tag> {
-    const id = randomUUID();
+    const id = await this.generateUuidV7();
     const now = new Date().toISOString();
 
     const newTag: NewTag = {

@@ -14,7 +14,7 @@ import { warehouses } from "./stock";
 export const inboundSupply = catalogSchema.table(
   "inbound_supply",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     warehouseId: uuid("warehouse_id")
