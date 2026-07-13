@@ -122,7 +122,6 @@ export class SearchSettingsRepository extends BaseRepository {
         fieldWeights: { ...input.fieldWeights },
         typoToleranceEnabled: input.typoToleranceEnabled,
         outOfStockPolicy: input.outOfStockPolicy,
-        updatedBy: input.actorId,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(searchSettings.storeId, this.storeId))
@@ -163,7 +162,6 @@ export class SearchSettingsRepository extends BaseRepository {
       fieldWeights: { ...values.fieldWeights },
       typoToleranceEnabled: values.typoToleranceEnabled,
       outOfStockPolicy: values.outOfStockPolicy,
-      updatedBy: input.actorId,
       updatedAt: now,
     };
     const rows = await this.connection.insert(searchSettings).values(row).returning();
@@ -213,7 +211,6 @@ export class SearchSettingsRepository extends BaseRepository {
       fieldWeights: row.fieldWeights,
       typoToleranceEnabled: row.typoToleranceEnabled,
       outOfStockPolicy: row.outOfStockPolicy,
-      updatedBy: row.updatedBy,
       updatedAt: row.updatedAt,
     };
   }

@@ -132,15 +132,11 @@ CREATE TABLE listing.search_settings (
   field_weights jsonb NOT NULL,
   typo_tolerance_enabled boolean NOT NULL DEFAULT false,
   out_of_stock_policy varchar(16) NOT NULL DEFAULT 'SHOW',
-  updated_by uuid NOT NULL,
   updated_at timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT search_settings_store_unique UNIQUE (store_id),
   CONSTRAINT chk_search_settings_uuid_v7
-    CHECK (
-      substring(store_id::text FROM 15 FOR 1) = '7'
-      AND substring(updated_by::text FROM 15 FOR 1) = '7'
-    ),
+    CHECK (substring(store_id::text FROM 15 FOR 1) = '7'),
   CONSTRAINT chk_search_settings_version CHECK (version > 0),
   CONSTRAINT chk_search_settings_enabled_fields CHECK (jsonb_typeof(enabled_fields) = 'array'),
   CONSTRAINT chk_search_settings_field_weights CHECK (jsonb_typeof(field_weights) = 'object'),

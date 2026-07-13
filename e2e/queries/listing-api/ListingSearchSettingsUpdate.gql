@@ -1,0 +1,39 @@
+mutation ListingSearchSettingsUpdate(
+  $expectedVersion: Int!
+  $operations: SearchSettingsOperationsInput!
+) {
+  listingMutation {
+    search {
+      settingsUpdate(
+        expectedVersion: $expectedVersion
+        operations: $operations
+      ) {
+        settings {
+          version
+          fields {
+            field
+            weight
+          }
+          typoToleranceEnabled
+          outOfStockPolicy
+        }
+        operationResults {
+          type
+          applied
+          clientMutationId
+          entityId
+          errors {
+            code
+            message
+            field
+          }
+        }
+        userErrors {
+          code
+          message
+          field
+        }
+      }
+    }
+  }
+}

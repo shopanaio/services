@@ -185,7 +185,6 @@ type SearchSettings {
   typoToleranceEnabled: Boolean!
   outOfStockPolicy: SearchOutOfStockPolicy!
   updatedAt: DateTime!
-  updatedById: ID!
 }
 
 type SearchFieldConfiguration {

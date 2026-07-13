@@ -1687,7 +1687,6 @@ export type SearchSettings = {
   outOfStockPolicy: SearchOutOfStockPolicy;
   typoToleranceEnabled: Scalars['Boolean']['output'];
   updatedAt: Scalars['DateTime']['output'];
-  updatedById: Scalars['ID']['output'];
   version: Scalars['Int']['output'];
 };
 
@@ -2572,7 +2571,6 @@ export type SearchSettingsResolvers<ContextType = ServiceContext, ParentType ext
   outOfStockPolicy?: Resolver<ResolversTypes['SearchOutOfStockPolicy'], ParentType, ContextType>;
   typoToleranceEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  updatedById?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

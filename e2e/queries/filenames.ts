@@ -112,6 +112,8 @@ export type GraphQLFileName =
   | 'inventory-api/WidgetInventory'
   | 'inventory-api/WidgetPricing'
   | 'listing-api/Listing'
+  | 'listing-api/ListingSearchPreview'
+  | 'listing-api/ListingSearchSettingsUpdate'
   | 'media-api/BucketCreate'
   | 'media-api/FileCreateExternal'
   | 'media-api/FileDelete'

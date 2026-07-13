@@ -219,17 +219,13 @@ export const searchSettings = listingSchema.table(
     outOfStockPolicy: varchar("out_of_stock_policy", { length: 16 })
       .notNull()
       .default("SHOW"),
-    updatedBy: uuid("updated_by").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
   (table) => [
     unique("search_settings_store_unique").on(table.storeId),
-    check(
-      "chk_search_settings_uuid_v7",
-      sql`${uuidV7(table.storeId)} AND ${uuidV7(table.updatedBy)}`,
-    ),
+    check("chk_search_settings_uuid_v7", uuidV7(table.storeId)),
     check("chk_search_settings_version", sql`${table.version} > 0`),
     check(
       "chk_search_settings_enabled_fields",

@@ -324,10 +324,6 @@ function mapSearchSettings(settings: SearchSettingsModel): ApiSearchSettings {
     typoToleranceEnabled: settings.typoToleranceEnabled,
     outOfStockPolicy: mapSearchOutOfStockPolicy(settings.outOfStockPolicy),
     updatedAt: settings.updatedAt,
-    updatedById: encodeGlobalIdByType(
-      settings.updatedBy,
-      GlobalIdEntity.User,
-    ),
   };
 }
 

@@ -1,0 +1,69 @@
+query ListingSearchPreview($query: String!, $locale: LocaleCode!) {
+  listingQuery {
+    search {
+      explain(query: $query, locale: $locale) {
+        mode
+        originalQuery
+        normalizedQuery
+        locale
+        normalizationContractVersion
+        normalizationProfileRevision
+        candidateCount
+        boostOnlyCandidateCount
+        membershipSerializedBytes
+        planFingerprint
+        matchedSynonymGroupIds
+        applicableProductBoostIds
+        reasons
+        settings {
+          version
+          enabledFields
+          fieldWeights {
+            field
+            weight
+          }
+          typoToleranceEnabled
+          outOfStockPolicy
+        }
+        units {
+          source
+          normalized
+          kind
+          removedAsStopword
+          lexemes
+          planUnitIndex
+          clauses {
+            kind
+            value
+            lexemes
+            fields
+            synonymGroupId
+            requireSameElement
+            alternatives {
+              kind
+              value
+              lexemes
+              fields
+              synonymGroupId
+              requireSameElement
+            }
+          }
+          typoAlternatives {
+            value
+            lexemes
+            editDistance
+            trigramSimilarity
+          }
+        }
+        wholeQueryClauses {
+          kind
+          value
+          lexemes
+          fields
+          synonymGroupId
+          requireSameElement
+        }
+      }
+    }
+  }
+}

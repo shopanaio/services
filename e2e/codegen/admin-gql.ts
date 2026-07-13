@@ -6715,7 +6715,6 @@ export type ApiSearchSettings = {
   outOfStockPolicy: SearchOutOfStockPolicy;
   typoToleranceEnabled: Scalars['Boolean']['output'];
   updatedAt: Scalars['DateTime']['output'];
-  updatedById: Scalars['ID']['output'];
   version: Scalars['Int']['output'];
 };
 
