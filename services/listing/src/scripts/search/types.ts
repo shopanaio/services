@@ -3,6 +3,13 @@ import type {
   SearchProductBoostAggregate,
   SearchSynonymGroupAggregate,
 } from "../../repositories/search/searchRepositoryTypes.js";
+import type {
+  SearchSettings as SearchSettingsModel,
+} from "../../repositories/models/index.js";
+import type {
+  SearchFieldConfigurationInput,
+  SearchOutOfStockPolicy,
+} from "../../resolvers/admin/generated/types.js";
 
 export interface SearchSynonymGroupWriteParams {
   locale: string;
@@ -56,5 +63,23 @@ export interface SearchProductBoostDeleteParams {
 export interface SearchProductBoostResult {
   productBoost?: SearchProductBoostAggregate;
   deletedProductBoostId?: string;
+  userErrors: UserError[];
+}
+
+export interface SearchSettingsWriteParams {
+  fields: readonly SearchFieldConfigurationInput[];
+  typoToleranceEnabled: boolean;
+  outOfStockPolicy: SearchOutOfStockPolicy;
+}
+
+export interface SearchSettingsCreateParams extends SearchSettingsWriteParams {}
+
+export interface SearchSettingsUpdateParams extends SearchSettingsWriteParams {
+  expectedVersion: number;
+}
+
+export interface SearchSettingsResult {
+  settings?: SearchSettingsModel;
+  currentVersion?: number;
   userErrors: UserError[];
 }

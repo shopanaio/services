@@ -6,7 +6,11 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { Policy } from "@shopana/shared-kernel";
 import { GraphQLError } from "graphql";
+import type { ZodIssue } from "zod";
 import { SearchRuntimeError } from "../../search/errors.js";
+import type {
+  SearchSettings as SearchSettingsModel,
+} from "../../repositories/models/index.js";
 import type {
   SearchProductBoostAggregate,
   SearchSynonymGroupAggregate,
@@ -23,7 +27,21 @@ import {
   SearchSynonymGroupCreateScript,
   SearchSynonymGroupDeleteScript,
   SearchSynonymGroupUpdateScript,
+  SearchSettingsCreateScript,
+  SearchSettingsUpdateScript,
 } from "../../scripts/search/index.js";
+import { SearchFieldRegistry } from "../../search/planner/SearchFieldRegistry.js";
+import {
+  SearchSettingsCreateInputSchema,
+  SearchSettingsUpdateInputSchema,
+} from "./generated/schemas.js";
+import {
+  SearchField,
+  SearchOutOfStockPolicy,
+  type SearchSettings as ApiSearchSettings,
+  type SearchSettingsCreateInput,
+  type SearchSettingsUpdateInput,
+} from "./generated/types.js";
 import { ListingType } from "./ListingType.js";
 
 const READ_POLICY = {
@@ -31,7 +49,14 @@ const READ_POLICY = {
   action: "read",
 } as const;
 
+const searchFieldRegistry = new SearchFieldRegistry();
+
 export class ListingSearchQueryResolver extends ListingType<Record<string, never>> {
+  async settings(): Promise<ApiSearchSettings | null> {
+    const settings = await this.$ctx.kernel.repository.searchSettings.find();
+    return settings ? mapSearchSettings(settings) : null;
+  }
+
   @Policy(READ_POLICY)
   async synonymGroup(args: { id: string }) {
     const groupId = safeDecode(args.id, GlobalIdEntity.SearchSynonymGroup);
@@ -125,9 +150,9 @@ function mapSearchExplain(explain: SearchExplain) {
     wholeQueryClauses: explain.wholeQueryClauses.map(mapSearchExplainClause),
     settings: {
       ...explain.settings,
-      enabledFields: explain.settings.enabledFields.map(mapSearchExplainField),
+      enabledFields: explain.settings.enabledFields.map(mapSearchField),
       fieldWeights: explain.settings.fieldWeights.map((fieldWeight) => ({
-        field: mapSearchExplainField(fieldWeight.field),
+        field: mapSearchField(fieldWeight.field),
         weight: fieldWeight.weight,
       })),
     },
@@ -143,7 +168,7 @@ function mapSearchExplain(explain: SearchExplain) {
 function mapSearchExplainClause(clause: SearchExplainClause): object {
   return {
     ...clause,
-    fields: clause.fields.map(mapSearchExplainField),
+    fields: clause.fields.map(mapSearchField),
     synonymGroupId: clause.synonymGroupId
       ? encodeGlobalIdByType(
           clause.synonymGroupId,
@@ -154,20 +179,42 @@ function mapSearchExplainClause(clause: SearchExplainClause): object {
   };
 }
 
-function mapSearchExplainField(field: SearchTextField): string {
+function mapSearchField(field: SearchTextField): SearchField {
   switch (field) {
     case "product_title":
-      return "PRODUCT_TITLE";
+      return SearchField.ProductTitle;
     case "variant_title":
-      return "VARIANT_TITLE";
+      return SearchField.VariantTitle;
     case "vendor_name":
-      return "VENDOR_NAME";
+      return SearchField.VendorName;
     case "category_name":
-      return "CATEGORY_NAME";
+      return SearchField.CategoryName;
   }
 }
 
 export class ListingSearchMutationResolver extends ListingType<Record<string, never>> {
+  async settingsCreate(args: { input: SearchSettingsCreateInput }) {
+    const parsed = SearchSettingsCreateInputSchema().safeParse(args.input);
+    if (!parsed.success) return invalidSettingsInputPayload(parsed.error.issues);
+
+    const result = await this.$ctx.kernel.runScript(
+      SearchSettingsCreateScript,
+      parsed.data,
+    );
+    return mapSearchSettingsPayload(result);
+  }
+
+  async settingsUpdate(args: { input: SearchSettingsUpdateInput }) {
+    const parsed = SearchSettingsUpdateInputSchema().safeParse(args.input);
+    if (!parsed.success) return invalidSettingsInputPayload(parsed.error.issues);
+
+    const result = await this.$ctx.kernel.runScript(
+      SearchSettingsUpdateScript,
+      parsed.data,
+    );
+    return mapSearchSettingsPayload(result);
+  }
+
   async synonymGroupCreate(args: {
     input: {
       locale: string;
@@ -362,6 +409,87 @@ function mapProductBoost(aggregate: SearchProductBoostAggregate) {
     productIds: aggregate.products.map((product) =>
       encodeGlobalIdByType(product.productId, GlobalIdEntity.Product)
     ),
+  };
+}
+
+function mapSearchSettings(settings: SearchSettingsModel): ApiSearchSettings {
+  if (!Array.isArray(settings.enabledFields)) {
+    throw new Error("Search settings enabled fields are invalid");
+  }
+  if (!settings.fieldWeights || typeof settings.fieldWeights !== "object") {
+    throw new Error("Search settings field weights are invalid");
+  }
+
+  const enabledFields = searchFieldRegistry.normalizeEnabledFields(
+    settings.enabledFields as SearchTextField[],
+  );
+  const weights = settings.fieldWeights as Partial<
+    Record<SearchTextField, unknown>
+  >;
+  const fields = enabledFields.map((field) => {
+    const weight = weights[field];
+    if (
+      typeof weight !== "number" ||
+      !Number.isFinite(weight) ||
+      weight <= 0 ||
+      weight > 100
+    ) {
+      throw new Error(`Search settings weight is invalid for ${field}`);
+    }
+    return { field: mapSearchField(field), weight };
+  });
+
+  return {
+    version: settings.version,
+    fields,
+    typoToleranceEnabled: settings.typoToleranceEnabled,
+    outOfStockPolicy: mapSearchOutOfStockPolicy(settings.outOfStockPolicy),
+    updatedAt: settings.updatedAt,
+    updatedById: encodeGlobalIdByType(
+      settings.updatedBy,
+      GlobalIdEntity.User,
+    ),
+  };
+}
+
+function mapSearchOutOfStockPolicy(value: string): SearchOutOfStockPolicy {
+  switch (value) {
+    case "SHOW":
+      return SearchOutOfStockPolicy.Show;
+    case "HIDE":
+      return SearchOutOfStockPolicy.Hide;
+    case "PLACE_LAST":
+      return SearchOutOfStockPolicy.PlaceLast;
+    default:
+      throw new Error(`Search out-of-stock policy is invalid: ${value}`);
+  }
+}
+
+function mapSearchSettingsPayload(result: {
+  settings?: SearchSettingsModel;
+  currentVersion?: number;
+  userErrors: Array<{
+    message: string;
+    field?: string[];
+    code?: string;
+  }>;
+}) {
+  return {
+    settings: result.settings ? mapSearchSettings(result.settings) : null,
+    currentVersion: result.currentVersion ?? null,
+    userErrors: result.userErrors,
+  };
+}
+
+function invalidSettingsInputPayload(issues: readonly ZodIssue[]) {
+  return {
+    settings: null,
+    currentVersion: null,
+    userErrors: issues.map((issue) => ({
+      message: issue.message,
+      field: ["input", ...issue.path.map(String)],
+      code: issue.code,
+    })),
   };
 }
 

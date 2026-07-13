@@ -9,6 +9,8 @@ extend type ListingMutation {
 }
 
 type ListingSearchQuery {
+  """Current search settings for the selected store, if initialized."""
+  settings: SearchSettings
   synonymGroup(id: ID!): SearchSynonymGroup
   synonymGroups(locale: LocaleCode, limit: Int = 20, offset: Int = 0): SearchSynonymGroupConnection!
   productBoost(id: ID!): SearchProductBoost
@@ -18,6 +20,8 @@ type ListingSearchQuery {
 }
 
 type ListingSearchMutation {
+  settingsCreate(input: SearchSettingsCreateInput!): SearchSettingsPayload!
+  settingsUpdate(input: SearchSettingsUpdateInput!): SearchSettingsPayload!
   synonymGroupCreate(input: SearchSynonymGroupCreateInput!): SearchSynonymGroupPayload!
   synonymGroupUpdate(input: SearchSynonymGroupUpdateInput!): SearchSynonymGroupPayload!
   synonymGroupDelete(input: SearchConfigurationDeleteInput!): SearchSynonymGroupDeletePayload!
@@ -91,7 +95,7 @@ enum SearchExplainClauseKind {
   IDENTIFIER_PREFIX
 }
 
-enum SearchExplainField {
+enum SearchField {
   PRODUCT_TITLE
   VARIANT_TITLE
   VENDOR_NAME
@@ -150,7 +154,7 @@ type SearchExplainClause {
   kind: SearchExplainClauseKind!
   value: String
   lexemes: [String!]!
-  fields: [SearchExplainField!]!
+  fields: [SearchField!]!
   synonymGroupId: ID
   requireSameElement: Boolean!
   alternatives: [SearchExplainClause!]!
@@ -165,14 +169,46 @@ type SearchExplainTypoAlternative {
 
 type SearchExplainSettings {
   version: Int!
-  enabledFields: [SearchExplainField!]!
+  enabledFields: [SearchField!]!
   fieldWeights: [SearchExplainFieldWeight!]!
   typoToleranceEnabled: Boolean!
   outOfStockPolicy: SearchOutOfStockPolicy!
 }
 
 type SearchExplainFieldWeight {
-  field: SearchExplainField!
+  field: SearchField!
+  weight: Float!
+}
+
+type SearchSettings {
+  version: Int!
+  fields: [SearchFieldConfiguration!]!
+  typoToleranceEnabled: Boolean!
+  outOfStockPolicy: SearchOutOfStockPolicy!
+  updatedAt: DateTime!
+  updatedById: ID!
+}
+
+type SearchFieldConfiguration {
+  field: SearchField!
+  weight: Float!
+}
+
+input SearchSettingsCreateInput {
+  fields: [SearchFieldConfigurationInput!]!
+  typoToleranceEnabled: Boolean!
+  outOfStockPolicy: SearchOutOfStockPolicy!
+}
+
+input SearchSettingsUpdateInput {
+  expectedVersion: Int!
+  fields: [SearchFieldConfigurationInput!]!
+  typoToleranceEnabled: Boolean!
+  outOfStockPolicy: SearchOutOfStockPolicy!
+}
+
+input SearchFieldConfigurationInput {
+  field: SearchField!
   weight: Float!
 }
 
@@ -232,5 +268,11 @@ type SearchProductBoostPayload {
 
 type SearchProductBoostDeletePayload {
   deletedProductBoostId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type SearchSettingsPayload {
+  settings: SearchSettings
+  currentVersion: Int
   userErrors: [GenericUserError!]!
 }

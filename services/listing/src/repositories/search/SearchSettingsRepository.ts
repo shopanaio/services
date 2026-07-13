@@ -2,6 +2,7 @@ import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { BaseRepository } from "../BaseRepository.js";
+import { SearchFieldRegistry } from "../../search/planner/SearchFieldRegistry.js";
 import {
   searchConfigurationAudit,
   searchSettings,
@@ -14,6 +15,7 @@ import {
   type SearchAuditInput,
   type SearchOptimisticMutationResult,
   type SearchSettingsValueInput,
+  type SearchTextField,
 } from "./searchRepositoryTypes.js";
 
 export interface SearchSettingsUpdateInput
@@ -23,6 +25,8 @@ export interface SearchSettingsUpdateInput
 }
 
 export class SearchSettingsRepository extends BaseRepository {
+  private readonly fields = new SearchFieldRegistry();
+
   @ReadOnly()
   async find(): Promise<SearchSettings | null> {
     const rows = await this.connection
@@ -180,17 +184,14 @@ export class SearchSettingsRepository extends BaseRepository {
     if (new Set(input.enabledFields).size !== input.enabledFields.length) {
       throw new Error("enabledFields must not contain duplicates");
     }
-    const fields = new Set([
-      "product_title",
-      "variant_title",
-      "vendor_name",
-      "category_name",
-    ]);
-    if (input.enabledFields.some((field) => !fields.has(field))) {
-      throw new Error("enabledFields contains an unsupported field");
-    }
-    if (Object.keys(input.fieldWeights).some((field) => !fields.has(field))) {
-      throw new Error("fieldWeights contains an unsupported field");
+    for (const field of input.enabledFields) this.fields.get(field);
+    for (const [field, weight] of Object.entries(input.fieldWeights)) {
+      this.fields.get(field as SearchTextField);
+      if (!Number.isFinite(weight) || weight <= 0 || weight > 100) {
+        throw new Error(
+          "fieldWeights must contain finite numbers greater than 0 and at most 100",
+        );
+      }
     }
     if (!new Set(["SHOW", "HIDE", "PLACE_LAST"]).has(input.outOfStockPolicy)) {
       throw new Error("Unsupported outOfStockPolicy");
@@ -199,9 +200,6 @@ export class SearchSettingsRepository extends BaseRepository {
       const weight = input.fieldWeights[field];
       if (weight === undefined) {
         throw new Error(`fieldWeights must contain a weight for ${field}`);
-      }
-      if (!Number.isFinite(weight) || weight <= 0) {
-        throw new Error("fieldWeights must contain finite positive numbers");
       }
     }
   }

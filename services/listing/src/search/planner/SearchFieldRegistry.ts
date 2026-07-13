@@ -49,9 +49,13 @@ export class SearchFieldRegistry {
     if (fields.length === 0) {
       throw indexUnavailable("At least one search field must be enabled");
     }
-    const unique = [...new Set(fields)].sort();
+    const unique = new Set(fields);
     for (const field of unique) this.get(field);
-    return Object.freeze(unique);
+    return Object.freeze(
+      DEFINITIONS
+        .map((definition) => definition.field)
+        .filter((field) => unique.has(field)),
+    );
   }
 
   defaultWeights(): Readonly<Record<SearchTextField, number>> {
