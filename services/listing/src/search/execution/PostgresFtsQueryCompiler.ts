@@ -11,7 +11,6 @@ import type {
 } from "../planner/types.js";
 
 export const POSTGRES_FTS_COMPILER_VERSION = "1";
-export const SUPPORTED_POSTGRES_MAJOR = 17;
 const MAX_FUZZY_COMBINATIONS_PER_UNIT = 1_024;
 const MAX_FUZZY_COMBINATIONS_PER_QUERY = 1_024;
 

@@ -1,13 +1,9 @@
 import { sql, type SQL } from "drizzle-orm";
 import { indexUnavailable } from "../errors.js";
-import {
-  POSTGRES_FTS_COMPILER_VERSION,
-  SUPPORTED_POSTGRES_MAJOR,
-} from "./PostgresFtsQueryCompiler.js";
+import { POSTGRES_FTS_COMPILER_VERSION } from "./PostgresFtsQueryCompiler.js";
 import { POSTGRES_TYPO_SIMILARITY_THRESHOLD_MAX } from "./PostgresTypoQueryCompiler.js";
 
 export interface PostgresSearchRuntimeObservation {
-  readonly serverVersionNum: number;
   readonly simpleConfigurationAvailable: boolean;
   readonly btreeGinAvailable: boolean;
   readonly roaringBitmapAvailable: boolean;
@@ -18,7 +14,6 @@ export interface PostgresSearchRuntimeObservation {
 }
 
 export interface PostgresSearchRuntimeContract {
-  readonly postgresMajor: number;
   readonly ftsConfiguration: "pg_catalog.simple";
   readonly compilerVersion: string;
   readonly ginFuzzySearchLimit: 0;
@@ -26,7 +21,6 @@ export interface PostgresSearchRuntimeContract {
 
 export const POSTGRES_SEARCH_RUNTIME_CONTRACT:
 PostgresSearchRuntimeContract = Object.freeze({
-  postgresMajor: SUPPORTED_POSTGRES_MAJOR,
   ftsConfiguration: "pg_catalog.simple",
   compilerVersion: POSTGRES_FTS_COMPILER_VERSION,
   ginFuzzySearchLimit: 0,
@@ -35,7 +29,6 @@ PostgresSearchRuntimeContract = Object.freeze({
 export function compilePostgresSearchRuntimeProbeSql(): SQL {
   return sql`
     SELECT
-      current_setting('server_version_num')::int AS "serverVersionNum",
       to_regconfig('pg_catalog.simple') IS NOT NULL
         AS "simpleConfigurationAvailable",
       EXISTS (
@@ -71,12 +64,6 @@ export function assertPostgresSearchRuntimeCompatible(
   observed: PostgresSearchRuntimeObservation,
   options: { requireTypo?: boolean } = {},
 ): void {
-  const major = Math.floor(observed.serverVersionNum / 10_000);
-  if (major !== POSTGRES_SEARCH_RUNTIME_CONTRACT.postgresMajor) {
-    throw indexUnavailable(
-      `Unsupported PostgreSQL major for search: ${major}`,
-    );
-  }
   if (!observed.simpleConfigurationAvailable) {
     throw indexUnavailable("pg_catalog.simple is unavailable");
   }
