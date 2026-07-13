@@ -421,12 +421,9 @@ Default order:
 ]
 ```
 
-`id` здесь намеренно отсутствует: relay builder добавляет configured
-`tieBreaker` самостоятельно.
-
-Существующий `@shopana/drizzle-query` relay contract уже корректно обрабатывает
-configured tie-breaker и explicit public sorting по `id`; менять package в этом
-cutover не нужно.
+`id` здесь намеренно отсутствует: query builder уже настроен с
+`tieBreaker: "id"`. Cursor semantics `@shopana/drizzle-query` не меняются в этом
+cutover.
 
 Pagination normalization до вызова relay builder:
 
@@ -452,8 +449,8 @@ const [result, totalCount] = await Promise.all([
 ]);
 ```
 
-В `executeInput.filters` передавать стабильный request fingerprint без
-pagination:
+В `executeInput.filters` передавать request scope без pagination согласно
+существующему `createRelayQuery` contract:
 
 ```ts
 filters: {
@@ -462,11 +459,6 @@ filters: {
   orderBy: effectiveOrderBy,
 }
 ```
-
-Это включает filter/order semantics в cursor hash. При смене table filters или
-sort `drizzle-query` должен проигнорировать старый seek cursor и начать страницу
-для нового request (`filtersChanged = true`), а не применять seek values от
-другого набора.
 
 ### Product boost connection и product scope
 
@@ -497,7 +489,7 @@ Rules:
 через `_and`. `execute()` и `count()` получают один и тот же финальный
 `mergedWhere`.
 
-Boost cursor fingerprint дополнительно включает normalized `productIds`:
+Boost `filters` дополнительно включает normalized `productIds`:
 
 ```ts
 filters: {
@@ -508,8 +500,8 @@ filters: {
 }
 ```
 
-До fingerprint и scope lookup IDs нужно deduplicate и сортировать. Порядок IDs
-в `meta` не должен менять fingerprint одной и той же product scope.
+До передачи в `filters` и scope lookup IDs нужно deduplicate и сортировать.
+Порядок IDs в `meta` не должен менять identity одной и той же product scope.
 
 Default order идентичен synonym connection:
 
@@ -519,8 +511,7 @@ Default order идентичен synonym connection:
 ]
 ```
 
-Фактический `id DESC` добавляется relay builder как configured tie-breaker по
-описанному выше существующему contract.
+Фактический `id DESC` обеспечивает configured `tieBreaker: "id"`.
 
 ### Connection result
 
@@ -540,15 +531,8 @@ Repository result:
 Это даёт одну snapshot-consistent SQL page query и устраняет race между page
 ID selection и отдельной child hydration.
 
-`filtersChanged` остаётся internal relay diagnostic, а не новым GraphQL field.
-Если builder проигнорировал stale cursor из-за нового fingerprint, repository
-нормализует `pageInfo` как страницу без continuation cursor:
-
-- forward request: `hasPreviousPage = false`;
-- backward request: `hasNextPage = false`.
-
-Так GraphQL connection не сообщает наличие предыдущей/следующей страницы только
-из-за переданного, но фактически проигнорированного cursor.
+Repository возвращает `edges` и `pageInfo` из `createRelayQuery` без
+переопределения или дополнительной интерпретации cursor semantics.
 
 ## 5. Generated filter и order contract
 
@@ -1038,15 +1022,8 @@ disposable database. Dual schema не поддерживается.
 12. Text search строится через `_or` name/terms или name/phrases.
 13. `totalCount` совпадает с полным filtered set, а не с размером page или всеми
     store rows.
-14. Cursor от другого sort/filter/product scope игнорируется как seek cursor:
-    через GraphQL наблюдается первая forward page или последняя backward page
-    нового request scope; stale seek position не применяется. Для forward
-    request `hasPreviousPage = false`, для backward request
-    `hasNextPage = false`; возвращённые start/end cursors принадлежат новому
-    filter fingerprint и продолжают pagination нового scope при следующем
-    запросе.
-15. Другой store не видит rows, counts или product membership текущего store.
-16. Singular queries и `settingsUpdate` mutation продолжают работать.
+14. Другой store не видит rows, counts или product membership текущего store.
+15. Singular queries и `settingsUpdate` mutation продолжают работать.
 
 ### Запрещённые проверки
 
@@ -1073,8 +1050,7 @@ breaking cutover build обязателен в финальной проверк
 - Public `where` не может переопределить tenant scope.
 - `execute()` и `count()` используют один merged filter.
 - Default order стабилен через `updatedAt DESC, id DESC`.
-- Public custom order остаётся cursor-stable через существующий relay
-  `id` tie-breaker contract.
+- Relay query настроен с `tieBreaker: "id"`.
 - Exact product scope принимает Product global IDs и работает по association
   table, не по serialized text.
 
