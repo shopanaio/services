@@ -17,3 +17,8 @@ export {
   validateDatabase,
   type DbValidationContext,
 } from "./database.js";
+
+export {
+  validateFeatureSyncParams,
+  type FeatureSyncValidationResult,
+} from "./validate.js";

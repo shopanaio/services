@@ -12,3 +12,8 @@ export {
   validateDatabase,
   type DbValidationContext,
 } from "./database.js";
+
+export {
+  validateOptionSyncParams,
+  type OptionSyncValidationResult,
+} from "./validate.js";

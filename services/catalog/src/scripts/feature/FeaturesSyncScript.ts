@@ -1,14 +1,11 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { FeatureSyncParams, FeatureSyncResult } from "./dto/index.js";
 import {
-  FeatureSyncInputSchema,
   type ValidatedFeatureInput,
   type ValidatedValueInput,
-  validateSemantic,
-  loadDbContext,
-  validateDatabase,
   indexToKey,
   getParentIndex,
+  validateFeatureSyncParams,
 } from "./validation/index.js";
 
 interface ResolvedFeature {
@@ -21,45 +18,15 @@ interface ResolvedFeature {
 export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyncResult> {
   @Transactional()
   protected async execute(params: FeatureSyncParams): Promise<FeatureSyncResult> {
-    // ═══════════════════════════════════════════════════════════════════════
-    // Layer 1: Structural validation (Zod)
-    // ═══════════════════════════════════════════════════════════════════════
-    const parseResult = FeatureSyncInputSchema.safeParse(params);
-    if (!parseResult.success) {
+    const validation = await validateFeatureSyncParams(this.repository, params);
+    if (!validation.data) {
       return {
         product: undefined,
         features: [],
-        userErrors: parseResult.error.issues.map((issue) => ({
-          message: issue.message,
-          field: issue.path.map(String),
-          code: "VALIDATION_ERROR",
-        })),
+        userErrors: validation.userErrors,
       };
     }
-    const { productId, features } = parseResult.data;
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // Product existence check
-    // ═══════════════════════════════════════════════════════════════════════
-    if (!(await this.repository.product.exists(productId))) {
-      return this.error("Product not found", ["productId"], "NOT_FOUND");
-    }
-    // ═══════════════════════════════════════════════════════════════════════
-    // Layer 2: Semantic validation (sync, no DB)
-    // ═══════════════════════════════════════════════════════════════════════
-    const semanticErrors = validateSemantic(features);
-    if (semanticErrors.length > 0) {
-      return { product: undefined, features: [], userErrors: semanticErrors };
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // Layer 3: Database validation (async, batch queries)
-    // ═══════════════════════════════════════════════════════════════════════
-    const dbCtx = await loadDbContext(this.repository.feature, productId, features);
-    const dbErrors = validateDatabase(features, dbCtx);
-    if (dbErrors.length > 0) {
-      return { product: undefined, features: [], userErrors: dbErrors };
-    }
+    const { productId, features } = validation.data;
 
     // ═══════════════════════════════════════════════════════════════════════
     // Sync: Delete -> Create -> Update

@@ -6,11 +6,8 @@ import type {
   OptionSwatchInput,
 } from "./dto/index.js";
 import {
-  OptionSyncInputSchema,
   type ValidatedOptionInput,
-  validateSemantic,
-  loadDbContext,
-  validateDatabase,
+  validateOptionSyncParams,
 } from "./validation/index.js";
 
 interface ResolvedOption {
@@ -21,45 +18,15 @@ interface ResolvedOption {
 export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncResult> {
   @Transactional()
   protected async execute(params: OptionSyncParams): Promise<OptionSyncResult> {
-    // ═══════════════════════════════════════════════════════════════════════
-    // Layer 1: Structural validation (Zod)
-    // ═══════════════════════════════════════════════════════════════════════
-    const parseResult = OptionSyncInputSchema.safeParse(params);
-    if (!parseResult.success) {
+    const validation = await validateOptionSyncParams(this.repository, params);
+    if (!validation.data) {
       return {
         product: undefined,
         options: [],
-        userErrors: parseResult.error.issues.map((issue) => ({
-          message: issue.message,
-          field: issue.path.map(String),
-          code: "VALIDATION_ERROR",
-        })),
+        userErrors: validation.userErrors,
       };
     }
-    const { productId, options } = parseResult.data;
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // Product existence check
-    // ═══════════════════════════════════════════════════════════════════════
-    if (!(await this.repository.product.exists(productId))) {
-      return this.error("Product not found", ["productId"], "NOT_FOUND");
-    }
-    // ═══════════════════════════════════════════════════════════════════════
-    // Layer 2: Semantic validation (sync, no DB)
-    // ═══════════════════════════════════════════════════════════════════════
-    const semanticErrors = validateSemantic(options);
-    if (semanticErrors.length > 0) {
-      return { product: undefined, options: [], userErrors: semanticErrors };
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // Layer 3: Database validation (async, batch queries)
-    // ═══════════════════════════════════════════════════════════════════════
-    const dbCtx = await loadDbContext(this.repository.option, productId, options);
-    const dbErrors = validateDatabase(options, dbCtx);
-    if (dbErrors.length > 0) {
-      return { product: undefined, options: [], userErrors: dbErrors };
-    }
+    const { productId, options } = validation.data;
 
     // ═══════════════════════════════════════════════════════════════════════
     // Sync: Delete -> Create -> Update

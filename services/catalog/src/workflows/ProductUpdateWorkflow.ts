@@ -62,6 +62,8 @@ import { InventoryItemUpdateScript } from "../scripts/inventory-item/InventoryIt
 import type { BackRefNotifyInput } from "../sagas/index.js";
 import { OptionsSyncScript } from "../scripts/option/OptionsSyncScript.js";
 import { FeaturesSyncScript } from "../scripts/feature/FeaturesSyncScript.js";
+import { validateOptionSyncParams } from "../scripts/option/validation/index.js";
+import { validateFeatureSyncParams } from "../scripts/feature/validation/index.js";
 
 type VariantWorkflowOperation = Extract<
   ProductUpdateOperation,
@@ -117,6 +119,20 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       isVariantOperation(op),
     );
 
+    const definitionValidation = await this.stepPreValidateDefinitions(input);
+    if (!definitionValidation.valid) {
+      return {
+        product: null,
+        operationResults: input.operations.map((op, index) =>
+          this.buildValidationFailureResult(
+            op,
+            definitionValidation.errorsByOperationIndex[index] ?? [],
+          ),
+        ),
+        userErrors: definitionValidation.userErrors,
+      };
+    }
+
     if (hasVariantOperations) {
       const validation = await this.stepPreValidateVariantBatch(input);
       if (!validation.valid) {
@@ -160,41 +176,41 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const op = input.operations[i];
       if (op.type === "productUpdate") {
         const result = await this.stepProductUpdate(op.params, changes, scriptCtx);
-        results.push(result);
+        results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "productCategoryUpdate") {
         const result = await this.stepProductCategoryUpdate(
           op.params,
           changes,
           scriptCtx,
         );
-        results.push(result);
+        results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "productTagUpdate") {
         const result = await this.stepProductTagUpdate(
           op.params,
           changes,
           scriptCtx,
         );
-        results.push(result);
+        results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "productOptionsSync") {
         const result = await this.stepProductOptionsSync(
           op.params,
           changes,
           scriptCtx,
         );
-        results.push(result);
+        results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "productFeaturesSync") {
         const result = await this.stepProductFeaturesSync(
           op.params,
           changes,
           scriptCtx,
         );
-        results.push(result);
+        results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "variantCreate") {
         const result = await this.stepVariantCreate(op.params, changes, scriptCtx);
-        results.push(result);
+        results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "variantDelete") {
         const result = await this.stepVariantDelete(op.params, changes, scriptCtx);
-        results.push(result);
+        results.push(prefixOperationResultErrors(result, op));
       } else {
         // Collect option updates for batch processing
         if (op.params.options) {
@@ -209,7 +225,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         }
         // Process other variant fields (options handled in batch below)
         const result = await this.stepVariantUpdate(op.params, changes, scriptCtx);
-        results.push(result);
+        results.push(prefixOperationResultErrors(result, op));
       }
     }
 
@@ -229,7 +245,12 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         if (batchResult) {
           if (!batchResult.applied) {
             results[index].applied = false;
-            results[index].errors.push(...batchResult.errors);
+            results[index].errors.push(
+              ...prefixUserErrors(
+                batchResult.errors,
+                input.operations[index].meta?.fieldPrefix,
+              ),
+            );
           }
         }
       }
@@ -247,6 +268,48 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       product: { id: input.productId, revision },
       operationResults: results,
       userErrors: results.flatMap((r) => r.errors),
+    };
+  }
+
+  @WorkflowStep()
+  private async stepPreValidateDefinitions(
+    input: ProductUpdateWorkflowInput,
+  ): Promise<VariantBatchValidationResult> {
+    const errorsByOperationIndex: Record<number, UserError[]> = {};
+    const userErrors: UserError[] = [];
+
+    for (const [index, op] of input.operations.entries()) {
+      let errors: UserError[] = [];
+      if (op.type === "productOptionsSync") {
+        const validation = await validateOptionSyncParams(
+          this.kernel.repository,
+          op.params,
+        );
+        errors = prefixUserErrors(
+          validation.userErrors,
+          op.meta?.fieldPrefix,
+        );
+      } else if (op.type === "productFeaturesSync") {
+        const validation = await validateFeatureSyncParams(
+          this.kernel.repository,
+          op.params,
+        );
+        errors = prefixUserErrors(
+          validation.userErrors,
+          op.meta?.fieldPrefix,
+        );
+      }
+
+      if (errors.length > 0) {
+        errorsByOperationIndex[index] = errors;
+        userErrors.push(...errors);
+      }
+    }
+
+    return {
+      valid: userErrors.length === 0,
+      errorsByOperationIndex,
+      userErrors,
     };
   }
 
@@ -361,12 +424,33 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     const allProductVariants =
       await this.kernel.repository.variant.findByProductId(input.productId);
     const variantById = new Map(allProductVariants.map((v) => [v.id, v]));
-    const productOptions =
-      await this.kernel.repository.option.findByProductId(input.productId);
+    const optionsSyncOperation = input.operations.find(
+      (op): op is Extract<ProductUpdateOperation, { type: "productOptionsSync" }> =>
+        op.type === "productOptionsSync",
+    );
+    const storedProductOptions = optionsSyncOperation
+      ? undefined
+      : await this.kernel.repository.option.findByProductId(input.productId);
+    const productOptions: Array<{ id: string }> = optionsSyncOperation
+      ? optionsSyncOperation.params.options.map((option, index) => ({
+          id: option.id ?? `pending-option:${index}`,
+        }))
+      : (storedProductOptions ?? []);
     const productOptionIds = productOptions.map((option) => option.id);
     const productOptionIdSet = new Set(productOptionIds);
-    const valuesByOption =
-      await this.kernel.repository.option.findValuesByOptionIds(productOptionIds);
+    const valuesByOption: Map<string, Array<{ id: string }>> = optionsSyncOperation
+      ? new Map(
+          optionsSyncOperation.params.options.map((option, optionIndex) => {
+            const optionId = option.id ?? `pending-option:${optionIndex}`;
+            return [
+              optionId,
+              option.values.map((value, valueIndex) => ({
+                id: value.id ?? `pending-value:${optionIndex}:${valueIndex}`,
+              })),
+            ];
+          }),
+        )
+      : await this.kernel.repository.option.findValuesByOptionIds(productOptionIds);
     const valueToOptionId = new Map<string, string>();
     for (const [optionId, values] of valuesByOption) {
       for (const value of values) {
@@ -411,9 +495,21 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    const currentLinksMap = await this.kernel.repository.option.findVariantLinks(
+    const storedCurrentLinksMap = await this.kernel.repository.option.findVariantLinks(
       allProductVariants.map((variant) => variant.id),
     );
+    const currentLinksMap = optionsSyncOperation
+      ? new Map(
+          [...storedCurrentLinksMap].map(([variantId, links]) => [
+            variantId,
+            links.filter(
+              (link) =>
+                link.optionValueId !== null &&
+                valueToOptionId.get(link.optionValueId) === link.optionId,
+            ),
+          ]),
+        )
+      : storedCurrentLinksMap;
 
     const createClientMutationIds = new Map<string, number>();
     for (const { op, index } of variantOps) {
@@ -1494,6 +1590,35 @@ function isVariantOperation(
 
 function fieldPath(op: ProductUpdateOperation, ...parts: string[]): string[] {
   return [...(op.meta?.fieldPrefix ?? []), ...parts];
+}
+
+function prefixOperationResultErrors(
+  result: OperationResult,
+  op: ProductUpdateOperation,
+): OperationResult {
+  return {
+    ...result,
+    errors: prefixUserErrors(result.errors, op.meta?.fieldPrefix),
+  };
+}
+
+function prefixUserErrors(
+  errors: readonly UserError[],
+  fieldPrefix: readonly string[] | undefined,
+): UserError[] {
+  if (!fieldPrefix || fieldPrefix.length === 0) {
+    return [...errors];
+  }
+
+  const lastPrefixPart = fieldPrefix[fieldPrefix.length - 1];
+  return errors.map((error) => {
+    const field = error.field ?? [];
+    const relativeField = field[0] === lastPrefixPart ? field.slice(1) : field;
+    return {
+      ...error,
+      field: [...fieldPrefix, ...relativeField],
+    };
+  });
 }
 
 function validateVariantOptions(args: {
