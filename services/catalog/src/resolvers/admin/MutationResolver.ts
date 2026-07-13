@@ -10,7 +10,6 @@ import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
 import { VendorResolver } from "./VendorResolver.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
-import { InventoryItemResolver } from "./InventoryItemResolver.js";
 import { StockResolver } from "./StockResolver.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 
@@ -71,9 +70,6 @@ function WarehouseStockMutationInputSchema() {
     ),
   });
 }
-import { VariantResolver } from "./VariantResolver.js";
-import { OptionResolver } from "./OptionResolver.js";
-import { FeatureResolver } from "./FeatureResolver.js";
 import { CategoryResolver } from "./CategoryResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { CollectionResolver } from "./CollectionResolver.js";
@@ -106,7 +102,6 @@ import type {
 } from "../../workflows/dto/ProductUpdateWorkflowDto.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import { VendorCreateScript } from "../../scripts/vendor/index.js";
-import { InventoryItemUpdateScript } from "../../scripts/inventory-item/index.js";
 import {
   WarehouseCreateScript,
   WarehouseDeleteScript,
@@ -116,25 +111,6 @@ import {
   WarehouseStockCreateScript,
   WarehouseStockDeleteScript,
 } from "../../scripts/stock/index.js";
-import {
-  VariantCreateScript,
-  VariantDeleteScript,
-  VariantUpdateMediaScript,
-  VariantUpdatePricingScript,
-  VariantUpdateOptionsScript,
-} from "../../scripts/variant/index.js";
-import {
-  OptionCreateScript,
-  OptionDeleteScript,
-  OptionUpdateScript,
-  OptionsSyncScript,
-} from "../../scripts/option/index.js";
-import {
-  FeatureCreateScript,
-  FeatureUpdateScript,
-  FeatureDeleteScript,
-  FeaturesSyncScript,
-} from "../../scripts/feature/index.js";
 import {
   CollectionCreateScript,
   CollectionUpdateScript,
@@ -157,19 +133,6 @@ import type {
   BundleGroupsSyncInput,
   BundlePricingTemplatesSyncInput,
   BundleDependencyRulesSyncInput,
-  VariantCreateInput,
-  VariantDeleteInput,
-  VariantUpdatePricingInput,
-  VariantUpdateMediaInput,
-  VariantUpdateOptionsInput,
-  ProductOptionCreateInput,
-  ProductOptionUpdateInput,
-  ProductOptionDeleteInput,
-  ProductOptionsSyncInput,
-  ProductFeatureCreateInput,
-  ProductFeatureUpdateInput,
-  ProductFeatureDeleteInput,
-  ProductFeaturesSyncInput,
   CatalogMutationCategoryCreateArgs,
   CatalogMutationCategoryDeleteArgs,
   CatalogMutationCategoryMoveArgs,
@@ -178,7 +141,6 @@ import type {
   CatalogMutationVendorCreateArgs,
   CatalogMutationBundleUpdateArgs,
   CatalogMutationProductUpdateArgs,
-  InventoryItemUpdateInput,
   WarehouseCreateInput,
   WarehouseUpdateInput,
   WarehouseDeleteInput,
@@ -199,20 +161,6 @@ import {
   BundleGroupsSyncInputSchema,
   BundlePricingTemplatesSyncInputSchema,
   BundleDependencyRulesSyncInputSchema,
-  VariantCreateInputSchema,
-  VariantDeleteInputSchema,
-  VariantUpdatePricingInputSchema,
-  VariantUpdateMediaInputSchema,
-  VariantUpdateOptionsInputSchema,
-  ProductOptionCreateInputSchema,
-  ProductOptionUpdateInputSchema,
-  ProductOptionDeleteInputSchema,
-  ProductOptionsSyncInputSchema,
-  ProductFeatureCreateInputSchema,
-  ProductFeatureUpdateInputSchema,
-  ProductFeatureDeleteInputSchema,
-  ProductFeaturesSyncInputSchema,
-  InventoryItemUpdateInputSchema,
   WarehouseCreateInputSchema,
   WarehouseUpdateInputSchema,
   WarehouseDeleteInputSchema,
@@ -244,61 +192,6 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
  * Does NOT contain inventory mutations (warehouse, stock, dimensions, cost).
  */
 export class CatalogMutationResolver extends CatalogType<Record<string, never>> {
-  @ZodResolver(InventoryItemUpdateInputSchema())
-  async inventoryItemUpdate(args: { input: InventoryItemUpdateInput }) {
-    const { input } = args;
-
-    const itemId = decodeGlobalIdByType(
-      input.id,
-      GlobalIdEntity.InventoryItem
-    );
-
-    const item = await this.$ctx.kernel.repository.inventoryItem.findById(itemId);
-    if (!item) {
-      return {
-        inventoryItem: null,
-        userErrors: [
-          { message: "Inventory item not found", code: "NOT_FOUND", field: ["id"] },
-        ],
-      };
-    }
-
-    const stock = input.stock
-      ? {
-          warehouseId: decodeGlobalIdByType(
-            input.stock.warehouseId,
-            GlobalIdEntity.Warehouse
-          ),
-          onHand: input.stock.onHand,
-          unavailable: input.stock.unavailable,
-        }
-      : undefined;
-
-    const result = await this.$ctx.kernel.runScript(InventoryItemUpdateScript, {
-      inventoryItemId: item.id,
-      variantId: item.variantId,
-      sku: input.sku,
-      trackInventory: input.trackInventory ?? undefined,
-      continueSellingWhenOutOfStock:
-        input.continueSellingWhenOutOfStock ?? undefined,
-      stock,
-      unitCost: input.unitCost
-        ? {
-            currency: input.unitCost.currency,
-            amountMinor: input.unitCost.amountMinor,
-          }
-        : undefined,
-    });
-
-    return {
-      inventoryItem:
-        result.userErrors.length === 0
-          ? new InventoryItemResolver(item.id, this.$ctx)
-          : null,
-      userErrors: result.userErrors,
-    };
-  }
-
   @ZodResolver(WarehouseCreateInputSchema())
   async warehouseCreate(args: { input: WarehouseCreateInput }) {
     const { input } = args;
@@ -646,6 +539,41 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     }
   }
 
+  private async emitProductTagUpdated(args: {
+    productIds: readonly string[];
+    tagId: string;
+    operation: "update" | "delete";
+  }): Promise<void> {
+    for (const productId of new Set(args.productIds)) {
+      await this.$ctx.kernel.getServices().broker.runWorkflow(
+        "events.emit",
+        {
+          eventType: "productUpdated",
+          payload: {
+            productId,
+            storeId: this.$ctx.store.id,
+            reasons: ["tag"],
+          },
+          source: "catalog",
+          context: {
+            organizationId: this.$ctx.store.organizationId,
+            userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+          },
+          subject: { type: "product", id: productId },
+          actor: this.$ctx.hasUser
+            ? { type: "user", id: this.$ctx.user.id }
+            : undefined,
+          emitKey: `product:${productId}`,
+        },
+        {
+          source: "workflow",
+          workflowId: `tagDefinition:${args.operation}:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.tagId}:${productId}`,
+          stepId: "emitProductUpdated",
+        },
+      );
+    }
+  }
+
   private async emitProductDeleted(args: {
     productId: string;
     categoryIds: readonly string[] | undefined;
@@ -678,71 +606,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         source: "workflow",
         workflowId: `productDelete:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.productId}`,
         stepId: "emitProductDeleted",
-      }
-    );
-  }
-
-  private async emitVariantCreatedProductUpdated(args: {
-    productId: string;
-    variantId: string;
-  }): Promise<void> {
-    await this.$ctx.kernel.getServices().broker.runWorkflow(
-      "events.emit",
-      {
-        eventType: "productUpdated",
-        payload: {
-          productId: args.productId,
-          storeId: this.$ctx.store.id,
-          reasons: ["variant"],
-        },
-        source: "catalog",
-        context: {
-          organizationId: this.$ctx.store.organizationId,
-          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-        },
-        subject: { type: "product", id: args.productId },
-        actor: this.$ctx.hasUser
-          ? { type: "user", id: this.$ctx.user.id }
-          : undefined,
-        emitKey: `product:${args.productId}:variant:${args.variantId}:created`,
-      },
-      {
-        source: "workflow",
-        workflowId: `variantCreate:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.variantId}`,
-        stepId: "emitProductUpdated",
-      }
-    );
-
-  }
-
-  private async emitVariantDeleted(args: {
-    productId: string;
-    variantId: string;
-  }): Promise<void> {
-    await this.$ctx.kernel.getServices().broker.runWorkflow(
-      "events.emit",
-      {
-        eventType: "variantDeleted",
-        payload: {
-          productId: args.productId,
-          variantId: args.variantId,
-          storeId: this.$ctx.store.id,
-        },
-        source: "catalog",
-        context: {
-          organizationId: this.$ctx.store.organizationId,
-          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-        },
-        subject: { type: "variant", id: args.variantId },
-        actor: this.$ctx.hasUser
-          ? { type: "user", id: this.$ctx.user.id }
-          : undefined,
-        emitKey: `variant:${args.variantId}:deleted`,
-      },
-      {
-        source: "workflow",
-        workflowId: `variantDelete:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.variantId}`,
-        stepId: "emitVariantDeleted",
       }
     );
   }
@@ -1038,502 +901,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       configuration: null,
       dependencyRules: [],
       userErrors: [],
-    };
-  }
-
-  // ---- Variant Mutations ----
-
-  /**
-   * Create a new variant.
-   */
-  @ZodResolver(VariantCreateInputSchema())
-  async variantCreate(args: { input: VariantCreateInput }) {
-    const { input } = args;
-    const productId = decodeGlobalIdByType(
-      input.productId,
-      GlobalIdEntity.Product
-    );
-
-    const result = await this.$ctx.kernel.runScript(VariantCreateScript, {
-      productId,
-      options: input.variant.options.map((opt) => ({
-        optionId: decodeGlobalIdByType(opt.optionId, GlobalIdEntity.Option),
-        optionValueId: decodeGlobalIdByType(
-          opt.optionValueId,
-          GlobalIdEntity.OptionValue
-        ),
-      })),
-      externalSystem: input.variant.externalSystem ?? undefined,
-      externalId: input.variant.externalId ?? undefined,
-    });
-
-    if (result.userErrors.length === 0 && result.variant) {
-      await this.emitVariantCreatedProductUpdated({
-        productId: result.variant.productId,
-        variantId: result.variant.id,
-      });
-    }
-
-    return {
-      variant: result.variant
-        ? new VariantResolver(result.variant.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Delete a variant.
-   */
-  @ZodResolver(VariantDeleteInputSchema())
-  async variantDelete(args: { input: VariantDeleteInput }) {
-    const { input } = args;
-    const variantId = decodeGlobalIdByType(input.id, GlobalIdEntity.Variant);
-
-    const result = await this.$ctx.kernel.runScript(VariantDeleteScript, {
-      id: variantId,
-      permanent: Boolean(input.permanent),
-    });
-
-    if (
-      result.userErrors.length === 0 &&
-      result.deletedVariantId &&
-      result.productId
-    ) {
-      await this.emitVariantDeleted({
-        productId: result.productId,
-        variantId: result.deletedVariantId,
-      });
-    }
-
-    return {
-      deletedVariantId: result.deletedVariantId ?? null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Set variant pricing.
-   */
-  @ZodResolver(VariantUpdatePricingInputSchema())
-  async variantUpdatePricing(args: { input: VariantUpdatePricingInput }) {
-    const { input } = args;
-    const variantId = decodeGlobalIdByType(
-      input.variantId,
-      GlobalIdEntity.Variant
-    );
-
-    const result = await this.$ctx.kernel.runScript(VariantUpdatePricingScript, {
-      variantId,
-      currency: input.currency,
-      amountMinor: Number(input.amountMinor),
-      compareAtMinor: input.compareAtMinor != null
-        ? Number(input.compareAtMinor)
-        : undefined,
-    });
-
-    return {
-      variant: result.result
-        ? new VariantResolver(variantId, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Set variant options (option value links).
-   */
-  @ZodResolver(VariantUpdateOptionsInputSchema())
-  async variantUpdateOptions(args: { input: VariantUpdateOptionsInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(VariantUpdateOptionsScript, {
-      variantId: input.variantId,
-      links: input.links.map((link) => ({
-        optionId: link.optionId,
-        optionValueId: link.optionValueId,
-      })),
-    });
-
-    return {
-      variant: result.result
-        ? new VariantResolver(result.result.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Set variant media.
-   */
-  @ZodResolver(VariantUpdateMediaInputSchema())
-  async variantUpdateMedia(args: { input: VariantUpdateMediaInput }) {
-    const { input } = args;
-
-    // Decode Global IDs to UUIDs
-    const variantId = decodeGlobalIdByType(
-      input.variantId,
-      GlobalIdEntity.Variant
-    );
-    const fileIds = input.fileIds.map((fileId) =>
-      decodeGlobalIdByType(fileId, GlobalIdEntity.File)
-    );
-
-    const result = await this.$ctx.kernel.runScript(VariantUpdateMediaScript, {
-      variantId,
-      fileIds,
-    });
-
-    return {
-      variant: result.result
-        ? new VariantResolver(result.result.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // Warehouse Mutations REMOVED (moved to Inventory Service)
-  // - warehouseCreate
-  // - warehouseUpdate
-  // - warehouseDelete
-  // ═══════════════════════════════════════════════════════════
-
-  // ═══════════════════════════════════════════════════════════
-  // Variant Inventory Mutations REMOVED (moved to Inventory Service)
-  // - variantUpdateDimensions
-  // - variantUpdateInventory
-  // ═══════════════════════════════════════════════════════════
-
-  // ---- Option Mutations ----
-
-  /**
-   * Create a new product option.
-   */
-  @ZodResolver(ProductOptionCreateInputSchema())
-  async productOptionCreate(args: { input: ProductOptionCreateInput }) {
-    const { input } = args;
-
-    if (!input.productId) {
-      return {
-        option: null,
-        userErrors: [
-          {
-            message: "Product ID is required",
-            field: ["productId"],
-            code: "REQUIRED",
-          },
-        ],
-      };
-    }
-
-    const productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
-
-    const result = await this.$ctx.kernel.runScript(OptionCreateScript, {
-      productId,
-      slug: input.slug,
-      name: input.name,
-      displayType: input.displayType,
-      sortIndex: input.sortIndex ?? undefined,
-      values: input.values.map((v) => ({
-        slug: v.slug,
-        name: v.name,
-        sortIndex: v.sortIndex ?? undefined,
-        swatch: v.swatch
-          ? {
-              swatchType: v.swatch.swatchType,
-              colorOne: v.swatch.colorOne ?? undefined,
-              colorTwo: v.swatch.colorTwo ?? undefined,
-              fileId: v.swatch.fileId ?? undefined,
-              metadata: v.swatch.metadata,
-            }
-        : undefined,
-      })),
-    });
-
-    return {
-      option: result.option
-        ? new OptionResolver(result.option.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Update an existing product option.
-   */
-  @ZodResolver(ProductOptionUpdateInputSchema())
-  async productOptionUpdate(args: { input: ProductOptionUpdateInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(OptionUpdateScript, {
-      id: input.id,
-      slug: input.slug ?? undefined,
-      name: input.name ?? undefined,
-      displayType: input.displayType ?? undefined,
-      sortIndex: input.sortIndex ?? undefined,
-      values: input.values
-        ? {
-            create: input.values.create?.map((v) => ({
-              slug: v.slug,
-              name: v.name,
-              sortIndex: v.sortIndex ?? undefined,
-              swatch: v.swatch
-                ? {
-                    swatchType: v.swatch.swatchType,
-                    colorOne: v.swatch.colorOne ?? undefined,
-                    colorTwo: v.swatch.colorTwo ?? undefined,
-                    fileId: v.swatch.fileId ?? undefined,
-                    metadata: v.swatch.metadata,
-                  }
-                : undefined,
-            })),
-            update: input.values.update?.map((v) => ({
-              id: v.id,
-              slug: v.slug ?? undefined,
-              name: v.name ?? undefined,
-              sortIndex: v.sortIndex ?? undefined,
-              swatch:
-                v.swatch === null
-                  ? null
-                  : v.swatch
-                  ? {
-                      swatchType: v.swatch.swatchType,
-                      colorOne: v.swatch.colorOne ?? undefined,
-                      colorTwo: v.swatch.colorTwo ?? undefined,
-                      fileId: v.swatch.fileId ?? undefined,
-                      metadata: v.swatch.metadata,
-                    }
-                  : undefined,
-            })),
-            delete: input.values.delete ?? undefined,
-          }
-        : undefined,
-    });
-
-    return {
-      option: result.option
-        ? new OptionResolver(result.option.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Delete a product option.
-   */
-  @ZodResolver(ProductOptionDeleteInputSchema())
-  async productOptionDelete(args: { input: ProductOptionDeleteInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(OptionDeleteScript, {
-      id: input.id,
-    });
-
-    return {
-      deletedOptionId: result.deletedOptionId ?? null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Sync all product options in a single transaction.
-   * Options not in the input list will be deleted.
-   */
-  @ZodResolver(ProductOptionsSyncInputSchema())
-  async productOptionsSync(args: { input: ProductOptionsSyncInput }) {
-    const { input } = args;
-
-    const productId = safeDecodeGlobalId(input.productId, GlobalIdEntity.Product);
-    if (!productId) {
-      return {
-        product: null,
-        options: [],
-        userErrors: [
-          {
-            message: "Invalid product ID format",
-            field: ["productId"],
-            code: "VALIDATION_ERROR",
-          },
-        ],
-      };
-    }
-
-    const result = await this.$ctx.kernel.runScript(OptionsSyncScript, {
-      productId,
-      options: input.options.map((option) => ({
-        id: option.id
-          ? decodeGlobalIdByType(option.id, GlobalIdEntity.Option)
-          : undefined,
-        sortIndex: option.sortIndex,
-        slug: option.slug,
-        name: option.name,
-        displayType: option.displayType,
-        values: option.values.map((value) => ({
-          id: value.id
-            ? decodeGlobalIdByType(value.id, GlobalIdEntity.OptionValue)
-            : undefined,
-          sortIndex: value.sortIndex,
-          slug: value.slug,
-          name: value.name,
-          swatch: value.swatch
-            ? {
-                swatchType: value.swatch.swatchType,
-                colorOne: value.swatch.colorOne ?? undefined,
-                colorTwo: value.swatch.colorTwo ?? undefined,
-                fileId: value.swatch.fileId
-                  ? decodeGlobalIdByType(value.swatch.fileId, GlobalIdEntity.File)
-                  : undefined,
-                metadata: value.swatch.metadata,
-              }
-            : value.swatch,
-        })),
-      })),
-    });
-
-    return {
-      product: result.product
-        ? new ProductResolver(result.product.id, this.$ctx)
-        : null,
-      options: result.options.map(
-        (option) => new OptionResolver(option.id, this.$ctx)
-      ),
-      userErrors: result.userErrors,
-    };
-  }
-
-  // ---- Feature Mutations ----
-
-  /**
-   * Create a new product feature.
-   */
-  @ZodResolver(ProductFeatureCreateInputSchema())
-  async productFeatureCreate(args: { input: ProductFeatureCreateInput }) {
-    const { input } = args;
-
-    const productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
-
-    const result = await this.$ctx.kernel.runScript(FeatureCreateScript, {
-      productId,
-      slug: input.slug,
-      name: input.name,
-      values: input.values.map((v) => ({
-        name: v.name,
-        slug: v.slug,
-      })),
-    });
-
-    return {
-      feature: result.feature
-        ? new FeatureResolver(result.feature.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Update an existing product feature.
-   */
-  @ZodResolver(ProductFeatureUpdateInputSchema())
-  async productFeatureUpdate(args: { input: ProductFeatureUpdateInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(FeatureUpdateScript, {
-      id: input.id,
-      slug: input.slug ?? undefined,
-      name: input.name ?? undefined,
-      values: input.values
-        ? {
-          create: input.values.create?.map((v) => ({
-              name: v.name,
-              slug: v.slug,
-            })),
-            update: input.values.update?.map((v) => ({
-              id: v.id,
-              name: v.name ?? undefined,
-              slug: v.slug ?? undefined,
-            })),
-            delete: input.values.delete ?? undefined,
-          }
-        : undefined,
-    });
-
-    return {
-      feature: result.feature
-        ? new FeatureResolver(result.feature.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Delete a product feature.
-   */
-  @ZodResolver(ProductFeatureDeleteInputSchema())
-  async productFeatureDelete(args: { input: ProductFeatureDeleteInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(FeatureDeleteScript, {
-      id: input.id,
-    });
-
-    return {
-      deletedFeatureId: result.deletedFeatureId ?? null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Sync all product features for a product.
-   */
-  @ZodResolver(ProductFeaturesSyncInputSchema())
-  async productFeaturesSync(args: { input: ProductFeaturesSyncInput }) {
-    const { input } = args;
-
-    const productId = safeDecodeGlobalId(input.productId, GlobalIdEntity.Product);
-    if (!productId) {
-      return {
-        product: null,
-        features: [],
-        userErrors: [
-          {
-            message: "Invalid product ID format",
-            field: ["productId"],
-            code: "VALIDATION_ERROR",
-          },
-        ],
-      };
-    }
-
-    const result = await this.$ctx.kernel.runScript(FeaturesSyncScript, {
-      productId,
-      features: input.features.map((feature) => ({
-        id: feature.id
-          ? decodeGlobalIdByType(feature.id, GlobalIdEntity.Feature)
-          : undefined,
-        index: feature.index,
-        slug: feature.slug,
-        isGroup: feature.isGroup,
-        name: feature.name,
-        values: feature.values?.map((value) => ({
-          id: value.id
-            ? decodeGlobalIdByType(value.id, GlobalIdEntity.FeatureValue)
-            : undefined,
-          index: value.index,
-          slug: value.slug,
-          name: value.name,
-        })),
-      })),
-    });
-
-    return {
-      product: result.product
-        ? new ProductResolver(result.product.id, this.$ctx)
-        : null,
-      features: result.features.map(
-        (feature) => new FeatureResolver(feature.id, this.$ctx)
-      ),
-      userErrors: result.userErrors,
     };
   }
 
@@ -2140,12 +1507,23 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const { input } = args;
 
     const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Tag);
+    const productLinks = await this.$ctx.kernel.repository.tag.getTagProductLinks([
+      id,
+    ]);
 
     const result = await this.$ctx.kernel.runScript(TagUpdateScript, {
       id,
       handle: input.handle ?? undefined,
       name: input.name ?? undefined,
     });
+
+    if (result.userErrors.length === 0 && result.tag) {
+      await this.emitProductTagUpdated({
+        productIds: productLinks.map((link) => link.productId),
+        tagId: id,
+        operation: "update",
+      });
+    }
 
     return {
       tag: result.tag
@@ -2166,10 +1544,21 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const { input } = args;
 
     const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Tag);
+    const productLinks = await this.$ctx.kernel.repository.tag.getTagProductLinks([
+      id,
+    ]);
 
     const result = await this.$ctx.kernel.runScript(TagDeleteScript, {
       id,
     });
+
+    if (result.userErrors.length === 0 && result.deletedTagId) {
+      await this.emitProductTagUpdated({
+        productIds: productLinks.map((link) => link.productId),
+        tagId: id,
+        operation: "delete",
+      });
+    }
 
     return {
       deletedTagId: result.deletedTagId ?? null,
@@ -2314,6 +1703,8 @@ function mapProductUpdateInput(
   const variants = operations?.variants;
   const categories = operations?.categories;
   const tags = operations?.tags;
+  const options = operations?.options;
+  const features = operations?.features;
   const operationsFieldPrefix = productIndex === undefined
     ? ["operations"]
     : ["input", "products", String(productIndex), "operations"];
@@ -2367,6 +1758,28 @@ function mapProductUpdateInput(
       })),
     );
     errors.push(...mapped.errors);
+  }
+
+  if (options) {
+    const mapped = mapProductOptionsSyncOperation(
+      productId,
+      options,
+      operationsFieldPrefix,
+    );
+    entries.push(mapped.entry);
+    errors.push(...mapped.entry.errors);
+    if (mapped.entry.operation) result.push(mapped.entry.operation);
+  }
+
+  if (features) {
+    const mapped = mapProductFeaturesSyncOperation(
+      productId,
+      features,
+      operationsFieldPrefix,
+    );
+    entries.push(mapped.entry);
+    errors.push(...mapped.entry.errors);
+    if (mapped.entry.operation) result.push(mapped.entry.operation);
   }
 
   if (variants) {
@@ -2680,18 +2093,32 @@ function mapVariantPayloadParams(
       }
     : undefined;
 
+  const inventoryFieldPrefix = [...fieldPrefix, "inventory"];
+  const hasWarehouseId = Boolean(input.inventory?.warehouseId);
+  const hasOnHand = input.inventory?.onHand !== undefined && input.inventory.onHand !== null;
+  if (input.inventory && hasWarehouseId !== hasOnHand) {
+    errors.push({
+      message: "warehouseId and onHand must be provided together",
+      field: inventoryFieldPrefix,
+      code: "REQUIRED_TOGETHER",
+    });
+  }
   const inventory = input.inventory
     ? {
-        warehouseId:
-          decodeInputId(
-            input.inventory.warehouseId,
-            GlobalIdEntity.Warehouse,
-            [...fieldPrefix, "inventory", "warehouseId"],
-            errors,
-          ) ?? "",
-        onHand: input.inventory.onHand,
+        warehouseId: input.inventory.warehouseId
+          ? decodeInputId(
+              input.inventory.warehouseId,
+              GlobalIdEntity.Warehouse,
+              [...inventoryFieldPrefix, "warehouseId"],
+              errors,
+            )
+          : undefined,
+        onHand: input.inventory.onHand ?? undefined,
         unavailable: input.inventory.unavailable ?? undefined,
         sku: input.inventory.sku,
+        trackInventory: input.inventory.trackInventory ?? undefined,
+        continueSellingWhenOutOfStock:
+          input.inventory.continueSellingWhenOutOfStock ?? undefined,
         unitCostMinor:
           input.inventory.unitCostMinor === undefined
             ? undefined
@@ -2726,6 +2153,123 @@ function mapVariantPayloadParams(
     : undefined;
 
   return { options, pricing, inventory, dimensions, weight, media };
+}
+
+function mapProductOptionsSyncOperation(
+  productId: string,
+  options: NonNullable<ProductUpdateInput["options"]>,
+  operationsFieldPrefix: string[],
+): { entry: ProductUpdateMappedEntry } {
+  const errors: UserError[] = [];
+  const fieldPrefix = [...operationsFieldPrefix, "options"];
+  const mappedOptions = options.map((option, optionIndex) => ({
+    id: option.id
+      ? decodeInputId(
+          option.id,
+          GlobalIdEntity.Option,
+          [...fieldPrefix, String(optionIndex), "id"],
+          errors,
+        )
+      : undefined,
+    sortIndex: option.sortIndex,
+    slug: option.slug,
+    name: option.name,
+    displayType: option.displayType,
+    values: option.values.map((value, valueIndex) => ({
+      id: value.id
+        ? decodeInputId(
+            value.id,
+            GlobalIdEntity.OptionValue,
+            [...fieldPrefix, String(optionIndex), "values", String(valueIndex), "id"],
+            errors,
+          )
+        : undefined,
+      sortIndex: value.sortIndex,
+      slug: value.slug,
+      name: value.name,
+      swatch: value.swatch
+        ? {
+            swatchType: value.swatch.swatchType,
+            colorOne: value.swatch.colorOne ?? undefined,
+            colorTwo: value.swatch.colorTwo ?? undefined,
+            fileId: value.swatch.fileId
+              ? decodeInputId(
+                  value.swatch.fileId,
+                  GlobalIdEntity.File,
+                  [
+                    ...fieldPrefix,
+                    String(optionIndex),
+                    "values",
+                    String(valueIndex),
+                    "swatch",
+                    "fileId",
+                  ],
+                  errors,
+                )
+              : undefined,
+            metadata: value.swatch.metadata,
+          }
+        : value.swatch,
+    })),
+  }));
+  const operation = errors.length === 0
+    ? ({
+        type: "productOptionsSync",
+        params: { productId, options: mappedOptions },
+        meta: { fieldPrefix },
+      } satisfies ProductUpdateOperation)
+    : undefined;
+
+  return {
+    entry: { type: "productOptionsSync", operation, errors },
+  };
+}
+
+function mapProductFeaturesSyncOperation(
+  productId: string,
+  features: NonNullable<ProductUpdateInput["features"]>,
+  operationsFieldPrefix: string[],
+): { entry: ProductUpdateMappedEntry } {
+  const errors: UserError[] = [];
+  const fieldPrefix = [...operationsFieldPrefix, "features"];
+  const mappedFeatures = features.map((feature, featureIndex) => ({
+    id: feature.id
+      ? decodeInputId(
+          feature.id,
+          GlobalIdEntity.Feature,
+          [...fieldPrefix, String(featureIndex), "id"],
+          errors,
+        )
+      : undefined,
+    index: feature.index,
+    slug: feature.slug,
+    isGroup: feature.isGroup,
+    name: feature.name,
+    values: feature.values?.map((value, valueIndex) => ({
+      id: value.id
+        ? decodeInputId(
+            value.id,
+            GlobalIdEntity.FeatureValue,
+            [...fieldPrefix, String(featureIndex), "values", String(valueIndex), "id"],
+            errors,
+          )
+        : undefined,
+      index: value.index,
+      slug: value.slug,
+      name: value.name,
+    })),
+  }));
+  const operation = errors.length === 0
+    ? ({
+        type: "productFeaturesSync",
+        params: { productId, features: mappedFeatures },
+        meta: { fieldPrefix },
+      } satisfies ProductUpdateOperation)
+    : undefined;
+
+  return {
+    entry: { type: "productFeaturesSync", operation, errors },
+  };
 }
 
 function decodeInputId(
@@ -2948,6 +2492,12 @@ function toGraphqlOperationType(type: ProductUpdateOperation["type"]) {
   }
   if (type === "productTagUpdate") {
     return "PRODUCT_TAG_UPDATE";
+  }
+  if (type === "productOptionsSync") {
+    return "PRODUCT_OPTIONS_SYNC";
+  }
+  if (type === "productFeaturesSync") {
+    return "PRODUCT_FEATURES_SYNC";
   }
   if (type === "variantCreate") {
     return "VARIANT_CREATE";

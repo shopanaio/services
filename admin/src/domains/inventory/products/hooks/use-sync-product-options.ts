@@ -7,10 +7,10 @@ import type {
   ApiProductOption,
   ApiProductOptionsSyncInput,
 } from "@/graphql/types";
-import { PRODUCT_OPTIONS_SYNC_MUTATION } from "../graphql";
+import { PRODUCT_UPDATE_MUTATION } from "../graphql";
 import type {
-  ProductOptionsSyncMutationData,
-  ProductOptionsSyncMutationVariables,
+  ProductUpdateMutationData,
+  ProductUpdateMutationVariables,
   ProductOptionsSyncProduct,
 } from "../graphql/operation-types";
 
@@ -31,9 +31,9 @@ interface UseSyncProductOptionsReturn {
 
 export function useSyncProductOptions(): UseSyncProductOptionsReturn {
   const [syncProductOptionsMutation, { loading, error, reset }] = useMutation<
-    ProductOptionsSyncMutationData,
-    ProductOptionsSyncMutationVariables
-  >(PRODUCT_OPTIONS_SYNC_MUTATION);
+    ProductUpdateMutationData,
+    ProductUpdateMutationVariables
+  >(PRODUCT_UPDATE_MUTATION);
 
   const syncProductOptions = useCallback(
     async (
@@ -41,14 +41,17 @@ export function useSyncProductOptions(): UseSyncProductOptionsReturn {
     ): Promise<SyncProductOptionsResult> => {
       try {
         const result = await syncProductOptionsMutation({
-          variables: { input },
+          variables: {
+            productId: input.productId,
+            operations: { options: input.options },
+          },
         });
 
-        const payload = result.data?.catalogMutation.productOptionsSync;
+        const payload = result.data?.catalogMutation.productUpdate;
 
         return {
           product: payload?.product ?? null,
-          options: payload?.options ?? [],
+          options: payload?.product?.options ?? [],
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {

@@ -29,6 +29,12 @@ export interface ProductFieldChanges {
   media?: MediaChanges;
   categories?: ProductCategoryFieldChanges;
   tags?: ProductTagFieldChanges;
+  options?: ProductDefinitionSyncChanges;
+  features?: ProductDefinitionSyncChanges;
+}
+
+export interface ProductDefinitionSyncChanges {
+  changed: true;
 }
 
 export interface ProductCategoryFieldChanges {
@@ -100,10 +106,12 @@ export interface PricingChanges {
  * Inventory/stock changes for a variant.
  */
 export interface InventoryChanges {
-  warehouseId: string;
-  onHand: number;
-  unavailable: number;
+  warehouseId?: string;
+  onHand?: number;
+  unavailable?: number;
   sku?: string | null;
+  trackInventory?: boolean;
+  continueSellingWhenOutOfStock?: boolean;
   unitCostMinor?: number | null;
   costCurrency?: string | null;
 }

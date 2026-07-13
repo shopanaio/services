@@ -7,10 +7,10 @@ import type {
   ApiProductFeature,
   ApiProductFeaturesSyncInput,
 } from "@/graphql/types";
-import { PRODUCT_FEATURES_SYNC_MUTATION } from "../graphql";
+import { PRODUCT_UPDATE_MUTATION } from "../graphql";
 import type {
-  ProductFeaturesSyncMutationData,
-  ProductFeaturesSyncMutationVariables,
+  ProductUpdateMutationData,
+  ProductUpdateMutationVariables,
   ProductFeaturesSyncProduct,
 } from "../graphql/operation-types";
 
@@ -31,9 +31,9 @@ interface UseSyncProductFeaturesReturn {
 
 export function useSyncProductFeatures(): UseSyncProductFeaturesReturn {
   const [syncProductFeaturesMutation, { loading, error, reset }] = useMutation<
-    ProductFeaturesSyncMutationData,
-    ProductFeaturesSyncMutationVariables
-  >(PRODUCT_FEATURES_SYNC_MUTATION);
+    ProductUpdateMutationData,
+    ProductUpdateMutationVariables
+  >(PRODUCT_UPDATE_MUTATION);
 
   const syncProductFeatures = useCallback(
     async (
@@ -41,14 +41,17 @@ export function useSyncProductFeatures(): UseSyncProductFeaturesReturn {
     ): Promise<SyncProductFeaturesResult> => {
       try {
         const result = await syncProductFeaturesMutation({
-          variables: { input },
+          variables: {
+            productId: input.productId,
+            operations: { features: input.features },
+          },
         });
 
-        const payload = result.data?.catalogMutation.productFeaturesSync;
+        const payload = result.data?.catalogMutation.productUpdate;
 
         return {
           product: payload?.product ?? null,
-          features: payload?.features ?? [],
+          features: payload?.product?.features ?? [],
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {

@@ -3,8 +3,6 @@ import type {
   ApiCatalogQuery,
   ApiGenericUserError,
   ApiInventoryItem,
-  ApiInventoryItemUpdateInput,
-  ApiInventoryMutation,
   ApiInventoryQuery,
   ApiOperationResult,
   ApiPricingWidgetInput,
@@ -14,10 +12,8 @@ import type {
   ApiProductCreateInput,
   ApiProductDeleteInput,
   ApiProductFeature,
-  ApiProductFeaturesSyncInput,
   ApiProductInventoryWidget,
   ApiProductOption,
-  ApiProductOptionsSyncInput,
   ApiProductOrderByInput,
   ApiProductProductsMetaInput,
   ApiProductUpdateInput,
@@ -206,51 +202,6 @@ export type ProductFeaturesSyncProduct = Pick<ApiProduct, "id" | "features"> & {
   features: ApiProductFeature[];
 };
 
-export interface ProductFeaturesSyncPayloadData {
-  product: ProductFeaturesSyncProduct | null;
-  features: ApiProductFeature[];
-  userErrors: ApiGenericUserError[];
-}
-
-export interface ProductFeaturesSyncMutationData {
-  catalogMutation: Pick<ApiCatalogMutation, "productFeaturesSync"> & {
-    productFeaturesSync: ProductFeaturesSyncPayloadData;
-  };
-}
-
-export interface ProductFeaturesSyncMutationVariables {
-  input: ApiProductFeaturesSyncInput;
-}
-
 export type ProductOptionsSyncProduct = Pick<ApiProduct, "id" | "options"> & {
   options: ApiProductOption[];
 };
-
-export interface ProductOptionsSyncPayloadData {
-  product: ProductOptionsSyncProduct | null;
-  options: ApiProductOption[];
-  userErrors: ApiGenericUserError[];
-}
-
-export interface ProductOptionsSyncMutationData {
-  catalogMutation: Pick<ApiCatalogMutation, "productOptionsSync"> & {
-    productOptionsSync: ProductOptionsSyncPayloadData;
-  };
-}
-
-export interface ProductOptionsSyncMutationVariables {
-  input: ApiProductOptionsSyncInput;
-}
-
-export interface InventoryItemUpdateMutationData {
-  inventoryMutation: Pick<ApiInventoryMutation, "inventoryItemUpdate"> & {
-    inventoryItemUpdate: {
-      inventoryItem: ApiInventoryItem | null;
-      userErrors: ApiGenericUserError[];
-    };
-  };
-}
-
-export interface InventoryItemUpdateMutationVariables {
-  input: ApiInventoryItemUpdateInput;
-}

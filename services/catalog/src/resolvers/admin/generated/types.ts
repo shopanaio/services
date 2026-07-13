@@ -1055,26 +1055,6 @@ export type CatalogMutation = {
   productCreate: ProductCreatePayload;
   /** Delete an existing product */
   productDelete: ProductDeletePayload;
-  /** Create a new product feature */
-  productFeatureCreate: ProductFeatureCreatePayload;
-  /** Delete a product feature */
-  productFeatureDelete: ProductFeatureDeletePayload;
-  /** Update an existing product feature */
-  productFeatureUpdate: ProductFeatureUpdatePayload;
-  /** Sync all product features (complete replace operation) */
-  productFeaturesSync: ProductFeaturesSyncPayload;
-  /** Create a new product option (e.g., Size, Color) */
-  productOptionCreate: ProductOptionCreatePayload;
-  /** Delete a product option */
-  productOptionDelete: ProductOptionDeletePayload;
-  /** Update an existing product option */
-  productOptionUpdate: ProductOptionUpdatePayload;
-  /**
-   * Sync all product options. This is a complete replace operation.
-   * Options not in the input list will be deleted.
-   * Does NOT affect variants - only option definitions are synced.
-   */
-  productOptionsSync: ProductOptionsSyncPayload;
   /**
    * Unified product update with optimistic locking.
    * Supports product and variant updates in a single request.
@@ -1086,16 +1066,6 @@ export type CatalogMutation = {
   tagDelete: TagDeletePayload;
   /** Update an existing tag */
   tagUpdate: TagUpdatePayload;
-  /** Create a new variant for a product */
-  variantCreate: VariantCreatePayload;
-  /** Delete a variant */
-  variantDelete: VariantDeletePayload;
-  /** Update media attachments for a variant */
-  variantUpdateMedia: VariantUpdateMediaPayload;
-  /** Update variant option values */
-  variantUpdateOptions: VariantUpdateOptionsPayload;
-  /** Update variant pricing information */
-  variantUpdatePricing: VariantUpdatePricingPayload;
   /** Create a new vendor */
   vendorCreate: VendorCreatePayload;
 };
@@ -1220,46 +1190,6 @@ export type CatalogMutationProductDeleteArgs = {
 };
 
 
-export type CatalogMutationProductFeatureCreateArgs = {
-  input: ProductFeatureCreateInput;
-};
-
-
-export type CatalogMutationProductFeatureDeleteArgs = {
-  input: ProductFeatureDeleteInput;
-};
-
-
-export type CatalogMutationProductFeatureUpdateArgs = {
-  input: ProductFeatureUpdateInput;
-};
-
-
-export type CatalogMutationProductFeaturesSyncArgs = {
-  input: ProductFeaturesSyncInput;
-};
-
-
-export type CatalogMutationProductOptionCreateArgs = {
-  input: ProductOptionCreateInput;
-};
-
-
-export type CatalogMutationProductOptionDeleteArgs = {
-  input: ProductOptionDeleteInput;
-};
-
-
-export type CatalogMutationProductOptionUpdateArgs = {
-  input: ProductOptionUpdateInput;
-};
-
-
-export type CatalogMutationProductOptionsSyncArgs = {
-  input: ProductOptionsSyncInput;
-};
-
-
 export type CatalogMutationProductUpdateArgs = {
   expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   operations?: InputMaybe<ProductUpdateInput>;
@@ -1279,31 +1209,6 @@ export type CatalogMutationTagDeleteArgs = {
 
 export type CatalogMutationTagUpdateArgs = {
   input: TagUpdateInput;
-};
-
-
-export type CatalogMutationVariantCreateArgs = {
-  input: VariantCreateInput;
-};
-
-
-export type CatalogMutationVariantDeleteArgs = {
-  input: VariantDeleteInput;
-};
-
-
-export type CatalogMutationVariantUpdateMediaArgs = {
-  input: VariantUpdateMediaInput;
-};
-
-
-export type CatalogMutationVariantUpdateOptionsArgs = {
-  input: VariantUpdateOptionsInput;
-};
-
-
-export type CatalogMutationVariantUpdatePricingArgs = {
-  input: VariantUpdatePricingInput;
 };
 
 
@@ -2702,18 +2607,11 @@ export type InventoryItemWhereInput = {
 
 export type InventoryMutation = {
   __typename?: 'InventoryMutation';
-  /** Update inventory item: stock, SKU, and cost. */
-  inventoryItemUpdate: InventoryItemUpdatePayload;
   warehouseCreate: WarehouseCreatePayload;
   warehouseDelete: WarehouseDeletePayload;
   warehouseStockCreate: WarehouseStockCreatePayload;
   warehouseStockDelete: WarehouseStockDeletePayload;
   warehouseUpdate: WarehouseUpdatePayload;
-};
-
-
-export type InventoryMutationInventoryItemUpdateArgs = {
-  input: InventoryItemUpdateInput;
 };
 
 
@@ -3143,6 +3041,8 @@ export type OperationResult = {
 export enum OperationType {
   CategoryUpdate = 'CATEGORY_UPDATE',
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
+  ProductFeaturesSync = 'PRODUCT_FEATURES_SYNC',
+  ProductOptionsSync = 'PRODUCT_OPTIONS_SYNC',
   ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
   VariantCreate = 'VARIANT_CREATE',
@@ -4021,10 +3921,14 @@ export type ProductUpdateInput = {
   categories?: InputMaybe<Array<ProductCategoryOperationInput>>;
   /** Product content (description, excerpt). */
   content?: InputMaybe<ProductContentInput>;
+  /** Complete feature definition replacement. Empty removes all features. */
+  features?: InputMaybe<Array<ProductFeatureSyncItemInput>>;
   /** The URL-friendly handle for the product. */
   handle?: InputMaybe<Scalars['String']['input']>;
   /** Product media. */
   media?: InputMaybe<ProductMediaInput>;
+  /** Complete option definition replacement. Empty removes all options. */
+  options?: InputMaybe<Array<ProductOptionSyncItemInput>>;
   /** SEO and Open Graph metadata. */
   seo?: InputMaybe<ProductSeoInput>;
   /** Product status: DRAFT or PUBLISHED. */
@@ -4561,18 +4465,22 @@ export type VariantInput = {
 
 /** Input for variant inventory in the unified update. */
 export type VariantInventoryOpInput = {
+  /** Whether the variant remains sellable without stock. */
+  continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
   /** Currency code for unit cost. */
   costCurrency?: InputMaybe<CurrencyCode>;
-  /** Quantity on hand. */
-  onHand: Scalars['Int']['input'];
+  /** Quantity on hand. Required together with warehouseId for a stock update. */
+  onHand?: InputMaybe<Scalars['Int']['input']>;
   /** SKU code. */
   sku?: InputMaybe<Scalars['String']['input']>;
+  /** Whether inventory quantities control availability. */
+  trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
   /** Unavailable quantity (reserved, damaged, etc.). */
   unavailable?: InputMaybe<Scalars['Int']['input']>;
   /** Unit cost in minor units (cents). */
   unitCostMinor?: InputMaybe<Scalars['BigInt']['input']>;
-  /** The warehouse ID. */
-  warehouseId: Scalars['ID']['input'];
+  /** The warehouse ID. Required together with onHand for a stock update. */
+  warehouseId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** Media attached to a variant with sort order. */
@@ -6411,23 +6319,10 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   productBulkUpdate?: Resolver<ResolversTypes['ProductBulkUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductBulkUpdateArgs, 'input'>>;
   productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductCreateArgs, 'input'>>;
   productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductDeleteArgs, 'input'>>;
-  productFeatureCreate?: Resolver<ResolversTypes['ProductFeatureCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductFeatureCreateArgs, 'input'>>;
-  productFeatureDelete?: Resolver<ResolversTypes['ProductFeatureDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductFeatureDeleteArgs, 'input'>>;
-  productFeatureUpdate?: Resolver<ResolversTypes['ProductFeatureUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductFeatureUpdateArgs, 'input'>>;
-  productFeaturesSync?: Resolver<ResolversTypes['ProductFeaturesSyncPayload'], ParentType, ContextType, RequireFields<CatalogMutationProductFeaturesSyncArgs, 'input'>>;
-  productOptionCreate?: Resolver<ResolversTypes['ProductOptionCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionCreateArgs, 'input'>>;
-  productOptionDelete?: Resolver<ResolversTypes['ProductOptionDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionDeleteArgs, 'input'>>;
-  productOptionUpdate?: Resolver<ResolversTypes['ProductOptionUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionUpdateArgs, 'input'>>;
-  productOptionsSync?: Resolver<ResolversTypes['ProductOptionsSyncPayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionsSyncArgs, 'input'>>;
   productUpdate?: Resolver<ResolversTypes['ProductUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductUpdateArgs, 'productId'>>;
   tagCreate?: Resolver<ResolversTypes['TagCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationTagCreateArgs, 'input'>>;
   tagDelete?: Resolver<ResolversTypes['TagDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationTagDeleteArgs, 'input'>>;
   tagUpdate?: Resolver<ResolversTypes['TagUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationTagUpdateArgs, 'input'>>;
-  variantCreate?: Resolver<ResolversTypes['VariantCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantCreateArgs, 'input'>>;
-  variantDelete?: Resolver<ResolversTypes['VariantDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantDeleteArgs, 'input'>>;
-  variantUpdateMedia?: Resolver<ResolversTypes['VariantUpdateMediaPayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantUpdateMediaArgs, 'input'>>;
-  variantUpdateOptions?: Resolver<ResolversTypes['VariantUpdateOptionsPayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantUpdateOptionsArgs, 'input'>>;
-  variantUpdatePricing?: Resolver<ResolversTypes['VariantUpdatePricingPayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantUpdatePricingArgs, 'input'>>;
   vendorCreate?: Resolver<ResolversTypes['VendorCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationVendorCreateArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -6716,7 +6611,6 @@ export type InventoryItemUpdatePayloadResolvers<ContextType = ServiceContext, Pa
 }>;
 
 export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryMutation'] = ResolversParentTypes['InventoryMutation']> = ResolversObject<{
-  inventoryItemUpdate?: Resolver<ResolversTypes['InventoryItemUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationInventoryItemUpdateArgs, 'input'>>;
   warehouseCreate?: Resolver<ResolversTypes['WarehouseCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationWarehouseCreateArgs, 'input'>>;
   warehouseDelete?: Resolver<ResolversTypes['WarehouseDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationWarehouseDeleteArgs, 'input'>>;
   warehouseStockCreate?: Resolver<ResolversTypes['WarehouseStockCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationWarehouseStockCreateArgs, 'input'>>;

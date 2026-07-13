@@ -73,10 +73,12 @@ export interface DeleteItemByVariantIdResult {
 export interface UpdateItemParams {
   storeId: string;
   variantId: string;
-  warehouseId: string;
-  onHand: number;
+  warehouseId?: string;
+  onHand?: number;
   unavailable?: number;
   sku?: string | null;
+  trackInventory?: boolean;
+  continueSellingWhenOutOfStock?: boolean;
   weight?: number | null;
   unitCostMinor?: number | null;
   costCurrency?: string | null;

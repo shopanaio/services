@@ -1,5 +1,7 @@
 import type { UserError } from "../../scripts/types/ScriptResult.js";
 import type { RichTextInput } from "../../scripts/product/dto/shared.js";
+import type { OptionSyncItemInput } from "../../scripts/option/dto/index.js";
+import type { FeatureSyncItemInput } from "../../scripts/feature/dto/index.js";
 
 export type { RichTextInput };
 
@@ -44,6 +46,16 @@ export type ProductUpdateOperation =
   | {
       type: "productTagUpdate";
       params: ProductTagUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productOptionsSync";
+      params: ProductOptionsSyncParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productFeaturesSync";
+      params: ProductFeaturesSyncParams;
       meta?: ProductUpdateOperationMeta;
     }
   | {
@@ -116,6 +128,16 @@ export interface ProductTagUpdateParams {
   action: ProductTagOperationAction;
 }
 
+export interface ProductOptionsSyncParams {
+  productId: string;
+  options: OptionSyncItemInput[];
+}
+
+export interface ProductFeaturesSyncParams {
+  productId: string;
+  features: FeatureSyncItemInput[];
+}
+
 export interface VariantCreateParams {
   productId: string;
   clientMutationId: string;
@@ -152,10 +174,12 @@ export interface VariantPricingParams {
 }
 
 export interface VariantInventoryParams {
-  warehouseId: string;
-  onHand: number;
+  warehouseId?: string;
+  onHand?: number;
   unavailable?: number;
   sku?: string | null;
+  trackInventory?: boolean;
+  continueSellingWhenOutOfStock?: boolean;
   unitCostMinor?: number | null;
   costCurrency?: string | null;
 }
@@ -199,6 +223,8 @@ export interface OperationResult {
     | "productUpdate"
     | "productCategoryUpdate"
     | "productTagUpdate"
+    | "productOptionsSync"
+    | "productFeaturesSync"
     | "variantCreate"
     | "variantDelete"
     | "variantUpdate";

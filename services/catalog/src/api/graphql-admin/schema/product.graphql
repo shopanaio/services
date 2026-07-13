@@ -456,6 +456,12 @@ input ProductUpdateInput {
   """Product tag assignment operations."""
   tags: [ProductTagOperationInput!]
 
+  """Complete option definition replacement. Empty removes all options."""
+  options: [ProductOptionSyncItemInput!]
+
+  """Complete feature definition replacement. Empty removes all features."""
+  features: [ProductFeatureSyncItemInput!]
+
   """Variant create, update, and delete operations."""
   variants: [VariantOperationInput!]
 }
@@ -487,17 +493,23 @@ input VariantPricingOpInput {
 Input for variant inventory in the unified update.
 """
 input VariantInventoryOpInput {
-  """The warehouse ID."""
-  warehouseId: ID!
+  """The warehouse ID. Required together with onHand for a stock update."""
+  warehouseId: ID
 
-  """Quantity on hand."""
-  onHand: Int!
+  """Quantity on hand. Required together with warehouseId for a stock update."""
+  onHand: Int
 
   """Unavailable quantity (reserved, damaged, etc.)."""
   unavailable: Int
 
   """SKU code."""
   sku: String
+
+  """Whether inventory quantities control availability."""
+  trackInventory: Boolean
+
+  """Whether the variant remains sellable without stock."""
+  continueSellingWhenOutOfStock: Boolean
 
   """Unit cost in minor units (cents)."""
   unitCostMinor: BigInt
@@ -573,6 +585,8 @@ Type of operation in the unified update.
 """
 enum OperationType {
   PRODUCT_UPDATE
+  PRODUCT_OPTIONS_SYNC
+  PRODUCT_FEATURES_SYNC
   VARIANT_CREATE
   VARIANT_UPDATE
   VARIANT_DELETE

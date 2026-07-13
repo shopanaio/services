@@ -352,12 +352,6 @@ input WarehouseAssignableVariantOrderByInput {
 }
 
 type InventoryMutation {
-  # InventoryItem mutations
-  """
-  Update inventory item: stock, SKU, and cost.
-  """
-  inventoryItemUpdate(input: InventoryItemUpdateInput!): InventoryItemUpdatePayload!
-
   # Warehouse mutations
   warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
   warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
@@ -431,98 +425,6 @@ type CatalogMutation {
 
   """Sync all dependency rules for one bundle configuration."""
   bundleDependencyRulesSync(input: BundleDependencyRulesSyncInput!): BundleDependencyRulesSyncPayload!
-
-  # Variant mutations
-
-  """
-  Create a new variant for a product
-  """
-  variantCreate(input: VariantCreateInput!): VariantCreatePayload!
-
-  """
-  Delete a variant
-  """
-  variantDelete(input: VariantDeleteInput!): VariantDeletePayload!
-
-  # Variant update mutations
-
-  """
-  Update variant pricing information
-  """
-  variantUpdatePricing(input: VariantUpdatePricingInput!): VariantUpdatePricingPayload!
-
-  """
-  Update variant option values
-  """
-  variantUpdateOptions(input: VariantUpdateOptionsInput!): VariantUpdateOptionsPayload!
-
-  # Option mutations (creates/deletes variants automatically)
-
-  """
-  Create a new product option (e.g., Size, Color)
-  """
-  productOptionCreate(
-    input: ProductOptionCreateInput!
-  ): ProductOptionCreatePayload!
-
-  """
-  Update an existing product option
-  """
-  productOptionUpdate(
-    input: ProductOptionUpdateInput!
-  ): ProductOptionUpdatePayload!
-
-  """
-  Delete a product option
-  """
-  productOptionDelete(
-    input: ProductOptionDeleteInput!
-  ): ProductOptionDeletePayload!
-  """
-  Sync all product options. This is a complete replace operation.
-  Options not in the input list will be deleted.
-  Does NOT affect variants - only option definitions are synced.
-  """
-  productOptionsSync(
-    input: ProductOptionsSyncInput!
-  ): ProductOptionsSyncPayload!
-
-  # Feature mutations
-
-  """
-  Create a new product feature
-  """
-  productFeatureCreate(
-    input: ProductFeatureCreateInput!
-  ): ProductFeatureCreatePayload!
-
-  """
-  Update an existing product feature
-  """
-  productFeatureUpdate(
-    input: ProductFeatureUpdateInput!
-  ): ProductFeatureUpdatePayload!
-
-  """
-  Delete a product feature
-  """
-  productFeatureDelete(
-    input: ProductFeatureDeleteInput!
-  ): ProductFeatureDeletePayload!
-
-  """
-  Sync all product features (complete replace operation)
-  """
-  productFeaturesSync(
-    input: ProductFeaturesSyncInput!
-  ): ProductFeaturesSyncPayload!
-
-  # Media mutations
-
-  """
-  Update media attachments for a variant
-  """
-  variantUpdateMedia(input: VariantUpdateMediaInput!): VariantUpdateMediaPayload!
 
   # Category mutations
 

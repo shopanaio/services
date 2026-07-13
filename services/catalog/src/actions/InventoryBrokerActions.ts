@@ -152,6 +152,8 @@ export class InventoryBrokerActions extends BrokerActions {
         onHand: params.onHand,
         unavailable: params.unavailable,
         sku: params.sku,
+        trackInventory: params.trackInventory,
+        continueSellingWhenOutOfStock: params.continueSellingWhenOutOfStock,
         weight: params.weight,
         unitCostMinor: params.unitCostMinor != null ? Number(params.unitCostMinor) : undefined,
         costCurrency: params.costCurrency,

@@ -18,6 +18,8 @@ import type {
   ProductUpdateParams,
   ProductCategoryUpdateParams,
   ProductTagUpdateParams,
+  ProductOptionsSyncParams,
+  ProductFeaturesSyncParams,
   VariantCreateParams,
   VariantUpdateParams,
   VariantDeleteParams,
@@ -58,6 +60,8 @@ import {
 } from "../scripts/variant/VariantBatchUpdateOptionsScript.js";
 import { InventoryItemUpdateScript } from "../scripts/inventory-item/InventoryItemUpdateScript.js";
 import type { BackRefNotifyInput } from "../sagas/index.js";
+import { OptionsSyncScript } from "../scripts/option/OptionsSyncScript.js";
+import { FeaturesSyncScript } from "../scripts/feature/FeaturesSyncScript.js";
 
 type VariantWorkflowOperation = Extract<
   ProductUpdateOperation,
@@ -166,6 +170,20 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         results.push(result);
       } else if (op.type === "productTagUpdate") {
         const result = await this.stepProductTagUpdate(
+          op.params,
+          changes,
+          scriptCtx,
+        );
+        results.push(result);
+      } else if (op.type === "productOptionsSync") {
+        const result = await this.stepProductOptionsSync(
+          op.params,
+          changes,
+          scriptCtx,
+        );
+        results.push(result);
+      } else if (op.type === "productFeaturesSync") {
+        const result = await this.stepProductFeaturesSync(
           op.params,
           changes,
           scriptCtx,
@@ -460,8 +478,23 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
 
       if (params.inventory) {
-        warehouseIds.add(params.inventory.warehouseId);
-        if (!Number.isInteger(params.inventory.onHand) || params.inventory.onHand < 0) {
+        const hasWarehouseId = params.inventory.warehouseId !== undefined;
+        const hasOnHand = params.inventory.onHand !== undefined;
+        if (hasWarehouseId !== hasOnHand) {
+          addError(index, {
+            message: "Warehouse ID and on-hand quantity must be provided together",
+            code: "REQUIRED_TOGETHER",
+            field: fieldPath(op, "inventory"),
+          });
+        }
+        if (params.inventory.warehouseId) {
+          warehouseIds.add(params.inventory.warehouseId);
+        }
+        if (
+          params.inventory.onHand !== undefined &&
+          (!Number.isInteger(params.inventory.onHand) ||
+            params.inventory.onHand < 0)
+        ) {
           addError(index, {
             message: "On-hand quantity must be a non-negative integer",
             code: "INVALID_QUANTITY",
@@ -559,6 +592,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         if (
           op.type !== "variantDelete" &&
           op.params.inventory &&
+          op.params.inventory.warehouseId &&
           !existingWarehouseIds.has(op.params.inventory.warehouseId)
         ) {
           addError(index, {
@@ -898,6 +932,50 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
+  @WorkflowStep()
+  private async stepProductOptionsSync(
+    params: ProductOptionsSyncParams,
+    changes: ProductChanges,
+    ctx: RunScriptContext,
+  ): Promise<OperationResult> {
+    const result = await this.kernel.runScript(OptionsSyncScript, params, ctx);
+
+    if (result.userErrors.length === 0) {
+      changes.product = {
+        ...changes.product,
+        options: { changed: true },
+      };
+    }
+
+    return {
+      type: "productOptionsSync",
+      applied: result.userErrors.length === 0,
+      errors: result.userErrors,
+    };
+  }
+
+  @WorkflowStep()
+  private async stepProductFeaturesSync(
+    params: ProductFeaturesSyncParams,
+    changes: ProductChanges,
+    ctx: RunScriptContext,
+  ): Promise<OperationResult> {
+    const result = await this.kernel.runScript(FeaturesSyncScript, params, ctx);
+
+    if (result.userErrors.length === 0) {
+      changes.product = {
+        ...changes.product,
+        features: { changed: true },
+      };
+    }
+
+    return {
+      type: "productFeaturesSync",
+      applied: result.userErrors.length === 0,
+      errors: result.userErrors,
+    };
+  }
+
   /**
    * Execute variant-level updates (excluding options and inventory).
    * Options are always processed in batch via stepBatchUpdateOptions.
@@ -976,6 +1054,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           onHand: params.inventory.onHand,
           unavailable: params.inventory.unavailable,
           sku: params.inventory.sku,
+          trackInventory: params.inventory.trackInventory,
+          continueSellingWhenOutOfStock:
+            params.inventory.continueSellingWhenOutOfStock,
           unitCostMinor: params.inventory.unitCostMinor,
           costCurrency: params.inventory.costCurrency,
         },
@@ -989,6 +1070,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             onHand: params.inventory.onHand,
             unavailable: params.inventory.unavailable ?? 0,
             sku: params.inventory.sku,
+            trackInventory: params.inventory.trackInventory,
+            continueSellingWhenOutOfStock:
+              params.inventory.continueSellingWhenOutOfStock,
             unitCostMinor: params.inventory.unitCostMinor,
             costCurrency: params.inventory.costCurrency,
           },
@@ -1119,6 +1203,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           onHand: params.inventory.onHand,
           unavailable: params.inventory.unavailable,
           sku: params.inventory.sku,
+          trackInventory: params.inventory.trackInventory,
+          continueSellingWhenOutOfStock:
+            params.inventory.continueSellingWhenOutOfStock,
           unitCostMinor: params.inventory.unitCostMinor,
           costCurrency: params.inventory.costCurrency,
         },
@@ -1132,6 +1219,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             onHand: params.inventory.onHand,
             unavailable: params.inventory.unavailable ?? 0,
             sku: params.inventory.sku,
+            trackInventory: params.inventory.trackInventory,
+            continueSellingWhenOutOfStock:
+              params.inventory.continueSellingWhenOutOfStock,
             unitCostMinor: params.inventory.unitCostMinor,
             costCurrency: params.inventory.costCurrency,
           },
@@ -1349,6 +1439,8 @@ function getProductUpdatedReasons(changes: ProductChanges): ProductUpdatedReason
     if (productChanges.media !== undefined) reasons.add("media");
     if (productChanges.tags !== undefined) reasons.add("tag");
     if (productChanges.categories !== undefined) reasons.add("category");
+    if (productChanges.options !== undefined) reasons.add("options");
+    if (productChanges.features !== undefined) reasons.add("features");
   }
 
   for (const variantChanges of Object.values(changes.variants ?? {})) {

@@ -138,6 +138,12 @@ function getOperationMetadata(op: ProductUpdateOperation): {
   if (op.type === "productTagUpdate") {
     return { opType: "productTagUpdate", variantId: null };
   }
+  if (op.type === "productOptionsSync") {
+    return { opType: "productOptionsSync", variantId: null };
+  }
+  if (op.type === "productFeaturesSync") {
+    return { opType: "productFeaturesSync", variantId: null };
+  }
   if (op.type === "variantCreate") {
     return { opType: "variantCreate", variantId: null };
   }

@@ -1064,8 +1064,10 @@ export function ProductUpdateInputSchema(): z.ZodObject<Properties<ProductUpdate
   return z.object({
     categories: z.array(z.lazy(() => ProductCategoryOperationInputSchema())).nullish(),
     content: z.lazy(() => ProductContentInputSchema().nullish()),
+    features: z.array(z.lazy(() => ProductFeatureSyncItemInputSchema())).nullish(),
     handle: z.string().nullish(),
     media: z.lazy(() => ProductMediaInputSchema().nullish()),
+    options: z.array(z.lazy(() => ProductOptionSyncItemInputSchema())).nullish(),
     seo: z.lazy(() => ProductSeoInputSchema().nullish()),
     status: ProductStatusSchema.nullish(),
     tags: z.array(z.lazy(() => ProductTagOperationInputSchema())).nullish(),
@@ -1219,12 +1221,14 @@ export function VariantInputSchema(): z.ZodObject<Properties<VariantInput>> {
 
 export function VariantInventoryOpInputSchema(): z.ZodObject<Properties<VariantInventoryOpInput>> {
   return z.object({
+    continueSellingWhenOutOfStock: z.boolean().nullish(),
     costCurrency: CurrencyCodeSchema.nullish(),
-    onHand: z.number(),
+    onHand: z.number().nullish(),
     sku: z.string().nullish(),
+    trackInventory: z.boolean().nullish(),
     unavailable: z.number().nullish(),
     unitCostMinor: z.string().nullish(),
-    warehouseId: z.string()
+    warehouseId: z.string().nullish()
   })
 }
 
