@@ -47,7 +47,6 @@ export class SearchProductBoostCreateScript extends BaseScript<
       enabled: params.enabled,
       phrases,
       productIds: params.productIds,
-      actorId: this.currentUser.id,
     });
     return {
       productBoost,
@@ -99,7 +98,6 @@ export class SearchProductBoostUpdateScript extends BaseScript<
       enabled: params.enabled,
       phrases,
       productIds: params.productIds,
-      actorId: this.currentUser.id,
     });
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };

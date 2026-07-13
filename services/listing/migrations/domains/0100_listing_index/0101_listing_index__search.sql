@@ -151,8 +151,6 @@ CREATE TABLE listing.search_synonym_group (
   name varchar(128) NOT NULL,
   enabled boolean NOT NULL DEFAULT true,
   version int NOT NULL DEFAULT 1,
-  created_by uuid NOT NULL,
-  updated_by uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
@@ -164,8 +162,6 @@ CREATE TABLE listing.search_synonym_group (
     CHECK (
       substring(store_id::text FROM 15 FOR 1) = '7'
       AND substring(group_id::text FROM 15 FOR 1) = '7'
-      AND substring(created_by::text FROM 15 FOR 1) = '7'
-      AND substring(updated_by::text FROM 15 FOR 1) = '7'
     ),
   CONSTRAINT chk_search_synonym_group_name CHECK (name <> ''),
   CONSTRAINT chk_search_synonym_group_version CHECK (version > 0)
@@ -240,8 +236,6 @@ CREATE TABLE listing.search_product_boost (
   name varchar(128) NOT NULL,
   enabled boolean NOT NULL DEFAULT true,
   version int NOT NULL DEFAULT 1,
-  created_by uuid NOT NULL,
-  updated_by uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
@@ -252,8 +246,6 @@ CREATE TABLE listing.search_product_boost (
     CHECK (
       substring(store_id::text FROM 15 FOR 1) = '7'
       AND substring(boost_id::text FROM 15 FOR 1) = '7'
-      AND substring(created_by::text FROM 15 FOR 1) = '7'
-      AND substring(updated_by::text FROM 15 FOR 1) = '7'
     ),
   CONSTRAINT chk_search_product_boost_name CHECK (name <> ''),
   CONSTRAINT chk_search_product_boost_version CHECK (version > 0)

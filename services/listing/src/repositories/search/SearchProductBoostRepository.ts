@@ -21,7 +21,6 @@ import {
 } from "./searchRepositoryTypes.js";
 
 export interface SearchProductBoostCreateInput {
-  actorId: string;
   locale: string;
   name: string;
   enabled: boolean;
@@ -194,8 +193,6 @@ export class SearchProductBoostRepository extends BaseRepository {
       name: input.name,
       enabled: input.enabled,
       version: 1,
-      createdBy: input.actorId,
-      updatedBy: input.actorId,
       createdAt: now,
       updatedAt: now,
     };
@@ -243,7 +240,6 @@ export class SearchProductBoostRepository extends BaseRepository {
         name: input.name,
         enabled: input.enabled,
         version: nextVersion,
-        updatedBy: input.actorId,
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -408,7 +404,6 @@ export class SearchProductBoostRepository extends BaseRepository {
   }
 
   private assertWriteInput(input: SearchProductBoostCreateInput): void {
-    assertNonEmpty(input.actorId, "actorId");
     assertNonEmpty(input.locale, "locale");
     assertNonEmpty(input.name, "name");
     if (input.phrases.length < 1 || input.phrases.length > 20) {

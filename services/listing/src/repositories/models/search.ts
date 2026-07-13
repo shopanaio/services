@@ -251,8 +251,6 @@ export const searchSynonymGroup = listingSchema.table(
     name: varchar("name", { length: 128 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
     version: integer("version").notNull().default(1),
-    createdBy: uuid("created_by").notNull(),
-    updatedBy: uuid("updated_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -277,7 +275,7 @@ export const searchSynonymGroup = listingSchema.table(
     ),
     check(
       "chk_search_synonym_group_uuid_v7",
-      sql`${uuidV7(table.storeId)} AND ${uuidV7(table.groupId)} AND ${uuidV7(table.createdBy)} AND ${uuidV7(table.updatedBy)}`,
+      sql`${uuidV7(table.storeId)} AND ${uuidV7(table.groupId)}`,
     ),
     check("chk_search_synonym_group_name", sql`${table.name} <> ''`),
     check("chk_search_synonym_group_version", sql`${table.version} > 0`),
@@ -381,8 +379,6 @@ export const searchProductBoost = listingSchema.table(
     name: varchar("name", { length: 128 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
     version: integer("version").notNull().default(1),
-    createdBy: uuid("created_by").notNull(),
-    updatedBy: uuid("updated_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -402,7 +398,7 @@ export const searchProductBoost = listingSchema.table(
     ),
     check(
       "chk_search_product_boost_uuid_v7",
-      sql`${uuidV7(table.storeId)} AND ${uuidV7(table.boostId)} AND ${uuidV7(table.createdBy)} AND ${uuidV7(table.updatedBy)}`,
+      sql`${uuidV7(table.storeId)} AND ${uuidV7(table.boostId)}`,
     ),
     check("chk_search_product_boost_name", sql`${table.name} <> ''`),
     check("chk_search_product_boost_version", sql`${table.version} > 0`),

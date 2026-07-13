@@ -42,7 +42,6 @@ export class SearchSynonymGroupCreateScript extends BaseScript<
       name,
       enabled: params.enabled,
       values,
-      actorId: this.currentUser.id,
     });
     return {
       synonymGroup,
@@ -121,7 +120,6 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
       name,
       enabled: params.enabled,
       values,
-      actorId: this.currentUser.id,
     });
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" }] };

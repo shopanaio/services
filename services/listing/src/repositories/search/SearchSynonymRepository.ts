@@ -20,7 +20,6 @@ import {
 } from "./searchRepositoryTypes.js";
 
 export interface SearchSynonymGroupCreateInput {
-  actorId: string;
   locale: string;
   name: string;
   enabled: boolean;
@@ -218,8 +217,6 @@ export class SearchSynonymRepository extends BaseRepository {
       name: input.name,
       enabled: input.enabled,
       version: 1,
-      createdBy: input.actorId,
-      updatedBy: input.actorId,
       createdAt: now,
       updatedAt: now,
     };
@@ -269,7 +266,6 @@ export class SearchSynonymRepository extends BaseRepository {
         name: input.name,
         enabled: input.enabled,
         version: nextVersion,
-        updatedBy: input.actorId,
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -391,7 +387,6 @@ export class SearchSynonymRepository extends BaseRepository {
   }
 
   private assertWriteInput(input: SearchSynonymGroupCreateInput): void {
-    assertNonEmpty(input.actorId, "actorId");
     assertNonEmpty(input.locale, "locale");
     assertNonEmpty(input.name, "name");
     if (input.values.length < 2 || input.values.length > 20) {
