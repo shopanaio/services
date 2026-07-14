@@ -41,22 +41,33 @@ export function EntityPickerRelationControl({
   const label = formatLabel(labels);
 
   const openPicker = useCallback(() => {
+    const handleConfirm = (entities: IPickableEntity[], ids: string[]) => {
+      const nextIds = isMultiple ? ids : ids.slice(0, 1);
+
+      setLabelsById((current) => {
+        const next = { ...current };
+        for (const pickedEntity of entities) {
+          next[pickedEntity.id] = pickedEntity.title;
+        }
+        return next;
+      });
+      onChange(nextIds);
+    };
+
+    if (entity === "product") {
+      push("product-picker", {
+        selectionMode: isMultiple ? "multi" : "single",
+        initialSelection: selectedIds,
+        onConfirm: handleConfirm,
+      });
+      return;
+    }
+
     push("entity-picker", {
       entityType: entity,
       selectionMode: isMultiple ? "multi" : "single",
       initialSelection: selectedIds,
-      onConfirm: (entities: IPickableEntity[], ids: string[]) => {
-        const nextIds = isMultiple ? ids : ids.slice(0, 1);
-
-        setLabelsById((current) => {
-          const next = { ...current };
-          for (const pickedEntity of entities) {
-            next[pickedEntity.id] = pickedEntity.title;
-          }
-          return next;
-        });
-        onChange(nextIds);
-      },
+      onConfirm: handleConfirm,
     });
   }, [entity, isMultiple, onChange, push, selectedIds]);
 

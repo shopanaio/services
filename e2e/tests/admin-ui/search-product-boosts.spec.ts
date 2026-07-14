@@ -192,8 +192,8 @@ async function addProductFilter(page: Page, productTitle: string) {
   await page.getByTestId('filter-badge-value-productIds').last().locator('button').click();
   await selectProductInPicker(
     page,
-    'entity-picker-modal',
-    'submit-entity-picker-form-button',
+    'product-picker-modal',
+    'submit-product-picker-form-button',
     productTitle,
   );
 }
