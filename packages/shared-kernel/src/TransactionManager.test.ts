@@ -98,21 +98,21 @@ describe("TransactionManager", () => {
       const depths: number[] = [];
 
       await txManager.run(async () => {
-        depths.push(TransactionManager.getDepth());
+        depths.push(txManager.getDepth());
 
         await txManager.run(async () => {
-          depths.push(TransactionManager.getDepth());
+          depths.push(txManager.getDepth());
 
           await txManager.run(async () => {
-            depths.push(TransactionManager.getDepth());
+            depths.push(txManager.getDepth());
             return "level3";
           });
 
-          depths.push(TransactionManager.getDepth());
+          depths.push(txManager.getDepth());
           return "level2";
         });
 
-        depths.push(TransactionManager.getDepth());
+        depths.push(txManager.getDepth());
         return "level1";
       });
 
@@ -184,9 +184,12 @@ describe("TransactionManager", () => {
     });
   });
 
-  describe("static methods", () => {
+  describe("transaction state", () => {
     it("getCurrent() should return null when not in transaction", () => {
-      expect(TransactionManager.getCurrent()).toBeNull();
+      const { mockDb } = createMockDatabase();
+      const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
+
+      expect(txManager.getCurrent()).toBeNull();
     });
 
     it("getCurrent() should return tx when in transaction", async () => {
@@ -194,14 +197,17 @@ describe("TransactionManager", () => {
       const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
 
       await txManager.run(async () => {
-        const current = TransactionManager.getCurrent();
+        const current = txManager.getCurrent();
         expect(current).toBe(mockTx);
         return null;
       });
     });
 
     it("isInTransaction() should return false when not in transaction", () => {
-      expect(TransactionManager.isInTransaction()).toBe(false);
+      const { mockDb } = createMockDatabase();
+      const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
+
+      expect(txManager.isInTransaction()).toBe(false);
     });
 
     it("isInTransaction() should return true when in transaction", async () => {
@@ -209,13 +215,16 @@ describe("TransactionManager", () => {
       const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
 
       await txManager.run(async () => {
-        expect(TransactionManager.isInTransaction()).toBe(true);
+        expect(txManager.isInTransaction()).toBe(true);
         return null;
       });
     });
 
     it("getDepth() should return 0 when not in transaction", () => {
-      expect(TransactionManager.getDepth()).toBe(0);
+      const { mockDb } = createMockDatabase();
+      const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
+
+      expect(txManager.getDepth()).toBe(0);
     });
 
     it("getDepth() should track nesting depth", async () => {
@@ -223,18 +232,18 @@ describe("TransactionManager", () => {
       const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
 
       await txManager.run(async () => {
-        expect(TransactionManager.getDepth()).toBe(1);
+        expect(txManager.getDepth()).toBe(1);
 
         await txManager.run(async () => {
-          expect(TransactionManager.getDepth()).toBe(2);
+          expect(txManager.getDepth()).toBe(2);
           return null;
         });
 
-        expect(TransactionManager.getDepth()).toBe(1);
+        expect(txManager.getDepth()).toBe(1);
         return null;
       });
 
-      expect(TransactionManager.getDepth()).toBe(0);
+      expect(txManager.getDepth()).toBe(0);
     });
   });
 
@@ -256,18 +265,44 @@ describe("TransactionManager", () => {
       const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
 
       await txManager.run(async () => {
-        expect(TransactionManager.isInTransaction()).toBe(true);
+        expect(txManager.isInTransaction()).toBe(true);
 
         // This doesn't clear the transaction context
         await txManager.runWithoutTransaction(async () => {
           // Still in the same async context
-          expect(TransactionManager.isInTransaction()).toBe(true);
+          expect(txManager.isInTransaction()).toBe(true);
           return null;
         });
 
-        expect(TransactionManager.isInTransaction()).toBe(true);
+        expect(txManager.isInTransaction()).toBe(true);
         return null;
       });
+    });
+  });
+
+  describe("manager isolation", () => {
+    it("should not reuse a transaction owned by another manager", async () => {
+      const { mockDb: firstDb, mockTx: firstTx } = createMockDatabase();
+      const { mockDb: secondDb, mockTx: secondTx } = createMockDatabase();
+      const firstManager = new TransactionManager<MockDb, MockTx>(firstDb);
+      const secondManager = new TransactionManager<MockDb, MockTx>(secondDb);
+
+      await firstManager.run(async () => {
+        expect(firstManager.getConnection()).toBe(firstTx);
+        expect(secondManager.isInTransaction()).toBe(false);
+        expect(secondManager.getConnection()).toBe(secondDb);
+
+        await secondManager.run(async () => {
+          expect(firstManager.getConnection()).toBe(firstTx);
+          expect(secondManager.getConnection()).toBe(secondTx);
+          return null;
+        });
+
+        return null;
+      });
+
+      expect(firstDb.transaction).toHaveBeenCalledTimes(1);
+      expect(secondDb.transaction).toHaveBeenCalledTimes(1);
     });
   });
 

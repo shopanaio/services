@@ -65,12 +65,6 @@ interface TransactionStore<TTx> {
 }
 
 /**
- * AsyncLocalStorage for transaction storage
- * Singleton — one storage per process
- */
-const transactionStorage = new AsyncLocalStorage<TransactionStore<unknown>>();
-
-/**
  * Interface for database that supports transactions
  */
 export interface TransactionalDatabase<TTransaction> {
@@ -83,6 +77,7 @@ export interface TransactionalDatabase<TTransaction> {
  * Features:
  * - Automatic transaction creation on first run() call
  * - Reuses existing transaction for nested calls
+ * - Isolates transaction context between manager instances
  * - Automatic ROLLBACK on error, COMMIT on success (handled by Drizzle)
  *
  * @template TDatabase - Database type (Drizzle instance)
@@ -92,30 +87,33 @@ export class TransactionManager<
   TDatabase extends TransactionalDatabase<TTransaction>,
   TTransaction = TDatabase
 > {
+  private readonly transactionStorage = new AsyncLocalStorage<
+    TransactionStore<TTransaction>
+  >();
+
   constructor(private readonly db: TDatabase) {}
 
   /**
    * Get current transaction from AsyncLocalStorage
    * @returns Active transaction or null
    */
-  static getCurrent<T>(): T | null {
-    const store = transactionStorage.getStore();
-    return (store?.tx as T) ?? null;
+  getCurrent(): TTransaction | null {
+    return this.transactionStorage.getStore()?.tx ?? null;
   }
 
   /**
    * Check if we are inside a transaction
    */
-  static isInTransaction(): boolean {
-    return transactionStorage.getStore() !== undefined;
+  isInTransaction(): boolean {
+    return this.transactionStorage.getStore() !== undefined;
   }
 
   /**
    * Get current nesting depth (for debugging)
    * @returns Depth or 0 if not in transaction
    */
-  static getDepth(): number {
-    return transactionStorage.getStore()?.depth ?? 0;
+  getDepth(): number {
+    return this.transactionStorage.getStore()?.depth ?? 0;
   }
 
   /**
@@ -123,9 +121,9 @@ export class TransactionManager<
    * Used in repositories for query execution
    */
   getConnection(): TDatabase | TTransaction {
-    const store = transactionStorage.getStore();
+    const store = this.transactionStorage.getStore();
     if (store) {
-      return store.tx as TTransaction;
+      return store.tx;
     }
     return this.db;
   }
@@ -146,7 +144,7 @@ export class TransactionManager<
    * @throws Rethrows error after ROLLBACK
    */
   async run<TResult>(fn: () => Promise<TResult>): Promise<TResult> {
-    const existingStore = transactionStorage.getStore();
+    const existingStore = this.transactionStorage.getStore();
 
     // Already in transaction — reuse existing
     if (existingStore) {
@@ -168,7 +166,7 @@ export class TransactionManager<
         depth: 1,
       };
 
-      return await transactionStorage.run(store, async () => {
+      return await this.transactionStorage.run(store, async () => {
         return await fn();
       });
     })) as TResult;
