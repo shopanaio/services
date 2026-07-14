@@ -1,6 +1,7 @@
 export * from "./dto/index.js";
 export * from "./FacetCreateScript.js";
 export * from "./FacetUpdateScript.js";
+export * from "./FacetScopesUpdateScript.js";
 export * from "./FacetDeleteScript.js";
 export * from "./FacetMoveScript.js";
 export * from "./FacetRebalanceScript.js";

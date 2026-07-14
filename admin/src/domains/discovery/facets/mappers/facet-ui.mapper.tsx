@@ -17,6 +17,7 @@ import { FacetScopeType, FacetType, FacetUiType } from "@/graphql/types";
 
 interface FacetTypeUiMapping {
   label: string;
+  shortLabel: string;
   sourceTypeLabel: string;
   icon: ReactNode;
 }
@@ -39,26 +40,31 @@ export const FACET_UI_MAPPINGS: {
   facetTypes: {
     [FacetType.Price]: {
       label: "Price",
+      shortLabel: "Price",
       sourceTypeLabel: "Standard",
       icon: <LuDollarSign />,
     },
     [FacetType.InStock]: {
       label: "Availability",
+      shortLabel: "Availability",
       sourceTypeLabel: "Standard",
       icon: <LuPackageCheck />,
     },
     [FacetType.Tag]: {
       label: "Product Tags",
+      shortLabel: "Tags",
       sourceTypeLabel: "Standard",
       icon: <LuTag />,
     },
     [FacetType.Option]: {
       label: "Product Options",
+      shortLabel: "Options",
       sourceTypeLabel: "Product Option",
       icon: <LuSlidersHorizontal />,
     },
     [FacetType.Feature]: {
       label: "Product Features",
+      shortLabel: "Features",
       sourceTypeLabel: "Product Feature",
       icon: <LuSparkles />,
     },

@@ -23,6 +23,12 @@ category-scoped listings. `FacetCreateInput.scopes` при отсутствии 
 оба scope; `FacetUpdateInput.scopes` при отсутствии не меняет scopes. Переданный
 список полностью заменяет текущее множество и не может быть пустым.
 
+Для массового редактирования Admin GraphQL публикует
+`facetScopesUpdate(input: FacetScopesUpdateInput!)`. Input содержит только
+изменённые facets в форме `{ id, scopes }`. Весь batch сначала валидируется, а
+затем заменяет scopes всех элементов в одной транзакции; при любой ошибке ни
+одно изменение не сохраняется.
+
 `available` имеет три режима:
 
 ```text

@@ -39,6 +39,13 @@ export interface FacetUpdateParams {
   scopes?: FacetScopeType[];
 }
 
+export interface FacetScopesUpdateParams {
+  updates: Array<{
+    id: string;
+    scopes: FacetScopeType[];
+  }>;
+}
+
 export interface FacetDeleteParams {
   id: string;
 }
@@ -119,6 +126,11 @@ export interface ResolveFacetsResult {
 
 export interface FacetResult {
   facet?: Facet;
+  userErrors: UserError[];
+}
+
+export interface FacetScopesUpdateResult {
+  facets: Facet[];
   userErrors: UserError[];
 }
 

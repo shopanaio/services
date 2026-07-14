@@ -8,6 +8,7 @@ import {
   RowSelectionModule,
   GridStateModule,
   SelectionChangedEvent,
+  type GridState,
   type RowStyle,
 } from "ag-grid-community";
 import { createStyles } from "antd-style";
@@ -59,6 +60,14 @@ const useStyles = createStyles(({ token }) => ({
 
 function areStringArraysEqual(a: string[], b: string[]) {
   return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function withoutPersistedSelection(
+  state: GridState | undefined,
+): GridState | undefined {
+  if (!state) return undefined;
+  const { rowSelection: _rowSelection, ...gridState } = state;
+  return gridState;
 }
 
 function getMapEntitiesInOrder<T extends IPickableEntity>(
@@ -113,6 +122,10 @@ export function EntityPickerContent<T extends IPickableEntity>({
   });
   const showSearch = config.searchEnabled !== false;
   const showToolbar = showSearch || config.filterSchema.length > 0;
+  const initialGridState = useMemo(
+    () => withoutPersistedSelection(pageConfig.gridStateProps.initialState),
+    [pageConfig.gridStateProps.initialState],
+  );
 
   // Data fetching via config hook
   const {
@@ -173,6 +186,19 @@ export function EntityPickerContent<T extends IPickableEntity>({
   // Handle selection changes
   const handleSelectionChanged = useCallback(
     (event: SelectionChangedEvent<T>) => {
+      const missingLockedRows = filteredData.filter((item) => {
+        if (!config.isRowSelectionLocked?.(item)) return false;
+        const node = event.api.getRowNode(config.getRowId(item));
+        return node && !node.isSelected();
+      });
+
+      if (missingLockedRows.length > 0) {
+        for (const item of missingLockedRows) {
+          event.api.getRowNode(config.getRowId(item))?.setSelected(true);
+        }
+        return;
+      }
+
       const selectedRows = event.api.getSelectedRows();
       const currentPageIds = new Set(
         filteredData.map((item) => config.getRowId(item)),
@@ -282,8 +308,10 @@ export function EntityPickerContent<T extends IPickableEntity>({
       if (!node.data) return;
 
       const rowId = config.getRowId(node.data);
+      const selectionLocked = config.isRowSelectionLocked?.(node.data) ?? false;
       const shouldBeSelected =
-        selectedIdSet.has(rowId) && !config.isRowDisabled?.(node.data);
+        selectedIdSet.has(rowId) &&
+        (selectionLocked || !config.isRowDisabled?.(node.data));
 
       if (node.isSelected() !== shouldBeSelected) {
         node.setSelected(shouldBeSelected);
@@ -352,7 +380,9 @@ export function EntityPickerContent<T extends IPickableEntity>({
               enableClickSelection: true,
               enableSelectionWithoutKeys: true,
               isRowSelectable: (node) => {
-                if (!node.data || config.isRowDisabled?.(node.data)) return false;
+                if (!node.data) return false;
+                if (config.isRowSelectionLocked?.(node.data)) return true;
+                if (config.isRowDisabled?.(node.data)) return false;
                 const id = config.getRowId(node.data);
                 return (
                   selectedIdsRef.current.includes(id) ||
@@ -378,7 +408,9 @@ export function EntityPickerContent<T extends IPickableEntity>({
             onGridReady={handleGridReady}
             onSortChanged={pageConfig.onSortChanged}
             isRowSelectable={(node) => {
-              if (!node.data || config.isRowDisabled?.(node.data)) return false;
+              if (!node.data) return false;
+              if (config.isRowSelectionLocked?.(node.data)) return true;
+              if (config.isRowDisabled?.(node.data)) return false;
               const id = config.getRowId(node.data);
               return (
                 selectedIdsRef.current.includes(id) ||
@@ -386,13 +418,21 @@ export function EntityPickerContent<T extends IPickableEntity>({
                 selectedCount < maxSelection
               );
             }}
-            getRowStyle={(params): RowStyle =>
-              params.data && config.isRowDisabled?.(params.data)
-                ? { cursor: "not-allowed", opacity: 0.58 }
-                : { cursor: "pointer" }
-            }
+            getRowStyle={(params): RowStyle => {
+              const disabled =
+                params.data &&
+                (config.isRowDisabled?.(params.data) ||
+                  config.isRowSelectionLocked?.(params.data));
+              return disabled
+                ? {
+                    cursor: "not-allowed",
+                    opacity: 0.58,
+                    pointerEvents: "none",
+                  }
+                : { cursor: "pointer" };
+            }}
             loading={isLoading}
-            initialState={pageConfig.gridStateProps.initialState}
+            initialState={initialGridState}
             onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
             defaultColDef={{
               resizable: false,

@@ -40,6 +40,23 @@ export const FACET_UPDATE_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
+export const FACET_SCOPES_UPDATE_MUTATION = gql`
+  mutation FacetScopesUpdate($input: FacetScopesUpdateInput!) {
+    listingMutation {
+      facetScopesUpdate(input: $input) {
+        facets {
+          ...FacetGridFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${FACET_GRID_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
 export const FACET_DELETE_MUTATION = gql`
   mutation FacetDelete($input: FacetDeleteInput!) {
     listingMutation {

@@ -7,6 +7,7 @@ import type { FacetSourcePickerEntity } from "./pickers/facet-source-picker-conf
 export const FACET_CREATE_MODAL_TYPE = "facet-create";
 export const FACET_EDIT_MODAL_TYPE = "facet-edit";
 export const FACET_SOURCE_PICKER_MODAL_TYPE = "facet-source-picker";
+export const FACET_SCOPE_PICKER_MODAL_TYPE = "facet-scope-picker";
 export const FACET_VALUE_LINK_SOURCES_MODAL_TYPE = "facet-value-link-sources";
 export const FACET_VALUES_MERGE_MODAL_TYPE = "facet-values-merge";
 export const FACET_VALUE_GROUP_MODAL_TYPE = "facet-value-group";
@@ -48,6 +49,15 @@ export interface IFacetSourcePickerModalPayload extends IModalStackPayload {
   onConfirm: (entities: FacetSourcePickerEntity[], ids: string[]) => void;
 }
 
+export interface IFacetScopePickerModalPayload extends IModalStackPayload {
+  scope: FacetScopeType;
+  facets: Array<{
+    id: string;
+    scopes: FacetScopeType[];
+  }>;
+  onSaved?: () => Promise<unknown> | unknown;
+}
+
 export interface ILinkSourceValuesModalPayload extends IModalStackPayload {
   valueId: string;
   valueLabel: string;
@@ -87,6 +97,7 @@ declare module "@/layouts/modals" {
     [FACET_CREATE_MODAL_TYPE]: ICreateFacetModalPayload;
     [FACET_EDIT_MODAL_TYPE]: IEditFacetModalPayload;
     [FACET_SOURCE_PICKER_MODAL_TYPE]: IFacetSourcePickerModalPayload;
+    [FACET_SCOPE_PICKER_MODAL_TYPE]: IFacetScopePickerModalPayload;
     [FACET_VALUE_LINK_SOURCES_MODAL_TYPE]: ILinkSourceValuesModalPayload;
     [FACET_VALUES_MERGE_MODAL_TYPE]: IFacetValuesMergeModalPayload;
     [FACET_VALUE_GROUP_MODAL_TYPE]: IFacetValueGroupModalPayload;
@@ -100,6 +111,9 @@ export const useCreateFacetModal =
 export const useEditFacetModal = createModalStackHook(FACET_EDIT_MODAL_TYPE);
 export const useFacetSourcePickerModal = createModalStackHook(
   FACET_SOURCE_PICKER_MODAL_TYPE,
+);
+export const useFacetScopePickerModal = createModalStackHook(
+  FACET_SCOPE_PICKER_MODAL_TYPE,
 );
 export const useLinkSourceValuesModal = createModalStackHook(
   FACET_VALUE_LINK_SOURCES_MODAL_TYPE,

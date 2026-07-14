@@ -96,6 +96,8 @@ export interface IEntityPickerConfig<
   getRowId: (entity: T) => string;
   /** Whether a row cannot be selected */
   isRowDisabled?: (entity: T) => boolean;
+  /** Whether a preselected row must stay selected and cannot be changed */
+  isRowSelectionLocked?: (entity: T) => boolean;
 }
 
 /**

@@ -167,6 +167,17 @@ input FacetUpdateInput {
   scopes: [FacetScopeType!]
 }
 
+input FacetScopesUpdateItemInput {
+  id: ID!
+  """Replaces the current scopes. The list cannot be empty."""
+  scopes: [FacetScopeType!]!
+}
+
+input FacetScopesUpdateInput {
+  """Only changed facets need to be included. All updates are applied atomically."""
+  updates: [FacetScopesUpdateItemInput!]!
+}
+
 input FacetDeleteInput {
   id: ID!
 }
@@ -245,6 +256,11 @@ type FacetCreatePayload {
 
 type FacetUpdatePayload {
   facet: Facet
+  userErrors: [GenericUserError!]!
+}
+
+type FacetScopesUpdatePayload {
+  facets: [Facet!]!
   userErrors: [GenericUserError!]!
 }
 

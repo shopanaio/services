@@ -138,6 +138,12 @@ type ListingMutation {
   facetUpdate(input: FacetUpdateInput!): FacetUpdatePayload!
 
   """
+  Atomically replace scopes for multiple facets.
+  No updates are applied when any input item is invalid.
+  """
+  facetScopesUpdate(input: FacetScopesUpdateInput!): FacetScopesUpdatePayload!
+
+  """
   Delete a facet.
   """
   facetDelete(input: FacetDeleteInput!): FacetDeletePayload!

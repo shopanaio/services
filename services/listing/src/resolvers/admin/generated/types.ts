@@ -493,6 +493,23 @@ export enum FacetScopeType {
   Search = 'SEARCH'
 }
 
+export type FacetScopesUpdateInput = {
+  /** Only changed facets need to be included. All updates are applied atomically. */
+  updates: Array<FacetScopesUpdateItemInput>;
+};
+
+export type FacetScopesUpdateItemInput = {
+  id: Scalars['ID']['input'];
+  /** Replaces the current scopes. The list cannot be empty. */
+  scopes: Array<FacetScopeType>;
+};
+
+export type FacetScopesUpdatePayload = {
+  __typename?: 'FacetScopesUpdatePayload';
+  facets: Array<Facet>;
+  userErrors: Array<GenericUserError>;
+};
+
 export enum FacetSelectionMode {
   Multi = 'MULTI',
   Single = 'SINGLE'
@@ -972,6 +989,11 @@ export type ListingMutation = {
   facetMove: FacetMovePayload;
   /** Rebalance facet lexo ranks. */
   facetRebalance: FacetRebalancePayload;
+  /**
+   * Atomically replace scopes for multiple facets.
+   * No updates are applied when any input item is invalid.
+   */
+  facetScopesUpdate: FacetScopesUpdatePayload;
   /** Create a new facet swatch. */
   facetSwatchCreate: FacetSwatchCreatePayload;
   /** Delete a facet swatch. */
@@ -1018,6 +1040,11 @@ export type ListingMutationFacetMoveArgs = {
 
 export type ListingMutationFacetRebalanceArgs = {
   input: FacetRebalanceInput;
+};
+
+
+export type ListingMutationFacetScopesUpdateArgs = {
+  input: FacetScopesUpdateInput;
 };
 
 
@@ -2221,6 +2248,9 @@ export type ResolversTypes = ResolversObject<{
   FacetRebalanceInput: FacetRebalanceInput;
   FacetRebalancePayload: ResolverTypeWrapper<FacetRebalancePayload>;
   FacetScopeType: FacetScopeType;
+  FacetScopesUpdateInput: FacetScopesUpdateInput;
+  FacetScopesUpdateItemInput: FacetScopesUpdateItemInput;
+  FacetScopesUpdatePayload: ResolverTypeWrapper<FacetScopesUpdatePayload>;
   FacetSelectionMode: FacetSelectionMode;
   FacetSource: ResolverTypeWrapper<FacetSource>;
   FacetSourceCandidate: ResolverTypeWrapper<FacetSourceCandidate>;
@@ -2364,6 +2394,9 @@ export type ResolversParentTypes = ResolversObject<{
   FacetMovePayload: FacetMovePayload;
   FacetRebalanceInput: FacetRebalanceInput;
   FacetRebalancePayload: FacetRebalancePayload;
+  FacetScopesUpdateInput: FacetScopesUpdateInput;
+  FacetScopesUpdateItemInput: FacetScopesUpdateItemInput;
+  FacetScopesUpdatePayload: FacetScopesUpdatePayload;
   FacetSource: FacetSource;
   FacetSourceCandidate: FacetSourceCandidate;
   FacetSourceCandidateConnection: FacetSourceCandidateConnection;
@@ -2512,6 +2545,12 @@ export type FacetMovePayloadResolvers<ContextType = ServiceContext, ParentType e
 }>;
 
 export type FacetRebalancePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetRebalancePayload'] = ResolversParentTypes['FacetRebalancePayload']> = ResolversObject<{
+  facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetScopesUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetScopesUpdatePayload'] = ResolversParentTypes['FacetScopesUpdatePayload']> = ResolversObject<{
   facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2708,6 +2747,7 @@ export type ListingMutationResolvers<ContextType = ServiceContext, ParentType ex
   facetDelete?: Resolver<ResolversTypes['FacetDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetDeleteArgs, 'input'>>;
   facetMove?: Resolver<ResolversTypes['FacetMovePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetMoveArgs, 'input'>>;
   facetRebalance?: Resolver<ResolversTypes['FacetRebalancePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetRebalanceArgs, 'input'>>;
+  facetScopesUpdate?: Resolver<ResolversTypes['FacetScopesUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetScopesUpdateArgs, 'input'>>;
   facetSwatchCreate?: Resolver<ResolversTypes['FacetSwatchCreatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetSwatchCreateArgs, 'input'>>;
   facetSwatchDelete?: Resolver<ResolversTypes['FacetSwatchDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetSwatchDeleteArgs, 'input'>>;
   facetSwatchUpdate?: Resolver<ResolversTypes['FacetSwatchUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetSwatchUpdateArgs, 'input'>>;
@@ -2977,6 +3017,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   FacetDeletePayload?: FacetDeletePayloadResolvers<ContextType>;
   FacetMovePayload?: FacetMovePayloadResolvers<ContextType>;
   FacetRebalancePayload?: FacetRebalancePayloadResolvers<ContextType>;
+  FacetScopesUpdatePayload?: FacetScopesUpdatePayloadResolvers<ContextType>;
   FacetSource?: FacetSourceResolvers<ContextType>;
   FacetSourceCandidate?: FacetSourceCandidateResolvers<ContextType>;
   FacetSourceCandidateConnection?: FacetSourceCandidateConnectionResolvers<ContextType>;

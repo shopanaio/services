@@ -6,6 +6,8 @@ import type {
   ApiFacetDeletePayload,
   ApiFacetMoveInput,
   ApiFacetMovePayload,
+  ApiFacetScopesUpdateInput,
+  ApiFacetScopesUpdatePayload,
   ApiFacetSource,
   ApiFacetSourceCandidate,
   ApiFacetSourceCandidateConnection,
@@ -182,6 +184,18 @@ export interface FacetUpdateMutationData {
 
 export interface FacetUpdateMutationVariables {
   input: ApiFacetUpdateInput;
+}
+
+export interface FacetScopesUpdateMutationData {
+  listingMutation: {
+    facetScopesUpdate: Omit<ApiFacetScopesUpdatePayload, "facets"> & {
+      facets: FacetGridFields[];
+    };
+  };
+}
+
+export interface FacetScopesUpdateMutationVariables {
+  input: ApiFacetScopesUpdateInput;
 }
 
 export interface FacetDeleteMutationData {

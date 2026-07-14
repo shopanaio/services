@@ -12,12 +12,15 @@ import {
   FacetSwatchCreateScript,
   FacetSwatchDeleteScript,
   FacetSwatchUpdateScript,
+  FacetScopesUpdateScript,
   FacetUpdateScript,
 } from "../../scripts/facet/index.js";
 import type {
   FacetCreateParams,
   FacetDeleteResult,
   FacetResult,
+  FacetScopesUpdateParams,
+  FacetScopesUpdateResult,
   FacetValueCreateParams,
   FacetValueDeleteResult,
   FacetValueMergeParams,
@@ -201,6 +204,47 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
 
     return {
       facet: result.facet ? await this.resolvers.facet(result.facet.id) : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async facetScopesUpdate(args: {
+    input: {
+      updates: Array<{
+        id: string;
+        scopes: FacetScopeType[];
+      }>;
+    };
+  }) {
+    const decodedUpdates: FacetScopesUpdateParams["updates"] = [];
+    const userErrors: UserError[] = [];
+
+    for (const [index, update] of args.input.updates.entries()) {
+      const id = safeDecodeGlobalId(update.id, GlobalIdEntity.Facet);
+      if (!id) {
+        userErrors.push({
+          message: "Invalid facet ID",
+          field: ["input", "updates", String(index), "id"],
+          code: "INVALID_ID",
+        });
+        continue;
+      }
+      decodedUpdates.push({ id, scopes: update.scopes });
+    }
+
+    if (userErrors.length > 0) {
+      return { facets: [], userErrors };
+    }
+
+    const result = await this.$ctx.kernel.runScript<
+      FacetScopesUpdateParams,
+      FacetScopesUpdateResult
+    >(FacetScopesUpdateScript, { updates: decodedUpdates });
+
+    return {
+      facets: await Promise.all(
+        result.facets.map((facet) => this.resolvers.facet(facet.id))
+      ),
       userErrors: result.userErrors,
     };
   }

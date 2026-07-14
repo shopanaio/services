@@ -434,6 +434,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     {
+      type: 'facet-scope-picker',
+      component: dynamic(() =>
+        import('@/domains/discovery/facets/modals/facet-scope-picker-modal').then(
+          (m) => m.FacetScopePickerModal
+        )
+      ),
+    },
+    {
       type: 'facet-value-link-sources',
       component: dynamic(() =>
         import('@/domains/discovery/facets/modals/link-source-values-modal').then(

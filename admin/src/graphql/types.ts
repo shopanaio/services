@@ -3097,6 +3097,23 @@ export enum FacetScopeType {
   Search = 'SEARCH'
 }
 
+export type ApiFacetScopesUpdateInput = {
+  /** Only changed facets need to be included. All updates are applied atomically. */
+  updates: Array<ApiFacetScopesUpdateItemInput>;
+};
+
+export type ApiFacetScopesUpdateItemInput = {
+  id: Scalars['ID']['input'];
+  /** Replaces the current scopes. The list cannot be empty. */
+  scopes: Array<FacetScopeType>;
+};
+
+export type ApiFacetScopesUpdatePayload = {
+  __typename?: 'FacetScopesUpdatePayload';
+  facets: Array<ApiFacet>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export enum FacetSelectionMode {
   Multi = 'MULTI',
   Single = 'SINGLE'
@@ -4262,6 +4279,11 @@ export type ApiListingMutation = {
   facetMove: ApiFacetMovePayload;
   /** Rebalance facet lexo ranks. */
   facetRebalance: ApiFacetRebalancePayload;
+  /**
+   * Atomically replace scopes for multiple facets.
+   * No updates are applied when any input item is invalid.
+   */
+  facetScopesUpdate: ApiFacetScopesUpdatePayload;
   /** Create a new facet swatch. */
   facetSwatchCreate: ApiFacetSwatchCreatePayload;
   /** Delete a facet swatch. */
@@ -4308,6 +4330,11 @@ export type ApiListingMutationFacetMoveArgs = {
 
 export type ApiListingMutationFacetRebalanceArgs = {
   input: ApiFacetRebalanceInput;
+};
+
+
+export type ApiListingMutationFacetScopesUpdateArgs = {
+  input: ApiFacetScopesUpdateInput;
 };
 
 
