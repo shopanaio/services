@@ -1,5 +1,5 @@
-import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
-import type { TransactionManager } from "@shopana/shared-kernel";
+import { and, asc, eq, inArray, isNull, not, or } from "drizzle-orm";
+import { Transactional, type TransactionManager } from "@shopana/shared-kernel";
 import { GraphQLError } from "graphql";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -19,12 +19,14 @@ import {
 } from "./CatalogFacetCandidateClient.js";
 import {
   facet,
+  facetScope,
   facetSource,
   facetSourceTranslation,
   facetTranslation,
   facetValue,
   facetValueTranslation,
   type Facet,
+  type FacetScope,
   type FacetSource,
   type FacetValue,
   type NewFacet,
@@ -32,6 +34,7 @@ import {
   type NewFacetValue,
   type FacetTranslation,
 } from "../models/index.js";
+import type { FacetScopeType } from "./facetScopes.js";
 
 export type {
   FacetSourceCandidateConnectionResult,
@@ -42,6 +45,7 @@ export type {
   FacetValueCandidateType,
   FacetValueCandidateView,
 } from "./CatalogFacetCandidateClient.js";
+export type { FacetScopeType } from "./facetScopes.js";
 
 export interface ResolvedFacetFilterValue {
   facetSlug: string;
@@ -99,6 +103,26 @@ function normalizeSourceHandles(sourceHandles?: readonly string[]): string[] {
         .filter((handle) => handle.length > 0)
     ),
   ];
+}
+
+function normalizeFacetScopes(
+  scopes: readonly FacetScopeType[]
+): FacetScopeType[] {
+  if (scopes.length === 0) {
+    throwBadUserInput("At least one facet scope is required");
+  }
+
+  const normalized = new Set<FacetScopeType>();
+
+  for (const scope of scopes) {
+    if (scope === "SEARCH" || scope === "CATEGORY") {
+      normalized.add(scope);
+      continue;
+    }
+    throwBadUserInput("Unsupported facet scope type");
+  }
+
+  return [...normalized].sort();
 }
 
 function isFacetValueCandidateType(
@@ -244,6 +268,7 @@ export class FacetRepository extends BaseRepository {
       .orderBy(asc(facet.lexoRank), asc(facet.id));
   }
 
+  @Transactional()
   async create(data: {
     facetType: string;
     slug: string;
@@ -252,10 +277,14 @@ export class FacetRepository extends BaseRepository {
     selectionMode?: string;
     lexoRank?: string;
     sources?: FacetSourceInput[];
+    scopes?: readonly FacetScopeType[];
   }): Promise<Facet> {
     const id = await this.generateUuidV7();
     const now = new Date().toISOString();
     const lexoRank = data.lexoRank ?? (await this.getNextFacetRank());
+    const scopes = normalizeFacetScopes(
+      data.scopes ?? ["SEARCH", "CATEGORY"]
+    );
 
     const insert: NewFacet = {
       id,
@@ -270,6 +299,13 @@ export class FacetRepository extends BaseRepository {
     };
 
     const rows = await this.connection.insert(facet).values(insert).returning();
+    await this.connection.insert(facetScope).values(
+      scopes.map((scope) => ({
+        facetId: id,
+        storeId: this.storeId,
+        scopeType: scope,
+      }))
+    );
     await this.connection.insert(facetTranslation).values({
       facetId: id,
       locale: this.locale,
@@ -284,6 +320,7 @@ export class FacetRepository extends BaseRepository {
     return rows[0];
   }
 
+  @Transactional()
   async update(
     id: string,
     data: {
@@ -293,8 +330,12 @@ export class FacetRepository extends BaseRepository {
       selectionMode?: string;
       lexoRank?: string;
       sources?: FacetSourceInput[];
+      scopes?: readonly FacetScopeType[];
     }
   ): Promise<Facet | null> {
+    const scopes = data.scopes === undefined
+      ? undefined
+      : normalizeFacetScopes(data.scopes);
     const updates: Partial<NewFacet> = {
       updatedAt: new Date().toISOString(),
     };
@@ -309,6 +350,10 @@ export class FacetRepository extends BaseRepository {
       .set(updates)
       .where(and(eq(facet.storeId, this.storeId), eq(facet.id, id)))
       .returning();
+
+    if (!rows[0]) {
+      return null;
+    }
 
     if (data.label !== undefined) {
       await this.connection
@@ -329,7 +374,11 @@ export class FacetRepository extends BaseRepository {
       await this.replaceSources(id, data.sources);
     }
 
-    return rows[0] ?? null;
+    if (scopes !== undefined) {
+      await this.replaceNormalizedScopes(id, scopes);
+    }
+
+    return rows[0];
   }
 
   async updateFacetRank(id: string, lexoRank: string): Promise<Facet | null> {
@@ -372,6 +421,70 @@ export class FacetRepository extends BaseRepository {
       .select()
       .from(facet)
       .where(and(eq(facet.storeId, this.storeId), inArray(facet.id, [...facetIds])));
+  }
+
+  async getScopesByFacetIds(
+    facetIds: readonly string[]
+  ): Promise<FacetScope[]> {
+    const uniqueFacetIds = [...new Set(facetIds)];
+    if (uniqueFacetIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(facetScope)
+      .where(
+        and(
+          eq(facetScope.storeId, this.storeId),
+          inArray(facetScope.facetId, uniqueFacetIds)
+        )
+      )
+      .orderBy(
+        asc(facetScope.facetId),
+        asc(facetScope.scopeType)
+      );
+  }
+
+  @Transactional()
+  async replaceScopes(
+    facetId: string,
+    scopes: readonly FacetScopeType[]
+  ): Promise<FacetScope[] | null> {
+    const existing = await this.findById(facetId);
+    if (!existing) return null;
+
+    const normalized = normalizeFacetScopes(scopes);
+    await this.replaceNormalizedScopes(facetId, normalized);
+    return this.getScopesByFacetIds([facetId]);
+  }
+
+  private async replaceNormalizedScopes(
+    facetId: string,
+    scopes: readonly FacetScopeType[]
+  ): Promise<void> {
+    await this.connection
+      .insert(facetScope)
+      .values(
+        scopes.map((scopeType) => ({
+          facetId,
+          storeId: this.storeId,
+          scopeType,
+        }))
+      )
+      .onConflictDoNothing();
+
+    const retainedScopes = scopes.map((scopeType) =>
+      eq(facetScope.scopeType, scopeType)
+    );
+
+    await this.connection
+      .delete(facetScope)
+      .where(
+        and(
+          eq(facetScope.storeId, this.storeId),
+          eq(facetScope.facetId, facetId),
+          not(or(...retainedScopes)!)
+        )
+      );
   }
 
   async getTranslationsByFacetIds(

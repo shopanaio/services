@@ -62,6 +62,29 @@ export const facetTranslation = listingSchema.table(
   ]
 );
 
+export const facetScope = listingSchema.table(
+  "facet_scope",
+  {
+    facetId: uuid("facet_id")
+      .notNull()
+      .references(() => facet.id, { onDelete: "cascade" }),
+    storeId: uuid("store_id").notNull(),
+    scopeType: varchar("scope_type", { length: 16 }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.facetId, table.scopeType] }),
+    check(
+      "facet_scope_type_check",
+      sql`${table.scopeType} IN ('SEARCH', 'CATEGORY')`
+    ),
+    index("idx_facet_scope_store_lookup").on(
+      table.storeId,
+      table.scopeType,
+      table.facetId
+    ),
+  ]
+);
+
 export const facetSource = listingSchema.table(
   "facet_source",
   {
@@ -231,6 +254,8 @@ export type Facet = typeof facet.$inferSelect;
 export type NewFacet = typeof facet.$inferInsert;
 export type FacetTranslation = typeof facetTranslation.$inferSelect;
 export type NewFacetTranslation = typeof facetTranslation.$inferInsert;
+export type FacetScope = typeof facetScope.$inferSelect;
+export type NewFacetScope = typeof facetScope.$inferInsert;
 export type FacetSource = typeof facetSource.$inferSelect;
 export type NewFacetSource = typeof facetSource.$inferInsert;
 export type FacetSourceTranslation = typeof facetSourceTranslation.$inferSelect;

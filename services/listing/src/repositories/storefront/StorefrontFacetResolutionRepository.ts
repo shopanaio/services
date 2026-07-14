@@ -18,6 +18,7 @@ import {
   buildOptionVariantTerm,
   encodeListingVariantTerm,
 } from "../../listing/variantTerms/index.js";
+import { compileEligibleFacetIdsSql } from "../facet/facetScopes.js";
 
 interface FacetResolutionSqlRow extends Record<string, unknown> {
   facetSlug: string;
@@ -43,6 +44,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
   @ReadOnly()
   async resolveFilterPlan(input: {
     filters: StorefrontListingFilterInput[];
+    scope: StorefrontListingScope;
   }): Promise<StorefrontFilterPlan> {
     await this.assertDeclaredVariantTermRows();
     const plan: StorefrontFilterPlan = {
@@ -58,7 +60,10 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
         filter.kind === "facet"
     );
 
-    const resolvedFacetRows = await this.resolveFacetFilters(facetFilters);
+    const resolvedFacetRows = await this.resolveFacetFilters(
+      facetFilters,
+      input.scope
+    );
     const resolvedByRequest = new Map(
       resolvedFacetRows.map((row) => [
         `${row.facetSlug}:${row.requestedValueHandle}`,
@@ -142,7 +147,13 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     const scopeProductBitmapSql = this.buildScopeProductBitmapSql(input.scope);
 
     const rows = await this.connection.execute<FacetValueSqlRow>(sql`
-      WITH scope_products AS (
+      WITH eligible_facets AS MATERIALIZED (
+        ${compileEligibleFacetIdsSql({
+          storeIdSql: sql`${this.storeId}::uuid`,
+          scope: input.scope,
+        })}
+      ),
+      scope_products AS (
         SELECT ${scopeProductBitmapSql} AS product_bitmap
       ),
       scope_variants AS (
@@ -174,6 +185,8 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
 
         SELECT DISTINCT f.id AS facet_id, fv.id AS facet_value_id
         FROM ${facet} f
+        JOIN eligible_facets ef
+          ON ef.facet_id = f.id
         JOIN ${facetValue} fv
           ON fv.store_id = f.store_id
          AND fv.facet_id = f.id
@@ -200,6 +213,8 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       JOIN ${facet} f
         ON f.store_id = ${this.storeId}::uuid
        AND f.id = candidate_values.facet_id
+      JOIN eligible_facets ef
+        ON ef.facet_id = f.id
       JOIN ${facetValue} fv
         ON fv.store_id = f.store_id
        AND fv.facet_id = f.id
@@ -245,7 +260,8 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
   }
 
   private async resolveFacetFilters(
-    filters: readonly Extract<StorefrontListingFilterInput, { kind: "facet" }>[]
+    filters: readonly Extract<StorefrontListingFilterInput, { kind: "facet" }>[],
+    scope: StorefrontListingScope
   ): Promise<FacetResolutionSqlRow[]> {
     const pairs = filters.flatMap((filter) => {
       const slug = filter.facetSlug.trim();
@@ -267,7 +283,13 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     );
 
     const rows = await this.connection.execute<FacetResolutionSqlRow>(sql`
-      WITH requested(facet_slug, value_handle) AS (
+      WITH eligible_facets AS MATERIALIZED (
+        ${compileEligibleFacetIdsSql({
+          storeIdSql: sql`${this.storeId}::uuid`,
+          scope,
+        })}
+      ),
+      requested(facet_slug, value_handle) AS (
         VALUES ${valuesSql}
       ),
       resolved AS (
@@ -296,6 +318,11 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
         LEFT JOIN ${facet} f
           ON f.store_id = ${this.storeId}::uuid
          AND f.slug = r.facet_slug
+         AND EXISTS (
+           SELECT 1
+           FROM eligible_facets ef
+           WHERE ef.facet_id = f.id
+         )
         LEFT JOIN ${facetValue} fv
           ON fv.store_id = f.store_id
          AND fv.facet_id = f.id

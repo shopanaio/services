@@ -9,6 +9,7 @@ import {
   hasVariantPredicate,
 } from "./compileListingProductMatchesSql.js";
 import { NARROW_VARIANT_PROJECTION_THRESHOLD } from "./compileVariantProjectionSql.js";
+import { compileEligibleFacetIdsSql } from "../../facet/facetScopes.js";
 
 const PRODUCT_FACET_VARIANT_BASE_KEY = "__product_facet_variant_base__";
 
@@ -74,6 +75,12 @@ export function compileFacetsWithCountsQuerySql(
     WITH
     ${compileInputCte(request)},
     ${compileScopeProductCtes(request)},
+    eligible_facets AS MATERIALIZED (
+      ${compileEligibleFacetIdsSql({
+        storeIdSql: sql`${request.storeId}::uuid`,
+        scope: request.scope,
+      })}
+    ),
     scoped_variant_rows AS MATERIALIZED (
       SELECT COALESCE(
         rb_build_agg(vli.variant_doc_id),
@@ -117,6 +124,8 @@ export function compileFacetsWithCountsQuerySql(
       JOIN listing.facet f
         ON f.store_id = i.store_id
        AND f.facet_type = 'OPTION'
+      JOIN eligible_facets ef
+        ON ef.facet_id = f.id
       JOIN listing.facet_value fv
         ON fv.store_id = f.store_id
        AND fv.facet_id = f.id
@@ -150,6 +159,8 @@ export function compileFacetsWithCountsQuerySql(
       FROM input i
       JOIN listing.facet f
         ON f.store_id = i.store_id
+      JOIN eligible_facets ef
+        ON ef.facet_id = f.id
       LEFT JOIN listing.facet_translation ft
         ON ft.store_id = f.store_id
        AND ft.facet_id = f.id

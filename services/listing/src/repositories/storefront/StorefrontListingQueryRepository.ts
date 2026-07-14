@@ -488,6 +488,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     };
     const filterPlan = await this.facets.resolveFilterPlan({
       filters: normalizedFiltersInput,
+      scope: input.scope,
     });
     const cursor = input.after ? decodeListingCursor(input.after) : null;
     const filterHash = buildListingFilterHash({
