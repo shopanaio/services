@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/store-menu/store-menu";
 import { SidebarLogo } from "@/layouts/app/components/sidebar/sidebar-logo";
@@ -167,6 +167,7 @@ export const Sidebar = () => {
   const menuItems = useMemo(() => buildMenuItems(sidebarItems), [sidebarItems]);
   const { collapsed, openKeys, setCollapsed, setOpenKeys } = useSidebarStore();
   const { styles } = useStyles({ collapsed });
+  const lastMatchedParentKeyRef = useRef<string | undefined>(undefined);
 
   const matchedItem = useMemo(
     () => findMatchingItem(sidebarItems, pathname),
@@ -179,11 +180,19 @@ export const Sidebar = () => {
   }, [matchedItem]);
 
   useEffect(() => {
-    if (!matchedItem?.parentKey || openKeys.includes(matchedItem.parentKey)) {
+    const parentKey = matchedItem?.parentKey;
+
+    if (parentKey === lastMatchedParentKeyRef.current) {
       return;
     }
 
-    setOpenKeys([...openKeys, matchedItem.parentKey]);
+    lastMatchedParentKeyRef.current = parentKey;
+
+    if (!parentKey || openKeys.includes(parentKey)) {
+      return;
+    }
+
+    setOpenKeys([...openKeys, parentKey]);
   }, [matchedItem?.parentKey, openKeys, setOpenKeys]);
 
   const onOpenChange: MenuProps["onOpenChange"] = (keys) => {
