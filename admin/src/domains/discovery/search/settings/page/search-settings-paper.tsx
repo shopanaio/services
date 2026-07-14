@@ -56,6 +56,15 @@ const useStyles = createStyles(({ token }) => ({
     gap: token.paddingSM,
     alignItems: "start",
   },
+  switch: {
+    marginTop: 3,
+  },
+  switchLabel: {
+    cursor: "pointer",
+  },
+  switchLabelDisabled: {
+    cursor: "default",
+  },
   help: {
     display: "block",
     marginTop: 2,
@@ -174,6 +183,7 @@ export function SearchSettingsPaper({
           {SEARCH_FIELD_DEFINITIONS.map((definition, index) => {
             const normalized = normalizeSearchField(definition.field);
             const isRequired = definition.field === SearchField.ProductTitle;
+            const switchId = `search-field-${normalized}-switch`;
             const helpId = `search-field-${normalized}-help`;
             const groupErrorId = fieldsError ? "search-fields-error" : undefined;
             const enabledApiError = firstApiError(
@@ -194,8 +204,10 @@ export function SearchSettingsPaper({
                     control={control}
                     render={({ field }) => (
                       <Switch
+                        id={switchId}
                         ref={field.ref}
                         size="small"
+                        className={styles.switch}
                         checked={isRequired || field.value}
                         disabled={isRequired}
                         onChange={field.onChange}
@@ -216,7 +228,16 @@ export function SearchSettingsPaper({
                     )}
                   />
                   <div>
-                    <Typography.Text strong>{definition.label}</Typography.Text>
+                    <label
+                      htmlFor={switchId}
+                      className={
+                        isRequired
+                          ? styles.switchLabelDisabled
+                          : styles.switchLabel
+                      }
+                    >
+                      <Typography.Text strong>{definition.label}</Typography.Text>
+                    </label>
                     <span id={helpId} className={styles.help}>
                       {definition.help}
                     </span>
@@ -280,7 +301,12 @@ export function SearchSettingsPaper({
 
           <div className={styles.settingRow}>
             <div>
-              <Typography.Text strong>Typo tolerance</Typography.Text>
+              <label
+                htmlFor="search-typo-tolerance-switch"
+                className={styles.switchLabel}
+              >
+                <Typography.Text strong>Typo tolerance</Typography.Text>
+              </label>
               <span id="search-typo-tolerance-help" className={styles.help}>
                 Retry eligible searches with typo expansion when exact search is weak.
               </span>
@@ -295,8 +321,10 @@ export function SearchSettingsPaper({
               control={control}
               render={({ field }) => (
                 <Switch
+                  id="search-typo-tolerance-switch"
                   ref={field.ref}
                   size="small"
+                  className={styles.switch}
                   checked={field.value}
                   onChange={field.onChange}
                   aria-label="Typo tolerance"

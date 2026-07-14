@@ -72,9 +72,9 @@ test.describe('Admin search settings UI', () => {
 
     await productTitleWeight.fill('9.5');
     await variantTitleWeight.fill('4.25');
-    await vendorNameSwitch.click();
-    await categoryNameSwitch.click();
-    await typoTolerance.click();
+    await page.getByText('Vendor name', { exact: true }).click();
+    await page.getByText('Category name', { exact: true }).click();
+    await page.getByText('Typo tolerance', { exact: true }).click();
     await placeLastPolicy.click();
 
     const saveButton = page.getByTestId('discovery-settings-save-button');
