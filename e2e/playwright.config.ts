@@ -16,6 +16,13 @@ const workers = process.env.WORKERS ? parseInt(process.env.WORKERS, 10) : 5;
 const listingMatrixPerfSpecRequested = process.argv.some((argument) =>
   argument.includes('listing-service-matrix-perf.spec.ts'),
 );
+const directListingSeedSpecRequested = process.argv.some((argument) =>
+  /listing-api\/(listing|listing-service-(?:matrix-|no-filters-)?perf)\.spec\.ts$/u.test(argument),
+);
+
+if (directListingSeedSpecRequested) {
+  process.env.E2E_DISABLE_LISTING_EVENT_INDEXING = 'true';
+}
 
 if (
   listingMatrixPerfSpecRequested &&

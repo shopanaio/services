@@ -183,17 +183,44 @@ async function assignProductDocIds(
       `
     : [];
 
-  const [{ maxDocId }] = await sql<{ maxDocId: number | null }[]>`
-    SELECT COALESCE(MAX(product_doc_id), 0)::int AS "maxDocId"
-    FROM listing.product_listing_index
-    WHERE store_id = ${projectUuid}::uuid
+  await sql`
+    INSERT INTO listing.listing_doc_id_allocator (
+      store_id,
+      next_product_doc_id,
+      next_variant_doc_id,
+      updated_at
+    )
+    VALUES (
+      ${projectUuid}::uuid,
+      (
+        SELECT COALESCE(MAX(product_doc_id), 0)::int + 1
+        FROM listing.product_listing_index
+        WHERE store_id = ${projectUuid}::uuid
+      ),
+      (
+        SELECT COALESCE(MAX(variant_doc_id), 0)::int + 1
+        FROM listing.variant_listing_index
+        WHERE store_id = ${projectUuid}::uuid
+      ),
+      now()
+    )
+    ON CONFLICT (store_id) DO NOTHING
   `;
 
-  const [{ maxVariantDocId }] = await sql<{ maxVariantDocId: number | null }[]>`
-    SELECT COALESCE(MAX(variant_doc_id), 0)::int AS "maxVariantDocId"
-    FROM listing.variant_listing_index
+  const [allocator] = await sql<{
+    nextProductDocId: number;
+    nextVariantDocId: number;
+  }[]>`
+    SELECT
+      next_product_doc_id::int AS "nextProductDocId",
+      next_variant_doc_id::int AS "nextVariantDocId"
+    FROM listing.listing_doc_id_allocator
     WHERE store_id = ${projectUuid}::uuid
+    FOR UPDATE
   `;
+  if (!allocator) {
+    throw new Error('Failed to lock listing doc id allocator row');
+  }
 
   const productDocIdsByProductId = new Map(
     existingProducts.map((product) => [product.productUuid, product.productDocId]),
@@ -201,8 +228,8 @@ async function assignProductDocIds(
   const variantDocIdsByVariantId = new Map(existingVariants.map((variant) => [variant.variantUuid, variant.variantDocId]));
   const usedProductDocIds = new Set(existingProducts.map((product) => product.productDocId));
   const usedVariantDocIds = new Set(existingVariants.map((variant) => variant.variantDocId));
-  let nextProductDocId = (maxDocId ?? 0) + 1;
-  let nextVariantDocId = (maxVariantDocId ?? 0) + 1;
+  let nextProductDocId = allocator.nextProductDocId;
+  let nextVariantDocId = allocator.nextVariantDocId;
 
   const nextUnusedProductDocId = () => {
     while (usedProductDocIds.has(nextProductDocId)) {
@@ -224,16 +251,32 @@ async function assignProductDocIds(
     return docId;
   };
 
-  return products.map((product, index) => {
-    const productDocId =
-      productDocIdsByProductId.get(productUuids[index]) ?? product.productDocId ?? nextUnusedProductDocId();
+  const assigned = products.map((product, index) => {
+    const existingProductDocId = productDocIdsByProductId.get(productUuids[index]);
+    const productDocId = existingProductDocId ?? product.productDocId ?? nextUnusedProductDocId();
     usedProductDocIds.add(productDocId);
+    productDocIdsByProductId.set(productUuids[index], productDocId);
+    nextProductDocId = Math.max(nextProductDocId, productDocId + 1);
 
-    const variantDocId = variantDocIdsByVariantId.get(variantUuids[index]) ?? nextUnusedVariantDocId();
+    const existingVariantDocId = variantDocIdsByVariantId.get(variantUuids[index]);
+    const variantDocId = existingVariantDocId ?? nextUnusedVariantDocId();
     usedVariantDocIds.add(variantDocId);
+    variantDocIdsByVariantId.set(variantUuids[index], variantDocId);
+    nextVariantDocId = Math.max(nextVariantDocId, variantDocId + 1);
 
     return { ...product, productDocId, variantDocId };
   });
+
+  await sql`
+    UPDATE listing.listing_doc_id_allocator
+    SET
+      next_product_doc_id = ${nextProductDocId},
+      next_variant_doc_id = ${nextVariantDocId},
+      updated_at = now()
+    WHERE store_id = ${projectUuid}::uuid
+  `;
+
+  return assigned;
 }
 
 async function seedListingProduct(
@@ -324,8 +367,8 @@ async function seedListingProduct(
     productUuid: input.productUuid,
     productDocId: input.productDocId,
     sortKind: 'newest',
-    locale: '',
-    currency: '',
+    locale: null,
+    currency: null,
     manualScopeId: ZERO_UUID,
     boolValue: input.productAvailable,
     timestamptzValue: publishedAt,
@@ -338,8 +381,8 @@ async function seedListingProduct(
     productUuid: input.productUuid,
     productDocId: input.productDocId,
     sortKind: 'created',
-    locale: '',
-    currency: '',
+    locale: null,
+    currency: null,
     manualScopeId: ZERO_UUID,
     boolValue: input.productAvailable,
     timestamptzValue: createdAt,
@@ -351,7 +394,7 @@ async function seedListingProduct(
     productDocId: input.productDocId,
     sortKind: 'name',
     locale: input.locale,
-    currency: '',
+    currency: null,
     manualScopeId: ZERO_UUID,
     boolValue: input.productAvailable,
     textValue: input.title ?? input.handle ?? input.productUuid,
@@ -362,8 +405,8 @@ async function seedListingProduct(
     productUuid: input.productUuid,
     productDocId: input.productDocId,
     sortKind: 'manual',
-    locale: '',
-    currency: '',
+    locale: null,
+    currency: null,
     manualScopeId: input.categoryUuid,
     boolValue: input.productAvailable,
     textValue: input.manualSortKey ?? input.title ?? input.handle ?? input.productUuid,
@@ -385,7 +428,7 @@ async function seedListingProduct(
       productUuid: input.productUuid,
       productDocId: input.productDocId,
       sortKind: 'price_asc',
-      locale: '',
+      locale: null,
       currency: input.currency,
       manualScopeId: ZERO_UUID,
       boolValue: input.productAvailable,
@@ -396,7 +439,7 @@ async function seedListingProduct(
       productUuid: input.productUuid,
       productDocId: input.productDocId,
       sortKind: 'price_desc',
-      locale: '',
+      locale: null,
       currency: input.currency,
       manualScopeId: ZERO_UUID,
       boolValue: input.productAvailable,
@@ -409,8 +452,8 @@ async function seedListingProduct(
     productUuid: input.productUuid,
     productDocId: input.productDocId,
     sortKind: 'availability',
-    locale: '',
-    currency: '',
+    locale: null,
+    currency: null,
     manualScopeId: ZERO_UUID,
     boolValue: input.productAvailable,
     bigintValue: totalStock,
@@ -432,8 +475,8 @@ async function seedProductSort(
     productUuid: string;
     productDocId: number;
     sortKind: string;
-    locale: string;
-    currency: string;
+    locale: string | null;
+    currency: string | null;
     manualScopeId: string;
     boolValue?: boolean | null;
     timestamptzValue?: string | null;

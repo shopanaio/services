@@ -245,10 +245,10 @@ async function syncProductFeatures(
   productId: string,
   values: { group: ListingFacetGroup; handle: string; label: string }[],
 ) {
-  const { data } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
+  const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
     variables: {
-      input: {
-        productId,
+      productId,
+      operations: {
         features: values.map((value, index) => ({
           index: [index],
           isGroup: false,
@@ -266,7 +266,7 @@ async function syncProductFeatures(
     },
   });
 
-  expect(data.catalogMutation.productFeaturesSync.userErrors).toHaveLength(0);
+  expect(data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
 }
 
 async function createListingFacets(

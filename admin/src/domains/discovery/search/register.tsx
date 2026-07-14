@@ -32,5 +32,16 @@ registerModule({
         order: 2,
       },
     },
+    {
+      key: "search-settings",
+      path: "/:orgName/:storeName/search/settings",
+      component: dynamic(
+        () => import("@/domains/discovery/search/settings/page/page"),
+      ),
+      sidebar: {
+        label: "Settings",
+        order: 3,
+      },
+    },
   ],
 });

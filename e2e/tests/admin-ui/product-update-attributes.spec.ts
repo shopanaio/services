@@ -95,19 +95,19 @@ async function syncProductFeatures(
   productId: string,
   features: unknown[],
 ) {
-  const { data } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
+  const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
     variables: {
-      input: {
-        productId,
+      productId,
+      operations: {
         features,
       },
     },
   });
 
-  const result = data.catalogMutation.productFeaturesSync;
+  const result = data.catalogMutation.productUpdate;
   expect(result.userErrors).toHaveLength(0);
 
-  return result.features;
+  return result.product?.features ?? [];
 }
 
 async function openAttributesModal(page: Page) {

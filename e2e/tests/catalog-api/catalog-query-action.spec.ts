@@ -371,10 +371,10 @@ test.describe('Catalog query action', () => {
     const updateResult = updateData.catalogMutation.productUpdate;
     expect(updateResult.userErrors).toHaveLength(0);
 
-    const { data: featuresData } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
+    const { data: featuresData } = await api.admin.mutation('inventory-api/ProductUpdate', {
       variables: {
-        input: {
-          productId: product.id,
+        productId: product.id,
+        operations: {
           features: [
             {
               index: [0],
@@ -390,16 +390,16 @@ test.describe('Catalog query action', () => {
         },
       },
     });
-    const featuresResult = featuresData.catalogMutation.productFeaturesSync;
+    const featuresResult = featuresData.catalogMutation.productUpdate;
     expect(featuresResult.userErrors).toHaveLength(0);
-    expect(featuresResult.features).toHaveLength(1);
-    expect(featuresResult.features[0].values).toHaveLength(2);
+    expect(featuresResult.product?.features).toHaveLength(1);
+    expect(featuresResult.product!.features[0].values).toHaveLength(2);
 
     const categoryId = decodeGlobalId(category.id).id;
     const vendorId = decodeGlobalId(vendor.id).id;
     const tagId = decodeGlobalId(tag.id).id;
-    const featureId = decodeGlobalId(featuresResult.features[0].id).id;
-    const featureValueIds = featuresResult.features[0].values.map((value: { id: string }) =>
+    const featureId = decodeGlobalId(featuresResult.product!.features[0].id).id;
+    const featureValueIds = featuresResult.product!.features[0].values.map((value: { id: string }) =>
       decodeGlobalId(value.id).id,
     );
 

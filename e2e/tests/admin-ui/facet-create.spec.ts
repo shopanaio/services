@@ -83,10 +83,10 @@ async function syncBrandFeature(
   productId: string,
   brands: Array<{ name: string; slug: string }>,
 ) {
-  const { data } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
+  const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
     variables: {
-      input: {
-        productId,
+      productId,
+      operations: {
         features: [
           {
             index: [0],
@@ -103,9 +103,9 @@ async function syncBrandFeature(
     },
   });
 
-  const result = data.catalogMutation.productFeaturesSync;
+  const result = data.catalogMutation.productUpdate;
   expect(result.userErrors).toHaveLength(0);
-  expect(result.features).toHaveLength(1);
+  expect(result.product?.features).toHaveLength(1);
 }
 
 async function addTagsToProduct(

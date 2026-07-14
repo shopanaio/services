@@ -798,10 +798,10 @@ async function syncListingProductFeature(
     valueHandle: string;
   },
 ): Promise<void> {
-  const { data } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
+  const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
     variables: {
-      input: {
-        productId: input.productId,
+      productId: input.productId,
+      operations: {
         features: [
           {
             index: [0],
@@ -821,7 +821,7 @@ async function syncListingProductFeature(
     },
   });
 
-  expect(data.catalogMutation.productFeaturesSync.userErrors).toHaveLength(0);
+  expect(data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
 }
 
 async function addListingProductTag(

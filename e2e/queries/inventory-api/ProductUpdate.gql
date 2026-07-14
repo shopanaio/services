@@ -107,6 +107,24 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
             sortIndex
           }
         }
+        features {
+          id
+          index
+          isGroup
+          name
+          parent {
+            id
+          }
+          children {
+            id
+            name
+          }
+          values {
+            id
+            index
+            name
+          }
+        }
       }
       operationResults {
         type

@@ -1201,6 +1201,31 @@ async function seedListingRows(sql, input) {
   );
 
   await sql`
+    INSERT INTO listing.listing_doc_id_allocator (
+      store_id,
+      next_product_doc_id,
+      next_variant_doc_id,
+      updated_at
+    )
+    VALUES (
+      ${input.storeId}::uuid,
+      ${Math.max(...input.productDocIds) + 1},
+      ${Math.max(...input.variants.map((variant) => variant.variantDocId)) + 1},
+      now()
+    )
+    ON CONFLICT (store_id) DO UPDATE SET
+      next_product_doc_id = GREATEST(
+        listing.listing_doc_id_allocator.next_product_doc_id,
+        EXCLUDED.next_product_doc_id
+      ),
+      next_variant_doc_id = GREATEST(
+        listing.listing_doc_id_allocator.next_variant_doc_id,
+        EXCLUDED.next_variant_doc_id
+      ),
+      updated_at = now()
+  `;
+
+  await sql`
     INSERT INTO listing.product_listing_index (
       store_id,
       product_id,
@@ -1355,7 +1380,7 @@ async function seedListingRows(sql, input) {
       product_doc_id,
       product_id,
       'price_asc',
-      '',
+      NULL,
       ${CURRENCY},
       ${ZERO_UUID}::uuid,
       product_available_flag = 1,
@@ -1386,8 +1411,8 @@ async function seedListingRows(sql, input) {
       product_doc_id,
       product_id,
       'newest',
-      '',
-      '',
+      NULL,
+      NULL,
       ${ZERO_UUID}::uuid,
       product_available_flag = 1,
       ${input.now}::timestamptz - (product_doc_id || ' seconds')::interval,
@@ -1416,8 +1441,8 @@ async function seedListingRows(sql, input) {
       product_doc_id,
       product_id,
       'availability',
-      '',
-      '',
+      NULL,
+      NULL,
       ${ZERO_UUID}::uuid,
       product_available_flag = 1,
       total_stock
@@ -1744,8 +1769,8 @@ function buildPageSelectSql(input) {
        AND availability.product_doc_id = chosen.product_doc_id
        AND availability.product_id = chosen.product_id
        AND availability.sort_kind = 'availability'
-       AND availability.locale = ''
-       AND availability.currency = ''
+       AND availability.locale IS NULL
+       AND availability.currency IS NULL
        AND availability.manual_scope_id = ${sqlLiteral(ZERO_UUID)}::uuid
       ORDER BY availability.bool_value DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC
       LIMIT (SELECT first + 1 FROM input)
@@ -1957,8 +1982,8 @@ async function runPageExplain(sql, input) {
        AND availability.product_doc_id = chosen.product_doc_id
        AND availability.product_id = chosen.product_id
        AND availability.sort_kind = 'availability'
-       AND availability.locale = ''
-       AND availability.currency = ''
+       AND availability.locale IS NULL
+       AND availability.currency IS NULL
        AND availability.manual_scope_id = ${ZERO_UUID}::uuid
       ORDER BY availability.bool_value DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC
       LIMIT (SELECT first + 1 FROM input)

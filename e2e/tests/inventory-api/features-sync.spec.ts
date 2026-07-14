@@ -29,12 +29,16 @@ test.describe('Product Features Sync API', () => {
     features: unknown[],
     throwOnError = true,
   ) {
-    const { data } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
-      variables: { input: { productId, features } },
+    const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+      variables: { productId, operations: { features } },
       throwOnError,
     });
 
-    return data.catalogMutation.productFeaturesSync;
+    const result = data.catalogMutation.productUpdate;
+    return {
+      ...result,
+      features: result.product?.features ?? [],
+    };
   }
 
   test.describe('Create Features', () => {

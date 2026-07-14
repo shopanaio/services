@@ -858,10 +858,10 @@ async function seedFacetSources(api: any) {
   expect(productResult.userErrors).toHaveLength(0);
   expect(productResult.product?.id).toBeTruthy();
 
-  const { data: featuresData } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
+  const { data: featuresData } = await api.admin.mutation('inventory-api/ProductUpdate', {
     variables: {
-      input: {
-        productId: productResult.product!.id,
+      productId: productResult.product!.id,
+      operations: {
         features: [
           {
             index: [0],
@@ -886,5 +886,5 @@ async function seedFacetSources(api: any) {
     },
   });
 
-  expect(featuresData.catalogMutation.productFeaturesSync.userErrors).toHaveLength(0);
+  expect(featuresData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
 }
