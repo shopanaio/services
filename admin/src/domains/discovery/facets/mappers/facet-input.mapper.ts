@@ -2,6 +2,7 @@ import { slugify } from "transliteration/dist/node/src/node/index.js";
 import type {
   ApiFacetCreateInput,
   ApiFacetUpdateInput,
+  FacetScopeType,
 } from "@/graphql/types";
 import {
   FacetSelectionMode,
@@ -14,6 +15,7 @@ export interface FacetFormInput {
   slug: string;
   facetType: FacetType;
   uiType: FacetUiType;
+  scopes: FacetScopeType[];
   sources?: Array<{
     handle: string;
     name: string;
@@ -66,6 +68,7 @@ export function mapFacetFormToCreateInput(
     slug: normalizeFacetSlug(values.slug),
     facetType: values.facetType,
     uiType: values.uiType,
+    scopes: values.scopes,
     selectionMode: getDefaultFacetSelectionMode(values.uiType),
     sources: sources.map((source) => ({
       handle: source.handle,
@@ -88,5 +91,6 @@ export function mapFacetFormToUpdateInput(
     label: values.label.trim(),
     slug: normalizeFacetSlug(values.slug),
     uiType: values.uiType,
+    scopes: values.scopes,
   };
 }

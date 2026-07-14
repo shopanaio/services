@@ -29,12 +29,13 @@ import {
   type ICreateFacetModalPayload,
 } from "../../modals";
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
+import { FacetScopeSelector } from "../components/facet-scope-selector";
 import {
   createFacetSchema,
   type CreateFacetFormInput,
   type CreateFacetFormValues,
 } from "./schema";
-import { FacetType } from "@/graphql/types";
+import { FacetScopeType, FacetType } from "@/graphql/types";
 import type { FacetSourcePickerEntity } from "../../pickers/facet-source-picker-config";
 import { FacetValueCandidatesGrid } from "./facet-value-candidates-grid";
 
@@ -149,6 +150,7 @@ const DEFAULT_VALUES: CreateFacetFormInput = {
   slug: "",
   facetType: FacetType.Option,
   uiType: getDefaultFacetUiType(FacetType.Option),
+  scopes: [FacetScopeType.Search, FacetScopeType.Category],
   sources: [],
   selectedValueCandidates: [],
 };
@@ -331,6 +333,9 @@ export function CreateFacetModal() {
           if (error.field === "uiType") {
             setError("uiType", { message: error.message });
           }
+          if (error.field === "scopes") {
+            setError("scopes", { message: error.message });
+          }
           if (
             error.field === "facetType" ||
             error.field === "source" ||
@@ -415,6 +420,24 @@ export function CreateFacetModal() {
                 )}
               />
             </div>
+          </div>
+          <div className={styles.stackedField}>
+            <div className={styles.label}>Available in</div>
+            <Controller
+              name="scopes"
+              control={control}
+              render={({ field, fieldState: { error } }) => (
+                <>
+                  <FacetScopeSelector
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                  {error ? (
+                    <div className={styles.error}>{error.message}</div>
+                  ) : null}
+                </>
+              )}
+            />
           </div>
         </Paper>
 

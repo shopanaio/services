@@ -27,6 +27,7 @@ import {
 import { useDeleteFacet, useFacets, useMoveFacet } from "../hooks";
 import {
   apiFacetsToFacetGridRows,
+  getFacetScopeLabel,
   getMaxRootSortIndex,
   type FacetGridRow,
 } from "../mappers";
@@ -179,6 +180,7 @@ export default function FacetsPage() {
           slug: `${row.slug ?? row.name}-copy`,
           facetType: row.facetType,
           uiType: row.uiType,
+          scopes: row.scopes,
         },
         onSaved: refetchAndReset,
       });
@@ -302,6 +304,26 @@ export default function FacetsPage() {
               {formatFacetMetaValue(value)}
             </Tag>
           ) : null,
+      },
+      {
+        headerName: "Available in",
+        minWidth: 200,
+        valueGetter: ({ data }) => data?.scopes ?? [],
+        cellRenderer: ({
+          value,
+        }: ICellRendererParams<FacetGridRow, FacetGridRow["scopes"]>) => (
+          <Flex gap={4} wrap>
+            {(value ?? []).map((scope) => (
+              <Tag
+                key={scope}
+                variant="filled"
+                className={styles.metaTag}
+              >
+                {getFacetScopeLabel(scope)}
+              </Tag>
+            ))}
+          </Flex>
+        ),
       },
       {
         headerName: "Values",

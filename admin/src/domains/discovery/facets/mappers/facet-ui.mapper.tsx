@@ -13,7 +13,7 @@ import {
   LuSparkles,
   LuTag,
 } from "react-icons/lu";
-import { FacetType, FacetUiType } from "@/graphql/types";
+import { FacetScopeType, FacetType, FacetUiType } from "@/graphql/types";
 
 interface FacetTypeUiMapping {
   label: string;
@@ -26,9 +26,15 @@ interface FacetUiTypeMapping {
   icon: ReactNode;
 }
 
+interface FacetScopeUiMapping {
+  label: string;
+  description: string;
+}
+
 export const FACET_UI_MAPPINGS: {
   facetTypes: Record<FacetType, FacetTypeUiMapping>;
   uiTypes: Record<FacetUiType, FacetUiTypeMapping>;
+  scopes: Record<FacetScopeType, FacetScopeUiMapping>;
 } = {
   facetTypes: {
     [FacetType.Price]: {
@@ -79,6 +85,16 @@ export const FACET_UI_MAPPINGS: {
       icon: <UnorderedListOutlined />,
     },
   },
+  scopes: {
+    [FacetScopeType.Search]: {
+      label: "Search",
+      description: "Listings without a category context",
+    },
+    [FacetScopeType.Category]: {
+      label: "Categories",
+      description: "All category-scoped listings",
+    },
+  },
 };
 
 export function getFacetSourceTypeLabel(facetType: FacetType): string {
@@ -104,4 +120,8 @@ export function getFacetUiTypeOptions(
     key: uiType,
     ...FACET_UI_MAPPINGS.uiTypes[uiType],
   }));
+}
+
+export function getFacetScopeLabel(scope: FacetScopeType): string {
+  return FACET_UI_MAPPINGS.scopes[scope].label;
 }

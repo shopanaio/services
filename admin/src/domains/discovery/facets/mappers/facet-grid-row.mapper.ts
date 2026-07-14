@@ -29,6 +29,7 @@ export interface FacetGridRow {
   facetType?: FacetGridFields["facetType"];
   uiType?: FacetGridFields["uiType"];
   selectionMode?: FacetGridFields["selectionMode"];
+  scopes: FacetGridFields["scopes"];
   lexoRank?: string;
   valuesCount?: number;
   enabledValuesCount?: number;
@@ -70,6 +71,7 @@ function getFacetRow(facet: FacetGridFields, sortIndex: number): FacetGridRow {
     facetType: facet.facetType,
     uiType: facet.uiType,
     selectionMode: facet.selectionMode,
+    scopes: facet.scopes,
     valuesCount: sortedValues.length,
     enabledValuesCount: sortedValues.filter((value) => value.enabled).length,
     linkedSourceHandlesCount,

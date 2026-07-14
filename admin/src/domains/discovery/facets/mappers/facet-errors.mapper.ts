@@ -9,6 +9,7 @@ const FIELD_ALIASES: Record<string, string> = {
   label: "label",
   slug: "slug",
   uiType: "uiType",
+  scopes: "scopes",
   selectionMode: "selectionMode",
   facetType: "facetType",
   sources: "sources",

@@ -61,6 +61,7 @@ export type FacetGridFields = Pick<
   | "slug"
   | "facetType"
   | "uiType"
+  | "scopes"
   | "selectionMode"
   | "lexoRank"
 > & {

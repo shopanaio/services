@@ -59,6 +59,13 @@ function rowMatchesFilters(row: FacetGridRow, filters: IFilterValue[]): boolean 
       continue;
     }
 
+    if (filter.payloadKey === "scopes") {
+      if (!row.scopes.some((scope) => values.includes(scope))) {
+        return false;
+      }
+      continue;
+    }
+
     if (filter.payloadKey === "hasValues") {
       const [rawValue] = values;
       const expected =

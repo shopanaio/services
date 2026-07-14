@@ -1,6 +1,6 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
-import type { FacetType, FacetUiType } from "@/graphql/types";
+import type { FacetScopeType, FacetType, FacetUiType } from "@/graphql/types";
 import type { FacetValueEditorRow } from "./modals/edit-facet-modal/types";
 import type { FacetSourcePickerEntity } from "./pickers/facet-source-picker-config";
 
@@ -20,6 +20,7 @@ export interface ICreateFacetModalPayload extends IModalStackPayload {
     slug: string;
     facetType: FacetType;
     uiType: FacetUiType;
+    scopes: FacetScopeType[];
     sources: Array<{
       handle: string;
       name: string;

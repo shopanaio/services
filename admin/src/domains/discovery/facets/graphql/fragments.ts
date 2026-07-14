@@ -47,6 +47,7 @@ export const FACET_GRID_FRAGMENT = gql`
     slug
     facetType
     uiType
+    scopes
     selectionMode
     lexoRank
     sources {

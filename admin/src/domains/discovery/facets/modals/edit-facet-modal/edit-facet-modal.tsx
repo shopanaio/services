@@ -59,10 +59,12 @@ import {
   type EditFacetFormValues,
 } from "./schema";
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
+import { FacetScopeSelector } from "../components/facet-scope-selector";
 import { FacetValuesGrid } from "./components/facet-values-grid";
 import type { FacetValueEditorRow } from "./types";
 import {
   FacetValueKind,
+  FacetScopeType,
   FacetType,
   FacetUiType,
   SwatchType,
@@ -153,6 +155,7 @@ const EMPTY_VALUES: EditFacetFormValues = {
   label: "",
   slug: "",
   uiType: FacetUiType.Checkbox,
+  scopes: [FacetScopeType.Search, FacetScopeType.Category],
 };
 
 const DATA_URL_PATTERN = /^data:/i;
@@ -320,6 +323,7 @@ export function EditFacetModal() {
       label: facet.label,
       slug: facet.slug,
       uiType: facet.uiType,
+      scopes: facet.scopes,
     });
   }, [facet, reset]);
 
@@ -483,6 +487,9 @@ export function EditFacetModal() {
           }
           if (userError.field === "uiType") {
             setError("uiType", { message: userError.message });
+          }
+          if (userError.field === "scopes") {
+            setError("scopes", { message: userError.message });
           }
         });
         message.error(result.userErrors[0].message);
@@ -762,6 +769,24 @@ export function EditFacetModal() {
                 )}
               />
             </div>
+          </div>
+          <div className={styles.stackedField}>
+            <div className={styles.label}>Available in</div>
+            <Controller
+              name="scopes"
+              control={control}
+              render={({ field, fieldState: { error: fieldError } }) => (
+                <>
+                  <FacetScopeSelector
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                  {fieldError ? (
+                    <div className={styles.error}>{fieldError.message}</div>
+                  ) : null}
+                </>
+              )}
+            />
           </div>
         </Paper>
 
