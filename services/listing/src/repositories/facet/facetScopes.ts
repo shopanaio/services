@@ -2,7 +2,7 @@ import { sql, type SQL } from "drizzle-orm";
 
 type FacetListingScope =
   | { kind: "category"; categoryId: string }
-  | { kind: "global" };
+  | { kind: "search" };
 
 export type FacetScopeType = "SEARCH" | "CATEGORY";
 

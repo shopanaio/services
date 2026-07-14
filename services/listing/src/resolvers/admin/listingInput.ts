@@ -224,7 +224,7 @@ function normalizeListingScope(
           ["query"]
         );
       }
-      return { kind: "global" };
+      return { kind: "search" };
     case "CATEGORY":
       if (!categoryId) {
         throw new ListingResolverInputError(

@@ -81,7 +81,7 @@ export interface StorefrontSortInput {
 
 export type StorefrontListingScope =
   | { kind: "category"; categoryId: string; manualSortScopeId?: string }
-  | { kind: "global" };
+  | { kind: "search" };
 
 export interface ResolvedFacetFilterGroup {
   facetId: string;
