@@ -812,6 +812,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
 
   return (
     <DataLayout
+      fullWidth
       name="inventory"
       title={pageTitle}
       count={totalCount}

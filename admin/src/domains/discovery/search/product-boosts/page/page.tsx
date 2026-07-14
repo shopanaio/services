@@ -226,9 +226,19 @@ export default function ProductBoostsPage() {
 
   return (
     <DataLayout
+      fullWidth
       name="product-boosts"
       title="Product boosts"
       count={totalCount}
+      actions={
+        <Button
+          data-testid="product-boosts-create-button"
+          icon={<PlusOutlined />}
+          onClick={handleCreate}
+        >
+          Create
+        </Button>
+      }
     >
       <DataLayout.Toolbar
         left={
@@ -236,11 +246,6 @@ export default function ProductBoostsPage() {
             {...pageConfig.filterWidgetProps}
             searchPlaceholder="Search product boosts by name..."
           />
-        }
-        right={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Create product boost
-          </Button>
         }
       />
 

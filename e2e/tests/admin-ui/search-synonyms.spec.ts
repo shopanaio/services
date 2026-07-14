@@ -108,7 +108,7 @@ async function fillSynonymValues(modal: Locator, values: string[]) {
 }
 
 async function createSynonymGroupThroughUi(page: Page, group: SynonymGroupFixture) {
-  await page.getByRole('button', { name: 'Create synonym group' }).click();
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
   const modal = page.getByTestId('synonym-group-modal');
 
   await expect(modal).toBeVisible();

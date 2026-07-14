@@ -33,6 +33,14 @@ export const searchSettingsFormSchema = z
           message: "Weight must be greater than 0 and at most 100.",
         });
       }
+
+      if (item.field === SearchField.ProductTitle && !item.enabled) {
+        context.addIssue({
+          code: "custom",
+          path: ["fields", index, "enabled"],
+          message: "Product title must remain enabled.",
+        });
+      }
     });
 
     if (!values.fields.some((item) => item.enabled)) {

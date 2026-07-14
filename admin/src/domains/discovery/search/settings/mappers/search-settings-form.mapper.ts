@@ -59,7 +59,8 @@ export function mapSearchSettingsToFormValues(
   return {
     fields: SEARCH_FIELD_DEFINITIONS.map(({ field, defaultWeight }) => ({
       field,
-      enabled: configuredFields.has(field),
+      enabled:
+        field === SearchField.ProductTitle || configuredFields.has(field),
       weight: configuredFields.get(field) ?? defaultWeight,
     })),
     typoToleranceEnabled: settings.typoToleranceEnabled,
@@ -75,7 +76,9 @@ export interface SearchSettingsSubmitMapping {
 export function mapSearchSettingsFormToOperations(
   values: SearchSettingsFormValues,
 ): SearchSettingsSubmitMapping {
-  const enabledFields = values.fields.filter((item) => item.enabled);
+  const enabledFields = values.fields.filter(
+    (item) => item.field === SearchField.ProductTitle || item.enabled,
+  );
 
   return {
     operations: {

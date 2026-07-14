@@ -335,6 +335,7 @@ export default function BundlesPage() {
 
   return (
     <DataLayout
+      fullWidth
       name="bundles"
       title="Bundles"
       count={totalCount}

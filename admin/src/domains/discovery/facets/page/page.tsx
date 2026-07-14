@@ -354,6 +354,7 @@ export default function FacetsPage() {
 
   return (
     <DataLayout
+      fullWidth
       name="facets"
       title="Facets"
       count={baseRows.length}

@@ -25,6 +25,18 @@ const useStyles = createStyles(({ token }) => ({
     paddingLeft: token.paddingXL,
     paddingRight: token.paddingXL,
   },
+  frame: {
+    width: "100%",
+    maxWidth: 800,
+    marginInline: "auto",
+    display: "flex",
+    flexDirection: "column",
+    flex: 1,
+    minHeight: 0,
+  },
+  frameFullWidth: {
+    maxWidth: "none",
+  },
   header: {
     display: "flex",
     justifyContent: "space-between",
@@ -331,6 +343,7 @@ export interface IDataLayoutProps {
   loading?: boolean;
   stickyToolbar?: boolean;
   stickyFooter?: boolean;
+  fullWidth?: boolean;
 
   // Testing
   name?: string;
@@ -347,6 +360,7 @@ export const DataLayout = ({
   loading,
   stickyToolbar = true,
   stickyFooter = true,
+  fullWidth = false,
   name,
   className,
 }: IDataLayoutProps) => {
@@ -420,10 +434,12 @@ export const DataLayout = ({
         className={cx(styles.layout, className)}
         data-testid={name ? `${name}-layout` : "data-layout"}
       >
-        {headerNode}
-        {toolbarNode}
-        <Content>{slots.content}</Content>
-        {footerNode}
+        <div className={cx(styles.frame, fullWidth && styles.frameFullWidth)}>
+          {headerNode}
+          {toolbarNode}
+          <Content>{slots.content}</Content>
+          {footerNode}
+        </div>
       </div>
     </DataLayoutContext.Provider>
   );

@@ -43,7 +43,7 @@ test.describe('Admin search settings UI', () => {
     await completeProfileIfNeeded(page);
     await page.goto(settingsUrl);
 
-    await expect(page.getByTestId('page-title')).toHaveText('Discovery settings');
+    await expect(page.getByTestId('page-title')).toHaveText('Search settings');
     await expect(page.getByTestId('search-settings-section')).toBeVisible();
 
     const productTitleSwitch = page.getByTestId('search-field-product-title-switch');
@@ -62,6 +62,7 @@ test.describe('Admin search settings UI', () => {
     });
 
     await expect(productTitleSwitch).toBeChecked({ timeout: 30_000 });
+    await expect(productTitleSwitch).toBeDisabled();
     await expect(variantTitleSwitch).toBeChecked();
     await expect(vendorNameSwitch).toBeChecked();
     await expect(categoryNameSwitch).toBeChecked();
@@ -84,7 +85,7 @@ test.describe('Admin search settings UI', () => {
     await expect(saveButton).toBeDisabled();
 
     await page.reload();
-    await expect(page.getByTestId('page-title')).toHaveText('Discovery settings');
+    await expect(page.getByTestId('page-title')).toHaveText('Search settings');
     await expect(page.getByTestId('search-settings-section')).toBeVisible();
 
     await expect(productTitleSwitch).toBeChecked();

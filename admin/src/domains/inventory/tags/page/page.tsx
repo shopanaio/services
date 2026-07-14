@@ -164,6 +164,7 @@ export default function TagsPage() {
 
   return (
     <DataLayout
+      fullWidth
       name="tags"
       title="Tags"
       count={totalCount}

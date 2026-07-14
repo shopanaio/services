@@ -361,6 +361,7 @@ export default function ProductsPage() {
 
   return (
     <DataLayout
+      fullWidth
       name="products"
       title="Products"
       count={totalCount}

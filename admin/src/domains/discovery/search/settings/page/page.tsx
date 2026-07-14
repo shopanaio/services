@@ -3,11 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, App, Button, Flex, Typography } from "antd";
+import { Alert, App, Button } from "antd";
 import { createStyles } from "antd-style";
 import type { ApiSearchSettings } from "@/graphql/types";
 import { DataLayout } from "@/layouts/data";
-import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   useSearchEditorContext,
   useSearchSettingsNavigationGuard,
@@ -33,21 +32,9 @@ const useStyles = createStyles(({ token }) => ({
   },
   wrapper: {
     width: "100%",
-    maxWidth: 1000,
-    margin: "0 auto",
     display: "flex",
     flexDirection: "column",
     gap: token.padding,
-  },
-  titleBlock: {
-    minWidth: 0,
-  },
-  subtitle: {
-    display: "block",
-    marginTop: -token.marginXXS,
-  },
-  filtersPlaceholder: {
-    minHeight: 72,
   },
 }));
 
@@ -248,12 +235,7 @@ export default function SearchSettingsPage() {
   return (
     <DataLayout name="search-settings">
       <DataLayout.Header>
-        <Flex vertical className={styles.titleBlock}>
-          <DataLayout.Title>Discovery settings</DataLayout.Title>
-          <Typography.Text type="secondary" className={styles.subtitle}>
-            Configure storefront discovery.
-          </Typography.Text>
-        </Flex>
+        <DataLayout.Title>Search settings</DataLayout.Title>
         <DataLayout.HeaderActions>
           <Button
             ref={saveButtonRef}
@@ -263,7 +245,7 @@ export default function SearchSettingsPage() {
             onClick={handleSubmit(submit, handleInvalid)}
             data-testid="discovery-settings-save-button"
           >
-            Save changes
+            Save
           </Button>
         </DataLayout.HeaderActions>
       </DataLayout.Header>
@@ -294,10 +276,6 @@ export default function SearchSettingsPage() {
             updatedAt={baselineSettings?.updatedAt ?? null}
             onRetry={retryQuery}
           />
-
-          <Paper className={styles.filtersPlaceholder} aria-label="Filters settings section">
-            <PaperHeader title="Filters" bordered={false} />
-          </Paper>
         </main>
       </DataLayout.Content>
     </DataLayout>

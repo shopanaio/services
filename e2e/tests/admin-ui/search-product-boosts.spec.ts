@@ -125,7 +125,7 @@ async function selectProductInPicker(
 }
 
 async function createBoostThroughUi(page: Page, boost: BoostFixture) {
-  await page.getByRole('button', { name: 'Create product boost' }).click();
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
   const modal = page.getByTestId('product-boost-modal');
 
   await expect(modal).toBeVisible();

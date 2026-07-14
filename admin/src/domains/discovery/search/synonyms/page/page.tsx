@@ -206,18 +206,27 @@ export default function SynonymsPage() {
   );
 
   return (
-    <DataLayout name="synonyms" title="Synonyms" count={totalCount}>
+    <DataLayout
+      fullWidth
+      name="synonyms"
+      title="Synonyms"
+      count={totalCount}
+      actions={
+        <Button
+          data-testid="synonyms-create-button"
+          icon={<PlusOutlined />}
+          onClick={handleCreate}
+        >
+          Create
+        </Button>
+      }
+    >
       <DataLayout.Toolbar
         left={
           <FilterWidget
             {...pageConfig.filterWidgetProps}
             searchPlaceholder="Search synonym groups by name..."
           />
-        }
-        right={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Create synonym group
-          </Button>
         }
       />
 

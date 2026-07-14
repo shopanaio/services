@@ -398,6 +398,7 @@ export default function MediaPage() {
 
   return (
     <DataLayout
+      fullWidth
       name="media"
       title="Media"
       count={totalCount}

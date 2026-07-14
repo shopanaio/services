@@ -17,7 +17,7 @@ import {
   Typography,
 } from "antd";
 import { createStyles } from "antd-style";
-import { SearchOutOfStockPolicy } from "@/graphql/types";
+import { SearchField, SearchOutOfStockPolicy } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   normalizeSearchField,
@@ -173,6 +173,7 @@ export function SearchSettingsPaper({
 
           {SEARCH_FIELD_DEFINITIONS.map((definition, index) => {
             const normalized = normalizeSearchField(definition.field);
+            const isRequired = definition.field === SearchField.ProductTitle;
             const helpId = `search-field-${normalized}-help`;
             const groupErrorId = fieldsError ? "search-fields-error" : undefined;
             const enabledApiError = firstApiError(
@@ -194,7 +195,9 @@ export function SearchSettingsPaper({
                     render={({ field }) => (
                       <Switch
                         ref={field.ref}
-                        checked={field.value}
+                        size="small"
+                        checked={isRequired || field.value}
+                        disabled={isRequired}
                         onChange={field.onChange}
                         aria-label={`Search ${definition.label.toLowerCase()}`}
                         aria-describedby={
@@ -242,7 +245,7 @@ export function SearchSettingsPaper({
                         max={100}
                         step={0.1}
                         precision={2}
-                        disabled={!fieldValues[index]?.enabled}
+                        disabled={!isRequired && !fieldValues[index]?.enabled}
                         status={weightError ? "error" : undefined}
                         aria-label={`${definition.label} weight`}
                         aria-describedby={
@@ -293,6 +296,7 @@ export function SearchSettingsPaper({
               render={({ field }) => (
                 <Switch
                   ref={field.ref}
+                  size="small"
                   checked={field.value}
                   onChange={field.onChange}
                   aria-label="Typo tolerance"

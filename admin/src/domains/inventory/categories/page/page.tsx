@@ -318,6 +318,7 @@ export default function CategoriesPage() {
 
   return (
     <DataLayout
+      fullWidth
       name="categories"
       title="Categories"
       count={totalCount}

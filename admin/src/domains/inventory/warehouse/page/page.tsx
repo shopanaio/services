@@ -276,6 +276,7 @@ export default function WarehousePage() {
 
   return (
     <DataLayout
+      fullWidth
       name="warehouse"
       title="Warehouse"
       count={totalCount}
