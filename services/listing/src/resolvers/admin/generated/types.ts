@@ -1725,7 +1725,7 @@ export type SearchProductBoost = {
   name: Scalars['String']['output'];
   phrases: Array<SearchProductBoostPhrase>;
   phrasesCount: Scalars['Int']['output'];
-  productIds: Array<Scalars['ID']['output']>;
+  products: Array<Product>;
   productsCount: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
   version: Scalars['Int']['output'];
@@ -2780,7 +2780,7 @@ export type SearchProductBoostResolvers<ContextType = ServiceContext, ParentType
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   phrases?: Resolver<Array<ResolversTypes['SearchProductBoostPhrase']>, ParentType, ContextType>;
   phrasesCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  productIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  products?: Resolver<Array<ResolversTypes['Product']>, ParentType, ContextType>;
   productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;

@@ -6940,7 +6940,7 @@ export type ApiSearchProductBoost = {
   name: Scalars['String']['output'];
   phrases: Array<ApiSearchProductBoostPhrase>;
   phrasesCount: Scalars['Int']['output'];
-  productIds: Array<Scalars['ID']['output']>;
+  products: Array<ApiProduct>;
   productsCount: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
   version: Scalars['Int']['output'];

@@ -70,7 +70,7 @@ type SearchProductBoost {
   version: Int!
   phrases: [SearchProductBoostPhrase!]!
   phrasesCount: Int!
-  productIds: [ID!]!
+  products: [Product!]!
   productsCount: Int!
   createdAt: DateTime!
   updatedAt: DateTime!

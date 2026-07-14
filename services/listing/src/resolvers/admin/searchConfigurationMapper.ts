@@ -62,7 +62,7 @@ export function mapSearchProductBoostAggregate(
       position: phrase.position,
     })),
     phrasesCount: aggregate.phrases.length,
-    productIds: encodeProductIds(
+    products: toProductReferences(
       aggregate.products.map((product) => product.productId),
     ),
     productsCount: aggregate.products.length,
@@ -82,7 +82,7 @@ export function mapSearchProductBoostListView(
     updatedAt: row.updatedAt,
     phrases: row.phraseItems,
     phrasesCount: row.phrasesCount,
-    productIds: encodeProductIds(row.productIds),
+    products: toProductReferences(row.productIds),
     productsCount: row.productsCount,
   };
 }
@@ -95,6 +95,9 @@ function encodeSearchProductBoostId(id: string): string {
   return encodeGlobalIdByType(id, GlobalIdEntity.SearchProductBoost);
 }
 
-function encodeProductIds(ids: readonly string[]): string[] {
-  return ids.map((id) => encodeGlobalIdByType(id, GlobalIdEntity.Product));
+function toProductReferences(ids: readonly string[]) {
+  return ids.map((id) => ({
+    __typename: "Product" as const,
+    id: encodeGlobalIdByType(id, GlobalIdEntity.Product),
+  }));
 }

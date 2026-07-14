@@ -12,7 +12,9 @@ export const SEARCH_PRODUCT_BOOST_LIST_FRAGMENT = gql`
       position
     }
     phrasesCount
-    productIds
+    products {
+      id
+    }
     productsCount
     createdAt
     updatedAt
