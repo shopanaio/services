@@ -20,6 +20,14 @@ import {
   FacetValueUpdateWorkflow,
 } from "./workflows/FacetMutationWorkflows.js";
 import { SearchSettingsUpdateWorkflow } from "./workflows/SearchSettingsUpdateWorkflow.js";
+import {
+  SearchProductBoostCreateWorkflow,
+  SearchProductBoostDeleteWorkflow,
+  SearchProductBoostUpdateWorkflow,
+  SearchSynonymGroupCreateWorkflow,
+  SearchSynonymGroupDeleteWorkflow,
+  SearchSynonymGroupUpdateWorkflow,
+} from "./workflows/SearchResourceMutationWorkflows.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "listing" })],
@@ -40,6 +48,12 @@ import { SearchSettingsUpdateWorkflow } from "./workflows/SearchSettingsUpdateWo
     FacetValueMergeWorkflow,
     FacetValueUnmergeWorkflow,
     SearchSettingsUpdateWorkflow,
+    SearchSynonymGroupCreateWorkflow,
+    SearchSynonymGroupUpdateWorkflow,
+    SearchSynonymGroupDeleteWorkflow,
+    SearchProductBoostCreateWorkflow,
+    SearchProductBoostUpdateWorkflow,
+    SearchProductBoostDeleteWorkflow,
   ],
 })
 export class ListingModule {}

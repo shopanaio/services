@@ -33,12 +33,18 @@ import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useAgGridTheme } from "@/hooks";
 import { useStore } from "@/domains/workspace";
-import { SearchSettingsOperationType } from "@/graphql/types";
-import { useSearchEditorContext, useUpdateSearchSettings } from "../../hooks";
+import { useSearchEditorContext } from "../../hooks";
 import { hasVersionConflict, mapSearchEditorErrors } from "../../mappers";
 import type { ISynonymGroupModalPayload } from "../../modals";
-import { useSynonymGroup } from "../hooks";
-import { buildSynonymGroupOperation } from "../mappers";
+import {
+  useCreateSynonymGroup,
+  useSynonymGroup,
+  useUpdateSynonymGroup,
+} from "../hooks";
+import {
+  buildSynonymGroupCreateInput,
+  buildSynonymGroupUpdateInput,
+} from "../mappers";
 import {
   synonymGroupFormSchema,
   type SynonymEditorRow,
@@ -97,7 +103,9 @@ export function SynonymGroupModal() {
   const store = useStore();
   const contextQuery = useSearchEditorContext(isEdit);
   const detailQuery = useSynonymGroup(typedPayload.entityId, !isEdit);
-  const { updateSearchSettings, loading: saving } = useUpdateSearchSettings();
+  const { createSynonymGroup, loading: creating } = useCreateSynonymGroup();
+  const { updateSynonymGroup, loading: updating } = useUpdateSynonymGroup();
+  const saving = creating || updating;
   const [globalErrors, setGlobalErrors] = useState<string[]>([]);
   const [versionConflict, setVersionConflict] = useState(false);
 
@@ -269,15 +277,13 @@ export function SynonymGroupModal() {
       if (!settings) return;
       setGlobalErrors([]);
       setVersionConflict(false);
-      const operation = buildSynonymGroupOperation(values, isEdit ? typedPayload.entityId : undefined);
-      const result = await updateSearchSettings(
-        settings.version,
-        { synonymGroups: [operation] },
-        isEdit
-          ? SearchSettingsOperationType.SynonymGroupUpdate
-          : SearchSettingsOperationType.SynonymGroupCreate,
-      );
-      if (!result.applied) {
+      const current = detailQuery.synonymGroup;
+      const result = isEdit && current
+        ? await updateSynonymGroup(
+          buildSynonymGroupUpdateInput(values, current.id, current.version),
+        )
+        : await createSynonymGroup(buildSynonymGroupCreateInput(values));
+      if (!result.synonymGroup || result.userErrors.length > 0) {
         if (hasVersionConflict(result.userErrors)) setVersionConflict(true);
         handleApiErrors(result.userErrors);
         return;
@@ -288,7 +294,7 @@ export function SynonymGroupModal() {
       message.success(isEdit ? "Synonym group updated" : "Synonym group created");
       forcePop();
     },
-    [forcePop, handleApiErrors, isEdit, message, setDirty, settings, typedPayload, updateSearchSettings],
+    [createSynonymGroup, detailQuery.synonymGroup, forcePop, handleApiErrors, isEdit, message, setDirty, settings, typedPayload, updateSynonymGroup],
   );
 
   const reloadLatest = useCallback(async () => {
@@ -332,7 +338,7 @@ export function SynonymGroupModal() {
     >
       {loadError ? <Alert role="alert" type="error" showIcon message={loadError.message} /> : null}
       {globalErrors.length ? <Alert role="alert" type="error" showIcon message="Could not save synonym group" description={globalErrors.join(" ")} /> : null}
-      {versionConflict ? <Alert role="alert" type="warning" showIcon message="Search configuration changed after this form was opened." action={<Button onClick={reloadLatest}>Reload latest data</Button>} /> : null}
+      {versionConflict ? <Alert role="alert" type="warning" showIcon message="This synonym group changed after this form was opened." action={<Button onClick={reloadLatest}>Reload latest data</Button>} /> : null}
       {!settings ? <Alert role="alert" type="warning" showIcon message="Search settings must be configured before boosts or synonyms can be created." action={<Button onClick={() => window.location.assign(window.location.pathname.replace(/\/search\/synonyms$/, "/search/settings"))}>Open search settings</Button>} /> : null}
 
       <Paper>

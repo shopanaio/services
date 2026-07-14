@@ -7,7 +7,6 @@ import type {
   ApiSearchSettingsOperationResult,
   ApiSearchSettingsOperationsInput,
 } from "@/graphql/types";
-import { SearchSettingsOperationType } from "@/graphql/types";
 import { SEARCH_SETTINGS_UPDATE_MUTATION } from "../graphql";
 import type {
   SearchSettingsUpdateMutationData,
@@ -30,24 +29,14 @@ export function useUpdateSearchSettings() {
     async (
       expectedVersion: number,
       operations: ApiSearchSettingsOperationsInput,
-      expectedType: SearchSettingsOperationType,
     ): Promise<SearchSettingsUpdateResult> => {
       try {
         const result = await mutate({
           variables: { expectedVersion, operations },
-          refetchQueries: [
-            expectedType === SearchSettingsOperationType.ProductBoostCreate ||
-            expectedType === SearchSettingsOperationType.ProductBoostUpdate ||
-            expectedType === SearchSettingsOperationType.ProductBoostDelete
-              ? "SearchProductBoosts"
-              : "SearchSynonymGroups",
-          ],
-          awaitRefetchQueries: true,
         });
         const payload = result.data?.listingMutation.search.settingsUpdate;
         const operationResult =
-          payload?.operationResults.find((item) => item.type === expectedType) ??
-          null;
+          payload?.operationResults[0] ?? null;
         const userErrors: ApiGenericUserError[] = [
           ...(payload?.userErrors ?? []),
           ...(operationResult?.errors ?? []),

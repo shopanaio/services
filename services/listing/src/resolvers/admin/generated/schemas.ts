@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, SearchConfigurationOperationAction, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostOperationInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupOperationInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
+import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, SearchConfigurationDeleteInput, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostCreateInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostUpdateInput, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupCreateInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupUpdateInput, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -38,8 +38,6 @@ export const ListingSortBySchema = z.nativeEnum(ListingSortBy);
 export const ListingSortDirectionSchema = z.nativeEnum(ListingSortDirection);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
-
-export const SearchConfigurationOperationActionSchema = z.nativeEnum(SearchConfigurationOperationAction);
 
 export const SearchExecutionModeSchema = z.nativeEnum(SearchExecutionMode);
 
@@ -357,6 +355,13 @@ export function ListingVariantOptionFilterSchema(): z.ZodObject<Properties<Listi
   })
 }
 
+export function SearchConfigurationDeleteInputSchema(): z.ZodObject<Properties<SearchConfigurationDeleteInput>> {
+  return z.object({
+    expectedVersion: z.number(),
+    id: z.string()
+  })
+}
+
 export function SearchFieldConfigurationInputSchema(): z.ZodObject<Properties<SearchFieldConfigurationInput>> {
   return z.object({
     field: SearchFieldSchema,
@@ -364,16 +369,14 @@ export function SearchFieldConfigurationInputSchema(): z.ZodObject<Properties<Se
   })
 }
 
-export function SearchProductBoostOperationInputSchema(): z.ZodObject<Properties<SearchProductBoostOperationInput>> {
+export function SearchProductBoostCreateInputSchema(): z.ZodObject<Properties<SearchProductBoostCreateInput>> {
   return z.object({
-    action: SearchConfigurationOperationActionSchema,
-    clientMutationId: z.string().nullish(),
-    enabled: z.boolean().nullish(),
-    id: z.string().nullish(),
-    locale: LocaleCodeSchema.nullish(),
-    name: z.string().nullish(),
-    phrases: z.array(z.string()).nullish(),
-    productIds: z.array(z.string()).nullish()
+    clientMutationId: z.string(),
+    enabled: z.boolean(),
+    locale: LocaleCodeSchema,
+    name: z.string(),
+    phrases: z.array(z.string()),
+    productIds: z.array(z.string())
   })
 }
 
@@ -381,6 +384,18 @@ export function SearchProductBoostOrderByInputSchema(): z.ZodObject<Properties<S
   return z.object({
     direction: SortDirectionSchema,
     field: SearchProductBoostOrderFieldSchema
+  })
+}
+
+export function SearchProductBoostUpdateInputSchema(): z.ZodObject<Properties<SearchProductBoostUpdateInput>> {
+  return z.object({
+    enabled: z.boolean(),
+    expectedVersion: z.number(),
+    id: z.string(),
+    locale: LocaleCodeSchema,
+    name: z.string(),
+    phrases: z.array(z.string()),
+    productIds: z.array(z.string())
   })
 }
 
@@ -410,9 +425,7 @@ export function SearchProductBoostsMetaInputSchema(): z.ZodObject<Properties<Sea
 
 export function SearchSettingsOperationsInputSchema(): z.ZodObject<Properties<SearchSettingsOperationsInput>> {
   return z.object({
-    productBoosts: z.array(z.lazy(() => SearchProductBoostOperationInputSchema())).nullish(),
-    settings: z.lazy(() => SearchSettingsValuesInputSchema().nullish()),
-    synonymGroups: z.array(z.lazy(() => SearchSynonymGroupOperationInputSchema())).nullish()
+    settings: z.lazy(() => SearchSettingsValuesInputSchema())
   })
 }
 
@@ -424,15 +437,13 @@ export function SearchSettingsValuesInputSchema(): z.ZodObject<Properties<Search
   })
 }
 
-export function SearchSynonymGroupOperationInputSchema(): z.ZodObject<Properties<SearchSynonymGroupOperationInput>> {
+export function SearchSynonymGroupCreateInputSchema(): z.ZodObject<Properties<SearchSynonymGroupCreateInput>> {
   return z.object({
-    action: SearchConfigurationOperationActionSchema,
-    clientMutationId: z.string().nullish(),
-    enabled: z.boolean().nullish(),
-    id: z.string().nullish(),
-    locale: LocaleCodeSchema.nullish(),
-    name: z.string().nullish(),
-    values: z.array(z.string()).nullish()
+    clientMutationId: z.string(),
+    enabled: z.boolean(),
+    locale: LocaleCodeSchema,
+    name: z.string(),
+    values: z.array(z.string())
   })
 }
 
@@ -440,6 +451,17 @@ export function SearchSynonymGroupOrderByInputSchema(): z.ZodObject<Properties<S
   return z.object({
     direction: SortDirectionSchema,
     field: SearchSynonymGroupOrderFieldSchema
+  })
+}
+
+export function SearchSynonymGroupUpdateInputSchema(): z.ZodObject<Properties<SearchSynonymGroupUpdateInput>> {
+  return z.object({
+    enabled: z.boolean(),
+    expectedVersion: z.number(),
+    id: z.string(),
+    locale: LocaleCodeSchema,
+    name: z.string(),
+    values: z.array(z.string())
   })
 }
 

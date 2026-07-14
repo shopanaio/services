@@ -4201,8 +4201,105 @@ export type ApiListingFacetValueFilter = {
 
 export type ApiListingMutation = {
   __typename?: 'ListingMutation';
+  /** Create a new facet. */
+  facetCreate: ApiFacetCreatePayload;
+  /** Delete a facet. */
+  facetDelete: ApiFacetDeletePayload;
+  /** Move a facet before or after another facet. */
+  facetMove: ApiFacetMovePayload;
+  /** Rebalance facet lexo ranks. */
+  facetRebalance: ApiFacetRebalancePayload;
+  /** Create a new facet swatch. */
+  facetSwatchCreate: ApiFacetSwatchCreatePayload;
+  /** Delete a facet swatch. */
+  facetSwatchDelete: ApiFacetSwatchDeletePayload;
+  /** Update an existing facet swatch. */
+  facetSwatchUpdate: ApiFacetSwatchUpdatePayload;
+  /** Update an existing facet. */
+  facetUpdate: ApiFacetUpdatePayload;
+  /** Create a new facet value. */
+  facetValueCreate: ApiFacetValueCreatePayload;
+  /** Delete a facet value. */
+  facetValueDelete: ApiFacetValueDeletePayload;
+  /**
+   * Attach source facet values to an existing or newly-created group value.
+   * This is the only mutation that merges source values into a group value.
+   */
+  facetValueMerge: ApiFacetValueMergePayload;
+  /**
+   * Detach source facet values from their group value and make them root values.
+   * This is the only mutation that unmerges source values.
+   */
+  facetValueUnmerge: ApiFacetValueUnmergePayload;
+  /** Update an existing facet value. */
+  facetValueUpdate: ApiFacetValueUpdatePayload;
   /** Search configuration mutation namespace. */
   search: ApiListingSearchMutation;
+};
+
+
+export type ApiListingMutationFacetCreateArgs = {
+  input: ApiFacetCreateInput;
+};
+
+
+export type ApiListingMutationFacetDeleteArgs = {
+  input: ApiFacetDeleteInput;
+};
+
+
+export type ApiListingMutationFacetMoveArgs = {
+  input: ApiFacetMoveInput;
+};
+
+
+export type ApiListingMutationFacetRebalanceArgs = {
+  input: ApiFacetRebalanceInput;
+};
+
+
+export type ApiListingMutationFacetSwatchCreateArgs = {
+  input: ApiFacetSwatchCreateInput;
+};
+
+
+export type ApiListingMutationFacetSwatchDeleteArgs = {
+  input: ApiFacetSwatchDeleteInput;
+};
+
+
+export type ApiListingMutationFacetSwatchUpdateArgs = {
+  input: ApiFacetSwatchUpdateInput;
+};
+
+
+export type ApiListingMutationFacetUpdateArgs = {
+  input: ApiFacetUpdateInput;
+};
+
+
+export type ApiListingMutationFacetValueCreateArgs = {
+  input: ApiFacetValueCreateInput;
+};
+
+
+export type ApiListingMutationFacetValueDeleteArgs = {
+  input: ApiFacetValueDeleteInput;
+};
+
+
+export type ApiListingMutationFacetValueMergeArgs = {
+  input: ApiFacetValueMergeInput;
+};
+
+
+export type ApiListingMutationFacetValueUnmergeArgs = {
+  input: ApiFacetValueUnmergeInput;
+};
+
+
+export type ApiListingMutationFacetValueUpdateArgs = {
+  input: ApiFacetValueUpdateInput;
 };
 
 export type ApiListingOrderByInput = {
@@ -4238,8 +4335,101 @@ export type ApiListingProductFilter = {
 
 export type ApiListingQuery = {
   __typename?: 'ListingQuery';
+  /** Get a facet by ID. */
+  facet?: Maybe<ApiFacet>;
+  /** Get available facet source candidates for create flow. */
+  facetSourceCandidates: ApiFacetSourceCandidateConnection;
+  /** Get a facet swatch by ID. */
+  facetSwatch?: Maybe<ApiFacetSwatch>;
+  /** Get all facet swatches. */
+  facetSwatches: Array<ApiFacetSwatch>;
+  /** Get a facet value by ID. */
+  facetValue?: Maybe<ApiFacetValue>;
+  /** Get available facet source value candidates for create and edit flows. */
+  facetValueCandidates: ApiFacetValueCandidateConnection;
+  /** Get all facet values for a specific facet. */
+  facetValues: Array<ApiFacetValue>;
+  /** Get all facets. */
+  facets: Array<ApiFacet>;
+  /**
+   * Get ordered listing structure for Admin.
+   *
+   * Listing service returns listing-owned order, pagination, counts, aggregates,
+   * and canonical entity references only. Entity details are resolved by owning
+   * subgraphs through federation.
+   */
+  listing: ApiListingConnection;
+  /** Get a node by its global ID. */
+  node?: Maybe<ApiNode>;
+  /** Get multiple nodes by their global IDs. */
+  nodes: Array<Maybe<ApiNode>>;
   /** Search configuration and diagnostics namespace. */
   search: ApiListingSearchQuery;
+};
+
+
+export type ApiListingQueryFacetArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryFacetSourceCandidatesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiFacetSourceCandidateOrderByInput>>;
+  where?: InputMaybe<ApiFacetSourceCandidateWhereInput>;
+};
+
+
+export type ApiListingQueryFacetSwatchArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryFacetValueArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryFacetValueCandidatesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta: ApiFacetValueCandidatesMetaInput;
+  orderBy?: InputMaybe<Array<ApiFacetValueCandidateOrderByInput>>;
+  where?: InputMaybe<ApiFacetValueCandidateWhereInput>;
+};
+
+
+export type ApiListingQueryFacetValuesArgs = {
+  facetId: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryListingArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  currency?: InputMaybe<CurrencyCode>;
+  facets?: InputMaybe<Array<ApiListingProductFilter>>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  locale?: InputMaybe<LocaleCode>;
+  orderBy?: InputMaybe<ApiListingOrderByInput>;
+  query?: InputMaybe<Scalars['String']['input']>;
+  scope?: InputMaybe<ApiListingScopeInput>;
+};
+
+
+export type ApiListingQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
 };
 
 export type ApiListingScopeInput = {
@@ -4255,14 +4445,50 @@ export type ListingScopeKind =
 
 export type ApiListingSearchMutation = {
   __typename?: 'ListingSearchMutation';
-  /** Unified update of the complete search configuration. */
+  productBoostCreate: ApiSearchProductBoostPayload;
+  productBoostDelete: ApiSearchProductBoostPayload;
+  productBoostUpdate: ApiSearchProductBoostPayload;
+  /** Update the store-level search settings. */
   settingsUpdate: ApiSearchSettingsUpdatePayload;
+  synonymGroupCreate: ApiSearchSynonymGroupPayload;
+  synonymGroupDelete: ApiSearchSynonymGroupPayload;
+  synonymGroupUpdate: ApiSearchSynonymGroupPayload;
+};
+
+
+export type ApiListingSearchMutationProductBoostCreateArgs = {
+  input: ApiSearchProductBoostCreateInput;
+};
+
+
+export type ApiListingSearchMutationProductBoostDeleteArgs = {
+  input: ApiSearchConfigurationDeleteInput;
+};
+
+
+export type ApiListingSearchMutationProductBoostUpdateArgs = {
+  input: ApiSearchProductBoostUpdateInput;
 };
 
 
 export type ApiListingSearchMutationSettingsUpdateArgs = {
   expectedVersion: Scalars['Int']['input'];
   operations: ApiSearchSettingsOperationsInput;
+};
+
+
+export type ApiListingSearchMutationSynonymGroupCreateArgs = {
+  input: ApiSearchSynonymGroupCreateInput;
+};
+
+
+export type ApiListingSearchMutationSynonymGroupDeleteArgs = {
+  input: ApiSearchConfigurationDeleteInput;
+};
+
+
+export type ApiListingSearchMutationSynonymGroupUpdateArgs = {
+  input: ApiSearchSynonymGroupUpdateInput;
 };
 
 export type ApiListingSearchQuery = {
@@ -4290,9 +4516,13 @@ export type ApiListingSearchQueryProductBoostArgs = {
 
 
 export type ApiListingSearchQueryProductBoostsArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiSearchProductBoostsMetaInput>;
+  orderBy?: InputMaybe<Array<ApiSearchProductBoostOrderByInput>>;
+  where?: InputMaybe<ApiSearchProductBoostWhereInput>;
 };
 
 
@@ -4302,9 +4532,12 @@ export type ApiListingSearchQuerySynonymGroupArgs = {
 
 
 export type ApiListingSearchQuerySynonymGroupsArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiSearchSynonymGroupOrderByInput>>;
+  where?: InputMaybe<ApiSearchSynonymGroupWhereInput>;
 };
 
 export type ListingSortBy =
@@ -6550,10 +6783,10 @@ export type ApiS3ObjectData = {
   storageClass: Scalars['String']['output'];
 };
 
-export type SearchConfigurationOperationAction =
-  | 'CREATE'
-  | 'DELETE'
-  | 'UPDATE';
+export type ApiSearchConfigurationDeleteInput = {
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
 
 export type SearchExecutionMode =
   | 'FUZZY'
@@ -6681,32 +6914,119 @@ export type ApiSearchProductBoost = {
   locale: LocaleCode;
   name: Scalars['String']['output'];
   phrases: Array<ApiSearchProductBoostPhrase>;
-  productIds: Array<Scalars['ID']['output']>;
+  phrasesCount: Scalars['Int']['output'];
+  products: Array<ApiProduct>;
+  productsCount: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
   version: Scalars['Int']['output'];
 };
 
 export type ApiSearchProductBoostConnection = {
   __typename?: 'SearchProductBoostConnection';
-  nodes: Array<ApiSearchProductBoost>;
+  edges: Array<ApiSearchProductBoostEdge>;
+  pageInfo: ApiPageInfo;
   totalCount: Scalars['Int']['output'];
 };
 
-export type ApiSearchProductBoostOperationInput = {
-  action: SearchConfigurationOperationAction;
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  id?: InputMaybe<Scalars['ID']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  phrases?: InputMaybe<Array<Scalars['String']['input']>>;
-  productIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+export type ApiSearchProductBoostCreateInput = {
+  clientMutationId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  phrases: Array<Scalars['String']['input']>;
+  productIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiSearchProductBoostEdge = {
+  __typename?: 'SearchProductBoostEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiSearchProductBoost;
+};
+
+/** Ordering configuration for SearchProductBoost */
+export type ApiSearchProductBoostOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: SearchProductBoostOrderField;
+};
+
+/** Fields available for sorting SearchProductBoost */
+export type SearchProductBoostOrderField =
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by enabled */
+  | 'enabled'
+  /** Sort by id */
+  | 'id'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by name */
+  | 'name'
+  /** Sort by phrasesCount */
+  | 'phrasesCount'
+  /** Sort by productsCount */
+  | 'productsCount'
+  /** Sort by updatedAt */
+  | 'updatedAt'
+  /** Sort by version */
+  | 'version';
+
+export type ApiSearchProductBoostPayload = {
+  __typename?: 'SearchProductBoostPayload';
+  productBoost?: Maybe<ApiSearchProductBoost>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiSearchProductBoostPhrase = {
   __typename?: 'SearchProductBoostPhrase';
   phrase: Scalars['String']['output'];
   position: Scalars['Int']['output'];
+};
+
+export type ApiSearchProductBoostUpdateInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  phrases: Array<Scalars['String']['input']>;
+  productIds: Array<Scalars['ID']['input']>;
+};
+
+/** Filter conditions for SearchProductBoost */
+export type ApiSearchProductBoostWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiSearchProductBoostWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiSearchProductBoostWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiSearchProductBoostWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by enabled */
+  enabled?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by phrases */
+  phrases?: InputMaybe<ApiStringFilter>;
+  /** Filter by phrasesCount */
+  phrasesCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by productsCount */
+  productsCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by version */
+  version?: InputMaybe<ApiIntFilter>;
+};
+
+export type ApiSearchProductBoostsMetaInput = {
+  /** Match boosts containing any selected Product global ID. */
+  productIds: Array<Scalars['ID']['input']>;
 };
 
 export type ApiSearchSettings = {
@@ -6728,21 +7048,11 @@ export type ApiSearchSettingsOperationResult = {
 };
 
 export type SearchSettingsOperationType =
-  | 'PRODUCT_BOOST_CREATE'
-  | 'PRODUCT_BOOST_DELETE'
-  | 'PRODUCT_BOOST_UPDATE'
-  | 'SETTINGS_UPDATE'
-  | 'SYNONYM_GROUP_CREATE'
-  | 'SYNONYM_GROUP_DELETE'
-  | 'SYNONYM_GROUP_UPDATE';
+  | 'SETTINGS_UPDATE';
 
 export type ApiSearchSettingsOperationsInput = {
-  /** Product boost operations. */
-  productBoosts?: InputMaybe<Array<ApiSearchProductBoostOperationInput>>;
   /** Main search settings replacement. */
-  settings?: InputMaybe<ApiSearchSettingsValuesInput>;
-  /** Synonym group operations. */
-  synonymGroups?: InputMaybe<Array<ApiSearchSynonymGroupOperationInput>>;
+  settings: ApiSearchSettingsValuesInput;
 };
 
 export type ApiSearchSettingsUpdatePayload = {
@@ -6767,23 +7077,99 @@ export type ApiSearchSynonymGroup = {
   name: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
   values: Array<ApiSearchSynonymValue>;
+  valuesCount: Scalars['Int']['output'];
   version: Scalars['Int']['output'];
 };
 
 export type ApiSearchSynonymGroupConnection = {
   __typename?: 'SearchSynonymGroupConnection';
-  nodes: Array<ApiSearchSynonymGroup>;
+  edges: Array<ApiSearchSynonymGroupEdge>;
+  pageInfo: ApiPageInfo;
   totalCount: Scalars['Int']['output'];
 };
 
-export type ApiSearchSynonymGroupOperationInput = {
-  action: SearchConfigurationOperationAction;
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  id?: InputMaybe<Scalars['ID']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  values?: InputMaybe<Array<Scalars['String']['input']>>;
+export type ApiSearchSynonymGroupCreateInput = {
+  clientMutationId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  values: Array<Scalars['String']['input']>;
+};
+
+export type ApiSearchSynonymGroupEdge = {
+  __typename?: 'SearchSynonymGroupEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiSearchSynonymGroup;
+};
+
+/** Ordering configuration for SearchSynonymGroup */
+export type ApiSearchSynonymGroupOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: SearchSynonymGroupOrderField;
+};
+
+/** Fields available for sorting SearchSynonymGroup */
+export type SearchSynonymGroupOrderField =
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by enabled */
+  | 'enabled'
+  /** Sort by id */
+  | 'id'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by name */
+  | 'name'
+  /** Sort by updatedAt */
+  | 'updatedAt'
+  /** Sort by valuesCount */
+  | 'valuesCount'
+  /** Sort by version */
+  | 'version';
+
+export type ApiSearchSynonymGroupPayload = {
+  __typename?: 'SearchSynonymGroupPayload';
+  synonymGroup?: Maybe<ApiSearchSynonymGroup>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiSearchSynonymGroupUpdateInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  values: Array<Scalars['String']['input']>;
+};
+
+/** Filter conditions for SearchSynonymGroup */
+export type ApiSearchSynonymGroupWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiSearchSynonymGroupWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiSearchSynonymGroupWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiSearchSynonymGroupWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by enabled */
+  enabled?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by terms */
+  terms?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by valuesCount */
+  valuesCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by version */
+  version?: InputMaybe<ApiIntFilter>;
 };
 
 export type ApiSearchSynonymValue = {

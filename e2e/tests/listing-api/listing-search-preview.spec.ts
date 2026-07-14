@@ -1,4 +1,4 @@
-import type { ApiSearchExplain, ApiSearchSettingsOperationResult } from '@codegen/admin-gql';
+import type { ApiSearchExplain } from '@codegen/admin-gql';
 import { test } from '@fixtures/base.extend';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
@@ -43,27 +43,6 @@ test.describe('Listing search preview API', () => {
             typoToleranceEnabled: true,
             outOfStockPolicy: 'PLACE_LAST',
           },
-          synonymGroups: [
-            {
-              action: 'CREATE',
-              clientMutationId: 'ruby-runners-synonyms',
-              locale: 'en',
-              name: `Ruby runners ${unique}`,
-              enabled: true,
-              values: ['ruby runners', 'scarlet trainers'],
-            },
-          ],
-          productBoosts: [
-            {
-              action: 'CREATE',
-              clientMutationId: 'ruby-runners-boost',
-              locale: 'en',
-              name: `Ruby runners featured product ${unique}`,
-              enabled: true,
-              phrases: ['ruby runners'],
-              productIds: [boostedProduct.id],
-            },
-          ],
         },
       },
     });
@@ -76,11 +55,43 @@ test.describe('Listing search preview API', () => {
       typoToleranceEnabled: true,
       outOfStockPolicy: 'PLACE_LAST',
     });
-    expect(payload.operationResults).toHaveLength(3);
+    expect(payload.operationResults).toHaveLength(1);
     expect(payload.operationResults.every((result) => result.applied && result.errors.length === 0)).toBe(true);
 
-    const synonymGroupId = operationEntityId(payload.operationResults, 'ruby-runners-synonyms');
-    const productBoostId = operationEntityId(payload.operationResults, 'ruby-runners-boost');
+    const { data: synonymData } = await api.admin.mutation(
+      'listing-api/ListingSearchSynonymGroupCreate',
+      {
+        variables: {
+          input: {
+            clientMutationId: 'ruby-runners-synonyms',
+            locale: 'en',
+            name: `Ruby runners ${unique}`,
+            enabled: true,
+            values: ['ruby runners', 'scarlet trainers'],
+          },
+        },
+      },
+    );
+    expect(synonymData.listingMutation.search.synonymGroupCreate.userErrors).toHaveLength(0);
+    const synonymGroupId = synonymData.listingMutation.search.synonymGroupCreate.synonymGroup.id;
+
+    const { data: boostData } = await api.admin.mutation(
+      'listing-api/ListingSearchProductBoostCreate',
+      {
+        variables: {
+          input: {
+            clientMutationId: 'ruby-runners-boost',
+            locale: 'en',
+            name: `Ruby runners featured product ${unique}`,
+            enabled: true,
+            phrases: ['ruby runners'],
+            productIds: [boostedProduct.id],
+          },
+        },
+      },
+    );
+    expect(boostData.listingMutation.search.productBoostCreate.userErrors).toHaveLength(0);
+    const productBoostId = boostData.listingMutation.search.productBoostCreate.productBoost.id;
 
     const primary = await pollSearchPreview(api, 'ruby runners', {
       mode: 'PRIMARY',
@@ -209,16 +220,6 @@ async function createSearchProduct(api: Api, unique: string, title: string) {
       },
     ],
   });
-}
-
-function operationEntityId(results: ApiSearchSettingsOperationResult[], clientMutationId: string): string {
-  const result = results.find((operation) => operation.clientMutationId === clientMutationId);
-  expect(result).toMatchObject({ applied: true, errors: [] });
-  expect(result?.entityId).toBeTruthy();
-  if (!result?.entityId) {
-    throw new Error(`Search configuration operation did not return an entity ID: ${clientMutationId}`);
-  }
-  return result.entityId;
 }
 
 async function pollSearchPreview(

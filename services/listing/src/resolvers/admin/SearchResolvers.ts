@@ -20,21 +20,31 @@ import type {
 } from "../../search/execution/SearchExplain.js";
 import { SearchFieldRegistry } from "../../search/planner/SearchFieldRegistry.js";
 import type {
-  SearchSettingsOperationResult as WorkflowOperationResult,
-  SearchSettingsUpdateOperation,
+  SearchProductBoostCreateWorkflowInput,
+  SearchProductBoostDeleteWorkflowInput,
+  SearchProductBoostMutationWorkflowResult,
+  SearchProductBoostUpdateWorkflowInput,
+  SearchSynonymGroupCreateWorkflowInput,
+  SearchSynonymGroupDeleteWorkflowInput,
+  SearchSynonymGroupMutationWorkflowResult,
+  SearchSynonymGroupUpdateWorkflowInput,
+} from "../../workflows/dto/SearchResourceMutationWorkflowDto.js";
+import type {
   SearchSettingsUpdateWorkflowInput,
   SearchSettingsUpdateWorkflowResult,
 } from "../../workflows/dto/SearchSettingsUpdateWorkflowDto.js";
 import {
-  SearchConfigurationOperationAction,
   SearchField,
   SearchOutOfStockPolicy,
   SearchSettingsOperationType,
   type SearchSettings as ApiSearchSettings,
   type ListingSearchMutationSettingsUpdateArgs,
-  type SearchProductBoostOperationInput,
-  type SearchSettingsOperationsInput,
-  type SearchSynonymGroupOperationInput,
+  type ListingSearchMutationProductBoostCreateArgs,
+  type ListingSearchMutationProductBoostDeleteArgs,
+  type ListingSearchMutationProductBoostUpdateArgs,
+  type ListingSearchMutationSynonymGroupCreateArgs,
+  type ListingSearchMutationSynonymGroupDeleteArgs,
+  type ListingSearchMutationSynonymGroupUpdateArgs,
 } from "./generated/types.js";
 import { ListingType } from "./ListingType.js";
 import {
@@ -179,33 +189,38 @@ function mapSearchField(field: SearchTextField): SearchField {
 
 export class ListingSearchMutationResolver extends ListingType<Record<string, never>> {
   async settingsUpdate(args: ListingSearchMutationSettingsUpdateArgs) {
-    const mapped = mapSearchSettingsOperations(
-      args.expectedVersion,
-      args.operations,
-    );
-    if (mapped.errors.length > 0) {
+    if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 0) {
+      const userErrors = [{
+        message: "Expected version must be a non-negative integer",
+        field: ["expectedVersion"],
+        code: "INVALID_EXPECTED_VERSION",
+      }];
       return {
         settings: null,
-        operationResults: mapped.entries.map(mapPreflightEntry),
-        userErrors: mapped.errors,
+        operationResults: [],
+        userErrors,
       };
     }
 
+    const settings = args.operations.settings;
     const workflowInput: SearchSettingsUpdateWorkflowInput = {
       expectedVersion: args.expectedVersion,
-      operations: mapped.operations,
-      context: {
-        organizationId: this.$ctx.store.organizationId,
-        storeId: this.$ctx.store.id,
-        userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-        locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
-        requestId: this.$ctx.requestId,
+      settings: {
+        fields: settings.fields.map((configuration) => ({
+          field: toInternalSearchField(configuration.field),
+          weight: configuration.weight,
+        })),
+        typoToleranceEnabled: settings.typoToleranceEnabled,
+        outOfStockPolicy: toInternalOutOfStockPolicy(
+          settings.outOfStockPolicy,
+        ),
       },
+      context: this.searchWorkflowContext(),
     };
     const payloadHash = hashContent({
       v: 1,
       expectedVersion: args.expectedVersion,
-      operations: mapped.operations,
+      settings: workflowInput.settings,
     });
     const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
       SearchSettingsUpdateWorkflowResult,
@@ -233,10 +248,349 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
             version: result.settings.version,
           }
         : null,
-      operationResults: result.operationResults.map(mapWorkflowOperationResult),
+      operationResults: result.operationResults.map((operationResult) => ({
+        ...operationResult,
+        type: SearchSettingsOperationType.SettingsUpdate,
+      })),
       userErrors: result.userErrors,
     };
   }
+
+  async synonymGroupCreate(
+    args: ListingSearchMutationSynonymGroupCreateArgs,
+  ) {
+    if (!args.input.clientMutationId.trim()) {
+      return resourceMutationError("Client mutation ID is required", [
+        "input",
+        "clientMutationId",
+      ], "REQUIRED", "synonymGroup");
+    }
+
+    const workflowInput: SearchSynonymGroupCreateWorkflowInput = {
+      params: {
+        clientMutationId: args.input.clientMutationId,
+        locale: args.input.locale,
+        name: args.input.name,
+        enabled: args.input.enabled,
+        values: args.input.values,
+      },
+      context: this.searchWorkflowContext(),
+    };
+    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
+      SearchSynonymGroupMutationWorkflowResult,
+      SearchSynonymGroupCreateWorkflowInput
+    >("listing.searchSynonymGroupCreate", workflowInput, {
+      source: "workflow",
+      organizationId: this.$ctx.store.organizationId,
+      workflowId:
+        `searchSynonymGroupCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+      stepId: "start",
+      callId: hashContent({ v: 1, params: workflowInput.params }),
+    });
+    return {
+      synonymGroup: result.synonymGroup
+        ? mapSearchSynonymGroupAggregate(result.synonymGroup)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async synonymGroupUpdate(
+    args: ListingSearchMutationSynonymGroupUpdateArgs,
+  ) {
+    const groupId = safeDecode(
+      args.input.id,
+      GlobalIdEntity.SearchSynonymGroup,
+    );
+    if (!groupId) {
+      return resourceMutationError(
+        "Invalid search synonym group global ID",
+        ["input", "id"],
+        "INVALID_ID",
+        "synonymGroup",
+      );
+    }
+    if (!Number.isInteger(args.input.expectedVersion) || args.input.expectedVersion <= 0) {
+      return resourceMutationError(
+        "Expected version must be a positive integer",
+        ["input", "expectedVersion"],
+        "INVALID_EXPECTED_VERSION",
+        "synonymGroup",
+      );
+    }
+
+    const workflowInput: SearchSynonymGroupUpdateWorkflowInput = {
+      params: {
+        groupId,
+        expectedVersion: args.input.expectedVersion,
+        locale: args.input.locale,
+        name: args.input.name,
+        enabled: args.input.enabled,
+        values: args.input.values,
+      },
+      context: this.searchWorkflowContext(),
+    };
+    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
+      SearchSynonymGroupMutationWorkflowResult,
+      SearchSynonymGroupUpdateWorkflowInput
+    >("listing.searchSynonymGroupUpdate", workflowInput, {
+      source: "workflow",
+      organizationId: this.$ctx.store.organizationId,
+      workflowId:
+        `searchSynonymGroupUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+      stepId: "start",
+      callId: hashContent({ v: 1, params: workflowInput.params }),
+    });
+    return {
+      synonymGroup: result.synonymGroup
+        ? mapSearchSynonymGroupAggregate(result.synonymGroup)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async productBoostCreate(
+    args: ListingSearchMutationProductBoostCreateArgs,
+  ) {
+    if (!args.input.clientMutationId.trim()) {
+      return resourceMutationError("Client mutation ID is required", [
+        "input",
+        "clientMutationId",
+      ], "REQUIRED", "productBoost");
+    }
+    const productIds = decodeProductIds(args.input.productIds);
+    if ("error" in productIds) {
+      return resourceMutationError(
+        productIds.error.message,
+        productIds.error.field,
+        productIds.error.code,
+        "productBoost",
+      );
+    }
+
+    const workflowInput: SearchProductBoostCreateWorkflowInput = {
+      params: {
+        clientMutationId: args.input.clientMutationId,
+        locale: args.input.locale,
+        name: args.input.name,
+        enabled: args.input.enabled,
+        phrases: args.input.phrases,
+        productIds: productIds.value,
+      },
+      context: this.searchWorkflowContext(),
+    };
+    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
+      SearchProductBoostMutationWorkflowResult,
+      SearchProductBoostCreateWorkflowInput
+    >("listing.searchProductBoostCreate", workflowInput, {
+      source: "workflow",
+      organizationId: this.$ctx.store.organizationId,
+      workflowId:
+        `searchProductBoostCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+      stepId: "start",
+      callId: hashContent({ v: 1, params: workflowInput.params }),
+    });
+    return {
+      productBoost: result.productBoost
+        ? mapSearchProductBoostAggregate(result.productBoost)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async productBoostUpdate(
+    args: ListingSearchMutationProductBoostUpdateArgs,
+  ) {
+    const boostId = safeDecode(args.input.id, GlobalIdEntity.SearchProductBoost);
+    if (!boostId) {
+      return resourceMutationError(
+        "Invalid search product boost global ID",
+        ["input", "id"],
+        "INVALID_ID",
+        "productBoost",
+      );
+    }
+    if (!Number.isInteger(args.input.expectedVersion) || args.input.expectedVersion <= 0) {
+      return resourceMutationError(
+        "Expected version must be a positive integer",
+        ["input", "expectedVersion"],
+        "INVALID_EXPECTED_VERSION",
+        "productBoost",
+      );
+    }
+    const productIds = decodeProductIds(args.input.productIds);
+    if ("error" in productIds) {
+      return resourceMutationError(
+        productIds.error.message,
+        productIds.error.field,
+        productIds.error.code,
+        "productBoost",
+      );
+    }
+
+    const workflowInput: SearchProductBoostUpdateWorkflowInput = {
+      params: {
+        boostId,
+        expectedVersion: args.input.expectedVersion,
+        locale: args.input.locale,
+        name: args.input.name,
+        enabled: args.input.enabled,
+        phrases: args.input.phrases,
+        productIds: productIds.value,
+      },
+      context: this.searchWorkflowContext(),
+    };
+    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
+      SearchProductBoostMutationWorkflowResult,
+      SearchProductBoostUpdateWorkflowInput
+    >("listing.searchProductBoostUpdate", workflowInput, {
+      source: "workflow",
+      organizationId: this.$ctx.store.organizationId,
+      workflowId:
+        `searchProductBoostUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+      stepId: "start",
+      callId: hashContent({ v: 1, params: workflowInput.params }),
+    });
+    return {
+      productBoost: result.productBoost
+        ? mapSearchProductBoostAggregate(result.productBoost)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async synonymGroupDelete(
+    args: ListingSearchMutationSynonymGroupDeleteArgs,
+  ) {
+    const groupId = safeDecode(
+      args.input.id,
+      GlobalIdEntity.SearchSynonymGroup,
+    );
+    if (!groupId) {
+      return resourceMutationError(
+        "Invalid search synonym group global ID",
+        ["input", "id"],
+        "INVALID_ID",
+        "synonymGroup",
+      );
+    }
+    if (!Number.isInteger(args.input.expectedVersion) || args.input.expectedVersion <= 0) {
+      return resourceMutationError(
+        "Expected version must be a positive integer",
+        ["input", "expectedVersion"],
+        "INVALID_EXPECTED_VERSION",
+        "synonymGroup",
+      );
+    }
+
+    const workflowInput: SearchSynonymGroupDeleteWorkflowInput = {
+      params: { groupId, expectedVersion: args.input.expectedVersion },
+      context: this.searchWorkflowContext(),
+    };
+    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
+      SearchSynonymGroupMutationWorkflowResult,
+      SearchSynonymGroupDeleteWorkflowInput
+    >("listing.searchSynonymGroupDelete", workflowInput, {
+      source: "workflow",
+      organizationId: this.$ctx.store.organizationId,
+      workflowId:
+        `searchSynonymGroupDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+      stepId: "start",
+      callId: hashContent({ v: 1, params: workflowInput.params }),
+    });
+    return {
+      synonymGroup: result.synonymGroup
+        ? mapSearchSynonymGroupAggregate(result.synonymGroup)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async productBoostDelete(
+    args: ListingSearchMutationProductBoostDeleteArgs,
+  ) {
+    const boostId = safeDecode(args.input.id, GlobalIdEntity.SearchProductBoost);
+    if (!boostId) {
+      return resourceMutationError(
+        "Invalid search product boost global ID",
+        ["input", "id"],
+        "INVALID_ID",
+        "productBoost",
+      );
+    }
+    if (!Number.isInteger(args.input.expectedVersion) || args.input.expectedVersion <= 0) {
+      return resourceMutationError(
+        "Expected version must be a positive integer",
+        ["input", "expectedVersion"],
+        "INVALID_EXPECTED_VERSION",
+        "productBoost",
+      );
+    }
+
+    const workflowInput: SearchProductBoostDeleteWorkflowInput = {
+      params: { boostId, expectedVersion: args.input.expectedVersion },
+      context: this.searchWorkflowContext(),
+    };
+    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
+      SearchProductBoostMutationWorkflowResult,
+      SearchProductBoostDeleteWorkflowInput
+    >("listing.searchProductBoostDelete", workflowInput, {
+      source: "workflow",
+      organizationId: this.$ctx.store.organizationId,
+      workflowId:
+        `searchProductBoostDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+      stepId: "start",
+      callId: hashContent({ v: 1, params: workflowInput.params }),
+    });
+    return {
+      productBoost: result.productBoost
+        ? mapSearchProductBoostAggregate(result.productBoost)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  private searchWorkflowContext() {
+    return {
+      organizationId: this.$ctx.store.organizationId,
+      storeId: this.$ctx.store.id,
+      userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+      locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
+      requestId: this.$ctx.requestId,
+    };
+  }
+}
+
+function decodeProductIds(productIds: readonly string[]):
+  | { value: string[] }
+  | { error: Required<Pick<UserError, "message" | "field" | "code">> } {
+  const value: string[] = [];
+  for (const [index, productId] of productIds.entries()) {
+    const decoded = safeDecode(productId, GlobalIdEntity.Product);
+    if (!decoded) {
+      return {
+        error: {
+          message: "Invalid Product global ID",
+          field: ["input", "productIds", String(index)],
+          code: "INVALID_ID",
+        },
+      };
+    }
+    value.push(decoded);
+  }
+  return { value };
+}
+
+function resourceMutationError(
+  message: string,
+  field: string[],
+  code: string,
+  resource: "synonymGroup" | "productBoost",
+) {
+  return {
+    [resource]: null,
+    userErrors: [{ message, field, code }],
+  };
 }
 
 function mapSearchSettings(settings: SearchSettingsModel): ApiSearchSettings {
@@ -293,586 +647,6 @@ function safeDecode(id: string, type: GlobalIdType): string | null {
     return decodeGlobalIdByType(id, type);
   } catch {
     return null;
-  }
-}
-
-interface SearchSettingsMappedEntry {
-  type: SearchSettingsUpdateOperation["type"];
-  operation?: SearchSettingsUpdateOperation;
-  errors: UserError[];
-  clientMutationId?: string;
-  entityId?: string;
-  entityType?: GlobalIdType;
-}
-
-interface SearchSettingsMappingResult {
-  operations: SearchSettingsUpdateOperation[];
-  entries: SearchSettingsMappedEntry[];
-  errors: UserError[];
-}
-
-function mapSearchSettingsOperations(
-  expectedVersion: number,
-  input: SearchSettingsOperationsInput,
-): SearchSettingsMappingResult {
-  const entries: SearchSettingsMappedEntry[] = [];
-  const requestErrors: UserError[] = [];
-
-  if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
-    requestErrors.push({
-      message: "Expected version must be a non-negative integer",
-      field: ["expectedVersion"],
-      code: "INVALID_EXPECTED_VERSION",
-    });
-  }
-
-  if (input.settings) {
-    entries.push({
-      type: "settingsUpdate",
-      operation: {
-        type: "settingsUpdate",
-        params: {
-          fields: input.settings.fields.map((configuration) => ({
-            field: toInternalSearchField(configuration.field),
-            weight: configuration.weight,
-          })),
-          typoToleranceEnabled: input.settings.typoToleranceEnabled,
-          outOfStockPolicy: toInternalOutOfStockPolicy(
-            input.settings.outOfStockPolicy,
-          ),
-        },
-        meta: { fieldPrefix: ["operations", "settings"] },
-      },
-      errors: [],
-    });
-  }
-
-  for (const [index, operation] of (input.synonymGroups ?? []).entries()) {
-    entries.push(mapSynonymOperation(operation, index));
-  }
-  for (const [index, operation] of (input.productBoosts ?? []).entries()) {
-    entries.push(mapProductBoostOperation(operation, index));
-  }
-
-  if (entries.length === 0) {
-    requestErrors.push({
-      message: "At least one search configuration operation is required",
-      field: ["operations"],
-      code: "EMPTY_OPERATIONS",
-    });
-  }
-  if (expectedVersion === 0 && !input.settings) {
-    requestErrors.push({
-      message: "Settings are required when initializing search configuration",
-      field: ["operations", "settings"],
-      code: "REQUIRED",
-    });
-  }
-
-  addMappingUniquenessErrors(entries);
-  const errors = [
-    ...requestErrors,
-    ...entries.flatMap((entry) => entry.errors),
-  ];
-  return {
-    operations: entries.flatMap((entry) =>
-      entry.operation ? [entry.operation] : []
-    ),
-    entries,
-    errors,
-  };
-}
-
-function mapSynonymOperation(
-  input: SearchSynonymGroupOperationInput,
-  index: number,
-): SearchSettingsMappedEntry {
-  const fieldPrefix = ["operations", "synonymGroups", String(index)];
-  const errors: UserError[] = [];
-
-  switch (input.action) {
-    case SearchConfigurationOperationAction.Create: {
-      forbidField(input.id, "id", fieldPrefix, errors);
-      const clientMutationId = requiredClientMutationId(
-        input.clientMutationId,
-        fieldPrefix,
-        errors,
-      );
-      const locale = requiredField(input.locale, "locale", fieldPrefix, errors);
-      const name = requiredField(input.name, "name", fieldPrefix, errors);
-      const enabled = requiredField(
-        input.enabled,
-        "enabled",
-        fieldPrefix,
-        errors,
-      );
-      const values = requiredField(input.values, "values", fieldPrefix, errors);
-      const operation =
-        errors.length === 0 &&
-          clientMutationId &&
-          locale !== undefined &&
-          name !== undefined &&
-          enabled !== undefined &&
-          values !== undefined
-          ? ({
-              type: "synonymGroupCreate",
-              params: { clientMutationId, locale, name, enabled, values },
-              meta: { fieldPrefix },
-            } satisfies SearchSettingsUpdateOperation)
-          : undefined;
-      return {
-        type: "synonymGroupCreate",
-        operation,
-        errors,
-        clientMutationId,
-      };
-    }
-
-    case SearchConfigurationOperationAction.Update: {
-      forbidField(
-        input.clientMutationId,
-        "clientMutationId",
-        fieldPrefix,
-        errors,
-      );
-      const groupId = decodeRequiredId(
-        input.id,
-        GlobalIdEntity.SearchSynonymGroup,
-        fieldPrefix,
-        errors,
-      );
-      const locale = requiredField(input.locale, "locale", fieldPrefix, errors);
-      const name = requiredField(input.name, "name", fieldPrefix, errors);
-      const enabled = requiredField(
-        input.enabled,
-        "enabled",
-        fieldPrefix,
-        errors,
-      );
-      const values = requiredField(input.values, "values", fieldPrefix, errors);
-      const operation =
-        errors.length === 0 &&
-          groupId &&
-          locale !== undefined &&
-          name !== undefined &&
-          enabled !== undefined &&
-          values !== undefined
-          ? ({
-              type: "synonymGroupUpdate",
-              params: { groupId, locale, name, enabled, values },
-              meta: { fieldPrefix },
-            } satisfies SearchSettingsUpdateOperation)
-          : undefined;
-      return {
-        type: "synonymGroupUpdate",
-        operation,
-        errors,
-        entityId: groupId,
-        entityType: GlobalIdEntity.SearchSynonymGroup,
-      };
-    }
-
-    case SearchConfigurationOperationAction.Delete: {
-      const groupId = decodeRequiredId(
-        input.id,
-        GlobalIdEntity.SearchSynonymGroup,
-        fieldPrefix,
-        errors,
-      );
-      forbidFields(
-        input,
-        ["clientMutationId", "locale", "name", "enabled", "values"],
-        fieldPrefix,
-        errors,
-      );
-      const operation = errors.length === 0 && groupId
-        ? ({
-            type: "synonymGroupDelete",
-            params: { groupId },
-            meta: { fieldPrefix },
-          } satisfies SearchSettingsUpdateOperation)
-        : undefined;
-      return {
-        type: "synonymGroupDelete",
-        operation,
-        errors,
-        entityId: groupId,
-        entityType: GlobalIdEntity.SearchSynonymGroup,
-      };
-    }
-  }
-}
-
-function mapProductBoostOperation(
-  input: SearchProductBoostOperationInput,
-  index: number,
-): SearchSettingsMappedEntry {
-  const fieldPrefix = ["operations", "productBoosts", String(index)];
-  const errors: UserError[] = [];
-
-  switch (input.action) {
-    case SearchConfigurationOperationAction.Create: {
-      forbidField(input.id, "id", fieldPrefix, errors);
-      const clientMutationId = requiredClientMutationId(
-        input.clientMutationId,
-        fieldPrefix,
-        errors,
-      );
-      const locale = requiredField(input.locale, "locale", fieldPrefix, errors);
-      const name = requiredField(input.name, "name", fieldPrefix, errors);
-      const enabled = requiredField(
-        input.enabled,
-        "enabled",
-        fieldPrefix,
-        errors,
-      );
-      const phrases = requiredField(
-        input.phrases,
-        "phrases",
-        fieldPrefix,
-        errors,
-      );
-      const productIds = decodeRequiredIds(
-        input.productIds,
-        GlobalIdEntity.Product,
-        "productIds",
-        fieldPrefix,
-        errors,
-      );
-      const operation =
-        errors.length === 0 &&
-          clientMutationId &&
-          locale !== undefined &&
-          name !== undefined &&
-          enabled !== undefined &&
-          phrases !== undefined &&
-          productIds !== undefined
-          ? ({
-              type: "productBoostCreate",
-              params: {
-                clientMutationId,
-                locale,
-                name,
-                enabled,
-                phrases,
-                productIds,
-              },
-              meta: { fieldPrefix },
-            } satisfies SearchSettingsUpdateOperation)
-          : undefined;
-      return {
-        type: "productBoostCreate",
-        operation,
-        errors,
-        clientMutationId,
-      };
-    }
-
-    case SearchConfigurationOperationAction.Update: {
-      forbidField(
-        input.clientMutationId,
-        "clientMutationId",
-        fieldPrefix,
-        errors,
-      );
-      const boostId = decodeRequiredId(
-        input.id,
-        GlobalIdEntity.SearchProductBoost,
-        fieldPrefix,
-        errors,
-      );
-      const locale = requiredField(input.locale, "locale", fieldPrefix, errors);
-      const name = requiredField(input.name, "name", fieldPrefix, errors);
-      const enabled = requiredField(
-        input.enabled,
-        "enabled",
-        fieldPrefix,
-        errors,
-      );
-      const phrases = requiredField(
-        input.phrases,
-        "phrases",
-        fieldPrefix,
-        errors,
-      );
-      const productIds = decodeRequiredIds(
-        input.productIds,
-        GlobalIdEntity.Product,
-        "productIds",
-        fieldPrefix,
-        errors,
-      );
-      const operation =
-        errors.length === 0 &&
-          boostId &&
-          locale !== undefined &&
-          name !== undefined &&
-          enabled !== undefined &&
-          phrases !== undefined &&
-          productIds !== undefined
-          ? ({
-              type: "productBoostUpdate",
-              params: {
-                boostId,
-                locale,
-                name,
-                enabled,
-                phrases,
-                productIds,
-              },
-              meta: { fieldPrefix },
-            } satisfies SearchSettingsUpdateOperation)
-          : undefined;
-      return {
-        type: "productBoostUpdate",
-        operation,
-        errors,
-        entityId: boostId,
-        entityType: GlobalIdEntity.SearchProductBoost,
-      };
-    }
-
-    case SearchConfigurationOperationAction.Delete: {
-      const boostId = decodeRequiredId(
-        input.id,
-        GlobalIdEntity.SearchProductBoost,
-        fieldPrefix,
-        errors,
-      );
-      forbidFields(
-        input,
-        ["clientMutationId", "locale", "name", "enabled", "phrases", "productIds"],
-        fieldPrefix,
-        errors,
-      );
-      const operation = errors.length === 0 && boostId
-        ? ({
-            type: "productBoostDelete",
-            params: { boostId },
-            meta: { fieldPrefix },
-          } satisfies SearchSettingsUpdateOperation)
-        : undefined;
-      return {
-        type: "productBoostDelete",
-        operation,
-        errors,
-        entityId: boostId,
-        entityType: GlobalIdEntity.SearchProductBoost,
-      };
-    }
-  }
-}
-
-function requiredField<T>(
-  value: T | null | undefined,
-  field: string,
-  fieldPrefix: string[],
-  errors: UserError[],
-): T | undefined {
-  if (value === null || value === undefined) {
-    errors.push({
-      message: `${field} is required for this operation`,
-      field: [...fieldPrefix, field],
-      code: "REQUIRED",
-    });
-    return undefined;
-  }
-  return value;
-}
-
-function requiredClientMutationId(
-  value: string | null | undefined,
-  fieldPrefix: string[],
-  errors: UserError[],
-): string | undefined {
-  const clientMutationId = value?.trim();
-  if (!clientMutationId) {
-    errors.push({
-      message: "clientMutationId is required for create operations",
-      field: [...fieldPrefix, "clientMutationId"],
-      code: "REQUIRED",
-    });
-    return undefined;
-  }
-  return clientMutationId;
-}
-
-function decodeRequiredId(
-  value: string | null | undefined,
-  type: GlobalIdType,
-  fieldPrefix: string[],
-  errors: UserError[],
-): string | undefined {
-  const id = requiredField(value, "id", fieldPrefix, errors);
-  if (!id) return undefined;
-  const decoded = safeDecode(id, type);
-  if (!decoded) {
-    errors.push({
-      message: "Invalid ID",
-      field: [...fieldPrefix, "id"],
-      code: "INVALID_ID",
-    });
-    return undefined;
-  }
-  return decoded;
-}
-
-function decodeRequiredIds(
-  values: readonly string[] | null | undefined,
-  type: GlobalIdType,
-  field: string,
-  fieldPrefix: string[],
-  errors: UserError[],
-): string[] | undefined {
-  const required = requiredField(values, field, fieldPrefix, errors);
-  if (!required) return undefined;
-  return required.map((value, index) => {
-    const decoded = safeDecode(value, type);
-    if (!decoded) {
-      errors.push({
-        message: "Invalid ID",
-        field: [...fieldPrefix, field, String(index)],
-        code: "INVALID_ID",
-      });
-    }
-    return decoded ?? "";
-  });
-}
-
-function forbidField(
-  value: unknown,
-  field: string,
-  fieldPrefix: string[],
-  errors: UserError[],
-): void {
-  if (value === undefined || value === null) return;
-  errors.push({
-    message: `${field} is not allowed for this operation`,
-    field: [...fieldPrefix, field],
-    code: "FIELD_NOT_ALLOWED",
-  });
-}
-
-function forbidFields<T extends object>(
-  input: T,
-  fields: Array<keyof T>,
-  fieldPrefix: string[],
-  errors: UserError[],
-): void {
-  for (const field of fields) {
-    forbidField(input[field], String(field), fieldPrefix, errors);
-  }
-}
-
-function addMappingUniquenessErrors(entries: SearchSettingsMappedEntry[]): void {
-  const clientMutationIds = new Map<string, number>();
-  const resourceIds = new Map<string, number>();
-
-  entries.forEach((entry, index) => {
-    if (entry.clientMutationId) {
-      const previous = clientMutationIds.get(entry.clientMutationId);
-      if (previous !== undefined) {
-        addDuplicateMappingError(
-          entries,
-          previous,
-          index,
-          "clientMutationId",
-          "Client mutation ID must be unique within the batch",
-          "DUPLICATE_CLIENT_MUTATION_ID",
-        );
-      } else {
-        clientMutationIds.set(entry.clientMutationId, index);
-      }
-    }
-
-    if (entry.entityId && entry.entityType) {
-      const key = `${String(entry.entityType)}:${entry.entityId}`;
-      const previous = resourceIds.get(key);
-      if (previous !== undefined) {
-        addDuplicateMappingError(
-          entries,
-          previous,
-          index,
-          "id",
-          "A search configuration resource may only be changed once",
-          "DUPLICATE_RESOURCE_OPERATION",
-        );
-      } else {
-        resourceIds.set(key, index);
-      }
-    }
-  });
-}
-
-function addDuplicateMappingError(
-  entries: SearchSettingsMappedEntry[],
-  first: number,
-  second: number,
-  field: string,
-  message: string,
-  code: string,
-): void {
-  for (const index of [first, second]) {
-    const entry = entries[index];
-    const prefix = entry.operation?.meta?.fieldPrefix ?? ["operations"];
-    entry.errors.push({ message, field: [...prefix, field], code });
-    entry.operation = undefined;
-  }
-}
-
-function mapPreflightEntry(entry: SearchSettingsMappedEntry) {
-  return {
-    type: toGraphqlOperationType(entry.type),
-    applied: false,
-    clientMutationId: entry.clientMutationId,
-    entityId: entry.entityId && entry.entityType
-      ? encodeGlobalIdByType(entry.entityId, entry.entityType)
-      : undefined,
-    errors: entry.errors.length > 0
-      ? entry.errors
-      : [{
-          message: "Batch validation failed",
-          field: entry.operation?.meta?.fieldPrefix ?? ["operations"],
-          code: "BATCH_VALIDATION_FAILED",
-        }],
-  };
-}
-
-function mapWorkflowOperationResult(result: WorkflowOperationResult) {
-  const entityType = result.type.startsWith("synonymGroup")
-    ? GlobalIdEntity.SearchSynonymGroup
-    : result.type.startsWith("productBoost")
-      ? GlobalIdEntity.SearchProductBoost
-      : undefined;
-  return {
-    type: toGraphqlOperationType(result.type),
-    applied: result.applied,
-    clientMutationId: result.clientMutationId,
-    entityId: result.entityId && entityType
-      ? encodeGlobalIdByType(result.entityId, entityType)
-      : undefined,
-    errors: result.errors,
-  };
-}
-
-function toGraphqlOperationType(
-  type: SearchSettingsUpdateOperation["type"],
-): SearchSettingsOperationType {
-  switch (type) {
-    case "settingsUpdate":
-      return SearchSettingsOperationType.SettingsUpdate;
-    case "synonymGroupCreate":
-      return SearchSettingsOperationType.SynonymGroupCreate;
-    case "synonymGroupUpdate":
-      return SearchSettingsOperationType.SynonymGroupUpdate;
-    case "synonymGroupDelete":
-      return SearchSettingsOperationType.SynonymGroupDelete;
-    case "productBoostCreate":
-      return SearchSettingsOperationType.ProductBoostCreate;
-    case "productBoostUpdate":
-      return SearchSettingsOperationType.ProductBoostUpdate;
-    case "productBoostDelete":
-      return SearchSettingsOperationType.ProductBoostDelete;
   }
 }
 

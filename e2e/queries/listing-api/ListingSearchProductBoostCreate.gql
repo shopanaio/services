@@ -1,0 +1,17 @@
+mutation ListingSearchProductBoostCreate($input: SearchProductBoostCreateInput!) {
+  listingMutation {
+    search {
+      productBoostCreate(input: $input) {
+        productBoost {
+          id
+          version
+        }
+        userErrors {
+          code
+          message
+          field
+        }
+      }
+    }
+  }
+}

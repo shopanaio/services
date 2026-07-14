@@ -1193,14 +1193,50 @@ export enum ListingScopeKind {
 
 export type ListingSearchMutation = {
   __typename?: 'ListingSearchMutation';
-  /** Unified update of the complete search configuration. */
+  productBoostCreate: SearchProductBoostPayload;
+  productBoostDelete: SearchProductBoostPayload;
+  productBoostUpdate: SearchProductBoostPayload;
+  /** Update the store-level search settings. */
   settingsUpdate: SearchSettingsUpdatePayload;
+  synonymGroupCreate: SearchSynonymGroupPayload;
+  synonymGroupDelete: SearchSynonymGroupPayload;
+  synonymGroupUpdate: SearchSynonymGroupPayload;
+};
+
+
+export type ListingSearchMutationProductBoostCreateArgs = {
+  input: SearchProductBoostCreateInput;
+};
+
+
+export type ListingSearchMutationProductBoostDeleteArgs = {
+  input: SearchConfigurationDeleteInput;
+};
+
+
+export type ListingSearchMutationProductBoostUpdateArgs = {
+  input: SearchProductBoostUpdateInput;
 };
 
 
 export type ListingSearchMutationSettingsUpdateArgs = {
   expectedVersion: Scalars['Int']['input'];
   operations: SearchSettingsOperationsInput;
+};
+
+
+export type ListingSearchMutationSynonymGroupCreateArgs = {
+  input: SearchSynonymGroupCreateInput;
+};
+
+
+export type ListingSearchMutationSynonymGroupDeleteArgs = {
+  input: SearchConfigurationDeleteInput;
+};
+
+
+export type ListingSearchMutationSynonymGroupUpdateArgs = {
+  input: SearchSynonymGroupUpdateInput;
 };
 
 export type ListingSearchQuery = {
@@ -1586,11 +1622,10 @@ export type Query = {
   listingQuery: ListingQuery;
 };
 
-export enum SearchConfigurationOperationAction {
-  Create = 'CREATE',
-  Delete = 'DELETE',
-  Update = 'UPDATE'
-}
+export type SearchConfigurationDeleteInput = {
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
 
 export enum SearchExecutionMode {
   Fuzzy = 'FUZZY',
@@ -1738,21 +1773,19 @@ export type SearchProductBoostConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+export type SearchProductBoostCreateInput = {
+  clientMutationId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  phrases: Array<Scalars['String']['input']>;
+  productIds: Array<Scalars['ID']['input']>;
+};
+
 export type SearchProductBoostEdge = {
   __typename?: 'SearchProductBoostEdge';
   cursor: Scalars['String']['output'];
   node: SearchProductBoost;
-};
-
-export type SearchProductBoostOperationInput = {
-  action: SearchConfigurationOperationAction;
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  id?: InputMaybe<Scalars['ID']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  phrases?: InputMaybe<Array<Scalars['String']['input']>>;
-  productIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 /** Ordering configuration for SearchProductBoost */
@@ -1785,10 +1818,26 @@ export enum SearchProductBoostOrderField {
   Version = 'version'
 }
 
+export type SearchProductBoostPayload = {
+  __typename?: 'SearchProductBoostPayload';
+  productBoost: Maybe<SearchProductBoost>;
+  userErrors: Array<GenericUserError>;
+};
+
 export type SearchProductBoostPhrase = {
   __typename?: 'SearchProductBoostPhrase';
   phrase: Scalars['String']['output'];
   position: Scalars['Int']['output'];
+};
+
+export type SearchProductBoostUpdateInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  phrases: Array<Scalars['String']['input']>;
+  productIds: Array<Scalars['ID']['input']>;
 };
 
 /** Filter conditions for SearchProductBoost */
@@ -1845,22 +1894,12 @@ export type SearchSettingsOperationResult = {
 };
 
 export enum SearchSettingsOperationType {
-  ProductBoostCreate = 'PRODUCT_BOOST_CREATE',
-  ProductBoostDelete = 'PRODUCT_BOOST_DELETE',
-  ProductBoostUpdate = 'PRODUCT_BOOST_UPDATE',
-  SettingsUpdate = 'SETTINGS_UPDATE',
-  SynonymGroupCreate = 'SYNONYM_GROUP_CREATE',
-  SynonymGroupDelete = 'SYNONYM_GROUP_DELETE',
-  SynonymGroupUpdate = 'SYNONYM_GROUP_UPDATE'
+  SettingsUpdate = 'SETTINGS_UPDATE'
 }
 
 export type SearchSettingsOperationsInput = {
-  /** Product boost operations. */
-  productBoosts?: InputMaybe<Array<SearchProductBoostOperationInput>>;
   /** Main search settings replacement. */
-  settings?: InputMaybe<SearchSettingsValuesInput>;
-  /** Synonym group operations. */
-  synonymGroups?: InputMaybe<Array<SearchSynonymGroupOperationInput>>;
+  settings: SearchSettingsValuesInput;
 };
 
 export type SearchSettingsUpdatePayload = {
@@ -1896,20 +1935,18 @@ export type SearchSynonymGroupConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+export type SearchSynonymGroupCreateInput = {
+  clientMutationId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  values: Array<Scalars['String']['input']>;
+};
+
 export type SearchSynonymGroupEdge = {
   __typename?: 'SearchSynonymGroupEdge';
   cursor: Scalars['String']['output'];
   node: SearchSynonymGroup;
-};
-
-export type SearchSynonymGroupOperationInput = {
-  action: SearchConfigurationOperationAction;
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  id?: InputMaybe<Scalars['ID']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  values?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 /** Ordering configuration for SearchSynonymGroup */
@@ -1939,6 +1976,21 @@ export enum SearchSynonymGroupOrderField {
   /** Sort by version */
   Version = 'version'
 }
+
+export type SearchSynonymGroupPayload = {
+  __typename?: 'SearchSynonymGroupPayload';
+  synonymGroup: Maybe<SearchSynonymGroup>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type SearchSynonymGroupUpdateInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  values: Array<Scalars['String']['input']>;
+};
 
 /** Filter conditions for SearchSynonymGroup */
 export type SearchSynonymGroupWhereInput = {
@@ -2224,7 +2276,7 @@ export type ResolversTypes = ResolversObject<{
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Product: ResolverTypeWrapper<Product>;
   Query: ResolverTypeWrapper<{}>;
-  SearchConfigurationOperationAction: SearchConfigurationOperationAction;
+  SearchConfigurationDeleteInput: SearchConfigurationDeleteInput;
   SearchExecutionMode: SearchExecutionMode;
   SearchExplain: ResolverTypeWrapper<SearchExplain>;
   SearchExplainClause: ResolverTypeWrapper<SearchExplainClause>;
@@ -2241,11 +2293,13 @@ export type ResolversTypes = ResolversObject<{
   SearchOutOfStockPolicy: SearchOutOfStockPolicy;
   SearchProductBoost: ResolverTypeWrapper<SearchProductBoost>;
   SearchProductBoostConnection: ResolverTypeWrapper<SearchProductBoostConnection>;
+  SearchProductBoostCreateInput: SearchProductBoostCreateInput;
   SearchProductBoostEdge: ResolverTypeWrapper<SearchProductBoostEdge>;
-  SearchProductBoostOperationInput: SearchProductBoostOperationInput;
   SearchProductBoostOrderByInput: SearchProductBoostOrderByInput;
   SearchProductBoostOrderField: SearchProductBoostOrderField;
+  SearchProductBoostPayload: ResolverTypeWrapper<SearchProductBoostPayload>;
   SearchProductBoostPhrase: ResolverTypeWrapper<SearchProductBoostPhrase>;
+  SearchProductBoostUpdateInput: SearchProductBoostUpdateInput;
   SearchProductBoostWhereInput: SearchProductBoostWhereInput;
   SearchProductBoostsMetaInput: SearchProductBoostsMetaInput;
   SearchSettings: ResolverTypeWrapper<SearchSettings>;
@@ -2256,10 +2310,12 @@ export type ResolversTypes = ResolversObject<{
   SearchSettingsValuesInput: SearchSettingsValuesInput;
   SearchSynonymGroup: ResolverTypeWrapper<SearchSynonymGroup>;
   SearchSynonymGroupConnection: ResolverTypeWrapper<SearchSynonymGroupConnection>;
+  SearchSynonymGroupCreateInput: SearchSynonymGroupCreateInput;
   SearchSynonymGroupEdge: ResolverTypeWrapper<SearchSynonymGroupEdge>;
-  SearchSynonymGroupOperationInput: SearchSynonymGroupOperationInput;
   SearchSynonymGroupOrderByInput: SearchSynonymGroupOrderByInput;
   SearchSynonymGroupOrderField: SearchSynonymGroupOrderField;
+  SearchSynonymGroupPayload: ResolverTypeWrapper<SearchSynonymGroupPayload>;
+  SearchSynonymGroupUpdateInput: SearchSynonymGroupUpdateInput;
   SearchSynonymGroupWhereInput: SearchSynonymGroupWhereInput;
   SearchSynonymValue: ResolverTypeWrapper<SearchSynonymValue>;
   SortDirection: SortDirection;
@@ -2351,6 +2407,7 @@ export type ResolversParentTypes = ResolversObject<{
   PageInfo: PageInfo;
   Product: Product;
   Query: {};
+  SearchConfigurationDeleteInput: SearchConfigurationDeleteInput;
   SearchExplain: SearchExplain;
   SearchExplainClause: SearchExplainClause;
   SearchExplainFieldWeight: SearchExplainFieldWeight;
@@ -2361,10 +2418,12 @@ export type ResolversParentTypes = ResolversObject<{
   SearchFieldConfigurationInput: SearchFieldConfigurationInput;
   SearchProductBoost: SearchProductBoost;
   SearchProductBoostConnection: SearchProductBoostConnection;
+  SearchProductBoostCreateInput: SearchProductBoostCreateInput;
   SearchProductBoostEdge: SearchProductBoostEdge;
-  SearchProductBoostOperationInput: SearchProductBoostOperationInput;
   SearchProductBoostOrderByInput: SearchProductBoostOrderByInput;
+  SearchProductBoostPayload: SearchProductBoostPayload;
   SearchProductBoostPhrase: SearchProductBoostPhrase;
+  SearchProductBoostUpdateInput: SearchProductBoostUpdateInput;
   SearchProductBoostWhereInput: SearchProductBoostWhereInput;
   SearchProductBoostsMetaInput: SearchProductBoostsMetaInput;
   SearchSettings: SearchSettings;
@@ -2374,9 +2433,11 @@ export type ResolversParentTypes = ResolversObject<{
   SearchSettingsValuesInput: SearchSettingsValuesInput;
   SearchSynonymGroup: SearchSynonymGroup;
   SearchSynonymGroupConnection: SearchSynonymGroupConnection;
+  SearchSynonymGroupCreateInput: SearchSynonymGroupCreateInput;
   SearchSynonymGroupEdge: SearchSynonymGroupEdge;
-  SearchSynonymGroupOperationInput: SearchSynonymGroupOperationInput;
   SearchSynonymGroupOrderByInput: SearchSynonymGroupOrderByInput;
+  SearchSynonymGroupPayload: SearchSynonymGroupPayload;
+  SearchSynonymGroupUpdateInput: SearchSynonymGroupUpdateInput;
   SearchSynonymGroupWhereInput: SearchSynonymGroupWhereInput;
   SearchSynonymValue: SearchSynonymValue;
   StringFilter: StringFilter;
@@ -2659,7 +2720,13 @@ export type ListingQueryResolvers<ContextType = ServiceContext, ParentType exten
 }>;
 
 export type ListingSearchMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ListingSearchMutation'] = ResolversParentTypes['ListingSearchMutation']> = ResolversObject<{
+  productBoostCreate?: Resolver<ResolversTypes['SearchProductBoostPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostCreateArgs, 'input'>>;
+  productBoostDelete?: Resolver<ResolversTypes['SearchProductBoostPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostDeleteArgs, 'input'>>;
+  productBoostUpdate?: Resolver<ResolversTypes['SearchProductBoostPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostUpdateArgs, 'input'>>;
   settingsUpdate?: Resolver<ResolversTypes['SearchSettingsUpdatePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSettingsUpdateArgs, 'expectedVersion' | 'operations'>>;
+  synonymGroupCreate?: Resolver<ResolversTypes['SearchSynonymGroupPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupCreateArgs, 'input'>>;
+  synonymGroupDelete?: Resolver<ResolversTypes['SearchSynonymGroupPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupDeleteArgs, 'input'>>;
+  synonymGroupUpdate?: Resolver<ResolversTypes['SearchSynonymGroupPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupUpdateArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2800,6 +2867,12 @@ export type SearchProductBoostEdgeResolvers<ContextType = ServiceContext, Parent
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type SearchProductBoostPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostPayload'] = ResolversParentTypes['SearchProductBoostPayload']> = ResolversObject<{
+  productBoost?: Resolver<Maybe<ResolversTypes['SearchProductBoost']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type SearchProductBoostPhraseResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostPhrase'] = ResolversParentTypes['SearchProductBoostPhrase']> = ResolversObject<{
   phrase?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   position?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -2854,6 +2927,12 @@ export type SearchSynonymGroupConnectionResolvers<ContextType = ServiceContext, 
 export type SearchSynonymGroupEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupEdge'] = ResolversParentTypes['SearchSynonymGroupEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['SearchSynonymGroup'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SearchSynonymGroupPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupPayload'] = ResolversParentTypes['SearchSynonymGroupPayload']> = ResolversObject<{
+  synonymGroup?: Resolver<Maybe<ResolversTypes['SearchSynonymGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2925,6 +3004,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   SearchProductBoost?: SearchProductBoostResolvers<ContextType>;
   SearchProductBoostConnection?: SearchProductBoostConnectionResolvers<ContextType>;
   SearchProductBoostEdge?: SearchProductBoostEdgeResolvers<ContextType>;
+  SearchProductBoostPayload?: SearchProductBoostPayloadResolvers<ContextType>;
   SearchProductBoostPhrase?: SearchProductBoostPhraseResolvers<ContextType>;
   SearchSettings?: SearchSettingsResolvers<ContextType>;
   SearchSettingsOperationResult?: SearchSettingsOperationResultResolvers<ContextType>;
@@ -2932,6 +3012,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   SearchSynonymGroup?: SearchSynonymGroupResolvers<ContextType>;
   SearchSynonymGroupConnection?: SearchSynonymGroupConnectionResolvers<ContextType>;
   SearchSynonymGroupEdge?: SearchSynonymGroupEdgeResolvers<ContextType>;
+  SearchSynonymGroupPayload?: SearchSynonymGroupPayloadResolvers<ContextType>;
   SearchSynonymValue?: SearchSynonymValueResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
 }>;

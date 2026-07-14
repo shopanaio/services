@@ -1,0 +1,17 @@
+mutation ListingSearchSynonymGroupCreate($input: SearchSynonymGroupCreateInput!) {
+  listingMutation {
+    search {
+      synonymGroupCreate(input: $input) {
+        synonymGroup {
+          id
+          version
+        }
+        userErrors {
+          code
+          message
+          field
+        }
+      }
+    }
+  }
+}

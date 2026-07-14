@@ -1,28 +1,32 @@
-import type { ApiSearchProductBoostOperationInput } from "@/graphql/types";
-import { SearchConfigurationOperationAction } from "@/graphql/types";
+import type {
+  ApiSearchProductBoostCreateInput,
+  ApiSearchProductBoostUpdateInput,
+} from "@/graphql/types";
 import type { ProductBoostFormValues } from "../modals/schema";
 
-export function buildProductBoostOperation(
-  values: ProductBoostFormValues,
-  entityId?: string,
-): ApiSearchProductBoostOperationInput {
-  const common = {
+function productBoostValues(values: ProductBoostFormValues) {
+  return {
     locale: values.locale as never,
     name: values.name.trim(),
     enabled: values.enabled,
     phrases: values.phrases.map(({ value }) => value.trim()),
     productIds: values.products.map(({ id }) => id),
   };
+}
 
-  return entityId
-    ? {
-        action: SearchConfigurationOperationAction.Update,
-        id: entityId,
-        ...common,
-      }
-    : {
-        action: SearchConfigurationOperationAction.Create,
-        clientMutationId: crypto.randomUUID(),
-        ...common,
-      };
+export function buildProductBoostCreateInput(
+  values: ProductBoostFormValues,
+): ApiSearchProductBoostCreateInput {
+  return {
+    clientMutationId: crypto.randomUUID(),
+    ...productBoostValues(values),
+  };
+}
+
+export function buildProductBoostUpdateInput(
+  values: ProductBoostFormValues,
+  id: string,
+  expectedVersion: number,
+): ApiSearchProductBoostUpdateInput {
+  return { id, expectedVersion, ...productBoostValues(values) };
 }

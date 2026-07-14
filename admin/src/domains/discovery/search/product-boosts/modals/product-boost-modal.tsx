@@ -40,13 +40,19 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useAgGridTheme } from "@/hooks";
 import { useStore } from "@/domains/workspace";
 import type { ApiProduct } from "@/graphql/types";
-import { SearchSettingsOperationType } from "@/graphql/types";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
-import { useSearchEditorContext, useUpdateSearchSettings } from "../../hooks";
+import { useSearchEditorContext } from "../../hooks";
 import { hasVersionConflict, mapSearchEditorErrors } from "../../mappers";
 import type { IProductBoostModalPayload } from "../../modals";
-import { useProductBoost } from "../hooks";
-import { buildProductBoostOperation } from "../mappers";
+import {
+  useCreateProductBoost,
+  useProductBoost,
+  useUpdateProductBoost,
+} from "../hooks";
+import {
+  buildProductBoostCreateInput,
+  buildProductBoostUpdateInput,
+} from "../mappers";
 import {
   productBoostFormSchema,
   type ProductBoostFormValues,
@@ -133,7 +139,9 @@ export function ProductBoostModal() {
   const store = useStore();
   const contextQuery = useSearchEditorContext(isEdit);
   const detailQuery = useProductBoost(typedPayload.entityId, !isEdit);
-  const { updateSearchSettings, loading: saving } = useUpdateSearchSettings();
+  const { createProductBoost, loading: creating } = useCreateProductBoost();
+  const { updateProductBoost, loading: updating } = useUpdateProductBoost();
+  const saving = creating || updating;
   const [globalErrors, setGlobalErrors] = useState<string[]>([]);
   const [versionConflict, setVersionConflict] = useState(false);
   const phraseInputRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -307,16 +315,14 @@ export function ProductBoostModal() {
       if (!settings) return;
       setGlobalErrors([]);
       setVersionConflict(false);
-      const operation = buildProductBoostOperation(values, isEdit ? typedPayload.entityId : undefined);
-      const result = await updateSearchSettings(
-        settings.version,
-        { productBoosts: [operation] },
-        isEdit
-          ? SearchSettingsOperationType.ProductBoostUpdate
-          : SearchSettingsOperationType.ProductBoostCreate,
-      );
+      const current = detailQuery.productBoost;
+      const result = isEdit && current
+        ? await updateProductBoost(
+          buildProductBoostUpdateInput(values, current.id, current.version),
+        )
+        : await createProductBoost(buildProductBoostCreateInput(values));
 
-      if (!result.applied) {
+      if (!result.productBoost || result.userErrors.length > 0) {
         if (hasVersionConflict(result.userErrors)) setVersionConflict(true);
         handleApiErrors(result.userErrors);
         return;
@@ -335,7 +341,9 @@ export function ProductBoostModal() {
       setDirty,
       settings,
       typedPayload,
-      updateSearchSettings,
+      createProductBoost,
+      detailQuery.productBoost,
+      updateProductBoost,
     ],
   );
 
@@ -406,7 +414,7 @@ export function ProductBoostModal() {
           role="alert"
           type="warning"
           showIcon
-          message="Search configuration changed after this form was opened."
+          message="This product boost changed after this form was opened."
           action={<Button onClick={reloadLatest}>Reload latest data</Button>}
         />
       ) : null}

@@ -5,6 +5,9 @@ import type {
   ApiSearchSynonymGroup,
   ApiSearchSynonymGroupConnection,
   ApiSearchSynonymGroupOrderByInput,
+  ApiSearchSynonymGroupCreateInput,
+  ApiSearchSynonymGroupPayload,
+  ApiSearchSynonymGroupUpdateInput,
   ApiSearchSynonymGroupWhereInput,
 } from "@/graphql/types";
 
@@ -14,6 +17,22 @@ export interface SearchSynonymGroupsQueryData {
       synonymGroups: ApiSearchSynonymGroupConnection;
     };
   };
+}
+
+export interface SearchSynonymGroupCreateMutationData {
+  listingMutation: { search: { synonymGroupCreate: ApiSearchSynonymGroupPayload } };
+}
+
+export interface SearchSynonymGroupCreateMutationVariables {
+  input: ApiSearchSynonymGroupCreateInput;
+}
+
+export interface SearchSynonymGroupUpdateMutationData {
+  listingMutation: { search: { synonymGroupUpdate: ApiSearchSynonymGroupPayload } };
+}
+
+export interface SearchSynonymGroupUpdateMutationVariables {
+  input: ApiSearchSynonymGroupUpdateInput;
 }
 
 export interface SearchSynonymGroupEditorQueryData {

@@ -306,7 +306,8 @@ Grid имеет `data-testid="synonym-group-values-grid"`, keyboard cell editing
 
 ### Detail query для edit mode
 
-Один query может загружать settings и нужную сущность, чтобы получить согласованную global version:
+Один query загружает settings и нужную сущность. Для update optimistic token
+берётся из `productBoost.version` или `synonymGroup.version`:
 
 ```graphql
 query SearchProductBoostEditor($id: ID!) {
@@ -390,7 +391,9 @@ query SearchConfigurationEditorContext {
 
 ### Инициализация search settings
 
-`settingsUpdate` требует `expectedVersion`. Если `settings === null`, версия равна логическому `0`, но API запрещает отправлять только boost/synonym operation: при `expectedVersion: 0` обязательна также `operations.settings`.
+`settingsUpdate` инициализирует только store-level settings. Boost/synonym
+mutations не изменяют `SearchSettings.version`; UI по-прежнему блокирует их до
+явной инициализации settings.
 
 Модалки не должны изобретать default search settings. Пока Settings page не предоставляет явный initialize flow, modal показывает blocking alert:
 
@@ -399,37 +402,20 @@ Search settings must be configured before boosts or synonyms can be created.
 [Open search settings]
 ```
 
-Save disabled. После появления согласованного initialize flow можно передавать выбранные пользователем initial settings и create operation одним atomic batch.
+Save disabled до появления settings.
 
 ## GraphQL write integration
 
-### Общая мутация
+### Отдельные resource mutations
 
 ```graphql
-mutation SearchSettingsUpdate(
-  $expectedVersion: Int!
-  $operations: SearchSettingsOperationsInput!
-) {
+mutation SearchProductBoostUpdate($input: SearchProductBoostUpdateInput!) {
   listingMutation {
     search {
-      settingsUpdate(
-        expectedVersion: $expectedVersion
-        operations: $operations
-      ) {
-        settings {
+      productBoostUpdate(input: $input) {
+        productBoost {
+          id
           version
-          updatedAt
-        }
-        operationResults {
-          type
-          applied
-          clientMutationId
-          entityId
-          errors {
-            code
-            field
-            message
-          }
         }
         userErrors {
           code
@@ -442,25 +428,22 @@ mutation SearchSettingsUpdate(
 }
 ```
 
-Важно: `expectedVersion` — это `SearchSettings.version`, а не `productBoost.version` и не `synonymGroup.version`. Entity version можно отображать в diagnostics, но нельзя использовать для мутации текущего API.
+`productBoostCreate`, `productBoostUpdate`, `synonymGroupCreate` и
+`synonymGroupUpdate` запускают отдельные workflows. Update передаёт version
+самого редактируемого resource; изменение другого boost или synonym не создаёт
+ложный conflict.
 
 ### Product boost create
 
 ```json
 {
-  "expectedVersion": 12,
-  "operations": {
-    "productBoosts": [
-      {
-        "action": "CREATE",
-        "clientMutationId": "<new UUID per submit>",
-        "locale": "en",
-        "name": "Summer footwear",
-        "enabled": true,
-        "phrases": ["summer shoes", "shoes for summer"],
-        "productIds": ["<Product global ID>", "<Product global ID>"]
-      }
-    ]
+  "input": {
+    "clientMutationId": "<new UUID per submit>",
+    "locale": "en",
+    "name": "Summer footwear",
+    "enabled": true,
+    "phrases": ["summer shoes", "shoes for summer"],
+    "productIds": ["<Product global ID>", "<Product global ID>"]
   }
 }
 ```
@@ -469,41 +452,32 @@ mutation SearchSettingsUpdate(
 
 ```json
 {
-  "expectedVersion": 12,
-  "operations": {
-    "productBoosts": [
-      {
-        "action": "UPDATE",
-        "id": "<SearchProductBoost global ID>",
-        "locale": "en",
-        "name": "Summer footwear",
-        "enabled": true,
-        "phrases": ["summer shoes", "shoes for summer"],
-        "productIds": ["<Product global ID>"]
-      }
-    ]
+  "input": {
+    "id": "<SearchProductBoost global ID>",
+    "expectedVersion": 3,
+    "locale": "en",
+    "name": "Summer footwear",
+    "enabled": true,
+    "phrases": ["summer shoes", "shoes for summer"],
+    "productIds": ["<Product global ID>"]
   }
 }
 ```
 
-Create требует `clientMutationId` и запрещает `id`. Update требует `id` и запрещает `clientMutationId`. Оба действия требуют полный набор editable fields; update не является patch.
+Create требует `clientMutationId`. Update требует `id` и `expectedVersion`
+resource. Оба действия требуют полный набор editable fields; update не является
+patch.
 
 ### Synonym group create
 
 ```json
 {
-  "expectedVersion": 12,
-  "operations": {
-    "synonymGroups": [
-      {
-        "action": "CREATE",
-        "clientMutationId": "<new UUID per submit>",
-        "locale": "en",
-        "name": "Sneakers terminology",
-        "enabled": true,
-        "values": ["sneakers", "trainers", "running shoes"]
-      }
-    ]
+  "input": {
+    "clientMutationId": "<new UUID per submit>",
+    "locale": "en",
+    "name": "Sneakers terminology",
+    "enabled": true,
+    "values": ["sneakers", "trainers", "running shoes"]
   }
 }
 ```
@@ -512,40 +486,28 @@ Create требует `clientMutationId` и запрещает `id`. Update тр
 
 ```json
 {
-  "expectedVersion": 12,
-  "operations": {
-    "synonymGroups": [
-      {
-        "action": "UPDATE",
-        "id": "<SearchSynonymGroup global ID>",
-        "locale": "en",
-        "name": "Sneakers terminology",
-        "enabled": true,
-        "values": ["sneakers", "trainers", "running shoes"]
-      }
-    ]
+  "input": {
+    "id": "<SearchSynonymGroup global ID>",
+    "expectedVersion": 4,
+    "locale": "en",
+    "name": "Sneakers terminology",
+    "enabled": true,
+    "values": ["sneakers", "trainers", "running shoes"]
   }
 }
 ```
 
 ### Успешный результат
 
-Submit считается успешным только когда одновременно:
-
-- верхнеуровневый `userErrors` пуст;
-- ожидаемый `operationResults[0].type` совпадает с action;
-- `operationResults[0].applied === true`;
-- `operationResults[0].errors` пуст.
+Submit считается успешным, когда `userErrors` пуст и payload содержит созданный
+или обновлённый resource.
 
 После успеха:
 
-1. сохранить новую `settings.version` в Apollo cache;
-2. обновить list query через `refetchQueries` на первом этапе интеграции;
-3. вызвать `onSaved`;
-4. показать success toast;
-5. сбросить dirty state и закрыть modal через `forcePop()`.
-
-Для create `entityId` из operation result можно использовать для последующей навигации, но list row всё равно должен прийти из refetched API data.
+1. обновить list query через `refetchQueries`;
+2. вызвать `onSaved`;
+3. показать success toast;
+4. сбросить dirty state и закрыть modal через `forcePop()`.
 
 ## Validation и error mapping
 
@@ -590,16 +552,19 @@ input.values.1
 
 ### Concurrency conflict
 
-При `VERSION_CONFLICT` форма не должна автоматически повторять update с новой версией: это может перезаписать чужое изменение другой search configuration entity.
+При `VERSION_CONFLICT` форма не должна автоматически повторять update с новой
+версией: это может перезаписать чужое изменение того же resource.
 
 Показать blocking alert:
 
 ```text
-Search configuration changed after this form was opened.
+This resource changed after this form was opened.
 [Reload latest data]
 ```
 
-`Reload latest data` повторно загружает settings и detail entity. Если форма dirty, перед заменой draft требуется подтверждение. После reload Save снова доступен с новой global version.
+`Reload latest data` повторно загружает detail entity. Если форма dirty, перед
+заменой draft требуется подтверждение. После reload Save снова доступен с новой
+resource version.
 
 ## Рекомендуемая frontend-структура
 

@@ -25,13 +25,19 @@ type ListingSearchQuery {
 }
 
 type ListingSearchMutation {
-  """Unified update of the complete search configuration."""
+  """Update the store-level search settings."""
   settingsUpdate(
-    """Expected global search configuration version."""
+    """Expected search settings version."""
     expectedVersion: Int!
     """Operations to apply."""
     operations: SearchSettingsOperationsInput!
   ): SearchSettingsUpdatePayload!
+  synonymGroupCreate(input: SearchSynonymGroupCreateInput!): SearchSynonymGroupPayload!
+  synonymGroupUpdate(input: SearchSynonymGroupUpdateInput!): SearchSynonymGroupPayload!
+  synonymGroupDelete(input: SearchConfigurationDeleteInput!): SearchSynonymGroupPayload!
+  productBoostCreate(input: SearchProductBoostCreateInput!): SearchProductBoostPayload!
+  productBoostUpdate(input: SearchProductBoostUpdateInput!): SearchProductBoostPayload!
+  productBoostDelete(input: SearchConfigurationDeleteInput!): SearchProductBoostPayload!
 }
 
 type SearchSynonymGroup {
@@ -219,11 +225,7 @@ type SearchFieldConfiguration {
 
 input SearchSettingsOperationsInput {
   """Main search settings replacement."""
-  settings: SearchSettingsValuesInput
-  """Synonym group operations."""
-  synonymGroups: [SearchSynonymGroupOperationInput!]
-  """Product boost operations."""
-  productBoosts: [SearchProductBoostOperationInput!]
+  settings: SearchSettingsValuesInput!
 }
 
 input SearchSettingsValuesInput {
@@ -232,46 +234,54 @@ input SearchSettingsValuesInput {
   outOfStockPolicy: SearchOutOfStockPolicy!
 }
 
-enum SearchConfigurationOperationAction {
-  CREATE
-  UPDATE
-  DELETE
-}
-
 input SearchFieldConfigurationInput {
   field: SearchField!
   weight: Float!
 }
 
-input SearchSynonymGroupOperationInput {
-  action: SearchConfigurationOperationAction!
-  id: ID
-  clientMutationId: String
-  locale: LocaleCode
-  name: String
-  enabled: Boolean
-  values: [String!]
+input SearchConfigurationDeleteInput {
+  id: ID!
+  expectedVersion: Int!
 }
 
-input SearchProductBoostOperationInput {
-  action: SearchConfigurationOperationAction!
-  id: ID
-  clientMutationId: String
-  locale: LocaleCode
-  name: String
-  enabled: Boolean
-  phrases: [String!]
-  productIds: [ID!]
+input SearchSynonymGroupCreateInput {
+  clientMutationId: String!
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean!
+  values: [String!]!
+}
+
+input SearchSynonymGroupUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean!
+  values: [String!]!
+}
+
+input SearchProductBoostCreateInput {
+  clientMutationId: String!
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean!
+  phrases: [String!]!
+  productIds: [ID!]!
+}
+
+input SearchProductBoostUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean!
+  phrases: [String!]!
+  productIds: [ID!]!
 }
 
 enum SearchSettingsOperationType {
   SETTINGS_UPDATE
-  SYNONYM_GROUP_CREATE
-  SYNONYM_GROUP_UPDATE
-  SYNONYM_GROUP_DELETE
-  PRODUCT_BOOST_CREATE
-  PRODUCT_BOOST_UPDATE
-  PRODUCT_BOOST_DELETE
 }
 
 type SearchSettingsOperationResult {
@@ -285,5 +295,15 @@ type SearchSettingsOperationResult {
 type SearchSettingsUpdatePayload {
   settings: SearchSettings
   operationResults: [SearchSettingsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type SearchSynonymGroupPayload {
+  synonymGroup: SearchSynonymGroup
+  userErrors: [GenericUserError!]!
+}
+
+type SearchProductBoostPayload {
+  productBoost: SearchProductBoost
   userErrors: [GenericUserError!]!
 }

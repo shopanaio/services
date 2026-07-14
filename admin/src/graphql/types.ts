@@ -4483,14 +4483,50 @@ export enum ListingScopeKind {
 
 export type ApiListingSearchMutation = {
   __typename?: 'ListingSearchMutation';
-  /** Unified update of the complete search configuration. */
+  productBoostCreate: ApiSearchProductBoostPayload;
+  productBoostDelete: ApiSearchProductBoostPayload;
+  productBoostUpdate: ApiSearchProductBoostPayload;
+  /** Update the store-level search settings. */
   settingsUpdate: ApiSearchSettingsUpdatePayload;
+  synonymGroupCreate: ApiSearchSynonymGroupPayload;
+  synonymGroupDelete: ApiSearchSynonymGroupPayload;
+  synonymGroupUpdate: ApiSearchSynonymGroupPayload;
+};
+
+
+export type ApiListingSearchMutationProductBoostCreateArgs = {
+  input: ApiSearchProductBoostCreateInput;
+};
+
+
+export type ApiListingSearchMutationProductBoostDeleteArgs = {
+  input: ApiSearchConfigurationDeleteInput;
+};
+
+
+export type ApiListingSearchMutationProductBoostUpdateArgs = {
+  input: ApiSearchProductBoostUpdateInput;
 };
 
 
 export type ApiListingSearchMutationSettingsUpdateArgs = {
   expectedVersion: Scalars['Int']['input'];
   operations: ApiSearchSettingsOperationsInput;
+};
+
+
+export type ApiListingSearchMutationSynonymGroupCreateArgs = {
+  input: ApiSearchSynonymGroupCreateInput;
+};
+
+
+export type ApiListingSearchMutationSynonymGroupDeleteArgs = {
+  input: ApiSearchConfigurationDeleteInput;
+};
+
+
+export type ApiListingSearchMutationSynonymGroupUpdateArgs = {
+  input: ApiSearchSynonymGroupUpdateInput;
 };
 
 export type ApiListingSearchQuery = {
@@ -6801,11 +6837,10 @@ export type ApiS3ObjectData = {
   storageClass: Scalars['String']['output'];
 };
 
-export enum SearchConfigurationOperationAction {
-  Create = 'CREATE',
-  Delete = 'DELETE',
-  Update = 'UPDATE'
-}
+export type ApiSearchConfigurationDeleteInput = {
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
 
 export enum SearchExecutionMode {
   Fuzzy = 'FUZZY',
@@ -6953,21 +6988,19 @@ export type ApiSearchProductBoostConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+export type ApiSearchProductBoostCreateInput = {
+  clientMutationId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  phrases: Array<Scalars['String']['input']>;
+  productIds: Array<Scalars['ID']['input']>;
+};
+
 export type ApiSearchProductBoostEdge = {
   __typename?: 'SearchProductBoostEdge';
   cursor: Scalars['String']['output'];
   node: ApiSearchProductBoost;
-};
-
-export type ApiSearchProductBoostOperationInput = {
-  action: SearchConfigurationOperationAction;
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  id?: InputMaybe<Scalars['ID']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  phrases?: InputMaybe<Array<Scalars['String']['input']>>;
-  productIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 /** Ordering configuration for SearchProductBoost */
@@ -7000,10 +7033,26 @@ export enum SearchProductBoostOrderField {
   Version = 'version'
 }
 
+export type ApiSearchProductBoostPayload = {
+  __typename?: 'SearchProductBoostPayload';
+  productBoost?: Maybe<ApiSearchProductBoost>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiSearchProductBoostPhrase = {
   __typename?: 'SearchProductBoostPhrase';
   phrase: Scalars['String']['output'];
   position: Scalars['Int']['output'];
+};
+
+export type ApiSearchProductBoostUpdateInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  phrases: Array<Scalars['String']['input']>;
+  productIds: Array<Scalars['ID']['input']>;
 };
 
 /** Filter conditions for SearchProductBoost */
@@ -7060,22 +7109,12 @@ export type ApiSearchSettingsOperationResult = {
 };
 
 export enum SearchSettingsOperationType {
-  ProductBoostCreate = 'PRODUCT_BOOST_CREATE',
-  ProductBoostDelete = 'PRODUCT_BOOST_DELETE',
-  ProductBoostUpdate = 'PRODUCT_BOOST_UPDATE',
-  SettingsUpdate = 'SETTINGS_UPDATE',
-  SynonymGroupCreate = 'SYNONYM_GROUP_CREATE',
-  SynonymGroupDelete = 'SYNONYM_GROUP_DELETE',
-  SynonymGroupUpdate = 'SYNONYM_GROUP_UPDATE'
+  SettingsUpdate = 'SETTINGS_UPDATE'
 }
 
 export type ApiSearchSettingsOperationsInput = {
-  /** Product boost operations. */
-  productBoosts?: InputMaybe<Array<ApiSearchProductBoostOperationInput>>;
   /** Main search settings replacement. */
-  settings?: InputMaybe<ApiSearchSettingsValuesInput>;
-  /** Synonym group operations. */
-  synonymGroups?: InputMaybe<Array<ApiSearchSynonymGroupOperationInput>>;
+  settings: ApiSearchSettingsValuesInput;
 };
 
 export type ApiSearchSettingsUpdatePayload = {
@@ -7111,20 +7150,18 @@ export type ApiSearchSynonymGroupConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+export type ApiSearchSynonymGroupCreateInput = {
+  clientMutationId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  values: Array<Scalars['String']['input']>;
+};
+
 export type ApiSearchSynonymGroupEdge = {
   __typename?: 'SearchSynonymGroupEdge';
   cursor: Scalars['String']['output'];
   node: ApiSearchSynonymGroup;
-};
-
-export type ApiSearchSynonymGroupOperationInput = {
-  action: SearchConfigurationOperationAction;
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  id?: InputMaybe<Scalars['ID']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  values?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 /** Ordering configuration for SearchSynonymGroup */
@@ -7154,6 +7191,21 @@ export enum SearchSynonymGroupOrderField {
   /** Sort by version */
   Version = 'version'
 }
+
+export type ApiSearchSynonymGroupPayload = {
+  __typename?: 'SearchSynonymGroupPayload';
+  synonymGroup?: Maybe<ApiSearchSynonymGroup>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiSearchSynonymGroupUpdateInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  locale: LocaleCode;
+  name: Scalars['String']['input'];
+  values: Array<Scalars['String']['input']>;
+};
 
 /** Filter conditions for SearchSynonymGroup */
 export type ApiSearchSynonymGroupWhereInput = {

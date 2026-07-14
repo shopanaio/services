@@ -5,6 +5,9 @@ import type {
   ApiSearchProductBoost,
   ApiSearchProductBoostConnection,
   ApiSearchProductBoostOrderByInput,
+  ApiSearchProductBoostCreateInput,
+  ApiSearchProductBoostPayload,
+  ApiSearchProductBoostUpdateInput,
   ApiSearchProductBoostWhereInput,
 } from "@/graphql/types";
 
@@ -14,6 +17,22 @@ export interface SearchProductBoostsQueryData {
       productBoosts: ApiSearchProductBoostConnection;
     };
   };
+}
+
+export interface SearchProductBoostCreateMutationData {
+  listingMutation: { search: { productBoostCreate: ApiSearchProductBoostPayload } };
+}
+
+export interface SearchProductBoostCreateMutationVariables {
+  input: ApiSearchProductBoostCreateInput;
+}
+
+export interface SearchProductBoostUpdateMutationData {
+  listingMutation: { search: { productBoostUpdate: ApiSearchProductBoostPayload } };
+}
+
+export interface SearchProductBoostUpdateMutationVariables {
+  input: ApiSearchProductBoostUpdateInput;
 }
 
 export interface SearchProductBoostEditorQueryData {
