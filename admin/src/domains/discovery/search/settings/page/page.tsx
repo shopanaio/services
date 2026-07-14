@@ -118,15 +118,26 @@ export default function SearchSettingsPage() {
     }
 
     const settings = query.settings;
-    reset(
-      settings
-        ? mapSearchSettingsToFormValues(settings)
-        : INITIAL_SEARCH_SETTINGS_FORM_VALUES,
-    );
+    if (!settings) {
+      setBaselineSettings(null);
+      return;
+    }
+
+    reset(mapSearchSettingsToFormValues(settings));
     setBaselineSettings(settings);
     hydratedRef.current = true;
     void trigger();
   }, [mutation.loading, query.error, query.hasLoaded, query.settings, reset, trigger]);
+
+  useEffect(() => {
+    if (!query.hasLoaded || query.error || query.loading || query.settings) return;
+
+    const timeout = window.setTimeout(() => {
+      void query.refetch();
+    }, 1000);
+
+    return () => window.clearTimeout(timeout);
+  }, [query.error, query.hasLoaded, query.loading, query.refetch, query.settings]);
 
   useEffect(() => {
     if (
@@ -143,13 +154,9 @@ export default function SearchSettingsPage() {
     try {
       const result = await query.refetch();
       const settings = result.data?.listingQuery.search.settings ?? null;
-      reset(
-        settings
-          ? mapSearchSettingsToFormValues(settings)
-          : INITIAL_SEARCH_SETTINGS_FORM_VALUES,
-      );
+      if (settings) reset(mapSearchSettingsToFormValues(settings));
       setBaselineSettings(settings);
-      hydratedRef.current = true;
+      hydratedRef.current = Boolean(settings);
       setApiErrors([]);
       setVersionConflict(false);
       void trigger();
@@ -172,7 +179,7 @@ export default function SearchSettingsPage() {
 
   const submit = useCallback(
     async (values: SearchSettingsFormValues) => {
-      if (!query.hasLoaded || query.error || versionConflict) return;
+      if (!query.hasLoaded || query.error || versionConflict || !baselineSettings) return;
 
       const mapping = mapSearchSettingsFormToOperations(values);
       const fingerprint = JSON.stringify(values);
@@ -180,7 +187,7 @@ export default function SearchSettingsPage() {
       setSubmittedFingerprint(fingerprint);
 
       const result = await mutation.updateSearchSettings(
-        baselineSettings?.version ?? 0,
+        baselineSettings.version,
         mapping.operations,
       );
 
@@ -227,15 +234,16 @@ export default function SearchSettingsPage() {
   );
 
   const initialLoading = query.loading && !query.hasLoaded;
-  const initializing = query.hasLoaded && !query.error && baselineSettings === null;
+  const waitingForSettings = query.hasLoaded && !query.error && query.settings === null;
   const saveDisabled =
     !query.hasLoaded ||
     Boolean(query.error) ||
     query.loading ||
     mutation.loading ||
+    !baselineSettings ||
     !isValid ||
     versionConflict ||
-    (!initializing && !isDirty);
+    !isDirty;
 
   return (
     <DataLayout name="search-settings">
@@ -255,7 +263,7 @@ export default function SearchSettingsPage() {
             onClick={handleSubmit(submit, handleInvalid)}
             data-testid="discovery-settings-save-button"
           >
-            {initializing ? "Initialize search" : "Save changes"}
+            Save changes
           </Button>
         </DataLayout.HeaderActions>
       </DataLayout.Header>
@@ -282,7 +290,7 @@ export default function SearchSettingsPage() {
             apiErrors={apiErrors}
             loading={initialLoading}
             queryError={query.error}
-            initializing={initializing}
+            waitingForSettings={waitingForSettings}
             updatedAt={baselineSettings?.updatedAt ?? null}
             onRetry={retryQuery}
           />

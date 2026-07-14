@@ -1,8 +1,5 @@
 import { test } from '@fixtures/base.extend';
-import type { ApiFixtures } from '@fixtures/api/api';
 import { expect, type Locator, type Page } from '@playwright/test';
-
-type Api = ApiFixtures['api'];
 
 async function signIn(page: Page, email: string, password: string) {
   await page.goto('/sign-in');
@@ -27,33 +24,6 @@ async function completeProfileIfNeeded(page: Page) {
   await expect(firstNameInput).toBeHidden();
 }
 
-async function configureInitialSearchSettings(api: Api) {
-  const { data } = await api.admin.mutation('listing-api/ListingSearchSettingsUpdate', {
-    variables: {
-      expectedVersion: 0,
-      operations: {
-        settings: {
-          fields: [
-            { field: 'PRODUCT_TITLE', weight: 8 },
-            { field: 'VENDOR_NAME', weight: 2 },
-          ],
-          typoToleranceEnabled: false,
-          outOfStockPolicy: 'SHOW',
-        },
-      },
-    },
-  });
-
-  const result = data.listingMutation.search.settingsUpdate;
-  expect(result.userErrors).toHaveLength(0);
-  expect(result.operationResults).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ type: 'SETTINGS_UPDATE', applied: true, errors: [] }),
-    ]),
-  );
-  expect(result.settings?.version).toBe(1);
-}
-
 async function expectWeight(input: Locator, expected: number) {
   await expect.poll(async () => Number(await input.inputValue())).toBe(expected);
 }
@@ -66,7 +36,6 @@ test.describe('Admin search settings UI', () => {
     await api.session.setupUser();
     const organization = await api.session.setupOrganization();
     await api.session.setupProject();
-    await configureInitialSearchSettings(api);
 
     const settingsUrl = `/${organization.name}/${api.session.projectSlug}/search/settings`;
 
@@ -92,18 +61,18 @@ test.describe('Admin search settings UI', () => {
       name: 'Show after available products',
     });
 
-    await expect(productTitleSwitch).toBeChecked();
-    await expect(variantTitleSwitch).not.toBeChecked();
+    await expect(productTitleSwitch).toBeChecked({ timeout: 30_000 });
+    await expect(variantTitleSwitch).toBeChecked();
     await expect(vendorNameSwitch).toBeChecked();
-    await expect(categoryNameSwitch).not.toBeChecked();
+    await expect(categoryNameSwitch).toBeChecked();
     await expectWeight(productTitleWeight, 8);
     await expect(typoTolerance).not.toBeChecked();
     await expect(page.getByRole('radio', { name: 'Show in relevance order' })).toBeChecked();
 
     await productTitleWeight.fill('9.5');
-    await variantTitleSwitch.click();
     await variantTitleWeight.fill('4.25');
     await vendorNameSwitch.click();
+    await categoryNameSwitch.click();
     await typoTolerance.click();
     await placeLastPolicy.click();
 

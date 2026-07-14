@@ -32,9 +32,6 @@ const useStyles = createStyles(({ token }) => ({
     marginTop: -token.marginXS,
     marginBottom: token.marginLG,
   },
-  initialize: {
-    marginBottom: token.marginLG,
-  },
   tableHeader: {
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr) 120px",
@@ -97,7 +94,7 @@ interface SearchSettingsPaperProps {
   apiErrors: MappedSearchSettingsError[];
   loading: boolean;
   queryError: Error | null;
-  initializing: boolean;
+  waitingForSettings: boolean;
   updatedAt: string | null;
   onRetry: () => void;
 }
@@ -115,7 +112,7 @@ export function SearchSettingsPaper({
   apiErrors,
   loading,
   queryError,
-  initializing,
+  waitingForSettings,
   updatedAt,
   onRetry,
 }: SearchSettingsPaperProps) {
@@ -148,17 +145,16 @@ export function SearchSettingsPaper({
           description={queryError.message}
           action={<Button onClick={onRetry}>Retry</Button>}
         />
+      ) : waitingForSettings ? (
+        <Alert
+          type="info"
+          showIcon
+          message="Search settings are being prepared."
+          description="This normally takes only a moment after the store is created."
+          action={<Button onClick={onRetry}>Check again</Button>}
+        />
       ) : (
         <>
-          {initializing ? (
-            <div className={styles.initialize}>
-              <Typography.Title level={5}>Search is not configured</Typography.Title>
-              <Typography.Text type="secondary">
-                Set the initial searchable fields, typo tolerance, and inventory policy.
-              </Typography.Text>
-            </div>
-          ) : null}
-
           {globalErrors.length ? (
             <Alert
               role="alert"
