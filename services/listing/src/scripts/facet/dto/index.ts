@@ -4,6 +4,7 @@ import type {
   FacetValue,
   FacetSwatch,
 } from "../../../repositories/models/index.js";
+import type { FacetScopeType } from "../../../repositories/facet/facetScopes.js";
 
 export interface FacetCreateSourceInput {
   handle: string;
@@ -25,6 +26,7 @@ export interface FacetCreateParams {
   lexoRank?: string;
   sources?: FacetCreateSourceInput[];
   valueCandidates?: FacetCreateValueCandidateInput[];
+  scopes?: FacetScopeType[];
 }
 
 export interface FacetUpdateParams {
@@ -34,6 +36,7 @@ export interface FacetUpdateParams {
   uiType?: string;
   selectionMode?: string;
   lexoRank?: string;
+  scopes?: FacetScopeType[];
 }
 
 export interface FacetDeleteParams {

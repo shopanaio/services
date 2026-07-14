@@ -50,6 +50,10 @@ export class FacetResolver extends ListingType<string, Facet> {
     return ((await this.$get("selectionMode")) ?? "multi").toUpperCase();
   }
 
+  async scopes() {
+    return this.$ctx.loaders.facetScopes.load(this.$props);
+  }
+
   async lexoRank() {
     return (await this.$get("lexoRank")) ?? "";
   }

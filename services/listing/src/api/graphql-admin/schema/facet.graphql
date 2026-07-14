@@ -19,6 +19,17 @@ enum FacetSelectionMode {
   MULTI
 }
 
+"""
+Listing contexts where a facet is available.
+
+SEARCH applies to listing requests without a category context.
+CATEGORY applies to every category-scoped listing request.
+"""
+enum FacetScopeType {
+  SEARCH
+  CATEGORY
+}
+
 enum FacetValueKind {
   SOURCE
   GROUP
@@ -40,6 +51,7 @@ type Facet implements Node {
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
+  scopes: [FacetScopeType!]!
   lexoRank: String!
   sources: [FacetSource!]!
   values: [FacetValue!]!
@@ -141,6 +153,8 @@ input FacetCreateInput {
   label: String!
   sources: [FacetCreateSourceInput!]
   valueCandidates: [FacetCreateValueCandidateInput!]
+  """Defaults to both SEARCH and CATEGORY when omitted."""
+  scopes: [FacetScopeType!]
 }
 
 input FacetUpdateInput {
@@ -149,6 +163,8 @@ input FacetUpdateInput {
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
   label: String
+  """Replaces the current scopes when provided. The list cannot be empty."""
+  scopes: [FacetScopeType!]
 }
 
 input FacetDeleteInput {

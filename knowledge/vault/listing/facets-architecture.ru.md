@@ -17,6 +17,12 @@ universal variant terms, typed price index, sort/search rows и mapping
 variant-to-product. Storefront query собирает page, total, counts и virtual
 facets из одного canonical contract.
 
+Admin GraphQL contract публикует `Facet.scopes: [FacetScopeType!]!`, где
+`SEARCH` включает facet в listing без category context, а `CATEGORY` — во все
+category-scoped listings. `FacetCreateInput.scopes` при отсутствии сохраняет
+оба scope; `FacetUpdateInput.scopes` при отсутствии не меняет scopes. Переданный
+список полностью заменяет текущее множество и не может быть пустым.
+
 `available` имеет три режима:
 
 ```text

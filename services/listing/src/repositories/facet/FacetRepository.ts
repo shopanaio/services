@@ -34,7 +34,10 @@ import {
   type NewFacetValue,
   type FacetTranslation,
 } from "../models/index.js";
-import type { FacetScopeType } from "./facetScopes.js";
+import {
+  isFacetScopeType,
+  type FacetScopeType,
+} from "./facetScopes.js";
 
 export type {
   FacetSourceCandidateConnectionResult,
@@ -115,7 +118,7 @@ function normalizeFacetScopes(
   const normalized = new Set<FacetScopeType>();
 
   for (const scope of scopes) {
-    if (scope === "SEARCH" || scope === "CATEGORY") {
+    if (isFacetScopeType(scope)) {
       normalized.add(scope);
       continue;
     }

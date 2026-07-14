@@ -7,6 +7,7 @@ import type {
   FacetCreateValueCandidateInput,
   FacetResult,
 } from "./dto/index.js";
+import { validateFacetScopes } from "./facetScopeValidation.js";
 
 const ALLOWED_TYPES = new Set(["PRICE", "TAG", "FEATURE", "OPTION", "IN_STOCK"]);
 const UI_BY_TYPE: Record<string, string[]> = {
@@ -52,6 +53,11 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
         facet: undefined,
         userErrors: [{ message: "Invalid facet type", field: ["facetType"], code: "INVALID" }],
       };
+    }
+
+    const scopesError = validateFacetScopes(params.scopes);
+    if (scopesError) {
+      return { facet: undefined, userErrors: [scopesError] };
     }
 
     if (!params.label || params.label.trim() === "") {
@@ -278,6 +284,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       selectionMode: params.selectionMode,
       lexoRank: params.lexoRank,
       sources: uniqueSelectedSources,
+      scopes: params.scopes,
     });
 
     if (valueCandidates.length > 0) {

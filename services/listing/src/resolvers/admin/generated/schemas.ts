@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, SearchConfigurationDeleteInput, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostCreateInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostUpdateInput, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupCreateInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupUpdateInput, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
+import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetScopeType, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, SearchConfigurationDeleteInput, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostCreateInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostUpdateInput, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupCreateInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupUpdateInput, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -14,6 +14,8 @@ export const definedNonNullAnySchema = z.any().refine((v) => isDefinedNonNullAny
 export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
+
+export const FacetScopeTypeSchema = z.nativeEnum(FacetScopeType);
 
 export const FacetSelectionModeSchema = z.nativeEnum(FacetSelectionMode);
 
@@ -92,6 +94,7 @@ export function FacetCreateInputSchema(): z.ZodObject<Properties<FacetCreateInpu
   return z.object({
     facetType: FacetTypeSchema,
     label: z.string(),
+    scopes: z.array(FacetScopeTypeSchema).nullish(),
     selectionMode: FacetSelectionModeSchema.nullish(),
     slug: z.string(),
     sources: z.array(z.lazy(() => FacetCreateSourceInputSchema())).nullish(),
@@ -187,6 +190,7 @@ export function FacetUpdateInputSchema(): z.ZodObject<Properties<FacetUpdateInpu
   return z.object({
     id: z.string(),
     label: z.string().nullish(),
+    scopes: z.array(FacetScopeTypeSchema).nullish(),
     selectionMode: FacetSelectionModeSchema.nullish(),
     slug: z.string().nullish(),
     uiType: FacetUiTypeSchema.nullish()

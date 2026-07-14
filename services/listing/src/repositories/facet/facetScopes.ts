@@ -4,7 +4,13 @@ type FacetListingScope =
   | { kind: "category"; categoryId: string }
   | { kind: "search" };
 
-export type FacetScopeType = "SEARCH" | "CATEGORY";
+export const FACET_SCOPE_TYPES = ["SEARCH", "CATEGORY"] as const;
+
+export type FacetScopeType = (typeof FACET_SCOPE_TYPES)[number];
+
+export function isFacetScopeType(value: string): value is FacetScopeType {
+  return (FACET_SCOPE_TYPES as readonly string[]).includes(value);
+}
 
 export function compileEligibleFacetIdsSql(input: {
   storeIdSql: SQL;

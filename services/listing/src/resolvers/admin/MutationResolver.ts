@@ -27,6 +27,7 @@ import type {
   FacetValueUnmergeResult,
   FacetValueUpdateParams,
 } from "../../scripts/facet/dto/index.js";
+import type { FacetScopeType } from "../../repositories/facet/facetScopes.js";
 import { ListingType } from "./ListingType.js";
 
 function safeDecodeGlobalId(
@@ -142,6 +143,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
         label: string;
         sourceHandle: string;
       }> | null;
+      scopes?: FacetScopeType[] | null;
     };
   }) {
     const result = await this.runFacetMutationWorkflow<
@@ -162,6 +164,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
         label: candidate.label,
         sourceHandle: candidate.sourceHandle,
       })),
+      scopes: args.input.scopes ?? undefined,
     }, "facetCreate", args.input.slug);
 
     return {
@@ -177,6 +180,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       label?: string | null;
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
+      scopes?: FacetScopeType[] | null;
     };
   }) {
     const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Facet);
@@ -192,6 +196,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       label: args.input.label ?? undefined,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
+      scopes: args.input.scopes ?? undefined,
     });
 
     return {

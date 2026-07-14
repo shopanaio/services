@@ -2992,6 +2992,7 @@ export type ApiFacet = ApiNode & {
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   lexoRank: Scalars['String']['output'];
+  scopes: Array<FacetScopeType>;
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
   sources: Array<ApiFacetSource>;
@@ -3002,6 +3003,8 @@ export type ApiFacet = ApiNode & {
 export type ApiFacetCreateInput = {
   facetType: FacetType;
   label: Scalars['String']['input'];
+  /** Defaults to both SEARCH and CATEGORY when omitted. */
+  scopes?: InputMaybe<Array<FacetScopeType>>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
   sources?: InputMaybe<Array<ApiFacetCreateSourceInput>>;
@@ -3057,6 +3060,16 @@ export type ApiFacetRebalancePayload = {
   facets: Array<ApiFacet>;
   userErrors: Array<ApiGenericUserError>;
 };
+
+/**
+ * Listing contexts where a facet is available.
+ *
+ * SEARCH applies to listing requests without a category context.
+ * CATEGORY applies to every category-scoped listing request.
+ */
+export type FacetScopeType =
+  | 'CATEGORY'
+  | 'SEARCH';
 
 export type FacetSelectionMode =
   | 'MULTI'
@@ -3201,6 +3214,8 @@ export type FacetUiType =
 export type ApiFacetUpdateInput = {
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
+  /** Replaces the current scopes when provided. The list cannot be empty. */
+  scopes?: InputMaybe<Array<FacetScopeType>>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
   uiType?: InputMaybe<FacetUiType>;

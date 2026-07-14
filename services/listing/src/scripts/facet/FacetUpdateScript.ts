@@ -1,6 +1,7 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import { isValidSlug } from "../shared/slug.js";
 import type { FacetResult, FacetUpdateParams } from "./dto/index.js";
+import { validateFacetScopes } from "./facetScopeValidation.js";
 
 const UI_BY_TYPE: Record<string, string[]> = {
   PRICE: ["range", "checkbox", "radio", "dropdown"],
@@ -23,6 +24,11 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
         facet: undefined,
         userErrors: [{ message: "Facet not found", field: ["id"], code: "NOT_FOUND" }],
       };
+    }
+
+    const scopesError = validateFacetScopes(params.scopes);
+    if (scopesError) {
+      return { facet: undefined, userErrors: [scopesError] };
     }
 
     if (params.slug !== undefined) {
@@ -60,6 +66,7 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
       uiType: params.uiType,
       selectionMode: params.selectionMode,
       lexoRank: params.lexoRank,
+      scopes: params.scopes,
     });
 
     return { facet: facet ?? undefined, userErrors: [] };

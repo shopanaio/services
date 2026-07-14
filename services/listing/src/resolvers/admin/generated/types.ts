@@ -413,6 +413,7 @@ export type Facet = Node & {
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   lexoRank: Scalars['String']['output'];
+  scopes: Array<FacetScopeType>;
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
   sources: Array<FacetSource>;
@@ -423,6 +424,8 @@ export type Facet = Node & {
 export type FacetCreateInput = {
   facetType: FacetType;
   label: Scalars['String']['input'];
+  /** Defaults to both SEARCH and CATEGORY when omitted. */
+  scopes?: InputMaybe<Array<FacetScopeType>>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
   sources?: InputMaybe<Array<FacetCreateSourceInput>>;
@@ -478,6 +481,17 @@ export type FacetRebalancePayload = {
   facets: Array<Facet>;
   userErrors: Array<GenericUserError>;
 };
+
+/**
+ * Listing contexts where a facet is available.
+ *
+ * SEARCH applies to listing requests without a category context.
+ * CATEGORY applies to every category-scoped listing request.
+ */
+export enum FacetScopeType {
+  Category = 'CATEGORY',
+  Search = 'SEARCH'
+}
 
 export enum FacetSelectionMode {
   Multi = 'MULTI',
@@ -626,6 +640,8 @@ export enum FacetUiType {
 export type FacetUpdateInput = {
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
+  /** Replaces the current scopes when provided. The list cannot be empty. */
+  scopes?: InputMaybe<Array<FacetScopeType>>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
   uiType?: InputMaybe<FacetUiType>;
@@ -2204,6 +2220,7 @@ export type ResolversTypes = ResolversObject<{
   FacetMovePayload: ResolverTypeWrapper<FacetMovePayload>;
   FacetRebalanceInput: FacetRebalanceInput;
   FacetRebalancePayload: ResolverTypeWrapper<FacetRebalancePayload>;
+  FacetScopeType: FacetScopeType;
   FacetSelectionMode: FacetSelectionMode;
   FacetSource: ResolverTypeWrapper<FacetSource>;
   FacetSourceCandidate: ResolverTypeWrapper<FacetSourceCandidate>;
@@ -2467,6 +2484,7 @@ export type FacetResolvers<ContextType = ServiceContext, ParentType extends Reso
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   lexoRank?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  scopes?: Resolver<Array<ResolversTypes['FacetScopeType']>, ParentType, ContextType>;
   selectionMode?: Resolver<ResolversTypes['FacetSelectionMode'], ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   sources?: Resolver<Array<ResolversTypes['FacetSource']>, ParentType, ContextType>;
