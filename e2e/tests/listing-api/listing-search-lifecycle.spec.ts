@@ -79,7 +79,7 @@ test.describe('Listing and search lifecycle', () => {
       'listing-api/ListingSearchSettingsUpdate',
       {
         variables: {
-          expectedVersion: 0,
+          expectedVersion: 1,
           operations: {
             settings: {
               fields: [{ field: 'PRODUCT_TITLE', weight: 10 }],
@@ -90,7 +90,21 @@ test.describe('Listing and search lifecycle', () => {
         },
       },
     );
-    expect(settingsData.listingMutation.search.settingsUpdate.userErrors).toHaveLength(0);
+    const settingsUpdate = settingsData.listingMutation.search.settingsUpdate;
+    expect(settingsUpdate.userErrors).toHaveLength(0);
+    expect(settingsUpdate.settings).toMatchObject({
+      version: 2,
+      fields: [{ field: 'PRODUCT_TITLE', weight: 10 }],
+      typoToleranceEnabled: true,
+      outOfStockPolicy: 'PLACE_LAST',
+    });
+    expect(settingsUpdate.operationResults).toEqual([
+      expect.objectContaining({
+        type: 'SETTINGS_UPDATE',
+        applied: true,
+        errors: [],
+      }),
+    ]);
 
     await createSourceProducts(api, unique, facets);
     const createdFacets = await createOptionFacets(api, facets);
