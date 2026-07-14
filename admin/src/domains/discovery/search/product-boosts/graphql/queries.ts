@@ -13,6 +13,7 @@ export const SEARCH_PRODUCT_BOOSTS_QUERY = gql`
     $before: String
     $where: SearchProductBoostWhereInput
     $orderBy: [SearchProductBoostOrderByInput!]
+    $meta: SearchProductBoostsMetaInput
   ) {
     listingQuery {
       search {
@@ -23,6 +24,7 @@ export const SEARCH_PRODUCT_BOOSTS_QUERY = gql`
           before: $before
           where: $where
           orderBy: $orderBy
+          meta: $meta
         ) {
           edges {
             cursor

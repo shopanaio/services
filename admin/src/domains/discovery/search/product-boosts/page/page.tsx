@@ -139,6 +139,7 @@ export default function ProductBoostsPage() {
       pageConfig.before,
       pageConfig.where,
       pageConfig.orderBy,
+      pageConfig.filters,
     ],
   );
   const { productBoosts, totalCount, pageInfo, loading, error, refetch } =

@@ -10,9 +10,11 @@ import {
   createGraphqlStringFilterTransformer,
 } from "@/layouts/filters";
 import type {
+  ApiSearchProductBoostsMetaInput,
   ApiSearchProductBoostOrderByInput,
   ApiSearchProductBoostWhereInput,
 } from "@/graphql/types";
+import type { IFilterValue } from "@/layouts/filters/core/types";
 import { SearchProductBoostOrderField } from "@/graphql/types";
 import type { SearchProductBoostsQueryVariables } from "../graphql/operation-types";
 
@@ -58,6 +60,7 @@ export const productBoostFilterTransformers: Record<
     createGraphqlIntFilterTransformer<ApiSearchProductBoostWhereInput>(
       "productsCount",
     ),
+  productIds: () => null,
   updatedAt:
     createGraphqlDateTimeRangeFilterTransformer<ApiSearchProductBoostWhereInput>(
       "updatedAt",
@@ -70,7 +73,7 @@ export function buildProductBoostsQueryVariables(
       ApiSearchProductBoostWhereInput,
       SearchProductBoostOrderField
     >,
-    "first" | "after" | "last" | "before" | "where" | "orderBy"
+    "first" | "after" | "last" | "before" | "where" | "orderBy" | "filters"
   >,
 ): SearchProductBoostsQueryVariables {
   return {
@@ -81,5 +84,17 @@ export function buildProductBoostsQueryVariables(
     where: pageConfig.where ?? null,
     orderBy: (pageConfig.orderBy ??
       null) as ApiSearchProductBoostOrderByInput[] | null,
+    meta: buildProductBoostsMeta(pageConfig.filters),
   };
+}
+
+function buildProductBoostsMeta(
+  filters: IFilterValue[],
+): ApiSearchProductBoostsMetaInput | null {
+  const productIds = filters
+    .filter((filter) => filter.payloadKey === "productIds")
+    .flatMap((filter) => Array.isArray(filter.value) ? filter.value : [filter.value])
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  return productIds.length > 0 ? { productIds: [...new Set(productIds)] } : null;
 }

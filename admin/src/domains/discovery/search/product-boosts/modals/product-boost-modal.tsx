@@ -46,6 +46,7 @@ import { hasVersionConflict, mapSearchEditorErrors } from "../../mappers";
 import type { IProductBoostModalPayload } from "../../modals";
 import {
   useCreateProductBoost,
+  useDeleteProductBoost,
   useProductBoost,
   useUpdateProductBoost,
 } from "../hooks";
@@ -141,7 +142,8 @@ export function ProductBoostModal() {
   const detailQuery = useProductBoost(typedPayload.entityId, !isEdit);
   const { createProductBoost, loading: creating } = useCreateProductBoost();
   const { updateProductBoost, loading: updating } = useUpdateProductBoost();
-  const saving = creating || updating;
+  const { deleteProductBoost, loading: deleting } = useDeleteProductBoost();
+  const saving = creating || updating || deleting;
   const [globalErrors, setGlobalErrors] = useState<string[]>([]);
   const [versionConflict, setVersionConflict] = useState(false);
   const phraseInputRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -360,6 +362,33 @@ export function ProductBoostModal() {
     setGlobalErrors([]);
   }, [contextQuery, detailQuery, isDirty, isEdit, modal]);
 
+  const handleDelete = useCallback(async () => {
+    const current = detailQuery.productBoost;
+    if (!current) return;
+
+    const confirmed = await modal.confirm({
+      title: "Delete product boost?",
+      content: current.name,
+      okText: "Delete",
+      okButtonProps: { danger: true },
+    });
+    if (!confirmed) return;
+
+    const result = await deleteProductBoost({
+      id: current.id,
+      expectedVersion: current.version,
+    });
+    if (result.userErrors.length > 0) {
+      message.error(result.userErrors[0].message);
+      return;
+    }
+
+    await typedPayload.onSaved?.();
+    setDirty(false);
+    message.success("Product boost deleted");
+    forcePop();
+  }, [deleteProductBoost, detailQuery.productBoost, forcePop, message, modal, setDirty, typedPayload]);
+
   const title = isEdit ? "Edit product boost" : "New product boost";
   const submitLabel = isEdit ? "Save" : "Create";
   const submitDisabled =
@@ -404,6 +433,7 @@ export function ProductBoostModal() {
             disabled: submitDisabled,
             onClick: handleSubmit(onSubmit),
           }}
+          extra={isEdit ? <Button danger size="small" loading={deleting} data-testid="product-boost-delete-button" onClick={handleDelete}>Delete</Button> : null}
         />
       }
     >

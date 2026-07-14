@@ -4,11 +4,13 @@ import type {
   ApiSearchSettings,
   ApiSearchProductBoost,
   ApiSearchProductBoostConnection,
+  ApiSearchProductBoostsMetaInput,
   ApiSearchProductBoostOrderByInput,
   ApiSearchProductBoostCreateInput,
   ApiSearchProductBoostPayload,
   ApiSearchProductBoostUpdateInput,
   ApiSearchProductBoostWhereInput,
+  ApiSearchConfigurationDeleteInput,
 } from "@/graphql/types";
 
 export interface SearchProductBoostsQueryData {
@@ -35,6 +37,14 @@ export interface SearchProductBoostUpdateMutationVariables {
   input: ApiSearchProductBoostUpdateInput;
 }
 
+export interface SearchProductBoostDeleteMutationData {
+  listingMutation: { search: { productBoostDelete: ApiSearchProductBoostPayload } };
+}
+
+export interface SearchProductBoostDeleteMutationVariables {
+  input: ApiSearchConfigurationDeleteInput;
+}
+
 export interface SearchProductBoostEditorQueryData {
   listingQuery: Pick<ApiListingQuery, "search"> & {
     search: Pick<ApiListingSearchQuery, "settings" | "productBoost"> & {
@@ -55,4 +65,5 @@ export interface SearchProductBoostsQueryVariables {
   before?: string | null;
   where?: ApiSearchProductBoostWhereInput | null;
   orderBy?: ApiSearchProductBoostOrderByInput[] | null;
+  meta?: ApiSearchProductBoostsMetaInput | null;
 }

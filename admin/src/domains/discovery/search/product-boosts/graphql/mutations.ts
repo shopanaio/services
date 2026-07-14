@@ -40,3 +40,22 @@ export const SEARCH_PRODUCT_BOOST_UPDATE_MUTATION = gql`
   }
   ${SEARCH_PRODUCT_BOOST_EDITOR_FRAGMENT}
 `;
+
+export const SEARCH_PRODUCT_BOOST_DELETE_MUTATION = gql`
+  mutation SearchProductBoostDelete($input: SearchConfigurationDeleteInput!) {
+    listingMutation {
+      search {
+        productBoostDelete(input: $input) {
+          productBoost {
+            id
+          }
+          userErrors {
+            code
+            field
+            message
+          }
+        }
+      }
+    }
+  }
+`;

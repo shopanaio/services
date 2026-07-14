@@ -48,6 +48,15 @@ export const filterSchema: IFilterSchema[] = [
     payloadKey: "phrasesCount",
   },
   {
+    key: "productIds",
+    label: "Product",
+    description: "Filter by boosted product",
+    type: FilterType.Relation,
+    operators: [FilterOperator.In],
+    payloadKey: "productIds",
+    entity: "product",
+  },
+  {
     key: "productsCount",
     label: "Products",
     description: "Filter by boosted product count",
