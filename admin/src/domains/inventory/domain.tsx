@@ -19,7 +19,7 @@ registerDomain({
   sidebar: {
     label: "Inventory",
     icon: <AppstoreOutlined />,
-    order: 2,
+    order: 3,
   },
   sidebarRuntime: InventorySidebarConfigLoader,
 });

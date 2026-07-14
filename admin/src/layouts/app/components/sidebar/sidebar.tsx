@@ -145,6 +145,7 @@ const useStyles = createStyles(
       transition: width 0.2s ease;
       background: transparent;
       flex: 1;
+      padding-bottom: 200px;
       width: ${collapsed
         ? `calc(100% - ${token.paddingXS}px)`
         : `calc(100% - ${token.padding}px)`};
@@ -181,22 +182,25 @@ export const Sidebar = () => {
 
   useEffect(() => {
     const parentKey = matchedItem?.parentKey;
-
-    if (parentKey === lastMatchedParentKeyRef.current) {
-      return;
-    }
+    const parentChanged = parentKey !== lastMatchedParentKeyRef.current;
 
     lastMatchedParentKeyRef.current = parentKey;
 
-    if (!parentKey || openKeys.includes(parentKey)) {
+    if (parentChanged && parentKey) {
+      if (openKeys.length !== 1 || openKeys[0] !== parentKey) {
+        setOpenKeys([parentKey]);
+      }
       return;
     }
 
-    setOpenKeys([...openKeys, parentKey]);
+    if (openKeys.length > 1) {
+      setOpenKeys([openKeys[openKeys.length - 1]]);
+    }
   }, [matchedItem?.parentKey, openKeys, setOpenKeys]);
 
   const onOpenChange: MenuProps["onOpenChange"] = (keys) => {
-    setOpenKeys(keys);
+    const latestOpenKey = keys.find((key) => !openKeys.includes(key));
+    setOpenKeys(latestOpenKey ? [latestOpenKey] : []);
   };
 
   const onClick: MenuProps["onClick"] = (info) => {

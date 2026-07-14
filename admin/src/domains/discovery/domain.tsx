@@ -8,6 +8,6 @@ registerDomain({
   sidebar: {
     label: "Search & Discovery",
     icon: <CompassOutlined />,
-    order: 3,
+    order: 6,
   },
 });

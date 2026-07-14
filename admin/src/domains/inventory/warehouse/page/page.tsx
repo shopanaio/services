@@ -278,7 +278,7 @@ export default function WarehousePage() {
     <DataLayout
       fullWidth
       name="warehouse"
-      title="Warehouse"
+      title="Locations"
       count={totalCount}
       actions={
         <Button

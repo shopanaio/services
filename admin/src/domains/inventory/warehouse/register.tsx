@@ -2,12 +2,12 @@ import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
 
 registerModule({
-  key: "warehouse",
+  key: "locations",
   domain: "inventory",
   sidebar: {
-    label: "Warehouse",
+    label: "Locations",
     icon: null,
-    order: 1000,
+    order: 2,
   },
   items: [
     {

@@ -5,7 +5,7 @@ import type { SidebarItem } from "@/registry";
 import { useDynamicSidebarStore } from "@/layouts/app/components/sidebar/dynamic-sidebar-store";
 import { useWarehouses } from "@/domains/inventory/warehouse/hooks";
 
-const INVENTORY_SIDEBAR_KEY = "inventory";
+const STOCK_SIDEBAR_KEY = "stock";
 const WAREHOUSES_SIDEBAR_LIMIT = 100;
 
 function getWarehouseLabel(warehouse: {
@@ -22,14 +22,8 @@ export function InventorySidebarConfigLoader() {
   const clearChildren = useDynamicSidebarStore((state) => state.clearChildren);
 
   const warehouseSidebarItems = useMemo<SidebarItem[]>(
-    () => [
-      {
-        key: "inventory-all",
-        label: "All Inventory",
-        order: 1,
-        path: "/:orgName/:storeName/inventory",
-      },
-      ...warehouses.map((warehouse, index) => ({
+    () =>
+      warehouses.map((warehouse, index) => ({
         key: `inventory-warehouse-${warehouse.id}`,
         label: getWarehouseLabel(warehouse),
         order: 10 + index,
@@ -37,17 +31,16 @@ export function InventorySidebarConfigLoader() {
           warehouse.id,
         )}`,
       })),
-    ],
     [warehouses],
   );
 
   useEffect(() => {
-    setChildren(INVENTORY_SIDEBAR_KEY, warehouseSidebarItems);
+    setChildren(STOCK_SIDEBAR_KEY, warehouseSidebarItems);
   }, [setChildren, warehouseSidebarItems]);
 
   useEffect(
     () => () => {
-      clearChildren(INVENTORY_SIDEBAR_KEY);
+      clearChildren(STOCK_SIDEBAR_KEY);
     },
     [clearChildren],
   );

@@ -1,13 +1,13 @@
 import { AppLayout } from "@/layouts/app/components/layout/layout";
 import { registerDomain } from "@/registry";
-import { GlobalOutlined } from "@ant-design/icons";
+import { MessageOutlined } from "@ant-design/icons";
 
 registerDomain({
-  key: "website",
+  key: "customer-content",
   layout: AppLayout,
   sidebar: {
-    label: "Website",
-    icon: <GlobalOutlined />,
-    order: 7,
+    label: "Customer Content",
+    icon: <MessageOutlined />,
+    order: 5,
   },
 });

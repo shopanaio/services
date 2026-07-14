@@ -1,14 +1,51 @@
 import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
-import { PictureOutlined } from "@ant-design/icons";
 
 registerModule({
-  key: "files",
-  domain: "media",
+  key: "website-pages",
+  domain: "website",
   sidebar: {
-    label: "Files",
+    label: "Pages",
     icon: null,
     order: 1,
+  },
+  items: [
+    {
+      key: "website-pages-list",
+      path: "/:orgName/:storeName/pages",
+      component: dynamic(
+        () => import("@/domains/media/website-pages/page/page"),
+      ),
+    },
+  ],
+});
+
+registerModule({
+  key: "website-navigation",
+  domain: "website",
+  sidebar: {
+    label: "Navigation",
+    icon: null,
+    order: 2,
+  },
+  items: [
+    {
+      key: "website-navigation-list",
+      path: "/:orgName/:storeName/navigation",
+      component: dynamic(
+        () => import("@/domains/media/navigation/page/page"),
+      ),
+    },
+  ],
+});
+
+registerModule({
+  key: "website-media",
+  domain: "website",
+  sidebar: {
+    label: "Media",
+    icon: null,
+    order: 3,
   },
   items: [
     {
