@@ -40,3 +40,22 @@ export const SEARCH_SYNONYM_GROUP_UPDATE_MUTATION = gql`
   }
   ${SEARCH_SYNONYM_GROUP_EDITOR_FRAGMENT}
 `;
+
+export const SEARCH_SYNONYM_GROUP_DELETE_MUTATION = gql`
+  mutation SearchSynonymGroupDelete($input: SearchConfigurationDeleteInput!) {
+    listingMutation {
+      search {
+        synonymGroupDelete(input: $input) {
+          synonymGroup {
+            id
+          }
+          userErrors {
+            code
+            field
+            message
+          }
+        }
+      }
+    }
+  }
+`;

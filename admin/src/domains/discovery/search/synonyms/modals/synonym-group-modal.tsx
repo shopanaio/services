@@ -38,6 +38,7 @@ import { hasVersionConflict, mapSearchEditorErrors } from "../../mappers";
 import type { ISynonymGroupModalPayload } from "../../modals";
 import {
   useCreateSynonymGroup,
+  useDeleteSynonymGroup,
   useSynonymGroup,
   useUpdateSynonymGroup,
 } from "../hooks";
@@ -105,6 +106,7 @@ export function SynonymGroupModal() {
   const detailQuery = useSynonymGroup(typedPayload.entityId, !isEdit);
   const { createSynonymGroup, loading: creating } = useCreateSynonymGroup();
   const { updateSynonymGroup, loading: updating } = useUpdateSynonymGroup();
+  const { deleteSynonymGroup, loading: deleting } = useDeleteSynonymGroup();
   const saving = creating || updating;
   const [globalErrors, setGlobalErrors] = useState<string[]>([]);
   const [versionConflict, setVersionConflict] = useState(false);
@@ -310,6 +312,33 @@ export function SynonymGroupModal() {
     setGlobalErrors([]);
   }, [contextQuery, detailQuery, isDirty, isEdit, modal]);
 
+  const handleDelete = useCallback(async () => {
+    const current = detailQuery.synonymGroup;
+    if (!current) return;
+
+    const confirmed = await modal.confirm({
+      title: "Delete synonym group?",
+      content: current.name,
+      okText: "Delete",
+      okButtonProps: { danger: true },
+    });
+    if (!confirmed) return;
+
+    const result = await deleteSynonymGroup({
+      id: current.id,
+      expectedVersion: current.version,
+    });
+    if (result.userErrors.length > 0) {
+      message.error(result.userErrors[0].message);
+      return;
+    }
+
+    await typedPayload.onSaved?.();
+    setDirty(false);
+    message.success("Synonym group deleted");
+    forcePop();
+  }, [deleteSynonymGroup, detailQuery.synonymGroup, forcePop, message, modal, setDirty, typedPayload]);
+
   const validPreviewValues = rows.map(({ value }) => value.trim()).filter(Boolean);
   const title = isEdit ? "Edit synonym group" : "New synonym group";
   const submitLabel = isEdit ? "Save" : "Create";
@@ -334,7 +363,7 @@ export function SynonymGroupModal() {
   return (
     <ModalLayout
       name="synonym-group"
-      header={<ModalHeader name="synonym-group" title={title} onClose={pop} submitButtonProps={{ children: submitLabel, loading: saving, disabled: submitDisabled, onClick: handleSubmit(onSubmit) }} />}
+      header={<ModalHeader name="synonym-group" title={title} onClose={pop} submitButtonProps={{ children: submitLabel, loading: saving, disabled: submitDisabled, onClick: handleSubmit(onSubmit) }} extra={isEdit ? <Button danger size="small" loading={deleting} data-testid="synonym-group-delete-button" onClick={handleDelete}>Delete</Button> : null} />}
     >
       {loadError ? <Alert role="alert" type="error" showIcon message={loadError.message} /> : null}
       {globalErrors.length ? <Alert role="alert" type="error" showIcon message="Could not save synonym group" description={globalErrors.join(" ")} /> : null}

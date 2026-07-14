@@ -2,6 +2,7 @@ import type {
   ApiListingQuery,
   ApiListingSearchQuery,
   ApiSearchSettings,
+  ApiSearchConfigurationDeleteInput,
   ApiSearchSynonymGroup,
   ApiSearchSynonymGroupConnection,
   ApiSearchSynonymGroupOrderByInput,
@@ -33,6 +34,14 @@ export interface SearchSynonymGroupUpdateMutationData {
 
 export interface SearchSynonymGroupUpdateMutationVariables {
   input: ApiSearchSynonymGroupUpdateInput;
+}
+
+export interface SearchSynonymGroupDeleteMutationData {
+  listingMutation: { search: { synonymGroupDelete: ApiSearchSynonymGroupPayload } };
+}
+
+export interface SearchSynonymGroupDeleteMutationVariables {
+  input: ApiSearchConfigurationDeleteInput;
 }
 
 export interface SearchSynonymGroupEditorQueryData {

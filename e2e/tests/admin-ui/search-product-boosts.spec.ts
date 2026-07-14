@@ -109,7 +109,11 @@ async function selectLocale(page: Page, modal: Locator, locale: 'en' | 'uk') {
   const label = locale === 'en' ? 'English (en)' : 'Ukrainian (uk)';
 
   await modal.locator('#product-boost-locale').click();
-  await page.getByRole('option', { name: label }).click();
+  await page
+    .locator('.ant-select-dropdown:visible')
+    .locator('.ant-select-item-option')
+    .filter({ hasText: label })
+    .click();
 }
 
 async function selectProductInPicker(
@@ -195,7 +199,7 @@ async function addProductFilter(page: Page, productTitle: string) {
 }
 
 test.describe('Admin search product boosts UI', () => {
-  test.describe.configure({ timeout: 180_000 });
+  test.describe.configure({ timeout: 60_000 });
 
   test('creates, searches, filters, sorts, updates, and deletes product boosts', async ({
     api,
@@ -327,12 +331,7 @@ test.describe('Admin search product boosts UI', () => {
     await boostRow(page, updatedBoost.name).click();
     await expect(editModal).toBeVisible();
     await expect(editModal.locator('#product-boost-name')).toHaveValue(updatedBoost.name);
-    await expect(
-      editModal
-        .locator('.ant-select')
-        .filter({ has: editModal.locator('#product-boost-locale') })
-        .locator('.ant-select-selection-item'),
-    ).toHaveText('Ukrainian (uk)');
+    await expect(editModal.getByText('Ukrainian (uk)', { exact: true })).toBeVisible();
     await expect(editModal.getByRole('switch', { name: 'Enabled' })).not.toBeChecked();
     await expect(editModal.getByRole('textbox', { name: 'Trigger phrase 1' })).toHaveValue(
       updatedBoost.phrases[0],
