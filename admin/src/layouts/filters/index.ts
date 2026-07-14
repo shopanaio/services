@@ -103,6 +103,7 @@ export { useFilters, useFilterState } from './hooks';
 
 // Utils
 export {
+  createGraphqlBooleanFilterTransformer,
   createGraphqlDateTimeRangeFilterTransformer,
   createGraphqlIntFilterTransformer,
   createGraphqlStringFilterTransformer,

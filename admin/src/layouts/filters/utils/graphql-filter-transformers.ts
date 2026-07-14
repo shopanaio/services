@@ -3,9 +3,11 @@ import type { IFilterValue } from "../core/types";
 
 type GraphqlStringOperator = "_eq" | "_neq" | "_contains" | "_containsi";
 type GraphqlIntOperator = "_eq" | "_gt" | "_gte" | "_lt" | "_lte";
+type GraphqlBooleanOperator = "_eq" | "_neq";
 
 type GraphqlStringFilter = Partial<Record<GraphqlStringOperator, string>>;
 type GraphqlIntFilter = Partial<Record<GraphqlIntOperator, number>>;
+type GraphqlBooleanFilter = Partial<Record<GraphqlBooleanOperator, boolean>>;
 type GraphqlDateTimeFilter = Partial<Record<"_gte" | "_lte", string>>;
 
 export type GraphqlFilterTransformer<TWhereInput extends object> = (
@@ -21,6 +23,7 @@ const stringOperators = new Set<string>([
 ]);
 
 const intOperators = new Set<string>(["_eq", "_gt", "_gte", "_lt", "_lte"]);
+const booleanOperators = new Set<string>(["_eq", "_neq"]);
 
 function isEmptyGraphqlFilterValue(value: unknown): boolean {
   if (Array.isArray(value)) {
@@ -102,6 +105,23 @@ function buildGraphqlIntFilter(
   return { [gqlOperator]: numberValue } as GraphqlIntFilter;
 }
 
+function buildGraphqlBooleanFilter(
+  filter: IFilterValue,
+  gqlOperator: string,
+): GraphqlBooleanFilter | null {
+  if (!booleanOperators.has(gqlOperator)) {
+    return null;
+  }
+
+  const value = getFirstGraphqlFilterValue(filter.value);
+
+  if (typeof value !== "boolean") {
+    return null;
+  }
+
+  return { [gqlOperator]: value } as GraphqlBooleanFilter;
+}
+
 function buildGraphqlDateTimeRangeFilter(
   filter: IFilterValue,
 ): GraphqlDateTimeFilter | null {
@@ -140,6 +160,15 @@ export function createGraphqlIntFilterTransformer<TWhereInput extends object>(
 ): GraphqlFilterTransformer<TWhereInput> {
   return (filter, gqlOperator) => {
     const condition = buildGraphqlIntFilter(filter, gqlOperator);
+    return condition ? ({ [fieldName]: condition } as Partial<TWhereInput>) : null;
+  };
+}
+
+export function createGraphqlBooleanFilterTransformer<
+  TWhereInput extends object,
+>(fieldName: string): GraphqlFilterTransformer<TWhereInput> {
+  return (filter, gqlOperator) => {
+    const condition = buildGraphqlBooleanFilter(filter, gqlOperator);
     return condition ? ({ [fieldName]: condition } as Partial<TWhereInput>) : null;
   };
 }
