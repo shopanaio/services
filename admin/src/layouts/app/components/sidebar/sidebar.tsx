@@ -258,6 +258,7 @@ export const Sidebar = () => {
               theme="light"
               mode="inline"
               items={menuItems}
+              expandIcon={() => null}
               openKeys={openKeys}
               onOpenChange={onOpenChange}
               onClick={onClick}
