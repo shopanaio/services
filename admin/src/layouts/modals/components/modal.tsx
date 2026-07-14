@@ -147,6 +147,7 @@ export const ModalStackItem = ({
   const token = useAntdToken();
   const hasChildren = !!children;
   const depth = totalCount - level - 1;
+  const definition = modalStackRegistry.get(type);
 
   const { styles } = useStyles({ hasChildren, depth, totalCount });
 
@@ -156,7 +157,7 @@ export const ModalStackItem = ({
   };
 
   const onPop = async () => {
-    if (isDirty) {
+    if (isDirty && (definition?.confirmOnDirtyClose ?? true)) {
       const result = await modal.confirm({
         icon: null,
         okButtonProps: {
@@ -166,7 +167,9 @@ export const ModalStackItem = ({
           "data-testid": "modal-cancel-leave",
         },
         title: "Unsaved changes",
-        content: "You have unsaved changes. Are you sure you want to leave?",
+        content:
+          definition?.closeConfirmMessage ??
+          "You have unsaved changes. Are you sure you want to leave?",
       });
 
       if (!result) {
@@ -188,8 +191,6 @@ export const ModalStackItem = ({
   const onUpdatePayload = (payload: Record<string, unknown>) => {
     updatePayload(uuid, payload);
   };
-
-  const definition = modalStackRegistry.get(type);
 
   // Let React Compiler handle memoization
   const contextValue: IModalStackContext = {

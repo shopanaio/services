@@ -1,5 +1,9 @@
 import { gql } from "@apollo/client";
-import { SEARCH_PRODUCT_BOOST_LIST_FRAGMENT } from "./fragments";
+import {
+  SEARCH_PRODUCT_BOOST_EDITOR_FRAGMENT,
+  SEARCH_PRODUCT_BOOST_LIST_FRAGMENT,
+} from "./fragments";
+import { SEARCH_SETTINGS_EDITOR_FRAGMENT } from "../../graphql";
 
 export const SEARCH_PRODUCT_BOOSTS_QUERY = gql`
   query SearchProductBoosts(
@@ -38,4 +42,21 @@ export const SEARCH_PRODUCT_BOOSTS_QUERY = gql`
     }
   }
   ${SEARCH_PRODUCT_BOOST_LIST_FRAGMENT}
+`;
+
+export const SEARCH_PRODUCT_BOOST_EDITOR_QUERY = gql`
+  query SearchProductBoostEditor($id: ID!) {
+    listingQuery {
+      search {
+        settings {
+          ...SearchSettingsEditorFields
+        }
+        productBoost(id: $id) {
+          ...SearchProductBoostEditorFields
+        }
+      }
+    }
+  }
+  ${SEARCH_SETTINGS_EDITOR_FRAGMENT}
+  ${SEARCH_PRODUCT_BOOST_EDITOR_FRAGMENT}
 `;

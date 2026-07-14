@@ -71,6 +71,8 @@ export const ModalHeader = ({
   extra = null,
 }: IModalHeaderProps) => {
   const { styles } = useStyles();
+  const { children: submitButtonChildren = "Save", ...submitButtonRest } =
+    submitButtonProps ?? {};
 
   return (
     <div className={styles.header}>
@@ -99,9 +101,9 @@ export const ModalHeader = ({
             data-testid={`submit-${name ? `${name}-` : ""}form-button`}
             size="small"
             type="primary"
-            {...submitButtonProps}
+            {...submitButtonRest}
           >
-            Save
+            {submitButtonChildren}
           </Button>
         )}
       </Flex>

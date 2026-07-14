@@ -1,6 +1,8 @@
 import type {
   ApiListingQuery,
   ApiListingSearchQuery,
+  ApiSearchSettings,
+  ApiSearchProductBoost,
   ApiSearchProductBoostConnection,
   ApiSearchProductBoostOrderByInput,
   ApiSearchProductBoostWhereInput,
@@ -12,6 +14,19 @@ export interface SearchProductBoostsQueryData {
       productBoosts: ApiSearchProductBoostConnection;
     };
   };
+}
+
+export interface SearchProductBoostEditorQueryData {
+  listingQuery: Pick<ApiListingQuery, "search"> & {
+    search: Pick<ApiListingSearchQuery, "settings" | "productBoost"> & {
+      settings?: ApiSearchSettings | null;
+      productBoost?: ApiSearchProductBoost | null;
+    };
+  };
+}
+
+export interface SearchProductBoostEditorQueryVariables {
+  id: string;
 }
 
 export interface SearchProductBoostsQueryVariables {

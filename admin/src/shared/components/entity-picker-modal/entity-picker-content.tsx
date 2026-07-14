@@ -75,6 +75,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
   selectionMode,
   initialSelection,
   excludeIds,
+  maxSelection,
   queryMeta,
   onSelectionChange,
 }: IEntityPickerContentProps<T>) {
@@ -91,6 +92,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
     entityIds: [],
   });
   const [isGridReady, setIsGridReady] = useState(false);
+  const [selectedCount, setSelectedCount] = useState(initialSelection.length);
   const hasSharedPageConfig = Boolean(config.pageConfig);
   const pageConfig = usePageConfig<T, object, string>({
     gridRef,
@@ -206,6 +208,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
       }
 
       selectedIdsRef.current = selectedIds;
+      setSelectedCount(selectedIds.length);
       emitSelectionChange(selectedIds);
     },
     [config, emitSelectionChange, filteredData, selectionMode],
@@ -344,23 +347,45 @@ export function EntityPickerContent<T extends IPickableEntity>({
             rowSelection={{
               mode: selectionMode === "single" ? "singleRow" : "multiRow",
               checkboxes: true,
-              headerCheckbox: selectionMode === "multi",
+              headerCheckbox:
+                selectionMode === "multi" && maxSelection === undefined,
               enableClickSelection: true,
               enableSelectionWithoutKeys: true,
-              isRowSelectable: (node) =>
-                node.data ? !config.isRowDisabled?.(node.data) : false,
+              isRowSelectable: (node) => {
+                if (!node.data || config.isRowDisabled?.(node.data)) return false;
+                const id = config.getRowId(node.data);
+                return (
+                  selectedIdsRef.current.includes(id) ||
+                  maxSelection === undefined ||
+                  selectedCount < maxSelection
+                );
+              },
             }}
             selectionColumnDef={{
               cellStyle: { display: "flex", alignItems: "center" },
+              tooltipValueGetter: (params) => {
+                if (!params.data || maxSelection === undefined) return undefined;
+                const id = config.getRowId(params.data);
+                return selectedCount >= maxSelection &&
+                  !selectedIdsRef.current.includes(id)
+                  ? `Maximum ${maxSelection} selections reached`
+                  : undefined;
+              },
             }}
             suppressCellFocus
             suppressMovableColumns
             onSelectionChanged={handleSelectionChanged}
             onGridReady={handleGridReady}
             onSortChanged={pageConfig.onSortChanged}
-            isRowSelectable={(node) =>
-              node.data ? !config.isRowDisabled?.(node.data) : false
-            }
+            isRowSelectable={(node) => {
+              if (!node.data || config.isRowDisabled?.(node.data)) return false;
+              const id = config.getRowId(node.data);
+              return (
+                selectedIdsRef.current.includes(id) ||
+                maxSelection === undefined ||
+                selectedCount < maxSelection
+              );
+            }}
             getRowStyle={(params): RowStyle =>
               params.data && config.isRowDisabled?.(params.data)
                 ? { cursor: "not-allowed", opacity: 0.58 }

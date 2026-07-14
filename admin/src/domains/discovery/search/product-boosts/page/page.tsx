@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useRef } from "react";
-import { Alert, Flex, Tag, Typography } from "antd";
+import { Alert, Button, Flex, Tag, Typography } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
@@ -27,6 +28,7 @@ import {
   productBoostFilterTransformers,
   productBoostSortFieldMapping,
 } from "./page-config";
+import { useProductBoostModal } from "../../modals";
 
 ModuleRegistry.registerModules([AllCommunityModule, GridStateModule]);
 
@@ -111,6 +113,7 @@ const DateCellRenderer = (
 ) => <Typography.Text>{formatDate(props.value)}</Typography.Text>;
 
 export default function ProductBoostsPage() {
+  const { push: openProductBoostModal } = useProductBoostModal();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiSearchProductBoost>>(null);
   const pageConfig = usePageConfig<
@@ -138,8 +141,19 @@ export default function ProductBoostsPage() {
       pageConfig.orderBy,
     ],
   );
-  const { productBoosts, totalCount, pageInfo, loading, error } =
+  const { productBoosts, totalCount, pageInfo, loading, error, refetch } =
     useProductBoosts(queryVariables);
+
+  const handleCreate = useCallback(() => {
+    openProductBoostModal({ mode: "create", onSaved: refetch });
+  }, [openProductBoostModal, refetch]);
+
+  const handleEdit = useCallback(
+    (entityId: string) => {
+      openProductBoostModal({ mode: "edit", entityId, onSaved: refetch });
+    },
+    [openProductBoostModal, refetch],
+  );
 
   const handleNextPage = useCallback(() => {
     if (pageInfo?.endCursor) {
@@ -222,6 +236,11 @@ export default function ProductBoostsPage() {
             searchPlaceholder="Search product boosts by name..."
           />
         }
+        right={
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Create product boost
+          </Button>
+        }
       />
 
       <div
@@ -253,6 +272,8 @@ export default function ProductBoostsPage() {
             onSortChanged={pageConfig.onSortChanged}
             initialState={pageConfig.gridStateProps.initialState}
             onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
+            onRowClicked={(event) => event.data && handleEdit(event.data.id)}
+            getRowStyle={() => ({ cursor: "pointer" })}
           />
         </div>
 

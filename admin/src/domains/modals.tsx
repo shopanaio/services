@@ -442,6 +442,29 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     // ========================================
+    // Search configuration modals
+    // ========================================
+    {
+      type: 'search-product-boost',
+      component: dynamic(() =>
+        import('@/domains/discovery/search/product-boosts/modals').then(
+          (m) => m.ProductBoostModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved changes?',
+    },
+    {
+      type: 'search-synonym-group',
+      component: dynamic(() =>
+        import('@/domains/discovery/search/synonyms/modals').then(
+          (m) => m.SynonymGroupModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved changes?',
+    },
+    // ========================================
     // Picker modals
     // ========================================
     // Generic Entity Picker modal

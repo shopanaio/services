@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useRef } from "react";
-import { Alert, Flex, Tag, Typography } from "antd";
+import { Alert, Button, Flex, Tag, Typography } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
@@ -27,6 +28,7 @@ import {
   synonymGroupFilterTransformers,
   synonymGroupSortFieldMapping,
 } from "./page-config";
+import { useSynonymGroupModal } from "../../modals";
 
 ModuleRegistry.registerModules([AllCommunityModule, GridStateModule]);
 
@@ -99,6 +101,7 @@ const DateCellRenderer = (
 ) => <Typography.Text>{formatDate(props.value)}</Typography.Text>;
 
 export default function SynonymsPage() {
+  const { push: openSynonymGroupModal } = useSynonymGroupModal();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiSearchSynonymGroup>>(null);
   const pageConfig = usePageConfig<
@@ -126,8 +129,19 @@ export default function SynonymsPage() {
       pageConfig.orderBy,
     ],
   );
-  const { synonymGroups, totalCount, pageInfo, loading, error } =
+  const { synonymGroups, totalCount, pageInfo, loading, error, refetch } =
     useSynonymGroups(queryVariables);
+
+  const handleCreate = useCallback(() => {
+    openSynonymGroupModal({ mode: "create", onSaved: refetch });
+  }, [openSynonymGroupModal, refetch]);
+
+  const handleEdit = useCallback(
+    (entityId: string) => {
+      openSynonymGroupModal({ mode: "edit", entityId, onSaved: refetch });
+    },
+    [openSynonymGroupModal, refetch],
+  );
 
   const handleNextPage = useCallback(() => {
     if (pageInfo?.endCursor) {
@@ -200,6 +214,11 @@ export default function SynonymsPage() {
             searchPlaceholder="Search synonym groups by name..."
           />
         }
+        right={
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Create synonym group
+          </Button>
+        }
       />
 
       <div
@@ -231,6 +250,8 @@ export default function SynonymsPage() {
             onSortChanged={pageConfig.onSortChanged}
             initialState={pageConfig.gridStateProps.initialState}
             onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
+            onRowClicked={(event) => event.data && handleEdit(event.data.id)}
+            getRowStyle={() => ({ cursor: "pointer" })}
           />
         </div>
 

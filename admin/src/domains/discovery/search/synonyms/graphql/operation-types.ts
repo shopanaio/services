@@ -1,6 +1,8 @@
 import type {
   ApiListingQuery,
   ApiListingSearchQuery,
+  ApiSearchSettings,
+  ApiSearchSynonymGroup,
   ApiSearchSynonymGroupConnection,
   ApiSearchSynonymGroupOrderByInput,
   ApiSearchSynonymGroupWhereInput,
@@ -12,6 +14,19 @@ export interface SearchSynonymGroupsQueryData {
       synonymGroups: ApiSearchSynonymGroupConnection;
     };
   };
+}
+
+export interface SearchSynonymGroupEditorQueryData {
+  listingQuery: Pick<ApiListingQuery, "search"> & {
+    search: Pick<ApiListingSearchQuery, "settings" | "synonymGroup"> & {
+      settings?: ApiSearchSettings | null;
+      synonymGroup?: ApiSearchSynonymGroup | null;
+    };
+  };
+}
+
+export interface SearchSynonymGroupEditorQueryVariables {
+  id: string;
 }
 
 export interface SearchSynonymGroupsQueryVariables {
