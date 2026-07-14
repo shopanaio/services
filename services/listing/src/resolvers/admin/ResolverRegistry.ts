@@ -2,6 +2,8 @@ import type { ServiceContext } from "../../context/types.js";
 import type { ListingQueryArgs } from "./ListingQueryTypes.js";
 import type { FacetSourceCandidateConnectionInput } from "./FacetSourceCandidateConnectionResolver.js";
 import type { FacetValueCandidateConnectionInput } from "./FacetValueCandidateConnectionResolver.js";
+import type { SearchSynonymGroupConnectionInput } from "./SearchSynonymGroupConnectionResolver.js";
+import type { SearchProductBoostConnectionInput } from "./SearchProductBoostConnectionResolver.js";
 import type {
   FacetSourceCandidateView,
   FacetValueCandidateView,
@@ -39,6 +41,24 @@ export class ResolverRegistry {
   async listingSearchMutation() {
     const { ListingSearchMutationResolver } = await import("./SearchResolvers.js");
     return new ListingSearchMutationResolver({}, this.ctx);
+  }
+
+  async searchSynonymGroupConnection(
+    input: SearchSynonymGroupConnectionInput,
+  ) {
+    const { SearchSynonymGroupConnectionResolver } = await import(
+      "./SearchSynonymGroupConnectionResolver.js"
+    );
+    return new SearchSynonymGroupConnectionResolver(input, this.ctx);
+  }
+
+  async searchProductBoostConnection(
+    input: SearchProductBoostConnectionInput,
+  ) {
+    const { SearchProductBoostConnectionResolver } = await import(
+      "./SearchProductBoostConnectionResolver.js"
+    );
+    return new SearchProductBoostConnectionResolver(input, this.ctx);
   }
 
   async listingConnection(input: ListingQueryArgs) {

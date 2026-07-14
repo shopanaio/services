@@ -1,14 +1,22 @@
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, asc, count, eq, inArray, ne } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   searchSynonymClaim,
   searchSynonymGroup,
+  searchSynonymGroupListView,
   searchSynonymValue,
   type NewSearchSynonymClaim,
   type NewSearchSynonymGroup,
   type NewSearchSynonymValue,
   type SearchSynonymGroup,
+  type SearchSynonymGroupListView,
   type SearchSynonymValue,
 } from "../models/index.js";
 import {
@@ -18,6 +26,31 @@ import {
   type SearchSynonymGroupAggregate,
   type SearchSynonymValueInput,
 } from "./searchRepositoryTypes.js";
+import {
+  decodeSearchSynonymGroupGlobalId,
+  normalizeSearchRelayPagination,
+} from "./searchConnectionInput.js";
+
+export const searchSynonymGroupRelayQuery = createRelayQuery(
+  createQuery(searchSynonymGroupListView)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeSearchSynonymGroupGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "searchSynonymGroup", tieBreaker: "id" },
+);
+
+export type SearchSynonymGroupRelayInput = InferRelayInput<
+  typeof searchSynonymGroupRelayQuery
+>;
+
+export interface SearchSynonymGroupConnectionResult {
+  edges: Array<{ cursor: string; node: SearchSynonymGroupListView }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
 
 export interface SearchSynonymGroupCreateInput {
   locale: string;
@@ -38,11 +71,6 @@ export interface SearchSynonymGroupDeleteInput {
 export interface SearchSynonymClaimConflict {
   normalizedValue: string;
   groupId: string;
-}
-
-export interface SearchSynonymGroupPage {
-  nodes: SearchSynonymGroupAggregate[];
-  totalCount: number;
 }
 
 export class SearchSynonymRepository extends BaseRepository {
@@ -107,42 +135,42 @@ export class SearchSynonymRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async listPage(input: {
-    locale?: string;
-    limit: number;
-    offset: number;
-  }): Promise<SearchSynonymGroupPage> {
-    this.assertPage(input.limit, input.offset);
-    if (input.locale !== undefined) assertNonEmpty(input.locale, "locale");
-    const scope = input.locale !== undefined
-      ? and(
-          eq(searchSynonymGroup.storeId, this.storeId),
-          eq(searchSynonymGroup.locale, input.locale),
-        )
-      : eq(searchSynonymGroup.storeId, this.storeId);
-    const [groups, countRows] = await Promise.all([
-      this.connection
-        .select()
-        .from(searchSynonymGroup)
-        .where(scope)
-        .orderBy(
-          asc(searchSynonymGroup.locale),
-          asc(searchSynonymGroup.name),
-          asc(searchSynonymGroup.groupId),
-        )
-        .limit(input.limit)
-        .offset(input.offset),
-      this.connection
-        .select({ value: count() })
-        .from(searchSynonymGroup)
-        .where(scope),
+  async getConnection(
+    args: SearchSynonymGroupRelayInput,
+  ): Promise<SearchSynonymGroupConnectionResult> {
+    const normalizedInput = normalizeSearchRelayPagination(args);
+    const { where, orderBy, ...paginationArgs } = normalizedInput;
+    const effectiveOrderBy = orderBy ?? [
+      { field: "updatedAt", direction: "desc" },
+    ];
+    const mergedWhere: SearchSynonymGroupRelayInput["where"] = {
+      _and: [
+        { storeId: { _eq: this.storeId } },
+        ...(where ? [where] : []),
+      ],
+    };
+    const executeInput: SearchSynonymGroupRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: effectiveOrderBy,
+      filters: {
+        storeId: this.storeId,
+        where: where ?? null,
+        orderBy: effectiveOrderBy,
+      },
+    };
+
+    const [result, totalCount] = await Promise.all([
+      searchSynonymGroupRelayQuery.execute(this.connection, executeInput),
+      searchSynonymGroupRelayQuery.count(this.connection, {
+        where: mergedWhere,
+      }),
     ]);
+
     return {
-      nodes: this.toAggregates(
-        groups,
-        await this.getValues(groups.map((group) => group.groupId)),
-      ),
-      totalCount: countRows[0]?.value ?? 0,
+      edges: result.edges.map(({ cursor, node }) => ({ cursor, node })),
+      pageInfo: result.pageInfo,
+      totalCount,
     };
   }
 
@@ -416,12 +444,4 @@ export class SearchSynonymRepository extends BaseRepository {
     }
   }
 
-  private assertPage(limit: number, offset: number): void {
-    if (!Number.isInteger(limit) || limit <= 0 || limit > 100) {
-      throw new Error("limit must be an integer between 1 and 100");
-    }
-    if (!Number.isInteger(offset) || offset < 0) {
-      throw new Error("offset must be a non-negative integer");
-    }
-  }
 }

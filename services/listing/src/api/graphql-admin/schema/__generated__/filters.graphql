@@ -1,0 +1,122 @@
+# Auto-generated GraphQL search configuration filters for Listing service.
+# Do not edit manually. Run: yarn shopana codegen --service listing
+
+# ---- SearchSynonymGroup ----
+
+"""Filter conditions for SearchSynonymGroup"""
+input SearchSynonymGroupWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [SearchSynonymGroupWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [SearchSynonymGroupWhereInput!]
+  """Negate the condition"""
+  _not: SearchSynonymGroupWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by enabled"""
+  enabled: BooleanFilter
+  """Filter by version"""
+  version: IntFilter
+  """Filter by terms"""
+  terms: StringFilter
+  """Filter by valuesCount"""
+  valuesCount: IntFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting SearchSynonymGroup"""
+enum SearchSynonymGroupOrderField {
+  """Sort by id"""
+  id
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+  """Sort by enabled"""
+  enabled
+  """Sort by version"""
+  version
+  """Sort by valuesCount"""
+  valuesCount
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for SearchSynonymGroup"""
+input SearchSynonymGroupOrderByInput {
+  """Field to order by"""
+  field: SearchSynonymGroupOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- SearchProductBoost ----
+
+"""Filter conditions for SearchProductBoost"""
+input SearchProductBoostWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [SearchProductBoostWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [SearchProductBoostWhereInput!]
+  """Negate the condition"""
+  _not: SearchProductBoostWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by enabled"""
+  enabled: BooleanFilter
+  """Filter by version"""
+  version: IntFilter
+  """Filter by phrases"""
+  phrases: StringFilter
+  """Filter by phrasesCount"""
+  phrasesCount: IntFilter
+  """Filter by productsCount"""
+  productsCount: IntFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting SearchProductBoost"""
+enum SearchProductBoostOrderField {
+  """Sort by id"""
+  id
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+  """Sort by enabled"""
+  enabled
+  """Sort by version"""
+  version
+  """Sort by phrasesCount"""
+  phrasesCount
+  """Sort by productsCount"""
+  productsCount
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for SearchProductBoost"""
+input SearchProductBoostOrderByInput {
+  """Field to order by"""
+  field: SearchProductBoostOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}

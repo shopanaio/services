@@ -2,9 +2,24 @@ type ListingSearchQuery {
   """Current search settings for the selected store, if initialized."""
   settings: SearchSettings
   synonymGroup(id: ID!): SearchSynonymGroup
-  synonymGroups(locale: LocaleCode, limit: Int = 20, offset: Int = 0): SearchSynonymGroupConnection!
+  synonymGroups(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: SearchSynonymGroupWhereInput
+    orderBy: [SearchSynonymGroupOrderByInput!]
+  ): SearchSynonymGroupConnection!
   productBoost(id: ID!): SearchProductBoost
-  productBoosts(locale: LocaleCode, limit: Int = 20, offset: Int = 0): SearchProductBoostConnection!
+  productBoosts(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: SearchProductBoostWhereInput
+    orderBy: [SearchProductBoostOrderByInput!]
+    meta: SearchProductBoostsMetaInput
+  ): SearchProductBoostConnection!
   """Explain the canonical request-level search plan and its candidate membership."""
   explain(query: String!, locale: LocaleCode!): SearchExplain!
 }
@@ -26,6 +41,7 @@ type SearchSynonymGroup {
   enabled: Boolean!
   version: Int!
   values: [SearchSynonymValue!]!
+  valuesCount: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -36,8 +52,14 @@ type SearchSynonymValue {
 }
 
 type SearchSynonymGroupConnection {
-  nodes: [SearchSynonymGroup!]!
+  edges: [SearchSynonymGroupEdge!]!
+  pageInfo: PageInfo!
   totalCount: Int!
+}
+
+type SearchSynonymGroupEdge {
+  node: SearchSynonymGroup!
+  cursor: String!
 }
 
 type SearchProductBoost {
@@ -47,7 +69,9 @@ type SearchProductBoost {
   enabled: Boolean!
   version: Int!
   phrases: [SearchProductBoostPhrase!]!
+  phrasesCount: Int!
   productIds: [ID!]!
+  productsCount: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -58,8 +82,19 @@ type SearchProductBoostPhrase {
 }
 
 type SearchProductBoostConnection {
-  nodes: [SearchProductBoost!]!
+  edges: [SearchProductBoostEdge!]!
+  pageInfo: PageInfo!
   totalCount: Int!
+}
+
+type SearchProductBoostEdge {
+  node: SearchProductBoost!
+  cursor: String!
+}
+
+input SearchProductBoostsMetaInput {
+  """Match boosts containing any selected Product global ID."""
+  productIds: [ID!]!
 }
 
 enum SearchExecutionMode {

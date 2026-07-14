@@ -23,6 +23,18 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
+/** Filter operators for Boolean fields */
+export type BooleanFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
 export type Bundle = Listing & Node & {
   __typename?: 'Bundle';
   /** The Bundle global ID owned by Catalog. */
@@ -354,6 +366,32 @@ export enum CurrencyCode {
   /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
   Zwl = 'ZWL'
 }
+
+/** Filter operators for DateTime fields */
+export type DateTimeFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than (after) */
+  _gt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than or equal (on or after) */
+  _gte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than (before) */
+  _lt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Less than or equal (on or before) */
+  _lte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+};
 
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
@@ -759,6 +797,32 @@ export type File = {
   id: Scalars['ID']['output'];
 };
 
+/** Filter operators for Float fields */
+export type FloatFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than */
+  _gt?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than or equal */
+  _gte?: InputMaybe<Scalars['Float']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than */
+  _lt?: InputMaybe<Scalars['Float']['input']>;
+  /** Less than or equal */
+  _lte?: InputMaybe<Scalars['Float']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Float']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
+};
+
 /** A generic user error type for mutation responses. */
 export type GenericUserError = UserError & {
   __typename?: 'GenericUserError';
@@ -767,45 +831,45 @@ export type GenericUserError = UserError & {
   message: Scalars['String']['output'];
 };
 
-/** Filter operators for ID fields. */
+/** Filter operators for ID fields */
 export type IdFilter = {
-  /** Equals. */
+  /** Equals */
   _eq?: InputMaybe<Scalars['ID']['input']>;
-  /** In array. */
+  /** In array */
   _in?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** Is null. */
+  /** Is null */
   _is?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Is not null. */
+  /** Is not null */
   _isNot?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Not equals. */
+  /** Not equals */
   _neq?: InputMaybe<Scalars['ID']['input']>;
-  /** Not in array. */
+  /** Not in array */
   _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
-/** Filter operators for Int fields. */
+/** Filter operators for Int fields */
 export type IntFilter = {
-  /** Between range (inclusive). */
+  /** Between range (inclusive) */
   _between?: InputMaybe<Array<Scalars['Int']['input']>>;
-  /** Equals. */
+  /** Equals */
   _eq?: InputMaybe<Scalars['Int']['input']>;
-  /** Greater than. */
+  /** Greater than */
   _gt?: InputMaybe<Scalars['Int']['input']>;
-  /** Greater than or equal. */
+  /** Greater than or equal */
   _gte?: InputMaybe<Scalars['Int']['input']>;
-  /** In array. */
+  /** In array */
   _in?: InputMaybe<Array<Scalars['Int']['input']>>;
-  /** Is null. */
+  /** Is null */
   _is?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Is not null. */
+  /** Is not null */
   _isNot?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Less than. */
+  /** Less than */
   _lt?: InputMaybe<Scalars['Int']['input']>;
-  /** Less than or equal. */
+  /** Less than or equal */
   _lte?: InputMaybe<Scalars['Int']['input']>;
-  /** Not equals. */
+  /** Not equals */
   _neq?: InputMaybe<Scalars['Int']['input']>;
-  /** Not in array. */
+  /** Not in array */
   _notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
@@ -1164,9 +1228,13 @@ export type ListingSearchQueryProductBoostArgs = {
 
 
 export type ListingSearchQueryProductBoostsArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<SearchProductBoostsMetaInput>;
+  orderBy?: InputMaybe<Array<SearchProductBoostOrderByInput>>;
+  where?: InputMaybe<SearchProductBoostWhereInput>;
 };
 
 
@@ -1176,9 +1244,12 @@ export type ListingSearchQuerySynonymGroupArgs = {
 
 
 export type ListingSearchQuerySynonymGroupsArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<SearchSynonymGroupOrderByInput>>;
+  where?: InputMaybe<SearchSynonymGroupWhereInput>;
 };
 
 export enum ListingSortBy {
@@ -1653,15 +1724,24 @@ export type SearchProductBoost = {
   locale: LocaleCode;
   name: Scalars['String']['output'];
   phrases: Array<SearchProductBoostPhrase>;
+  phrasesCount: Scalars['Int']['output'];
   productIds: Array<Scalars['ID']['output']>;
+  productsCount: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
   version: Scalars['Int']['output'];
 };
 
 export type SearchProductBoostConnection = {
   __typename?: 'SearchProductBoostConnection';
-  nodes: Array<SearchProductBoost>;
+  edges: Array<SearchProductBoostEdge>;
+  pageInfo: PageInfo;
   totalCount: Scalars['Int']['output'];
+};
+
+export type SearchProductBoostEdge = {
+  __typename?: 'SearchProductBoostEdge';
+  cursor: Scalars['String']['output'];
+  node: SearchProductBoost;
 };
 
 export type SearchProductBoostOperationInput = {
@@ -1675,10 +1755,75 @@ export type SearchProductBoostOperationInput = {
   productIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
+/** Ordering configuration for SearchProductBoost */
+export type SearchProductBoostOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: SearchProductBoostOrderField;
+};
+
+/** Fields available for sorting SearchProductBoost */
+export enum SearchProductBoostOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by enabled */
+  Enabled = 'enabled',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by phrasesCount */
+  PhrasesCount = 'phrasesCount',
+  /** Sort by productsCount */
+  ProductsCount = 'productsCount',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by version */
+  Version = 'version'
+}
+
 export type SearchProductBoostPhrase = {
   __typename?: 'SearchProductBoostPhrase';
   phrase: Scalars['String']['output'];
   position: Scalars['Int']['output'];
+};
+
+/** Filter conditions for SearchProductBoost */
+export type SearchProductBoostWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<SearchProductBoostWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<SearchProductBoostWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<SearchProductBoostWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by enabled */
+  enabled?: InputMaybe<BooleanFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<StringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
+  /** Filter by phrases */
+  phrases?: InputMaybe<StringFilter>;
+  /** Filter by phrasesCount */
+  phrasesCount?: InputMaybe<IntFilter>;
+  /** Filter by productsCount */
+  productsCount?: InputMaybe<IntFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by version */
+  version?: InputMaybe<IntFilter>;
+};
+
+export type SearchProductBoostsMetaInput = {
+  /** Match boosts containing any selected Product global ID. */
+  productIds: Array<Scalars['ID']['input']>;
 };
 
 export type SearchSettings = {
@@ -1740,13 +1885,21 @@ export type SearchSynonymGroup = {
   name: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
   values: Array<SearchSynonymValue>;
+  valuesCount: Scalars['Int']['output'];
   version: Scalars['Int']['output'];
 };
 
 export type SearchSynonymGroupConnection = {
   __typename?: 'SearchSynonymGroupConnection';
-  nodes: Array<SearchSynonymGroup>;
+  edges: Array<SearchSynonymGroupEdge>;
+  pageInfo: PageInfo;
   totalCount: Scalars['Int']['output'];
+};
+
+export type SearchSynonymGroupEdge = {
+  __typename?: 'SearchSynonymGroupEdge';
+  cursor: Scalars['String']['output'];
+  node: SearchSynonymGroup;
 };
 
 export type SearchSynonymGroupOperationInput = {
@@ -1759,47 +1912,103 @@ export type SearchSynonymGroupOperationInput = {
   values?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
+/** Ordering configuration for SearchSynonymGroup */
+export type SearchSynonymGroupOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: SearchSynonymGroupOrderField;
+};
+
+/** Fields available for sorting SearchSynonymGroup */
+export enum SearchSynonymGroupOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by enabled */
+  Enabled = 'enabled',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by valuesCount */
+  ValuesCount = 'valuesCount',
+  /** Sort by version */
+  Version = 'version'
+}
+
+/** Filter conditions for SearchSynonymGroup */
+export type SearchSynonymGroupWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<SearchSynonymGroupWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<SearchSynonymGroupWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<SearchSynonymGroupWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by enabled */
+  enabled?: InputMaybe<BooleanFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<StringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
+  /** Filter by terms */
+  terms?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by valuesCount */
+  valuesCount?: InputMaybe<IntFilter>;
+  /** Filter by version */
+  version?: InputMaybe<IntFilter>;
+};
+
 export type SearchSynonymValue = {
   __typename?: 'SearchSynonymValue';
   position: Scalars['Int']['output'];
   value: Scalars['String']['output'];
 };
 
-/** Sort direction. */
+/** Sort direction */
 export enum SortDirection {
   Asc = 'asc',
   Desc = 'desc'
 }
 
-/** Filter operators for String fields. */
+/** Filter operators for String fields */
 export type StringFilter = {
-  /** Contains substring (case-sensitive). */
+  /** Contains substring (case-sensitive) */
   _contains?: InputMaybe<Scalars['String']['input']>;
-  /** Contains substring (case-insensitive). */
+  /** Contains substring (case-insensitive) */
   _containsi?: InputMaybe<Scalars['String']['input']>;
-  /** Ends with (case-sensitive). */
+  /** Ends with (case-sensitive) */
   _endsWith?: InputMaybe<Scalars['String']['input']>;
-  /** Ends with (case-insensitive). */
+  /** Ends with (case-insensitive) */
   _endsWithi?: InputMaybe<Scalars['String']['input']>;
-  /** Equals. */
+  /** Equals */
   _eq?: InputMaybe<Scalars['String']['input']>;
-  /** In array. */
+  /** In array */
   _in?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** Is null. */
+  /** Is null */
   _is?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Is not null. */
+  /** Is not null */
   _isNot?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Not equals. */
+  /** Not equals */
   _neq?: InputMaybe<Scalars['String']['input']>;
-  /** Does not contain substring (case-sensitive). */
+  /** Does not contain substring (case-sensitive) */
   _notContains?: InputMaybe<Scalars['String']['input']>;
-  /** Does not contain substring (case-insensitive). */
+  /** Does not contain substring (case-insensitive) */
   _notContainsi?: InputMaybe<Scalars['String']['input']>;
-  /** Not in array. */
+  /** Not in array */
   _notIn?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** Starts with (case-sensitive). */
+  /** Starts with (case-sensitive) */
   _startsWith?: InputMaybe<Scalars['String']['input']>;
-  /** Starts with (case-insensitive). */
+  /** Starts with (case-insensitive) */
   _startsWithi?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1922,10 +2131,13 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
+  BooleanFilter: BooleanFilter;
+  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Bundle: ResolverTypeWrapper<Bundle>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DateTimeFilter: DateTimeFilter;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   Facet: ResolverTypeWrapper<Facet>;
@@ -1939,7 +2151,6 @@ export type ResolversTypes = ResolversObject<{
   FacetMoveInput: FacetMoveInput;
   FacetMovePayload: ResolverTypeWrapper<FacetMovePayload>;
   FacetRebalanceInput: FacetRebalanceInput;
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   FacetRebalancePayload: ResolverTypeWrapper<FacetRebalancePayload>;
   FacetSelectionMode: FacetSelectionMode;
   FacetSource: ResolverTypeWrapper<FacetSource>;
@@ -1982,6 +2193,8 @@ export type ResolversTypes = ResolversObject<{
   FacetValueUpdateInput: FacetValueUpdateInput;
   FacetValueUpdatePayload: ResolverTypeWrapper<FacetValueUpdatePayload>;
   File: ResolverTypeWrapper<File>;
+  FloatFilter: FloatFilter;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   IDFilter: IdFilter;
   IntFilter: IntFilter;
@@ -2017,7 +2230,6 @@ export type ResolversTypes = ResolversObject<{
   SearchExplainClause: ResolverTypeWrapper<SearchExplainClause>;
   SearchExplainClauseKind: SearchExplainClauseKind;
   SearchExplainFieldWeight: ResolverTypeWrapper<SearchExplainFieldWeight>;
-  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   SearchExplainReason: SearchExplainReason;
   SearchExplainSettings: ResolverTypeWrapper<SearchExplainSettings>;
   SearchExplainTypoAlternative: ResolverTypeWrapper<SearchExplainTypoAlternative>;
@@ -2029,8 +2241,13 @@ export type ResolversTypes = ResolversObject<{
   SearchOutOfStockPolicy: SearchOutOfStockPolicy;
   SearchProductBoost: ResolverTypeWrapper<SearchProductBoost>;
   SearchProductBoostConnection: ResolverTypeWrapper<SearchProductBoostConnection>;
+  SearchProductBoostEdge: ResolverTypeWrapper<SearchProductBoostEdge>;
   SearchProductBoostOperationInput: SearchProductBoostOperationInput;
+  SearchProductBoostOrderByInput: SearchProductBoostOrderByInput;
+  SearchProductBoostOrderField: SearchProductBoostOrderField;
   SearchProductBoostPhrase: ResolverTypeWrapper<SearchProductBoostPhrase>;
+  SearchProductBoostWhereInput: SearchProductBoostWhereInput;
+  SearchProductBoostsMetaInput: SearchProductBoostsMetaInput;
   SearchSettings: ResolverTypeWrapper<SearchSettings>;
   SearchSettingsOperationResult: ResolverTypeWrapper<SearchSettingsOperationResult>;
   SearchSettingsOperationType: SearchSettingsOperationType;
@@ -2039,7 +2256,11 @@ export type ResolversTypes = ResolversObject<{
   SearchSettingsValuesInput: SearchSettingsValuesInput;
   SearchSynonymGroup: ResolverTypeWrapper<SearchSynonymGroup>;
   SearchSynonymGroupConnection: ResolverTypeWrapper<SearchSynonymGroupConnection>;
+  SearchSynonymGroupEdge: ResolverTypeWrapper<SearchSynonymGroupEdge>;
   SearchSynonymGroupOperationInput: SearchSynonymGroupOperationInput;
+  SearchSynonymGroupOrderByInput: SearchSynonymGroupOrderByInput;
+  SearchSynonymGroupOrderField: SearchSynonymGroupOrderField;
+  SearchSynonymGroupWhereInput: SearchSynonymGroupWhereInput;
   SearchSynonymValue: ResolverTypeWrapper<SearchSynonymValue>;
   SortDirection: SortDirection;
   StringFilter: StringFilter;
@@ -2051,9 +2272,12 @@ export type ResolversTypes = ResolversObject<{
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
   BigInt: Scalars['BigInt']['output'];
+  BooleanFilter: BooleanFilter;
+  Boolean: Scalars['Boolean']['output'];
   Bundle: Bundle;
   ID: Scalars['ID']['output'];
   DateTime: Scalars['DateTime']['output'];
+  DateTimeFilter: DateTimeFilter;
   Email: Scalars['Email']['output'];
   Facet: Facet;
   String: Scalars['String']['output'];
@@ -2066,7 +2290,6 @@ export type ResolversParentTypes = ResolversObject<{
   FacetMoveInput: FacetMoveInput;
   FacetMovePayload: FacetMovePayload;
   FacetRebalanceInput: FacetRebalanceInput;
-  Boolean: Scalars['Boolean']['output'];
   FacetRebalancePayload: FacetRebalancePayload;
   FacetSource: FacetSource;
   FacetSourceCandidate: FacetSourceCandidate;
@@ -2102,6 +2325,8 @@ export type ResolversParentTypes = ResolversObject<{
   FacetValueUpdateInput: FacetValueUpdateInput;
   FacetValueUpdatePayload: FacetValueUpdatePayload;
   File: File;
+  FloatFilter: FloatFilter;
+  Float: Scalars['Float']['output'];
   GenericUserError: GenericUserError;
   IDFilter: IdFilter;
   IntFilter: IntFilter;
@@ -2129,7 +2354,6 @@ export type ResolversParentTypes = ResolversObject<{
   SearchExplain: SearchExplain;
   SearchExplainClause: SearchExplainClause;
   SearchExplainFieldWeight: SearchExplainFieldWeight;
-  Float: Scalars['Float']['output'];
   SearchExplainSettings: SearchExplainSettings;
   SearchExplainTypoAlternative: SearchExplainTypoAlternative;
   SearchExplainUnit: SearchExplainUnit;
@@ -2137,8 +2361,12 @@ export type ResolversParentTypes = ResolversObject<{
   SearchFieldConfigurationInput: SearchFieldConfigurationInput;
   SearchProductBoost: SearchProductBoost;
   SearchProductBoostConnection: SearchProductBoostConnection;
+  SearchProductBoostEdge: SearchProductBoostEdge;
   SearchProductBoostOperationInput: SearchProductBoostOperationInput;
+  SearchProductBoostOrderByInput: SearchProductBoostOrderByInput;
   SearchProductBoostPhrase: SearchProductBoostPhrase;
+  SearchProductBoostWhereInput: SearchProductBoostWhereInput;
+  SearchProductBoostsMetaInput: SearchProductBoostsMetaInput;
   SearchSettings: SearchSettings;
   SearchSettingsOperationResult: SearchSettingsOperationResult;
   SearchSettingsOperationsInput: SearchSettingsOperationsInput;
@@ -2146,7 +2374,10 @@ export type ResolversParentTypes = ResolversObject<{
   SearchSettingsValuesInput: SearchSettingsValuesInput;
   SearchSynonymGroup: SearchSynonymGroup;
   SearchSynonymGroupConnection: SearchSynonymGroupConnection;
+  SearchSynonymGroupEdge: SearchSynonymGroupEdge;
   SearchSynonymGroupOperationInput: SearchSynonymGroupOperationInput;
+  SearchSynonymGroupOrderByInput: SearchSynonymGroupOrderByInput;
+  SearchSynonymGroupWhereInput: SearchSynonymGroupWhereInput;
   SearchSynonymValue: SearchSynonymValue;
   StringFilter: StringFilter;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
@@ -2435,10 +2666,10 @@ export type ListingSearchMutationResolvers<ContextType = ServiceContext, ParentT
 export type ListingSearchQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ListingSearchQuery'] = ResolversParentTypes['ListingSearchQuery']> = ResolversObject<{
   explain?: Resolver<ResolversTypes['SearchExplain'], ParentType, ContextType, RequireFields<ListingSearchQueryExplainArgs, 'locale' | 'query'>>;
   productBoost?: Resolver<Maybe<ResolversTypes['SearchProductBoost']>, ParentType, ContextType, RequireFields<ListingSearchQueryProductBoostArgs, 'id'>>;
-  productBoosts?: Resolver<ResolversTypes['SearchProductBoostConnection'], ParentType, ContextType, RequireFields<ListingSearchQueryProductBoostsArgs, 'limit' | 'offset'>>;
+  productBoosts?: Resolver<ResolversTypes['SearchProductBoostConnection'], ParentType, ContextType, Partial<ListingSearchQueryProductBoostsArgs>>;
   settings?: Resolver<Maybe<ResolversTypes['SearchSettings']>, ParentType, ContextType>;
   synonymGroup?: Resolver<Maybe<ResolversTypes['SearchSynonymGroup']>, ParentType, ContextType, RequireFields<ListingSearchQuerySynonymGroupArgs, 'id'>>;
-  synonymGroups?: Resolver<ResolversTypes['SearchSynonymGroupConnection'], ParentType, ContextType, RequireFields<ListingSearchQuerySynonymGroupsArgs, 'limit' | 'offset'>>;
+  synonymGroups?: Resolver<ResolversTypes['SearchSynonymGroupConnection'], ParentType, ContextType, Partial<ListingSearchQuerySynonymGroupsArgs>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2548,15 +2779,24 @@ export type SearchProductBoostResolvers<ContextType = ServiceContext, ParentType
   locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   phrases?: Resolver<Array<ResolversTypes['SearchProductBoostPhrase']>, ParentType, ContextType>;
+  phrasesCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   productIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type SearchProductBoostConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostConnection'] = ResolversParentTypes['SearchProductBoostConnection']> = ResolversObject<{
-  nodes?: Resolver<Array<ResolversTypes['SearchProductBoost']>, ParentType, ContextType>;
+  edges?: Resolver<Array<ResolversTypes['SearchProductBoostEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SearchProductBoostEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostEdge'] = ResolversParentTypes['SearchProductBoostEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['SearchProductBoost'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2599,13 +2839,21 @@ export type SearchSynonymGroupResolvers<ContextType = ServiceContext, ParentType
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['SearchSynonymValue']>, ParentType, ContextType>;
+  valuesCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type SearchSynonymGroupConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupConnection'] = ResolversParentTypes['SearchSynonymGroupConnection']> = ResolversObject<{
-  nodes?: Resolver<Array<ResolversTypes['SearchSynonymGroup']>, ParentType, ContextType>;
+  edges?: Resolver<Array<ResolversTypes['SearchSynonymGroupEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SearchSynonymGroupEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupEdge'] = ResolversParentTypes['SearchSynonymGroupEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['SearchSynonymGroup'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2676,12 +2924,14 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   SearchFieldConfiguration?: SearchFieldConfigurationResolvers<ContextType>;
   SearchProductBoost?: SearchProductBoostResolvers<ContextType>;
   SearchProductBoostConnection?: SearchProductBoostConnectionResolvers<ContextType>;
+  SearchProductBoostEdge?: SearchProductBoostEdgeResolvers<ContextType>;
   SearchProductBoostPhrase?: SearchProductBoostPhraseResolvers<ContextType>;
   SearchSettings?: SearchSettingsResolvers<ContextType>;
   SearchSettingsOperationResult?: SearchSettingsOperationResultResolvers<ContextType>;
   SearchSettingsUpdatePayload?: SearchSettingsUpdatePayloadResolvers<ContextType>;
   SearchSynonymGroup?: SearchSynonymGroupResolvers<ContextType>;
   SearchSynonymGroupConnection?: SearchSynonymGroupConnectionResolvers<ContextType>;
+  SearchSynonymGroupEdge?: SearchSynonymGroupEdgeResolvers<ContextType>;
   SearchSynonymValue?: SearchSynonymValueResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
 }>;

@@ -1,14 +1,22 @@
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, asc, count, eq, getTableColumns, inArray } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
+import { and, asc, eq, getTableColumns, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   searchProductBoost,
+  searchProductBoostListView,
   searchProductBoostPhrase,
   searchProductBoostProduct,
   type NewSearchProductBoost,
   type NewSearchProductBoostPhrase,
   type NewSearchProductBoostProduct,
   type SearchProductBoost,
+  type SearchProductBoostListView,
   type SearchProductBoostPhrase,
   type SearchProductBoostProduct,
 } from "../models/index.js";
@@ -19,6 +27,38 @@ import {
   type SearchProductBoostAggregate,
   type SearchProductBoostPhraseInput,
 } from "./searchRepositoryTypes.js";
+import {
+  decodeSearchProductBoostGlobalId,
+  normalizeSearchRelayPagination,
+} from "./searchConnectionInput.js";
+
+export const searchProductBoostRelayQuery = createRelayQuery(
+  createQuery(searchProductBoostListView)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeSearchProductBoostGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "searchProductBoost", tieBreaker: "id" },
+);
+
+export type SearchProductBoostRelayInput = InferRelayInput<
+  typeof searchProductBoostRelayQuery
+>;
+
+export type SearchProductBoostConnectionInput =
+  SearchProductBoostRelayInput & {
+    productIds?: readonly string[];
+  };
+
+export interface SearchProductBoostConnectionResult {
+  edges: Array<{ cursor: string; node: SearchProductBoostListView }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+const IMPOSSIBLE_UUID = "00000000-0000-0000-0000-000000000000";
 
 export interface SearchProductBoostCreateInput {
   locale: string;
@@ -35,11 +75,6 @@ export interface SearchProductBoostUpdateInput
 
 export interface SearchProductBoostDeleteInput {
   boostId: string;
-}
-
-export interface SearchProductBoostPage {
-  nodes: SearchProductBoostAggregate[];
-  totalCount: number;
 }
 
 export class SearchProductBoostRepository extends BaseRepository {
@@ -102,39 +137,59 @@ export class SearchProductBoostRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async listPage(input: {
-    locale?: string;
-    limit: number;
-    offset: number;
-  }): Promise<SearchProductBoostPage> {
-    this.assertPage(input.limit, input.offset);
-    if (input.locale !== undefined) assertNonEmpty(input.locale, "locale");
-    const scope = input.locale !== undefined
-      ? and(
-          eq(searchProductBoost.storeId, this.storeId),
-          eq(searchProductBoost.locale, input.locale),
-        )
-      : eq(searchProductBoost.storeId, this.storeId);
-    const [boosts, countRows] = await Promise.all([
-      this.connection
-        .select()
-        .from(searchProductBoost)
-        .where(scope)
-        .orderBy(
-          asc(searchProductBoost.locale),
-          asc(searchProductBoost.name),
-          asc(searchProductBoost.boostId),
-        )
-        .limit(input.limit)
-        .offset(input.offset),
-      this.connection
-        .select({ value: count() })
-        .from(searchProductBoost)
-        .where(scope),
+  async getConnection(
+    args: SearchProductBoostConnectionInput,
+  ): Promise<SearchProductBoostConnectionResult> {
+    const { productIds, ...relayInput } = args;
+    const normalizedInput = normalizeSearchRelayPagination(relayInput);
+    const { where, orderBy, ...paginationArgs } = normalizedInput;
+    const effectiveOrderBy = orderBy ?? [
+      { field: "updatedAt", direction: "desc" },
+    ];
+    const normalizedProductIds = productIds === undefined
+      ? undefined
+      : [...new Set(productIds)].sort();
+    const matchingBoostIds = normalizedProductIds === undefined
+      ? undefined
+      : await this.findBoostIdsByProductIds(normalizedProductIds);
+    const mergedWhere: SearchProductBoostRelayInput["where"] = {
+      _and: [
+        { storeId: { _eq: this.storeId } },
+        ...(where ? [where] : []),
+        ...(matchingBoostIds === undefined
+          ? []
+          : [{
+              id: {
+                _in: matchingBoostIds.length > 0
+                  ? matchingBoostIds
+                  : [IMPOSSIBLE_UUID],
+              },
+            }]),
+      ],
+    };
+    const executeInput: SearchProductBoostRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: effectiveOrderBy,
+      filters: {
+        storeId: this.storeId,
+        where: where ?? null,
+        orderBy: effectiveOrderBy,
+        productIds: normalizedProductIds ?? null,
+      },
+    };
+
+    const [result, totalCount] = await Promise.all([
+      searchProductBoostRelayQuery.execute(this.connection, executeInput),
+      searchProductBoostRelayQuery.count(this.connection, {
+        where: mergedWhere,
+      }),
     ]);
+
     return {
-      nodes: await this.loadAggregates(boosts),
-      totalCount: countRows[0]?.value ?? 0,
+      edges: result.edges.map(({ cursor, node }) => ({ cursor, node })),
+      pageInfo: result.pageInfo,
+      totalCount,
     };
   }
 
@@ -330,6 +385,25 @@ export class SearchProductBoostRepository extends BaseRepository {
       );
   }
 
+  private async findBoostIdsByProductIds(
+    productIds: readonly string[],
+  ): Promise<string[]> {
+    if (productIds.length === 0) return [];
+
+    const rows = await this.connection
+      .selectDistinct({ boostId: searchProductBoostProduct.boostId })
+      .from(searchProductBoostProduct)
+      .where(
+        and(
+          eq(searchProductBoostProduct.storeId, this.storeId),
+          inArray(searchProductBoostProduct.productId, [...productIds]),
+        ),
+      )
+      .orderBy(asc(searchProductBoostProduct.boostId));
+
+    return rows.map((row) => row.boostId);
+  }
+
   private async loadAggregates(
     boosts: readonly SearchProductBoost[],
   ): Promise<SearchProductBoostAggregate[]> {
@@ -441,12 +515,4 @@ export class SearchProductBoostRepository extends BaseRepository {
     }
   }
 
-  private assertPage(limit: number, offset: number): void {
-    if (!Number.isInteger(limit) || limit <= 0 || limit > 100) {
-      throw new Error("limit must be an integer between 1 and 100");
-    }
-    if (!Number.isInteger(offset) || offset < 0) {
-      throw new Error("offset must be a non-negative integer");
-    }
-  }
 }

@@ -6,6 +6,14 @@ export {
   ListingSearchQueryResolver,
   ListingSearchMutationResolver,
 } from "./SearchResolvers.js";
+export {
+  SearchSynonymGroupConnectionResolver,
+  type SearchSynonymGroupConnectionInput,
+} from "./SearchSynonymGroupConnectionResolver.js";
+export {
+  SearchProductBoostConnectionResolver,
+  type SearchProductBoostConnectionInput,
+} from "./SearchProductBoostConnectionResolver.js";
 export { FacetResolver } from "./FacetResolver.js";
 export { FacetSourceCandidateResolver } from "./FacetSourceCandidateResolver.js";
 export { FacetValueCandidateResolver } from "./FacetValueCandidateResolver.js";

@@ -36,6 +36,7 @@ interface CodegenResult {
 async function runCodegenForService(service: string): Promise<CodegenResult> {
   const servicePath = join(rootDir, "services", service);
   const codegenConfig = join(servicePath, "codegen.ts");
+  const filterGenerator = join(servicePath, "scripts", "generate-filters.ts");
 
   if (!existsSync(servicePath)) {
     return { service, success: false, error: "service not found" };
@@ -46,6 +47,13 @@ async function runCodegenForService(service: string): Promise<CodegenResult> {
   }
 
   try {
+    if (existsSync(filterGenerator)) {
+      execSync("npx tsx scripts/generate-filters.ts", {
+        cwd: servicePath,
+        stdio: "pipe",
+      });
+    }
+
     execSync("npx graphql-codegen", {
       cwd: servicePath,
       stdio: "pipe",

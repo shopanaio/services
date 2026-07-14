@@ -11,11 +11,9 @@ import { SearchRuntimeError } from "../../search/errors.js";
 import type {
   SearchSettings as SearchSettingsModel,
 } from "../../repositories/models/index.js";
-import type {
-  SearchProductBoostAggregate,
-  SearchSynonymGroupAggregate,
-  SearchTextField,
-} from "../../repositories/search/searchRepositoryTypes.js";
+import type { SearchTextField } from "../../repositories/search/searchRepositoryTypes.js";
+import type { SearchProductBoostRelayInput } from "../../repositories/search/SearchProductBoostRepository.js";
+import type { SearchSynonymGroupRelayInput } from "../../repositories/search/SearchSynonymRepository.js";
 import type {
   SearchExplain,
   SearchExplainClause,
@@ -39,6 +37,10 @@ import {
   type SearchSynonymGroupOperationInput,
 } from "./generated/types.js";
 import { ListingType } from "./ListingType.js";
+import {
+  mapSearchProductBoostAggregate,
+  mapSearchSynonymGroupAggregate,
+} from "./searchConfigurationMapper.js";
 
 const searchFieldRegistry = new SearchFieldRegistry();
 
@@ -54,23 +56,11 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
     const aggregate = await this.$ctx.kernel.repository.searchSynonym.findById(
       groupId,
     );
-    return aggregate ? mapSynonymGroup(aggregate) : null;
+    return aggregate ? mapSearchSynonymGroupAggregate(aggregate) : null;
   }
 
-  async synonymGroups(args: {
-    locale?: string | null;
-    limit?: number | null;
-    offset?: number | null;
-  }) {
-    const page = await this.$ctx.kernel.repository.searchSynonym.listPage({
-      locale: args.locale ?? undefined,
-      limit: args.limit ?? 20,
-      offset: args.offset ?? 0,
-    });
-    return {
-      nodes: page.nodes.map(mapSynonymGroup),
-      totalCount: page.totalCount,
-    };
+  async synonymGroups(args: SearchSynonymGroupRelayInput) {
+    return this.resolvers.searchSynonymGroupConnection(args);
   }
 
   async productBoost(args: { id: string }) {
@@ -79,23 +69,32 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
     const aggregate = await this.$ctx.kernel.repository.searchProductBoost.findById(
       boostId,
     );
-    return aggregate ? mapProductBoost(aggregate) : null;
+    return aggregate ? mapSearchProductBoostAggregate(aggregate) : null;
   }
 
-  async productBoosts(args: {
-    locale?: string | null;
-    limit?: number | null;
-    offset?: number | null;
-  }) {
-    const page = await this.$ctx.kernel.repository.searchProductBoost.listPage({
-      locale: args.locale ?? undefined,
-      limit: args.limit ?? 20,
-      offset: args.offset ?? 0,
+  async productBoosts(
+    args: SearchProductBoostRelayInput & {
+      meta?: { productIds: readonly string[] } | null;
+    },
+  ) {
+    const { meta, ...input } = args;
+    const productIds = meta?.productIds.map((id, index) => {
+      const decoded = safeDecode(id, GlobalIdEntity.Product);
+      if (!decoded) {
+        throw new GraphQLError("Invalid Product global ID", {
+          extensions: {
+            code: "BAD_USER_INPUT",
+            field: ["meta", "productIds", String(index)],
+          },
+        });
+      }
+      return decoded;
     });
-    return {
-      nodes: page.nodes.map(mapProductBoost),
-      totalCount: page.totalCount,
-    };
+
+    return this.resolvers.searchProductBoostConnection({
+      ...input,
+      ...(meta ? { productIds: productIds ?? [] } : {}),
+    });
   }
 
   async explain(args: { query: string; locale: string }) {
@@ -238,47 +237,6 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
       userErrors: result.userErrors,
     };
   }
-}
-
-function mapSynonymGroup(aggregate: SearchSynonymGroupAggregate) {
-  return {
-    id: encodeGlobalIdByType(
-      aggregate.group.groupId,
-      GlobalIdEntity.SearchSynonymGroup,
-    ),
-    locale: aggregate.group.locale,
-    name: aggregate.group.name,
-    enabled: aggregate.group.enabled,
-    version: aggregate.group.version,
-    createdAt: aggregate.group.createdAt,
-    updatedAt: aggregate.group.updatedAt,
-    values: aggregate.values.map((value) => ({
-      value: value.displayValue,
-      position: value.position,
-    })),
-  };
-}
-
-function mapProductBoost(aggregate: SearchProductBoostAggregate) {
-  return {
-    id: encodeGlobalIdByType(
-      aggregate.boost.boostId,
-      GlobalIdEntity.SearchProductBoost,
-    ),
-    locale: aggregate.boost.locale,
-    name: aggregate.boost.name,
-    enabled: aggregate.boost.enabled,
-    version: aggregate.boost.version,
-    createdAt: aggregate.boost.createdAt,
-    updatedAt: aggregate.boost.updatedAt,
-    phrases: aggregate.phrases.map((phrase) => ({
-      phrase: phrase.displayPhrase,
-      position: phrase.position,
-    })),
-    productIds: aggregate.products.map((product) =>
-      encodeGlobalIdByType(product.productId, GlobalIdEntity.Product)
-    ),
-  };
 }
 
 function mapSearchSettings(settings: SearchSettingsModel): ApiSearchSettings {

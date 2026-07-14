@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CurrencyCode, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, SearchConfigurationOperationAction, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostOperationInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupOperationInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
+import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, SearchConfigurationOperationAction, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostOperationInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupOperationInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -53,13 +53,42 @@ export const SearchLexicalUnitKindSchema = z.nativeEnum(SearchLexicalUnitKind);
 
 export const SearchOutOfStockPolicySchema = z.nativeEnum(SearchOutOfStockPolicy);
 
+export const SearchProductBoostOrderFieldSchema = z.nativeEnum(SearchProductBoostOrderField);
+
 export const SearchSettingsOperationTypeSchema = z.nativeEnum(SearchSettingsOperationType);
+
+export const SearchSynonymGroupOrderFieldSchema = z.nativeEnum(SearchSynonymGroupOrderField);
 
 export const SortDirectionSchema = z.nativeEnum(SortDirection);
 
 export const SwatchTypeSchema = z.nativeEnum(SwatchType);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
+
+export function BooleanFilterSchema(): z.ZodObject<Properties<BooleanFilter>> {
+  return z.object({
+    _eq: z.boolean().nullish(),
+    _is: z.boolean().nullish(),
+    _isNot: z.boolean().nullish(),
+    _neq: z.boolean().nullish()
+  })
+}
+
+export function DateTimeFilterSchema(): z.ZodObject<Properties<DateTimeFilter>> {
+  return z.object({
+    _between: z.array(z.string()).nullish(),
+    _eq: z.string().nullish(),
+    _gt: z.string().nullish(),
+    _gte: z.string().nullish(),
+    _in: z.array(z.string()).nullish(),
+    _is: z.boolean().nullish(),
+    _isNot: z.boolean().nullish(),
+    _lt: z.string().nullish(),
+    _lte: z.string().nullish(),
+    _neq: z.string().nullish(),
+    _notIn: z.array(z.string()).nullish()
+  })
+}
 
 export function FacetCreateInputSchema(): z.ZodObject<Properties<FacetCreateInput>> {
   return z.object({
@@ -238,6 +267,22 @@ export function FacetValueUpdateInputSchema(): z.ZodObject<Properties<FacetValue
   })
 }
 
+export function FloatFilterSchema(): z.ZodObject<Properties<FloatFilter>> {
+  return z.object({
+    _between: z.array(z.number()).nullish(),
+    _eq: z.number().nullish(),
+    _gt: z.number().nullish(),
+    _gte: z.number().nullish(),
+    _in: z.array(z.number()).nullish(),
+    _is: z.boolean().nullish(),
+    _isNot: z.boolean().nullish(),
+    _lt: z.number().nullish(),
+    _lte: z.number().nullish(),
+    _neq: z.number().nullish(),
+    _notIn: z.array(z.number()).nullish()
+  })
+}
+
 export function IdFilterSchema(): z.ZodObject<Properties<IdFilter>> {
   return z.object({
     _eq: z.string().nullish(),
@@ -332,6 +377,37 @@ export function SearchProductBoostOperationInputSchema(): z.ZodObject<Properties
   })
 }
 
+export function SearchProductBoostOrderByInputSchema(): z.ZodObject<Properties<SearchProductBoostOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: SearchProductBoostOrderFieldSchema
+  })
+}
+
+export function SearchProductBoostWhereInputSchema(): z.ZodObject<Properties<SearchProductBoostWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => SearchProductBoostWhereInputSchema())).nullish(),
+    _not: z.lazy(() => SearchProductBoostWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => SearchProductBoostWhereInputSchema())).nullish(),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    enabled: z.lazy(() => BooleanFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    phrases: z.lazy(() => StringFilterSchema().nullish()),
+    phrasesCount: z.lazy(() => IntFilterSchema().nullish()),
+    productsCount: z.lazy(() => IntFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    version: z.lazy(() => IntFilterSchema().nullish())
+  })
+}
+
+export function SearchProductBoostsMetaInputSchema(): z.ZodObject<Properties<SearchProductBoostsMetaInput>> {
+  return z.object({
+    productIds: z.array(z.string())
+  })
+}
+
 export function SearchSettingsOperationsInputSchema(): z.ZodObject<Properties<SearchSettingsOperationsInput>> {
   return z.object({
     productBoosts: z.array(z.lazy(() => SearchProductBoostOperationInputSchema())).nullish(),
@@ -357,6 +433,30 @@ export function SearchSynonymGroupOperationInputSchema(): z.ZodObject<Properties
     locale: LocaleCodeSchema.nullish(),
     name: z.string().nullish(),
     values: z.array(z.string()).nullish()
+  })
+}
+
+export function SearchSynonymGroupOrderByInputSchema(): z.ZodObject<Properties<SearchSynonymGroupOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: SearchSynonymGroupOrderFieldSchema
+  })
+}
+
+export function SearchSynonymGroupWhereInputSchema(): z.ZodObject<Properties<SearchSynonymGroupWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => SearchSynonymGroupWhereInputSchema())).nullish(),
+    _not: z.lazy(() => SearchSynonymGroupWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => SearchSynonymGroupWhereInputSchema())).nullish(),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    enabled: z.lazy(() => BooleanFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    terms: z.lazy(() => StringFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    valuesCount: z.lazy(() => IntFilterSchema().nullish()),
+    version: z.lazy(() => IntFilterSchema().nullish())
   })
 }
 
