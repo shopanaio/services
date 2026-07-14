@@ -4,6 +4,7 @@ import type {
   ApiPageInfo,
   ApiSearchProductBoost,
   ApiSearchProductBoostConnection,
+  ApiSearchProductBoostsMetaInput,
   ApiSearchProductBoostOrderByInput,
   ApiSearchProductBoostWhereInput,
 } from "@/graphql/types";
@@ -18,6 +19,7 @@ import type {
 export interface UseProductBoostsOptions extends RelayCursorPaginationVariables {
   where?: ApiSearchProductBoostWhereInput | null;
   orderBy?: ApiSearchProductBoostOrderByInput[] | null;
+  meta?: ApiSearchProductBoostsMetaInput | null;
   skip?: boolean;
 }
 
@@ -41,6 +43,7 @@ export function useProductBoosts(
     before = null,
     where = null,
     orderBy = null,
+    meta = null,
     skip = false,
   } = options;
 
@@ -51,7 +54,7 @@ export function useProductBoosts(
     ApiSearchProductBoostConnection
   >({
     query: SEARCH_PRODUCT_BOOSTS_QUERY,
-    variables: { first, after, last, before, where, orderBy },
+    variables: { first, after, last, before, where, orderBy, meta },
     skip,
     fetchPolicy: "cache-and-network",
     getConnection: (data) => data?.listingQuery.search.productBoosts,

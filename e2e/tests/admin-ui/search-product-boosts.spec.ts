@@ -132,9 +132,12 @@ async function selectProductInPicker(
     .filter({ hasText: productTitle });
 
   await expect(row).toHaveCount(1);
-  await row.click();
-  await expect(page.getByTestId(submitTestId)).toBeEnabled();
-  await page.getByTestId(submitTestId).click();
+  const submit = page.getByTestId(submitTestId);
+  if (!(await submit.isEnabled())) {
+    await row.click();
+  }
+  await expect(submit).toBeEnabled();
+  await submit.click();
   await expect(picker).toBeHidden();
 }
 
