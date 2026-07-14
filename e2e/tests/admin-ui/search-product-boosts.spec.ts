@@ -52,23 +52,6 @@ async function createProduct(api: Api, title: string, handle: string): Promise<P
   return { id: result.product!.id, title };
 }
 
-async function configureSearch(api: Api) {
-  const { data } = await api.admin.mutation('listing-api/ListingSearchSettingsUpdate', {
-    variables: {
-      expectedVersion: 0,
-      operations: {
-        settings: {
-          fields: [{ field: 'PRODUCT_TITLE', weight: 10 }],
-          typoToleranceEnabled: true,
-          outOfStockPolicy: 'PLACE_LAST',
-        },
-      },
-    },
-  });
-
-  expect(data.listingMutation.search.settingsUpdate.userErrors).toHaveLength(0);
-}
-
 function boostRows(page: Page) {
   return page.getByTestId('product-boosts-table').locator('.ag-center-cols-container .ag-row');
 }
@@ -212,7 +195,6 @@ test.describe('Admin search product boosts UI', () => {
     await api.session.setupUser();
     const organization = await api.session.setupOrganization();
     await api.session.setupProject({ locales: ['en', 'uk'] });
-    await configureSearch(api);
 
     const unique = crypto.randomUUID().slice(0, 8);
     const products = {

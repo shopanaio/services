@@ -1,8 +1,5 @@
 import { test } from '@fixtures/base.extend';
-import type { ApiFixtures } from '@fixtures/api/api';
 import { expect, type Locator, type Page } from '@playwright/test';
-
-type Api = ApiFixtures['api'];
 
 interface SynonymGroupFixture {
   name: string;
@@ -32,23 +29,6 @@ async function completeProfileIfNeeded(page: Page) {
   await page.getByTestId('complete-profile-last-name-input').fill('User');
   await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
-}
-
-async function configureSearch(api: Api) {
-  const { data } = await api.admin.mutation('listing-api/ListingSearchSettingsUpdate', {
-    variables: {
-      expectedVersion: 0,
-      operations: {
-        settings: {
-          fields: [{ field: 'PRODUCT_TITLE', weight: 10 }],
-          typoToleranceEnabled: true,
-          outOfStockPolicy: 'PLACE_LAST',
-        },
-      },
-    },
-  });
-
-  expect(data.listingMutation.search.settingsUpdate.userErrors).toHaveLength(0);
 }
 
 function synonymRows(page: Page) {
@@ -180,7 +160,6 @@ test.describe('Admin search synonym groups UI', () => {
     await api.session.setupUser();
     const organization = await api.session.setupOrganization();
     await api.session.setupProject({ locales: ['en', 'uk'] });
-    await configureSearch(api);
 
     const unique = crypto.randomUUID().slice(0, 8);
     const groups: SynonymGroupFixture[] = [
