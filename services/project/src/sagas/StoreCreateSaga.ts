@@ -172,7 +172,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     }
   }
 
-  @SagaStep()
   private async emitStoreCreated(id: string, input: StoreCreateInput): Promise<void> {
     await this.broker.runWorkflow(
       "events.emit",
