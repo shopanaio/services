@@ -193,7 +193,7 @@ export default function FacetsPage() {
       }
 
       modal.confirm({
-        title: "Delete facet?",
+        title: "Delete filter?",
         content: row.name,
         okText: "Delete",
         okButtonProps: { danger: true },
@@ -203,7 +203,7 @@ export default function FacetsPage() {
             message.error(result.userErrors[0].message);
             return;
           }
-          message.success("Facet deleted.");
+          message.success("Filter deleted.");
 
           await refetchAndReset();
         },
@@ -265,7 +265,7 @@ export default function FacetsPage() {
       }
 
       await refetchAndReset();
-      message.success("Facet order updated.");
+      message.success("Filter order updated.");
       setOptimisticRows(null);
     },
     [displayRows, message, moveFacet, refetchAndReset],
@@ -275,7 +275,7 @@ export default function FacetsPage() {
     () => [
       {
         field: "name",
-        headerName: "Facet",
+        headerName: "Filter",
         flex: 2,
         minWidth: 320,
         rowDrag: ({ data }) => Boolean(data?.apiId),
@@ -356,7 +356,7 @@ export default function FacetsPage() {
     <DataLayout
       fullWidth
       name="facets"
-      title="Facets"
+      title="Filters"
       count={baseRows.length}
       actions={
         <Button
@@ -378,7 +378,7 @@ export default function FacetsPage() {
           <Flex align="center" gap="small" style={{ width: "100%" }}>
             <FilterWidget
               {...filterWidgetProps}
-              searchPlaceholder="Search facets and values..."
+              searchPlaceholder="Search filters and values..."
             />
             <Button
               disabled={!hasActiveFilters}
@@ -415,7 +415,7 @@ export default function FacetsPage() {
           />
         </div>
         {!loading && displayRows.length === 0 ? (
-          <Typography.Text type="secondary">No facets found</Typography.Text>
+          <Typography.Text type="secondary">No filters found</Typography.Text>
         ) : null}
       </div>
     </DataLayout>

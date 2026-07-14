@@ -5,7 +5,7 @@ registerModule({
   key: "facets",
   domain: "discovery",
   sidebar: {
-    label: "Facets",
+    label: "Filters",
     icon: null,
     order: 6,
   },

@@ -575,7 +575,7 @@ export function EditFacetModal() {
         setSavingValueOrder(false);
       }
 
-      message.success("Facet updated.");
+      message.success("Filter updated.");
       await typedPayload.onSaved?.();
       pop();
     },
@@ -680,7 +680,7 @@ export function EditFacetModal() {
     return (
       <ModalLayout
         name="edit-facet"
-        headerProps={{ title: "Facet", onClose: pop, submitButtonProps: null }}
+        headerProps={{ title: "Filter", onClose: pop, submitButtonProps: null }}
       >
         <Skeleton active paragraph={{ rows: 6 }} />
       </ModalLayout>
@@ -691,7 +691,7 @@ export function EditFacetModal() {
     return (
       <ModalLayout
         name="edit-facet"
-        headerProps={{ title: "Facet", onClose: pop, submitButtonProps: null }}
+        headerProps={{ title: "Filter", onClose: pop, submitButtonProps: null }}
       >
         <Alert type="error" showIcon message={error.message} />
       </ModalLayout>
@@ -702,9 +702,9 @@ export function EditFacetModal() {
     return (
       <ModalLayout
         name="edit-facet"
-        headerProps={{ title: "Facet", onClose: pop, submitButtonProps: null }}
+        headerProps={{ title: "Filter", onClose: pop, submitButtonProps: null }}
       >
-        <Alert type="warning" showIcon message="Facet not found" />
+        <Alert type="warning" showIcon message="Filter not found" />
       </ModalLayout>
     );
   }

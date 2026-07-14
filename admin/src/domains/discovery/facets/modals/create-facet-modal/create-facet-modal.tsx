@@ -242,9 +242,9 @@ export function CreateFacetModal() {
 
         if (hasMixedFacetTypes) {
           setError("sources", {
-            message: "Select sources from one facet type",
+            message: "Select sources from one filter type",
           });
-          message.error("Select sources from one facet type.");
+          message.error("Select sources from one filter type.");
           return;
         }
 
@@ -253,10 +253,10 @@ export function CreateFacetModal() {
           !MULTI_SOURCE_FACET_TYPES.has(selectedFacetType)
         ) {
           setError("sources", {
-            message: "Only option and feature facets can use multiple sources",
+            message: "Only option and feature filters can use multiple sources",
           });
           message.error(
-            "Only option and feature facets can use multiple sources.",
+            "Only option and feature filters can use multiple sources.",
           );
           return;
         }
@@ -346,7 +346,7 @@ export function CreateFacetModal() {
         return;
       }
 
-      message.success("Facet created.");
+      message.success("Filter created.");
       await typedPayload.onSaved?.();
       pop();
     },
@@ -360,7 +360,7 @@ export function CreateFacetModal() {
         header={
           <ModalHeader
             name="create-facet"
-            title="Create facet"
+            title="Create filter"
             onClose={pop}
             submitButtonProps={{
               children: "Create",

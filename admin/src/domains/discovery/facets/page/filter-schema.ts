@@ -6,7 +6,7 @@ import { FACET_UI_MAPPINGS } from "../mappers";
 export const facetTypeFilterSchema: IFilterSchema = {
   key: "facetType",
   label: "Source Type",
-  description: "Filter by facet source",
+  description: "Filter by source type",
   type: FilterType.Enum,
   operators: [FilterOperator.In],
   payloadKey: "facetType",
@@ -35,7 +35,7 @@ export const filterSchema: IFilterSchema[] = [
   {
     key: "hasValues",
     label: "Has values",
-    description: "Show discrete or computed facets",
+    description: "Show discrete or computed filters",
     type: FilterType.Boolean,
     operators: [FilterOperator.Is],
     payloadKey: "hasValues",

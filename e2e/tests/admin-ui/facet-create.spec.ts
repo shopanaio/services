@@ -343,7 +343,7 @@ test.describe('Admin facets create UI', () => {
     await signIn(page, api.session.user.data.email, api.session.user.data.password);
     await completeProfileIfNeeded(page);
     await page.goto(facetsUrl);
-    await expect(page.getByTestId('page-title')).toHaveText('Facets');
+    await expect(page.getByTestId('page-title')).toHaveText('Filters');
     await expect(page.getByTestId('facets-table')).toBeVisible();
 
     const optionFacet = {

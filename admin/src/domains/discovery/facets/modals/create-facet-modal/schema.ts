@@ -36,7 +36,7 @@ export const createFacetSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["sources"],
-      message: "Only option and feature facets can use multiple sources",
+      message: "Only option and feature filters can use multiple sources",
     });
   }
 });
