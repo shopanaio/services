@@ -138,7 +138,7 @@ export function SearchSettingsPaper({
 
   return (
     <Paper data-testid="search-settings-section">
-      <PaperHeader title="Search" />
+      <PaperHeader title="Search Relevance" />
       <Typography.Text type="secondary" className={styles.description}>
         Choose what shoppers can search and how results are ranked.
       </Typography.Text>

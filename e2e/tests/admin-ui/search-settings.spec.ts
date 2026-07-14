@@ -43,8 +43,10 @@ test.describe('Admin search settings UI', () => {
     await completeProfileIfNeeded(page);
     await page.goto(settingsUrl);
 
-    await expect(page.getByTestId('page-title')).toHaveText('Search settings');
+    await expect(page.getByTestId('page-title')).toHaveText('Discovery settings');
     await expect(page.getByTestId('search-settings-section')).toBeVisible();
+    await expect(page.getByText('Search Relevance', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('discovery-filters-settings-section')).toBeVisible();
 
     const productTitleSwitch = page.getByTestId('search-field-product-title-switch');
     const variantTitleSwitch = page.getByTestId('search-field-variant-title-switch');
@@ -85,7 +87,7 @@ test.describe('Admin search settings UI', () => {
     await expect(saveButton).toBeDisabled();
 
     await page.reload();
-    await expect(page.getByTestId('page-title')).toHaveText('Search settings');
+    await expect(page.getByTestId('page-title')).toHaveText('Discovery settings');
     await expect(page.getByTestId('search-settings-section')).toBeVisible();
 
     await expect(productTitleSwitch).toBeChecked();

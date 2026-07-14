@@ -7,6 +7,7 @@ import { Alert, App, Button } from "antd";
 import { createStyles } from "antd-style";
 import type { ApiSearchSettings } from "@/graphql/types";
 import { DataLayout } from "@/layouts/data";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   useSearchEditorContext,
   useSearchSettingsNavigationGuard,
@@ -35,6 +36,9 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexDirection: "column",
     gap: token.padding,
+  },
+  filtersPlaceholder: {
+    minHeight: 72,
   },
 }));
 
@@ -276,6 +280,14 @@ export default function SearchSettingsPage() {
             updatedAt={baselineSettings?.updatedAt ?? null}
             onRetry={retryQuery}
           />
+
+          <Paper
+            className={styles.filtersPlaceholder}
+            aria-label="Filters settings section"
+            data-testid="discovery-filters-settings-section"
+          >
+            <PaperHeader title="Filters" bordered={false} />
+          </Paper>
         </main>
       </DataLayout.Content>
     </DataLayout>
