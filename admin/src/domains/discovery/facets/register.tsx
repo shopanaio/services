@@ -7,7 +7,7 @@ registerModule({
   sidebar: {
     label: "Facets",
     icon: null,
-    order: 5,
+    order: 6,
   },
   items: [
     {

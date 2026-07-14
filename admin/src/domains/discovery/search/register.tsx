@@ -7,7 +7,7 @@ registerModule({
   sidebar: {
     label: "Search",
     icon: null,
-    order: 6,
+    order: 5,
   },
   items: [
     {

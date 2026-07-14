@@ -6,7 +6,7 @@ registerDomain({
   key: "discovery",
   layout: AppLayout,
   sidebar: {
-    label: "Discovery",
+    label: "Search & Discovery",
     icon: <CompassOutlined />,
     order: 3,
   },
