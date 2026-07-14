@@ -82,9 +82,9 @@ Product boosts page
 ```ts
 {
   selectionMode: "multi",
-  initialSelection: productIds,
+  initialSelection: products.map((product) => product.id),
   maxSelection: 50,
-  onConfirm: (_entities, ids) => setValue("productIds", ids),
+  onConfirm: (entities, ids) => mergeSelectedProducts(entities, ids),
 }
 ```
 
@@ -153,7 +153,7 @@ Product boosts page
 | `locale` | searchable `Select` | Только локали текущего store, для которых search доступен. Показывать label и code. |
 | `enabled` | `Switch` | Default `true`. Disabled boost хранится, но не применяется в storefront search. |
 | `phrases` | ordered repeatable inputs | От 1 до 20. Пустые строки не отправлять; duplicate после normalization должен быть подсвечен. |
-| `productIds` | AG Grid selected-products table + nested picker | От 1 до 50 уникальных Product global IDs текущего store. |
+| `products` | AG Grid selected-products table + nested picker | Read model приходит как `Product[]`; при записи mapper отправляет от 1 до 50 уникальных Product global IDs. |
 
 Кнопка `Create/Save` disabled, если:
 
@@ -177,7 +177,9 @@ Product boosts page
 | `Status` | существующий product status renderer | фиксированная ширина, не sortable |
 | `Actions` | icon/button `Remove` | фиксированная ширина, keyboard accessible |
 
-Таблица локальная: её `rowData` строится из выбранных `productIds` и загруженных product summaries. Внутри основной modal ей не нужны pagination, filters, row selection и server-side sorting. Порядок строк соответствует `productIds`; удаление строки сразу обновляет form field и dirty state.
+Таблица локальная: в edit mode её `rowData` сразу строится из `SearchProductBoost.products`, полученных тем же detail query. Отдельный запрос в catalog для заполнения таблицы запрещён. Внутри основной modal таблице не нужны pagination, filters, row selection и server-side sorting. Порядок строк соответствует массиву `products`; удаление строки сразу обновляет form field и dirty state.
+
+После работы с picker выбранные `IPickableEntity` объединяются с уже загруженными `ApiProduct` по `id`, а порядок восстанавливается по `ids` из `onConfirm`. Для таблицы достаточно полей, возвращаемых boost detail query и picker: `id`, `title`, thumbnail и publish status. GraphQL mapper при submit преобразует актуальный selection в `productIds: products.map(({ id }) => id)`.
 
 Высота ограничивается контентом до разумного максимума, после чего scroll происходит внутри grid. У grid должны быть стабильный `getRowId`, стандартная modal row height и `data-testid="product-boost-selected-products-grid"`. Empty state внутри секции сообщает `No products selected` и оставляет рядом primary contextual action `Select products`.
 
@@ -188,12 +190,13 @@ Product boosts page
 Edit mode загружает одновременно:
 
 - `listingQuery.search.productBoost(id)`;
-- `listingQuery.search.settings`;
-- product summaries для `productIds` через catalog products query с `where.id._in`.
+- `listingQuery.search.settings`.
+
+Товары запрашиваются вложенным полем `productBoost.products` в этом же GraphQL operation. Дополнительный `catalogQuery.products(where: { id: ... })` не нужен.
 
 До завершения detail query показывается skeleton той же структуры. Если boost не найден, показать `Result`/`Alert` с `Product boost not found` и action `Close`; форму не показывать.
 
-Если один из сохранённых товаров больше недоступен для чтения, строка остаётся в draft как `Unavailable product` с ID и remove action. Нельзя тихо удалить ID: это превратило бы обычное открытие и сохранение в неявное изменение boost.
+Если Product недоступен для текущего federated read, API определяет поведение поля `productBoost.products`. UI не должен выполнять второй запрос для попытки восстановить отсутствующую сущность. При расхождении `productsCount` и фактически полученных строк показывается общий data warning и Save блокируется, чтобы не превратить сохранение в неявное удаление товара.
 
 ### Product picker wireframe
 
@@ -322,7 +325,20 @@ query SearchProductBoostEditor($id: ID!) {
           phrase
           position
         }
-        productIds
+        products {
+          id
+          title
+          isPublished
+          media {
+            sortIndex
+            file {
+              url
+              originalName
+              altText
+            }
+          }
+        }
+        productsCount
         createdAt
         updatedAt
       }
@@ -370,7 +386,7 @@ query SearchConfigurationEditorContext {
 }
 ```
 
-`phrases` и `values` перед заполнением формы сортируются по `position`. Компоненты получают `ApiSearchProductBoost`, `ApiSearchSynonymGroup` и `ApiSearchSettings` напрямую из `@/graphql/types`; отдельные API-output view models не создаются.
+`phrases` и `values` перед заполнением формы сортируются по `position`. Product Boost modal читает выбранные товары напрямую из `ApiSearchProductBoost.products`; отдельного catalog query и API-output view model для них нет. Компоненты получают `ApiSearchProductBoost`, `ApiProduct`, `ApiSearchSynonymGroup` и `ApiSearchSettings` напрямую из `@/graphql/types`.
 
 ### Инициализация search settings
 
@@ -541,7 +557,7 @@ Submit считается успешным только когда одновр�
 |---|---|
 | `name` | trim, 1–128 Unicode code points |
 | boost `phrases` | 1–20 непустых значений |
-| boost `productIds` | 1–50 уникальных ID |
+| boost selected products | 1–50 уникальных ID; mapper формирует API field `productIds` |
 | synonym `values` | 2–20 непустых значений |
 
 Normalization, searchable-token validation, доступность locale, существование products и cross-group conflicts остаются ответственностью API. Клиент не должен реализовывать вторую версию `SearchQueryNormalizer`.
@@ -557,8 +573,8 @@ API может вернуть paths с batch prefix или script prefix. Error 
 | `enabled` | `enabled` |
 | `phrases` | секция `phrases` |
 | `phrases.<index>` | `phrases[index]` |
-| `productIds` | секция `productIds` |
-| `productIds.<index>` | конкретная product row |
+| `productIds` | секция `products` |
+| `productIds.<index>` | конкретная строка products AG Grid |
 | `values` | секция `values` |
 | `values.<index>` | `values[index]` |
 | `expectedVersion` | global conflict alert |
@@ -633,6 +649,8 @@ Hooks владеют Apollo query/mutation, loading/error state и refetch. Mapp
 - Edit всегда загружает detail entity по `entityId`, а не доверяет snapshot grid row.
 - Product picker открывается вторым уровнем Modal Stack и сохраняет selection между страницами.
 - Выбранные товары в основной Product Boost modal отображаются через AG Grid, не через самодельный compact list.
+- Edit modal получает строки этой таблицы из `SearchProductBoost.products` в detail query и не выполняет отдельный catalog products query.
+- При submit `productIds` вычисляются из текущего массива выбранных products.
 - Вложенный существующий Product Picker продолжает использовать собственный pageable/selectable AG Grid.
 - Synonym values редактируются в локальном editable AG Grid со стабильными row IDs, reorder и inline errors.
 - Trigger phrases остаются form field array: их wireframe не является таблицей и AG Grid для них не используется.
