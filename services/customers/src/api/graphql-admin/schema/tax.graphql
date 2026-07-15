@@ -11,7 +11,7 @@ enum CustomerTaxExemptionStatus {
   REVOKED
 }
 
-type CustomerTaxIdentifier implements Node @key(fields: "id") {
+type CustomerTaxIdentifier implements Node {
   id: ID!
   customer: Customer!
   identifierType: String!
@@ -39,7 +39,7 @@ type CustomerTaxIdentifierEdge {
   cursor: String!
 }
 
-type CustomerTaxExemption implements Node @key(fields: "id") {
+type CustomerTaxExemption implements Node {
   id: ID!
   customer: Customer!
   code: String!

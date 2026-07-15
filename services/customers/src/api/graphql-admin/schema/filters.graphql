@@ -211,39 +211,6 @@ input CustomerTaxExemptionOrderByInput {
   direction: SortDirection!
 }
 
-input CustomerConsentChannelFilter {
-  _eq: CustomerConsentChannel
-  _neq: CustomerConsentChannel
-  _in: [CustomerConsentChannel!]
-  _notIn: [CustomerConsentChannel!]
-}
-
-input CustomerConsentStateFilter {
-  _eq: CustomerConsentState
-  _neq: CustomerConsentState
-  _in: [CustomerConsentState!]
-  _notIn: [CustomerConsentState!]
-}
-
-input CustomerConsentEventWhereInput {
-  _and: [CustomerConsentEventWhereInput!]
-  _or: [CustomerConsentEventWhereInput!]
-  _not: CustomerConsentEventWhereInput
-  id: IDFilter
-  customerId: IDFilter
-  consentId: IDFilter
-  channel: CustomerConsentChannelFilter
-  previousState: CustomerConsentStateFilter
-  newState: CustomerConsentStateFilter
-  contactPoint: StringFilter
-  source: StringFilter
-  actorType: StringFilter
-  actorId: StringFilter
-  requestId: StringFilter
-  idempotencyKey: StringFilter
-  occurredAt: DateTimeFilter
-}
-
 enum CustomerConsentEventOrderField {
   id
   channel
@@ -426,33 +393,6 @@ enum CustomerSegmentMembershipOrderField {
 
 input CustomerSegmentMembershipOrderByInput {
   field: CustomerSegmentMembershipOrderField!
-  direction: SortDirection!
-}
-
-input CustomerExternalReferenceWhereInput {
-  _and: [CustomerExternalReferenceWhereInput!]
-  _or: [CustomerExternalReferenceWhereInput!]
-  _not: CustomerExternalReferenceWhereInput
-  id: IDFilter
-  customerId: IDFilter
-  externalSystem: StringFilter
-  externalType: StringFilter
-  externalId: StringFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerExternalReferenceOrderField {
-  id
-  externalSystem
-  externalType
-  externalId
-  createdAt
-  updatedAt
-}
-
-input CustomerExternalReferenceOrderByInput {
-  field: CustomerExternalReferenceOrderField!
   direction: SortDirection!
 }
 

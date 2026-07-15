@@ -106,15 +106,6 @@ type Customer implements Node @key(fields: "id") {
     orderBy: [CustomerSegmentMembershipOrderByInput!]
   ): CustomerSegmentMembershipConnection!
 
-  externalReferences(
-    first: Int
-    after: String
-    last: Int
-    before: String
-    where: CustomerExternalReferenceWhereInput
-    orderBy: [CustomerExternalReferenceOrderByInput!]
-  ): CustomerExternalReferenceConnection!
-
   statistics: CustomerStatistics
   monetaryStatistics(
     first: Int
@@ -138,13 +129,8 @@ type CustomerEdge {
 }
 
 input CustomerCreateInput {
-  iamPrincipalId: String
-  """Defaults to GUEST when omitted."""
-  accountStatus: CustomerAccountStatus
   email: Email
-  emailVerified: Boolean = false
   phoneE164: String
-  phoneVerified: Boolean = false
   prefix: String
   firstName: String
   middleName: String
@@ -156,7 +142,6 @@ input CustomerCreateInput {
   companyName: String
   jobTitle: String
   note: String
-  source: String = "admin"
 }
 
 """
@@ -167,12 +152,8 @@ input CustomerUpdateInput {
   id: ID!
   expectedRevision: Int!
   disabled: Boolean
-  iamPrincipalId: String
-  accountStatus: CustomerAccountStatus
   email: Email
-  emailVerified: Boolean
   phoneE164: String
-  phoneVerified: Boolean
   prefix: String
   firstName: String
   middleName: String
@@ -186,11 +167,6 @@ input CustomerUpdateInput {
   note: String
 }
 
-input CustomerDeleteInput {
-  id: ID!
-  expectedRevision: Int!
-}
-
 type CustomerCreatePayload {
   customer: Customer
   userErrors: [GenericUserError!]!
@@ -198,10 +174,5 @@ type CustomerCreatePayload {
 
 type CustomerUpdatePayload {
   customer: Customer
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerDeletePayload {
-  deletedCustomerId: ID
   userErrors: [GenericUserError!]!
 }

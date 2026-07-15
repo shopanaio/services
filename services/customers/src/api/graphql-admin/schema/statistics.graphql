@@ -15,7 +15,7 @@ type CustomerStatistics {
 }
 
 """Rebuildable monetary customer projection for one ISO 4217 currency."""
-type CustomerMonetaryStatistics implements Node @key(fields: "id") {
+type CustomerMonetaryStatistics implements Node {
   id: ID!
   customer: Customer!
   currencyCode: CurrencyCode!

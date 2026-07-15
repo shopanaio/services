@@ -14,6 +14,14 @@ enum CustomerConsentState {
   REDACTED
 }
 
+"""Consent states that a merchant administrator may set explicitly."""
+enum CustomerConsentAdminState {
+  NOT_SUBSCRIBED
+  PENDING
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+
 enum CustomerConsentOptInLevel {
   UNKNOWN
   SINGLE_OPT_IN
@@ -21,7 +29,7 @@ enum CustomerConsentOptInLevel {
 }
 
 """Current consent state for one customer and channel."""
-type CustomerConsent implements Node @key(fields: "id") {
+type CustomerConsent implements Node {
   id: ID!
   customer: Customer!
   channel: CustomerConsentChannel!
@@ -46,7 +54,7 @@ type CustomerConsent implements Node @key(fields: "id") {
 }
 
 """Immutable evidence record for a consent transition."""
-type CustomerConsentEvent implements Node @key(fields: "id") {
+type CustomerConsentEvent implements Node {
   id: ID!
   customer: Customer!
   consent: CustomerConsent!
@@ -81,13 +89,11 @@ type CustomerConsentEventEdge {
 input CustomerConsentSetInput {
   customerId: ID!
   channel: CustomerConsentChannel!
-  state: CustomerConsentState!
+  state: CustomerConsentAdminState!
   """Defaults to UNKNOWN when omitted."""
   optInLevel: CustomerConsentOptInLevel
   contactPoint: String!
-  source: String = "admin"
   sourceLocationId: ID
-  idempotencyKey: String
   evidence: JSON
 }
 

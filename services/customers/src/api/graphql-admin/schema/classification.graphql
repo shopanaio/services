@@ -16,7 +16,7 @@ enum CustomerSegmentStatus {
   ARCHIVED
 }
 
-type CustomerGroup implements Node @key(fields: "id") {
+type CustomerGroup implements Node {
   id: ID!
   code: String!
   name: String!
@@ -48,7 +48,7 @@ type CustomerGroupEdge {
   cursor: String!
 }
 
-type CustomerGroupMembership implements Node @key(fields: "id") {
+type CustomerGroupMembership implements Node {
   id: ID!
   customer: Customer!
   group: CustomerGroup!
@@ -71,7 +71,7 @@ type CustomerGroupMembershipEdge {
   cursor: String!
 }
 
-type CustomerTag implements Node @key(fields: "id") {
+type CustomerTag implements Node {
   id: ID!
   name: String!
   normalizedName: String!
@@ -100,7 +100,7 @@ type CustomerTagEdge {
   cursor: String!
 }
 
-type CustomerTagAssignment implements Node @key(fields: "id") {
+type CustomerTagAssignment implements Node {
   id: ID!
   customer: Customer!
   tag: CustomerTag!
@@ -119,7 +119,7 @@ type CustomerTagAssignmentEdge {
   cursor: String!
 }
 
-type CustomerSegment implements Node @key(fields: "id") {
+type CustomerSegment implements Node {
   id: ID!
   name: String!
   description: String
@@ -153,7 +153,7 @@ type CustomerSegmentEdge {
   cursor: String!
 }
 
-type CustomerSegmentMembership implements Node @key(fields: "id") {
+type CustomerSegmentMembership implements Node {
   id: ID!
   customer: Customer!
   segment: CustomerSegment!
@@ -200,8 +200,6 @@ input CustomerGroupMembershipSetInput {
   customerId: ID!
   groupId: ID!
   isPrimary: Boolean = false
-  """Defaults to MANUAL when omitted."""
-  source: CustomerAssignmentSource
   expiresAt: DateTime
 }
 
@@ -257,23 +255,16 @@ input CustomerSegmentDeleteInput {
   id: ID!
 }
 
-"""Create or update materialized membership. Intended for manual/import flows."""
-input CustomerSegmentMembershipSetInput {
-  customerId: ID!
+"""Add customers to a manual segment."""
+input CustomerSegmentCustomersAddInput {
   segmentId: ID!
-  """Defaults to MANUAL when omitted."""
-  source: CustomerAssignmentSource
-  expiresAt: DateTime
+  customerIds: [ID!]!
 }
 
-input CustomerSegmentMembershipDeleteInput {
-  customerId: ID!
+"""Remove customers from a manual segment."""
+input CustomerSegmentCustomersRemoveInput {
   segmentId: ID!
-}
-
-"""Re-evaluate and replace materialized membership for a dynamic segment."""
-input CustomerSegmentEvaluateInput {
-  segmentId: ID!
+  customerIds: [ID!]!
 }
 
 type CustomerGroupCreatePayload {
@@ -341,19 +332,14 @@ type CustomerSegmentDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-type CustomerSegmentMembershipSetPayload {
-  membership: CustomerSegmentMembership
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerSegmentMembershipDeletePayload {
-  deletedMembershipId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerSegmentEvaluatePayload {
+type CustomerSegmentCustomersAddPayload {
   segment: CustomerSegment
-  evaluatedAt: DateTime
-  customersCount: Int
+  customers: [Customer!]!
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerSegmentCustomersRemovePayload {
+  segment: CustomerSegment
+  removedCustomerIds: [ID!]!
   userErrors: [GenericUserError!]!
 }

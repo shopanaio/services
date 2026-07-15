@@ -24,7 +24,7 @@ type Mutation {
 
 """Store-scoped customer reads. The current Store is taken from trusted context."""
 type CustomersQuery {
-  """Resolve any customer-owned Relay node by global ID."""
+  """Resolve a customer-owned Relay node by global ID."""
   node(id: ID!): Node
 
   """Resolve customer-owned Relay nodes while preserving input order."""
@@ -32,12 +32,6 @@ type CustomersQuery {
 
   customer(id: ID!): Customer
   customerByEmail(email: Email!): Customer
-  customerByIamPrincipalId(iamPrincipalId: String!): Customer
-  customerByExternalReference(
-    externalSystem: String!
-    externalType: String = "customer"
-    externalId: String!
-  ): Customer
   customers(
     first: Int
     after: String
@@ -51,15 +45,6 @@ type CustomersQuery {
   customerTaxIdentifier(id: ID!): CustomerTaxIdentifier
   customerTaxExemption(id: ID!): CustomerTaxExemption
   customerConsent(id: ID!): CustomerConsent
-
-  customerConsentEvents(
-    first: Int
-    after: String
-    last: Int
-    before: String
-    where: CustomerConsentEventWhereInput
-    orderBy: [CustomerConsentEventOrderByInput!]
-  ): CustomerConsentEventConnection!
 
   customerGroup(id: ID!): CustomerGroup
   customerGroups(
@@ -91,8 +76,6 @@ type CustomersQuery {
     orderBy: [CustomerSegmentOrderByInput!]
   ): CustomerSegmentConnection!
 
-  customerExternalReference(id: ID!): CustomerExternalReference
-
   customerMerge(id: ID!): CustomerMerge
   customerMerges(
     first: Int
@@ -118,7 +101,6 @@ type CustomersQuery {
 type CustomersMutation {
   customerCreate(input: CustomerCreateInput!): CustomerCreatePayload!
   customerUpdate(input: CustomerUpdateInput!): CustomerUpdatePayload!
-  customerDelete(input: CustomerDeleteInput!): CustomerDeletePayload!
 
   customerAddressCreate(input: CustomerAddressCreateInput!): CustomerAddressCreatePayload!
   customerAddressUpdate(input: CustomerAddressUpdateInput!): CustomerAddressUpdatePayload!
@@ -175,22 +157,12 @@ type CustomersMutation {
   customerSegmentDelete(
     input: CustomerSegmentDeleteInput!
   ): CustomerSegmentDeletePayload!
-  customerSegmentMembershipSet(
-    input: CustomerSegmentMembershipSetInput!
-  ): CustomerSegmentMembershipSetPayload!
-  customerSegmentMembershipDelete(
-    input: CustomerSegmentMembershipDeleteInput!
-  ): CustomerSegmentMembershipDeletePayload!
-  customerSegmentEvaluate(
-    input: CustomerSegmentEvaluateInput!
-  ): CustomerSegmentEvaluatePayload!
-
-  customerExternalReferenceUpsert(
-    input: CustomerExternalReferenceUpsertInput!
-  ): CustomerExternalReferenceUpsertPayload!
-  customerExternalReferenceDelete(
-    input: CustomerExternalReferenceDeleteInput!
-  ): CustomerExternalReferenceDeletePayload!
+  customerSegmentCustomersAdd(
+    input: CustomerSegmentCustomersAddInput!
+  ): CustomerSegmentCustomersAddPayload!
+  customerSegmentCustomersRemove(
+    input: CustomerSegmentCustomersRemoveInput!
+  ): CustomerSegmentCustomersRemovePayload!
 
   customerMergeRequest(input: CustomerMergeRequestInput!): CustomerMergeRequestPayload!
   customerDataRequestCreate(

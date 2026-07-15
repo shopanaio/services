@@ -107,7 +107,6 @@ export async function startServer(serverConfig: ServerConfig) {
     "tax.graphql",
     "consent.graphql",
     "classification.graphql",
-    "integrations.graphql",
     "statistics.graphql",
     "lifecycle.graphql",
   ];

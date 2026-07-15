@@ -114,7 +114,6 @@ export enum GlobalIdEntity {
   CustomerTagAssignment = "CustomerTagAssignment",
   CustomerSegment = "CustomerSegment",
   CustomerSegmentMembership = "CustomerSegmentMembership",
-  CustomerExternalReference = "CustomerExternalReference",
   CustomerMonetaryStatistics = "CustomerMonetaryStatistics",
   CustomerMerge = "CustomerMerge",
   CustomerDataRequest = "CustomerDataRequest",

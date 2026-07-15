@@ -21,7 +21,7 @@ enum CustomerDataRequestStatus {
 }
 
 """Idempotent workflow that merges one customer profile into another."""
-type CustomerMerge implements Node @key(fields: "id") {
+type CustomerMerge implements Node {
   id: ID!
   sourceCustomer: Customer!
   targetCustomer: Customer!
@@ -51,7 +51,7 @@ type CustomerMergeEdge {
 }
 
 """Auditable privacy access, export, correction or erasure workflow."""
-type CustomerDataRequest implements Node @key(fields: "id") {
+type CustomerDataRequest implements Node {
   id: ID!
   customer: Customer!
   type: CustomerDataRequestType!
@@ -86,8 +86,6 @@ input CustomerMergeRequestInput {
   sourceCustomerId: ID!
   targetCustomerId: ID!
   reason: String
-  """Defaults to the request idempotency key from trusted context."""
-  idempotencyKey: String
 }
 
 input CustomerDataRequestCreateInput {
@@ -96,8 +94,6 @@ input CustomerDataRequestCreateInput {
   legalBasis: String
   requestMetadata: JSON
   dueAt: DateTime
-  """Defaults to the request idempotency key from trusted context."""
-  idempotencyKey: String
 }
 
 input CustomerDataRequestCancelInput {

@@ -4,7 +4,7 @@ enum CustomerAddressValidationStatus {
   INVALID
 }
 
-type CustomerAddress implements Node @key(fields: "id") {
+type CustomerAddress implements Node {
   id: ID!
   customer: Customer!
   label: String
@@ -85,7 +85,6 @@ input CustomerAddressUpdateInput {
   regionCode: String
   postalCode: String
   countryCode: String
-  validationStatus: CustomerAddressValidationStatus
   latitude: Float
   longitude: Float
 }
