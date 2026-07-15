@@ -144,16 +144,8 @@ input CustomerCreateInput {
   note: String
 }
 
-"""
-Patch a customer profile. MERGED and REDACTED lifecycle transitions are only
-available through their dedicated workflows; disabled controls ACTIVE/DISABLED.
-"""
-input CustomerUpdateInput {
-  id: ID!
-  expectedRevision: Int!
-  disabled: Boolean
-  email: Email
-  phoneE164: String
+"""Personal profile fields in the unified customer update."""
+input CustomerProfileUpdateInput {
   prefix: String
   firstName: String
   middleName: String
@@ -162,9 +154,55 @@ input CustomerUpdateInput {
   preferredLocale: String
   dateOfBirth: Date
   gender: String
+}
+
+"""Contact projections in the unified customer update."""
+input CustomerContactUpdateInput {
+  email: Email
+  phoneE164: String
+}
+
+"""Company fields in the unified customer update."""
+input CustomerCompanyUpdateInput {
   companyName: String
   jobTitle: String
+}
+
+"""
+Lifecycle fields available to Admin. Merge and redaction remain dedicated
+workflows and cannot be selected here.
+"""
+input CustomerStatusUpdateInput {
+  disabled: Boolean!
+}
+
+"""Merchant note in the unified customer update."""
+input CustomerNoteUpdateInput {
   note: String
+}
+
+"""Customer-level operations applied atomically by customerUpdate."""
+input CustomerUpdateInput {
+  profile: CustomerProfileUpdateInput
+  contact: CustomerContactUpdateInput
+  company: CustomerCompanyUpdateInput
+  status: CustomerStatusUpdateInput
+  note: CustomerNoteUpdateInput
+}
+
+enum CustomerOperationType {
+  PROFILE_UPDATE
+  CONTACT_UPDATE
+  COMPANY_UPDATE
+  STATUS_UPDATE
+  NOTE_UPDATE
+}
+
+"""Result of one section in the unified customer update."""
+type CustomerOperationResult {
+  type: CustomerOperationType!
+  applied: Boolean!
+  errors: [GenericUserError!]!
 }
 
 type CustomerCreatePayload {
@@ -174,5 +212,6 @@ type CustomerCreatePayload {
 
 type CustomerUpdatePayload {
   customer: Customer
+  operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }

@@ -707,6 +707,12 @@ export type CustomerAssignmentSourceFilter = {
   _notIn?: InputMaybe<Array<CustomerAssignmentSource>>;
 };
 
+/** Company fields in the unified customer update. */
+export type CustomerCompanyUpdateInput = {
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  jobTitle?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CustomerConnection = {
   __typename?: 'CustomerConnection';
   edges: Array<CustomerEdge>;
@@ -841,6 +847,12 @@ export enum CustomerConsentState {
   Subscribed = 'SUBSCRIBED',
   Unsubscribed = 'UNSUBSCRIBED'
 }
+
+/** Contact projections in the unified customer update. */
+export type CustomerContactUpdateInput = {
+  email?: InputMaybe<Scalars['Email']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+};
 
 export type CustomerCreateInput = {
   companyName?: InputMaybe<Scalars['String']['input']>;
@@ -1337,6 +1349,27 @@ export type CustomerMonetaryStatisticsWhereInput = {
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
+/** Merchant note in the unified customer update. */
+export type CustomerNoteUpdateInput = {
+  note?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Result of one section in the unified customer update. */
+export type CustomerOperationResult = {
+  __typename?: 'CustomerOperationResult';
+  applied: Scalars['Boolean']['output'];
+  errors: Array<GenericUserError>;
+  type: CustomerOperationType;
+};
+
+export enum CustomerOperationType {
+  CompanyUpdate = 'COMPANY_UPDATE',
+  ContactUpdate = 'CONTACT_UPDATE',
+  NoteUpdate = 'NOTE_UPDATE',
+  ProfileUpdate = 'PROFILE_UPDATE',
+  StatusUpdate = 'STATUS_UPDATE'
+}
+
 export type CustomerOrderByInput = {
   direction: SortDirection;
   field: CustomerOrderField;
@@ -1356,6 +1389,18 @@ export enum CustomerOrderField {
   PhoneE164 = 'phoneE164',
   UpdatedAt = 'updatedAt'
 }
+
+/** Personal profile fields in the unified customer update. */
+export type CustomerProfileUpdateInput = {
+  dateOfBirth?: InputMaybe<Scalars['Date']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  gender?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  preferredLocale?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
 
 export type CustomerSegment = Node & {
   __typename?: 'CustomerSegment';
@@ -1580,6 +1625,14 @@ export type CustomerStatistics = {
   ordersCount: Scalars['Int']['output'];
   returnsCount: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * Lifecycle fields available to Admin. Merge and redaction remain dedicated
+ * workflows and cannot be selected here.
+ */
+export type CustomerStatusUpdateInput = {
+  disabled: Scalars['Boolean']['input'];
 };
 
 export type CustomerTag = Node & {
@@ -1983,32 +2036,19 @@ export type CustomerTaxIdentifierWhereInput = {
   value?: InputMaybe<StringFilter>;
 };
 
-/**
- * Patch a customer profile. MERGED and REDACTED lifecycle transitions are only
- * available through their dedicated workflows; disabled controls ACTIVE/DISABLED.
- */
+/** Customer-level operations applied atomically by customerUpdate. */
 export type CustomerUpdateInput = {
-  companyName?: InputMaybe<Scalars['String']['input']>;
-  dateOfBirth?: InputMaybe<Scalars['Date']['input']>;
-  disabled?: InputMaybe<Scalars['Boolean']['input']>;
-  email?: InputMaybe<Scalars['Email']['input']>;
-  expectedRevision: Scalars['Int']['input'];
-  firstName?: InputMaybe<Scalars['String']['input']>;
-  gender?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
-  jobTitle?: InputMaybe<Scalars['String']['input']>;
-  lastName?: InputMaybe<Scalars['String']['input']>;
-  middleName?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
-  phoneE164?: InputMaybe<Scalars['String']['input']>;
-  preferredLocale?: InputMaybe<Scalars['String']['input']>;
-  prefix?: InputMaybe<Scalars['String']['input']>;
-  suffix?: InputMaybe<Scalars['String']['input']>;
+  company?: InputMaybe<CustomerCompanyUpdateInput>;
+  contact?: InputMaybe<CustomerContactUpdateInput>;
+  note?: InputMaybe<CustomerNoteUpdateInput>;
+  profile?: InputMaybe<CustomerProfileUpdateInput>;
+  status?: InputMaybe<CustomerStatusUpdateInput>;
 };
 
 export type CustomerUpdatePayload = {
   __typename?: 'CustomerUpdatePayload';
   customer: Maybe<Customer>;
+  operationResults: Array<CustomerOperationResult>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -2069,6 +2109,7 @@ export type CustomersMutation = {
   customerTaxIdentifierCreate: CustomerTaxIdentifierCreatePayload;
   customerTaxIdentifierDelete: CustomerTaxIdentifierDeletePayload;
   customerTaxIdentifierUpdate: CustomerTaxIdentifierUpdatePayload;
+  /** Unified customer profile update with optimistic locking. */
   customerUpdate: CustomerUpdatePayload;
 };
 
@@ -2255,7 +2296,9 @@ export type CustomersMutationCustomerTaxIdentifierUpdateArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerUpdateArgs = {
-  input: CustomerUpdateInput;
+  customerId: Scalars['ID']['input'];
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations?: InputMaybe<CustomerUpdateInput>;
 };
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
@@ -3038,6 +3081,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerAddressWhereInput: CustomerAddressWhereInput;
   CustomerAssignmentSource: CustomerAssignmentSource;
   CustomerAssignmentSourceFilter: CustomerAssignmentSourceFilter;
+  CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
   CustomerConnection: ResolverTypeWrapper<CustomerConnection>;
   CustomerConsent: ResolverTypeWrapper<CustomerConsent>;
   CustomerConsentAdminState: CustomerConsentAdminState;
@@ -3051,6 +3095,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerConsentSetInput: CustomerConsentSetInput;
   CustomerConsentSetPayload: ResolverTypeWrapper<CustomerConsentSetPayload>;
   CustomerConsentState: CustomerConsentState;
+  CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
   CustomerCreatePayload: ResolverTypeWrapper<CustomerCreatePayload>;
   CustomerDataRequest: ResolverTypeWrapper<CustomerDataRequest>;
@@ -3108,8 +3153,12 @@ export type ResolversTypes = ResolversObject<{
   CustomerMonetaryStatisticsOrderByInput: CustomerMonetaryStatisticsOrderByInput;
   CustomerMonetaryStatisticsOrderField: CustomerMonetaryStatisticsOrderField;
   CustomerMonetaryStatisticsWhereInput: CustomerMonetaryStatisticsWhereInput;
+  CustomerNoteUpdateInput: CustomerNoteUpdateInput;
+  CustomerOperationResult: ResolverTypeWrapper<CustomerOperationResult>;
+  CustomerOperationType: CustomerOperationType;
   CustomerOrderByInput: CustomerOrderByInput;
   CustomerOrderField: CustomerOrderField;
+  CustomerProfileUpdateInput: CustomerProfileUpdateInput;
   CustomerSegment: ResolverTypeWrapper<CustomerSegment>;
   CustomerSegmentConnection: ResolverTypeWrapper<CustomerSegmentConnection>;
   CustomerSegmentCreateInput: CustomerSegmentCreateInput;
@@ -3137,6 +3186,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentUpdatePayload: ResolverTypeWrapper<CustomerSegmentUpdatePayload>;
   CustomerSegmentWhereInput: CustomerSegmentWhereInput;
   CustomerStatistics: ResolverTypeWrapper<CustomerStatistics>;
+  CustomerStatusUpdateInput: CustomerStatusUpdateInput;
   CustomerTag: ResolverTypeWrapper<CustomerTag>;
   CustomerTagAssignInput: CustomerTagAssignInput;
   CustomerTagAssignPayload: ResolverTypeWrapper<CustomerTagAssignPayload>;
@@ -3243,6 +3293,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerAddressValidationStatusFilter: CustomerAddressValidationStatusFilter;
   CustomerAddressWhereInput: CustomerAddressWhereInput;
   CustomerAssignmentSourceFilter: CustomerAssignmentSourceFilter;
+  CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
   CustomerConnection: CustomerConnection;
   CustomerConsent: CustomerConsent;
   CustomerConsentEvent: CustomerConsentEvent;
@@ -3251,6 +3302,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerConsentEventOrderByInput: CustomerConsentEventOrderByInput;
   CustomerConsentSetInput: CustomerConsentSetInput;
   CustomerConsentSetPayload: CustomerConsentSetPayload;
+  CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
   CustomerCreatePayload: CustomerCreatePayload;
   CustomerDataRequest: CustomerDataRequest;
@@ -3299,7 +3351,10 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerMonetaryStatisticsEdge: CustomerMonetaryStatisticsEdge;
   CustomerMonetaryStatisticsOrderByInput: CustomerMonetaryStatisticsOrderByInput;
   CustomerMonetaryStatisticsWhereInput: CustomerMonetaryStatisticsWhereInput;
+  CustomerNoteUpdateInput: CustomerNoteUpdateInput;
+  CustomerOperationResult: CustomerOperationResult;
   CustomerOrderByInput: CustomerOrderByInput;
+  CustomerProfileUpdateInput: CustomerProfileUpdateInput;
   CustomerSegment: CustomerSegment;
   CustomerSegmentConnection: CustomerSegmentConnection;
   CustomerSegmentCreateInput: CustomerSegmentCreateInput;
@@ -3323,6 +3378,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerSegmentUpdatePayload: CustomerSegmentUpdatePayload;
   CustomerSegmentWhereInput: CustomerSegmentWhereInput;
   CustomerStatistics: CustomerStatistics;
+  CustomerStatusUpdateInput: CustomerStatusUpdateInput;
   CustomerTag: CustomerTag;
   CustomerTagAssignInput: CustomerTagAssignInput;
   CustomerTagAssignPayload: CustomerTagAssignPayload;
@@ -3782,6 +3838,13 @@ export type CustomerMonetaryStatisticsEdgeResolvers<ContextType = ServiceContext
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CustomerOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerOperationResult'] = ResolversParentTypes['CustomerOperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['CustomerOperationType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CustomerSegmentResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegment'] = ResolversParentTypes['CustomerSegment']> = ResolversObject<{
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4060,6 +4123,7 @@ export type CustomerTaxIdentifierUpdatePayloadResolvers<ContextType = ServiceCon
 
 export type CustomerUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerUpdatePayload'] = ResolversParentTypes['CustomerUpdatePayload']> = ResolversObject<{
   customer?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType>;
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -4095,7 +4159,7 @@ export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType 
   customerTaxIdentifierCreate?: Resolver<ResolversTypes['CustomerTaxIdentifierCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierCreateArgs, 'input'>>;
   customerTaxIdentifierDelete?: Resolver<ResolversTypes['CustomerTaxIdentifierDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierDeleteArgs, 'input'>>;
   customerTaxIdentifierUpdate?: Resolver<ResolversTypes['CustomerTaxIdentifierUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierUpdateArgs, 'input'>>;
-  customerUpdate?: Resolver<ResolversTypes['CustomerUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerUpdateArgs, 'input'>>;
+  customerUpdate?: Resolver<ResolversTypes['CustomerUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerUpdateArgs, 'customerId'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4224,6 +4288,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CustomerMonetaryStatistics?: CustomerMonetaryStatisticsResolvers<ContextType>;
   CustomerMonetaryStatisticsConnection?: CustomerMonetaryStatisticsConnectionResolvers<ContextType>;
   CustomerMonetaryStatisticsEdge?: CustomerMonetaryStatisticsEdgeResolvers<ContextType>;
+  CustomerOperationResult?: CustomerOperationResultResolvers<ContextType>;
   CustomerSegment?: CustomerSegmentResolvers<ContextType>;
   CustomerSegmentConnection?: CustomerSegmentConnectionResolvers<ContextType>;
   CustomerSegmentCreatePayload?: CustomerSegmentCreatePayloadResolvers<ContextType>;

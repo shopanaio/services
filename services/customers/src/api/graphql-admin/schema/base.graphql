@@ -100,7 +100,15 @@ type CustomersQuery {
 """Store-scoped customer commands."""
 type CustomersMutation {
   customerCreate(input: CustomerCreateInput!): CustomerCreatePayload!
-  customerUpdate(input: CustomerUpdateInput!): CustomerUpdatePayload!
+  """Unified customer profile update with optimistic locking."""
+  customerUpdate(
+    """The customer ID to update."""
+    customerId: ID!
+    """Expected revision. When provided, the update fails on a stale revision."""
+    expectedRevision: Int
+    """Customer-level operations to apply atomically."""
+    operations: CustomerUpdateInput
+  ): CustomerUpdatePayload!
 
   customerAddressCreate(input: CustomerAddressCreateInput!): CustomerAddressCreatePayload!
   customerAddressUpdate(input: CustomerAddressUpdateInput!): CustomerAddressUpdatePayload!
