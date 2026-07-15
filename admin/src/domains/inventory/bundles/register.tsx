@@ -37,17 +37,5 @@ registerModule({
         () => import("@/domains/inventory/featured-products/page/page"),
       ),
     },
-    {
-      key: "bundles-list",
-      path: "/:orgName/:storeName/bundles",
-      sidebar: {
-        label: "Bundles",
-        icon: null,
-        order: 3,
-      },
-      component: dynamic(
-        () => import("@/domains/inventory/bundles/page/page"),
-      ),
-    },
   ],
 });
