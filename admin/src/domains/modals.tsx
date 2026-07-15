@@ -102,6 +102,86 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     // ========================================
+    // Email settings modals
+    // ========================================
+    {
+      type: 'system-edit-email-settings',
+      component: dynamic(() =>
+        import(
+          '@/domains/system/email/modals/edit-email-settings-modal'
+        ).then((m) => m.EditEmailSettingsModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard email settings changes?',
+    },
+    {
+      type: 'system-edit-smtp-profile',
+      component: dynamic(() =>
+        import('@/domains/system/email/modals/edit-smtp-profile-modal').then(
+          (m) => m.EditSmtpProfileModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard SMTP profile changes?',
+    },
+    {
+      type: 'system-email-template',
+      component: dynamic(() =>
+        import('@/domains/system/email/modals/email-template-modal').then(
+          (m) => m.EmailTemplateModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard email template changes?',
+    },
+    {
+      type: 'system-send-test-email',
+      component: dynamic(() =>
+        import('@/domains/system/email/modals/send-test-email-modal').then(
+          (m) => m.SendTestEmailModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard this test email?',
+    },
+    {
+      type: 'system-delete-email-template',
+      component: dynamic(() =>
+        import(
+          '@/domains/system/email/modals/delete-email-template-modal'
+        ).then((m) => m.DeleteEmailTemplateModal)
+      ),
+    },
+    // ========================================
+    // API key and app modals
+    // ========================================
+    {
+      type: 'system-create-api-key',
+      component: dynamic(() =>
+        import('@/domains/system/api-keys/modals/create-api-key-modal').then(
+          (m) => m.CreateApiKeyModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard this API key?',
+    },
+    {
+      type: 'system-api-key-action',
+      component: dynamic(() =>
+        import('@/domains/system/api-keys/modals/api-key-action-modal').then(
+          (m) => m.ApiKeyActionModal
+        )
+      ),
+    },
+    {
+      type: 'system-uninstall-app',
+      component: dynamic(() =>
+        import('@/domains/system/apps/modals/uninstall-app-modal').then(
+          (m) => m.UninstallAppModal
+        )
+      ),
+    },
+    // ========================================
     // Profile modals
     // ========================================
     // Change Password modal

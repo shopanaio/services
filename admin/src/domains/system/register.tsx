@@ -37,7 +37,6 @@ registerModule({
     {
       key: "email-settings",
       path: "/:orgName/:storeName/system/notifications/email-settings",
-      disabled: true,
       sidebar: {
         label: "Email Settings",
         icon: null,
@@ -50,7 +49,6 @@ registerModule({
     {
       key: "email-templates",
       path: "/:orgName/:storeName/system/notifications/email-templates",
-      disabled: true,
       sidebar: {
         label: "Email Templates",
         icon: null,
@@ -139,7 +137,6 @@ registerModule({
     {
       key: "system-apps",
       path: "/:orgName/:storeName/system/integrations/apps",
-      disabled: true,
       sidebar: {
         label: "Apps",
         icon: null,
@@ -152,7 +149,6 @@ registerModule({
     {
       key: "system-api-keys",
       path: "/:orgName/:storeName/system/integrations/api-keys",
-      disabled: true,
       sidebar: {
         label: "API Keys",
         icon: null,
