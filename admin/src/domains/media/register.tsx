@@ -13,6 +13,7 @@ registerModule({
     {
       key: "website-pages-list",
       path: "/:orgName/:storeName/pages",
+      disabled: true,
       component: dynamic(
         () => import("@/domains/media/website-pages/page/page"),
       ),
@@ -32,6 +33,7 @@ registerModule({
     {
       key: "website-navigation-list",
       path: "/:orgName/:storeName/navigation",
+      disabled: true,
       component: dynamic(
         () => import("@/domains/media/navigation/page/page"),
       ),

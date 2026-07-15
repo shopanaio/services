@@ -13,6 +13,7 @@ registerModule({
     {
       key: "discounts-list",
       path: "/:orgName/:storeName/discounts",
+      disabled: true,
       sidebar: {
         label: "Discounts",
         icon: null,
@@ -25,6 +26,7 @@ registerModule({
     {
       key: "coupons-list",
       path: "/:orgName/:storeName/coupons",
+      disabled: true,
       sidebar: {
         label: "Coupons",
         icon: null,
@@ -37,6 +39,7 @@ registerModule({
     {
       key: "campaigns-list",
       path: "/:orgName/:storeName/campaigns",
+      disabled: true,
       sidebar: {
         label: "Campaigns",
         icon: null,

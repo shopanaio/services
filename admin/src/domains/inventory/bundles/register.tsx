@@ -13,6 +13,7 @@ registerModule({
     {
       key: "badges-list",
       path: "/:orgName/:storeName/badges",
+      disabled: true,
       sidebar: {
         label: "Badges",
         icon: null,
@@ -25,6 +26,7 @@ registerModule({
     {
       key: "featured-products-list",
       path: "/:orgName/:storeName/featured-products",
+      disabled: true,
       sidebar: {
         label: "Featured products",
         icon: null,

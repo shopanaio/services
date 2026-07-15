@@ -28,6 +28,7 @@ export interface SidebarItem {
   key: string;
   label: string;
   path?: string;
+  disabled?: boolean;
   icon?: ReactNode;
   order?: number;
   type?: "group";
@@ -72,6 +73,7 @@ export interface DomainConfig {
 export interface ModuleItemConfig {
   key: string;
   path: string;
+  disabled?: boolean;
   component: ComponentType<ModulePageProps>;
   sidebar?: SidebarConfig;
 }
@@ -203,6 +205,7 @@ export class ModuleRegistry {
               icon: item.sidebar!.icon,
               order: item.sidebar!.order,
               path: item.path,
+              disabled: item.disabled,
             }));
 
           // If no children with sidebar, use first item's path for the module
@@ -216,6 +219,7 @@ export class ModuleRegistry {
             icon: mod.sidebar!.icon,
             order: mod.sidebar!.order,
             path: modulePath,
+            disabled: modulePath ? mod.items[0]?.disabled : undefined,
             children: moduleChildren.length > 0 ? moduleChildren : undefined,
           };
         });

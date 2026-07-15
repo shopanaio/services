@@ -13,6 +13,7 @@ registerModule({
     {
       key: "sales-reports",
       path: "/:orgName/:storeName/analytics/reports/sales",
+      disabled: true,
       sidebar: {
         label: "Sales",
         icon: null,
@@ -25,6 +26,7 @@ registerModule({
     {
       key: "product-reports",
       path: "/:orgName/:storeName/analytics/reports/products",
+      disabled: true,
       sidebar: {
         label: "Products",
         icon: null,
@@ -37,6 +39,7 @@ registerModule({
     {
       key: "customer-reports",
       path: "/:orgName/:storeName/analytics/reports/customers",
+      disabled: true,
       sidebar: {
         label: "Customers",
         icon: null,
@@ -61,6 +64,7 @@ registerModule({
     {
       key: "conversion-performance",
       path: "/:orgName/:storeName/analytics/performance/conversion",
+      disabled: true,
       sidebar: {
         label: "Conversion",
         icon: null,
@@ -73,6 +77,7 @@ registerModule({
     {
       key: "search-performance",
       path: "/:orgName/:storeName/analytics/performance/search",
+      disabled: true,
       sidebar: {
         label: "Search",
         icon: null,

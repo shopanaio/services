@@ -95,6 +95,7 @@ function buildMenuItems(
         key: item.key,
         label: item.label,
         icon,
+        disabled: item.disabled,
         children: buildMenuItems(item.children, true, item.children.length),
       };
     }
@@ -103,6 +104,7 @@ function buildMenuItems(
       key: item.key,
       label: item.label,
       icon,
+      disabled: item.disabled,
     };
   });
 }

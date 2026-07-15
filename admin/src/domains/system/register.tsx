@@ -13,6 +13,7 @@ registerModule({
     {
       key: "general-settings",
       path: "/:orgName/:storeName/system/settings/general",
+      disabled: true,
       sidebar: {
         label: "General",
         icon: null,
@@ -25,6 +26,7 @@ registerModule({
     {
       key: "localization-settings",
       path: "/:orgName/:storeName/system/settings/localization",
+      disabled: true,
       sidebar: {
         label: "Localization",
         icon: null,
@@ -49,6 +51,7 @@ registerModule({
     {
       key: "email-settings",
       path: "/:orgName/:storeName/system/notifications/email-settings",
+      disabled: true,
       sidebar: {
         label: "Email Settings",
         icon: null,
@@ -61,6 +64,7 @@ registerModule({
     {
       key: "email-templates",
       path: "/:orgName/:storeName/system/notifications/email-templates",
+      disabled: true,
       sidebar: {
         label: "Email Templates",
         icon: null,
@@ -73,6 +77,7 @@ registerModule({
     {
       key: "sender-domains",
       path: "/:orgName/:storeName/system/notifications/sender-domains",
+      disabled: true,
       sidebar: {
         label: "Sender Domains",
         icon: null,
@@ -85,6 +90,7 @@ registerModule({
     {
       key: "delivery-logs",
       path: "/:orgName/:storeName/system/notifications/delivery-logs",
+      disabled: true,
       sidebar: {
         label: "Delivery Logs",
         icon: null,
@@ -109,6 +115,7 @@ registerModule({
     {
       key: "system-users",
       path: "/:orgName/:storeName/system/access/users",
+      disabled: true,
       sidebar: {
         label: "Users",
         icon: null,
@@ -121,6 +128,7 @@ registerModule({
     {
       key: "system-roles",
       path: "/:orgName/:storeName/system/access/roles",
+      disabled: true,
       sidebar: {
         label: "Roles",
         icon: null,
@@ -145,6 +153,7 @@ registerModule({
     {
       key: "system-apps",
       path: "/:orgName/:storeName/system/integrations/apps",
+      disabled: true,
       sidebar: {
         label: "Apps",
         icon: null,
@@ -157,6 +166,7 @@ registerModule({
     {
       key: "system-api-keys",
       path: "/:orgName/:storeName/system/integrations/api-keys",
+      disabled: true,
       sidebar: {
         label: "API Keys",
         icon: null,
@@ -181,6 +191,7 @@ registerModule({
     {
       key: "system-audit-log",
       path: "/:orgName/:storeName/system/activity/audit-log",
+      disabled: true,
       sidebar: {
         label: "Audit Log",
         icon: null,

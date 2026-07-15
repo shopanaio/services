@@ -13,6 +13,7 @@ registerModule({
     {
       key: "all-customers-list",
       path: "/:orgName/:storeName/customers",
+      disabled: true,
       component: dynamic(
         () => import("@/domains/customers/all-customers/page/page"),
       ),
@@ -32,6 +33,7 @@ registerModule({
     {
       key: "customer-segments-list",
       path: "/:orgName/:storeName/customers/segments",
+      disabled: true,
       component: dynamic(
         () => import("@/domains/customers/segments/page/page"),
       ),
@@ -51,6 +53,7 @@ registerModule({
     {
       key: "loyalty-programs-list",
       path: "/:orgName/:storeName/customers/loyalty/programs",
+      disabled: true,
       sidebar: {
         label: "Programs",
         icon: null,
@@ -63,6 +66,7 @@ registerModule({
     {
       key: "loyalty-rewards-list",
       path: "/:orgName/:storeName/customers/loyalty/rewards",
+      disabled: true,
       sidebar: {
         label: "Rewards",
         icon: null,
@@ -75,6 +79,7 @@ registerModule({
     {
       key: "loyalty-tiers-list",
       path: "/:orgName/:storeName/customers/loyalty/tiers",
+      disabled: true,
       sidebar: {
         label: "Tiers",
         icon: null,

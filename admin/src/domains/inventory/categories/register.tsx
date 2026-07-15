@@ -37,6 +37,7 @@ registerModule({
     {
       key: "collections-list",
       path: "/:orgName/:storeName/collections",
+      disabled: true,
       sidebar: {
         label: "Collections",
         icon: null,

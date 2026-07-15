@@ -13,6 +13,7 @@ registerModule({
     {
       key: "customer-reviews-list",
       path: "/:orgName/:storeName/customer-content/reviews",
+      disabled: true,
       sidebar: {
         label: "All Reviews",
         icon: null,
@@ -25,6 +26,7 @@ registerModule({
     {
       key: "customer-reviews-moderation",
       path: "/:orgName/:storeName/customer-content/reviews/moderation",
+      disabled: true,
       sidebar: {
         label: "Moderation",
         icon: null,
@@ -49,6 +51,7 @@ registerModule({
     {
       key: "customer-questions-list",
       path: "/:orgName/:storeName/customer-content/questions",
+      disabled: true,
       sidebar: {
         label: "All Questions",
         icon: null,
@@ -61,6 +64,7 @@ registerModule({
     {
       key: "customer-questions-moderation",
       path: "/:orgName/:storeName/customer-content/questions/moderation",
+      disabled: true,
       sidebar: {
         label: "Moderation",
         icon: null,

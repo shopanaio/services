@@ -21,6 +21,7 @@ function areSidebarItemsEqual(left: SidebarItem[], right: SidebarItem[]): boolea
       item.key === other?.key &&
       item.label === other.label &&
       item.path === other.path &&
+      item.disabled === other.disabled &&
       item.order === other.order &&
       item.type === other.type &&
       areSidebarItemsEqual(item.children ?? [], other.children ?? [])

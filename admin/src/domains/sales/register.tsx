@@ -13,6 +13,7 @@ registerModule({
     {
       key: "all-orders-list",
       path: "/:orgName/:storeName/orders",
+      disabled: true,
       sidebar: {
         label: "All Orders",
         icon: null,
@@ -25,6 +26,7 @@ registerModule({
     {
       key: "draft-orders-list",
       path: "/:orgName/:storeName/orders/drafts",
+      disabled: true,
       sidebar: {
         label: "Draft Orders",
         icon: null,
@@ -37,6 +39,7 @@ registerModule({
     {
       key: "abandoned-checkouts-list",
       path: "/:orgName/:storeName/orders/abandoned-checkouts",
+      disabled: true,
       sidebar: {
         label: "Abandoned Checkouts",
         icon: null,
@@ -61,6 +64,7 @@ registerModule({
     {
       key: "shipments-list",
       path: "/:orgName/:storeName/fulfillment/shipments",
+      disabled: true,
       sidebar: {
         label: "Shipments",
         icon: null,
@@ -73,6 +77,7 @@ registerModule({
     {
       key: "pickups-list",
       path: "/:orgName/:storeName/fulfillment/pickups",
+      disabled: true,
       sidebar: {
         label: "Pickups",
         icon: null,
@@ -97,6 +102,7 @@ registerModule({
     {
       key: "return-requests-list",
       path: "/:orgName/:storeName/returns/requests",
+      disabled: true,
       sidebar: {
         label: "Return Requests",
         icon: null,
@@ -109,6 +115,7 @@ registerModule({
     {
       key: "exchanges-list",
       path: "/:orgName/:storeName/returns/exchanges",
+      disabled: true,
       sidebar: {
         label: "Exchanges",
         icon: null,
@@ -133,6 +140,7 @@ registerModule({
     {
       key: "transactions-list",
       path: "/:orgName/:storeName/payments/transactions",
+      disabled: true,
       sidebar: {
         label: "Transactions",
         icon: null,
@@ -145,6 +153,7 @@ registerModule({
     {
       key: "refunds-list",
       path: "/:orgName/:storeName/payments/refunds",
+      disabled: true,
       sidebar: {
         label: "Refunds",
         icon: null,
