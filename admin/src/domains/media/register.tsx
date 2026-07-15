@@ -33,7 +33,6 @@ registerModule({
     {
       key: "website-navigation-list",
       path: "/:orgName/:storeName/navigation",
-      disabled: true,
       component: dynamic(
         () => import("@/domains/media/navigation/page/page"),
       ),

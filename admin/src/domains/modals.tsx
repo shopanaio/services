@@ -10,6 +10,29 @@ import type { IModalStackDefinition } from '@/layouts/modals/types';
 export function getModalStackDefinitions(): IModalStackDefinition[] {
   return [
     // ========================================
+    // Website navigation modals
+    // ========================================
+    {
+      type: 'navigation-menu',
+      component: dynamic(() =>
+        import('@/domains/media/navigation/modals/menu-modal').then(
+          (m) => m.NavigationMenuModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved menu changes?',
+    },
+    {
+      type: 'navigation-link',
+      component: dynamic(() =>
+        import('@/domains/media/navigation/modals/link-modal').then(
+          (m) => m.NavigationLinkModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved menu item changes?',
+    },
+    // ========================================
     // Workspace modals
     // ========================================
     // Invite Member modal
