@@ -63,6 +63,45 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     // ========================================
+    // General settings modals
+    // ========================================
+    {
+      type: 'general-settings-edit-store-information',
+      component: dynamic(() =>
+        import(
+          '@/domains/system/general-settings/modals/edit-store-information-modal'
+        ).then((m) => m.EditStoreInformationModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard store information changes?',
+    },
+    {
+      type: 'general-settings-add-language',
+      component: dynamic(() =>
+        import(
+          '@/domains/system/general-settings/modals/add-language-modal'
+        ).then((m) => m.AddLanguageModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard the selected language?',
+    },
+    {
+      type: 'general-settings-locale-action',
+      component: dynamic(() =>
+        import(
+          '@/domains/system/general-settings/modals/locale-action-modal'
+        ).then((m) => m.LocaleActionModal)
+      ),
+    },
+    {
+      type: 'general-settings-delete-store',
+      component: dynamic(() =>
+        import('@/domains/system/general-settings/modals/delete-store-modal').then(
+          (m) => m.DeleteStoreModal
+        )
+      ),
+    },
+    // ========================================
     // Profile modals
     // ========================================
     // Change Password modal

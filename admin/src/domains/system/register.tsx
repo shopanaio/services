@@ -13,7 +13,6 @@ registerModule({
     {
       key: "general-settings",
       path: "/:orgName/:storeName/system/settings/general",
-      disabled: true,
       sidebar: {
         label: "General",
         icon: null,
@@ -21,19 +20,6 @@ registerModule({
       },
       component: dynamic(
         () => import("@/domains/system/general-settings/page/page"),
-      ),
-    },
-    {
-      key: "localization-settings",
-      path: "/:orgName/:storeName/system/settings/localization",
-      disabled: true,
-      sidebar: {
-        label: "Localization",
-        icon: null,
-        order: 2,
-      },
-      component: dynamic(
-        () => import("@/domains/system/localization/page/page"),
       ),
     },
   ],
