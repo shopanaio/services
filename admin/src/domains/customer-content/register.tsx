@@ -50,7 +50,6 @@ registerModule({
     {
       key: "customer-questions-list",
       path: "/:orgName/:storeName/customer-content/questions",
-      disabled: true,
       sidebar: {
         label: "All Questions",
         icon: null,

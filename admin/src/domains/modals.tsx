@@ -485,6 +485,16 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard unsaved review changes?',
     },
+    {
+      type: 'customer-question',
+      component: dynamic(() =>
+        import('@/domains/customer-content/questions/modals/question-modal').then(
+          (m) => m.QuestionModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved question changes?',
+    },
     // ========================================
     // Picker modals
     // ========================================
