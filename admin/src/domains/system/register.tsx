@@ -1,4 +1,9 @@
 import { registerModule } from "@/registry";
+import {
+  ApiOutlined,
+  HistoryOutlined,
+  SettingOutlined,
+} from "@ant-design/icons";
 import dynamic from "next/dynamic";
 
 registerModule({
@@ -6,7 +11,7 @@ registerModule({
   domain: "system",
   sidebar: {
     label: "Settings",
-    icon: null,
+    icon: <SettingOutlined />,
     order: 1,
   },
   items: [
@@ -103,7 +108,7 @@ registerModule({
   domain: "system",
   sidebar: {
     label: "Integrations",
-    icon: null,
+    icon: <ApiOutlined />,
     order: 4,
   },
   items: [
@@ -139,7 +144,7 @@ registerModule({
   domain: "system",
   sidebar: {
     label: "Activity",
-    icon: null,
+    icon: <HistoryOutlined />,
     order: 5,
   },
   items: [

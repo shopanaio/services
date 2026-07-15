@@ -1,4 +1,5 @@
 import { registerModule } from "@/registry";
+import { GlobalOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 
 registerModule({
@@ -6,7 +7,7 @@ registerModule({
   domain: "store",
   sidebar: {
     label: "Storefront",
-    icon: null,
+    icon: <GlobalOutlined />,
     order: 10,
   },
   items: [

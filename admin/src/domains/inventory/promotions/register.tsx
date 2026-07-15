@@ -1,4 +1,5 @@
 import { registerModule } from "@/registry";
+import { PercentageOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 
 registerModule({
@@ -6,7 +7,7 @@ registerModule({
   domain: "store",
   sidebar: {
     label: "Promotions",
-    icon: null,
+    icon: <PercentageOutlined />,
     order: 4,
   },
   items: [

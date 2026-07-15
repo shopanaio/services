@@ -1,4 +1,5 @@
 import { registerModule } from "@/registry";
+import { AppstoreOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 
 registerModule({
@@ -6,7 +7,7 @@ registerModule({
   domain: "store",
   sidebar: {
     label: "Catalog",
-    icon: null,
+    icon: <AppstoreOutlined />,
     order: 2,
   },
   items: [

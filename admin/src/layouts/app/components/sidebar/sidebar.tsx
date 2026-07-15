@@ -248,6 +248,8 @@ export const Sidebar = () => {
                   activeBarBorderWidth: 0,
                   itemHeight: 32,
                   itemMarginInline: 0,
+                  paddingContentHorizontal: 0,
+                  itemPaddingInline: 0,
                   itemMarginBlock: 0,
                   subMenuItemBg: "transparent",
                 },
@@ -260,7 +262,6 @@ export const Sidebar = () => {
               theme="light"
               mode="inline"
               items={menuItems}
-              expandIcon={() => null}
               openKeys={openKeys}
               onOpenChange={onOpenChange}
               onClick={onClick}

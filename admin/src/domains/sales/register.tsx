@@ -1,4 +1,5 @@
 import { registerModule } from "@/registry";
+import { ShoppingCartOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 
 registerModule({
@@ -6,7 +7,7 @@ registerModule({
   domain: "store",
   sidebar: {
     label: "Sales",
-    icon: null,
+    icon: <ShoppingCartOutlined />,
     order: 6,
   },
   items: [
