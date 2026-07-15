@@ -1,0 +1,4 @@
+# Auto-generated GraphQL filters for Reviews service.
+# Do not edit manually. Run: yarn shopana codegen --service reviews
+
+scalar _ReviewsGeneratedFilterPlaceholder @inaccessible

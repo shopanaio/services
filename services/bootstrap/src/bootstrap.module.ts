@@ -21,6 +21,7 @@ import { EventsModule } from "@shopana/events-service";
 import { CatalogModule } from "@shopana/catalog-service";
 import { ListingModule } from "@shopana/listing-service";
 import { CustomersModule } from "@shopana/customers-service";
+import { ReviewsModule } from "@shopana/reviews-service";
 import { TestActionProxyService } from "./test-action-proxy.service.js";
 
 export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
@@ -64,6 +65,7 @@ export class BootstrapModule {
       CatalogModule,
       ListingModule,
       CustomersModule,
+      ReviewsModule,
     ];
 
     // Add WorkflowModule if workflows config is provided

@@ -80,6 +80,14 @@ services:
       <<: *db_default
       schema: null
 
+  reviews:
+    ports:
+      admin_graphql: 10014
+      metrics: 3041
+    db:
+      <<: *db_default
+      schema: null
+
   media:
     ports:
       admin_graphql: 10007

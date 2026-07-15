@@ -1,0 +1,33 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@requires"
+      "@provides"
+      "@external"
+      "@shareable"
+      "@override"
+      "@inaccessible"
+    ]
+  )
+
+type Query {
+  """Reviews query namespace."""
+  reviewsQuery: ReviewsQuery! @inaccessible
+}
+
+type Mutation {
+  """Reviews mutation namespace."""
+  reviewsMutation: ReviewsMutation! @inaccessible
+}
+
+"""Internal placeholder for the future admin query namespace."""
+type ReviewsQuery @inaccessible {
+  _empty: Boolean!
+}
+
+"""Internal placeholder for the future admin mutation namespace."""
+type ReviewsMutation @inaccessible {
+  _empty: Boolean!
+}
