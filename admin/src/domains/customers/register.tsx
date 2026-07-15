@@ -13,7 +13,6 @@ registerModule({
     {
       key: "all-customers-list",
       path: "/:orgName/:storeName/customers",
-      disabled: true,
       component: dynamic(
         () => import("@/domains/customers/all-customers/page/page"),
       ),

@@ -473,8 +473,18 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard unsaved changes?',
     },
     // ========================================
-    // Customer review modals
+    // Customer modals
     // ========================================
+    {
+      type: 'customer',
+      component: dynamic(() =>
+        import('@/domains/customers/all-customers/modals/customer-modal').then(
+          (m) => m.CustomerModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved customer changes?',
+    },
     {
       type: 'customer-review',
       component: dynamic(() =>
