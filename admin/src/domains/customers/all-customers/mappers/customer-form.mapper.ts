@@ -36,7 +36,6 @@ const sharedInput = (values: CustomerFormValues) => ({
   smsMarketingState: values.smsMarketingState,
   segmentIds: values.segmentIds,
   defaultAddress: toAddress(values),
-  riskLevel: values.riskLevel,
   blockedReason: values.blockedReason.trim() || null,
   moderationNote: values.moderationNote.trim() || null,
 });
@@ -72,7 +71,6 @@ const fieldMap: Record<string, FieldPath<CustomerFormValues>> = {
   emailMarketingState: "emailMarketingState",
   smsMarketingState: "smsMarketingState",
   segmentIds: "segmentIds",
-  riskLevel: "riskLevel",
   blockedReason: "blockedReason",
   moderationNote: "moderationNote",
   "defaultAddress.address1": "defaultAddress.address1",

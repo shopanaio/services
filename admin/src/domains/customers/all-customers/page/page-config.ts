@@ -19,7 +19,6 @@ export const customerSortFieldMapping: SortFieldMapping<CustomerOrderField> = {
   displayName: CustomerOrderField.DisplayName,
   email: CustomerOrderField.Email,
   status: CustomerOrderField.Status,
-  riskLevel: CustomerOrderField.RiskLevel,
   ordersCount: CustomerOrderField.OrdersCount,
   totalSpentMinor: CustomerOrderField.TotalSpentMinor,
   lastOrderAt: CustomerOrderField.LastOrderAt,

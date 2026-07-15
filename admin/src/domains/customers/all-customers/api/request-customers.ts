@@ -15,7 +15,6 @@ import type {
 import {
   CustomerMarketingState,
   CustomerOrderField,
-  CustomerRiskLevel,
   CustomerStatus,
 } from "../graphql/operation-types";
 
@@ -75,17 +74,11 @@ let mockCustomers: ApiCustomer[] = customerSeeds.map((seed, index) => {
   const totalSpentMinor = ordersCount * (3_400 + index * 879);
   const isBlocked = index === 7 || index === 18;
   const isDisabled = index === 5 || index === 14 || index === 22;
-  const complaintCount = isBlocked ? 4 + (index % 3) : index % 9 === 0 ? 1 : 0;
   const status = isBlocked
     ? CustomerStatus.Blocked
     : isDisabled
       ? CustomerStatus.Disabled
       : CustomerStatus.Active;
-  const riskLevel = isBlocked
-    ? CustomerRiskLevel.High
-    : complaintCount > 0 || index % 8 === 0
-      ? CustomerRiskLevel.Medium
-      : CustomerRiskLevel.Low;
   const createdAt = toIsoDate(2024 + (index % 2), index % 12, (index % 25) + 1);
   const lastOrderAt = ordersCount > 0
     ? toIsoDate(2026, 6 - (index % 5), Math.max(1, 14 - (index % 12)))
@@ -117,7 +110,7 @@ let mockCustomers: ApiCustomer[] = customerSeeds.map((seed, index) => {
     segments: [
       customerSegments[ordersCount > 15 ? 1 : 2]!,
       ...(ordersCount > 25 ? [customerSegments[0]!] : []),
-      ...(riskLevel !== CustomerRiskLevel.Low ? [customerSegments[3]!] : []),
+      ...(isBlocked ? [customerSegments[3]!] : []),
       ...(index === 12 || index === 19 ? [customerSegments[4]!] : []),
     ],
     defaultAddress: {
@@ -137,11 +130,8 @@ let mockCustomers: ApiCustomer[] = customerSeeds.map((seed, index) => {
       lastOrderAt,
     },
     moderation: {
-      riskLevel,
-      complaintCount,
-      lastComplaintAt: complaintCount > 0 ? toIsoDate(2026, 5, (index % 20) + 1) : null,
       blockedReason: isBlocked ? "Repeated payment disputes require manual review." : null,
-      moderationNote: complaintCount > 0 ? "Review the latest support cases before approving new orders." : null,
+      moderationNote: isBlocked ? "Review the latest support cases before approving new orders." : null,
     },
     createdAt,
     updatedAt: lastOrderAt ?? createdAt,
@@ -150,10 +140,6 @@ let mockCustomers: ApiCustomer[] = customerSeeds.map((seed, index) => {
 
 const getCustomerField = (customer: ApiCustomer, field: string): unknown => {
   switch (field) {
-    case "riskLevel":
-      return customer.moderation.riskLevel;
-    case "complaintCount":
-      return customer.moderation.complaintCount;
     case "segmentId":
       return customer.segments.map((segment) => segment.id);
     case "countryCode":
@@ -216,7 +202,6 @@ const orderFieldAccessors: Record<CustomerOrderField, (customer: ApiCustomer) =>
   [CustomerOrderField.DisplayName]: (customer) => customer.displayName.toLocaleLowerCase(),
   [CustomerOrderField.Email]: (customer) => customer.email.toLocaleLowerCase(),
   [CustomerOrderField.Status]: (customer) => customer.status,
-  [CustomerOrderField.RiskLevel]: (customer) => customer.moderation.riskLevel,
   [CustomerOrderField.OrdersCount]: (customer) => customer.activity.ordersCount,
   [CustomerOrderField.TotalSpentMinor]: (customer) => customer.activity.totalSpentMinor,
   [CustomerOrderField.LastOrderAt]: (customer) => customer.activity.lastOrderAt,
@@ -436,9 +421,6 @@ export async function requestCreateCustomer(input: CustomerCreateInput): Promise
       lastOrderAt: null,
     },
     moderation: {
-      riskLevel: input.riskLevel,
-      complaintCount: 0,
-      lastComplaintAt: null,
       blockedReason: input.status === CustomerStatus.Blocked ? input.blockedReason?.trim() || null : null,
       moderationNote: input.moderationNote?.trim() || null,
     },
@@ -491,7 +473,6 @@ export async function requestUpdateCustomer(input: CustomerUpdateInput): Promise
     defaultAddress: toAddress(input.defaultAddress, current.defaultAddress),
     moderation: {
       ...current.moderation,
-      riskLevel: input.riskLevel,
       blockedReason: input.status === CustomerStatus.Blocked ? input.blockedReason?.trim() || null : null,
       moderationNote: input.moderationNote?.trim() || null,
     },

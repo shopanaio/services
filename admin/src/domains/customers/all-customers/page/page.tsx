@@ -8,7 +8,6 @@ import {
   EnvironmentOutlined,
   MailOutlined,
   PlusOutlined,
-  SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
@@ -32,7 +31,6 @@ import type {
 import {
   CustomerMarketingState,
   CustomerOrderField,
-  CustomerRiskLevel,
   CustomerStatus,
 } from "../graphql/operation-types";
 import { filterSchema } from "./filter-schema";
@@ -49,12 +47,6 @@ const statusConfig: Record<CustomerStatus, { color: string; label: string }> = {
   [CustomerStatus.Active]: { color: "green", label: "Active" },
   [CustomerStatus.Disabled]: { color: "default", label: "Disabled" },
   [CustomerStatus.Blocked]: { color: "red", label: "Blocked" },
-};
-
-const riskConfig: Record<CustomerRiskLevel, { color: string; label: string }> = {
-  [CustomerRiskLevel.Low]: { color: "default", label: "Low" },
-  [CustomerRiskLevel.Medium]: { color: "gold", label: "Medium" },
-  [CustomerRiskLevel.High]: { color: "red", label: "High" },
 };
 
 const customerDateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -110,18 +102,6 @@ function LocationCell({ data }: CustomCellRendererProps<ApiCustomer>) {
       <Typography.Text ellipsis title={`${data.defaultAddress.city}, ${data.defaultAddress.countryCode}`}>
         {data.defaultAddress.city}, {data.defaultAddress.countryCode}
       </Typography.Text>
-    </Flex>
-  );
-}
-
-function RiskCell({ data }: CustomCellRendererProps<ApiCustomer>) {
-  if (!data) return null;
-  const config = riskConfig[data.moderation.riskLevel];
-  return (
-    <Flex align="center" gap={6}>
-      {data.moderation.riskLevel !== CustomerRiskLevel.Low ? <SafetyCertificateOutlined /> : null}
-      <Tag color={config.color}>{config.label}</Tag>
-      {data.moderation.complaintCount > 0 ? <Typography.Text type="danger">{data.moderation.complaintCount}</Typography.Text> : null}
     </Flex>
   );
 }
@@ -224,12 +204,6 @@ export default function AllCustomersPage() {
       valueGetter: ({ data }) => data?.activity.lastOrderAt ?? null,
       cellRenderer: LastOrderCell,
       minWidth: 145,
-    },
-    {
-      headerName: "Risk",
-      colId: "riskLevel",
-      cellRenderer: RiskCell,
-      minWidth: 130,
     },
   ], [defaultCurrency]);
 

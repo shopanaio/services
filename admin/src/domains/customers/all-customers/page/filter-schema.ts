@@ -9,7 +9,6 @@ import {
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 import {
   CustomerMarketingState,
-  CustomerRiskLevel,
   CustomerStatus,
 } from "../graphql/operation-types";
 
@@ -18,7 +17,7 @@ const countryOptions = allowedCountries.map((countryCode) => ({
   label: shopCountries.find((country) => country.value === countryCode)?.name ?? countryCode,
 }));
 
-/** Required operational filters for support, sales, and risk workflows. */
+/** Required operational filters for support and sales workflows. */
 export const filterSchema: IFilterSchema[] = [
   {
     key: "status",
@@ -74,19 +73,6 @@ export const filterSchema: IFilterSchema[] = [
     options: countryOptions,
   },
   {
-    key: "riskLevel",
-    label: "Risk level",
-    description: "Filter by operational risk assessment",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "riskLevel",
-    options: [
-      { label: "Low", value: CustomerRiskLevel.Low },
-      { label: "Medium", value: CustomerRiskLevel.Medium },
-      { label: "High", value: CustomerRiskLevel.High },
-    ],
-  },
-  {
     key: "ordersCount",
     label: "Orders",
     description: "Filter by completed order count",
@@ -101,14 +87,6 @@ export const filterSchema: IFilterSchema[] = [
     type: FilterType.Price,
     operators: priceOperators,
     payloadKey: "totalSpentMinor",
-  },
-  {
-    key: "complaints",
-    label: "Complaints",
-    description: "Filter by complaint count",
-    type: FilterType.Integer,
-    operators: numberOperators,
-    payloadKey: "complaintCount",
   },
   {
     key: "lastOrderAt",

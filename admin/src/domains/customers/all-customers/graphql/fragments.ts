@@ -27,11 +27,6 @@ export const CUSTOMER_LIST_FRAGMENT = gql`
       returnsCount
       lastOrderAt
     }
-    moderation {
-      riskLevel
-      complaintCount
-      lastComplaintAt
-    }
     createdAt
     updatedAt
   }
@@ -55,9 +50,6 @@ export const CUSTOMER_DETAILS_FRAGMENT = gql`
       countryCode
     }
     moderation {
-      riskLevel
-      complaintCount
-      lastComplaintAt
       blockedReason
       moderationNote
     }

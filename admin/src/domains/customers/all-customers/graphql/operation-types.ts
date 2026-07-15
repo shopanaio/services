@@ -13,12 +13,6 @@ export enum CustomerStatus {
   Blocked = "BLOCKED",
 }
 
-export enum CustomerRiskLevel {
-  Low = "LOW",
-  Medium = "MEDIUM",
-  High = "HIGH",
-}
-
 export enum CustomerMarketingState {
   Subscribed = "SUBSCRIBED",
   NotSubscribed = "NOT_SUBSCRIBED",
@@ -29,7 +23,6 @@ export enum CustomerOrderField {
   DisplayName = "DISPLAY_NAME",
   Email = "EMAIL",
   Status = "STATUS",
-  RiskLevel = "RISK_LEVEL",
   OrdersCount = "ORDERS_COUNT",
   TotalSpentMinor = "TOTAL_SPENT_MINOR",
   LastOrderAt = "LAST_ORDER_AT",
@@ -63,9 +56,6 @@ export interface ApiCustomerActivity {
 }
 
 export interface ApiCustomerModeration {
-  riskLevel: CustomerRiskLevel;
-  complaintCount: number;
-  lastComplaintAt: string | null;
   blockedReason: string | null;
   moderationNote: string | null;
 }
@@ -116,7 +106,6 @@ interface CustomerWriteInput {
   smsMarketingState: CustomerMarketingState;
   segmentIds: string[];
   defaultAddress?: CustomerAddressInput | null;
-  riskLevel: CustomerRiskLevel;
   blockedReason?: string | null;
   moderationNote?: string | null;
 }
@@ -149,14 +138,12 @@ export interface CustomerWhereInput {
   email?: Record<string, unknown>;
   phone?: Record<string, unknown>;
   status?: Record<string, unknown>;
-  riskLevel?: Record<string, unknown>;
   emailMarketingState?: Record<string, unknown>;
   segmentId?: Record<string, unknown>;
   countryCode?: Record<string, unknown>;
   ordersCount?: Record<string, unknown>;
   totalSpentMinor?: Record<string, unknown>;
   lastOrderAt?: Record<string, unknown>;
-  complaintCount?: Record<string, unknown>;
   createdAt?: Record<string, unknown>;
 }
 

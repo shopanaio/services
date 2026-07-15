@@ -20,10 +20,8 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   EnvironmentOutlined,
-  FlagOutlined,
   MailOutlined,
   PhoneOutlined,
-  SafetyCertificateOutlined,
   ShoppingOutlined,
   StopOutlined,
   TeamOutlined,
@@ -47,7 +45,6 @@ import {
 } from "../../hooks";
 import {
   CustomerMarketingState,
-  CustomerRiskLevel,
   CustomerStatus,
 } from "../../graphql/operation-types";
 import {
@@ -127,7 +124,6 @@ const DEFAULT_VALUES: CustomerFormValues = {
     postalCode: "",
     countryCode: "",
   },
-  riskLevel: CustomerRiskLevel.Low,
   blockedReason: "",
   moderationNote: "",
 };
@@ -225,7 +221,6 @@ export function CustomerModal() {
         postalCode: customer.defaultAddress?.postalCode ?? "",
         countryCode: customer.defaultAddress?.countryCode ?? "",
       },
-      riskLevel: customer.moderation.riskLevel,
       blockedReason: customer.moderation.blockedReason ?? "",
       moderationNote: customer.moderation.moderationNote ?? "",
     });
@@ -557,39 +552,8 @@ export function CustomerModal() {
         </Paper>
 
         <Paper>
-          <PaperHeader title="Complaints & moderation" icon={<SafetyCertificateOutlined />} />
+          <PaperHeader title="Status & moderation" icon={<StopOutlined />} />
           <Flex vertical gap="middle">
-            <div className={styles.threeFields}>
-              <Flex vertical gap={4} className={styles.metric}>
-                <Typography.Text type="secondary"><FlagOutlined /> Complaints</Typography.Text>
-                <Typography.Title level={4} className={styles.metricValue}>{customer?.moderation.complaintCount ?? 0}</Typography.Title>
-              </Flex>
-              <Flex vertical gap={4} className={styles.metric}>
-                <Typography.Text type="secondary">Last complaint</Typography.Text>
-                <Typography.Title level={5} className={styles.metricValue}>
-                  {customer?.moderation.lastComplaintAt ? customerDateFormatter.format(new Date(customer.moderation.lastComplaintAt)) : "None"}
-                </Typography.Title>
-              </Flex>
-              <div>
-                <label className={styles.label} htmlFor="customer-risk">Risk level</label>
-                <Controller
-                  name="riskLevel"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      id="customer-risk"
-                      options={[
-                        { value: CustomerRiskLevel.Low, label: "Low" },
-                        { value: CustomerRiskLevel.Medium, label: "Medium" },
-                        { value: CustomerRiskLevel.High, label: "High" },
-                      ]}
-                      style={{ width: "100%" }}
-                    />
-                  )}
-                />
-              </div>
-            </div>
             <div>
               <label className={styles.label}>Customer status</label>
               <Controller

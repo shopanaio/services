@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   CustomerMarketingState,
-  CustomerRiskLevel,
   CustomerStatus,
 } from "../../graphql/operation-types";
 
@@ -39,11 +38,6 @@ export const customerFormSchema = z
       postalCode: z.string().trim().max(32),
       countryCode: z.string(),
     }),
-    riskLevel: z.enum([
-      CustomerRiskLevel.Low,
-      CustomerRiskLevel.Medium,
-      CustomerRiskLevel.High,
-    ]),
     blockedReason: z.string().trim().max(500, "Block reason must be at most 500 characters"),
     moderationNote: z.string().trim().max(2000, "Moderation note must be at most 2,000 characters"),
   })
