@@ -848,6 +848,13 @@ export enum CustomerConsentState {
   Unsubscribed = 'UNSUBSCRIBED'
 }
 
+export type CustomerConsentStateFilter = {
+  _eq?: InputMaybe<CustomerConsentState>;
+  _in?: InputMaybe<Array<CustomerConsentState>>;
+  _neq?: InputMaybe<CustomerConsentState>;
+  _notIn?: InputMaybe<Array<CustomerConsentState>>;
+};
+
 /** Contact projections in the unified customer update. */
 export type CustomerContactUpdateInput = {
   email?: InputMaybe<Scalars['Email']['input']>;
@@ -1386,13 +1393,17 @@ export enum CustomerOrderField {
   CompanyName = 'companyName',
   CreatedAt = 'createdAt',
   DateOfBirth = 'dateOfBirth',
+  DisplayName = 'displayName',
   Email = 'email',
   FirstName = 'firstName',
   Id = 'id',
   LastActivityAt = 'lastActivityAt',
   LastName = 'lastName',
+  LastOrderAt = 'lastOrderAt',
   LifecycleStatus = 'lifecycleStatus',
+  OrdersCount = 'ordersCount',
   PhoneE164 = 'phoneE164',
+  TotalSpentMinor = 'totalSpentMinor',
   UpdatedAt = 'updatedAt'
 }
 
@@ -1555,6 +1566,7 @@ export type CustomerSegmentOrderByInput = {
 
 export enum CustomerSegmentOrderField {
   CreatedAt = 'createdAt',
+  CustomersCount = 'customersCount',
   Id = 'id',
   Name = 'name',
   Status = 'status',
@@ -1609,6 +1621,8 @@ export type CustomerSegmentWhereInput = {
   _or?: InputMaybe<Array<CustomerSegmentWhereInput>>;
   createdAt?: InputMaybe<DateTimeFilter>;
   createdById?: InputMaybe<StringFilter>;
+  customersCount?: InputMaybe<IntFilter>;
+  description?: InputMaybe<StringFilter>;
   id?: InputMaybe<IdFilter>;
   name?: InputMaybe<StringFilter>;
   status?: InputMaybe<CustomerSegmentStatusFilter>;
@@ -2066,18 +2080,26 @@ export type CustomerWhereInput = {
   companyName?: InputMaybe<StringFilter>;
   createdAt?: InputMaybe<DateTimeFilter>;
   dateOfBirth?: InputMaybe<DateFilter>;
+  defaultShippingCity?: InputMaybe<StringFilter>;
+  defaultShippingCountryCode?: InputMaybe<StringFilter>;
+  defaultShippingRegionCode?: InputMaybe<StringFilter>;
+  displayName?: InputMaybe<StringFilter>;
   email?: InputMaybe<StringFilter>;
+  emailMarketingState?: InputMaybe<CustomerConsentStateFilter>;
   emailVerified?: InputMaybe<BooleanFilter>;
   firstName?: InputMaybe<StringFilter>;
   iamPrincipalId?: InputMaybe<StringFilter>;
   id?: InputMaybe<IdFilter>;
   lastActivityAt?: InputMaybe<DateTimeFilter>;
   lastName?: InputMaybe<StringFilter>;
+  lastOrderAt?: InputMaybe<DateTimeFilter>;
   lifecycleStatus?: InputMaybe<CustomerLifecycleStatusFilter>;
+  ordersCount?: InputMaybe<IntFilter>;
   phoneE164?: InputMaybe<StringFilter>;
   phoneVerified?: InputMaybe<BooleanFilter>;
   preferredLocale?: InputMaybe<StringFilter>;
   source?: InputMaybe<StringFilter>;
+  totalSpentMinor?: InputMaybe<BigIntFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -3061,6 +3083,7 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
   Node: ( Customer ) | ( CustomerAddress ) | ( CustomerConsent ) | ( CustomerConsentEvent ) | ( CustomerDataRequest ) | ( CustomerGroup ) | ( CustomerGroupMembership ) | ( CustomerMerge ) | ( CustomerMonetaryStatistics ) | ( CustomerSegment ) | ( CustomerSegmentMembership ) | ( CustomerTag ) | ( CustomerTagAssignment ) | ( CustomerTaxExemption ) | ( CustomerTaxIdentifier );
   UserError: ( GenericUserError );
 }>;
+
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
@@ -3107,6 +3130,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerConsentSetInput: CustomerConsentSetInput;
   CustomerConsentSetPayload: ResolverTypeWrapper<CustomerConsentSetPayload>;
   CustomerConsentState: CustomerConsentState;
+  CustomerConsentStateFilter: CustomerConsentStateFilter;
   CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
   CustomerCreatePayload: ResolverTypeWrapper<CustomerCreatePayload>;
@@ -3314,6 +3338,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerConsentEventOrderByInput: CustomerConsentEventOrderByInput;
   CustomerConsentSetInput: CustomerConsentSetInput;
   CustomerConsentSetPayload: CustomerConsentSetPayload;
+  CustomerConsentStateFilter: CustomerConsentStateFilter;
   CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
   CustomerCreatePayload: CustomerCreatePayload;

@@ -40,6 +40,13 @@ input CustomerAccountStatusFilter {
   _notIn: [CustomerAccountStatus!]
 }
 
+input CustomerConsentStateFilter {
+  _eq: CustomerConsentState
+  _neq: CustomerConsentState
+  _in: [CustomerConsentState!]
+  _notIn: [CustomerConsentState!]
+}
+
 input CustomerWhereInput {
   _and: [CustomerWhereInput!]
   _or: [CustomerWhereInput!]
@@ -48,6 +55,7 @@ input CustomerWhereInput {
   lifecycleStatus: CustomerLifecycleStatusFilter
   accountStatus: CustomerAccountStatusFilter
   iamPrincipalId: StringFilter
+  displayName: StringFilter
   email: StringFilter
   phoneE164: StringFilter
   firstName: StringFilter
@@ -58,6 +66,13 @@ input CustomerWhereInput {
   dateOfBirth: DateFilter
   emailVerified: BooleanFilter
   phoneVerified: BooleanFilter
+  defaultShippingCity: StringFilter
+  defaultShippingRegionCode: StringFilter
+  defaultShippingCountryCode: StringFilter
+  emailMarketingState: CustomerConsentStateFilter
+  ordersCount: IntFilter
+  totalSpentMinor: BigIntFilter
+  lastOrderAt: DateTimeFilter
   lastActivityAt: DateTimeFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -65,6 +80,7 @@ input CustomerWhereInput {
 
 enum CustomerOrderField {
   id
+  displayName
   lifecycleStatus
   accountStatus
   email
@@ -73,6 +89,9 @@ enum CustomerOrderField {
   lastName
   companyName
   dateOfBirth
+  ordersCount
+  totalSpentMinor
+  lastOrderAt
   lastActivityAt
   createdAt
   updatedAt
@@ -351,8 +370,10 @@ input CustomerSegmentWhereInput {
   _not: CustomerSegmentWhereInput
   id: IDFilter
   name: StringFilter
+  description: StringFilter
   type: CustomerSegmentTypeFilter
   status: CustomerSegmentStatusFilter
+  customersCount: IntFilter
   createdById: StringFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -363,6 +384,7 @@ enum CustomerSegmentOrderField {
   name
   type
   status
+  customersCount
   createdAt
   updatedAt
 }
