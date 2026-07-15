@@ -845,7 +845,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@dnd-kit/accessibility@npm:^3.1.1":
+"@dnd-kit/accessibility@npm:^3.1.0":
   version: 3.1.1
   resolution: "@dnd-kit/accessibility@npm:3.1.1"
   dependencies:
@@ -856,30 +856,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@dnd-kit/core@npm:^6.3.1":
-  version: 6.3.1
-  resolution: "@dnd-kit/core@npm:6.3.1"
+"@dnd-kit/core@npm:6.1.0":
+  version: 6.1.0
+  resolution: "@dnd-kit/core@npm:6.1.0"
   dependencies:
-    "@dnd-kit/accessibility": "npm:^3.1.1"
+    "@dnd-kit/accessibility": "npm:^3.1.0"
     "@dnd-kit/utilities": "npm:^3.2.2"
     tslib: "npm:^2.0.0"
   peerDependencies:
     react: ">=16.8.0"
     react-dom: ">=16.8.0"
-  checksum: 10/a5ae6fa8404765712aa80e308f58cb79bac9a306c274ec8272c405c2a59dd277d24b966348fe8ca6340bb3f0d75f90b8a021fa781edcf65255114d3cf2bef891
+  checksum: 10/cf9e99763fbd9220cb6fdde2950c19fdf6248391234f5ee835601814124445fd8a6e4b3f5bc35543c802d359db8cc47f07d87046577adc41952ae981a03fbda0
   languageName: node
   linkType: hard
 
-"@dnd-kit/sortable@npm:^10.0.0":
-  version: 10.0.0
-  resolution: "@dnd-kit/sortable@npm:10.0.0"
+"@dnd-kit/sortable@npm:^8.0.0":
+  version: 8.0.0
+  resolution: "@dnd-kit/sortable@npm:8.0.0"
   dependencies:
     "@dnd-kit/utilities": "npm:^3.2.2"
     tslib: "npm:^2.0.0"
   peerDependencies:
-    "@dnd-kit/core": ^6.3.0
+    "@dnd-kit/core": ^6.1.0
     react: ">=16.8.0"
-  checksum: 10/bc61c25e76905204a53f91294b8116bf106fa27247eebca2c66478450b2051d7177115a384054e7e5639e6c4430083ade63056f79ee45f549da537cf05bc5288
+  checksum: 10/e2e0d37ace13db2e6aceb65a803195ef29e1a33a37e7722a988d7a9c1aacce77472a93b2adcd8e6780ac98b3d5640c5481892f530177c2eb966df235726942ad
   languageName: node
   linkType: hard
 
@@ -3856,6 +3856,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/lodash@npm:^4.14.200":
+  version: 4.17.24
+  resolution: "@types/lodash@npm:4.17.24"
+  checksum: 10/0f2082565f60f9787eefc046edc38458054512be5a8b3584ef0bad5fd9e85d0ab55ec5a1fbfae1ed6ba015cf1f9e837d5fb4da1f99fc60b8f74b2a46146fb00f
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:*":
   version: 25.0.10
   resolution: "@types/node@npm:25.0.10"
@@ -4418,8 +4425,8 @@ __metadata:
     "@ant-design/nextjs-registry": "npm:^1.3.0"
     "@apollo/client": "npm:^4.0.12"
     "@apollo/experimental-nextjs-app-support": "npm:^0.14.4"
-    "@dnd-kit/core": "npm:^6.3.1"
-    "@dnd-kit/sortable": "npm:^10.0.0"
+    "@dnd-kit/core": "npm:6.1.0"
+    "@dnd-kit/sortable": "npm:^8.0.0"
     "@dnd-kit/utilities": "npm:^3.2.2"
     "@editorjs/delimiter": "npm:^1.4.2"
     "@editorjs/editorjs": "npm:^2.31.0"
@@ -4436,6 +4443,7 @@ __metadata:
     "@types/apollo-upload-client": "npm:^19.0.0"
     "@types/dagre": "npm:^0.7.53"
     "@types/html-to-text": "npm:^9.0.4"
+    "@types/lodash": "npm:^4.14.200"
     "@types/node": "npm:^20"
     "@types/react": "npm:^19"
     "@types/react-dom": "npm:^19"
@@ -4446,6 +4454,7 @@ __metadata:
     antd: "npm:^6.0.1"
     antd-style: "npm:^3.7.1"
     apollo-upload-client: "npm:^19.0.0"
+    classnames: "npm:^2.5.1"
     dayjs: "npm:^1.11.19"
     echarts: "npm:^6.0.0"
     echarts-for-react: "npm:^3.0.5"
@@ -4455,6 +4464,7 @@ __metadata:
     eslint-config-next: "npm:16.0.6"
     graphql: "npm:^16.9.0"
     html-to-text: "npm:^9.0.5"
+    lodash: "npm:^4.17.21"
     next: "npm:16.0.6"
     path-to-regexp: "npm:^8.3.0"
     react: "npm:19.2.0"
@@ -4464,6 +4474,8 @@ __metadata:
     react-image-crop: "npm:^11.0.10"
     react-infinite-scroller: "npm:^1.2.6"
     react-player: "npm:^3.4.0"
+    react-tiny-virtual-list: "npm:^2.2.0"
+    react-virtualized-auto-sizer: "npm:^1.0.24"
     transliteration: "npm:^2.6.0"
     typescript: "npm:^5"
     vitest: "npm:^4.0.17"
@@ -5212,7 +5224,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"classnames@npm:^2.3.1":
+"classnames@npm:^2.3.1, classnames@npm:^2.5.1":
   version: 2.5.1
   resolution: "classnames@npm:2.5.1"
   checksum: 10/58eb394e8817021b153bb6e7d782cfb667e4ab390cb2e9dac2fc7c6b979d1cc2b2a733093955fc5c94aa79ef5c8c89f11ab77780894509be6afbb91dddd79d15
@@ -8991,7 +9003,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15.5.8, prop-types@npm:^15.8.1":
+"prop-types@npm:^15.5.7, prop-types@npm:^15.5.8, prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -9111,6 +9123,27 @@ __metadata:
     react: ^17.0.2 || ^18 || ^19
     react-dom: ^17.0.2 || ^18 || ^19
   checksum: 10/d0d385f4ed2bfe5f8635ce086da7db10abcaf9a4e3d3ed49cd7686dc66f8b898e2c0f7bc9bb56dace5119e162d371eb04b55d87e9aa6111558cc314407042b18
+  languageName: node
+  linkType: hard
+
+"react-tiny-virtual-list@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "react-tiny-virtual-list@npm:2.2.0"
+  dependencies:
+    prop-types: "npm:^15.5.7"
+  peerDependencies:
+    react: 15.x || 16.x
+  checksum: 10/d995aadb87bf994abd59c5b9e56725ba5d06a32b74763e1724122b149e85e7d31b0421ed0712cb7b2c9c133d4e64efc18858ad858e21917a332c6cd9599d0a69
+  languageName: node
+  linkType: hard
+
+"react-virtualized-auto-sizer@npm:^1.0.24":
+  version: 1.0.26
+  resolution: "react-virtualized-auto-sizer@npm:1.0.26"
+  peerDependencies:
+    react: ^15.3.0 || ^16.0.0-alpha || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-dom: ^15.3.0 || ^16.0.0-alpha || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10/8f8127369fb3ae1a49987a1e7d2d136f379b71d1b031a4c169389274946eca0248e3fb9130aa8a7ebe82f4ca8aaab58c37252398f8f6220a6eafaa78b8464b6b
   languageName: node
   linkType: hard
 

@@ -516,6 +516,37 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard unsaved question changes?',
     },
     // ========================================
+    // Fulfillment modals
+    // ========================================
+    {
+      type: 'fulfillment-stage',
+      component: dynamic(() =>
+        import('@/domains/fulfillment/stages/modals/stage-modal').then((m) => m.FulfillmentStageModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved stage changes?',
+    },
+    {
+      type: 'fulfillment-order',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/order-modal').then((m) => m.OrderModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved order changes?',
+    },
+    {
+      type: 'fulfillment-status',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/fulfillment-status-modal').then((m) => m.OrderFulfillmentStatusModal)
+      ),
+    },
+    {
+      type: 'fulfillment-tracking',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/shipping-item-modal').then((m) => m.OrderShippingItemModal)
+      ),
+    },
+    // ========================================
     // Order modals
     // ========================================
     {
