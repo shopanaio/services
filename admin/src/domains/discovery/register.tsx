@@ -45,12 +45,25 @@ registerModule({
       component: dynamic(() => import("@/domains/discovery/facets/page/page")),
     },
     {
+      key: "recommendations",
+      path: "/:orgName/:storeName/search/recommendations",
+      disabled: true,
+      sidebar: {
+        label: "Recommendations",
+        icon: null,
+        order: 4,
+      },
+      component: dynamic(
+        () => import("@/domains/discovery/recommendations/page/page"),
+      ),
+    },
+    {
       key: "search-settings",
       path: "/:orgName/:storeName/search/settings",
       sidebar: {
         label: "Settings",
         icon: null,
-        order: 4,
+        order: 5,
       },
       component: dynamic(
         () => import("@/domains/discovery/search/settings/page/page"),

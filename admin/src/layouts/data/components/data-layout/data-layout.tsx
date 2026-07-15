@@ -17,7 +17,7 @@ import { Badge, Typography, Flex, Spin } from "antd";
 
 const useStyles = createStyles(({ token }) => ({
   layout: {
-    backgroundColor: token.colorBgContainer,
+    backgroundColor: token.colorBgLayout,
     display: "flex",
     flexDirection: "column",
     height: "100%",
@@ -434,8 +434,8 @@ export const DataLayout = ({
         className={cx(styles.layout, className)}
         data-testid={name ? `${name}-layout` : "data-layout"}
       >
+        {headerNode}
         <div className={cx(styles.frame, fullWidth && styles.frameFullWidth)}>
-          {headerNode}
           {toolbarNode}
           <Content>{slots.content}</Content>
           {footerNode}
