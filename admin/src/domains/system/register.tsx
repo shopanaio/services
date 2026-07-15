@@ -28,27 +28,15 @@ registerModule({
       ),
     },
     {
-      key: "email-settings",
-      path: "/:orgName/:storeName/system/notifications/email-settings",
+      key: "notifications",
+      path: "/:orgName/:storeName/system/notifications",
       sidebar: {
-        label: "Email settings",
+        label: "Notifications",
         icon: null,
         order: 2,
       },
       component: dynamic(
         () => import("@/domains/system/notifications/page/page"),
-      ),
-    },
-    {
-      key: "email-templates",
-      path: "/:orgName/:storeName/system/notifications/email-templates",
-      sidebar: {
-        label: "Email templates",
-        icon: null,
-        order: 3,
-      },
-      component: dynamic(
-        () => import("@/domains/system/email-templates/page/page"),
       ),
     },
     {

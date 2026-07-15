@@ -44,7 +44,7 @@ export const RightArrow = ({
 
 const useSubitemIconStyles = createStyles(({ token }) => ({
   wrapper: {
-    marginLeft: -22,
+    marginLeft: -10,
     marginRight: token.paddingSM,
     marginTop: token.paddingSM,
   },

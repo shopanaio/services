@@ -1,36 +1,97 @@
 "use client";
 
-import { Alert } from "antd";
+import { Alert, Typography } from "antd";
 import { createStyles } from "antd-style";
 import { useCallback } from "react";
 import { DataLayout } from "@/layouts/data";
-import { useEmailSettings } from "../../email/hooks";
+import { EmailTemplatesTable } from "../../email-templates/components";
+import { useEmailSettings, useEmailTemplates } from "../../email/hooks";
 import { EmailInformation, SmtpSettings } from "../components";
 
 const useStyles = createStyles(({ token }) => ({
-  sections: {
+  content: {
+    display: "flex",
+    flexDirection: "column",
+    gap: token.marginXL,
+    paddingBottom: token.padding,
+  },
+  section: {
     display: "flex",
     flexDirection: "column",
     gap: token.margin,
-    paddingBottom: token.padding,
+  },
+  sectionTitle: {
+    margin: 0,
+  },
+  settings: {
+    display: "flex",
+    flexDirection: "column",
+    gap: token.margin,
   },
 }));
 
 export default function NotificationSettingsPage() {
   const { styles } = useStyles();
-  const { error, loading, profile, refetch, settings } = useEmailSettings();
-  const refresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+  const {
+    error: settingsError,
+    loading: settingsLoading,
+    profile,
+    refetch: refetchSettings,
+    settings,
+  } = useEmailSettings();
+  const {
+    error: templatesError,
+    loading: templatesLoading,
+    refetch: refetchTemplates,
+    templates,
+  } = useEmailTemplates();
+  const refreshSettings = useCallback(async () => {
+    await refetchSettings();
+  }, [refetchSettings]);
+  const refreshTemplates = useCallback(async () => {
+    await refetchTemplates();
+  }, [refetchTemplates]);
 
   return (
-    <DataLayout loading={loading} name="email-settings" title="Email Settings">
-      <DataLayout.Content>
-        {error ? <Alert message={error.message} showIcon type="error" /> : null}
-        <div className={styles.sections}>
-          <EmailInformation onSaved={refresh} settings={settings} />
-          <SmtpSettings onSaved={refresh} profile={profile} />
-        </div>
+    <DataLayout
+      loading={settingsLoading}
+      name="notifications"
+      title="Notifications"
+    >
+      <DataLayout.Content className={styles.content}>
+        <section aria-labelledby="email-settings-title" className={styles.section}>
+          <Typography.Title
+            className={styles.sectionTitle}
+            id="email-settings-title"
+            level={5}
+          >
+            Email Settings
+          </Typography.Title>
+          {settingsError ? (
+            <Alert message={settingsError.message} showIcon type="error" />
+          ) : null}
+          <div className={styles.settings}>
+            <EmailInformation onSaved={refreshSettings} settings={settings} />
+            <SmtpSettings onSaved={refreshSettings} profile={profile} />
+          </div>
+        </section>
+        <section aria-labelledby="email-templates-title" className={styles.section}>
+          <Typography.Title
+            className={styles.sectionTitle}
+            id="email-templates-title"
+            level={5}
+          >
+            Email Templates
+          </Typography.Title>
+          {templatesError ? (
+            <Alert message={templatesError.message} showIcon type="error" />
+          ) : null}
+          <EmailTemplatesTable
+            loading={templatesLoading}
+            onSaved={refreshTemplates}
+            templates={templates}
+          />
+        </section>
       </DataLayout.Content>
     </DataLayout>
   );
