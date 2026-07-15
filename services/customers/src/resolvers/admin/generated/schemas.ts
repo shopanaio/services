@@ -169,7 +169,6 @@ export function CustomerAddressUpdateInputSchema(): z.ZodObject<Properties<Custo
     companyName: z.string().nullish(),
     countryCode: z.string().nullish(),
     firstName: z.string().nullish(),
-    id: z.string(),
     label: z.string().nullish(),
     lastName: z.string().nullish(),
     latitude: z.number().nullish(),
@@ -403,7 +402,6 @@ export function CustomerGroupUpdateInputSchema(): z.ZodObject<Properties<Custome
   return z.object({
     code: z.string().nullish(),
     description: z.string().nullish(),
-    id: z.string(),
     isActive: z.boolean().nullish(),
     isDefault: z.boolean().nullish(),
     name: z.string().nullish()
@@ -608,7 +606,6 @@ export function CustomerSegmentUpdateInputSchema(): z.ZodObject<Properties<Custo
   return z.object({
     definition: z.record(z.unknown()).nullish(),
     description: z.string().nullish(),
-    id: z.string(),
     name: z.string().nullish(),
     query: z.string().nullish(),
     status: CustomerSegmentStatusSchema.nullish(),
@@ -692,8 +689,7 @@ export function CustomerTagUnassignInputSchema(): z.ZodObject<Properties<Custome
 
 export function CustomerTagUpdateInputSchema(): z.ZodObject<Properties<CustomerTagUpdateInput>> {
   return z.object({
-    id: z.string(),
-    name: z.string()
+    name: z.string().nullish()
   })
 }
 
@@ -751,7 +747,6 @@ export function CustomerTaxExemptionUpdateInputSchema(): z.ZodObject<Properties<
     certificateFileId: z.string().nullish(),
     code: z.string().nullish(),
     countryCode: z.string().nullish(),
-    id: z.string(),
     reason: z.string().nullish(),
     regionCode: z.string().nullish(),
     status: CustomerTaxExemptionStatusSchema.nullish(),
@@ -815,7 +810,6 @@ export function CustomerTaxIdentifierStatusFilterSchema(): z.ZodObject<Propertie
 export function CustomerTaxIdentifierUpdateInputSchema(): z.ZodObject<Properties<CustomerTaxIdentifierUpdateInput>> {
   return z.object({
     countryCode: z.string().nullish(),
-    id: z.string(),
     identifierType: z.string().nullish(),
     isPrimary: z.boolean().nullish(),
     status: CustomerTaxIdentifierStatusSchema.nullish(),

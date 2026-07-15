@@ -80,7 +80,6 @@ input CustomerTaxIdentifierCreateInput {
 }
 
 input CustomerTaxIdentifierUpdateInput {
-  id: ID!
   identifierType: String
   countryCode: String
   value: String
@@ -108,7 +107,6 @@ input CustomerTaxExemptionCreateInput {
 }
 
 input CustomerTaxExemptionUpdateInput {
-  id: ID!
   code: String
   countryCode: String
   regionCode: String
@@ -130,6 +128,7 @@ type CustomerTaxIdentifierCreatePayload {
 
 type CustomerTaxIdentifierUpdatePayload {
   taxIdentifier: CustomerTaxIdentifier
+  operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -145,6 +144,7 @@ type CustomerTaxExemptionCreatePayload {
 
 type CustomerTaxExemptionUpdatePayload {
   taxExemption: CustomerTaxExemption
+  operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 

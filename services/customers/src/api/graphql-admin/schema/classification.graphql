@@ -183,7 +183,6 @@ input CustomerGroupCreateInput {
 }
 
 input CustomerGroupUpdateInput {
-  id: ID!
   code: String
   name: String
   description: String
@@ -213,8 +212,7 @@ input CustomerTagCreateInput {
 }
 
 input CustomerTagUpdateInput {
-  id: ID!
-  name: String!
+  name: String
 }
 
 input CustomerTagDeleteInput {
@@ -242,7 +240,6 @@ input CustomerSegmentCreateInput {
 }
 
 input CustomerSegmentUpdateInput {
-  id: ID!
   name: String
   description: String
   type: CustomerSegmentType
@@ -274,6 +271,7 @@ type CustomerGroupCreatePayload {
 
 type CustomerGroupUpdatePayload {
   group: CustomerGroup
+  operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -299,6 +297,7 @@ type CustomerTagCreatePayload {
 
 type CustomerTagUpdatePayload {
   tag: CustomerTag
+  operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -324,6 +323,7 @@ type CustomerSegmentCreatePayload {
 
 type CustomerSegmentUpdatePayload {
   segment: CustomerSegment
+  operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 

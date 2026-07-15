@@ -639,7 +639,6 @@ export type CustomerAddressUpdateInput = {
   companyName?: InputMaybe<Scalars['String']['input']>;
   countryCode?: InputMaybe<Scalars['String']['input']>;
   firstName?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
   lastName?: InputMaybe<Scalars['String']['input']>;
   latitude?: InputMaybe<Scalars['Float']['input']>;
@@ -656,6 +655,7 @@ export type CustomerAddressUpdateInput = {
 export type CustomerAddressUpdatePayload = {
   __typename?: 'CustomerAddressUpdatePayload';
   address: Maybe<CustomerAddress>;
+  operationResults: Array<CustomerOperationResult>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -1162,7 +1162,6 @@ export enum CustomerGroupOrderField {
 export type CustomerGroupUpdateInput = {
   code?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -1171,6 +1170,7 @@ export type CustomerGroupUpdateInput = {
 export type CustomerGroupUpdatePayload = {
   __typename?: 'CustomerGroupUpdatePayload';
   group: Maybe<CustomerGroup>;
+  operationResults: Array<CustomerOperationResult>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -1363,11 +1363,17 @@ export type CustomerOperationResult = {
 };
 
 export enum CustomerOperationType {
+  AddressUpdate = 'ADDRESS_UPDATE',
   CompanyUpdate = 'COMPANY_UPDATE',
   ContactUpdate = 'CONTACT_UPDATE',
+  GroupUpdate = 'GROUP_UPDATE',
   NoteUpdate = 'NOTE_UPDATE',
   ProfileUpdate = 'PROFILE_UPDATE',
-  StatusUpdate = 'STATUS_UPDATE'
+  SegmentUpdate = 'SEGMENT_UPDATE',
+  StatusUpdate = 'STATUS_UPDATE',
+  TagUpdate = 'TAG_UPDATE',
+  TaxExemptionUpdate = 'TAX_EXEMPTION_UPDATE',
+  TaxIdentifierUpdate = 'TAX_IDENTIFIER_UPDATE'
 }
 
 export type CustomerOrderByInput = {
@@ -1584,7 +1590,6 @@ export type CustomerSegmentTypeFilter = {
 export type CustomerSegmentUpdateInput = {
   definition?: InputMaybe<Scalars['JSON']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
   query?: InputMaybe<Scalars['String']['input']>;
   status?: InputMaybe<CustomerSegmentStatus>;
@@ -1593,6 +1598,7 @@ export type CustomerSegmentUpdateInput = {
 
 export type CustomerSegmentUpdatePayload = {
   __typename?: 'CustomerSegmentUpdatePayload';
+  operationResults: Array<CustomerOperationResult>;
   segment: Maybe<CustomerSegment>;
   userErrors: Array<GenericUserError>;
 };
@@ -1769,12 +1775,12 @@ export type CustomerTagUnassignPayload = {
 };
 
 export type CustomerTagUpdateInput = {
-  id: Scalars['ID']['input'];
-  name: Scalars['String']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type CustomerTagUpdatePayload = {
   __typename?: 'CustomerTagUpdatePayload';
+  operationResults: Array<CustomerOperationResult>;
   tag: Maybe<CustomerTag>;
   userErrors: Array<GenericUserError>;
 };
@@ -1884,7 +1890,6 @@ export type CustomerTaxExemptionUpdateInput = {
   certificateFileId?: InputMaybe<Scalars['ID']['input']>;
   code?: InputMaybe<Scalars['String']['input']>;
   countryCode?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
   reason?: InputMaybe<Scalars['String']['input']>;
   regionCode?: InputMaybe<Scalars['String']['input']>;
   status?: InputMaybe<CustomerTaxExemptionStatus>;
@@ -1894,6 +1899,7 @@ export type CustomerTaxExemptionUpdateInput = {
 
 export type CustomerTaxExemptionUpdatePayload = {
   __typename?: 'CustomerTaxExemptionUpdatePayload';
+  operationResults: Array<CustomerOperationResult>;
   taxExemption: Maybe<CustomerTaxExemption>;
   userErrors: Array<GenericUserError>;
 };
@@ -2005,7 +2011,6 @@ export type CustomerTaxIdentifierStatusFilter = {
 
 export type CustomerTaxIdentifierUpdateInput = {
   countryCode?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
   identifierType?: InputMaybe<Scalars['String']['input']>;
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
   status?: InputMaybe<CustomerTaxIdentifierStatus>;
@@ -2016,6 +2021,7 @@ export type CustomerTaxIdentifierUpdateInput = {
 
 export type CustomerTaxIdentifierUpdatePayload = {
   __typename?: 'CustomerTaxIdentifierUpdatePayload';
+  operationResults: Array<CustomerOperationResult>;
   taxIdentifier: Maybe<CustomerTaxIdentifier>;
   userErrors: Array<GenericUserError>;
 };
@@ -2134,7 +2140,8 @@ export type CustomersMutationCustomerAddressDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerAddressUpdateArgs = {
-  input: CustomerAddressUpdateInput;
+  addressId: Scalars['ID']['input'];
+  operations?: InputMaybe<CustomerAddressUpdateInput>;
 };
 
 
@@ -2188,7 +2195,8 @@ export type CustomersMutationCustomerGroupMembershipSetArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerGroupUpdateArgs = {
-  input: CustomerGroupUpdateInput;
+  groupId: Scalars['ID']['input'];
+  operations?: InputMaybe<CustomerGroupUpdateInput>;
 };
 
 
@@ -2224,7 +2232,8 @@ export type CustomersMutationCustomerSegmentDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerSegmentUpdateArgs = {
-  input: CustomerSegmentUpdateInput;
+  operations?: InputMaybe<CustomerSegmentUpdateInput>;
+  segmentId: Scalars['ID']['input'];
 };
 
 
@@ -2254,7 +2263,8 @@ export type CustomersMutationCustomerTagUnassignArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerTagUpdateArgs = {
-  input: CustomerTagUpdateInput;
+  operations?: InputMaybe<CustomerTagUpdateInput>;
+  tagId: Scalars['ID']['input'];
 };
 
 
@@ -2272,7 +2282,8 @@ export type CustomersMutationCustomerTaxExemptionDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerTaxExemptionUpdateArgs = {
-  input: CustomerTaxExemptionUpdateInput;
+  operations?: InputMaybe<CustomerTaxExemptionUpdateInput>;
+  taxExemptionId: Scalars['ID']['input'];
 };
 
 
@@ -2290,7 +2301,8 @@ export type CustomersMutationCustomerTaxIdentifierDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerTaxIdentifierUpdateArgs = {
-  input: CustomerTaxIdentifierUpdateInput;
+  operations?: InputMaybe<CustomerTaxIdentifierUpdateInput>;
+  taxIdentifierId: Scalars['ID']['input'];
 };
 
 
@@ -3560,6 +3572,7 @@ export type CustomerAddressEdgeResolvers<ContextType = ServiceContext, ParentTyp
 
 export type CustomerAddressUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressUpdatePayload'] = ResolversParentTypes['CustomerAddressUpdatePayload']> = ResolversObject<{
   address?: Resolver<Maybe<ResolversTypes['CustomerAddress']>, ParentType, ContextType>;
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3770,6 +3783,7 @@ export type CustomerGroupMembershipSetPayloadResolvers<ContextType = ServiceCont
 
 export type CustomerGroupUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupUpdatePayload'] = ResolversParentTypes['CustomerGroupUpdatePayload']> = ResolversObject<{
   group?: Resolver<Maybe<ResolversTypes['CustomerGroup']>, ParentType, ContextType>;
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3926,6 +3940,7 @@ export type CustomerSegmentMembershipEdgeResolvers<ContextType = ServiceContext,
 }>;
 
 export type CustomerSegmentUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentUpdatePayload'] = ResolversParentTypes['CustomerSegmentUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -4018,6 +4033,7 @@ export type CustomerTagUnassignPayloadResolvers<ContextType = ServiceContext, Pa
 }>;
 
 export type CustomerTagUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagUpdatePayload'] = ResolversParentTypes['CustomerTagUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   tag?: Resolver<Maybe<ResolversTypes['CustomerTag']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -4067,6 +4083,7 @@ export type CustomerTaxExemptionEdgeResolvers<ContextType = ServiceContext, Pare
 }>;
 
 export type CustomerTaxExemptionUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxExemptionUpdatePayload'] = ResolversParentTypes['CustomerTaxExemptionUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   taxExemption?: Resolver<Maybe<ResolversTypes['CustomerTaxExemption']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -4116,6 +4133,7 @@ export type CustomerTaxIdentifierEdgeResolvers<ContextType = ServiceContext, Par
 }>;
 
 export type CustomerTaxIdentifierUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxIdentifierUpdatePayload'] = ResolversParentTypes['CustomerTaxIdentifierUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   taxIdentifier?: Resolver<Maybe<ResolversTypes['CustomerTaxIdentifier']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -4132,7 +4150,7 @@ export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType 
   customerAddressCreate?: Resolver<ResolversTypes['CustomerAddressCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressCreateArgs, 'input'>>;
   customerAddressDefaultsUpdate?: Resolver<ResolversTypes['CustomerAddressDefaultsUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressDefaultsUpdateArgs, 'input'>>;
   customerAddressDelete?: Resolver<ResolversTypes['CustomerAddressDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressDeleteArgs, 'input'>>;
-  customerAddressUpdate?: Resolver<ResolversTypes['CustomerAddressUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressUpdateArgs, 'input'>>;
+  customerAddressUpdate?: Resolver<ResolversTypes['CustomerAddressUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressUpdateArgs, 'addressId'>>;
   customerConsentSet?: Resolver<ResolversTypes['CustomerConsentSetPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerConsentSetArgs, 'input'>>;
   customerCreate?: Resolver<ResolversTypes['CustomerCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerCreateArgs, 'input'>>;
   customerDataRequestCancel?: Resolver<ResolversTypes['CustomerDataRequestCancelPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestCancelArgs, 'input'>>;
@@ -4141,24 +4159,24 @@ export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType 
   customerGroupDelete?: Resolver<ResolversTypes['CustomerGroupDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupDeleteArgs, 'input'>>;
   customerGroupMembershipDelete?: Resolver<ResolversTypes['CustomerGroupMembershipDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupMembershipDeleteArgs, 'input'>>;
   customerGroupMembershipSet?: Resolver<ResolversTypes['CustomerGroupMembershipSetPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupMembershipSetArgs, 'input'>>;
-  customerGroupUpdate?: Resolver<ResolversTypes['CustomerGroupUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupUpdateArgs, 'input'>>;
+  customerGroupUpdate?: Resolver<ResolversTypes['CustomerGroupUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupUpdateArgs, 'groupId'>>;
   customerMergeRequest?: Resolver<ResolversTypes['CustomerMergeRequestPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeRequestArgs, 'input'>>;
   customerSegmentCreate?: Resolver<ResolversTypes['CustomerSegmentCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCreateArgs, 'input'>>;
   customerSegmentCustomersAdd?: Resolver<ResolversTypes['CustomerSegmentCustomersAddPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCustomersAddArgs, 'input'>>;
   customerSegmentCustomersRemove?: Resolver<ResolversTypes['CustomerSegmentCustomersRemovePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCustomersRemoveArgs, 'input'>>;
   customerSegmentDelete?: Resolver<ResolversTypes['CustomerSegmentDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentDeleteArgs, 'input'>>;
-  customerSegmentUpdate?: Resolver<ResolversTypes['CustomerSegmentUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentUpdateArgs, 'input'>>;
+  customerSegmentUpdate?: Resolver<ResolversTypes['CustomerSegmentUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentUpdateArgs, 'segmentId'>>;
   customerTagAssign?: Resolver<ResolversTypes['CustomerTagAssignPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagAssignArgs, 'input'>>;
   customerTagCreate?: Resolver<ResolversTypes['CustomerTagCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagCreateArgs, 'input'>>;
   customerTagDelete?: Resolver<ResolversTypes['CustomerTagDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagDeleteArgs, 'input'>>;
   customerTagUnassign?: Resolver<ResolversTypes['CustomerTagUnassignPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUnassignArgs, 'input'>>;
-  customerTagUpdate?: Resolver<ResolversTypes['CustomerTagUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUpdateArgs, 'input'>>;
+  customerTagUpdate?: Resolver<ResolversTypes['CustomerTagUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUpdateArgs, 'tagId'>>;
   customerTaxExemptionCreate?: Resolver<ResolversTypes['CustomerTaxExemptionCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxExemptionCreateArgs, 'input'>>;
   customerTaxExemptionDelete?: Resolver<ResolversTypes['CustomerTaxExemptionDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxExemptionDeleteArgs, 'input'>>;
-  customerTaxExemptionUpdate?: Resolver<ResolversTypes['CustomerTaxExemptionUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxExemptionUpdateArgs, 'input'>>;
+  customerTaxExemptionUpdate?: Resolver<ResolversTypes['CustomerTaxExemptionUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxExemptionUpdateArgs, 'taxExemptionId'>>;
   customerTaxIdentifierCreate?: Resolver<ResolversTypes['CustomerTaxIdentifierCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierCreateArgs, 'input'>>;
   customerTaxIdentifierDelete?: Resolver<ResolversTypes['CustomerTaxIdentifierDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierDeleteArgs, 'input'>>;
-  customerTaxIdentifierUpdate?: Resolver<ResolversTypes['CustomerTaxIdentifierUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierUpdateArgs, 'input'>>;
+  customerTaxIdentifierUpdate?: Resolver<ResolversTypes['CustomerTaxIdentifierUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierUpdateArgs, 'taxIdentifierId'>>;
   customerUpdate?: Resolver<ResolversTypes['CustomerUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerUpdateArgs, 'customerId'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

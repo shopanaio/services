@@ -196,6 +196,12 @@ enum CustomerOperationType {
   COMPANY_UPDATE
   STATUS_UPDATE
   NOTE_UPDATE
+  ADDRESS_UPDATE
+  TAX_IDENTIFIER_UPDATE
+  TAX_EXEMPTION_UPDATE
+  GROUP_UPDATE
+  TAG_UPDATE
+  SEGMENT_UPDATE
 }
 
 """Result of one section in the unified customer update."""

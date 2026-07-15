@@ -69,7 +69,6 @@ input CustomerAddressCreateInput {
 }
 
 input CustomerAddressUpdateInput {
-  id: ID!
   label: String
   prefix: String
   firstName: String
@@ -107,6 +106,7 @@ type CustomerAddressCreatePayload {
 
 type CustomerAddressUpdatePayload {
   address: CustomerAddress
+  operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
