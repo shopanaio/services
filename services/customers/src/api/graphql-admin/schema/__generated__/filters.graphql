@@ -1,0 +1,4 @@
+# Auto-generated GraphQL filters for Customers service.
+# Do not edit manually. Run: yarn shopana codegen --service customers
+
+scalar _CustomersGeneratedFilterPlaceholder @inaccessible

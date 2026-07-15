@@ -64,6 +64,14 @@ services:
       <<: *db_default
       schema: null
 
+  customers:
+    ports:
+      admin_graphql: 11013
+      metrics: 13040
+    db:
+      <<: *db_default
+      schema: null
+
   media:
     ports:
       admin_graphql: 11007

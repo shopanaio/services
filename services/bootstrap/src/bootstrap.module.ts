@@ -20,6 +20,7 @@ import { IamModule } from "@shopana/iam-service";
 import { EventsModule } from "@shopana/events-service";
 import { CatalogModule } from "@shopana/catalog-service";
 import { ListingModule } from "@shopana/listing-service";
+import { CustomersModule } from "@shopana/customers-service";
 import { TestActionProxyService } from "./test-action-proxy.service.js";
 
 export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
@@ -62,6 +63,7 @@ export class BootstrapModule {
       IamModule,
       CatalogModule,
       ListingModule,
+      CustomersModule,
     ];
 
     // Add WorkflowModule if workflows config is provided

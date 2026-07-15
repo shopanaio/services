@@ -11,6 +11,7 @@
     "@shopana/apps-service": "0.0.1",
     "@shopana/catalog-service": "0.0.1",
     "@shopana/checkout-service": "0.0.1",
+    "@shopana/customers-service": "0.0.1",
     "@shopana/delivery-service": "0.0.1",
     "@shopana/events-service": "0.0.1",
     "@shopana/iam-service": "0.0.1",

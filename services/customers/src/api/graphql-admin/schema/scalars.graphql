@@ -1,0 +1,4 @@
+scalar DateTime
+scalar Email
+scalar BigInt
+scalar JSON
