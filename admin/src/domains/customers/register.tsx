@@ -5,7 +5,7 @@ registerModule({
   key: "all-customers",
   domain: "customers",
   sidebar: {
-    label: "All Customers",
+    label: "Customers",
     icon: null,
     order: 1,
   },

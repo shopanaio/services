@@ -5,7 +5,7 @@ registerModule({
   key: "stock",
   domain: "inventory",
   sidebar: {
-    label: "Stock",
+    label: "Inventory",
     icon: null,
     order: 1,
   },
@@ -20,6 +20,18 @@ registerModule({
       },
       component: dynamic(
         () => import("@/domains/inventory/inventory/page/page")
+      ),
+    },
+    {
+      key: "warehouse-list",
+      path: "/:orgName/:storeName/warehouses",
+      sidebar: {
+        label: "Locations",
+        icon: null,
+        order: 2,
+      },
+      component: dynamic(
+        () => import("@/domains/inventory/warehouse/page/page"),
       ),
     },
     {
