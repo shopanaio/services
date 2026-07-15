@@ -2,14 +2,15 @@ import { MCPTool } from 'mcp-framework';
 import { z } from 'zod';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { formatServiceNames, MIGRATION_SERVICE_NAMES } from '../serviceNames.js';
 
 const execAsync = promisify(exec);
 
 const MigrateToolSchema = z.object({
   service: z
-    .string()
+    .enum(MIGRATION_SERVICE_NAMES)
     .optional()
-    .describe('Migrate specific service only. Available: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search'),
+    .describe(`Migrate specific service only. Available: ${formatServiceNames(MIGRATION_SERVICE_NAMES)}`),
   workingDir: z
     .string()
     .optional()
@@ -26,7 +27,7 @@ Examples:
 - Migrate all services: {}
 - Migrate specific service: { "service": "catalog" }
 
-Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search
+Available services: ${formatServiceNames(MIGRATION_SERVICE_NAMES)}
 
 Note: Make sure the database is running before executing migrations.`;
 

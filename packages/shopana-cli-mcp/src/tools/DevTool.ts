@@ -1,11 +1,12 @@
 import { MCPTool } from 'mcp-framework';
 import { z } from 'zod';
+import { BUILD_SERVICE_NAMES, formatServiceNames } from '../serviceNames.js';
 
 const DevToolSchema = z.object({
   service: z
-    .string()
+    .enum(BUILD_SERVICE_NAMES)
     .optional()
-    .describe('Specific service to run. If not provided, starts all services via orchestrator. Available: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search'),
+    .describe(`Specific service to run. If not provided, starts all services via orchestrator. Available: ${formatServiceNames(BUILD_SERVICE_NAMES)}`),
   workingDir: z
     .string()
     .optional()
@@ -27,7 +28,7 @@ Examples:
 - Start all services: {}
 - Start specific service: { "service": "catalog" }
 
-Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search
+Available services: ${formatServiceNames(BUILD_SERVICE_NAMES)}
 
 Note: This starts a long-running process. The server will continue running until stopped.`;
 

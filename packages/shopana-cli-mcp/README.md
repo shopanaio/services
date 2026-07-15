@@ -128,6 +128,7 @@ Help fix error "Cannot find module @shopana/shared-kernel"
 - `bootstrap` - Service orchestrator
 - `catalog` - Products, stock, and warehouses
 - `checkout` - Cart and checkout flow
+- `customers` - Customer bounded context
 - `delivery` - Delivery integration
 - `events` - Event persistence and dispatch
 - `iam` - Identity and access management
@@ -138,7 +139,6 @@ Help fix error "Cannot find module @shopana/shared-kernel"
 - `pricing` - Price calculation
 - `project` - Project settings
 - `reviews` - Product reviews
-- `search` - Search functionality
 
 ## Development
 

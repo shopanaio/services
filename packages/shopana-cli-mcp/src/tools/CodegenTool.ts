@@ -2,14 +2,15 @@ import { MCPTool } from 'mcp-framework';
 import { z } from 'zod';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { CODEGEN_SERVICE_NAMES, formatServiceNames } from '../serviceNames.js';
 
 const execAsync = promisify(exec);
 
 const CodegenToolSchema = z.object({
   service: z
-    .string()
+    .enum(CODEGEN_SERVICE_NAMES)
     .optional()
-    .describe('Generate types for specific service only. Available: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search'),
+    .describe(`Generate types for specific service only. Available: ${formatServiceNames(CODEGEN_SERVICE_NAMES)}`),
   workingDir: z
     .string()
     .optional()
@@ -26,7 +27,7 @@ Examples:
 - Generate for all services: {}
 - Generate for specific service: { "service": "checkout" }
 
-Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search`;
+Available services: ${formatServiceNames(CODEGEN_SERVICE_NAMES)}`;
 
   schema = CodegenToolSchema;
 

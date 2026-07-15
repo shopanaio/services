@@ -43,16 +43,17 @@ Returns:
         bootstrap: 'Service orchestrator and entrypoint',
         catalog: 'Products, variants, categories, tags, options, features, stock, and warehouses',
         checkout: 'Shopping cart, checkout flow, and line items',
+        customers: 'Customer bounded context',
         delivery: 'Shipping providers integration (Nova Poshta, Meest)',
         events: 'Event persistence and dispatch',
         iam: 'Identity and access management',
+        listing: 'Product listings and search indexing',
         media: 'File storage and media assets management',
         orders: 'Order processing and fulfillment',
         payments: 'Payment providers integration',
         pricing: 'Price calculations and promotions',
         project: 'Project settings, locales, and currencies',
-        reviews: 'Product reviews',
-        search: 'Search functionality'
+        reviews: 'Product reviews'
       },
 
       cli: {

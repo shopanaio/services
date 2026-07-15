@@ -2,14 +2,15 @@ import { MCPTool } from 'mcp-framework';
 import { z } from 'zod';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { DB_GENERATE_SERVICE_NAMES, formatServiceNames } from '../serviceNames.js';
 
 const execAsync = promisify(exec);
 
 const DbGenerateToolSchema = z.object({
   service: z
-    .string()
+    .enum(DB_GENERATE_SERVICE_NAMES)
     .optional()
-    .describe('Generate migrations for specific service only. Available: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search'),
+    .describe(`Generate migrations for specific service only. Available: ${formatServiceNames(DB_GENERATE_SERVICE_NAMES)}`),
   list: z
     .boolean()
     .optional()
@@ -31,7 +32,7 @@ Examples:
 - Generate for specific service: { "service": "catalog" }
 - List services with db:generate: { "list": true }
 
-Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search
+Available services: ${formatServiceNames(DB_GENERATE_SERVICE_NAMES)}
 
 Workflow:
 1. Modify your Drizzle schema in the service

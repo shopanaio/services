@@ -14,8 +14,10 @@ import {
   schemaComposeCommand,
   schemaExportCommand,
 } from "./commands/schema.js";
+import { discoverServices } from "./scripts/build-services.js";
 
 const program = new Command();
+const buildServiceNames = discoverServices().join(", ");
 
 program.name("shopana").description("Shopana development CLI").version("0.1.0");
 
@@ -23,7 +25,10 @@ program.name("shopana").description("Shopana development CLI").version("0.1.0");
 program
   .command("build")
   .description("Build packages and services")
-  .option("-s, --service <services...>", "Build specific service(s)")
+  .option(
+    "-s, --service <services...>",
+    `Build specific service(s). Available: ${buildServiceNames}`
+  )
   .option("-p, --packages", "Build only packages")
   .option("--parallel", "Build services in parallel")
   .action(buildCommand);

@@ -2,14 +2,15 @@ import { MCPTool } from 'mcp-framework';
 import { z } from 'zod';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { BUILD_SERVICE_NAMES, formatServiceNames } from '../serviceNames.js';
 
 const execAsync = promisify(exec);
 
 const BuildToolSchema = z.object({
   services: z
-    .array(z.string())
+    .array(z.enum(BUILD_SERVICE_NAMES))
     .optional()
-    .describe('Specific service(s) to build. Available: apps, bootstrap, catalog, checkout, delivery, events, iam, listing, media, orders, payments, pricing, project, reviews, search'),
+    .describe(`Specific service(s) to build. Available: ${formatServiceNames(BUILD_SERVICE_NAMES)}`),
   packagesOnly: z
     .boolean()
     .optional()
@@ -36,7 +37,7 @@ Examples:
 - Build specific services: { "services": ["checkout", "orders"] }
 - Build in parallel: { "parallel": true }
 
-Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, listing, media, orders, payments, pricing, project, reviews, search`;
+Available services: ${formatServiceNames(BUILD_SERVICE_NAMES)}`;
 
   schema = BuildToolSchema;
 

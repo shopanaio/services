@@ -88,7 +88,7 @@ export function discoverServices(): string[] {
     services.push(name);
   }
 
-  return services;
+  return services.sort();
 }
 
 interface BuildOptions {
