@@ -1,13 +1,13 @@
 import { registerModule } from "@/registry";
-import { AppstoreOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
+import { LuPackage } from "react-icons/lu";
 
 registerModule({
   key: "catalog",
   domain: "store",
   sidebar: {
     label: "Catalog",
-    icon: <AppstoreOutlined />,
+    icon: <LuPackage />,
     order: 2,
   },
   items: [

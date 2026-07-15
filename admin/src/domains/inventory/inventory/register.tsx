@@ -1,13 +1,13 @@
 import { registerModule } from "@/registry";
-import { DatabaseOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
+import { LuLayers } from "react-icons/lu";
 
 registerModule({
   key: "stock",
   domain: "store",
   sidebar: {
     label: "Inventory",
-    icon: <DatabaseOutlined />,
+    icon: <LuLayers />,
     order: 5,
   },
   items: [
