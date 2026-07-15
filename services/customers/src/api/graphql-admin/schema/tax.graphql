@@ -117,6 +117,53 @@ input CustomerTaxExemptionUpdateInput {
   validTo: Date
 }
 
+input CustomerTaxIdentifierCreateOperationInput {
+  identifierType: String!
+  countryCode: String
+  value: String!
+  """Defaults to UNVERIFIED when omitted."""
+  status: CustomerTaxIdentifierStatus
+  isPrimary: Boolean = false
+  validFrom: Date
+  validTo: Date
+}
+
+input CustomerTaxIdentifierUpdateOperationInput {
+  taxIdentifierId: ID!
+  operations: CustomerTaxIdentifierUpdateInput!
+}
+
+"""Atomic tax identifier changes scoped to the customer being updated."""
+input CustomerTaxIdentifiersUpdateInput {
+  create: [CustomerTaxIdentifierCreateOperationInput!]
+  update: [CustomerTaxIdentifierUpdateOperationInput!]
+  deleteIds: [ID!]
+}
+
+input CustomerTaxExemptionCreateOperationInput {
+  code: String!
+  countryCode: String
+  regionCode: String
+  reason: String
+  """Defaults to ACTIVE when omitted."""
+  status: CustomerTaxExemptionStatus
+  certificateFileId: ID
+  validFrom: Date
+  validTo: Date
+}
+
+input CustomerTaxExemptionUpdateOperationInput {
+  taxExemptionId: ID!
+  operations: CustomerTaxExemptionUpdateInput!
+}
+
+"""Atomic tax exemption changes scoped to the customer being updated."""
+input CustomerTaxExemptionsUpdateInput {
+  create: [CustomerTaxExemptionCreateOperationInput!]
+  update: [CustomerTaxExemptionUpdateOperationInput!]
+  deleteIds: [ID!]
+}
+
 input CustomerTaxExemptionDeleteInput {
   id: ID!
 }

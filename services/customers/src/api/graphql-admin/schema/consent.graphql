@@ -97,6 +97,22 @@ input CustomerConsentSetInput {
   evidence: JSON
 }
 
+"""Consent transition scoped to the customer being updated."""
+input CustomerConsentUpdateOperationInput {
+  channel: CustomerConsentChannel!
+  state: CustomerConsentAdminState!
+  """Defaults to UNKNOWN when omitted."""
+  optInLevel: CustomerConsentOptInLevel
+  contactPoint: String!
+  sourceLocationId: ID
+  evidence: JSON
+}
+
+"""Atomic consent transitions keyed by channel."""
+input CustomerConsentsUpdateInput {
+  set: [CustomerConsentUpdateOperationInput!]!
+}
+
 type CustomerConsentSetPayload {
   consent: CustomerConsent
   event: CustomerConsentEvent

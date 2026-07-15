@@ -580,6 +580,29 @@ export type CustomerAddressCreateInput = {
   suffix?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** Address values used inside the atomic customerUpdate operation. */
+export type CustomerAddressCreateOperationInput = {
+  address1: Scalars['String']['input'];
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city: Scalars['String']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode: Scalars['String']['input'];
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  regionName?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CustomerAddressCreatePayload = {
   __typename?: 'CustomerAddressCreatePayload';
   address: Maybe<CustomerAddress>;
@@ -656,6 +679,11 @@ export type CustomerAddressUpdateInput = {
   suffix?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type CustomerAddressUpdateOperationInput = {
+  addressId: Scalars['ID']['input'];
+  operations: CustomerAddressUpdateInput;
+};
+
 export type CustomerAddressUpdatePayload = {
   __typename?: 'CustomerAddressUpdatePayload';
   address: Maybe<CustomerAddress>;
@@ -695,6 +723,17 @@ export type CustomerAddressWhereInput = {
   regionCode?: InputMaybe<StringFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
   validationStatus?: InputMaybe<CustomerAddressValidationStatusFilter>;
+};
+
+/** Atomic address changes scoped to the customer being updated. */
+export type CustomerAddressesUpdateInput = {
+  create?: InputMaybe<Array<CustomerAddressCreateOperationInput>>;
+  /** Existing address ID to make the default. Explicit null clears the default. */
+  defaultBillingAddressId?: InputMaybe<Scalars['ID']['input']>;
+  /** Existing address ID to make the default. Explicit null clears the default. */
+  defaultShippingAddressId?: InputMaybe<Scalars['ID']['input']>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<CustomerAddressUpdateOperationInput>>;
 };
 
 export enum CustomerAssignmentSource {
@@ -857,6 +896,22 @@ export type CustomerConsentStateFilter = {
   _in?: InputMaybe<Array<CustomerConsentState>>;
   _neq?: InputMaybe<CustomerConsentState>;
   _notIn?: InputMaybe<Array<CustomerConsentState>>;
+};
+
+/** Consent transition scoped to the customer being updated. */
+export type CustomerConsentUpdateOperationInput = {
+  channel: CustomerConsentChannel;
+  contactPoint: Scalars['String']['input'];
+  evidence?: InputMaybe<Scalars['JSON']['input']>;
+  /** Defaults to UNKNOWN when omitted. */
+  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
+  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
+  state: CustomerConsentAdminState;
+};
+
+/** Atomic consent transitions keyed by channel. */
+export type CustomerConsentsUpdateInput = {
+  set: Array<CustomerConsentUpdateOperationInput>;
 };
 
 /** Contact projections in the unified customer update. */
@@ -1143,6 +1198,12 @@ export type CustomerGroupMembershipSetPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export type CustomerGroupMembershipUpdateOperationInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  groupId: Scalars['ID']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
 export type CustomerGroupMembershipWhereInput = {
   _and?: InputMaybe<Array<CustomerGroupMembershipWhereInput>>;
   _not?: InputMaybe<CustomerGroupMembershipWhereInput>;
@@ -1154,6 +1215,11 @@ export type CustomerGroupMembershipWhereInput = {
   id?: InputMaybe<IdFilter>;
   isPrimary?: InputMaybe<BooleanFilter>;
   source?: InputMaybe<CustomerAssignmentSourceFilter>;
+};
+
+/** Replace all manual group memberships for the customer. */
+export type CustomerGroupMembershipsUpdateInput = {
+  memberships: Array<CustomerGroupMembershipUpdateOperationInput>;
 };
 
 export type CustomerGroupOrderByInput = {
@@ -1382,6 +1448,7 @@ export type CustomerOperationResult = {
 export enum CustomerOperationType {
   AddressUpdate = 'ADDRESS_UPDATE',
   CompanyUpdate = 'COMPANY_UPDATE',
+  ConsentUpdate = 'CONSENT_UPDATE',
   ContactUpdate = 'CONTACT_UPDATE',
   GroupUpdate = 'GROUP_UPDATE',
   ModerationUpdate = 'MODERATION_UPDATE',
@@ -1527,6 +1594,10 @@ export type CustomerSegmentCustomersSetPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export type CustomerSegmentCustomersUpdateInput = {
+  customerIds: Array<Scalars['ID']['input']>;
+};
+
 export type CustomerSegmentDeleteInput = {
   expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   id: Scalars['ID']['input'];
@@ -1592,6 +1663,11 @@ export type CustomerSegmentMembershipWhereInput = {
   source?: InputMaybe<CustomerAssignmentSourceFilter>;
 };
 
+/** Replace all manual segment memberships for the customer. */
+export type CustomerSegmentMembershipsUpdateInput = {
+  segmentIds: Array<Scalars['ID']['input']>;
+};
+
 export type CustomerSegmentOrderByInput = {
   direction: SortDirection;
   field: CustomerSegmentOrderField;
@@ -1634,6 +1710,8 @@ export type CustomerSegmentTypeFilter = {
 
 export type CustomerSegmentUpdateInput = {
   color?: InputMaybe<Scalars['String']['input']>;
+  /** When provided, atomically replaces all manual memberships. */
+  customers?: InputMaybe<CustomerSegmentCustomersUpdateInput>;
   definition?: InputMaybe<Scalars['JSON']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -1767,6 +1845,11 @@ export type CustomerTagAssignmentWhereInput = {
   tagId?: InputMaybe<IdFilter>;
 };
 
+/** Replace all tag assignments for the customer. */
+export type CustomerTagAssignmentsUpdateInput = {
+  tagIds: Array<Scalars['ID']['input']>;
+};
+
 export type CustomerTagConnection = {
   __typename?: 'CustomerTagConnection';
   edges: Array<CustomerTagEdge>;
@@ -1884,6 +1967,18 @@ export type CustomerTaxExemptionCreateInput = {
   validTo?: InputMaybe<Scalars['Date']['input']>;
 };
 
+export type CustomerTaxExemptionCreateOperationInput = {
+  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
+  code: Scalars['String']['input'];
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  reason?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to ACTIVE when omitted. */
+  status?: InputMaybe<CustomerTaxExemptionStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+};
+
 export type CustomerTaxExemptionCreatePayload = {
   __typename?: 'CustomerTaxExemptionCreatePayload';
   taxExemption: Maybe<CustomerTaxExemption>;
@@ -1947,6 +2042,11 @@ export type CustomerTaxExemptionUpdateInput = {
   validTo?: InputMaybe<Scalars['Date']['input']>;
 };
 
+export type CustomerTaxExemptionUpdateOperationInput = {
+  operations: CustomerTaxExemptionUpdateInput;
+  taxExemptionId: Scalars['ID']['input'];
+};
+
 export type CustomerTaxExemptionUpdatePayload = {
   __typename?: 'CustomerTaxExemptionUpdatePayload';
   operationResults: Array<CustomerOperationResult>;
@@ -1967,6 +2067,13 @@ export type CustomerTaxExemptionWhereInput = {
   updatedAt?: InputMaybe<DateTimeFilter>;
   validFrom?: InputMaybe<DateFilter>;
   validTo?: InputMaybe<DateFilter>;
+};
+
+/** Atomic tax exemption changes scoped to the customer being updated. */
+export type CustomerTaxExemptionsUpdateInput = {
+  create?: InputMaybe<Array<CustomerTaxExemptionCreateOperationInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<CustomerTaxExemptionUpdateOperationInput>>;
 };
 
 export type CustomerTaxIdentifier = Node & {
@@ -1997,6 +2104,17 @@ export type CustomerTaxIdentifierConnection = {
 export type CustomerTaxIdentifierCreateInput = {
   countryCode?: InputMaybe<Scalars['String']['input']>;
   customerId: Scalars['ID']['input'];
+  identifierType: Scalars['String']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Defaults to UNVERIFIED when omitted. */
+  status?: InputMaybe<CustomerTaxIdentifierStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+  value: Scalars['String']['input'];
+};
+
+export type CustomerTaxIdentifierCreateOperationInput = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
   identifierType: Scalars['String']['input'];
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
   /** Defaults to UNVERIFIED when omitted. */
@@ -2069,6 +2187,11 @@ export type CustomerTaxIdentifierUpdateInput = {
   value?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type CustomerTaxIdentifierUpdateOperationInput = {
+  operations: CustomerTaxIdentifierUpdateInput;
+  taxIdentifierId: Scalars['ID']['input'];
+};
+
 export type CustomerTaxIdentifierUpdatePayload = {
   __typename?: 'CustomerTaxIdentifierUpdatePayload';
   operationResults: Array<CustomerOperationResult>;
@@ -2092,14 +2215,28 @@ export type CustomerTaxIdentifierWhereInput = {
   value?: InputMaybe<StringFilter>;
 };
 
+/** Atomic tax identifier changes scoped to the customer being updated. */
+export type CustomerTaxIdentifiersUpdateInput = {
+  create?: InputMaybe<Array<CustomerTaxIdentifierCreateOperationInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<CustomerTaxIdentifierUpdateOperationInput>>;
+};
+
 /** Customer-level operations applied atomically by customerUpdate. */
 export type CustomerUpdateInput = {
+  addresses?: InputMaybe<CustomerAddressesUpdateInput>;
   company?: InputMaybe<CustomerCompanyUpdateInput>;
+  consents?: InputMaybe<CustomerConsentsUpdateInput>;
   contact?: InputMaybe<CustomerContactUpdateInput>;
+  groups?: InputMaybe<CustomerGroupMembershipsUpdateInput>;
   moderation?: InputMaybe<CustomerModerationUpdateInput>;
   note?: InputMaybe<CustomerNoteUpdateInput>;
   profile?: InputMaybe<CustomerProfileUpdateInput>;
+  segments?: InputMaybe<CustomerSegmentMembershipsUpdateInput>;
   status?: InputMaybe<CustomerStatusUpdateInput>;
+  tags?: InputMaybe<CustomerTagAssignmentsUpdateInput>;
+  taxExemptions?: InputMaybe<CustomerTaxExemptionsUpdateInput>;
+  taxIdentifiers?: InputMaybe<CustomerTaxIdentifiersUpdateInput>;
 };
 
 export type CustomerUpdatePayload = {
@@ -3061,6 +3198,7 @@ export type ReferenceResolver<TResult, TReference, TContext> = (
       type ListCheck<T, S> = T extends (infer U)[] ? NullableCheck<U, S>[] : GraphQLRecursivePick<T, S>;
       export type GraphQLRecursivePick<T, S> = { [K in keyof T & keyof S]: ScalarCheck<T[K], S[K]> };
 
+
 export type ResolverWithResolve<TResult, TParent, TContext, TArgs> = {
   resolve: ResolverFn<TResult, TParent, TContext, TArgs>;
 };
@@ -3147,6 +3285,7 @@ export type ResolversTypes = ResolversObject<{
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   CustomerAddressConnection: ResolverTypeWrapper<CustomerAddressConnection>;
   CustomerAddressCreateInput: CustomerAddressCreateInput;
+  CustomerAddressCreateOperationInput: CustomerAddressCreateOperationInput;
   CustomerAddressCreatePayload: ResolverTypeWrapper<CustomerAddressCreatePayload>;
   CustomerAddressDefaultsUpdateInput: CustomerAddressDefaultsUpdateInput;
   CustomerAddressDefaultsUpdatePayload: ResolverTypeWrapper<CustomerAddressDefaultsUpdatePayload>;
@@ -3156,10 +3295,12 @@ export type ResolversTypes = ResolversObject<{
   CustomerAddressOrderByInput: CustomerAddressOrderByInput;
   CustomerAddressOrderField: CustomerAddressOrderField;
   CustomerAddressUpdateInput: CustomerAddressUpdateInput;
+  CustomerAddressUpdateOperationInput: CustomerAddressUpdateOperationInput;
   CustomerAddressUpdatePayload: ResolverTypeWrapper<CustomerAddressUpdatePayload>;
   CustomerAddressValidationStatus: CustomerAddressValidationStatus;
   CustomerAddressValidationStatusFilter: CustomerAddressValidationStatusFilter;
   CustomerAddressWhereInput: CustomerAddressWhereInput;
+  CustomerAddressesUpdateInput: CustomerAddressesUpdateInput;
   CustomerAssignmentSource: CustomerAssignmentSource;
   CustomerAssignmentSourceFilter: CustomerAssignmentSourceFilter;
   CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
@@ -3177,6 +3318,8 @@ export type ResolversTypes = ResolversObject<{
   CustomerConsentSetPayload: ResolverTypeWrapper<CustomerConsentSetPayload>;
   CustomerConsentState: CustomerConsentState;
   CustomerConsentStateFilter: CustomerConsentStateFilter;
+  CustomerConsentUpdateOperationInput: CustomerConsentUpdateOperationInput;
+  CustomerConsentsUpdateInput: CustomerConsentsUpdateInput;
   CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
   CustomerCreatePayload: ResolverTypeWrapper<CustomerCreatePayload>;
@@ -3211,7 +3354,9 @@ export type ResolversTypes = ResolversObject<{
   CustomerGroupMembershipOrderField: CustomerGroupMembershipOrderField;
   CustomerGroupMembershipSetInput: CustomerGroupMembershipSetInput;
   CustomerGroupMembershipSetPayload: ResolverTypeWrapper<CustomerGroupMembershipSetPayload>;
+  CustomerGroupMembershipUpdateOperationInput: CustomerGroupMembershipUpdateOperationInput;
   CustomerGroupMembershipWhereInput: CustomerGroupMembershipWhereInput;
+  CustomerGroupMembershipsUpdateInput: CustomerGroupMembershipsUpdateInput;
   CustomerGroupOrderByInput: CustomerGroupOrderByInput;
   CustomerGroupOrderField: CustomerGroupOrderField;
   CustomerGroupUpdateInput: CustomerGroupUpdateInput;
@@ -3252,6 +3397,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentCustomersRemovePayload: ResolverTypeWrapper<CustomerSegmentCustomersRemovePayload>;
   CustomerSegmentCustomersSetInput: CustomerSegmentCustomersSetInput;
   CustomerSegmentCustomersSetPayload: ResolverTypeWrapper<CustomerSegmentCustomersSetPayload>;
+  CustomerSegmentCustomersUpdateInput: CustomerSegmentCustomersUpdateInput;
   CustomerSegmentDeleteInput: CustomerSegmentDeleteInput;
   CustomerSegmentDeletePayload: ResolverTypeWrapper<CustomerSegmentDeletePayload>;
   CustomerSegmentEdge: ResolverTypeWrapper<CustomerSegmentEdge>;
@@ -3261,6 +3407,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentMembershipOrderByInput: CustomerSegmentMembershipOrderByInput;
   CustomerSegmentMembershipOrderField: CustomerSegmentMembershipOrderField;
   CustomerSegmentMembershipWhereInput: CustomerSegmentMembershipWhereInput;
+  CustomerSegmentMembershipsUpdateInput: CustomerSegmentMembershipsUpdateInput;
   CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
   CustomerSegmentOrderField: CustomerSegmentOrderField;
   CustomerSegmentStatus: CustomerSegmentStatus;
@@ -3281,6 +3428,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerTagAssignmentOrderByInput: CustomerTagAssignmentOrderByInput;
   CustomerTagAssignmentOrderField: CustomerTagAssignmentOrderField;
   CustomerTagAssignmentWhereInput: CustomerTagAssignmentWhereInput;
+  CustomerTagAssignmentsUpdateInput: CustomerTagAssignmentsUpdateInput;
   CustomerTagConnection: ResolverTypeWrapper<CustomerTagConnection>;
   CustomerTagCreateInput: CustomerTagCreateInput;
   CustomerTagCreatePayload: ResolverTypeWrapper<CustomerTagCreatePayload>;
@@ -3297,6 +3445,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerTaxExemption: ResolverTypeWrapper<CustomerTaxExemption>;
   CustomerTaxExemptionConnection: ResolverTypeWrapper<CustomerTaxExemptionConnection>;
   CustomerTaxExemptionCreateInput: CustomerTaxExemptionCreateInput;
+  CustomerTaxExemptionCreateOperationInput: CustomerTaxExemptionCreateOperationInput;
   CustomerTaxExemptionCreatePayload: ResolverTypeWrapper<CustomerTaxExemptionCreatePayload>;
   CustomerTaxExemptionDeleteInput: CustomerTaxExemptionDeleteInput;
   CustomerTaxExemptionDeletePayload: ResolverTypeWrapper<CustomerTaxExemptionDeletePayload>;
@@ -3306,11 +3455,14 @@ export type ResolversTypes = ResolversObject<{
   CustomerTaxExemptionStatus: CustomerTaxExemptionStatus;
   CustomerTaxExemptionStatusFilter: CustomerTaxExemptionStatusFilter;
   CustomerTaxExemptionUpdateInput: CustomerTaxExemptionUpdateInput;
+  CustomerTaxExemptionUpdateOperationInput: CustomerTaxExemptionUpdateOperationInput;
   CustomerTaxExemptionUpdatePayload: ResolverTypeWrapper<CustomerTaxExemptionUpdatePayload>;
   CustomerTaxExemptionWhereInput: CustomerTaxExemptionWhereInput;
+  CustomerTaxExemptionsUpdateInput: CustomerTaxExemptionsUpdateInput;
   CustomerTaxIdentifier: ResolverTypeWrapper<CustomerTaxIdentifier>;
   CustomerTaxIdentifierConnection: ResolverTypeWrapper<CustomerTaxIdentifierConnection>;
   CustomerTaxIdentifierCreateInput: CustomerTaxIdentifierCreateInput;
+  CustomerTaxIdentifierCreateOperationInput: CustomerTaxIdentifierCreateOperationInput;
   CustomerTaxIdentifierCreatePayload: ResolverTypeWrapper<CustomerTaxIdentifierCreatePayload>;
   CustomerTaxIdentifierDeleteInput: CustomerTaxIdentifierDeleteInput;
   CustomerTaxIdentifierDeletePayload: ResolverTypeWrapper<CustomerTaxIdentifierDeletePayload>;
@@ -3320,8 +3472,10 @@ export type ResolversTypes = ResolversObject<{
   CustomerTaxIdentifierStatus: CustomerTaxIdentifierStatus;
   CustomerTaxIdentifierStatusFilter: CustomerTaxIdentifierStatusFilter;
   CustomerTaxIdentifierUpdateInput: CustomerTaxIdentifierUpdateInput;
+  CustomerTaxIdentifierUpdateOperationInput: CustomerTaxIdentifierUpdateOperationInput;
   CustomerTaxIdentifierUpdatePayload: ResolverTypeWrapper<CustomerTaxIdentifierUpdatePayload>;
   CustomerTaxIdentifierWhereInput: CustomerTaxIdentifierWhereInput;
+  CustomerTaxIdentifiersUpdateInput: CustomerTaxIdentifiersUpdateInput;
   CustomerUpdateInput: CustomerUpdateInput;
   CustomerUpdatePayload: ResolverTypeWrapper<CustomerUpdatePayload>;
   CustomerWhereInput: CustomerWhereInput;
@@ -3366,6 +3520,7 @@ export type ResolversParentTypes = ResolversObject<{
   Float: Scalars['Float']['output'];
   CustomerAddressConnection: CustomerAddressConnection;
   CustomerAddressCreateInput: CustomerAddressCreateInput;
+  CustomerAddressCreateOperationInput: CustomerAddressCreateOperationInput;
   CustomerAddressCreatePayload: CustomerAddressCreatePayload;
   CustomerAddressDefaultsUpdateInput: CustomerAddressDefaultsUpdateInput;
   CustomerAddressDefaultsUpdatePayload: CustomerAddressDefaultsUpdatePayload;
@@ -3374,9 +3529,11 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerAddressEdge: CustomerAddressEdge;
   CustomerAddressOrderByInput: CustomerAddressOrderByInput;
   CustomerAddressUpdateInput: CustomerAddressUpdateInput;
+  CustomerAddressUpdateOperationInput: CustomerAddressUpdateOperationInput;
   CustomerAddressUpdatePayload: CustomerAddressUpdatePayload;
   CustomerAddressValidationStatusFilter: CustomerAddressValidationStatusFilter;
   CustomerAddressWhereInput: CustomerAddressWhereInput;
+  CustomerAddressesUpdateInput: CustomerAddressesUpdateInput;
   CustomerAssignmentSourceFilter: CustomerAssignmentSourceFilter;
   CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
   CustomerConnection: CustomerConnection;
@@ -3388,6 +3545,8 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerConsentSetInput: CustomerConsentSetInput;
   CustomerConsentSetPayload: CustomerConsentSetPayload;
   CustomerConsentStateFilter: CustomerConsentStateFilter;
+  CustomerConsentUpdateOperationInput: CustomerConsentUpdateOperationInput;
+  CustomerConsentsUpdateInput: CustomerConsentsUpdateInput;
   CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
   CustomerCreatePayload: CustomerCreatePayload;
@@ -3418,7 +3577,9 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerGroupMembershipOrderByInput: CustomerGroupMembershipOrderByInput;
   CustomerGroupMembershipSetInput: CustomerGroupMembershipSetInput;
   CustomerGroupMembershipSetPayload: CustomerGroupMembershipSetPayload;
+  CustomerGroupMembershipUpdateOperationInput: CustomerGroupMembershipUpdateOperationInput;
   CustomerGroupMembershipWhereInput: CustomerGroupMembershipWhereInput;
+  CustomerGroupMembershipsUpdateInput: CustomerGroupMembershipsUpdateInput;
   CustomerGroupOrderByInput: CustomerGroupOrderByInput;
   CustomerGroupUpdateInput: CustomerGroupUpdateInput;
   CustomerGroupUpdatePayload: CustomerGroupUpdatePayload;
@@ -3452,6 +3613,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerSegmentCustomersRemovePayload: CustomerSegmentCustomersRemovePayload;
   CustomerSegmentCustomersSetInput: CustomerSegmentCustomersSetInput;
   CustomerSegmentCustomersSetPayload: CustomerSegmentCustomersSetPayload;
+  CustomerSegmentCustomersUpdateInput: CustomerSegmentCustomersUpdateInput;
   CustomerSegmentDeleteInput: CustomerSegmentDeleteInput;
   CustomerSegmentDeletePayload: CustomerSegmentDeletePayload;
   CustomerSegmentEdge: CustomerSegmentEdge;
@@ -3460,6 +3622,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerSegmentMembershipEdge: CustomerSegmentMembershipEdge;
   CustomerSegmentMembershipOrderByInput: CustomerSegmentMembershipOrderByInput;
   CustomerSegmentMembershipWhereInput: CustomerSegmentMembershipWhereInput;
+  CustomerSegmentMembershipsUpdateInput: CustomerSegmentMembershipsUpdateInput;
   CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
   CustomerSegmentStatusFilter: CustomerSegmentStatusFilter;
   CustomerSegmentTypeFilter: CustomerSegmentTypeFilter;
@@ -3476,6 +3639,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerTagAssignmentEdge: CustomerTagAssignmentEdge;
   CustomerTagAssignmentOrderByInput: CustomerTagAssignmentOrderByInput;
   CustomerTagAssignmentWhereInput: CustomerTagAssignmentWhereInput;
+  CustomerTagAssignmentsUpdateInput: CustomerTagAssignmentsUpdateInput;
   CustomerTagConnection: CustomerTagConnection;
   CustomerTagCreateInput: CustomerTagCreateInput;
   CustomerTagCreatePayload: CustomerTagCreatePayload;
@@ -3491,6 +3655,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerTaxExemption: CustomerTaxExemption;
   CustomerTaxExemptionConnection: CustomerTaxExemptionConnection;
   CustomerTaxExemptionCreateInput: CustomerTaxExemptionCreateInput;
+  CustomerTaxExemptionCreateOperationInput: CustomerTaxExemptionCreateOperationInput;
   CustomerTaxExemptionCreatePayload: CustomerTaxExemptionCreatePayload;
   CustomerTaxExemptionDeleteInput: CustomerTaxExemptionDeleteInput;
   CustomerTaxExemptionDeletePayload: CustomerTaxExemptionDeletePayload;
@@ -3498,11 +3663,14 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerTaxExemptionOrderByInput: CustomerTaxExemptionOrderByInput;
   CustomerTaxExemptionStatusFilter: CustomerTaxExemptionStatusFilter;
   CustomerTaxExemptionUpdateInput: CustomerTaxExemptionUpdateInput;
+  CustomerTaxExemptionUpdateOperationInput: CustomerTaxExemptionUpdateOperationInput;
   CustomerTaxExemptionUpdatePayload: CustomerTaxExemptionUpdatePayload;
   CustomerTaxExemptionWhereInput: CustomerTaxExemptionWhereInput;
+  CustomerTaxExemptionsUpdateInput: CustomerTaxExemptionsUpdateInput;
   CustomerTaxIdentifier: CustomerTaxIdentifier;
   CustomerTaxIdentifierConnection: CustomerTaxIdentifierConnection;
   CustomerTaxIdentifierCreateInput: CustomerTaxIdentifierCreateInput;
+  CustomerTaxIdentifierCreateOperationInput: CustomerTaxIdentifierCreateOperationInput;
   CustomerTaxIdentifierCreatePayload: CustomerTaxIdentifierCreatePayload;
   CustomerTaxIdentifierDeleteInput: CustomerTaxIdentifierDeleteInput;
   CustomerTaxIdentifierDeletePayload: CustomerTaxIdentifierDeletePayload;
@@ -3510,8 +3678,10 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerTaxIdentifierOrderByInput: CustomerTaxIdentifierOrderByInput;
   CustomerTaxIdentifierStatusFilter: CustomerTaxIdentifierStatusFilter;
   CustomerTaxIdentifierUpdateInput: CustomerTaxIdentifierUpdateInput;
+  CustomerTaxIdentifierUpdateOperationInput: CustomerTaxIdentifierUpdateOperationInput;
   CustomerTaxIdentifierUpdatePayload: CustomerTaxIdentifierUpdatePayload;
   CustomerTaxIdentifierWhereInput: CustomerTaxIdentifierWhereInput;
+  CustomerTaxIdentifiersUpdateInput: CustomerTaxIdentifiersUpdateInput;
   CustomerUpdateInput: CustomerUpdateInput;
   CustomerUpdatePayload: CustomerUpdatePayload;
   CustomerWhereInput: CustomerWhereInput;

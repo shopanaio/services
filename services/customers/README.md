@@ -126,6 +126,23 @@ Merge и erasure представлены отдельными workflow-сущн
   `net = spent - refunded`.
 - UUID-идентификаторы генерируются PostgreSQL-функцией `uuidv7()`.
 - Segment revision изменяется при обновлении определения и ручного membership.
+
+## Admin update contract
+
+`customerUpdate` принимает один `customerId`, опциональный `expectedRevision`
+и набор атомарных секций. Помимо profile/contact/company/status/note/moderation,
+операция поддерживает addresses, consent transitions, tax identifiers, tax
+exemptions, group memberships, tag assignments и manual segment memberships.
+Вложенные inputs не содержат `customerId`: все идентификаторы проверяются как
+принадлежащие обновляемому Customer и текущему Store.
+
+Секции assignments используют replace semantics. Пустые `tagIds`, `segmentIds`
+или `memberships` очищают соответствующие ручные связи. Отсутствующая секция не
+изменяет данные. Любая ошибка секции откатывает весь `customerUpdate`.
+
+`customerSegmentUpdate` аналогично может атомарно изменить definition metadata
+и заменить manual customer memberships под одним `expectedRevision`. Отдельный
+`customerSegmentCustomersSet` используется для membership-only обновлений.
 - `store_id` не входит в primary и foreign keys; tenant isolation обеспечивается
   обязательным store scope и отдельными индексами.
 

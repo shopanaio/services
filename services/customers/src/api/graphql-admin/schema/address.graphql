@@ -88,6 +88,45 @@ input CustomerAddressUpdateInput {
   longitude: Float
 }
 
+"""Address values used inside the atomic customerUpdate operation."""
+input CustomerAddressCreateOperationInput {
+  label: String
+  prefix: String
+  firstName: String
+  middleName: String
+  lastName: String
+  suffix: String
+  companyName: String
+  phoneE164: String
+  address1: String!
+  address2: String
+  city: String!
+  regionName: String
+  regionCode: String
+  postalCode: String
+  countryCode: String!
+  isDefaultShipping: Boolean = false
+  isDefaultBilling: Boolean = false
+  latitude: Float
+  longitude: Float
+}
+
+input CustomerAddressUpdateOperationInput {
+  addressId: ID!
+  operations: CustomerAddressUpdateInput!
+}
+
+"""Atomic address changes scoped to the customer being updated."""
+input CustomerAddressesUpdateInput {
+  create: [CustomerAddressCreateOperationInput!]
+  update: [CustomerAddressUpdateOperationInput!]
+  deleteIds: [ID!]
+  """Existing address ID to make the default. Explicit null clears the default."""
+  defaultShippingAddressId: ID
+  """Existing address ID to make the default. Explicit null clears the default."""
+  defaultBillingAddressId: ID
+}
+
 input CustomerAddressDeleteInput {
   id: ID!
 }

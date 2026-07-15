@@ -252,6 +252,12 @@ input CustomerSegmentUpdateInput {
   status: CustomerSegmentStatus
   query: String
   definition: JSON
+  """When provided, atomically replaces all manual memberships."""
+  customers: CustomerSegmentCustomersUpdateInput
+}
+
+input CustomerSegmentCustomersUpdateInput {
+  customerIds: [ID!]!
 }
 
 input CustomerSegmentDeleteInput {
@@ -278,6 +284,27 @@ input CustomerSegmentCustomersSetInput {
   segmentId: ID!
   expectedRevision: Int
   customerIds: [ID!]!
+}
+
+input CustomerGroupMembershipUpdateOperationInput {
+  groupId: ID!
+  isPrimary: Boolean = false
+  expiresAt: DateTime
+}
+
+"""Replace all manual group memberships for the customer."""
+input CustomerGroupMembershipsUpdateInput {
+  memberships: [CustomerGroupMembershipUpdateOperationInput!]!
+}
+
+"""Replace all tag assignments for the customer."""
+input CustomerTagAssignmentsUpdateInput {
+  tagIds: [ID!]!
+}
+
+"""Replace all manual segment memberships for the customer."""
+input CustomerSegmentMembershipsUpdateInput {
+  segmentIds: [ID!]!
 }
 
 type CustomerGroupCreatePayload {

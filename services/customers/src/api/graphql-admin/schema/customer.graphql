@@ -201,6 +201,13 @@ input CustomerUpdateInput {
   status: CustomerStatusUpdateInput
   note: CustomerNoteUpdateInput
   moderation: CustomerModerationUpdateInput
+  addresses: CustomerAddressesUpdateInput
+  consents: CustomerConsentsUpdateInput
+  taxIdentifiers: CustomerTaxIdentifiersUpdateInput
+  taxExemptions: CustomerTaxExemptionsUpdateInput
+  groups: CustomerGroupMembershipsUpdateInput
+  tags: CustomerTagAssignmentsUpdateInput
+  segments: CustomerSegmentMembershipsUpdateInput
 }
 
 enum CustomerOperationType {
@@ -211,6 +218,7 @@ enum CustomerOperationType {
   NOTE_UPDATE
   MODERATION_UPDATE
   ADDRESS_UPDATE
+  CONSENT_UPDATE
   TAX_IDENTIFIER_UPDATE
   TAX_EXEMPTION_UPDATE
   GROUP_UPDATE
