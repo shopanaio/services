@@ -13,11 +13,6 @@ registerModule({
     {
       key: "general-settings",
       path: "/:orgName/:storeName/system/settings/general",
-      sidebar: {
-        label: "General",
-        icon: null,
-        order: 1,
-      },
       component: dynamic(
         () => import("@/domains/system/general-settings/page/page"),
       ),
