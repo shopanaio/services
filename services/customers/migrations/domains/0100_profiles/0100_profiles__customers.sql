@@ -1,0 +1,101 @@
+CREATE TABLE "customers"."customer" (
+  "id" uuid PRIMARY KEY DEFAULT uuidv7(),
+  "store_id" uuid NOT NULL,
+  "iam_principal_id" text,
+  "lifecycle_status" "customers"."customer_lifecycle_status" NOT NULL DEFAULT 'active',
+  "account_status" "customers"."customer_account_status" NOT NULL DEFAULT 'guest',
+  "email" varchar(320),
+  "normalized_email" varchar(320),
+  "email_verified" boolean NOT NULL DEFAULT false,
+  "phone_e164" varchar(32),
+  "phone_verified" boolean NOT NULL DEFAULT false,
+  "prefix" varchar(32),
+  "first_name" varchar(128),
+  "middle_name" varchar(128),
+  "last_name" varchar(128),
+  "suffix" varchar(32),
+  "preferred_locale" varchar(35),
+  "date_of_birth" date,
+  "gender" varchar(32),
+  "company_name" varchar(255),
+  "job_title" varchar(255),
+  "note" text,
+  "source" varchar(64) NOT NULL DEFAULT 'unknown',
+  "created_by_user_id" text,
+  "revision" integer NOT NULL DEFAULT 0,
+  "last_activity_at" timestamptz,
+  "merged_into_customer_id" uuid,
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+  "updated_at" timestamptz NOT NULL DEFAULT now(),
+  "deleted_at" timestamptz,
+  "redacted_at" timestamptz,
+
+  CONSTRAINT "customer_merged_into_customer_fk"
+    FOREIGN KEY ("merged_into_customer_id")
+    REFERENCES "customers"."customer" ("id")
+    ON DELETE RESTRICT,
+  CONSTRAINT "customer_email_projection_check"
+    CHECK (("email" IS NULL) = ("normalized_email" IS NULL)),
+  CONSTRAINT "customer_email_verified_check"
+    CHECK (NOT "email_verified" OR "email" IS NOT NULL),
+  CONSTRAINT "customer_phone_verified_check"
+    CHECK (NOT "phone_verified" OR "phone_e164" IS NOT NULL),
+  CONSTRAINT "customer_phone_e164_check"
+    CHECK ("phone_e164" IS NULL OR "phone_e164" ~ '^\+[1-9][0-9]{6,14}$'),
+  CONSTRAINT "customer_revision_nonnegative_check"
+    CHECK ("revision" >= 0),
+  CONSTRAINT "customer_merge_target_check"
+    CHECK (
+      ("lifecycle_status" = 'merged' AND "merged_into_customer_id" IS NOT NULL)
+      OR
+      ("lifecycle_status" <> 'merged' AND "merged_into_customer_id" IS NULL)
+    ),
+  CONSTRAINT "customer_not_merged_into_self_check"
+    CHECK ("merged_into_customer_id" IS NULL OR "merged_into_customer_id" <> "id"),
+  CONSTRAINT "customer_redaction_timestamp_check"
+    CHECK (
+      ("lifecycle_status" = 'redacted' AND "redacted_at" IS NOT NULL)
+      OR
+      ("lifecycle_status" <> 'redacted' AND "redacted_at" IS NULL)
+    ),
+  CONSTRAINT "customer_deleted_at_check"
+    CHECK ("deleted_at" IS NULL OR "deleted_at" >= "created_at"),
+  CONSTRAINT "customer_redacted_at_check"
+    CHECK ("redacted_at" IS NULL OR "redacted_at" >= "created_at")
+);
+
+CREATE UNIQUE INDEX "customer_store_principal_unique"
+  ON "customers"."customer" ("store_id", "iam_principal_id")
+  WHERE "iam_principal_id" IS NOT NULL;
+
+CREATE UNIQUE INDEX "customer_store_email_unique"
+  ON "customers"."customer" ("store_id", "normalized_email")
+  WHERE "normalized_email" IS NOT NULL AND "deleted_at" IS NULL;
+
+CREATE INDEX "customer_store_status_created_idx"
+  ON "customers"."customer" ("store_id", "lifecycle_status", "created_at" DESC, "id");
+
+CREATE INDEX "customer_store_account_status_idx"
+  ON "customers"."customer" ("store_id", "account_status", "id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_store_name_idx"
+  ON "customers"."customer" (
+    "store_id",
+    lower("last_name"),
+    lower("first_name"),
+    "id"
+  )
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_store_phone_idx"
+  ON "customers"."customer" ("store_id", "phone_e164")
+  WHERE "phone_e164" IS NOT NULL AND "deleted_at" IS NULL;
+
+CREATE INDEX "customer_store_activity_idx"
+  ON "customers"."customer" ("store_id", "last_activity_at" DESC, "id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_merge_target_idx"
+  ON "customers"."customer" ("merged_into_customer_id")
+  WHERE "merged_into_customer_id" IS NOT NULL;

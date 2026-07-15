@@ -1,7 +1,7 @@
 {
   "name": "@shopana/customers-service",
   "version": "0.0.1",
-  "description": "Customers microservice skeleton",
+  "description": "Customers microservice for ecommerce profiles, addresses, consent and segmentation",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
