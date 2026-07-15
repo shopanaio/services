@@ -32,7 +32,6 @@ registerModule({
     {
       key: "customer-segments-list",
       path: "/:orgName/:storeName/customers/segments",
-      disabled: true,
       component: dynamic(
         () => import("@/domains/customers/segments/page/page"),
       ),

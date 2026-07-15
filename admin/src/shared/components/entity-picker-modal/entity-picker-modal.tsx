@@ -15,6 +15,7 @@ export function EntityPickerModal() {
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    allowEmptySelection = false,
     queryMeta,
     onConfirm,
   } = typedPayload;
@@ -73,7 +74,7 @@ export function EntityPickerModal() {
           onClose={handleCancel}
           submitButtonProps={{
             onClick: handleConfirm,
-            disabled: selectedIds.length === 0,
+            disabled: !allowEmptySelection && selectedIds.length === 0,
             children: confirmText,
           }}
         />

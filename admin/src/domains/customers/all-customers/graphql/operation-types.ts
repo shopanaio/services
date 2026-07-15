@@ -144,6 +144,7 @@ export interface CustomerMutationPayload {
 export interface CustomerWhereInput {
   _and?: CustomerWhereInput[];
   _or?: CustomerWhereInput[];
+  id?: Record<string, unknown>;
   displayName?: Record<string, unknown>;
   email?: Record<string, unknown>;
   phone?: Record<string, unknown>;

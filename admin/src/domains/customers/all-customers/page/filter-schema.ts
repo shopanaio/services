@@ -46,6 +46,9 @@ export const filterSchema: IFilterSchema[] = [
       { label: "New customers", value: "segment-new" },
       { label: "At risk", value: "segment-at-risk" },
       { label: "Wholesale", value: "segment-wholesale" },
+      { label: "Newsletter engaged", value: "segment-newsletter" },
+      { label: "Local pickup", value: "segment-local-pickup" },
+      { label: "Support follow-up", value: "segment-support" },
     ],
   },
   {

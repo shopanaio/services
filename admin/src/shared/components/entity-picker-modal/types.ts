@@ -122,6 +122,7 @@ export interface IEntityPickerPayload<T extends IPickableEntity = IPickableEntit
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
+  allowEmptySelection?: boolean;
   queryMeta?: unknown;
   onConfirm: (entities: T[], ids: string[]) => void;
 }

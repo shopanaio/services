@@ -19,12 +19,15 @@ import {
   CustomerStatus,
 } from "../graphql/operation-types";
 
-export const customerSegments: ApiCustomerSegmentReference[] = [
+export let customerSegments: ApiCustomerSegmentReference[] = [
   { id: "segment-vip", name: "VIP" },
   { id: "segment-repeat", name: "Repeat customers" },
   { id: "segment-new", name: "New customers" },
   { id: "segment-at-risk", name: "At risk" },
   { id: "segment-wholesale", name: "Wholesale" },
+  { id: "segment-newsletter", name: "Newsletter engaged" },
+  { id: "segment-local-pickup", name: "Local pickup" },
+  { id: "segment-support", name: "Support follow-up" },
 ];
 
 interface CustomerSeed {
@@ -302,6 +305,58 @@ export async function requestCustomer(id: string): Promise<ApiCustomer | null> {
 
 export async function requestCustomerEditorContext() {
   return Promise.resolve({ segments: [...customerSegments] });
+}
+
+/** Shared in-memory state helpers used only by the manual-segments mock API. */
+export function getMockCustomersSnapshot(): ApiCustomer[] {
+  return [...mockCustomers];
+}
+
+export function getMockCustomerSegmentMemberIds(segmentId: string): string[] {
+  return mockCustomers
+    .filter((customer) => customer.segments.some((segment) => segment.id === segmentId))
+    .map((customer) => customer.id);
+}
+
+export function registerMockCustomerSegmentReference(segment: ApiCustomerSegmentReference): void {
+  if (customerSegments.some((current) => current.id === segment.id)) return;
+  customerSegments = [...customerSegments, segment];
+}
+
+export function updateMockCustomerSegmentReference(segment: ApiCustomerSegmentReference): void {
+  customerSegments = customerSegments.map((current) =>
+    current.id === segment.id ? segment : current
+  );
+  mockCustomers = mockCustomers.map((customer) => ({
+    ...customer,
+    segments: customer.segments.map((current) =>
+      current.id === segment.id ? segment : current
+    ),
+  }));
+}
+
+export function deleteMockCustomerSegmentReference(segmentId: string): void {
+  customerSegments = customerSegments.filter((segment) => segment.id !== segmentId);
+  mockCustomers = mockCustomers.map((customer) => ({
+    ...customer,
+    segments: customer.segments.filter((segment) => segment.id !== segmentId),
+  }));
+}
+
+export function setMockCustomerSegmentMembers(
+  segment: ApiCustomerSegmentReference,
+  customerIds: string[],
+): void {
+  const memberIds = new Set(customerIds);
+  mockCustomers = mockCustomers.map((customer) => {
+    const otherSegments = customer.segments.filter((current) => current.id !== segment.id);
+    return {
+      ...customer,
+      segments: memberIds.has(customer.id)
+        ? [...otherSegments, segment]
+        : otherSegments,
+    };
+  });
 }
 
 function validateCustomerInput(

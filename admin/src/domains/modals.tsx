@@ -486,6 +486,16 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard unsaved customer changes?',
     },
     {
+      type: 'customer-segment',
+      component: dynamic(() =>
+        import('@/domains/customers/segments/modals/segment-modal').then(
+          (m) => m.CustomerSegmentModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved segment changes?',
+    },
+    {
       type: 'customer-review',
       component: dynamic(() =>
         import('@/domains/customer-content/reviews/modals/review-modal').then(
