@@ -3,18 +3,18 @@ import dynamic from "next/dynamic";
 
 registerModule({
   key: "sales-orders",
-  domain: "sales",
+  domain: "store",
   sidebar: {
-    label: "Orders",
+    label: "Sales",
     icon: null,
-    order: 1,
+    order: 6,
   },
   items: [
     {
       key: "all-orders-list",
       path: "/:orgName/:storeName/orders",
       sidebar: {
-        label: "All Orders",
+        label: "Orders",
         icon: null,
         order: 1,
       },
@@ -48,21 +48,14 @@ registerModule({
         () => import("@/domains/sales/abandoned-checkouts/page/page"),
       ),
     },
-  ],
-});
-
-registerModule({
-  key: "sales-fulfillment",
-  domain: "sales",
-  sidebar: {
-    label: "Fulfillment",
-    icon: null,
-    order: 2,
-  },
-  items: [
     {
       key: "fulfillment-page",
       path: "/:orgName/:storeName/fulfillment",
+      sidebar: {
+        label: "Fulfillment",
+        icon: null,
+        order: 4,
+      },
       component: dynamic(
         () => import("@/domains/sales/fulfillment/board/page/page"),
       ),

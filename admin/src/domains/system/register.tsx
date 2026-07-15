@@ -13,29 +13,22 @@ registerModule({
     {
       key: "general-settings",
       path: "/:orgName/:storeName/system/settings/general",
+      sidebar: {
+        label: "General",
+        icon: null,
+        order: 1,
+      },
       component: dynamic(
         () => import("@/domains/system/general-settings/page/page"),
       ),
     },
-  ],
-});
-
-registerModule({
-  key: "system-notifications",
-  domain: "system",
-  sidebar: {
-    label: "Notifications",
-    icon: null,
-    order: 2,
-  },
-  items: [
     {
       key: "email-settings",
       path: "/:orgName/:storeName/system/notifications/email-settings",
       sidebar: {
-        label: "Email Settings",
+        label: "Email settings",
         icon: null,
-        order: 1,
+        order: 2,
       },
       component: dynamic(
         () => import("@/domains/system/notifications/page/page"),
@@ -45,9 +38,9 @@ registerModule({
       key: "email-templates",
       path: "/:orgName/:storeName/system/notifications/email-templates",
       sidebar: {
-        label: "Email Templates",
+        label: "Email templates",
         icon: null,
-        order: 2,
+        order: 3,
       },
       component: dynamic(
         () => import("@/domains/system/email-templates/page/page"),
@@ -57,11 +50,6 @@ registerModule({
       key: "sender-domains",
       path: "/:orgName/:storeName/system/notifications/sender-domains",
       disabled: true,
-      sidebar: {
-        label: "Sender Domains",
-        icon: null,
-        order: 3,
-      },
       component: dynamic(
         () => import("@/domains/system/sender-domains/page/page"),
       ),
@@ -70,11 +58,6 @@ registerModule({
       key: "delivery-logs",
       path: "/:orgName/:storeName/system/notifications/delivery-logs",
       disabled: true,
-      sidebar: {
-        label: "Delivery Logs",
-        icon: null,
-        order: 4,
-      },
       component: dynamic(
         () => import("@/domains/system/delivery-logs/page/page"),
       ),
@@ -85,11 +68,6 @@ registerModule({
 registerModule({
   key: "system-access",
   domain: "system",
-  sidebar: {
-    label: "Access",
-    icon: null,
-    order: 3,
-  },
   items: [
     {
       key: "system-users",

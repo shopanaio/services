@@ -3,35 +3,33 @@ import dynamic from "next/dynamic";
 
 registerModule({
   key: "customer-reviews",
-  domain: "customer-content",
+  domain: "store",
   sidebar: {
-    label: "Reviews",
+    label: "Marketing",
     icon: null,
-    order: 1,
+    order: 9,
   },
   items: [
     {
       key: "customer-reviews-list",
       path: "/:orgName/:storeName/customer-content/reviews",
+      sidebar: {
+        label: "Review",
+        icon: null,
+        order: 1,
+      },
       component: dynamic(
         () => import("@/domains/customer-content/reviews/page/page"),
       ),
     },
-  ],
-});
-
-registerModule({
-  key: "customer-questions",
-  domain: "customer-content",
-  sidebar: {
-    label: "Questions",
-    icon: null,
-    order: 2,
-  },
-  items: [
     {
       key: "customer-questions-list",
       path: "/:orgName/:storeName/customer-content/questions",
+      sidebar: {
+        label: "Q&A",
+        icon: null,
+        order: 2,
+      },
       component: dynamic(
         () => import("@/domains/customer-content/questions/page/page"),
       ),
