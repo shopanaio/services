@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Button, Flex, Tag, Typography } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
@@ -101,6 +102,7 @@ const DateCellRenderer = (
 ) => <Typography.Text>{formatDate(props.value)}</Typography.Text>;
 
 export default function SynonymsPage() {
+  const router = useRouter();
   const { push: openSynonymGroupModal } = useSynonymGroupModal();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiSearchSynonymGroup>>(null);
@@ -211,6 +213,7 @@ export default function SynonymsPage() {
       name="synonyms"
       title="Synonyms"
       count={totalCount}
+      onBack={() => router.back()}
       actions={
         <Button
           data-testid="synonyms-create-button"

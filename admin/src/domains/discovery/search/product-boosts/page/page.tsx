@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Button, Flex, Tag, Typography } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
@@ -113,6 +114,7 @@ const DateCellRenderer = (
 ) => <Typography.Text>{formatDate(props.value)}</Typography.Text>;
 
 export default function ProductBoostsPage() {
+  const router = useRouter();
   const { push: openProductBoostModal } = useProductBoostModal();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiSearchProductBoost>>(null);
@@ -230,6 +232,7 @@ export default function ProductBoostsPage() {
       name="product-boosts"
       title="Product boosts"
       count={totalCount}
+      onBack={() => router.back()}
       actions={
         <Button
           data-testid="product-boosts-create-button"

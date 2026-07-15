@@ -1,5 +1,5 @@
 import { registerModule } from "@/registry";
-import { GlobalOutlined } from "@ant-design/icons";
+import { FileTextOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 import { LuSearch } from "react-icons/lu";
 
@@ -13,12 +13,23 @@ registerModule({
   },
   items: [
     {
+      key: "search",
+      path: "/:orgName/:storeName/search",
+      sidebar: {
+        label: "Search",
+        order: 1,
+        activePaths: [
+          "/:orgName/:storeName/search/product-boosts",
+          "/:orgName/:storeName/search/synonyms",
+        ],
+      },
+      component: dynamic(
+        () => import("@/domains/discovery/search/page/page"),
+      ),
+    },
+    {
       key: "search-product-boosts",
       path: "/:orgName/:storeName/search/product-boosts",
-      sidebar: {
-        label: "Product boosts",
-        order: 1,
-      },
       component: dynamic(
         () => import("@/domains/discovery/search/product-boosts/page/page"),
       ),
@@ -26,10 +37,6 @@ registerModule({
     {
       key: "search-synonyms",
       path: "/:orgName/:storeName/search/synonyms",
-      sidebar: {
-        label: "Synonyms",
-        order: 2,
-      },
       component: dynamic(
         () => import("@/domains/discovery/search/synonyms/page/page"),
       ),
@@ -40,7 +47,7 @@ registerModule({
       sidebar: {
         label: "Filters",
         icon: null,
-        order: 3,
+        order: 2,
       },
       component: dynamic(() => import("@/domains/discovery/facets/page/page")),
     },
@@ -51,7 +58,7 @@ registerModule({
       sidebar: {
         label: "Recommendations",
         icon: null,
-        order: 4,
+        order: 3,
       },
       component: dynamic(
         () => import("@/domains/discovery/recommendations/page/page"),
@@ -61,9 +68,9 @@ registerModule({
       key: "search-settings",
       path: "/:orgName/:storeName/search/settings",
       sidebar: {
-        label: "Settings",
+        label: "Preferences",
         icon: null,
-        order: 5,
+        order: 4,
       },
       component: dynamic(
         () => import("@/domains/discovery/search/settings/page/page"),
@@ -76,8 +83,8 @@ registerModule({
   key: "storefront",
   domain: "store",
   sidebar: {
-    label: "Storefront",
-    icon: <GlobalOutlined />,
+    label: "Content",
+    icon: <FileTextOutlined />,
     order: 11,
   },
   items: [

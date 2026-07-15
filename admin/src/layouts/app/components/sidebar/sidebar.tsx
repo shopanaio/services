@@ -44,8 +44,12 @@ function findMatchingItem(
       }
     }
     if (item.path) {
-      const matcher = match(item.path, { decode: decodeURIComponent });
-      if (matcher(pathname)) {
+      const paths = [item.path, ...(item.activePaths ?? [])];
+      if (
+        paths.some((path) =>
+          match(path, { decode: decodeURIComponent })(pathname),
+        )
+      ) {
         return { key: item.key, parentKey };
       }
     }

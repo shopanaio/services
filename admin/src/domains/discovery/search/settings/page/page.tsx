@@ -236,7 +236,7 @@ export default function SearchSettingsPage() {
   return (
     <DataLayout name="search-settings">
       <DataLayout.Header>
-        <DataLayout.Title>Search settings</DataLayout.Title>
+        <DataLayout.Title>Preferences</DataLayout.Title>
         <DataLayout.HeaderActions>
           <Button
             ref={saveButtonRef}

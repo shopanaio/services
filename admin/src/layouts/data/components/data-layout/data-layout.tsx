@@ -9,7 +9,8 @@ import {
   useMemo,
 } from "react";
 import { createStyles } from "antd-style";
-import { Badge, Typography, Flex, Spin } from "antd";
+import { Badge, Button, Typography, Flex, Spin } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 
 // ============================================================================
 // Styles
@@ -98,6 +99,14 @@ const useStyles = createStyles(({ token }) => ({
   },
   title: {
     paddingRight: token.paddingSM,
+  },
+  backButton: {
+    color: token.colorTextSecondary,
+    flex: "none",
+    "&:hover": {
+      color: token.colorText,
+      background: token.colorBgTextHover,
+    },
   },
 }));
 
@@ -338,6 +347,7 @@ export interface IDataLayoutProps {
   actions?: ReactNode;
   toolbar?: ReactNode;
   footer?: ReactNode;
+  onBack?: () => void;
 
   // Behavior
   loading?: boolean;
@@ -357,6 +367,7 @@ export const DataLayout = ({
   actions,
   toolbar,
   footer,
+  onBack,
   loading,
   stickyToolbar = true,
   stickyFooter = true,
@@ -412,9 +423,20 @@ export const DataLayout = ({
   // Determine what to render for each section
   const headerNode =
     slots.header ??
-    ((title || actions) && (
+    ((title || actions || onBack) && (
       <Header>
-        {title && <Title count={count}>{title}</Title>}
+        <Flex align="center" gap="small">
+          {onBack ? (
+            <Button
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              aria-label="Back"
+              className={styles.backButton}
+              onClick={onBack}
+            />
+          ) : null}
+          {title && <Title count={count}>{title}</Title>}
+        </Flex>
         {actions && <HeaderActions>{actions}</HeaderActions>}
       </Header>
     ));

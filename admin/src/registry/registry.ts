@@ -19,6 +19,8 @@ export interface SidebarConfig {
   label: string;
   icon?: ReactNode;
   order?: number;
+  /** Additional route patterns that should keep this sidebar item selected. */
+  activePaths?: string[];
 }
 
 /**
@@ -31,6 +33,7 @@ export interface SidebarItem {
   disabled?: boolean;
   icon?: ReactNode;
   order?: number;
+  activePaths?: string[];
   type?: "group";
   children?: SidebarItem[];
 }
@@ -205,6 +208,7 @@ export class ModuleRegistry {
               icon: item.sidebar!.icon,
               order: item.sidebar!.order,
               path: item.path,
+              activePaths: item.sidebar!.activePaths,
               disabled: item.disabled,
             }));
 
