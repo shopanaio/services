@@ -21,6 +21,7 @@ const config: CodegenConfig = {
           defaultValue: false,
         },
         scalars: {
+          Date: "string",
           DateTime: "string",
           Email: "string",
           JSON: "Record<string, unknown>",
@@ -42,6 +43,7 @@ const config: CodegenConfig = {
           },
         },
         scalarSchemas: {
+          Date: "z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/)",
           DateTime: "z.string()",
           Email: "z.string().email()",
           JSON: "z.record(z.unknown())",

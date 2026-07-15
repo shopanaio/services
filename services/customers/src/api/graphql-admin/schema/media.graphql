@@ -1,0 +1,4 @@
+# File reference owned and resolved by Media.
+extend type File @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}

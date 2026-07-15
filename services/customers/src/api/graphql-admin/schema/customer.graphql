@@ -1,0 +1,207 @@
+enum CustomerLifecycleStatus {
+  ACTIVE
+  DISABLED
+  MERGED
+  REDACTED
+}
+
+enum CustomerAccountStatus {
+  GUEST
+  INVITED
+  REGISTERED
+}
+
+"""A store-scoped customer business profile owned by Customers."""
+type Customer implements Node @key(fields: "id") {
+  id: ID!
+  lifecycleStatus: CustomerLifecycleStatus!
+  accountStatus: CustomerAccountStatus!
+
+  """Opaque IAM principal identifier. Null for guests and imported profiles."""
+  iamPrincipalId: String
+
+  email: Email
+  emailVerified: Boolean!
+  phoneE164: String
+  phoneVerified: Boolean!
+  prefix: String
+  firstName: String
+  middleName: String
+  lastName: String
+  suffix: String
+  displayName: String!
+  preferredLocale: String
+  dateOfBirth: Date
+  gender: String
+  companyName: String
+  jobTitle: String
+  note: String
+  source: String!
+  createdByUserId: String
+  revision: Int!
+  lastActivityAt: DateTime
+
+  mergedInto: Customer
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+  redactedAt: DateTime
+
+  defaultShippingAddress: CustomerAddress
+  defaultBillingAddress: CustomerAddress
+  addresses(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerAddressWhereInput
+    orderBy: [CustomerAddressOrderByInput!]
+  ): CustomerAddressConnection!
+
+  taxIdentifiers(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerTaxIdentifierWhereInput
+    orderBy: [CustomerTaxIdentifierOrderByInput!]
+  ): CustomerTaxIdentifierConnection!
+
+  taxExemptions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerTaxExemptionWhereInput
+    orderBy: [CustomerTaxExemptionOrderByInput!]
+  ): CustomerTaxExemptionConnection!
+
+  """At most one current consent record per channel."""
+  consents: [CustomerConsent!]!
+
+  groupMemberships(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerGroupMembershipWhereInput
+    orderBy: [CustomerGroupMembershipOrderByInput!]
+  ): CustomerGroupMembershipConnection!
+
+  tagAssignments(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerTagAssignmentWhereInput
+    orderBy: [CustomerTagAssignmentOrderByInput!]
+  ): CustomerTagAssignmentConnection!
+
+  segmentMemberships(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerSegmentMembershipWhereInput
+    orderBy: [CustomerSegmentMembershipOrderByInput!]
+  ): CustomerSegmentMembershipConnection!
+
+  externalReferences(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerExternalReferenceWhereInput
+    orderBy: [CustomerExternalReferenceOrderByInput!]
+  ): CustomerExternalReferenceConnection!
+
+  statistics: CustomerStatistics
+  monetaryStatistics(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerMonetaryStatisticsWhereInput
+    orderBy: [CustomerMonetaryStatisticsOrderByInput!]
+  ): CustomerMonetaryStatisticsConnection!
+}
+
+type CustomerConnection {
+  edges: [CustomerEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerEdge {
+  node: Customer!
+  cursor: String!
+}
+
+input CustomerCreateInput {
+  iamPrincipalId: String
+  """Defaults to GUEST when omitted."""
+  accountStatus: CustomerAccountStatus
+  email: Email
+  emailVerified: Boolean = false
+  phoneE164: String
+  phoneVerified: Boolean = false
+  prefix: String
+  firstName: String
+  middleName: String
+  lastName: String
+  suffix: String
+  preferredLocale: String
+  dateOfBirth: Date
+  gender: String
+  companyName: String
+  jobTitle: String
+  note: String
+  source: String = "admin"
+}
+
+"""
+Patch a customer profile. MERGED and REDACTED lifecycle transitions are only
+available through their dedicated workflows; disabled controls ACTIVE/DISABLED.
+"""
+input CustomerUpdateInput {
+  id: ID!
+  expectedRevision: Int!
+  disabled: Boolean
+  iamPrincipalId: String
+  accountStatus: CustomerAccountStatus
+  email: Email
+  emailVerified: Boolean
+  phoneE164: String
+  phoneVerified: Boolean
+  prefix: String
+  firstName: String
+  middleName: String
+  lastName: String
+  suffix: String
+  preferredLocale: String
+  dateOfBirth: Date
+  gender: String
+  companyName: String
+  jobTitle: String
+  note: String
+}
+
+input CustomerDeleteInput {
+  id: ID!
+  expectedRevision: Int!
+}
+
+type CustomerCreatePayload {
+  customer: Customer
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerUpdatePayload {
+  customer: Customer
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerDeletePayload {
+  deletedCustomerId: ID
+  userErrors: [GenericUserError!]!
+}

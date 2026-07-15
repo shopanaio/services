@@ -1,0 +1,359 @@
+enum CustomerAssignmentSource {
+  MANUAL
+  RULE
+  IMPORT
+  SYSTEM
+}
+
+enum CustomerSegmentType {
+  MANUAL
+  DYNAMIC
+}
+
+enum CustomerSegmentStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+type CustomerGroup implements Node @key(fields: "id") {
+  id: ID!
+  code: String!
+  name: String!
+  description: String
+  isDefault: Boolean!
+  isActive: Boolean!
+  customersCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+  customerMemberships(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerGroupMembershipWhereInput
+    orderBy: [CustomerGroupMembershipOrderByInput!]
+  ): CustomerGroupMembershipConnection!
+}
+
+type CustomerGroupConnection {
+  edges: [CustomerGroupEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerGroupEdge {
+  node: CustomerGroup!
+  cursor: String!
+}
+
+type CustomerGroupMembership implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  group: CustomerGroup!
+  isPrimary: Boolean!
+  source: CustomerAssignmentSource!
+  assignedById: String
+  assignedAt: DateTime!
+  expiresAt: DateTime
+  isActive: Boolean!
+}
+
+type CustomerGroupMembershipConnection {
+  edges: [CustomerGroupMembershipEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerGroupMembershipEdge {
+  node: CustomerGroupMembership!
+  cursor: String!
+}
+
+type CustomerTag implements Node @key(fields: "id") {
+  id: ID!
+  name: String!
+  normalizedName: String!
+  customersCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+  customerAssignments(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerTagAssignmentWhereInput
+    orderBy: [CustomerTagAssignmentOrderByInput!]
+  ): CustomerTagAssignmentConnection!
+}
+
+type CustomerTagConnection {
+  edges: [CustomerTagEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerTagEdge {
+  node: CustomerTag!
+  cursor: String!
+}
+
+type CustomerTagAssignment implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  tag: CustomerTag!
+  assignedById: String
+  assignedAt: DateTime!
+}
+
+type CustomerTagAssignmentConnection {
+  edges: [CustomerTagAssignmentEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerTagAssignmentEdge {
+  node: CustomerTagAssignment!
+  cursor: String!
+}
+
+type CustomerSegment implements Node @key(fields: "id") {
+  id: ID!
+  name: String!
+  description: String
+  type: CustomerSegmentType!
+  status: CustomerSegmentStatus!
+  query: String
+  definition: JSON!
+  createdById: String
+  customersCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+  customerMemberships(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CustomerSegmentMembershipWhereInput
+    orderBy: [CustomerSegmentMembershipOrderByInput!]
+  ): CustomerSegmentMembershipConnection!
+}
+
+type CustomerSegmentConnection {
+  edges: [CustomerSegmentEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerSegmentEdge {
+  node: CustomerSegment!
+  cursor: String!
+}
+
+type CustomerSegmentMembership implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  segment: CustomerSegment!
+  source: CustomerAssignmentSource!
+  evaluatedAt: DateTime!
+  expiresAt: DateTime
+  isActive: Boolean!
+}
+
+type CustomerSegmentMembershipConnection {
+  edges: [CustomerSegmentMembershipEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerSegmentMembershipEdge {
+  node: CustomerSegmentMembership!
+  cursor: String!
+}
+
+input CustomerGroupCreateInput {
+  code: String!
+  name: String!
+  description: String
+  isDefault: Boolean = false
+  isActive: Boolean = true
+}
+
+input CustomerGroupUpdateInput {
+  id: ID!
+  code: String
+  name: String
+  description: String
+  isDefault: Boolean
+  isActive: Boolean
+}
+
+input CustomerGroupDeleteInput {
+  id: ID!
+}
+
+"""Create or update a customer's membership in a group."""
+input CustomerGroupMembershipSetInput {
+  customerId: ID!
+  groupId: ID!
+  isPrimary: Boolean = false
+  """Defaults to MANUAL when omitted."""
+  source: CustomerAssignmentSource
+  expiresAt: DateTime
+}
+
+input CustomerGroupMembershipDeleteInput {
+  customerId: ID!
+  groupId: ID!
+}
+
+input CustomerTagCreateInput {
+  name: String!
+}
+
+input CustomerTagUpdateInput {
+  id: ID!
+  name: String!
+}
+
+input CustomerTagDeleteInput {
+  id: ID!
+}
+
+input CustomerTagAssignInput {
+  customerId: ID!
+  tagId: ID!
+}
+
+input CustomerTagUnassignInput {
+  customerId: ID!
+  tagId: ID!
+}
+
+input CustomerSegmentCreateInput {
+  name: String!
+  description: String
+  type: CustomerSegmentType!
+  """Defaults to DRAFT when omitted."""
+  status: CustomerSegmentStatus
+  query: String
+  definition: JSON
+}
+
+input CustomerSegmentUpdateInput {
+  id: ID!
+  name: String
+  description: String
+  type: CustomerSegmentType
+  status: CustomerSegmentStatus
+  query: String
+  definition: JSON
+}
+
+input CustomerSegmentDeleteInput {
+  id: ID!
+}
+
+"""Create or update materialized membership. Intended for manual/import flows."""
+input CustomerSegmentMembershipSetInput {
+  customerId: ID!
+  segmentId: ID!
+  """Defaults to MANUAL when omitted."""
+  source: CustomerAssignmentSource
+  expiresAt: DateTime
+}
+
+input CustomerSegmentMembershipDeleteInput {
+  customerId: ID!
+  segmentId: ID!
+}
+
+"""Re-evaluate and replace materialized membership for a dynamic segment."""
+input CustomerSegmentEvaluateInput {
+  segmentId: ID!
+}
+
+type CustomerGroupCreatePayload {
+  group: CustomerGroup
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerGroupUpdatePayload {
+  group: CustomerGroup
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerGroupDeletePayload {
+  deletedGroupId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerGroupMembershipSetPayload {
+  membership: CustomerGroupMembership
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerGroupMembershipDeletePayload {
+  deletedMembershipId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTagCreatePayload {
+  tag: CustomerTag
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTagUpdatePayload {
+  tag: CustomerTag
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTagDeletePayload {
+  deletedTagId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTagAssignPayload {
+  assignment: CustomerTagAssignment
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTagUnassignPayload {
+  deletedAssignmentId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerSegmentCreatePayload {
+  segment: CustomerSegment
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerSegmentUpdatePayload {
+  segment: CustomerSegment
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerSegmentDeletePayload {
+  deletedSegmentId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerSegmentMembershipSetPayload {
+  membership: CustomerSegmentMembership
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerSegmentMembershipDeletePayload {
+  deletedMembershipId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerSegmentEvaluatePayload {
+  segment: CustomerSegment
+  evaluatedAt: DateTime
+  customersCount: Int
+  userErrors: [GenericUserError!]!
+}

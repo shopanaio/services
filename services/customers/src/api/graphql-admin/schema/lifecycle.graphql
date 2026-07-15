@@ -1,0 +1,121 @@
+enum CustomerMergeStatus {
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum CustomerDataRequestType {
+  ACCESS
+  EXPORT
+  CORRECTION
+  ERASURE
+}
+
+enum CustomerDataRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+"""Idempotent workflow that merges one customer profile into another."""
+type CustomerMerge implements Node @key(fields: "id") {
+  id: ID!
+  sourceCustomer: Customer!
+  targetCustomer: Customer!
+  status: CustomerMergeStatus!
+  reason: String
+  requestedByType: String!
+  requestedById: String
+  idempotencyKey: String!
+  resolution: JSON!
+  errorCode: String
+  errorMessage: String
+  requestedAt: DateTime!
+  startedAt: DateTime
+  finishedAt: DateTime
+  updatedAt: DateTime!
+}
+
+type CustomerMergeConnection {
+  edges: [CustomerMergeEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerMergeEdge {
+  node: CustomerMerge!
+  cursor: String!
+}
+
+"""Auditable privacy access, export, correction or erasure workflow."""
+type CustomerDataRequest implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  type: CustomerDataRequestType!
+  status: CustomerDataRequestStatus!
+  requestedByType: String!
+  requestedById: String
+  idempotencyKey: String!
+  legalBasis: String
+  requestMetadata: JSON!
+  resultFileId: ID
+  resultFile: File
+  rejectionReason: String
+  requestedAt: DateTime!
+  dueAt: DateTime
+  startedAt: DateTime
+  finishedAt: DateTime
+  updatedAt: DateTime!
+}
+
+type CustomerDataRequestConnection {
+  edges: [CustomerDataRequestEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerDataRequestEdge {
+  node: CustomerDataRequest!
+  cursor: String!
+}
+
+input CustomerMergeRequestInput {
+  sourceCustomerId: ID!
+  targetCustomerId: ID!
+  reason: String
+  """Defaults to the request idempotency key from trusted context."""
+  idempotencyKey: String
+}
+
+input CustomerDataRequestCreateInput {
+  customerId: ID!
+  type: CustomerDataRequestType!
+  legalBasis: String
+  requestMetadata: JSON
+  dueAt: DateTime
+  """Defaults to the request idempotency key from trusted context."""
+  idempotencyKey: String
+}
+
+input CustomerDataRequestCancelInput {
+  id: ID!
+  reason: String
+}
+
+type CustomerMergeRequestPayload {
+  merge: CustomerMerge
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerDataRequestCreatePayload {
+  dataRequest: CustomerDataRequest
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerDataRequestCancelPayload {
+  dataRequest: CustomerDataRequest
+  userErrors: [GenericUserError!]!
+}

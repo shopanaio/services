@@ -1,0 +1,48 @@
+type CustomerExternalReference implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  externalSystem: String!
+  externalType: String!
+  externalId: String!
+  metadata: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+type CustomerExternalReferenceConnection {
+  edges: [CustomerExternalReferenceEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerExternalReferenceEdge {
+  node: CustomerExternalReference!
+  cursor: String!
+}
+
+"""
+Idempotently create or update an external reference using
+(externalSystem, externalType, externalId) as the lookup key.
+"""
+input CustomerExternalReferenceUpsertInput {
+  customerId: ID!
+  externalSystem: String!
+  externalType: String = "customer"
+  externalId: String!
+  metadata: JSON
+}
+
+input CustomerExternalReferenceDeleteInput {
+  id: ID!
+}
+
+type CustomerExternalReferenceUpsertPayload {
+  externalReference: CustomerExternalReference
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerExternalReferenceDeletePayload {
+  deletedExternalReferenceId: ID
+  userErrors: [GenericUserError!]!
+}

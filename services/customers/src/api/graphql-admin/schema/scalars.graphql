@@ -1,4 +1,6 @@
 scalar DateTime
+"""Calendar date in ISO 8601 YYYY-MM-DD form."""
+scalar Date
 scalar Email
 scalar BigInt
 scalar JSON

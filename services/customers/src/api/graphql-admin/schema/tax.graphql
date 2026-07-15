@@ -1,0 +1,154 @@
+enum CustomerTaxIdentifierStatus {
+  UNVERIFIED
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum CustomerTaxExemptionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+type CustomerTaxIdentifier implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  identifierType: String!
+  countryCode: String
+  value: String!
+  normalizedValue: String!
+  status: CustomerTaxIdentifierStatus!
+  isPrimary: Boolean!
+  verifiedAt: DateTime
+  validFrom: Date
+  validTo: Date
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+type CustomerTaxIdentifierConnection {
+  edges: [CustomerTaxIdentifierEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerTaxIdentifierEdge {
+  node: CustomerTaxIdentifier!
+  cursor: String!
+}
+
+type CustomerTaxExemption implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  code: String!
+  countryCode: String
+  regionCode: String
+  reason: String
+  status: CustomerTaxExemptionStatus!
+  certificateFileId: ID
+  certificateFile: File
+  validFrom: Date
+  validTo: Date
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+type CustomerTaxExemptionConnection {
+  edges: [CustomerTaxExemptionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerTaxExemptionEdge {
+  node: CustomerTaxExemption!
+  cursor: String!
+}
+
+input CustomerTaxIdentifierCreateInput {
+  customerId: ID!
+  identifierType: String!
+  countryCode: String
+  value: String!
+  """Defaults to UNVERIFIED when omitted."""
+  status: CustomerTaxIdentifierStatus
+  isPrimary: Boolean = false
+  validFrom: Date
+  validTo: Date
+}
+
+input CustomerTaxIdentifierUpdateInput {
+  id: ID!
+  identifierType: String
+  countryCode: String
+  value: String
+  status: CustomerTaxIdentifierStatus
+  isPrimary: Boolean
+  validFrom: Date
+  validTo: Date
+}
+
+input CustomerTaxIdentifierDeleteInput {
+  id: ID!
+}
+
+input CustomerTaxExemptionCreateInput {
+  customerId: ID!
+  code: String!
+  countryCode: String
+  regionCode: String
+  reason: String
+  """Defaults to ACTIVE when omitted."""
+  status: CustomerTaxExemptionStatus
+  certificateFileId: ID
+  validFrom: Date
+  validTo: Date
+}
+
+input CustomerTaxExemptionUpdateInput {
+  id: ID!
+  code: String
+  countryCode: String
+  regionCode: String
+  reason: String
+  status: CustomerTaxExemptionStatus
+  certificateFileId: ID
+  validFrom: Date
+  validTo: Date
+}
+
+input CustomerTaxExemptionDeleteInput {
+  id: ID!
+}
+
+type CustomerTaxIdentifierCreatePayload {
+  taxIdentifier: CustomerTaxIdentifier
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTaxIdentifierUpdatePayload {
+  taxIdentifier: CustomerTaxIdentifier
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTaxIdentifierDeletePayload {
+  deletedTaxIdentifierId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTaxExemptionCreatePayload {
+  taxExemption: CustomerTaxExemption
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTaxExemptionUpdatePayload {
+  taxExemption: CustomerTaxExemption
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerTaxExemptionDeletePayload {
+  deletedTaxExemptionId: ID
+  userErrors: [GenericUserError!]!
+}

@@ -1,0 +1,98 @@
+enum CustomerConsentChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+}
+
+enum CustomerConsentState {
+  NOT_SUBSCRIBED
+  PENDING
+  SUBSCRIBED
+  UNSUBSCRIBED
+  INVALID
+  REDACTED
+}
+
+enum CustomerConsentOptInLevel {
+  UNKNOWN
+  SINGLE_OPT_IN
+  CONFIRMED_OPT_IN
+}
+
+"""Current consent state for one customer and channel."""
+type CustomerConsent implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  channel: CustomerConsentChannel!
+  state: CustomerConsentState!
+  optInLevel: CustomerConsentOptInLevel!
+  contactPoint: String!
+  source: String!
+  sourceLocationId: ID
+  sourceIp: String
+  userAgent: String
+  consentedAt: DateTime
+  withdrawnAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  events(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    orderBy: [CustomerConsentEventOrderByInput!]
+  ): CustomerConsentEventConnection!
+}
+
+"""Immutable evidence record for a consent transition."""
+type CustomerConsentEvent implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  consent: CustomerConsent!
+  channel: CustomerConsentChannel!
+  previousState: CustomerConsentState
+  newState: CustomerConsentState!
+  optInLevel: CustomerConsentOptInLevel!
+  contactPoint: String!
+  source: String!
+  sourceLocationId: ID
+  sourceIp: String
+  userAgent: String
+  actorType: String!
+  actorId: String
+  requestId: String
+  idempotencyKey: String
+  evidence: JSON!
+  occurredAt: DateTime!
+}
+
+type CustomerConsentEventConnection {
+  edges: [CustomerConsentEventEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerConsentEventEdge {
+  node: CustomerConsentEvent!
+  cursor: String!
+}
+
+input CustomerConsentSetInput {
+  customerId: ID!
+  channel: CustomerConsentChannel!
+  state: CustomerConsentState!
+  """Defaults to UNKNOWN when omitted."""
+  optInLevel: CustomerConsentOptInLevel
+  contactPoint: String!
+  source: String = "admin"
+  sourceLocationId: ID
+  idempotencyKey: String
+  evidence: JSON
+}
+
+type CustomerConsentSetPayload {
+  consent: CustomerConsent
+  event: CustomerConsentEvent
+  userErrors: [GenericUserError!]!
+}

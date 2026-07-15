@@ -1,0 +1,122 @@
+enum CustomerAddressValidationStatus {
+  UNVALIDATED
+  VALID
+  INVALID
+}
+
+type CustomerAddress implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  label: String
+  prefix: String
+  firstName: String
+  middleName: String
+  lastName: String
+  suffix: String
+  companyName: String
+  phoneE164: String
+  address1: String!
+  address2: String
+  city: String!
+  regionName: String
+  regionCode: String
+  postalCode: String
+  """Uppercase ISO 3166-1 alpha-2 code."""
+  countryCode: String!
+  isDefaultShipping: Boolean!
+  isDefaultBilling: Boolean!
+  validationStatus: CustomerAddressValidationStatus!
+  validatedAt: DateTime
+  latitude: Float
+  longitude: Float
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+type CustomerAddressConnection {
+  edges: [CustomerAddressEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerAddressEdge {
+  node: CustomerAddress!
+  cursor: String!
+}
+
+input CustomerAddressCreateInput {
+  customerId: ID!
+  label: String
+  prefix: String
+  firstName: String
+  middleName: String
+  lastName: String
+  suffix: String
+  companyName: String
+  phoneE164: String
+  address1: String!
+  address2: String
+  city: String!
+  regionName: String
+  regionCode: String
+  postalCode: String
+  countryCode: String!
+  isDefaultShipping: Boolean = false
+  isDefaultBilling: Boolean = false
+  latitude: Float
+  longitude: Float
+}
+
+input CustomerAddressUpdateInput {
+  id: ID!
+  label: String
+  prefix: String
+  firstName: String
+  middleName: String
+  lastName: String
+  suffix: String
+  companyName: String
+  phoneE164: String
+  address1: String
+  address2: String
+  city: String
+  regionName: String
+  regionCode: String
+  postalCode: String
+  countryCode: String
+  validationStatus: CustomerAddressValidationStatus
+  latitude: Float
+  longitude: Float
+}
+
+input CustomerAddressDeleteInput {
+  id: ID!
+}
+
+"""Atomically replaces both defaults. Null clears a default."""
+input CustomerAddressDefaultsUpdateInput {
+  customerId: ID!
+  shippingAddressId: ID
+  billingAddressId: ID
+}
+
+type CustomerAddressCreatePayload {
+  address: CustomerAddress
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerAddressUpdatePayload {
+  address: CustomerAddress
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerAddressDeletePayload {
+  deletedAddressId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerAddressDefaultsUpdatePayload {
+  customer: Customer
+  userErrors: [GenericUserError!]!
+}

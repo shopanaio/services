@@ -7,6 +7,8 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
   ID: { input: string; output: string; }
@@ -15,11 +17,27 @@ export type Scalars = {
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
   BigInt: { input: string; output: string; }
+  /** Calendar date in ISO 8601 YYYY-MM-DD form. */
+  Date: { input: string; output: string; }
   DateTime: { input: string; output: string; }
   Email: { input: string; output: string; }
   JSON: { input: Record<string, unknown>; output: Record<string, unknown>; }
   _CustomersGeneratedFilterPlaceholder: { input: any; output: any; }
   _FieldSet: { input: any; output: any; }
+};
+
+export type BigIntFilter = {
+  _between?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  _eq?: InputMaybe<Scalars['BigInt']['input']>;
+  _gt?: InputMaybe<Scalars['BigInt']['input']>;
+  _gte?: InputMaybe<Scalars['BigInt']['input']>;
+  _in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['BigInt']['input']>;
+  _lte?: InputMaybe<Scalars['BigInt']['input']>;
+  _neq?: InputMaybe<Scalars['BigInt']['input']>;
+  _notIn?: InputMaybe<Array<Scalars['BigInt']['input']>>;
 };
 
 /** Filter operators for Boolean fields */
@@ -360,16 +378,2292 @@ export enum CurrencyCode {
   Zwl = 'ZWL'
 }
 
-/** Internal placeholder for the future admin mutation namespace. */
-export type CustomersMutation = {
-  __typename?: 'CustomersMutation';
-  _empty: Scalars['Boolean']['output'];
+/** A store-scoped customer business profile owned by Customers. */
+export type Customer = Node & {
+  __typename?: 'Customer';
+  accountStatus: CustomerAccountStatus;
+  addresses: CustomerAddressConnection;
+  companyName: Maybe<Scalars['String']['output']>;
+  /** At most one current consent record per channel. */
+  consents: Array<CustomerConsent>;
+  createdAt: Scalars['DateTime']['output'];
+  createdByUserId: Maybe<Scalars['String']['output']>;
+  dateOfBirth: Maybe<Scalars['Date']['output']>;
+  defaultBillingAddress: Maybe<CustomerAddress>;
+  defaultShippingAddress: Maybe<CustomerAddress>;
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  displayName: Scalars['String']['output'];
+  email: Maybe<Scalars['Email']['output']>;
+  emailVerified: Scalars['Boolean']['output'];
+  externalReferences: CustomerExternalReferenceConnection;
+  firstName: Maybe<Scalars['String']['output']>;
+  gender: Maybe<Scalars['String']['output']>;
+  groupMemberships: CustomerGroupMembershipConnection;
+  /** Opaque IAM principal identifier. Null for guests and imported profiles. */
+  iamPrincipalId: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  jobTitle: Maybe<Scalars['String']['output']>;
+  lastActivityAt: Maybe<Scalars['DateTime']['output']>;
+  lastName: Maybe<Scalars['String']['output']>;
+  lifecycleStatus: CustomerLifecycleStatus;
+  mergedInto: Maybe<Customer>;
+  middleName: Maybe<Scalars['String']['output']>;
+  monetaryStatistics: CustomerMonetaryStatisticsConnection;
+  note: Maybe<Scalars['String']['output']>;
+  phoneE164: Maybe<Scalars['String']['output']>;
+  phoneVerified: Scalars['Boolean']['output'];
+  preferredLocale: Maybe<Scalars['String']['output']>;
+  prefix: Maybe<Scalars['String']['output']>;
+  redactedAt: Maybe<Scalars['DateTime']['output']>;
+  revision: Scalars['Int']['output'];
+  segmentMemberships: CustomerSegmentMembershipConnection;
+  source: Scalars['String']['output'];
+  statistics: Maybe<CustomerStatistics>;
+  suffix: Maybe<Scalars['String']['output']>;
+  tagAssignments: CustomerTagAssignmentConnection;
+  taxExemptions: CustomerTaxExemptionConnection;
+  taxIdentifiers: CustomerTaxIdentifierConnection;
+  updatedAt: Scalars['DateTime']['output'];
 };
 
-/** Internal placeholder for the future admin query namespace. */
+
+/** A store-scoped customer business profile owned by Customers. */
+export type CustomerAddressesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerAddressOrderByInput>>;
+  where?: InputMaybe<CustomerAddressWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type CustomerExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerExternalReferenceOrderByInput>>;
+  where?: InputMaybe<CustomerExternalReferenceWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type CustomerGroupMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerGroupMembershipOrderByInput>>;
+  where?: InputMaybe<CustomerGroupMembershipWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type CustomerMonetaryStatisticsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerMonetaryStatisticsOrderByInput>>;
+  where?: InputMaybe<CustomerMonetaryStatisticsWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type CustomerSegmentMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerSegmentMembershipOrderByInput>>;
+  where?: InputMaybe<CustomerSegmentMembershipWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type CustomerTagAssignmentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerTagAssignmentOrderByInput>>;
+  where?: InputMaybe<CustomerTagAssignmentWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type CustomerTaxExemptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerTaxExemptionOrderByInput>>;
+  where?: InputMaybe<CustomerTaxExemptionWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type CustomerTaxIdentifiersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerTaxIdentifierOrderByInput>>;
+  where?: InputMaybe<CustomerTaxIdentifierWhereInput>;
+};
+
+export enum CustomerAccountStatus {
+  Guest = 'GUEST',
+  Invited = 'INVITED',
+  Registered = 'REGISTERED'
+}
+
+export type CustomerAccountStatusFilter = {
+  _eq?: InputMaybe<CustomerAccountStatus>;
+  _in?: InputMaybe<Array<CustomerAccountStatus>>;
+  _neq?: InputMaybe<CustomerAccountStatus>;
+  _notIn?: InputMaybe<Array<CustomerAccountStatus>>;
+};
+
+export type CustomerAddress = Node & {
+  __typename?: 'CustomerAddress';
+  address1: Scalars['String']['output'];
+  address2: Maybe<Scalars['String']['output']>;
+  city: Scalars['String']['output'];
+  companyName: Maybe<Scalars['String']['output']>;
+  /** Uppercase ISO 3166-1 alpha-2 code. */
+  countryCode: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  customer: Customer;
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  firstName: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isDefaultBilling: Scalars['Boolean']['output'];
+  isDefaultShipping: Scalars['Boolean']['output'];
+  label: Maybe<Scalars['String']['output']>;
+  lastName: Maybe<Scalars['String']['output']>;
+  latitude: Maybe<Scalars['Float']['output']>;
+  longitude: Maybe<Scalars['Float']['output']>;
+  middleName: Maybe<Scalars['String']['output']>;
+  phoneE164: Maybe<Scalars['String']['output']>;
+  postalCode: Maybe<Scalars['String']['output']>;
+  prefix: Maybe<Scalars['String']['output']>;
+  regionCode: Maybe<Scalars['String']['output']>;
+  regionName: Maybe<Scalars['String']['output']>;
+  suffix: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  validatedAt: Maybe<Scalars['DateTime']['output']>;
+  validationStatus: CustomerAddressValidationStatus;
+};
+
+export type CustomerAddressConnection = {
+  __typename?: 'CustomerAddressConnection';
+  edges: Array<CustomerAddressEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerAddressCreateInput = {
+  address1: Scalars['String']['input'];
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city: Scalars['String']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode: Scalars['String']['input'];
+  customerId: Scalars['ID']['input'];
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  regionName?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CustomerAddressCreatePayload = {
+  __typename?: 'CustomerAddressCreatePayload';
+  address: Maybe<CustomerAddress>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Atomically replaces both defaults. Null clears a default. */
+export type CustomerAddressDefaultsUpdateInput = {
+  billingAddressId?: InputMaybe<Scalars['ID']['input']>;
+  customerId: Scalars['ID']['input'];
+  shippingAddressId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type CustomerAddressDefaultsUpdatePayload = {
+  __typename?: 'CustomerAddressDefaultsUpdatePayload';
+  customer: Maybe<Customer>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerAddressDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerAddressDeletePayload = {
+  __typename?: 'CustomerAddressDeletePayload';
+  deletedAddressId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerAddressEdge = {
+  __typename?: 'CustomerAddressEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerAddress;
+};
+
+export type CustomerAddressOrderByInput = {
+  direction: SortDirection;
+  field: CustomerAddressOrderField;
+};
+
+export enum CustomerAddressOrderField {
+  City = 'city',
+  CountryCode = 'countryCode',
+  CreatedAt = 'createdAt',
+  FirstName = 'firstName',
+  Id = 'id',
+  IsDefaultBilling = 'isDefaultBilling',
+  IsDefaultShipping = 'isDefaultShipping',
+  Label = 'label',
+  LastName = 'lastName',
+  PostalCode = 'postalCode',
+  RegionCode = 'regionCode',
+  UpdatedAt = 'updatedAt',
+  ValidationStatus = 'validationStatus'
+}
+
+export type CustomerAddressUpdateInput = {
+  address1?: InputMaybe<Scalars['String']['input']>;
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city?: InputMaybe<Scalars['String']['input']>;
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  label?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  regionName?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+  validationStatus?: InputMaybe<CustomerAddressValidationStatus>;
+};
+
+export type CustomerAddressUpdatePayload = {
+  __typename?: 'CustomerAddressUpdatePayload';
+  address: Maybe<CustomerAddress>;
+  userErrors: Array<GenericUserError>;
+};
+
+export enum CustomerAddressValidationStatus {
+  Invalid = 'INVALID',
+  Unvalidated = 'UNVALIDATED',
+  Valid = 'VALID'
+}
+
+export type CustomerAddressValidationStatusFilter = {
+  _eq?: InputMaybe<CustomerAddressValidationStatus>;
+  _in?: InputMaybe<Array<CustomerAddressValidationStatus>>;
+  _neq?: InputMaybe<CustomerAddressValidationStatus>;
+  _notIn?: InputMaybe<Array<CustomerAddressValidationStatus>>;
+};
+
+export type CustomerAddressWhereInput = {
+  _and?: InputMaybe<Array<CustomerAddressWhereInput>>;
+  _not?: InputMaybe<CustomerAddressWhereInput>;
+  _or?: InputMaybe<Array<CustomerAddressWhereInput>>;
+  city?: InputMaybe<StringFilter>;
+  companyName?: InputMaybe<StringFilter>;
+  countryCode?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  firstName?: InputMaybe<StringFilter>;
+  id?: InputMaybe<IdFilter>;
+  isDefaultBilling?: InputMaybe<BooleanFilter>;
+  isDefaultShipping?: InputMaybe<BooleanFilter>;
+  label?: InputMaybe<StringFilter>;
+  lastName?: InputMaybe<StringFilter>;
+  phoneE164?: InputMaybe<StringFilter>;
+  postalCode?: InputMaybe<StringFilter>;
+  regionCode?: InputMaybe<StringFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  validationStatus?: InputMaybe<CustomerAddressValidationStatusFilter>;
+};
+
+export enum CustomerAssignmentSource {
+  Import = 'IMPORT',
+  Manual = 'MANUAL',
+  Rule = 'RULE',
+  System = 'SYSTEM'
+}
+
+export type CustomerAssignmentSourceFilter = {
+  _eq?: InputMaybe<CustomerAssignmentSource>;
+  _in?: InputMaybe<Array<CustomerAssignmentSource>>;
+  _neq?: InputMaybe<CustomerAssignmentSource>;
+  _notIn?: InputMaybe<Array<CustomerAssignmentSource>>;
+};
+
+export type CustomerConnection = {
+  __typename?: 'CustomerConnection';
+  edges: Array<CustomerEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Current consent state for one customer and channel. */
+export type CustomerConsent = Node & {
+  __typename?: 'CustomerConsent';
+  channel: CustomerConsentChannel;
+  consentedAt: Maybe<Scalars['DateTime']['output']>;
+  contactPoint: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  customer: Customer;
+  events: CustomerConsentEventConnection;
+  id: Scalars['ID']['output'];
+  optInLevel: CustomerConsentOptInLevel;
+  source: Scalars['String']['output'];
+  sourceIp: Maybe<Scalars['String']['output']>;
+  sourceLocationId: Maybe<Scalars['ID']['output']>;
+  state: CustomerConsentState;
+  updatedAt: Scalars['DateTime']['output'];
+  userAgent: Maybe<Scalars['String']['output']>;
+  withdrawnAt: Maybe<Scalars['DateTime']['output']>;
+};
+
+
+/** Current consent state for one customer and channel. */
+export type CustomerConsentEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerConsentEventOrderByInput>>;
+};
+
+export enum CustomerConsentChannel {
+  Email = 'EMAIL',
+  Push = 'PUSH',
+  Sms = 'SMS',
+  Whatsapp = 'WHATSAPP'
+}
+
+export type CustomerConsentChannelFilter = {
+  _eq?: InputMaybe<CustomerConsentChannel>;
+  _in?: InputMaybe<Array<CustomerConsentChannel>>;
+  _neq?: InputMaybe<CustomerConsentChannel>;
+  _notIn?: InputMaybe<Array<CustomerConsentChannel>>;
+};
+
+/** Immutable evidence record for a consent transition. */
+export type CustomerConsentEvent = Node & {
+  __typename?: 'CustomerConsentEvent';
+  actorId: Maybe<Scalars['String']['output']>;
+  actorType: Scalars['String']['output'];
+  channel: CustomerConsentChannel;
+  consent: CustomerConsent;
+  contactPoint: Scalars['String']['output'];
+  customer: Customer;
+  evidence: Scalars['JSON']['output'];
+  id: Scalars['ID']['output'];
+  idempotencyKey: Maybe<Scalars['String']['output']>;
+  newState: CustomerConsentState;
+  occurredAt: Scalars['DateTime']['output'];
+  optInLevel: CustomerConsentOptInLevel;
+  previousState: Maybe<CustomerConsentState>;
+  requestId: Maybe<Scalars['String']['output']>;
+  source: Scalars['String']['output'];
+  sourceIp: Maybe<Scalars['String']['output']>;
+  sourceLocationId: Maybe<Scalars['ID']['output']>;
+  userAgent: Maybe<Scalars['String']['output']>;
+};
+
+export type CustomerConsentEventConnection = {
+  __typename?: 'CustomerConsentEventConnection';
+  edges: Array<CustomerConsentEventEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerConsentEventEdge = {
+  __typename?: 'CustomerConsentEventEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerConsentEvent;
+};
+
+export type CustomerConsentEventOrderByInput = {
+  direction: SortDirection;
+  field: CustomerConsentEventOrderField;
+};
+
+export enum CustomerConsentEventOrderField {
+  ActorType = 'actorType',
+  Channel = 'channel',
+  Id = 'id',
+  NewState = 'newState',
+  OccurredAt = 'occurredAt',
+  Source = 'source'
+}
+
+export type CustomerConsentEventWhereInput = {
+  _and?: InputMaybe<Array<CustomerConsentEventWhereInput>>;
+  _not?: InputMaybe<CustomerConsentEventWhereInput>;
+  _or?: InputMaybe<Array<CustomerConsentEventWhereInput>>;
+  actorId?: InputMaybe<StringFilter>;
+  actorType?: InputMaybe<StringFilter>;
+  channel?: InputMaybe<CustomerConsentChannelFilter>;
+  consentId?: InputMaybe<IdFilter>;
+  contactPoint?: InputMaybe<StringFilter>;
+  customerId?: InputMaybe<IdFilter>;
+  id?: InputMaybe<IdFilter>;
+  idempotencyKey?: InputMaybe<StringFilter>;
+  newState?: InputMaybe<CustomerConsentStateFilter>;
+  occurredAt?: InputMaybe<DateTimeFilter>;
+  previousState?: InputMaybe<CustomerConsentStateFilter>;
+  requestId?: InputMaybe<StringFilter>;
+  source?: InputMaybe<StringFilter>;
+};
+
+export enum CustomerConsentOptInLevel {
+  ConfirmedOptIn = 'CONFIRMED_OPT_IN',
+  SingleOptIn = 'SINGLE_OPT_IN',
+  Unknown = 'UNKNOWN'
+}
+
+export type CustomerConsentSetInput = {
+  channel: CustomerConsentChannel;
+  contactPoint: Scalars['String']['input'];
+  customerId: Scalars['ID']['input'];
+  evidence?: InputMaybe<Scalars['JSON']['input']>;
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to UNKNOWN when omitted. */
+  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
+  source?: InputMaybe<Scalars['String']['input']>;
+  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
+  state: CustomerConsentState;
+};
+
+export type CustomerConsentSetPayload = {
+  __typename?: 'CustomerConsentSetPayload';
+  consent: Maybe<CustomerConsent>;
+  event: Maybe<CustomerConsentEvent>;
+  userErrors: Array<GenericUserError>;
+};
+
+export enum CustomerConsentState {
+  Invalid = 'INVALID',
+  NotSubscribed = 'NOT_SUBSCRIBED',
+  Pending = 'PENDING',
+  Redacted = 'REDACTED',
+  Subscribed = 'SUBSCRIBED',
+  Unsubscribed = 'UNSUBSCRIBED'
+}
+
+export type CustomerConsentStateFilter = {
+  _eq?: InputMaybe<CustomerConsentState>;
+  _in?: InputMaybe<Array<CustomerConsentState>>;
+  _neq?: InputMaybe<CustomerConsentState>;
+  _notIn?: InputMaybe<Array<CustomerConsentState>>;
+};
+
+export type CustomerCreateInput = {
+  /** Defaults to GUEST when omitted. */
+  accountStatus?: InputMaybe<CustomerAccountStatus>;
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  dateOfBirth?: InputMaybe<Scalars['Date']['input']>;
+  email?: InputMaybe<Scalars['Email']['input']>;
+  emailVerified?: InputMaybe<Scalars['Boolean']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  gender?: InputMaybe<Scalars['String']['input']>;
+  iamPrincipalId?: InputMaybe<Scalars['String']['input']>;
+  jobTitle?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  note?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  phoneVerified?: InputMaybe<Scalars['Boolean']['input']>;
+  preferredLocale?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  source?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CustomerCreatePayload = {
+  __typename?: 'CustomerCreatePayload';
+  customer: Maybe<Customer>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Auditable privacy access, export, correction or erasure workflow. */
+export type CustomerDataRequest = Node & {
+  __typename?: 'CustomerDataRequest';
+  customer: Customer;
+  dueAt: Maybe<Scalars['DateTime']['output']>;
+  finishedAt: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  legalBasis: Maybe<Scalars['String']['output']>;
+  rejectionReason: Maybe<Scalars['String']['output']>;
+  requestMetadata: Scalars['JSON']['output'];
+  requestedAt: Scalars['DateTime']['output'];
+  requestedById: Maybe<Scalars['String']['output']>;
+  requestedByType: Scalars['String']['output'];
+  resultFile: Maybe<File>;
+  resultFileId: Maybe<Scalars['ID']['output']>;
+  startedAt: Maybe<Scalars['DateTime']['output']>;
+  status: CustomerDataRequestStatus;
+  type: CustomerDataRequestType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CustomerDataRequestCancelInput = {
+  id: Scalars['ID']['input'];
+  reason?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CustomerDataRequestCancelPayload = {
+  __typename?: 'CustomerDataRequestCancelPayload';
+  dataRequest: Maybe<CustomerDataRequest>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerDataRequestConnection = {
+  __typename?: 'CustomerDataRequestConnection';
+  edges: Array<CustomerDataRequestEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerDataRequestCreateInput = {
+  customerId: Scalars['ID']['input'];
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Defaults to the request idempotency key from trusted context. */
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
+  legalBasis?: InputMaybe<Scalars['String']['input']>;
+  requestMetadata?: InputMaybe<Scalars['JSON']['input']>;
+  type: CustomerDataRequestType;
+};
+
+export type CustomerDataRequestCreatePayload = {
+  __typename?: 'CustomerDataRequestCreatePayload';
+  dataRequest: Maybe<CustomerDataRequest>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerDataRequestEdge = {
+  __typename?: 'CustomerDataRequestEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerDataRequest;
+};
+
+export type CustomerDataRequestOrderByInput = {
+  direction: SortDirection;
+  field: CustomerDataRequestOrderField;
+};
+
+export enum CustomerDataRequestOrderField {
+  DueAt = 'dueAt',
+  FinishedAt = 'finishedAt',
+  Id = 'id',
+  RequestedAt = 'requestedAt',
+  StartedAt = 'startedAt',
+  Status = 'status',
+  Type = 'type',
+  UpdatedAt = 'updatedAt'
+}
+
+export enum CustomerDataRequestStatus {
+  Cancelled = 'CANCELLED',
+  Completed = 'COMPLETED',
+  Pending = 'PENDING',
+  Processing = 'PROCESSING',
+  Rejected = 'REJECTED'
+}
+
+export type CustomerDataRequestStatusFilter = {
+  _eq?: InputMaybe<CustomerDataRequestStatus>;
+  _in?: InputMaybe<Array<CustomerDataRequestStatus>>;
+  _neq?: InputMaybe<CustomerDataRequestStatus>;
+  _notIn?: InputMaybe<Array<CustomerDataRequestStatus>>;
+};
+
+export enum CustomerDataRequestType {
+  Access = 'ACCESS',
+  Correction = 'CORRECTION',
+  Erasure = 'ERASURE',
+  Export = 'EXPORT'
+}
+
+export type CustomerDataRequestTypeFilter = {
+  _eq?: InputMaybe<CustomerDataRequestType>;
+  _in?: InputMaybe<Array<CustomerDataRequestType>>;
+  _neq?: InputMaybe<CustomerDataRequestType>;
+  _notIn?: InputMaybe<Array<CustomerDataRequestType>>;
+};
+
+export type CustomerDataRequestWhereInput = {
+  _and?: InputMaybe<Array<CustomerDataRequestWhereInput>>;
+  _not?: InputMaybe<CustomerDataRequestWhereInput>;
+  _or?: InputMaybe<Array<CustomerDataRequestWhereInput>>;
+  customerId?: InputMaybe<IdFilter>;
+  dueAt?: InputMaybe<DateTimeFilter>;
+  finishedAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<IdFilter>;
+  legalBasis?: InputMaybe<StringFilter>;
+  requestedAt?: InputMaybe<DateTimeFilter>;
+  requestedById?: InputMaybe<StringFilter>;
+  requestedByType?: InputMaybe<StringFilter>;
+  startedAt?: InputMaybe<DateTimeFilter>;
+  status?: InputMaybe<CustomerDataRequestStatusFilter>;
+  type?: InputMaybe<CustomerDataRequestTypeFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export type CustomerDeleteInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerDeletePayload = {
+  __typename?: 'CustomerDeletePayload';
+  deletedCustomerId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerEdge = {
+  __typename?: 'CustomerEdge';
+  cursor: Scalars['String']['output'];
+  node: Customer;
+};
+
+export type CustomerExternalReference = Node & {
+  __typename?: 'CustomerExternalReference';
+  createdAt: Scalars['DateTime']['output'];
+  customer: Customer;
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  externalId: Scalars['String']['output'];
+  externalSystem: Scalars['String']['output'];
+  externalType: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  metadata: Scalars['JSON']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CustomerExternalReferenceConnection = {
+  __typename?: 'CustomerExternalReferenceConnection';
+  edges: Array<CustomerExternalReferenceEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerExternalReferenceDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerExternalReferenceDeletePayload = {
+  __typename?: 'CustomerExternalReferenceDeletePayload';
+  deletedExternalReferenceId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerExternalReferenceEdge = {
+  __typename?: 'CustomerExternalReferenceEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerExternalReference;
+};
+
+export type CustomerExternalReferenceOrderByInput = {
+  direction: SortDirection;
+  field: CustomerExternalReferenceOrderField;
+};
+
+export enum CustomerExternalReferenceOrderField {
+  CreatedAt = 'createdAt',
+  ExternalId = 'externalId',
+  ExternalSystem = 'externalSystem',
+  ExternalType = 'externalType',
+  Id = 'id',
+  UpdatedAt = 'updatedAt'
+}
+
+/**
+ * Idempotently create or update an external reference using
+ * (externalSystem, externalType, externalId) as the lookup key.
+ */
+export type CustomerExternalReferenceUpsertInput = {
+  customerId: Scalars['ID']['input'];
+  externalId: Scalars['String']['input'];
+  externalSystem: Scalars['String']['input'];
+  externalType?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type CustomerExternalReferenceUpsertPayload = {
+  __typename?: 'CustomerExternalReferenceUpsertPayload';
+  externalReference: Maybe<CustomerExternalReference>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerExternalReferenceWhereInput = {
+  _and?: InputMaybe<Array<CustomerExternalReferenceWhereInput>>;
+  _not?: InputMaybe<CustomerExternalReferenceWhereInput>;
+  _or?: InputMaybe<Array<CustomerExternalReferenceWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  customerId?: InputMaybe<IdFilter>;
+  externalId?: InputMaybe<StringFilter>;
+  externalSystem?: InputMaybe<StringFilter>;
+  externalType?: InputMaybe<StringFilter>;
+  id?: InputMaybe<IdFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export type CustomerGroup = Node & {
+  __typename?: 'CustomerGroup';
+  code: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  customerMemberships: CustomerGroupMembershipConnection;
+  customersCount: Scalars['Int']['output'];
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  description: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isDefault: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type CustomerGroupCustomerMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerGroupMembershipOrderByInput>>;
+  where?: InputMaybe<CustomerGroupMembershipWhereInput>;
+};
+
+export type CustomerGroupConnection = {
+  __typename?: 'CustomerGroupConnection';
+  edges: Array<CustomerGroupEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerGroupCreateInput = {
+  code: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export type CustomerGroupCreatePayload = {
+  __typename?: 'CustomerGroupCreatePayload';
+  group: Maybe<CustomerGroup>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerGroupDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerGroupDeletePayload = {
+  __typename?: 'CustomerGroupDeletePayload';
+  deletedGroupId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerGroupEdge = {
+  __typename?: 'CustomerGroupEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerGroup;
+};
+
+export type CustomerGroupMembership = Node & {
+  __typename?: 'CustomerGroupMembership';
+  assignedAt: Scalars['DateTime']['output'];
+  assignedById: Maybe<Scalars['String']['output']>;
+  customer: Customer;
+  expiresAt: Maybe<Scalars['DateTime']['output']>;
+  group: CustomerGroup;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isPrimary: Scalars['Boolean']['output'];
+  source: CustomerAssignmentSource;
+};
+
+export type CustomerGroupMembershipConnection = {
+  __typename?: 'CustomerGroupMembershipConnection';
+  edges: Array<CustomerGroupMembershipEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerGroupMembershipDeleteInput = {
+  customerId: Scalars['ID']['input'];
+  groupId: Scalars['ID']['input'];
+};
+
+export type CustomerGroupMembershipDeletePayload = {
+  __typename?: 'CustomerGroupMembershipDeletePayload';
+  deletedMembershipId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerGroupMembershipEdge = {
+  __typename?: 'CustomerGroupMembershipEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerGroupMembership;
+};
+
+export type CustomerGroupMembershipOrderByInput = {
+  direction: SortDirection;
+  field: CustomerGroupMembershipOrderField;
+};
+
+export enum CustomerGroupMembershipOrderField {
+  AssignedAt = 'assignedAt',
+  ExpiresAt = 'expiresAt',
+  Id = 'id',
+  IsPrimary = 'isPrimary',
+  Source = 'source'
+}
+
+/** Create or update a customer's membership in a group. */
+export type CustomerGroupMembershipSetInput = {
+  customerId: Scalars['ID']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  groupId: Scalars['ID']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Defaults to MANUAL when omitted. */
+  source?: InputMaybe<CustomerAssignmentSource>;
+};
+
+export type CustomerGroupMembershipSetPayload = {
+  __typename?: 'CustomerGroupMembershipSetPayload';
+  membership: Maybe<CustomerGroupMembership>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerGroupMembershipWhereInput = {
+  _and?: InputMaybe<Array<CustomerGroupMembershipWhereInput>>;
+  _not?: InputMaybe<CustomerGroupMembershipWhereInput>;
+  _or?: InputMaybe<Array<CustomerGroupMembershipWhereInput>>;
+  assignedAt?: InputMaybe<DateTimeFilter>;
+  customerId?: InputMaybe<IdFilter>;
+  expiresAt?: InputMaybe<DateTimeFilter>;
+  groupId?: InputMaybe<IdFilter>;
+  id?: InputMaybe<IdFilter>;
+  isPrimary?: InputMaybe<BooleanFilter>;
+  source?: InputMaybe<CustomerAssignmentSourceFilter>;
+};
+
+export type CustomerGroupOrderByInput = {
+  direction: SortDirection;
+  field: CustomerGroupOrderField;
+};
+
+export enum CustomerGroupOrderField {
+  Code = 'code',
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  IsActive = 'isActive',
+  IsDefault = 'isDefault',
+  Name = 'name',
+  UpdatedAt = 'updatedAt'
+}
+
+export type CustomerGroupUpdateInput = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CustomerGroupUpdatePayload = {
+  __typename?: 'CustomerGroupUpdatePayload';
+  group: Maybe<CustomerGroup>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerGroupWhereInput = {
+  _and?: InputMaybe<Array<CustomerGroupWhereInput>>;
+  _not?: InputMaybe<CustomerGroupWhereInput>;
+  _or?: InputMaybe<Array<CustomerGroupWhereInput>>;
+  code?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<IdFilter>;
+  isActive?: InputMaybe<BooleanFilter>;
+  isDefault?: InputMaybe<BooleanFilter>;
+  name?: InputMaybe<StringFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export enum CustomerLifecycleStatus {
+  Active = 'ACTIVE',
+  Disabled = 'DISABLED',
+  Merged = 'MERGED',
+  Redacted = 'REDACTED'
+}
+
+export type CustomerLifecycleStatusFilter = {
+  _eq?: InputMaybe<CustomerLifecycleStatus>;
+  _in?: InputMaybe<Array<CustomerLifecycleStatus>>;
+  _neq?: InputMaybe<CustomerLifecycleStatus>;
+  _notIn?: InputMaybe<Array<CustomerLifecycleStatus>>;
+};
+
+/** Idempotent workflow that merges one customer profile into another. */
+export type CustomerMerge = Node & {
+  __typename?: 'CustomerMerge';
+  errorCode: Maybe<Scalars['String']['output']>;
+  errorMessage: Maybe<Scalars['String']['output']>;
+  finishedAt: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  reason: Maybe<Scalars['String']['output']>;
+  requestedAt: Scalars['DateTime']['output'];
+  requestedById: Maybe<Scalars['String']['output']>;
+  requestedByType: Scalars['String']['output'];
+  resolution: Scalars['JSON']['output'];
+  sourceCustomer: Customer;
+  startedAt: Maybe<Scalars['DateTime']['output']>;
+  status: CustomerMergeStatus;
+  targetCustomer: Customer;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CustomerMergeConnection = {
+  __typename?: 'CustomerMergeConnection';
+  edges: Array<CustomerMergeEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerMergeEdge = {
+  __typename?: 'CustomerMergeEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerMerge;
+};
+
+export type CustomerMergeOrderByInput = {
+  direction: SortDirection;
+  field: CustomerMergeOrderField;
+};
+
+export enum CustomerMergeOrderField {
+  FinishedAt = 'finishedAt',
+  Id = 'id',
+  RequestedAt = 'requestedAt',
+  StartedAt = 'startedAt',
+  Status = 'status',
+  UpdatedAt = 'updatedAt'
+}
+
+export type CustomerMergeRequestInput = {
+  /** Defaults to the request idempotency key from trusted context. */
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
+  reason?: InputMaybe<Scalars['String']['input']>;
+  sourceCustomerId: Scalars['ID']['input'];
+  targetCustomerId: Scalars['ID']['input'];
+};
+
+export type CustomerMergeRequestPayload = {
+  __typename?: 'CustomerMergeRequestPayload';
+  merge: Maybe<CustomerMerge>;
+  userErrors: Array<GenericUserError>;
+};
+
+export enum CustomerMergeStatus {
+  Completed = 'COMPLETED',
+  Failed = 'FAILED',
+  InProgress = 'IN_PROGRESS',
+  Requested = 'REQUESTED'
+}
+
+export type CustomerMergeStatusFilter = {
+  _eq?: InputMaybe<CustomerMergeStatus>;
+  _in?: InputMaybe<Array<CustomerMergeStatus>>;
+  _neq?: InputMaybe<CustomerMergeStatus>;
+  _notIn?: InputMaybe<Array<CustomerMergeStatus>>;
+};
+
+export type CustomerMergeWhereInput = {
+  _and?: InputMaybe<Array<CustomerMergeWhereInput>>;
+  _not?: InputMaybe<CustomerMergeWhereInput>;
+  _or?: InputMaybe<Array<CustomerMergeWhereInput>>;
+  errorCode?: InputMaybe<StringFilter>;
+  finishedAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<IdFilter>;
+  idempotencyKey?: InputMaybe<StringFilter>;
+  requestedAt?: InputMaybe<DateTimeFilter>;
+  requestedById?: InputMaybe<StringFilter>;
+  requestedByType?: InputMaybe<StringFilter>;
+  sourceCustomerId?: InputMaybe<IdFilter>;
+  startedAt?: InputMaybe<DateTimeFilter>;
+  status?: InputMaybe<CustomerMergeStatusFilter>;
+  targetCustomerId?: InputMaybe<IdFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+/** Rebuildable monetary customer projection for one ISO 4217 currency. */
+export type CustomerMonetaryStatistics = Node & {
+  __typename?: 'CustomerMonetaryStatistics';
+  averageOrderValueMinor: Scalars['BigInt']['output'];
+  currencyCode: CurrencyCode;
+  customer: Customer;
+  id: Scalars['ID']['output'];
+  netSpentMinor: Scalars['BigInt']['output'];
+  ordersCount: Scalars['Int']['output'];
+  totalRefundedMinor: Scalars['BigInt']['output'];
+  totalSpentMinor: Scalars['BigInt']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CustomerMonetaryStatisticsConnection = {
+  __typename?: 'CustomerMonetaryStatisticsConnection';
+  edges: Array<CustomerMonetaryStatisticsEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerMonetaryStatisticsEdge = {
+  __typename?: 'CustomerMonetaryStatisticsEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerMonetaryStatistics;
+};
+
+export type CustomerMonetaryStatisticsOrderByInput = {
+  direction: SortDirection;
+  field: CustomerMonetaryStatisticsOrderField;
+};
+
+export enum CustomerMonetaryStatisticsOrderField {
+  AverageOrderValueMinor = 'averageOrderValueMinor',
+  CurrencyCode = 'currencyCode',
+  Id = 'id',
+  NetSpentMinor = 'netSpentMinor',
+  OrdersCount = 'ordersCount',
+  TotalRefundedMinor = 'totalRefundedMinor',
+  TotalSpentMinor = 'totalSpentMinor',
+  UpdatedAt = 'updatedAt'
+}
+
+export type CustomerMonetaryStatisticsWhereInput = {
+  _and?: InputMaybe<Array<CustomerMonetaryStatisticsWhereInput>>;
+  _not?: InputMaybe<CustomerMonetaryStatisticsWhereInput>;
+  _or?: InputMaybe<Array<CustomerMonetaryStatisticsWhereInput>>;
+  averageOrderValueMinor?: InputMaybe<BigIntFilter>;
+  currencyCode?: InputMaybe<StringFilter>;
+  id?: InputMaybe<IdFilter>;
+  netSpentMinor?: InputMaybe<BigIntFilter>;
+  ordersCount?: InputMaybe<IntFilter>;
+  totalRefundedMinor?: InputMaybe<BigIntFilter>;
+  totalSpentMinor?: InputMaybe<BigIntFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export type CustomerOrderByInput = {
+  direction: SortDirection;
+  field: CustomerOrderField;
+};
+
+export enum CustomerOrderField {
+  AccountStatus = 'accountStatus',
+  CompanyName = 'companyName',
+  CreatedAt = 'createdAt',
+  DateOfBirth = 'dateOfBirth',
+  Email = 'email',
+  FirstName = 'firstName',
+  Id = 'id',
+  LastActivityAt = 'lastActivityAt',
+  LastName = 'lastName',
+  LifecycleStatus = 'lifecycleStatus',
+  PhoneE164 = 'phoneE164',
+  UpdatedAt = 'updatedAt'
+}
+
+export type CustomerSegment = Node & {
+  __typename?: 'CustomerSegment';
+  createdAt: Scalars['DateTime']['output'];
+  createdById: Maybe<Scalars['String']['output']>;
+  customerMemberships: CustomerSegmentMembershipConnection;
+  customersCount: Scalars['Int']['output'];
+  definition: Scalars['JSON']['output'];
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  description: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  query: Maybe<Scalars['String']['output']>;
+  status: CustomerSegmentStatus;
+  type: CustomerSegmentType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type CustomerSegmentCustomerMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerSegmentMembershipOrderByInput>>;
+  where?: InputMaybe<CustomerSegmentMembershipWhereInput>;
+};
+
+export type CustomerSegmentConnection = {
+  __typename?: 'CustomerSegmentConnection';
+  edges: Array<CustomerSegmentEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerSegmentCreateInput = {
+  definition?: InputMaybe<Scalars['JSON']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  query?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to DRAFT when omitted. */
+  status?: InputMaybe<CustomerSegmentStatus>;
+  type: CustomerSegmentType;
+};
+
+export type CustomerSegmentCreatePayload = {
+  __typename?: 'CustomerSegmentCreatePayload';
+  segment: Maybe<CustomerSegment>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerSegmentDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerSegmentDeletePayload = {
+  __typename?: 'CustomerSegmentDeletePayload';
+  deletedSegmentId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerSegmentEdge = {
+  __typename?: 'CustomerSegmentEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerSegment;
+};
+
+/** Re-evaluate and replace materialized membership for a dynamic segment. */
+export type CustomerSegmentEvaluateInput = {
+  segmentId: Scalars['ID']['input'];
+};
+
+export type CustomerSegmentEvaluatePayload = {
+  __typename?: 'CustomerSegmentEvaluatePayload';
+  customersCount: Maybe<Scalars['Int']['output']>;
+  evaluatedAt: Maybe<Scalars['DateTime']['output']>;
+  segment: Maybe<CustomerSegment>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerSegmentMembership = Node & {
+  __typename?: 'CustomerSegmentMembership';
+  customer: Customer;
+  evaluatedAt: Scalars['DateTime']['output'];
+  expiresAt: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  segment: CustomerSegment;
+  source: CustomerAssignmentSource;
+};
+
+export type CustomerSegmentMembershipConnection = {
+  __typename?: 'CustomerSegmentMembershipConnection';
+  edges: Array<CustomerSegmentMembershipEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerSegmentMembershipDeleteInput = {
+  customerId: Scalars['ID']['input'];
+  segmentId: Scalars['ID']['input'];
+};
+
+export type CustomerSegmentMembershipDeletePayload = {
+  __typename?: 'CustomerSegmentMembershipDeletePayload';
+  deletedMembershipId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerSegmentMembershipEdge = {
+  __typename?: 'CustomerSegmentMembershipEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerSegmentMembership;
+};
+
+export type CustomerSegmentMembershipOrderByInput = {
+  direction: SortDirection;
+  field: CustomerSegmentMembershipOrderField;
+};
+
+export enum CustomerSegmentMembershipOrderField {
+  EvaluatedAt = 'evaluatedAt',
+  ExpiresAt = 'expiresAt',
+  Id = 'id',
+  Source = 'source'
+}
+
+/** Create or update materialized membership. Intended for manual/import flows. */
+export type CustomerSegmentMembershipSetInput = {
+  customerId: Scalars['ID']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  segmentId: Scalars['ID']['input'];
+  /** Defaults to MANUAL when omitted. */
+  source?: InputMaybe<CustomerAssignmentSource>;
+};
+
+export type CustomerSegmentMembershipSetPayload = {
+  __typename?: 'CustomerSegmentMembershipSetPayload';
+  membership: Maybe<CustomerSegmentMembership>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerSegmentMembershipWhereInput = {
+  _and?: InputMaybe<Array<CustomerSegmentMembershipWhereInput>>;
+  _not?: InputMaybe<CustomerSegmentMembershipWhereInput>;
+  _or?: InputMaybe<Array<CustomerSegmentMembershipWhereInput>>;
+  customerId?: InputMaybe<IdFilter>;
+  evaluatedAt?: InputMaybe<DateTimeFilter>;
+  expiresAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<IdFilter>;
+  segmentId?: InputMaybe<IdFilter>;
+  source?: InputMaybe<CustomerAssignmentSourceFilter>;
+};
+
+export type CustomerSegmentOrderByInput = {
+  direction: SortDirection;
+  field: CustomerSegmentOrderField;
+};
+
+export enum CustomerSegmentOrderField {
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  Name = 'name',
+  Status = 'status',
+  Type = 'type',
+  UpdatedAt = 'updatedAt'
+}
+
+export enum CustomerSegmentStatus {
+  Active = 'ACTIVE',
+  Archived = 'ARCHIVED',
+  Draft = 'DRAFT'
+}
+
+export type CustomerSegmentStatusFilter = {
+  _eq?: InputMaybe<CustomerSegmentStatus>;
+  _in?: InputMaybe<Array<CustomerSegmentStatus>>;
+  _neq?: InputMaybe<CustomerSegmentStatus>;
+  _notIn?: InputMaybe<Array<CustomerSegmentStatus>>;
+};
+
+export enum CustomerSegmentType {
+  Dynamic = 'DYNAMIC',
+  Manual = 'MANUAL'
+}
+
+export type CustomerSegmentTypeFilter = {
+  _eq?: InputMaybe<CustomerSegmentType>;
+  _in?: InputMaybe<Array<CustomerSegmentType>>;
+  _neq?: InputMaybe<CustomerSegmentType>;
+  _notIn?: InputMaybe<Array<CustomerSegmentType>>;
+};
+
+export type CustomerSegmentUpdateInput = {
+  definition?: InputMaybe<Scalars['JSON']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  query?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<CustomerSegmentStatus>;
+  type?: InputMaybe<CustomerSegmentType>;
+};
+
+export type CustomerSegmentUpdatePayload = {
+  __typename?: 'CustomerSegmentUpdatePayload';
+  segment: Maybe<CustomerSegment>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerSegmentWhereInput = {
+  _and?: InputMaybe<Array<CustomerSegmentWhereInput>>;
+  _not?: InputMaybe<CustomerSegmentWhereInput>;
+  _or?: InputMaybe<Array<CustomerSegmentWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  createdById?: InputMaybe<StringFilter>;
+  id?: InputMaybe<IdFilter>;
+  name?: InputMaybe<StringFilter>;
+  status?: InputMaybe<CustomerSegmentStatusFilter>;
+  type?: InputMaybe<CustomerSegmentTypeFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+/** Rebuildable, currency-independent customer activity projection. */
+export type CustomerStatistics = {
+  __typename?: 'CustomerStatistics';
+  cancelledOrdersCount: Scalars['Int']['output'];
+  completedOrdersCount: Scalars['Int']['output'];
+  customer: Customer;
+  firstOrderAt: Maybe<Scalars['DateTime']['output']>;
+  /** Raw Orders service UUID; Orders Admin type is not a federation entity. */
+  firstOrderId: Maybe<Scalars['ID']['output']>;
+  lastCheckoutAt: Maybe<Scalars['DateTime']['output']>;
+  lastOrderAt: Maybe<Scalars['DateTime']['output']>;
+  lastOrderId: Maybe<Scalars['ID']['output']>;
+  ordersCount: Scalars['Int']['output'];
+  returnsCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CustomerTag = Node & {
+  __typename?: 'CustomerTag';
+  createdAt: Scalars['DateTime']['output'];
+  customerAssignments: CustomerTagAssignmentConnection;
+  customersCount: Scalars['Int']['output'];
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  normalizedName: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type CustomerTagCustomerAssignmentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerTagAssignmentOrderByInput>>;
+  where?: InputMaybe<CustomerTagAssignmentWhereInput>;
+};
+
+export type CustomerTagAssignInput = {
+  customerId: Scalars['ID']['input'];
+  tagId: Scalars['ID']['input'];
+};
+
+export type CustomerTagAssignPayload = {
+  __typename?: 'CustomerTagAssignPayload';
+  assignment: Maybe<CustomerTagAssignment>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTagAssignment = Node & {
+  __typename?: 'CustomerTagAssignment';
+  assignedAt: Scalars['DateTime']['output'];
+  assignedById: Maybe<Scalars['String']['output']>;
+  customer: Customer;
+  id: Scalars['ID']['output'];
+  tag: CustomerTag;
+};
+
+export type CustomerTagAssignmentConnection = {
+  __typename?: 'CustomerTagAssignmentConnection';
+  edges: Array<CustomerTagAssignmentEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerTagAssignmentEdge = {
+  __typename?: 'CustomerTagAssignmentEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerTagAssignment;
+};
+
+export type CustomerTagAssignmentOrderByInput = {
+  direction: SortDirection;
+  field: CustomerTagAssignmentOrderField;
+};
+
+export enum CustomerTagAssignmentOrderField {
+  AssignedAt = 'assignedAt',
+  Id = 'id'
+}
+
+export type CustomerTagAssignmentWhereInput = {
+  _and?: InputMaybe<Array<CustomerTagAssignmentWhereInput>>;
+  _not?: InputMaybe<CustomerTagAssignmentWhereInput>;
+  _or?: InputMaybe<Array<CustomerTagAssignmentWhereInput>>;
+  assignedAt?: InputMaybe<DateTimeFilter>;
+  assignedById?: InputMaybe<StringFilter>;
+  customerId?: InputMaybe<IdFilter>;
+  id?: InputMaybe<IdFilter>;
+  tagId?: InputMaybe<IdFilter>;
+};
+
+export type CustomerTagConnection = {
+  __typename?: 'CustomerTagConnection';
+  edges: Array<CustomerTagEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerTagCreateInput = {
+  name: Scalars['String']['input'];
+};
+
+export type CustomerTagCreatePayload = {
+  __typename?: 'CustomerTagCreatePayload';
+  tag: Maybe<CustomerTag>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTagDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerTagDeletePayload = {
+  __typename?: 'CustomerTagDeletePayload';
+  deletedTagId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTagEdge = {
+  __typename?: 'CustomerTagEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerTag;
+};
+
+export type CustomerTagOrderByInput = {
+  direction: SortDirection;
+  field: CustomerTagOrderField;
+};
+
+export enum CustomerTagOrderField {
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  Name = 'name',
+  NormalizedName = 'normalizedName',
+  UpdatedAt = 'updatedAt'
+}
+
+export type CustomerTagUnassignInput = {
+  customerId: Scalars['ID']['input'];
+  tagId: Scalars['ID']['input'];
+};
+
+export type CustomerTagUnassignPayload = {
+  __typename?: 'CustomerTagUnassignPayload';
+  deletedAssignmentId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTagUpdateInput = {
+  id: Scalars['ID']['input'];
+  name: Scalars['String']['input'];
+};
+
+export type CustomerTagUpdatePayload = {
+  __typename?: 'CustomerTagUpdatePayload';
+  tag: Maybe<CustomerTag>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTagWhereInput = {
+  _and?: InputMaybe<Array<CustomerTagWhereInput>>;
+  _not?: InputMaybe<CustomerTagWhereInput>;
+  _or?: InputMaybe<Array<CustomerTagWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<IdFilter>;
+  name?: InputMaybe<StringFilter>;
+  normalizedName?: InputMaybe<StringFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export type CustomerTaxExemption = Node & {
+  __typename?: 'CustomerTaxExemption';
+  certificateFile: Maybe<File>;
+  certificateFileId: Maybe<Scalars['ID']['output']>;
+  code: Scalars['String']['output'];
+  countryCode: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customer: Customer;
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  reason: Maybe<Scalars['String']['output']>;
+  regionCode: Maybe<Scalars['String']['output']>;
+  status: CustomerTaxExemptionStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  validFrom: Maybe<Scalars['Date']['output']>;
+  validTo: Maybe<Scalars['Date']['output']>;
+};
+
+export type CustomerTaxExemptionConnection = {
+  __typename?: 'CustomerTaxExemptionConnection';
+  edges: Array<CustomerTaxExemptionEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerTaxExemptionCreateInput = {
+  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
+  code: Scalars['String']['input'];
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  customerId: Scalars['ID']['input'];
+  reason?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to ACTIVE when omitted. */
+  status?: InputMaybe<CustomerTaxExemptionStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+};
+
+export type CustomerTaxExemptionCreatePayload = {
+  __typename?: 'CustomerTaxExemptionCreatePayload';
+  taxExemption: Maybe<CustomerTaxExemption>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTaxExemptionDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerTaxExemptionDeletePayload = {
+  __typename?: 'CustomerTaxExemptionDeletePayload';
+  deletedTaxExemptionId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTaxExemptionEdge = {
+  __typename?: 'CustomerTaxExemptionEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerTaxExemption;
+};
+
+export type CustomerTaxExemptionOrderByInput = {
+  direction: SortDirection;
+  field: CustomerTaxExemptionOrderField;
+};
+
+export enum CustomerTaxExemptionOrderField {
+  Code = 'code',
+  CountryCode = 'countryCode',
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  RegionCode = 'regionCode',
+  Status = 'status',
+  UpdatedAt = 'updatedAt',
+  ValidFrom = 'validFrom',
+  ValidTo = 'validTo'
+}
+
+export enum CustomerTaxExemptionStatus {
+  Active = 'ACTIVE',
+  Expired = 'EXPIRED',
+  Revoked = 'REVOKED'
+}
+
+export type CustomerTaxExemptionStatusFilter = {
+  _eq?: InputMaybe<CustomerTaxExemptionStatus>;
+  _in?: InputMaybe<Array<CustomerTaxExemptionStatus>>;
+  _neq?: InputMaybe<CustomerTaxExemptionStatus>;
+  _notIn?: InputMaybe<Array<CustomerTaxExemptionStatus>>;
+};
+
+export type CustomerTaxExemptionUpdateInput = {
+  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
+  code?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  reason?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<CustomerTaxExemptionStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+};
+
+export type CustomerTaxExemptionUpdatePayload = {
+  __typename?: 'CustomerTaxExemptionUpdatePayload';
+  taxExemption: Maybe<CustomerTaxExemption>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTaxExemptionWhereInput = {
+  _and?: InputMaybe<Array<CustomerTaxExemptionWhereInput>>;
+  _not?: InputMaybe<CustomerTaxExemptionWhereInput>;
+  _or?: InputMaybe<Array<CustomerTaxExemptionWhereInput>>;
+  code?: InputMaybe<StringFilter>;
+  countryCode?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<IdFilter>;
+  regionCode?: InputMaybe<StringFilter>;
+  status?: InputMaybe<CustomerTaxExemptionStatusFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  validFrom?: InputMaybe<DateFilter>;
+  validTo?: InputMaybe<DateFilter>;
+};
+
+export type CustomerTaxIdentifier = Node & {
+  __typename?: 'CustomerTaxIdentifier';
+  countryCode: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customer: Customer;
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  identifierType: Scalars['String']['output'];
+  isPrimary: Scalars['Boolean']['output'];
+  normalizedValue: Scalars['String']['output'];
+  status: CustomerTaxIdentifierStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  validFrom: Maybe<Scalars['Date']['output']>;
+  validTo: Maybe<Scalars['Date']['output']>;
+  value: Scalars['String']['output'];
+  verifiedAt: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type CustomerTaxIdentifierConnection = {
+  __typename?: 'CustomerTaxIdentifierConnection';
+  edges: Array<CustomerTaxIdentifierEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CustomerTaxIdentifierCreateInput = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  customerId: Scalars['ID']['input'];
+  identifierType: Scalars['String']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Defaults to UNVERIFIED when omitted. */
+  status?: InputMaybe<CustomerTaxIdentifierStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+  value: Scalars['String']['input'];
+};
+
+export type CustomerTaxIdentifierCreatePayload = {
+  __typename?: 'CustomerTaxIdentifierCreatePayload';
+  taxIdentifier: Maybe<CustomerTaxIdentifier>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTaxIdentifierDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerTaxIdentifierDeletePayload = {
+  __typename?: 'CustomerTaxIdentifierDeletePayload';
+  deletedTaxIdentifierId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTaxIdentifierEdge = {
+  __typename?: 'CustomerTaxIdentifierEdge';
+  cursor: Scalars['String']['output'];
+  node: CustomerTaxIdentifier;
+};
+
+export type CustomerTaxIdentifierOrderByInput = {
+  direction: SortDirection;
+  field: CustomerTaxIdentifierOrderField;
+};
+
+export enum CustomerTaxIdentifierOrderField {
+  CountryCode = 'countryCode',
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  IdentifierType = 'identifierType',
+  IsPrimary = 'isPrimary',
+  Status = 'status',
+  UpdatedAt = 'updatedAt',
+  ValidFrom = 'validFrom',
+  ValidTo = 'validTo'
+}
+
+export enum CustomerTaxIdentifierStatus {
+  Expired = 'EXPIRED',
+  Rejected = 'REJECTED',
+  Unverified = 'UNVERIFIED',
+  Verified = 'VERIFIED'
+}
+
+export type CustomerTaxIdentifierStatusFilter = {
+  _eq?: InputMaybe<CustomerTaxIdentifierStatus>;
+  _in?: InputMaybe<Array<CustomerTaxIdentifierStatus>>;
+  _neq?: InputMaybe<CustomerTaxIdentifierStatus>;
+  _notIn?: InputMaybe<Array<CustomerTaxIdentifierStatus>>;
+};
+
+export type CustomerTaxIdentifierUpdateInput = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  identifierType?: InputMaybe<Scalars['String']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  status?: InputMaybe<CustomerTaxIdentifierStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+  value?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CustomerTaxIdentifierUpdatePayload = {
+  __typename?: 'CustomerTaxIdentifierUpdatePayload';
+  taxIdentifier: Maybe<CustomerTaxIdentifier>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerTaxIdentifierWhereInput = {
+  _and?: InputMaybe<Array<CustomerTaxIdentifierWhereInput>>;
+  _not?: InputMaybe<CustomerTaxIdentifierWhereInput>;
+  _or?: InputMaybe<Array<CustomerTaxIdentifierWhereInput>>;
+  countryCode?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<IdFilter>;
+  identifierType?: InputMaybe<StringFilter>;
+  isPrimary?: InputMaybe<BooleanFilter>;
+  status?: InputMaybe<CustomerTaxIdentifierStatusFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  validFrom?: InputMaybe<DateFilter>;
+  validTo?: InputMaybe<DateFilter>;
+  value?: InputMaybe<StringFilter>;
+};
+
+/**
+ * Patch a customer profile. MERGED and REDACTED lifecycle transitions are only
+ * available through their dedicated workflows; disabled controls ACTIVE/DISABLED.
+ */
+export type CustomerUpdateInput = {
+  accountStatus?: InputMaybe<CustomerAccountStatus>;
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  dateOfBirth?: InputMaybe<Scalars['Date']['input']>;
+  disabled?: InputMaybe<Scalars['Boolean']['input']>;
+  email?: InputMaybe<Scalars['Email']['input']>;
+  emailVerified?: InputMaybe<Scalars['Boolean']['input']>;
+  expectedRevision: Scalars['Int']['input'];
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  gender?: InputMaybe<Scalars['String']['input']>;
+  iamPrincipalId?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  jobTitle?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  note?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  phoneVerified?: InputMaybe<Scalars['Boolean']['input']>;
+  preferredLocale?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CustomerUpdatePayload = {
+  __typename?: 'CustomerUpdatePayload';
+  customer: Maybe<Customer>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerWhereInput = {
+  _and?: InputMaybe<Array<CustomerWhereInput>>;
+  _not?: InputMaybe<CustomerWhereInput>;
+  _or?: InputMaybe<Array<CustomerWhereInput>>;
+  accountStatus?: InputMaybe<CustomerAccountStatusFilter>;
+  companyName?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  dateOfBirth?: InputMaybe<DateFilter>;
+  email?: InputMaybe<StringFilter>;
+  emailVerified?: InputMaybe<BooleanFilter>;
+  firstName?: InputMaybe<StringFilter>;
+  iamPrincipalId?: InputMaybe<StringFilter>;
+  id?: InputMaybe<IdFilter>;
+  lastActivityAt?: InputMaybe<DateTimeFilter>;
+  lastName?: InputMaybe<StringFilter>;
+  lifecycleStatus?: InputMaybe<CustomerLifecycleStatusFilter>;
+  phoneE164?: InputMaybe<StringFilter>;
+  phoneVerified?: InputMaybe<BooleanFilter>;
+  preferredLocale?: InputMaybe<StringFilter>;
+  source?: InputMaybe<StringFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+/** Store-scoped customer commands. */
+export type CustomersMutation = {
+  __typename?: 'CustomersMutation';
+  customerAddressCreate: CustomerAddressCreatePayload;
+  customerAddressDefaultsUpdate: CustomerAddressDefaultsUpdatePayload;
+  customerAddressDelete: CustomerAddressDeletePayload;
+  customerAddressUpdate: CustomerAddressUpdatePayload;
+  /** Change current consent state and append an immutable evidence event. */
+  customerConsentSet: CustomerConsentSetPayload;
+  customerCreate: CustomerCreatePayload;
+  customerDataRequestCancel: CustomerDataRequestCancelPayload;
+  customerDataRequestCreate: CustomerDataRequestCreatePayload;
+  customerDelete: CustomerDeletePayload;
+  customerExternalReferenceDelete: CustomerExternalReferenceDeletePayload;
+  customerExternalReferenceUpsert: CustomerExternalReferenceUpsertPayload;
+  customerGroupCreate: CustomerGroupCreatePayload;
+  customerGroupDelete: CustomerGroupDeletePayload;
+  customerGroupMembershipDelete: CustomerGroupMembershipDeletePayload;
+  customerGroupMembershipSet: CustomerGroupMembershipSetPayload;
+  customerGroupUpdate: CustomerGroupUpdatePayload;
+  customerMergeRequest: CustomerMergeRequestPayload;
+  customerSegmentCreate: CustomerSegmentCreatePayload;
+  customerSegmentDelete: CustomerSegmentDeletePayload;
+  customerSegmentEvaluate: CustomerSegmentEvaluatePayload;
+  customerSegmentMembershipDelete: CustomerSegmentMembershipDeletePayload;
+  customerSegmentMembershipSet: CustomerSegmentMembershipSetPayload;
+  customerSegmentUpdate: CustomerSegmentUpdatePayload;
+  customerTagAssign: CustomerTagAssignPayload;
+  customerTagCreate: CustomerTagCreatePayload;
+  customerTagDelete: CustomerTagDeletePayload;
+  customerTagUnassign: CustomerTagUnassignPayload;
+  customerTagUpdate: CustomerTagUpdatePayload;
+  customerTaxExemptionCreate: CustomerTaxExemptionCreatePayload;
+  customerTaxExemptionDelete: CustomerTaxExemptionDeletePayload;
+  customerTaxExemptionUpdate: CustomerTaxExemptionUpdatePayload;
+  customerTaxIdentifierCreate: CustomerTaxIdentifierCreatePayload;
+  customerTaxIdentifierDelete: CustomerTaxIdentifierDeletePayload;
+  customerTaxIdentifierUpdate: CustomerTaxIdentifierUpdatePayload;
+  customerUpdate: CustomerUpdatePayload;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerAddressCreateArgs = {
+  input: CustomerAddressCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerAddressDefaultsUpdateArgs = {
+  input: CustomerAddressDefaultsUpdateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerAddressDeleteArgs = {
+  input: CustomerAddressDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerAddressUpdateArgs = {
+  input: CustomerAddressUpdateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerConsentSetArgs = {
+  input: CustomerConsentSetInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerCreateArgs = {
+  input: CustomerCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerDataRequestCancelArgs = {
+  input: CustomerDataRequestCancelInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerDataRequestCreateArgs = {
+  input: CustomerDataRequestCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerDeleteArgs = {
+  input: CustomerDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerExternalReferenceDeleteArgs = {
+  input: CustomerExternalReferenceDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerExternalReferenceUpsertArgs = {
+  input: CustomerExternalReferenceUpsertInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerGroupCreateArgs = {
+  input: CustomerGroupCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerGroupDeleteArgs = {
+  input: CustomerGroupDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerGroupMembershipDeleteArgs = {
+  input: CustomerGroupMembershipDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerGroupMembershipSetArgs = {
+  input: CustomerGroupMembershipSetInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerGroupUpdateArgs = {
+  input: CustomerGroupUpdateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerMergeRequestArgs = {
+  input: CustomerMergeRequestInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerSegmentCreateArgs = {
+  input: CustomerSegmentCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerSegmentDeleteArgs = {
+  input: CustomerSegmentDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerSegmentEvaluateArgs = {
+  input: CustomerSegmentEvaluateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerSegmentMembershipDeleteArgs = {
+  input: CustomerSegmentMembershipDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerSegmentMembershipSetArgs = {
+  input: CustomerSegmentMembershipSetInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerSegmentUpdateArgs = {
+  input: CustomerSegmentUpdateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTagAssignArgs = {
+  input: CustomerTagAssignInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTagCreateArgs = {
+  input: CustomerTagCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTagDeleteArgs = {
+  input: CustomerTagDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTagUnassignArgs = {
+  input: CustomerTagUnassignInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTagUpdateArgs = {
+  input: CustomerTagUpdateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTaxExemptionCreateArgs = {
+  input: CustomerTaxExemptionCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTaxExemptionDeleteArgs = {
+  input: CustomerTaxExemptionDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTaxExemptionUpdateArgs = {
+  input: CustomerTaxExemptionUpdateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTaxIdentifierCreateArgs = {
+  input: CustomerTaxIdentifierCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTaxIdentifierDeleteArgs = {
+  input: CustomerTaxIdentifierDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerTaxIdentifierUpdateArgs = {
+  input: CustomerTaxIdentifierUpdateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerUpdateArgs = {
+  input: CustomerUpdateInput;
+};
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type CustomersQuery = {
   __typename?: 'CustomersQuery';
-  _empty: Scalars['Boolean']['output'];
+  customer: Maybe<Customer>;
+  customerAddress: Maybe<CustomerAddress>;
+  customerByEmail: Maybe<Customer>;
+  customerByExternalReference: Maybe<Customer>;
+  customerByIamPrincipalId: Maybe<Customer>;
+  customerConsent: Maybe<CustomerConsent>;
+  customerConsentEvents: CustomerConsentEventConnection;
+  customerDataRequest: Maybe<CustomerDataRequest>;
+  customerDataRequests: CustomerDataRequestConnection;
+  customerExternalReference: Maybe<CustomerExternalReference>;
+  customerGroup: Maybe<CustomerGroup>;
+  customerGroups: CustomerGroupConnection;
+  customerMerge: Maybe<CustomerMerge>;
+  customerMerges: CustomerMergeConnection;
+  customerSegment: Maybe<CustomerSegment>;
+  customerSegments: CustomerSegmentConnection;
+  customerTag: Maybe<CustomerTag>;
+  customerTags: CustomerTagConnection;
+  customerTaxExemption: Maybe<CustomerTaxExemption>;
+  customerTaxIdentifier: Maybe<CustomerTaxIdentifier>;
+  customers: CustomerConnection;
+  /** Resolve any customer-owned Relay node by global ID. */
+  node: Maybe<Node>;
+  /** Resolve customer-owned Relay nodes while preserving input order. */
+  nodes: Array<Maybe<Node>>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerAddressArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerByEmailArgs = {
+  email: Scalars['Email']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerByExternalReferenceArgs = {
+  externalId: Scalars['String']['input'];
+  externalSystem: Scalars['String']['input'];
+  externalType?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerByIamPrincipalIdArgs = {
+  iamPrincipalId: Scalars['String']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerConsentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerConsentEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerConsentEventOrderByInput>>;
+  where?: InputMaybe<CustomerConsentEventWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerDataRequestArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerDataRequestsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerDataRequestOrderByInput>>;
+  where?: InputMaybe<CustomerDataRequestWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerExternalReferenceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerGroupArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerGroupsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerGroupOrderByInput>>;
+  where?: InputMaybe<CustomerGroupWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerMergeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerMergesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerMergeOrderByInput>>;
+  where?: InputMaybe<CustomerMergeWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerSegmentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerSegmentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerSegmentOrderByInput>>;
+  where?: InputMaybe<CustomerSegmentWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerTagArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerTagsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerTagOrderByInput>>;
+  where?: InputMaybe<CustomerTagWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerTaxExemptionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerTaxIdentifierArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CustomerOrderByInput>>;
+  where?: InputMaybe<CustomerWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+export type DateFilter = {
+  _between?: InputMaybe<Array<Scalars['Date']['input']>>;
+  _eq?: InputMaybe<Scalars['Date']['input']>;
+  _gt?: InputMaybe<Scalars['Date']['input']>;
+  _gte?: InputMaybe<Scalars['Date']['input']>;
+  _in?: InputMaybe<Array<Scalars['Date']['input']>>;
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['Date']['input']>;
+  _lte?: InputMaybe<Scalars['Date']['input']>;
+  _neq?: InputMaybe<Scalars['Date']['input']>;
+  _notIn?: InputMaybe<Array<Scalars['Date']['input']>>;
 };
 
 /** Filter operators for DateTime fields */
@@ -411,6 +2705,11 @@ export enum DimensionUnit {
   /** Millimeter */
   Mm = 'mm'
 }
+
+export type File = {
+  __typename?: 'File';
+  id: Scalars['ID']['output'];
+};
 
 /** Filter operators for Float fields */
 export type FloatFilter = {
@@ -765,7 +3064,7 @@ export enum LocaleCode {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  /** Customers mutation namespace. */
+  /** Customers Admin mutation namespace. */
   customersMutation: CustomersMutation;
 };
 
@@ -785,7 +3084,7 @@ export type PageInfo = {
 
 export type Query = {
   __typename?: 'Query';
-  /** Customers query namespace. */
+  /** Customers Admin query namespace. */
   customersQuery: CustomersQuery;
 };
 
@@ -850,6 +3149,17 @@ export type WithIndex<TObject> = TObject & Record<string, any>;
 export type ResolversObject<TObject> = WithIndex<TObject>;
 
 export type ResolverTypeWrapper<T> = Promise<T> | T;
+
+export type ReferenceResolver<TResult, TReference, TContext> = (
+      reference: TReference,
+      context: TContext,
+      info: GraphQLResolveInfo
+    ) => Promise<TResult> | TResult;
+
+      type ScalarCheck<T, S> = S extends true ? T : NullableCheck<T, S>;
+      type NullableCheck<T, S> = Maybe<T> extends T ? Maybe<ListCheck<NonNullable<T>, S>> : ListCheck<T, S>;
+      type ListCheck<T, S> = T extends (infer U)[] ? NullableCheck<U, S>[] : GraphQLRecursivePick<T, S>;
+      export type GraphQLRecursivePick<T, S> = { [K in keyof T & keyof S]: ScalarCheck<T[K], S[K]> };
 
 
 export type ResolverWithResolve<TResult, TParent, TContext, TArgs> = {
@@ -917,30 +3227,223 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: never;
+  Node: ( Customer ) | ( CustomerAddress ) | ( CustomerConsent ) | ( CustomerConsentEvent ) | ( CustomerDataRequest ) | ( CustomerExternalReference ) | ( CustomerGroup ) | ( CustomerGroupMembership ) | ( CustomerMerge ) | ( CustomerMonetaryStatistics ) | ( CustomerSegment ) | ( CustomerSegmentMembership ) | ( CustomerTag ) | ( CustomerTagAssignment ) | ( CustomerTaxExemption ) | ( CustomerTaxIdentifier );
   UserError: ( GenericUserError );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
-  BooleanFilter: BooleanFilter;
+  BigIntFilter: BigIntFilter;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  BooleanFilter: BooleanFilter;
   CurrencyCode: CurrencyCode;
+  Customer: ResolverTypeWrapper<Customer>;
+  String: ResolverTypeWrapper<Scalars['String']['output']>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  CustomerAccountStatus: CustomerAccountStatus;
+  CustomerAccountStatusFilter: CustomerAccountStatusFilter;
+  CustomerAddress: ResolverTypeWrapper<CustomerAddress>;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
+  CustomerAddressConnection: ResolverTypeWrapper<CustomerAddressConnection>;
+  CustomerAddressCreateInput: CustomerAddressCreateInput;
+  CustomerAddressCreatePayload: ResolverTypeWrapper<CustomerAddressCreatePayload>;
+  CustomerAddressDefaultsUpdateInput: CustomerAddressDefaultsUpdateInput;
+  CustomerAddressDefaultsUpdatePayload: ResolverTypeWrapper<CustomerAddressDefaultsUpdatePayload>;
+  CustomerAddressDeleteInput: CustomerAddressDeleteInput;
+  CustomerAddressDeletePayload: ResolverTypeWrapper<CustomerAddressDeletePayload>;
+  CustomerAddressEdge: ResolverTypeWrapper<CustomerAddressEdge>;
+  CustomerAddressOrderByInput: CustomerAddressOrderByInput;
+  CustomerAddressOrderField: CustomerAddressOrderField;
+  CustomerAddressUpdateInput: CustomerAddressUpdateInput;
+  CustomerAddressUpdatePayload: ResolverTypeWrapper<CustomerAddressUpdatePayload>;
+  CustomerAddressValidationStatus: CustomerAddressValidationStatus;
+  CustomerAddressValidationStatusFilter: CustomerAddressValidationStatusFilter;
+  CustomerAddressWhereInput: CustomerAddressWhereInput;
+  CustomerAssignmentSource: CustomerAssignmentSource;
+  CustomerAssignmentSourceFilter: CustomerAssignmentSourceFilter;
+  CustomerConnection: ResolverTypeWrapper<CustomerConnection>;
+  CustomerConsent: ResolverTypeWrapper<CustomerConsent>;
+  CustomerConsentChannel: CustomerConsentChannel;
+  CustomerConsentChannelFilter: CustomerConsentChannelFilter;
+  CustomerConsentEvent: ResolverTypeWrapper<CustomerConsentEvent>;
+  CustomerConsentEventConnection: ResolverTypeWrapper<CustomerConsentEventConnection>;
+  CustomerConsentEventEdge: ResolverTypeWrapper<CustomerConsentEventEdge>;
+  CustomerConsentEventOrderByInput: CustomerConsentEventOrderByInput;
+  CustomerConsentEventOrderField: CustomerConsentEventOrderField;
+  CustomerConsentEventWhereInput: CustomerConsentEventWhereInput;
+  CustomerConsentOptInLevel: CustomerConsentOptInLevel;
+  CustomerConsentSetInput: CustomerConsentSetInput;
+  CustomerConsentSetPayload: ResolverTypeWrapper<CustomerConsentSetPayload>;
+  CustomerConsentState: CustomerConsentState;
+  CustomerConsentStateFilter: CustomerConsentStateFilter;
+  CustomerCreateInput: CustomerCreateInput;
+  CustomerCreatePayload: ResolverTypeWrapper<CustomerCreatePayload>;
+  CustomerDataRequest: ResolverTypeWrapper<CustomerDataRequest>;
+  CustomerDataRequestCancelInput: CustomerDataRequestCancelInput;
+  CustomerDataRequestCancelPayload: ResolverTypeWrapper<CustomerDataRequestCancelPayload>;
+  CustomerDataRequestConnection: ResolverTypeWrapper<CustomerDataRequestConnection>;
+  CustomerDataRequestCreateInput: CustomerDataRequestCreateInput;
+  CustomerDataRequestCreatePayload: ResolverTypeWrapper<CustomerDataRequestCreatePayload>;
+  CustomerDataRequestEdge: ResolverTypeWrapper<CustomerDataRequestEdge>;
+  CustomerDataRequestOrderByInput: CustomerDataRequestOrderByInput;
+  CustomerDataRequestOrderField: CustomerDataRequestOrderField;
+  CustomerDataRequestStatus: CustomerDataRequestStatus;
+  CustomerDataRequestStatusFilter: CustomerDataRequestStatusFilter;
+  CustomerDataRequestType: CustomerDataRequestType;
+  CustomerDataRequestTypeFilter: CustomerDataRequestTypeFilter;
+  CustomerDataRequestWhereInput: CustomerDataRequestWhereInput;
+  CustomerDeleteInput: CustomerDeleteInput;
+  CustomerDeletePayload: ResolverTypeWrapper<CustomerDeletePayload>;
+  CustomerEdge: ResolverTypeWrapper<CustomerEdge>;
+  CustomerExternalReference: ResolverTypeWrapper<CustomerExternalReference>;
+  CustomerExternalReferenceConnection: ResolverTypeWrapper<CustomerExternalReferenceConnection>;
+  CustomerExternalReferenceDeleteInput: CustomerExternalReferenceDeleteInput;
+  CustomerExternalReferenceDeletePayload: ResolverTypeWrapper<CustomerExternalReferenceDeletePayload>;
+  CustomerExternalReferenceEdge: ResolverTypeWrapper<CustomerExternalReferenceEdge>;
+  CustomerExternalReferenceOrderByInput: CustomerExternalReferenceOrderByInput;
+  CustomerExternalReferenceOrderField: CustomerExternalReferenceOrderField;
+  CustomerExternalReferenceUpsertInput: CustomerExternalReferenceUpsertInput;
+  CustomerExternalReferenceUpsertPayload: ResolverTypeWrapper<CustomerExternalReferenceUpsertPayload>;
+  CustomerExternalReferenceWhereInput: CustomerExternalReferenceWhereInput;
+  CustomerGroup: ResolverTypeWrapper<CustomerGroup>;
+  CustomerGroupConnection: ResolverTypeWrapper<CustomerGroupConnection>;
+  CustomerGroupCreateInput: CustomerGroupCreateInput;
+  CustomerGroupCreatePayload: ResolverTypeWrapper<CustomerGroupCreatePayload>;
+  CustomerGroupDeleteInput: CustomerGroupDeleteInput;
+  CustomerGroupDeletePayload: ResolverTypeWrapper<CustomerGroupDeletePayload>;
+  CustomerGroupEdge: ResolverTypeWrapper<CustomerGroupEdge>;
+  CustomerGroupMembership: ResolverTypeWrapper<CustomerGroupMembership>;
+  CustomerGroupMembershipConnection: ResolverTypeWrapper<CustomerGroupMembershipConnection>;
+  CustomerGroupMembershipDeleteInput: CustomerGroupMembershipDeleteInput;
+  CustomerGroupMembershipDeletePayload: ResolverTypeWrapper<CustomerGroupMembershipDeletePayload>;
+  CustomerGroupMembershipEdge: ResolverTypeWrapper<CustomerGroupMembershipEdge>;
+  CustomerGroupMembershipOrderByInput: CustomerGroupMembershipOrderByInput;
+  CustomerGroupMembershipOrderField: CustomerGroupMembershipOrderField;
+  CustomerGroupMembershipSetInput: CustomerGroupMembershipSetInput;
+  CustomerGroupMembershipSetPayload: ResolverTypeWrapper<CustomerGroupMembershipSetPayload>;
+  CustomerGroupMembershipWhereInput: CustomerGroupMembershipWhereInput;
+  CustomerGroupOrderByInput: CustomerGroupOrderByInput;
+  CustomerGroupOrderField: CustomerGroupOrderField;
+  CustomerGroupUpdateInput: CustomerGroupUpdateInput;
+  CustomerGroupUpdatePayload: ResolverTypeWrapper<CustomerGroupUpdatePayload>;
+  CustomerGroupWhereInput: CustomerGroupWhereInput;
+  CustomerLifecycleStatus: CustomerLifecycleStatus;
+  CustomerLifecycleStatusFilter: CustomerLifecycleStatusFilter;
+  CustomerMerge: ResolverTypeWrapper<CustomerMerge>;
+  CustomerMergeConnection: ResolverTypeWrapper<CustomerMergeConnection>;
+  CustomerMergeEdge: ResolverTypeWrapper<CustomerMergeEdge>;
+  CustomerMergeOrderByInput: CustomerMergeOrderByInput;
+  CustomerMergeOrderField: CustomerMergeOrderField;
+  CustomerMergeRequestInput: CustomerMergeRequestInput;
+  CustomerMergeRequestPayload: ResolverTypeWrapper<CustomerMergeRequestPayload>;
+  CustomerMergeStatus: CustomerMergeStatus;
+  CustomerMergeStatusFilter: CustomerMergeStatusFilter;
+  CustomerMergeWhereInput: CustomerMergeWhereInput;
+  CustomerMonetaryStatistics: ResolverTypeWrapper<CustomerMonetaryStatistics>;
+  CustomerMonetaryStatisticsConnection: ResolverTypeWrapper<CustomerMonetaryStatisticsConnection>;
+  CustomerMonetaryStatisticsEdge: ResolverTypeWrapper<CustomerMonetaryStatisticsEdge>;
+  CustomerMonetaryStatisticsOrderByInput: CustomerMonetaryStatisticsOrderByInput;
+  CustomerMonetaryStatisticsOrderField: CustomerMonetaryStatisticsOrderField;
+  CustomerMonetaryStatisticsWhereInput: CustomerMonetaryStatisticsWhereInput;
+  CustomerOrderByInput: CustomerOrderByInput;
+  CustomerOrderField: CustomerOrderField;
+  CustomerSegment: ResolverTypeWrapper<CustomerSegment>;
+  CustomerSegmentConnection: ResolverTypeWrapper<CustomerSegmentConnection>;
+  CustomerSegmentCreateInput: CustomerSegmentCreateInput;
+  CustomerSegmentCreatePayload: ResolverTypeWrapper<CustomerSegmentCreatePayload>;
+  CustomerSegmentDeleteInput: CustomerSegmentDeleteInput;
+  CustomerSegmentDeletePayload: ResolverTypeWrapper<CustomerSegmentDeletePayload>;
+  CustomerSegmentEdge: ResolverTypeWrapper<CustomerSegmentEdge>;
+  CustomerSegmentEvaluateInput: CustomerSegmentEvaluateInput;
+  CustomerSegmentEvaluatePayload: ResolverTypeWrapper<CustomerSegmentEvaluatePayload>;
+  CustomerSegmentMembership: ResolverTypeWrapper<CustomerSegmentMembership>;
+  CustomerSegmentMembershipConnection: ResolverTypeWrapper<CustomerSegmentMembershipConnection>;
+  CustomerSegmentMembershipDeleteInput: CustomerSegmentMembershipDeleteInput;
+  CustomerSegmentMembershipDeletePayload: ResolverTypeWrapper<CustomerSegmentMembershipDeletePayload>;
+  CustomerSegmentMembershipEdge: ResolverTypeWrapper<CustomerSegmentMembershipEdge>;
+  CustomerSegmentMembershipOrderByInput: CustomerSegmentMembershipOrderByInput;
+  CustomerSegmentMembershipOrderField: CustomerSegmentMembershipOrderField;
+  CustomerSegmentMembershipSetInput: CustomerSegmentMembershipSetInput;
+  CustomerSegmentMembershipSetPayload: ResolverTypeWrapper<CustomerSegmentMembershipSetPayload>;
+  CustomerSegmentMembershipWhereInput: CustomerSegmentMembershipWhereInput;
+  CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
+  CustomerSegmentOrderField: CustomerSegmentOrderField;
+  CustomerSegmentStatus: CustomerSegmentStatus;
+  CustomerSegmentStatusFilter: CustomerSegmentStatusFilter;
+  CustomerSegmentType: CustomerSegmentType;
+  CustomerSegmentTypeFilter: CustomerSegmentTypeFilter;
+  CustomerSegmentUpdateInput: CustomerSegmentUpdateInput;
+  CustomerSegmentUpdatePayload: ResolverTypeWrapper<CustomerSegmentUpdatePayload>;
+  CustomerSegmentWhereInput: CustomerSegmentWhereInput;
+  CustomerStatistics: ResolverTypeWrapper<CustomerStatistics>;
+  CustomerTag: ResolverTypeWrapper<CustomerTag>;
+  CustomerTagAssignInput: CustomerTagAssignInput;
+  CustomerTagAssignPayload: ResolverTypeWrapper<CustomerTagAssignPayload>;
+  CustomerTagAssignment: ResolverTypeWrapper<CustomerTagAssignment>;
+  CustomerTagAssignmentConnection: ResolverTypeWrapper<CustomerTagAssignmentConnection>;
+  CustomerTagAssignmentEdge: ResolverTypeWrapper<CustomerTagAssignmentEdge>;
+  CustomerTagAssignmentOrderByInput: CustomerTagAssignmentOrderByInput;
+  CustomerTagAssignmentOrderField: CustomerTagAssignmentOrderField;
+  CustomerTagAssignmentWhereInput: CustomerTagAssignmentWhereInput;
+  CustomerTagConnection: ResolverTypeWrapper<CustomerTagConnection>;
+  CustomerTagCreateInput: CustomerTagCreateInput;
+  CustomerTagCreatePayload: ResolverTypeWrapper<CustomerTagCreatePayload>;
+  CustomerTagDeleteInput: CustomerTagDeleteInput;
+  CustomerTagDeletePayload: ResolverTypeWrapper<CustomerTagDeletePayload>;
+  CustomerTagEdge: ResolverTypeWrapper<CustomerTagEdge>;
+  CustomerTagOrderByInput: CustomerTagOrderByInput;
+  CustomerTagOrderField: CustomerTagOrderField;
+  CustomerTagUnassignInput: CustomerTagUnassignInput;
+  CustomerTagUnassignPayload: ResolverTypeWrapper<CustomerTagUnassignPayload>;
+  CustomerTagUpdateInput: CustomerTagUpdateInput;
+  CustomerTagUpdatePayload: ResolverTypeWrapper<CustomerTagUpdatePayload>;
+  CustomerTagWhereInput: CustomerTagWhereInput;
+  CustomerTaxExemption: ResolverTypeWrapper<CustomerTaxExemption>;
+  CustomerTaxExemptionConnection: ResolverTypeWrapper<CustomerTaxExemptionConnection>;
+  CustomerTaxExemptionCreateInput: CustomerTaxExemptionCreateInput;
+  CustomerTaxExemptionCreatePayload: ResolverTypeWrapper<CustomerTaxExemptionCreatePayload>;
+  CustomerTaxExemptionDeleteInput: CustomerTaxExemptionDeleteInput;
+  CustomerTaxExemptionDeletePayload: ResolverTypeWrapper<CustomerTaxExemptionDeletePayload>;
+  CustomerTaxExemptionEdge: ResolverTypeWrapper<CustomerTaxExemptionEdge>;
+  CustomerTaxExemptionOrderByInput: CustomerTaxExemptionOrderByInput;
+  CustomerTaxExemptionOrderField: CustomerTaxExemptionOrderField;
+  CustomerTaxExemptionStatus: CustomerTaxExemptionStatus;
+  CustomerTaxExemptionStatusFilter: CustomerTaxExemptionStatusFilter;
+  CustomerTaxExemptionUpdateInput: CustomerTaxExemptionUpdateInput;
+  CustomerTaxExemptionUpdatePayload: ResolverTypeWrapper<CustomerTaxExemptionUpdatePayload>;
+  CustomerTaxExemptionWhereInput: CustomerTaxExemptionWhereInput;
+  CustomerTaxIdentifier: ResolverTypeWrapper<CustomerTaxIdentifier>;
+  CustomerTaxIdentifierConnection: ResolverTypeWrapper<CustomerTaxIdentifierConnection>;
+  CustomerTaxIdentifierCreateInput: CustomerTaxIdentifierCreateInput;
+  CustomerTaxIdentifierCreatePayload: ResolverTypeWrapper<CustomerTaxIdentifierCreatePayload>;
+  CustomerTaxIdentifierDeleteInput: CustomerTaxIdentifierDeleteInput;
+  CustomerTaxIdentifierDeletePayload: ResolverTypeWrapper<CustomerTaxIdentifierDeletePayload>;
+  CustomerTaxIdentifierEdge: ResolverTypeWrapper<CustomerTaxIdentifierEdge>;
+  CustomerTaxIdentifierOrderByInput: CustomerTaxIdentifierOrderByInput;
+  CustomerTaxIdentifierOrderField: CustomerTaxIdentifierOrderField;
+  CustomerTaxIdentifierStatus: CustomerTaxIdentifierStatus;
+  CustomerTaxIdentifierStatusFilter: CustomerTaxIdentifierStatusFilter;
+  CustomerTaxIdentifierUpdateInput: CustomerTaxIdentifierUpdateInput;
+  CustomerTaxIdentifierUpdatePayload: ResolverTypeWrapper<CustomerTaxIdentifierUpdatePayload>;
+  CustomerTaxIdentifierWhereInput: CustomerTaxIdentifierWhereInput;
+  CustomerUpdateInput: CustomerUpdateInput;
+  CustomerUpdatePayload: ResolverTypeWrapper<CustomerUpdatePayload>;
+  CustomerWhereInput: CustomerWhereInput;
   CustomersMutation: ResolverTypeWrapper<CustomersMutation>;
-  CustomersQuery: ResolverTypeWrapper<CustomersQuery>;
+  CustomersQuery: ResolverTypeWrapper<Omit<CustomersQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
+  Date: ResolverTypeWrapper<Scalars['Date']['output']>;
+  DateFilter: DateFilter;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
+  File: ResolverTypeWrapper<File>;
   FloatFilter: FloatFilter;
-  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
-  String: ResolverTypeWrapper<Scalars['String']['output']>;
   IDFilter: IdFilter;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   IntFilter: IntFilter;
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
   Mutation: ResolverTypeWrapper<{}>;
@@ -957,21 +3460,185 @@ export type ResolversTypes = ResolversObject<{
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
   BigInt: Scalars['BigInt']['output'];
-  BooleanFilter: BooleanFilter;
+  BigIntFilter: BigIntFilter;
   Boolean: Scalars['Boolean']['output'];
+  BooleanFilter: BooleanFilter;
+  Customer: Customer;
+  String: Scalars['String']['output'];
+  Int: Scalars['Int']['output'];
+  ID: Scalars['ID']['output'];
+  CustomerAccountStatusFilter: CustomerAccountStatusFilter;
+  CustomerAddress: CustomerAddress;
+  Float: Scalars['Float']['output'];
+  CustomerAddressConnection: CustomerAddressConnection;
+  CustomerAddressCreateInput: CustomerAddressCreateInput;
+  CustomerAddressCreatePayload: CustomerAddressCreatePayload;
+  CustomerAddressDefaultsUpdateInput: CustomerAddressDefaultsUpdateInput;
+  CustomerAddressDefaultsUpdatePayload: CustomerAddressDefaultsUpdatePayload;
+  CustomerAddressDeleteInput: CustomerAddressDeleteInput;
+  CustomerAddressDeletePayload: CustomerAddressDeletePayload;
+  CustomerAddressEdge: CustomerAddressEdge;
+  CustomerAddressOrderByInput: CustomerAddressOrderByInput;
+  CustomerAddressUpdateInput: CustomerAddressUpdateInput;
+  CustomerAddressUpdatePayload: CustomerAddressUpdatePayload;
+  CustomerAddressValidationStatusFilter: CustomerAddressValidationStatusFilter;
+  CustomerAddressWhereInput: CustomerAddressWhereInput;
+  CustomerAssignmentSourceFilter: CustomerAssignmentSourceFilter;
+  CustomerConnection: CustomerConnection;
+  CustomerConsent: CustomerConsent;
+  CustomerConsentChannelFilter: CustomerConsentChannelFilter;
+  CustomerConsentEvent: CustomerConsentEvent;
+  CustomerConsentEventConnection: CustomerConsentEventConnection;
+  CustomerConsentEventEdge: CustomerConsentEventEdge;
+  CustomerConsentEventOrderByInput: CustomerConsentEventOrderByInput;
+  CustomerConsentEventWhereInput: CustomerConsentEventWhereInput;
+  CustomerConsentSetInput: CustomerConsentSetInput;
+  CustomerConsentSetPayload: CustomerConsentSetPayload;
+  CustomerConsentStateFilter: CustomerConsentStateFilter;
+  CustomerCreateInput: CustomerCreateInput;
+  CustomerCreatePayload: CustomerCreatePayload;
+  CustomerDataRequest: CustomerDataRequest;
+  CustomerDataRequestCancelInput: CustomerDataRequestCancelInput;
+  CustomerDataRequestCancelPayload: CustomerDataRequestCancelPayload;
+  CustomerDataRequestConnection: CustomerDataRequestConnection;
+  CustomerDataRequestCreateInput: CustomerDataRequestCreateInput;
+  CustomerDataRequestCreatePayload: CustomerDataRequestCreatePayload;
+  CustomerDataRequestEdge: CustomerDataRequestEdge;
+  CustomerDataRequestOrderByInput: CustomerDataRequestOrderByInput;
+  CustomerDataRequestStatusFilter: CustomerDataRequestStatusFilter;
+  CustomerDataRequestTypeFilter: CustomerDataRequestTypeFilter;
+  CustomerDataRequestWhereInput: CustomerDataRequestWhereInput;
+  CustomerDeleteInput: CustomerDeleteInput;
+  CustomerDeletePayload: CustomerDeletePayload;
+  CustomerEdge: CustomerEdge;
+  CustomerExternalReference: CustomerExternalReference;
+  CustomerExternalReferenceConnection: CustomerExternalReferenceConnection;
+  CustomerExternalReferenceDeleteInput: CustomerExternalReferenceDeleteInput;
+  CustomerExternalReferenceDeletePayload: CustomerExternalReferenceDeletePayload;
+  CustomerExternalReferenceEdge: CustomerExternalReferenceEdge;
+  CustomerExternalReferenceOrderByInput: CustomerExternalReferenceOrderByInput;
+  CustomerExternalReferenceUpsertInput: CustomerExternalReferenceUpsertInput;
+  CustomerExternalReferenceUpsertPayload: CustomerExternalReferenceUpsertPayload;
+  CustomerExternalReferenceWhereInput: CustomerExternalReferenceWhereInput;
+  CustomerGroup: CustomerGroup;
+  CustomerGroupConnection: CustomerGroupConnection;
+  CustomerGroupCreateInput: CustomerGroupCreateInput;
+  CustomerGroupCreatePayload: CustomerGroupCreatePayload;
+  CustomerGroupDeleteInput: CustomerGroupDeleteInput;
+  CustomerGroupDeletePayload: CustomerGroupDeletePayload;
+  CustomerGroupEdge: CustomerGroupEdge;
+  CustomerGroupMembership: CustomerGroupMembership;
+  CustomerGroupMembershipConnection: CustomerGroupMembershipConnection;
+  CustomerGroupMembershipDeleteInput: CustomerGroupMembershipDeleteInput;
+  CustomerGroupMembershipDeletePayload: CustomerGroupMembershipDeletePayload;
+  CustomerGroupMembershipEdge: CustomerGroupMembershipEdge;
+  CustomerGroupMembershipOrderByInput: CustomerGroupMembershipOrderByInput;
+  CustomerGroupMembershipSetInput: CustomerGroupMembershipSetInput;
+  CustomerGroupMembershipSetPayload: CustomerGroupMembershipSetPayload;
+  CustomerGroupMembershipWhereInput: CustomerGroupMembershipWhereInput;
+  CustomerGroupOrderByInput: CustomerGroupOrderByInput;
+  CustomerGroupUpdateInput: CustomerGroupUpdateInput;
+  CustomerGroupUpdatePayload: CustomerGroupUpdatePayload;
+  CustomerGroupWhereInput: CustomerGroupWhereInput;
+  CustomerLifecycleStatusFilter: CustomerLifecycleStatusFilter;
+  CustomerMerge: CustomerMerge;
+  CustomerMergeConnection: CustomerMergeConnection;
+  CustomerMergeEdge: CustomerMergeEdge;
+  CustomerMergeOrderByInput: CustomerMergeOrderByInput;
+  CustomerMergeRequestInput: CustomerMergeRequestInput;
+  CustomerMergeRequestPayload: CustomerMergeRequestPayload;
+  CustomerMergeStatusFilter: CustomerMergeStatusFilter;
+  CustomerMergeWhereInput: CustomerMergeWhereInput;
+  CustomerMonetaryStatistics: CustomerMonetaryStatistics;
+  CustomerMonetaryStatisticsConnection: CustomerMonetaryStatisticsConnection;
+  CustomerMonetaryStatisticsEdge: CustomerMonetaryStatisticsEdge;
+  CustomerMonetaryStatisticsOrderByInput: CustomerMonetaryStatisticsOrderByInput;
+  CustomerMonetaryStatisticsWhereInput: CustomerMonetaryStatisticsWhereInput;
+  CustomerOrderByInput: CustomerOrderByInput;
+  CustomerSegment: CustomerSegment;
+  CustomerSegmentConnection: CustomerSegmentConnection;
+  CustomerSegmentCreateInput: CustomerSegmentCreateInput;
+  CustomerSegmentCreatePayload: CustomerSegmentCreatePayload;
+  CustomerSegmentDeleteInput: CustomerSegmentDeleteInput;
+  CustomerSegmentDeletePayload: CustomerSegmentDeletePayload;
+  CustomerSegmentEdge: CustomerSegmentEdge;
+  CustomerSegmentEvaluateInput: CustomerSegmentEvaluateInput;
+  CustomerSegmentEvaluatePayload: CustomerSegmentEvaluatePayload;
+  CustomerSegmentMembership: CustomerSegmentMembership;
+  CustomerSegmentMembershipConnection: CustomerSegmentMembershipConnection;
+  CustomerSegmentMembershipDeleteInput: CustomerSegmentMembershipDeleteInput;
+  CustomerSegmentMembershipDeletePayload: CustomerSegmentMembershipDeletePayload;
+  CustomerSegmentMembershipEdge: CustomerSegmentMembershipEdge;
+  CustomerSegmentMembershipOrderByInput: CustomerSegmentMembershipOrderByInput;
+  CustomerSegmentMembershipSetInput: CustomerSegmentMembershipSetInput;
+  CustomerSegmentMembershipSetPayload: CustomerSegmentMembershipSetPayload;
+  CustomerSegmentMembershipWhereInput: CustomerSegmentMembershipWhereInput;
+  CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
+  CustomerSegmentStatusFilter: CustomerSegmentStatusFilter;
+  CustomerSegmentTypeFilter: CustomerSegmentTypeFilter;
+  CustomerSegmentUpdateInput: CustomerSegmentUpdateInput;
+  CustomerSegmentUpdatePayload: CustomerSegmentUpdatePayload;
+  CustomerSegmentWhereInput: CustomerSegmentWhereInput;
+  CustomerStatistics: CustomerStatistics;
+  CustomerTag: CustomerTag;
+  CustomerTagAssignInput: CustomerTagAssignInput;
+  CustomerTagAssignPayload: CustomerTagAssignPayload;
+  CustomerTagAssignment: CustomerTagAssignment;
+  CustomerTagAssignmentConnection: CustomerTagAssignmentConnection;
+  CustomerTagAssignmentEdge: CustomerTagAssignmentEdge;
+  CustomerTagAssignmentOrderByInput: CustomerTagAssignmentOrderByInput;
+  CustomerTagAssignmentWhereInput: CustomerTagAssignmentWhereInput;
+  CustomerTagConnection: CustomerTagConnection;
+  CustomerTagCreateInput: CustomerTagCreateInput;
+  CustomerTagCreatePayload: CustomerTagCreatePayload;
+  CustomerTagDeleteInput: CustomerTagDeleteInput;
+  CustomerTagDeletePayload: CustomerTagDeletePayload;
+  CustomerTagEdge: CustomerTagEdge;
+  CustomerTagOrderByInput: CustomerTagOrderByInput;
+  CustomerTagUnassignInput: CustomerTagUnassignInput;
+  CustomerTagUnassignPayload: CustomerTagUnassignPayload;
+  CustomerTagUpdateInput: CustomerTagUpdateInput;
+  CustomerTagUpdatePayload: CustomerTagUpdatePayload;
+  CustomerTagWhereInput: CustomerTagWhereInput;
+  CustomerTaxExemption: CustomerTaxExemption;
+  CustomerTaxExemptionConnection: CustomerTaxExemptionConnection;
+  CustomerTaxExemptionCreateInput: CustomerTaxExemptionCreateInput;
+  CustomerTaxExemptionCreatePayload: CustomerTaxExemptionCreatePayload;
+  CustomerTaxExemptionDeleteInput: CustomerTaxExemptionDeleteInput;
+  CustomerTaxExemptionDeletePayload: CustomerTaxExemptionDeletePayload;
+  CustomerTaxExemptionEdge: CustomerTaxExemptionEdge;
+  CustomerTaxExemptionOrderByInput: CustomerTaxExemptionOrderByInput;
+  CustomerTaxExemptionStatusFilter: CustomerTaxExemptionStatusFilter;
+  CustomerTaxExemptionUpdateInput: CustomerTaxExemptionUpdateInput;
+  CustomerTaxExemptionUpdatePayload: CustomerTaxExemptionUpdatePayload;
+  CustomerTaxExemptionWhereInput: CustomerTaxExemptionWhereInput;
+  CustomerTaxIdentifier: CustomerTaxIdentifier;
+  CustomerTaxIdentifierConnection: CustomerTaxIdentifierConnection;
+  CustomerTaxIdentifierCreateInput: CustomerTaxIdentifierCreateInput;
+  CustomerTaxIdentifierCreatePayload: CustomerTaxIdentifierCreatePayload;
+  CustomerTaxIdentifierDeleteInput: CustomerTaxIdentifierDeleteInput;
+  CustomerTaxIdentifierDeletePayload: CustomerTaxIdentifierDeletePayload;
+  CustomerTaxIdentifierEdge: CustomerTaxIdentifierEdge;
+  CustomerTaxIdentifierOrderByInput: CustomerTaxIdentifierOrderByInput;
+  CustomerTaxIdentifierStatusFilter: CustomerTaxIdentifierStatusFilter;
+  CustomerTaxIdentifierUpdateInput: CustomerTaxIdentifierUpdateInput;
+  CustomerTaxIdentifierUpdatePayload: CustomerTaxIdentifierUpdatePayload;
+  CustomerTaxIdentifierWhereInput: CustomerTaxIdentifierWhereInput;
+  CustomerUpdateInput: CustomerUpdateInput;
+  CustomerUpdatePayload: CustomerUpdatePayload;
+  CustomerWhereInput: CustomerWhereInput;
   CustomersMutation: CustomersMutation;
-  CustomersQuery: CustomersQuery;
+  CustomersQuery: Omit<CustomersQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
+  Date: Scalars['Date']['output'];
+  DateFilter: DateFilter;
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   Email: Scalars['Email']['output'];
+  File: File;
   FloatFilter: FloatFilter;
-  Float: Scalars['Float']['output'];
   GenericUserError: GenericUserError;
-  String: Scalars['String']['output'];
   IDFilter: IdFilter;
-  ID: Scalars['ID']['output'];
   IntFilter: IntFilter;
-  Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
@@ -986,15 +3653,809 @@ export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTyp
   name: 'BigInt';
 }
 
+export type CustomerResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Customer'] = ResolversParentTypes['Customer']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Customer']>, { __typename: 'Customer' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  accountStatus?: Resolver<ResolversTypes['CustomerAccountStatus'], ParentType, ContextType>;
+  addresses?: Resolver<ResolversTypes['CustomerAddressConnection'], ParentType, ContextType, Partial<CustomerAddressesArgs>>;
+  companyName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  consents?: Resolver<Array<ResolversTypes['CustomerConsent']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  createdByUserId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  dateOfBirth?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
+  defaultBillingAddress?: Resolver<Maybe<ResolversTypes['CustomerAddress']>, ParentType, ContextType>;
+  defaultShippingAddress?: Resolver<Maybe<ResolversTypes['CustomerAddress']>, ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  email?: Resolver<Maybe<ResolversTypes['Email']>, ParentType, ContextType>;
+  emailVerified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  externalReferences?: Resolver<ResolversTypes['CustomerExternalReferenceConnection'], ParentType, ContextType, Partial<CustomerExternalReferencesArgs>>;
+  firstName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  gender?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  groupMemberships?: Resolver<ResolversTypes['CustomerGroupMembershipConnection'], ParentType, ContextType, Partial<CustomerGroupMembershipsArgs>>;
+  iamPrincipalId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  jobTitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  lastActivityAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  lastName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  lifecycleStatus?: Resolver<ResolversTypes['CustomerLifecycleStatus'], ParentType, ContextType>;
+  mergedInto?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType>;
+  middleName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  monetaryStatistics?: Resolver<ResolversTypes['CustomerMonetaryStatisticsConnection'], ParentType, ContextType, Partial<CustomerMonetaryStatisticsArgs>>;
+  note?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  phoneE164?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  phoneVerified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  preferredLocale?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  prefix?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  redactedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  segmentMemberships?: Resolver<ResolversTypes['CustomerSegmentMembershipConnection'], ParentType, ContextType, Partial<CustomerSegmentMembershipsArgs>>;
+  source?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  statistics?: Resolver<Maybe<ResolversTypes['CustomerStatistics']>, ParentType, ContextType>;
+  suffix?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  tagAssignments?: Resolver<ResolversTypes['CustomerTagAssignmentConnection'], ParentType, ContextType, Partial<CustomerTagAssignmentsArgs>>;
+  taxExemptions?: Resolver<ResolversTypes['CustomerTaxExemptionConnection'], ParentType, ContextType, Partial<CustomerTaxExemptionsArgs>>;
+  taxIdentifiers?: Resolver<ResolversTypes['CustomerTaxIdentifierConnection'], ParentType, ContextType, Partial<CustomerTaxIdentifiersArgs>>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAddressResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddress'] = ResolversParentTypes['CustomerAddress']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerAddress']>, { __typename: 'CustomerAddress' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  address1?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  address2?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  city?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  companyName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  countryCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  firstName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isDefaultBilling?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isDefaultShipping?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  label?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  lastName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  latitude?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  longitude?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  middleName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  phoneE164?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  postalCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  prefix?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  regionCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  regionName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  suffix?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  validatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  validationStatus?: Resolver<ResolversTypes['CustomerAddressValidationStatus'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAddressConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressConnection'] = ResolversParentTypes['CustomerAddressConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerAddressEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAddressCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressCreatePayload'] = ResolversParentTypes['CustomerAddressCreatePayload']> = ResolversObject<{
+  address?: Resolver<Maybe<ResolversTypes['CustomerAddress']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAddressDefaultsUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressDefaultsUpdatePayload'] = ResolversParentTypes['CustomerAddressDefaultsUpdatePayload']> = ResolversObject<{
+  customer?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAddressDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressDeletePayload'] = ResolversParentTypes['CustomerAddressDeletePayload']> = ResolversObject<{
+  deletedAddressId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAddressEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressEdge'] = ResolversParentTypes['CustomerAddressEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerAddress'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAddressUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressUpdatePayload'] = ResolversParentTypes['CustomerAddressUpdatePayload']> = ResolversObject<{
+  address?: Resolver<Maybe<ResolversTypes['CustomerAddress']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConnection'] = ResolversParentTypes['CustomerConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerConsentResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsent'] = ResolversParentTypes['CustomerConsent']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerConsent']>, { __typename: 'CustomerConsent' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  channel?: Resolver<ResolversTypes['CustomerConsentChannel'], ParentType, ContextType>;
+  consentedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  contactPoint?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  events?: Resolver<ResolversTypes['CustomerConsentEventConnection'], ParentType, ContextType, Partial<CustomerConsentEventsArgs>>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  optInLevel?: Resolver<ResolversTypes['CustomerConsentOptInLevel'], ParentType, ContextType>;
+  source?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sourceIp?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sourceLocationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  state?: Resolver<ResolversTypes['CustomerConsentState'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  userAgent?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  withdrawnAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerConsentEventResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsentEvent'] = ResolversParentTypes['CustomerConsentEvent']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerConsentEvent']>, { __typename: 'CustomerConsentEvent' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  actorId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  actorType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  channel?: Resolver<ResolversTypes['CustomerConsentChannel'], ParentType, ContextType>;
+  consent?: Resolver<ResolversTypes['CustomerConsent'], ParentType, ContextType>;
+  contactPoint?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  evidence?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  newState?: Resolver<ResolversTypes['CustomerConsentState'], ParentType, ContextType>;
+  occurredAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  optInLevel?: Resolver<ResolversTypes['CustomerConsentOptInLevel'], ParentType, ContextType>;
+  previousState?: Resolver<Maybe<ResolversTypes['CustomerConsentState']>, ParentType, ContextType>;
+  requestId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  source?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sourceIp?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sourceLocationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userAgent?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerConsentEventConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsentEventConnection'] = ResolversParentTypes['CustomerConsentEventConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerConsentEventEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerConsentEventEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsentEventEdge'] = ResolversParentTypes['CustomerConsentEventEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerConsentEvent'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerConsentSetPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsentSetPayload'] = ResolversParentTypes['CustomerConsentSetPayload']> = ResolversObject<{
+  consent?: Resolver<Maybe<ResolversTypes['CustomerConsent']>, ParentType, ContextType>;
+  event?: Resolver<Maybe<ResolversTypes['CustomerConsentEvent']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerCreatePayload'] = ResolversParentTypes['CustomerCreatePayload']> = ResolversObject<{
+  customer?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerDataRequestResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequest'] = ResolversParentTypes['CustomerDataRequest']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerDataRequest']>, { __typename: 'CustomerDataRequest' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  dueAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  finishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  legalBasis?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  rejectionReason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  requestMetadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  requestedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  requestedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  requestedByType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  resultFile?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  resultFileId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  startedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['CustomerDataRequestStatus'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['CustomerDataRequestType'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerDataRequestCancelPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequestCancelPayload'] = ResolversParentTypes['CustomerDataRequestCancelPayload']> = ResolversObject<{
+  dataRequest?: Resolver<Maybe<ResolversTypes['CustomerDataRequest']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerDataRequestConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequestConnection'] = ResolversParentTypes['CustomerDataRequestConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerDataRequestEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerDataRequestCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequestCreatePayload'] = ResolversParentTypes['CustomerDataRequestCreatePayload']> = ResolversObject<{
+  dataRequest?: Resolver<Maybe<ResolversTypes['CustomerDataRequest']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerDataRequestEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequestEdge'] = ResolversParentTypes['CustomerDataRequestEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerDataRequest'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDeletePayload'] = ResolversParentTypes['CustomerDeletePayload']> = ResolversObject<{
+  deletedCustomerId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerEdge'] = ResolversParentTypes['CustomerEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerExternalReferenceResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerExternalReference'] = ResolversParentTypes['CustomerExternalReference']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerExternalReference']>, { __typename: 'CustomerExternalReference' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  externalId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  externalSystem?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  externalType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerExternalReferenceConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerExternalReferenceConnection'] = ResolversParentTypes['CustomerExternalReferenceConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerExternalReferenceEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerExternalReferenceDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerExternalReferenceDeletePayload'] = ResolversParentTypes['CustomerExternalReferenceDeletePayload']> = ResolversObject<{
+  deletedExternalReferenceId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerExternalReferenceEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerExternalReferenceEdge'] = ResolversParentTypes['CustomerExternalReferenceEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerExternalReference'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerExternalReferenceUpsertPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerExternalReferenceUpsertPayload'] = ResolversParentTypes['CustomerExternalReferenceUpsertPayload']> = ResolversObject<{
+  externalReference?: Resolver<Maybe<ResolversTypes['CustomerExternalReference']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroup'] = ResolversParentTypes['CustomerGroup']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerGroup']>, { __typename: 'CustomerGroup' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  customerMemberships?: Resolver<ResolversTypes['CustomerGroupMembershipConnection'], ParentType, ContextType, Partial<CustomerGroupCustomerMembershipsArgs>>;
+  customersCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupConnection'] = ResolversParentTypes['CustomerGroupConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerGroupEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupCreatePayload'] = ResolversParentTypes['CustomerGroupCreatePayload']> = ResolversObject<{
+  group?: Resolver<Maybe<ResolversTypes['CustomerGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupDeletePayload'] = ResolversParentTypes['CustomerGroupDeletePayload']> = ResolversObject<{
+  deletedGroupId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupEdge'] = ResolversParentTypes['CustomerGroupEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerGroup'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupMembershipResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupMembership'] = ResolversParentTypes['CustomerGroupMembership']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerGroupMembership']>, { __typename: 'CustomerGroupMembership' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  assignedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  assignedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  expiresAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  group?: Resolver<ResolversTypes['CustomerGroup'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isPrimary?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  source?: Resolver<ResolversTypes['CustomerAssignmentSource'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupMembershipConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupMembershipConnection'] = ResolversParentTypes['CustomerGroupMembershipConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerGroupMembershipEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupMembershipDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupMembershipDeletePayload'] = ResolversParentTypes['CustomerGroupMembershipDeletePayload']> = ResolversObject<{
+  deletedMembershipId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupMembershipEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupMembershipEdge'] = ResolversParentTypes['CustomerGroupMembershipEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerGroupMembership'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupMembershipSetPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupMembershipSetPayload'] = ResolversParentTypes['CustomerGroupMembershipSetPayload']> = ResolversObject<{
+  membership?: Resolver<Maybe<ResolversTypes['CustomerGroupMembership']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerGroupUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupUpdatePayload'] = ResolversParentTypes['CustomerGroupUpdatePayload']> = ResolversObject<{
+  group?: Resolver<Maybe<ResolversTypes['CustomerGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerMergeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMerge'] = ResolversParentTypes['CustomerMerge']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerMerge']>, { __typename: 'CustomerMerge' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  errorCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  errorMessage?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  finishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  requestedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  requestedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  requestedByType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  resolution?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  sourceCustomer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  startedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['CustomerMergeStatus'], ParentType, ContextType>;
+  targetCustomer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerMergeConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMergeConnection'] = ResolversParentTypes['CustomerMergeConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerMergeEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerMergeEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMergeEdge'] = ResolversParentTypes['CustomerMergeEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerMerge'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerMergeRequestPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMergeRequestPayload'] = ResolversParentTypes['CustomerMergeRequestPayload']> = ResolversObject<{
+  merge?: Resolver<Maybe<ResolversTypes['CustomerMerge']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerMonetaryStatisticsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMonetaryStatistics'] = ResolversParentTypes['CustomerMonetaryStatistics']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerMonetaryStatistics']>, { __typename: 'CustomerMonetaryStatistics' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  averageOrderValueMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  currencyCode?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  netSpentMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  ordersCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  totalRefundedMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  totalSpentMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerMonetaryStatisticsConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMonetaryStatisticsConnection'] = ResolversParentTypes['CustomerMonetaryStatisticsConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerMonetaryStatisticsEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerMonetaryStatisticsEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMonetaryStatisticsEdge'] = ResolversParentTypes['CustomerMonetaryStatisticsEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerMonetaryStatistics'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegment'] = ResolversParentTypes['CustomerSegment']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerSegment']>, { __typename: 'CustomerSegment' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  customerMemberships?: Resolver<ResolversTypes['CustomerSegmentMembershipConnection'], ParentType, ContextType, Partial<CustomerSegmentCustomerMembershipsArgs>>;
+  customersCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  definition?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  query?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['CustomerSegmentStatus'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['CustomerSegmentType'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentConnection'] = ResolversParentTypes['CustomerSegmentConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerSegmentEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentCreatePayload'] = ResolversParentTypes['CustomerSegmentCreatePayload']> = ResolversObject<{
+  segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentDeletePayload'] = ResolversParentTypes['CustomerSegmentDeletePayload']> = ResolversObject<{
+  deletedSegmentId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentEdge'] = ResolversParentTypes['CustomerSegmentEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerSegment'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentEvaluatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentEvaluatePayload'] = ResolversParentTypes['CustomerSegmentEvaluatePayload']> = ResolversObject<{
+  customersCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  evaluatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentMembershipResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentMembership'] = ResolversParentTypes['CustomerSegmentMembership']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerSegmentMembership']>, { __typename: 'CustomerSegmentMembership' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  evaluatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  expiresAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  segment?: Resolver<ResolversTypes['CustomerSegment'], ParentType, ContextType>;
+  source?: Resolver<ResolversTypes['CustomerAssignmentSource'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentMembershipConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentMembershipConnection'] = ResolversParentTypes['CustomerSegmentMembershipConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerSegmentMembershipEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentMembershipDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentMembershipDeletePayload'] = ResolversParentTypes['CustomerSegmentMembershipDeletePayload']> = ResolversObject<{
+  deletedMembershipId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentMembershipEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentMembershipEdge'] = ResolversParentTypes['CustomerSegmentMembershipEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerSegmentMembership'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentMembershipSetPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentMembershipSetPayload'] = ResolversParentTypes['CustomerSegmentMembershipSetPayload']> = ResolversObject<{
+  membership?: Resolver<Maybe<ResolversTypes['CustomerSegmentMembership']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentUpdatePayload'] = ResolversParentTypes['CustomerSegmentUpdatePayload']> = ResolversObject<{
+  segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerStatisticsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerStatistics'] = ResolversParentTypes['CustomerStatistics']> = ResolversObject<{
+  cancelledOrdersCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  completedOrdersCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  firstOrderAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  firstOrderId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  lastCheckoutAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  lastOrderAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  lastOrderId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  ordersCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  returnsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTag'] = ResolversParentTypes['CustomerTag']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerTag']>, { __typename: 'CustomerTag' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  customerAssignments?: Resolver<ResolversTypes['CustomerTagAssignmentConnection'], ParentType, ContextType, Partial<CustomerTagCustomerAssignmentsArgs>>;
+  customersCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  normalizedName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagAssignPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagAssignPayload'] = ResolversParentTypes['CustomerTagAssignPayload']> = ResolversObject<{
+  assignment?: Resolver<Maybe<ResolversTypes['CustomerTagAssignment']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagAssignmentResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagAssignment'] = ResolversParentTypes['CustomerTagAssignment']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerTagAssignment']>, { __typename: 'CustomerTagAssignment' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  assignedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  assignedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  tag?: Resolver<ResolversTypes['CustomerTag'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagAssignmentConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagAssignmentConnection'] = ResolversParentTypes['CustomerTagAssignmentConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerTagAssignmentEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagAssignmentEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagAssignmentEdge'] = ResolversParentTypes['CustomerTagAssignmentEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerTagAssignment'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagConnection'] = ResolversParentTypes['CustomerTagConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerTagEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagCreatePayload'] = ResolversParentTypes['CustomerTagCreatePayload']> = ResolversObject<{
+  tag?: Resolver<Maybe<ResolversTypes['CustomerTag']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagDeletePayload'] = ResolversParentTypes['CustomerTagDeletePayload']> = ResolversObject<{
+  deletedTagId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagEdge'] = ResolversParentTypes['CustomerTagEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerTag'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagUnassignPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagUnassignPayload'] = ResolversParentTypes['CustomerTagUnassignPayload']> = ResolversObject<{
+  deletedAssignmentId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTagUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagUpdatePayload'] = ResolversParentTypes['CustomerTagUpdatePayload']> = ResolversObject<{
+  tag?: Resolver<Maybe<ResolversTypes['CustomerTag']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxExemptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxExemption'] = ResolversParentTypes['CustomerTaxExemption']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerTaxExemption']>, { __typename: 'CustomerTaxExemption' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  certificateFile?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  certificateFileId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  countryCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  regionCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['CustomerTaxExemptionStatus'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  validFrom?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
+  validTo?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxExemptionConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxExemptionConnection'] = ResolversParentTypes['CustomerTaxExemptionConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerTaxExemptionEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxExemptionCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxExemptionCreatePayload'] = ResolversParentTypes['CustomerTaxExemptionCreatePayload']> = ResolversObject<{
+  taxExemption?: Resolver<Maybe<ResolversTypes['CustomerTaxExemption']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxExemptionDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxExemptionDeletePayload'] = ResolversParentTypes['CustomerTaxExemptionDeletePayload']> = ResolversObject<{
+  deletedTaxExemptionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxExemptionEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxExemptionEdge'] = ResolversParentTypes['CustomerTaxExemptionEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerTaxExemption'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxExemptionUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxExemptionUpdatePayload'] = ResolversParentTypes['CustomerTaxExemptionUpdatePayload']> = ResolversObject<{
+  taxExemption?: Resolver<Maybe<ResolversTypes['CustomerTaxExemption']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxIdentifierResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxIdentifier'] = ResolversParentTypes['CustomerTaxIdentifier']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerTaxIdentifier']>, { __typename: 'CustomerTaxIdentifier' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  countryCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  identifierType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  isPrimary?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  normalizedValue?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['CustomerTaxIdentifierStatus'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  validFrom?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
+  validTo?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
+  value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  verifiedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxIdentifierConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxIdentifierConnection'] = ResolversParentTypes['CustomerTaxIdentifierConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CustomerTaxIdentifierEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxIdentifierCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxIdentifierCreatePayload'] = ResolversParentTypes['CustomerTaxIdentifierCreatePayload']> = ResolversObject<{
+  taxIdentifier?: Resolver<Maybe<ResolversTypes['CustomerTaxIdentifier']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxIdentifierDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxIdentifierDeletePayload'] = ResolversParentTypes['CustomerTaxIdentifierDeletePayload']> = ResolversObject<{
+  deletedTaxIdentifierId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxIdentifierEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxIdentifierEdge'] = ResolversParentTypes['CustomerTaxIdentifierEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CustomerTaxIdentifier'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerTaxIdentifierUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTaxIdentifierUpdatePayload'] = ResolversParentTypes['CustomerTaxIdentifierUpdatePayload']> = ResolversObject<{
+  taxIdentifier?: Resolver<Maybe<ResolversTypes['CustomerTaxIdentifier']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerUpdatePayload'] = ResolversParentTypes['CustomerUpdatePayload']> = ResolversObject<{
+  customer?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomersMutation'] = ResolversParentTypes['CustomersMutation']> = ResolversObject<{
-  _empty?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  customerAddressCreate?: Resolver<ResolversTypes['CustomerAddressCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressCreateArgs, 'input'>>;
+  customerAddressDefaultsUpdate?: Resolver<ResolversTypes['CustomerAddressDefaultsUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressDefaultsUpdateArgs, 'input'>>;
+  customerAddressDelete?: Resolver<ResolversTypes['CustomerAddressDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressDeleteArgs, 'input'>>;
+  customerAddressUpdate?: Resolver<ResolversTypes['CustomerAddressUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressUpdateArgs, 'input'>>;
+  customerConsentSet?: Resolver<ResolversTypes['CustomerConsentSetPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerConsentSetArgs, 'input'>>;
+  customerCreate?: Resolver<ResolversTypes['CustomerCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerCreateArgs, 'input'>>;
+  customerDataRequestCancel?: Resolver<ResolversTypes['CustomerDataRequestCancelPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestCancelArgs, 'input'>>;
+  customerDataRequestCreate?: Resolver<ResolversTypes['CustomerDataRequestCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestCreateArgs, 'input'>>;
+  customerDelete?: Resolver<ResolversTypes['CustomerDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDeleteArgs, 'input'>>;
+  customerExternalReferenceDelete?: Resolver<ResolversTypes['CustomerExternalReferenceDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerExternalReferenceDeleteArgs, 'input'>>;
+  customerExternalReferenceUpsert?: Resolver<ResolversTypes['CustomerExternalReferenceUpsertPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerExternalReferenceUpsertArgs, 'input'>>;
+  customerGroupCreate?: Resolver<ResolversTypes['CustomerGroupCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupCreateArgs, 'input'>>;
+  customerGroupDelete?: Resolver<ResolversTypes['CustomerGroupDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupDeleteArgs, 'input'>>;
+  customerGroupMembershipDelete?: Resolver<ResolversTypes['CustomerGroupMembershipDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupMembershipDeleteArgs, 'input'>>;
+  customerGroupMembershipSet?: Resolver<ResolversTypes['CustomerGroupMembershipSetPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupMembershipSetArgs, 'input'>>;
+  customerGroupUpdate?: Resolver<ResolversTypes['CustomerGroupUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupUpdateArgs, 'input'>>;
+  customerMergeRequest?: Resolver<ResolversTypes['CustomerMergeRequestPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeRequestArgs, 'input'>>;
+  customerSegmentCreate?: Resolver<ResolversTypes['CustomerSegmentCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCreateArgs, 'input'>>;
+  customerSegmentDelete?: Resolver<ResolversTypes['CustomerSegmentDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentDeleteArgs, 'input'>>;
+  customerSegmentEvaluate?: Resolver<ResolversTypes['CustomerSegmentEvaluatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentEvaluateArgs, 'input'>>;
+  customerSegmentMembershipDelete?: Resolver<ResolversTypes['CustomerSegmentMembershipDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentMembershipDeleteArgs, 'input'>>;
+  customerSegmentMembershipSet?: Resolver<ResolversTypes['CustomerSegmentMembershipSetPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentMembershipSetArgs, 'input'>>;
+  customerSegmentUpdate?: Resolver<ResolversTypes['CustomerSegmentUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentUpdateArgs, 'input'>>;
+  customerTagAssign?: Resolver<ResolversTypes['CustomerTagAssignPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagAssignArgs, 'input'>>;
+  customerTagCreate?: Resolver<ResolversTypes['CustomerTagCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagCreateArgs, 'input'>>;
+  customerTagDelete?: Resolver<ResolversTypes['CustomerTagDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagDeleteArgs, 'input'>>;
+  customerTagUnassign?: Resolver<ResolversTypes['CustomerTagUnassignPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUnassignArgs, 'input'>>;
+  customerTagUpdate?: Resolver<ResolversTypes['CustomerTagUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUpdateArgs, 'input'>>;
+  customerTaxExemptionCreate?: Resolver<ResolversTypes['CustomerTaxExemptionCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxExemptionCreateArgs, 'input'>>;
+  customerTaxExemptionDelete?: Resolver<ResolversTypes['CustomerTaxExemptionDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxExemptionDeleteArgs, 'input'>>;
+  customerTaxExemptionUpdate?: Resolver<ResolversTypes['CustomerTaxExemptionUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxExemptionUpdateArgs, 'input'>>;
+  customerTaxIdentifierCreate?: Resolver<ResolversTypes['CustomerTaxIdentifierCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierCreateArgs, 'input'>>;
+  customerTaxIdentifierDelete?: Resolver<ResolversTypes['CustomerTaxIdentifierDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierDeleteArgs, 'input'>>;
+  customerTaxIdentifierUpdate?: Resolver<ResolversTypes['CustomerTaxIdentifierUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxIdentifierUpdateArgs, 'input'>>;
+  customerUpdate?: Resolver<ResolversTypes['CustomerUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerUpdateArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type CustomersQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomersQuery'] = ResolversParentTypes['CustomersQuery']> = ResolversObject<{
-  _empty?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  customer?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerArgs, 'id'>>;
+  customerAddress?: Resolver<Maybe<ResolversTypes['CustomerAddress']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerAddressArgs, 'id'>>;
+  customerByEmail?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerByEmailArgs, 'email'>>;
+  customerByExternalReference?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerByExternalReferenceArgs, 'externalId' | 'externalSystem' | 'externalType'>>;
+  customerByIamPrincipalId?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerByIamPrincipalIdArgs, 'iamPrincipalId'>>;
+  customerConsent?: Resolver<Maybe<ResolversTypes['CustomerConsent']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerConsentArgs, 'id'>>;
+  customerConsentEvents?: Resolver<ResolversTypes['CustomerConsentEventConnection'], ParentType, ContextType, Partial<CustomersQueryCustomerConsentEventsArgs>>;
+  customerDataRequest?: Resolver<Maybe<ResolversTypes['CustomerDataRequest']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerDataRequestArgs, 'id'>>;
+  customerDataRequests?: Resolver<ResolversTypes['CustomerDataRequestConnection'], ParentType, ContextType, Partial<CustomersQueryCustomerDataRequestsArgs>>;
+  customerExternalReference?: Resolver<Maybe<ResolversTypes['CustomerExternalReference']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerExternalReferenceArgs, 'id'>>;
+  customerGroup?: Resolver<Maybe<ResolversTypes['CustomerGroup']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerGroupArgs, 'id'>>;
+  customerGroups?: Resolver<ResolversTypes['CustomerGroupConnection'], ParentType, ContextType, Partial<CustomersQueryCustomerGroupsArgs>>;
+  customerMerge?: Resolver<Maybe<ResolversTypes['CustomerMerge']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerMergeArgs, 'id'>>;
+  customerMerges?: Resolver<ResolversTypes['CustomerMergeConnection'], ParentType, ContextType, Partial<CustomersQueryCustomerMergesArgs>>;
+  customerSegment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerSegmentArgs, 'id'>>;
+  customerSegments?: Resolver<ResolversTypes['CustomerSegmentConnection'], ParentType, ContextType, Partial<CustomersQueryCustomerSegmentsArgs>>;
+  customerTag?: Resolver<Maybe<ResolversTypes['CustomerTag']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerTagArgs, 'id'>>;
+  customerTags?: Resolver<ResolversTypes['CustomerTagConnection'], ParentType, ContextType, Partial<CustomersQueryCustomerTagsArgs>>;
+  customerTaxExemption?: Resolver<Maybe<ResolversTypes['CustomerTaxExemption']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerTaxExemptionArgs, 'id'>>;
+  customerTaxIdentifier?: Resolver<Maybe<ResolversTypes['CustomerTaxIdentifier']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerTaxIdentifierArgs, 'id'>>;
+  customers?: Resolver<ResolversTypes['CustomerConnection'], ParentType, ContextType, Partial<CustomersQueryCustomersArgs>>;
+  node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<CustomersQueryNodeArgs, 'id'>>;
+  nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<CustomersQueryNodesArgs, 'ids'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
+
+export interface DateScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Date'], any> {
+  name: 'Date';
+}
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
@@ -1003,6 +4464,12 @@ export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversT
 export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Email'], any> {
   name: 'Email';
 }
+
+export type FileResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['File'] = ResolversParentTypes['File']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['GenericUserError'] = ResolversParentTypes['GenericUserError']> = ResolversObject<{
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1020,7 +4487,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<null, ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Customer' | 'CustomerAddress' | 'CustomerConsent' | 'CustomerConsentEvent' | 'CustomerDataRequest' | 'CustomerExternalReference' | 'CustomerGroup' | 'CustomerGroupMembership' | 'CustomerMerge' | 'CustomerMonetaryStatistics' | 'CustomerSegment' | 'CustomerSegmentMembership' | 'CustomerTag' | 'CustomerTagAssignment' | 'CustomerTaxExemption' | 'CustomerTaxIdentifier', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -1049,10 +4516,94 @@ export interface _CustomersGeneratedFilterPlaceholderScalarConfig extends GraphQ
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
+  Customer?: CustomerResolvers<ContextType>;
+  CustomerAddress?: CustomerAddressResolvers<ContextType>;
+  CustomerAddressConnection?: CustomerAddressConnectionResolvers<ContextType>;
+  CustomerAddressCreatePayload?: CustomerAddressCreatePayloadResolvers<ContextType>;
+  CustomerAddressDefaultsUpdatePayload?: CustomerAddressDefaultsUpdatePayloadResolvers<ContextType>;
+  CustomerAddressDeletePayload?: CustomerAddressDeletePayloadResolvers<ContextType>;
+  CustomerAddressEdge?: CustomerAddressEdgeResolvers<ContextType>;
+  CustomerAddressUpdatePayload?: CustomerAddressUpdatePayloadResolvers<ContextType>;
+  CustomerConnection?: CustomerConnectionResolvers<ContextType>;
+  CustomerConsent?: CustomerConsentResolvers<ContextType>;
+  CustomerConsentEvent?: CustomerConsentEventResolvers<ContextType>;
+  CustomerConsentEventConnection?: CustomerConsentEventConnectionResolvers<ContextType>;
+  CustomerConsentEventEdge?: CustomerConsentEventEdgeResolvers<ContextType>;
+  CustomerConsentSetPayload?: CustomerConsentSetPayloadResolvers<ContextType>;
+  CustomerCreatePayload?: CustomerCreatePayloadResolvers<ContextType>;
+  CustomerDataRequest?: CustomerDataRequestResolvers<ContextType>;
+  CustomerDataRequestCancelPayload?: CustomerDataRequestCancelPayloadResolvers<ContextType>;
+  CustomerDataRequestConnection?: CustomerDataRequestConnectionResolvers<ContextType>;
+  CustomerDataRequestCreatePayload?: CustomerDataRequestCreatePayloadResolvers<ContextType>;
+  CustomerDataRequestEdge?: CustomerDataRequestEdgeResolvers<ContextType>;
+  CustomerDeletePayload?: CustomerDeletePayloadResolvers<ContextType>;
+  CustomerEdge?: CustomerEdgeResolvers<ContextType>;
+  CustomerExternalReference?: CustomerExternalReferenceResolvers<ContextType>;
+  CustomerExternalReferenceConnection?: CustomerExternalReferenceConnectionResolvers<ContextType>;
+  CustomerExternalReferenceDeletePayload?: CustomerExternalReferenceDeletePayloadResolvers<ContextType>;
+  CustomerExternalReferenceEdge?: CustomerExternalReferenceEdgeResolvers<ContextType>;
+  CustomerExternalReferenceUpsertPayload?: CustomerExternalReferenceUpsertPayloadResolvers<ContextType>;
+  CustomerGroup?: CustomerGroupResolvers<ContextType>;
+  CustomerGroupConnection?: CustomerGroupConnectionResolvers<ContextType>;
+  CustomerGroupCreatePayload?: CustomerGroupCreatePayloadResolvers<ContextType>;
+  CustomerGroupDeletePayload?: CustomerGroupDeletePayloadResolvers<ContextType>;
+  CustomerGroupEdge?: CustomerGroupEdgeResolvers<ContextType>;
+  CustomerGroupMembership?: CustomerGroupMembershipResolvers<ContextType>;
+  CustomerGroupMembershipConnection?: CustomerGroupMembershipConnectionResolvers<ContextType>;
+  CustomerGroupMembershipDeletePayload?: CustomerGroupMembershipDeletePayloadResolvers<ContextType>;
+  CustomerGroupMembershipEdge?: CustomerGroupMembershipEdgeResolvers<ContextType>;
+  CustomerGroupMembershipSetPayload?: CustomerGroupMembershipSetPayloadResolvers<ContextType>;
+  CustomerGroupUpdatePayload?: CustomerGroupUpdatePayloadResolvers<ContextType>;
+  CustomerMerge?: CustomerMergeResolvers<ContextType>;
+  CustomerMergeConnection?: CustomerMergeConnectionResolvers<ContextType>;
+  CustomerMergeEdge?: CustomerMergeEdgeResolvers<ContextType>;
+  CustomerMergeRequestPayload?: CustomerMergeRequestPayloadResolvers<ContextType>;
+  CustomerMonetaryStatistics?: CustomerMonetaryStatisticsResolvers<ContextType>;
+  CustomerMonetaryStatisticsConnection?: CustomerMonetaryStatisticsConnectionResolvers<ContextType>;
+  CustomerMonetaryStatisticsEdge?: CustomerMonetaryStatisticsEdgeResolvers<ContextType>;
+  CustomerSegment?: CustomerSegmentResolvers<ContextType>;
+  CustomerSegmentConnection?: CustomerSegmentConnectionResolvers<ContextType>;
+  CustomerSegmentCreatePayload?: CustomerSegmentCreatePayloadResolvers<ContextType>;
+  CustomerSegmentDeletePayload?: CustomerSegmentDeletePayloadResolvers<ContextType>;
+  CustomerSegmentEdge?: CustomerSegmentEdgeResolvers<ContextType>;
+  CustomerSegmentEvaluatePayload?: CustomerSegmentEvaluatePayloadResolvers<ContextType>;
+  CustomerSegmentMembership?: CustomerSegmentMembershipResolvers<ContextType>;
+  CustomerSegmentMembershipConnection?: CustomerSegmentMembershipConnectionResolvers<ContextType>;
+  CustomerSegmentMembershipDeletePayload?: CustomerSegmentMembershipDeletePayloadResolvers<ContextType>;
+  CustomerSegmentMembershipEdge?: CustomerSegmentMembershipEdgeResolvers<ContextType>;
+  CustomerSegmentMembershipSetPayload?: CustomerSegmentMembershipSetPayloadResolvers<ContextType>;
+  CustomerSegmentUpdatePayload?: CustomerSegmentUpdatePayloadResolvers<ContextType>;
+  CustomerStatistics?: CustomerStatisticsResolvers<ContextType>;
+  CustomerTag?: CustomerTagResolvers<ContextType>;
+  CustomerTagAssignPayload?: CustomerTagAssignPayloadResolvers<ContextType>;
+  CustomerTagAssignment?: CustomerTagAssignmentResolvers<ContextType>;
+  CustomerTagAssignmentConnection?: CustomerTagAssignmentConnectionResolvers<ContextType>;
+  CustomerTagAssignmentEdge?: CustomerTagAssignmentEdgeResolvers<ContextType>;
+  CustomerTagConnection?: CustomerTagConnectionResolvers<ContextType>;
+  CustomerTagCreatePayload?: CustomerTagCreatePayloadResolvers<ContextType>;
+  CustomerTagDeletePayload?: CustomerTagDeletePayloadResolvers<ContextType>;
+  CustomerTagEdge?: CustomerTagEdgeResolvers<ContextType>;
+  CustomerTagUnassignPayload?: CustomerTagUnassignPayloadResolvers<ContextType>;
+  CustomerTagUpdatePayload?: CustomerTagUpdatePayloadResolvers<ContextType>;
+  CustomerTaxExemption?: CustomerTaxExemptionResolvers<ContextType>;
+  CustomerTaxExemptionConnection?: CustomerTaxExemptionConnectionResolvers<ContextType>;
+  CustomerTaxExemptionCreatePayload?: CustomerTaxExemptionCreatePayloadResolvers<ContextType>;
+  CustomerTaxExemptionDeletePayload?: CustomerTaxExemptionDeletePayloadResolvers<ContextType>;
+  CustomerTaxExemptionEdge?: CustomerTaxExemptionEdgeResolvers<ContextType>;
+  CustomerTaxExemptionUpdatePayload?: CustomerTaxExemptionUpdatePayloadResolvers<ContextType>;
+  CustomerTaxIdentifier?: CustomerTaxIdentifierResolvers<ContextType>;
+  CustomerTaxIdentifierConnection?: CustomerTaxIdentifierConnectionResolvers<ContextType>;
+  CustomerTaxIdentifierCreatePayload?: CustomerTaxIdentifierCreatePayloadResolvers<ContextType>;
+  CustomerTaxIdentifierDeletePayload?: CustomerTaxIdentifierDeletePayloadResolvers<ContextType>;
+  CustomerTaxIdentifierEdge?: CustomerTaxIdentifierEdgeResolvers<ContextType>;
+  CustomerTaxIdentifierUpdatePayload?: CustomerTaxIdentifierUpdatePayloadResolvers<ContextType>;
+  CustomerUpdatePayload?: CustomerUpdatePayloadResolvers<ContextType>;
   CustomersMutation?: CustomersMutationResolvers<ContextType>;
   CustomersQuery?: CustomersQueryResolvers<ContextType>;
+  Date?: GraphQLScalarType;
   DateTime?: GraphQLScalarType;
   Email?: GraphQLScalarType;
+  File?: FileResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   Mutation?: MutationResolvers<ContextType>;
@@ -1062,4 +4613,3 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   UserError?: UserErrorResolvers<ContextType>;
   _CustomersGeneratedFilterPlaceholder?: GraphQLScalarType;
 }>;
-

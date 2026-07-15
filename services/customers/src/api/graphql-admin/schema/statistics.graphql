@@ -1,0 +1,39 @@
+"""Rebuildable, currency-independent customer activity projection."""
+type CustomerStatistics {
+  customer: Customer!
+  ordersCount: Int!
+  completedOrdersCount: Int!
+  cancelledOrdersCount: Int!
+  returnsCount: Int!
+  """Raw Orders service UUID; Orders Admin type is not a federation entity."""
+  firstOrderId: ID
+  firstOrderAt: DateTime
+  lastOrderId: ID
+  lastOrderAt: DateTime
+  lastCheckoutAt: DateTime
+  updatedAt: DateTime!
+}
+
+"""Rebuildable monetary customer projection for one ISO 4217 currency."""
+type CustomerMonetaryStatistics implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  currencyCode: CurrencyCode!
+  ordersCount: Int!
+  totalSpentMinor: BigInt!
+  totalRefundedMinor: BigInt!
+  netSpentMinor: BigInt!
+  averageOrderValueMinor: BigInt!
+  updatedAt: DateTime!
+}
+
+type CustomerMonetaryStatisticsConnection {
+  edges: [CustomerMonetaryStatisticsEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerMonetaryStatisticsEdge {
+  node: CustomerMonetaryStatistics!
+  cursor: String!
+}
