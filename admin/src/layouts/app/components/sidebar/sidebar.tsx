@@ -258,6 +258,7 @@ export const Sidebar = () => {
           >
             <Menu
               className={styles.menu}
+              inlineIndent={16}
               selectedKeys={selectedKeys}
               theme="light"
               mode="inline"
