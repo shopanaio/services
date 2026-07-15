@@ -35,6 +35,7 @@ export const useMediaStyles = createStyles(({ token }) => ({
     aspectRatio: "1/1",
     objectFit: "cover",
     borderRadius: 4,
+    cursor: "pointer",
   },
   mediaPreview: {
     fontSize: token.fontSizeSM,

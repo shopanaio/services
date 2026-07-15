@@ -29,6 +29,10 @@ export interface IEntityMediaGalleryProps {
   onPreview?: (item: ApiFile, index: number) => void;
   /** Accept attribute for file input */
   accept?: string;
+  /** Maximum file size in MB for new uploads */
+  maxSize?: number;
+  /** Maximum number of media items in the gallery */
+  maxFiles?: number;
   /** Empty state message */
   emptyMessage?: string;
   /** Label for featured badge */

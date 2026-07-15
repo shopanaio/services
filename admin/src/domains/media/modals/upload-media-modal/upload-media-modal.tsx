@@ -71,9 +71,12 @@ export const UploadMediaModal = () => {
     async (file: File, fileList: File[]) => {
       // Process all files only once (when we hit the last file)
       if (file === fileList[fileList.length - 1]) {
+        if (fileList.length > maxFiles) {
+          message.warning(`Only the first ${maxFiles} files will be uploaded`);
+        }
         // Validate size
         const validFiles: File[] = [];
-        for (const f of fileList) {
+        for (const f of fileList.slice(0, maxFiles)) {
           if (f.size / 1024 / 1024 > maxSize) {
             message.error(`${f.name} exceeds ${maxSize}MB limit`);
             continue;
@@ -105,7 +108,7 @@ export const UploadMediaModal = () => {
       }
       return false;
     },
-    [maxSize, uploadFiles, onUploadCallback, pop]
+    [maxFiles, maxSize, uploadFiles, onUploadCallback, pop]
   );
 
   // Handle URL add

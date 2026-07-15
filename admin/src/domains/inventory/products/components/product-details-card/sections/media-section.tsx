@@ -14,9 +14,20 @@ import type { ApiFile } from "@/graphql/types";
 interface IMediaSectionProps {
   mediaFiles: ApiFile[];
   onEdit: () => void;
+  title?: string;
+  editLabel?: string;
+  hasFeatured?: boolean;
+  testIdPrefix?: string;
 }
 
-export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
+export const MediaSection = ({
+  mediaFiles,
+  onEdit,
+  title = "Media",
+  editLabel = "Edit media",
+  hasFeatured = true,
+  testIdPrefix = "product-media",
+}: IMediaSectionProps) => {
   const { styles } = useMediaStyles();
   const mediaPreview = useMediaPreview(mediaFiles);
 
@@ -28,48 +39,73 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
   return (
     <Paper>
       <PaperHeader
-        title="Media"
+        title={title}
         actions={
           <EditAction
             onEdit={onEdit}
-            label="Edit media"
-            testId="product-media-actions-button"
+            label={editLabel}
+            testId={`${testIdPrefix}-actions-button`}
           />
         }
       />
       {hasMedia ? (
-        <div className={styles.mediaGrid} data-testid="product-media-section">
+        <div className={styles.mediaGrid} data-testid={`${testIdPrefix}-section`}>
           {visibleMediaFiles.map((media, index) =>
-            index === 0 ? (
+            index === 0 && hasFeatured ? (
               <div
                 key={media.id}
                 className={styles.mediaFeaturedWrapper}
               >
-                <Image
-                  src={media.url}
-                  alt={media.altText || media.originalName || ""}
-                  className={styles.mediaImage}
-                  data-testid={`product-media-item-${media.id}`}
-                  preview={{
-                    visible: false,
-                    mask: (
-                      <Flex gap={4} className={styles.mediaPreview}>
-                        <EyeOutlined />
-                        Preview
-                      </Flex>
-                    ),
-                  }}
-                  onClick={() => mediaPreview.open(index)}
-                />
+                {media.mimeType?.startsWith("video/") ? (
+                  <video
+                    src={media.url}
+                    aria-label={media.altText || media.originalName || "Video"}
+                    className={styles.mediaImage}
+                    data-testid={`${testIdPrefix}-item-${media.id}`}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onClick={() => mediaPreview.open(index)}
+                  />
+                ) : (
+                  <Image
+                    src={media.url}
+                    alt={media.altText || media.originalName || ""}
+                    className={styles.mediaImage}
+                    data-testid={`${testIdPrefix}-item-${media.id}`}
+                    preview={{
+                      visible: false,
+                      mask: (
+                        <Flex gap={4} className={styles.mediaPreview}>
+                          <EyeOutlined />
+                          Preview
+                        </Flex>
+                      ),
+                    }}
+                    onClick={() => mediaPreview.open(index)}
+                  />
+                )}
                 <FeaturedBadge />
               </div>
+            ) : media.mimeType?.startsWith("video/") ? (
+              <video
+                key={media.id}
+                src={media.url}
+                aria-label={media.altText || media.originalName || "Video"}
+                className={styles.mediaImage}
+                data-testid={`${testIdPrefix}-item-${media.id}`}
+                muted
+                playsInline
+                preload="metadata"
+                onClick={() => mediaPreview.open(index)}
+              />
             ) : (
               <Image
                 key={media.id}
                 src={media.url}
                 alt={media.altText || media.originalName || ""}
                 className={styles.mediaImage}
-                data-testid={`product-media-item-${media.id}`}
+                data-testid={`${testIdPrefix}-item-${media.id}`}
                 preview={{
                   visible: false,
                   mask: (
@@ -96,7 +132,7 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
           <div className={styles.uploadCell}>
             <div
               className={styles.uploadArea}
-              data-testid="product-media-upload-area"
+              data-testid={`${testIdPrefix}-upload-area`}
               onClick={onEdit}
               role="button"
               tabIndex={0}
@@ -119,7 +155,7 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
           </div>
         </div>
       ) : (
-        <div data-testid="product-media-section">
+        <div data-testid={`${testIdPrefix}-section`}>
           <EntityMediaEmptyState />
         </div>
       )}

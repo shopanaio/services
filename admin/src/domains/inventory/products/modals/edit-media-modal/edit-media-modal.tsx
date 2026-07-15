@@ -115,7 +115,9 @@ export const EditMediaModal = () => {
           selectionMode={selectionMode}
           selectedIds={selectedFileIds}
           onSelectedIdsChange={handleSelectedFileIdsChange}
-          accept="image/*,video/*"
+          accept={typedPayload.accept ?? "image/*,video/*"}
+          maxSize={typedPayload.maxSize}
+          maxFiles={typedPayload.maxFiles}
           hasFeatured={hasFeatured}
           featuredLabel="Featured"
           emptyMessage="No media files yet"

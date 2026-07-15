@@ -68,6 +68,23 @@ const getFileName = (file: ApiFile): string => file.originalName || file.id;
 const getFileSize = (file: ApiFile): number => Number(file.sizeBytes) || 0;
 const getFileExt = (file: ApiFile): string => file.ext?.toUpperCase() || "";
 
+const MediaThumbnail = ({ item, className }: { item: ApiFile; className: string }) => {
+  const isVideo = item.mimeType?.startsWith("video/") ?? false;
+
+  return isVideo ? (
+    <video
+      src={item.url}
+      className={className}
+      muted
+      playsInline
+      preload="metadata"
+      aria-label={getFileName(item)}
+    />
+  ) : (
+    <img src={item.url} alt={getFileName(item)} className={className} />
+  );
+};
+
 // ============================================================================
 // SortableGridItem Component
 // ============================================================================
@@ -212,7 +229,7 @@ const SortableGridItem = ({
     >
       {isFeatured && <FeaturedBadge />}
 
-      <img src={item.url} alt={name} className={styles.mediaImage} />
+      <MediaThumbnail item={item} className={styles.mediaImage} />
 
       {actionItems.length > 0 && (
         <div className={cx(styles.mediaActions, "media-actions")}>
@@ -318,7 +335,7 @@ const SortableListItem = ({
         <div className={styles.dragHandle}>
           <HolderOutlined />
         </div>
-        <img src={item.url} alt={name} className={styles.listItemImage} />
+        <MediaThumbnail item={item} className={styles.listItemImage} />
       </div>
 
       <div className={styles.listItemInfo}>
@@ -439,7 +456,7 @@ const ListItemPreview = ({
         <div className={styles.dragHandle}>
           <HolderOutlined />
         </div>
-        <img src={item.url} alt={name} className={styles.listItemImage} />
+        <MediaThumbnail item={item} className={styles.listItemImage} />
       </div>
       <div className={styles.listItemInfo}>
         <Typography.Text className={styles.listItemName}>
@@ -478,11 +495,14 @@ export const EntityMediaGallery = ({
   onSelectedIdsChange,
   onPreview: externalOnPreview,
   accept = "image/*",
+  maxSize = 50,
+  maxFiles,
   emptyMessage = "No media files yet",
   featuredLabel = "Featured",
   hasFeatured = true,
   minCells = 13,
   title,
+  headerExtra,
 }: IEntityMediaGalleryProps) => {
   const { styles } = useStyles();
   const { push: openUploadModal } = useUploadMediaModal();
@@ -505,28 +525,34 @@ export const EntityMediaGallery = ({
 
   // Handle files selected from media picker
   const handleMediaPickerConfirm = useCallback((files: ApiFile[]) => {
-    onChange([...value, ...files]);
-  }, [value, onChange]);
+    const next = [...value, ...files];
+    onChange(maxFiles ? next.slice(0, maxFiles) : next);
+  }, [maxFiles, value, onChange]);
 
   // Media picker hook
   const { openPicker: openMediaPicker } = useMediaPicker({
     accept,
+    maxSize,
+    maxSelection: maxFiles ? Math.max(0, maxFiles - value.length) : undefined,
     onConfirm: handleMediaPickerConfirm,
     excludeIds: value.map((item) => item.id),
   });
 
   // Handle files uploaded from upload modal
   const handleUploadModalConfirm = useCallback((files: ApiFile[]) => {
-    onChange([...value, ...files]);
-  }, [value, onChange]);
+    const next = [...value, ...files];
+    onChange(maxFiles ? next.slice(0, maxFiles) : next);
+  }, [maxFiles, value, onChange]);
 
   // Open upload modal handler
   const handleOpenUploadModal = useCallback(() => {
     openUploadModal({
       accept,
+      maxSize,
+      maxFiles: maxFiles ? Math.max(0, maxFiles - value.length) : undefined,
       onUpload: handleUploadModalConfirm,
     });
-  }, [openUploadModal, accept, handleUploadModalConfirm]);
+  }, [openUploadModal, accept, handleUploadModalConfirm, maxFiles, maxSize, value.length]);
 
   const activeItem = value.find((it) => it.id === activeId);
   const activeIndex = activeItem ? value.indexOf(activeItem) : -1;
@@ -622,9 +648,10 @@ export const EntityMediaGallery = ({
   );
 
   const hasMedia = value.length > 0;
+  const canAddMedia = showUpload && (maxFiles === undefined || value.length < maxFiles);
 
   const renderHeader = () => {
-    if ((!showViewSwitcher && !showUpload) || !hasMedia) return null;
+    if ((!showViewSwitcher && !canAddMedia) || !hasMedia) return null;
 
     return (
       <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
@@ -632,7 +659,7 @@ export const EntityMediaGallery = ({
           {value.length} file{value.length !== 1 ? "s" : ""}
         </Typography.Text>
         <Flex gap={8} align="center">
-          {showUpload && (
+          {canAddMedia && (
             <Button size="small" icon={<FolderOpenOutlined />} onClick={openMediaPicker}>
               Browse
             </Button>
@@ -660,7 +687,7 @@ export const EntityMediaGallery = ({
 
   return (
     <Paper>
-      {title && <PaperHeader title={title} />}
+      {title && <PaperHeader title={title} actions={headerExtra} />}
 
       <DndContext
         sensors={sensors}
@@ -671,7 +698,7 @@ export const EntityMediaGallery = ({
         {renderHeader()}
 
         {/* Empty state with upload button */}
-        {!hasMedia && showUpload && (
+        {!hasMedia && canAddMedia && (
           <div
             className={styles.emptyUploadArea}
             data-testid="entity-media-empty-upload-area"
@@ -691,17 +718,17 @@ export const EntityMediaGallery = ({
                 type="secondary"
                 className={styles.draggerTitle}
               >
-                Upload images
+                Upload media
               </Typography.Text>
               <Typography.Text type="secondary">
-                Click to upload images
+                Click to upload images or videos
               </Typography.Text>
             </Flex>
           </div>
         )}
 
         {/* Empty state without upload */}
-        {!hasMedia && !showUpload && (
+        {!hasMedia && !canAddMedia && (
           <div className={styles.emptyContainer}>
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -736,7 +763,7 @@ export const EntityMediaGallery = ({
                 ))}
               </SortableContext>
 
-              {showUpload && (
+              {canAddMedia && (
                 <div className={styles.uploadCell}>
                   <div
                     className={styles.uploadArea}
@@ -761,14 +788,14 @@ export const EntityMediaGallery = ({
               {/* Overlay with placeholder cells */}
               <div className={styles.mediaGridOverlay}>
                 {Array.from({
-                  length: value.length + (showUpload ? 1 : 0),
+                  length: value.length + (canAddMedia ? 1 : 0),
                 }).map((_, idx) => (
                   <div key={`spacer-${idx}`} className={styles.spacerCell} />
                 ))}
                 {Array.from({
                   length: Math.max(
                     0,
-                    minCells - value.length - (showUpload ? 1 : 0)
+                    minCells - value.length - (canAddMedia ? 1 : 0)
                   ),
                 }).map((_, idx) => (
                   <div

@@ -473,6 +473,19 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard unsaved changes?',
     },
     // ========================================
+    // Customer review modals
+    // ========================================
+    {
+      type: 'customer-review',
+      component: dynamic(() =>
+        import('@/domains/customer-content/reviews/modals/review-modal').then(
+          (m) => m.ReviewModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved review changes?',
+    },
+    // ========================================
     // Picker modals
     // ========================================
     // Generic Entity Picker modal

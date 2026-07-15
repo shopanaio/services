@@ -13,7 +13,6 @@ registerModule({
     {
       key: "customer-reviews-list",
       path: "/:orgName/:storeName/customer-content/reviews",
-      disabled: true,
       sidebar: {
         label: "All Reviews",
         icon: null,

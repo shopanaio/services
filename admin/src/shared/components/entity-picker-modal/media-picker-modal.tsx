@@ -59,6 +59,7 @@ export function MediaPickerModal() {
     selectionMode = "multi",
     initialSelection = [],
     excludeIds = [],
+    maxSelection,
     accept = "image/*",
     maxSize = 10,
     onConfirm,
@@ -213,8 +214,9 @@ export function MediaPickerModal() {
     forcePop();
   }, [forcePop]);
 
-  const confirmText =
-    selectedIds.length > 0 ? `Select (${selectedIds.length})` : "Select";
+  const confirmText = selectedIds.length > 0
+    ? `Select (${selectedIds.length}${maxSelection !== undefined ? `/${maxSelection}` : ""})`
+    : "Select";
 
   return (
     <ModalLayout
@@ -227,7 +229,9 @@ export function MediaPickerModal() {
           onClose={handleCancel}
           submitButtonProps={{
             onClick: handleConfirm,
-            disabled: selectedIds.length === 0,
+            disabled:
+              selectedIds.length === 0 ||
+              (maxSelection !== undefined && selectedIds.length > maxSelection),
             children: confirmText,
           }}
         />

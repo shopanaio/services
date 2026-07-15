@@ -118,6 +118,9 @@ export interface IEditMediaModalPayload extends IModalStackPayload {
   allowDelete?: boolean;
   allowSetFeatured?: boolean;
   hasFeatured?: boolean;
+  accept?: string;
+  maxSize?: number;
+  maxFiles?: number;
   onSave?: (media: {
     featured: ApiFile | null;
     gallery: ApiFile[];
