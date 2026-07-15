@@ -35,25 +35,12 @@ registerModule({
       ),
     },
     {
-      key: "collections-list",
-      path: "/:orgName/:storeName/collections",
-      disabled: true,
-      sidebar: {
-        label: "Collections",
-        icon: null,
-        order: 3,
-      },
-      component: dynamic(
-        () => import("@/domains/inventory/collections/page/page"),
-      ),
-    },
-    {
       key: "tags-list",
       path: "/:orgName/:storeName/tags",
       sidebar: {
         label: "Tags",
         icon: null,
-        order: 4,
+        order: 3,
       },
       component: dynamic(
         () => import("@/domains/inventory/tags/page/page"),

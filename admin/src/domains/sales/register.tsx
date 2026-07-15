@@ -61,29 +61,10 @@ registerModule({
   },
   items: [
     {
-      key: "shipments-list",
-      path: "/:orgName/:storeName/fulfillment/shipments",
-      disabled: true,
-      sidebar: {
-        label: "Shipments",
-        icon: null,
-        order: 1,
-      },
+      key: "fulfillment-page",
+      path: "/:orgName/:storeName/fulfillment",
       component: dynamic(
-        () => import("@/domains/sales/shipments/page/page"),
-      ),
-    },
-    {
-      key: "pickups-list",
-      path: "/:orgName/:storeName/fulfillment/pickups",
-      disabled: true,
-      sidebar: {
-        label: "Pickups",
-        icon: null,
-        order: 2,
-      },
-      component: dynamic(
-        () => import("@/domains/sales/pickups/page/page"),
+        () => import("@/domains/sales/fulfillment/board/page/page"),
       ),
     },
   ],

@@ -663,7 +663,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'fulfillment-stage',
       component: dynamic(() =>
-        import('@/domains/fulfillment/stages/modals/stage-modal').then((m) => m.FulfillmentStageModal)
+        import('@/domains/sales/fulfillment/stages/modals/stage-modal').then((m) => m.FulfillmentStageModal)
       ),
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard unsaved stage changes?',
