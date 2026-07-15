@@ -36,6 +36,10 @@ type Customer implements Node @key(fields: "id") {
   companyName: String
   jobTitle: String
   note: String
+  """Reason the customer is currently disabled. Null for other lifecycle states."""
+  disabledReason: String
+  """Internal moderation context visible only to administrators."""
+  moderationNote: String
   source: String!
   createdByUserId: String
   revision: Int!
@@ -142,6 +146,7 @@ input CustomerCreateInput {
   companyName: String
   jobTitle: String
   note: String
+  moderationNote: String
 }
 
 """Personal profile fields in the unified customer update."""
@@ -174,11 +179,18 @@ workflows and cannot be selected here.
 """
 input CustomerStatusUpdateInput {
   disabled: Boolean!
+  """Required when disabling. Omit when re-enabling the customer."""
+  disabledReason: String
 }
 
 """Merchant note in the unified customer update."""
 input CustomerNoteUpdateInput {
   note: String
+}
+
+"""Internal moderation context independent from the merchant note."""
+input CustomerModerationUpdateInput {
+  moderationNote: String
 }
 
 """Customer-level operations applied atomically by customerUpdate."""
@@ -188,6 +200,7 @@ input CustomerUpdateInput {
   company: CustomerCompanyUpdateInput
   status: CustomerStatusUpdateInput
   note: CustomerNoteUpdateInput
+  moderation: CustomerModerationUpdateInput
 }
 
 enum CustomerOperationType {
@@ -196,6 +209,7 @@ enum CustomerOperationType {
   COMPANY_UPDATE
   STATUS_UPDATE
   NOTE_UPDATE
+  MODERATION_UPDATE
   ADDRESS_UPDATE
   TAX_IDENTIFIER_UPDATE
   TAX_EXEMPTION_UPDATE

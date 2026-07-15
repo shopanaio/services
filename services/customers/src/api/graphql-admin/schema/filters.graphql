@@ -70,6 +70,8 @@ input CustomerWhereInput {
   defaultShippingRegionCode: StringFilter
   defaultShippingCountryCode: StringFilter
   emailMarketingState: CustomerConsentStateFilter
+  """Match customers with a current membership in the selected segment IDs."""
+  segmentId: IDFilter
   ordersCount: IntFilter
   totalSpentMinor: BigIntFilter
   lastOrderAt: DateTimeFilter

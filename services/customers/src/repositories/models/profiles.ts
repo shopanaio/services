@@ -46,6 +46,8 @@ export const customer = customersSchema.table(
     companyName: varchar("company_name", { length: 255 }),
     jobTitle: varchar("job_title", { length: 255 }),
     note: text("note"),
+    disabledReason: text("disabled_reason"),
+    moderationNote: text("moderation_note"),
     source: varchar("source", { length: 64 }).notNull().default("unknown"),
     createdByUserId: text("created_by_user_id"),
     revision: integer("revision").notNull().default(0),
@@ -89,6 +91,17 @@ export const customer = customersSchema.table(
     check(
       "customer_revision_nonnegative_check",
       sql`${table.revision} >= 0`
+    ),
+    check(
+      "customer_disabled_reason_check",
+      sql`(${table.lifecycleStatus} <> 'disabled' AND ${table.disabledReason} IS NULL)
+        OR (${table.lifecycleStatus} = 'disabled'
+          AND ${table.disabledReason} IS NOT NULL
+          AND length(btrim(${table.disabledReason})) > 0)`
+    ),
+    check(
+      "customer_moderation_note_check",
+      sql`${table.moderationNote} IS NULL OR length(btrim(${table.moderationNote})) > 0`
     ),
     check(
       "customer_merge_target_check",

@@ -24,12 +24,12 @@ Orders остается источником истины для заказов,
 
 | Сущность | Назначение |
 | --- | --- |
-| `customer` | Основная бизнес-сущность покупателя. Хранит имя, контактные проекции, дату рождения, locale, компанию, заметку, источник создания и lifecycle-состояние. Поддерживает guest, invited и registered профили, блокировку, redaction и ссылку на результат merge. Email и verification state здесь являются проекцией; login identity остается в IAM. |
+| `customer` | Основная бизнес-сущность покупателя. Хранит имя, контактные проекции, дату рождения, locale, компанию, merchant note, moderation note, причину текущего отключения, источник создания и lifecycle-состояние. Поддерживает guest, invited и registered профили, блокировку, redaction и ссылку на результат merge. Email и verification state здесь являются проекцией; login identity остается в IAM. |
 
 `customer.lifecycle_status` описывает состояние бизнес-профиля:
 
 - `active` — профиль доступен для обычных операций;
-- `disabled` — покупатель заблокирован на уровне магазина;
+- `disabled` — покупатель заблокирован на уровне магазина; непустая причина отключения обязательна;
 - `merged` — профиль объединен с другим Customer;
 - `redacted` — персональные данные обезличены по privacy workflow.
 
@@ -78,7 +78,7 @@ opt-in, отзыв согласия и удаление персональных
 | `customer_group_membership` | Связь Customer с группой. Хранит основной статус membership, источник назначения, автора и срок действия. Модель допускает несколько групп, но только одну активную primary group. |
 | `customer_tag` | Свободная merchant-метка, например `influencer`, `fraud-review` или `newsletter-2026`. Имеет нормализованное уникальное имя внутри Store. |
 | `customer_tag_assignment` | Связь Customer с тегом и информация о том, кто и когда назначил тег. |
-| `customer_segment` | Сохраненная аудитория покупателей. Manual segment заполняется явно, dynamic segment содержит query или JSON rule definition для вычисления участников. |
+| `customer_segment` | Сохраненная аудитория покупателей. Manual segment заполняется явно, dynamic segment содержит query или JSON rule definition для вычисления участников. Может иметь merchant-selected цвет и aggregate revision для optimistic locking определения и memberships. |
 | `customer_segment_membership` | Материализованное участие Customer в сегменте. Хранит источник вычисления, время evaluation и опциональный срок действия. |
 
 Эти понятия не взаимозаменяемы:
@@ -119,11 +119,13 @@ Merge и erasure представлены отдельными workflow-сущн
 - Один IAM principal связан максимум с одним Customer внутри Store.
 - Guest Customer может существовать без IAM principal.
 - Customer не может быть merged сам в себя.
+- Disabled Customer всегда имеет причину; у остальных lifecycle-состояний причины отключения нет.
 - Один адрес может одновременно быть default shipping и default billing.
 - Consent state должен соответствовать timestamps согласия и отзыва.
 - Monetary statistics не допускает отрицательные суммы и сохраняет
   `net = spent - refunded`.
 - UUID-идентификаторы генерируются PostgreSQL-функцией `uuidv7()`.
+- Segment revision изменяется при обновлении определения и ручного membership.
 - `store_id` не входит в primary и foreign keys; tenant isolation обеспечивается
   обязательным store scope и отдельными индексами.
 

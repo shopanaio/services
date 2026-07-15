@@ -172,6 +172,8 @@ type CustomersMutation {
   ): CustomerSegmentCreatePayload!
   customerSegmentUpdate(
     segmentId: ID!
+    """Expected aggregate revision. Fails when definition or membership changed."""
+    expectedRevision: Int
     operations: CustomerSegmentUpdateInput
   ): CustomerSegmentUpdatePayload!
   customerSegmentDelete(
@@ -183,6 +185,9 @@ type CustomersMutation {
   customerSegmentCustomersRemove(
     input: CustomerSegmentCustomersRemoveInput!
   ): CustomerSegmentCustomersRemovePayload!
+  customerSegmentCustomersSet(
+    input: CustomerSegmentCustomersSetInput!
+  ): CustomerSegmentCustomersSetPayload!
 
   customerMergeRequest(input: CustomerMergeRequestInput!): CustomerMergeRequestPayload!
   customerDataRequestCreate(

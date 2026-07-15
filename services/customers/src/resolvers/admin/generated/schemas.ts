@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BigIntFilter, BooleanFilter, CurrencyCode, CustomerAccountStatus, CustomerAccountStatusFilter, CustomerAddressCreateInput, CustomerAddressDefaultsUpdateInput, CustomerAddressDeleteInput, CustomerAddressOrderByInput, CustomerAddressOrderField, CustomerAddressUpdateInput, CustomerAddressValidationStatus, CustomerAddressValidationStatusFilter, CustomerAddressWhereInput, CustomerAssignmentSource, CustomerAssignmentSourceFilter, CustomerCompanyUpdateInput, CustomerConsentAdminState, CustomerConsentChannel, CustomerConsentEventOrderByInput, CustomerConsentEventOrderField, CustomerConsentOptInLevel, CustomerConsentSetInput, CustomerConsentState, CustomerConsentStateFilter, CustomerContactUpdateInput, CustomerCreateInput, CustomerDataRequestCancelInput, CustomerDataRequestCreateInput, CustomerDataRequestOrderByInput, CustomerDataRequestOrderField, CustomerDataRequestStatus, CustomerDataRequestStatusFilter, CustomerDataRequestType, CustomerDataRequestTypeFilter, CustomerDataRequestWhereInput, CustomerGroupCreateInput, CustomerGroupDeleteInput, CustomerGroupMembershipDeleteInput, CustomerGroupMembershipOrderByInput, CustomerGroupMembershipOrderField, CustomerGroupMembershipSetInput, CustomerGroupMembershipWhereInput, CustomerGroupOrderByInput, CustomerGroupOrderField, CustomerGroupUpdateInput, CustomerGroupWhereInput, CustomerLifecycleStatus, CustomerLifecycleStatusFilter, CustomerMergeOrderByInput, CustomerMergeOrderField, CustomerMergeRequestInput, CustomerMergeStatus, CustomerMergeStatusFilter, CustomerMergeWhereInput, CustomerMonetaryStatisticsOrderByInput, CustomerMonetaryStatisticsOrderField, CustomerMonetaryStatisticsWhereInput, CustomerNoteUpdateInput, CustomerOperationType, CustomerOrderByInput, CustomerOrderField, CustomerProfileUpdateInput, CustomerSegmentCreateInput, CustomerSegmentCustomersAddInput, CustomerSegmentCustomersRemoveInput, CustomerSegmentDeleteInput, CustomerSegmentMembershipOrderByInput, CustomerSegmentMembershipOrderField, CustomerSegmentMembershipWhereInput, CustomerSegmentOrderByInput, CustomerSegmentOrderField, CustomerSegmentStatus, CustomerSegmentStatusFilter, CustomerSegmentType, CustomerSegmentTypeFilter, CustomerSegmentUpdateInput, CustomerSegmentWhereInput, CustomerStatusUpdateInput, CustomerTagAssignInput, CustomerTagAssignmentOrderByInput, CustomerTagAssignmentOrderField, CustomerTagAssignmentWhereInput, CustomerTagCreateInput, CustomerTagDeleteInput, CustomerTagOrderByInput, CustomerTagOrderField, CustomerTagUnassignInput, CustomerTagUpdateInput, CustomerTagWhereInput, CustomerTaxExemptionCreateInput, CustomerTaxExemptionDeleteInput, CustomerTaxExemptionOrderByInput, CustomerTaxExemptionOrderField, CustomerTaxExemptionStatus, CustomerTaxExemptionStatusFilter, CustomerTaxExemptionUpdateInput, CustomerTaxExemptionWhereInput, CustomerTaxIdentifierCreateInput, CustomerTaxIdentifierDeleteInput, CustomerTaxIdentifierOrderByInput, CustomerTaxIdentifierOrderField, CustomerTaxIdentifierStatus, CustomerTaxIdentifierStatusFilter, CustomerTaxIdentifierUpdateInput, CustomerTaxIdentifierWhereInput, CustomerUpdateInput, CustomerWhereInput, DateFilter, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, SortDirection, StringFilter, WeightUnit } from './types.js'
+import { BigIntFilter, BooleanFilter, CurrencyCode, CustomerAccountStatus, CustomerAccountStatusFilter, CustomerAddressCreateInput, CustomerAddressDefaultsUpdateInput, CustomerAddressDeleteInput, CustomerAddressOrderByInput, CustomerAddressOrderField, CustomerAddressUpdateInput, CustomerAddressValidationStatus, CustomerAddressValidationStatusFilter, CustomerAddressWhereInput, CustomerAssignmentSource, CustomerAssignmentSourceFilter, CustomerCompanyUpdateInput, CustomerConsentAdminState, CustomerConsentChannel, CustomerConsentEventOrderByInput, CustomerConsentEventOrderField, CustomerConsentOptInLevel, CustomerConsentSetInput, CustomerConsentState, CustomerConsentStateFilter, CustomerContactUpdateInput, CustomerCreateInput, CustomerDataRequestCancelInput, CustomerDataRequestCreateInput, CustomerDataRequestOrderByInput, CustomerDataRequestOrderField, CustomerDataRequestStatus, CustomerDataRequestStatusFilter, CustomerDataRequestType, CustomerDataRequestTypeFilter, CustomerDataRequestWhereInput, CustomerGroupCreateInput, CustomerGroupDeleteInput, CustomerGroupMembershipDeleteInput, CustomerGroupMembershipOrderByInput, CustomerGroupMembershipOrderField, CustomerGroupMembershipSetInput, CustomerGroupMembershipWhereInput, CustomerGroupOrderByInput, CustomerGroupOrderField, CustomerGroupUpdateInput, CustomerGroupWhereInput, CustomerLifecycleStatus, CustomerLifecycleStatusFilter, CustomerMergeOrderByInput, CustomerMergeOrderField, CustomerMergeRequestInput, CustomerMergeStatus, CustomerMergeStatusFilter, CustomerMergeWhereInput, CustomerModerationUpdateInput, CustomerMonetaryStatisticsOrderByInput, CustomerMonetaryStatisticsOrderField, CustomerMonetaryStatisticsWhereInput, CustomerNoteUpdateInput, CustomerOperationType, CustomerOrderByInput, CustomerOrderField, CustomerProfileUpdateInput, CustomerSegmentCreateInput, CustomerSegmentCustomersAddInput, CustomerSegmentCustomersRemoveInput, CustomerSegmentCustomersSetInput, CustomerSegmentDeleteInput, CustomerSegmentMembershipOrderByInput, CustomerSegmentMembershipOrderField, CustomerSegmentMembershipWhereInput, CustomerSegmentOrderByInput, CustomerSegmentOrderField, CustomerSegmentStatus, CustomerSegmentStatusFilter, CustomerSegmentType, CustomerSegmentTypeFilter, CustomerSegmentUpdateInput, CustomerSegmentWhereInput, CustomerStatusUpdateInput, CustomerTagAssignInput, CustomerTagAssignmentOrderByInput, CustomerTagAssignmentOrderField, CustomerTagAssignmentWhereInput, CustomerTagCreateInput, CustomerTagDeleteInput, CustomerTagOrderByInput, CustomerTagOrderField, CustomerTagUnassignInput, CustomerTagUpdateInput, CustomerTagWhereInput, CustomerTaxExemptionCreateInput, CustomerTaxExemptionDeleteInput, CustomerTaxExemptionOrderByInput, CustomerTaxExemptionOrderField, CustomerTaxExemptionStatus, CustomerTaxExemptionStatusFilter, CustomerTaxExemptionUpdateInput, CustomerTaxExemptionWhereInput, CustomerTaxIdentifierCreateInput, CustomerTaxIdentifierDeleteInput, CustomerTaxIdentifierOrderByInput, CustomerTaxIdentifierOrderField, CustomerTaxIdentifierStatus, CustomerTaxIdentifierStatusFilter, CustomerTaxIdentifierUpdateInput, CustomerTaxIdentifierWhereInput, CustomerUpdateInput, CustomerWhereInput, DateFilter, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -276,6 +276,7 @@ export function CustomerCreateInputSchema(): z.ZodObject<Properties<CustomerCrea
     jobTitle: z.string().nullish(),
     lastName: z.string().nullish(),
     middleName: z.string().nullish(),
+    moderationNote: z.string().nullish(),
     note: z.string().nullish(),
     phoneE164: z.string().nullish(),
     preferredLocale: z.string().nullish(),
@@ -485,6 +486,12 @@ export function CustomerMergeWhereInputSchema(): z.ZodObject<Properties<Customer
   })
 }
 
+export function CustomerModerationUpdateInputSchema(): z.ZodObject<Properties<CustomerModerationUpdateInput>> {
+  return z.object({
+    moderationNote: z.string().nullish()
+  })
+}
+
 export function CustomerMonetaryStatisticsOrderByInputSchema(): z.ZodObject<Properties<CustomerMonetaryStatisticsOrderByInput>> {
   return z.object({
     direction: SortDirectionSchema,
@@ -536,6 +543,7 @@ export function CustomerProfileUpdateInputSchema(): z.ZodObject<Properties<Custo
 
 export function CustomerSegmentCreateInputSchema(): z.ZodObject<Properties<CustomerSegmentCreateInput>> {
   return z.object({
+    color: z.string().nullish(),
     definition: z.record(z.unknown()).nullish(),
     description: z.string().nullish(),
     name: z.string(),
@@ -548,6 +556,7 @@ export function CustomerSegmentCreateInputSchema(): z.ZodObject<Properties<Custo
 export function CustomerSegmentCustomersAddInputSchema(): z.ZodObject<Properties<CustomerSegmentCustomersAddInput>> {
   return z.object({
     customerIds: z.array(z.string()),
+    expectedRevision: z.number().nullish(),
     segmentId: z.string()
   })
 }
@@ -555,12 +564,22 @@ export function CustomerSegmentCustomersAddInputSchema(): z.ZodObject<Properties
 export function CustomerSegmentCustomersRemoveInputSchema(): z.ZodObject<Properties<CustomerSegmentCustomersRemoveInput>> {
   return z.object({
     customerIds: z.array(z.string()),
+    expectedRevision: z.number().nullish(),
+    segmentId: z.string()
+  })
+}
+
+export function CustomerSegmentCustomersSetInputSchema(): z.ZodObject<Properties<CustomerSegmentCustomersSetInput>> {
+  return z.object({
+    customerIds: z.array(z.string()),
+    expectedRevision: z.number().nullish(),
     segmentId: z.string()
   })
 }
 
 export function CustomerSegmentDeleteInputSchema(): z.ZodObject<Properties<CustomerSegmentDeleteInput>> {
   return z.object({
+    expectedRevision: z.number().nullish(),
     id: z.string()
   })
 }
@@ -613,6 +632,7 @@ export function CustomerSegmentTypeFilterSchema(): z.ZodObject<Properties<Custom
 
 export function CustomerSegmentUpdateInputSchema(): z.ZodObject<Properties<CustomerSegmentUpdateInput>> {
   return z.object({
+    color: z.string().nullish(),
     definition: z.record(z.unknown()).nullish(),
     description: z.string().nullish(),
     name: z.string().nullish(),
@@ -641,7 +661,8 @@ export function CustomerSegmentWhereInputSchema(): z.ZodObject<Properties<Custom
 
 export function CustomerStatusUpdateInputSchema(): z.ZodObject<Properties<CustomerStatusUpdateInput>> {
   return z.object({
-    disabled: z.boolean()
+    disabled: z.boolean(),
+    disabledReason: z.string().nullish()
   })
 }
 
@@ -852,6 +873,7 @@ export function CustomerUpdateInputSchema(): z.ZodObject<Properties<CustomerUpda
   return z.object({
     company: z.lazy(() => CustomerCompanyUpdateInputSchema().nullish()),
     contact: z.lazy(() => CustomerContactUpdateInputSchema().nullish()),
+    moderation: z.lazy(() => CustomerModerationUpdateInputSchema().nullish()),
     note: z.lazy(() => CustomerNoteUpdateInputSchema().nullish()),
     profile: z.lazy(() => CustomerProfileUpdateInputSchema().nullish()),
     status: z.lazy(() => CustomerStatusUpdateInputSchema().nullish())
@@ -885,6 +907,7 @@ export function CustomerWhereInputSchema(): z.ZodObject<Properties<CustomerWhere
     phoneE164: z.lazy(() => StringFilterSchema().nullish()),
     phoneVerified: z.lazy(() => BooleanFilterSchema().nullish()),
     preferredLocale: z.lazy(() => StringFilterSchema().nullish()),
+    segmentId: z.lazy(() => IdFilterSchema().nullish()),
     source: z.lazy(() => StringFilterSchema().nullish()),
     totalSpentMinor: z.lazy(() => BigIntFilterSchema().nullish()),
     updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())

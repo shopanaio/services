@@ -20,6 +20,8 @@ CREATE TABLE "customers"."customer" (
   "company_name" varchar(255),
   "job_title" varchar(255),
   "note" text,
+  "disabled_reason" text,
+  "moderation_note" text,
   "source" varchar(64) NOT NULL DEFAULT 'unknown',
   "created_by_user_id" text,
   "revision" integer NOT NULL DEFAULT 0,
@@ -44,6 +46,19 @@ CREATE TABLE "customers"."customer" (
     CHECK ("phone_e164" IS NULL OR "phone_e164" ~ '^\+[1-9][0-9]{6,14}$'),
   CONSTRAINT "customer_revision_nonnegative_check"
     CHECK ("revision" >= 0),
+  CONSTRAINT "customer_disabled_reason_check"
+    CHECK (
+      ("lifecycle_status" <> 'disabled' AND "disabled_reason" IS NULL)
+      OR
+      ("lifecycle_status" = 'disabled'
+        AND "disabled_reason" IS NOT NULL
+        AND length(btrim("disabled_reason")) > 0)
+    ),
+  CONSTRAINT "customer_moderation_note_check"
+    CHECK (
+      "moderation_note" IS NULL
+      OR length(btrim("moderation_note")) > 0
+    ),
   CONSTRAINT "customer_merge_target_check"
     CHECK (
       ("lifecycle_status" = 'merged' AND "merged_into_customer_id" IS NOT NULL)

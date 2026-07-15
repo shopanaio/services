@@ -18,11 +18,11 @@ purchase statistics, merge support and privacy requests.
 | Prefix | Domain | Tables |
 | --- | --- | --- |
 | `0000` | Foundation | PostgreSQL schema and enums |
-| `0100` | Profiles | `customer` |
+| `0100` | Profiles | `customer`, moderation metadata |
 | `0200` | Addresses | `customer_address` |
 | `0300` | Tax | `customer_tax_identifier`, `customer_tax_exemption` |
 | `0400` | Marketing | `customer_consent`, `customer_consent_event` |
-| `0500` | Classification | groups, tags, segments and memberships |
+| `0500` | Classification | groups, tags, segments, memberships and segment revision metadata |
 | `0700` | Integrations | `customer_external_reference` |
 | `0800` | Read models | order and currency-specific monetary statistics |
 | `0900` | Lifecycle | merges and privacy data requests |
@@ -77,6 +77,17 @@ memberships. Tags support simple merchant labels. Segments support both manual
 membership and dynamic rule/query definitions in the Shopify style. These are
 separate concepts and are not collapsed into one array column.
 
+Segment `revision` is aggregate concurrency state: definition updates and
+manual membership changes increment it. An optional `color` is presentation
+metadata owned by the merchant and validated as `#RRGGBB` when present.
+
+### Moderation
+
+Store-level blocking uses the canonical `disabled` lifecycle state rather than
+a second overlapping status. A disabled profile must have `disabled_reason`;
+the reason is cleared when the profile is re-enabled. `moderation_note` stores
+internal operator context separately from the general merchant-facing note.
+
 ### Statistics and lifecycle
 
 `customer_statistics` stores rebuildable order counters and first/last activity
@@ -90,9 +101,12 @@ turning a destructive operation into a single unaudited flag update.
 - Active normalized email is unique per store.
 - IAM principal link is unique per store and may be null.
 - A merged customer must reference a different target customer.
+- A disabled customer has a non-empty reason; other lifecycle states do not.
 - Default address uniqueness is enforced independently for shipping and billing.
 - Consent state and its collection/withdrawal timestamps must agree.
 - Tax validity intervals and membership expiry intervals cannot be inverted.
 - Monetary values are non-negative and `net = spent - refunded`.
 - Cross-service IDs such as IAM principal, order, location and media file IDs do
   not receive database foreign keys.
+- Customer segment revision is non-negative and covers definition and manual
+  membership changes.

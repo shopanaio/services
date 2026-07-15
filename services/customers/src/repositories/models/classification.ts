@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   index,
+  integer,
   jsonb,
   text,
   timestamp,
@@ -175,11 +176,13 @@ export const customerSegment = customersSchema.table(
     storeId: uuid("store_id").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
+    color: varchar("color", { length: 7 }),
     type: customerSegmentTypeEnum("type").notNull(),
     status: customerSegmentStatusEnum("status").notNull().default("draft"),
     query: text("query"),
     definition: jsonb("definition").notNull().default(sql`'{}'::jsonb`),
     createdById: text("created_by_id"),
+    revision: integer("revision").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -196,6 +199,14 @@ export const customerSegment = customersSchema.table(
     check(
       "customer_segment_dynamic_definition_check",
       sql`${table.type} <> 'dynamic' OR ${table.query} IS NOT NULL OR ${table.definition} <> '{}'::jsonb`
+    ),
+    check(
+      "customer_segment_color_check",
+      sql`${table.color} IS NULL OR ${table.color} ~ '^#[0-9A-Fa-f]{6}$'`
+    ),
+    check(
+      "customer_segment_revision_nonnegative_check",
+      sql`${table.revision} >= 0`
     ),
     uniqueIndex("customer_segment_store_name_unique")
       .on(table.storeId, sql`lower(${table.name})`)

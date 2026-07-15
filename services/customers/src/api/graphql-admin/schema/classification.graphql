@@ -123,11 +123,15 @@ type CustomerSegment implements Node {
   id: ID!
   name: String!
   description: String
+  """Optional merchant-selected #RRGGBB presentation color."""
+  color: String
   type: CustomerSegmentType!
   status: CustomerSegmentStatus!
   query: String
   definition: JSON!
   createdById: String
+  """Aggregate revision incremented by definition and membership changes."""
+  revision: Int!
   customersCount: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -232,6 +236,7 @@ input CustomerTagUnassignInput {
 input CustomerSegmentCreateInput {
   name: String!
   description: String
+  color: String
   type: CustomerSegmentType!
   """Defaults to DRAFT when omitted."""
   status: CustomerSegmentStatus
@@ -242,6 +247,7 @@ input CustomerSegmentCreateInput {
 input CustomerSegmentUpdateInput {
   name: String
   description: String
+  color: String
   type: CustomerSegmentType
   status: CustomerSegmentStatus
   query: String
@@ -250,17 +256,27 @@ input CustomerSegmentUpdateInput {
 
 input CustomerSegmentDeleteInput {
   id: ID!
+  expectedRevision: Int
 }
 
 """Add customers to a manual segment."""
 input CustomerSegmentCustomersAddInput {
   segmentId: ID!
+  expectedRevision: Int
   customerIds: [ID!]!
 }
 
 """Remove customers from a manual segment."""
 input CustomerSegmentCustomersRemoveInput {
   segmentId: ID!
+  expectedRevision: Int
+  customerIds: [ID!]!
+}
+
+"""Atomically replace all manual memberships of a segment."""
+input CustomerSegmentCustomersSetInput {
+  segmentId: ID!
+  expectedRevision: Int
   customerIds: [ID!]!
 }
 
@@ -341,5 +357,11 @@ type CustomerSegmentCustomersAddPayload {
 type CustomerSegmentCustomersRemovePayload {
   segment: CustomerSegment
   removedCustomerIds: [ID!]!
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerSegmentCustomersSetPayload {
+  segment: CustomerSegment
+  customers: [Customer!]!
   userErrors: [GenericUserError!]!
 }
