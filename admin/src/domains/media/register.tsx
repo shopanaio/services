@@ -42,11 +42,11 @@ registerModule({
 
 registerModule({
   key: "website-media",
-  domain: "website",
+  domain: "system",
   sidebar: {
     label: "Media",
     icon: null,
-    order: 3,
+    order: 6,
   },
   items: [
     {

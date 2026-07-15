@@ -3,18 +3,18 @@ import dynamic from "next/dynamic";
 
 registerModule({
   key: "stock",
-  domain: "inventory",
+  domain: "store",
   sidebar: {
     label: "Inventory",
     icon: null,
-    order: 1,
+    order: 5,
   },
   items: [
     {
       key: "stock-list",
       path: "/:orgName/:storeName/inventory",
       sidebar: {
-        label: "All Stock",
+        label: "Stock",
         icon: null,
         order: 1,
       },
