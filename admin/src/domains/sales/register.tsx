@@ -13,7 +13,6 @@ registerModule({
     {
       key: "all-orders-list",
       path: "/:orgName/:storeName/orders",
-      disabled: true,
       sidebar: {
         label: "All Orders",
         icon: null,

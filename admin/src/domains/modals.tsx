@@ -516,6 +516,53 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard unsaved question changes?',
     },
     // ========================================
+    // Order modals
+    // ========================================
+    {
+      type: 'order',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/order-modal').then((m) => m.OrderModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved order changes?',
+    },
+    {
+      type: 'order-status',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/order-status-modal').then((m) => m.OrderStatusModal)
+      ),
+    },
+    {
+      type: 'order-payment-status',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/payment-status-modal').then((m) => m.OrderPaymentStatusModal)
+      ),
+    },
+    {
+      type: 'order-fulfillment-status',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/fulfillment-status-modal').then((m) => m.OrderFulfillmentStatusModal)
+      ),
+    },
+    {
+      type: 'order-shipping-item',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/shipping-item-modal').then((m) => m.OrderShippingItemModal)
+      ),
+    },
+    {
+      type: 'order-shipping-details',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/shipping-details-modal').then((m) => m.OrderShippingDetailsModal)
+      ),
+    },
+    {
+      type: 'order-payment-details',
+      component: dynamic(() =>
+        import('@/domains/sales/all-orders/modals/payment-details-modal').then((m) => m.OrderPaymentDetailsModal)
+      ),
+    },
+    // ========================================
     // Picker modals
     // ========================================
     // Generic Entity Picker modal

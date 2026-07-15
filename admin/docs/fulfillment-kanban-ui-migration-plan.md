@@ -2,7 +2,9 @@
 
 ## 1. Цель документа
 
-Перенести страницу `Fulfillment` из `admin-old/admin` в новый Next.js Admin без потери поведения kanban-доски, drag-and-drop, фильтров и связанных операторских сценариев.
+Перенести страницу `Fulfillment` из `admin-old/admin` в новый Next.js Admin с точным сохранением поведения и внешнего вида kanban-доски, drag-and-drop, фильтров и связанных операторских сценариев.
+
+Это перенос, а не редизайн. Новый Admin предоставляет application shell, routing, domain registry, modal stack и theme infrastructure, но внутренний fulfillment layout должен повторять old UI: порядок блоков, размеры, интервалы, высоту рабочей области, горизонтальный scroll, ширину колонок, высоту tickets, расположение controls и визуальные состояния.
 
 Перенос должен одновременно решить две задачи:
 
@@ -13,10 +15,12 @@
 
 ## 2. Обязательные ограничения
 
-- UI строится на Ant Design 6 и существующем UI kit нового `admin`.
-- Старые Emotion styles не переносятся. Стили переписываются на `antd-style` через `createStyles` и токены темы.
+- UI строится на Ant Design 6 и существующем UI kit нового `admin`, но это не является разрешением менять композицию old Fulfillment UI.
+- Новый `AppLayout` используется как внешняя оболочка страницы. Внутри него создаётся fulfillment-specific layout, точно воспроизводящий старый `CrmLayout`; подмена его типовой табличной или двухколоночной страницей запрещена, если она меняет геометрию или поведение.
+- Старые Emotion styles не переносятся как зависимость или синтаксис. Каждый style block переписывается эквивалентно на принятую в `admin` CSS-in-JS библиотеку `antd-style` (`createStyles`), использующую Ant Design tokens/CSS-in-JS infrastructure.
+- Переписывание styles не должно менять вычисленные размеры, отступы, border radius, shadows, overflow, scroll containers, drag hit areas и состояния элементов.
 - DnD реализуется на уже установленных `@dnd-kit/core`, `@dnd-kit/sortable` и `@dnd-kit/utilities`.
-- Алгоритмы DnD и hooks переносятся без функционального упрощения и без изменения пользовательского поведения.
+- Алгоритмы DnD и hooks переносятся без функционального упрощения, архитектурного переизобретения и без изменения пользовательского поведения.
 - Старую внутреннюю view-модель доски необходимо сохранить как временный compatibility layer.
 - Публичный контракт domain-модуля и mock API должен соответствовать будущему GraphQL API.
 - API-shaped данные не должны зависеть от legacy view. Преобразование разрешено только на границе `API response -> kanban compatibility view`.
@@ -63,6 +67,8 @@
 - `utilities/index.ts`.
 
 Их следует разместить внутри fulfillment domain, пока нет второго реального потребителя. Преждевременно переносить код в `shared` не нужно. После появления второго kanban-модуля DnD engine можно выделить в `src/shared/components/kanban` отдельной задачей.
+
+Старая реализация также использует виртуализацию через `react-tiny-virtual-list` и `react-virtualized-auto-sizer`. В текущем `admin/package.json` этих пакетов нет. Для переноса логики без деградации необходимо добавить совместимые с React 19 версии либо заранее подтверждённые drop-in replacements с тем же измерением `itemSize=160`, overscan и scroll behavior. Удалять виртуализацию и рендерить все tickets допустимо только по отдельному решению с performance evidence; в baseline migration это запрещено. Установка зависимостей выполняется согласно правилам проекта через разрешённый workflow, не произвольной заменой алгоритма.
 
 ### 3.3. Связанные fulfillment-сценарии заказа
 
@@ -133,6 +139,8 @@ admin/src/domains/fulfillment/
       page-config.ts
       filter-schema.ts
     components/
+      fulfillment-layout.tsx
+      fulfillment-layout.styles.ts
       fulfillment-board.tsx
       fulfillment-board.styles.ts
       fulfillment-column.tsx
@@ -210,6 +218,8 @@ admin/src/domains/fulfillment/
 - status и tracking не знают о DnD;
 - board может открыть modal другого раздела через типизированный modal-stack hook;
 - generated API types после появления schema импортируются напрямую из `@/graphql/types` в местах использования и не реэкспортируются через barrels.
+
+`fulfillment-layout.tsx` является прямым новым аналогом старого `CrmLayout.tsx`. Нельзя заменять его композицией `PageLayout`, `DataLayout` или `TableLayout`, если готовый layout добавляет другие paddings, max-width, grid columns, sticky behavior или меняет доступную высоту доски. Допускается использовать их внутренние primitives только при идентичном итоговом DOM/layout behavior.
 
 ## 5. Регистрация domain и маршрута
 
@@ -681,14 +691,14 @@ Mutation вызывается только один раз после завер
 - не разрешать второй reorder, пока первый commit находится in-flight, либо сериализовать mutations;
 - после refetch сортировать по canonical `sortIndex`.
 
-### 10.4. Известный дефект старой реализации
+### 10.4. Известное поведение старой реализации
 
-Старая `onSortItems` считает пустой target list ошибкой (`!nextItems?.length`). Это мешает переносить последний ticket из колонки или корректно обрабатывать некоторые пустые состояния. При переносе нельзя механически сохранять дефект. Следует различать:
+Старая `onSortItems` считает пустой target list ошибкой (`!nextItems?.length`). Это мешает переносить последний ticket из колонки или корректно обрабатывать некоторые пустые состояния. Технически корректная будущая реализация должна различать:
 
 - `nextItems === undefined` — internal error;
 - `nextItems.length === 0` — валидное состояние колонки.
 
-Это исправление не является деградацией; оно восстанавливает корректный DnD invariant.
+Так как baseline migration требует точного переноса логики, изменение этого условия не должно смешиваться с переносом. Текущее поведение сначала воспроизводится и фиксируется parity-сценарием. Исправление выполняется отдельным явно согласованным change после переноса либо отдельным commit/task с собственными acceptance criteria. Это позволяет отличить regression переноса от изменения старого поведения.
 
 ## 11. Страница и operator-focused UI
 
@@ -714,15 +724,30 @@ Mutation вызывается только один раз после завер
 
 Полная информация открывается в `fulfillment-order` modal stack item.
 
-Page composition:
+Page composition должна повторять `CrmLayout`, а не переводить доску на визуальный шаблон другой страницы:
 
 ```tsx
-<PageLayout>
-  <PageHeader title="Fulfillment" actions={...} />
-  <FilterWidget {...filterProps} />
+<FulfillmentLayout
+  headerProps={{ title: "Fulfillment", count, create: openCreateOrder }}
+  navigationProps={filterProps}
+>
   <FulfillmentBoard ... />
-</PageLayout>
+</FulfillmentLayout>
 ```
+
+`FulfillmentLayout` в новом Admin воспроизводит следующую old layout hierarchy:
+
+1. внешний content container с `padding-top: 16px` и `padding-inline: 16px`;
+2. header той же высоты и с тем же расположением title/count/create action, что старый `TableLayoutHeader`;
+3. отдельная filter strip сразу под header;
+4. filter strip имеет прежний gradient/background, отрицательные горизонтальные margins `-15px`, hidden overflow и padding `16px 16px 1px`;
+5. board viewport начинается сразу после filter strip;
+6. viewport занимает оставшуюся доступную высоту, имеет собственный overflow и не ограничивается `max-width`;
+7. board row начинается со старого offset: `margin-left: -20px`, `padding-left: 16px`, `padding-top: 12px`;
+8. кнопка добавления колонки находится после последней колонки в том же horizontal flow, а не в page header;
+9. loading skeleton занимает ту же геометрию, чтобы переход к загруженной доске не вызывал layout shift.
+
+Если новый App shell уже задаёт часть outer spacing, fulfillment-specific layout должен компенсировать его так, чтобы итоговые computed offsets рабочей области совпадали со старой страницей. Нельзя складывать старые и новые paddings и получать визуально другую доску.
 
 Состояния страницы:
 
@@ -919,7 +944,7 @@ Mappers разделяются по направлениям:
 
 ### 15.1. Общая стратегия
 
-Ant Design компоненты переносятся с минимальными изменениями props. Emotion `css` blocks заменяются на `antd-style`:
+Ant Design компоненты переносятся с теми же props, hierarchy и interactive states, кроме изменений, обязательных из-за версии Ant Design. Emotion `css` blocks заменяются один к одному на `antd-style`. Сначала воспроизводится старое вычисленное правило, затем literal старого token заменяется эквивалентным token нового Admin. Структурный CSS нельзя «улучшать» или упрощать в рамках переноса.
 
 ```tsx
 const useStyles = createStyles(({ token, css }) => ({
@@ -942,6 +967,10 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 ```
 
+Canonical CSS-in-JS API для новых fulfillment files — `createStyles` из `antd-style`, уже используемый layouts и domain-модулями `admin`. Прямой импорт `css` из `@emotion/react`, Emotion `css` prop и перенос старых global CSS variables запрещены.
+
+Если объектный syntax `createStyles` не позволяет точно выразить selector или dynamic state, используется template `css` из callback `createStyles`, а не inline `style` и не новый `.module.css`.
+
 ### 15.2. Замена старых tokens
 
 | Старый token | Новый источник |
@@ -955,16 +984,50 @@ const useStyles = createStyles(({ token, css }) => ({
 
 Нельзя собирать CSS variable name из произвольного tag color. Цвет проходит allowlist/mapper, а неизвестное значение становится `default`.
 
-### 15.3. Layout и responsive behavior
+Старые spacing values фиксируются как visual baseline, даже если ближайший semantic token нового Admin отличается:
+
+| Old value | Использование |
+| --- | --- |
+| `--x1 = 4px` | column header inner padding, ticket outer padding, add-column gap |
+| `--x2 = 8px` | column header bottom gap |
+| `--x3 = 12px` | ticket content padding, board top padding |
+| `--x4 = 16px` | page/filter/board horizontal padding |
+| `--x5 = 20px` | отрицательный board offset |
+| `--radius-base = 6px` | column header и ticket radius |
+
+Если Ant Design token в активной теме не равен baseline value, создаётся fulfillment-specific derived style constant на основе theme configuration. Нельзя молча заменить `12px` на `token.padding` (`16px`) и считать это эквивалентным переносом.
+
+### 15.3. Точные визуальные инварианты old UI
+
+Следующие правила считаются частью функционального контракта страницы:
+
+- колонка: `min-width: 360px`, flex column, без принудительного max-width;
+- высота колонки: `calc(available-board-height - 16px)`;
+- column header: `height: 40px`, horizontal flex, centered, border-bottom, background, shadow и radius как в old UI;
+- column header margins: `0 4px 4px`;
+- ticket slot outer padding: `4px`, width `100%`;
+- ticket surface: `min-height: 152px`, `max-height: 152px`, content padding `12px`, border, radius и shadow `1px 1px 10px rgba(0,0,0,.1)`;
+- DnD `itemSize`: `160px` сохраняется;
+- card metadata rows и их gaps сохраняют old hierarchy;
+- Avatar group остаётся ограничен тремя видимыми изображениями;
+- add-column button: `size="large"`, без border, old paper shadow, `margin-left: 4px`, `flex-shrink: 0`;
+- drag overlay item сохраняет old opacity `0.3` и верхний stacking context;
+- draggable wrapper сохраняет `touch-action: manipulation`, translate3d transform и pointer cursor;
+- ticket background/border по tag color сохраняются семантически и визуально через безопасную palette map;
+- board viewport сохраняет горизонтальный scroll и не переносит колонки на новую строку.
+
+DOM может измениться только там, где этого требует новый layout/modal stack или API новой версии Ant Design. Любое такое изменение должно сохранять computed layout и testable interaction.
+
+### 15.4. Layout и responsive behavior
 
 - board занимает доступную высоту layout без старого `ContainerHeight` global CSS contract;
 - горизонтальный scroll находится внутри board viewport;
-- колонки имеют `min-width: 360px`, но адаптируются для узких экранов;
+- колонки имеют `min-width: 360px`; на узких экранах используется horizontal scroll, а ширина колонки не уменьшается вопреки old UI;
 - drag overlay не меняет размеры исходной колонки;
 - sticky page header/filter area не должен ломать DnD coordinates;
 - portal modal stack и drag overlay должны иметь согласованные z-index tokens.
 
-### 15.4. Accessibility
+### 15.5. Accessibility
 
 - drag handles имеют `aria-label` с названием column/order;
 - keyboard DnD сохраняется;
@@ -1027,17 +1090,19 @@ const useStyles = createStyles(({ token, css }) => ({
 ### Этап 3. DnD engine
 
 - перенести old board files без алгоритмического rewrite;
+- сохранить virtual list, auto-sizer, item measurement и scroll containers;
 - адаптировать React 19/TypeScript imports;
-- переписать styles на `antd-style`;
+- переписать каждый Emotion style block на эквивалентный `antd-style`, сверяя computed geometry;
 - сохранить sensors, keyboard coordinates, collision detection, overlay и rollback;
-- исправить только документированные defects, включая empty target list.
+- не исправлять поведение empty target list внутри parity-переноса; вынести исправление в отдельную согласованную задачу.
 
 Результат: isolated kanban работает на mock API.
 
 ### Этап 4. Page, filters и registration
 
 - создать domain/register files;
-- подключить PageLayout/PageHeader/FilterWidget;
+- встроить fulfillment-specific аналог `CrmLayout` внутрь нового `AppLayout`;
+- сохранить старые header, filter strip, board viewport и add-column placement без редизайна;
 - реализовать server-like filter/search/sort через mock transport;
 - подключить sidebar route;
 - добавить loading/error/empty/refetch states.
@@ -1132,9 +1197,13 @@ const useStyles = createStyles(({ token, css }) => ({
 ### 18.4. Visual QA
 
 - [ ] Emotion отсутствует в новых fulfillment files.
-- [ ] Используются theme tokens вместо старых CSS variables.
+- [ ] Все styles реализованы через `createStyles` из `antd-style`.
+- [ ] Используются theme tokens/derived constants вместо старых CSS variables без изменения baseline geometry.
 - [ ] Light/dark theme не имеют hardcoded контрастных дефектов.
-- [ ] Column width, ticket height и scroll behavior сравнимы с old UI.
+- [ ] Внутренний layout повторяет old `CrmLayout`; типовой новый layout не добавляет лишние paddings/max-width/grid.
+- [ ] Column width `360px`, ticket height `152px`, DnD item size `160px`, gaps, offsets и scroll behavior совпадают с old UI.
+- [ ] Filter strip, header, add-column button и empty columns находятся в тех же местах.
+- [ ] Virtualized list сохраняет прежнее измерение и производительность на длинных колонках.
 - [ ] Модалки корректно работают на нескольких уровнях stack.
 - [ ] Dirty close confirmation работает.
 
@@ -1178,5 +1247,7 @@ const useStyles = createStyles(({ token, css }) => ({
 8. mutations автоматически обновляют board/order data;
 9. все используемые таблицы следуют `usePageConfig`, server search/sort, required filters и Relay pagination;
 10. Emotion styles заменены на `antd-style` и Ant Design theme tokens;
-11. mock transport можно заменить Apollo hooks без переделки page/components/forms;
-12. functional, DnD, accessibility и visual acceptance checklist пройден вручную, а build выполнен только когда требуется новая собранная версия.
+11. новый `AppLayout` служит оболочкой, а внутренний Fulfillment UI визуально и структурно повторяет old `CrmLayout` без редизайна;
+12. old dimensions, offsets, scroll containers, virtualization, DnD hit areas и interactive states сохранены;
+13. mock transport можно заменить Apollo hooks без переделки page/components/forms;
+14. functional, DnD, accessibility и visual acceptance checklist пройден вручную, а build выполнен только когда требуется новая собранная версия.
