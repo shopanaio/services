@@ -1,1 +1,1 @@
-export { QuestionModal } from "./question-modal";
+export { QuestionEditModal } from "./question-modal";

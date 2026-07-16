@@ -33,7 +33,7 @@ export function useCreateQuestion() {
 
   const createQuestion = useCallback(async (
     input: ApiProductQuestionCreateInput,
-    answers: ApiProductQuestionAnswerCreateOperationInput[],
+    answers: ApiProductQuestionAnswerCreateOperationInput[] = [],
   ): Promise<{
     question: ApiProductQuestion | null;
     userErrors: ApiGenericUserError[];

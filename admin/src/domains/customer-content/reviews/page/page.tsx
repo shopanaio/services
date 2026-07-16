@@ -27,7 +27,7 @@ import { useAgGridTheme, usePageConfig } from "@/hooks";
 import type { ApiReview, ApiReviewWhereInput } from "@/graphql/types";
 import { ReviewContentStatus, ReviewOrderField } from "@/graphql/types";
 import { useReviews } from "../hooks";
-import { useReviewModal } from "../modals";
+import { useReviewCreateModal, useReviewModal } from "../modals";
 import { filterSchema } from "./filter-schema";
 import {
   buildReviewSearchCondition,
@@ -166,7 +166,7 @@ export default function CustomerReviewsPage() {
     buildSearchCondition: buildReviewSearchCondition,
   });
   const variables = useMemo(
-    () => buildReviewsQueryVariables(pageConfig),
+    () => buildReviewsQueryVariables({ first: pageConfig.first, after: pageConfig.after, last: pageConfig.last, before: pageConfig.before, where: pageConfig.where, orderBy: pageConfig.orderBy }),
     [
       pageConfig.first,
       pageConfig.after,
@@ -178,14 +178,15 @@ export default function CustomerReviewsPage() {
   );
   const { reviews, totalCount, pageInfo, loading, error, refetch } = useReviews(variables);
   const { push: openReviewModal } = useReviewModal();
+  const { push: openReviewCreateModal } = useReviewCreateModal();
 
   const handleCreateReview = useCallback(() => {
-    openReviewModal({ mode: "create", onSaved: refetch });
-  }, [openReviewModal, refetch]);
+    openReviewCreateModal({ onSaved: refetch });
+  }, [openReviewCreateModal, refetch]);
 
   const handleEditReview = useCallback(
     (review: ApiReview) => {
-      openReviewModal({ mode: "edit", entityId: review.id, onSaved: refetch });
+      openReviewModal({ entityId: review.id, onSaved: refetch });
     },
     [openReviewModal, refetch],
   );

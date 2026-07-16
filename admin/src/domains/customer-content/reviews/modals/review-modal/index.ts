@@ -1,1 +1,1 @@
-export { ReviewModal } from "./review-modal";
+export { ReviewEditModal } from "./review-modal";

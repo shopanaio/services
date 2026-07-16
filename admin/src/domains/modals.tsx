@@ -698,8 +698,26 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'customer-review',
       component: dynamic(() =>
-        import('@/domains/customer-content/reviews/modals/review-modal').then(
+        import('@/domains/customer-content/reviews/modals/review-details-modal').then(
           (m) => m.ReviewModal
+        )
+      ),
+    },
+    {
+      type: 'customer-review-create',
+      component: dynamic(() =>
+        import('@/domains/customer-content/reviews/modals/review-create-modal').then(
+          (m) => m.ReviewCreateModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved review changes?',
+    },
+    {
+      type: 'customer-review-edit',
+      component: dynamic(() =>
+        import('@/domains/customer-content/reviews/modals/review-modal').then(
+          (m) => m.ReviewEditModal
         )
       ),
       confirmOnDirtyClose: true,
@@ -708,12 +726,62 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'customer-question',
       component: dynamic(() =>
-        import('@/domains/customer-content/questions/modals/question-modal').then(
+        import('@/domains/customer-content/questions/modals/question-details-modal').then(
           (m) => m.QuestionModal
+        )
+      ),
+    },
+    {
+      type: 'customer-question-create',
+      component: dynamic(() =>
+        import('@/domains/customer-content/questions/modals/question-create-modal').then(
+          (m) => m.QuestionCreateModal
         )
       ),
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard unsaved question changes?',
+    },
+    {
+      type: 'customer-question-edit',
+      component: dynamic(() =>
+        import('@/domains/customer-content/questions/modals/question-modal').then(
+          (m) => m.QuestionEditModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved question changes?',
+    },
+    {
+      type: 'review-rating-criterion',
+      component: dynamic(() =>
+        import('@/domains/customer-content/management/criteria').then((m) => m.RatingCriterionModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved criterion changes?',
+    },
+    {
+      type: 'review-moderation-case',
+      component: dynamic(() =>
+        import('@/domains/customer-content/management/cases').then((m) => m.ModerationCaseModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved case changes?',
+    },
+    {
+      type: 'review-request',
+      component: dynamic(() =>
+        import('@/domains/customer-content/management/requests').then((m) => m.ReviewRequestModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved request changes?',
+    },
+    {
+      type: 'review-external-reference',
+      component: dynamic(() =>
+        import('@/domains/customer-content/management/external').then((m) => m.ExternalReferenceModal)
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved external reference changes?',
     },
     // ========================================
     // Fulfillment modals

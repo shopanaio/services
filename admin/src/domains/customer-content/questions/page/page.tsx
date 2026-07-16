@@ -24,7 +24,7 @@ import {
   ReviewContentStatus,
 } from "@/graphql/types";
 import { useQuestions } from "../hooks";
-import { useQuestionModal } from "../modals";
+import { useQuestionCreateModal, useQuestionModal } from "../modals";
 import { filterSchema } from "./filter-schema";
 import { buildQuestionSearchCondition, buildQuestionsQueryVariables, questionSortFieldMapping } from "./page-config";
 
@@ -109,11 +109,12 @@ export default function CustomerQuestionsPage() {
     pageSizeOptions: [10, 20],
     buildSearchCondition: buildQuestionSearchCondition,
   });
-  const variables = useMemo(() => buildQuestionsQueryVariables(pageConfig), [pageConfig.first, pageConfig.after, pageConfig.last, pageConfig.before, pageConfig.where, pageConfig.orderBy]);
+  const variables = useMemo(() => buildQuestionsQueryVariables({ first: pageConfig.first, after: pageConfig.after, last: pageConfig.last, before: pageConfig.before, where: pageConfig.where, orderBy: pageConfig.orderBy }), [pageConfig.first, pageConfig.after, pageConfig.last, pageConfig.before, pageConfig.where, pageConfig.orderBy]);
   const { questions, totalCount, pageInfo, loading, error, refetch } = useQuestions(variables);
   const { push: openQuestionModal } = useQuestionModal();
-  const createQuestion = useCallback(() => openQuestionModal({ mode: "create", onSaved: refetch }), [openQuestionModal, refetch]);
-  const editQuestion = useCallback((question: ApiProductQuestion) => openQuestionModal({ mode: "edit", entityId: question.id, onSaved: refetch }), [openQuestionModal, refetch]);
+  const { push: openQuestionCreateModal } = useQuestionCreateModal();
+  const createQuestion = useCallback(() => openQuestionCreateModal({ onSaved: refetch }), [openQuestionCreateModal, refetch]);
+  const editQuestion = useCallback((question: ApiProductQuestion) => openQuestionModal({ entityId: question.id, onSaved: refetch }), [openQuestionModal, refetch]);
   const nextPage = useCallback(() => { if (pageInfo?.endCursor) pageConfig.goToNextPage(pageInfo.endCursor); }, [pageConfig, pageInfo?.endCursor]);
   const previousPage = useCallback(() => { if (pageInfo?.startCursor) pageConfig.goToPrevPage(pageInfo.startCursor); }, [pageConfig, pageInfo?.startCursor]);
 

@@ -40,7 +40,12 @@ function buildUpdateMedia(
       fileId: file.id,
       sortIndex,
       caption: current?.caption ?? null,
-      status: current?.status,
+      moderation: current
+        ? {
+            status: current.status,
+            moderationNote: current.moderationNote ?? null,
+          }
+        : undefined,
     };
   });
 }

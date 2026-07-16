@@ -1,5 +1,6 @@
 import { gql } from "@apollo/client";
-import { QUESTION_EDITOR_FRAGMENT, QUESTION_LIST_FRAGMENT } from "./fragments";
+import { QUESTION_LIST_FRAGMENT } from "./fragments";
+import { QUESTION_DETAILS_FRAGMENT } from "./details-fragment";
 
 export const QUESTIONS_QUERY = gql`
   query Questions(
@@ -42,11 +43,11 @@ export const QUESTION_QUERY = gql`
   query Question($id: ID!) {
     reviewsQuery {
       productQuestion(id: $id) {
-        ...QuestionEditorFields
+        ...QuestionDetailsFields
       }
     }
   }
-  ${QUESTION_EDITOR_FRAGMENT}
+  ${QUESTION_DETAILS_FRAGMENT}
 `;
 
 export const QUESTION_EDITOR_CONTEXT_QUERY = gql`
