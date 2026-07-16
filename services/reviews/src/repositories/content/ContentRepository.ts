@@ -193,6 +193,7 @@ export class ContentRepository extends BaseRepository {
         updatedAt: now,
         deletedAt: null,
         redactedAt: null,
+        publishedAt: input.status === "PUBLISHED" ? now : input.publishedAt,
       })
       .returning();
     const created = rows[0];
@@ -224,6 +225,25 @@ export class ContentRepository extends BaseRepository {
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     return this.optimisticContentMiss(id);
+  }
+
+  @Transactional()
+  async updateWithinRevision(
+    id: string,
+    patch: ContentPatch
+  ): Promise<ContentItem | null> {
+    const rows = await this.connection
+      .update(contentItem)
+      .set({ ...patch, updatedAt: new Date().toISOString() })
+      .where(
+        and(
+          eq(contentItem.storeId, this.storeId),
+          eq(contentItem.id, id),
+          isNull(contentItem.deletedAt)
+        )
+      )
+      .returning();
+    return rows[0] ?? null;
   }
 
   @Transactional()
@@ -394,6 +414,42 @@ export class ContentRepository extends BaseRepository {
   }
 
   @Transactional()
+  async replaceTranslations(
+    contentId: string,
+    items: readonly Omit<
+      NewContentTranslation,
+      "id" | "storeId" | "contentId" | "revision" | "createdAt" | "updatedAt"
+    >[]
+  ): Promise<ContentTranslation[]> {
+    await this.connection
+      .delete(contentTranslation)
+      .where(
+        and(
+          eq(contentTranslation.storeId, this.storeId),
+          eq(contentTranslation.contentId, contentId)
+        )
+      );
+    if (items.length === 0) return [];
+
+    const ids = await this.generateUuidV7s(items.length);
+    const now = new Date().toISOString();
+    return this.connection
+      .insert(contentTranslation)
+      .values(
+        items.map((item, index) => ({
+          ...item,
+          id: ids[index]!,
+          storeId: this.storeId,
+          contentId,
+          revision: 1,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      )
+      .returning();
+  }
+
+  @Transactional()
   async updateTranslation(
     id: string,
     expectedRevision: number,
@@ -515,6 +571,44 @@ export class ContentRepository extends BaseRepository {
     const created = rows[0];
     if (!created) throw new Error("Failed to create content publication");
     return created;
+  }
+
+  @Transactional()
+  async replacePublications(
+    contentId: string,
+    items: readonly Omit<
+      NewContentPublication,
+      "id" | "storeId" | "contentId" | "createdAt" | "updatedAt"
+    >[]
+  ): Promise<ContentPublication[]> {
+    await this.connection
+      .delete(contentPublication)
+      .where(
+        and(
+          eq(contentPublication.storeId, this.storeId),
+          eq(contentPublication.contentId, contentId)
+        )
+      );
+    if (items.length === 0) return [];
+
+    const ids = await this.generateUuidV7s(items.length);
+    const now = new Date().toISOString();
+    return this.connection
+      .insert(contentPublication)
+      .values(
+        items.map((item, index) => ({
+          ...item,
+          id: ids[index]!,
+          storeId: this.storeId,
+          contentId,
+          publishedAt: item.status === "PUBLISHED" ? now : item.publishedAt,
+          unpublishedAt:
+            item.status === "UNPUBLISHED" ? now : item.unpublishedAt,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      )
+      .returning();
   }
 
   @Transactional()

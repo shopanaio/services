@@ -1,5 +1,6 @@
 import {
   decodeGlobalIdByType,
+  encodeGlobalIdByType,
   GlobalIdEntity,
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
@@ -23,6 +24,9 @@ import type {
   ReviewCreateWorkflowResult,
   ReviewDeleteWorkflowInput,
   ReviewDeleteWorkflowResult,
+  ReviewUpdateOperation,
+  ReviewUpdateWorkflowInput,
+  ReviewUpdateWorkflowResult,
   ReviewRequestCreateWorkflowInput,
   ReviewRequestCreateWorkflowResult,
   ReviewsMutationWorkflowContext,
@@ -66,7 +70,12 @@ import type {
   ReviewsMutationReviewCreateArgs,
   ReviewsMutationReviewDeleteArgs,
   ReviewsMutationReviewRequestCreateArgs,
+  ReviewsMutationReviewUpdateArgs,
 } from "./generated/types.js";
+import {
+  mapReviewUpdateInput,
+  type ReviewUpdateMappedEntry,
+} from "./reviewUpdateMapper.js";
 
 const updatePayload = (field: string) => ({ [field]: null, operationResults: [], userErrors: [] });
 
@@ -126,7 +135,57 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     };
   }
 
-  reviewUpdate() { return updatePayload("review"); }
+  async reviewUpdate(args: ReviewsMutationReviewUpdateArgs) {
+    const mapped = mapReviewUpdateInput(args.operations);
+    const reviewId = safeDecodeId(args.reviewId, GlobalIdEntity.Review);
+    if (!reviewId) {
+      const error = {
+        message: "Invalid ID format",
+        field: ["reviewId"],
+        code: "INVALID_ID",
+      };
+      return {
+        review: null,
+        operationResults: mapped.entries.map(mapPreflightOperationResult),
+        userErrors: [error, ...mapped.errors],
+      };
+    }
+
+    if (mapped.errors.length > 0) {
+      return {
+        review: null,
+        operationResults: mapped.entries.map(mapPreflightOperationResult),
+        userErrors: mapped.errors,
+      };
+    }
+
+    const workflowInput: ReviewUpdateWorkflowInput = {
+      reviewId,
+      expectedRevision: args.expectedRevision,
+      operations: mapped.operations,
+      context: this.mutationWorkflowContext(),
+    };
+    const result = await this.runMutationWorkflow<ReviewUpdateWorkflowResult>(
+      "reviewUpdate",
+      workflowInput,
+      reviewId
+    );
+
+    this.clearReviewUpdateLoaders(reviewId, result);
+    return {
+      review: result.review ? new ReviewResolver(result.review.id, this.$ctx) : null,
+      operationResults: result.operationResults.map((operation) => ({
+        type: toGraphqlReviewOperationType(operation.type),
+        applied: operation.applied,
+        clientMutationId: operation.clientMutationId,
+        entityId: operation.entityId
+          ? this.encodeId(operation.entityId, GlobalIdEntity.ReviewReply)
+          : undefined,
+        errors: operation.errors,
+      })),
+      userErrors: result.userErrors,
+    };
+  }
   @ZodResolver(ReviewContentDeleteInputSchema())
   async reviewDelete(args: ReviewsMutationReviewDeleteArgs) {
     const decoded = decodeDeleteInput(args.input, GlobalIdEntity.Review);
@@ -262,16 +321,42 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     };
   }
 
-  private async runMutationWorkflow<TResult>(operation: string, input: unknown): Promise<TResult> {
+  private async runMutationWorkflow<TResult>(
+    operation: string,
+    input: unknown,
+    resourceId?: string
+  ): Promise<TResult> {
     return (await this.$ctx.kernel.getServices().broker.runWorkflow(
       `reviews.${operation}`,
       input,
       {
         source: "workflow",
-        workflowId: `${operation}:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+        workflowId: `${operation}:${resourceId ?? this.$ctx.store.id}:${this.$ctx.requestId}`,
         stepId: "start",
       }
     )) as TResult;
+  }
+
+  private clearReviewUpdateLoaders(
+    reviewId: string,
+    result: ReviewUpdateWorkflowResult
+  ) {
+    this.$ctx.loaders.review.clear(reviewId);
+    this.$ctx.loaders.content.clear(reviewId);
+    this.$ctx.loaders.contentMetrics.clear(reviewId);
+    this.$ctx.loaders.contentTranslations.clear(reviewId);
+    this.$ctx.loaders.contentPublications.clear(reviewId);
+    this.$ctx.loaders.reviewRatings.clear(reviewId);
+    this.$ctx.loaders.reviewMedia.clear(reviewId);
+
+    for (const operation of result.operationResults) {
+      if (!operation.entityId) continue;
+      this.$ctx.loaders.reviewReply.clear(operation.entityId);
+      this.$ctx.loaders.content.clear(operation.entityId);
+      this.$ctx.loaders.contentMetrics.clear(operation.entityId);
+      this.$ctx.loaders.contentTranslations.clear(operation.entityId);
+      this.$ctx.loaders.contentPublications.clear(operation.entityId);
+    }
   }
 }
 
@@ -397,4 +482,50 @@ function decodeId(value: string, type: GlobalIdType | undefined, field: string[]
     errors.push({ message: "Invalid ID format", field, code: "INVALID_ID" });
     return value;
   }
+}
+
+function safeDecodeId(value: string, type: GlobalIdType): string | null {
+  try {
+    return decodeGlobalIdByType(value, type);
+  } catch {
+    return null;
+  }
+}
+
+function mapPreflightOperationResult(entry: ReviewUpdateMappedEntry) {
+  return {
+    type: toGraphqlReviewOperationType(entry.type),
+    applied: false,
+    clientMutationId: entry.clientMutationId,
+    entityId: entry.entityId
+      ? encodeReviewReplyId(entry.entityId)
+      : undefined,
+    errors: entry.errors,
+  };
+}
+
+function encodeReviewReplyId(id: string): string {
+  return encodeGlobalIdByType(id, GlobalIdEntity.ReviewReply);
+}
+
+function toGraphqlReviewOperationType(
+  type: ReviewUpdateOperation["type"]
+): string {
+  const types: Record<ReviewUpdateOperation["type"], string> = {
+    contentUpdate: "CONTENT_UPDATE",
+    contentAuthorUpdate: "CONTENT_AUTHOR_UPDATE",
+    contentSourceUpdate: "CONTENT_SOURCE_UPDATE",
+    contentModerationUpdate: "CONTENT_MODERATION_UPDATE",
+    contentTranslationsSync: "CONTENT_TRANSLATIONS_SYNC",
+    contentPublicationsSync: "CONTENT_PUBLICATIONS_SYNC",
+    reviewSubjectUpdate: "REVIEW_SUBJECT_UPDATE",
+    reviewRatingUpdate: "REVIEW_RATING_UPDATE",
+    reviewVerificationUpdate: "REVIEW_VERIFICATION_UPDATE",
+    reviewIncentiveUpdate: "REVIEW_INCENTIVE_UPDATE",
+    reviewMediaSync: "REVIEW_MEDIA_SYNC",
+    reviewReplyCreate: "REVIEW_REPLY_CREATE",
+    reviewReplyUpdate: "REVIEW_REPLY_UPDATE",
+    reviewReplyDelete: "REVIEW_REPLY_DELETE",
+  };
+  return types[type];
 }

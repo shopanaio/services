@@ -2,7 +2,7 @@ import type { ReviewContentCreateInput } from "../../resolvers/admin/generated/t
 import type { NewContentItem } from "../../repositories/models/index.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 
-type ContentKind = "REVIEW" | "PRODUCT_QUESTION";
+type ContentKind = "REVIEW" | "REVIEW_REPLY" | "PRODUCT_QUESTION";
 type ContentCreateValues = Omit<
   NewContentItem,
   | "id"
@@ -22,7 +22,8 @@ export function mapContentCreate(
 ): { values?: ContentCreateValues; errors: UserError[] } {
   const errors: UserError[] = [];
   const body = input.body.trim();
-  const minimumBodyLength = kind === "REVIEW" ? 20 : 10;
+  const minimumBodyLength =
+    kind === "REVIEW" ? 20 : kind === "PRODUCT_QUESTION" ? 10 : 1;
   const title = input.title?.trim() || null;
   const locale = input.locale.trim();
   const displayName = input.author.displayName.trim();
@@ -44,12 +45,18 @@ export function mapContentCreate(
       code: "INVALID_TITLE",
       field: ["content", "title"],
     });
+  } else if (title !== null && title.length > 150) {
+    errors.push({
+      message: "Content title cannot exceed 150 characters",
+      code: "INVALID_TITLE",
+      field: ["content", "title"],
+    });
   }
-  if (locale.length === 0) {
-    errors.push({ message: "Locale cannot be empty", code: "INVALID_LOCALE", field: ["content", "locale"] });
+  if (locale.length === 0 || locale.length > 35) {
+    errors.push({ message: "Locale must contain between 1 and 35 characters", code: "INVALID_LOCALE", field: ["content", "locale"] });
   }
-  if (displayName.length === 0) {
-    errors.push({ message: "Author display name cannot be empty", code: "INVALID_AUTHOR", field: ["content", "author", "displayName"] });
+  if (displayName.length === 0 || displayName.length > 150) {
+    errors.push({ message: "Author display name must contain between 1 and 150 characters", code: "INVALID_AUTHOR", field: ["content", "author", "displayName"] });
   }
   if (input.author.type === "CUSTOMER" && !input.author.customerId) {
     errors.push({ message: "Customer authors require customerId", code: "INVALID_AUTHOR", field: ["content", "author", "customerId"] });
@@ -57,11 +64,20 @@ export function mapContentCreate(
   if (input.author.type === "GUEST" && !input.author.email) {
     errors.push({ message: "Guest authors require email", code: "INVALID_AUTHOR", field: ["content", "author", "email"] });
   }
+  if (input.author.email && input.author.email.trim().length > 320) {
+    errors.push({ message: "Author email cannot exceed 320 characters", code: "INVALID_AUTHOR", field: ["content", "author", "email"] });
+  }
   if (!isRecord(metadata)) {
     errors.push({ message: "Source metadata must be an object", code: "INVALID_METADATA", field: ["content", "source", "metadata"] });
   }
   if (status === "REJECTED" && !moderationNote) {
     errors.push({ message: "Rejected content requires a moderation note", code: "INVALID_MODERATION_NOTE", field: ["content", "moderationNote"] });
+  }
+  if (sourceChannel.length > 64) {
+    errors.push({ message: "Source channel cannot exceed 64 characters", code: "INVALID_SOURCE", field: ["content", "source", "channel"] });
+  }
+  if (moderationNote && moderationNote.length > 1000) {
+    errors.push({ message: "Moderation note cannot exceed 1000 characters", code: "INVALID_MODERATION_NOTE", field: ["content", "moderationNote"] });
   }
   if (errors.length > 0) return { errors };
 

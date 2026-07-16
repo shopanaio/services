@@ -7,6 +7,7 @@ import { RatingCriterionCreateWorkflow } from "./RatingCriterionCreateWorkflow.j
 import { RatingCriterionDeleteWorkflow } from "./RatingCriterionDeleteWorkflow.js";
 import { ReviewCreateWorkflow } from "./ReviewCreateWorkflow.js";
 import { ReviewDeleteWorkflow } from "./ReviewDeleteWorkflow.js";
+import { ReviewUpdateWorkflow } from "./ReviewUpdateWorkflow.js";
 import { ReviewRequestCreateWorkflow } from "./ReviewRequestCreateWorkflow.js";
 
 export const workflows = [
@@ -18,6 +19,7 @@ export const workflows = [
   ContentExternalReferenceCreateWorkflow,
   RatingCriterionDeleteWorkflow,
   ReviewDeleteWorkflow,
+  ReviewUpdateWorkflow,
   ProductQuestionDeleteWorkflow,
   ContentExternalReferenceDeleteWorkflow,
 ];
@@ -31,5 +33,6 @@ export * from "./RatingCriterionCreateWorkflow.js";
 export * from "./RatingCriterionDeleteWorkflow.js";
 export * from "./ReviewCreateWorkflow.js";
 export * from "./ReviewDeleteWorkflow.js";
+export * from "./ReviewUpdateWorkflow.js";
 export * from "./ReviewRequestCreateWorkflow.js";
 export * from "./dto/index.js";
