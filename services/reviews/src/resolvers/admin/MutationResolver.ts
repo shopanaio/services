@@ -7,14 +7,22 @@ import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
   ContentExternalReferenceCreateResult,
   ContentExternalReferenceCreateWorkflowInput,
+  ContentExternalReferenceDeleteResult,
+  ContentExternalReferenceDeleteWorkflowInput,
   ModerationCaseCreateResult,
   ModerationCaseCreateWorkflowInput,
   ProductQuestionCreateResult,
   ProductQuestionCreateWorkflowInput,
+  ProductQuestionDeleteResult,
+  ProductQuestionDeleteWorkflowInput,
   RatingCriterionCreateResult,
   RatingCriterionCreateWorkflowInput,
+  RatingCriterionDeleteResult,
+  RatingCriterionDeleteWorkflowInput,
   ReviewCreateResult,
   ReviewCreateWorkflowInput,
+  ReviewDeleteResult,
+  ReviewDeleteWorkflowInput,
   ReviewRequestCreateResult,
   ReviewRequestCreateWorkflowInput,
   ReviewsMutationWorkflowContext,
@@ -28,30 +36,39 @@ import { ReviewResolver } from "./ReviewResolver.js";
 import { ReviewsType } from "./ReviewsType.js";
 import {
   ProductQuestionCreateInputSchema,
+  ReviewContentDeleteInputSchema,
   ReviewContentExternalReferenceCreateInputSchema,
+  ReviewContentExternalReferenceDeleteInputSchema,
   ReviewCreateInputSchema,
   ReviewModerationCaseCreateInputSchema,
   ReviewRatingCriterionCreateInputSchema,
+  ReviewRatingCriterionDeleteInputSchema,
   ReviewRequestCreateInputSchema,
 } from "./generated/schemas.js";
 import type {
   ProductQuestionCreateInput,
   ReviewContentCreateInput,
+  ReviewContentDeleteInput,
   ReviewContentExternalReferenceCreateInput,
+  ReviewContentExternalReferenceDeleteInput,
   ReviewCreateInput,
   ReviewModerationCaseCreateInput,
   ReviewRatingCriterionCreateInput,
+  ReviewRatingCriterionDeleteInput,
   ReviewRequestCreateInput,
   ReviewsMutationContentExternalReferenceCreateArgs,
+  ReviewsMutationContentExternalReferenceDeleteArgs,
   ReviewsMutationModerationCaseCreateArgs,
   ReviewsMutationProductQuestionCreateArgs,
+  ReviewsMutationProductQuestionDeleteArgs,
   ReviewsMutationRatingCriterionCreateArgs,
+  ReviewsMutationRatingCriterionDeleteArgs,
   ReviewsMutationReviewCreateArgs,
+  ReviewsMutationReviewDeleteArgs,
   ReviewsMutationReviewRequestCreateArgs,
 } from "./generated/types.js";
 
 const updatePayload = (field: string) => ({ [field]: null, operationResults: [], userErrors: [] });
-const deletePayload = (field: string) => ({ [field]: null, userErrors: [] });
 
 @ApolloMutation
 export class MutationResolver extends ReviewsType<Record<string, never>> {
@@ -67,7 +84,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async ratingCriterionCreate(args: ReviewsMutationRatingCriterionCreateArgs) {
     const decoded = decodeRatingCriterionInput(args.input);
     if (!decoded.value) return { criterion: null, userErrors: decoded.errors };
-    const result = await this.runCreateWorkflow<RatingCriterionCreateResult>(
+    const result = await this.runMutationWorkflow<RatingCriterionCreateResult>(
       "ratingCriterionCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies RatingCriterionCreateWorkflowInput
     );
@@ -78,13 +95,28 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   }
 
   ratingCriterionUpdate() { return updatePayload("criterion"); }
-  ratingCriterionDelete() { return deletePayload("deletedCriterionId"); }
+  @ZodResolver(ReviewRatingCriterionDeleteInputSchema())
+  async ratingCriterionDelete(args: ReviewsMutationRatingCriterionDeleteArgs) {
+    const decoded = decodeDeleteInput(args.input, GlobalIdEntity.ReviewRatingCriterion);
+    if (!decoded.value) return { deletedCriterionId: null, userErrors: decoded.errors };
+    const result = await this.runMutationWorkflow<RatingCriterionDeleteResult>(
+      "ratingCriterionDelete",
+      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies RatingCriterionDeleteWorkflowInput
+    );
+    if (result.deletedCriterionId) this.$ctx.loaders.ratingCriterion.clear(result.deletedCriterionId);
+    return {
+      deletedCriterionId: result.deletedCriterionId
+        ? this.encodeId(result.deletedCriterionId, GlobalIdEntity.ReviewRatingCriterion)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
 
   @ZodResolver(ReviewCreateInputSchema())
   async reviewCreate(args: ReviewsMutationReviewCreateArgs) {
     const decoded = decodeReviewInput(args.input);
     if (!decoded.value) return { review: null, userErrors: decoded.errors };
-    const result = await this.runCreateWorkflow<ReviewCreateResult>(
+    const result = await this.runMutationWorkflow<ReviewCreateResult>(
       "reviewCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ReviewCreateWorkflowInput
     );
@@ -95,13 +127,31 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   }
 
   reviewUpdate() { return updatePayload("review"); }
-  reviewDelete() { return deletePayload("deletedReviewId"); }
+  @ZodResolver(ReviewContentDeleteInputSchema())
+  async reviewDelete(args: ReviewsMutationReviewDeleteArgs) {
+    const decoded = decodeDeleteInput(args.input, GlobalIdEntity.Review);
+    if (!decoded.value) return { deletedReviewId: null, userErrors: decoded.errors };
+    const result = await this.runMutationWorkflow<ReviewDeleteResult>(
+      "reviewDelete",
+      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ReviewDeleteWorkflowInput
+    );
+    if (result.deletedReviewId) {
+      this.$ctx.loaders.review.clear(result.deletedReviewId);
+      this.$ctx.loaders.content.clear(result.deletedReviewId);
+    }
+    return {
+      deletedReviewId: result.deletedReviewId
+        ? this.encodeId(result.deletedReviewId, GlobalIdEntity.Review)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
 
   @ZodResolver(ProductQuestionCreateInputSchema())
   async productQuestionCreate(args: ReviewsMutationProductQuestionCreateArgs) {
     const decoded = decodeProductQuestionInput(args.input);
     if (!decoded.value) return { productQuestion: null, userErrors: decoded.errors };
-    const result = await this.runCreateWorkflow<ProductQuestionCreateResult>(
+    const result = await this.runMutationWorkflow<ProductQuestionCreateResult>(
       "productQuestionCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ProductQuestionCreateWorkflowInput
     );
@@ -112,7 +162,25 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   }
 
   productQuestionUpdate() { return updatePayload("productQuestion"); }
-  productQuestionDelete() { return deletePayload("deletedProductQuestionId"); }
+  @ZodResolver(ReviewContentDeleteInputSchema())
+  async productQuestionDelete(args: ReviewsMutationProductQuestionDeleteArgs) {
+    const decoded = decodeDeleteInput(args.input, GlobalIdEntity.ProductQuestion);
+    if (!decoded.value) return { deletedProductQuestionId: null, userErrors: decoded.errors };
+    const result = await this.runMutationWorkflow<ProductQuestionDeleteResult>(
+      "productQuestionDelete",
+      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ProductQuestionDeleteWorkflowInput
+    );
+    if (result.deletedProductQuestionId) {
+      this.$ctx.loaders.productQuestion.clear(result.deletedProductQuestionId);
+      this.$ctx.loaders.content.clear(result.deletedProductQuestionId);
+    }
+    return {
+      deletedProductQuestionId: result.deletedProductQuestionId
+        ? this.encodeId(result.deletedProductQuestionId, GlobalIdEntity.ProductQuestion)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
   productQuestionSubscriptionUpdate() { return updatePayload("subscription"); }
   contentRedact() { return updatePayload("content"); }
   contentRevisionRestore() { return updatePayload("content"); }
@@ -121,7 +189,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async reviewRequestCreate(args: ReviewsMutationReviewRequestCreateArgs) {
     const decoded = decodeReviewRequestInput(args.input);
     if (!decoded.value) return { reviewRequest: null, userErrors: decoded.errors };
-    const result = await this.runCreateWorkflow<ReviewRequestCreateResult>(
+    const result = await this.runMutationWorkflow<ReviewRequestCreateResult>(
       "reviewRequestCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ReviewRequestCreateWorkflowInput
     );
@@ -138,7 +206,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async moderationCaseCreate(args: ReviewsMutationModerationCaseCreateArgs) {
     const decoded = decodeModerationCaseInput(args.input);
     if (!decoded.value) return { moderationCase: null, userErrors: decoded.errors };
-    const result = await this.runCreateWorkflow<ModerationCaseCreateResult>(
+    const result = await this.runMutationWorkflow<ModerationCaseCreateResult>(
       "moderationCaseCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ModerationCaseCreateWorkflowInput
     );
@@ -154,7 +222,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async contentExternalReferenceCreate(args: ReviewsMutationContentExternalReferenceCreateArgs) {
     const decoded = decodeExternalReferenceInput(args.input);
     if (!decoded.value) return { externalReference: null, userErrors: decoded.errors };
-    const result = await this.runCreateWorkflow<ContentExternalReferenceCreateResult>(
+    const result = await this.runMutationWorkflow<ContentExternalReferenceCreateResult>(
       "contentExternalReferenceCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ContentExternalReferenceCreateWorkflowInput
     );
@@ -165,7 +233,24 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   }
 
   contentExternalReferenceUpdate() { return updatePayload("externalReference"); }
-  contentExternalReferenceDelete() { return deletePayload("deletedExternalReferenceId"); }
+  @ZodResolver(ReviewContentExternalReferenceDeleteInputSchema())
+  async contentExternalReferenceDelete(args: ReviewsMutationContentExternalReferenceDeleteArgs) {
+    const decoded = decodeExternalReferenceDeleteInput(args.input);
+    if (!decoded.value) return { deletedExternalReferenceId: null, userErrors: decoded.errors };
+    const result = await this.runMutationWorkflow<ContentExternalReferenceDeleteResult>(
+      "contentExternalReferenceDelete",
+      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ContentExternalReferenceDeleteWorkflowInput
+    );
+    if (result.deletedExternalReferenceId) {
+      this.$ctx.loaders.contentExternalReference.clear(result.deletedExternalReferenceId);
+    }
+    return {
+      deletedExternalReferenceId: result.deletedExternalReferenceId
+        ? this.encodeId(result.deletedExternalReferenceId, GlobalIdEntity.ReviewContentExternalReference)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
 
   private mutationWorkflowContext(): ReviewsMutationWorkflowContext {
     return {
@@ -177,7 +262,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     };
   }
 
-  private async runCreateWorkflow<TResult>(operation: string, input: unknown): Promise<TResult> {
+  private async runMutationWorkflow<TResult>(operation: string, input: unknown): Promise<TResult> {
     return (await this.$ctx.kernel.getServices().broker.runWorkflow(
       `reviews.${operation}`,
       input,
@@ -258,6 +343,36 @@ function decodeModerationCaseInput(input: ReviewModerationCaseCreateInput): Deco
 function decodeExternalReferenceInput(input: ReviewContentExternalReferenceCreateInput): DecodeResult<ReviewContentExternalReferenceCreateInput> {
   const errors: DecodeResult<never>["errors"] = [];
   const value = { ...input, contentId: decodeId(input.contentId, undefined, ["input", "contentId"], errors) };
+  return errors.length ? { errors } : { value, errors };
+}
+
+function decodeDeleteInput<
+  TInput extends ReviewContentDeleteInput | ReviewRatingCriterionDeleteInput
+>(
+  input: TInput,
+  type: GlobalIdType
+): DecodeResult<TInput> {
+  const errors: DecodeResult<never>["errors"] = [];
+  const value = {
+    ...input,
+    id: decodeId(input.id, type, ["input", "id"], errors),
+  };
+  return errors.length ? { errors } : { value: value as TInput, errors };
+}
+
+function decodeExternalReferenceDeleteInput(
+  input: ReviewContentExternalReferenceDeleteInput
+): DecodeResult<ReviewContentExternalReferenceDeleteInput> {
+  const errors: DecodeResult<never>["errors"] = [];
+  const value = {
+    ...input,
+    id: decodeId(
+      input.id,
+      GlobalIdEntity.ReviewContentExternalReference,
+      ["input", "id"],
+      errors
+    ),
+  };
   return errors.length ? { errors } : { value, errors };
 }
 

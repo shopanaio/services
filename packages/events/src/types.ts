@@ -251,6 +251,30 @@ export interface ReviewContentExternalReferenceCreatedEvent
     { externalReferenceId: string; storeId: string; contentId: string }
   > {}
 
+export interface ReviewRatingCriterionDeletedEvent
+  extends DomainEvent<
+    "reviewRatingCriterionDeleted",
+    { criterionId: string; storeId: string; permanent: boolean }
+  > {}
+
+export interface ReviewDeletedEvent
+  extends DomainEvent<
+    "reviewDeleted",
+    { reviewId: string; storeId: string; productId: string; permanent: boolean }
+  > {}
+
+export interface ProductQuestionDeletedEvent
+  extends DomainEvent<
+    "productQuestionDeleted",
+    { productQuestionId: string; storeId: string; productId: string; permanent: boolean }
+  > {}
+
+export interface ReviewContentExternalReferenceDeletedEvent
+  extends DomainEvent<
+    "reviewContentExternalReferenceDeleted",
+    { externalReferenceId: string; storeId: string; contentId: string; permanent: boolean }
+  > {}
+
 export interface FacetCreatedEvent
   extends DomainEvent<
     "facetCreated",
@@ -385,6 +409,10 @@ export type ShopanaEvent =
   | ReviewRequestCreatedEvent
   | ReviewModerationCaseCreatedEvent
   | ReviewContentExternalReferenceCreatedEvent
+  | ReviewRatingCriterionDeletedEvent
+  | ReviewDeletedEvent
+  | ProductQuestionDeletedEvent
+  | ReviewContentExternalReferenceDeletedEvent
   | FacetCreatedEvent
   | FacetUpdatedEvent
   | FacetDeletedEvent

@@ -6,6 +6,12 @@ import {
   ReviewCreateWorkflow,
   ReviewRequestCreateWorkflow,
 } from "./CreateWorkflows.js";
+import {
+  ContentExternalReferenceDeleteWorkflow,
+  ProductQuestionDeleteWorkflow,
+  RatingCriterionDeleteWorkflow,
+  ReviewDeleteWorkflow,
+} from "./DeleteWorkflows.js";
 
 export const workflows = [
   RatingCriterionCreateWorkflow,
@@ -14,6 +20,11 @@ export const workflows = [
   ReviewRequestCreateWorkflow,
   ModerationCaseCreateWorkflow,
   ContentExternalReferenceCreateWorkflow,
+  RatingCriterionDeleteWorkflow,
+  ReviewDeleteWorkflow,
+  ProductQuestionDeleteWorkflow,
+  ContentExternalReferenceDeleteWorkflow,
 ];
 
 export * from "./CreateWorkflows.js";
+export * from "./DeleteWorkflows.js";
