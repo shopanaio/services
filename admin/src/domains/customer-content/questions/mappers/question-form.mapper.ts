@@ -1,35 +1,184 @@
-import type { ApiQuestion, QuestionCreateInput, QuestionUpdateInput, QuestionUserError } from "../graphql/operation-types";
+import type { FieldPath } from "react-hook-form";
+import type {
+  ApiGenericUserError,
+  ApiProductQuestion,
+  ApiProductQuestionAnswerCreateInput,
+  ApiProductQuestionAnswerUpdateInput,
+  ApiProductQuestionCreateInput,
+  ApiProductQuestionUpdateInput,
+  ApiReviewContentAuthorCreateInput,
+  ApiReviewContentAuthorUpdateInput,
+  ApiReviewContentDeleteInput,
+} from "@/graphql/types";
+import { ReviewContentAuthorType } from "@/graphql/types";
 import type { QuestionFormValues } from "../modals/question-modal/schema";
 
-const sharedInput = (values: QuestionFormValues) => ({
-  productId: values.productId,
-  customerId: values.customerId,
-  body: values.body.trim(),
-  status: values.status,
-  moderationNote: values.moderationNote.trim() || null,
-  answers: values.answers.map((answer) => ({
-    id: answer.id ?? null,
-    body: answer.body.trim(),
-    authorType: answer.authorType,
-    authorName: answer.authorName.trim(),
+type AuthorValues = Pick<
+  QuestionFormValues,
+  "authorType" | "customerId" | "authorDisplayName" | "authorEmail"
+>;
+
+function buildAuthor(values: AuthorValues): ApiReviewContentAuthorCreateInput {
+  return {
+    type: values.authorType,
+    customerId: values.authorType === ReviewContentAuthorType.Customer
+      ? values.customerId || null
+      : null,
+    displayName: values.authorDisplayName.trim(),
+    email: values.authorEmail.trim() || null,
+  };
+}
+
+function buildAuthorUpdate(values: AuthorValues): ApiReviewContentAuthorUpdateInput {
+  return buildAuthor(values);
+}
+
+function buildAnswerAuthor(
+  answer: QuestionFormValues["answers"][number],
+): ApiReviewContentAuthorCreateInput {
+  return {
+    type: answer.authorType,
+    customerId: answer.authorType === ReviewContentAuthorType.Customer
+      ? answer.customerId || null
+      : null,
+    displayName: answer.authorName.trim(),
+    email: answer.authorEmail.trim() || null,
+  };
+}
+
+export function buildQuestionCreateInput(values: QuestionFormValues): ApiProductQuestionCreateInput {
+  return {
+    productId: values.productId,
+    content: {
+      body: values.body.trim(),
+      locale: values.locale.trim(),
+      author: buildAuthor(values),
+      source: { channel: "ADMIN" },
+      status: values.status,
+      moderationNote: values.moderationNote.trim() || null,
+    },
+  };
+}
+
+export function buildQuestionCreateAnswers(
+  values: QuestionFormValues,
+): Array<Omit<ApiProductQuestionAnswerCreateInput, "questionId">> {
+  return values.answers.map((answer, sortIndex) => ({
+    content: {
+      body: answer.body.trim(),
+      locale: answer.locale.trim(),
+      author: buildAnswerAuthor(answer),
+      source: { channel: "ADMIN" },
+      status: values.status,
+    },
     isOfficial: answer.isOfficial,
-  })),
-});
-
-export function buildQuestionCreateInput(values: QuestionFormValues): QuestionCreateInput {
-  return { clientMutationId: crypto.randomUUID(), ...sharedInput(values) };
-}
-
-export function buildQuestionUpdateInput(values: QuestionFormValues, question: ApiQuestion): QuestionUpdateInput {
-  return { id: question.id, expectedVersion: question.version, ...sharedInput(values) };
-}
-
-const formFields = new Set<keyof QuestionFormValues>(["productId", "customerId", "body", "status", "moderationNote", "answers"]);
-export function mapQuestionUserErrors(errors: QuestionUserError[]) {
-  return errors.map((error) => ({
-    field: error.field && formFields.has(error.field as keyof QuestionFormValues)
-        ? error.field as keyof QuestionFormValues
-        : null,
-    message: error.message,
+    isAccepted: answer.isAccepted,
+    sortIndex,
   }));
+}
+
+export function buildQuestionUpdateInput(values: QuestionFormValues): ApiProductQuestionUpdateInput {
+  return {
+    content: {
+      text: { body: values.body.trim(), locale: values.locale.trim() },
+      author: buildAuthorUpdate(values),
+      moderation: {
+        status: values.status,
+        moderationNote: values.moderationNote.trim() || null,
+      },
+    },
+    subject: { productId: values.productId },
+  };
+}
+
+export interface QuestionAnswerMutationPlan {
+  create: ApiProductQuestionAnswerCreateInput[];
+  update: Array<{
+    productQuestionAnswerId: string;
+    expectedRevision: number;
+    operations: ApiProductQuestionAnswerUpdateInput;
+  }>;
+  delete: ApiReviewContentDeleteInput[];
+}
+
+export function buildQuestionAnswerMutationPlan(
+  values: QuestionFormValues,
+  question: ApiProductQuestion,
+): QuestionAnswerMutationPlan {
+  const currentAnswers = question.answers.edges.map((edge) => edge.node);
+  const submittedIds = new Set(values.answers.flatMap((answer) => answer.id ? [answer.id] : []));
+  const create: ApiProductQuestionAnswerCreateInput[] = [];
+  const update: QuestionAnswerMutationPlan["update"] = [];
+
+  values.answers.forEach((answer, sortIndex) => {
+    if (!answer.id) {
+      create.push({
+        questionId: question.id,
+        content: {
+          body: answer.body.trim(),
+          locale: answer.locale.trim(),
+          author: buildAnswerAuthor(answer),
+          source: { channel: "ADMIN" },
+          status: values.status,
+        },
+        isOfficial: answer.isOfficial,
+        isAccepted: answer.isAccepted,
+        sortIndex,
+      });
+      return;
+    }
+
+    const current = currentAnswers.find((item) => item.id === answer.id);
+    if (!current) return;
+    update.push({
+      productQuestionAnswerId: current.id,
+      expectedRevision: current.revision,
+      operations: {
+        content: {
+          text: { body: answer.body.trim(), locale: answer.locale.trim() },
+          author: buildAnswerAuthor(answer),
+        },
+        properties: {
+          isOfficial: answer.isOfficial,
+          isAccepted: answer.isAccepted,
+          sortIndex,
+        },
+      },
+    });
+  });
+
+  return {
+    create,
+    update,
+    delete: currentAnswers
+      .filter((answer) => !submittedIds.has(answer.id))
+      .map((answer) => ({ id: answer.id, expectedRevision: answer.revision })),
+  };
+}
+
+const fieldMap: Record<string, FieldPath<QuestionFormValues>> = {
+  "content.author.customerId": "customerId",
+  "content.author.type": "authorType",
+  "content.author.displayName": "authorDisplayName",
+  "content.author.email": "authorEmail",
+  "content.text.body": "body",
+  "content.text.locale": "locale",
+  "content.moderation.status": "status",
+  "content.moderation.moderationNote": "moderationNote",
+  "content.body": "body",
+  "content.locale": "locale",
+  "content.status": "status",
+  "content.moderationNote": "moderationNote",
+  productId: "productId",
+  "subject.productId": "productId",
+};
+
+export function mapQuestionUserErrors(errors: ApiGenericUserError[]) {
+  return errors.map((error) => {
+    const path = error.field?.join(".") ?? "";
+    const field = Object.entries(fieldMap).find(
+      ([apiPath]) => path === apiPath || path.endsWith(`.${apiPath}`),
+    )?.[1] ?? null;
+    return { field, message: error.message };
+  });
 }

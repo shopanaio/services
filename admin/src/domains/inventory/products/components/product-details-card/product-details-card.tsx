@@ -8,6 +8,7 @@ import { SeoBlock } from "../seo";
 import { AttributesSection } from "../attributes-section";
 import { EditAction } from "../edit-action";
 import { useDefaultCurrency } from "@/domains/workspace";
+import { useProductReviewSummary } from "@/domains/customer-content/reviews/hooks";
 import {
   MediaSection,
   CategoriesSection,
@@ -55,6 +56,7 @@ export const ProductDetailsCard = ({
     onProductRefresh,
     defaultCurrency,
   });
+  const reviewSummary = useProductReviewSummary(product.id);
   const shouldRenderVariantsSection =
     !!variantsTableData &&
     (variantsTableData.totalCount > 0 || product.variantsCount > 0);
@@ -94,9 +96,9 @@ export const ProductDetailsCard = ({
 
       {/* REVIEWS */}
       <ReviewsSection
-        rating={supplementalData.reviews.rating}
-        reviewsCount={supplementalData.reviews.reviewsCount}
-        breakdown={supplementalData.reviews.breakdown}
+        summary={reviewSummary.summary}
+        loading={reviewSummary.loading}
+        error={reviewSummary.error}
         onEdit={() => handleEdit("reviews")}
       />
 

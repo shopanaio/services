@@ -24,7 +24,6 @@ export type Scalars = {
   Timestamp: { input: string; output: string; }
   TransportOptions: { input: unknown; output: unknown; }
   Upload: { input: File; output: File; }
-  _CustomersGeneratedFilterPlaceholder: { input: any; output: any; }
   _ReviewsGeneratedFilterPlaceholder: { input: any; output: any; }
   join__FieldSet: { input: any; output: any; }
   link__Import: { input: any; output: any; }
@@ -3222,24 +3221,41 @@ export type ApiCustomerAddressEdge = {
   node: ApiCustomerAddress;
 };
 
+/** Ordering configuration for CustomerAddress */
 export type ApiCustomerAddressOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerAddressOrderField;
 };
 
+/** Fields available for sorting CustomerAddress */
 export enum CustomerAddressOrderField {
+  /** Sort by city */
   City = 'city',
+  /** Sort by countryCode */
   CountryCode = 'countryCode',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by firstName */
   FirstName = 'firstName',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isDefaultBilling */
   IsDefaultBilling = 'isDefaultBilling',
+  /** Sort by isDefaultShipping */
   IsDefaultShipping = 'isDefaultShipping',
+  /** Sort by label */
   Label = 'label',
+  /** Sort by lastName */
   LastName = 'lastName',
+  /** Sort by postalCode */
   PostalCode = 'postalCode',
+  /** Sort by regionCode */
   RegionCode = 'regionCode',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by validationStatus */
   ValidationStatus = 'validationStatus'
 }
 
@@ -3288,24 +3304,43 @@ export type ApiCustomerAddressValidationStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerAddressValidationStatus>>;
 };
 
+/** Filter conditions for CustomerAddress */
 export type ApiCustomerAddressWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerAddressWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerAddressWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerAddressWhereInput>>;
+  /** Filter by city */
   city?: InputMaybe<ApiStringFilter>;
+  /** Filter by companyName */
   companyName?: InputMaybe<ApiStringFilter>;
+  /** Filter by countryCode */
   countryCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by firstName */
   firstName?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isDefaultBilling */
   isDefaultBilling?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by isDefaultShipping */
   isDefaultShipping?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by label */
   label?: InputMaybe<ApiStringFilter>;
+  /** Filter by lastName */
   lastName?: InputMaybe<ApiStringFilter>;
+  /** Filter by phoneE164 */
   phoneE164?: InputMaybe<ApiStringFilter>;
+  /** Filter by postalCode */
   postalCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by regionCode */
   regionCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by validationStatus */
   validationStatus?: InputMaybe<ApiCustomerAddressValidationStatusFilter>;
 };
 
@@ -3435,17 +3470,27 @@ export type ApiCustomerConsentEventEdge = {
   node: ApiCustomerConsentEvent;
 };
 
+/** Ordering configuration for CustomerConsentEvent */
 export type ApiCustomerConsentEventOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerConsentEventOrderField;
 };
 
+/** Fields available for sorting CustomerConsentEvent */
 export enum CustomerConsentEventOrderField {
+  /** Sort by actorType */
   ActorType = 'actorType',
+  /** Sort by channel */
   Channel = 'channel',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by newState */
   NewState = 'newState',
+  /** Sort by occurredAt */
   OccurredAt = 'occurredAt',
+  /** Sort by source */
   Source = 'source'
 }
 
@@ -3594,19 +3639,31 @@ export type ApiCustomerDataRequestEdge = {
   node: ApiCustomerDataRequest;
 };
 
+/** Ordering configuration for CustomerDataRequest */
 export type ApiCustomerDataRequestOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerDataRequestOrderField;
 };
 
+/** Fields available for sorting CustomerDataRequest */
 export enum CustomerDataRequestOrderField {
+  /** Sort by dueAt */
   DueAt = 'dueAt',
+  /** Sort by finishedAt */
   FinishedAt = 'finishedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by requestedAt */
   RequestedAt = 'requestedAt',
+  /** Sort by startedAt */
   StartedAt = 'startedAt',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by type */
   Type = 'type',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -3639,21 +3696,37 @@ export type ApiCustomerDataRequestTypeFilter = {
   _notIn?: InputMaybe<Array<CustomerDataRequestType>>;
 };
 
+/** Filter conditions for CustomerDataRequest */
 export type ApiCustomerDataRequestWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerDataRequestWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerDataRequestWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerDataRequestWhereInput>>;
+  /** Filter by customerId */
   customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by dueAt */
   dueAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by finishedAt */
   finishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by legalBasis */
   legalBasis?: InputMaybe<ApiStringFilter>;
+  /** Filter by requestedAt */
   requestedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by requestedById */
   requestedById?: InputMaybe<ApiStringFilter>;
+  /** Filter by requestedByType */
   requestedByType?: InputMaybe<ApiStringFilter>;
+  /** Filter by startedAt */
   startedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiCustomerDataRequestStatusFilter>;
+  /** Filter by type */
   type?: InputMaybe<ApiCustomerDataRequestTypeFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -3762,16 +3835,25 @@ export type ApiCustomerGroupMembershipEdge = {
   node: ApiCustomerGroupMembership;
 };
 
+/** Ordering configuration for CustomerGroupMembership */
 export type ApiCustomerGroupMembershipOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerGroupMembershipOrderField;
 };
 
+/** Fields available for sorting CustomerGroupMembership */
 export enum CustomerGroupMembershipOrderField {
+  /** Sort by assignedAt */
   AssignedAt = 'assignedAt',
+  /** Sort by expiresAt */
   ExpiresAt = 'expiresAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isPrimary */
   IsPrimary = 'isPrimary',
+  /** Sort by source */
   Source = 'source'
 }
 
@@ -3795,16 +3877,27 @@ export type ApiCustomerGroupMembershipUpdateOperationInput = {
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
+/** Filter conditions for CustomerGroupMembership */
 export type ApiCustomerGroupMembershipWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerGroupMembershipWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerGroupMembershipWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerGroupMembershipWhereInput>>;
+  /** Filter by assignedAt */
   assignedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by customerId */
   customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by expiresAt */
   expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by groupId */
   groupId?: InputMaybe<ApiIdFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isPrimary */
   isPrimary?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by source */
   source?: InputMaybe<ApiCustomerAssignmentSourceFilter>;
 };
 
@@ -3813,18 +3906,29 @@ export type ApiCustomerGroupMembershipsUpdateInput = {
   memberships: Array<ApiCustomerGroupMembershipUpdateOperationInput>;
 };
 
+/** Ordering configuration for CustomerGroup */
 export type ApiCustomerGroupOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerGroupOrderField;
 };
 
+/** Fields available for sorting CustomerGroup */
 export enum CustomerGroupOrderField {
+  /** Sort by code */
   Code = 'code',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isActive */
   IsActive = 'isActive',
+  /** Sort by isDefault */
   IsDefault = 'isDefault',
+  /** Sort by name */
   Name = 'name',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -3843,16 +3947,27 @@ export type ApiCustomerGroupUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for CustomerGroup */
 export type ApiCustomerGroupWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerGroupWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerGroupWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerGroupWhereInput>>;
+  /** Filter by code */
   code?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isActive */
   isActive?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by isDefault */
   isDefault?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by name */
   name?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -3904,17 +4019,27 @@ export type ApiCustomerMergeEdge = {
   node: ApiCustomerMerge;
 };
 
+/** Ordering configuration for CustomerMerge */
 export type ApiCustomerMergeOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerMergeOrderField;
 };
 
+/** Fields available for sorting CustomerMerge */
 export enum CustomerMergeOrderField {
+  /** Sort by finishedAt */
   FinishedAt = 'finishedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by requestedAt */
   RequestedAt = 'requestedAt',
+  /** Sort by startedAt */
   StartedAt = 'startedAt',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -3944,21 +4069,37 @@ export type ApiCustomerMergeStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerMergeStatus>>;
 };
 
+/** Filter conditions for CustomerMerge */
 export type ApiCustomerMergeWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerMergeWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerMergeWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerMergeWhereInput>>;
+  /** Filter by errorCode */
   errorCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by finishedAt */
   finishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by idempotencyKey */
   idempotencyKey?: InputMaybe<ApiStringFilter>;
+  /** Filter by requestedAt */
   requestedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by requestedById */
   requestedById?: InputMaybe<ApiStringFilter>;
+  /** Filter by requestedByType */
   requestedByType?: InputMaybe<ApiStringFilter>;
+  /** Filter by sourceCustomerId */
   sourceCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by startedAt */
   startedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiCustomerMergeStatusFilter>;
+  /** Filter by targetCustomerId */
   targetCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -3994,33 +4135,57 @@ export type ApiCustomerMonetaryStatisticsEdge = {
   node: ApiCustomerMonetaryStatistics;
 };
 
+/** Ordering configuration for CustomerMonetaryStatistics */
 export type ApiCustomerMonetaryStatisticsOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerMonetaryStatisticsOrderField;
 };
 
+/** Fields available for sorting CustomerMonetaryStatistics */
 export enum CustomerMonetaryStatisticsOrderField {
+  /** Sort by averageOrderValueMinor */
   AverageOrderValueMinor = 'averageOrderValueMinor',
+  /** Sort by currencyCode */
   CurrencyCode = 'currencyCode',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by netSpentMinor */
   NetSpentMinor = 'netSpentMinor',
+  /** Sort by ordersCount */
   OrdersCount = 'ordersCount',
+  /** Sort by totalRefundedMinor */
   TotalRefundedMinor = 'totalRefundedMinor',
+  /** Sort by totalSpentMinor */
   TotalSpentMinor = 'totalSpentMinor',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
+/** Filter conditions for CustomerMonetaryStatistics */
 export type ApiCustomerMonetaryStatisticsWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerMonetaryStatisticsWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerMonetaryStatisticsWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerMonetaryStatisticsWhereInput>>;
+  /** Filter by averageOrderValueMinor */
   averageOrderValueMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by currencyCode */
   currencyCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by netSpentMinor */
   netSpentMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by ordersCount */
   ordersCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by totalRefundedMinor */
   totalRefundedMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by totalSpentMinor */
   totalSpentMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -4053,27 +4218,47 @@ export enum CustomerOperationType {
   TaxIdentifierUpdate = 'TAX_IDENTIFIER_UPDATE'
 }
 
+/** Ordering configuration for Customer */
 export type ApiCustomerOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerOrderField;
 };
 
+/** Fields available for sorting Customer */
 export enum CustomerOrderField {
+  /** Sort by accountStatus */
   AccountStatus = 'accountStatus',
+  /** Sort by companyName */
   CompanyName = 'companyName',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by dateOfBirth */
   DateOfBirth = 'dateOfBirth',
+  /** Sort by displayName */
   DisplayName = 'displayName',
+  /** Sort by email */
   Email = 'email',
+  /** Sort by firstName */
   FirstName = 'firstName',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by lastActivityAt */
   LastActivityAt = 'lastActivityAt',
+  /** Sort by lastName */
   LastName = 'lastName',
+  /** Sort by lastOrderAt */
   LastOrderAt = 'lastOrderAt',
+  /** Sort by lifecycleStatus */
   LifecycleStatus = 'lifecycleStatus',
+  /** Sort by ordersCount */
   OrdersCount = 'ordersCount',
+  /** Sort by phoneE164 */
   PhoneE164 = 'phoneE164',
+  /** Sort by totalSpentMinor */
   TotalSpentMinor = 'totalSpentMinor',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -4231,27 +4416,45 @@ export type ApiCustomerSegmentMembershipEdge = {
   node: ApiCustomerSegmentMembership;
 };
 
+/** Ordering configuration for CustomerSegmentMembership */
 export type ApiCustomerSegmentMembershipOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerSegmentMembershipOrderField;
 };
 
+/** Fields available for sorting CustomerSegmentMembership */
 export enum CustomerSegmentMembershipOrderField {
+  /** Sort by evaluatedAt */
   EvaluatedAt = 'evaluatedAt',
+  /** Sort by expiresAt */
   ExpiresAt = 'expiresAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by source */
   Source = 'source'
 }
 
+/** Filter conditions for CustomerSegmentMembership */
 export type ApiCustomerSegmentMembershipWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerSegmentMembershipWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerSegmentMembershipWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerSegmentMembershipWhereInput>>;
+  /** Filter by customerId */
   customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by evaluatedAt */
   evaluatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by expiresAt */
   expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by segmentId */
   segmentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by source */
   source?: InputMaybe<ApiCustomerAssignmentSourceFilter>;
 };
 
@@ -4260,18 +4463,29 @@ export type ApiCustomerSegmentMembershipsUpdateInput = {
   segmentIds: Array<Scalars['ID']['input']>;
 };
 
+/** Ordering configuration for CustomerSegment */
 export type ApiCustomerSegmentOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerSegmentOrderField;
 };
 
+/** Fields available for sorting CustomerSegment */
 export enum CustomerSegmentOrderField {
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by customersCount */
   CustomersCount = 'customersCount',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by name */
   Name = 'name',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by type */
   Type = 'type',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -4319,18 +4533,31 @@ export type ApiCustomerSegmentUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for CustomerSegment */
 export type ApiCustomerSegmentWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerSegmentWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerSegmentWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerSegmentWhereInput>>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by createdById */
   createdById?: InputMaybe<ApiStringFilter>;
+  /** Filter by customersCount */
   customersCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by description */
   description?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by name */
   name?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiCustomerSegmentStatusFilter>;
+  /** Filter by type */
   type?: InputMaybe<ApiCustomerSegmentTypeFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -4416,24 +4643,39 @@ export type ApiCustomerTagAssignmentEdge = {
   node: ApiCustomerTagAssignment;
 };
 
+/** Ordering configuration for CustomerTagAssignment */
 export type ApiCustomerTagAssignmentOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerTagAssignmentOrderField;
 };
 
+/** Fields available for sorting CustomerTagAssignment */
 export enum CustomerTagAssignmentOrderField {
+  /** Sort by assignedAt */
   AssignedAt = 'assignedAt',
+  /** Sort by id */
   Id = 'id'
 }
 
+/** Filter conditions for CustomerTagAssignment */
 export type ApiCustomerTagAssignmentWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerTagAssignmentWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerTagAssignmentWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerTagAssignmentWhereInput>>;
+  /** Filter by assignedAt */
   assignedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by assignedById */
   assignedById?: InputMaybe<ApiStringFilter>;
+  /** Filter by customerId */
   customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by tagId */
   tagId?: InputMaybe<ApiIdFilter>;
 };
 
@@ -4475,16 +4717,25 @@ export type ApiCustomerTagEdge = {
   node: ApiCustomerTag;
 };
 
+/** Ordering configuration for CustomerTag */
 export type ApiCustomerTagOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerTagOrderField;
 };
 
+/** Fields available for sorting CustomerTag */
 export enum CustomerTagOrderField {
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by name */
   Name = 'name',
+  /** Sort by normalizedName */
   NormalizedName = 'normalizedName',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -4510,14 +4761,23 @@ export type ApiCustomerTagUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for CustomerTag */
 export type ApiCustomerTagWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerTagWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerTagWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerTagWhereInput>>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by name */
   name?: InputMaybe<ApiStringFilter>;
+  /** Filter by normalizedName */
   normalizedName?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -4593,20 +4853,33 @@ export type ApiCustomerTaxExemptionEdge = {
   node: ApiCustomerTaxExemption;
 };
 
+/** Ordering configuration for CustomerTaxExemption */
 export type ApiCustomerTaxExemptionOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerTaxExemptionOrderField;
 };
 
+/** Fields available for sorting CustomerTaxExemption */
 export enum CustomerTaxExemptionOrderField {
+  /** Sort by code */
   Code = 'code',
+  /** Sort by countryCode */
   CountryCode = 'countryCode',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by regionCode */
   RegionCode = 'regionCode',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by validFrom */
   ValidFrom = 'validFrom',
+  /** Sort by validTo */
   ValidTo = 'validTo'
 }
 
@@ -4646,18 +4919,31 @@ export type ApiCustomerTaxExemptionUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for CustomerTaxExemption */
 export type ApiCustomerTaxExemptionWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerTaxExemptionWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerTaxExemptionWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerTaxExemptionWhereInput>>;
+  /** Filter by code */
   code?: InputMaybe<ApiStringFilter>;
+  /** Filter by countryCode */
   countryCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by regionCode */
   regionCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiCustomerTaxExemptionStatusFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by validFrom */
   validFrom?: InputMaybe<ApiDateFilter>;
+  /** Filter by validTo */
   validTo?: InputMaybe<ApiDateFilter>;
 };
 
@@ -4738,20 +5024,33 @@ export type ApiCustomerTaxIdentifierEdge = {
   node: ApiCustomerTaxIdentifier;
 };
 
+/** Ordering configuration for CustomerTaxIdentifier */
 export type ApiCustomerTaxIdentifierOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerTaxIdentifierOrderField;
 };
 
+/** Fields available for sorting CustomerTaxIdentifier */
 export enum CustomerTaxIdentifierOrderField {
+  /** Sort by countryCode */
   CountryCode = 'countryCode',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by identifierType */
   IdentifierType = 'identifierType',
+  /** Sort by isPrimary */
   IsPrimary = 'isPrimary',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by validFrom */
   ValidFrom = 'validFrom',
+  /** Sort by validTo */
   ValidTo = 'validTo'
 }
 
@@ -4791,19 +5090,33 @@ export type ApiCustomerTaxIdentifierUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for CustomerTaxIdentifier */
 export type ApiCustomerTaxIdentifierWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerTaxIdentifierWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerTaxIdentifierWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerTaxIdentifierWhereInput>>;
+  /** Filter by countryCode */
   countryCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by identifierType */
   identifierType?: InputMaybe<ApiStringFilter>;
+  /** Filter by isPrimary */
   isPrimary?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiCustomerTaxIdentifierStatusFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by validFrom */
   validFrom?: InputMaybe<ApiDateFilter>;
+  /** Filter by validTo */
   validTo?: InputMaybe<ApiDateFilter>;
+  /** Filter by value */
   value?: InputMaybe<ApiStringFilter>;
 };
 
@@ -4838,36 +5151,65 @@ export type ApiCustomerUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for Customer */
 export type ApiCustomerWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiCustomerWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiCustomerWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiCustomerWhereInput>>;
+  /** Filter by accountStatus */
   accountStatus?: InputMaybe<ApiCustomerAccountStatusFilter>;
+  /** Filter by companyName */
   companyName?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by dateOfBirth */
   dateOfBirth?: InputMaybe<ApiDateFilter>;
+  /** Filter by defaultShippingCity */
   defaultShippingCity?: InputMaybe<ApiStringFilter>;
+  /** Filter by defaultShippingCountryCode */
   defaultShippingCountryCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by defaultShippingRegionCode */
   defaultShippingRegionCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by displayName */
   displayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by email */
   email?: InputMaybe<ApiStringFilter>;
+  /** Filter by emailMarketingState */
   emailMarketingState?: InputMaybe<ApiCustomerConsentStateFilter>;
+  /** Filter by emailVerified */
   emailVerified?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by firstName */
   firstName?: InputMaybe<ApiStringFilter>;
+  /** Filter by iamPrincipalId */
   iamPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by lastActivityAt */
   lastActivityAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by lastName */
   lastName?: InputMaybe<ApiStringFilter>;
+  /** Filter by lastOrderAt */
   lastOrderAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by lifecycleStatus */
   lifecycleStatus?: InputMaybe<ApiCustomerLifecycleStatusFilter>;
+  /** Filter by ordersCount */
   ordersCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by phoneE164 */
   phoneE164?: InputMaybe<ApiStringFilter>;
+  /** Filter by phoneVerified */
   phoneVerified?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by preferredLocale */
   preferredLocale?: InputMaybe<ApiStringFilter>;
   /** Match customers with a current membership in the selected segment IDs. */
   segmentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by source */
   source?: InputMaybe<ApiStringFilter>;
+  /** Filter by totalSpentMinor */
   totalSpentMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -7573,7 +7915,7 @@ export type ApiMutation = {
   orderMutation: ApiOrderMutation;
   /** Organization management mutations. */
   organizationMutation: ApiOrganizationMutation;
-  /** Reviews mutation namespace. */
+  /** Admin-only Reviews mutation namespace. */
   reviewsMutation: ApiReviewsMutation;
   /** Role management mutations. */
   roleMutation: ApiRoleMutation;
@@ -8863,6 +9205,494 @@ export type ApiProductProductsMetaInput = {
   categoriesScope?: InputMaybe<ApiProductCategoriesScopeInput>;
 };
 
+export type ApiProductQuestion = ApiNode & ApiReviewContent & {
+  __typename?: 'ProductQuestion';
+  answerState: ProductQuestionAnswerState;
+  answers: ApiProductQuestionAnswerConnection;
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  kind: ReviewContentKind;
+  locale: Scalars['String']['output'];
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  product: ApiProduct;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  reports: ApiReviewContentReportConnection;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  subscriptions: ApiProductQuestionSubscriptionConnection;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  variant?: Maybe<ApiVariant>;
+  votes: ApiReviewContentVoteConnection;
+};
+
+
+export type ApiProductQuestionAnswersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiProductQuestionAnswerOrderByInput>>;
+  where?: InputMaybe<ApiProductQuestionAnswerWhereInput>;
+};
+
+
+export type ApiProductQuestionExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionSubscriptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiProductQuestionAnswer = ApiNode & ApiReviewContent & {
+  __typename?: 'ProductQuestionAnswer';
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  isAccepted: Scalars['Boolean']['output'];
+  isOfficial: Scalars['Boolean']['output'];
+  kind: ReviewContentKind;
+  locale: Scalars['String']['output'];
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  question: ApiProductQuestion;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  reports: ApiReviewContentReportConnection;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sortIndex: Scalars['Int']['output'];
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  votes: ApiReviewContentVoteConnection;
+};
+
+
+export type ApiProductQuestionAnswerExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiProductQuestionAnswerConnection = {
+  __typename?: 'ProductQuestionAnswerConnection';
+  edges: Array<ApiProductQuestionAnswerEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiProductQuestionAnswerCreateInput = {
+  content: ApiReviewContentCreateInput;
+  isAccepted?: InputMaybe<Scalars['Boolean']['input']>;
+  isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
+  questionId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiProductQuestionAnswerCreatePayload = {
+  __typename?: 'ProductQuestionAnswerCreatePayload';
+  productQuestionAnswer?: Maybe<ApiProductQuestionAnswer>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductQuestionAnswerDeletePayload = {
+  __typename?: 'ProductQuestionAnswerDeletePayload';
+  deletedProductQuestionAnswerId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductQuestionAnswerEdge = {
+  __typename?: 'ProductQuestionAnswerEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProductQuestionAnswer;
+};
+
+export type ApiProductQuestionAnswerOrderByInput = {
+  direction: SortDirection;
+  field: ProductQuestionAnswerOrderField;
+};
+
+export enum ProductQuestionAnswerOrderField {
+  AuthorType = 'authorType',
+  CreatedAt = 'createdAt',
+  DeletedAt = 'deletedAt',
+  Id = 'id',
+  IsAccepted = 'isAccepted',
+  IsOfficial = 'isOfficial',
+  Locale = 'locale',
+  QuestionId = 'questionId',
+  Revision = 'revision',
+  SortIndex = 'sortIndex',
+  Status = 'status',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiProductQuestionAnswerPropertiesUpdateInput = {
+  isAccepted?: InputMaybe<Scalars['Boolean']['input']>;
+  isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export enum ProductQuestionAnswerState {
+  Answered = 'ANSWERED',
+  Unanswered = 'UNANSWERED'
+}
+
+export type ApiProductQuestionAnswerUpdateInput = {
+  content?: InputMaybe<ApiReviewContentUpdateInput>;
+  properties?: InputMaybe<ApiProductQuestionAnswerPropertiesUpdateInput>;
+};
+
+export type ApiProductQuestionAnswerUpdatePayload = {
+  __typename?: 'ProductQuestionAnswerUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  productQuestionAnswer?: Maybe<ApiProductQuestionAnswer>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductQuestionAnswerWhereInput = {
+  _and?: InputMaybe<Array<ApiProductQuestionAnswerWhereInput>>;
+  _not?: InputMaybe<ApiProductQuestionAnswerWhereInput>;
+  _or?: InputMaybe<Array<ApiProductQuestionAnswerWhereInput>>;
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  authorType?: InputMaybe<ApiStringFilter>;
+  body?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  isAccepted?: InputMaybe<ApiBooleanFilter>;
+  isOfficial?: InputMaybe<ApiBooleanFilter>;
+  locale?: InputMaybe<ApiStringFilter>;
+  questionId?: InputMaybe<ApiIdFilter>;
+  revision?: InputMaybe<ApiIntFilter>;
+  sortIndex?: InputMaybe<ApiIntFilter>;
+  status?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiProductQuestionConnection = {
+  __typename?: 'ProductQuestionConnection';
+  edges: Array<ApiProductQuestionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiProductQuestionCreateInput = {
+  content: ApiReviewContentCreateInput;
+  productId: Scalars['ID']['input'];
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiProductQuestionCreatePayload = {
+  __typename?: 'ProductQuestionCreatePayload';
+  productQuestion?: Maybe<ApiProductQuestion>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductQuestionDeletePayload = {
+  __typename?: 'ProductQuestionDeletePayload';
+  deletedProductQuestionId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductQuestionEdge = {
+  __typename?: 'ProductQuestionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProductQuestion;
+};
+
+export type ApiProductQuestionOrderByInput = {
+  direction: SortDirection;
+  field: ProductQuestionOrderField;
+};
+
+export enum ProductQuestionOrderField {
+  AcceptedAnswerCount = 'acceptedAnswerCount',
+  AnswerCount = 'answerCount',
+  AnswerState = 'answerState',
+  AuthorDisplayName = 'authorDisplayName',
+  AuthorType = 'authorType',
+  CreatedAt = 'createdAt',
+  DeletedAt = 'deletedAt',
+  Id = 'id',
+  Locale = 'locale',
+  OfficialAnswerCount = 'officialAnswerCount',
+  ProductId = 'productId',
+  PublishedAt = 'publishedAt',
+  ReportCount = 'reportCount',
+  Revision = 'revision',
+  SourceChannel = 'sourceChannel',
+  Status = 'status',
+  UpdatedAt = 'updatedAt',
+  VariantId = 'variantId'
+}
+
+export type ApiProductQuestionSubjectUpdateInput = {
+  productId?: InputMaybe<Scalars['ID']['input']>;
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiProductQuestionSubscription = ApiNode & {
+  __typename?: 'ProductQuestionSubscription';
+  channel: ReviewNotificationChannel;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  lastNotifiedAt?: Maybe<Scalars['DateTime']['output']>;
+  locale: Scalars['String']['output'];
+  question: ApiProductQuestion;
+  status: ProductQuestionSubscriptionStatus;
+  subscriberCustomer?: Maybe<ApiCustomer>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiProductQuestionSubscriptionConnection = {
+  __typename?: 'ProductQuestionSubscriptionConnection';
+  edges: Array<ApiProductQuestionSubscriptionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiProductQuestionSubscriptionEdge = {
+  __typename?: 'ProductQuestionSubscriptionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProductQuestionSubscription;
+};
+
+export enum ProductQuestionSubscriptionStatus {
+  Active = 'ACTIVE',
+  Paused = 'PAUSED',
+  Unsubscribed = 'UNSUBSCRIBED'
+}
+
+export type ApiProductQuestionSubscriptionUpdateInput = {
+  channel?: InputMaybe<ReviewNotificationChannel>;
+  locale?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<ProductQuestionSubscriptionStatus>;
+};
+
+export type ApiProductQuestionSubscriptionUpdatePayload = {
+  __typename?: 'ProductQuestionSubscriptionUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  subscription?: Maybe<ApiProductQuestionSubscription>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Read-only projection over currently published product questions and answers. */
+export type ApiProductQuestionSummary = {
+  __typename?: 'ProductQuestionSummary';
+  answerCount: Scalars['Int']['output'];
+  answeredQuestionCount: Scalars['Int']['output'];
+  lastAnsweredAt?: Maybe<Scalars['DateTime']['output']>;
+  lastQuestionAt?: Maybe<Scalars['DateTime']['output']>;
+  officialAnswerCount: Scalars['Int']['output'];
+  product: ApiProduct;
+  questionCount: Scalars['Int']['output'];
+  unansweredQuestionCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiProductQuestionUpdateInput = {
+  content?: InputMaybe<ApiReviewContentUpdateInput>;
+  subject?: InputMaybe<ApiProductQuestionSubjectUpdateInput>;
+};
+
+export type ApiProductQuestionUpdatePayload = {
+  __typename?: 'ProductQuestionUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  productQuestion?: Maybe<ApiProductQuestion>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductQuestionWhereInput = {
+  _and?: InputMaybe<Array<ApiProductQuestionWhereInput>>;
+  _not?: InputMaybe<ApiProductQuestionWhereInput>;
+  _or?: InputMaybe<Array<ApiProductQuestionWhereInput>>;
+  acceptedAnswerCount?: InputMaybe<ApiIntFilter>;
+  answerCount?: InputMaybe<ApiIntFilter>;
+  answerState?: InputMaybe<ApiStringFilter>;
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  authorDisplayName?: InputMaybe<ApiStringFilter>;
+  authorType?: InputMaybe<ApiStringFilter>;
+  body?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  locale?: InputMaybe<ApiStringFilter>;
+  officialAnswerCount?: InputMaybe<ApiIntFilter>;
+  productId?: InputMaybe<ApiIdFilter>;
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  reportCount?: InputMaybe<ApiIntFilter>;
+  revision?: InputMaybe<ApiIntFilter>;
+  sourceChannel?: InputMaybe<ApiStringFilter>;
+  status?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  variantId?: InputMaybe<ApiIdFilter>;
+};
+
+export type ApiProductRatingCriterionSummary = {
+  __typename?: 'ProductRatingCriterionSummary';
+  averageRating: Scalars['Float']['output'];
+  criterion: ApiReviewRatingCriterion;
+  ratingBreakdown: ApiReviewRatingBreakdown;
+  ratingSum: Scalars['BigInt']['output'];
+  reviewCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Read-only projection over currently published, non-deleted product reviews. */
+export type ApiProductReviewSummary = {
+  __typename?: 'ProductReviewSummary';
+  averageRating: Scalars['Float']['output'];
+  criteria: Array<ApiProductRatingCriterionSummary>;
+  lastReviewedAt?: Maybe<Scalars['DateTime']['output']>;
+  mediaReviewCount: Scalars['Int']['output'];
+  product: ApiProduct;
+  ratingBreakdown: ApiReviewRatingBreakdown;
+  ratingSum: Scalars['BigInt']['output'];
+  reviewCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  verifiedReviewCount: Scalars['Int']['output'];
+};
+
 /** SEO and Open Graph metadata for a product. */
 export type ApiProductSeo = {
   __typename?: 'ProductSeo';
@@ -9024,7 +9854,7 @@ export type ApiQuery = {
   orderQuery: ApiOrderQuery;
   /** Organization queries namespace. */
   organizationQuery: ApiOrganizationQuery;
-  /** Reviews query namespace. */
+  /** Admin-only Reviews query namespace. */
   reviewsQuery: ApiReviewsQuery;
   /** Store-related queries */
   storeQuery: ApiStoreQuery;
@@ -9047,16 +9877,2462 @@ export type ApiResourceDefinition = {
   name: Scalars['String']['output'];
 };
 
-/** Internal placeholder for the future admin mutation namespace. */
-export type ApiReviewsMutation = {
-  __typename?: 'ReviewsMutation';
-  _empty: Scalars['Boolean']['output'];
+export type ApiReview = ApiNode & ApiReviewContent & {
+  __typename?: 'Review';
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  incentiveDisclosure?: Maybe<Scalars['String']['output']>;
+  isIncentivized: Scalars['Boolean']['output'];
+  isVerifiedPurchase: Scalars['Boolean']['output'];
+  kind: ReviewContentKind;
+  locale: Scalars['String']['output'];
+  media: Array<ApiReviewMedia>;
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  /** Orders is not yet an admin federation entity, so evidence remains a global ID contract. */
+  orderId?: Maybe<Scalars['ID']['output']>;
+  orderLineId?: Maybe<Scalars['ID']['output']>;
+  product: ApiProduct;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  rating: Scalars['Int']['output'];
+  ratings: Array<ApiReviewRating>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  replies: ApiReviewReplyConnection;
+  reports: ApiReviewContentReportConnection;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  variant?: Maybe<ApiVariant>;
+  verificationMethod?: Maybe<Scalars['String']['output']>;
+  verificationStatus: ReviewVerificationStatus;
+  verifiedAt?: Maybe<Scalars['DateTime']['output']>;
+  votes: ApiReviewContentVoteConnection;
 };
 
-/** Internal placeholder for the future admin query namespace. */
+
+export type ApiReviewExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewRepliesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiReviewReplyOrderByInput>>;
+  where?: InputMaybe<ApiReviewReplyWhereInput>;
+};
+
+
+export type ApiReviewReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewConnection = {
+  __typename?: 'ReviewConnection';
+  edges: Array<ApiReviewEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContent = {
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  kind: ReviewContentKind;
+  locale: Scalars['String']['output'];
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  reports: ApiReviewContentReportConnection;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  votes: ApiReviewContentVoteConnection;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewContentAuthor = {
+  __typename?: 'ReviewContentAuthor';
+  customer?: Maybe<ApiCustomer>;
+  displayName: Scalars['String']['output'];
+  /** Snapshot email; null after privacy redaction or when not collected. */
+  email?: Maybe<Scalars['Email']['output']>;
+  principalId?: Maybe<Scalars['String']['output']>;
+  type: ReviewContentAuthorType;
+};
+
+export type ApiReviewContentAuthorCreateInput = {
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  displayName: Scalars['String']['input'];
+  email?: InputMaybe<Scalars['Email']['input']>;
+  principalId?: InputMaybe<Scalars['String']['input']>;
+  type: ReviewContentAuthorType;
+};
+
+export enum ReviewContentAuthorType {
+  Customer = 'CUSTOMER',
+  External = 'EXTERNAL',
+  Guest = 'GUEST',
+  Seller = 'SELLER',
+  Staff = 'STAFF',
+  System = 'SYSTEM'
+}
+
+export type ApiReviewContentAuthorUpdateInput = {
+  /** Pass null to remove the customer link when the resulting author type allows it. */
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  email?: InputMaybe<Scalars['Email']['input']>;
+  principalId?: InputMaybe<Scalars['String']['input']>;
+  type?: InputMaybe<ReviewContentAuthorType>;
+};
+
+export type ApiReviewContentConnection = {
+  __typename?: 'ReviewContentConnection';
+  edges: Array<ApiReviewContentEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/**
+ * Relay filter contract for the admin read models.
+ *
+ * Names, logical operators, scalar filters, lower-case sort direction, and
+ * multi-column order inputs intentionally match @shopana/drizzle-query output.
+ * Tenant fields are never exposed and are always injected by repositories.
+ */
+export type ApiReviewContentConnectionMetaInput = {
+  /** Include soft-deleted content; false by default. */
+  includeDeleted?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Include privacy-redacted content; true by default for audit workflows. */
+  includeRedacted?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewContentCreateInput = {
+  author: ApiReviewContentAuthorCreateInput;
+  body: Scalars['String']['input'];
+  locale: Scalars['String']['input'];
+  moderationNote?: InputMaybe<Scalars['String']['input']>;
+  source?: InputMaybe<ApiReviewContentSourceCreateInput>;
+  /** Admin imports may set an initial status; PENDING is the default. */
+  status?: InputMaybe<ReviewContentStatus>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentDeleteInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  /** Hard deletion is reserved for explicit privacy or retention workflows. */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewContentEdge = {
+  __typename?: 'ReviewContentEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContent;
+};
+
+export type ApiReviewContentExternalReference = ApiNode & {
+  __typename?: 'ReviewContentExternalReference';
+  content: ApiReviewContent;
+  contentChecksum?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  direction: ReviewExternalSyncDirection;
+  etag?: Maybe<Scalars['String']['output']>;
+  externalId: Scalars['String']['output'];
+  externalSystem: Scalars['String']['output'];
+  externalType: Scalars['String']['output'];
+  externalUrl?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  lastSyncedAt?: Maybe<Scalars['DateTime']['output']>;
+  metadata: Scalars['JSON']['output'];
+  syncStatus: ReviewExternalSyncStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentExternalReferenceConnection = {
+  __typename?: 'ReviewContentExternalReferenceConnection';
+  edges: Array<ApiReviewContentExternalReferenceEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewContentExternalReferenceCreateInput = {
+  contentId: Scalars['ID']['input'];
+  direction: ReviewExternalSyncDirection;
+  externalId: Scalars['String']['input'];
+  externalSystem: Scalars['String']['input'];
+  externalType: Scalars['String']['input'];
+  externalUrl?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiReviewContentExternalReferenceCreatePayload = {
+  __typename?: 'ReviewContentExternalReferenceCreatePayload';
+  externalReference?: Maybe<ApiReviewContentExternalReference>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentExternalReferenceDeleteInput = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  id: Scalars['ID']['input'];
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewContentExternalReferenceDeletePayload = {
+  __typename?: 'ReviewContentExternalReferenceDeletePayload';
+  deletedExternalReferenceId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentExternalReferenceEdge = {
+  __typename?: 'ReviewContentExternalReferenceEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContentExternalReference;
+};
+
+export type ApiReviewContentExternalReferenceIdentityInput = {
+  externalId?: InputMaybe<Scalars['String']['input']>;
+  externalSystem?: InputMaybe<Scalars['String']['input']>;
+  externalType?: InputMaybe<Scalars['String']['input']>;
+  externalUrl?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentExternalReferenceOrderByInput = {
+  direction: SortDirection;
+  field: ReviewContentExternalReferenceOrderField;
+};
+
+export enum ReviewContentExternalReferenceOrderField {
+  ContentId = 'contentId',
+  CreatedAt = 'createdAt',
+  DeletedAt = 'deletedAt',
+  Direction = 'direction',
+  ExternalId = 'externalId',
+  ExternalSystem = 'externalSystem',
+  ExternalType = 'externalType',
+  Id = 'id',
+  LastSyncedAt = 'lastSyncedAt',
+  SyncStatus = 'syncStatus',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiReviewContentExternalReferenceSyncInput = {
+  contentChecksum?: InputMaybe<Scalars['String']['input']>;
+  direction?: InputMaybe<ReviewExternalSyncDirection>;
+  etag?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  status?: InputMaybe<ReviewExternalSyncStatus>;
+};
+
+export type ApiReviewContentExternalReferenceUpdateInput = {
+  identity?: InputMaybe<ApiReviewContentExternalReferenceIdentityInput>;
+  sync?: InputMaybe<ApiReviewContentExternalReferenceSyncInput>;
+};
+
+export type ApiReviewContentExternalReferenceUpdatePayload = {
+  __typename?: 'ReviewContentExternalReferenceUpdatePayload';
+  externalReference?: Maybe<ApiReviewContentExternalReference>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentExternalReferenceWhereInput = {
+  _and?: InputMaybe<Array<ApiReviewContentExternalReferenceWhereInput>>;
+  _not?: InputMaybe<ApiReviewContentExternalReferenceWhereInput>;
+  _or?: InputMaybe<Array<ApiReviewContentExternalReferenceWhereInput>>;
+  contentId?: InputMaybe<ApiIdFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  direction?: InputMaybe<ApiStringFilter>;
+  externalId?: InputMaybe<ApiStringFilter>;
+  externalSystem?: InputMaybe<ApiStringFilter>;
+  externalType?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  lastSyncedAt?: InputMaybe<ApiDateTimeFilter>;
+  syncStatus?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export enum ReviewContentKind {
+  ProductQuestion = 'PRODUCT_QUESTION',
+  QuestionAnswer = 'QUESTION_ANSWER',
+  Review = 'REVIEW',
+  ReviewReply = 'REVIEW_REPLY'
+}
+
+/** Transactionally maintained counters used by admin filtering and sorting. */
+export type ApiReviewContentMetrics = {
+  __typename?: 'ReviewContentMetrics';
+  acceptedChildCount: Scalars['Int']['output'];
+  childCount: Scalars['Int']['output'];
+  dislikeCount: Scalars['Int']['output'];
+  lastChildAt?: Maybe<Scalars['DateTime']['output']>;
+  likeCount: Scalars['Int']['output'];
+  mediaCount: Scalars['Int']['output'];
+  officialChildCount: Scalars['Int']['output'];
+  openReportCount: Scalars['Int']['output'];
+  reportCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentModerationInput = {
+  moderationNote?: InputMaybe<Scalars['String']['input']>;
+  status: ReviewContentStatus;
+};
+
+export type ApiReviewContentOrderByInput = {
+  direction: SortDirection;
+  field: ReviewContentOrderField;
+};
+
+export enum ReviewContentOrderField {
+  AuthorDisplayName = 'authorDisplayName',
+  AuthorType = 'authorType',
+  ChildCount = 'childCount',
+  CreatedAt = 'createdAt',
+  DeletedAt = 'deletedAt',
+  DislikeCount = 'dislikeCount',
+  Id = 'id',
+  Kind = 'kind',
+  LikeCount = 'likeCount',
+  Locale = 'locale',
+  MediaCount = 'mediaCount',
+  OpenReportCount = 'openReportCount',
+  PublishedAt = 'publishedAt',
+  RedactedAt = 'redactedAt',
+  ReportCount = 'reportCount',
+  Revision = 'revision',
+  SourceChannel = 'sourceChannel',
+  Status = 'status',
+  Title = 'title',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiReviewContentPublication = ApiNode & {
+  __typename?: 'ReviewContentPublication';
+  channel: Scalars['String']['output'];
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  locale?: Maybe<Scalars['String']['output']>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  scheduledAt?: Maybe<Scalars['DateTime']['output']>;
+  status: ReviewPublicationStatus;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentPublicationCreateInput = {
+  channel: Scalars['String']['input'];
+  contentId: Scalars['ID']['input'];
+  locale?: InputMaybe<Scalars['String']['input']>;
+  scheduledAt?: InputMaybe<Scalars['DateTime']['input']>;
+  status?: InputMaybe<ReviewPublicationStatus>;
+};
+
+export type ApiReviewContentPublicationCreatePayload = {
+  __typename?: 'ReviewContentPublicationCreatePayload';
+  publication?: Maybe<ApiReviewContentPublication>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentPublicationDeleteInput = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type ApiReviewContentPublicationDeletePayload = {
+  __typename?: 'ReviewContentPublicationDeletePayload';
+  deletedPublicationId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentPublicationDestinationInput = {
+  channel?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentPublicationStateInput = {
+  scheduledAt?: InputMaybe<Scalars['DateTime']['input']>;
+  status: ReviewPublicationStatus;
+};
+
+export type ApiReviewContentPublicationSyncInput = {
+  channel: Scalars['String']['input'];
+  locale?: InputMaybe<Scalars['String']['input']>;
+  scheduledAt?: InputMaybe<Scalars['DateTime']['input']>;
+  status: ReviewPublicationStatus;
+};
+
+export type ApiReviewContentPublicationUpdateInput = {
+  destination?: InputMaybe<ApiReviewContentPublicationDestinationInput>;
+  state?: InputMaybe<ApiReviewContentPublicationStateInput>;
+};
+
+export type ApiReviewContentPublicationUpdatePayload = {
+  __typename?: 'ReviewContentPublicationUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  publication?: Maybe<ApiReviewContentPublication>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentReport = ApiNode & {
+  __typename?: 'ReviewContentReport';
+  assignedToPrincipalId?: Maybe<Scalars['String']['output']>;
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  details?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  reason: ReviewContentReportReason;
+  reporterCustomer?: Maybe<ApiCustomer>;
+  resolutionNote?: Maybe<Scalars['String']['output']>;
+  resolvedAt?: Maybe<Scalars['DateTime']['output']>;
+  resolvedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  status: ReviewContentReportStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentReportAssignmentInput = {
+  assignedToPrincipalId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentReportConnection = {
+  __typename?: 'ReviewContentReportConnection';
+  edges: Array<ApiReviewContentReportEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewContentReportEdge = {
+  __typename?: 'ReviewContentReportEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContentReport;
+};
+
+export type ApiReviewContentReportOrderByInput = {
+  direction: SortDirection;
+  field: ReviewContentReportOrderField;
+};
+
+export enum ReviewContentReportOrderField {
+  AssignedToPrincipalId = 'assignedToPrincipalId',
+  ContentId = 'contentId',
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  Reason = 'reason',
+  ReporterCustomerId = 'reporterCustomerId',
+  ResolvedAt = 'resolvedAt',
+  ResolvedByPrincipalId = 'resolvedByPrincipalId',
+  Status = 'status',
+  UpdatedAt = 'updatedAt'
+}
+
+export enum ReviewContentReportReason {
+  ConflictOfInterest = 'CONFLICT_OF_INTEREST',
+  FraudOrScam = 'FRAUD_OR_SCAM',
+  Harassment = 'HARASSMENT',
+  HateSpeech = 'HATE_SPEECH',
+  IllegalContent = 'ILLEGAL_CONTENT',
+  IntellectualProperty = 'INTELLECTUAL_PROPERTY',
+  NotRelevant = 'NOT_RELEVANT',
+  Offensive = 'OFFENSIVE',
+  Other = 'OTHER',
+  PersonalInformation = 'PERSONAL_INFORMATION',
+  Spam = 'SPAM'
+}
+
+export type ApiReviewContentReportResolutionInput = {
+  note?: InputMaybe<Scalars['String']['input']>;
+  /** Must be ACTIONED or DISMISSED. */
+  status: ReviewContentReportStatus;
+};
+
+export enum ReviewContentReportStatus {
+  Actioned = 'ACTIONED',
+  Dismissed = 'DISMISSED',
+  Open = 'OPEN',
+  UnderReview = 'UNDER_REVIEW'
+}
+
+export type ApiReviewContentReportUpdateInput = {
+  assignment?: InputMaybe<ApiReviewContentReportAssignmentInput>;
+  resolution?: InputMaybe<ApiReviewContentReportResolutionInput>;
+};
+
+export type ApiReviewContentReportUpdatePayload = {
+  __typename?: 'ReviewContentReportUpdatePayload';
+  contentReport?: Maybe<ApiReviewContentReport>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentReportWhereInput = {
+  _and?: InputMaybe<Array<ApiReviewContentReportWhereInput>>;
+  _not?: InputMaybe<ApiReviewContentReportWhereInput>;
+  _or?: InputMaybe<Array<ApiReviewContentReportWhereInput>>;
+  assignedToPrincipalId?: InputMaybe<ApiStringFilter>;
+  contentId?: InputMaybe<ApiIdFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  reason?: InputMaybe<ApiStringFilter>;
+  reporterCustomerId?: InputMaybe<ApiIdFilter>;
+  resolvedAt?: InputMaybe<ApiDateTimeFilter>;
+  resolvedByPrincipalId?: InputMaybe<ApiStringFilter>;
+  status?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Immutable aggregate snapshot used for audit and restore workflows. */
+export type ApiReviewContentRevision = ApiNode & {
+  __typename?: 'ReviewContentRevision';
+  changeReason?: Maybe<Scalars['String']['output']>;
+  changedById?: Maybe<Scalars['String']['output']>;
+  changedByType: Scalars['String']['output'];
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  revision: Scalars['Int']['output'];
+  snapshot: Scalars['JSON']['output'];
+};
+
+export type ApiReviewContentRevisionConnection = {
+  __typename?: 'ReviewContentRevisionConnection';
+  edges: Array<ApiReviewContentRevisionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewContentRevisionEdge = {
+  __typename?: 'ReviewContentRevisionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContentRevision;
+};
+
+export type ApiReviewContentSourceCreateInput = {
+  channel?: InputMaybe<Scalars['String']['input']>;
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiReviewContentSourceUpdateInput = {
+  channel?: InputMaybe<Scalars['String']['input']>;
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export enum ReviewContentStatus {
+  Pending = 'PENDING',
+  Published = 'PUBLISHED',
+  Rejected = 'REJECTED'
+}
+
+export type ApiReviewContentTextUpdateInput = {
+  body?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<Scalars['String']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentTranslation = ApiNode & {
+  __typename?: 'ReviewContentTranslation';
+  body: Scalars['String']['output'];
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  locale: Scalars['String']['output'];
+  reviewedAt?: Maybe<Scalars['DateTime']['output']>;
+  reviewedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  revision: Scalars['Int']['output'];
+  source: ReviewTranslationSource;
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentTranslationCreateInput = {
+  body: Scalars['String']['input'];
+  contentId: Scalars['ID']['input'];
+  locale: Scalars['String']['input'];
+  source: ReviewTranslationSource;
+  status?: InputMaybe<ReviewContentStatus>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentTranslationCreatePayload = {
+  __typename?: 'ReviewContentTranslationCreatePayload';
+  translation?: Maybe<ApiReviewContentTranslation>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentTranslationDeleteInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type ApiReviewContentTranslationDeletePayload = {
+  __typename?: 'ReviewContentTranslationDeletePayload';
+  deletedTranslationId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentTranslationSyncInput = {
+  body: Scalars['String']['input'];
+  locale: Scalars['String']['input'];
+  source: ReviewTranslationSource;
+  status?: InputMaybe<ReviewContentStatus>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentTranslationTextInput = {
+  body?: InputMaybe<Scalars['String']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentTranslationUpdateInput = {
+  moderation?: InputMaybe<ApiReviewContentModerationInput>;
+  source?: InputMaybe<ReviewTranslationSource>;
+  text?: InputMaybe<ApiReviewContentTranslationTextInput>;
+};
+
+export type ApiReviewContentTranslationUpdatePayload = {
+  __typename?: 'ReviewContentTranslationUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  translation?: Maybe<ApiReviewContentTranslation>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Common section operations reused by all content aggregate updates. */
+export type ApiReviewContentUpdateInput = {
+  author?: InputMaybe<ApiReviewContentAuthorUpdateInput>;
+  moderation?: InputMaybe<ApiReviewContentModerationInput>;
+  /** Complete publication destination replacement when supplied. */
+  publications?: InputMaybe<Array<ApiReviewContentPublicationSyncInput>>;
+  source?: InputMaybe<ApiReviewContentSourceUpdateInput>;
+  text?: InputMaybe<ApiReviewContentTextUpdateInput>;
+  /** Complete translation replacement when supplied. Empty removes all translations. */
+  translations?: InputMaybe<Array<ApiReviewContentTranslationSyncInput>>;
+};
+
+export type ApiReviewContentUpdatePayload = {
+  __typename?: 'ReviewContentUpdatePayload';
+  content?: Maybe<ApiReviewContent>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Read-only admin view of a storefront reaction. */
+export type ApiReviewContentVote = ApiNode & {
+  __typename?: 'ReviewContentVote';
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  type: ReviewContentVoteType;
+  updatedAt: Scalars['DateTime']['output'];
+  voterCustomer?: Maybe<ApiCustomer>;
+};
+
+export type ApiReviewContentVoteConnection = {
+  __typename?: 'ReviewContentVoteConnection';
+  edges: Array<ApiReviewContentVoteEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewContentVoteEdge = {
+  __typename?: 'ReviewContentVoteEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContentVote;
+};
+
+export enum ReviewContentVoteType {
+  Dislike = 'DISLIKE',
+  Like = 'LIKE'
+}
+
+export type ApiReviewContentWhereInput = {
+  _and?: InputMaybe<Array<ApiReviewContentWhereInput>>;
+  _not?: InputMaybe<ApiReviewContentWhereInput>;
+  _or?: InputMaybe<Array<ApiReviewContentWhereInput>>;
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  authorDisplayName?: InputMaybe<ApiStringFilter>;
+  authorType?: InputMaybe<ApiStringFilter>;
+  body?: InputMaybe<ApiStringFilter>;
+  childCount?: InputMaybe<ApiIntFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  dislikeCount?: InputMaybe<ApiIntFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  kind?: InputMaybe<ApiStringFilter>;
+  likeCount?: InputMaybe<ApiIntFilter>;
+  locale?: InputMaybe<ApiStringFilter>;
+  mediaCount?: InputMaybe<ApiIntFilter>;
+  openReportCount?: InputMaybe<ApiIntFilter>;
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  redactedAt?: InputMaybe<ApiDateTimeFilter>;
+  reportCount?: InputMaybe<ApiIntFilter>;
+  revision?: InputMaybe<ApiIntFilter>;
+  sourceChannel?: InputMaybe<ApiStringFilter>;
+  status?: InputMaybe<ApiStringFilter>;
+  title?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiReviewCreateInput = {
+  content: ApiReviewContentCreateInput;
+  incentive?: InputMaybe<ApiReviewIncentiveUpdateInput>;
+  media?: InputMaybe<Array<ApiReviewMediaSyncItemInput>>;
+  orderId?: InputMaybe<Scalars['ID']['input']>;
+  orderLineId?: InputMaybe<Scalars['ID']['input']>;
+  productId: Scalars['ID']['input'];
+  rating: Scalars['Int']['input'];
+  ratings?: InputMaybe<Array<ApiReviewRatingValueInput>>;
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+  verification?: InputMaybe<ApiReviewVerificationUpdateInput>;
+};
+
+export type ApiReviewCreatePayload = {
+  __typename?: 'ReviewCreatePayload';
+  review?: Maybe<ApiReview>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewDeletePayload = {
+  __typename?: 'ReviewDeletePayload';
+  deletedReviewId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum ReviewDuplicatePolicy {
+  AllowMultiple = 'ALLOW_MULTIPLE',
+  OnePerOrderLine = 'ONE_PER_ORDER_LINE',
+  OnePerProduct = 'ONE_PER_PRODUCT'
+}
+
+export type ApiReviewEdge = {
+  __typename?: 'ReviewEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReview;
+};
+
+export enum ReviewExternalSyncDirection {
+  Bidirectional = 'BIDIRECTIONAL',
+  Export = 'EXPORT',
+  Import = 'IMPORT'
+}
+
+export enum ReviewExternalSyncStatus {
+  Disabled = 'DISABLED',
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Synced = 'SYNCED'
+}
+
+export type ApiReviewIncentiveUpdateInput = {
+  disclosure?: InputMaybe<Scalars['String']['input']>;
+  isIncentivized: Scalars['Boolean']['input'];
+};
+
+export type ApiReviewMedia = ApiNode & {
+  __typename?: 'ReviewMedia';
+  caption?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  file: ApiFile;
+  id: Scalars['ID']['output'];
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  review: ApiReview;
+  sortIndex: Scalars['Int']['output'];
+  status: ReviewContentStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewMediaDetailsUpdateInput = {
+  caption?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewMediaSyncItemInput = {
+  caption?: InputMaybe<Scalars['String']['input']>;
+  fileId: Scalars['ID']['input'];
+  sortIndex: Scalars['Int']['input'];
+  status?: InputMaybe<ReviewContentStatus>;
+};
+
+export type ApiReviewMediaUpdateInput = {
+  details?: InputMaybe<ApiReviewMediaDetailsUpdateInput>;
+  moderation?: InputMaybe<ApiReviewContentModerationInput>;
+};
+
+export type ApiReviewMediaUpdatePayload = {
+  __typename?: 'ReviewMediaUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  reviewMedia?: Maybe<ApiReviewMedia>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum ReviewModerationAction {
+  Assigned = 'ASSIGNED',
+  AutoFlagged = 'AUTO_FLAGGED',
+  Deleted = 'DELETED',
+  Edited = 'EDITED',
+  Published = 'PUBLISHED',
+  Redacted = 'REDACTED',
+  Rejected = 'REJECTED',
+  Restored = 'RESTORED',
+  Submitted = 'SUBMITTED'
+}
+
+export type ApiReviewModerationCase = ApiNode & {
+  __typename?: 'ReviewModerationCase';
+  assignedToPrincipalId?: Maybe<Scalars['String']['output']>;
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  dueAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  priority: Scalars['Int']['output'];
+  reasonCode: Scalars['String']['output'];
+  resolutionCode?: Maybe<Scalars['String']['output']>;
+  resolutionNote?: Maybe<Scalars['String']['output']>;
+  resolvedAt?: Maybe<Scalars['DateTime']['output']>;
+  resolvedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  status: ReviewModerationCaseStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewModerationCaseConnection = {
+  __typename?: 'ReviewModerationCaseConnection';
+  edges: Array<ApiReviewModerationCaseEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewModerationCaseCreateInput = {
+  assignedToPrincipalId?: InputMaybe<Scalars['String']['input']>;
+  contentId: Scalars['ID']['input'];
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  reasonCode: Scalars['String']['input'];
+};
+
+export type ApiReviewModerationCaseCreatePayload = {
+  __typename?: 'ReviewModerationCaseCreatePayload';
+  moderationCase?: Maybe<ApiReviewModerationCase>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewModerationCaseDetailsInput = {
+  assignedToPrincipalId?: InputMaybe<Scalars['String']['input']>;
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  reasonCode?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewModerationCaseEdge = {
+  __typename?: 'ReviewModerationCaseEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewModerationCase;
+};
+
+export type ApiReviewModerationCaseOrderByInput = {
+  direction: SortDirection;
+  field: ReviewModerationCaseOrderField;
+};
+
+export enum ReviewModerationCaseOrderField {
+  AssignedToPrincipalId = 'assignedToPrincipalId',
+  ContentId = 'contentId',
+  CreatedAt = 'createdAt',
+  DueAt = 'dueAt',
+  Id = 'id',
+  Priority = 'priority',
+  ReasonCode = 'reasonCode',
+  ResolutionCode = 'resolutionCode',
+  ResolvedAt = 'resolvedAt',
+  ResolvedByPrincipalId = 'resolvedByPrincipalId',
+  Status = 'status',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiReviewModerationCaseResolutionInput = {
+  resolutionCode?: InputMaybe<Scalars['String']['input']>;
+  resolutionNote?: InputMaybe<Scalars['String']['input']>;
+  /** Must be RESOLVED or CANCELLED. */
+  status: ReviewModerationCaseStatus;
+};
+
+export enum ReviewModerationCaseStatus {
+  Cancelled = 'CANCELLED',
+  InReview = 'IN_REVIEW',
+  Open = 'OPEN',
+  Resolved = 'RESOLVED'
+}
+
+export type ApiReviewModerationCaseUpdateInput = {
+  details?: InputMaybe<ApiReviewModerationCaseDetailsInput>;
+  resolution?: InputMaybe<ApiReviewModerationCaseResolutionInput>;
+};
+
+export type ApiReviewModerationCaseUpdatePayload = {
+  __typename?: 'ReviewModerationCaseUpdatePayload';
+  moderationCase?: Maybe<ApiReviewModerationCase>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewModerationCaseWhereInput = {
+  _and?: InputMaybe<Array<ApiReviewModerationCaseWhereInput>>;
+  _not?: InputMaybe<ApiReviewModerationCaseWhereInput>;
+  _or?: InputMaybe<Array<ApiReviewModerationCaseWhereInput>>;
+  assignedToPrincipalId?: InputMaybe<ApiStringFilter>;
+  contentId?: InputMaybe<ApiIdFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  dueAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  priority?: InputMaybe<ApiIntFilter>;
+  reasonCode?: InputMaybe<ApiStringFilter>;
+  resolutionCode?: InputMaybe<ApiStringFilter>;
+  resolvedAt?: InputMaybe<ApiDateTimeFilter>;
+  resolvedByPrincipalId?: InputMaybe<ApiStringFilter>;
+  status?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Append-only moderation timeline entry. */
+export type ApiReviewModerationEvent = ApiNode & {
+  __typename?: 'ReviewModerationEvent';
+  action: ReviewModerationAction;
+  actorId?: Maybe<Scalars['String']['output']>;
+  actorType: Scalars['String']['output'];
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  fromStatus?: Maybe<ReviewContentStatus>;
+  id: Scalars['ID']['output'];
+  isAutomated: Scalars['Boolean']['output'];
+  metadata: Scalars['JSON']['output'];
+  moderationCase?: Maybe<ApiReviewModerationCase>;
+  note?: Maybe<Scalars['String']['output']>;
+  reasonCode?: Maybe<Scalars['String']['output']>;
+  toStatus?: Maybe<ReviewContentStatus>;
+};
+
+export type ApiReviewModerationEventConnection = {
+  __typename?: 'ReviewModerationEventConnection';
+  edges: Array<ApiReviewModerationEventEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewModerationEventEdge = {
+  __typename?: 'ReviewModerationEventEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewModerationEvent;
+};
+
+export enum ReviewModerationMode {
+  Automated = 'AUTOMATED',
+  Postmoderation = 'POSTMODERATION',
+  Premoderation = 'PREMODERATION'
+}
+
+/** Immutable automated moderation evidence; it is not the moderation decision. */
+export type ApiReviewModerationSignal = ApiNode & {
+  __typename?: 'ReviewModerationSignal';
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  evidence: Scalars['JSON']['output'];
+  id: Scalars['ID']['output'];
+  modelVersion?: Maybe<Scalars['String']['output']>;
+  provider: Scalars['String']['output'];
+  score?: Maybe<Scalars['Float']['output']>;
+  signalType: Scalars['String']['output'];
+  verdict: ReviewModerationVerdict;
+};
+
+export type ApiReviewModerationSignalConnection = {
+  __typename?: 'ReviewModerationSignalConnection';
+  edges: Array<ApiReviewModerationSignalEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewModerationSignalEdge = {
+  __typename?: 'ReviewModerationSignalEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewModerationSignal;
+};
+
+export enum ReviewModerationVerdict {
+  Block = 'BLOCK',
+  Pass = 'PASS',
+  Review = 'REVIEW'
+}
+
+export enum ReviewNotificationChannel {
+  Email = 'EMAIL',
+  InApp = 'IN_APP',
+  Push = 'PUSH',
+  Sms = 'SMS'
+}
+
+export type ApiReviewOrderByInput = {
+  direction: SortDirection;
+  field: ReviewOrderField;
+};
+
+export enum ReviewOrderField {
+  AuthorDisplayName = 'authorDisplayName',
+  AuthorType = 'authorType',
+  CreatedAt = 'createdAt',
+  DeletedAt = 'deletedAt',
+  DislikeCount = 'dislikeCount',
+  Id = 'id',
+  IsIncentivized = 'isIncentivized',
+  LikeCount = 'likeCount',
+  Locale = 'locale',
+  MediaCount = 'mediaCount',
+  OpenReportCount = 'openReportCount',
+  ProductId = 'productId',
+  PublishedAt = 'publishedAt',
+  Rating = 'rating',
+  ReportCount = 'reportCount',
+  Revision = 'revision',
+  SourceChannel = 'sourceChannel',
+  Status = 'status',
+  Title = 'title',
+  UpdatedAt = 'updatedAt',
+  VariantId = 'variantId',
+  VerificationStatus = 'verificationStatus'
+}
+
+export enum ReviewPublicationStatus {
+  Draft = 'DRAFT',
+  Failed = 'FAILED',
+  Published = 'PUBLISHED',
+  Scheduled = 'SCHEDULED',
+  Unpublished = 'UNPUBLISHED'
+}
+
+export type ApiReviewRating = {
+  __typename?: 'ReviewRating';
+  createdAt: Scalars['DateTime']['output'];
+  criterion: ApiReviewRatingCriterion;
+  updatedAt: Scalars['DateTime']['output'];
+  value: Scalars['Int']['output'];
+};
+
+export type ApiReviewRatingBreakdown = {
+  __typename?: 'ReviewRatingBreakdown';
+  rating1Count: Scalars['Int']['output'];
+  rating2Count: Scalars['Int']['output'];
+  rating3Count: Scalars['Int']['output'];
+  rating4Count: Scalars['Int']['output'];
+  rating5Count: Scalars['Int']['output'];
+};
+
+export type ApiReviewRatingCriterion = ApiNode & {
+  __typename?: 'ReviewRatingCriterion';
+  appliesToAllProducts: Scalars['Boolean']['output'];
+  assignments: Array<ApiReviewRatingCriterionAssignment>;
+  code: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  defaultDescription?: Maybe<Scalars['String']['output']>;
+  defaultTitle: Scalars['String']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isRequired: Scalars['Boolean']['output'];
+  sortIndex: Scalars['Int']['output'];
+  translations: Array<ApiReviewRatingCriterionTranslation>;
+  updatedAt: Scalars['DateTime']['output'];
+  weight: Scalars['Float']['output'];
+};
+
+export type ApiReviewRatingCriterionApplicabilityInput = {
+  appliesToAllProducts: Scalars['Boolean']['input'];
+};
+
+export type ApiReviewRatingCriterionAssignment = ApiNode & {
+  __typename?: 'ReviewRatingCriterionAssignment';
+  createdAt: Scalars['DateTime']['output'];
+  criterion: ApiReviewRatingCriterion;
+  id: Scalars['ID']['output'];
+  isRequiredOverride?: Maybe<Scalars['Boolean']['output']>;
+  sortIndexOverride?: Maybe<Scalars['Int']['output']>;
+  target: ApiReviewRatingCriterionTarget;
+  targetId: Scalars['ID']['output'];
+  targetType: ReviewRatingCriterionTargetType;
+};
+
+export type ApiReviewRatingCriterionAssignmentInput = {
+  isRequiredOverride?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndexOverride?: InputMaybe<Scalars['Int']['input']>;
+  targetId: Scalars['ID']['input'];
+  targetType: ReviewRatingCriterionTargetType;
+};
+
+export type ApiReviewRatingCriterionConnection = {
+  __typename?: 'ReviewRatingCriterionConnection';
+  edges: Array<ApiReviewRatingCriterionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewRatingCriterionCreateInput = {
+  appliesToAllProducts?: InputMaybe<Scalars['Boolean']['input']>;
+  assignments?: InputMaybe<Array<ApiReviewRatingCriterionAssignmentInput>>;
+  code: Scalars['String']['input'];
+  defaultDescription?: InputMaybe<Scalars['String']['input']>;
+  defaultTitle: Scalars['String']['input'];
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isRequired?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  translations?: InputMaybe<Array<ApiReviewRatingCriterionTranslationInput>>;
+  weight?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type ApiReviewRatingCriterionCreatePayload = {
+  __typename?: 'ReviewRatingCriterionCreatePayload';
+  criterion?: Maybe<ApiReviewRatingCriterion>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewRatingCriterionDefinitionInput = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  defaultDescription?: InputMaybe<Scalars['String']['input']>;
+  defaultTitle?: InputMaybe<Scalars['String']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isRequired?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  weight?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type ApiReviewRatingCriterionDeleteInput = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  id: Scalars['ID']['input'];
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewRatingCriterionDeletePayload = {
+  __typename?: 'ReviewRatingCriterionDeletePayload';
+  deletedCriterionId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewRatingCriterionEdge = {
+  __typename?: 'ReviewRatingCriterionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewRatingCriterion;
+};
+
+export type ApiReviewRatingCriterionOrderByInput = {
+  direction: SortDirection;
+  field: ReviewRatingCriterionOrderField;
+};
+
+export enum ReviewRatingCriterionOrderField {
+  AppliesToAllProducts = 'appliesToAllProducts',
+  Code = 'code',
+  CreatedAt = 'createdAt',
+  DefaultTitle = 'defaultTitle',
+  DeletedAt = 'deletedAt',
+  Id = 'id',
+  IsActive = 'isActive',
+  IsRequired = 'isRequired',
+  SortIndex = 'sortIndex',
+  UpdatedAt = 'updatedAt',
+  Weight = 'weight'
+}
+
+export type ApiReviewRatingCriterionTarget = ApiCategory | ApiProduct;
+
+export enum ReviewRatingCriterionTargetType {
+  Category = 'CATEGORY',
+  Product = 'PRODUCT'
+}
+
+export type ApiReviewRatingCriterionTranslation = {
+  __typename?: 'ReviewRatingCriterionTranslation';
+  createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  locale: Scalars['String']['output'];
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewRatingCriterionTranslationInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  locale: Scalars['String']['input'];
+  title: Scalars['String']['input'];
+};
+
+export type ApiReviewRatingCriterionUpdateInput = {
+  applicability?: InputMaybe<ApiReviewRatingCriterionApplicabilityInput>;
+  /** Complete product/category assignment replacement when supplied. */
+  assignments?: InputMaybe<Array<ApiReviewRatingCriterionAssignmentInput>>;
+  definition?: InputMaybe<ApiReviewRatingCriterionDefinitionInput>;
+  /** Complete translation replacement when supplied. */
+  translations?: InputMaybe<Array<ApiReviewRatingCriterionTranslationInput>>;
+};
+
+export type ApiReviewRatingCriterionUpdatePayload = {
+  __typename?: 'ReviewRatingCriterionUpdatePayload';
+  criterion?: Maybe<ApiReviewRatingCriterion>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewRatingCriterionWhereInput = {
+  _and?: InputMaybe<Array<ApiReviewRatingCriterionWhereInput>>;
+  _not?: InputMaybe<ApiReviewRatingCriterionWhereInput>;
+  _or?: InputMaybe<Array<ApiReviewRatingCriterionWhereInput>>;
+  appliesToAllProducts?: InputMaybe<ApiBooleanFilter>;
+  code?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  defaultTitle?: InputMaybe<ApiStringFilter>;
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  isActive?: InputMaybe<ApiBooleanFilter>;
+  isRequired?: InputMaybe<ApiBooleanFilter>;
+  sortIndex?: InputMaybe<ApiIntFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  weight?: InputMaybe<ApiFloatFilter>;
+};
+
+export type ApiReviewRatingUpdateInput = {
+  /** Complete detailed criterion rating replacement when supplied. */
+  criteria?: InputMaybe<Array<ApiReviewRatingValueInput>>;
+  overall?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewRatingValueInput = {
+  criterionId: Scalars['ID']['input'];
+  value: Scalars['Int']['input'];
+};
+
+export type ApiReviewReply = ApiNode & ApiReviewContent & {
+  __typename?: 'ReviewReply';
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  isOfficial: Scalars['Boolean']['output'];
+  kind: ReviewContentKind;
+  locale: Scalars['String']['output'];
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  reports: ApiReviewContentReportConnection;
+  review: ApiReview;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sortIndex: Scalars['Int']['output'];
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  votes: ApiReviewContentVoteConnection;
+};
+
+
+export type ApiReviewReplyExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewReplyConnection = {
+  __typename?: 'ReviewReplyConnection';
+  edges: Array<ApiReviewReplyEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewReplyCreateInput = {
+  content: ApiReviewContentCreateInput;
+  isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
+  reviewId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewReplyCreatePayload = {
+  __typename?: 'ReviewReplyCreatePayload';
+  reviewReply?: Maybe<ApiReviewReply>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewReplyDeletePayload = {
+  __typename?: 'ReviewReplyDeletePayload';
+  deletedReviewReplyId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewReplyEdge = {
+  __typename?: 'ReviewReplyEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewReply;
+};
+
+export type ApiReviewReplyOrderByInput = {
+  direction: SortDirection;
+  field: ReviewReplyOrderField;
+};
+
+export enum ReviewReplyOrderField {
+  AuthorType = 'authorType',
+  CreatedAt = 'createdAt',
+  DeletedAt = 'deletedAt',
+  Id = 'id',
+  IsOfficial = 'isOfficial',
+  Locale = 'locale',
+  ReviewId = 'reviewId',
+  Revision = 'revision',
+  SortIndex = 'sortIndex',
+  Status = 'status',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiReviewReplyPropertiesUpdateInput = {
+  isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewReplyUpdateInput = {
+  content?: InputMaybe<ApiReviewContentUpdateInput>;
+  properties?: InputMaybe<ApiReviewReplyPropertiesUpdateInput>;
+};
+
+export type ApiReviewReplyUpdatePayload = {
+  __typename?: 'ReviewReplyUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  reviewReply?: Maybe<ApiReviewReply>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewReplyWhereInput = {
+  _and?: InputMaybe<Array<ApiReviewReplyWhereInput>>;
+  _not?: InputMaybe<ApiReviewReplyWhereInput>;
+  _or?: InputMaybe<Array<ApiReviewReplyWhereInput>>;
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  authorType?: InputMaybe<ApiStringFilter>;
+  body?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  isOfficial?: InputMaybe<ApiBooleanFilter>;
+  locale?: InputMaybe<ApiStringFilter>;
+  reviewId?: InputMaybe<ApiIdFilter>;
+  revision?: InputMaybe<ApiIntFilter>;
+  sortIndex?: InputMaybe<ApiIntFilter>;
+  status?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiReviewRequest = ApiNode & {
+  __typename?: 'ReviewRequest';
+  attemptCount: Scalars['Int']['output'];
+  channel: ReviewNotificationChannel;
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  deliveredAt?: Maybe<Scalars['DateTime']['output']>;
+  events: ApiReviewRequestEventConnection;
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  locale: Scalars['String']['output'];
+  openedAt?: Maybe<Scalars['DateTime']['output']>;
+  orderId: Scalars['ID']['output'];
+  orderLineId: Scalars['ID']['output'];
+  product: ApiProduct;
+  providerMessageId?: Maybe<Scalars['String']['output']>;
+  review?: Maybe<ApiReview>;
+  scheduledAt: Scalars['DateTime']['output'];
+  sentAt?: Maybe<Scalars['DateTime']['output']>;
+  sourceChannel: Scalars['String']['output'];
+  status: ReviewRequestStatus;
+  submittedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  variant?: Maybe<ApiVariant>;
+};
+
+
+export type ApiReviewRequestEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewRequestConnection = {
+  __typename?: 'ReviewRequestConnection';
+  edges: Array<ApiReviewRequestEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewRequestCreateInput = {
+  channel: ReviewNotificationChannel;
+  customerId: Scalars['ID']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  locale: Scalars['String']['input'];
+  orderId: Scalars['ID']['input'];
+  orderLineId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+  scheduledAt: Scalars['DateTime']['input'];
+  sourceChannel?: InputMaybe<Scalars['String']['input']>;
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiReviewRequestCreatePayload = {
+  __typename?: 'ReviewRequestCreatePayload';
+  reviewRequest?: Maybe<ApiReviewRequest>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewRequestDeliveryUpdateInput = {
+  channel?: InputMaybe<ReviewNotificationChannel>;
+  locale?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewRequestEdge = {
+  __typename?: 'ReviewRequestEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewRequest;
+};
+
+export type ApiReviewRequestEvent = ApiNode & {
+  __typename?: 'ReviewRequestEvent';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  metadata: Scalars['JSON']['output'];
+  occurredAt: Scalars['DateTime']['output'];
+  providerEventId?: Maybe<Scalars['String']['output']>;
+  reviewRequest: ApiReviewRequest;
+  type: ReviewRequestEventType;
+};
+
+export type ApiReviewRequestEventConnection = {
+  __typename?: 'ReviewRequestEventConnection';
+  edges: Array<ApiReviewRequestEventEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewRequestEventEdge = {
+  __typename?: 'ReviewRequestEventEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewRequestEvent;
+};
+
+export enum ReviewRequestEventType {
+  Bounced = 'BOUNCED',
+  Cancelled = 'CANCELLED',
+  Clicked = 'CLICKED',
+  Complained = 'COMPLAINED',
+  Delivered = 'DELIVERED',
+  Expired = 'EXPIRED',
+  Failed = 'FAILED',
+  Opened = 'OPENED',
+  Scheduled = 'SCHEDULED',
+  Sent = 'SENT',
+  Submitted = 'SUBMITTED'
+}
+
+export type ApiReviewRequestOrderByInput = {
+  direction: SortDirection;
+  field: ReviewRequestOrderField;
+};
+
+export enum ReviewRequestOrderField {
+  AttemptCount = 'attemptCount',
+  Channel = 'channel',
+  CreatedAt = 'createdAt',
+  CustomerId = 'customerId',
+  DeliveredAt = 'deliveredAt',
+  ExpiresAt = 'expiresAt',
+  Id = 'id',
+  Locale = 'locale',
+  OpenedAt = 'openedAt',
+  OrderId = 'orderId',
+  OrderLineId = 'orderLineId',
+  ProductId = 'productId',
+  ProviderMessageId = 'providerMessageId',
+  ReviewId = 'reviewId',
+  ScheduledAt = 'scheduledAt',
+  SentAt = 'sentAt',
+  SourceChannel = 'sourceChannel',
+  Status = 'status',
+  SubmittedAt = 'submittedAt',
+  UpdatedAt = 'updatedAt',
+  VariantId = 'variantId'
+}
+
+export type ApiReviewRequestScheduleUpdateInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  scheduledAt: Scalars['DateTime']['input'];
+};
+
+export enum ReviewRequestStatus {
+  Cancelled = 'CANCELLED',
+  Delivered = 'DELIVERED',
+  Expired = 'EXPIRED',
+  Failed = 'FAILED',
+  Opened = 'OPENED',
+  Scheduled = 'SCHEDULED',
+  Sent = 'SENT',
+  Submitted = 'SUBMITTED'
+}
+
+export enum ReviewRequestTransitionAction {
+  Cancel = 'CANCEL',
+  Expire = 'EXPIRE',
+  Reschedule = 'RESCHEDULE',
+  Retry = 'RETRY'
+}
+
+export type ApiReviewRequestTransitionInput = {
+  action: ReviewRequestTransitionAction;
+  reason?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewRequestUpdateInput = {
+  delivery?: InputMaybe<ApiReviewRequestDeliveryUpdateInput>;
+  schedule?: InputMaybe<ApiReviewRequestScheduleUpdateInput>;
+  transition?: InputMaybe<ApiReviewRequestTransitionInput>;
+};
+
+export type ApiReviewRequestUpdatePayload = {
+  __typename?: 'ReviewRequestUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  reviewRequest?: Maybe<ApiReviewRequest>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewRequestWhereInput = {
+  _and?: InputMaybe<Array<ApiReviewRequestWhereInput>>;
+  _not?: InputMaybe<ApiReviewRequestWhereInput>;
+  _or?: InputMaybe<Array<ApiReviewRequestWhereInput>>;
+  attemptCount?: InputMaybe<ApiIntFilter>;
+  channel?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  customerId?: InputMaybe<ApiIdFilter>;
+  deliveredAt?: InputMaybe<ApiDateTimeFilter>;
+  expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  locale?: InputMaybe<ApiStringFilter>;
+  openedAt?: InputMaybe<ApiDateTimeFilter>;
+  orderId?: InputMaybe<ApiIdFilter>;
+  orderLineId?: InputMaybe<ApiIdFilter>;
+  productId?: InputMaybe<ApiIdFilter>;
+  providerMessageId?: InputMaybe<ApiStringFilter>;
+  reviewId?: InputMaybe<ApiIdFilter>;
+  scheduledAt?: InputMaybe<ApiDateTimeFilter>;
+  sentAt?: InputMaybe<ApiDateTimeFilter>;
+  sourceChannel?: InputMaybe<ApiStringFilter>;
+  status?: InputMaybe<ApiStringFilter>;
+  submittedAt?: InputMaybe<ApiDateTimeFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  variantId?: InputMaybe<ApiIdFilter>;
+};
+
+export type ApiReviewStoreConfiguration = ApiNode & {
+  __typename?: 'ReviewStoreConfiguration';
+  answerEditWindowHours: Scalars['Int']['output'];
+  answerModerationMode: ReviewModerationMode;
+  createdAt: Scalars['DateTime']['output'];
+  customerAnswersEnabled: Scalars['Boolean']['output'];
+  guestQuestionsEnabled: Scalars['Boolean']['output'];
+  guestReviewsEnabled: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  maxAnswersPerQuestion: Scalars['Int']['output'];
+  maxReviewMediaCount: Scalars['Int']['output'];
+  questionEditWindowHours: Scalars['Int']['output'];
+  questionModerationMode: ReviewModerationMode;
+  questionsEnabled: Scalars['Boolean']['output'];
+  reviewDuplicatePolicy: ReviewDuplicatePolicy;
+  reviewEditWindowHours: Scalars['Int']['output'];
+  reviewModerationMode: ReviewModerationMode;
+  reviewRequestDelayDays: Scalars['Int']['output'];
+  reviewRequestExpiryDays: Scalars['Int']['output'];
+  reviewRequestsEnabled: Scalars['Boolean']['output'];
+  reviewsEnabled: Scalars['Boolean']['output'];
+  revision: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  verifiedPurchaseRequired: Scalars['Boolean']['output'];
+};
+
+export type ApiReviewStoreConfigurationUpdateInput = {
+  answerEditWindowHours?: InputMaybe<Scalars['Int']['input']>;
+  answerModerationMode?: InputMaybe<ReviewModerationMode>;
+  customerAnswersEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  guestQuestionsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  guestReviewsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  maxAnswersPerQuestion?: InputMaybe<Scalars['Int']['input']>;
+  maxReviewMediaCount?: InputMaybe<Scalars['Int']['input']>;
+  questionEditWindowHours?: InputMaybe<Scalars['Int']['input']>;
+  questionModerationMode?: InputMaybe<ReviewModerationMode>;
+  questionsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  reviewDuplicatePolicy?: InputMaybe<ReviewDuplicatePolicy>;
+  reviewEditWindowHours?: InputMaybe<Scalars['Int']['input']>;
+  reviewModerationMode?: InputMaybe<ReviewModerationMode>;
+  reviewRequestDelayDays?: InputMaybe<Scalars['Int']['input']>;
+  reviewRequestExpiryDays?: InputMaybe<Scalars['Int']['input']>;
+  reviewRequestsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  reviewsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  verifiedPurchaseRequired?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewStoreConfigurationUpdatePayload = {
+  __typename?: 'ReviewStoreConfigurationUpdatePayload';
+  configuration?: Maybe<ApiReviewStoreConfiguration>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewSubjectUpdateInput = {
+  orderId?: InputMaybe<Scalars['ID']['input']>;
+  orderLineId?: InputMaybe<Scalars['ID']['input']>;
+  productId?: InputMaybe<Scalars['ID']['input']>;
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export enum ReviewTranslationSource {
+  Human = 'HUMAN',
+  Import = 'IMPORT',
+  Machine = 'MACHINE'
+}
+
+/** Section-based aggregate update following Catalog productUpdate semantics. */
+export type ApiReviewUpdateInput = {
+  content?: InputMaybe<ApiReviewContentUpdateInput>;
+  incentive?: InputMaybe<ApiReviewIncentiveUpdateInput>;
+  /** Complete media replacement when supplied. Empty removes every attachment. */
+  media?: InputMaybe<Array<ApiReviewMediaSyncItemInput>>;
+  rating?: InputMaybe<ApiReviewRatingUpdateInput>;
+  subject?: InputMaybe<ApiReviewSubjectUpdateInput>;
+  verification?: InputMaybe<ApiReviewVerificationUpdateInput>;
+};
+
+export type ApiReviewUpdatePayload = {
+  __typename?: 'ReviewUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  review?: Maybe<ApiReview>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum ReviewVerificationStatus {
+  Revoked = 'REVOKED',
+  Unverified = 'UNVERIFIED',
+  Verified = 'VERIFIED'
+}
+
+export type ApiReviewVerificationUpdateInput = {
+  method?: InputMaybe<Scalars['String']['input']>;
+  status: ReviewVerificationStatus;
+  verifiedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type ApiReviewWhereInput = {
+  _and?: InputMaybe<Array<ApiReviewWhereInput>>;
+  _not?: InputMaybe<ApiReviewWhereInput>;
+  _or?: InputMaybe<Array<ApiReviewWhereInput>>;
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  authorDisplayName?: InputMaybe<ApiStringFilter>;
+  authorType?: InputMaybe<ApiStringFilter>;
+  body?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  dislikeCount?: InputMaybe<ApiIntFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  isIncentivized?: InputMaybe<ApiBooleanFilter>;
+  likeCount?: InputMaybe<ApiIntFilter>;
+  locale?: InputMaybe<ApiStringFilter>;
+  mediaCount?: InputMaybe<ApiIntFilter>;
+  openReportCount?: InputMaybe<ApiIntFilter>;
+  orderId?: InputMaybe<ApiIdFilter>;
+  orderLineId?: InputMaybe<ApiIdFilter>;
+  productId?: InputMaybe<ApiIdFilter>;
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  rating?: InputMaybe<ApiIntFilter>;
+  reportCount?: InputMaybe<ApiIntFilter>;
+  revision?: InputMaybe<ApiIntFilter>;
+  sourceChannel?: InputMaybe<ApiStringFilter>;
+  status?: InputMaybe<ApiStringFilter>;
+  title?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  variantId?: InputMaybe<ApiIdFilter>;
+  verificationStatus?: InputMaybe<ApiStringFilter>;
+};
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutation = {
+  __typename?: 'ReviewsMutation';
+  contentExternalReferenceCreate: ApiReviewContentExternalReferenceCreatePayload;
+  contentExternalReferenceDelete: ApiReviewContentExternalReferenceDeletePayload;
+  contentExternalReferenceUpdate: ApiReviewContentExternalReferenceUpdatePayload;
+  contentModerate: ApiReviewContentUpdatePayload;
+  contentPublicationCreate: ApiReviewContentPublicationCreatePayload;
+  contentPublicationDelete: ApiReviewContentPublicationDeletePayload;
+  contentPublicationUpdate: ApiReviewContentPublicationUpdatePayload;
+  contentRedact: ApiReviewContentUpdatePayload;
+  contentReportUpdate: ApiReviewContentReportUpdatePayload;
+  contentRevisionRestore: ApiReviewContentUpdatePayload;
+  contentTranslationCreate: ApiReviewContentTranslationCreatePayload;
+  contentTranslationDelete: ApiReviewContentTranslationDeletePayload;
+  contentTranslationUpdate: ApiReviewContentTranslationUpdatePayload;
+  moderationCaseCreate: ApiReviewModerationCaseCreatePayload;
+  moderationCaseUpdate: ApiReviewModerationCaseUpdatePayload;
+  productQuestionAnswerCreate: ApiProductQuestionAnswerCreatePayload;
+  productQuestionAnswerDelete: ApiProductQuestionAnswerDeletePayload;
+  productQuestionAnswerUpdate: ApiProductQuestionAnswerUpdatePayload;
+  productQuestionCreate: ApiProductQuestionCreatePayload;
+  productQuestionDelete: ApiProductQuestionDeletePayload;
+  productQuestionSubscriptionUpdate: ApiProductQuestionSubscriptionUpdatePayload;
+  productQuestionUpdate: ApiProductQuestionUpdatePayload;
+  ratingCriterionCreate: ApiReviewRatingCriterionCreatePayload;
+  ratingCriterionDelete: ApiReviewRatingCriterionDeletePayload;
+  ratingCriterionUpdate: ApiReviewRatingCriterionUpdatePayload;
+  reviewCreate: ApiReviewCreatePayload;
+  reviewDelete: ApiReviewDeletePayload;
+  reviewMediaUpdate: ApiReviewMediaUpdatePayload;
+  reviewReplyCreate: ApiReviewReplyCreatePayload;
+  reviewReplyDelete: ApiReviewReplyDeletePayload;
+  reviewReplyUpdate: ApiReviewReplyUpdatePayload;
+  reviewRequestCreate: ApiReviewRequestCreatePayload;
+  reviewRequestUpdate: ApiReviewRequestUpdatePayload;
+  reviewUpdate: ApiReviewUpdatePayload;
+  storeConfigurationUpdate: ApiReviewStoreConfigurationUpdatePayload;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentExternalReferenceCreateArgs = {
+  input: ApiReviewContentExternalReferenceCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentExternalReferenceDeleteArgs = {
+  input: ApiReviewContentExternalReferenceDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentExternalReferenceUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  externalReferenceId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiReviewContentExternalReferenceUpdateInput>;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentModerateArgs = {
+  contentId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiReviewContentModerationInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentPublicationCreateArgs = {
+  input: ApiReviewContentPublicationCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentPublicationDeleteArgs = {
+  input: ApiReviewContentPublicationDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentPublicationUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiReviewContentPublicationUpdateInput>;
+  publicationId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentRedactArgs = {
+  contentId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentReportUpdateArgs = {
+  contentReportId: Scalars['ID']['input'];
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiReviewContentReportUpdateInput>;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentRevisionRestoreArgs = {
+  contentId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  revision: Scalars['Int']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentTranslationCreateArgs = {
+  input: ApiReviewContentTranslationCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentTranslationDeleteArgs = {
+  input: ApiReviewContentTranslationDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentTranslationUpdateArgs = {
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiReviewContentTranslationUpdateInput>;
+  translationId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationModerationCaseCreateArgs = {
+  input: ApiReviewModerationCaseCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationModerationCaseUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  moderationCaseId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiReviewModerationCaseUpdateInput>;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionAnswerCreateArgs = {
+  input: ApiProductQuestionAnswerCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionAnswerDeleteArgs = {
+  input: ApiReviewContentDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionAnswerUpdateArgs = {
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiProductQuestionAnswerUpdateInput>;
+  productQuestionAnswerId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionCreateArgs = {
+  input: ApiProductQuestionCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionDeleteArgs = {
+  input: ApiReviewContentDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionSubscriptionUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiProductQuestionSubscriptionUpdateInput>;
+  subscriptionId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionUpdateArgs = {
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiProductQuestionUpdateInput>;
+  productQuestionId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationRatingCriterionCreateArgs = {
+  input: ApiReviewRatingCriterionCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationRatingCriterionDeleteArgs = {
+  input: ApiReviewRatingCriterionDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationRatingCriterionUpdateArgs = {
+  criterionId: Scalars['ID']['input'];
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiReviewRatingCriterionUpdateInput>;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewCreateArgs = {
+  input: ApiReviewCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewDeleteArgs = {
+  input: ApiReviewContentDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewMediaUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiReviewMediaUpdateInput>;
+  reviewMediaId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewReplyCreateArgs = {
+  input: ApiReviewReplyCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewReplyDeleteArgs = {
+  input: ApiReviewContentDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewReplyUpdateArgs = {
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiReviewReplyUpdateInput>;
+  reviewReplyId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewRequestCreateArgs = {
+  input: ApiReviewRequestCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewRequestUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiReviewRequestUpdateInput>;
+  reviewRequestId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewUpdateArgs = {
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiReviewUpdateInput>;
+  reviewId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationStoreConfigurationUpdateArgs = {
+  configurationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiReviewStoreConfigurationUpdateInput>;
+};
+
+/** Result for one section of a unified update. */
+export type ApiReviewsOperationResult = {
+  __typename?: 'ReviewsOperationResult';
+  applied: Scalars['Boolean']['output'];
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  entityId?: Maybe<Scalars['ID']['output']>;
+  errors: Array<ApiGenericUserError>;
+  type: ReviewsOperationType;
+};
+
+/** Logical sections executed by unified admin update workflows. */
+export enum ReviewsOperationType {
+  ContentAuthorUpdate = 'CONTENT_AUTHOR_UPDATE',
+  ContentExternalReferenceUpdate = 'CONTENT_EXTERNAL_REFERENCE_UPDATE',
+  ContentModerationUpdate = 'CONTENT_MODERATION_UPDATE',
+  ContentPublicationsSync = 'CONTENT_PUBLICATIONS_SYNC',
+  ContentPublicationUpdate = 'CONTENT_PUBLICATION_UPDATE',
+  ContentRedact = 'CONTENT_REDACT',
+  ContentReportUpdate = 'CONTENT_REPORT_UPDATE',
+  ContentRevisionRestore = 'CONTENT_REVISION_RESTORE',
+  ContentSourceUpdate = 'CONTENT_SOURCE_UPDATE',
+  ContentTranslationsSync = 'CONTENT_TRANSLATIONS_SYNC',
+  ContentTranslationUpdate = 'CONTENT_TRANSLATION_UPDATE',
+  ContentUpdate = 'CONTENT_UPDATE',
+  ModerationCaseUpdate = 'MODERATION_CASE_UPDATE',
+  ProductQuestionAnswerUpdate = 'PRODUCT_QUESTION_ANSWER_UPDATE',
+  ProductQuestionSubscriptionUpdate = 'PRODUCT_QUESTION_SUBSCRIPTION_UPDATE',
+  ProductQuestionUpdate = 'PRODUCT_QUESTION_UPDATE',
+  RatingCriterionApplicabilityUpdate = 'RATING_CRITERION_APPLICABILITY_UPDATE',
+  RatingCriterionAssignmentsSync = 'RATING_CRITERION_ASSIGNMENTS_SYNC',
+  RatingCriterionDefinitionUpdate = 'RATING_CRITERION_DEFINITION_UPDATE',
+  RatingCriterionTranslationsSync = 'RATING_CRITERION_TRANSLATIONS_SYNC',
+  ReviewIncentiveUpdate = 'REVIEW_INCENTIVE_UPDATE',
+  ReviewMediaSync = 'REVIEW_MEDIA_SYNC',
+  ReviewMediaUpdate = 'REVIEW_MEDIA_UPDATE',
+  ReviewRatingUpdate = 'REVIEW_RATING_UPDATE',
+  ReviewReplyUpdate = 'REVIEW_REPLY_UPDATE',
+  ReviewRequestUpdate = 'REVIEW_REQUEST_UPDATE',
+  ReviewSubjectUpdate = 'REVIEW_SUBJECT_UPDATE',
+  ReviewVerificationUpdate = 'REVIEW_VERIFICATION_UPDATE',
+  StoreConfigurationUpdate = 'STORE_CONFIGURATION_UPDATE'
+}
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQuery = {
   __typename?: 'ReviewsQuery';
-  _empty: Scalars['Boolean']['output'];
+  /** Any moderated content aggregate owned by Reviews. */
+  content?: Maybe<ApiReviewContent>;
+  contentExternalReference?: Maybe<ApiReviewContentExternalReference>;
+  contentExternalReferences: ApiReviewContentExternalReferenceConnection;
+  contentReport?: Maybe<ApiReviewContentReport>;
+  contentReports: ApiReviewContentReportConnection;
+  contents: ApiReviewContentConnection;
+  moderationCase?: Maybe<ApiReviewModerationCase>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  /** Resolve a Reviews-owned node by global ID. */
+  node?: Maybe<ApiNode>;
+  /** Resolve multiple Reviews-owned nodes while preserving input order. */
+  nodes: Array<Maybe<ApiNode>>;
+  productQuestion?: Maybe<ApiProductQuestion>;
+  productQuestionAnswer?: Maybe<ApiProductQuestionAnswer>;
+  productQuestionAnswers: ApiProductQuestionAnswerConnection;
+  productQuestionSummary?: Maybe<ApiProductQuestionSummary>;
+  productQuestions: ApiProductQuestionConnection;
+  productReviewSummary?: Maybe<ApiProductReviewSummary>;
+  ratingCriteria: ApiReviewRatingCriterionConnection;
+  ratingCriterion?: Maybe<ApiReviewRatingCriterion>;
+  review?: Maybe<ApiReview>;
+  reviewReplies: ApiReviewReplyConnection;
+  reviewReply?: Maybe<ApiReviewReply>;
+  reviewRequest?: Maybe<ApiReviewRequest>;
+  reviewRequests: ApiReviewRequestConnection;
+  reviews: ApiReviewConnection;
+  /** Current store review and Q&A configuration. */
+  storeConfiguration?: Maybe<ApiReviewStoreConfiguration>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentExternalReferenceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewContentExternalReferenceOrderByInput>>;
+  where?: InputMaybe<ApiReviewContentExternalReferenceWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentReportArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewContentReportOrderByInput>>;
+  where?: InputMaybe<ApiReviewContentReportWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiReviewContentOrderByInput>>;
+  where?: InputMaybe<ApiReviewContentWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryModerationCaseArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewModerationCaseOrderByInput>>;
+  where?: InputMaybe<ApiReviewModerationCaseWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductQuestionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductQuestionAnswerArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductQuestionAnswersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiProductQuestionAnswerOrderByInput>>;
+  where?: InputMaybe<ApiProductQuestionAnswerWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductQuestionSummaryArgs = {
+  productId: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductQuestionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiProductQuestionOrderByInput>>;
+  where?: InputMaybe<ApiProductQuestionWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductReviewSummaryArgs = {
+  productId: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryRatingCriteriaArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewRatingCriterionOrderByInput>>;
+  where?: InputMaybe<ApiReviewRatingCriterionWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryRatingCriterionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewRepliesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiReviewReplyOrderByInput>>;
+  where?: InputMaybe<ApiReviewReplyWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewReplyArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewRequestArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewRequestsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewRequestOrderByInput>>;
+  where?: InputMaybe<ApiReviewRequestWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiReviewOrderByInput>>;
+  where?: InputMaybe<ApiReviewWhereInput>;
 };
 
 /** Rich text content in multiple formats. */

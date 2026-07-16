@@ -3,7 +3,7 @@ import { REVIEW_EDITOR_FRAGMENT } from "./fragments";
 
 export const REVIEW_CREATE_MUTATION = gql`
   mutation ReviewCreate($input: ReviewCreateInput!) {
-    reviewMutation {
+    reviewsMutation {
       reviewCreate(input: $input) {
         review {
           ...ReviewEditorFields
@@ -20,11 +20,26 @@ export const REVIEW_CREATE_MUTATION = gql`
 `;
 
 export const REVIEW_UPDATE_MUTATION = gql`
-  mutation ReviewUpdate($input: ReviewUpdateInput!) {
-    reviewMutation {
-      reviewUpdate(input: $input) {
+  mutation ReviewUpdate(
+    $reviewId: ID!
+    $expectedRevision: Int!
+    $operations: ReviewUpdateInput
+  ) {
+    reviewsMutation {
+      reviewUpdate(
+        reviewId: $reviewId
+        expectedRevision: $expectedRevision
+        operations: $operations
+      ) {
         review {
           ...ReviewEditorFields
+        }
+        operationResults {
+          errors {
+            code
+            field
+            message
+          }
         }
         userErrors {
           code

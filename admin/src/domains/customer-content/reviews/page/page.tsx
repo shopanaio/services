@@ -24,16 +24,10 @@ import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme, usePageConfig } from "@/hooks";
+import type { ApiReview, ApiReviewWhereInput } from "@/graphql/types";
+import { ReviewContentStatus, ReviewOrderField } from "@/graphql/types";
 import { useReviews } from "../hooks";
 import { useReviewModal } from "../modals";
-import type {
-  ApiReview,
-  ReviewWhereInput,
-} from "../graphql/operation-types";
-import {
-  ReviewOrderField,
-  ReviewStatus,
-} from "../graphql/operation-types";
 import { filterSchema } from "./filter-schema";
 import {
   buildReviewSearchCondition,
@@ -43,10 +37,10 @@ import {
 
 ModuleRegistry.registerModules([AllCommunityModule, GridStateModule]);
 
-const statusConfig: Record<ReviewStatus, { color: string; label: string }> = {
-  [ReviewStatus.Pending]: { color: "gold", label: "Pending" },
-  [ReviewStatus.Published]: { color: "green", label: "Published" },
-  [ReviewStatus.Rejected]: { color: "red", label: "Rejected" },
+const statusConfig: Record<ReviewContentStatus, { color: string; label: string }> = {
+  [ReviewContentStatus.Pending]: { color: "gold", label: "Pending" },
+  [ReviewContentStatus.Published]: { color: "green", label: "Published" },
+  [ReviewContentStatus.Rejected]: { color: "red", label: "Rejected" },
 };
 
 function RatingCell({ value }: CustomCellRendererProps<ApiReview, number>) {
@@ -91,16 +85,16 @@ function CustomerCell({ data }: CustomCellRendererProps<ApiReview>) {
 
   return (
     <Flex vertical gap={2} style={{ minWidth: 0 }}>
-      <Typography.Text ellipsis>{data.customer.displayName}</Typography.Text>
-      <Typography.Text type="secondary" ellipsis title={data.customer.email}>
-        {data.customer.email}
+      <Typography.Text ellipsis>{data.author.displayName}</Typography.Text>
+      <Typography.Text type="secondary" ellipsis title={data.author.email ?? undefined}>
+        {data.author.email ?? data.author.type}
       </Typography.Text>
     </Flex>
   );
 }
 
-function StatusCell({ value }: CustomCellRendererProps<ApiReview, ReviewStatus>) {
-  const config = statusConfig[value ?? ReviewStatus.Pending];
+function StatusCell({ value }: CustomCellRendererProps<ApiReview, ReviewContentStatus>) {
+  const config = statusConfig[value ?? ReviewContentStatus.Pending];
   return <Tag color={config.color}>{config.label}</Tag>;
 }
 
@@ -122,22 +116,22 @@ function SignalsCell({ data }: CustomCellRendererProps<ApiReview>) {
     <Flex gap="middle">
       <Flex align="center" gap={5} title="Likes">
         <LikeOutlined />
-        <Typography.Text>{data.likeCount}</Typography.Text>
+        <Typography.Text>{data.metrics.likeCount}</Typography.Text>
       </Flex>
       <Flex align="center" gap={5} title="Dislikes">
         <DislikeOutlined />
-        <Typography.Text>{data.dislikeCount}</Typography.Text>
+        <Typography.Text>{data.metrics.dislikeCount}</Typography.Text>
       </Flex>
       <Flex align="center" gap={5} title="Reports">
-        <FlagOutlined style={{ color: data.reportedCount > 0 ? "#cf1322" : undefined }} />
-        <Typography.Text type={data.reportedCount > 0 ? "danger" : undefined}>
-          {data.reportedCount}
+        <FlagOutlined style={{ color: data.metrics.reportCount > 0 ? "#cf1322" : undefined }} />
+        <Typography.Text type={data.metrics.reportCount > 0 ? "danger" : undefined}>
+          {data.metrics.reportCount}
         </Typography.Text>
       </Flex>
-      {data.mediaCount > 0 && (
+      {data.metrics.mediaCount > 0 && (
         <Flex align="center" gap={5} title="Customer media">
           <PictureOutlined />
-          <Typography.Text>{data.mediaCount}</Typography.Text>
+          <Typography.Text>{data.metrics.mediaCount}</Typography.Text>
         </Flex>
       )}
     </Flex>
@@ -161,7 +155,7 @@ function DateCell({ value }: CustomCellRendererProps<ApiReview, string>) {
 export default function CustomerReviewsPage() {
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiReview>>(null);
-  const pageConfig = usePageConfig<ApiReview, ReviewWhereInput, ReviewOrderField>({
+  const pageConfig = usePageConfig<ApiReview, ApiReviewWhereInput, ReviewOrderField>({
     gridRef,
     storageKey: "reviews-grid-state",
     filterSchema,

@@ -8,22 +8,6 @@ import type {
 } from "@/graphql/types";
 
 // ============================================================================
-// Review Types
-// ============================================================================
-
-export interface IReviewBreakdown {
-  stars: number;
-  count: number;
-  percent: number;
-}
-
-export interface IReviewsData {
-  rating: number;
-  reviewsCount: number;
-  breakdown: IReviewBreakdown[];
-}
-
-// ============================================================================
 // Section Props
 // ============================================================================
 
@@ -49,7 +33,6 @@ export interface IVariantsTableData {
 // ============================================================================
 
 export interface ProductDetailsSupplementalData {
-  reviews: IReviewsData;
   bundleItems: IBundleGroup[];
   pricingTemplates: PricingRuleTemplate[];
   dependencyRules: IDependencyRule[];

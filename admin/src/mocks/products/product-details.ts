@@ -62,18 +62,6 @@ const getMockInventoryWidget = (): ApiProductInventoryWidget => ({
   },
 });
 
-const defaultReviewsData = {
-  rating: 4.2,
-  reviewsCount: 128,
-  breakdown: [
-    { stars: 5, count: 89, percent: 70 },
-    { stars: 4, count: 24, percent: 19 },
-    { stars: 3, count: 8, percent: 6 },
-    { stars: 2, count: 4, percent: 3 },
-    { stars: 1, count: 3, percent: 2 },
-  ],
-};
-
 // Mock Bundle Groups (used by bundle-details.ts)
 const mockBundleGroups: IBundleGroup[] = [
   {
@@ -621,7 +609,6 @@ const mockDependencyRules: IDependencyRule[] = [
 ];
 
 export const productDetailsMockData: ProductDetailsSupplementalData = {
-  reviews: defaultReviewsData,
   bundleItems: mockBundleGroups,
   pricingTemplates: mockPricingTemplates,
   dependencyRules: mockDependencyRules,

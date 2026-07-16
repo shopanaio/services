@@ -30,7 +30,7 @@ export function buildTree(items: FlattenedNavigationItem[]): NavigationMenuItem[
     else roots.push(node);
   });
 
-  const normalize = (tree: NavigationMenuItem[]) =>
+  const normalize = (tree: NavigationMenuItem[]): NavigationMenuItem[] =>
     tree.map((item, index) => ({
       ...item,
       sortIndex: index,

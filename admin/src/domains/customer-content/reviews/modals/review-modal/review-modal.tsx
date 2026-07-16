@@ -13,7 +13,6 @@ import {
   Segmented,
   Select,
   Skeleton,
-  Switch,
   Tag,
   Typography,
 } from "antd";
@@ -40,6 +39,12 @@ import {
 } from "@/domains/inventory/products/components/product-details-card/sections";
 import { useEditMediaModal } from "@/domains/inventory/products/modals";
 import type { ApiFile } from "@/graphql/types";
+import {
+  ReviewContentAuthorType,
+  ReviewContentReportReason,
+  ReviewContentStatus,
+  ReviewVerificationStatus,
+} from "@/graphql/types";
 import type { ReviewModalPayload } from "../../modals";
 import {
   useCreateReview,
@@ -47,10 +52,6 @@ import {
   useReviewEditorContext,
   useUpdateReview,
 } from "../../hooks";
-import {
-  ReviewReportReason,
-  ReviewStatus,
-} from "../../graphql/operation-types";
 import {
   buildReviewCreateInput,
   buildReviewUpdateInput,
@@ -118,40 +119,44 @@ const useStyles = createStyles(({ token }) => ({
 
 const DEFAULT_VALUES: ReviewFormValues = {
   productId: "",
+  authorType: ReviewContentAuthorType.Customer,
   customerId: "",
+  authorDisplayName: "",
+  authorEmail: "",
+  locale: "en",
   rating: 5,
   title: "",
   body: "",
-  isVerifiedPurchase: false,
-  status: ReviewStatus.Pending,
+  verificationStatus: ReviewVerificationStatus.Unverified,
+  status: ReviewContentStatus.Pending,
   moderationNote: "",
   media: [],
 };
 
-const moderationCopy: Record<ReviewStatus, { title: string; description: string; color: string }> = {
-  [ReviewStatus.Pending]: {
+const moderationCopy: Record<ReviewContentStatus, { title: string; description: string; color: string }> = {
+  [ReviewContentStatus.Pending]: {
     title: "Pending review",
     description: "Hidden from the storefront until a moderator makes a decision.",
     color: "gold",
   },
-  [ReviewStatus.Published]: {
+  [ReviewContentStatus.Published]: {
     title: "Published",
     description: "Visible on the product page and included in rating aggregates.",
     color: "green",
   },
-  [ReviewStatus.Rejected]: {
+  [ReviewContentStatus.Rejected]: {
     title: "Rejected",
     description: "Hidden from customers and excluded from rating aggregates.",
     color: "red",
   },
 };
 
-const reportReasonCopy: Record<ReviewReportReason, string> = {
-  [ReviewReportReason.Spam]: "Spam or promotion",
-  [ReviewReportReason.Offensive]: "Offensive content",
-  [ReviewReportReason.ConflictOfInterest]: "Conflict of interest",
-  [ReviewReportReason.NotRelevant]: "Not relevant to product",
-  [ReviewReportReason.Other]: "Other",
+const reportReasonCopy: Partial<Record<ReviewContentReportReason, string>> = {
+  [ReviewContentReportReason.Spam]: "Spam or promotion",
+  [ReviewContentReportReason.Offensive]: "Offensive content",
+  [ReviewContentReportReason.ConflictOfInterest]: "Conflict of interest",
+  [ReviewContentReportReason.NotRelevant]: "Not relevant to product",
+  [ReviewContentReportReason.Other]: "Other",
 };
 
 const reportDateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -189,6 +194,7 @@ export function ReviewModal() {
     formState: { errors, isDirty, isValid },
   } = methods;
   const status = useWatch({ control, name: "status" });
+  const authorType = useWatch({ control, name: "authorType" });
   const media = useWatch({ control, name: "media" });
 
   useEffect(() => setDirty(isDirty), [isDirty, setDirty]);
@@ -198,14 +204,18 @@ export function ReviewModal() {
     const review = reviewQuery.review;
     reset({
       productId: review.product.id,
-      customerId: review.customer.id,
+      authorType: review.author.type,
+      customerId: review.author.customer?.id ?? "",
+      authorDisplayName: review.author.displayName,
+      authorEmail: review.author.email ?? "",
+      locale: review.locale,
       rating: review.rating,
       title: review.title ?? "",
       body: review.body,
-      isVerifiedPurchase: review.isVerifiedPurchase,
+      verificationStatus: review.verificationStatus,
       status: review.status,
       moderationNote: review.moderationNote ?? "",
-      media: review.media,
+      media: review.media.map((item) => item.file),
     });
   }, [isEdit, reset, reviewQuery.review]);
 
@@ -219,10 +229,23 @@ export function ReviewModal() {
   const customerOptions = useMemo(
     () => editorContext.context?.customers.map((customer) => ({
       value: customer.id,
-      label: `${customer.displayName} · ${customer.email}`,
+      label: customer.email
+        ? `${customer.displayName} · ${customer.email}`
+        : customer.displayName,
     })) ?? [],
     [editorContext.context?.customers],
   );
+
+  const handleCustomerChange = useCallback((customerId: string) => {
+    methods.setValue("customerId", customerId, { shouldDirty: true, shouldValidate: true });
+    const customer = editorContext.context?.customers.find((item) => item.id === customerId);
+    if (!customer) return;
+    methods.setValue("authorDisplayName", customer.displayName, { shouldDirty: true, shouldValidate: true });
+    methods.setValue("authorEmail", customer.email ?? "", { shouldDirty: true, shouldValidate: true });
+    if (customer.preferredLocale) {
+      methods.setValue("locale", customer.preferredLocale, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [editorContext.context?.customers, methods]);
 
   const handleEditMedia = useCallback(() => {
     openEditMediaModal({
@@ -252,8 +275,8 @@ export function ReviewModal() {
       clearErrors();
       const current = reviewQuery.review;
       const result = isEdit && current
-        ? await updateReview(buildReviewUpdateInput(values, current), values.media)
-        : await createReview(buildReviewCreateInput(values), values.media);
+        ? await updateReview(current.id, current.revision, buildReviewUpdateInput(values, current))
+        : await createReview(buildReviewCreateInput(values));
 
       if (!result.review || result.userErrors.length > 0) {
         const global: string[] = [];
@@ -353,8 +376,28 @@ export function ReviewModal() {
             {errors.productId ? <div className={styles.error}>{errors.productId.message}</div> : null}
           </div>
           <div>
+            <label className={styles.label} htmlFor="review-author-type">
+              <UserOutlined /> Author type *
+            </label>
+            <Controller
+              name="authorType"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  id="review-author-type"
+                  options={Object.values(ReviewContentAuthorType).map((value) => ({
+                    value,
+                    label: value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase()),
+                  }))}
+                  style={{ width: "100%" }}
+                />
+              )}
+            />
+          </div>
+          <div>
             <label className={styles.label} htmlFor="review-customer">
-              <UserOutlined /> Customer *
+              Linked customer{authorType === ReviewContentAuthorType.Customer ? " *" : ""}
             </label>
             <Controller
               name="customerId"
@@ -363,16 +406,52 @@ export function ReviewModal() {
                 <Select
                   {...field}
                   id="review-customer"
+                  allowClear
+                  disabled={authorType !== ReviewContentAuthorType.Customer}
                   showSearch
                   optionFilterProp="label"
                   options={customerOptions}
                   placeholder="Select customer"
                   status={errors.customerId ? "error" : undefined}
                   style={{ width: "100%" }}
+                  onChange={(value) => handleCustomerChange(value ?? "")}
                 />
               )}
             />
             {errors.customerId ? <div className={styles.error}>{errors.customerId.message}</div> : null}
+          </div>
+          <div>
+            <label className={styles.label} htmlFor="review-author-name">Author name *</label>
+            <Controller
+              name="authorDisplayName"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} id="review-author-name" status={errors.authorDisplayName ? "error" : undefined} />
+              )}
+            />
+            {errors.authorDisplayName ? <div className={styles.error}>{errors.authorDisplayName.message}</div> : null}
+          </div>
+          <div>
+            <label className={styles.label} htmlFor="review-author-email">Author email</label>
+            <Controller
+              name="authorEmail"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} id="review-author-email" type="email" status={errors.authorEmail ? "error" : undefined} />
+              )}
+            />
+            {errors.authorEmail ? <div className={styles.error}>{errors.authorEmail.message}</div> : null}
+          </div>
+          <div>
+            <label className={styles.label} htmlFor="review-locale">Locale *</label>
+            <Controller
+              name="locale"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} id="review-locale" placeholder="en" status={errors.locale ? "error" : undefined} />
+              )}
+            />
+            {errors.locale ? <div className={styles.error}>{errors.locale.message}</div> : null}
           </div>
         </div>
       </Paper>
@@ -473,9 +552,19 @@ export function ReviewModal() {
             </Typography.Text>
           </div>
           <Controller
-            name="isVerifiedPurchase"
+            name="verificationStatus"
             control={control}
-            render={({ field }) => <Switch checked={field.value} onChange={field.onChange} />}
+            render={({ field }) => (
+              <Select
+                {...field}
+                style={{ minWidth: 150 }}
+                options={[
+                  { value: ReviewVerificationStatus.Unverified, label: "Unverified" },
+                  { value: ReviewVerificationStatus.Verified, label: "Verified" },
+                  { value: ReviewVerificationStatus.Revoked, label: "Revoked" },
+                ]}
+              />
+            )}
           />
         </Flex>
       </Paper>
@@ -490,7 +579,7 @@ export function ReviewModal() {
                 <Typography.Text strong>Likes</Typography.Text>
               </Flex>
               <Typography.Title level={4} className={styles.metricValue}>
-                {reviewQuery.review?.likeCount ?? 0}
+                {reviewQuery.review?.metrics.likeCount ?? 0}
               </Typography.Title>
               <Typography.Text type="secondary">Customers who found the review helpful.</Typography.Text>
             </Flex>
@@ -500,7 +589,7 @@ export function ReviewModal() {
                 <Typography.Text strong>Dislikes</Typography.Text>
               </Flex>
               <Typography.Title level={4} className={styles.metricValue}>
-                {reviewQuery.review?.dislikeCount ?? 0}
+                {reviewQuery.review?.metrics.dislikeCount ?? 0}
               </Typography.Title>
               <Typography.Text type="secondary">Customers who found the review unhelpful.</Typography.Text>
             </Flex>
@@ -510,21 +599,23 @@ export function ReviewModal() {
                 <Typography.Text strong>Abuse reports</Typography.Text>
               </Flex>
               <Typography.Title level={4} className={styles.metricValue}>
-                {reviewQuery.review?.reportedCount ?? 0}
+                {reviewQuery.review?.metrics.reportCount ?? 0}
               </Typography.Title>
               <Typography.Text type="secondary">Customers who asked to inspect this review.</Typography.Text>
             </Flex>
           </div>
 
-          {(reviewQuery.review?.reports.length ?? 0) > 0 ? (
+          {(reviewQuery.review?.reports.edges.length ?? 0) > 0 ? (
             <div className={styles.reportsList}>
-              {reviewQuery.review?.reports.map((report) => (
+              {reviewQuery.review?.reports.edges.map(({ node: report }) => (
                 <Flex vertical gap={4} className={styles.reportRow} key={report.id}>
                   <Flex align="center" justify="space-between" gap="small" wrap>
                     <Flex align="center" gap="small" wrap>
-                      <Tag color="red">{reportReasonCopy[report.reason]}</Tag>
-                      <Typography.Text>{report.reporter.displayName}</Typography.Text>
-                      <Typography.Text type="secondary">{report.reporter.email}</Typography.Text>
+                      <Tag color="red">{reportReasonCopy[report.reason] ?? report.reason}</Tag>
+                      <Typography.Text>{report.reporterCustomer?.displayName ?? "Anonymous reporter"}</Typography.Text>
+                      {report.reporterCustomer?.email ? (
+                        <Typography.Text type="secondary">{report.reporterCustomer.email}</Typography.Text>
+                      ) : null}
                     </Flex>
                     <Typography.Text type="secondary">
                       {reportDateFormatter.format(new Date(report.createdAt))}
@@ -552,9 +643,9 @@ export function ReviewModal() {
                 value={field.value}
                 onChange={field.onChange}
                 options={[
-                  { value: ReviewStatus.Pending, label: "Pending", icon: <ClockCircleOutlined /> },
-                  { value: ReviewStatus.Published, label: "Published", icon: <CheckCircleOutlined /> },
-                  { value: ReviewStatus.Rejected, label: "Rejected", icon: <CloseCircleOutlined /> },
+                  { value: ReviewContentStatus.Pending, label: "Pending", icon: <ClockCircleOutlined /> },
+                  { value: ReviewContentStatus.Published, label: "Published", icon: <CheckCircleOutlined /> },
+                  { value: ReviewContentStatus.Rejected, label: "Rejected", icon: <CloseCircleOutlined /> },
                 ]}
               />
             )}
@@ -566,7 +657,7 @@ export function ReviewModal() {
           </div>
           <div>
             <label className={styles.label} htmlFor="review-moderation-note">
-              Internal moderation note{status === ReviewStatus.Rejected ? " *" : ""}
+              Internal moderation note{status === ReviewContentStatus.Rejected ? " *" : ""}
             </label>
             <Controller
               name="moderationNote"

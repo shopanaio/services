@@ -106,7 +106,7 @@ export function NavigationMenuModal() {
     };
     openLinkModal({
       link,
-      onSaved: (created) => setItems([...items, created]),
+      onSaved: (created: NavigationMenuItem) => setItems([...items, created]),
     });
   }, [items, menu, openLinkModal, setItems]);
 
@@ -115,7 +115,7 @@ export function NavigationMenuModal() {
       if (!menu) return;
       openLinkModal({
         link: { ...structuredClone(item), menuId: menu.id },
-        onSaved: (updated) => setItems(replaceItem(items, updated)),
+        onSaved: (updated: NavigationMenuItem) => setItems(replaceItem(items, updated)),
       });
     },
     [items, menu, openLinkModal, setItems],

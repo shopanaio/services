@@ -1,13 +1,15 @@
 import {
   FilterType,
-  booleanOperators,
   dateOperators,
   enumOperators,
   numberOperators,
   relationOperators,
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
-import { ReviewStatus } from "../graphql/operation-types";
+import {
+  ReviewContentStatus,
+  ReviewVerificationStatus,
+} from "@/graphql/types";
 
 /** Required operational filters for review moderation and customer support. */
 export const filterSchema: IFilterSchema[] = [
@@ -19,9 +21,9 @@ export const filterSchema: IFilterSchema[] = [
     operators: enumOperators,
     payloadKey: "status",
     options: [
-      { label: "Pending", value: ReviewStatus.Pending },
-      { label: "Published", value: ReviewStatus.Published },
-      { label: "Rejected", value: ReviewStatus.Rejected },
+      { label: "Pending", value: ReviewContentStatus.Pending },
+      { label: "Published", value: ReviewContentStatus.Published },
+      { label: "Rejected", value: ReviewContentStatus.Rejected },
     ],
   },
   {
@@ -46,28 +48,33 @@ export const filterSchema: IFilterSchema[] = [
     entity: "product",
   },
   {
-    key: "verifiedPurchase",
-    label: "Verified purchase",
-    description: "Filter by verified purchase status",
-    type: FilterType.Boolean,
-    operators: booleanOperators,
-    payloadKey: "isVerifiedPurchase",
+    key: "verificationStatus",
+    label: "Verification",
+    description: "Filter by purchase verification status",
+    type: FilterType.Enum,
+    operators: enumOperators,
+    payloadKey: "verificationStatus",
+    options: [
+      { label: "Verified", value: ReviewVerificationStatus.Verified },
+      { label: "Unverified", value: ReviewVerificationStatus.Unverified },
+      { label: "Revoked", value: ReviewVerificationStatus.Revoked },
+    ],
   },
   {
-    key: "hasMedia",
-    label: "Has media",
-    description: "Filter reviews with customer photos or videos",
-    type: FilterType.Boolean,
-    operators: booleanOperators,
-    payloadKey: "hasMedia",
+    key: "mediaCount",
+    label: "Media count",
+    description: "Filter by the number of customer media items",
+    type: FilterType.Number,
+    operators: numberOperators,
+    payloadKey: "mediaCount",
   },
   {
-    key: "reportedCount",
+    key: "reportCount",
     label: "Abuse reports",
     description: "Filter by the number of customer abuse reports",
     type: FilterType.Number,
     operators: numberOperators,
-    payloadKey: "reportedCount",
+    payloadKey: "reportCount",
   },
   {
     key: "createdAt",

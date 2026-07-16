@@ -20,14 +20,20 @@ import {
 import { createStyles } from "antd-style";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import {
+  ReviewContentAuthorType,
+  ReviewContentReportReason,
+  ReviewContentStatus,
+} from "@/graphql/types";
 import type { QuestionModalPayload } from "../../modals";
 import { useCreateQuestion, useQuestion, useQuestionEditorContext, useUpdateQuestion } from "../../hooks";
 import {
-  QuestionAnswerAuthorType,
-  QuestionReportReason,
-  QuestionStatus,
-} from "../../graphql/operation-types";
-import { buildQuestionCreateInput, buildQuestionUpdateInput, mapQuestionUserErrors } from "../../mappers";
+  buildQuestionAnswerMutationPlan,
+  buildQuestionCreateAnswers,
+  buildQuestionCreateInput,
+  buildQuestionUpdateInput,
+  mapQuestionUserErrors,
+} from "../../mappers";
 import { questionFormSchema, type QuestionFormValues } from "./schema";
 
 const useStyles = createStyles(({ token }) => ({
@@ -50,25 +56,29 @@ const useStyles = createStyles(({ token }) => ({
 
 const DEFAULT_VALUES: QuestionFormValues = {
   productId: "",
+  authorType: ReviewContentAuthorType.Customer,
   customerId: "",
+  authorDisplayName: "",
+  authorEmail: "",
+  locale: "en",
   body: "",
-  status: QuestionStatus.Pending,
+  status: ReviewContentStatus.Pending,
   moderationNote: "",
   answers: [],
 };
 
-const moderationCopy: Record<QuestionStatus, { title: string; description: string; color: string }> = {
-  [QuestionStatus.Pending]: { title: "Pending review", description: "Hidden from the storefront until a moderator makes a decision.", color: "gold" },
-  [QuestionStatus.Published]: { title: "Published", description: "Visible on the product page and available for answers.", color: "green" },
-  [QuestionStatus.Rejected]: { title: "Rejected", description: "Hidden from customers and closed for answers.", color: "red" },
+const moderationCopy: Record<ReviewContentStatus, { title: string; description: string; color: string }> = {
+  [ReviewContentStatus.Pending]: { title: "Pending review", description: "Hidden from the storefront until a moderator makes a decision.", color: "gold" },
+  [ReviewContentStatus.Published]: { title: "Published", description: "Visible on the product page and available for answers.", color: "green" },
+  [ReviewContentStatus.Rejected]: { title: "Rejected", description: "Hidden from customers and closed for answers.", color: "red" },
 };
 
-const reportReasonCopy: Record<QuestionReportReason, string> = {
-  [QuestionReportReason.Spam]: "Spam or promotion",
-  [QuestionReportReason.Offensive]: "Offensive content",
-  [QuestionReportReason.ConflictOfInterest]: "Conflict of interest",
-  [QuestionReportReason.NotRelevant]: "Not relevant to product",
-  [QuestionReportReason.Other]: "Other",
+const reportReasonCopy: Partial<Record<ReviewContentReportReason, string>> = {
+  [ReviewContentReportReason.Spam]: "Spam or promotion",
+  [ReviewContentReportReason.Offensive]: "Offensive content",
+  [ReviewContentReportReason.ConflictOfInterest]: "Conflict of interest",
+  [ReviewContentReportReason.NotRelevant]: "Not relevant to product",
+  [ReviewContentReportReason.Other]: "Other",
 };
 
 const reportDateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
@@ -88,6 +98,7 @@ export function QuestionModal() {
   const { control, handleSubmit, reset, setError, clearErrors, formState: { errors, isDirty, isValid } } = methods;
   const { fields: answerFields, append: appendAnswer, remove: removeAnswer } = useFieldArray({ control, name: "answers", keyName: "fieldKey" });
   const status = useWatch({ control, name: "status" });
+  const authorType = useWatch({ control, name: "authorType" });
 
   useEffect(() => setDirty(isDirty), [isDirty, setDirty]);
   useEffect(() => {
@@ -95,37 +106,72 @@ export function QuestionModal() {
     if (!isEdit || !question) return;
     reset({
       productId: question.product.id,
-      customerId: question.customer.id,
+      authorType: question.author.type,
+      customerId: question.author.customer?.id ?? "",
+      authorDisplayName: question.author.displayName,
+      authorEmail: question.author.email ?? "",
+      locale: question.locale,
       body: question.body,
       status: question.status,
       moderationNote: question.moderationNote ?? "",
-      answers: question.answers.map((answer) => ({
+      answers: question.answers.edges.map(({ node: answer }) => ({
         id: answer.id,
+        revision: answer.revision,
         body: answer.body,
-        authorType: answer.authorType,
-        authorName: answer.authorName,
+        locale: answer.locale,
+        authorType: answer.author.type,
+        customerId: answer.author.customer?.id ?? "",
+        authorName: answer.author.displayName,
+        authorEmail: answer.author.email ?? "",
         isOfficial: answer.isOfficial,
+        isAccepted: answer.isAccepted,
       })),
     });
   }, [isEdit, questionQuery.question, reset]);
 
   const productOptions = useMemo(() => editorContext.context?.products.map((product) => ({ value: product.id, label: product.title })) ?? [], [editorContext.context?.products]);
-  const customerOptions = useMemo(() => editorContext.context?.customers.map((customer) => ({ value: customer.id, label: `${customer.displayName} · ${customer.email}` })) ?? [], [editorContext.context?.customers]);
+  const customerOptions = useMemo(() => editorContext.context?.customers.map((customer) => ({ value: customer.id, label: customer.email ? `${customer.displayName} · ${customer.email}` : customer.displayName })) ?? [], [editorContext.context?.customers]);
+
+  const handleCustomerChange = useCallback((customerId: string) => {
+    methods.setValue("customerId", customerId, { shouldDirty: true, shouldValidate: true });
+    const customer = editorContext.context?.customers.find((item) => item.id === customerId);
+    if (!customer) return;
+    methods.setValue("authorDisplayName", customer.displayName, { shouldDirty: true, shouldValidate: true });
+    methods.setValue("authorEmail", customer.email ?? "", { shouldDirty: true, shouldValidate: true });
+    if (customer.preferredLocale) methods.setValue("locale", customer.preferredLocale, { shouldDirty: true, shouldValidate: true });
+  }, [editorContext.context?.customers, methods]);
+
+  const handleAnswerCustomerChange = useCallback((index: number, customerId: string) => {
+    methods.setValue(`answers.${index}.customerId`, customerId, { shouldDirty: true, shouldValidate: true });
+    const customer = editorContext.context?.customers.find((item) => item.id === customerId);
+    if (!customer) return;
+    methods.setValue(`answers.${index}.authorName`, customer.displayName, { shouldDirty: true, shouldValidate: true });
+    methods.setValue(`answers.${index}.authorEmail`, customer.email ?? "", { shouldDirty: true, shouldValidate: true });
+  }, [editorContext.context?.customers, methods]);
 
   const addAnswer = useCallback(() => appendAnswer({
     body: "",
-    authorType: QuestionAnswerAuthorType.Staff,
+    locale: methods.getValues("locale"),
+    authorType: ReviewContentAuthorType.Staff,
+    customerId: "",
     authorName: "Shopana Support",
+    authorEmail: "",
     isOfficial: true,
-  }), [appendAnswer]);
+    isAccepted: false,
+  }), [appendAnswer, methods]);
 
   const onSubmit = useCallback(async (values: QuestionFormValues) => {
     setGlobalErrors([]);
     clearErrors();
     const current = questionQuery.question;
     const result = isEdit && current
-      ? await updateQuestion(buildQuestionUpdateInput(values, current))
-      : await createQuestion(buildQuestionCreateInput(values));
+      ? await updateQuestion(
+          current.id,
+          current.revision,
+          buildQuestionUpdateInput(values),
+          buildQuestionAnswerMutationPlan(values, current),
+        )
+      : await createQuestion(buildQuestionCreateInput(values), buildQuestionCreateAnswers(values));
     if (!result.question || result.userErrors.length) {
       const global: string[] = [];
       mapQuestionUserErrors(result.userErrors).forEach((error) => {
@@ -174,9 +220,60 @@ export function QuestionModal() {
               {errors.productId ? <div className={styles.error}>{errors.productId.message}</div> : null}
             </div>
             <div>
-              <label className={styles.label} htmlFor="question-customer"><UserOutlined /> Customer *</label>
-              <Controller name="customerId" control={control} render={({ field }) => <Select {...field} id="question-customer" showSearch optionFilterProp="label" options={customerOptions} placeholder="Select customer" status={errors.customerId ? "error" : undefined} style={{ width: "100%" }} />} />
+              <label className={styles.label} htmlFor="question-author-type"><UserOutlined /> Author type *</label>
+              <Controller
+                name="authorType"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    id="question-author-type"
+                    style={{ width: "100%" }}
+                    options={Object.values(ReviewContentAuthorType).map((value) => ({
+                      value,
+                      label: value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase()),
+                    }))}
+                  />
+                )}
+              />
+            </div>
+            <div>
+              <label className={styles.label} htmlFor="question-customer">Linked customer{authorType === ReviewContentAuthorType.Customer ? " *" : ""}</label>
+              <Controller
+                name="customerId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    id="question-customer"
+                    allowClear
+                    disabled={authorType !== ReviewContentAuthorType.Customer}
+                    showSearch
+                    optionFilterProp="label"
+                    options={customerOptions}
+                    placeholder="Select customer"
+                    status={errors.customerId ? "error" : undefined}
+                    style={{ width: "100%" }}
+                    onChange={(value) => handleCustomerChange(value ?? "")}
+                  />
+                )}
+              />
               {errors.customerId ? <div className={styles.error}>{errors.customerId.message}</div> : null}
+            </div>
+            <div>
+              <label className={styles.label}>Author name *</label>
+              <Controller name="authorDisplayName" control={control} render={({ field }) => <Input {...field} status={errors.authorDisplayName ? "error" : undefined} />} />
+              {errors.authorDisplayName ? <div className={styles.error}>{errors.authorDisplayName.message}</div> : null}
+            </div>
+            <div>
+              <label className={styles.label}>Author email</label>
+              <Controller name="authorEmail" control={control} render={({ field }) => <Input {...field} type="email" status={errors.authorEmail ? "error" : undefined} />} />
+              {errors.authorEmail ? <div className={styles.error}>{errors.authorEmail.message}</div> : null}
+            </div>
+            <div>
+              <label className={styles.label}>Locale *</label>
+              <Controller name="locale" control={control} render={({ field }) => <Input {...field} placeholder="en" status={errors.locale ? "error" : undefined} />} />
+              {errors.locale ? <div className={styles.error}>{errors.locale.message}</div> : null}
             </div>
           </div>
         </Paper>
@@ -192,7 +289,8 @@ export function QuestionModal() {
           <PaperHeader title="Answers" extra={<Button size="small" icon={<PlusOutlined />} onClick={addAnswer}>Add answer</Button>} />
           <Flex vertical gap="middle">
             {answerFields.length ? answerFields.map((answerField, index) => {
-              const persisted = questionQuery.question?.answers.find((answer) => answer.id === answerField.id);
+              const persisted = questionQuery.question?.answers.edges.find(({ node }) => node.id === answerField.id)?.node;
+              const answerAuthorType = methods.watch(`answers.${index}.authorType`);
               return (
                 <div className={styles.answerCard} key={answerField.fieldKey}>
                   <Flex justify="space-between" align="center" className={styles.answerHeader}>
@@ -208,19 +306,38 @@ export function QuestionModal() {
                     <div className={styles.fields}>
                       <div>
                         <label className={styles.label}>Author type *</label>
-                        <Controller name={`answers.${index}.authorType`} control={control} render={({ field }) => <Select {...field} style={{ width: "100%" }} options={[{ value: QuestionAnswerAuthorType.Seller, label: "Seller" }, { value: QuestionAnswerAuthorType.Staff, label: "Staff" }, { value: QuestionAnswerAuthorType.Customer, label: "Customer" }]} />} />
+                        <Controller name={`answers.${index}.authorType`} control={control} render={({ field }) => <Select {...field} style={{ width: "100%" }} options={Object.values(ReviewContentAuthorType).map((value) => ({ value, label: value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase()) }))} />} />
+                      </div>
+                      <div>
+                        <label className={styles.label}>Linked customer{answerAuthorType === ReviewContentAuthorType.Customer ? " *" : ""}</label>
+                        <Controller name={`answers.${index}.customerId`} control={control} render={({ field }) => <Select {...field} allowClear disabled={answerAuthorType !== ReviewContentAuthorType.Customer} showSearch optionFilterProp="label" options={customerOptions} style={{ width: "100%" }} status={errors.answers?.[index]?.customerId ? "error" : undefined} onChange={(value) => handleAnswerCustomerChange(index, value ?? "")} />} />
+                        {errors.answers?.[index]?.customerId ? <div className={styles.error}>{errors.answers[index]?.customerId?.message}</div> : null}
                       </div>
                       <div>
                         <label className={styles.label}>Author name *</label>
                         <Controller name={`answers.${index}.authorName`} control={control} render={({ field }) => <Input {...field} status={errors.answers?.[index]?.authorName ? "error" : undefined} />} />
                         {errors.answers?.[index]?.authorName ? <div className={styles.error}>{errors.answers[index]?.authorName?.message}</div> : null}
                       </div>
+                      <div>
+                        <label className={styles.label}>Author email</label>
+                        <Controller name={`answers.${index}.authorEmail`} control={control} render={({ field }) => <Input {...field} type="email" status={errors.answers?.[index]?.authorEmail ? "error" : undefined} />} />
+                        {errors.answers?.[index]?.authorEmail ? <div className={styles.error}>{errors.answers[index]?.authorEmail?.message}</div> : null}
+                      </div>
+                      <div>
+                        <label className={styles.label}>Locale *</label>
+                        <Controller name={`answers.${index}.locale`} control={control} render={({ field }) => <Input {...field} status={errors.answers?.[index]?.locale ? "error" : undefined} />} />
+                        {errors.answers?.[index]?.locale ? <div className={styles.error}>{errors.answers[index]?.locale?.message}</div> : null}
+                      </div>
                     </div>
                     <Flex justify="space-between" align="center" gap="middle">
                       <Flex vertical><Typography.Text strong>Official answer</Typography.Text><Typography.Text type="secondary">Display as an answer from the store.</Typography.Text></Flex>
                       <Controller name={`answers.${index}.isOfficial`} control={control} render={({ field }) => <Switch checked={field.value} onChange={field.onChange} />} />
                     </Flex>
-                    {persisted ? <Flex gap="middle" className={styles.answerSignals}><Typography.Text type="secondary"><LikeOutlined /> {persisted.likeCount}</Typography.Text><Typography.Text type="secondary"><DislikeOutlined /> {persisted.dislikeCount}</Typography.Text></Flex> : null}
+                    <Flex justify="space-between" align="center" gap="middle">
+                      <Flex vertical><Typography.Text strong>Accepted answer</Typography.Text><Typography.Text type="secondary">Mark this as the accepted response.</Typography.Text></Flex>
+                      <Controller name={`answers.${index}.isAccepted`} control={control} render={({ field }) => <Switch checked={field.value} onChange={field.onChange} />} />
+                    </Flex>
+                    {persisted ? <Flex gap="middle" className={styles.answerSignals}><Typography.Text type="secondary"><LikeOutlined /> {persisted.metrics.likeCount}</Typography.Text><Typography.Text type="secondary"><DislikeOutlined /> {persisted.metrics.dislikeCount}</Typography.Text></Flex> : null}
                   </Flex>
                 </div>
               );
@@ -233,12 +350,12 @@ export function QuestionModal() {
           <PaperHeader title="Engagement & abuse reports" />
           <Flex vertical gap="middle">
             <div className={styles.engagementGrid}>
-              <Flex vertical gap={4} className={styles.engagementMetric}><Flex align="center" gap="small"><LikeOutlined className={styles.metricIcon} /><Typography.Text strong>Likes</Typography.Text></Flex><Typography.Title level={4} className={styles.metricValue}>{questionQuery.question?.likeCount ?? 0}</Typography.Title><Typography.Text type="secondary">Customers who found the question helpful.</Typography.Text></Flex>
-              <Flex vertical gap={4} className={styles.engagementMetric}><Flex align="center" gap="small"><DislikeOutlined className={styles.metricIcon} /><Typography.Text strong>Dislikes</Typography.Text></Flex><Typography.Title level={4} className={styles.metricValue}>{questionQuery.question?.dislikeCount ?? 0}</Typography.Title><Typography.Text type="secondary">Customers who found the question unhelpful.</Typography.Text></Flex>
-              <Flex vertical gap={4} className={styles.engagementMetric}><Flex align="center" gap="small"><FlagOutlined className={styles.metricIcon} /><Typography.Text strong>Abuse reports</Typography.Text></Flex><Typography.Title level={4} className={styles.metricValue}>{questionQuery.question?.reportedCount ?? 0}</Typography.Title><Typography.Text type="secondary">Customers who asked to inspect this question.</Typography.Text></Flex>
+              <Flex vertical gap={4} className={styles.engagementMetric}><Flex align="center" gap="small"><LikeOutlined className={styles.metricIcon} /><Typography.Text strong>Likes</Typography.Text></Flex><Typography.Title level={4} className={styles.metricValue}>{questionQuery.question?.metrics.likeCount ?? 0}</Typography.Title><Typography.Text type="secondary">Customers who found the question helpful.</Typography.Text></Flex>
+              <Flex vertical gap={4} className={styles.engagementMetric}><Flex align="center" gap="small"><DislikeOutlined className={styles.metricIcon} /><Typography.Text strong>Dislikes</Typography.Text></Flex><Typography.Title level={4} className={styles.metricValue}>{questionQuery.question?.metrics.dislikeCount ?? 0}</Typography.Title><Typography.Text type="secondary">Customers who found the question unhelpful.</Typography.Text></Flex>
+              <Flex vertical gap={4} className={styles.engagementMetric}><Flex align="center" gap="small"><FlagOutlined className={styles.metricIcon} /><Typography.Text strong>Abuse reports</Typography.Text></Flex><Typography.Title level={4} className={styles.metricValue}>{questionQuery.question?.metrics.reportCount ?? 0}</Typography.Title><Typography.Text type="secondary">Customers who asked to inspect this question.</Typography.Text></Flex>
             </div>
-            {(questionQuery.question?.reports.length ?? 0) > 0 ? (
-              <div className={styles.reportsList}>{questionQuery.question?.reports.map((report) => <Flex vertical gap={4} className={styles.reportRow} key={report.id}><Flex align="center" justify="space-between" gap="small" wrap><Flex align="center" gap="small" wrap><Tag color="red">{reportReasonCopy[report.reason]}</Tag><Typography.Text>{report.reporter.displayName}</Typography.Text><Typography.Text type="secondary">{report.reporter.email}</Typography.Text></Flex><Typography.Text type="secondary">{reportDateFormatter.format(new Date(report.createdAt))}</Typography.Text></Flex>{report.details ? <Typography.Text>{report.details}</Typography.Text> : null}</Flex>)}</div>
+            {(questionQuery.question?.reports.edges.length ?? 0) > 0 ? (
+              <div className={styles.reportsList}>{questionQuery.question?.reports.edges.map(({ node: report }) => <Flex vertical gap={4} className={styles.reportRow} key={report.id}><Flex align="center" justify="space-between" gap="small" wrap><Flex align="center" gap="small" wrap><Tag color="red">{reportReasonCopy[report.reason] ?? report.reason}</Tag><Typography.Text>{report.reporterCustomer?.displayName ?? "Anonymous reporter"}</Typography.Text>{report.reporterCustomer?.email ? <Typography.Text type="secondary">{report.reporterCustomer.email}</Typography.Text> : null}</Flex><Typography.Text type="secondary">{reportDateFormatter.format(new Date(report.createdAt))}</Typography.Text></Flex>{report.details ? <Typography.Text>{report.details}</Typography.Text> : null}</Flex>)}</div>
             ) : <Typography.Text type="secondary">No abuse reports were submitted for this question.</Typography.Text>}
           </Flex>
         </Paper>
@@ -246,10 +363,10 @@ export function QuestionModal() {
         <Paper>
           <PaperHeader title="Moderation" />
           <Flex vertical gap="middle">
-            <Controller name="status" control={control} render={({ field }) => <Segmented block value={field.value} onChange={field.onChange} options={[{ value: QuestionStatus.Pending, label: "Pending", icon: <ClockCircleOutlined /> }, { value: QuestionStatus.Published, label: "Published", icon: <CheckCircleOutlined /> }, { value: QuestionStatus.Rejected, label: "Rejected", icon: <CloseCircleOutlined /> }]} />} />
+            <Controller name="status" control={control} render={({ field }) => <Segmented block value={field.value} onChange={field.onChange} options={[{ value: ReviewContentStatus.Pending, label: "Pending", icon: <ClockCircleOutlined /> }, { value: ReviewContentStatus.Published, label: "Published", icon: <CheckCircleOutlined /> }, { value: ReviewContentStatus.Rejected, label: "Rejected", icon: <CloseCircleOutlined /> }]} />} />
             <div className={styles.moderationInfo}><Typography.Text strong>{moderation.title}</Typography.Text><br /><Typography.Text type="secondary">{moderation.description}</Typography.Text></div>
             <div>
-              <label className={styles.label} htmlFor="question-moderation-note">Internal moderation note{status === QuestionStatus.Rejected ? " *" : ""}</label>
+              <label className={styles.label} htmlFor="question-moderation-note">Internal moderation note{status === ReviewContentStatus.Rejected ? " *" : ""}</label>
               <Controller name="moderationNote" control={control} render={({ field }) => <Input.TextArea {...field} id="question-moderation-note" autoSize={{ minRows: 3, maxRows: 6 }} maxLength={1000} showCount placeholder="Document the decision for other moderators" status={errors.moderationNote ? "error" : undefined} />} />
               {errors.moderationNote ? <div className={styles.error}>{errors.moderationNote.message}</div> : <div className={styles.help}>This note is never shown to customers.</div>}
             </div>

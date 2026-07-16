@@ -1,11 +1,19 @@
 import { z } from "zod";
-import { ReviewStatus } from "../../graphql/operation-types";
-import type { ApiFile } from "@/graphql/types";
+import {
+  ReviewContentAuthorType,
+  ReviewContentStatus,
+  ReviewVerificationStatus,
+  type ApiFile,
+} from "@/graphql/types";
 
 export const reviewFormSchema = z
   .object({
     productId: z.string().min(1, "Product is required"),
-    customerId: z.string().min(1, "Customer is required"),
+    authorType: z.enum(ReviewContentAuthorType),
+    customerId: z.string(),
+    authorDisplayName: z.string().trim().min(1, "Author name is required").max(150),
+    authorEmail: z.string().trim().email("Enter a valid email").or(z.literal("")),
+    locale: z.string().trim().min(2, "Locale is required").max(35),
     rating: z.number().int().min(1, "Rating is required").max(5),
     title: z.string().trim().max(150, "Title must be at most 150 characters"),
     body: z
@@ -13,12 +21,8 @@ export const reviewFormSchema = z
       .trim()
       .min(20, "Review must contain at least 20 characters")
       .max(5000, "Review must be at most 5,000 characters"),
-    isVerifiedPurchase: z.boolean(),
-    status: z.enum([
-      ReviewStatus.Pending,
-      ReviewStatus.Published,
-      ReviewStatus.Rejected,
-    ]),
+    verificationStatus: z.enum(ReviewVerificationStatus),
+    status: z.enum(ReviewContentStatus),
     moderationNote: z
       .string()
       .trim()
@@ -28,7 +32,14 @@ export const reviewFormSchema = z
       .max(8, "A review can contain at most 8 media files"),
   })
   .superRefine((values, context) => {
-    if (values.status === ReviewStatus.Rejected && !values.moderationNote) {
+    if (values.authorType === ReviewContentAuthorType.Customer && !values.customerId) {
+      context.addIssue({
+        code: "custom",
+        path: ["customerId"],
+        message: "Customer is required for a customer author",
+      });
+    }
+    if (values.status === ReviewContentStatus.Rejected && !values.moderationNote) {
       context.addIssue({
         code: "custom",
         path: ["moderationNote"],

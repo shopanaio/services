@@ -1,33 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { requestReviewEditorContext } from "../api/request-reviews";
-import type { ReviewEditorContext } from "../graphql/operation-types";
+import { useQuery } from "@apollo/client/react";
+import { REVIEW_EDITOR_CONTEXT_QUERY } from "../graphql";
+import type { ReviewEditorContextQueryData } from "../graphql/operation-types";
 
 export function useReviewEditorContext() {
-  const [context, setContext] = useState<ReviewEditorContext | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data, previousData, loading, error, refetch } = useQuery<
+    ReviewEditorContextQueryData
+  >(REVIEW_EDITOR_CONTEXT_QUERY, { fetchPolicy: "cache-and-network" });
+  const result = data ?? previousData;
 
-  const execute = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await requestReviewEditorContext();
-      setContext(result);
-      return result;
-    } catch (cause) {
-      const normalized = cause instanceof Error ? cause : new Error("Unable to load products and customers");
-      setError(normalized);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void execute();
-  }, [execute]);
-
-  return { context, loading, error, refetch: execute };
+  return {
+    context: result
+      ? {
+          products: result.catalogQuery.products.edges.map((edge) => edge.node),
+          customers: result.customersQuery.customers.edges.map((edge) => edge.node),
+        }
+      : null,
+    loading,
+    error: error ?? null,
+    refetch: () => refetch(),
+  };
 }

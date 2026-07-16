@@ -1,30 +1,47 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { requestUpdateReview } from "../api/request-reviews";
-import type { ReviewMutationPayload, ReviewUpdateInput } from "../graphql/operation-types";
-import type { ApiFile } from "@/graphql/types";
+import { useCallback } from "react";
+import { useMutation } from "@apollo/client/react";
+import type { ApiGenericUserError, ApiReview, ApiReviewUpdateInput } from "@/graphql/types";
+import { REVIEW_UPDATE_MUTATION, REVIEWS_QUERY } from "../graphql";
+import type {
+  ReviewUpdateMutationData,
+  ReviewUpdateMutationVariables,
+} from "../graphql/operation-types";
 
 export function useUpdateReview() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [mutate, { loading, error, reset }] = useMutation<
+    ReviewUpdateMutationData,
+    ReviewUpdateMutationVariables
+  >(REVIEW_UPDATE_MUTATION);
 
   const updateReview = useCallback(async (
-    input: ReviewUpdateInput,
-    optimisticMedia: ApiFile[] = [],
-  ): Promise<ReviewMutationPayload> => {
-    setLoading(true);
-    setError(null);
+    reviewId: string,
+    expectedRevision: number,
+    operations: ApiReviewUpdateInput,
+  ): Promise<{
+    review: ApiReview | null;
+    userErrors: ApiGenericUserError[];
+  }> => {
     try {
-      return await requestUpdateReview(input, optimisticMedia);
+      const result = await mutate({
+        variables: { reviewId, expectedRevision, operations },
+        refetchQueries: [REVIEWS_QUERY],
+      });
+      const payload = result.data?.reviewsMutation.reviewUpdate;
+      const operationErrors = payload?.operationResults.flatMap((item) => item.errors) ?? [];
+      return {
+        review: payload?.review ?? null,
+        userErrors: [...(payload?.userErrors ?? []), ...operationErrors],
+      };
     } catch (cause) {
-      const normalized = cause instanceof Error ? cause : new Error("Unable to update review");
-      setError(normalized);
-      return { review: null, userErrors: [{ code: "UNEXPECTED_ERROR", message: normalized.message }] };
-    } finally {
-      setLoading(false);
+      const message = cause instanceof Error ? cause.message : "Unable to update review";
+      return {
+        review: null,
+        userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
+      };
     }
-  }, []);
+  }, [mutate]);
 
-  return { updateReview, loading, error, reset: () => setError(null) };
+  return { updateReview, loading, error: error ?? null, reset };
 }

@@ -17,27 +17,31 @@ import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme, usePageConfig } from "@/hooks";
+import type { ApiProductQuestion, ApiProductQuestionWhereInput } from "@/graphql/types";
+import {
+  ProductQuestionAnswerState,
+  ProductQuestionOrderField,
+  ReviewContentStatus,
+} from "@/graphql/types";
 import { useQuestions } from "../hooks";
 import { useQuestionModal } from "../modals";
-import type { ApiQuestion, QuestionWhereInput } from "../graphql/operation-types";
-import { QuestionAnswerState, QuestionOrderField, QuestionStatus } from "../graphql/operation-types";
 import { filterSchema } from "./filter-schema";
 import { buildQuestionSearchCondition, buildQuestionsQueryVariables, questionSortFieldMapping } from "./page-config";
 
 ModuleRegistry.registerModules([AllCommunityModule, GridStateModule]);
 
-const statusConfig: Record<QuestionStatus, { color: string; label: string }> = {
-  [QuestionStatus.Pending]: { color: "gold", label: "Pending" },
-  [QuestionStatus.Published]: { color: "green", label: "Published" },
-  [QuestionStatus.Rejected]: { color: "red", label: "Rejected" },
+const statusConfig: Record<ReviewContentStatus, { color: string; label: string }> = {
+  [ReviewContentStatus.Pending]: { color: "gold", label: "Pending" },
+  [ReviewContentStatus.Published]: { color: "green", label: "Published" },
+  [ReviewContentStatus.Rejected]: { color: "red", label: "Rejected" },
 };
 
-function QuestionCell({ data }: CustomCellRendererProps<ApiQuestion>) {
+function QuestionCell({ data }: CustomCellRendererProps<ApiProductQuestion>) {
   if (!data) return null;
   return <Typography.Text ellipsis title={data.body}>{data.body}</Typography.Text>;
 }
 
-function ProductCell({ data }: CustomCellRendererProps<ApiQuestion>) {
+function ProductCell({ data }: CustomCellRendererProps<ApiProductQuestion>) {
   if (!data) return null;
   return (
     <Flex align="center" gap="small" style={{ minWidth: 0 }}>
@@ -47,55 +51,55 @@ function ProductCell({ data }: CustomCellRendererProps<ApiQuestion>) {
   );
 }
 
-function CustomerCell({ data }: CustomCellRendererProps<ApiQuestion>) {
+function CustomerCell({ data }: CustomCellRendererProps<ApiProductQuestion>) {
   if (!data) return null;
   return (
     <Flex vertical gap={2} style={{ minWidth: 0 }}>
-      <Typography.Text ellipsis>{data.customer.displayName}</Typography.Text>
-      <Typography.Text type="secondary" ellipsis title={data.customer.email}>{data.customer.email}</Typography.Text>
+      <Typography.Text ellipsis>{data.author.displayName}</Typography.Text>
+      <Typography.Text type="secondary" ellipsis title={data.author.email ?? undefined}>{data.author.email ?? data.author.type}</Typography.Text>
     </Flex>
   );
 }
 
-function AnswerCell({ data }: CustomCellRendererProps<ApiQuestion>) {
+function AnswerCell({ data }: CustomCellRendererProps<ApiProductQuestion>) {
   if (!data) return null;
-  const answered = data.answerState === QuestionAnswerState.Answered;
+  const answered = data.answerState === ProductQuestionAnswerState.Answered;
   return (
     <Flex align="center" gap={6}>
       <MessageOutlined style={{ color: answered ? "#52c41a" : "#faad14" }} />
-      <Typography.Text>{answered ? `${data.answerCount} answered` : "Unanswered"}</Typography.Text>
+      <Typography.Text>{answered ? `${data.metrics.childCount} answered` : "Unanswered"}</Typography.Text>
     </Flex>
   );
 }
 
-function StatusCell({ value }: CustomCellRendererProps<ApiQuestion, QuestionStatus>) {
-  const config = statusConfig[value ?? QuestionStatus.Pending];
+function StatusCell({ value }: CustomCellRendererProps<ApiProductQuestion, ReviewContentStatus>) {
+  const config = statusConfig[value ?? ReviewContentStatus.Pending];
   return <Tag color={config.color}>{config.label}</Tag>;
 }
 
-function SignalsCell({ data }: CustomCellRendererProps<ApiQuestion>) {
+function SignalsCell({ data }: CustomCellRendererProps<ApiProductQuestion>) {
   if (!data) return null;
   return (
     <Flex gap="middle">
-      <Flex align="center" gap={5} title="Likes"><LikeOutlined /><Typography.Text>{data.likeCount}</Typography.Text></Flex>
-      <Flex align="center" gap={5} title="Dislikes"><DislikeOutlined /><Typography.Text>{data.dislikeCount}</Typography.Text></Flex>
+      <Flex align="center" gap={5} title="Likes"><LikeOutlined /><Typography.Text>{data.metrics.likeCount}</Typography.Text></Flex>
+      <Flex align="center" gap={5} title="Dislikes"><DislikeOutlined /><Typography.Text>{data.metrics.dislikeCount}</Typography.Text></Flex>
       <Flex align="center" gap={5} title="Abuse reports">
-        <FlagOutlined style={{ color: data.reportedCount ? "#cf1322" : undefined }} />
-        <Typography.Text type={data.reportedCount ? "danger" : undefined}>{data.reportedCount}</Typography.Text>
+        <FlagOutlined style={{ color: data.metrics.reportCount ? "#cf1322" : undefined }} />
+        <Typography.Text type={data.metrics.reportCount ? "danger" : undefined}>{data.metrics.reportCount}</Typography.Text>
       </Flex>
     </Flex>
   );
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
-function DateCell({ value }: CustomCellRendererProps<ApiQuestion, string>) {
+function DateCell({ value }: CustomCellRendererProps<ApiProductQuestion, string>) {
   return <Typography.Text>{value ? dateFormatter.format(new Date(value)) : ""}</Typography.Text>;
 }
 
 export default function CustomerQuestionsPage() {
   const agGridTheme = useAgGridTheme();
-  const gridRef = useRef<AgGridReact<ApiQuestion>>(null);
-  const pageConfig = usePageConfig<ApiQuestion, QuestionWhereInput, QuestionOrderField>({
+  const gridRef = useRef<AgGridReact<ApiProductQuestion>>(null);
+  const pageConfig = usePageConfig<ApiProductQuestion, ApiProductQuestionWhereInput, ProductQuestionOrderField>({
     gridRef,
     storageKey: "questions-grid-state",
     filterSchema,
@@ -109,20 +113,20 @@ export default function CustomerQuestionsPage() {
   const { questions, totalCount, pageInfo, loading, error, refetch } = useQuestions(variables);
   const { push: openQuestionModal } = useQuestionModal();
   const createQuestion = useCallback(() => openQuestionModal({ mode: "create", onSaved: refetch }), [openQuestionModal, refetch]);
-  const editQuestion = useCallback((question: ApiQuestion) => openQuestionModal({ mode: "edit", entityId: question.id, onSaved: refetch }), [openQuestionModal, refetch]);
+  const editQuestion = useCallback((question: ApiProductQuestion) => openQuestionModal({ mode: "edit", entityId: question.id, onSaved: refetch }), [openQuestionModal, refetch]);
   const nextPage = useCallback(() => { if (pageInfo?.endCursor) pageConfig.goToNextPage(pageInfo.endCursor); }, [pageConfig, pageInfo?.endCursor]);
   const previousPage = useCallback(() => { if (pageInfo?.startCursor) pageConfig.goToPrevPage(pageInfo.startCursor); }, [pageConfig, pageInfo?.startCursor]);
 
-  const columnDefs = useMemo<ColDef<ApiQuestion>[]>(() => [
+  const columnDefs = useMemo<ColDef<ApiProductQuestion>[]>(() => [
     { headerName: "Question", field: "body", cellRenderer: QuestionCell, minWidth: 340, flex: 2, sortable: false },
     { headerName: "Product", colId: "product", cellRenderer: ProductCell, minWidth: 230, flex: 1, sortable: false },
     { headerName: "Customer", colId: "customer", cellRenderer: CustomerCell, minWidth: 210, sortable: false },
-    { headerName: "Answers", field: "answerCount", cellRenderer: AnswerCell, minWidth: 145 },
+    { headerName: "Answers", colId: "answerCount", cellRenderer: AnswerCell, minWidth: 145 },
     { headerName: "Status", field: "status", cellRenderer: StatusCell, width: 125 },
-    { headerName: "Signals", colId: "likeCount", cellRenderer: SignalsCell, minWidth: 210 },
+    { headerName: "Signals", colId: "signals", cellRenderer: SignalsCell, minWidth: 210, sortable: false },
     { headerName: "Submitted", field: "createdAt", cellRenderer: DateCell, minWidth: 180 },
   ], []);
-  const defaultColDef = useMemo<ColDef<ApiQuestion>>(() => ({ resizable: true, sortable: true, comparator: () => 0, cellStyle: { display: "flex", alignItems: "center" } }), []);
+  const defaultColDef = useMemo<ColDef<ApiProductQuestion>>(() => ({ resizable: true, sortable: true, comparator: () => 0, cellStyle: { display: "flex", alignItems: "center" } }), []);
 
   return (
     <DataLayout fullWidth name="questions" title="Questions" count={totalCount} actions={<Button icon={<PlusOutlined />} onClick={createQuestion}>Create question</Button>}>
@@ -130,7 +134,7 @@ export default function CustomerQuestionsPage() {
       <div style={{ height: "100%", paddingBottom: 16, display: "flex", flexDirection: "column" }}>
         {error ? <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} /> : null}
         <div style={{ flex: 1 }} data-testid="questions-table">
-          <AgGridReact<ApiQuestion>
+          <AgGridReact<ApiProductQuestion>
             ref={gridRef}
             theme={agGridTheme}
             rowData={questions}

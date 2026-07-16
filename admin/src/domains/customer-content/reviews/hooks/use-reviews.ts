@@ -1,17 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { requestReviews } from "../api/request-reviews";
 import type {
+  ApiPageInfo,
   ApiReview,
-  ReviewConnection,
+  ApiReviewConnection,
+} from "@/graphql/types";
+import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
+import { REVIEWS_QUERY } from "../graphql";
+import type {
+  ReviewsQueryData,
   ReviewsQueryVariables,
 } from "../graphql/operation-types";
-import type { ApiPageInfo } from "@/graphql/types";
 
 export interface UseReviewsReturn {
   reviews: ApiReview[];
-  connection: ReviewConnection | null;
+  connection: ApiReviewConnection | null;
   totalCount: number;
   pageInfo: ApiPageInfo | null;
   loading: boolean;
@@ -20,44 +23,25 @@ export interface UseReviewsReturn {
 }
 
 export function useReviews(variables: ReviewsQueryVariables): UseReviewsReturn {
-  const requestIdRef = useRef(0);
-  const [connection, setConnection] = useState<ReviewConnection | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const execute = useCallback(async () => {
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await requestReviews(variables);
-      if (requestId === requestIdRef.current) {
-        setConnection(data.reviewQuery.reviews);
-      }
-      return data;
-    } catch (requestError) {
-      const normalizedError = requestError instanceof Error
-        ? requestError
-        : new Error("Unable to load reviews");
-      if (requestId === requestIdRef.current) setError(normalizedError);
-      throw normalizedError;
-    } finally {
-      if (requestId === requestIdRef.current) setLoading(false);
-    }
-  }, [variables]);
-
-  useEffect(() => {
-    void execute().catch(() => undefined);
-  }, [execute]);
+  const result = useRelayConnectionQuery<
+    ReviewsQueryData,
+    ReviewsQueryVariables,
+    ApiReview,
+    ApiReviewConnection
+  >({
+    query: REVIEWS_QUERY,
+    variables,
+    fetchPolicy: "cache-and-network",
+    getConnection: (data) => data?.reviewsQuery.reviews,
+  });
 
   return {
-    reviews: connection?.edges.map((edge) => edge.node) ?? [],
-    connection,
-    totalCount: connection?.totalCount ?? 0,
-    pageInfo: connection?.pageInfo ?? null,
-    loading,
-    error,
-    refetch: execute,
+    reviews: result.nodes,
+    connection: result.connection,
+    totalCount: result.totalCount,
+    pageInfo: result.pageInfo,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
   };
 }

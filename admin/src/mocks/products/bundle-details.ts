@@ -9,7 +9,6 @@ import type {
   IBundleGroup,
   PricingRuleTemplate,
 } from "@/domains/inventory/bundles/types";
-import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card/types";
 import { EntityStatus, WeightUnit, DimensionUnit, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
@@ -168,7 +167,6 @@ export interface IBundleDetailsMockData {
   };
   tags: ApiTag[];
   attributes: IAttributeRow[];
-  reviews: IReviewsData;
   configurations: IBundleConfiguration[];
   pricingTemplates: PricingRuleTemplate[];
 }
@@ -200,17 +198,6 @@ export const bundleDetailsMockData: IBundleDetailsMockData = {
     createdAt: new Date().toISOString(),
   })),
   attributes: createAttributesMockData(),
-  reviews: {
-    rating: 4.5,
-    reviewsCount: 47,
-    breakdown: [
-      { stars: 5, count: 28, percent: 60 },
-      { stars: 4, count: 12, percent: 25 },
-      { stars: 3, count: 5, percent: 11 },
-      { stars: 2, count: 1, percent: 2 },
-      { stars: 1, count: 1, percent: 2 },
-    ],
-  },
   configurations: [
     {
       id: "bundle-config-1",

@@ -1,29 +1,25 @@
+import type { SortFieldMapping, UsePageConfigReturn } from "@/hooks";
 import type {
-  SortFieldMapping,
-  UsePageConfigReturn,
-} from "@/hooks";
-import { SortDirection } from "@/graphql/types";
-import type {
-  ReviewOrderByInput,
-  ReviewsQueryVariables,
-  ReviewWhereInput,
-} from "../graphql/operation-types";
-import { ReviewOrderField } from "../graphql/operation-types";
+  ApiReviewOrderByInput,
+  ApiReviewWhereInput,
+} from "@/graphql/types";
+import { ReviewOrderField } from "@/graphql/types";
+import type { ReviewsQueryVariables } from "../graphql/operation-types";
 
 export const reviewSortFieldMapping: SortFieldMapping<ReviewOrderField> = {
   createdAt: ReviewOrderField.CreatedAt,
   likeCount: ReviewOrderField.LikeCount,
   dislikeCount: ReviewOrderField.DislikeCount,
-  isVerifiedPurchase: ReviewOrderField.IsVerifiedPurchase,
+  isVerifiedPurchase: ReviewOrderField.VerificationStatus,
   rating: ReviewOrderField.Rating,
-  reportedCount: ReviewOrderField.ReportedCount,
+  reportCount: ReviewOrderField.ReportCount,
   status: ReviewOrderField.Status,
   updatedAt: ReviewOrderField.UpdatedAt,
 };
 
 export const buildReviewSearchCondition = (
   search: string,
-): Partial<ReviewWhereInput> => ({
+): Partial<ApiReviewWhereInput> => ({
   _or: [
     { title: { _containsi: search } },
     { body: { _containsi: search } },
@@ -32,7 +28,7 @@ export const buildReviewSearchCondition = (
 
 export function buildReviewsQueryVariables(
   pageConfig: Pick<
-    UsePageConfigReturn<ReviewWhereInput, ReviewOrderField>,
+    UsePageConfigReturn<ApiReviewWhereInput, ReviewOrderField>,
     "first" | "after" | "last" | "before" | "where" | "orderBy"
   >,
 ): ReviewsQueryVariables {
@@ -44,7 +40,7 @@ export function buildReviewsQueryVariables(
     where: pageConfig.where ?? null,
     orderBy: pageConfig.orderBy?.map((order) => ({
       field: order.field,
-      direction: order.direction === SortDirection.Asc ? "ASC" : "DESC",
-    })) as ReviewOrderByInput[] | undefined,
+      direction: order.direction,
+    })) as ApiReviewOrderByInput[] | undefined,
   };
 }

@@ -15,7 +15,6 @@ import {
   MediaSection,
   CategoriesSection,
   TagsSection,
-  ReviewsSection,
   } from "@/domains/inventory/products/components/product-details-card/sections";
 import {
   BundleSection,
@@ -327,10 +326,6 @@ export const BundleDetailsCard = ({
     message.info("Bundle attribute updates are not API-backed yet");
   }, [message]);
 
-  const handleEditReviews = useCallback(() => {
-    console.log("Edit reviews");
-  }, []);
-
   const handleEditSeo = useCallback(() => {
     openEditSeoModal({
       productId: product.id,
@@ -386,14 +381,6 @@ export const BundleDetailsCard = ({
         onOpenChart={handleOpenChart}
         onAddRule={handleAddRule}
         onEditRule={handleEditRule}
-      />
-
-      {/* REVIEWS */}
-      <ReviewsSection
-        rating={mockData.reviews.rating}
-        reviewsCount={mockData.reviews.reviewsCount}
-        breakdown={mockData.reviews.breakdown}
-        onEdit={handleEditReviews}
       />
 
       {/* ATTRIBUTES */}
