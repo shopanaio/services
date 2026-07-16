@@ -11,7 +11,7 @@ import type {
 
 interface SetCustomerSegmentMembersInput {
   segmentId: string;
-  expectedRevision?: number | null;
+  expectedRevision: number;
   customerIds: string[];
 }
 
@@ -28,7 +28,7 @@ export function useSetCustomerSegmentMembers() {
             segmentId: input.segmentId,
             expectedRevision: input.expectedRevision,
             operations: {
-              customers: {
+              memberships: {
                 setCustomerIds: input.customerIds,
               },
             },

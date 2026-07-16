@@ -45,30 +45,7 @@ type CustomerAddressEdge {
   cursor: String!
 }
 
-input CustomerAddressCreateInput {
-  customerId: ID!
-  label: String
-  prefix: String
-  firstName: String
-  middleName: String
-  lastName: String
-  suffix: String
-  companyName: String
-  phoneE164: String
-  address1: String!
-  address2: String
-  city: String!
-  regionName: String
-  regionCode: String
-  postalCode: String
-  countryCode: String!
-  isDefaultShipping: Boolean = false
-  isDefaultBilling: Boolean = false
-  latitude: Float
-  longitude: Float
-}
-
-input CustomerAddressUpdateInput {
+input CustomerAddressPatchInput {
   label: String
   prefix: String
   firstName: String
@@ -92,7 +69,7 @@ input CustomerAddressUpdateInput {
   longitude: Float
 }
 
-"""Address values used inside the atomic customerUpdate operation."""
+"""Address values used inside the unified customerUpdate workflow."""
 input CustomerAddressCreateOperationInput {
   label: String
   prefix: String
@@ -117,10 +94,10 @@ input CustomerAddressCreateOperationInput {
 
 input CustomerAddressUpdateOperationInput {
   addressId: ID!
-  operations: CustomerAddressUpdateInput!
+  operations: CustomerAddressPatchInput!
 }
 
-"""Atomic address changes scoped to the customer being updated."""
+"""Batched address changes scoped to the customer being updated."""
 input CustomerAddressesUpdateInput {
   create: [CustomerAddressCreateOperationInput!]
   update: [CustomerAddressUpdateOperationInput!]
@@ -129,24 +106,4 @@ input CustomerAddressesUpdateInput {
   defaultShippingAddressId: ID
   """Existing address ID to make the default. Explicit null clears the default."""
   defaultBillingAddressId: ID
-}
-
-input CustomerAddressDeleteInput {
-  id: ID!
-}
-
-type CustomerAddressCreatePayload {
-  address: CustomerAddress
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerAddressUpdatePayload {
-  address: CustomerAddress
-  operationResults: [CustomerOperationResult!]!
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerAddressDeletePayload {
-  deletedAddressId: ID
-  userErrors: [GenericUserError!]!
 }

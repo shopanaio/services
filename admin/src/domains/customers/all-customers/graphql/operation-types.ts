@@ -62,6 +62,6 @@ export interface CustomerUpdateMutationData {
 
 export interface CustomerUpdateMutationVariables {
   customerId: string;
-  expectedRevision?: number | null;
+  expectedRevision: number;
   operations: ApiCustomerUpdateInput;
 }

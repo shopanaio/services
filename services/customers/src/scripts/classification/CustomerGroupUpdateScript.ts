@@ -4,12 +4,17 @@ import { isUniqueViolation } from "../../kernel/types.js";
 
 export interface CustomerGroupUpdateParams {
   id: string;
+  expectedUpdatedAt: string;
   operations: {
-    code?: string | null;
-    name?: string | null;
-    description?: string | null;
-    isDefault?: boolean | null;
-    isActive?: boolean | null;
+    definition?: {
+      code?: string | null;
+      name?: string | null;
+      description?: string | null;
+    };
+    state?: {
+      isDefault?: boolean | null;
+      isActive?: boolean | null;
+    };
     memberships?: {
       create: Array<{
         customerId: string;
@@ -42,9 +47,10 @@ export class CustomerGroupUpdateScript extends BaseScript<
   ): Promise<CustomerGroupUpdateResult> {
     const current = await this.repository.group.findById(params.id);
     if (!current) return notFound();
+    if (current.updatedAt !== params.expectedUpdatedAt) return updateConflict();
 
     const errors = validateGroup(current, params.operations);
-    const code = params.operations.code?.trim().toLowerCase();
+    const code = params.operations.definition?.code?.trim().toLowerCase();
     if (code) {
       const owner = await this.repository.group.findByCode(code);
       if (owner && owner.id !== params.id) errors.push(duplicateCodeError());
@@ -173,9 +179,10 @@ export class CustomerGroupUpdateScript extends BaseScript<
     try {
       const group = await this.repository.group.update(
         params.id,
-        groupPatch(params.operations)
+        groupPatch(params.operations),
+        params.expectedUpdatedAt
       );
-      if (!group) return notFound();
+      if (!group) return updateConflict();
 
       if (memberships) {
         for (const input of memberships.create) {
@@ -249,39 +256,45 @@ function validateGroup(
   operations: CustomerGroupUpdateParams["operations"]
 ): UserError[] {
   const errors: UserError[] = [];
-  const code = hasOwn(operations, "code") ? operations.code : current.code;
-  const name = hasOwn(operations, "name") ? operations.name : current.name;
-  const isDefault = hasOwn(operations, "isDefault")
-    ? operations.isDefault
+  const definition = operations.definition;
+  const state = operations.state;
+  const code = definition && hasOwn(definition, "code")
+    ? definition.code
+    : current.code;
+  const name = definition && hasOwn(definition, "name")
+    ? definition.name
+    : current.name;
+  const isDefault = state && hasOwn(state, "isDefault")
+    ? state.isDefault
     : current.isDefault;
-  const isActive = hasOwn(operations, "isActive")
-    ? operations.isActive
+  const isActive = state && hasOwn(state, "isActive")
+    ? state.isActive
     : current.isActive;
   if (!code || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(code.trim().toLowerCase())) {
     errors.push({
       message: "Group code must contain only lowercase letters, numbers, _ or -",
       code: "INVALID_CODE",
-      field: ["code"],
+      field: ["definition", "code"],
     });
   }
   if (!name || name.trim().length === 0) {
     errors.push({
       message: "Group name cannot be empty",
       code: "INVALID_NAME",
-      field: ["name"],
+      field: ["definition", "name"],
     });
   }
   if (isDefault == null || isActive == null) {
     errors.push({
       message: "Group flags cannot be null",
       code: "INVALID_VALUE",
-      field: [isDefault == null ? "isDefault" : "isActive"],
+      field: ["state", isDefault == null ? "isDefault" : "isActive"],
     });
   } else if (isDefault && !isActive) {
     errors.push({
       message: "An inactive group cannot be the default group",
       code: "DEFAULT_GROUP_INACTIVE",
-      field: ["isDefault"],
+      field: ["state", "isDefault"],
     });
   }
   return errors;
@@ -289,14 +302,21 @@ function validateGroup(
 
 function groupPatch(operations: CustomerGroupUpdateParams["operations"]) {
   const patch: Record<string, unknown> = {};
-  for (const field of [
-    "code",
-    "name",
-    "description",
-    "isDefault",
-    "isActive",
-  ] as const) {
-    if (hasOwn(operations, field)) Object.assign(patch, { [field]: operations[field] });
+  const definition = operations.definition;
+  if (definition) {
+    for (const field of ["code", "name", "description"] as const) {
+      if (hasOwn(definition, field)) {
+        Object.assign(patch, { [field]: definition[field] });
+      }
+    }
+  }
+  const state = operations.state;
+  if (state) {
+    for (const field of ["isDefault", "isActive"] as const) {
+      if (hasOwn(state, field)) {
+        Object.assign(patch, { [field]: state[field] });
+      }
+    }
   }
   return patch;
 }
@@ -329,7 +349,7 @@ function duplicateCodeError(): UserError {
   return {
     message: "A customer group with this code already exists",
     code: "DUPLICATE_GROUP_CODE",
-    field: ["code"],
+    field: ["definition", "code"],
   };
 }
 
@@ -346,6 +366,20 @@ function notFound(): CustomerGroupUpdateResult {
         message: "Customer group not found",
         field: ["groupId"],
         code: "NOT_FOUND",
+      },
+    ],
+  };
+}
+
+function updateConflict(): CustomerGroupUpdateResult {
+  return {
+    group: undefined,
+    affectedCustomerIds: [],
+    userErrors: [
+      {
+        message: "Customer group was modified by another user",
+        field: ["expectedUpdatedAt"],
+        code: "REVISION_CONFLICT",
       },
     ],
   };

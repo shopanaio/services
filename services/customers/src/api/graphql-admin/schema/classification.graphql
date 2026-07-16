@@ -186,12 +186,20 @@ input CustomerGroupCreateInput {
   isActive: Boolean = true
 }
 
-input CustomerGroupUpdateInput {
+input CustomerGroupDefinitionUpdateInput {
   code: String
   name: String
   description: String
+}
+
+input CustomerGroupStateUpdateInput {
   isDefault: Boolean
   isActive: Boolean
+}
+
+input CustomerGroupUpdateInput {
+  definition: CustomerGroupDefinitionUpdateInput
+  state: CustomerGroupStateUpdateInput
   """Create, update, or delete customer memberships in this group."""
   memberships: CustomerGroupMembershipRelationsUpdateInput
 }
@@ -253,16 +261,28 @@ input CustomerSegmentCreateInput {
   definition: JSON
 }
 
-input CustomerSegmentUpdateInput {
+input CustomerSegmentDetailsUpdateInput {
   name: String
   description: String
   color: String
+}
+
+input CustomerSegmentDefinitionUpdateInput {
   type: CustomerSegmentType
-  status: CustomerSegmentStatus
   query: String
   definition: JSON
+}
+
+input CustomerSegmentStateUpdateInput {
+  status: CustomerSegmentStatus
+}
+
+input CustomerSegmentUpdateInput {
+  details: CustomerSegmentDetailsUpdateInput
+  definition: CustomerSegmentDefinitionUpdateInput
+  state: CustomerSegmentStateUpdateInput
   """Create, update, delete, or replace manual customer memberships."""
-  customers: CustomerSegmentMembershipRelationsUpdateInput
+  memberships: CustomerSegmentMembershipRelationsUpdateInput
 }
 
 input CustomerSegmentMembershipRelationCreateInput {

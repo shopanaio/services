@@ -130,7 +130,7 @@ Merge и erasure представлены отдельными workflow-сущн
 
 ## Admin update contract
 
-`customerUpdate` принимает один `customerId`, опциональный `expectedRevision`
+`customerUpdate` принимает один `customerId`, обязательный `expectedRevision`
 и набор секций. Помимо profile/contact/company/status/note/moderation,
 операция поддерживает addresses, consent transitions, tax identifiers, tax
 exemptions, group memberships, tag assignments и manual segment memberships.
@@ -141,10 +141,11 @@ exemptions, group memberships, tag assignments и manual segment memberships.
 или `memberships` очищают соответствующие ручные связи. Отсутствующая секция не
 изменяет данные.
 
-`customerSegmentUpdate` аналогично может атомарно изменить definition metadata
-и заменить manual customer memberships под одним `expectedRevision`.
+`customerSegmentUpdate` аналогично может изменить details, definition и state,
+а также заменить manual customer memberships под одним обязательным
+`expectedRevision`.
 Membership-only обновления выполняются через
-`customerSegmentUpdate.operations.customers.setCustomerIds`.
+`customerSegmentUpdate.operations.memberships.setCustomerIds`.
 - `store_id` не входит в primary и foreign keys; tenant isolation обеспечивается
   обязательным store scope и отдельными индексами.
 

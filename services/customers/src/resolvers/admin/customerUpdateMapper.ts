@@ -6,13 +6,13 @@ import {
 import type { UserError } from "../../kernel/BaseScript.js";
 import type {
   CustomerAddressCreateOperationInput,
-  CustomerAddressUpdateInput,
+  CustomerAddressPatchInput,
   CustomerConsentUpdateOperationInput,
   CustomerGroupMembershipUpdateOperationInput,
   CustomerTaxExemptionCreateOperationInput,
-  CustomerTaxExemptionUpdateInput,
+  CustomerTaxExemptionPatchInput,
   CustomerTaxIdentifierCreateOperationInput,
-  CustomerTaxIdentifierUpdateInput,
+  CustomerTaxIdentifierPatchInput,
   CustomerUpdateInput,
 } from "./generated/types.js";
 import type {
@@ -310,7 +310,7 @@ function mapTaxIdentifierCreate(
 }
 
 function mapTaxIdentifierPatch(
-  input: CustomerTaxIdentifierUpdateInput | CustomerTaxIdentifierCreateOperationInput
+  input: CustomerTaxIdentifierPatchInput | CustomerTaxIdentifierCreateOperationInput
 ): CustomerTaxIdentifierPatchParams {
   const result = pickPresent(input, [
     "identifierType",
@@ -382,7 +382,7 @@ function mapTaxExemptionCreate(
 }
 
 function mapTaxExemptionPatch(
-  input: CustomerTaxExemptionUpdateInput | CustomerTaxExemptionCreateOperationInput,
+  input: CustomerTaxExemptionPatchInput | CustomerTaxExemptionCreateOperationInput,
   fieldPrefix: string[],
   errors: UserError[]
 ): CustomerTaxExemptionPatchParams {
@@ -585,4 +585,4 @@ const addressPatchFields = [
   "countryCode",
   "latitude",
   "longitude",
-] as const satisfies readonly (keyof CustomerAddressUpdateInput)[];
+] as const satisfies readonly (keyof CustomerAddressPatchInput)[];

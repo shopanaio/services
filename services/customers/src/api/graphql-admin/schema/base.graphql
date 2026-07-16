@@ -104,58 +104,19 @@ type CustomersMutation {
   customerUpdate(
     """The customer ID to update."""
     customerId: ID!
-    """Expected revision. When provided, the update fails on a stale revision."""
-    expectedRevision: Int
-    """Customer-level operations to apply atomically."""
-    operations: CustomerUpdateInput
+    """Expected aggregate revision. The update fails on a stale revision."""
+    expectedRevision: Int!
+    """Customer-level operations executed by one update workflow."""
+    operations: CustomerUpdateInput!
   ): CustomerUpdatePayload!
   customerDelete(input: CustomerDeleteInput!): CustomerDeletePayload!
-
-  customerAddressCreate(input: CustomerAddressCreateInput!): CustomerAddressCreatePayload!
-  customerAddressUpdate(
-    addressId: ID!
-    operations: CustomerAddressUpdateInput
-  ): CustomerAddressUpdatePayload!
-  customerAddressDelete(input: CustomerAddressDeleteInput!): CustomerAddressDeletePayload!
-
-  customerTaxIdentifierCreate(
-    input: CustomerTaxIdentifierCreateInput!
-  ): CustomerTaxIdentifierCreatePayload!
-  customerTaxIdentifierUpdate(
-    taxIdentifierId: ID!
-    operations: CustomerTaxIdentifierUpdateInput
-  ): CustomerTaxIdentifierUpdatePayload!
-  customerTaxIdentifierDelete(
-    input: CustomerTaxIdentifierDeleteInput!
-  ): CustomerTaxIdentifierDeletePayload!
-
-  customerTaxExemptionCreate(
-    input: CustomerTaxExemptionCreateInput!
-  ): CustomerTaxExemptionCreatePayload!
-  customerTaxExemptionUpdate(
-    taxExemptionId: ID!
-    operations: CustomerTaxExemptionUpdateInput
-  ): CustomerTaxExemptionUpdatePayload!
-  customerTaxExemptionDelete(
-    input: CustomerTaxExemptionDeleteInput!
-  ): CustomerTaxExemptionDeletePayload!
-
-  customerConsentCreate(
-    input: CustomerConsentCreateInput!
-  ): CustomerConsentCreatePayload!
-  """Update consent state and append an immutable evidence event."""
-  customerConsentUpdate(
-    consentId: ID!
-    operations: CustomerConsentUpdateInput
-  ): CustomerConsentUpdatePayload!
-  customerConsentDelete(
-    input: CustomerConsentDeleteInput!
-  ): CustomerConsentDeletePayload!
 
   customerGroupCreate(input: CustomerGroupCreateInput!): CustomerGroupCreatePayload!
   customerGroupUpdate(
     groupId: ID!
-    operations: CustomerGroupUpdateInput
+    """Expected aggregate update timestamp. Fails when metadata or memberships changed."""
+    expectedUpdatedAt: DateTime!
+    operations: CustomerGroupUpdateInput!
   ): CustomerGroupUpdatePayload!
   customerGroupDelete(input: CustomerGroupDeleteInput!): CustomerGroupDeletePayload!
 
@@ -172,8 +133,8 @@ type CustomersMutation {
   customerSegmentUpdate(
     segmentId: ID!
     """Expected aggregate revision. Fails when definition or membership changed."""
-    expectedRevision: Int
-    operations: CustomerSegmentUpdateInput
+    expectedRevision: Int!
+    operations: CustomerSegmentUpdateInput!
   ): CustomerSegmentUpdatePayload!
   customerSegmentDelete(
     input: CustomerSegmentDeleteInput!

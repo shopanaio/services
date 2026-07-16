@@ -206,7 +206,7 @@ input CustomerModerationUpdateInput {
   moderationNote: String
 }
 
-"""Customer-level operations applied atomically by customerUpdate."""
+"""Customer-level sections executed by the unified customerUpdate workflow."""
 input CustomerUpdateInput {
   profile: CustomerProfileUpdateInput
   contact: CustomerContactUpdateInput

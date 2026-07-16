@@ -3139,30 +3139,7 @@ export type ApiCustomerAddressConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type ApiCustomerAddressCreateInput = {
-  address1: Scalars['String']['input'];
-  address2?: InputMaybe<Scalars['String']['input']>;
-  city: Scalars['String']['input'];
-  companyName?: InputMaybe<Scalars['String']['input']>;
-  countryCode: Scalars['String']['input'];
-  customerId: Scalars['ID']['input'];
-  firstName?: InputMaybe<Scalars['String']['input']>;
-  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
-  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
-  label?: InputMaybe<Scalars['String']['input']>;
-  lastName?: InputMaybe<Scalars['String']['input']>;
-  latitude?: InputMaybe<Scalars['Float']['input']>;
-  longitude?: InputMaybe<Scalars['Float']['input']>;
-  middleName?: InputMaybe<Scalars['String']['input']>;
-  phoneE164?: InputMaybe<Scalars['String']['input']>;
-  postalCode?: InputMaybe<Scalars['String']['input']>;
-  prefix?: InputMaybe<Scalars['String']['input']>;
-  regionCode?: InputMaybe<Scalars['String']['input']>;
-  regionName?: InputMaybe<Scalars['String']['input']>;
-  suffix?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** Address values used inside the atomic customerUpdate operation. */
+/** Address values used inside the unified customerUpdate workflow. */
 export type ApiCustomerAddressCreateOperationInput = {
   address1: Scalars['String']['input'];
   address2?: InputMaybe<Scalars['String']['input']>;
@@ -3183,22 +3160,6 @@ export type ApiCustomerAddressCreateOperationInput = {
   regionCode?: InputMaybe<Scalars['String']['input']>;
   regionName?: InputMaybe<Scalars['String']['input']>;
   suffix?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiCustomerAddressCreatePayload = {
-  __typename?: 'CustomerAddressCreatePayload';
-  address?: Maybe<ApiCustomerAddress>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiCustomerAddressDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type ApiCustomerAddressDeletePayload = {
-  __typename?: 'CustomerAddressDeletePayload';
-  deletedAddressId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiCustomerAddressEdge = {
@@ -3245,7 +3206,7 @@ export enum CustomerAddressOrderField {
   ValidationStatus = 'validationStatus'
 }
 
-export type ApiCustomerAddressUpdateInput = {
+export type ApiCustomerAddressPatchInput = {
   address1?: InputMaybe<Scalars['String']['input']>;
   address2?: InputMaybe<Scalars['String']['input']>;
   city?: InputMaybe<Scalars['String']['input']>;
@@ -3271,14 +3232,7 @@ export type ApiCustomerAddressUpdateInput = {
 
 export type ApiCustomerAddressUpdateOperationInput = {
   addressId: Scalars['ID']['input'];
-  operations: ApiCustomerAddressUpdateInput;
-};
-
-export type ApiCustomerAddressUpdatePayload = {
-  __typename?: 'CustomerAddressUpdatePayload';
-  address?: Maybe<ApiCustomerAddress>;
-  operationResults: Array<ApiCustomerOperationResult>;
-  userErrors: Array<ApiGenericUserError>;
+  operations: ApiCustomerAddressPatchInput;
 };
 
 export enum CustomerAddressValidationStatus {
@@ -3334,7 +3288,7 @@ export type ApiCustomerAddressWhereInput = {
   validationStatus?: InputMaybe<ApiCustomerAddressValidationStatusFilter>;
 };
 
-/** Atomic address changes scoped to the customer being updated. */
+/** Batched address changes scoped to the customer being updated. */
 export type ApiCustomerAddressesUpdateInput = {
   create?: InputMaybe<Array<ApiCustomerAddressCreateOperationInput>>;
   /** Existing address ID to make the default. Explicit null clears the default. */
@@ -3424,34 +3378,6 @@ export enum CustomerConsentChannel {
   Whatsapp = 'WHATSAPP'
 }
 
-export type ApiCustomerConsentCreateInput = {
-  channel: CustomerConsentChannel;
-  contactPoint: Scalars['String']['input'];
-  customerId: Scalars['ID']['input'];
-  evidence?: InputMaybe<Scalars['JSON']['input']>;
-  /** Defaults to UNKNOWN when omitted. */
-  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
-  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
-  state: CustomerConsentAdminState;
-};
-
-export type ApiCustomerConsentCreatePayload = {
-  __typename?: 'CustomerConsentCreatePayload';
-  consent?: Maybe<ApiCustomerConsent>;
-  event?: Maybe<ApiCustomerConsentEvent>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiCustomerConsentDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type ApiCustomerConsentDeletePayload = {
-  __typename?: 'CustomerConsentDeletePayload';
-  deletedConsentId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 /** Immutable evidence record for a consent transition. */
 export type ApiCustomerConsentEvent = ApiNode & {
   __typename?: 'CustomerConsentEvent';
@@ -3534,20 +3460,6 @@ export type ApiCustomerConsentStateFilter = {
   _notIn?: InputMaybe<Array<CustomerConsentState>>;
 };
 
-/**
- * Consent update fields. A state transition appends an immutable evidence event;
- * customerId can move the relation before any evidence has been recorded.
- */
-export type ApiCustomerConsentUpdateInput = {
-  channel?: InputMaybe<CustomerConsentChannel>;
-  contactPoint?: InputMaybe<Scalars['String']['input']>;
-  customerId?: InputMaybe<Scalars['ID']['input']>;
-  evidence?: InputMaybe<Scalars['JSON']['input']>;
-  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
-  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
-  state?: InputMaybe<CustomerConsentAdminState>;
-};
-
 /** Consent transition scoped to the customer being updated. */
 export type ApiCustomerConsentUpdateOperationInput = {
   channel: CustomerConsentChannel;
@@ -3559,15 +3471,7 @@ export type ApiCustomerConsentUpdateOperationInput = {
   state: CustomerConsentAdminState;
 };
 
-export type ApiCustomerConsentUpdatePayload = {
-  __typename?: 'CustomerConsentUpdatePayload';
-  consent?: Maybe<ApiCustomerConsent>;
-  event?: Maybe<ApiCustomerConsentEvent>;
-  operationResults: Array<ApiCustomerOperationResult>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-/** Atomic consent transitions keyed by channel. */
+/** Batched consent transitions keyed by channel. */
 export type ApiCustomerConsentsUpdateInput = {
   set: Array<ApiCustomerConsentUpdateOperationInput>;
 };
@@ -3835,6 +3739,12 @@ export type ApiCustomerGroupCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export type ApiCustomerGroupDefinitionUpdateInput = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type ApiCustomerGroupDeleteInput = {
   id: Scalars['ID']['input'];
 };
@@ -3980,14 +3890,16 @@ export enum CustomerGroupOrderField {
   UpdatedAt = 'updatedAt'
 }
 
-export type ApiCustomerGroupUpdateInput = {
-  code?: InputMaybe<Scalars['String']['input']>;
-  description?: InputMaybe<Scalars['String']['input']>;
+export type ApiCustomerGroupStateUpdateInput = {
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiCustomerGroupUpdateInput = {
+  definition?: InputMaybe<ApiCustomerGroupDefinitionUpdateInput>;
   /** Create, update, or delete customer memberships in this group. */
   memberships?: InputMaybe<ApiCustomerGroupMembershipRelationsUpdateInput>;
-  name?: InputMaybe<Scalars['String']['input']>;
+  state?: InputMaybe<ApiCustomerGroupStateUpdateInput>;
 };
 
 export type ApiCustomerGroupUpdatePayload = {
@@ -4405,6 +4317,12 @@ export type ApiCustomerSegmentCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export type ApiCustomerSegmentDefinitionUpdateInput = {
+  definition?: InputMaybe<Scalars['JSON']['input']>;
+  query?: InputMaybe<Scalars['String']['input']>;
+  type?: InputMaybe<CustomerSegmentType>;
+};
+
 export type ApiCustomerSegmentDeleteInput = {
   expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   id: Scalars['ID']['input'];
@@ -4414,6 +4332,12 @@ export type ApiCustomerSegmentDeletePayload = {
   __typename?: 'CustomerSegmentDeletePayload';
   deletedSegmentId?: Maybe<Scalars['ID']['output']>;
   userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerSegmentDetailsUpdateInput = {
+  color?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ApiCustomerSegmentEdge = {
@@ -4537,6 +4461,10 @@ export enum CustomerSegmentOrderField {
   UpdatedAt = 'updatedAt'
 }
 
+export type ApiCustomerSegmentStateUpdateInput = {
+  status?: InputMaybe<CustomerSegmentStatus>;
+};
+
 export enum CustomerSegmentStatus {
   Active = 'ACTIVE',
   Archived = 'ARCHIVED',
@@ -4563,15 +4491,11 @@ export type ApiCustomerSegmentTypeFilter = {
 };
 
 export type ApiCustomerSegmentUpdateInput = {
-  color?: InputMaybe<Scalars['String']['input']>;
+  definition?: InputMaybe<ApiCustomerSegmentDefinitionUpdateInput>;
+  details?: InputMaybe<ApiCustomerSegmentDetailsUpdateInput>;
   /** Create, update, delete, or replace manual customer memberships. */
-  customers?: InputMaybe<ApiCustomerSegmentMembershipRelationsUpdateInput>;
-  definition?: InputMaybe<Scalars['JSON']['input']>;
-  description?: InputMaybe<Scalars['String']['input']>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  query?: InputMaybe<Scalars['String']['input']>;
-  status?: InputMaybe<CustomerSegmentStatus>;
-  type?: InputMaybe<CustomerSegmentType>;
+  memberships?: InputMaybe<ApiCustomerSegmentMembershipRelationsUpdateInput>;
+  state?: InputMaybe<ApiCustomerSegmentStateUpdateInput>;
 };
 
 export type ApiCustomerSegmentUpdatePayload = {
@@ -4843,19 +4767,6 @@ export type ApiCustomerTaxExemptionConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type ApiCustomerTaxExemptionCreateInput = {
-  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
-  code: Scalars['String']['input'];
-  countryCode?: InputMaybe<Scalars['String']['input']>;
-  customerId: Scalars['ID']['input'];
-  reason?: InputMaybe<Scalars['String']['input']>;
-  regionCode?: InputMaybe<Scalars['String']['input']>;
-  /** Defaults to ACTIVE when omitted. */
-  status?: InputMaybe<CustomerTaxExemptionStatus>;
-  validFrom?: InputMaybe<Scalars['Date']['input']>;
-  validTo?: InputMaybe<Scalars['Date']['input']>;
-};
-
 export type ApiCustomerTaxExemptionCreateOperationInput = {
   certificateFileId?: InputMaybe<Scalars['ID']['input']>;
   code: Scalars['String']['input'];
@@ -4866,22 +4777,6 @@ export type ApiCustomerTaxExemptionCreateOperationInput = {
   status?: InputMaybe<CustomerTaxExemptionStatus>;
   validFrom?: InputMaybe<Scalars['Date']['input']>;
   validTo?: InputMaybe<Scalars['Date']['input']>;
-};
-
-export type ApiCustomerTaxExemptionCreatePayload = {
-  __typename?: 'CustomerTaxExemptionCreatePayload';
-  taxExemption?: Maybe<ApiCustomerTaxExemption>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiCustomerTaxExemptionDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type ApiCustomerTaxExemptionDeletePayload = {
-  __typename?: 'CustomerTaxExemptionDeletePayload';
-  deletedTaxExemptionId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiCustomerTaxExemptionEdge = {
@@ -4920,6 +4815,17 @@ export enum CustomerTaxExemptionOrderField {
   ValidTo = 'validTo'
 }
 
+export type ApiCustomerTaxExemptionPatchInput = {
+  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
+  code?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  reason?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<CustomerTaxExemptionStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+};
+
 export enum CustomerTaxExemptionStatus {
   Active = 'ACTIVE',
   Expired = 'EXPIRED',
@@ -4933,27 +4839,9 @@ export type ApiCustomerTaxExemptionStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerTaxExemptionStatus>>;
 };
 
-export type ApiCustomerTaxExemptionUpdateInput = {
-  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
-  code?: InputMaybe<Scalars['String']['input']>;
-  countryCode?: InputMaybe<Scalars['String']['input']>;
-  reason?: InputMaybe<Scalars['String']['input']>;
-  regionCode?: InputMaybe<Scalars['String']['input']>;
-  status?: InputMaybe<CustomerTaxExemptionStatus>;
-  validFrom?: InputMaybe<Scalars['Date']['input']>;
-  validTo?: InputMaybe<Scalars['Date']['input']>;
-};
-
 export type ApiCustomerTaxExemptionUpdateOperationInput = {
-  operations: ApiCustomerTaxExemptionUpdateInput;
+  operations: ApiCustomerTaxExemptionPatchInput;
   taxExemptionId: Scalars['ID']['input'];
-};
-
-export type ApiCustomerTaxExemptionUpdatePayload = {
-  __typename?: 'CustomerTaxExemptionUpdatePayload';
-  operationResults: Array<ApiCustomerOperationResult>;
-  taxExemption?: Maybe<ApiCustomerTaxExemption>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Filter conditions for CustomerTaxExemption */
@@ -4984,7 +4872,7 @@ export type ApiCustomerTaxExemptionWhereInput = {
   validTo?: InputMaybe<ApiDateFilter>;
 };
 
-/** Atomic tax exemption changes scoped to the customer being updated. */
+/** Batched tax exemption changes scoped to the customer being updated. */
 export type ApiCustomerTaxExemptionsUpdateInput = {
   create?: InputMaybe<Array<ApiCustomerTaxExemptionCreateOperationInput>>;
   deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -5016,18 +4904,6 @@ export type ApiCustomerTaxIdentifierConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type ApiCustomerTaxIdentifierCreateInput = {
-  countryCode?: InputMaybe<Scalars['String']['input']>;
-  customerId: Scalars['ID']['input'];
-  identifierType: Scalars['String']['input'];
-  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Defaults to UNVERIFIED when omitted. */
-  status?: InputMaybe<CustomerTaxIdentifierStatus>;
-  validFrom?: InputMaybe<Scalars['Date']['input']>;
-  validTo?: InputMaybe<Scalars['Date']['input']>;
-  value: Scalars['String']['input'];
-};
-
 export type ApiCustomerTaxIdentifierCreateOperationInput = {
   countryCode?: InputMaybe<Scalars['String']['input']>;
   identifierType: Scalars['String']['input'];
@@ -5037,22 +4913,6 @@ export type ApiCustomerTaxIdentifierCreateOperationInput = {
   validFrom?: InputMaybe<Scalars['Date']['input']>;
   validTo?: InputMaybe<Scalars['Date']['input']>;
   value: Scalars['String']['input'];
-};
-
-export type ApiCustomerTaxIdentifierCreatePayload = {
-  __typename?: 'CustomerTaxIdentifierCreatePayload';
-  taxIdentifier?: Maybe<ApiCustomerTaxIdentifier>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiCustomerTaxIdentifierDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type ApiCustomerTaxIdentifierDeletePayload = {
-  __typename?: 'CustomerTaxIdentifierDeletePayload';
-  deletedTaxIdentifierId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiCustomerTaxIdentifierEdge = {
@@ -5091,6 +4951,16 @@ export enum CustomerTaxIdentifierOrderField {
   ValidTo = 'validTo'
 }
 
+export type ApiCustomerTaxIdentifierPatchInput = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  identifierType?: InputMaybe<Scalars['String']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  status?: InputMaybe<CustomerTaxIdentifierStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+  value?: InputMaybe<Scalars['String']['input']>;
+};
+
 export enum CustomerTaxIdentifierStatus {
   Expired = 'EXPIRED',
   Rejected = 'REJECTED',
@@ -5105,26 +4975,9 @@ export type ApiCustomerTaxIdentifierStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerTaxIdentifierStatus>>;
 };
 
-export type ApiCustomerTaxIdentifierUpdateInput = {
-  countryCode?: InputMaybe<Scalars['String']['input']>;
-  identifierType?: InputMaybe<Scalars['String']['input']>;
-  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
-  status?: InputMaybe<CustomerTaxIdentifierStatus>;
-  validFrom?: InputMaybe<Scalars['Date']['input']>;
-  validTo?: InputMaybe<Scalars['Date']['input']>;
-  value?: InputMaybe<Scalars['String']['input']>;
-};
-
 export type ApiCustomerTaxIdentifierUpdateOperationInput = {
-  operations: ApiCustomerTaxIdentifierUpdateInput;
+  operations: ApiCustomerTaxIdentifierPatchInput;
   taxIdentifierId: Scalars['ID']['input'];
-};
-
-export type ApiCustomerTaxIdentifierUpdatePayload = {
-  __typename?: 'CustomerTaxIdentifierUpdatePayload';
-  operationResults: Array<ApiCustomerOperationResult>;
-  taxIdentifier?: Maybe<ApiCustomerTaxIdentifier>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Filter conditions for CustomerTaxIdentifier */
@@ -5157,14 +5010,14 @@ export type ApiCustomerTaxIdentifierWhereInput = {
   value?: InputMaybe<ApiStringFilter>;
 };
 
-/** Atomic tax identifier changes scoped to the customer being updated. */
+/** Batched tax identifier changes scoped to the customer being updated. */
 export type ApiCustomerTaxIdentifiersUpdateInput = {
   create?: InputMaybe<Array<ApiCustomerTaxIdentifierCreateOperationInput>>;
   deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   update?: InputMaybe<Array<ApiCustomerTaxIdentifierUpdateOperationInput>>;
 };
 
-/** Customer-level operations applied atomically by customerUpdate. */
+/** Customer-level sections executed by the unified customerUpdate workflow. */
 export type ApiCustomerUpdateInput = {
   addresses?: InputMaybe<ApiCustomerAddressesUpdateInput>;
   company?: InputMaybe<ApiCustomerCompanyUpdateInput>;
@@ -5253,13 +5106,6 @@ export type ApiCustomerWhereInput = {
 /** Store-scoped customer commands. */
 export type ApiCustomersMutation = {
   __typename?: 'CustomersMutation';
-  customerAddressCreate: ApiCustomerAddressCreatePayload;
-  customerAddressDelete: ApiCustomerAddressDeletePayload;
-  customerAddressUpdate: ApiCustomerAddressUpdatePayload;
-  customerConsentCreate: ApiCustomerConsentCreatePayload;
-  customerConsentDelete: ApiCustomerConsentDeletePayload;
-  /** Update consent state and append an immutable evidence event. */
-  customerConsentUpdate: ApiCustomerConsentUpdatePayload;
   customerCreate: ApiCustomerCreatePayload;
   customerDataRequestCreate: ApiCustomerDataRequestCreatePayload;
   customerDataRequestDelete: ApiCustomerDataRequestDeletePayload;
@@ -5277,52 +5123,8 @@ export type ApiCustomersMutation = {
   customerTagCreate: ApiCustomerTagCreatePayload;
   customerTagDelete: ApiCustomerTagDeletePayload;
   customerTagUpdate: ApiCustomerTagUpdatePayload;
-  customerTaxExemptionCreate: ApiCustomerTaxExemptionCreatePayload;
-  customerTaxExemptionDelete: ApiCustomerTaxExemptionDeletePayload;
-  customerTaxExemptionUpdate: ApiCustomerTaxExemptionUpdatePayload;
-  customerTaxIdentifierCreate: ApiCustomerTaxIdentifierCreatePayload;
-  customerTaxIdentifierDelete: ApiCustomerTaxIdentifierDeletePayload;
-  customerTaxIdentifierUpdate: ApiCustomerTaxIdentifierUpdatePayload;
   /** Unified customer profile update with optimistic locking. */
   customerUpdate: ApiCustomerUpdatePayload;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerAddressCreateArgs = {
-  input: ApiCustomerAddressCreateInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerAddressDeleteArgs = {
-  input: ApiCustomerAddressDeleteInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerAddressUpdateArgs = {
-  addressId: Scalars['ID']['input'];
-  operations?: InputMaybe<ApiCustomerAddressUpdateInput>;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerConsentCreateArgs = {
-  input: ApiCustomerConsentCreateInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerConsentDeleteArgs = {
-  input: ApiCustomerConsentDeleteInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerConsentUpdateArgs = {
-  consentId: Scalars['ID']['input'];
-  operations?: InputMaybe<ApiCustomerConsentUpdateInput>;
 };
 
 
@@ -5371,8 +5173,9 @@ export type ApiCustomersMutationCustomerGroupDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerGroupUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
   groupId: Scalars['ID']['input'];
-  operations?: InputMaybe<ApiCustomerGroupUpdateInput>;
+  operations: ApiCustomerGroupUpdateInput;
 };
 
 
@@ -5409,8 +5212,8 @@ export type ApiCustomersMutationCustomerSegmentDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerSegmentUpdateArgs = {
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  operations?: InputMaybe<ApiCustomerSegmentUpdateInput>;
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiCustomerSegmentUpdateInput;
   segmentId: Scalars['ID']['input'];
 };
 
@@ -5435,48 +5238,10 @@ export type ApiCustomersMutationCustomerTagUpdateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerTaxExemptionCreateArgs = {
-  input: ApiCustomerTaxExemptionCreateInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerTaxExemptionDeleteArgs = {
-  input: ApiCustomerTaxExemptionDeleteInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerTaxExemptionUpdateArgs = {
-  operations?: InputMaybe<ApiCustomerTaxExemptionUpdateInput>;
-  taxExemptionId: Scalars['ID']['input'];
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerTaxIdentifierCreateArgs = {
-  input: ApiCustomerTaxIdentifierCreateInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerTaxIdentifierDeleteArgs = {
-  input: ApiCustomerTaxIdentifierDeleteInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerTaxIdentifierUpdateArgs = {
-  operations?: InputMaybe<ApiCustomerTaxIdentifierUpdateInput>;
-  taxIdentifierId: Scalars['ID']['input'];
-};
-
-
-/** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerUpdateArgs = {
   customerId: Scalars['ID']['input'];
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  operations?: InputMaybe<ApiCustomerUpdateInput>;
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiCustomerUpdateInput;
 };
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */

@@ -1,8 +1,4 @@
 import type {
-  CustomerAddressUpdateParams,
-  CustomerAddressUpdateResult,
-} from "../../scripts/address/index.js";
-import type {
   CustomerGroupUpdateParams,
   CustomerGroupUpdateResult,
   CustomerSegmentUpdateParams,
@@ -11,55 +7,17 @@ import type {
   CustomerTagUpdateResult,
 } from "../../scripts/classification/index.js";
 import type {
-  CustomerConsentUpdateParams,
-  CustomerConsentUpdateResult,
-} from "../../scripts/consent/index.js";
-import type {
   CustomerDataRequestUpdateParams,
   CustomerDataRequestUpdateResult,
   CustomerMergeUpdateParams,
   CustomerMergeUpdateResult,
 } from "../../scripts/lifecycle/index.js";
-import type {
-  CustomerTaxExemptionUpdateParams,
-  CustomerTaxExemptionUpdateResult,
-  CustomerTaxIdentifierUpdateParams,
-  CustomerTaxIdentifierUpdateResult,
-} from "../../scripts/tax/index.js";
 import type { CustomerUpdateOperationResult } from "./CustomerUpdateWorkflowDto.js";
 import type { CustomerMutationWorkflowContext } from "./CustomerMutationWorkflowDto.js";
 
 type UpdateWorkflowResult<TResult> = TResult & {
   operationResults: CustomerUpdateOperationResult[];
 };
-
-export interface CustomerAddressUpdateWorkflowInput {
-  params: CustomerAddressUpdateParams;
-  context: CustomerMutationWorkflowContext;
-}
-export type CustomerAddressUpdateWorkflowResult =
-  UpdateWorkflowResult<CustomerAddressUpdateResult>;
-
-export interface CustomerTaxIdentifierUpdateWorkflowInput {
-  params: CustomerTaxIdentifierUpdateParams;
-  context: CustomerMutationWorkflowContext;
-}
-export type CustomerTaxIdentifierUpdateWorkflowResult =
-  UpdateWorkflowResult<CustomerTaxIdentifierUpdateResult>;
-
-export interface CustomerTaxExemptionUpdateWorkflowInput {
-  params: CustomerTaxExemptionUpdateParams;
-  context: CustomerMutationWorkflowContext;
-}
-export type CustomerTaxExemptionUpdateWorkflowResult =
-  UpdateWorkflowResult<CustomerTaxExemptionUpdateResult>;
-
-export interface CustomerConsentUpdateWorkflowInput {
-  params: CustomerConsentUpdateParams;
-  context: CustomerMutationWorkflowContext;
-}
-export type CustomerConsentUpdateWorkflowResult =
-  UpdateWorkflowResult<CustomerConsentUpdateResult>;
 
 export interface CustomerGroupUpdateWorkflowInput {
   params: CustomerGroupUpdateParams;

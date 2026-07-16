@@ -67,19 +67,7 @@ type CustomerTaxExemptionEdge {
   cursor: String!
 }
 
-input CustomerTaxIdentifierCreateInput {
-  customerId: ID!
-  identifierType: String!
-  countryCode: String
-  value: String!
-  """Defaults to UNVERIFIED when omitted."""
-  status: CustomerTaxIdentifierStatus
-  isPrimary: Boolean = false
-  validFrom: Date
-  validTo: Date
-}
-
-input CustomerTaxIdentifierUpdateInput {
+input CustomerTaxIdentifierPatchInput {
   identifierType: String
   countryCode: String
   value: String
@@ -89,24 +77,7 @@ input CustomerTaxIdentifierUpdateInput {
   validTo: Date
 }
 
-input CustomerTaxIdentifierDeleteInput {
-  id: ID!
-}
-
-input CustomerTaxExemptionCreateInput {
-  customerId: ID!
-  code: String!
-  countryCode: String
-  regionCode: String
-  reason: String
-  """Defaults to ACTIVE when omitted."""
-  status: CustomerTaxExemptionStatus
-  certificateFileId: ID
-  validFrom: Date
-  validTo: Date
-}
-
-input CustomerTaxExemptionUpdateInput {
+input CustomerTaxExemptionPatchInput {
   code: String
   countryCode: String
   regionCode: String
@@ -130,10 +101,10 @@ input CustomerTaxIdentifierCreateOperationInput {
 
 input CustomerTaxIdentifierUpdateOperationInput {
   taxIdentifierId: ID!
-  operations: CustomerTaxIdentifierUpdateInput!
+  operations: CustomerTaxIdentifierPatchInput!
 }
 
-"""Atomic tax identifier changes scoped to the customer being updated."""
+"""Batched tax identifier changes scoped to the customer being updated."""
 input CustomerTaxIdentifiersUpdateInput {
   create: [CustomerTaxIdentifierCreateOperationInput!]
   update: [CustomerTaxIdentifierUpdateOperationInput!]
@@ -154,48 +125,12 @@ input CustomerTaxExemptionCreateOperationInput {
 
 input CustomerTaxExemptionUpdateOperationInput {
   taxExemptionId: ID!
-  operations: CustomerTaxExemptionUpdateInput!
+  operations: CustomerTaxExemptionPatchInput!
 }
 
-"""Atomic tax exemption changes scoped to the customer being updated."""
+"""Batched tax exemption changes scoped to the customer being updated."""
 input CustomerTaxExemptionsUpdateInput {
   create: [CustomerTaxExemptionCreateOperationInput!]
   update: [CustomerTaxExemptionUpdateOperationInput!]
   deleteIds: [ID!]
-}
-
-input CustomerTaxExemptionDeleteInput {
-  id: ID!
-}
-
-type CustomerTaxIdentifierCreatePayload {
-  taxIdentifier: CustomerTaxIdentifier
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerTaxIdentifierUpdatePayload {
-  taxIdentifier: CustomerTaxIdentifier
-  operationResults: [CustomerOperationResult!]!
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerTaxIdentifierDeletePayload {
-  deletedTaxIdentifierId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerTaxExemptionCreatePayload {
-  taxExemption: CustomerTaxExemption
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerTaxExemptionUpdatePayload {
-  taxExemption: CustomerTaxExemption
-  operationResults: [CustomerOperationResult!]!
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerTaxExemptionDeletePayload {
-  deletedTaxExemptionId: ID
-  userErrors: [GenericUserError!]!
 }

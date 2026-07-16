@@ -19,16 +19,18 @@ export function buildCustomerSegmentCreateInput(values: SegmentFormValues): ApiC
 
 export function buildCustomerSegmentUpdateInput(values: SegmentFormValues): ApiCustomerSegmentUpdateInput {
   return {
-    name: values.name.trim(),
-    description: values.description.trim() || null,
-    color: values.color,
+    details: {
+      name: values.name.trim(),
+      description: values.description.trim() || null,
+      color: values.color,
+    },
   };
 }
 
 const fieldMap: Record<string, FieldPath<SegmentFormValues>> = {
-  name: "name",
-  description: "description",
-  color: "color",
+  "details.name": "name",
+  "details.description": "description",
+  "details.color": "color",
 };
 
 export function mapCustomerSegmentUserErrors(errors: ApiGenericUserError[]) {

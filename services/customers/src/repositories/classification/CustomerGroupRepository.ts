@@ -177,7 +177,8 @@ export class CustomerGroupRepository extends BaseRepository {
     id: string,
     patch: Partial<
       Pick<NewCustomerGroup, "code" | "name" | "description" | "isDefault" | "isActive">
-    >
+    >,
+    expectedUpdatedAt: string
   ): Promise<CustomerGroup | null> {
     const current = await this.findById(id);
     if (!current) return null;
@@ -197,6 +198,7 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.id, id),
+          eq(customerGroup.updatedAt, expectedUpdatedAt),
           isNull(customerGroup.deletedAt)
         )
       )

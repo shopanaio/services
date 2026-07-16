@@ -1,10 +1,4 @@
 import type {
-  CustomerAddressCreateParams,
-  CustomerAddressCreateResult,
-  CustomerAddressDeleteParams,
-  CustomerAddressDeleteResult,
-} from "../../scripts/address/index.js";
-import type {
   CustomerGroupCreateParams,
   CustomerGroupCreateResult,
   CustomerGroupDeleteParams,
@@ -18,12 +12,6 @@ import type {
   CustomerTagDeleteParams,
   CustomerTagDeleteResult,
 } from "../../scripts/classification/index.js";
-import type {
-  CustomerConsentCreateParams,
-  CustomerConsentCreateResult,
-  CustomerConsentDeleteParams,
-  CustomerConsentDeleteResult,
-} from "../../scripts/consent/index.js";
 import type {
   CustomerCreateParams,
   CustomerCreateResult,
@@ -40,16 +28,6 @@ import type {
   CustomerMergeDeleteParams,
   CustomerMergeDeleteResult,
 } from "../../scripts/lifecycle/index.js";
-import type {
-  CustomerTaxExemptionCreateParams,
-  CustomerTaxExemptionCreateResult,
-  CustomerTaxExemptionDeleteParams,
-  CustomerTaxExemptionDeleteResult,
-  CustomerTaxIdentifierCreateParams,
-  CustomerTaxIdentifierCreateResult,
-  CustomerTaxIdentifierDeleteParams,
-  CustomerTaxIdentifierDeleteResult,
-} from "../../scripts/tax/index.js";
 
 export interface CustomerMutationWorkflowContext {
   organizationId: string;
@@ -65,37 +43,6 @@ export interface CustomerCreateWorkflowInput {
 }
 
 export type CustomerCreateWorkflowResult = CustomerCreateResult;
-
-export interface CustomerAddressCreateWorkflowInput {
-  params: CustomerAddressCreateParams;
-  context: CustomerMutationWorkflowContext;
-}
-
-export type CustomerAddressCreateWorkflowResult =
-  CustomerAddressCreateResult;
-
-export interface CustomerTaxIdentifierCreateWorkflowInput {
-  params: CustomerTaxIdentifierCreateParams;
-  context: CustomerMutationWorkflowContext;
-}
-
-export type CustomerTaxIdentifierCreateWorkflowResult =
-  CustomerTaxIdentifierCreateResult;
-
-export interface CustomerTaxExemptionCreateWorkflowInput {
-  params: CustomerTaxExemptionCreateParams;
-  context: CustomerMutationWorkflowContext;
-}
-
-export type CustomerTaxExemptionCreateWorkflowResult =
-  CustomerTaxExemptionCreateResult;
-
-export interface CustomerConsentCreateWorkflowInput {
-  params: CustomerConsentCreateParams;
-  context: CustomerMutationWorkflowContext;
-}
-
-export type CustomerConsentCreateWorkflowResult = CustomerConsentCreateResult;
 
 export interface CustomerGroupCreateWorkflowInput {
   params: CustomerGroupCreateParams;
@@ -132,37 +79,6 @@ export interface CustomerDataRequestCreateWorkflowInput {
 
 export type CustomerDataRequestCreateWorkflowResult =
   CustomerDataRequestCreateResult;
-
-export interface CustomerAddressDeleteWorkflowInput {
-  params: CustomerAddressDeleteParams;
-  context: CustomerMutationWorkflowContext;
-}
-
-export type CustomerAddressDeleteWorkflowResult =
-  CustomerAddressDeleteResult;
-
-export interface CustomerTaxIdentifierDeleteWorkflowInput {
-  params: CustomerTaxIdentifierDeleteParams;
-  context: CustomerMutationWorkflowContext;
-}
-
-export type CustomerTaxIdentifierDeleteWorkflowResult =
-  CustomerTaxIdentifierDeleteResult;
-
-export interface CustomerTaxExemptionDeleteWorkflowInput {
-  params: CustomerTaxExemptionDeleteParams;
-  context: CustomerMutationWorkflowContext;
-}
-
-export type CustomerTaxExemptionDeleteWorkflowResult =
-  CustomerTaxExemptionDeleteResult;
-
-export interface CustomerConsentDeleteWorkflowInput {
-  params: CustomerConsentDeleteParams;
-  context: CustomerMutationWorkflowContext;
-}
-
-export type CustomerConsentDeleteWorkflowResult = CustomerConsentDeleteResult;
 
 export interface CustomerGroupDeleteWorkflowInput {
   params: CustomerGroupDeleteParams;

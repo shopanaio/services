@@ -11,21 +11,13 @@ import {
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
 import {
-  CustomerAddressUpdateScript,
-  CustomerConsentUpdateScript,
   CustomerDataRequestUpdateScript,
   CustomerGroupUpdateScript,
   CustomerMergeUpdateScript,
   CustomerSegmentUpdateScript,
   CustomerTagUpdateScript,
-  CustomerTaxExemptionUpdateScript,
-  CustomerTaxIdentifierUpdateScript,
 } from "../scripts/index.js";
 import type {
-  CustomerAddressUpdateWorkflowInput,
-  CustomerAddressUpdateWorkflowResult,
-  CustomerConsentUpdateWorkflowInput,
-  CustomerConsentUpdateWorkflowResult,
   CustomerDataRequestUpdateWorkflowInput,
   CustomerDataRequestUpdateWorkflowResult,
   CustomerGroupUpdateWorkflowInput,
@@ -37,10 +29,6 @@ import type {
   CustomerSegmentUpdateWorkflowResult,
   CustomerTagUpdateWorkflowInput,
   CustomerTagUpdateWorkflowResult,
-  CustomerTaxExemptionUpdateWorkflowInput,
-  CustomerTaxExemptionUpdateWorkflowResult,
-  CustomerTaxIdentifierUpdateWorkflowInput,
-  CustomerTaxIdentifierUpdateWorkflowResult,
   CustomerUpdateOperationResult,
   CustomerUpdateOperationType,
 } from "./dto/index.js";
@@ -107,152 +95,6 @@ abstract class CustomerEntityUpdateWorkflow extends BrokerWorkflows {
         }
       );
     }
-  }
-}
-
-@Injectable()
-export class CustomerAddressUpdateWorkflow extends CustomerEntityUpdateWorkflow {
-  constructor(@InjectBroker("customers") broker: ServiceBroker) {
-    super(broker);
-  }
-
-  @Workflow("customerAddressUpdate")
-  async run(
-    input: CustomerAddressUpdateWorkflowInput
-  ): Promise<CustomerAddressUpdateWorkflowResult> {
-    const result = await this.stepUpdate(input);
-    if (result.address && result.customerId && result.userErrors.length === 0) {
-      await this.emitCustomerUpdated(input.context, [result.customerId], "address");
-    }
-    return {
-      ...result,
-      operationResults: this.operationResult("addressUpdate", result.userErrors),
-    };
-  }
-
-  @WorkflowStep()
-  private stepUpdate(input: CustomerAddressUpdateWorkflowInput) {
-    return this.kernel.runScript(
-      CustomerAddressUpdateScript,
-      input.params,
-      this.toScriptContext(input.context)
-    );
-  }
-}
-
-@Injectable()
-export class CustomerTaxIdentifierUpdateWorkflow extends CustomerEntityUpdateWorkflow {
-  constructor(@InjectBroker("customers") broker: ServiceBroker) {
-    super(broker);
-  }
-
-  @Workflow("customerTaxIdentifierUpdate")
-  async run(
-    input: CustomerTaxIdentifierUpdateWorkflowInput
-  ): Promise<CustomerTaxIdentifierUpdateWorkflowResult> {
-    const result = await this.stepUpdate(input);
-    if (
-      result.taxIdentifier &&
-      result.customerId &&
-      result.userErrors.length === 0
-    ) {
-      await this.emitCustomerUpdated(
-        input.context,
-        [result.customerId],
-        "taxIdentifier"
-      );
-    }
-    return {
-      ...result,
-      operationResults: this.operationResult(
-        "taxIdentifierUpdate",
-        result.userErrors
-      ),
-    };
-  }
-
-  @WorkflowStep()
-  private stepUpdate(input: CustomerTaxIdentifierUpdateWorkflowInput) {
-    return this.kernel.runScript(
-      CustomerTaxIdentifierUpdateScript,
-      input.params,
-      this.toScriptContext(input.context)
-    );
-  }
-}
-
-@Injectable()
-export class CustomerTaxExemptionUpdateWorkflow extends CustomerEntityUpdateWorkflow {
-  constructor(@InjectBroker("customers") broker: ServiceBroker) {
-    super(broker);
-  }
-
-  @Workflow("customerTaxExemptionUpdate")
-  async run(
-    input: CustomerTaxExemptionUpdateWorkflowInput
-  ): Promise<CustomerTaxExemptionUpdateWorkflowResult> {
-    const result = await this.stepUpdate(input);
-    if (
-      result.taxExemption &&
-      result.customerId &&
-      result.userErrors.length === 0
-    ) {
-      await this.emitCustomerUpdated(
-        input.context,
-        [result.customerId],
-        "taxExemption"
-      );
-    }
-    return {
-      ...result,
-      operationResults: this.operationResult(
-        "taxExemptionUpdate",
-        result.userErrors
-      ),
-    };
-  }
-
-  @WorkflowStep()
-  private stepUpdate(input: CustomerTaxExemptionUpdateWorkflowInput) {
-    return this.kernel.runScript(
-      CustomerTaxExemptionUpdateScript,
-      input.params,
-      this.toScriptContext(input.context)
-    );
-  }
-}
-
-@Injectable()
-export class CustomerConsentUpdateWorkflow extends CustomerEntityUpdateWorkflow {
-  constructor(@InjectBroker("customers") broker: ServiceBroker) {
-    super(broker);
-  }
-
-  @Workflow("customerConsentUpdate")
-  async run(
-    input: CustomerConsentUpdateWorkflowInput
-  ): Promise<CustomerConsentUpdateWorkflowResult> {
-    const result = await this.stepUpdate(input);
-    if (result.consent && result.event && result.userErrors.length === 0) {
-      await this.emitCustomerUpdated(
-        input.context,
-        result.affectedCustomerIds,
-        "consent"
-      );
-    }
-    return {
-      ...result,
-      operationResults: this.operationResult("consentUpdate", result.userErrors),
-    };
-  }
-
-  @WorkflowStep()
-  private stepUpdate(input: CustomerConsentUpdateWorkflowInput) {
-    return this.kernel.runScript(
-      CustomerConsentUpdateScript,
-      input.params,
-      this.toScriptContext(input.context)
-    );
   }
 }
 
