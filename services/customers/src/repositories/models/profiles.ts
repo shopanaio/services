@@ -46,7 +46,7 @@ export const customer = customersSchema.table(
     companyName: varchar("company_name", { length: 255 }),
     jobTitle: varchar("job_title", { length: 255 }),
     note: text("note"),
-    disabledReason: text("disabled_reason"),
+    blockedReason: text("blocked_reason"),
     moderationNote: text("moderation_note"),
     source: varchar("source", { length: 64 }).notNull().default("unknown"),
     createdByUserId: text("created_by_user_id"),
@@ -93,11 +93,11 @@ export const customer = customersSchema.table(
       sql`${table.revision} >= 0`
     ),
     check(
-      "customer_disabled_reason_check",
-      sql`(${table.lifecycleStatus} <> 'disabled' AND ${table.disabledReason} IS NULL)
-        OR (${table.lifecycleStatus} = 'disabled'
-          AND ${table.disabledReason} IS NOT NULL
-          AND length(btrim(${table.disabledReason})) > 0)`
+      "customer_blocked_reason_check",
+      sql`(${table.lifecycleStatus} <> 'blocked' AND ${table.blockedReason} IS NULL)
+        OR (${table.lifecycleStatus} = 'blocked'
+          AND ${table.blockedReason} IS NOT NULL
+          AND length(btrim(${table.blockedReason})) > 0)`
     ),
     check(
       "customer_moderation_note_check",

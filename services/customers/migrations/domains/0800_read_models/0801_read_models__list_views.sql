@@ -25,7 +25,7 @@ SELECT
   customer.company_name,
   customer.job_title,
   customer.note,
-  customer.disabled_reason,
+  customer.blocked_reason,
   customer.moderation_note,
   customer.source,
   customer.created_by_user_id,

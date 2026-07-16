@@ -83,10 +83,12 @@ metadata owned by the merchant and validated as `#RRGGBB` when present.
 
 ### Moderation
 
-Store-level blocking uses the canonical `disabled` lifecycle state rather than
-a second overlapping status. A disabled profile must have `disabled_reason`;
-the reason is cleared when the profile is re-enabled. `moderation_note` stores
-internal operator context separately from the general merchant-facing note.
+`disabled` and `blocked` are distinct lifecycle states. Disabled means the
+profile is administratively inactive without a risk decision. Blocked means
+customer operations are explicitly prohibited and requires `blocked_reason`;
+the reason is cleared when the profile leaves the blocked state.
+`moderation_note` stores internal operator context separately from the general
+merchant-facing note.
 
 ### Atomic Admin updates
 
@@ -119,7 +121,7 @@ turning a destructive operation into a single unaudited flag update.
 - Active normalized email is unique per store.
 - IAM principal link is unique per store and may be null.
 - A merged customer must reference a different target customer.
-- A disabled customer has a non-empty reason; other lifecycle states do not.
+- A blocked customer has a non-empty reason; other lifecycle states do not.
 - Default address uniqueness is enforced independently for shipping and billing.
 - Consent state and its collection/withdrawal timestamps must agree.
 - Tax validity intervals and membership expiry intervals cannot be inverted.

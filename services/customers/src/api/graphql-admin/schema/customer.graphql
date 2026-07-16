@@ -1,8 +1,16 @@
 enum CustomerLifecycleStatus {
   ACTIVE
   DISABLED
+  BLOCKED
   MERGED
   REDACTED
+}
+
+"""Lifecycle states that a merchant administrator may select directly."""
+enum CustomerAdminLifecycleStatus {
+  ACTIVE
+  DISABLED
+  BLOCKED
 }
 
 enum CustomerAccountStatus {
@@ -36,8 +44,8 @@ type Customer implements Node @key(fields: "id") {
   companyName: String
   jobTitle: String
   note: String
-  """Reason the customer is currently disabled. Null for other lifecycle states."""
-  disabledReason: String
+  """Reason the customer is currently blocked. Null for other lifecycle states."""
+  blockedReason: String
   """Internal moderation context visible only to administrators."""
   moderationNote: String
   source: String!
@@ -178,9 +186,9 @@ Lifecycle fields available to Admin. Merge and redaction remain dedicated
 workflows and cannot be selected here.
 """
 input CustomerStatusUpdateInput {
-  disabled: Boolean!
-  """Required when disabling. Omit when re-enabling the customer."""
-  disabledReason: String
+  status: CustomerAdminLifecycleStatus!
+  """Required for BLOCKED. Omit for ACTIVE and DISABLED."""
+  blockedReason: String
 }
 
 """Merchant note in the unified customer update."""

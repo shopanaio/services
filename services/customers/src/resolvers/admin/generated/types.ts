@@ -383,6 +383,8 @@ export type Customer = Node & {
   __typename?: 'Customer';
   accountStatus: CustomerAccountStatus;
   addresses: CustomerAddressConnection;
+  /** Reason the customer is currently blocked. Null for other lifecycle states. */
+  blockedReason: Maybe<Scalars['String']['output']>;
   companyName: Maybe<Scalars['String']['output']>;
   /** At most one current consent record per channel. */
   consents: Array<CustomerConsent>;
@@ -392,8 +394,6 @@ export type Customer = Node & {
   defaultBillingAddress: Maybe<CustomerAddress>;
   defaultShippingAddress: Maybe<CustomerAddress>;
   deletedAt: Maybe<Scalars['DateTime']['output']>;
-  /** Reason the customer is currently disabled. Null for other lifecycle states. */
-  disabledReason: Maybe<Scalars['String']['output']>;
   displayName: Scalars['String']['output'];
   email: Maybe<Scalars['Email']['output']>;
   emailVerified: Scalars['Boolean']['output'];
@@ -735,6 +735,13 @@ export type CustomerAddressesUpdateInput = {
   deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   update?: InputMaybe<Array<CustomerAddressUpdateOperationInput>>;
 };
+
+/** Lifecycle states that a merchant administrator may select directly. */
+export enum CustomerAdminLifecycleStatus {
+  Active = 'ACTIVE',
+  Blocked = 'BLOCKED',
+  Disabled = 'DISABLED'
+}
 
 export enum CustomerAssignmentSource {
   Import = 'IMPORT',
@@ -1267,6 +1274,7 @@ export type CustomerGroupWhereInput = {
 
 export enum CustomerLifecycleStatus {
   Active = 'ACTIVE',
+  Blocked = 'BLOCKED',
   Disabled = 'DISABLED',
   Merged = 'MERGED',
   Redacted = 'REDACTED'
@@ -1764,9 +1772,9 @@ export type CustomerStatistics = {
  * workflows and cannot be selected here.
  */
 export type CustomerStatusUpdateInput = {
-  disabled: Scalars['Boolean']['input'];
-  /** Required when disabling. Omit when re-enabling the customer. */
-  disabledReason?: InputMaybe<Scalars['String']['input']>;
+  /** Required for BLOCKED. Omit for ACTIVE and DISABLED. */
+  blockedReason?: InputMaybe<Scalars['String']['input']>;
+  status: CustomerAdminLifecycleStatus;
 };
 
 export type CustomerTag = Node & {
@@ -3301,6 +3309,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerAddressValidationStatusFilter: CustomerAddressValidationStatusFilter;
   CustomerAddressWhereInput: CustomerAddressWhereInput;
   CustomerAddressesUpdateInput: CustomerAddressesUpdateInput;
+  CustomerAdminLifecycleStatus: CustomerAdminLifecycleStatus;
   CustomerAssignmentSource: CustomerAssignmentSource;
   CustomerAssignmentSourceFilter: CustomerAssignmentSourceFilter;
   CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
@@ -3715,6 +3724,7 @@ export type CustomerResolvers<ContextType = ServiceContext, ParentType extends R
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Customer']>, { __typename: 'Customer' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   accountStatus?: Resolver<ResolversTypes['CustomerAccountStatus'], ParentType, ContextType>;
   addresses?: Resolver<ResolversTypes['CustomerAddressConnection'], ParentType, ContextType, Partial<CustomerAddressesArgs>>;
+  blockedReason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   companyName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   consents?: Resolver<Array<ResolversTypes['CustomerConsent']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -3723,7 +3733,6 @@ export type CustomerResolvers<ContextType = ServiceContext, ParentType extends R
   defaultBillingAddress?: Resolver<Maybe<ResolversTypes['CustomerAddress']>, ParentType, ContextType>;
   defaultShippingAddress?: Resolver<Maybe<ResolversTypes['CustomerAddress']>, ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  disabledReason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<Maybe<ResolversTypes['Email']>, ParentType, ContextType>;
   emailVerified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;

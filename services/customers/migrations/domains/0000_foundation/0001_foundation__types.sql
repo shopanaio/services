@@ -1,6 +1,7 @@
 CREATE TYPE "customers"."customer_lifecycle_status" AS ENUM (
   'active',
   'disabled',
+  'blocked',
   'merged',
   'redacted'
 );

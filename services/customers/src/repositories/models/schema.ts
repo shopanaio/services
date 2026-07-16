@@ -4,7 +4,7 @@ export const customersSchema = pgSchema("customers");
 
 export const customerLifecycleStatusEnum = customersSchema.enum(
   "customer_lifecycle_status",
-  ["active", "disabled", "merged", "redacted"]
+  ["active", "disabled", "blocked", "merged", "redacted"]
 );
 
 export const customerAccountStatusEnum = customersSchema.enum(
