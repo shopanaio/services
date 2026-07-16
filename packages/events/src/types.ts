@@ -167,6 +167,34 @@ export interface ProductUpdatedPayload {
 export interface ProductUpdatedEvent
   extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
 
+export type CustomerUpdatedReason =
+  | "profile"
+  | "contact"
+  | "company"
+  | "status"
+  | "note"
+  | "moderation"
+  | "address"
+  | "consent"
+  | "taxIdentifier"
+  | "taxExemption"
+  | "group"
+  | "tag"
+  | "segment";
+
+/**
+ * Payload for customerUpdated event. Consumers hydrate the current customer
+ * state and use reasons to skip unrelated projections.
+ */
+export interface CustomerUpdatedPayload {
+  customerId: string;
+  storeId: string;
+  reasons: CustomerUpdatedReason[];
+}
+
+export interface CustomerUpdatedEvent
+  extends DomainEvent<"customerUpdated", CustomerUpdatedPayload> {}
+
 export interface FacetCreatedEvent
   extends DomainEvent<
     "facetCreated",
@@ -292,6 +320,7 @@ export type ShopanaEvent =
   | ProductCreatedEvent
   | ProductDeletedEvent
   | ProductUpdatedEvent
+  | CustomerUpdatedEvent
   | FacetCreatedEvent
   | FacetUpdatedEvent
   | FacetDeletedEvent

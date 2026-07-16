@@ -289,6 +289,45 @@ export class CustomerRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  /**
+   * Apply fields after the aggregate revision has already been acquired by a
+   * customer-scoped command. This deliberately does not increment revision.
+   */
+  async patchWithinRevision(
+    id: string,
+    patch: CustomerPatch
+  ): Promise<Customer | null> {
+    const update: Record<string, unknown> = {
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (patch.email !== undefined) {
+      const email = patch.email?.trim() || null;
+      Object.assign(update, {
+        email,
+        normalizedEmail: email ? normalizeEmail(email) : null,
+        ...(email === null ? { emailVerified: false } : {}),
+      });
+    }
+    if (patch.phoneE164 === null) {
+      Object.assign(update, { phoneVerified: false });
+    }
+
+    const rows = await this.connection
+      .update(customer)
+      .set(update)
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          eq(customer.id, id),
+          isNull(customer.deletedAt)
+        )
+      )
+      .returning();
+    return rows[0] ?? null;
+  }
+
   async softDelete(id: string, expectedRevision?: number): Promise<boolean> {
     const now = new Date().toISOString();
     const conditions = [

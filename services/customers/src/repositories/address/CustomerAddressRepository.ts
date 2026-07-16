@@ -78,8 +78,8 @@ export type CustomerAddressPatch = Partial<
     >,
     "latitude" | "longitude"
   > & {
-    latitude: number | string | null;
-    longitude: number | string | null;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
   }
 >;
 

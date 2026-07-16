@@ -6142,6 +6142,7 @@ __metadata:
     "@nestjs/common": "npm:^10.0.0"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/drizzle-query": "npm:*"
+    "@shopana/events": "npm:*"
     "@shopana/shared-context": "npm:*"
     "@shopana/shared-graphql-guid": "npm:*"
     "@shopana/shared-kernel": "npm:*"
