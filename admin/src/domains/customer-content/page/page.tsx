@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Skeleton, Tag } from "antd";
+import { Alert, Tag } from "antd";
 import {
   LuFileSearch as CasesOutlined,
   LuFlag as ReportsOutlined,
@@ -16,9 +16,7 @@ import { createStyles } from "antd-style";
 import { DataLayout } from "@/layouts/data";
 import { SectionNavigator } from "@/layouts/section-navigation";
 import { usePathParams } from "@/registry";
-import { useReviews } from "../reviews/hooks";
-import { useQuestions } from "../questions/hooks";
-import { useContentReports, useExternalReferences, useModerationCases, useModerationContents, useReviewRequests } from "../management/hooks";
+import { useUgcSectionCounts } from "./use-ugc-section-counts";
 
 const useStyles = createStyles(({ token }) => ({
   content: {
@@ -33,15 +31,8 @@ export default function UgcPage() {
   const router = useRouter();
   const { resolvePath } = usePathParams();
   const open = (path: string) => () => router.push(resolvePath(path));
-  const reviews = useReviews({ first: 1 });
-  const questions = useQuestions({ first: 1 });
-  const moderation = useModerationContents({ first: 1 });
-  const reports = useContentReports({ first: 1 });
-  const cases = useModerationCases({ first: 1 });
-  const reviewRequests = useReviewRequests({ first: 1 });
-  const externalReferences = useExternalReferences({ first: 1 });
-  const error = reviews.error ?? questions.error ?? moderation.error ?? reports.error ?? cases.error ?? reviewRequests.error ?? externalReferences.error;
-  const count = (value: number, label: string, loading: boolean) => loading ? <Skeleton.Input active size="small" style={{ width: 88 }} /> : <Tag bordered={false} color={value > 0 ? "blue" : undefined}>{value} {label}</Tag>;
+  const { counts, error } = useUgcSectionCounts();
+  const count = (value: number, label: string) => <Tag bordered={false} color={value > 0 ? "blue" : undefined}>{value} {label}</Tag>;
 
   return <DataLayout name="ugc">
     <DataLayout.Header><DataLayout.Title>UGC</DataLayout.Title></DataLayout.Header>
@@ -53,7 +44,7 @@ export default function UgcPage() {
           title: "Reviews",
           description: "Manage product reviews, ratings, media and merchant replies.",
           icon: <ReviewsOutlined />,
-          trailing: count(reviews.totalCount, "reviews", reviews.loading),
+          trailing: count(counts.reviews, "reviews"),
           onClick: open("/:orgName/:storeName/customer-content/reviews"),
         },
         {
@@ -61,7 +52,7 @@ export default function UgcPage() {
           title: "Q&A",
           description: "Review product questions, answers and unanswered customer requests.",
           icon: <QuestionsOutlined />,
-          trailing: count(questions.totalCount, "questions", questions.loading),
+          trailing: count(counts.questions, "questions"),
           onClick: open("/:orgName/:storeName/customer-content/questions"),
         },
         {
@@ -69,7 +60,7 @@ export default function UgcPage() {
           title: "Moderation",
           description: "Inspect customer content and apply moderation decisions.",
           icon: <ModerationOutlined />,
-          trailing: count(moderation.totalCount, "items", moderation.loading),
+          trailing: count(counts.moderation, "items"),
           onClick: open("/:orgName/:storeName/customer-content/moderation"),
         },
         {
@@ -77,7 +68,7 @@ export default function UgcPage() {
           title: "Reports",
           description: "Handle content reports submitted by customers and staff.",
           icon: <ReportsOutlined />,
-          trailing: count(reports.totalCount, "reports", reports.loading),
+          trailing: count(counts.reports, "reports"),
           onClick: open("/:orgName/:storeName/customer-content/reports"),
         },
         {
@@ -85,7 +76,7 @@ export default function UgcPage() {
           title: "Moderation cases",
           description: "Track escalated moderation investigations and resolutions.",
           icon: <CasesOutlined />,
-          trailing: count(cases.totalCount, "cases", cases.loading),
+          trailing: count(counts.moderationCases, "cases"),
           onClick: open("/:orgName/:storeName/customer-content/cases"),
         },
         {
@@ -93,7 +84,7 @@ export default function UgcPage() {
           title: "Review requests",
           description: "Schedule and monitor post-purchase review invitations.",
           icon: <RequestsOutlined />,
-          trailing: count(reviewRequests.totalCount, "requests", reviewRequests.loading),
+          trailing: count(counts.reviewRequests, "requests"),
           onClick: open("/:orgName/:storeName/customer-content/review-requests"),
         },
         {
@@ -101,7 +92,7 @@ export default function UgcPage() {
           title: "External sync",
           description: "Manage review references synchronized with external platforms.",
           icon: <SyncOutlined />,
-          trailing: count(externalReferences.totalCount, "references", externalReferences.loading),
+          trailing: count(counts.externalReferences, "references"),
           onClick: open("/:orgName/:storeName/customer-content/external-sync"),
         },
         {
