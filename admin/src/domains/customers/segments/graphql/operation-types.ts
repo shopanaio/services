@@ -3,8 +3,6 @@ import type {
   ApiCustomerSegmentConnection,
   ApiCustomerSegmentCreateInput,
   ApiCustomerSegmentCreatePayload,
-  ApiCustomerSegmentCustomersSetInput,
-  ApiCustomerSegmentCustomersSetPayload,
   ApiCustomerSegmentDeleteInput,
   ApiCustomerSegmentDeletePayload,
   ApiCustomerSegmentOrderByInput,
@@ -67,14 +65,4 @@ export interface CustomerSegmentDeleteMutationData {
 
 export interface CustomerSegmentDeleteMutationVariables {
   input: ApiCustomerSegmentDeleteInput;
-}
-
-export interface CustomerSegmentCustomersSetMutationData {
-  customersMutation: Pick<ApiCustomersMutation, "customerSegmentCustomersSet"> & {
-    customerSegmentCustomersSet: ApiCustomerSegmentCustomersSetPayload;
-  };
-}
-
-export interface CustomerSegmentCustomersSetMutationVariables {
-  input: ApiCustomerSegmentCustomersSetInput;
 }

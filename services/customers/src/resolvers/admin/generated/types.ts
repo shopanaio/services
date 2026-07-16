@@ -608,19 +608,6 @@ export type CustomerAddressCreatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/** Atomically replaces both defaults. Null clears a default. */
-export type CustomerAddressDefaultsUpdateInput = {
-  billingAddressId?: InputMaybe<Scalars['ID']['input']>;
-  customerId: Scalars['ID']['input'];
-  shippingAddressId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-export type CustomerAddressDefaultsUpdatePayload = {
-  __typename?: 'CustomerAddressDefaultsUpdatePayload';
-  customer: Maybe<Customer>;
-  userErrors: Array<GenericUserError>;
-};
-
 export type CustomerAddressDeleteInput = {
   id: Scalars['ID']['input'];
 };
@@ -682,6 +669,10 @@ export type CustomerAddressUpdateInput = {
   companyName?: InputMaybe<Scalars['String']['input']>;
   countryCode?: InputMaybe<Scalars['String']['input']>;
   firstName?: InputMaybe<Scalars['String']['input']>;
+  /** Set or clear this address as the customer's billing default. */
+  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Set or clear this address as the customer's shipping default. */
+  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
   label?: InputMaybe<Scalars['String']['input']>;
   lastName?: InputMaybe<Scalars['String']['input']>;
   latitude?: InputMaybe<Scalars['Float']['input']>;
@@ -850,6 +841,34 @@ export enum CustomerConsentChannel {
   Whatsapp = 'WHATSAPP'
 }
 
+export type CustomerConsentCreateInput = {
+  channel: CustomerConsentChannel;
+  contactPoint: Scalars['String']['input'];
+  customerId: Scalars['ID']['input'];
+  evidence?: InputMaybe<Scalars['JSON']['input']>;
+  /** Defaults to UNKNOWN when omitted. */
+  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
+  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
+  state: CustomerConsentAdminState;
+};
+
+export type CustomerConsentCreatePayload = {
+  __typename?: 'CustomerConsentCreatePayload';
+  consent: Maybe<CustomerConsent>;
+  event: Maybe<CustomerConsentEvent>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerConsentDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerConsentDeletePayload = {
+  __typename?: 'CustomerConsentDeletePayload';
+  deletedConsentId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
 /** Immutable evidence record for a consent transition. */
 export type CustomerConsentEvent = Node & {
   __typename?: 'CustomerConsentEvent';
@@ -916,24 +935,6 @@ export enum CustomerConsentOptInLevel {
   Unknown = 'UNKNOWN'
 }
 
-export type CustomerConsentSetInput = {
-  channel: CustomerConsentChannel;
-  contactPoint: Scalars['String']['input'];
-  customerId: Scalars['ID']['input'];
-  evidence?: InputMaybe<Scalars['JSON']['input']>;
-  /** Defaults to UNKNOWN when omitted. */
-  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
-  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
-  state: CustomerConsentAdminState;
-};
-
-export type CustomerConsentSetPayload = {
-  __typename?: 'CustomerConsentSetPayload';
-  consent: Maybe<CustomerConsent>;
-  event: Maybe<CustomerConsentEvent>;
-  userErrors: Array<GenericUserError>;
-};
-
 export enum CustomerConsentState {
   Invalid = 'INVALID',
   NotSubscribed = 'NOT_SUBSCRIBED',
@@ -950,6 +951,20 @@ export type CustomerConsentStateFilter = {
   _notIn?: InputMaybe<Array<CustomerConsentState>>;
 };
 
+/**
+ * Consent update fields. A state transition appends an immutable evidence event;
+ * customerId can move the relation before any evidence has been recorded.
+ */
+export type CustomerConsentUpdateInput = {
+  channel?: InputMaybe<CustomerConsentChannel>;
+  contactPoint?: InputMaybe<Scalars['String']['input']>;
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  evidence?: InputMaybe<Scalars['JSON']['input']>;
+  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
+  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
+  state?: InputMaybe<CustomerConsentAdminState>;
+};
+
 /** Consent transition scoped to the customer being updated. */
 export type CustomerConsentUpdateOperationInput = {
   channel: CustomerConsentChannel;
@@ -959,6 +974,14 @@ export type CustomerConsentUpdateOperationInput = {
   optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
   sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
   state: CustomerConsentAdminState;
+};
+
+export type CustomerConsentUpdatePayload = {
+  __typename?: 'CustomerConsentUpdatePayload';
+  consent: Maybe<CustomerConsent>;
+  event: Maybe<CustomerConsentEvent>;
+  operationResults: Array<CustomerOperationResult>;
+  userErrors: Array<GenericUserError>;
 };
 
 /** Atomic consent transitions keyed by channel. */
@@ -1017,15 +1040,8 @@ export type CustomerDataRequest = Node & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type CustomerDataRequestCancelInput = {
-  id: Scalars['ID']['input'];
+export type CustomerDataRequestCancelOperationInput = {
   reason?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type CustomerDataRequestCancelPayload = {
-  __typename?: 'CustomerDataRequestCancelPayload';
-  dataRequest: Maybe<CustomerDataRequest>;
-  userErrors: Array<GenericUserError>;
 };
 
 export type CustomerDataRequestConnection = {
@@ -1046,6 +1062,16 @@ export type CustomerDataRequestCreateInput = {
 export type CustomerDataRequestCreatePayload = {
   __typename?: 'CustomerDataRequestCreatePayload';
   dataRequest: Maybe<CustomerDataRequest>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerDataRequestDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerDataRequestDeletePayload = {
+  __typename?: 'CustomerDataRequestDeletePayload';
+  deletedDataRequestId: Maybe<Scalars['ID']['output']>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -1112,6 +1138,23 @@ export type CustomerDataRequestTypeFilter = {
   _notIn?: InputMaybe<Array<CustomerDataRequestType>>;
 };
 
+/** Update request metadata, its customer relation, or cancel the workflow. */
+export type CustomerDataRequestUpdateInput = {
+  cancel?: InputMaybe<CustomerDataRequestCancelOperationInput>;
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  legalBasis?: InputMaybe<Scalars['String']['input']>;
+  requestMetadata?: InputMaybe<Scalars['JSON']['input']>;
+  type?: InputMaybe<CustomerDataRequestType>;
+};
+
+export type CustomerDataRequestUpdatePayload = {
+  __typename?: 'CustomerDataRequestUpdatePayload';
+  dataRequest: Maybe<CustomerDataRequest>;
+  operationResults: Array<CustomerOperationResult>;
+  userErrors: Array<GenericUserError>;
+};
+
 /** Filter conditions for CustomerDataRequest */
 export type CustomerDataRequestWhereInput = {
   /** Logical AND of multiple conditions */
@@ -1144,6 +1187,17 @@ export type CustomerDataRequestWhereInput = {
   type?: InputMaybe<CustomerDataRequestTypeFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export type CustomerDeleteInput = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerDeletePayload = {
+  __typename?: 'CustomerDeletePayload';
+  deletedCustomerId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
 };
 
 export type CustomerEdge = {
@@ -1234,17 +1288,6 @@ export type CustomerGroupMembershipConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type CustomerGroupMembershipDeleteInput = {
-  customerId: Scalars['ID']['input'];
-  groupId: Scalars['ID']['input'];
-};
-
-export type CustomerGroupMembershipDeletePayload = {
-  __typename?: 'CustomerGroupMembershipDeletePayload';
-  deletedMembershipId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
-};
-
 export type CustomerGroupMembershipEdge = {
   __typename?: 'CustomerGroupMembershipEdge';
   cursor: Scalars['String']['output'];
@@ -1273,20 +1316,26 @@ export enum CustomerGroupMembershipOrderField {
   Source = 'source'
 }
 
-/** Create or update a customer's membership in a group. */
-export type CustomerGroupMembershipSetInput = {
+/** Create a customer's membership in this group. */
+export type CustomerGroupMembershipRelationCreateInput = {
   customerId: Scalars['ID']['input'];
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
-  groupId: Scalars['ID']['input'];
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
-export type CustomerGroupMembershipSetPayload = {
-  __typename?: 'CustomerGroupMembershipSetPayload';
-  membership: Maybe<CustomerGroupMembership>;
-  userErrors: Array<GenericUserError>;
+export type CustomerGroupMembershipRelationUpdateInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  membershipId: Scalars['ID']['input'];
 };
 
+export type CustomerGroupMembershipRelationsUpdateInput = {
+  create?: InputMaybe<Array<CustomerGroupMembershipRelationCreateInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<CustomerGroupMembershipRelationUpdateInput>>;
+};
+
+/** One group membership used by the unified customer update. */
 export type CustomerGroupMembershipUpdateOperationInput = {
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   groupId: Scalars['ID']['input'];
@@ -1353,6 +1402,8 @@ export type CustomerGroupUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Create, update, or delete customer memberships in this group. */
+  memberships?: InputMaybe<CustomerGroupMembershipRelationsUpdateInput>;
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1429,6 +1480,28 @@ export type CustomerMergeConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+export type CustomerMergeCreateInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+  sourceCustomerId: Scalars['ID']['input'];
+  targetCustomerId: Scalars['ID']['input'];
+};
+
+export type CustomerMergeCreatePayload = {
+  __typename?: 'CustomerMergeCreatePayload';
+  merge: Maybe<CustomerMerge>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CustomerMergeDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CustomerMergeDeletePayload = {
+  __typename?: 'CustomerMergeDeletePayload';
+  deletedMergeId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
 export type CustomerMergeEdge = {
   __typename?: 'CustomerMergeEdge';
   cursor: Scalars['String']['output'];
@@ -1459,18 +1532,6 @@ export enum CustomerMergeOrderField {
   UpdatedAt = 'updatedAt'
 }
 
-export type CustomerMergeRequestInput = {
-  reason?: InputMaybe<Scalars['String']['input']>;
-  sourceCustomerId: Scalars['ID']['input'];
-  targetCustomerId: Scalars['ID']['input'];
-};
-
-export type CustomerMergeRequestPayload = {
-  __typename?: 'CustomerMergeRequestPayload';
-  merge: Maybe<CustomerMerge>;
-  userErrors: Array<GenericUserError>;
-};
-
 export enum CustomerMergeStatus {
   Completed = 'COMPLETED',
   Failed = 'FAILED',
@@ -1483,6 +1544,20 @@ export type CustomerMergeStatusFilter = {
   _in?: InputMaybe<Array<CustomerMergeStatus>>;
   _neq?: InputMaybe<CustomerMergeStatus>;
   _notIn?: InputMaybe<Array<CustomerMergeStatus>>;
+};
+
+/** Update merge metadata or either customer relation before processing starts. */
+export type CustomerMergeUpdateInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+  sourceCustomerId?: InputMaybe<Scalars['ID']['input']>;
+  targetCustomerId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type CustomerMergeUpdatePayload = {
+  __typename?: 'CustomerMergeUpdatePayload';
+  merge: Maybe<CustomerMerge>;
+  operationResults: Array<CustomerOperationResult>;
+  userErrors: Array<GenericUserError>;
 };
 
 /** Filter conditions for CustomerMerge */
@@ -1610,7 +1685,7 @@ export type CustomerNoteUpdateInput = {
   note?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Result of one section in the unified customer update. */
+/** Result of one operation in a customer-domain update. */
 export type CustomerOperationResult = {
   __typename?: 'CustomerOperationResult';
   applied: Scalars['Boolean']['output'];
@@ -1623,7 +1698,9 @@ export enum CustomerOperationType {
   CompanyUpdate = 'COMPANY_UPDATE',
   ConsentUpdate = 'CONSENT_UPDATE',
   ContactUpdate = 'CONTACT_UPDATE',
+  DataRequestUpdate = 'DATA_REQUEST_UPDATE',
   GroupUpdate = 'GROUP_UPDATE',
+  MergeUpdate = 'MERGE_UPDATE',
   ModerationUpdate = 'MODERATION_UPDATE',
   NoteUpdate = 'NOTE_UPDATE',
   ProfileUpdate = 'PROFILE_UPDATE',
@@ -1745,52 +1822,6 @@ export type CustomerSegmentCreatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/** Add customers to a manual segment. */
-export type CustomerSegmentCustomersAddInput = {
-  customerIds: Array<Scalars['ID']['input']>;
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  segmentId: Scalars['ID']['input'];
-};
-
-export type CustomerSegmentCustomersAddPayload = {
-  __typename?: 'CustomerSegmentCustomersAddPayload';
-  customers: Array<Customer>;
-  segment: Maybe<CustomerSegment>;
-  userErrors: Array<GenericUserError>;
-};
-
-/** Remove customers from a manual segment. */
-export type CustomerSegmentCustomersRemoveInput = {
-  customerIds: Array<Scalars['ID']['input']>;
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  segmentId: Scalars['ID']['input'];
-};
-
-export type CustomerSegmentCustomersRemovePayload = {
-  __typename?: 'CustomerSegmentCustomersRemovePayload';
-  removedCustomerIds: Array<Scalars['ID']['output']>;
-  segment: Maybe<CustomerSegment>;
-  userErrors: Array<GenericUserError>;
-};
-
-/** Atomically replace all manual memberships of a segment. */
-export type CustomerSegmentCustomersSetInput = {
-  customerIds: Array<Scalars['ID']['input']>;
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  segmentId: Scalars['ID']['input'];
-};
-
-export type CustomerSegmentCustomersSetPayload = {
-  __typename?: 'CustomerSegmentCustomersSetPayload';
-  customers: Array<Customer>;
-  segment: Maybe<CustomerSegment>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type CustomerSegmentCustomersUpdateInput = {
-  customerIds: Array<Scalars['ID']['input']>;
-};
-
 export type CustomerSegmentDeleteInput = {
   expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   id: Scalars['ID']['input'];
@@ -1851,6 +1882,24 @@ export enum CustomerSegmentMembershipOrderField {
   /** Sort by source */
   Source = 'source'
 }
+
+export type CustomerSegmentMembershipRelationCreateInput = {
+  customerId: Scalars['ID']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type CustomerSegmentMembershipRelationUpdateInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  membershipId: Scalars['ID']['input'];
+};
+
+export type CustomerSegmentMembershipRelationsUpdateInput = {
+  create?: InputMaybe<Array<CustomerSegmentMembershipRelationCreateInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Atomically replace all manual memberships with these customers. */
+  setCustomerIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<CustomerSegmentMembershipRelationUpdateInput>>;
+};
 
 /** Filter conditions for CustomerSegmentMembership */
 export type CustomerSegmentMembershipWhereInput = {
@@ -1932,8 +1981,8 @@ export type CustomerSegmentTypeFilter = {
 
 export type CustomerSegmentUpdateInput = {
   color?: InputMaybe<Scalars['String']['input']>;
-  /** When provided, atomically replaces all manual memberships. */
-  customers?: InputMaybe<CustomerSegmentCustomersUpdateInput>;
+  /** Create, update, delete, or replace manual customer memberships. */
+  customers?: InputMaybe<CustomerSegmentMembershipRelationsUpdateInput>;
   definition?: InputMaybe<Scalars['JSON']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -2026,17 +2075,6 @@ export type CustomerTagCustomerAssignmentsArgs = {
   where?: InputMaybe<CustomerTagAssignmentWhereInput>;
 };
 
-export type CustomerTagAssignInput = {
-  customerId: Scalars['ID']['input'];
-  tagId: Scalars['ID']['input'];
-};
-
-export type CustomerTagAssignPayload = {
-  __typename?: 'CustomerTagAssignPayload';
-  assignment: Maybe<CustomerTagAssignment>;
-  userErrors: Array<GenericUserError>;
-};
-
 export type CustomerTagAssignment = Node & {
   __typename?: 'CustomerTagAssignment';
   assignedAt: Scalars['DateTime']['output'];
@@ -2074,6 +2112,15 @@ export enum CustomerTagAssignmentOrderField {
   /** Sort by id */
   Id = 'id'
 }
+
+export type CustomerTagAssignmentRelationCreateInput = {
+  customerId: Scalars['ID']['input'];
+};
+
+export type CustomerTagAssignmentRelationsUpdateInput = {
+  create?: InputMaybe<Array<CustomerTagAssignmentRelationCreateInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
 
 /** Filter conditions for CustomerTagAssignment */
 export type CustomerTagAssignmentWhereInput = {
@@ -2155,18 +2202,9 @@ export enum CustomerTagOrderField {
   UpdatedAt = 'updatedAt'
 }
 
-export type CustomerTagUnassignInput = {
-  customerId: Scalars['ID']['input'];
-  tagId: Scalars['ID']['input'];
-};
-
-export type CustomerTagUnassignPayload = {
-  __typename?: 'CustomerTagUnassignPayload';
-  deletedAssignmentId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
-};
-
 export type CustomerTagUpdateInput = {
+  /** Create or delete customer assignments for this tag. */
+  assignments?: InputMaybe<CustomerTagAssignmentRelationsUpdateInput>;
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2633,30 +2671,28 @@ export type CustomerWhereInput = {
 export type CustomersMutation = {
   __typename?: 'CustomersMutation';
   customerAddressCreate: CustomerAddressCreatePayload;
-  customerAddressDefaultsUpdate: CustomerAddressDefaultsUpdatePayload;
   customerAddressDelete: CustomerAddressDeletePayload;
   customerAddressUpdate: CustomerAddressUpdatePayload;
-  /** Change current consent state and append an immutable evidence event. */
-  customerConsentSet: CustomerConsentSetPayload;
+  customerConsentCreate: CustomerConsentCreatePayload;
+  customerConsentDelete: CustomerConsentDeletePayload;
+  /** Update consent state and append an immutable evidence event. */
+  customerConsentUpdate: CustomerConsentUpdatePayload;
   customerCreate: CustomerCreatePayload;
-  customerDataRequestCancel: CustomerDataRequestCancelPayload;
   customerDataRequestCreate: CustomerDataRequestCreatePayload;
+  customerDataRequestDelete: CustomerDataRequestDeletePayload;
+  customerDataRequestUpdate: CustomerDataRequestUpdatePayload;
+  customerDelete: CustomerDeletePayload;
   customerGroupCreate: CustomerGroupCreatePayload;
   customerGroupDelete: CustomerGroupDeletePayload;
-  customerGroupMembershipDelete: CustomerGroupMembershipDeletePayload;
-  customerGroupMembershipSet: CustomerGroupMembershipSetPayload;
   customerGroupUpdate: CustomerGroupUpdatePayload;
-  customerMergeRequest: CustomerMergeRequestPayload;
+  customerMergeCreate: CustomerMergeCreatePayload;
+  customerMergeDelete: CustomerMergeDeletePayload;
+  customerMergeUpdate: CustomerMergeUpdatePayload;
   customerSegmentCreate: CustomerSegmentCreatePayload;
-  customerSegmentCustomersAdd: CustomerSegmentCustomersAddPayload;
-  customerSegmentCustomersRemove: CustomerSegmentCustomersRemovePayload;
-  customerSegmentCustomersSet: CustomerSegmentCustomersSetPayload;
   customerSegmentDelete: CustomerSegmentDeletePayload;
   customerSegmentUpdate: CustomerSegmentUpdatePayload;
-  customerTagAssign: CustomerTagAssignPayload;
   customerTagCreate: CustomerTagCreatePayload;
   customerTagDelete: CustomerTagDeletePayload;
-  customerTagUnassign: CustomerTagUnassignPayload;
   customerTagUpdate: CustomerTagUpdatePayload;
   customerTaxExemptionCreate: CustomerTaxExemptionCreatePayload;
   customerTaxExemptionDelete: CustomerTaxExemptionDeletePayload;
@@ -2676,12 +2712,6 @@ export type CustomersMutationCustomerAddressCreateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type CustomersMutationCustomerAddressDefaultsUpdateArgs = {
-  input: CustomerAddressDefaultsUpdateInput;
-};
-
-
-/** Store-scoped customer commands. */
 export type CustomersMutationCustomerAddressDeleteArgs = {
   input: CustomerAddressDeleteInput;
 };
@@ -2695,8 +2725,21 @@ export type CustomersMutationCustomerAddressUpdateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type CustomersMutationCustomerConsentSetArgs = {
-  input: CustomerConsentSetInput;
+export type CustomersMutationCustomerConsentCreateArgs = {
+  input: CustomerConsentCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerConsentDeleteArgs = {
+  input: CustomerConsentDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerConsentUpdateArgs = {
+  consentId: Scalars['ID']['input'];
+  operations?: InputMaybe<CustomerConsentUpdateInput>;
 };
 
 
@@ -2707,14 +2750,27 @@ export type CustomersMutationCustomerCreateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type CustomersMutationCustomerDataRequestCancelArgs = {
-  input: CustomerDataRequestCancelInput;
+export type CustomersMutationCustomerDataRequestCreateArgs = {
+  input: CustomerDataRequestCreateInput;
 };
 
 
 /** Store-scoped customer commands. */
-export type CustomersMutationCustomerDataRequestCreateArgs = {
-  input: CustomerDataRequestCreateInput;
+export type CustomersMutationCustomerDataRequestDeleteArgs = {
+  input: CustomerDataRequestDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerDataRequestUpdateArgs = {
+  dataRequestId: Scalars['ID']['input'];
+  operations?: InputMaybe<CustomerDataRequestUpdateInput>;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerDeleteArgs = {
+  input: CustomerDeleteInput;
 };
 
 
@@ -2731,18 +2787,6 @@ export type CustomersMutationCustomerGroupDeleteArgs = {
 
 
 /** Store-scoped customer commands. */
-export type CustomersMutationCustomerGroupMembershipDeleteArgs = {
-  input: CustomerGroupMembershipDeleteInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type CustomersMutationCustomerGroupMembershipSetArgs = {
-  input: CustomerGroupMembershipSetInput;
-};
-
-
-/** Store-scoped customer commands. */
 export type CustomersMutationCustomerGroupUpdateArgs = {
   groupId: Scalars['ID']['input'];
   operations?: InputMaybe<CustomerGroupUpdateInput>;
@@ -2750,32 +2794,27 @@ export type CustomersMutationCustomerGroupUpdateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type CustomersMutationCustomerMergeRequestArgs = {
-  input: CustomerMergeRequestInput;
+export type CustomersMutationCustomerMergeCreateArgs = {
+  input: CustomerMergeCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerMergeDeleteArgs = {
+  input: CustomerMergeDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerMergeUpdateArgs = {
+  mergeId: Scalars['ID']['input'];
+  operations?: InputMaybe<CustomerMergeUpdateInput>;
 };
 
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerSegmentCreateArgs = {
   input: CustomerSegmentCreateInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type CustomersMutationCustomerSegmentCustomersAddArgs = {
-  input: CustomerSegmentCustomersAddInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type CustomersMutationCustomerSegmentCustomersRemoveArgs = {
-  input: CustomerSegmentCustomersRemoveInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type CustomersMutationCustomerSegmentCustomersSetArgs = {
-  input: CustomerSegmentCustomersSetInput;
 };
 
 
@@ -2794,12 +2833,6 @@ export type CustomersMutationCustomerSegmentUpdateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type CustomersMutationCustomerTagAssignArgs = {
-  input: CustomerTagAssignInput;
-};
-
-
-/** Store-scoped customer commands. */
 export type CustomersMutationCustomerTagCreateArgs = {
   input: CustomerTagCreateInput;
 };
@@ -2808,12 +2841,6 @@ export type CustomersMutationCustomerTagCreateArgs = {
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerTagDeleteArgs = {
   input: CustomerTagDeleteInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type CustomersMutationCustomerTagUnassignArgs = {
-  input: CustomerTagUnassignInput;
 };
 
 
@@ -3637,8 +3664,6 @@ export type ResolversTypes = ResolversObject<{
   CustomerAddressCreateInput: CustomerAddressCreateInput;
   CustomerAddressCreateOperationInput: CustomerAddressCreateOperationInput;
   CustomerAddressCreatePayload: ResolverTypeWrapper<CustomerAddressCreatePayload>;
-  CustomerAddressDefaultsUpdateInput: CustomerAddressDefaultsUpdateInput;
-  CustomerAddressDefaultsUpdatePayload: ResolverTypeWrapper<CustomerAddressDefaultsUpdatePayload>;
   CustomerAddressDeleteInput: CustomerAddressDeleteInput;
   CustomerAddressDeletePayload: ResolverTypeWrapper<CustomerAddressDeletePayload>;
   CustomerAddressEdge: ResolverTypeWrapper<CustomerAddressEdge>;
@@ -3659,27 +3684,32 @@ export type ResolversTypes = ResolversObject<{
   CustomerConsent: ResolverTypeWrapper<CustomerConsent>;
   CustomerConsentAdminState: CustomerConsentAdminState;
   CustomerConsentChannel: CustomerConsentChannel;
+  CustomerConsentCreateInput: CustomerConsentCreateInput;
+  CustomerConsentCreatePayload: ResolverTypeWrapper<CustomerConsentCreatePayload>;
+  CustomerConsentDeleteInput: CustomerConsentDeleteInput;
+  CustomerConsentDeletePayload: ResolverTypeWrapper<CustomerConsentDeletePayload>;
   CustomerConsentEvent: ResolverTypeWrapper<CustomerConsentEvent>;
   CustomerConsentEventConnection: ResolverTypeWrapper<CustomerConsentEventConnection>;
   CustomerConsentEventEdge: ResolverTypeWrapper<CustomerConsentEventEdge>;
   CustomerConsentEventOrderByInput: CustomerConsentEventOrderByInput;
   CustomerConsentEventOrderField: CustomerConsentEventOrderField;
   CustomerConsentOptInLevel: CustomerConsentOptInLevel;
-  CustomerConsentSetInput: CustomerConsentSetInput;
-  CustomerConsentSetPayload: ResolverTypeWrapper<CustomerConsentSetPayload>;
   CustomerConsentState: CustomerConsentState;
   CustomerConsentStateFilter: CustomerConsentStateFilter;
+  CustomerConsentUpdateInput: CustomerConsentUpdateInput;
   CustomerConsentUpdateOperationInput: CustomerConsentUpdateOperationInput;
+  CustomerConsentUpdatePayload: ResolverTypeWrapper<CustomerConsentUpdatePayload>;
   CustomerConsentsUpdateInput: CustomerConsentsUpdateInput;
   CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
   CustomerCreatePayload: ResolverTypeWrapper<CustomerCreatePayload>;
   CustomerDataRequest: ResolverTypeWrapper<CustomerDataRequest>;
-  CustomerDataRequestCancelInput: CustomerDataRequestCancelInput;
-  CustomerDataRequestCancelPayload: ResolverTypeWrapper<CustomerDataRequestCancelPayload>;
+  CustomerDataRequestCancelOperationInput: CustomerDataRequestCancelOperationInput;
   CustomerDataRequestConnection: ResolverTypeWrapper<CustomerDataRequestConnection>;
   CustomerDataRequestCreateInput: CustomerDataRequestCreateInput;
   CustomerDataRequestCreatePayload: ResolverTypeWrapper<CustomerDataRequestCreatePayload>;
+  CustomerDataRequestDeleteInput: CustomerDataRequestDeleteInput;
+  CustomerDataRequestDeletePayload: ResolverTypeWrapper<CustomerDataRequestDeletePayload>;
   CustomerDataRequestEdge: ResolverTypeWrapper<CustomerDataRequestEdge>;
   CustomerDataRequestOrderByInput: CustomerDataRequestOrderByInput;
   CustomerDataRequestOrderField: CustomerDataRequestOrderField;
@@ -3687,7 +3717,11 @@ export type ResolversTypes = ResolversObject<{
   CustomerDataRequestStatusFilter: CustomerDataRequestStatusFilter;
   CustomerDataRequestType: CustomerDataRequestType;
   CustomerDataRequestTypeFilter: CustomerDataRequestTypeFilter;
+  CustomerDataRequestUpdateInput: CustomerDataRequestUpdateInput;
+  CustomerDataRequestUpdatePayload: ResolverTypeWrapper<CustomerDataRequestUpdatePayload>;
   CustomerDataRequestWhereInput: CustomerDataRequestWhereInput;
+  CustomerDeleteInput: CustomerDeleteInput;
+  CustomerDeletePayload: ResolverTypeWrapper<CustomerDeletePayload>;
   CustomerEdge: ResolverTypeWrapper<CustomerEdge>;
   CustomerGroup: ResolverTypeWrapper<CustomerGroup>;
   CustomerGroupConnection: ResolverTypeWrapper<CustomerGroupConnection>;
@@ -3698,13 +3732,12 @@ export type ResolversTypes = ResolversObject<{
   CustomerGroupEdge: ResolverTypeWrapper<CustomerGroupEdge>;
   CustomerGroupMembership: ResolverTypeWrapper<CustomerGroupMembership>;
   CustomerGroupMembershipConnection: ResolverTypeWrapper<CustomerGroupMembershipConnection>;
-  CustomerGroupMembershipDeleteInput: CustomerGroupMembershipDeleteInput;
-  CustomerGroupMembershipDeletePayload: ResolverTypeWrapper<CustomerGroupMembershipDeletePayload>;
   CustomerGroupMembershipEdge: ResolverTypeWrapper<CustomerGroupMembershipEdge>;
   CustomerGroupMembershipOrderByInput: CustomerGroupMembershipOrderByInput;
   CustomerGroupMembershipOrderField: CustomerGroupMembershipOrderField;
-  CustomerGroupMembershipSetInput: CustomerGroupMembershipSetInput;
-  CustomerGroupMembershipSetPayload: ResolverTypeWrapper<CustomerGroupMembershipSetPayload>;
+  CustomerGroupMembershipRelationCreateInput: CustomerGroupMembershipRelationCreateInput;
+  CustomerGroupMembershipRelationUpdateInput: CustomerGroupMembershipRelationUpdateInput;
+  CustomerGroupMembershipRelationsUpdateInput: CustomerGroupMembershipRelationsUpdateInput;
   CustomerGroupMembershipUpdateOperationInput: CustomerGroupMembershipUpdateOperationInput;
   CustomerGroupMembershipWhereInput: CustomerGroupMembershipWhereInput;
   CustomerGroupMembershipsUpdateInput: CustomerGroupMembershipsUpdateInput;
@@ -3717,13 +3750,17 @@ export type ResolversTypes = ResolversObject<{
   CustomerLifecycleStatusFilter: CustomerLifecycleStatusFilter;
   CustomerMerge: ResolverTypeWrapper<CustomerMerge>;
   CustomerMergeConnection: ResolverTypeWrapper<CustomerMergeConnection>;
+  CustomerMergeCreateInput: CustomerMergeCreateInput;
+  CustomerMergeCreatePayload: ResolverTypeWrapper<CustomerMergeCreatePayload>;
+  CustomerMergeDeleteInput: CustomerMergeDeleteInput;
+  CustomerMergeDeletePayload: ResolverTypeWrapper<CustomerMergeDeletePayload>;
   CustomerMergeEdge: ResolverTypeWrapper<CustomerMergeEdge>;
   CustomerMergeOrderByInput: CustomerMergeOrderByInput;
   CustomerMergeOrderField: CustomerMergeOrderField;
-  CustomerMergeRequestInput: CustomerMergeRequestInput;
-  CustomerMergeRequestPayload: ResolverTypeWrapper<CustomerMergeRequestPayload>;
   CustomerMergeStatus: CustomerMergeStatus;
   CustomerMergeStatusFilter: CustomerMergeStatusFilter;
+  CustomerMergeUpdateInput: CustomerMergeUpdateInput;
+  CustomerMergeUpdatePayload: ResolverTypeWrapper<CustomerMergeUpdatePayload>;
   CustomerMergeWhereInput: CustomerMergeWhereInput;
   CustomerModerationUpdateInput: CustomerModerationUpdateInput;
   CustomerMonetaryStatistics: ResolverTypeWrapper<CustomerMonetaryStatistics>;
@@ -3742,13 +3779,6 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentConnection: ResolverTypeWrapper<CustomerSegmentConnection>;
   CustomerSegmentCreateInput: CustomerSegmentCreateInput;
   CustomerSegmentCreatePayload: ResolverTypeWrapper<CustomerSegmentCreatePayload>;
-  CustomerSegmentCustomersAddInput: CustomerSegmentCustomersAddInput;
-  CustomerSegmentCustomersAddPayload: ResolverTypeWrapper<CustomerSegmentCustomersAddPayload>;
-  CustomerSegmentCustomersRemoveInput: CustomerSegmentCustomersRemoveInput;
-  CustomerSegmentCustomersRemovePayload: ResolverTypeWrapper<CustomerSegmentCustomersRemovePayload>;
-  CustomerSegmentCustomersSetInput: CustomerSegmentCustomersSetInput;
-  CustomerSegmentCustomersSetPayload: ResolverTypeWrapper<CustomerSegmentCustomersSetPayload>;
-  CustomerSegmentCustomersUpdateInput: CustomerSegmentCustomersUpdateInput;
   CustomerSegmentDeleteInput: CustomerSegmentDeleteInput;
   CustomerSegmentDeletePayload: ResolverTypeWrapper<CustomerSegmentDeletePayload>;
   CustomerSegmentEdge: ResolverTypeWrapper<CustomerSegmentEdge>;
@@ -3757,6 +3787,9 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentMembershipEdge: ResolverTypeWrapper<CustomerSegmentMembershipEdge>;
   CustomerSegmentMembershipOrderByInput: CustomerSegmentMembershipOrderByInput;
   CustomerSegmentMembershipOrderField: CustomerSegmentMembershipOrderField;
+  CustomerSegmentMembershipRelationCreateInput: CustomerSegmentMembershipRelationCreateInput;
+  CustomerSegmentMembershipRelationUpdateInput: CustomerSegmentMembershipRelationUpdateInput;
+  CustomerSegmentMembershipRelationsUpdateInput: CustomerSegmentMembershipRelationsUpdateInput;
   CustomerSegmentMembershipWhereInput: CustomerSegmentMembershipWhereInput;
   CustomerSegmentMembershipsUpdateInput: CustomerSegmentMembershipsUpdateInput;
   CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
@@ -3771,13 +3804,13 @@ export type ResolversTypes = ResolversObject<{
   CustomerStatistics: ResolverTypeWrapper<CustomerStatistics>;
   CustomerStatusUpdateInput: CustomerStatusUpdateInput;
   CustomerTag: ResolverTypeWrapper<CustomerTag>;
-  CustomerTagAssignInput: CustomerTagAssignInput;
-  CustomerTagAssignPayload: ResolverTypeWrapper<CustomerTagAssignPayload>;
   CustomerTagAssignment: ResolverTypeWrapper<CustomerTagAssignment>;
   CustomerTagAssignmentConnection: ResolverTypeWrapper<CustomerTagAssignmentConnection>;
   CustomerTagAssignmentEdge: ResolverTypeWrapper<CustomerTagAssignmentEdge>;
   CustomerTagAssignmentOrderByInput: CustomerTagAssignmentOrderByInput;
   CustomerTagAssignmentOrderField: CustomerTagAssignmentOrderField;
+  CustomerTagAssignmentRelationCreateInput: CustomerTagAssignmentRelationCreateInput;
+  CustomerTagAssignmentRelationsUpdateInput: CustomerTagAssignmentRelationsUpdateInput;
   CustomerTagAssignmentWhereInput: CustomerTagAssignmentWhereInput;
   CustomerTagAssignmentsUpdateInput: CustomerTagAssignmentsUpdateInput;
   CustomerTagConnection: ResolverTypeWrapper<CustomerTagConnection>;
@@ -3788,8 +3821,6 @@ export type ResolversTypes = ResolversObject<{
   CustomerTagEdge: ResolverTypeWrapper<CustomerTagEdge>;
   CustomerTagOrderByInput: CustomerTagOrderByInput;
   CustomerTagOrderField: CustomerTagOrderField;
-  CustomerTagUnassignInput: CustomerTagUnassignInput;
-  CustomerTagUnassignPayload: ResolverTypeWrapper<CustomerTagUnassignPayload>;
   CustomerTagUpdateInput: CustomerTagUpdateInput;
   CustomerTagUpdatePayload: ResolverTypeWrapper<CustomerTagUpdatePayload>;
   CustomerTagWhereInput: CustomerTagWhereInput;
@@ -3872,8 +3903,6 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerAddressCreateInput: CustomerAddressCreateInput;
   CustomerAddressCreateOperationInput: CustomerAddressCreateOperationInput;
   CustomerAddressCreatePayload: CustomerAddressCreatePayload;
-  CustomerAddressDefaultsUpdateInput: CustomerAddressDefaultsUpdateInput;
-  CustomerAddressDefaultsUpdatePayload: CustomerAddressDefaultsUpdatePayload;
   CustomerAddressDeleteInput: CustomerAddressDeleteInput;
   CustomerAddressDeletePayload: CustomerAddressDeletePayload;
   CustomerAddressEdge: CustomerAddressEdge;
@@ -3888,29 +3917,38 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
   CustomerConnection: CustomerConnection;
   CustomerConsent: CustomerConsent;
+  CustomerConsentCreateInput: CustomerConsentCreateInput;
+  CustomerConsentCreatePayload: CustomerConsentCreatePayload;
+  CustomerConsentDeleteInput: CustomerConsentDeleteInput;
+  CustomerConsentDeletePayload: CustomerConsentDeletePayload;
   CustomerConsentEvent: CustomerConsentEvent;
   CustomerConsentEventConnection: CustomerConsentEventConnection;
   CustomerConsentEventEdge: CustomerConsentEventEdge;
   CustomerConsentEventOrderByInput: CustomerConsentEventOrderByInput;
-  CustomerConsentSetInput: CustomerConsentSetInput;
-  CustomerConsentSetPayload: CustomerConsentSetPayload;
   CustomerConsentStateFilter: CustomerConsentStateFilter;
+  CustomerConsentUpdateInput: CustomerConsentUpdateInput;
   CustomerConsentUpdateOperationInput: CustomerConsentUpdateOperationInput;
+  CustomerConsentUpdatePayload: CustomerConsentUpdatePayload;
   CustomerConsentsUpdateInput: CustomerConsentsUpdateInput;
   CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
   CustomerCreatePayload: CustomerCreatePayload;
   CustomerDataRequest: CustomerDataRequest;
-  CustomerDataRequestCancelInput: CustomerDataRequestCancelInput;
-  CustomerDataRequestCancelPayload: CustomerDataRequestCancelPayload;
+  CustomerDataRequestCancelOperationInput: CustomerDataRequestCancelOperationInput;
   CustomerDataRequestConnection: CustomerDataRequestConnection;
   CustomerDataRequestCreateInput: CustomerDataRequestCreateInput;
   CustomerDataRequestCreatePayload: CustomerDataRequestCreatePayload;
+  CustomerDataRequestDeleteInput: CustomerDataRequestDeleteInput;
+  CustomerDataRequestDeletePayload: CustomerDataRequestDeletePayload;
   CustomerDataRequestEdge: CustomerDataRequestEdge;
   CustomerDataRequestOrderByInput: CustomerDataRequestOrderByInput;
   CustomerDataRequestStatusFilter: CustomerDataRequestStatusFilter;
   CustomerDataRequestTypeFilter: CustomerDataRequestTypeFilter;
+  CustomerDataRequestUpdateInput: CustomerDataRequestUpdateInput;
+  CustomerDataRequestUpdatePayload: CustomerDataRequestUpdatePayload;
   CustomerDataRequestWhereInput: CustomerDataRequestWhereInput;
+  CustomerDeleteInput: CustomerDeleteInput;
+  CustomerDeletePayload: CustomerDeletePayload;
   CustomerEdge: CustomerEdge;
   CustomerGroup: CustomerGroup;
   CustomerGroupConnection: CustomerGroupConnection;
@@ -3921,12 +3959,11 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerGroupEdge: CustomerGroupEdge;
   CustomerGroupMembership: CustomerGroupMembership;
   CustomerGroupMembershipConnection: CustomerGroupMembershipConnection;
-  CustomerGroupMembershipDeleteInput: CustomerGroupMembershipDeleteInput;
-  CustomerGroupMembershipDeletePayload: CustomerGroupMembershipDeletePayload;
   CustomerGroupMembershipEdge: CustomerGroupMembershipEdge;
   CustomerGroupMembershipOrderByInput: CustomerGroupMembershipOrderByInput;
-  CustomerGroupMembershipSetInput: CustomerGroupMembershipSetInput;
-  CustomerGroupMembershipSetPayload: CustomerGroupMembershipSetPayload;
+  CustomerGroupMembershipRelationCreateInput: CustomerGroupMembershipRelationCreateInput;
+  CustomerGroupMembershipRelationUpdateInput: CustomerGroupMembershipRelationUpdateInput;
+  CustomerGroupMembershipRelationsUpdateInput: CustomerGroupMembershipRelationsUpdateInput;
   CustomerGroupMembershipUpdateOperationInput: CustomerGroupMembershipUpdateOperationInput;
   CustomerGroupMembershipWhereInput: CustomerGroupMembershipWhereInput;
   CustomerGroupMembershipsUpdateInput: CustomerGroupMembershipsUpdateInput;
@@ -3937,11 +3974,15 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerLifecycleStatusFilter: CustomerLifecycleStatusFilter;
   CustomerMerge: CustomerMerge;
   CustomerMergeConnection: CustomerMergeConnection;
+  CustomerMergeCreateInput: CustomerMergeCreateInput;
+  CustomerMergeCreatePayload: CustomerMergeCreatePayload;
+  CustomerMergeDeleteInput: CustomerMergeDeleteInput;
+  CustomerMergeDeletePayload: CustomerMergeDeletePayload;
   CustomerMergeEdge: CustomerMergeEdge;
   CustomerMergeOrderByInput: CustomerMergeOrderByInput;
-  CustomerMergeRequestInput: CustomerMergeRequestInput;
-  CustomerMergeRequestPayload: CustomerMergeRequestPayload;
   CustomerMergeStatusFilter: CustomerMergeStatusFilter;
+  CustomerMergeUpdateInput: CustomerMergeUpdateInput;
+  CustomerMergeUpdatePayload: CustomerMergeUpdatePayload;
   CustomerMergeWhereInput: CustomerMergeWhereInput;
   CustomerModerationUpdateInput: CustomerModerationUpdateInput;
   CustomerMonetaryStatistics: CustomerMonetaryStatistics;
@@ -3957,13 +3998,6 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerSegmentConnection: CustomerSegmentConnection;
   CustomerSegmentCreateInput: CustomerSegmentCreateInput;
   CustomerSegmentCreatePayload: CustomerSegmentCreatePayload;
-  CustomerSegmentCustomersAddInput: CustomerSegmentCustomersAddInput;
-  CustomerSegmentCustomersAddPayload: CustomerSegmentCustomersAddPayload;
-  CustomerSegmentCustomersRemoveInput: CustomerSegmentCustomersRemoveInput;
-  CustomerSegmentCustomersRemovePayload: CustomerSegmentCustomersRemovePayload;
-  CustomerSegmentCustomersSetInput: CustomerSegmentCustomersSetInput;
-  CustomerSegmentCustomersSetPayload: CustomerSegmentCustomersSetPayload;
-  CustomerSegmentCustomersUpdateInput: CustomerSegmentCustomersUpdateInput;
   CustomerSegmentDeleteInput: CustomerSegmentDeleteInput;
   CustomerSegmentDeletePayload: CustomerSegmentDeletePayload;
   CustomerSegmentEdge: CustomerSegmentEdge;
@@ -3971,6 +4005,9 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerSegmentMembershipConnection: CustomerSegmentMembershipConnection;
   CustomerSegmentMembershipEdge: CustomerSegmentMembershipEdge;
   CustomerSegmentMembershipOrderByInput: CustomerSegmentMembershipOrderByInput;
+  CustomerSegmentMembershipRelationCreateInput: CustomerSegmentMembershipRelationCreateInput;
+  CustomerSegmentMembershipRelationUpdateInput: CustomerSegmentMembershipRelationUpdateInput;
+  CustomerSegmentMembershipRelationsUpdateInput: CustomerSegmentMembershipRelationsUpdateInput;
   CustomerSegmentMembershipWhereInput: CustomerSegmentMembershipWhereInput;
   CustomerSegmentMembershipsUpdateInput: CustomerSegmentMembershipsUpdateInput;
   CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
@@ -3982,12 +4019,12 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerStatistics: CustomerStatistics;
   CustomerStatusUpdateInput: CustomerStatusUpdateInput;
   CustomerTag: CustomerTag;
-  CustomerTagAssignInput: CustomerTagAssignInput;
-  CustomerTagAssignPayload: CustomerTagAssignPayload;
   CustomerTagAssignment: CustomerTagAssignment;
   CustomerTagAssignmentConnection: CustomerTagAssignmentConnection;
   CustomerTagAssignmentEdge: CustomerTagAssignmentEdge;
   CustomerTagAssignmentOrderByInput: CustomerTagAssignmentOrderByInput;
+  CustomerTagAssignmentRelationCreateInput: CustomerTagAssignmentRelationCreateInput;
+  CustomerTagAssignmentRelationsUpdateInput: CustomerTagAssignmentRelationsUpdateInput;
   CustomerTagAssignmentWhereInput: CustomerTagAssignmentWhereInput;
   CustomerTagAssignmentsUpdateInput: CustomerTagAssignmentsUpdateInput;
   CustomerTagConnection: CustomerTagConnection;
@@ -3997,8 +4034,6 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerTagDeletePayload: CustomerTagDeletePayload;
   CustomerTagEdge: CustomerTagEdge;
   CustomerTagOrderByInput: CustomerTagOrderByInput;
-  CustomerTagUnassignInput: CustomerTagUnassignInput;
-  CustomerTagUnassignPayload: CustomerTagUnassignPayload;
   CustomerTagUpdateInput: CustomerTagUpdateInput;
   CustomerTagUpdatePayload: CustomerTagUpdatePayload;
   CustomerTagWhereInput: CustomerTagWhereInput;
@@ -4150,12 +4185,6 @@ export type CustomerAddressCreatePayloadResolvers<ContextType = ServiceContext, 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CustomerAddressDefaultsUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressDefaultsUpdatePayload'] = ResolversParentTypes['CustomerAddressDefaultsUpdatePayload']> = ResolversObject<{
-  customer?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type CustomerAddressDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressDeletePayload'] = ResolversParentTypes['CustomerAddressDeletePayload']> = ResolversObject<{
   deletedAddressId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
@@ -4201,6 +4230,19 @@ export type CustomerConsentResolvers<ContextType = ServiceContext, ParentType ex
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CustomerConsentCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsentCreatePayload'] = ResolversParentTypes['CustomerConsentCreatePayload']> = ResolversObject<{
+  consent?: Resolver<Maybe<ResolversTypes['CustomerConsent']>, ParentType, ContextType>;
+  event?: Resolver<Maybe<ResolversTypes['CustomerConsentEvent']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerConsentDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsentDeletePayload'] = ResolversParentTypes['CustomerConsentDeletePayload']> = ResolversObject<{
+  deletedConsentId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CustomerConsentEventResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsentEvent'] = ResolversParentTypes['CustomerConsentEvent']> = ResolversObject<{
   actorId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   actorType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -4236,9 +4278,10 @@ export type CustomerConsentEventEdgeResolvers<ContextType = ServiceContext, Pare
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CustomerConsentSetPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsentSetPayload'] = ResolversParentTypes['CustomerConsentSetPayload']> = ResolversObject<{
+export type CustomerConsentUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerConsentUpdatePayload'] = ResolversParentTypes['CustomerConsentUpdatePayload']> = ResolversObject<{
   consent?: Resolver<Maybe<ResolversTypes['CustomerConsent']>, ParentType, ContextType>;
   event?: Resolver<Maybe<ResolversTypes['CustomerConsentEvent']>, ParentType, ContextType>;
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -4270,12 +4313,6 @@ export type CustomerDataRequestResolvers<ContextType = ServiceContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CustomerDataRequestCancelPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequestCancelPayload'] = ResolversParentTypes['CustomerDataRequestCancelPayload']> = ResolversObject<{
-  dataRequest?: Resolver<Maybe<ResolversTypes['CustomerDataRequest']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type CustomerDataRequestConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequestConnection'] = ResolversParentTypes['CustomerDataRequestConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['CustomerDataRequestEdge']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
@@ -4289,9 +4326,28 @@ export type CustomerDataRequestCreatePayloadResolvers<ContextType = ServiceConte
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CustomerDataRequestDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequestDeletePayload'] = ResolversParentTypes['CustomerDataRequestDeletePayload']> = ResolversObject<{
+  deletedDataRequestId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CustomerDataRequestEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequestEdge'] = ResolversParentTypes['CustomerDataRequestEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['CustomerDataRequest'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerDataRequestUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDataRequestUpdatePayload'] = ResolversParentTypes['CustomerDataRequestUpdatePayload']> = ResolversObject<{
+  dataRequest?: Resolver<Maybe<ResolversTypes['CustomerDataRequest']>, ParentType, ContextType>;
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerDeletePayload'] = ResolversParentTypes['CustomerDeletePayload']> = ResolversObject<{
+  deletedCustomerId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4361,21 +4417,9 @@ export type CustomerGroupMembershipConnectionResolvers<ContextType = ServiceCont
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CustomerGroupMembershipDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupMembershipDeletePayload'] = ResolversParentTypes['CustomerGroupMembershipDeletePayload']> = ResolversObject<{
-  deletedMembershipId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type CustomerGroupMembershipEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupMembershipEdge'] = ResolversParentTypes['CustomerGroupMembershipEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['CustomerGroupMembership'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CustomerGroupMembershipSetPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerGroupMembershipSetPayload'] = ResolversParentTypes['CustomerGroupMembershipSetPayload']> = ResolversObject<{
-  membership?: Resolver<Maybe<ResolversTypes['CustomerGroupMembership']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4412,14 +4456,27 @@ export type CustomerMergeConnectionResolvers<ContextType = ServiceContext, Paren
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CustomerMergeCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMergeCreatePayload'] = ResolversParentTypes['CustomerMergeCreatePayload']> = ResolversObject<{
+  merge?: Resolver<Maybe<ResolversTypes['CustomerMerge']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerMergeDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMergeDeletePayload'] = ResolversParentTypes['CustomerMergeDeletePayload']> = ResolversObject<{
+  deletedMergeId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CustomerMergeEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMergeEdge'] = ResolversParentTypes['CustomerMergeEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['CustomerMerge'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CustomerMergeRequestPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMergeRequestPayload'] = ResolversParentTypes['CustomerMergeRequestPayload']> = ResolversObject<{
+export type CustomerMergeUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerMergeUpdatePayload'] = ResolversParentTypes['CustomerMergeUpdatePayload']> = ResolversObject<{
   merge?: Resolver<Maybe<ResolversTypes['CustomerMerge']>, ParentType, ContextType>;
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -4484,27 +4541,6 @@ export type CustomerSegmentConnectionResolvers<ContextType = ServiceContext, Par
 }>;
 
 export type CustomerSegmentCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentCreatePayload'] = ResolversParentTypes['CustomerSegmentCreatePayload']> = ResolversObject<{
-  segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CustomerSegmentCustomersAddPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentCustomersAddPayload'] = ResolversParentTypes['CustomerSegmentCustomersAddPayload']> = ResolversObject<{
-  customers?: Resolver<Array<ResolversTypes['Customer']>, ParentType, ContextType>;
-  segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CustomerSegmentCustomersRemovePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentCustomersRemovePayload'] = ResolversParentTypes['CustomerSegmentCustomersRemovePayload']> = ResolversObject<{
-  removedCustomerIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
-  segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CustomerSegmentCustomersSetPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentCustomersSetPayload'] = ResolversParentTypes['CustomerSegmentCustomersSetPayload']> = ResolversObject<{
-  customers?: Resolver<Array<ResolversTypes['Customer']>, ParentType, ContextType>;
   segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -4580,12 +4616,6 @@ export type CustomerTagResolvers<ContextType = ServiceContext, ParentType extend
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CustomerTagAssignPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagAssignPayload'] = ResolversParentTypes['CustomerTagAssignPayload']> = ResolversObject<{
-  assignment?: Resolver<Maybe<ResolversTypes['CustomerTagAssignment']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type CustomerTagAssignmentResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagAssignment'] = ResolversParentTypes['CustomerTagAssignment']> = ResolversObject<{
   assignedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   assignedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4630,12 +4660,6 @@ export type CustomerTagDeletePayloadResolvers<ContextType = ServiceContext, Pare
 export type CustomerTagEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagEdge'] = ResolversParentTypes['CustomerTagEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['CustomerTag'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CustomerTagUnassignPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerTagUnassignPayload'] = ResolversParentTypes['CustomerTagUnassignPayload']> = ResolversObject<{
-  deletedAssignmentId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4755,29 +4779,27 @@ export type CustomerUpdatePayloadResolvers<ContextType = ServiceContext, ParentT
 
 export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomersMutation'] = ResolversParentTypes['CustomersMutation']> = ResolversObject<{
   customerAddressCreate?: Resolver<ResolversTypes['CustomerAddressCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressCreateArgs, 'input'>>;
-  customerAddressDefaultsUpdate?: Resolver<ResolversTypes['CustomerAddressDefaultsUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressDefaultsUpdateArgs, 'input'>>;
   customerAddressDelete?: Resolver<ResolversTypes['CustomerAddressDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressDeleteArgs, 'input'>>;
   customerAddressUpdate?: Resolver<ResolversTypes['CustomerAddressUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAddressUpdateArgs, 'addressId'>>;
-  customerConsentSet?: Resolver<ResolversTypes['CustomerConsentSetPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerConsentSetArgs, 'input'>>;
+  customerConsentCreate?: Resolver<ResolversTypes['CustomerConsentCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerConsentCreateArgs, 'input'>>;
+  customerConsentDelete?: Resolver<ResolversTypes['CustomerConsentDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerConsentDeleteArgs, 'input'>>;
+  customerConsentUpdate?: Resolver<ResolversTypes['CustomerConsentUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerConsentUpdateArgs, 'consentId'>>;
   customerCreate?: Resolver<ResolversTypes['CustomerCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerCreateArgs, 'input'>>;
-  customerDataRequestCancel?: Resolver<ResolversTypes['CustomerDataRequestCancelPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestCancelArgs, 'input'>>;
   customerDataRequestCreate?: Resolver<ResolversTypes['CustomerDataRequestCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestCreateArgs, 'input'>>;
+  customerDataRequestDelete?: Resolver<ResolversTypes['CustomerDataRequestDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestDeleteArgs, 'input'>>;
+  customerDataRequestUpdate?: Resolver<ResolversTypes['CustomerDataRequestUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestUpdateArgs, 'dataRequestId'>>;
+  customerDelete?: Resolver<ResolversTypes['CustomerDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDeleteArgs, 'input'>>;
   customerGroupCreate?: Resolver<ResolversTypes['CustomerGroupCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupCreateArgs, 'input'>>;
   customerGroupDelete?: Resolver<ResolversTypes['CustomerGroupDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupDeleteArgs, 'input'>>;
-  customerGroupMembershipDelete?: Resolver<ResolversTypes['CustomerGroupMembershipDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupMembershipDeleteArgs, 'input'>>;
-  customerGroupMembershipSet?: Resolver<ResolversTypes['CustomerGroupMembershipSetPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupMembershipSetArgs, 'input'>>;
   customerGroupUpdate?: Resolver<ResolversTypes['CustomerGroupUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupUpdateArgs, 'groupId'>>;
-  customerMergeRequest?: Resolver<ResolversTypes['CustomerMergeRequestPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeRequestArgs, 'input'>>;
+  customerMergeCreate?: Resolver<ResolversTypes['CustomerMergeCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeCreateArgs, 'input'>>;
+  customerMergeDelete?: Resolver<ResolversTypes['CustomerMergeDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeDeleteArgs, 'input'>>;
+  customerMergeUpdate?: Resolver<ResolversTypes['CustomerMergeUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeUpdateArgs, 'mergeId'>>;
   customerSegmentCreate?: Resolver<ResolversTypes['CustomerSegmentCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCreateArgs, 'input'>>;
-  customerSegmentCustomersAdd?: Resolver<ResolversTypes['CustomerSegmentCustomersAddPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCustomersAddArgs, 'input'>>;
-  customerSegmentCustomersRemove?: Resolver<ResolversTypes['CustomerSegmentCustomersRemovePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCustomersRemoveArgs, 'input'>>;
-  customerSegmentCustomersSet?: Resolver<ResolversTypes['CustomerSegmentCustomersSetPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCustomersSetArgs, 'input'>>;
   customerSegmentDelete?: Resolver<ResolversTypes['CustomerSegmentDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentDeleteArgs, 'input'>>;
   customerSegmentUpdate?: Resolver<ResolversTypes['CustomerSegmentUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentUpdateArgs, 'segmentId'>>;
-  customerTagAssign?: Resolver<ResolversTypes['CustomerTagAssignPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagAssignArgs, 'input'>>;
   customerTagCreate?: Resolver<ResolversTypes['CustomerTagCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagCreateArgs, 'input'>>;
   customerTagDelete?: Resolver<ResolversTypes['CustomerTagDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagDeleteArgs, 'input'>>;
-  customerTagUnassign?: Resolver<ResolversTypes['CustomerTagUnassignPayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUnassignArgs, 'input'>>;
   customerTagUpdate?: Resolver<ResolversTypes['CustomerTagUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUpdateArgs, 'tagId'>>;
   customerTaxExemptionCreate?: Resolver<ResolversTypes['CustomerTaxExemptionCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxExemptionCreateArgs, 'input'>>;
   customerTaxExemptionDelete?: Resolver<ResolversTypes['CustomerTaxExemptionDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTaxExemptionDeleteArgs, 'input'>>;
@@ -4875,22 +4897,25 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CustomerAddress?: CustomerAddressResolvers<ContextType>;
   CustomerAddressConnection?: CustomerAddressConnectionResolvers<ContextType>;
   CustomerAddressCreatePayload?: CustomerAddressCreatePayloadResolvers<ContextType>;
-  CustomerAddressDefaultsUpdatePayload?: CustomerAddressDefaultsUpdatePayloadResolvers<ContextType>;
   CustomerAddressDeletePayload?: CustomerAddressDeletePayloadResolvers<ContextType>;
   CustomerAddressEdge?: CustomerAddressEdgeResolvers<ContextType>;
   CustomerAddressUpdatePayload?: CustomerAddressUpdatePayloadResolvers<ContextType>;
   CustomerConnection?: CustomerConnectionResolvers<ContextType>;
   CustomerConsent?: CustomerConsentResolvers<ContextType>;
+  CustomerConsentCreatePayload?: CustomerConsentCreatePayloadResolvers<ContextType>;
+  CustomerConsentDeletePayload?: CustomerConsentDeletePayloadResolvers<ContextType>;
   CustomerConsentEvent?: CustomerConsentEventResolvers<ContextType>;
   CustomerConsentEventConnection?: CustomerConsentEventConnectionResolvers<ContextType>;
   CustomerConsentEventEdge?: CustomerConsentEventEdgeResolvers<ContextType>;
-  CustomerConsentSetPayload?: CustomerConsentSetPayloadResolvers<ContextType>;
+  CustomerConsentUpdatePayload?: CustomerConsentUpdatePayloadResolvers<ContextType>;
   CustomerCreatePayload?: CustomerCreatePayloadResolvers<ContextType>;
   CustomerDataRequest?: CustomerDataRequestResolvers<ContextType>;
-  CustomerDataRequestCancelPayload?: CustomerDataRequestCancelPayloadResolvers<ContextType>;
   CustomerDataRequestConnection?: CustomerDataRequestConnectionResolvers<ContextType>;
   CustomerDataRequestCreatePayload?: CustomerDataRequestCreatePayloadResolvers<ContextType>;
+  CustomerDataRequestDeletePayload?: CustomerDataRequestDeletePayloadResolvers<ContextType>;
   CustomerDataRequestEdge?: CustomerDataRequestEdgeResolvers<ContextType>;
+  CustomerDataRequestUpdatePayload?: CustomerDataRequestUpdatePayloadResolvers<ContextType>;
+  CustomerDeletePayload?: CustomerDeletePayloadResolvers<ContextType>;
   CustomerEdge?: CustomerEdgeResolvers<ContextType>;
   CustomerGroup?: CustomerGroupResolvers<ContextType>;
   CustomerGroupConnection?: CustomerGroupConnectionResolvers<ContextType>;
@@ -4899,14 +4924,14 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CustomerGroupEdge?: CustomerGroupEdgeResolvers<ContextType>;
   CustomerGroupMembership?: CustomerGroupMembershipResolvers<ContextType>;
   CustomerGroupMembershipConnection?: CustomerGroupMembershipConnectionResolvers<ContextType>;
-  CustomerGroupMembershipDeletePayload?: CustomerGroupMembershipDeletePayloadResolvers<ContextType>;
   CustomerGroupMembershipEdge?: CustomerGroupMembershipEdgeResolvers<ContextType>;
-  CustomerGroupMembershipSetPayload?: CustomerGroupMembershipSetPayloadResolvers<ContextType>;
   CustomerGroupUpdatePayload?: CustomerGroupUpdatePayloadResolvers<ContextType>;
   CustomerMerge?: CustomerMergeResolvers<ContextType>;
   CustomerMergeConnection?: CustomerMergeConnectionResolvers<ContextType>;
+  CustomerMergeCreatePayload?: CustomerMergeCreatePayloadResolvers<ContextType>;
+  CustomerMergeDeletePayload?: CustomerMergeDeletePayloadResolvers<ContextType>;
   CustomerMergeEdge?: CustomerMergeEdgeResolvers<ContextType>;
-  CustomerMergeRequestPayload?: CustomerMergeRequestPayloadResolvers<ContextType>;
+  CustomerMergeUpdatePayload?: CustomerMergeUpdatePayloadResolvers<ContextType>;
   CustomerMonetaryStatistics?: CustomerMonetaryStatisticsResolvers<ContextType>;
   CustomerMonetaryStatisticsConnection?: CustomerMonetaryStatisticsConnectionResolvers<ContextType>;
   CustomerMonetaryStatisticsEdge?: CustomerMonetaryStatisticsEdgeResolvers<ContextType>;
@@ -4914,9 +4939,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CustomerSegment?: CustomerSegmentResolvers<ContextType>;
   CustomerSegmentConnection?: CustomerSegmentConnectionResolvers<ContextType>;
   CustomerSegmentCreatePayload?: CustomerSegmentCreatePayloadResolvers<ContextType>;
-  CustomerSegmentCustomersAddPayload?: CustomerSegmentCustomersAddPayloadResolvers<ContextType>;
-  CustomerSegmentCustomersRemovePayload?: CustomerSegmentCustomersRemovePayloadResolvers<ContextType>;
-  CustomerSegmentCustomersSetPayload?: CustomerSegmentCustomersSetPayloadResolvers<ContextType>;
   CustomerSegmentDeletePayload?: CustomerSegmentDeletePayloadResolvers<ContextType>;
   CustomerSegmentEdge?: CustomerSegmentEdgeResolvers<ContextType>;
   CustomerSegmentMembership?: CustomerSegmentMembershipResolvers<ContextType>;
@@ -4925,7 +4947,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CustomerSegmentUpdatePayload?: CustomerSegmentUpdatePayloadResolvers<ContextType>;
   CustomerStatistics?: CustomerStatisticsResolvers<ContextType>;
   CustomerTag?: CustomerTagResolvers<ContextType>;
-  CustomerTagAssignPayload?: CustomerTagAssignPayloadResolvers<ContextType>;
   CustomerTagAssignment?: CustomerTagAssignmentResolvers<ContextType>;
   CustomerTagAssignmentConnection?: CustomerTagAssignmentConnectionResolvers<ContextType>;
   CustomerTagAssignmentEdge?: CustomerTagAssignmentEdgeResolvers<ContextType>;
@@ -4933,7 +4954,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CustomerTagCreatePayload?: CustomerTagCreatePayloadResolvers<ContextType>;
   CustomerTagDeletePayload?: CustomerTagDeletePayloadResolvers<ContextType>;
   CustomerTagEdge?: CustomerTagEdgeResolvers<ContextType>;
-  CustomerTagUnassignPayload?: CustomerTagUnassignPayloadResolvers<ContextType>;
   CustomerTagUpdatePayload?: CustomerTagUpdatePayloadResolvers<ContextType>;
   CustomerTaxExemption?: CustomerTaxExemptionResolvers<ContextType>;
   CustomerTaxExemptionConnection?: CustomerTaxExemptionConnectionResolvers<ContextType>;

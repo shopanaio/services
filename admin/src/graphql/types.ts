@@ -3192,19 +3192,6 @@ export type ApiCustomerAddressCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** Atomically replaces both defaults. Null clears a default. */
-export type ApiCustomerAddressDefaultsUpdateInput = {
-  billingAddressId?: InputMaybe<Scalars['ID']['input']>;
-  customerId: Scalars['ID']['input'];
-  shippingAddressId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-export type ApiCustomerAddressDefaultsUpdatePayload = {
-  __typename?: 'CustomerAddressDefaultsUpdatePayload';
-  customer?: Maybe<ApiCustomer>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 export type ApiCustomerAddressDeleteInput = {
   id: Scalars['ID']['input'];
 };
@@ -3266,6 +3253,10 @@ export type ApiCustomerAddressUpdateInput = {
   companyName?: InputMaybe<Scalars['String']['input']>;
   countryCode?: InputMaybe<Scalars['String']['input']>;
   firstName?: InputMaybe<Scalars['String']['input']>;
+  /** Set or clear this address as the customer's billing default. */
+  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Set or clear this address as the customer's shipping default. */
+  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
   label?: InputMaybe<Scalars['String']['input']>;
   lastName?: InputMaybe<Scalars['String']['input']>;
   latitude?: InputMaybe<Scalars['Float']['input']>;
@@ -3434,6 +3425,34 @@ export enum CustomerConsentChannel {
   Whatsapp = 'WHATSAPP'
 }
 
+export type ApiCustomerConsentCreateInput = {
+  channel: CustomerConsentChannel;
+  contactPoint: Scalars['String']['input'];
+  customerId: Scalars['ID']['input'];
+  evidence?: InputMaybe<Scalars['JSON']['input']>;
+  /** Defaults to UNKNOWN when omitted. */
+  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
+  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
+  state: CustomerConsentAdminState;
+};
+
+export type ApiCustomerConsentCreatePayload = {
+  __typename?: 'CustomerConsentCreatePayload';
+  consent?: Maybe<ApiCustomerConsent>;
+  event?: Maybe<ApiCustomerConsentEvent>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerConsentDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerConsentDeletePayload = {
+  __typename?: 'CustomerConsentDeletePayload';
+  deletedConsentId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 /** Immutable evidence record for a consent transition. */
 export type ApiCustomerConsentEvent = ApiNode & {
   __typename?: 'CustomerConsentEvent';
@@ -3500,24 +3519,6 @@ export enum CustomerConsentOptInLevel {
   Unknown = 'UNKNOWN'
 }
 
-export type ApiCustomerConsentSetInput = {
-  channel: CustomerConsentChannel;
-  contactPoint: Scalars['String']['input'];
-  customerId: Scalars['ID']['input'];
-  evidence?: InputMaybe<Scalars['JSON']['input']>;
-  /** Defaults to UNKNOWN when omitted. */
-  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
-  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
-  state: CustomerConsentAdminState;
-};
-
-export type ApiCustomerConsentSetPayload = {
-  __typename?: 'CustomerConsentSetPayload';
-  consent?: Maybe<ApiCustomerConsent>;
-  event?: Maybe<ApiCustomerConsentEvent>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 export enum CustomerConsentState {
   Invalid = 'INVALID',
   NotSubscribed = 'NOT_SUBSCRIBED',
@@ -3534,6 +3535,20 @@ export type ApiCustomerConsentStateFilter = {
   _notIn?: InputMaybe<Array<CustomerConsentState>>;
 };
 
+/**
+ * Consent update fields. A state transition appends an immutable evidence event;
+ * customerId can move the relation before any evidence has been recorded.
+ */
+export type ApiCustomerConsentUpdateInput = {
+  channel?: InputMaybe<CustomerConsentChannel>;
+  contactPoint?: InputMaybe<Scalars['String']['input']>;
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  evidence?: InputMaybe<Scalars['JSON']['input']>;
+  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
+  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
+  state?: InputMaybe<CustomerConsentAdminState>;
+};
+
 /** Consent transition scoped to the customer being updated. */
 export type ApiCustomerConsentUpdateOperationInput = {
   channel: CustomerConsentChannel;
@@ -3543,6 +3558,14 @@ export type ApiCustomerConsentUpdateOperationInput = {
   optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
   sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
   state: CustomerConsentAdminState;
+};
+
+export type ApiCustomerConsentUpdatePayload = {
+  __typename?: 'CustomerConsentUpdatePayload';
+  consent?: Maybe<ApiCustomerConsent>;
+  event?: Maybe<ApiCustomerConsentEvent>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Atomic consent transitions keyed by channel. */
@@ -3601,15 +3624,8 @@ export type ApiCustomerDataRequest = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiCustomerDataRequestCancelInput = {
-  id: Scalars['ID']['input'];
+export type ApiCustomerDataRequestCancelOperationInput = {
   reason?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiCustomerDataRequestCancelPayload = {
-  __typename?: 'CustomerDataRequestCancelPayload';
-  dataRequest?: Maybe<ApiCustomerDataRequest>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiCustomerDataRequestConnection = {
@@ -3630,6 +3646,16 @@ export type ApiCustomerDataRequestCreateInput = {
 export type ApiCustomerDataRequestCreatePayload = {
   __typename?: 'CustomerDataRequestCreatePayload';
   dataRequest?: Maybe<ApiCustomerDataRequest>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerDataRequestDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerDataRequestDeletePayload = {
+  __typename?: 'CustomerDataRequestDeletePayload';
+  deletedDataRequestId?: Maybe<Scalars['ID']['output']>;
   userErrors: Array<ApiGenericUserError>;
 };
 
@@ -3696,6 +3722,23 @@ export type ApiCustomerDataRequestTypeFilter = {
   _notIn?: InputMaybe<Array<CustomerDataRequestType>>;
 };
 
+/** Update request metadata, its customer relation, or cancel the workflow. */
+export type ApiCustomerDataRequestUpdateInput = {
+  cancel?: InputMaybe<ApiCustomerDataRequestCancelOperationInput>;
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  legalBasis?: InputMaybe<Scalars['String']['input']>;
+  requestMetadata?: InputMaybe<Scalars['JSON']['input']>;
+  type?: InputMaybe<CustomerDataRequestType>;
+};
+
+export type ApiCustomerDataRequestUpdatePayload = {
+  __typename?: 'CustomerDataRequestUpdatePayload';
+  dataRequest?: Maybe<ApiCustomerDataRequest>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 /** Filter conditions for CustomerDataRequest */
 export type ApiCustomerDataRequestWhereInput = {
   /** Logical AND of multiple conditions */
@@ -3728,6 +3771,17 @@ export type ApiCustomerDataRequestWhereInput = {
   type?: InputMaybe<ApiCustomerDataRequestTypeFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiCustomerDeleteInput = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerDeletePayload = {
+  __typename?: 'CustomerDeletePayload';
+  deletedCustomerId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiCustomerEdge = {
@@ -3818,17 +3872,6 @@ export type ApiCustomerGroupMembershipConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type ApiCustomerGroupMembershipDeleteInput = {
-  customerId: Scalars['ID']['input'];
-  groupId: Scalars['ID']['input'];
-};
-
-export type ApiCustomerGroupMembershipDeletePayload = {
-  __typename?: 'CustomerGroupMembershipDeletePayload';
-  deletedMembershipId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 export type ApiCustomerGroupMembershipEdge = {
   __typename?: 'CustomerGroupMembershipEdge';
   cursor: Scalars['String']['output'];
@@ -3857,20 +3900,26 @@ export enum CustomerGroupMembershipOrderField {
   Source = 'source'
 }
 
-/** Create or update a customer's membership in a group. */
-export type ApiCustomerGroupMembershipSetInput = {
+/** Create a customer's membership in this group. */
+export type ApiCustomerGroupMembershipRelationCreateInput = {
   customerId: Scalars['ID']['input'];
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
-  groupId: Scalars['ID']['input'];
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
-export type ApiCustomerGroupMembershipSetPayload = {
-  __typename?: 'CustomerGroupMembershipSetPayload';
-  membership?: Maybe<ApiCustomerGroupMembership>;
-  userErrors: Array<ApiGenericUserError>;
+export type ApiCustomerGroupMembershipRelationUpdateInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  membershipId: Scalars['ID']['input'];
 };
 
+export type ApiCustomerGroupMembershipRelationsUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerGroupMembershipRelationCreateInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerGroupMembershipRelationUpdateInput>>;
+};
+
+/** One group membership used by the unified customer update. */
 export type ApiCustomerGroupMembershipUpdateOperationInput = {
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   groupId: Scalars['ID']['input'];
@@ -3937,6 +3986,8 @@ export type ApiCustomerGroupUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Create, update, or delete customer memberships in this group. */
+  memberships?: InputMaybe<ApiCustomerGroupMembershipRelationsUpdateInput>;
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -4013,6 +4064,28 @@ export type ApiCustomerMergeConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+export type ApiCustomerMergeCreateInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+  sourceCustomerId: Scalars['ID']['input'];
+  targetCustomerId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerMergeCreatePayload = {
+  __typename?: 'CustomerMergeCreatePayload';
+  merge?: Maybe<ApiCustomerMerge>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerMergeDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerMergeDeletePayload = {
+  __typename?: 'CustomerMergeDeletePayload';
+  deletedMergeId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiCustomerMergeEdge = {
   __typename?: 'CustomerMergeEdge';
   cursor: Scalars['String']['output'];
@@ -4043,18 +4116,6 @@ export enum CustomerMergeOrderField {
   UpdatedAt = 'updatedAt'
 }
 
-export type ApiCustomerMergeRequestInput = {
-  reason?: InputMaybe<Scalars['String']['input']>;
-  sourceCustomerId: Scalars['ID']['input'];
-  targetCustomerId: Scalars['ID']['input'];
-};
-
-export type ApiCustomerMergeRequestPayload = {
-  __typename?: 'CustomerMergeRequestPayload';
-  merge?: Maybe<ApiCustomerMerge>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 export enum CustomerMergeStatus {
   Completed = 'COMPLETED',
   Failed = 'FAILED',
@@ -4067,6 +4128,20 @@ export type ApiCustomerMergeStatusFilter = {
   _in?: InputMaybe<Array<CustomerMergeStatus>>;
   _neq?: InputMaybe<CustomerMergeStatus>;
   _notIn?: InputMaybe<Array<CustomerMergeStatus>>;
+};
+
+/** Update merge metadata or either customer relation before processing starts. */
+export type ApiCustomerMergeUpdateInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+  sourceCustomerId?: InputMaybe<Scalars['ID']['input']>;
+  targetCustomerId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiCustomerMergeUpdatePayload = {
+  __typename?: 'CustomerMergeUpdatePayload';
+  merge?: Maybe<ApiCustomerMerge>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Filter conditions for CustomerMerge */
@@ -4194,7 +4269,7 @@ export type ApiCustomerNoteUpdateInput = {
   note?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Result of one section in the unified customer update. */
+/** Result of one operation in a customer-domain update. */
 export type ApiCustomerOperationResult = {
   __typename?: 'CustomerOperationResult';
   applied: Scalars['Boolean']['output'];
@@ -4207,7 +4282,9 @@ export enum CustomerOperationType {
   CompanyUpdate = 'COMPANY_UPDATE',
   ConsentUpdate = 'CONSENT_UPDATE',
   ContactUpdate = 'CONTACT_UPDATE',
+  DataRequestUpdate = 'DATA_REQUEST_UPDATE',
   GroupUpdate = 'GROUP_UPDATE',
+  MergeUpdate = 'MERGE_UPDATE',
   ModerationUpdate = 'MODERATION_UPDATE',
   NoteUpdate = 'NOTE_UPDATE',
   ProfileUpdate = 'PROFILE_UPDATE',
@@ -4329,52 +4406,6 @@ export type ApiCustomerSegmentCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** Add customers to a manual segment. */
-export type ApiCustomerSegmentCustomersAddInput = {
-  customerIds: Array<Scalars['ID']['input']>;
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  segmentId: Scalars['ID']['input'];
-};
-
-export type ApiCustomerSegmentCustomersAddPayload = {
-  __typename?: 'CustomerSegmentCustomersAddPayload';
-  customers: Array<ApiCustomer>;
-  segment?: Maybe<ApiCustomerSegment>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-/** Remove customers from a manual segment. */
-export type ApiCustomerSegmentCustomersRemoveInput = {
-  customerIds: Array<Scalars['ID']['input']>;
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  segmentId: Scalars['ID']['input'];
-};
-
-export type ApiCustomerSegmentCustomersRemovePayload = {
-  __typename?: 'CustomerSegmentCustomersRemovePayload';
-  removedCustomerIds: Array<Scalars['ID']['output']>;
-  segment?: Maybe<ApiCustomerSegment>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-/** Atomically replace all manual memberships of a segment. */
-export type ApiCustomerSegmentCustomersSetInput = {
-  customerIds: Array<Scalars['ID']['input']>;
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  segmentId: Scalars['ID']['input'];
-};
-
-export type ApiCustomerSegmentCustomersSetPayload = {
-  __typename?: 'CustomerSegmentCustomersSetPayload';
-  customers: Array<ApiCustomer>;
-  segment?: Maybe<ApiCustomerSegment>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiCustomerSegmentCustomersUpdateInput = {
-  customerIds: Array<Scalars['ID']['input']>;
-};
-
 export type ApiCustomerSegmentDeleteInput = {
   expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   id: Scalars['ID']['input'];
@@ -4435,6 +4466,24 @@ export enum CustomerSegmentMembershipOrderField {
   /** Sort by source */
   Source = 'source'
 }
+
+export type ApiCustomerSegmentMembershipRelationCreateInput = {
+  customerId: Scalars['ID']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type ApiCustomerSegmentMembershipRelationUpdateInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  membershipId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerSegmentMembershipRelationsUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerSegmentMembershipRelationCreateInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Atomically replace all manual memberships with these customers. */
+  setCustomerIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerSegmentMembershipRelationUpdateInput>>;
+};
 
 /** Filter conditions for CustomerSegmentMembership */
 export type ApiCustomerSegmentMembershipWhereInput = {
@@ -4516,8 +4565,8 @@ export type ApiCustomerSegmentTypeFilter = {
 
 export type ApiCustomerSegmentUpdateInput = {
   color?: InputMaybe<Scalars['String']['input']>;
-  /** When provided, atomically replaces all manual memberships. */
-  customers?: InputMaybe<ApiCustomerSegmentCustomersUpdateInput>;
+  /** Create, update, delete, or replace manual customer memberships. */
+  customers?: InputMaybe<ApiCustomerSegmentMembershipRelationsUpdateInput>;
   definition?: InputMaybe<Scalars['JSON']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -4610,17 +4659,6 @@ export type ApiCustomerTagCustomerAssignmentsArgs = {
   where?: InputMaybe<ApiCustomerTagAssignmentWhereInput>;
 };
 
-export type ApiCustomerTagAssignInput = {
-  customerId: Scalars['ID']['input'];
-  tagId: Scalars['ID']['input'];
-};
-
-export type ApiCustomerTagAssignPayload = {
-  __typename?: 'CustomerTagAssignPayload';
-  assignment?: Maybe<ApiCustomerTagAssignment>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 export type ApiCustomerTagAssignment = ApiNode & {
   __typename?: 'CustomerTagAssignment';
   assignedAt: Scalars['DateTime']['output'];
@@ -4658,6 +4696,15 @@ export enum CustomerTagAssignmentOrderField {
   /** Sort by id */
   Id = 'id'
 }
+
+export type ApiCustomerTagAssignmentRelationCreateInput = {
+  customerId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTagAssignmentRelationsUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerTagAssignmentRelationCreateInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
 
 /** Filter conditions for CustomerTagAssignment */
 export type ApiCustomerTagAssignmentWhereInput = {
@@ -4739,18 +4786,9 @@ export enum CustomerTagOrderField {
   UpdatedAt = 'updatedAt'
 }
 
-export type ApiCustomerTagUnassignInput = {
-  customerId: Scalars['ID']['input'];
-  tagId: Scalars['ID']['input'];
-};
-
-export type ApiCustomerTagUnassignPayload = {
-  __typename?: 'CustomerTagUnassignPayload';
-  deletedAssignmentId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 export type ApiCustomerTagUpdateInput = {
+  /** Create or delete customer assignments for this tag. */
+  assignments?: InputMaybe<ApiCustomerTagAssignmentRelationsUpdateInput>;
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -5217,30 +5255,28 @@ export type ApiCustomerWhereInput = {
 export type ApiCustomersMutation = {
   __typename?: 'CustomersMutation';
   customerAddressCreate: ApiCustomerAddressCreatePayload;
-  customerAddressDefaultsUpdate: ApiCustomerAddressDefaultsUpdatePayload;
   customerAddressDelete: ApiCustomerAddressDeletePayload;
   customerAddressUpdate: ApiCustomerAddressUpdatePayload;
-  /** Change current consent state and append an immutable evidence event. */
-  customerConsentSet: ApiCustomerConsentSetPayload;
+  customerConsentCreate: ApiCustomerConsentCreatePayload;
+  customerConsentDelete: ApiCustomerConsentDeletePayload;
+  /** Update consent state and append an immutable evidence event. */
+  customerConsentUpdate: ApiCustomerConsentUpdatePayload;
   customerCreate: ApiCustomerCreatePayload;
-  customerDataRequestCancel: ApiCustomerDataRequestCancelPayload;
   customerDataRequestCreate: ApiCustomerDataRequestCreatePayload;
+  customerDataRequestDelete: ApiCustomerDataRequestDeletePayload;
+  customerDataRequestUpdate: ApiCustomerDataRequestUpdatePayload;
+  customerDelete: ApiCustomerDeletePayload;
   customerGroupCreate: ApiCustomerGroupCreatePayload;
   customerGroupDelete: ApiCustomerGroupDeletePayload;
-  customerGroupMembershipDelete: ApiCustomerGroupMembershipDeletePayload;
-  customerGroupMembershipSet: ApiCustomerGroupMembershipSetPayload;
   customerGroupUpdate: ApiCustomerGroupUpdatePayload;
-  customerMergeRequest: ApiCustomerMergeRequestPayload;
+  customerMergeCreate: ApiCustomerMergeCreatePayload;
+  customerMergeDelete: ApiCustomerMergeDeletePayload;
+  customerMergeUpdate: ApiCustomerMergeUpdatePayload;
   customerSegmentCreate: ApiCustomerSegmentCreatePayload;
-  customerSegmentCustomersAdd: ApiCustomerSegmentCustomersAddPayload;
-  customerSegmentCustomersRemove: ApiCustomerSegmentCustomersRemovePayload;
-  customerSegmentCustomersSet: ApiCustomerSegmentCustomersSetPayload;
   customerSegmentDelete: ApiCustomerSegmentDeletePayload;
   customerSegmentUpdate: ApiCustomerSegmentUpdatePayload;
-  customerTagAssign: ApiCustomerTagAssignPayload;
   customerTagCreate: ApiCustomerTagCreatePayload;
   customerTagDelete: ApiCustomerTagDeletePayload;
-  customerTagUnassign: ApiCustomerTagUnassignPayload;
   customerTagUpdate: ApiCustomerTagUpdatePayload;
   customerTaxExemptionCreate: ApiCustomerTaxExemptionCreatePayload;
   customerTaxExemptionDelete: ApiCustomerTaxExemptionDeletePayload;
@@ -5260,12 +5296,6 @@ export type ApiCustomersMutationCustomerAddressCreateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerAddressDefaultsUpdateArgs = {
-  input: ApiCustomerAddressDefaultsUpdateInput;
-};
-
-
-/** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerAddressDeleteArgs = {
   input: ApiCustomerAddressDeleteInput;
 };
@@ -5279,8 +5309,21 @@ export type ApiCustomersMutationCustomerAddressUpdateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerConsentSetArgs = {
-  input: ApiCustomerConsentSetInput;
+export type ApiCustomersMutationCustomerConsentCreateArgs = {
+  input: ApiCustomerConsentCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerConsentDeleteArgs = {
+  input: ApiCustomerConsentDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerConsentUpdateArgs = {
+  consentId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiCustomerConsentUpdateInput>;
 };
 
 
@@ -5291,14 +5334,27 @@ export type ApiCustomersMutationCustomerCreateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerDataRequestCancelArgs = {
-  input: ApiCustomerDataRequestCancelInput;
+export type ApiCustomersMutationCustomerDataRequestCreateArgs = {
+  input: ApiCustomerDataRequestCreateInput;
 };
 
 
 /** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerDataRequestCreateArgs = {
-  input: ApiCustomerDataRequestCreateInput;
+export type ApiCustomersMutationCustomerDataRequestDeleteArgs = {
+  input: ApiCustomerDataRequestDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerDataRequestUpdateArgs = {
+  dataRequestId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiCustomerDataRequestUpdateInput>;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerDeleteArgs = {
+  input: ApiCustomerDeleteInput;
 };
 
 
@@ -5315,18 +5371,6 @@ export type ApiCustomersMutationCustomerGroupDeleteArgs = {
 
 
 /** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerGroupMembershipDeleteArgs = {
-  input: ApiCustomerGroupMembershipDeleteInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerGroupMembershipSetArgs = {
-  input: ApiCustomerGroupMembershipSetInput;
-};
-
-
-/** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerGroupUpdateArgs = {
   groupId: Scalars['ID']['input'];
   operations?: InputMaybe<ApiCustomerGroupUpdateInput>;
@@ -5334,32 +5378,27 @@ export type ApiCustomersMutationCustomerGroupUpdateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerMergeRequestArgs = {
-  input: ApiCustomerMergeRequestInput;
+export type ApiCustomersMutationCustomerMergeCreateArgs = {
+  input: ApiCustomerMergeCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerMergeDeleteArgs = {
+  input: ApiCustomerMergeDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerMergeUpdateArgs = {
+  mergeId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiCustomerMergeUpdateInput>;
 };
 
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerSegmentCreateArgs = {
   input: ApiCustomerSegmentCreateInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerSegmentCustomersAddArgs = {
-  input: ApiCustomerSegmentCustomersAddInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerSegmentCustomersRemoveArgs = {
-  input: ApiCustomerSegmentCustomersRemoveInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerSegmentCustomersSetArgs = {
-  input: ApiCustomerSegmentCustomersSetInput;
 };
 
 
@@ -5378,12 +5417,6 @@ export type ApiCustomersMutationCustomerSegmentUpdateArgs = {
 
 
 /** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerTagAssignArgs = {
-  input: ApiCustomerTagAssignInput;
-};
-
-
-/** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerTagCreateArgs = {
   input: ApiCustomerTagCreateInput;
 };
@@ -5392,12 +5425,6 @@ export type ApiCustomersMutationCustomerTagCreateArgs = {
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerTagDeleteArgs = {
   input: ApiCustomerTagDeleteInput;
-};
-
-
-/** Store-scoped customer commands. */
-export type ApiCustomersMutationCustomerTagUnassignArgs = {
-  input: ApiCustomerTagUnassignInput;
 };
 
 

@@ -110,6 +110,13 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
+  customerDelete() {
+    return {
+      deletedCustomerId: null,
+      userErrors: [],
+    };
+  }
+
   customerAddressCreate() {
     return emptyEntityPayload("address");
   }
@@ -123,10 +130,6 @@ export class CustomersMutationResolver extends CustomersType<
       deletedAddressId: null,
       userErrors: [],
     };
-  }
-
-  customerAddressDefaultsUpdate() {
-    return emptyEntityPayload("customer");
   }
 
   customerTaxIdentifierCreate() {
@@ -159,10 +162,26 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerConsentSet() {
+  customerConsentCreate() {
     return {
       consent: null,
       event: null,
+      userErrors: [],
+    };
+  }
+
+  customerConsentUpdate() {
+    return {
+      consent: null,
+      event: null,
+      operationResults: [],
+      userErrors: [],
+    };
+  }
+
+  customerConsentDelete() {
+    return {
+      deletedConsentId: null,
       userErrors: [],
     };
   }
@@ -182,17 +201,6 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerGroupMembershipSet() {
-    return emptyEntityPayload("membership");
-  }
-
-  customerGroupMembershipDelete() {
-    return {
-      deletedMembershipId: null,
-      userErrors: [],
-    };
-  }
-
   customerTagCreate() {
     return emptyEntityPayload("tag");
   }
@@ -204,17 +212,6 @@ export class CustomersMutationResolver extends CustomersType<
   customerTagDelete() {
     return {
       deletedTagId: null,
-      userErrors: [],
-    };
-  }
-
-  customerTagAssign() {
-    return emptyEntityPayload("assignment");
-  }
-
-  customerTagUnassign() {
-    return {
-      deletedAssignmentId: null,
       userErrors: [],
     };
   }
@@ -234,40 +231,34 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerSegmentCustomersAdd() {
-    return {
-      segment: null,
-      customers: [],
-      userErrors: [],
-    };
-  }
-
-  customerSegmentCustomersRemove() {
-    return {
-      segment: null,
-      removedCustomerIds: [],
-      userErrors: [],
-    };
-  }
-
-  customerSegmentCustomersSet() {
-    return {
-      segment: null,
-      customers: [],
-      userErrors: [],
-    };
-  }
-
-  customerMergeRequest() {
+  customerMergeCreate() {
     return emptyEntityPayload("merge");
+  }
+
+  customerMergeUpdate() {
+    return emptyUpdatePayload("merge");
+  }
+
+  customerMergeDelete() {
+    return {
+      deletedMergeId: null,
+      userErrors: [],
+    };
   }
 
   customerDataRequestCreate() {
     return emptyEntityPayload("dataRequest");
   }
 
-  customerDataRequestCancel() {
-    return emptyEntityPayload("dataRequest");
+  customerDataRequestUpdate() {
+    return emptyUpdatePayload("dataRequest");
+  }
+
+  customerDataRequestDelete() {
+    return {
+      deletedDataRequestId: null,
+      userErrors: [],
+    };
   }
 }
 

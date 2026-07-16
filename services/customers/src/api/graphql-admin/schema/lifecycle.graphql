@@ -82,10 +82,21 @@ type CustomerDataRequestEdge {
   cursor: String!
 }
 
-input CustomerMergeRequestInput {
+input CustomerMergeCreateInput {
   sourceCustomerId: ID!
   targetCustomerId: ID!
   reason: String
+}
+
+"""Update merge metadata or either customer relation before processing starts."""
+input CustomerMergeUpdateInput {
+  sourceCustomerId: ID
+  targetCustomerId: ID
+  reason: String
+}
+
+input CustomerMergeDeleteInput {
+  id: ID!
 }
 
 input CustomerDataRequestCreateInput {
@@ -96,13 +107,37 @@ input CustomerDataRequestCreateInput {
   dueAt: DateTime
 }
 
-input CustomerDataRequestCancelInput {
-  id: ID!
+input CustomerDataRequestCancelOperationInput {
   reason: String
 }
 
-type CustomerMergeRequestPayload {
+"""Update request metadata, its customer relation, or cancel the workflow."""
+input CustomerDataRequestUpdateInput {
+  customerId: ID
+  type: CustomerDataRequestType
+  legalBasis: String
+  requestMetadata: JSON
+  dueAt: DateTime
+  cancel: CustomerDataRequestCancelOperationInput
+}
+
+input CustomerDataRequestDeleteInput {
+  id: ID!
+}
+
+type CustomerMergeCreatePayload {
   merge: CustomerMerge
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerMergeUpdatePayload {
+  merge: CustomerMerge
+  operationResults: [CustomerOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerMergeDeletePayload {
+  deletedMergeId: ID
   userErrors: [GenericUserError!]!
 }
 
@@ -111,7 +146,13 @@ type CustomerDataRequestCreatePayload {
   userErrors: [GenericUserError!]!
 }
 
-type CustomerDataRequestCancelPayload {
+type CustomerDataRequestUpdatePayload {
   dataRequest: CustomerDataRequest
+  operationResults: [CustomerOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerDataRequestDeletePayload {
+  deletedDataRequestId: ID
   userErrors: [GenericUserError!]!
 }

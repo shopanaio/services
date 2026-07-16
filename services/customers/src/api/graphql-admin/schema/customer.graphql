@@ -157,6 +157,11 @@ input CustomerCreateInput {
   moderationNote: String
 }
 
+input CustomerDeleteInput {
+  id: ID!
+  expectedRevision: Int
+}
+
 """Personal profile fields in the unified customer update."""
 input CustomerProfileUpdateInput {
   prefix: String
@@ -232,9 +237,11 @@ enum CustomerOperationType {
   GROUP_UPDATE
   TAG_UPDATE
   SEGMENT_UPDATE
+  MERGE_UPDATE
+  DATA_REQUEST_UPDATE
 }
 
-"""Result of one section in the unified customer update."""
+"""Result of one operation in a customer-domain update."""
 type CustomerOperationResult {
   type: CustomerOperationType!
   applied: Boolean!
@@ -249,5 +256,10 @@ type CustomerCreatePayload {
 type CustomerUpdatePayload {
   customer: Customer
   operationResults: [CustomerOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerDeletePayload {
+  deletedCustomerId: ID
   userErrors: [GenericUserError!]!
 }

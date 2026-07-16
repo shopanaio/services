@@ -86,7 +86,7 @@ type CustomerConsentEventEdge {
   cursor: String!
 }
 
-input CustomerConsentSetInput {
+input CustomerConsentCreateInput {
   customerId: ID!
   channel: CustomerConsentChannel!
   state: CustomerConsentAdminState!
@@ -95,6 +95,24 @@ input CustomerConsentSetInput {
   contactPoint: String!
   sourceLocationId: ID
   evidence: JSON
+}
+
+"""
+Consent update fields. A state transition appends an immutable evidence event;
+customerId can move the relation before any evidence has been recorded.
+"""
+input CustomerConsentUpdateInput {
+  customerId: ID
+  channel: CustomerConsentChannel
+  state: CustomerConsentAdminState
+  optInLevel: CustomerConsentOptInLevel
+  contactPoint: String
+  sourceLocationId: ID
+  evidence: JSON
+}
+
+input CustomerConsentDeleteInput {
+  id: ID!
 }
 
 """Consent transition scoped to the customer being updated."""
@@ -113,8 +131,20 @@ input CustomerConsentsUpdateInput {
   set: [CustomerConsentUpdateOperationInput!]!
 }
 
-type CustomerConsentSetPayload {
+type CustomerConsentCreatePayload {
   consent: CustomerConsent
   event: CustomerConsentEvent
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerConsentUpdatePayload {
+  consent: CustomerConsent
+  event: CustomerConsentEvent
+  operationResults: [CustomerOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type CustomerConsentDeletePayload {
+  deletedConsentId: ID
   userErrors: [GenericUserError!]!
 }

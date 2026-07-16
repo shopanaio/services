@@ -192,23 +192,31 @@ input CustomerGroupUpdateInput {
   description: String
   isDefault: Boolean
   isActive: Boolean
+  """Create, update, or delete customer memberships in this group."""
+  memberships: CustomerGroupMembershipRelationsUpdateInput
 }
 
 input CustomerGroupDeleteInput {
   id: ID!
 }
 
-"""Create or update a customer's membership in a group."""
-input CustomerGroupMembershipSetInput {
+"""Create a customer's membership in this group."""
+input CustomerGroupMembershipRelationCreateInput {
   customerId: ID!
-  groupId: ID!
   isPrimary: Boolean = false
   expiresAt: DateTime
 }
 
-input CustomerGroupMembershipDeleteInput {
-  customerId: ID!
-  groupId: ID!
+input CustomerGroupMembershipRelationUpdateInput {
+  membershipId: ID!
+  isPrimary: Boolean
+  expiresAt: DateTime
+}
+
+input CustomerGroupMembershipRelationsUpdateInput {
+  create: [CustomerGroupMembershipRelationCreateInput!]
+  update: [CustomerGroupMembershipRelationUpdateInput!]
+  deleteIds: [ID!]
 }
 
 input CustomerTagCreateInput {
@@ -217,20 +225,21 @@ input CustomerTagCreateInput {
 
 input CustomerTagUpdateInput {
   name: String
+  """Create or delete customer assignments for this tag."""
+  assignments: CustomerTagAssignmentRelationsUpdateInput
 }
 
 input CustomerTagDeleteInput {
   id: ID!
 }
 
-input CustomerTagAssignInput {
+input CustomerTagAssignmentRelationCreateInput {
   customerId: ID!
-  tagId: ID!
 }
 
-input CustomerTagUnassignInput {
-  customerId: ID!
-  tagId: ID!
+input CustomerTagAssignmentRelationsUpdateInput {
+  create: [CustomerTagAssignmentRelationCreateInput!]
+  deleteIds: [ID!]
 }
 
 input CustomerSegmentCreateInput {
@@ -252,12 +261,26 @@ input CustomerSegmentUpdateInput {
   status: CustomerSegmentStatus
   query: String
   definition: JSON
-  """When provided, atomically replaces all manual memberships."""
-  customers: CustomerSegmentCustomersUpdateInput
+  """Create, update, delete, or replace manual customer memberships."""
+  customers: CustomerSegmentMembershipRelationsUpdateInput
 }
 
-input CustomerSegmentCustomersUpdateInput {
-  customerIds: [ID!]!
+input CustomerSegmentMembershipRelationCreateInput {
+  customerId: ID!
+  expiresAt: DateTime
+}
+
+input CustomerSegmentMembershipRelationUpdateInput {
+  membershipId: ID!
+  expiresAt: DateTime
+}
+
+input CustomerSegmentMembershipRelationsUpdateInput {
+  create: [CustomerSegmentMembershipRelationCreateInput!]
+  update: [CustomerSegmentMembershipRelationUpdateInput!]
+  deleteIds: [ID!]
+  """Atomically replace all manual memberships with these customers."""
+  setCustomerIds: [ID!]
 }
 
 input CustomerSegmentDeleteInput {
@@ -265,27 +288,7 @@ input CustomerSegmentDeleteInput {
   expectedRevision: Int
 }
 
-"""Add customers to a manual segment."""
-input CustomerSegmentCustomersAddInput {
-  segmentId: ID!
-  expectedRevision: Int
-  customerIds: [ID!]!
-}
-
-"""Remove customers from a manual segment."""
-input CustomerSegmentCustomersRemoveInput {
-  segmentId: ID!
-  expectedRevision: Int
-  customerIds: [ID!]!
-}
-
-"""Atomically replace all manual memberships of a segment."""
-input CustomerSegmentCustomersSetInput {
-  segmentId: ID!
-  expectedRevision: Int
-  customerIds: [ID!]!
-}
-
+"""One group membership used by the unified customer update."""
 input CustomerGroupMembershipUpdateOperationInput {
   groupId: ID!
   isPrimary: Boolean = false
@@ -323,16 +326,6 @@ type CustomerGroupDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-type CustomerGroupMembershipSetPayload {
-  membership: CustomerGroupMembership
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerGroupMembershipDeletePayload {
-  deletedMembershipId: ID
-  userErrors: [GenericUserError!]!
-}
-
 type CustomerTagCreatePayload {
   tag: CustomerTag
   userErrors: [GenericUserError!]!
@@ -349,16 +342,6 @@ type CustomerTagDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-type CustomerTagAssignPayload {
-  assignment: CustomerTagAssignment
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerTagUnassignPayload {
-  deletedAssignmentId: ID
-  userErrors: [GenericUserError!]!
-}
-
 type CustomerSegmentCreatePayload {
   segment: CustomerSegment
   userErrors: [GenericUserError!]!
@@ -372,23 +355,5 @@ type CustomerSegmentUpdatePayload {
 
 type CustomerSegmentDeletePayload {
   deletedSegmentId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerSegmentCustomersAddPayload {
-  segment: CustomerSegment
-  customers: [Customer!]!
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerSegmentCustomersRemovePayload {
-  segment: CustomerSegment
-  removedCustomerIds: [ID!]!
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerSegmentCustomersSetPayload {
-  segment: CustomerSegment
-  customers: [Customer!]!
   userErrors: [GenericUserError!]!
 }

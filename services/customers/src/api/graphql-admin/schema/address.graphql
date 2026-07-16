@@ -84,6 +84,10 @@ input CustomerAddressUpdateInput {
   regionCode: String
   postalCode: String
   countryCode: String
+  """Set or clear this address as the customer's shipping default."""
+  isDefaultShipping: Boolean
+  """Set or clear this address as the customer's billing default."""
+  isDefaultBilling: Boolean
   latitude: Float
   longitude: Float
 }
@@ -131,13 +135,6 @@ input CustomerAddressDeleteInput {
   id: ID!
 }
 
-"""Atomically replaces both defaults. Null clears a default."""
-input CustomerAddressDefaultsUpdateInput {
-  customerId: ID!
-  shippingAddressId: ID
-  billingAddressId: ID
-}
-
 type CustomerAddressCreatePayload {
   address: CustomerAddress
   userErrors: [GenericUserError!]!
@@ -151,10 +148,5 @@ type CustomerAddressUpdatePayload {
 
 type CustomerAddressDeletePayload {
   deletedAddressId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type CustomerAddressDefaultsUpdatePayload {
-  customer: Customer
   userErrors: [GenericUserError!]!
 }

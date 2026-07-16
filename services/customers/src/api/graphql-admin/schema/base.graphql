@@ -109,6 +109,7 @@ type CustomersMutation {
     """Customer-level operations to apply atomically."""
     operations: CustomerUpdateInput
   ): CustomerUpdatePayload!
+  customerDelete(input: CustomerDeleteInput!): CustomerDeletePayload!
 
   customerAddressCreate(input: CustomerAddressCreateInput!): CustomerAddressCreatePayload!
   customerAddressUpdate(
@@ -116,9 +117,6 @@ type CustomersMutation {
     operations: CustomerAddressUpdateInput
   ): CustomerAddressUpdatePayload!
   customerAddressDelete(input: CustomerAddressDeleteInput!): CustomerAddressDeletePayload!
-  customerAddressDefaultsUpdate(
-    input: CustomerAddressDefaultsUpdateInput!
-  ): CustomerAddressDefaultsUpdatePayload!
 
   customerTaxIdentifierCreate(
     input: CustomerTaxIdentifierCreateInput!
@@ -142,8 +140,17 @@ type CustomersMutation {
     input: CustomerTaxExemptionDeleteInput!
   ): CustomerTaxExemptionDeletePayload!
 
-  """Change current consent state and append an immutable evidence event."""
-  customerConsentSet(input: CustomerConsentSetInput!): CustomerConsentSetPayload!
+  customerConsentCreate(
+    input: CustomerConsentCreateInput!
+  ): CustomerConsentCreatePayload!
+  """Update consent state and append an immutable evidence event."""
+  customerConsentUpdate(
+    consentId: ID!
+    operations: CustomerConsentUpdateInput
+  ): CustomerConsentUpdatePayload!
+  customerConsentDelete(
+    input: CustomerConsentDeleteInput!
+  ): CustomerConsentDeletePayload!
 
   customerGroupCreate(input: CustomerGroupCreateInput!): CustomerGroupCreatePayload!
   customerGroupUpdate(
@@ -151,12 +158,6 @@ type CustomersMutation {
     operations: CustomerGroupUpdateInput
   ): CustomerGroupUpdatePayload!
   customerGroupDelete(input: CustomerGroupDeleteInput!): CustomerGroupDeletePayload!
-  customerGroupMembershipSet(
-    input: CustomerGroupMembershipSetInput!
-  ): CustomerGroupMembershipSetPayload!
-  customerGroupMembershipDelete(
-    input: CustomerGroupMembershipDeleteInput!
-  ): CustomerGroupMembershipDeletePayload!
 
   customerTagCreate(input: CustomerTagCreateInput!): CustomerTagCreatePayload!
   customerTagUpdate(
@@ -164,8 +165,6 @@ type CustomersMutation {
     operations: CustomerTagUpdateInput
   ): CustomerTagUpdatePayload!
   customerTagDelete(input: CustomerTagDeleteInput!): CustomerTagDeletePayload!
-  customerTagAssign(input: CustomerTagAssignInput!): CustomerTagAssignPayload!
-  customerTagUnassign(input: CustomerTagUnassignInput!): CustomerTagUnassignPayload!
 
   customerSegmentCreate(
     input: CustomerSegmentCreateInput!
@@ -179,21 +178,22 @@ type CustomersMutation {
   customerSegmentDelete(
     input: CustomerSegmentDeleteInput!
   ): CustomerSegmentDeletePayload!
-  customerSegmentCustomersAdd(
-    input: CustomerSegmentCustomersAddInput!
-  ): CustomerSegmentCustomersAddPayload!
-  customerSegmentCustomersRemove(
-    input: CustomerSegmentCustomersRemoveInput!
-  ): CustomerSegmentCustomersRemovePayload!
-  customerSegmentCustomersSet(
-    input: CustomerSegmentCustomersSetInput!
-  ): CustomerSegmentCustomersSetPayload!
 
-  customerMergeRequest(input: CustomerMergeRequestInput!): CustomerMergeRequestPayload!
+  customerMergeCreate(input: CustomerMergeCreateInput!): CustomerMergeCreatePayload!
+  customerMergeUpdate(
+    mergeId: ID!
+    operations: CustomerMergeUpdateInput
+  ): CustomerMergeUpdatePayload!
+  customerMergeDelete(input: CustomerMergeDeleteInput!): CustomerMergeDeletePayload!
+
   customerDataRequestCreate(
     input: CustomerDataRequestCreateInput!
   ): CustomerDataRequestCreatePayload!
-  customerDataRequestCancel(
-    input: CustomerDataRequestCancelInput!
-  ): CustomerDataRequestCancelPayload!
+  customerDataRequestUpdate(
+    dataRequestId: ID!
+    operations: CustomerDataRequestUpdateInput
+  ): CustomerDataRequestUpdatePayload!
+  customerDataRequestDelete(
+    input: CustomerDataRequestDeleteInput!
+  ): CustomerDataRequestDeletePayload!
 }

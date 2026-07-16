@@ -142,8 +142,9 @@ exemptions, group memberships, tag assignments и manual segment memberships.
 изменяет данные. Любая ошибка секции откатывает весь `customerUpdate`.
 
 `customerSegmentUpdate` аналогично может атомарно изменить definition metadata
-и заменить manual customer memberships под одним `expectedRevision`. Отдельный
-`customerSegmentCustomersSet` используется для membership-only обновлений.
+и заменить manual customer memberships под одним `expectedRevision`.
+Membership-only обновления выполняются через
+`customerSegmentUpdate.operations.customers.setCustomerIds`.
 - `store_id` не входит в primary и foreign keys; tenant isolation обеспечивается
   обязательным store scope и отдельными индексами.
 

@@ -48,15 +48,3 @@ export const CUSTOMER_SEGMENT_DELETE_MUTATION = gql`
     }
   }
 `;
-
-export const CUSTOMER_SEGMENT_CUSTOMERS_SET_MUTATION = gql`
-  mutation CustomerSegmentCustomersSet($input: CustomerSegmentCustomersSetInput!) {
-    customersMutation {
-      customerSegmentCustomersSet(input: $input) {
-        segment { ...CustomerSegmentListFields }
-        userErrors { code field message }
-      }
-    }
-  }
-  ${CUSTOMER_SEGMENT_LIST_FRAGMENT}
-`;
