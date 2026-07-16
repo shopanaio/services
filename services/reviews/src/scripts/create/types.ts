@@ -45,28 +45,3 @@ export interface ContentExternalReferenceCreateResult {
   externalReference?: { id: string; contentId: string };
   userErrors: UserError[];
 }
-
-export interface ReviewsMutationWorkflowContext {
-  organizationId: string;
-  storeId: string;
-  userId?: string;
-  locale?: string;
-  requestId: string;
-}
-
-export interface CreateWorkflowInput<TParams> {
-  params: TParams;
-  context: ReviewsMutationWorkflowContext;
-}
-
-export type RatingCriterionCreateWorkflowInput =
-  CreateWorkflowInput<RatingCriterionCreateParams>;
-export type ReviewCreateWorkflowInput = CreateWorkflowInput<ReviewCreateParams>;
-export type ProductQuestionCreateWorkflowInput =
-  CreateWorkflowInput<ProductQuestionCreateParams>;
-export type ReviewRequestCreateWorkflowInput =
-  CreateWorkflowInput<ReviewRequestCreateParams>;
-export type ModerationCaseCreateWorkflowInput =
-  CreateWorkflowInput<ModerationCaseCreateParams>;
-export type ContentExternalReferenceCreateWorkflowInput =
-  CreateWorkflowInput<ContentExternalReferenceCreateParams>;

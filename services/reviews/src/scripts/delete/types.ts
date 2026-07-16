@@ -4,9 +4,6 @@ import type {
   ReviewRatingCriterionDeleteInput,
 } from "../../resolvers/admin/generated/types.js";
 import type { UserError } from "../../kernel/BaseScript.js";
-import type {
-  CreateWorkflowInput,
-} from "../create/types.js";
 
 export type RatingCriterionDeleteParams = ReviewRatingCriterionDeleteInput;
 export type ReviewDeleteParams = ReviewContentDeleteInput;
@@ -40,11 +37,3 @@ export interface ContentExternalReferenceDeleteResult extends DeleteResult {
   contentId?: string;
   permanent?: boolean;
 }
-
-export type RatingCriterionDeleteWorkflowInput =
-  CreateWorkflowInput<RatingCriterionDeleteParams>;
-export type ReviewDeleteWorkflowInput = CreateWorkflowInput<ReviewDeleteParams>;
-export type ProductQuestionDeleteWorkflowInput =
-  CreateWorkflowInput<ProductQuestionDeleteParams>;
-export type ContentExternalReferenceDeleteWorkflowInput =
-  CreateWorkflowInput<ContentExternalReferenceDeleteParams>;

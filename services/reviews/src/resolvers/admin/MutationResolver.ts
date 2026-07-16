@@ -5,28 +5,28 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
-  ContentExternalReferenceCreateResult,
   ContentExternalReferenceCreateWorkflowInput,
-  ContentExternalReferenceDeleteResult,
+  ContentExternalReferenceCreateWorkflowResult,
   ContentExternalReferenceDeleteWorkflowInput,
-  ModerationCaseCreateResult,
+  ContentExternalReferenceDeleteWorkflowResult,
   ModerationCaseCreateWorkflowInput,
-  ProductQuestionCreateResult,
+  ModerationCaseCreateWorkflowResult,
   ProductQuestionCreateWorkflowInput,
-  ProductQuestionDeleteResult,
+  ProductQuestionCreateWorkflowResult,
   ProductQuestionDeleteWorkflowInput,
-  RatingCriterionCreateResult,
+  ProductQuestionDeleteWorkflowResult,
   RatingCriterionCreateWorkflowInput,
-  RatingCriterionDeleteResult,
+  RatingCriterionCreateWorkflowResult,
   RatingCriterionDeleteWorkflowInput,
-  ReviewCreateResult,
+  RatingCriterionDeleteWorkflowResult,
   ReviewCreateWorkflowInput,
-  ReviewDeleteResult,
+  ReviewCreateWorkflowResult,
   ReviewDeleteWorkflowInput,
-  ReviewRequestCreateResult,
+  ReviewDeleteWorkflowResult,
   ReviewRequestCreateWorkflowInput,
+  ReviewRequestCreateWorkflowResult,
   ReviewsMutationWorkflowContext,
-} from "../../scripts/index.js";
+} from "../../workflows/dto/index.js";
 import { RatingCriterionResolver } from "./ConfigurationResolver.js";
 import { ContentExternalReferenceResolver } from "./ExternalReferenceResolver.js";
 import { ModerationCaseResolver } from "./ModerationResolver.js";
@@ -84,7 +84,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async ratingCriterionCreate(args: ReviewsMutationRatingCriterionCreateArgs) {
     const decoded = decodeRatingCriterionInput(args.input);
     if (!decoded.value) return { criterion: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<RatingCriterionCreateResult>(
+    const result = await this.runMutationWorkflow<RatingCriterionCreateWorkflowResult>(
       "ratingCriterionCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies RatingCriterionCreateWorkflowInput
     );
@@ -99,7 +99,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async ratingCriterionDelete(args: ReviewsMutationRatingCriterionDeleteArgs) {
     const decoded = decodeDeleteInput(args.input, GlobalIdEntity.ReviewRatingCriterion);
     if (!decoded.value) return { deletedCriterionId: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<RatingCriterionDeleteResult>(
+    const result = await this.runMutationWorkflow<RatingCriterionDeleteWorkflowResult>(
       "ratingCriterionDelete",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies RatingCriterionDeleteWorkflowInput
     );
@@ -116,7 +116,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async reviewCreate(args: ReviewsMutationReviewCreateArgs) {
     const decoded = decodeReviewInput(args.input);
     if (!decoded.value) return { review: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ReviewCreateResult>(
+    const result = await this.runMutationWorkflow<ReviewCreateWorkflowResult>(
       "reviewCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ReviewCreateWorkflowInput
     );
@@ -131,7 +131,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async reviewDelete(args: ReviewsMutationReviewDeleteArgs) {
     const decoded = decodeDeleteInput(args.input, GlobalIdEntity.Review);
     if (!decoded.value) return { deletedReviewId: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ReviewDeleteResult>(
+    const result = await this.runMutationWorkflow<ReviewDeleteWorkflowResult>(
       "reviewDelete",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ReviewDeleteWorkflowInput
     );
@@ -151,7 +151,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async productQuestionCreate(args: ReviewsMutationProductQuestionCreateArgs) {
     const decoded = decodeProductQuestionInput(args.input);
     if (!decoded.value) return { productQuestion: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ProductQuestionCreateResult>(
+    const result = await this.runMutationWorkflow<ProductQuestionCreateWorkflowResult>(
       "productQuestionCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ProductQuestionCreateWorkflowInput
     );
@@ -166,7 +166,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async productQuestionDelete(args: ReviewsMutationProductQuestionDeleteArgs) {
     const decoded = decodeDeleteInput(args.input, GlobalIdEntity.ProductQuestion);
     if (!decoded.value) return { deletedProductQuestionId: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ProductQuestionDeleteResult>(
+    const result = await this.runMutationWorkflow<ProductQuestionDeleteWorkflowResult>(
       "productQuestionDelete",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ProductQuestionDeleteWorkflowInput
     );
@@ -189,7 +189,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async reviewRequestCreate(args: ReviewsMutationReviewRequestCreateArgs) {
     const decoded = decodeReviewRequestInput(args.input);
     if (!decoded.value) return { reviewRequest: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ReviewRequestCreateResult>(
+    const result = await this.runMutationWorkflow<ReviewRequestCreateWorkflowResult>(
       "reviewRequestCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ReviewRequestCreateWorkflowInput
     );
@@ -206,7 +206,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async moderationCaseCreate(args: ReviewsMutationModerationCaseCreateArgs) {
     const decoded = decodeModerationCaseInput(args.input);
     if (!decoded.value) return { moderationCase: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ModerationCaseCreateResult>(
+    const result = await this.runMutationWorkflow<ModerationCaseCreateWorkflowResult>(
       "moderationCaseCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ModerationCaseCreateWorkflowInput
     );
@@ -222,7 +222,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async contentExternalReferenceCreate(args: ReviewsMutationContentExternalReferenceCreateArgs) {
     const decoded = decodeExternalReferenceInput(args.input);
     if (!decoded.value) return { externalReference: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ContentExternalReferenceCreateResult>(
+    const result = await this.runMutationWorkflow<ContentExternalReferenceCreateWorkflowResult>(
       "contentExternalReferenceCreate",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ContentExternalReferenceCreateWorkflowInput
     );
@@ -237,7 +237,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async contentExternalReferenceDelete(args: ReviewsMutationContentExternalReferenceDeleteArgs) {
     const decoded = decodeExternalReferenceDeleteInput(args.input);
     if (!decoded.value) return { deletedExternalReferenceId: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ContentExternalReferenceDeleteResult>(
+    const result = await this.runMutationWorkflow<ContentExternalReferenceDeleteWorkflowResult>(
       "contentExternalReferenceDelete",
       { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ContentExternalReferenceDeleteWorkflowInput
     );
