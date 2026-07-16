@@ -173,8 +173,8 @@ type ReviewEditSection =
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
 │  ┌─ Customer media (3) ───────────────────────────────────────── [⋯] ┐  │
-│  │ [ image 1 ] [ image 2 ] [ video 3 ] [ + add ] [ placeholder ... ] │  │
-│  │    [PUBLISHED]  Captions and moderation state appear in preview.   │  │
+│  │ [image 1 ✓] [image 2 ◷] [video 3 ⊗] [+ add] [placeholder ...]     │  │
+│  │ Icon badges show status; full moderation data opens per item.      │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
 │  ┌─ Replies (3) ──────────────────────────────────────────────────────┐  │
@@ -405,17 +405,17 @@ Details presentation переиспользует визуальный grid `Med
 ```text
 ┌─ Customer media (5) ────────────────────────────────────────────── [⋯] ┐
 │ ┌─────────────────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐            │
-│ │ [PUBLISHED]         │ │ [PUBL.] │ │ [PEND.] │ │ [PUBL.] │            │
+│ │                 [✓] │ │     [✓] │ │     [◷] │ │     [⊗] │            │
 │ │                     │ │         │ │         │ │         │            │
 │ │      image 1        │ │ image 2 │ │ video 3 │ │ image 4 │            │
 │ │                     │ │         │ │   ▶     │ │         │            │
 │ │ hover: Preview      │ └─────────┘ └─────────┘ └─────────┘            │
 │ └─────────────────────┘ ┌─────────┐ ┌─────────┐ ┌╌╌╌╌╌╌╌╌╌┐            │
-│                         │ [REJ.]  │ │         │ ╎    +    ╎            │
+│                         │     [✓] │ │         │ ╎    +    ╎            │
 │                         │ image 5 │ │ empty   │ ╎ Add media╎            │
 │                         └─────────┘ └─────────┘ └╌╌╌╌╌╌╌╌╌┘            │
 │                                                                           │
-│ Click an item to preview caption, file details and moderation state.     │
+│ Select an item to preview or moderate it.                                │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -423,10 +423,56 @@ Details presentation переиспользует визуальный grid `Med
 - `MediaPreview` для изображений и video;
 - максимум 12 cells в overview, `+N` для остатка;
 - upload cell открывает edit media modal;
-- каждый item может показать компактный moderation status badge;
-- caption и moderation note доступны в preview metadata, а не постоянно занимают место под thumbnail.
+- tabs `Published / Pending / Rejected` отсутствуют: при небольшом количестве media они занимают место и скрывают общий контекст review;
+- каждый item показывает icon-only moderation badge в одном и том же top-right slot: `CheckCircle`, `Clock`, `CircleX`;
+- badge использует icon + semantic color, имеет `Tooltip` и `aria-label`; цвет не является единственным способом различить state;
+- полный status text, caption, moderation note и audit metadata доступны только в item details modal;
+- click по thumbnail открывает preview/details; action `Edit details` доступен также из item overflow menu.
 
-Если существующий Product `MediaSection` не позволяет передать review item metadata, общий grid следует расширить optional render slots. Не нужно копировать media preview, placeholder и keyboard interaction в новый независимый компонент.
+Общий grid расширяется optional slots. Не нужно копировать media preview, placeholder, DnD и keyboard interaction в новый review-only component.
+
+#### Расширение EntityMediaGallery для moderation
+
+Текущий `EntityMediaGallery` принимает только `ApiFile[]`, тогда как moderation metadata принадлежит `ReviewMedia`, а не `File`. Поэтому gallery сохраняет file-based contract, а Review adapter держит metadata по `file.id` и передаёт optional render/action slots:
+
+```ts
+interface IEntityMediaGalleryProps {
+  // existing props remain unchanged
+  renderItemBadge?: (file: ApiFile, index: number) => React.ReactNode;
+  renderListMeta?: (file: ApiFile, index: number) => React.ReactNode;
+  getItemMenuItems?: (
+    file: ApiFile,
+    index: number,
+  ) => MenuProps["items"];
+  onEditItem?: (file: ApiFile, index: number) => void;
+  editItemLabel?: string;
+}
+```
+
+Review-specific draft остаётся за пределами shared gallery:
+
+```ts
+interface ReviewMediaDraftItem {
+  file: ApiFile;
+  caption: string | null;
+  status: ReviewContentStatus;
+  moderationNote: string | null;
+  moderatedByPrincipalId: string | null;
+  moderatedAt: string | null;
+  moderationDirty: boolean;
+}
+
+const metadataByFileId = new Map(items.map((item) => [item.file.id, item]));
+```
+
+Правила extension:
+
+- existing Product/Category consumers не передают новые props и визуально не меняются;
+- built-in menu items `Preview`, `Set as featured`, `Delete` объединяются с `getItemMenuItems`, сохраняя test IDs на menu item object;
+- `renderItemBadge` рендерится поверх grid thumbnail, но не внутри drag handle и не перекрывает overflow action;
+- в list mode `renderListMeta` может показывать icon + полный text status, потому что там достаточно горизонтального места;
+- reorder/add/delete возвращают `ApiFile[]`; Review adapter синхронно перестраивает draft, сохраняя metadata существующих file IDs;
+- новая media получает `PENDING`, `moderationNote=null`, `moderatedAt=null`.
 
 ### ReviewRepliesSection
 
@@ -761,24 +807,38 @@ ModalLayout
 
 Nested media details:
 
+![Edit review media details modal](assets/review-details-redesign/12-edit-review-media-details.png)
+
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ ×  Edit media details                                       [Apply]     │
 ├──────────────────────────────────────────────────────────────────────────┤
-│  ┌─ Preview ──────────────────────────────────────────────────────────┐  │
-│  │                    [ image / video preview ]                       │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-│  ┌─ Details ──────────────────────────────────────────────────────────┐  │
-│  │ Caption                                                            │  │
-│  │ [Headphones and travel case on a desk_________________________]   │  │
-│  │                                                                    │  │
-│  │ Moderation status    [Pending / Published / Rejected]              │  │
-│  │ Moderation note      [________________________________________]     │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
+│  ┌─ Preview ───────────────────┐  ┌─ Details ───────────────────────┐  │
+│  │                             │  │ Caption                        │  │
+│  │    [ image / video ]        │  │ [Headphones and travel case…] │  │
+│  │                             │  │                                │  │
+│  │ headphones-side.jpg         │  │ Moderation status              │  │
+│  │ JPG · 1.8 MB                │  │ [◷ Pending][✓ Published][⊗ Rej.]│ │
+│  └─────────────────────────────┘  │                                │  │
+│                                   │ [REJECTED context message]     │  │
+│                                   │                                │  │
+│                                   │ Moderation note *              │  │
+│                                   │ [Image contains personal…    ] │  │
+│                                   │ Moderated Jul 16 by Admin      │  │
+│                                   └────────────────────────────────┘  │
+│                                                                          │
+│  ℹ Apply updates the draft. Save the media gallery to persist changes.  │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-`Apply` изменяет только draft родительской media modal. Server update выполняется один раз по `Save` родителя, потому что `ReviewUpdateInput.media` является complete replacement.
+- Status использует тот же horizontal `Segmented block`, что review moderation: `Pending`, `Published`, `Rejected` с icon и text.
+- Context panel объясняет consequence только выбранного status.
+- При `Rejected` moderation note обязательна; максимум 1000 characters. При других statuses note optional, но существующая note не очищается молча.
+- `Pending` очищает `moderatedByPrincipalId` и `moderatedAt`; `Published`/`Rejected` записывают текущего admin и timestamp согласно существующему update script.
+- `Apply` валидирует item и изменяет только draft родительской media modal. Server update выполняется один раз по `Save` родителя, потому что `ReviewUpdateInput.media` является complete replacement.
+- Закрытие nested modal без `Apply` не меняет parent draft. Закрытие dirty parent modal использует стандартное Modal Stack confirmation.
+- Parent Save отправляет `caption` для каждого item, но `moderation` subtree — только когда `moderationDirty=true`. Если отправлять moderation для всех items при обычном reorder, текущий backend перезапишет moderator/timestamp.
+- Для unchanged item отсутствие `moderation` заставляет update script сохранить existing status, note, moderator и timestamp по `fileId`.
 
 ### 9. External Reference Create/Edit
 
@@ -856,6 +916,7 @@ Nested media details:
 | Empty content | `EntityDetailsEmptyState` | Review-specific copy/icon |
 | Media overview | Product `MediaSection` primitives + `MediaPreview` | `hasFeatured=false`, metadata slots |
 | Media editor | `EntityMediaGallery` | List mode, DnD, picker, upload, preview |
+| Media moderation extension | optional `renderItemBadge`, `renderListMeta`, `getItemMenuItems`, `onEditItem` slots | Shared gallery остаётся file-based; Review adapter владеет moderation draft |
 | Product/customer/variant selection | existing Entity Picker hooks/configs | Не создавать review-specific pickers |
 | Locale | `shopLocales` | Human label + locale code |
 | Forms | `react-hook-form`, section Zod schemas | Dirty/errors/submit единообразны |
@@ -926,6 +987,10 @@ admin/src/domains/customer-content/reviews/modals/
 - не делать отдельные queries для author, reports или external references, уже вложенных в details operation.
 
 Review details query остаётся источником истины. Edit modal получает `entityId`, повторно загружает актуальную entity и использует `revision` для optimistic concurrency.
+
+Review media moderation уже поддерживается Admin API полями `status`, `moderationNote`, `moderatedByPrincipalId`, `moderatedAt` и input `ReviewMediaSyncItemInput.moderation`; schema extension для editor не требуется.
+
+Customer-facing delivery требует отдельного обязательного правила: наружу возвращаются только media со `status=PUBLISHED`. Текущий repository loader получает все review media без status filter, поэтому icon badge сам по себе ещё не обеспечивает скрытие `PENDING`/`REJECTED`. До появления storefront resolver это фиксируется как implementation requirement, а не считается готовым поведением API.
 
 При conflict:
 
@@ -1010,6 +1075,10 @@ It may have been deleted or is no longer available.
 - Каждая edit modal отправляет только собственный `ReviewUpdateInput` subtree.
 - Product, Variant, Customer и Media selection переиспользуют существующие pickers.
 - Media переиспользует gallery/preview/upload primitives и сохраняет caption/moderation metadata.
+- Media grid не содержит status tabs и full-text thumbnail badges; status представлен icon-only badge с Tooltip и accessible name.
+- Каждый media item можно открыть в nested details modal и изменить `Pending / Published / Rejected`; rejected требует moderation note.
+- Reorder/add/delete не сбрасывают moderation metadata существующих items и не переписывают moderation audit без реального изменения.
+- Customer-facing review media исключает `PENDING` и `REJECTED`; Admin details продолжает видеть все statuses.
 - External reference rows открываются в create/edit варианте существующей modal.
 - Redact и Delete имеют разные, точные consequence messages.
 - Loading, not found, empty, conflict и API error states описаны и не уничтожают form draft.
