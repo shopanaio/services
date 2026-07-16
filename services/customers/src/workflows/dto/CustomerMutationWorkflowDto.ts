@@ -1,18 +1,28 @@
 import type {
   CustomerAddressCreateParams,
   CustomerAddressCreateResult,
+  CustomerAddressDeleteParams,
+  CustomerAddressDeleteResult,
 } from "../../scripts/address/index.js";
 import type {
   CustomerGroupCreateParams,
   CustomerGroupCreateResult,
+  CustomerGroupDeleteParams,
+  CustomerGroupDeleteResult,
   CustomerSegmentCreateParams,
   CustomerSegmentCreateResult,
+  CustomerSegmentDeleteParams,
+  CustomerSegmentDeleteResult,
   CustomerTagCreateParams,
   CustomerTagCreateResult,
+  CustomerTagDeleteParams,
+  CustomerTagDeleteResult,
 } from "../../scripts/classification/index.js";
 import type {
   CustomerConsentCreateParams,
   CustomerConsentCreateResult,
+  CustomerConsentDeleteParams,
+  CustomerConsentDeleteResult,
 } from "../../scripts/consent/index.js";
 import type {
   CustomerCreateParams,
@@ -23,14 +33,22 @@ import type {
 import type {
   CustomerDataRequestCreateParams,
   CustomerDataRequestCreateResult,
+  CustomerDataRequestDeleteParams,
+  CustomerDataRequestDeleteResult,
   CustomerMergeCreateParams,
   CustomerMergeCreateResult,
+  CustomerMergeDeleteParams,
+  CustomerMergeDeleteResult,
 } from "../../scripts/lifecycle/index.js";
 import type {
   CustomerTaxExemptionCreateParams,
   CustomerTaxExemptionCreateResult,
+  CustomerTaxExemptionDeleteParams,
+  CustomerTaxExemptionDeleteResult,
   CustomerTaxIdentifierCreateParams,
   CustomerTaxIdentifierCreateResult,
+  CustomerTaxIdentifierDeleteParams,
+  CustomerTaxIdentifierDeleteResult,
 } from "../../scripts/tax/index.js";
 
 export interface CustomerMutationWorkflowContext {
@@ -114,6 +132,73 @@ export interface CustomerDataRequestCreateWorkflowInput {
 
 export type CustomerDataRequestCreateWorkflowResult =
   CustomerDataRequestCreateResult;
+
+export interface CustomerAddressDeleteWorkflowInput {
+  params: CustomerAddressDeleteParams;
+  context: CustomerMutationWorkflowContext;
+}
+
+export type CustomerAddressDeleteWorkflowResult =
+  CustomerAddressDeleteResult;
+
+export interface CustomerTaxIdentifierDeleteWorkflowInput {
+  params: CustomerTaxIdentifierDeleteParams;
+  context: CustomerMutationWorkflowContext;
+}
+
+export type CustomerTaxIdentifierDeleteWorkflowResult =
+  CustomerTaxIdentifierDeleteResult;
+
+export interface CustomerTaxExemptionDeleteWorkflowInput {
+  params: CustomerTaxExemptionDeleteParams;
+  context: CustomerMutationWorkflowContext;
+}
+
+export type CustomerTaxExemptionDeleteWorkflowResult =
+  CustomerTaxExemptionDeleteResult;
+
+export interface CustomerConsentDeleteWorkflowInput {
+  params: CustomerConsentDeleteParams;
+  context: CustomerMutationWorkflowContext;
+}
+
+export type CustomerConsentDeleteWorkflowResult = CustomerConsentDeleteResult;
+
+export interface CustomerGroupDeleteWorkflowInput {
+  params: CustomerGroupDeleteParams;
+  context: CustomerMutationWorkflowContext;
+}
+
+export type CustomerGroupDeleteWorkflowResult = CustomerGroupDeleteResult;
+
+export interface CustomerTagDeleteWorkflowInput {
+  params: CustomerTagDeleteParams;
+  context: CustomerMutationWorkflowContext;
+}
+
+export type CustomerTagDeleteWorkflowResult = CustomerTagDeleteResult;
+
+export interface CustomerSegmentDeleteWorkflowInput {
+  params: CustomerSegmentDeleteParams;
+  context: CustomerMutationWorkflowContext;
+}
+
+export type CustomerSegmentDeleteWorkflowResult = CustomerSegmentDeleteResult;
+
+export interface CustomerMergeDeleteWorkflowInput {
+  params: CustomerMergeDeleteParams;
+  context: CustomerMutationWorkflowContext;
+}
+
+export type CustomerMergeDeleteWorkflowResult = CustomerMergeDeleteResult;
+
+export interface CustomerDataRequestDeleteWorkflowInput {
+  params: CustomerDataRequestDeleteParams;
+  context: CustomerMutationWorkflowContext;
+}
+
+export type CustomerDataRequestDeleteWorkflowResult =
+  CustomerDataRequestDeleteResult;
 
 export interface CustomerDeleteWorkflowInput {
   params: CustomerDeleteParams;

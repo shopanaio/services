@@ -7,27 +7,45 @@ import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
   CustomerAddressCreateWorkflowInput,
   CustomerAddressCreateWorkflowResult,
+  CustomerAddressDeleteWorkflowInput,
+  CustomerAddressDeleteWorkflowResult,
   CustomerConsentCreateWorkflowInput,
   CustomerConsentCreateWorkflowResult,
+  CustomerConsentDeleteWorkflowInput,
+  CustomerConsentDeleteWorkflowResult,
   CustomerCreateWorkflowInput,
   CustomerCreateWorkflowResult,
   CustomerDataRequestCreateWorkflowInput,
   CustomerDataRequestCreateWorkflowResult,
+  CustomerDataRequestDeleteWorkflowInput,
+  CustomerDataRequestDeleteWorkflowResult,
   CustomerDeleteWorkflowInput,
   CustomerDeleteWorkflowResult,
   CustomerGroupCreateWorkflowInput,
   CustomerGroupCreateWorkflowResult,
+  CustomerGroupDeleteWorkflowInput,
+  CustomerGroupDeleteWorkflowResult,
   CustomerMergeCreateWorkflowInput,
   CustomerMergeCreateWorkflowResult,
+  CustomerMergeDeleteWorkflowInput,
+  CustomerMergeDeleteWorkflowResult,
   CustomerMutationWorkflowContext,
   CustomerSegmentCreateWorkflowInput,
   CustomerSegmentCreateWorkflowResult,
+  CustomerSegmentDeleteWorkflowInput,
+  CustomerSegmentDeleteWorkflowResult,
   CustomerTagCreateWorkflowInput,
   CustomerTagCreateWorkflowResult,
+  CustomerTagDeleteWorkflowInput,
+  CustomerTagDeleteWorkflowResult,
   CustomerTaxExemptionCreateWorkflowInput,
   CustomerTaxExemptionCreateWorkflowResult,
+  CustomerTaxExemptionDeleteWorkflowInput,
+  CustomerTaxExemptionDeleteWorkflowResult,
   CustomerTaxIdentifierCreateWorkflowInput,
   CustomerTaxIdentifierCreateWorkflowResult,
+  CustomerTaxIdentifierDeleteWorkflowInput,
+  CustomerTaxIdentifierDeleteWorkflowResult,
   CustomerUpdateOperation,
   CustomerUpdateWorkflowInput,
   CustomerUpdateWorkflowResult,
@@ -46,29 +64,47 @@ import { CustomerTaxIdentifierResolver } from "./CustomerTaxIdentifierResolver.j
 import { CustomersType } from "./CustomersType.js";
 import {
   CustomerAddressCreateInputSchema,
+  CustomerAddressDeleteInputSchema,
   CustomerConsentCreateInputSchema,
+  CustomerConsentDeleteInputSchema,
   CustomerCreateInputSchema,
   CustomerDataRequestCreateInputSchema,
+  CustomerDataRequestDeleteInputSchema,
   CustomerDeleteInputSchema,
   CustomerGroupCreateInputSchema,
+  CustomerGroupDeleteInputSchema,
   CustomerMergeCreateInputSchema,
+  CustomerMergeDeleteInputSchema,
   CustomerSegmentCreateInputSchema,
+  CustomerSegmentDeleteInputSchema,
   CustomerTagCreateInputSchema,
+  CustomerTagDeleteInputSchema,
   CustomerTaxExemptionCreateInputSchema,
+  CustomerTaxExemptionDeleteInputSchema,
   CustomerTaxIdentifierCreateInputSchema,
+  CustomerTaxIdentifierDeleteInputSchema,
 } from "./generated/schemas.js";
 import type {
   CustomersMutationCustomerAddressCreateArgs,
+  CustomersMutationCustomerAddressDeleteArgs,
   CustomersMutationCustomerConsentCreateArgs,
+  CustomersMutationCustomerConsentDeleteArgs,
   CustomersMutationCustomerCreateArgs,
   CustomersMutationCustomerDataRequestCreateArgs,
+  CustomersMutationCustomerDataRequestDeleteArgs,
   CustomersMutationCustomerDeleteArgs,
   CustomersMutationCustomerGroupCreateArgs,
+  CustomersMutationCustomerGroupDeleteArgs,
   CustomersMutationCustomerMergeCreateArgs,
+  CustomersMutationCustomerMergeDeleteArgs,
   CustomersMutationCustomerSegmentCreateArgs,
+  CustomersMutationCustomerSegmentDeleteArgs,
   CustomersMutationCustomerTagCreateArgs,
+  CustomersMutationCustomerTagDeleteArgs,
   CustomersMutationCustomerTaxExemptionCreateArgs,
+  CustomersMutationCustomerTaxExemptionDeleteArgs,
   CustomersMutationCustomerTaxIdentifierCreateArgs,
+  CustomersMutationCustomerTaxIdentifierDeleteArgs,
   CustomersMutationCustomerUpdateArgs,
 } from "./generated/types.js";
 import { mapCustomerUpdateInput } from "./customerUpdateMapper.js";
@@ -243,7 +279,7 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  private async runCreateWorkflow<TResult>(
+  private async runEntityWorkflow<TResult>(
     operation: string,
     input: unknown
   ): Promise<TResult> {
@@ -281,7 +317,7 @@ export class CustomersMutationResolver extends CustomersType<
       },
       context: this.mutationWorkflowContext(),
     };
-    const result = await this.runCreateWorkflow<CustomerAddressCreateWorkflowResult>(
+    const result = await this.runEntityWorkflow<CustomerAddressCreateWorkflowResult>(
       "customerAddressCreate",
       workflowInput
     );
@@ -297,10 +333,40 @@ export class CustomersMutationResolver extends CustomersType<
     return emptyUpdatePayload("address");
   }
 
-  customerAddressDelete() {
+  @ZodResolver(CustomerAddressDeleteInputSchema())
+  async customerAddressDelete(
+    args: CustomersMutationCustomerAddressDeleteArgs
+  ) {
+    const addressId = safeDecodeId(
+      args.input.id,
+      GlobalIdEntity.CustomerAddress
+    );
+    if (!addressId) {
+      return invalidDeletePayload("deletedAddressId");
+    }
+
+    const workflowInput: CustomerAddressDeleteWorkflowInput = {
+      params: { id: addressId },
+      context: this.mutationWorkflowContext(),
+    };
+    const result = await this.runEntityWorkflow<CustomerAddressDeleteWorkflowResult>(
+      "customerAddressDelete",
+      workflowInput
+    );
+    if (result.deletedAddressId) {
+      this.$ctx.loaders.address.clear(addressId);
+      if (result.customerId) {
+        this.$ctx.loaders.addressesByCustomer.clear(result.customerId);
+      }
+    }
     return {
-      deletedAddressId: null,
-      userErrors: [],
+      deletedAddressId: result.deletedAddressId
+        ? encodeGlobalIdByType(
+            result.deletedAddressId,
+            GlobalIdEntity.CustomerAddress
+          )
+        : null,
+      userErrors: result.userErrors,
     };
   }
 
@@ -328,7 +394,7 @@ export class CustomersMutationResolver extends CustomersType<
       context: this.mutationWorkflowContext(),
     };
     const result =
-      await this.runCreateWorkflow<CustomerTaxIdentifierCreateWorkflowResult>(
+      await this.runEntityWorkflow<CustomerTaxIdentifierCreateWorkflowResult>(
         "customerTaxIdentifierCreate",
         workflowInput
       );
@@ -344,10 +410,38 @@ export class CustomersMutationResolver extends CustomersType<
     return emptyUpdatePayload("taxIdentifier");
   }
 
-  customerTaxIdentifierDelete() {
+  @ZodResolver(CustomerTaxIdentifierDeleteInputSchema())
+  async customerTaxIdentifierDelete(
+    args: CustomersMutationCustomerTaxIdentifierDeleteArgs
+  ) {
+    const taxIdentifierId = safeDecodeId(
+      args.input.id,
+      GlobalIdEntity.CustomerTaxIdentifier
+    );
+    if (!taxIdentifierId) {
+      return invalidDeletePayload("deletedTaxIdentifierId");
+    }
+
+    const workflowInput: CustomerTaxIdentifierDeleteWorkflowInput = {
+      params: { id: taxIdentifierId },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerTaxIdentifierDeleteWorkflowResult>(
+        "customerTaxIdentifierDelete",
+        workflowInput
+      );
+    if (result.deletedTaxIdentifierId) {
+      this.$ctx.loaders.taxIdentifier.clear(taxIdentifierId);
+    }
     return {
-      deletedTaxIdentifierId: null,
-      userErrors: [],
+      deletedTaxIdentifierId: result.deletedTaxIdentifierId
+        ? encodeGlobalIdByType(
+            result.deletedTaxIdentifierId,
+            GlobalIdEntity.CustomerTaxIdentifier
+          )
+        : null,
+      userErrors: result.userErrors,
     };
   }
 
@@ -384,7 +478,7 @@ export class CustomersMutationResolver extends CustomersType<
       context: this.mutationWorkflowContext(),
     };
     const result =
-      await this.runCreateWorkflow<CustomerTaxExemptionCreateWorkflowResult>(
+      await this.runEntityWorkflow<CustomerTaxExemptionCreateWorkflowResult>(
         "customerTaxExemptionCreate",
         workflowInput
       );
@@ -400,10 +494,38 @@ export class CustomersMutationResolver extends CustomersType<
     return emptyUpdatePayload("taxExemption");
   }
 
-  customerTaxExemptionDelete() {
+  @ZodResolver(CustomerTaxExemptionDeleteInputSchema())
+  async customerTaxExemptionDelete(
+    args: CustomersMutationCustomerTaxExemptionDeleteArgs
+  ) {
+    const taxExemptionId = safeDecodeId(
+      args.input.id,
+      GlobalIdEntity.CustomerTaxExemption
+    );
+    if (!taxExemptionId) {
+      return invalidDeletePayload("deletedTaxExemptionId");
+    }
+
+    const workflowInput: CustomerTaxExemptionDeleteWorkflowInput = {
+      params: { id: taxExemptionId },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerTaxExemptionDeleteWorkflowResult>(
+        "customerTaxExemptionDelete",
+        workflowInput
+      );
+    if (result.deletedTaxExemptionId) {
+      this.$ctx.loaders.taxExemption.clear(taxExemptionId);
+    }
     return {
-      deletedTaxExemptionId: null,
-      userErrors: [],
+      deletedTaxExemptionId: result.deletedTaxExemptionId
+        ? encodeGlobalIdByType(
+            result.deletedTaxExemptionId,
+            GlobalIdEntity.CustomerTaxExemption
+          )
+        : null,
+      userErrors: result.userErrors,
     };
   }
 
@@ -437,7 +559,7 @@ export class CustomersMutationResolver extends CustomersType<
       context: this.mutationWorkflowContext(),
     };
     const result =
-      await this.runCreateWorkflow<CustomerConsentCreateWorkflowResult>(
+      await this.runEntityWorkflow<CustomerConsentCreateWorkflowResult>(
         "customerConsentCreate",
         workflowInput
       );
@@ -461,10 +583,40 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerConsentDelete() {
+  @ZodResolver(CustomerConsentDeleteInputSchema())
+  async customerConsentDelete(
+    args: CustomersMutationCustomerConsentDeleteArgs
+  ) {
+    const consentId = safeDecodeId(
+      args.input.id,
+      GlobalIdEntity.CustomerConsent
+    );
+    if (!consentId) {
+      return invalidDeletePayload("deletedConsentId");
+    }
+
+    const workflowInput: CustomerConsentDeleteWorkflowInput = {
+      params: { id: consentId },
+      context: this.mutationWorkflowContext(),
+    };
+    const result = await this.runEntityWorkflow<CustomerConsentDeleteWorkflowResult>(
+      "customerConsentDelete",
+      workflowInput
+    );
+    if (result.deletedConsentId) {
+      this.$ctx.loaders.consent.clear(consentId);
+      if (result.customerId) {
+        this.$ctx.loaders.consentsByCustomer.clear(result.customerId);
+      }
+    }
     return {
-      deletedConsentId: null,
-      userErrors: [],
+      deletedConsentId: result.deletedConsentId
+        ? encodeGlobalIdByType(
+            result.deletedConsentId,
+            GlobalIdEntity.CustomerConsent
+          )
+        : null,
+      userErrors: result.userErrors,
     };
   }
 
@@ -478,7 +630,7 @@ export class CustomersMutationResolver extends CustomersType<
       },
       context: this.mutationWorkflowContext(),
     };
-    const result = await this.runCreateWorkflow<CustomerGroupCreateWorkflowResult>(
+    const result = await this.runEntityWorkflow<CustomerGroupCreateWorkflowResult>(
       "customerGroupCreate",
       workflowInput
     );
@@ -494,10 +646,30 @@ export class CustomersMutationResolver extends CustomersType<
     return emptyUpdatePayload("group");
   }
 
-  customerGroupDelete() {
+  @ZodResolver(CustomerGroupDeleteInputSchema())
+  async customerGroupDelete(args: CustomersMutationCustomerGroupDeleteArgs) {
+    const groupId = safeDecodeId(args.input.id, GlobalIdEntity.CustomerGroup);
+    if (!groupId) {
+      return invalidDeletePayload("deletedGroupId");
+    }
+
+    const workflowInput: CustomerGroupDeleteWorkflowInput = {
+      params: { id: groupId },
+      context: this.mutationWorkflowContext(),
+    };
+    const result = await this.runEntityWorkflow<CustomerGroupDeleteWorkflowResult>(
+      "customerGroupDelete",
+      workflowInput
+    );
+    if (result.deletedGroupId) {
+      this.$ctx.loaders.group.clear(groupId);
+      this.$ctx.loaders.groupCustomersCount.clear(groupId);
+    }
     return {
-      deletedGroupId: null,
-      userErrors: [],
+      deletedGroupId: result.deletedGroupId
+        ? encodeGlobalIdByType(result.deletedGroupId, GlobalIdEntity.CustomerGroup)
+        : null,
+      userErrors: result.userErrors,
     };
   }
 
@@ -507,7 +679,7 @@ export class CustomersMutationResolver extends CustomersType<
       params: args.input,
       context: this.mutationWorkflowContext(),
     };
-    const result = await this.runCreateWorkflow<CustomerTagCreateWorkflowResult>(
+    const result = await this.runEntityWorkflow<CustomerTagCreateWorkflowResult>(
       "customerTagCreate",
       workflowInput
     );
@@ -523,10 +695,30 @@ export class CustomersMutationResolver extends CustomersType<
     return emptyUpdatePayload("tag");
   }
 
-  customerTagDelete() {
+  @ZodResolver(CustomerTagDeleteInputSchema())
+  async customerTagDelete(args: CustomersMutationCustomerTagDeleteArgs) {
+    const tagId = safeDecodeId(args.input.id, GlobalIdEntity.CustomerTag);
+    if (!tagId) {
+      return invalidDeletePayload("deletedTagId");
+    }
+
+    const workflowInput: CustomerTagDeleteWorkflowInput = {
+      params: { id: tagId },
+      context: this.mutationWorkflowContext(),
+    };
+    const result = await this.runEntityWorkflow<CustomerTagDeleteWorkflowResult>(
+      "customerTagDelete",
+      workflowInput
+    );
+    if (result.deletedTagId) {
+      this.$ctx.loaders.tag.clear(tagId);
+      this.$ctx.loaders.tagCustomersCount.clear(tagId);
+    }
     return {
-      deletedTagId: null,
-      userErrors: [],
+      deletedTagId: result.deletedTagId
+        ? encodeGlobalIdByType(result.deletedTagId, GlobalIdEntity.CustomerTag)
+        : null,
+      userErrors: result.userErrors,
     };
   }
 
@@ -547,7 +739,7 @@ export class CustomersMutationResolver extends CustomersType<
       context: this.mutationWorkflowContext(),
     };
     const result =
-      await this.runCreateWorkflow<CustomerSegmentCreateWorkflowResult>(
+      await this.runEntityWorkflow<CustomerSegmentCreateWorkflowResult>(
         "customerSegmentCreate",
         workflowInput
       );
@@ -563,10 +755,42 @@ export class CustomersMutationResolver extends CustomersType<
     return emptyUpdatePayload("segment");
   }
 
-  customerSegmentDelete() {
+  @ZodResolver(CustomerSegmentDeleteInputSchema())
+  async customerSegmentDelete(
+    args: CustomersMutationCustomerSegmentDeleteArgs
+  ) {
+    const segmentId = safeDecodeId(
+      args.input.id,
+      GlobalIdEntity.CustomerSegment
+    );
+    if (!segmentId) {
+      return invalidDeletePayload("deletedSegmentId");
+    }
+
+    const workflowInput: CustomerSegmentDeleteWorkflowInput = {
+      params: {
+        id: segmentId,
+        expectedRevision: args.input.expectedRevision ?? undefined,
+      },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerSegmentDeleteWorkflowResult>(
+        "customerSegmentDelete",
+        workflowInput
+      );
+    if (result.deletedSegmentId) {
+      this.$ctx.loaders.segment.clear(segmentId);
+      this.$ctx.loaders.segmentCustomersCount.clear(segmentId);
+    }
     return {
-      deletedSegmentId: null,
-      userErrors: [],
+      deletedSegmentId: result.deletedSegmentId
+        ? encodeGlobalIdByType(
+            result.deletedSegmentId,
+            GlobalIdEntity.CustomerSegment
+          )
+        : null,
+      userErrors: result.userErrors,
     };
   }
 
@@ -600,7 +824,7 @@ export class CustomersMutationResolver extends CustomersType<
       },
       context: this.mutationWorkflowContext(),
     };
-    const result = await this.runCreateWorkflow<CustomerMergeCreateWorkflowResult>(
+    const result = await this.runEntityWorkflow<CustomerMergeCreateWorkflowResult>(
       "customerMergeCreate",
       workflowInput
     );
@@ -616,10 +840,29 @@ export class CustomersMutationResolver extends CustomersType<
     return emptyUpdatePayload("merge");
   }
 
-  customerMergeDelete() {
+  @ZodResolver(CustomerMergeDeleteInputSchema())
+  async customerMergeDelete(args: CustomersMutationCustomerMergeDeleteArgs) {
+    const mergeId = safeDecodeId(args.input.id, GlobalIdEntity.CustomerMerge);
+    if (!mergeId) {
+      return invalidDeletePayload("deletedMergeId");
+    }
+
+    const workflowInput: CustomerMergeDeleteWorkflowInput = {
+      params: { id: mergeId },
+      context: this.mutationWorkflowContext(),
+    };
+    const result = await this.runEntityWorkflow<CustomerMergeDeleteWorkflowResult>(
+      "customerMergeDelete",
+      workflowInput
+    );
+    if (result.deletedMergeId) {
+      this.$ctx.loaders.customerMerge.clear(mergeId);
+    }
     return {
-      deletedMergeId: null,
-      userErrors: [],
+      deletedMergeId: result.deletedMergeId
+        ? encodeGlobalIdByType(result.deletedMergeId, GlobalIdEntity.CustomerMerge)
+        : null,
+      userErrors: result.userErrors,
     };
   }
 
@@ -645,7 +888,7 @@ export class CustomersMutationResolver extends CustomersType<
       context: this.mutationWorkflowContext(),
     };
     const result =
-      await this.runCreateWorkflow<CustomerDataRequestCreateWorkflowResult>(
+      await this.runEntityWorkflow<CustomerDataRequestCreateWorkflowResult>(
         "customerDataRequestCreate",
         workflowInput
       );
@@ -661,10 +904,38 @@ export class CustomersMutationResolver extends CustomersType<
     return emptyUpdatePayload("dataRequest");
   }
 
-  customerDataRequestDelete() {
+  @ZodResolver(CustomerDataRequestDeleteInputSchema())
+  async customerDataRequestDelete(
+    args: CustomersMutationCustomerDataRequestDeleteArgs
+  ) {
+    const dataRequestId = safeDecodeId(
+      args.input.id,
+      GlobalIdEntity.CustomerDataRequest
+    );
+    if (!dataRequestId) {
+      return invalidDeletePayload("deletedDataRequestId");
+    }
+
+    const workflowInput: CustomerDataRequestDeleteWorkflowInput = {
+      params: { id: dataRequestId },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerDataRequestDeleteWorkflowResult>(
+        "customerDataRequestDelete",
+        workflowInput
+      );
+    if (result.deletedDataRequestId) {
+      this.$ctx.loaders.customerDataRequest.clear(dataRequestId);
+    }
     return {
-      deletedDataRequestId: null,
-      userErrors: [],
+      deletedDataRequestId: result.deletedDataRequestId
+        ? encodeGlobalIdByType(
+            result.deletedDataRequestId,
+            GlobalIdEntity.CustomerDataRequest
+          )
+        : null,
+      userErrors: result.userErrors,
     };
   }
 }
@@ -696,6 +967,13 @@ function invalidCreatePayload(field: string, idField: string[]) {
   return {
     [field]: null,
     userErrors: [invalidIdError(idField)],
+  };
+}
+
+function invalidDeletePayload(field: string) {
+  return {
+    [field]: null,
+    userErrors: [invalidIdError(["input", "id"])],
   };
 }
 

@@ -192,6 +192,20 @@ export class CustomerLifecycleRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  async deleteMerge(id: string): Promise<boolean> {
+    const rows = await this.connection
+      .delete(customerMerge)
+      .where(
+        and(
+          eq(customerMerge.storeId, this.storeId),
+          eq(customerMerge.id, id),
+          eq(customerMerge.status, "REQUESTED")
+        )
+      )
+      .returning({ id: customerMerge.id });
+    return rows.length > 0;
+  }
+
   async createDataRequest(
     data: CustomerDataRequestCreateData
   ): Promise<CustomerDataRequest> {
@@ -253,6 +267,20 @@ export class CustomerLifecycleRepository extends BaseRepository {
       status: "CANCELLED",
       rejectionReason: reason ?? null,
     });
+  }
+
+  async deleteDataRequest(id: string): Promise<boolean> {
+    const rows = await this.connection
+      .delete(customerDataRequest)
+      .where(
+        and(
+          eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.id, id),
+          eq(customerDataRequest.status, "PENDING")
+        )
+      )
+      .returning({ id: customerDataRequest.id });
+    return rows.length > 0;
   }
 
   @ReadOnly()

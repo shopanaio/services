@@ -11,6 +11,17 @@ import {
   CustomerTaxExemptionCreateWorkflow,
   CustomerTaxIdentifierCreateWorkflow,
 } from "./CustomerEntityCreateWorkflows.js";
+import {
+  CustomerAddressDeleteWorkflow,
+  CustomerConsentDeleteWorkflow,
+  CustomerDataRequestDeleteWorkflow,
+  CustomerGroupDeleteWorkflow,
+  CustomerMergeDeleteWorkflow,
+  CustomerSegmentDeleteWorkflow,
+  CustomerTagDeleteWorkflow,
+  CustomerTaxExemptionDeleteWorkflow,
+  CustomerTaxIdentifierDeleteWorkflow,
+} from "./CustomerEntityDeleteWorkflows.js";
 import { CustomerUpdateWorkflow } from "./CustomerUpdateWorkflow.js";
 
 export const workflows = [
@@ -24,6 +35,15 @@ export const workflows = [
   CustomerSegmentCreateWorkflow,
   CustomerMergeCreateWorkflow,
   CustomerDataRequestCreateWorkflow,
+  CustomerAddressDeleteWorkflow,
+  CustomerTaxIdentifierDeleteWorkflow,
+  CustomerTaxExemptionDeleteWorkflow,
+  CustomerConsentDeleteWorkflow,
+  CustomerGroupDeleteWorkflow,
+  CustomerTagDeleteWorkflow,
+  CustomerSegmentDeleteWorkflow,
+  CustomerMergeDeleteWorkflow,
+  CustomerDataRequestDeleteWorkflow,
   CustomerUpdateWorkflow,
   CustomerDeleteWorkflow,
 ];
@@ -31,5 +51,6 @@ export const workflows = [
 export { CustomerCreateWorkflow } from "./CustomerCreateWorkflow.js";
 export { CustomerDeleteWorkflow } from "./CustomerDeleteWorkflow.js";
 export * from "./CustomerEntityCreateWorkflows.js";
+export * from "./CustomerEntityDeleteWorkflows.js";
 export { CustomerUpdateWorkflow } from "./CustomerUpdateWorkflow.js";
 export * from "./dto/index.js";

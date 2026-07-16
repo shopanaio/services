@@ -67,6 +67,11 @@ export interface CustomerConsentSetResult {
   event: CustomerConsentEvent;
 }
 
+export interface CustomerConsentDeleteResult {
+  id: string;
+  customerId: string;
+}
+
 export class CustomerConsentAlreadyExistsError extends Error {
   constructor() {
     super("A consent record already exists for this customer and channel");
@@ -261,6 +266,23 @@ export class CustomerConsentRepository extends BaseRepository {
       .values(eventRow)
       .returning();
     return { consent, event: eventRows[0] };
+  }
+
+  @Transactional()
+  async delete(id: string): Promise<CustomerConsentDeleteResult | null> {
+    const rows = await this.connection
+      .delete(customerConsent)
+      .where(
+        and(
+          eq(customerConsent.storeId, this.storeId),
+          eq(customerConsent.id, id)
+        )
+      )
+      .returning({
+        id: customerConsent.id,
+        customerId: customerConsent.customerId,
+      });
+    return rows[0] ?? null;
   }
 
   @ReadOnly()
