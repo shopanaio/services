@@ -138,8 +138,7 @@ export class ReviewRepository extends BaseRepository {
         contentItem,
         and(
           eq(contentItem.storeId, review.storeId),
-          eq(contentItem.id, review.id),
-          isNull(contentItem.deletedAt)
+          eq(contentItem.id, review.id)
         )
       )
       .where(
@@ -240,6 +239,23 @@ export class ReviewRepository extends BaseRepository {
       .orderBy(asc(reviewRating.criterionId));
   }
 
+  @ReadOnly()
+  async getRatingsByReviewIds(
+    reviewIds: readonly string[]
+  ): Promise<ReviewRating[]> {
+    if (reviewIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(reviewRating)
+      .where(
+        and(
+          eq(reviewRating.storeId, this.storeId),
+          inArray(reviewRating.reviewId, [...new Set(reviewIds)])
+        )
+      )
+      .orderBy(asc(reviewRating.reviewId), asc(reviewRating.criterionId));
+  }
+
   @Transactional()
   async replaceRatings(
     reviewId: string,
@@ -284,6 +300,41 @@ export class ReviewRepository extends BaseRepository {
         )
       )
       .orderBy(asc(reviewMedia.sortIndex), asc(reviewMedia.id));
+  }
+
+  @ReadOnly()
+  async getMediaByReviewIds(
+    reviewIds: readonly string[]
+  ): Promise<ReviewMedia[]> {
+    if (reviewIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(reviewMedia)
+      .where(
+        and(
+          eq(reviewMedia.storeId, this.storeId),
+          inArray(reviewMedia.reviewId, [...new Set(reviewIds)])
+        )
+      )
+      .orderBy(
+        asc(reviewMedia.reviewId),
+        asc(reviewMedia.sortIndex),
+        asc(reviewMedia.id)
+      );
+  }
+
+  @ReadOnly()
+  async getMediaByIds(ids: readonly string[]): Promise<ReviewMedia[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(reviewMedia)
+      .where(
+        and(
+          eq(reviewMedia.storeId, this.storeId),
+          inArray(reviewMedia.id, [...new Set(ids)])
+        )
+      );
   }
 
   @Transactional()

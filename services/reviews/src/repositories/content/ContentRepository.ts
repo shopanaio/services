@@ -304,6 +304,22 @@ export class ContentRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async getMetricsByContentIds(
+    contentIds: readonly string[]
+  ): Promise<ContentMetrics[]> {
+    if (contentIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(contentMetrics)
+      .where(
+        and(
+          eq(contentMetrics.storeId, this.storeId),
+          inArray(contentMetrics.contentId, [...new Set(contentIds)])
+        )
+      );
+  }
+
+  @ReadOnly()
   async getTranslations(contentId: string): Promise<ContentTranslation[]> {
     return this.connection
       .select()
@@ -315,6 +331,42 @@ export class ContentRepository extends BaseRepository {
         )
       )
       .orderBy(asc(contentTranslation.locale));
+  }
+
+  @ReadOnly()
+  async getTranslationsByContentIds(
+    contentIds: readonly string[]
+  ): Promise<ContentTranslation[]> {
+    if (contentIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(contentTranslation)
+      .where(
+        and(
+          eq(contentTranslation.storeId, this.storeId),
+          inArray(contentTranslation.contentId, [...new Set(contentIds)])
+        )
+      )
+      .orderBy(
+        asc(contentTranslation.contentId),
+        asc(contentTranslation.locale)
+      );
+  }
+
+  @ReadOnly()
+  async getTranslationsByIds(
+    ids: readonly string[]
+  ): Promise<ContentTranslation[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(contentTranslation)
+      .where(
+        and(
+          eq(contentTranslation.storeId, this.storeId),
+          inArray(contentTranslation.id, [...new Set(ids)])
+        )
+      );
   }
 
   @Transactional()
@@ -403,6 +455,43 @@ export class ContentRepository extends BaseRepository {
         )
       )
       .orderBy(asc(contentPublication.channel), asc(contentPublication.locale));
+  }
+
+  @ReadOnly()
+  async getPublicationsByContentIds(
+    contentIds: readonly string[]
+  ): Promise<ContentPublication[]> {
+    if (contentIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(contentPublication)
+      .where(
+        and(
+          eq(contentPublication.storeId, this.storeId),
+          inArray(contentPublication.contentId, [...new Set(contentIds)])
+        )
+      )
+      .orderBy(
+        asc(contentPublication.contentId),
+        asc(contentPublication.channel),
+        asc(contentPublication.locale)
+      );
+  }
+
+  @ReadOnly()
+  async getPublicationsByIds(
+    ids: readonly string[]
+  ): Promise<ContentPublication[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(contentPublication)
+      .where(
+        and(
+          eq(contentPublication.storeId, this.storeId),
+          inArray(contentPublication.id, [...new Set(ids)])
+        )
+      );
   }
 
   @Transactional()

@@ -8,3 +8,8 @@ export {
   type CustomerConsentDeleteParams,
   type CustomerConsentDeleteResult,
 } from "./CustomerConsentDeleteScript.js";
+export {
+  CustomerConsentUpdateScript,
+  type CustomerConsentUpdateParams,
+  type CustomerConsentUpdateResult,
+} from "./CustomerConsentUpdateScript.js";

@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   decodeContentExternalReferenceGlobalId,
@@ -72,6 +72,23 @@ export class ExternalReferenceRepository extends BaseRepository {
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async getByIds(
+    ids: readonly string[]
+  ): Promise<ContentExternalReference[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(contentExternalReference)
+      .where(
+        and(
+          eq(contentExternalReference.storeId, this.storeId),
+          inArray(contentExternalReference.id, [...new Set(ids)]),
+          isNull(contentExternalReference.deletedAt)
+        )
+      );
   }
 
   @ReadOnly()

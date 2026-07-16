@@ -436,7 +436,8 @@ export class CustomerGroupRepository extends BaseRepository {
       );
   }
 
-  private async findMembership(
+  @ReadOnly()
+  async findMembership(
     customerId: string,
     groupId: string
   ): Promise<CustomerGroupMembership | null> {

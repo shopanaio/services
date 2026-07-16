@@ -9,6 +9,11 @@ export {
   type CustomerDataRequestDeleteResult,
 } from "./CustomerDataRequestDeleteScript.js";
 export {
+  CustomerDataRequestUpdateScript,
+  type CustomerDataRequestUpdateParams,
+  type CustomerDataRequestUpdateResult,
+} from "./CustomerDataRequestUpdateScript.js";
+export {
   CustomerMergeCreateScript,
   type CustomerMergeCreateParams,
   type CustomerMergeCreateResult,
@@ -18,3 +23,8 @@ export {
   type CustomerMergeDeleteParams,
   type CustomerMergeDeleteResult,
 } from "./CustomerMergeDeleteScript.js";
+export {
+  CustomerMergeUpdateScript,
+  type CustomerMergeUpdateParams,
+  type CustomerMergeUpdateResult,
+} from "./CustomerMergeUpdateScript.js";

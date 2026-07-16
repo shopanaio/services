@@ -354,7 +354,8 @@ export class CustomerTagRepository extends BaseRepository {
     };
   }
 
-  private async findAssignment(
+  @ReadOnly()
+  async findAssignment(
     customerId: string,
     tagId: string
   ): Promise<CustomerTagAssignment | null> {

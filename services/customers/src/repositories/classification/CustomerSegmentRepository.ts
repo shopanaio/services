@@ -68,6 +68,18 @@ export type CustomerSegmentPatch = Partial<
   >
 >;
 
+export interface CustomerSegmentMembershipRelationsPatch {
+  create: Array<{ customerId: string; expiresAt?: string | null }>;
+  update: Array<{ membershipId: string; expiresAt?: string | null }>;
+  deleteIds: string[];
+  setCustomerIds?: string[];
+}
+
+export interface CustomerSegmentUpdateResult {
+  segment: CustomerSegment;
+  affectedCustomerIds: string[];
+}
+
 export interface SegmentMembershipMutationResult {
   segment: CustomerSegment;
   memberships: CustomerSegmentMembership[];
@@ -148,6 +160,43 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
           inArray(customerSegmentMembership.customerId, [...new Set(customerIds)])
+        )
+      );
+  }
+
+  @ReadOnly()
+  async getManualMembershipsBySegmentId(
+    segmentId: string
+  ): Promise<CustomerSegmentMembership[]> {
+    return this.connection
+      .select()
+      .from(customerSegmentMembership)
+      .where(
+        and(
+          eq(customerSegmentMembership.storeId, this.storeId),
+          eq(customerSegmentMembership.segmentId, segmentId),
+          eq(customerSegmentMembership.source, "MANUAL")
+        )
+      );
+  }
+
+  @ReadOnly()
+  async getMembershipsBySegmentAndCustomerIds(
+    segmentId: string,
+    customerIds: readonly string[]
+  ): Promise<CustomerSegmentMembership[]> {
+    if (customerIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(customerSegmentMembership)
+      .where(
+        and(
+          eq(customerSegmentMembership.storeId, this.storeId),
+          eq(customerSegmentMembership.segmentId, segmentId),
+          inArray(
+            customerSegmentMembership.customerId,
+            [...new Set(customerIds)]
+          )
         )
       );
   }
@@ -242,6 +291,119 @@ export class CustomerSegmentRepository extends BaseRepository {
       .where(and(...conditions))
       .returning();
     return rows[0] ?? null;
+  }
+
+  @Transactional()
+  async updateWithMemberships(
+    id: string,
+    patch: CustomerSegmentPatch,
+    memberships: CustomerSegmentMembershipRelationsPatch | undefined,
+    expectedRevision?: number
+  ): Promise<CustomerSegmentUpdateResult | null> {
+    const segment = await this.update(id, patch, expectedRevision);
+    if (!segment) return null;
+    if (!memberships) {
+      return { segment, affectedCustomerIds: [] };
+    }
+
+    const affectedCustomerIds = new Set<string>();
+    const now = new Date().toISOString();
+
+    if (memberships.setCustomerIds !== undefined) {
+      const previous = await this.getManualMembershipsBySegmentId(id);
+      for (const membership of previous) {
+        affectedCustomerIds.add(membership.customerId);
+      }
+      for (const customerId of memberships.setCustomerIds) {
+        affectedCustomerIds.add(customerId);
+      }
+
+      await this.connection
+        .delete(customerSegmentMembership)
+        .where(
+          and(
+            eq(customerSegmentMembership.storeId, this.storeId),
+            eq(customerSegmentMembership.segmentId, id),
+            eq(customerSegmentMembership.source, "MANUAL")
+          )
+        );
+
+      const customerIds = [...new Set(memberships.setCustomerIds)];
+      if (customerIds.length > 0) {
+        const ids = await this.generateUuidV7s(customerIds.length);
+        await this.connection.insert(customerSegmentMembership).values(
+          customerIds.map((customerId, index) => ({
+            id: ids[index],
+            storeId: this.storeId,
+            customerId,
+            segmentId: id,
+            source: "MANUAL" as const,
+            evaluatedAt: now,
+            expiresAt: null,
+          }))
+        );
+      }
+      return { segment, affectedCustomerIds: [...affectedCustomerIds] };
+    }
+
+    const referencedMemberships = await this.getMembershipsByIds([
+      ...memberships.update.map((item) => item.membershipId),
+      ...memberships.deleteIds,
+    ]);
+    for (const membership of referencedMemberships) {
+      affectedCustomerIds.add(membership.customerId);
+    }
+    for (const input of memberships.create) {
+      affectedCustomerIds.add(input.customerId);
+    }
+
+    if (memberships.create.length > 0) {
+      const ids = await this.generateUuidV7s(memberships.create.length);
+      await this.connection.insert(customerSegmentMembership).values(
+        memberships.create.map((input, index) => ({
+          id: ids[index],
+          storeId: this.storeId,
+          customerId: input.customerId,
+          segmentId: id,
+          source: "MANUAL" as const,
+          evaluatedAt: now,
+          expiresAt: input.expiresAt ?? null,
+        }))
+      );
+    }
+
+    for (const input of memberships.update) {
+      if (input.expiresAt === undefined) continue;
+      await this.connection
+        .update(customerSegmentMembership)
+        .set({ expiresAt: input.expiresAt })
+        .where(
+          and(
+            eq(customerSegmentMembership.storeId, this.storeId),
+            eq(customerSegmentMembership.id, input.membershipId),
+            eq(customerSegmentMembership.segmentId, id),
+            eq(customerSegmentMembership.source, "MANUAL")
+          )
+        );
+    }
+
+    if (memberships.deleteIds.length > 0) {
+      await this.connection
+        .delete(customerSegmentMembership)
+        .where(
+          and(
+            eq(customerSegmentMembership.storeId, this.storeId),
+            eq(customerSegmentMembership.segmentId, id),
+            eq(customerSegmentMembership.source, "MANUAL"),
+            inArray(
+              customerSegmentMembership.id,
+              [...new Set(memberships.deleteIds)]
+            )
+          )
+        );
+    }
+
+    return { segment, affectedCustomerIds: [...affectedCustomerIds] };
   }
 
   async softDelete(id: string, expectedRevision?: number): Promise<boolean> {

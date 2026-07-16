@@ -1,17 +1,65 @@
 import { ApolloMutation } from "@shopana/type-resolver";
 import { ReviewsType } from "./ReviewsType.js";
 
+const createPayload = (field: string) => ({ [field]: null, userErrors: [] });
+const updatePayload = (field: string) => ({
+  [field]: null,
+  operationResults: [],
+  userErrors: [],
+});
+const deletePayload = (field: string) => ({ [field]: null, userErrors: [] });
+
 @ApolloMutation
 export class MutationResolver extends ReviewsType<Record<string, never>> {
-  async reviewsMutation() {
+  reviewsMutation() {
     return this.resolvers.reviewsMutation();
   }
 }
 
-export class ReviewsMutationResolver extends ReviewsType<
-  Record<string, never>
-> {
-  async _empty() {
-    return true;
-  }
+/**
+ * Mutation contract placeholder.
+ *
+ * Every schema field is intentionally present, but no command is executed yet.
+ * Payloads remain GraphQL-valid and contain no entity, operation result, or error.
+ */
+export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> {
+  storeConfigurationUpdate() { return updatePayload("configuration"); }
+  ratingCriterionCreate() { return createPayload("criterion"); }
+  ratingCriterionUpdate() { return updatePayload("criterion"); }
+  ratingCriterionDelete() { return deletePayload("deletedCriterionId"); }
+
+  reviewCreate() { return createPayload("review"); }
+  reviewUpdate() { return updatePayload("review"); }
+  reviewDelete() { return deletePayload("deletedReviewId"); }
+  reviewMediaUpdate() { return updatePayload("reviewMedia"); }
+  reviewReplyCreate() { return createPayload("reviewReply"); }
+  reviewReplyUpdate() { return updatePayload("reviewReply"); }
+  reviewReplyDelete() { return deletePayload("deletedReviewReplyId"); }
+
+  productQuestionCreate() { return createPayload("productQuestion"); }
+  productQuestionUpdate() { return updatePayload("productQuestion"); }
+  productQuestionDelete() { return deletePayload("deletedProductQuestionId"); }
+  productQuestionAnswerCreate() { return createPayload("productQuestionAnswer"); }
+  productQuestionAnswerUpdate() { return updatePayload("productQuestionAnswer"); }
+  productQuestionAnswerDelete() { return deletePayload("deletedProductQuestionAnswerId"); }
+  productQuestionSubscriptionUpdate() { return updatePayload("subscription"); }
+
+  contentTranslationCreate() { return createPayload("translation"); }
+  contentTranslationUpdate() { return updatePayload("translation"); }
+  contentTranslationDelete() { return deletePayload("deletedTranslationId"); }
+  contentPublicationCreate() { return createPayload("publication"); }
+  contentPublicationUpdate() { return updatePayload("publication"); }
+  contentPublicationDelete() { return deletePayload("deletedPublicationId"); }
+  contentModerate() { return updatePayload("content"); }
+  contentRedact() { return updatePayload("content"); }
+  contentRevisionRestore() { return updatePayload("content"); }
+
+  reviewRequestCreate() { return createPayload("reviewRequest"); }
+  reviewRequestUpdate() { return updatePayload("reviewRequest"); }
+  contentReportUpdate() { return updatePayload("contentReport"); }
+  moderationCaseCreate() { return createPayload("moderationCase"); }
+  moderationCaseUpdate() { return updatePayload("moderationCase"); }
+  contentExternalReferenceCreate() { return createPayload("externalReference"); }
+  contentExternalReferenceUpdate() { return updatePayload("externalReference"); }
+  contentExternalReferenceDelete() { return deletePayload("deletedExternalReferenceId"); }
 }

@@ -8,3 +8,8 @@ export {
   type CustomerAddressDeleteParams,
   type CustomerAddressDeleteResult,
 } from "./CustomerAddressDeleteScript.js";
+export {
+  CustomerAddressUpdateScript,
+  type CustomerAddressUpdateParams,
+  type CustomerAddressUpdateResult,
+} from "./CustomerAddressUpdateScript.js";

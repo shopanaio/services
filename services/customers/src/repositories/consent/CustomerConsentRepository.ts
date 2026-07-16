@@ -67,6 +67,26 @@ export interface CustomerConsentSetResult {
   event: CustomerConsentEvent;
 }
 
+export interface CustomerConsentUpdateData {
+  id: string;
+  customerId: string;
+  channel: CustomerConsent["channel"];
+  state: CustomerConsent["state"];
+  optInLevel: CustomerConsent["optInLevel"];
+  contactPoint: string;
+  source?: string;
+  sourceLocationId?: string | null;
+  actorType: string;
+  actorId?: string | null;
+  requestId?: string | null;
+  idempotencyKey?: string | null;
+  evidence?: Record<string, unknown>;
+}
+
+export interface CustomerConsentUpdateResult extends CustomerConsentSetResult {
+  previousCustomerId: string;
+}
+
 export interface CustomerConsentDeleteResult {
   id: string;
   customerId: string;
@@ -112,6 +132,21 @@ export class CustomerConsentRepository extends BaseRepository {
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async hasEvents(consentId: string): Promise<boolean> {
+    const rows = await this.connection
+      .select({ id: customerConsentEvent.id })
+      .from(customerConsentEvent)
+      .where(
+        and(
+          eq(customerConsentEvent.storeId, this.storeId),
+          eq(customerConsentEvent.consentId, consentId)
+        )
+      )
+      .limit(1);
+    return rows.length > 0;
   }
 
   @ReadOnly()
@@ -266,6 +301,88 @@ export class CustomerConsentRepository extends BaseRepository {
       .values(eventRow)
       .returning();
     return { consent, event: eventRows[0] };
+  }
+
+  @Transactional()
+  async update(
+    data: CustomerConsentUpdateData
+  ): Promise<CustomerConsentUpdateResult | null> {
+    if (data.idempotencyKey) {
+      const existingEvent = await this.findEventByIdempotencyKey(
+        data.idempotencyKey
+      );
+      if (existingEvent) {
+        const consent = await this.findById(existingEvent.consentId);
+        if (!consent) {
+          throw new Error("Consent event references a missing consent record");
+        }
+        return {
+          consent,
+          event: existingEvent,
+          previousCustomerId: consent.customerId,
+        };
+      }
+    }
+
+    const current = await this.findById(data.id);
+    if (!current) return null;
+
+    const now = new Date().toISOString();
+    const timestamps = consentTimestamps(data.state, current, now);
+    const consentRows = await this.connection
+      .update(customerConsent)
+      .set({
+        customerId: data.customerId,
+        channel: data.channel,
+        state: data.state,
+        optInLevel: data.optInLevel,
+        contactPoint: data.contactPoint.trim(),
+        source: data.source ?? "admin",
+        sourceLocationId: data.sourceLocationId ?? null,
+        consentedAt: timestamps.consentedAt,
+        withdrawnAt: timestamps.withdrawnAt,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(customerConsent.storeId, this.storeId),
+          eq(customerConsent.id, data.id)
+        )
+      )
+      .returning();
+    const consent = consentRows[0];
+    if (!consent) return null;
+
+    const eventRows = await this.connection
+      .insert(customerConsentEvent)
+      .values({
+        id: await this.generateUuidV7(),
+        storeId: this.storeId,
+        customerId: data.customerId,
+        consentId: consent.id,
+        channel: data.channel,
+        previousState: current.state,
+        newState: data.state,
+        optInLevel: data.optInLevel,
+        contactPoint: data.contactPoint.trim(),
+        source: data.source ?? "admin",
+        sourceLocationId: data.sourceLocationId ?? null,
+        sourceIp: null,
+        userAgent: null,
+        actorType: data.actorType,
+        actorId: data.actorId ?? null,
+        requestId: data.requestId ?? null,
+        idempotencyKey: data.idempotencyKey ?? null,
+        evidence: data.evidence ?? {},
+        occurredAt: now,
+      })
+      .returning();
+
+    return {
+      consent,
+      event: eventRows[0],
+      previousCustomerId: current.customerId,
+    };
   }
 
   @Transactional()

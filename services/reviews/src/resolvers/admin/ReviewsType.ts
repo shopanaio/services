@@ -4,6 +4,7 @@ import {
   createExecutor,
   type Authorizable,
   type CacheStore,
+  type Middleware,
 } from "@shopana/type-resolver";
 import {
   decodeGlobalIdByType,
@@ -17,6 +18,37 @@ import {
   type ResolverRegistry,
 } from "./ResolverRegistry.js";
 
+const graphqlTypeByResolver = new Map<string, string>([
+  ["StoreConfigurationResolver", "ReviewStoreConfiguration"],
+  ["RatingCriterionResolver", "ReviewRatingCriterion"],
+  ["RatingCriterionAssignmentResolver", "ReviewRatingCriterionAssignment"],
+  ["ReviewResolver", "Review"],
+  ["ReviewMediaResolver", "ReviewMedia"],
+  ["ReviewReplyResolver", "ReviewReply"],
+  ["ProductQuestionResolver", "ProductQuestion"],
+  ["ProductQuestionAnswerResolver", "ProductQuestionAnswer"],
+  ["QuestionSubscriptionResolver", "ProductQuestionSubscription"],
+  ["ContentTranslationResolver", "ReviewContentTranslation"],
+  ["ContentPublicationResolver", "ReviewContentPublication"],
+  ["ContentVoteResolver", "ReviewContentVote"],
+  ["ContentReportResolver", "ReviewContentReport"],
+  ["ModerationCaseResolver", "ReviewModerationCase"],
+  ["ModerationEventResolver", "ReviewModerationEvent"],
+  ["ContentRevisionResolver", "ReviewContentRevision"],
+  ["ModerationSignalResolver", "ReviewModerationSignal"],
+  ["ContentExternalReferenceResolver", "ReviewContentExternalReference"],
+  ["ReviewRequestResolver", "ReviewRequest"],
+  ["ReviewRequestEventResolver", "ReviewRequestEvent"],
+]);
+
+const graphqlTypeMiddleware: Middleware<ServiceContext> = {
+  name: "reviews-graphql-type",
+  async afterLoad({ Type, result }) {
+    const typeName = graphqlTypeByResolver.get(Type.name);
+    if (typeName) result.__typename = typeName;
+  },
+};
+
 export { Cache } from "@shopana/type-resolver";
 
 export abstract class ReviewsType<TValue, TData = unknown>
@@ -26,7 +58,7 @@ export abstract class ReviewsType<TValue, TData = unknown>
   readonly authProvider = new AuthProvider();
 
   static executor = createExecutor<ServiceContext>({
-    middleware: [createAuthorizationMiddleware()],
+    middleware: [createAuthorizationMiddleware(), graphqlTypeMiddleware],
   });
 
   protected get resolvers(): ResolverRegistry {

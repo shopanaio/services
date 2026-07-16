@@ -9,6 +9,11 @@ export {
   type CustomerTaxExemptionDeleteResult,
 } from "./CustomerTaxExemptionDeleteScript.js";
 export {
+  CustomerTaxExemptionUpdateScript,
+  type CustomerTaxExemptionUpdateParams,
+  type CustomerTaxExemptionUpdateResult,
+} from "./CustomerTaxExemptionUpdateScript.js";
+export {
   CustomerTaxIdentifierCreateScript,
   type CustomerTaxIdentifierCreateParams,
   type CustomerTaxIdentifierCreateResult,
@@ -18,3 +23,8 @@ export {
   type CustomerTaxIdentifierDeleteParams,
   type CustomerTaxIdentifierDeleteResult,
 } from "./CustomerTaxIdentifierDeleteScript.js";
+export {
+  CustomerTaxIdentifierUpdateScript,
+  type CustomerTaxIdentifierUpdateParams,
+  type CustomerTaxIdentifierUpdateResult,
+} from "./CustomerTaxIdentifierUpdateScript.js";

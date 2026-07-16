@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import { decodeRatingCriterionGlobalId } from "../global-id-where-mappers.js";
 import {
@@ -164,6 +164,82 @@ export class ConfigurationRepository extends BaseRepository {
       this.getCriterionAssignments(id),
     ]);
     return { criterion, translations, assignments };
+  }
+
+  @ReadOnly()
+  async getCriteriaByIds(ids: readonly string[]): Promise<RatingCriterion[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(ratingCriterion)
+      .where(
+        and(
+          eq(ratingCriterion.storeId, this.storeId),
+          inArray(ratingCriterion.id, [...new Set(ids)])
+        )
+      );
+  }
+
+  @ReadOnly()
+  async getCriterionTranslationsByCriterionIds(
+    criterionIds: readonly string[]
+  ): Promise<RatingCriterionTranslation[]> {
+    if (criterionIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(ratingCriterionTranslation)
+      .where(
+        and(
+          eq(ratingCriterionTranslation.storeId, this.storeId),
+          inArray(
+            ratingCriterionTranslation.criterionId,
+            [...new Set(criterionIds)]
+          )
+        )
+      )
+      .orderBy(
+        asc(ratingCriterionTranslation.criterionId),
+        asc(ratingCriterionTranslation.locale)
+      );
+  }
+
+  @ReadOnly()
+  async getCriterionAssignmentsByCriterionIds(
+    criterionIds: readonly string[]
+  ): Promise<RatingCriterionAssignment[]> {
+    if (criterionIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(ratingCriterionAssignment)
+      .where(
+        and(
+          eq(ratingCriterionAssignment.storeId, this.storeId),
+          inArray(
+            ratingCriterionAssignment.criterionId,
+            [...new Set(criterionIds)]
+          )
+        )
+      )
+      .orderBy(
+        asc(ratingCriterionAssignment.criterionId),
+        asc(ratingCriterionAssignment.createdAt)
+      );
+  }
+
+  @ReadOnly()
+  async getCriterionAssignmentsByIds(
+    ids: readonly string[]
+  ): Promise<RatingCriterionAssignment[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(ratingCriterionAssignment)
+      .where(
+        and(
+          eq(ratingCriterionAssignment.storeId, this.storeId),
+          inArray(ratingCriterionAssignment.id, [...new Set(ids)])
+        )
+      );
   }
 
   @ReadOnly()

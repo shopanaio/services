@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   decodeContentRevisionGlobalId,
@@ -126,6 +126,20 @@ export class ModerationRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async getCasesByIds(ids: readonly string[]): Promise<ModerationCase[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(moderationCase)
+      .where(
+        and(
+          eq(moderationCase.storeId, this.storeId),
+          inArray(moderationCase.id, [...new Set(ids)])
+        )
+      );
+  }
+
+  @ReadOnly()
   async findEventById(id: string): Promise<ModerationEvent | null> {
     const rows = await this.connection
       .select()
@@ -138,6 +152,20 @@ export class ModerationRepository extends BaseRepository {
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async getEventsByIds(ids: readonly string[]): Promise<ModerationEvent[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(moderationEvent)
+      .where(
+        and(
+          eq(moderationEvent.storeId, this.storeId),
+          inArray(moderationEvent.id, [...new Set(ids)])
+        )
+      );
   }
 
   @ReadOnly()
@@ -156,6 +184,20 @@ export class ModerationRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async getRevisionsByIds(ids: readonly string[]): Promise<ContentRevision[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(contentRevision)
+      .where(
+        and(
+          eq(contentRevision.storeId, this.storeId),
+          inArray(contentRevision.id, [...new Set(ids)])
+        )
+      );
+  }
+
+  @ReadOnly()
   async findSignalById(id: string): Promise<ModerationSignal | null> {
     const rows = await this.connection
       .select()
@@ -168,6 +210,20 @@ export class ModerationRepository extends BaseRepository {
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async getSignalsByIds(ids: readonly string[]): Promise<ModerationSignal[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(moderationSignal)
+      .where(
+        and(
+          eq(moderationSignal.storeId, this.storeId),
+          inArray(moderationSignal.id, [...new Set(ids)])
+        )
+      );
   }
 
   @ReadOnly()

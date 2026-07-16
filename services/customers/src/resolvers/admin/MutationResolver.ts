@@ -9,44 +9,63 @@ import type {
   CustomerAddressCreateWorkflowResult,
   CustomerAddressDeleteWorkflowInput,
   CustomerAddressDeleteWorkflowResult,
+  CustomerAddressUpdateWorkflowInput,
+  CustomerAddressUpdateWorkflowResult,
   CustomerConsentCreateWorkflowInput,
   CustomerConsentCreateWorkflowResult,
   CustomerConsentDeleteWorkflowInput,
   CustomerConsentDeleteWorkflowResult,
+  CustomerConsentUpdateWorkflowInput,
+  CustomerConsentUpdateWorkflowResult,
   CustomerCreateWorkflowInput,
   CustomerCreateWorkflowResult,
   CustomerDataRequestCreateWorkflowInput,
   CustomerDataRequestCreateWorkflowResult,
   CustomerDataRequestDeleteWorkflowInput,
   CustomerDataRequestDeleteWorkflowResult,
+  CustomerDataRequestUpdateWorkflowInput,
+  CustomerDataRequestUpdateWorkflowResult,
   CustomerDeleteWorkflowInput,
   CustomerDeleteWorkflowResult,
   CustomerGroupCreateWorkflowInput,
   CustomerGroupCreateWorkflowResult,
   CustomerGroupDeleteWorkflowInput,
   CustomerGroupDeleteWorkflowResult,
+  CustomerGroupUpdateWorkflowInput,
+  CustomerGroupUpdateWorkflowResult,
   CustomerMergeCreateWorkflowInput,
   CustomerMergeCreateWorkflowResult,
   CustomerMergeDeleteWorkflowInput,
   CustomerMergeDeleteWorkflowResult,
+  CustomerMergeUpdateWorkflowInput,
+  CustomerMergeUpdateWorkflowResult,
   CustomerMutationWorkflowContext,
   CustomerSegmentCreateWorkflowInput,
   CustomerSegmentCreateWorkflowResult,
   CustomerSegmentDeleteWorkflowInput,
   CustomerSegmentDeleteWorkflowResult,
+  CustomerSegmentUpdateWorkflowInput,
+  CustomerSegmentUpdateWorkflowResult,
   CustomerTagCreateWorkflowInput,
   CustomerTagCreateWorkflowResult,
   CustomerTagDeleteWorkflowInput,
   CustomerTagDeleteWorkflowResult,
+  CustomerTagUpdateWorkflowInput,
+  CustomerTagUpdateWorkflowResult,
   CustomerTaxExemptionCreateWorkflowInput,
   CustomerTaxExemptionCreateWorkflowResult,
   CustomerTaxExemptionDeleteWorkflowInput,
   CustomerTaxExemptionDeleteWorkflowResult,
+  CustomerTaxExemptionUpdateWorkflowInput,
+  CustomerTaxExemptionUpdateWorkflowResult,
   CustomerTaxIdentifierCreateWorkflowInput,
   CustomerTaxIdentifierCreateWorkflowResult,
   CustomerTaxIdentifierDeleteWorkflowInput,
   CustomerTaxIdentifierDeleteWorkflowResult,
+  CustomerTaxIdentifierUpdateWorkflowInput,
+  CustomerTaxIdentifierUpdateWorkflowResult,
   CustomerUpdateOperation,
+  CustomerUpdateOperationType,
   CustomerUpdateWorkflowInput,
   CustomerUpdateWorkflowResult,
 } from "../../workflows/dto/index.js";
@@ -87,33 +106,36 @@ import {
 import type {
   CustomersMutationCustomerAddressCreateArgs,
   CustomersMutationCustomerAddressDeleteArgs,
+  CustomersMutationCustomerAddressUpdateArgs,
   CustomersMutationCustomerConsentCreateArgs,
   CustomersMutationCustomerConsentDeleteArgs,
+  CustomersMutationCustomerConsentUpdateArgs,
   CustomersMutationCustomerCreateArgs,
   CustomersMutationCustomerDataRequestCreateArgs,
   CustomersMutationCustomerDataRequestDeleteArgs,
+  CustomersMutationCustomerDataRequestUpdateArgs,
   CustomersMutationCustomerDeleteArgs,
   CustomersMutationCustomerGroupCreateArgs,
   CustomersMutationCustomerGroupDeleteArgs,
+  CustomersMutationCustomerGroupUpdateArgs,
   CustomersMutationCustomerMergeCreateArgs,
   CustomersMutationCustomerMergeDeleteArgs,
+  CustomersMutationCustomerMergeUpdateArgs,
   CustomersMutationCustomerSegmentCreateArgs,
   CustomersMutationCustomerSegmentDeleteArgs,
+  CustomersMutationCustomerSegmentUpdateArgs,
   CustomersMutationCustomerTagCreateArgs,
   CustomersMutationCustomerTagDeleteArgs,
+  CustomersMutationCustomerTagUpdateArgs,
   CustomersMutationCustomerTaxExemptionCreateArgs,
   CustomersMutationCustomerTaxExemptionDeleteArgs,
+  CustomersMutationCustomerTaxExemptionUpdateArgs,
   CustomersMutationCustomerTaxIdentifierCreateArgs,
   CustomersMutationCustomerTaxIdentifierDeleteArgs,
+  CustomersMutationCustomerTaxIdentifierUpdateArgs,
   CustomersMutationCustomerUpdateArgs,
 } from "./generated/types.js";
 import { mapCustomerUpdateInput } from "./customerUpdateMapper.js";
-
-const emptyUpdatePayload = (field: string) => ({
-  [field]: null,
-  operationResults: [],
-  userErrors: [],
-});
 
 @ApolloMutation
 export class MutationResolver extends CustomersType<Record<string, never>> {
@@ -329,8 +351,64 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerAddressUpdate() {
-    return emptyUpdatePayload("address");
+  async customerAddressUpdate(
+    args: CustomersMutationCustomerAddressUpdateArgs
+  ) {
+    const addressId = safeDecodeId(
+      args.addressId,
+      GlobalIdEntity.CustomerAddress
+    );
+    if (!addressId) {
+      return invalidUpdatePayload(
+        "address",
+        "addressUpdate",
+        [invalidIdError(["addressId"])]
+      );
+    }
+
+    const workflowInput: CustomerAddressUpdateWorkflowInput = {
+      params: {
+        id: addressId,
+        operations: pickPresent(args.operations ?? {}, [
+          "label",
+          "prefix",
+          "firstName",
+          "middleName",
+          "lastName",
+          "suffix",
+          "companyName",
+          "phoneE164",
+          "address1",
+          "address2",
+          "city",
+          "regionName",
+          "regionCode",
+          "postalCode",
+          "countryCode",
+          "isDefaultShipping",
+          "isDefaultBilling",
+          "latitude",
+          "longitude",
+        ]),
+      },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerAddressUpdateWorkflowResult>(
+        "customerAddressUpdate",
+        workflowInput
+      );
+    this.$ctx.loaders.address.clear(addressId);
+    if (result.customerId) {
+      this.$ctx.loaders.addressesByCustomer.clear(result.customerId);
+    }
+    return {
+      address: result.address
+        ? new CustomerAddressResolver(result.address.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(CustomerAddressDeleteInputSchema())
@@ -406,8 +484,52 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerTaxIdentifierUpdate() {
-    return emptyUpdatePayload("taxIdentifier");
+  async customerTaxIdentifierUpdate(
+    args: CustomersMutationCustomerTaxIdentifierUpdateArgs
+  ) {
+    const taxIdentifierId = safeDecodeId(
+      args.taxIdentifierId,
+      GlobalIdEntity.CustomerTaxIdentifier
+    );
+    if (!taxIdentifierId) {
+      return invalidUpdatePayload(
+        "taxIdentifier",
+        "taxIdentifierUpdate",
+        [invalidIdError(["taxIdentifierId"])]
+      );
+    }
+
+    const operations = pickPresent(args.operations ?? {}, [
+      "identifierType",
+      "countryCode",
+      "value",
+      "status",
+      "isPrimary",
+      "validFrom",
+      "validTo",
+    ]) as CustomerTaxIdentifierUpdateWorkflowInput["params"]["operations"];
+    if (operations.status) {
+      operations.status = String(
+        operations.status
+      ) as NonNullable<typeof operations.status>;
+    }
+    const workflowInput: CustomerTaxIdentifierUpdateWorkflowInput = {
+      params: { id: taxIdentifierId, operations },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerTaxIdentifierUpdateWorkflowResult>(
+        "customerTaxIdentifierUpdate",
+        workflowInput
+      );
+    this.$ctx.loaders.taxIdentifier.clear(taxIdentifierId);
+    return {
+      taxIdentifier: result.taxIdentifier
+        ? new CustomerTaxIdentifierResolver(result.taxIdentifier.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(CustomerTaxIdentifierDeleteInputSchema())
@@ -490,8 +612,67 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerTaxExemptionUpdate() {
-    return emptyUpdatePayload("taxExemption");
+  async customerTaxExemptionUpdate(
+    args: CustomersMutationCustomerTaxExemptionUpdateArgs
+  ) {
+    const taxExemptionId = safeDecodeId(
+      args.taxExemptionId,
+      GlobalIdEntity.CustomerTaxExemption
+    );
+    const errors = !taxExemptionId
+      ? [invalidIdError(["taxExemptionId"])]
+      : [];
+    const operations = pickPresent(args.operations ?? {}, [
+      "code",
+      "countryCode",
+      "regionCode",
+      "reason",
+      "status",
+      "certificateFileId",
+      "validFrom",
+      "validTo",
+    ]) as CustomerTaxExemptionUpdateWorkflowInput["params"]["operations"];
+    if (hasOwn(operations, "certificateFileId") && operations.certificateFileId) {
+      const certificateFileId = safeDecodeId(
+        operations.certificateFileId,
+        GlobalIdEntity.File
+      );
+      if (!certificateFileId) {
+        errors.push(invalidIdError(["operations", "certificateFileId"]));
+      } else {
+        operations.certificateFileId = certificateFileId;
+      }
+    }
+    if (!taxExemptionId || errors.length > 0) {
+      return invalidUpdatePayload(
+        "taxExemption",
+        "taxExemptionUpdate",
+        errors
+      );
+    }
+    if (operations.status) {
+      operations.status = String(
+        operations.status
+      ) as NonNullable<typeof operations.status>;
+    }
+
+    const workflowInput: CustomerTaxExemptionUpdateWorkflowInput = {
+      params: { id: taxExemptionId, operations },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerTaxExemptionUpdateWorkflowResult>(
+        "customerTaxExemptionUpdate",
+        workflowInput
+      );
+    this.$ctx.loaders.taxExemption.clear(taxExemptionId);
+    return {
+      taxExemption: result.taxExemption
+        ? new CustomerTaxExemptionResolver(result.taxExemption.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(CustomerTaxExemptionDeleteInputSchema())
@@ -574,12 +755,91 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerConsentUpdate() {
+  async customerConsentUpdate(
+    args: CustomersMutationCustomerConsentUpdateArgs
+  ) {
+    const consentId = safeDecodeId(
+      args.consentId,
+      GlobalIdEntity.CustomerConsent
+    );
+    const errors = !consentId ? [invalidIdError(["consentId"])] : [];
+    const operations = pickPresent(args.operations ?? {}, [
+      "customerId",
+      "channel",
+      "state",
+      "optInLevel",
+      "contactPoint",
+      "sourceLocationId",
+      "evidence",
+    ]) as CustomerConsentUpdateWorkflowInput["params"]["operations"];
+    if (hasOwn(operations, "customerId") && operations.customerId) {
+      const customerId = safeDecodeId(
+        operations.customerId,
+        GlobalIdEntity.Customer
+      );
+      if (!customerId) {
+        errors.push(invalidIdError(["operations", "customerId"]));
+      } else {
+        operations.customerId = customerId;
+      }
+    }
+    if (
+      hasOwn(operations, "evidence") &&
+      operations.evidence !== null &&
+      !isRecord(operations.evidence)
+    ) {
+      errors.push({
+        message: "Consent evidence must be a JSON object",
+        code: "INVALID_EVIDENCE",
+        field: ["operations", "evidence"],
+      });
+    }
+    if (!consentId || errors.length > 0) {
+      return invalidConsentUpdatePayload(errors);
+    }
+    if (operations.channel) {
+      operations.channel = String(
+        operations.channel
+      ) as NonNullable<typeof operations.channel>;
+    }
+    if (operations.state) {
+      operations.state = String(
+        operations.state
+      ) as NonNullable<typeof operations.state>;
+    }
+    if (operations.optInLevel) {
+      operations.optInLevel = String(
+        operations.optInLevel
+      ) as NonNullable<typeof operations.optInLevel>;
+    }
+
+    const workflowInput: CustomerConsentUpdateWorkflowInput = {
+      params: {
+        id: consentId,
+        operations,
+        requestId: this.$ctx.requestId,
+      },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerConsentUpdateWorkflowResult>(
+        "customerConsentUpdate",
+        workflowInput
+      );
+    this.$ctx.loaders.consent.clear(consentId);
+    for (const customerId of result.affectedCustomerIds) {
+      this.$ctx.loaders.consentsByCustomer.clear(customerId);
+    }
+    if (result.event) this.$ctx.loaders.consentEvent.clear(result.event.id);
     return {
-      consent: null,
-      event: null,
-      operationResults: [],
-      userErrors: [],
+      consent: result.consent
+        ? new CustomerConsentResolver(result.consent.id, this.$ctx)
+        : null,
+      event: result.event
+        ? new CustomerConsentEventResolver(result.event.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
     };
   }
 
@@ -642,8 +902,88 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerGroupUpdate() {
-    return emptyUpdatePayload("group");
+  async customerGroupUpdate(args: CustomersMutationCustomerGroupUpdateArgs) {
+    const groupId = safeDecodeId(args.groupId, GlobalIdEntity.CustomerGroup);
+    const errors = !groupId ? [invalidIdError(["groupId"])] : [];
+    const raw = args.operations ?? {};
+    const operations = pickPresent(raw, [
+      "code",
+      "name",
+      "description",
+      "isDefault",
+      "isActive",
+    ]) as CustomerGroupUpdateWorkflowInput["params"]["operations"];
+    if (raw.memberships) {
+      operations.memberships = {
+        create: (raw.memberships.create ?? []).flatMap((input, index) => {
+          const customerId = decodeIdForUpdate(
+            input.customerId,
+            GlobalIdEntity.Customer,
+            ["operations", "memberships", "create", String(index), "customerId"],
+            errors
+          );
+          return customerId
+            ? [
+                {
+                  customerId,
+                  ...pickPresent(input, ["isPrimary", "expiresAt"]),
+                },
+              ]
+            : [];
+        }),
+        update: (raw.memberships.update ?? []).flatMap((input, index) => {
+          const membershipId = decodeIdForUpdate(
+            input.membershipId,
+            GlobalIdEntity.CustomerGroupMembership,
+            [
+              "operations",
+              "memberships",
+              "update",
+              String(index),
+              "membershipId",
+            ],
+            errors
+          );
+          return membershipId
+            ? [
+                {
+                  membershipId,
+                  ...pickPresent(input, ["isPrimary", "expiresAt"]),
+                },
+              ]
+            : [];
+        }),
+        deleteIds: decodeIdsForUpdate(
+          raw.memberships.deleteIds ?? [],
+          GlobalIdEntity.CustomerGroupMembership,
+          ["operations", "memberships", "deleteIds"],
+          errors
+        ),
+      };
+    }
+    if (!groupId || errors.length > 0) {
+      return invalidUpdatePayload("group", "groupUpdate", errors);
+    }
+
+    const workflowInput: CustomerGroupUpdateWorkflowInput = {
+      params: { id: groupId, operations },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerGroupUpdateWorkflowResult>(
+        "customerGroupUpdate",
+        workflowInput
+      );
+    this.$ctx.loaders.group.clear(groupId);
+    this.$ctx.loaders.groupCustomersCount.clear(groupId);
+    if (operations.memberships) this.$ctx.loaders.groupMembership.clearAll();
+    return {
+      group: result.group
+        ? new CustomerGroupResolver(result.group.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(CustomerGroupDeleteInputSchema())
@@ -691,8 +1031,54 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerTagUpdate() {
-    return emptyUpdatePayload("tag");
+  async customerTagUpdate(args: CustomersMutationCustomerTagUpdateArgs) {
+    const tagId = safeDecodeId(args.tagId, GlobalIdEntity.CustomerTag);
+    const errors = !tagId ? [invalidIdError(["tagId"])] : [];
+    const raw = args.operations ?? {};
+    const operations = pickPresent(raw, [
+      "name",
+    ]) as CustomerTagUpdateWorkflowInput["params"]["operations"];
+    if (raw.assignments) {
+      operations.assignments = {
+        create: (raw.assignments.create ?? []).flatMap((input, index) => {
+          const customerId = decodeIdForUpdate(
+            input.customerId,
+            GlobalIdEntity.Customer,
+            ["operations", "assignments", "create", String(index), "customerId"],
+            errors
+          );
+          return customerId ? [{ customerId }] : [];
+        }),
+        deleteIds: decodeIdsForUpdate(
+          raw.assignments.deleteIds ?? [],
+          GlobalIdEntity.CustomerTagAssignment,
+          ["operations", "assignments", "deleteIds"],
+          errors
+        ),
+      };
+    }
+    if (!tagId || errors.length > 0) {
+      return invalidUpdatePayload("tag", "tagUpdate", errors);
+    }
+
+    const workflowInput: CustomerTagUpdateWorkflowInput = {
+      params: { id: tagId, operations },
+      context: this.mutationWorkflowContext(),
+    };
+    const result = await this.runEntityWorkflow<CustomerTagUpdateWorkflowResult>(
+      "customerTagUpdate",
+      workflowInput
+    );
+    this.$ctx.loaders.tag.clear(tagId);
+    this.$ctx.loaders.tagCustomersCount.clear(tagId);
+    if (operations.assignments) this.$ctx.loaders.tagAssignment.clearAll();
+    return {
+      tag: result.tag
+        ? new CustomerTagResolver(result.tag.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(CustomerTagDeleteInputSchema())
@@ -751,8 +1137,119 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerSegmentUpdate() {
-    return emptyUpdatePayload("segment");
+  async customerSegmentUpdate(
+    args: CustomersMutationCustomerSegmentUpdateArgs
+  ) {
+    const segmentId = safeDecodeId(
+      args.segmentId,
+      GlobalIdEntity.CustomerSegment
+    );
+    const errors = !segmentId ? [invalidIdError(["segmentId"])] : [];
+    const raw = args.operations ?? {};
+    const operations = pickPresent(raw, [
+      "name",
+      "description",
+      "color",
+      "type",
+      "status",
+      "query",
+      "definition",
+    ]) as CustomerSegmentUpdateWorkflowInput["params"]["operations"];
+    if (
+      hasOwn(operations, "definition") &&
+      operations.definition !== null &&
+      !isRecord(operations.definition)
+    ) {
+      errors.push({
+        message: "Segment definition must be a JSON object",
+        code: "INVALID_DEFINITION",
+        field: ["operations", "definition"],
+      });
+    }
+    if (operations.type) {
+      operations.type = String(
+        operations.type
+      ) as NonNullable<typeof operations.type>;
+    }
+    if (operations.status) {
+      operations.status = String(
+        operations.status
+      ) as NonNullable<typeof operations.status>;
+    }
+    if (raw.customers) {
+      const customers: NonNullable<typeof operations.customers> = {
+        create: (raw.customers.create ?? []).flatMap((input, index) => {
+          const customerId = decodeIdForUpdate(
+            input.customerId,
+            GlobalIdEntity.Customer,
+            ["operations", "customers", "create", String(index), "customerId"],
+            errors
+          );
+          return customerId
+            ? [{ customerId, ...pickPresent(input, ["expiresAt"]) }]
+            : [];
+        }),
+        update: (raw.customers.update ?? []).flatMap((input, index) => {
+          const membershipId = decodeIdForUpdate(
+            input.membershipId,
+            GlobalIdEntity.CustomerSegmentMembership,
+            [
+              "operations",
+              "customers",
+              "update",
+              String(index),
+              "membershipId",
+            ],
+            errors
+          );
+          return membershipId
+            ? [{ membershipId, ...pickPresent(input, ["expiresAt"]) }]
+            : [];
+        }),
+        deleteIds: decodeIdsForUpdate(
+          raw.customers.deleteIds ?? [],
+          GlobalIdEntity.CustomerSegmentMembership,
+          ["operations", "customers", "deleteIds"],
+          errors
+        ),
+      };
+      if (raw.customers.setCustomerIds != null) {
+        customers.setCustomerIds = decodeIdsForUpdate(
+          raw.customers.setCustomerIds,
+          GlobalIdEntity.Customer,
+          ["operations", "customers", "setCustomerIds"],
+          errors
+        );
+      }
+      operations.customers = customers;
+    }
+    if (!segmentId || errors.length > 0) {
+      return invalidUpdatePayload("segment", "segmentUpdate", errors);
+    }
+
+    const workflowInput: CustomerSegmentUpdateWorkflowInput = {
+      params: {
+        id: segmentId,
+        expectedRevision: args.expectedRevision ?? undefined,
+        operations,
+      },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerSegmentUpdateWorkflowResult>(
+        "customerSegmentUpdate",
+        workflowInput
+      );
+    this.$ctx.loaders.segment.clear(segmentId);
+    this.$ctx.loaders.segmentCustomersCount.clear(segmentId);
+    if (operations.customers) this.$ctx.loaders.segmentMembership.clearAll();
+    return {
+      segment: result.segment
+        ? new CustomerSegmentResolver(result.segment.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(CustomerSegmentDeleteInputSchema())
@@ -836,8 +1333,47 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerMergeUpdate() {
-    return emptyUpdatePayload("merge");
+  async customerMergeUpdate(args: CustomersMutationCustomerMergeUpdateArgs) {
+    const mergeId = safeDecodeId(args.mergeId, GlobalIdEntity.CustomerMerge);
+    const errors = !mergeId ? [invalidIdError(["mergeId"])] : [];
+    const raw = args.operations ?? {};
+    const operations = pickPresent(raw, [
+      "sourceCustomerId",
+      "targetCustomerId",
+      "reason",
+    ]) as CustomerMergeUpdateWorkflowInput["params"]["operations"];
+    for (const field of ["sourceCustomerId", "targetCustomerId"] as const) {
+      const value = operations[field];
+      if (!value) continue;
+      const customerId = decodeIdForUpdate(
+        value,
+        GlobalIdEntity.Customer,
+        ["operations", field],
+        errors
+      );
+      if (customerId) operations[field] = customerId;
+    }
+    if (!mergeId || errors.length > 0) {
+      return invalidUpdatePayload("merge", "mergeUpdate", errors);
+    }
+
+    const workflowInput: CustomerMergeUpdateWorkflowInput = {
+      params: { id: mergeId, operations },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerMergeUpdateWorkflowResult>(
+        "customerMergeUpdate",
+        workflowInput
+      );
+    this.$ctx.loaders.customerMerge.clear(mergeId);
+    return {
+      merge: result.merge
+        ? new CustomerMergeResolver(result.merge.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(CustomerMergeDeleteInputSchema())
@@ -900,8 +1436,75 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerDataRequestUpdate() {
-    return emptyUpdatePayload("dataRequest");
+  async customerDataRequestUpdate(
+    args: CustomersMutationCustomerDataRequestUpdateArgs
+  ) {
+    const dataRequestId = safeDecodeId(
+      args.dataRequestId,
+      GlobalIdEntity.CustomerDataRequest
+    );
+    const errors = !dataRequestId
+      ? [invalidIdError(["dataRequestId"])]
+      : [];
+    const raw = args.operations ?? {};
+    const operations = pickPresent(raw, [
+      "customerId",
+      "type",
+      "legalBasis",
+      "requestMetadata",
+      "dueAt",
+      "cancel",
+    ]) as CustomerDataRequestUpdateWorkflowInput["params"]["operations"];
+    if (operations.customerId) {
+      const customerId = decodeIdForUpdate(
+        operations.customerId,
+        GlobalIdEntity.Customer,
+        ["operations", "customerId"],
+        errors
+      );
+      if (customerId) operations.customerId = customerId;
+    }
+    if (
+      hasOwn(operations, "requestMetadata") &&
+      operations.requestMetadata !== null &&
+      !isRecord(operations.requestMetadata)
+    ) {
+      errors.push({
+        message: "Request metadata must be a JSON object",
+        code: "INVALID_REQUEST_METADATA",
+        field: ["operations", "requestMetadata"],
+      });
+    }
+    if (operations.type) {
+      operations.type = String(
+        operations.type
+      ) as NonNullable<typeof operations.type>;
+    }
+    if (!dataRequestId || errors.length > 0) {
+      return invalidUpdatePayload(
+        "dataRequest",
+        "dataRequestUpdate",
+        errors
+      );
+    }
+
+    const workflowInput: CustomerDataRequestUpdateWorkflowInput = {
+      params: { id: dataRequestId, operations },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runEntityWorkflow<CustomerDataRequestUpdateWorkflowResult>(
+        "customerDataRequestUpdate",
+        workflowInput
+      );
+    this.$ctx.loaders.customerDataRequest.clear(dataRequestId);
+    return {
+      dataRequest: result.dataRequest
+        ? new CustomerDataRequestResolver(result.dataRequest.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(CustomerDataRequestDeleteInputSchema())
@@ -977,8 +1580,106 @@ function invalidDeletePayload(field: string) {
   };
 }
 
-function toGraphqlOperationType(type: CustomerUpdateOperation["type"]) {
-  const types: Record<CustomerUpdateOperation["type"], string> = {
+function invalidUpdatePayload(
+  field: string,
+  type: CustomerUpdateOperationType,
+  errors: Array<{ message: string; code: string; field?: string[] }>
+) {
+  return {
+    [field]: null,
+    operationResults: [
+      {
+        type: toGraphqlOperationType(type),
+        applied: false,
+        errors,
+      },
+    ],
+    userErrors: errors,
+  };
+}
+
+function invalidConsentUpdatePayload(
+  errors: Array<{ message: string; code: string; field?: string[] }>
+) {
+  return {
+    consent: null,
+    event: null,
+    operationResults: [
+      {
+        type: toGraphqlOperationType("consentUpdate"),
+        applied: false,
+        errors,
+      },
+    ],
+    userErrors: errors,
+  };
+}
+
+function mapOperationResults(
+  results: Array<{
+    type: CustomerUpdateOperationType;
+    applied: boolean;
+    errors: Array<{ message: string; code?: string; field?: string[] }>;
+  }>
+) {
+  return results.map((result) => ({
+    type: toGraphqlOperationType(result.type),
+    applied: result.applied,
+    errors: result.errors,
+  }));
+}
+
+function decodeIdForUpdate(
+  globalId: string,
+  entity: GlobalIdEntity,
+  field: string[],
+  errors: Array<{ message: string; code: string; field: string[] }>
+): string | null {
+  const id = safeDecodeId(globalId, entity);
+  if (!id) errors.push(invalidIdError(field));
+  return id;
+}
+
+function decodeIdsForUpdate(
+  globalIds: readonly string[],
+  entity: GlobalIdEntity,
+  field: string[],
+  errors: Array<{ message: string; code: string; field: string[] }>
+): string[] {
+  return globalIds.flatMap((globalId, index) => {
+    const id = decodeIdForUpdate(
+      globalId,
+      entity,
+      [...field, String(index)],
+      errors
+    );
+    return id ? [id] : [];
+  });
+}
+
+function pickPresent(
+  input: object,
+  fields: readonly string[]
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const field of fields) {
+    if (hasOwn(input, field)) {
+      result[field] = (input as Record<string, unknown>)[field];
+    }
+  }
+  return result;
+}
+
+function hasOwn(value: object, field: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, field);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toGraphqlOperationType(type: CustomerUpdateOperationType) {
+  const types: Record<CustomerUpdateOperationType, string> = {
     profileUpdate: "PROFILE_UPDATE",
     contactUpdate: "CONTACT_UPDATE",
     companyUpdate: "COMPANY_UPDATE",
@@ -992,6 +1693,8 @@ function toGraphqlOperationType(type: CustomerUpdateOperation["type"]) {
     groupUpdate: "GROUP_UPDATE",
     tagUpdate: "TAG_UPDATE",
     segmentUpdate: "SEGMENT_UPDATE",
+    mergeUpdate: "MERGE_UPDATE",
+    dataRequestUpdate: "DATA_REQUEST_UPDATE",
   };
   return types[type];
 }

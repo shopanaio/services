@@ -82,6 +82,17 @@ export type CustomerDataRequestCreateData = Omit<
   | "updatedAt"
 >;
 
+export type CustomerMergePatch = Partial<
+  Pick<NewCustomerMerge, "sourceCustomerId" | "targetCustomerId" | "reason">
+>;
+
+export type CustomerDataRequestPatch = Partial<
+  Pick<
+    NewCustomerDataRequest,
+    "customerId" | "type" | "legalBasis" | "requestMetadata" | "dueAt"
+  >
+>;
+
 export class CustomerLifecycleRepository extends BaseRepository {
   @ReadOnly()
   async findMergeById(id: string): Promise<CustomerMerge | null> {
@@ -192,6 +203,27 @@ export class CustomerLifecycleRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  async updateMerge(
+    id: string,
+    patch: CustomerMergePatch
+  ): Promise<CustomerMerge | null> {
+    const rows = await this.connection
+      .update(customerMerge)
+      .set({
+        ...patch,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(customerMerge.storeId, this.storeId),
+          eq(customerMerge.id, id),
+          eq(customerMerge.status, "REQUESTED")
+        )
+      )
+      .returning();
+    return rows[0] ?? null;
+  }
+
   async deleteMerge(id: string): Promise<boolean> {
     const rows = await this.connection
       .delete(customerMerge)
@@ -256,6 +288,39 @@ export class CustomerLifecycleRepository extends BaseRepository {
         and(
           eq(customerDataRequest.storeId, this.storeId),
           eq(customerDataRequest.id, id)
+        )
+      )
+      .returning();
+    return rows[0] ?? null;
+  }
+
+  async updateDataRequest(
+    id: string,
+    patch: CustomerDataRequestPatch,
+    cancel: boolean,
+    cancelReason?: string | null
+  ): Promise<CustomerDataRequest | null> {
+    const now = new Date().toISOString();
+    const rows = await this.connection
+      .update(customerDataRequest)
+      .set({
+        ...patch,
+        ...(cancel
+          ? {
+              status: "CANCELLED" as const,
+              rejectionReason: cancelReason ?? null,
+              finishedAt: now,
+            }
+          : {}),
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.id, id),
+          cancel
+            ? inArray(customerDataRequest.status, ["PENDING", "PROCESSING"])
+            : eq(customerDataRequest.status, "PENDING")
         )
       )
       .returning();

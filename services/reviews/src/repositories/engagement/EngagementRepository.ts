@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   decodeContentReportGlobalId,
@@ -85,6 +85,20 @@ export class EngagementRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async getVotesByIds(ids: readonly string[]): Promise<ContentVote[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(contentVote)
+      .where(
+        and(
+          eq(contentVote.storeId, this.storeId),
+          inArray(contentVote.id, [...new Set(ids)])
+        )
+      );
+  }
+
+  @ReadOnly()
   async findReportById(id: string): Promise<ContentReport | null> {
     const rows = await this.connection
       .select()
@@ -97,6 +111,20 @@ export class EngagementRepository extends BaseRepository {
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async getReportsByIds(ids: readonly string[]): Promise<ContentReport[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(contentReport)
+      .where(
+        and(
+          eq(contentReport.storeId, this.storeId),
+          inArray(contentReport.id, [...new Set(ids)])
+        )
+      );
   }
 
   @ReadOnly()

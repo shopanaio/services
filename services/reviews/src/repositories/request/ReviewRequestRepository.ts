@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   decodeCustomerGlobalId,
@@ -100,6 +100,20 @@ export class ReviewRequestRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async getByIds(ids: readonly string[]): Promise<ReviewRequest[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(reviewRequest)
+      .where(
+        and(
+          eq(reviewRequest.storeId, this.storeId),
+          inArray(reviewRequest.id, [...new Set(ids)])
+        )
+      );
+  }
+
+  @ReadOnly()
   async findEventById(id: string): Promise<ReviewRequestEvent | null> {
     const rows = await this.connection
       .select()
@@ -112,6 +126,20 @@ export class ReviewRequestRepository extends BaseRepository {
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async getEventsByIds(ids: readonly string[]): Promise<ReviewRequestEvent[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(reviewRequestEvent)
+      .where(
+        and(
+          eq(reviewRequestEvent.storeId, this.storeId),
+          inArray(reviewRequestEvent.id, [...new Set(ids)])
+        )
+      );
   }
 
   @ReadOnly()

@@ -29,7 +29,10 @@ export type CustomerUpdateOperation =
   | CustomerTagsUpdateOperation
   | CustomerSegmentsUpdateOperation;
 
-export type CustomerUpdateOperationType = CustomerUpdateOperation["type"];
+export type CustomerUpdateOperationType =
+  | CustomerUpdateOperation["type"]
+  | "mergeUpdate"
+  | "dataRequestUpdate";
 
 export interface CustomerProfileUpdateOperation {
   type: "profileUpdate";

@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional, type TransactionManager } from "@shopana/shared-kernel";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
 import type { ContentConnectionMetaInput } from "../content/ContentRepository.js";
@@ -84,6 +84,28 @@ export class ReviewReplyRepository extends BaseRepository {
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async getByIds(ids: readonly string[]): Promise<ReviewReply[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select({ reply: reviewReply })
+      .from(reviewReply)
+      .innerJoin(
+        contentItem,
+        and(
+          eq(contentItem.storeId, reviewReply.storeId),
+          eq(contentItem.id, reviewReply.id)
+        )
+      )
+      .where(
+        and(
+          eq(reviewReply.storeId, this.storeId),
+          inArray(reviewReply.id, [...new Set(ids)])
+        )
+      )
+      .then((rows) => rows.map((row) => row.reply));
   }
 
   @ReadOnly()

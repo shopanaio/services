@@ -9,6 +9,11 @@ export {
   type CustomerGroupDeleteResult,
 } from "./CustomerGroupDeleteScript.js";
 export {
+  CustomerGroupUpdateScript,
+  type CustomerGroupUpdateParams,
+  type CustomerGroupUpdateResult,
+} from "./CustomerGroupUpdateScript.js";
+export {
   CustomerSegmentCreateScript,
   type CustomerSegmentCreateParams,
   type CustomerSegmentCreateResult,
@@ -19,6 +24,11 @@ export {
   type CustomerSegmentDeleteResult,
 } from "./CustomerSegmentDeleteScript.js";
 export {
+  CustomerSegmentUpdateScript,
+  type CustomerSegmentUpdateParams,
+  type CustomerSegmentUpdateResult,
+} from "./CustomerSegmentUpdateScript.js";
+export {
   CustomerTagCreateScript,
   type CustomerTagCreateParams,
   type CustomerTagCreateResult,
@@ -28,3 +38,8 @@ export {
   type CustomerTagDeleteParams,
   type CustomerTagDeleteResult,
 } from "./CustomerTagDeleteScript.js";
+export {
+  CustomerTagUpdateScript,
+  type CustomerTagUpdateParams,
+  type CustomerTagUpdateResult,
+} from "./CustomerTagUpdateScript.js";

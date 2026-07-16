@@ -5,3 +5,18 @@ export {
   ReviewsMutationResolver,
 } from "./MutationResolver.js";
 export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";
+
+export * from "./ConfigurationResolver.js";
+export * from "./ConfigurationConnectionResolver.js";
+export * from "./ContentResolver.js";
+export * from "./ContentConnectionResolver.js";
+export * from "./ReviewResolver.js";
+export * from "./ReviewConnectionResolver.js";
+export * from "./QuestionResolver.js";
+export * from "./QuestionConnectionResolver.js";
+export * from "./ReviewRequestResolver.js";
+export * from "./ReviewRequestConnectionResolver.js";
+export * from "./EngagementResolver.js";
+export * from "./ModerationResolver.js";
+export * from "./ExternalReferenceResolver.js";
+export * from "./SummaryResolver.js";

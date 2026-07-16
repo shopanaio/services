@@ -1,0 +1,84 @@
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
+import type {
+  ReviewRequest,
+  ReviewRequestEvent,
+} from "../../repositories/models/index.js";
+import type { ReviewRequestEventRelayInput } from "../../repositories/request/ReviewRequestRepository.js";
+import { ReviewRequestEventConnectionResolver } from "./ReviewRequestConnectionResolver.js";
+import { ReviewsType } from "./ReviewsType.js";
+import {
+  customerReference,
+  productReference,
+  variantReference,
+} from "./references.js";
+
+@SubgraphReference()
+export class ReviewRequestResolver extends ReviewsType<string, ReviewRequest> {
+  async $preload() {
+    const request = await this.$ctx.loaders.reviewRequest.load(this.$props);
+    if (!request) {
+      throw new PreloadNotFoundError(
+        `Review request with ID ${this.$props} not found`
+      );
+    }
+    return request;
+  }
+
+  id() { return this.encodeId(this.$props, GlobalIdEntity.ReviewRequest); }
+  async customer() { return customerReference(await this.$get("customerId"))!; }
+  async orderId() { return this.encodeId(await this.$get("orderId"), GlobalIdEntity.Order); }
+  async orderLineId() { return this.encodeId(await this.$get("orderLineId"), GlobalIdEntity.OrderLine); }
+  async product() { return productReference(await this.$get("productId")); }
+  async variant() { return variantReference(await this.$get("variantId")); }
+  async review() {
+    const reviewId = await this.$get("reviewId");
+    return reviewId ? this.resolvers.review(reviewId) : null;
+  }
+  channel() { return this.$get("channel"); }
+  status() { return this.$get("status"); }
+  locale() { return this.$get("locale"); }
+  sourceChannel() { return this.$get("sourceChannel"); }
+  providerMessageId() { return this.$get("providerMessageId"); }
+  attemptCount() { return this.$get("attemptCount"); }
+  scheduledAt() { return this.$get("scheduledAt"); }
+  sentAt() { return this.$get("sentAt"); }
+  deliveredAt() { return this.$get("deliveredAt"); }
+  openedAt() { return this.$get("openedAt"); }
+  submittedAt() { return this.$get("submittedAt"); }
+  expiresAt() { return this.$get("expiresAt"); }
+  lastError() { return this.$get("lastError"); }
+  createdAt() { return this.$get("createdAt"); }
+  updatedAt() { return this.$get("updatedAt"); }
+
+  events(args: ReviewRequestEventRelayInput) {
+    return new ReviewRequestEventConnectionResolver(
+      { ...args, reviewRequestId: this.$props },
+      this.$ctx
+    );
+  }
+}
+
+@SubgraphReference()
+export class ReviewRequestEventResolver extends ReviewsType<
+  string,
+  ReviewRequestEvent
+> {
+  async $preload() {
+    const event = await this.$ctx.loaders.reviewRequestEvent.load(this.$props);
+    if (!event) {
+      throw new PreloadNotFoundError(
+        `Review request event with ID ${this.$props} not found`
+      );
+    }
+    return event;
+  }
+
+  id() { return this.encodeId(this.$props, GlobalIdEntity.ReviewRequestEvent); }
+  async reviewRequest() { return this.resolvers.reviewRequest(await this.$get("reviewRequestId")); }
+  type() { return this.$get("type"); }
+  providerEventId() { return this.$get("providerEventId"); }
+  metadata() { return this.$get("metadata"); }
+  occurredAt() { return this.$get("occurredAt"); }
+  createdAt() { return this.$get("createdAt"); }
+}
