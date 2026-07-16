@@ -28,10 +28,10 @@ export const customerConsent = customersSchema.table(
       .notNull()
       .references(() => customer.id, { onDelete: "cascade" }),
     channel: consentChannelEnum("channel").notNull(),
-    state: consentStateEnum("state").notNull().default("not_subscribed"),
+    state: consentStateEnum("state").notNull().default("NOT_SUBSCRIBED"),
     optInLevel: consentOptInLevelEnum("opt_in_level")
       .notNull()
-      .default("unknown"),
+      .default("UNKNOWN"),
     contactPoint: varchar("contact_point", { length: 320 }).notNull(),
     source: varchar("source", { length: 64 }).notNull().default("unknown"),
     sourceLocationId: uuid("source_location_id"),
@@ -59,8 +59,8 @@ export const customerConsent = customersSchema.table(
     ),
     check(
       "customer_consent_state_timestamps_check",
-      sql`(${table.state} <> 'subscribed' OR (${table.consentedAt} IS NOT NULL AND ${table.withdrawnAt} IS NULL))
-        AND (${table.state} <> 'unsubscribed' OR ${table.withdrawnAt} IS NOT NULL)`
+      sql`(${table.state} <> 'SUBSCRIBED' OR (${table.consentedAt} IS NOT NULL AND ${table.withdrawnAt} IS NULL))
+        AND (${table.state} <> 'UNSUBSCRIBED' OR ${table.withdrawnAt} IS NOT NULL)`
     ),
     check(
       "customer_consent_withdrawal_order_check",
@@ -96,7 +96,7 @@ export const customerConsentEvent = customersSchema.table(
     newState: consentStateEnum("new_state").notNull(),
     optInLevel: consentOptInLevelEnum("opt_in_level")
       .notNull()
-      .default("unknown"),
+      .default("UNKNOWN"),
     contactPoint: varchar("contact_point", { length: 320 }).notNull(),
     source: varchar("source", { length: 64 }).notNull().default("unknown"),
     sourceLocationId: uuid("source_location_id"),

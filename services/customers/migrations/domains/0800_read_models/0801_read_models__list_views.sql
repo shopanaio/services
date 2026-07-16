@@ -94,7 +94,7 @@ LEFT JOIN "customers"."customer_address" default_shipping_address
 LEFT JOIN "customers"."customer_consent" email_consent
   ON email_consent.store_id = customer.store_id
  AND email_consent.customer_id = customer.id
- AND email_consent.channel = 'email'
+ AND email_consent.channel = 'EMAIL'
 LEFT JOIN "customers"."customer_statistics" statistics
   ON statistics.store_id = customer.store_id
  AND statistics.customer_id = customer.id

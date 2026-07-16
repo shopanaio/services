@@ -34,7 +34,7 @@ CREATE TABLE "customers"."customer_group_membership" (
   "customer_id" uuid NOT NULL,
   "group_id" uuid NOT NULL,
   "is_primary" boolean NOT NULL DEFAULT false,
-  "source" "customers"."assignment_source" NOT NULL DEFAULT 'manual',
+  "source" "customers"."assignment_source" NOT NULL DEFAULT 'MANUAL',
   "assigned_by_id" text,
   "assigned_at" timestamptz NOT NULL DEFAULT now(),
   "expires_at" timestamptz,

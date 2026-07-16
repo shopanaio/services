@@ -7,3 +7,4 @@ export * from "./classification.js";
 export * from "./integrations.js";
 export * from "./statistics.js";
 export * from "./lifecycle.js";
+export * from "./listViews.js";

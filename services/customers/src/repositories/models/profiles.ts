@@ -26,10 +26,10 @@ export const customer = customersSchema.table(
     iamPrincipalId: text("iam_principal_id"),
     lifecycleStatus: customerLifecycleStatusEnum("lifecycle_status")
       .notNull()
-      .default("active"),
+      .default("ACTIVE"),
     accountStatus: customerAccountStatusEnum("account_status")
       .notNull()
-      .default("guest"),
+      .default("GUEST"),
     email: varchar("email", { length: 320 }),
     normalizedEmail: varchar("normalized_email", { length: 320 }),
     emailVerified: boolean("email_verified").notNull().default(false),
@@ -94,8 +94,8 @@ export const customer = customersSchema.table(
     ),
     check(
       "customer_blocked_reason_check",
-      sql`(${table.lifecycleStatus} <> 'blocked' AND ${table.blockedReason} IS NULL)
-        OR (${table.lifecycleStatus} = 'blocked'
+      sql`(${table.lifecycleStatus} <> 'BLOCKED' AND ${table.blockedReason} IS NULL)
+        OR (${table.lifecycleStatus} = 'BLOCKED'
           AND ${table.blockedReason} IS NOT NULL
           AND length(btrim(${table.blockedReason})) > 0)`
     ),
@@ -105,8 +105,8 @@ export const customer = customersSchema.table(
     ),
     check(
       "customer_merge_target_check",
-      sql`(${table.lifecycleStatus} = 'merged' AND ${table.mergedIntoCustomerId} IS NOT NULL)
-        OR (${table.lifecycleStatus} <> 'merged' AND ${table.mergedIntoCustomerId} IS NULL)`
+      sql`(${table.lifecycleStatus} = 'MERGED' AND ${table.mergedIntoCustomerId} IS NOT NULL)
+        OR (${table.lifecycleStatus} <> 'MERGED' AND ${table.mergedIntoCustomerId} IS NULL)`
     ),
     check(
       "customer_not_merged_into_self_check",
@@ -114,8 +114,8 @@ export const customer = customersSchema.table(
     ),
     check(
       "customer_redaction_timestamp_check",
-      sql`(${table.lifecycleStatus} = 'redacted' AND ${table.redactedAt} IS NOT NULL)
-        OR (${table.lifecycleStatus} <> 'redacted' AND ${table.redactedAt} IS NULL)`
+      sql`(${table.lifecycleStatus} = 'REDACTED' AND ${table.redactedAt} IS NOT NULL)
+        OR (${table.lifecycleStatus} <> 'REDACTED' AND ${table.redactedAt} IS NULL)`
     ),
     check(
       "customer_deleted_at_check",

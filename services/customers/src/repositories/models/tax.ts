@@ -32,7 +32,7 @@ export const customerTaxIdentifier = customersSchema.table(
     normalizedValue: varchar("normalized_value", { length: 255 }).notNull(),
     status: taxIdentifierStatusEnum("status")
       .notNull()
-      .default("unverified"),
+      .default("UNVERIFIED"),
     isPrimary: boolean("is_primary").notNull().default(false),
     verifiedAt: timestamp("verified_at", {
       withTimezone: true,
@@ -63,7 +63,7 @@ export const customerTaxIdentifier = customersSchema.table(
     ),
     check(
       "customer_tax_identifier_verified_at_check",
-      sql`${table.status} <> 'verified' OR ${table.verifiedAt} IS NOT NULL`
+      sql`${table.status} <> 'VERIFIED' OR ${table.verifiedAt} IS NOT NULL`
     ),
     check(
       "customer_tax_identifier_validity_check",
@@ -98,7 +98,7 @@ export const customerTaxExemption = customersSchema.table(
     countryCode: char("country_code", { length: 2 }),
     regionCode: varchar("region_code", { length: 64 }),
     reason: text("reason"),
-    status: taxExemptionStatusEnum("status").notNull().default("active"),
+    status: taxExemptionStatusEnum("status").notNull().default("ACTIVE"),
     certificateFileId: uuid("certificate_file_id"),
     validFrom: date("valid_from", { mode: "string" }),
     validTo: date("valid_to", { mode: "string" }),

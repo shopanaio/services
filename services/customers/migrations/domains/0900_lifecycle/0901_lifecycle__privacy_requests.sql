@@ -3,7 +3,7 @@ CREATE TABLE "customers"."customer_data_request" (
   "store_id" uuid NOT NULL,
   "customer_id" uuid NOT NULL,
   "type" "customers"."customer_data_request_type" NOT NULL,
-  "status" "customers"."customer_data_request_status" NOT NULL DEFAULT 'pending',
+  "status" "customers"."customer_data_request_status" NOT NULL DEFAULT 'PENDING',
   "requested_by_type" varchar(32) NOT NULL,
   "requested_by_id" text,
   "idempotency_key" text NOT NULL,
@@ -32,12 +32,12 @@ CREATE TABLE "customers"."customer_data_request" (
     ),
   CONSTRAINT "customer_data_request_terminal_status_check"
     CHECK (
-      ("status" IN ('completed', 'rejected', 'cancelled') AND "finished_at" IS NOT NULL)
+      ("status" IN ('COMPLETED', 'REJECTED', 'CANCELLED') AND "finished_at" IS NOT NULL)
       OR
-      ("status" NOT IN ('completed', 'rejected', 'cancelled') AND "finished_at" IS NULL)
+      ("status" NOT IN ('COMPLETED', 'REJECTED', 'CANCELLED') AND "finished_at" IS NULL)
     ),
   CONSTRAINT "customer_data_request_rejection_reason_check"
-    CHECK ("status" <> 'rejected' OR "rejection_reason" IS NOT NULL)
+    CHECK ("status" <> 'REJECTED' OR "rejection_reason" IS NOT NULL)
 );
 
 CREATE UNIQUE INDEX "customer_data_request_idempotency_unique"
@@ -51,4 +51,4 @@ CREATE INDEX "customer_data_request_customer_idx"
 
 CREATE INDEX "customer_data_request_due_idx"
   ON "customers"."customer_data_request" ("due_at", "id")
-  WHERE "status" IN ('pending', 'processing') AND "due_at" IS NOT NULL;
+  WHERE "status" IN ('PENDING', 'PROCESSING') AND "due_at" IS NOT NULL;

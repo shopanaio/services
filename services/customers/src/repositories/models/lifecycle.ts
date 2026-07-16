@@ -30,7 +30,7 @@ export const customerMerge = customersSchema.table(
       .references(() => customer.id, { onDelete: "restrict" }),
     status: customerMergeStatusEnum("status")
       .notNull()
-      .default("requested"),
+      .default("REQUESTED"),
     reason: text("reason"),
     requestedByType: varchar("requested_by_type", { length: 32 })
       .notNull()
@@ -73,8 +73,8 @@ export const customerMerge = customersSchema.table(
     ),
     check(
       "customer_merge_terminal_status_check",
-      sql`(${table.status} IN ('completed', 'failed') AND ${table.finishedAt} IS NOT NULL)
-        OR (${table.status} NOT IN ('completed', 'failed') AND ${table.finishedAt} IS NULL)`
+      sql`(${table.status} IN ('COMPLETED', 'FAILED') AND ${table.finishedAt} IS NOT NULL)
+        OR (${table.status} NOT IN ('COMPLETED', 'FAILED') AND ${table.finishedAt} IS NULL)`
     ),
     uniqueIndex("customer_merge_idempotency_unique").on(
       table.storeId,
@@ -82,7 +82,7 @@ export const customerMerge = customersSchema.table(
     ),
     uniqueIndex("customer_merge_source_active_unique")
       .on(table.sourceCustomerId)
-      .where(sql`${table.status} IN ('requested', 'in_progress')`),
+      .where(sql`${table.status} IN ('REQUESTED', 'IN_PROGRESS')`),
     index("customer_merge_store_status_idx").on(
       table.storeId,
       table.status,
@@ -108,7 +108,7 @@ export const customerDataRequest = customersSchema.table(
     type: customerDataRequestTypeEnum("type").notNull(),
     status: customerDataRequestStatusEnum("status")
       .notNull()
-      .default("pending"),
+      .default("PENDING"),
     requestedByType: varchar("requested_by_type", { length: 32 }).notNull(),
     requestedById: text("requested_by_id"),
     idempotencyKey: text("idempotency_key").notNull(),
@@ -152,12 +152,12 @@ export const customerDataRequest = customersSchema.table(
     ),
     check(
       "customer_data_request_terminal_status_check",
-      sql`(${table.status} IN ('completed', 'rejected', 'cancelled') AND ${table.finishedAt} IS NOT NULL)
-        OR (${table.status} NOT IN ('completed', 'rejected', 'cancelled') AND ${table.finishedAt} IS NULL)`
+      sql`(${table.status} IN ('COMPLETED', 'REJECTED', 'CANCELLED') AND ${table.finishedAt} IS NOT NULL)
+        OR (${table.status} NOT IN ('COMPLETED', 'REJECTED', 'CANCELLED') AND ${table.finishedAt} IS NULL)`
     ),
     check(
       "customer_data_request_rejection_reason_check",
-      sql`${table.status} <> 'rejected' OR ${table.rejectionReason} IS NOT NULL`
+      sql`${table.status} <> 'REJECTED' OR ${table.rejectionReason} IS NOT NULL`
     ),
     uniqueIndex("customer_data_request_idempotency_unique").on(
       table.storeId,
@@ -177,7 +177,7 @@ export const customerDataRequest = customersSchema.table(
     index("customer_data_request_due_idx")
       .on(table.dueAt, table.id)
       .where(
-        sql`${table.status} IN ('pending', 'processing') AND ${table.dueAt} IS NOT NULL`
+        sql`${table.status} IN ('PENDING', 'PROCESSING') AND ${table.dueAt} IS NOT NULL`
       ),
   ]
 );

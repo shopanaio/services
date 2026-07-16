@@ -3,7 +3,7 @@ CREATE TABLE "customers"."customer_merge" (
   "store_id" uuid NOT NULL,
   "source_customer_id" uuid NOT NULL,
   "target_customer_id" uuid NOT NULL,
-  "status" "customers"."customer_merge_status" NOT NULL DEFAULT 'requested',
+  "status" "customers"."customer_merge_status" NOT NULL DEFAULT 'REQUESTED',
   "reason" text,
   "requested_by_type" varchar(32) NOT NULL DEFAULT 'system',
   "requested_by_id" text,
@@ -35,9 +35,9 @@ CREATE TABLE "customers"."customer_merge" (
     ),
   CONSTRAINT "customer_merge_terminal_status_check"
     CHECK (
-      ("status" IN ('completed', 'failed') AND "finished_at" IS NOT NULL)
+      ("status" IN ('COMPLETED', 'FAILED') AND "finished_at" IS NOT NULL)
       OR
-      ("status" NOT IN ('completed', 'failed') AND "finished_at" IS NULL)
+      ("status" NOT IN ('COMPLETED', 'FAILED') AND "finished_at" IS NULL)
     )
 );
 
@@ -46,7 +46,7 @@ CREATE UNIQUE INDEX "customer_merge_idempotency_unique"
 
 CREATE UNIQUE INDEX "customer_merge_source_active_unique"
   ON "customers"."customer_merge" ("source_customer_id")
-  WHERE "status" IN ('requested', 'in_progress');
+  WHERE "status" IN ('REQUESTED', 'IN_PROGRESS');
 
 CREATE INDEX "customer_merge_store_status_idx"
   ON "customers"."customer_merge" ("store_id", "status", "requested_at", "id");

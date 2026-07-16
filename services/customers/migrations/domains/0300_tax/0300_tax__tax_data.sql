@@ -6,7 +6,7 @@ CREATE TABLE "customers"."customer_tax_identifier" (
   "country_code" char(2),
   "value" varchar(255) NOT NULL,
   "normalized_value" varchar(255) NOT NULL,
-  "status" "customers"."tax_identifier_status" NOT NULL DEFAULT 'unverified',
+  "status" "customers"."tax_identifier_status" NOT NULL DEFAULT 'UNVERIFIED',
   "is_primary" boolean NOT NULL DEFAULT false,
   "verified_at" timestamptz,
   "valid_from" date,
@@ -26,7 +26,7 @@ CREATE TABLE "customers"."customer_tax_identifier" (
   CONSTRAINT "customer_tax_identifier_country_code_check"
     CHECK ("country_code" IS NULL OR "country_code" ~ '^[A-Z]{2}$'),
   CONSTRAINT "customer_tax_identifier_verified_at_check"
-    CHECK ("status" <> 'verified' OR "verified_at" IS NOT NULL),
+    CHECK ("status" <> 'VERIFIED' OR "verified_at" IS NOT NULL),
   CONSTRAINT "customer_tax_identifier_validity_check"
     CHECK ("valid_to" IS NULL OR "valid_from" IS NULL OR "valid_to" >= "valid_from")
 );
@@ -56,7 +56,7 @@ CREATE TABLE "customers"."customer_tax_exemption" (
   "country_code" char(2),
   "region_code" varchar(64),
   "reason" text,
-  "status" "customers"."tax_exemption_status" NOT NULL DEFAULT 'active',
+  "status" "customers"."tax_exemption_status" NOT NULL DEFAULT 'ACTIVE',
   "certificate_file_id" uuid,
   "valid_from" date,
   "valid_to" date,

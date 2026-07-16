@@ -19,7 +19,7 @@ CREATE TABLE "customers"."customer_address" (
   "country_code" char(2) NOT NULL,
   "is_default_shipping" boolean NOT NULL DEFAULT false,
   "is_default_billing" boolean NOT NULL DEFAULT false,
-  "validation_status" "customers"."address_validation_status" NOT NULL DEFAULT 'unvalidated',
+  "validation_status" "customers"."address_validation_status" NOT NULL DEFAULT 'UNVALIDATED',
   "validated_at" timestamptz,
   "latitude" numeric(9, 6),
   "longitude" numeric(9, 6),
@@ -42,7 +42,7 @@ CREATE TABLE "customers"."customer_address" (
   CONSTRAINT "customer_address_longitude_check"
     CHECK ("longitude" IS NULL OR "longitude" BETWEEN -180 AND 180),
   CONSTRAINT "customer_address_validation_timestamp_check"
-    CHECK ("validation_status" = 'unvalidated' OR "validated_at" IS NOT NULL),
+    CHECK ("validation_status" = 'UNVALIDATED' OR "validated_at" IS NOT NULL),
   CONSTRAINT "customer_address_deleted_at_check"
     CHECK ("deleted_at" IS NULL OR "deleted_at" >= "created_at")
 );

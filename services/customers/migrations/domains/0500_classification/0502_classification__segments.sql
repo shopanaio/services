@@ -5,7 +5,7 @@ CREATE TABLE "customers"."customer_segment" (
   "description" text,
   "color" varchar(7),
   "type" "customers"."customer_segment_type" NOT NULL,
-  "status" "customers"."customer_segment_status" NOT NULL DEFAULT 'draft',
+  "status" "customers"."customer_segment_status" NOT NULL DEFAULT 'DRAFT',
   "query" text,
   "definition" jsonb NOT NULL DEFAULT '{}'::jsonb,
   "created_by_id" text,
@@ -17,7 +17,7 @@ CREATE TABLE "customers"."customer_segment" (
   CONSTRAINT "customer_segment_name_check"
     CHECK (length(btrim("name")) > 0),
   CONSTRAINT "customer_segment_dynamic_definition_check"
-    CHECK ("type" <> 'dynamic' OR "query" IS NOT NULL OR "definition" <> '{}'::jsonb),
+    CHECK ("type" <> 'DYNAMIC' OR "query" IS NOT NULL OR "definition" <> '{}'::jsonb),
   CONSTRAINT "customer_segment_color_check"
     CHECK ("color" IS NULL OR "color" ~ '^#[0-9A-Fa-f]{6}$'),
   CONSTRAINT "customer_segment_revision_nonnegative_check"

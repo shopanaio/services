@@ -2,8 +2,8 @@ CREATE TABLE "customers"."customer" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "iam_principal_id" text,
-  "lifecycle_status" "customers"."customer_lifecycle_status" NOT NULL DEFAULT 'active',
-  "account_status" "customers"."customer_account_status" NOT NULL DEFAULT 'guest',
+  "lifecycle_status" "customers"."customer_lifecycle_status" NOT NULL DEFAULT 'ACTIVE',
+  "account_status" "customers"."customer_account_status" NOT NULL DEFAULT 'GUEST',
   "email" varchar(320),
   "normalized_email" varchar(320),
   "email_verified" boolean NOT NULL DEFAULT false,
@@ -48,9 +48,9 @@ CREATE TABLE "customers"."customer" (
     CHECK ("revision" >= 0),
   CONSTRAINT "customer_blocked_reason_check"
     CHECK (
-      ("lifecycle_status" <> 'blocked' AND "blocked_reason" IS NULL)
+      ("lifecycle_status" <> 'BLOCKED' AND "blocked_reason" IS NULL)
       OR
-      ("lifecycle_status" = 'blocked'
+      ("lifecycle_status" = 'BLOCKED'
         AND "blocked_reason" IS NOT NULL
         AND length(btrim("blocked_reason")) > 0)
     ),
@@ -61,17 +61,17 @@ CREATE TABLE "customers"."customer" (
     ),
   CONSTRAINT "customer_merge_target_check"
     CHECK (
-      ("lifecycle_status" = 'merged' AND "merged_into_customer_id" IS NOT NULL)
+      ("lifecycle_status" = 'MERGED' AND "merged_into_customer_id" IS NOT NULL)
       OR
-      ("lifecycle_status" <> 'merged' AND "merged_into_customer_id" IS NULL)
+      ("lifecycle_status" <> 'MERGED' AND "merged_into_customer_id" IS NULL)
     ),
   CONSTRAINT "customer_not_merged_into_self_check"
     CHECK ("merged_into_customer_id" IS NULL OR "merged_into_customer_id" <> "id"),
   CONSTRAINT "customer_redaction_timestamp_check"
     CHECK (
-      ("lifecycle_status" = 'redacted' AND "redacted_at" IS NOT NULL)
+      ("lifecycle_status" = 'REDACTED' AND "redacted_at" IS NOT NULL)
       OR
-      ("lifecycle_status" <> 'redacted' AND "redacted_at" IS NULL)
+      ("lifecycle_status" <> 'REDACTED' AND "redacted_at" IS NULL)
     ),
   CONSTRAINT "customer_deleted_at_check"
     CHECK ("deleted_at" IS NULL OR "deleted_at" >= "created_at"),

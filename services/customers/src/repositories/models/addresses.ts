@@ -40,7 +40,7 @@ export const customerAddress = customersSchema.table(
     isDefaultBilling: boolean("is_default_billing").notNull().default(false),
     validationStatus: addressValidationStatusEnum("validation_status")
       .notNull()
-      .default("unvalidated"),
+      .default("UNVALIDATED"),
     validatedAt: timestamp("validated_at", {
       withTimezone: true,
       mode: "string",
@@ -86,7 +86,7 @@ export const customerAddress = customersSchema.table(
     ),
     check(
       "customer_address_validation_timestamp_check",
-      sql`${table.validationStatus} = 'unvalidated' OR ${table.validatedAt} IS NOT NULL`
+      sql`${table.validationStatus} = 'UNVALIDATED' OR ${table.validatedAt} IS NOT NULL`
     ),
     check(
       "customer_address_deleted_at_check",

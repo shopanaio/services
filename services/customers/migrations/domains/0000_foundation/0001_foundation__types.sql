@@ -1,94 +1,94 @@
 CREATE TYPE "customers"."customer_lifecycle_status" AS ENUM (
-  'active',
-  'disabled',
-  'blocked',
-  'merged',
-  'redacted'
+  'ACTIVE',
+  'DISABLED',
+  'BLOCKED',
+  'MERGED',
+  'REDACTED'
 );
 
 CREATE TYPE "customers"."customer_account_status" AS ENUM (
-  'guest',
-  'invited',
-  'registered'
+  'GUEST',
+  'INVITED',
+  'REGISTERED'
 );
 
 CREATE TYPE "customers"."address_validation_status" AS ENUM (
-  'unvalidated',
-  'valid',
-  'invalid'
+  'UNVALIDATED',
+  'VALID',
+  'INVALID'
 );
 
 CREATE TYPE "customers"."tax_identifier_status" AS ENUM (
-  'unverified',
-  'verified',
-  'rejected',
-  'expired'
+  'UNVERIFIED',
+  'VERIFIED',
+  'REJECTED',
+  'EXPIRED'
 );
 
 CREATE TYPE "customers"."tax_exemption_status" AS ENUM (
-  'active',
-  'expired',
-  'revoked'
+  'ACTIVE',
+  'EXPIRED',
+  'REVOKED'
 );
 
 CREATE TYPE "customers"."consent_channel" AS ENUM (
-  'email',
-  'sms',
-  'whatsapp',
-  'push'
+  'EMAIL',
+  'SMS',
+  'WHATSAPP',
+  'PUSH'
 );
 
 CREATE TYPE "customers"."consent_state" AS ENUM (
-  'not_subscribed',
-  'pending',
-  'subscribed',
-  'unsubscribed',
-  'invalid',
-  'redacted'
+  'NOT_SUBSCRIBED',
+  'PENDING',
+  'SUBSCRIBED',
+  'UNSUBSCRIBED',
+  'INVALID',
+  'REDACTED'
 );
 
 CREATE TYPE "customers"."consent_opt_in_level" AS ENUM (
-  'unknown',
-  'single_opt_in',
-  'confirmed_opt_in'
+  'UNKNOWN',
+  'SINGLE_OPT_IN',
+  'CONFIRMED_OPT_IN'
 );
 
 CREATE TYPE "customers"."assignment_source" AS ENUM (
-  'manual',
-  'rule',
-  'import',
-  'system'
+  'MANUAL',
+  'RULE',
+  'IMPORT',
+  'SYSTEM'
 );
 
 CREATE TYPE "customers"."customer_segment_type" AS ENUM (
-  'manual',
-  'dynamic'
+  'MANUAL',
+  'DYNAMIC'
 );
 
 CREATE TYPE "customers"."customer_segment_status" AS ENUM (
-  'draft',
-  'active',
-  'archived'
+  'DRAFT',
+  'ACTIVE',
+  'ARCHIVED'
 );
 
 CREATE TYPE "customers"."customer_merge_status" AS ENUM (
-  'requested',
-  'in_progress',
-  'completed',
-  'failed'
+  'REQUESTED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'FAILED'
 );
 
 CREATE TYPE "customers"."customer_data_request_type" AS ENUM (
-  'access',
-  'export',
-  'correction',
-  'erasure'
+  'ACCESS',
+  'EXPORT',
+  'CORRECTION',
+  'ERASURE'
 );
 
 CREATE TYPE "customers"."customer_data_request_status" AS ENUM (
-  'pending',
-  'processing',
-  'completed',
-  'rejected',
-  'cancelled'
+  'PENDING',
+  'PROCESSING',
+  'COMPLETED',
+  'REJECTED',
+  'CANCELLED'
 );

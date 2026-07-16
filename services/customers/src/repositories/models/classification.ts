@@ -73,7 +73,7 @@ export const customerGroupMembership = customersSchema.table(
       .notNull()
       .references(() => customerGroup.id, { onDelete: "cascade" }),
     isPrimary: boolean("is_primary").notNull().default(false),
-    source: assignmentSourceEnum("source").notNull().default("manual"),
+    source: assignmentSourceEnum("source").notNull().default("MANUAL"),
     assignedById: text("assigned_by_id"),
     assignedAt: timestamp("assigned_at", {
       withTimezone: true,
@@ -178,7 +178,7 @@ export const customerSegment = customersSchema.table(
     description: text("description"),
     color: varchar("color", { length: 7 }),
     type: customerSegmentTypeEnum("type").notNull(),
-    status: customerSegmentStatusEnum("status").notNull().default("draft"),
+    status: customerSegmentStatusEnum("status").notNull().default("DRAFT"),
     query: text("query"),
     definition: jsonb("definition").notNull().default(sql`'{}'::jsonb`),
     createdById: text("created_by_id"),
@@ -198,7 +198,7 @@ export const customerSegment = customersSchema.table(
     ),
     check(
       "customer_segment_dynamic_definition_check",
-      sql`${table.type} <> 'dynamic' OR ${table.query} IS NOT NULL OR ${table.definition} <> '{}'::jsonb`
+      sql`${table.type} <> 'DYNAMIC' OR ${table.query} IS NOT NULL OR ${table.definition} <> '{}'::jsonb`
     ),
     check(
       "customer_segment_color_check",

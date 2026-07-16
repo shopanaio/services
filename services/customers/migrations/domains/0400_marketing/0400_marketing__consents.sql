@@ -3,8 +3,8 @@ CREATE TABLE "customers"."customer_consent" (
   "store_id" uuid NOT NULL,
   "customer_id" uuid NOT NULL,
   "channel" "customers"."consent_channel" NOT NULL,
-  "state" "customers"."consent_state" NOT NULL DEFAULT 'not_subscribed',
-  "opt_in_level" "customers"."consent_opt_in_level" NOT NULL DEFAULT 'unknown',
+  "state" "customers"."consent_state" NOT NULL DEFAULT 'NOT_SUBSCRIBED',
+  "opt_in_level" "customers"."consent_opt_in_level" NOT NULL DEFAULT 'UNKNOWN',
   "contact_point" varchar(320) NOT NULL,
   "source" varchar(64) NOT NULL DEFAULT 'unknown',
   "source_location_id" uuid,
@@ -23,9 +23,9 @@ CREATE TABLE "customers"."customer_consent" (
     CHECK (length(btrim("contact_point")) > 0),
   CONSTRAINT "customer_consent_state_timestamps_check"
     CHECK (
-      ("state" <> 'subscribed' OR ("consented_at" IS NOT NULL AND "withdrawn_at" IS NULL))
+      ("state" <> 'SUBSCRIBED' OR ("consented_at" IS NOT NULL AND "withdrawn_at" IS NULL))
       AND
-      ("state" <> 'unsubscribed' OR "withdrawn_at" IS NOT NULL)
+      ("state" <> 'UNSUBSCRIBED' OR "withdrawn_at" IS NOT NULL)
     ),
   CONSTRAINT "customer_consent_withdrawal_order_check"
     CHECK (
@@ -51,7 +51,7 @@ CREATE TABLE "customers"."customer_consent_event" (
   "channel" "customers"."consent_channel" NOT NULL,
   "previous_state" "customers"."consent_state",
   "new_state" "customers"."consent_state" NOT NULL,
-  "opt_in_level" "customers"."consent_opt_in_level" NOT NULL DEFAULT 'unknown',
+  "opt_in_level" "customers"."consent_opt_in_level" NOT NULL DEFAULT 'UNKNOWN',
   "contact_point" varchar(320) NOT NULL,
   "source" varchar(64) NOT NULL DEFAULT 'unknown',
   "source_location_id" uuid,

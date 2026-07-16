@@ -4,78 +4,78 @@ export const customersSchema = pgSchema("customers");
 
 export const customerLifecycleStatusEnum = customersSchema.enum(
   "customer_lifecycle_status",
-  ["active", "disabled", "blocked", "merged", "redacted"]
+  ["ACTIVE", "DISABLED", "BLOCKED", "MERGED", "REDACTED"]
 );
 
 export const customerAccountStatusEnum = customersSchema.enum(
   "customer_account_status",
-  ["guest", "invited", "registered"]
+  ["GUEST", "INVITED", "REGISTERED"]
 );
 
 export const addressValidationStatusEnum = customersSchema.enum(
   "address_validation_status",
-  ["unvalidated", "valid", "invalid"]
+  ["UNVALIDATED", "VALID", "INVALID"]
 );
 
 export const taxIdentifierStatusEnum = customersSchema.enum(
   "tax_identifier_status",
-  ["unverified", "verified", "rejected", "expired"]
+  ["UNVERIFIED", "VERIFIED", "REJECTED", "EXPIRED"]
 );
 
 export const taxExemptionStatusEnum = customersSchema.enum(
   "tax_exemption_status",
-  ["active", "expired", "revoked"]
+  ["ACTIVE", "EXPIRED", "REVOKED"]
 );
 
 export const consentChannelEnum = customersSchema.enum("consent_channel", [
-  "email",
-  "sms",
-  "whatsapp",
-  "push",
+  "EMAIL",
+  "SMS",
+  "WHATSAPP",
+  "PUSH",
 ]);
 
 export const consentStateEnum = customersSchema.enum("consent_state", [
-  "not_subscribed",
-  "pending",
-  "subscribed",
-  "unsubscribed",
-  "invalid",
-  "redacted",
+  "NOT_SUBSCRIBED",
+  "PENDING",
+  "SUBSCRIBED",
+  "UNSUBSCRIBED",
+  "INVALID",
+  "REDACTED",
 ]);
 
 export const consentOptInLevelEnum = customersSchema.enum(
   "consent_opt_in_level",
-  ["unknown", "single_opt_in", "confirmed_opt_in"]
+  ["UNKNOWN", "SINGLE_OPT_IN", "CONFIRMED_OPT_IN"]
 );
 
 export const assignmentSourceEnum = customersSchema.enum("assignment_source", [
-  "manual",
-  "rule",
-  "import",
-  "system",
+  "MANUAL",
+  "RULE",
+  "IMPORT",
+  "SYSTEM",
 ]);
 
 export const customerSegmentTypeEnum = customersSchema.enum(
   "customer_segment_type",
-  ["manual", "dynamic"]
+  ["MANUAL", "DYNAMIC"]
 );
 
 export const customerSegmentStatusEnum = customersSchema.enum(
   "customer_segment_status",
-  ["draft", "active", "archived"]
+  ["DRAFT", "ACTIVE", "ARCHIVED"]
 );
 
 export const customerMergeStatusEnum = customersSchema.enum(
   "customer_merge_status",
-  ["requested", "in_progress", "completed", "failed"]
+  ["REQUESTED", "IN_PROGRESS", "COMPLETED", "FAILED"]
 );
 
 export const customerDataRequestTypeEnum = customersSchema.enum(
   "customer_data_request_type",
-  ["access", "export", "correction", "erasure"]
+  ["ACCESS", "EXPORT", "CORRECTION", "ERASURE"]
 );
 
 export const customerDataRequestStatusEnum = customersSchema.enum(
   "customer_data_request_status",
-  ["pending", "processing", "completed", "rejected", "cancelled"]
+  ["PENDING", "PROCESSING", "COMPLETED", "REJECTED", "CANCELLED"]
 );
