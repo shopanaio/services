@@ -1,54 +1,34 @@
 "use client";
 
-import { Alert, App, Flex, Skeleton } from "antd";
+import { Alert, Button, Flex, Skeleton, Spin } from "antd";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
+import { Paper } from "@/ui-kit/paper";
 import { CustomerDetailsCard } from "../../components/customer-details-card";
-import { useCustomer, useDeleteCustomer } from "../../hooks";
-import { useCustomerEditModal } from "../../modals";
+import { useCustomerModals } from "../../components/customer-details-card/hooks";
+import { useCustomer } from "../../hooks";
 import type { CustomerModalPayload } from "../../modals";
-import { useCustomerDataRequestModal, useCustomerMergeModal } from "@/domains/customers/lifecycle/modals";
+
+function CustomerDetailsSkeleton() {
+  return <Flex vertical gap={12} style={{ width: "100%" }}><Paper><Skeleton active avatar={{ size: 56 }} paragraph={{ rows: 4 }} /><Skeleton active paragraph={{ rows: 2 }} /></Paper><Paper><Skeleton active title paragraph={{ rows: 3 }} /></Paper><Paper><Skeleton active title paragraph={{ rows: 5 }} /></Paper></Flex>;
+}
+
+function LoadedCustomer({ query, payload }: { query: ReturnType<typeof useCustomer>; payload: CustomerModalPayload }) {
+  const actions = useCustomerModals({ customer: query.customer!, onRefetch: query.refetch, onSaved: payload.onSaved });
+  return <>
+    {query.loading ? <Flex justify="center"><Spin size="small" aria-label="Refreshing customer details" /></Flex> : null}
+    {query.error ? <Alert type="warning" showIcon message="Customer details could not be refreshed." description={query.error.message} action={<Button onClick={() => void query.refetch()}>Retry</Button>} /> : null}
+    {actions.deleteConflict ? <Alert type="warning" showIcon message="This customer changed after the delete confirmation was opened." action={<Button onClick={() => void actions.reloadAfterConflict()}>Reload latest data</Button>} /> : null}
+    {actions.deleteError ? <Alert type="error" showIcon message={actions.deleteError} /> : null}
+    <CustomerDetailsCard customer={query.customer!} onEdit={actions.edit} onDelete={actions.confirmDelete} onMerge={actions.openMerge} onCreateDataRequest={actions.openPrivacy} onTechnicalMetadata={actions.openMetadata} />
+  </>;
+}
 
 export function CustomerModal() {
-  const { message } = App.useApp();
-  const { payload, forcePop } = useModalStackContext();
-  const typedPayload = payload as CustomerModalPayload;
-  const query = useCustomer(typedPayload.entityId);
-  const deletion = useDeleteCustomer();
-  const { push: openEdit } = useCustomerEditModal();
-  const { push: openMerge } = useCustomerMergeModal();
-  const { push: openDataRequest } = useCustomerDataRequestModal();
-
-  const renderContent = () => {
-    if (query.loading && !query.customer) {
-      return <Flex vertical gap={16} style={{ padding: 16 }}><Skeleton active paragraph={{ rows: 12 }} /></Flex>;
-    }
-    if (query.error && !query.customer) return <Alert type="error" showIcon message={query.error.message} />;
-    if (!query.customer) return <Alert type="warning" showIcon message="Customer not found" />;
-
-    return (
-      <CustomerDetailsCard
-        customer={query.customer}
-        onEdit={(section) => openEdit({ entityId: query.customer!.id, section, onSaved: query.refetch })}
-        onDelete={async () => {
-          const result = await deletion.deleteCustomer({ id: query.customer!.id, expectedRevision: query.customer!.revision });
-          if (result.deletedCustomerId) {
-            await typedPayload.onSaved?.();
-            forcePop();
-            message.success("Customer deleted");
-            return;
-          }
-          message.error(result.userErrors[0]?.message ?? "Unable to delete customer");
-        }}
-        onMerge={() => openMerge({ mode: "create", sourceCustomerId: query.customer!.id, onSaved: query.refetch })}
-        onCreateDataRequest={() => openDataRequest({ mode: "create", customerId: query.customer!.id, onSaved: query.refetch })}
-      />
-    );
-  };
-
-  return (
-    <ModalLayout name="customer" headerProps={{ title: "Customer", onClose: forcePop, submitButtonProps: null }}>
-      {deletion.error ? <Alert type="error" showIcon message={deletion.error.message} /> : null}
-      {renderContent()}
-    </ModalLayout>
-  );
+  const { payload, forcePop } = useModalStackContext(); const typedPayload = payload as CustomerModalPayload; const query = useCustomer(typedPayload.entityId);
+  return <ModalLayout name="customer" headerProps={{ title: "Customer details", onClose: forcePop, submitButtonProps: null }}>
+    {query.loading && !query.customer ? <CustomerDetailsSkeleton /> : null}
+    {query.error && !query.customer ? <Alert type="error" showIcon message="Unable to load customer details" description={query.error.message} action={<Button onClick={() => void query.refetch()}>Retry</Button>} /> : null}
+    {!query.loading && !query.error && !query.customer ? <Alert type="warning" showIcon message="Customer not found" description="It may have been deleted or is no longer available in this store." action={<Button onClick={forcePop}>Close</Button>} /> : null}
+    {query.customer ? <LoadedCustomer query={query} payload={typedPayload} /> : null}
+  </ModalLayout>;
 }

@@ -636,14 +636,104 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard this new customer?',
     },
     {
-      type: 'customer-edit',
-      component: dynamic(() =>
-        import('@/domains/customers/all-customers/modals/customer-edit-modal').then(
-          (m) => m.CustomerEditModal
-        )
-      ),
+      type: 'customer-edit-profile',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-profile-modal').then((m) => m.EditCustomerProfileModal)),
       confirmOnDirtyClose: true,
-      closeConfirmMessage: 'Discard unsaved customer changes?',
+      closeConfirmMessage: 'Discard unsaved profile changes?',
+    },
+    {
+      type: 'customer-edit-contact',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-contact-modal').then((m) => m.EditCustomerContactModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved contact changes?',
+    },
+    {
+      type: 'customer-edit-company',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-company-modal').then((m) => m.EditCustomerCompanyModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved company changes?',
+    },
+    {
+      type: 'customer-manage-addresses',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/manage-customer-addresses-modal').then((m) => m.ManageCustomerAddressesModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved address changes?',
+    },
+    {
+      type: 'customer-edit-address',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-address-modal').then((m) => m.EditCustomerAddressModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard this address draft?',
+    },
+    {
+      type: 'customer-edit-consents',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-consents-modal').then((m) => m.EditCustomerConsentsModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved consent changes?',
+    },
+    {
+      type: 'customer-edit-groups',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-groups-modal').then((m) => m.EditCustomerGroupsModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved group changes?',
+    },
+    {
+      type: 'customer-edit-tags',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-tags-modal').then((m) => m.EditCustomerTagsModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved tag changes?',
+    },
+    {
+      type: 'customer-edit-segments',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-segments-modal').then((m) => m.EditCustomerSegmentsModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved segment changes?',
+    },
+    {
+      type: 'customer-edit-status',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-status-modal').then((m) => m.EditCustomerStatusModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard the status change?',
+    },
+    {
+      type: 'customer-edit-note',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-note-modal').then((m) => m.EditCustomerNoteModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard the merchant note change?',
+    },
+    {
+      type: 'customer-edit-moderation',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-moderation-modal').then((m) => m.EditCustomerModerationModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard the moderation note change?',
+    },
+    {
+      type: 'customer-manage-tax-identifiers',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/manage-customer-tax-identifiers-modal').then((m) => m.ManageCustomerTaxIdentifiersModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved tax identifier changes?',
+    },
+    {
+      type: 'customer-edit-tax-identifier',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-tax-identifier-modal').then((m) => m.EditCustomerTaxIdentifierModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard this tax identifier draft?',
+    },
+    {
+      type: 'customer-manage-tax-exemptions',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/manage-customer-tax-exemptions-modal').then((m) => m.ManageCustomerTaxExemptionsModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved tax exemption changes?',
+    },
+    {
+      type: 'customer-edit-tax-exemption',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/edit-customer-tax-exemption-modal').then((m) => m.EditCustomerTaxExemptionModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard this tax exemption draft?',
+    },
+    {
+      type: 'customer-technical-metadata',
+      component: dynamic(() => import('@/domains/customers/all-customers/modals/customer-technical-metadata-modal').then((m) => m.CustomerTechnicalMetadataModal)),
     },
     {
       type: 'customer-segment',

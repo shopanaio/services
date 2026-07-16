@@ -53,8 +53,47 @@ export const CUSTOMER_DETAILS_FRAGMENT = gql`
     lifecycleStatus
     defaultShippingAddress {
       id
+      label
+      prefix
+      firstName
+      middleName
+      lastName
+      suffix
+      companyName
+      phoneE164
+      address1
+      address2
       city
+      regionName
+      regionCode
+      postalCode
       countryCode
+      isDefaultShipping
+      isDefaultBilling
+      validationStatus
+      validatedAt
+    }
+    defaultBillingAddress {
+      id
+      label
+      prefix
+      firstName
+      middleName
+      lastName
+      suffix
+      companyName
+      phoneE164
+      address1
+      address2
+      city
+      regionName
+      regionCode
+      postalCode
+      countryCode
+      isDefaultShipping
+      isDefaultBilling
+      validationStatus
+      validatedAt
     }
     createdAt
     updatedAt
@@ -223,7 +262,7 @@ export const CUSTOMER_DETAILS_FRAGMENT = gql`
       withdrawnAt
       createdAt
       updatedAt
-      events(first: 10, orderBy: [{ field: occurredAt, direction: desc }]) {
+      events(first: 1, orderBy: [{ field: occurredAt, direction: desc }]) {
         edges {
           node {
             id
@@ -253,7 +292,7 @@ export const CUSTOMER_DETAILS_FRAGMENT = gql`
       lastCheckoutAt
       updatedAt
     }
-    monetaryStatistics(first: 50) {
+    monetaryStatistics(first: 1, where: { currencyCode: { _eq: $currencyCode } }) {
       edges {
         node {
           id

@@ -40,7 +40,7 @@ export const CUSTOMERS_QUERY = gql`
 `;
 
 export const CUSTOMER_QUERY = gql`
-  query Customer($id: ID!) {
+  query Customer($id: ID!, $currencyCode: String) {
     customersQuery {
       customer(id: $id) {
         ...CustomerDetailsFields
@@ -60,6 +60,7 @@ export const CUSTOMER_EDITOR_CONTEXT_QUERY = gql`
             name
           }
         }
+        totalCount
       }
       customerTags(first: 250) {
         edges {
@@ -68,6 +69,7 @@ export const CUSTOMER_EDITOR_CONTEXT_QUERY = gql`
             name
           }
         }
+        totalCount
       }
       customerGroups(first: 250, where: { isActive: { _eq: true } }) {
         edges {
@@ -78,6 +80,7 @@ export const CUSTOMER_EDITOR_CONTEXT_QUERY = gql`
             isDefault
           }
         }
+        totalCount
       }
     }
   }

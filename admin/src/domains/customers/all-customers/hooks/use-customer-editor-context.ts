@@ -16,6 +16,11 @@ export function useCustomerEditorContext() {
           segments: customersQuery.customerSegments.edges.map((edge) => edge.node),
           tags: customersQuery.customerTags.edges.map((edge) => edge.node),
           groups: customersQuery.customerGroups.edges.map((edge) => edge.node),
+          truncated: {
+            segments: customersQuery.customerSegments.totalCount > customersQuery.customerSegments.edges.length,
+            tags: customersQuery.customerTags.totalCount > customersQuery.customerTags.edges.length,
+            groups: customersQuery.customerGroups.totalCount > customersQuery.customerGroups.edges.length,
+          },
         }
       : null,
     loading,

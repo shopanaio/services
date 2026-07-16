@@ -37,6 +37,7 @@ export interface CustomerQueryData {
 
 export interface CustomerQueryVariables {
   id: string;
+  currencyCode?: string | null;
 }
 
 export interface CustomerEditorContextQueryData {
