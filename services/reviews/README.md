@@ -163,6 +163,10 @@ to the parent review, records whether the response is official and preserves
 display order. Multiple replies are supported so imported partner threads and
 reply history are not forced into a single mutable field.
 
+Admin reply writes are owned by `reviewUpdate.operations.replies`; there are no
+standalone reply create, update or delete mutations. Existing replies keep their
+own content revision for nested update/delete conflict checks.
+
 ### `review_request`
 
 Represents a post-purchase invitation to review an order line. It references
@@ -200,6 +204,10 @@ Typed extension of `content_item` linked to a product question. Answers can be
 customer, seller or staff authored, official and/or accepted. At most one answer
 can be accepted for a question. Each answer has independent moderation,
 publication, revisions, reports and votes through the shared content tables.
+
+Admin answer writes are owned by `productQuestionUpdate.operations.answers`;
+there are no standalone answer create, update or delete mutations. Existing
+answers keep their own content revision for nested update/delete conflict checks.
 
 ### `question_subscription`
 

@@ -5,19 +5,19 @@ import { useApolloClient, useMutation } from "@apollo/client/react";
 import type {
   ApiGenericUserError,
   ApiProductQuestion,
-  ApiProductQuestionAnswerCreateInput,
+  ApiProductQuestionAnswerCreateOperationInput,
   ApiProductQuestionCreateInput,
 } from "@/graphql/types";
 import {
-  QUESTION_ANSWER_CREATE_MUTATION,
   QUESTION_CREATE_MUTATION,
+  QUESTION_UPDATE_MUTATION,
   QUESTIONS_QUERY,
 } from "../graphql";
 import type {
-  QuestionAnswerCreateMutationData,
-  QuestionAnswerCreateMutationVariables,
   QuestionCreateMutationData,
   QuestionCreateMutationVariables,
+  QuestionUpdateMutationData,
+  QuestionUpdateMutationVariables,
 } from "../graphql/operation-types";
 
 export function useCreateQuestion() {
@@ -26,14 +26,14 @@ export function useCreateQuestion() {
     QuestionCreateMutationData,
     QuestionCreateMutationVariables
   >(QUESTION_CREATE_MUTATION);
-  const [createAnswerMutation, answerState] = useMutation<
-    QuestionAnswerCreateMutationData,
-    QuestionAnswerCreateMutationVariables
-  >(QUESTION_ANSWER_CREATE_MUTATION);
+  const [updateQuestionMutation, answersState] = useMutation<
+    QuestionUpdateMutationData,
+    QuestionUpdateMutationVariables
+  >(QUESTION_UPDATE_MUTATION);
 
   const createQuestion = useCallback(async (
     input: ApiProductQuestionCreateInput,
-    answers: Array<Omit<ApiProductQuestionAnswerCreateInput, "questionId">>,
+    answers: ApiProductQuestionAnswerCreateOperationInput[],
   ): Promise<{
     question: ApiProductQuestion | null;
     userErrors: ApiGenericUserError[];
@@ -46,12 +46,19 @@ export function useCreateQuestion() {
       const userErrors = [...(payload?.userErrors ?? [])];
       if (!question || userErrors.length > 0) return { question, userErrors };
 
-      for (const answer of answers) {
-        const answerResult = await createAnswerMutation({
-          variables: { input: { ...answer, questionId: question.id } },
+      if (answers.length > 0) {
+        const answerResult = await updateQuestionMutation({
+          variables: {
+            productQuestionId: question.id,
+            expectedRevision: question.revision,
+            operations: { answers: { create: answers } },
+          },
         });
+        const answerPayload = answerResult.data?.reviewsMutation.productQuestionUpdate;
+        question = answerPayload?.productQuestion ?? question;
         userErrors.push(
-          ...(answerResult.data?.reviewsMutation.productQuestionAnswerCreate.userErrors ?? []),
+          ...(answerPayload?.userErrors ?? []),
+          ...(answerPayload?.operationResults.flatMap((item) => item.errors) ?? []),
         );
       }
 
@@ -64,15 +71,15 @@ export function useCreateQuestion() {
         userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
       };
     }
-  }, [client, createAnswerMutation, createQuestionMutation]);
+  }, [client, createQuestionMutation, updateQuestionMutation]);
 
   return {
     createQuestion,
-    loading: questionState.loading || answerState.loading,
-    error: questionState.error ?? answerState.error ?? null,
+    loading: questionState.loading || answersState.loading,
+    error: questionState.error ?? answersState.error ?? null,
     reset: () => {
       questionState.reset();
-      answerState.reset();
+      answersState.reset();
     },
   };
 }

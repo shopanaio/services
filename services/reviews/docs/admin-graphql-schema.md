@@ -15,10 +15,10 @@ API aggregates:
 
 | Database aggregate | Admin GraphQL entity | Mutation ownership |
 | --- | --- | --- |
-| `content_item` + `review` | `Review` | `reviewCreate/update/delete` |
-| `content_item` + `review_reply` | `ReviewReply` | `reviewReplyCreate/update/delete` |
-| `content_item` + `product_question` | `ProductQuestion` | `productQuestionCreate/update/delete` |
-| `content_item` + `question_answer` | `ProductQuestionAnswer` | `productQuestionAnswerCreate/update/delete` |
+| `content_item` + `review` | `Review` | `reviewCreate/update/delete`; reply writes belong to `reviewUpdate.operations.replies` |
+| `content_item` + `review_reply` | `ReviewReply` | Read node with CRUD owned by its parent `Review` aggregate |
+| `content_item` + `product_question` | `ProductQuestion` | `productQuestionCreate/update/delete`; answer writes belong to `productQuestionUpdate.operations.answers` |
+| `content_item` + `question_answer` | `ProductQuestionAnswer` | Read node with CRUD owned by its parent `ProductQuestion` aggregate |
 | `store_configuration` | `ReviewStoreConfiguration` | `storeConfigurationUpdate` |
 | `rating_criterion` aggregate | `ReviewRatingCriterion` | criterion create/update/delete |
 | `review_request` + events | `ReviewRequest` | request create/update; events are read-only |
@@ -29,6 +29,12 @@ API aggregates:
 Translations, publications, media, criterion assignments, and detailed rating
 values are visible entities where they have their own lifecycle, but aggregate
 sync remains available from the owning content/criterion update.
+
+Replies and answers remain independently revisioned content nodes for reads,
+moderation and audit. Their create, update and delete commands are scoped by the
+owning review or question update. Child update/delete items therefore carry the
+child `expectedRevision`, while the outer mutation carries the parent aggregate
+revision.
 
 ## Relay queries
 

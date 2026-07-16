@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, ProductQuestionAnswerCreateInput, ProductQuestionAnswerOrderByInput, ProductQuestionAnswerOrderField, ProductQuestionAnswerPropertiesUpdateInput, ProductQuestionAnswerState, ProductQuestionAnswerUpdateInput, ProductQuestionAnswerWhereInput, ProductQuestionCreateInput, ProductQuestionOrderByInput, ProductQuestionOrderField, ProductQuestionSubjectUpdateInput, ProductQuestionSubscriptionStatus, ProductQuestionSubscriptionUpdateInput, ProductQuestionUpdateInput, ProductQuestionWhereInput, ReviewContentAuthorCreateInput, ReviewContentAuthorType, ReviewContentAuthorUpdateInput, ReviewContentConnectionMetaInput, ReviewContentCreateInput, ReviewContentDeleteInput, ReviewContentExternalReferenceCreateInput, ReviewContentExternalReferenceDeleteInput, ReviewContentExternalReferenceIdentityInput, ReviewContentExternalReferenceOrderByInput, ReviewContentExternalReferenceOrderField, ReviewContentExternalReferenceSyncInput, ReviewContentExternalReferenceUpdateInput, ReviewContentExternalReferenceWhereInput, ReviewContentKind, ReviewContentModerationInput, ReviewContentOrderByInput, ReviewContentOrderField, ReviewContentPublicationSyncInput, ReviewContentReportAssignmentInput, ReviewContentReportOrderByInput, ReviewContentReportOrderField, ReviewContentReportReason, ReviewContentReportResolutionInput, ReviewContentReportStatus, ReviewContentReportUpdateInput, ReviewContentReportWhereInput, ReviewContentSourceCreateInput, ReviewContentSourceUpdateInput, ReviewContentStatus, ReviewContentTextUpdateInput, ReviewContentTranslationSyncInput, ReviewContentUpdateInput, ReviewContentVoteType, ReviewContentWhereInput, ReviewCreateInput, ReviewDuplicatePolicy, ReviewExternalSyncDirection, ReviewExternalSyncStatus, ReviewIncentiveUpdateInput, ReviewMediaSyncItemInput, ReviewModerationAction, ReviewModerationCaseCreateInput, ReviewModerationCaseDetailsInput, ReviewModerationCaseOrderByInput, ReviewModerationCaseOrderField, ReviewModerationCaseResolutionInput, ReviewModerationCaseStatus, ReviewModerationCaseUpdateInput, ReviewModerationCaseWhereInput, ReviewModerationMode, ReviewModerationVerdict, ReviewNotificationChannel, ReviewOrderByInput, ReviewOrderField, ReviewPublicationStatus, ReviewRatingCriterionApplicabilityInput, ReviewRatingCriterionAssignmentInput, ReviewRatingCriterionCreateInput, ReviewRatingCriterionDefinitionInput, ReviewRatingCriterionDeleteInput, ReviewRatingCriterionOrderByInput, ReviewRatingCriterionOrderField, ReviewRatingCriterionTargetType, ReviewRatingCriterionTranslationInput, ReviewRatingCriterionUpdateInput, ReviewRatingCriterionWhereInput, ReviewRatingUpdateInput, ReviewRatingValueInput, ReviewReplyCreateInput, ReviewReplyOrderByInput, ReviewReplyOrderField, ReviewReplyPropertiesUpdateInput, ReviewReplyUpdateInput, ReviewReplyWhereInput, ReviewRequestCreateInput, ReviewRequestDeliveryUpdateInput, ReviewRequestEventType, ReviewRequestOrderByInput, ReviewRequestOrderField, ReviewRequestScheduleUpdateInput, ReviewRequestStatus, ReviewRequestTransitionAction, ReviewRequestTransitionInput, ReviewRequestUpdateInput, ReviewRequestWhereInput, ReviewStoreConfigurationUpdateInput, ReviewSubjectUpdateInput, ReviewTranslationSource, ReviewUpdateInput, ReviewVerificationStatus, ReviewVerificationUpdateInput, ReviewWhereInput, ReviewsOperationType, SortDirection, StringFilter, WeightUnit } from './types.js'
+import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, ProductQuestionAnswerCreateOperationInput, ProductQuestionAnswerDeleteOperationInput, ProductQuestionAnswerOrderByInput, ProductQuestionAnswerOrderField, ProductQuestionAnswerPropertiesUpdateInput, ProductQuestionAnswerState, ProductQuestionAnswerUpdateInput, ProductQuestionAnswerUpdateOperationInput, ProductQuestionAnswerWhereInput, ProductQuestionAnswersUpdateInput, ProductQuestionCreateInput, ProductQuestionOrderByInput, ProductQuestionOrderField, ProductQuestionSubjectUpdateInput, ProductQuestionSubscriptionStatus, ProductQuestionSubscriptionUpdateInput, ProductQuestionUpdateInput, ProductQuestionWhereInput, ReviewContentAuthorCreateInput, ReviewContentAuthorType, ReviewContentAuthorUpdateInput, ReviewContentConnectionMetaInput, ReviewContentCreateInput, ReviewContentDeleteInput, ReviewContentExternalReferenceCreateInput, ReviewContentExternalReferenceDeleteInput, ReviewContentExternalReferenceIdentityInput, ReviewContentExternalReferenceOrderByInput, ReviewContentExternalReferenceOrderField, ReviewContentExternalReferenceSyncInput, ReviewContentExternalReferenceUpdateInput, ReviewContentExternalReferenceWhereInput, ReviewContentKind, ReviewContentModerationInput, ReviewContentOrderByInput, ReviewContentOrderField, ReviewContentPublicationSyncInput, ReviewContentReportAssignmentInput, ReviewContentReportOrderByInput, ReviewContentReportOrderField, ReviewContentReportReason, ReviewContentReportResolutionInput, ReviewContentReportStatus, ReviewContentReportUpdateInput, ReviewContentReportWhereInput, ReviewContentSourceCreateInput, ReviewContentSourceUpdateInput, ReviewContentStatus, ReviewContentTextUpdateInput, ReviewContentTranslationSyncInput, ReviewContentUpdateInput, ReviewContentVoteType, ReviewContentWhereInput, ReviewCreateInput, ReviewDuplicatePolicy, ReviewExternalSyncDirection, ReviewExternalSyncStatus, ReviewIncentiveUpdateInput, ReviewMediaSyncItemInput, ReviewModerationAction, ReviewModerationCaseCreateInput, ReviewModerationCaseDetailsInput, ReviewModerationCaseOrderByInput, ReviewModerationCaseOrderField, ReviewModerationCaseResolutionInput, ReviewModerationCaseStatus, ReviewModerationCaseUpdateInput, ReviewModerationCaseWhereInput, ReviewModerationMode, ReviewModerationVerdict, ReviewNotificationChannel, ReviewOrderByInput, ReviewOrderField, ReviewPublicationStatus, ReviewRatingCriterionApplicabilityInput, ReviewRatingCriterionAssignmentInput, ReviewRatingCriterionCreateInput, ReviewRatingCriterionDefinitionInput, ReviewRatingCriterionDeleteInput, ReviewRatingCriterionOrderByInput, ReviewRatingCriterionOrderField, ReviewRatingCriterionTargetType, ReviewRatingCriterionTranslationInput, ReviewRatingCriterionUpdateInput, ReviewRatingCriterionWhereInput, ReviewRatingUpdateInput, ReviewRatingValueInput, ReviewRepliesUpdateInput, ReviewReplyCreateOperationInput, ReviewReplyDeleteOperationInput, ReviewReplyOrderByInput, ReviewReplyOrderField, ReviewReplyPropertiesUpdateInput, ReviewReplyUpdateInput, ReviewReplyUpdateOperationInput, ReviewReplyWhereInput, ReviewRequestCreateInput, ReviewRequestDeliveryUpdateInput, ReviewRequestEventType, ReviewRequestOrderByInput, ReviewRequestOrderField, ReviewRequestScheduleUpdateInput, ReviewRequestStatus, ReviewRequestTransitionAction, ReviewRequestTransitionInput, ReviewRequestUpdateInput, ReviewRequestWhereInput, ReviewStoreConfigurationUpdateInput, ReviewSubjectUpdateInput, ReviewTranslationSource, ReviewUpdateInput, ReviewVerificationStatus, ReviewVerificationUpdateInput, ReviewWhereInput, ReviewsOperationType, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -157,13 +157,21 @@ export function IntFilterSchema(): z.ZodObject<Properties<IntFilter>> {
   })
 }
 
-export function ProductQuestionAnswerCreateInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerCreateInput>> {
+export function ProductQuestionAnswerCreateOperationInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerCreateOperationInput>> {
   return z.object({
+    clientMutationId: z.string().nullish(),
     content: z.lazy(() => ReviewContentCreateInputSchema()),
     isAccepted: z.boolean().nullish(),
     isOfficial: z.boolean().nullish(),
-    questionId: z.string(),
     sortIndex: z.number().nullish()
+  })
+}
+
+export function ProductQuestionAnswerDeleteOperationInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerDeleteOperationInput>> {
+  return z.object({
+    answerId: z.string(),
+    expectedRevision: z.number(),
+    permanent: z.boolean().default(false).nullish()
   })
 }
 
@@ -189,6 +197,14 @@ export function ProductQuestionAnswerUpdateInputSchema(): z.ZodObject<Properties
   })
 }
 
+export function ProductQuestionAnswerUpdateOperationInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerUpdateOperationInput>> {
+  return z.object({
+    answerId: z.string(),
+    expectedRevision: z.number(),
+    operations: z.lazy(() => ProductQuestionAnswerUpdateInputSchema())
+  })
+}
+
 export function ProductQuestionAnswerWhereInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerWhereInput>> {
   return z.object({
     _and: z.array(z.lazy(() => ProductQuestionAnswerWhereInputSchema())).nullish(),
@@ -208,6 +224,14 @@ export function ProductQuestionAnswerWhereInputSchema(): z.ZodObject<Properties<
     sortIndex: z.lazy(() => IntFilterSchema().nullish()),
     status: z.lazy(() => StringFilterSchema().nullish()),
     updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
+  })
+}
+
+export function ProductQuestionAnswersUpdateInputSchema(): z.ZodObject<Properties<ProductQuestionAnswersUpdateInput>> {
+  return z.object({
+    create: z.array(z.lazy(() => ProductQuestionAnswerCreateOperationInputSchema())).nullish(),
+    delete: z.array(z.lazy(() => ProductQuestionAnswerDeleteOperationInputSchema())).nullish(),
+    update: z.array(z.lazy(() => ProductQuestionAnswerUpdateOperationInputSchema())).nullish()
   })
 }
 
@@ -243,6 +267,7 @@ export function ProductQuestionSubscriptionUpdateInputSchema(): z.ZodObject<Prop
 
 export function ProductQuestionUpdateInputSchema(): z.ZodObject<Properties<ProductQuestionUpdateInput>> {
   return z.object({
+    answers: z.lazy(() => ProductQuestionAnswersUpdateInputSchema().nullish()),
     content: z.lazy(() => ReviewContentUpdateInputSchema().nullish()),
     subject: z.lazy(() => ProductQuestionSubjectUpdateInputSchema().nullish())
   })
@@ -744,12 +769,28 @@ export function ReviewRatingValueInputSchema(): z.ZodObject<Properties<ReviewRat
   })
 }
 
-export function ReviewReplyCreateInputSchema(): z.ZodObject<Properties<ReviewReplyCreateInput>> {
+export function ReviewRepliesUpdateInputSchema(): z.ZodObject<Properties<ReviewRepliesUpdateInput>> {
   return z.object({
+    create: z.array(z.lazy(() => ReviewReplyCreateOperationInputSchema())).nullish(),
+    delete: z.array(z.lazy(() => ReviewReplyDeleteOperationInputSchema())).nullish(),
+    update: z.array(z.lazy(() => ReviewReplyUpdateOperationInputSchema())).nullish()
+  })
+}
+
+export function ReviewReplyCreateOperationInputSchema(): z.ZodObject<Properties<ReviewReplyCreateOperationInput>> {
+  return z.object({
+    clientMutationId: z.string().nullish(),
     content: z.lazy(() => ReviewContentCreateInputSchema()),
     isOfficial: z.boolean().default(true).nullish(),
-    reviewId: z.string(),
     sortIndex: z.number().nullish()
+  })
+}
+
+export function ReviewReplyDeleteOperationInputSchema(): z.ZodObject<Properties<ReviewReplyDeleteOperationInput>> {
+  return z.object({
+    expectedRevision: z.number(),
+    permanent: z.boolean().default(false).nullish(),
+    replyId: z.string()
   })
 }
 
@@ -771,6 +812,14 @@ export function ReviewReplyUpdateInputSchema(): z.ZodObject<Properties<ReviewRep
   return z.object({
     content: z.lazy(() => ReviewContentUpdateInputSchema().nullish()),
     properties: z.lazy(() => ReviewReplyPropertiesUpdateInputSchema().nullish())
+  })
+}
+
+export function ReviewReplyUpdateOperationInputSchema(): z.ZodObject<Properties<ReviewReplyUpdateOperationInput>> {
+  return z.object({
+    expectedRevision: z.number(),
+    operations: z.lazy(() => ReviewReplyUpdateInputSchema()),
+    replyId: z.string()
   })
 }
 
@@ -914,6 +963,7 @@ export function ReviewUpdateInputSchema(): z.ZodObject<Properties<ReviewUpdateIn
     incentive: z.lazy(() => ReviewIncentiveUpdateInputSchema().nullish()),
     media: z.array(z.lazy(() => ReviewMediaSyncItemInputSchema())).nullish(),
     rating: z.lazy(() => ReviewRatingUpdateInputSchema().nullish()),
+    replies: z.lazy(() => ReviewRepliesUpdateInputSchema().nullish()),
     subject: z.lazy(() => ReviewSubjectUpdateInputSchema().nullish()),
     verification: z.lazy(() => ReviewVerificationUpdateInputSchema().nullish())
   })

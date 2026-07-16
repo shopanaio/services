@@ -4,12 +4,7 @@ import type {
   ApiCustomersQuery,
   ApiProductConnection,
   ApiProductQuestion,
-  ApiProductQuestionAnswerCreateInput,
-  ApiProductQuestionAnswerCreatePayload,
-  ApiProductQuestionAnswerDeletePayload,
   ApiProductQuestionAnswerOrderByInput,
-  ApiProductQuestionAnswerUpdateInput,
-  ApiProductQuestionAnswerUpdatePayload,
   ApiProductQuestionConnection,
   ApiProductQuestionCreateInput,
   ApiProductQuestionCreatePayload,
@@ -17,7 +12,6 @@ import type {
   ApiProductQuestionUpdateInput,
   ApiProductQuestionUpdatePayload,
   ApiProductQuestionWhereInput,
-  ApiReviewContentDeleteInput,
   ApiReviewsMutation,
   ApiReviewsQuery,
 } from "@/graphql/types";
@@ -73,38 +67,6 @@ export interface QuestionUpdateMutationVariables {
   productQuestionId: string;
   expectedRevision: number;
   operations: ApiProductQuestionUpdateInput;
-}
-
-export interface QuestionAnswerCreateMutationData {
-  reviewsMutation: Pick<ApiReviewsMutation, "productQuestionAnswerCreate"> & {
-    productQuestionAnswerCreate: ApiProductQuestionAnswerCreatePayload;
-  };
-}
-
-export interface QuestionAnswerCreateMutationVariables {
-  input: ApiProductQuestionAnswerCreateInput;
-}
-
-export interface QuestionAnswerUpdateMutationData {
-  reviewsMutation: Pick<ApiReviewsMutation, "productQuestionAnswerUpdate"> & {
-    productQuestionAnswerUpdate: ApiProductQuestionAnswerUpdatePayload;
-  };
-}
-
-export interface QuestionAnswerUpdateMutationVariables {
-  productQuestionAnswerId: string;
-  expectedRevision: number;
-  operations: ApiProductQuestionAnswerUpdateInput;
-}
-
-export interface QuestionAnswerDeleteMutationData {
-  reviewsMutation: Pick<ApiReviewsMutation, "productQuestionAnswerDelete"> & {
-    productQuestionAnswerDelete: ApiProductQuestionAnswerDeletePayload;
-  };
-}
-
-export interface QuestionAnswerDeleteMutationVariables {
-  input: ApiReviewContentDeleteInput;
 }
 
 export type { ApiProductQuestionAnswerOrderByInput };

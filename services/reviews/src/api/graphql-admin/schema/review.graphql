@@ -194,10 +194,13 @@ input ReviewUpdateInput {
   incentive: ReviewIncentiveUpdateInput
   """Complete media replacement when supplied. Empty removes every attachment."""
   media: [ReviewMediaSyncItemInput!]
+  """Create, update, or delete replies owned by this review."""
+  replies: ReviewRepliesUpdateInput
 }
 
-input ReviewReplyCreateInput {
-  reviewId: ID!
+input ReviewReplyCreateOperationInput {
+  """Client-provided correlation key returned in the operation result."""
+  clientMutationId: String
   content: ReviewContentCreateInput!
   isOfficial: Boolean = true
   sortIndex: Int
@@ -214,6 +217,25 @@ input ReviewReplyUpdateInput {
   properties: ReviewReplyPropertiesUpdateInput
 }
 
+input ReviewReplyUpdateOperationInput {
+  replyId: ID!
+  expectedRevision: Int!
+  operations: ReviewReplyUpdateInput!
+}
+
+input ReviewReplyDeleteOperationInput {
+  replyId: ID!
+  expectedRevision: Int!
+  """Hard deletion is reserved for explicit privacy or retention workflows."""
+  permanent: Boolean = false
+}
+
+input ReviewRepliesUpdateInput {
+  create: [ReviewReplyCreateOperationInput!]
+  update: [ReviewReplyUpdateOperationInput!]
+  delete: [ReviewReplyDeleteOperationInput!]
+}
+
 type ReviewCreatePayload {
   review: Review
   userErrors: [GenericUserError!]!
@@ -227,21 +249,5 @@ type ReviewUpdatePayload {
 
 type ReviewDeletePayload {
   deletedReviewId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type ReviewReplyCreatePayload {
-  reviewReply: ReviewReply
-  userErrors: [GenericUserError!]!
-}
-
-type ReviewReplyUpdatePayload {
-  reviewReply: ReviewReply
-  operationResults: [ReviewsOperationResult!]!
-  userErrors: [GenericUserError!]!
-}
-
-type ReviewReplyDeletePayload {
-  deletedReviewReplyId: ID
   userErrors: [GenericUserError!]!
 }

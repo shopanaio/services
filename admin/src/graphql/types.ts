@@ -9217,24 +9217,20 @@ export type ApiProductQuestionAnswerConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type ApiProductQuestionAnswerCreateInput = {
+export type ApiProductQuestionAnswerCreateOperationInput = {
+  /** Client-provided correlation key returned in the operation result. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
   content: ApiReviewContentCreateInput;
   isAccepted?: InputMaybe<Scalars['Boolean']['input']>;
   isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
-  questionId: Scalars['ID']['input'];
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type ApiProductQuestionAnswerCreatePayload = {
-  __typename?: 'ProductQuestionAnswerCreatePayload';
-  productQuestionAnswer?: Maybe<ApiProductQuestionAnswer>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiProductQuestionAnswerDeletePayload = {
-  __typename?: 'ProductQuestionAnswerDeletePayload';
-  deletedProductQuestionAnswerId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
+export type ApiProductQuestionAnswerDeleteOperationInput = {
+  answerId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  /** Hard deletion is reserved for explicit privacy or retention workflows. */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type ApiProductQuestionAnswerEdge = {
@@ -9296,11 +9292,10 @@ export type ApiProductQuestionAnswerUpdateInput = {
   properties?: InputMaybe<ApiProductQuestionAnswerPropertiesUpdateInput>;
 };
 
-export type ApiProductQuestionAnswerUpdatePayload = {
-  __typename?: 'ProductQuestionAnswerUpdatePayload';
-  operationResults: Array<ApiReviewsOperationResult>;
-  productQuestionAnswer?: Maybe<ApiProductQuestionAnswer>;
-  userErrors: Array<ApiGenericUserError>;
+export type ApiProductQuestionAnswerUpdateOperationInput = {
+  answerId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiProductQuestionAnswerUpdateInput;
 };
 
 /** Filter conditions for ProductQuestionAnswer */
@@ -9339,6 +9334,12 @@ export type ApiProductQuestionAnswerWhereInput = {
   status?: InputMaybe<ApiStringFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiProductQuestionAnswersUpdateInput = {
+  create?: InputMaybe<Array<ApiProductQuestionAnswerCreateOperationInput>>;
+  delete?: InputMaybe<Array<ApiProductQuestionAnswerDeleteOperationInput>>;
+  update?: InputMaybe<Array<ApiProductQuestionAnswerUpdateOperationInput>>;
 };
 
 export type ApiProductQuestionConnection = {
@@ -9485,6 +9486,8 @@ export type ApiProductQuestionSummary = {
 };
 
 export type ApiProductQuestionUpdateInput = {
+  /** Create, update, or delete answers owned by this question. */
+  answers?: InputMaybe<ApiProductQuestionAnswersUpdateInput>;
   /** Text, author, source, moderation, translations, and publications. */
   content?: InputMaybe<ApiReviewContentUpdateInput>;
   subject?: InputMaybe<ApiProductQuestionSubjectUpdateInput>;
@@ -11220,6 +11223,12 @@ export type ApiReviewRatingValueInput = {
   value: Scalars['Int']['input'];
 };
 
+export type ApiReviewRepliesUpdateInput = {
+  create?: InputMaybe<Array<ApiReviewReplyCreateOperationInput>>;
+  delete?: InputMaybe<Array<ApiReviewReplyDeleteOperationInput>>;
+  update?: InputMaybe<Array<ApiReviewReplyUpdateOperationInput>>;
+};
+
 export type ApiReviewReply = ApiNode & ApiReviewContent & {
   __typename?: 'ReviewReply';
   author: ApiReviewContentAuthor;
@@ -11320,23 +11329,19 @@ export type ApiReviewReplyConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type ApiReviewReplyCreateInput = {
+export type ApiReviewReplyCreateOperationInput = {
+  /** Client-provided correlation key returned in the operation result. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
   content: ApiReviewContentCreateInput;
   isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
-  reviewId: Scalars['ID']['input'];
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type ApiReviewReplyCreatePayload = {
-  __typename?: 'ReviewReplyCreatePayload';
-  reviewReply?: Maybe<ApiReviewReply>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiReviewReplyDeletePayload = {
-  __typename?: 'ReviewReplyDeletePayload';
-  deletedReviewReplyId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
+export type ApiReviewReplyDeleteOperationInput = {
+  expectedRevision: Scalars['Int']['input'];
+  /** Hard deletion is reserved for explicit privacy or retention workflows. */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+  replyId: Scalars['ID']['input'];
 };
 
 export type ApiReviewReplyEdge = {
@@ -11390,11 +11395,10 @@ export type ApiReviewReplyUpdateInput = {
   properties?: InputMaybe<ApiReviewReplyPropertiesUpdateInput>;
 };
 
-export type ApiReviewReplyUpdatePayload = {
-  __typename?: 'ReviewReplyUpdatePayload';
-  operationResults: Array<ApiReviewsOperationResult>;
-  reviewReply?: Maybe<ApiReviewReply>;
-  userErrors: Array<ApiGenericUserError>;
+export type ApiReviewReplyUpdateOperationInput = {
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiReviewReplyUpdateInput;
+  replyId: Scalars['ID']['input'];
 };
 
 /** Filter conditions for ReviewReply */
@@ -11766,6 +11770,8 @@ export type ApiReviewUpdateInput = {
   /** Complete media replacement when supplied. Empty removes every attachment. */
   media?: InputMaybe<Array<ApiReviewMediaSyncItemInput>>;
   rating?: InputMaybe<ApiReviewRatingUpdateInput>;
+  /** Create, update, or delete replies owned by this review. */
+  replies?: InputMaybe<ApiReviewRepliesUpdateInput>;
   subject?: InputMaybe<ApiReviewSubjectUpdateInput>;
   verification?: InputMaybe<ApiReviewVerificationUpdateInput>;
 };
@@ -11862,9 +11868,6 @@ export type ApiReviewsMutation = {
   contentRevisionRestore: ApiReviewContentUpdatePayload;
   moderationCaseCreate: ApiReviewModerationCaseCreatePayload;
   moderationCaseUpdate: ApiReviewModerationCaseUpdatePayload;
-  productQuestionAnswerCreate: ApiProductQuestionAnswerCreatePayload;
-  productQuestionAnswerDelete: ApiProductQuestionAnswerDeletePayload;
-  productQuestionAnswerUpdate: ApiProductQuestionAnswerUpdatePayload;
   productQuestionCreate: ApiProductQuestionCreatePayload;
   productQuestionDelete: ApiProductQuestionDeletePayload;
   productQuestionSubscriptionUpdate: ApiProductQuestionSubscriptionUpdatePayload;
@@ -11874,9 +11877,6 @@ export type ApiReviewsMutation = {
   ratingCriterionUpdate: ApiReviewRatingCriterionUpdatePayload;
   reviewCreate: ApiReviewCreatePayload;
   reviewDelete: ApiReviewDeletePayload;
-  reviewReplyCreate: ApiReviewReplyCreatePayload;
-  reviewReplyDelete: ApiReviewReplyDeletePayload;
-  reviewReplyUpdate: ApiReviewReplyUpdatePayload;
   reviewRequestCreate: ApiReviewRequestCreatePayload;
   reviewRequestUpdate: ApiReviewRequestUpdatePayload;
   reviewUpdate: ApiReviewUpdatePayload;
@@ -11942,26 +11942,6 @@ export type ApiReviewsMutationModerationCaseUpdateArgs = {
 
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationProductQuestionAnswerCreateArgs = {
-  input: ApiProductQuestionAnswerCreateInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationProductQuestionAnswerDeleteArgs = {
-  input: ApiReviewContentDeleteInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationProductQuestionAnswerUpdateArgs = {
-  expectedRevision: Scalars['Int']['input'];
-  operations?: InputMaybe<ApiProductQuestionAnswerUpdateInput>;
-  productQuestionAnswerId: Scalars['ID']['input'];
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationProductQuestionCreateArgs = {
   input: ApiProductQuestionCreateInput;
 };
@@ -12022,26 +12002,6 @@ export type ApiReviewsMutationReviewDeleteArgs = {
 
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationReviewReplyCreateArgs = {
-  input: ApiReviewReplyCreateInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationReviewReplyDeleteArgs = {
-  input: ApiReviewContentDeleteInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationReviewReplyUpdateArgs = {
-  expectedRevision: Scalars['Int']['input'];
-  operations?: InputMaybe<ApiReviewReplyUpdateInput>;
-  reviewReplyId: Scalars['ID']['input'];
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationReviewRequestCreateArgs = {
   input: ApiReviewRequestCreateInput;
 };
@@ -12093,6 +12053,8 @@ export enum ReviewsOperationType {
   ContentTranslationsSync = 'CONTENT_TRANSLATIONS_SYNC',
   ContentUpdate = 'CONTENT_UPDATE',
   ModerationCaseUpdate = 'MODERATION_CASE_UPDATE',
+  ProductQuestionAnswerCreate = 'PRODUCT_QUESTION_ANSWER_CREATE',
+  ProductQuestionAnswerDelete = 'PRODUCT_QUESTION_ANSWER_DELETE',
   ProductQuestionAnswerUpdate = 'PRODUCT_QUESTION_ANSWER_UPDATE',
   ProductQuestionSubscriptionUpdate = 'PRODUCT_QUESTION_SUBSCRIPTION_UPDATE',
   ProductQuestionUpdate = 'PRODUCT_QUESTION_UPDATE',
@@ -12103,6 +12065,8 @@ export enum ReviewsOperationType {
   ReviewIncentiveUpdate = 'REVIEW_INCENTIVE_UPDATE',
   ReviewMediaSync = 'REVIEW_MEDIA_SYNC',
   ReviewRatingUpdate = 'REVIEW_RATING_UPDATE',
+  ReviewReplyCreate = 'REVIEW_REPLY_CREATE',
+  ReviewReplyDelete = 'REVIEW_REPLY_DELETE',
   ReviewReplyUpdate = 'REVIEW_REPLY_UPDATE',
   ReviewRequestUpdate = 'REVIEW_REQUEST_UPDATE',
   ReviewSubjectUpdate = 'REVIEW_SUBJECT_UPDATE',

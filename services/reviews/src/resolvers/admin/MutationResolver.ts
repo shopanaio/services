@@ -31,16 +31,10 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   reviewCreate() { return createPayload("review"); }
   reviewUpdate() { return updatePayload("review"); }
   reviewDelete() { return deletePayload("deletedReviewId"); }
-  reviewReplyCreate() { return createPayload("reviewReply"); }
-  reviewReplyUpdate() { return updatePayload("reviewReply"); }
-  reviewReplyDelete() { return deletePayload("deletedReviewReplyId"); }
 
   productQuestionCreate() { return createPayload("productQuestion"); }
   productQuestionUpdate() { return updatePayload("productQuestion"); }
   productQuestionDelete() { return deletePayload("deletedProductQuestionId"); }
-  productQuestionAnswerCreate() { return createPayload("productQuestionAnswer"); }
-  productQuestionAnswerUpdate() { return updatePayload("productQuestionAnswer"); }
-  productQuestionAnswerDelete() { return deletePayload("deletedProductQuestionAnswerId"); }
   productQuestionSubscriptionUpdate() { return updatePayload("subscription"); }
 
   contentRedact() { return updatePayload("content"); }

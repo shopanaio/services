@@ -171,14 +171,6 @@ type ReviewsMutation {
   ): ReviewUpdatePayload!
   reviewDelete(input: ReviewContentDeleteInput!): ReviewDeletePayload!
 
-  reviewReplyCreate(input: ReviewReplyCreateInput!): ReviewReplyCreatePayload!
-  reviewReplyUpdate(
-    reviewReplyId: ID!
-    expectedRevision: Int!
-    operations: ReviewReplyUpdateInput
-  ): ReviewReplyUpdatePayload!
-  reviewReplyDelete(input: ReviewContentDeleteInput!): ReviewReplyDeletePayload!
-
   productQuestionCreate(
     input: ProductQuestionCreateInput!
   ): ProductQuestionCreatePayload!
@@ -190,18 +182,6 @@ type ReviewsMutation {
   productQuestionDelete(
     input: ReviewContentDeleteInput!
   ): ProductQuestionDeletePayload!
-
-  productQuestionAnswerCreate(
-    input: ProductQuestionAnswerCreateInput!
-  ): ProductQuestionAnswerCreatePayload!
-  productQuestionAnswerUpdate(
-    productQuestionAnswerId: ID!
-    expectedRevision: Int!
-    operations: ProductQuestionAnswerUpdateInput
-  ): ProductQuestionAnswerUpdatePayload!
-  productQuestionAnswerDelete(
-    input: ReviewContentDeleteInput!
-  ): ProductQuestionAnswerDeletePayload!
 
   productQuestionSubscriptionUpdate(
     subscriptionId: ID!

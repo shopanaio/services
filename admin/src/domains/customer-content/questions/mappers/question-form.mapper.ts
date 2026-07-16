@@ -2,13 +2,13 @@ import type { FieldPath } from "react-hook-form";
 import type {
   ApiGenericUserError,
   ApiProductQuestion,
-  ApiProductQuestionAnswerCreateInput,
-  ApiProductQuestionAnswerUpdateInput,
+  ApiProductQuestionAnswerCreateOperationInput,
+  ApiProductQuestionAnswerDeleteOperationInput,
+  ApiProductQuestionAnswerUpdateOperationInput,
   ApiProductQuestionCreateInput,
   ApiProductQuestionUpdateInput,
   ApiReviewContentAuthorCreateInput,
   ApiReviewContentAuthorUpdateInput,
-  ApiReviewContentDeleteInput,
 } from "@/graphql/types";
 import { ReviewContentAuthorType } from "@/graphql/types";
 import type { QuestionFormValues } from "../modals/question-modal/schema";
@@ -62,7 +62,7 @@ export function buildQuestionCreateInput(values: QuestionFormValues): ApiProduct
 
 export function buildQuestionCreateAnswers(
   values: QuestionFormValues,
-): Array<Omit<ApiProductQuestionAnswerCreateInput, "questionId">> {
+): ApiProductQuestionAnswerCreateOperationInput[] {
   return values.answers.map((answer, sortIndex) => ({
     content: {
       body: answer.body.trim(),
@@ -92,13 +92,9 @@ export function buildQuestionUpdateInput(values: QuestionFormValues): ApiProduct
 }
 
 export interface QuestionAnswerMutationPlan {
-  create: ApiProductQuestionAnswerCreateInput[];
-  update: Array<{
-    productQuestionAnswerId: string;
-    expectedRevision: number;
-    operations: ApiProductQuestionAnswerUpdateInput;
-  }>;
-  delete: ApiReviewContentDeleteInput[];
+  create: ApiProductQuestionAnswerCreateOperationInput[];
+  update: ApiProductQuestionAnswerUpdateOperationInput[];
+  delete: ApiProductQuestionAnswerDeleteOperationInput[];
 }
 
 export function buildQuestionAnswerMutationPlan(
@@ -107,13 +103,12 @@ export function buildQuestionAnswerMutationPlan(
 ): QuestionAnswerMutationPlan {
   const currentAnswers = question.answers.edges.map((edge) => edge.node);
   const submittedIds = new Set(values.answers.flatMap((answer) => answer.id ? [answer.id] : []));
-  const create: ApiProductQuestionAnswerCreateInput[] = [];
+  const create: ApiProductQuestionAnswerCreateOperationInput[] = [];
   const update: QuestionAnswerMutationPlan["update"] = [];
 
   values.answers.forEach((answer, sortIndex) => {
     if (!answer.id) {
       create.push({
-        questionId: question.id,
         content: {
           body: answer.body.trim(),
           locale: answer.locale.trim(),
@@ -131,7 +126,7 @@ export function buildQuestionAnswerMutationPlan(
     const current = currentAnswers.find((item) => item.id === answer.id);
     if (!current) return;
     update.push({
-      productQuestionAnswerId: current.id,
+      answerId: current.id,
       expectedRevision: current.revision,
       operations: {
         content: {
@@ -152,7 +147,10 @@ export function buildQuestionAnswerMutationPlan(
     update,
     delete: currentAnswers
       .filter((answer) => !submittedIds.has(answer.id))
-      .map((answer) => ({ id: answer.id, expectedRevision: answer.revision })),
+      .map((answer) => ({
+        answerId: answer.id,
+        expectedRevision: answer.revision,
+      })),
   };
 }
 
