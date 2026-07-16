@@ -32,8 +32,9 @@
 4. Engagement metrics показываются один раз в header и не дублируются отдельной тяжёлой секцией.
 5. Все секционные действия используют существующий `EditAction` с `⋯`; явные primary-кнопки остаются только в modal header.
 6. Большая общая edit-modal разделяется по агрегатным API-секциям. Каждая форма отправляет только собственный subtree `ReviewUpdateInput`.
-7. `Author & source`, reports и external references остаются информативными, но raw metadata скрывается в `Collapse`.
-8. Empty/loading/error states используют те же визуальные принципы, что Product/Category details.
+7. Standalone `Trust & incentive` и `Author & source` удаляются: audit summary живёт в header, verification — в Moderation, incentive disclosure — рядом с review content.
+8. Raw source metadata не участвует в основном reading flow и открывается отдельным `View technical metadata` из header overflow.
+9. Empty/loading/error states используют те же визуальные принципы, что Product/Category details.
 
 ## Визуальные правила
 
@@ -64,8 +65,6 @@ Review details modal
 ├── ReviewRatingsSection
 ├── ReviewMediaSection
 ├── ReviewRepliesSection
-├── ReviewTrustSection
-├── ReviewAuthorSourceSection
 └── ReviewExternalReferencesSection
 ```
 
@@ -84,7 +83,9 @@ Reviews page
     │   └── Variant picker                 level 2
     ├── Edit ratings                       level 1
     ├── Review moderation                  level 1
-    ├── Edit trust & incentive             level 1
+    ├── Edit purchase verification         level 1
+    ├── Edit incentive disclosure          level 1
+    ├── View technical metadata            level 1
     ├── Edit customer media                level 1
     │   ├── Media picker / upload          level 2
     │   └── Edit media details             level 2
@@ -102,7 +103,8 @@ type ReviewEditSection =
   | "subject"
   | "ratings"
   | "moderation"
-  | "trust"
+  | "verification"
+  | "incentive"
   | "media";
 ```
 
@@ -118,12 +120,12 @@ type ReviewEditSection =
 │  [API error alert — only when present]                                   │
 │                                                                          │
 │  ┌─ ReviewInfoHeader ─────────────────────────────────────────────────┐  │
-│  │ [PUBLISHED ✓]  Updated Jul 16, 14:32 by Admin       [link] [⋯]   │  │
+│  │ [PUBLISHED ✓]  Created Jul 15 · Updated Jul 16 · Storefront [⋯]  │  │
 │  │                                                                    │  │
 │  │ Excellent sound, comfortable fit                                   │  │
 │  │ ★ ★ ★ ★ ☆  4 / 5                                                  │  │
 │  │                                                                    │  │
-│  │ By Maria Johnson  [Customer] [Verified purchase] [Incentivized]    │  │
+│  │ By Maria Johnson  [Customer] [Verified purchase]                    │  │
 │  │ [ID 01J8…]                                                         │  │
 │  │                                                                    │  │
 │  │ ─────────────────────────────────────────────────────────────────  │  │
@@ -139,12 +141,17 @@ type ReviewEditSection =
 │  │ is detailed, the fit stays comfortable, and battery life matches   │  │
 │  │ the description. The case scratches more easily than expected.     │  │
 │  │                                                                    │  │
+│  │ [DISCLOSED] Customer received a sample for an honest review.       │  │
+│  │                                                                    │  │
 │  │ Locale: English (en)                         487 characters         │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
 │  ┌─ Moderation ────────────────────────────────────────────────── [⋯] ┐  │
-│  │ [PUBLISHED]  Moderated Jul 16, 14:32 by Admin                      │  │
+│  │ [◷ Pending       ][✓ Published     ][⊗ Rejected      ] read-only   │  │
+│  │ Moderated Jul 16, 14:32 by Admin                                   │  │
 │  │ Internal note: Relevant first-hand product experience.             │  │
+│  │                                                                    │  │
+│  │ [shield] Purchase verification [VERIFIED] Order match · Jul 16     │  │
 │  │                                                                    │  │
 │  │ Abuse reports                                      1 open / 2 total │  │
 │  │ ┌────────────────────────────────────────────────────────────────┐ │  │
@@ -161,12 +168,8 @@ type ReviewEditSection =
 │  │ Order ID       [gid://… copy]    Order line      [gid://… copy]    │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
-│  ┌─ Ratings ───────────────────────────────────────────────────── [⋯] ┐  │
-│  │ ┌──────────────────┐   Sound quality            ★ ★ ★ ★ ★  5/5   │  │
-│  │ │       4.0        │   Comfort                 ★ ★ ★ ★ ☆  4/5   │  │
-│  │ │   ★ ★ ★ ★ ☆    │   Build quality           ★ ★ ★ ☆ ☆  3/5   │  │
-│  │ │ Overall rating   │                                              │  │
-│  │ └──────────────────┘                                              │  │
+│  ┌─ Review rating ─────────────────────────────────────────── [Edit] ┐  │
+│  │ Overall  4.0  ★★★★☆    Criteria: Sound 5 · Comfort 4 · Build 3   │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
 │  ┌─ Customer media (3) ───────────────────────────────────────── [⋯] ┐  │
@@ -181,20 +184,6 @@ type ReviewEditSection =
 │  │ ─────────────────────────────────────────────────────────────────  │  │
 │  │ Maria Johnson [Customer] [Published]                 Jul 16, 15:22 │  │
 │  │ Thanks — I will contact support.                                   │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-│                                                                          │
-│  ┌─ Trust & incentive ────────────────────────────────────────── [⋯] ┐  │
-│  │ Verification  [VERIFIED]     Method       Order match              │  │
-│  │ Verified at   Jul 16, 14:30  Incentive    [DISCLOSED]              │  │
-│  │ Disclosure    “Customer received a sample for an honest review.”   │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-│                                                                          │
-│  ┌─ Author & source ──────────────────────────────────────────── [⋯] ┐  │
-│  │ Author       Maria Johnson       Type          Customer             │  │
-│  │ Email        maria@example.com   Customer      [ID copy]            │  │
-│  │ Source       STOREFRONT          Created       Jul 15, 18:04        │  │
-│  │                                                                    │  │
-│  │ > Technical metadata                                               │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
 │  ┌─ External references (1) ─────────────────────────── [+ Add]       ┐  │
@@ -213,12 +202,12 @@ type ReviewEditSection =
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ [PUBLISHED ✓]  Updated Jul 16, 14:32 by Admin          [Copy link] [⋯] │
+│ [PUBLISHED ✓]  Created Jul 15 · Updated Jul 16 · Storefront       [⋯] │
 │                                                                          │
 │ Excellent sound, comfortable fit                                         │
 │ ★ ★ ★ ★ ☆  4 / 5                                                       │
 │                                                                          │
-│ By Maria Johnson  [Customer] [Verified purchase] [Incentivized]          │
+│ By Maria Johnson  [Customer] [Verified purchase]                         │
 │ [ID 01J8A7C2]                                                            │
 │                                                                          │
 │ ──────────────────────────────────────────────────────────────────────── │
@@ -236,8 +225,8 @@ type ReviewEditSection =
   - `PENDING` — gold, clock, `Awaiting moderation`;
   - `PUBLISHED` — green, check, `Visible in published review surfaces`;
   - `REJECTED` — red, circle-x, `Rejected by moderation`;
-- `Updated {formatDetailDate(updatedAt)} by {moderator/author}`;
-- если `updatedAt` ещё не запрашивается details fragment, временный fallback — `Created {createdAt}`.
+- компактная audit line: `Created {createdAt} · Updated {updatedAt} by {actor} · {source}`;
+- если `updatedAt` ещё не запрашивается details fragment, показывать `Created {createdAt} · {source}` без пустых separators.
 
 `PaperHeader actions`:
 
@@ -251,7 +240,9 @@ Edit product & purchase
 Edit ratings
 ────────────────────────
 Review moderation
-Edit trust & incentive
+Edit purchase verification
+Edit incentive disclosure
+View technical metadata
 ────────────────────────
 Redact personal content       danger
 Delete review                 danger
@@ -263,8 +254,10 @@ Title area:
 
 - title с ellipsis максимум две строки, fallback `Untitled review`;
 - `Rate disabled` + текстовое значение `{rating} / 5`, чтобы рейтинг не зависел только от формы звёзд;
-- author display name, author type `Tag`, условные trust badges;
+- author display name, author type `Tag`, условный `Verified purchase` badge;
 - `CopyableChip label="ID"` с коротким display value.
+
+Author email и linked customer ID не повторяются в details. Они остаются доступны в `Edit reviewer`. `View technical metadata` открывает read-only modal/drawer с principal ID, idempotency key и formatted source metadata; эти поля не занимают место в основном scroll.
 
 KPI panel:
 
@@ -284,6 +277,9 @@ KPI panel:
 │ Full plain-text review body. Preserve user line breaks.                  │
 │ No rich HTML rendering and no truncation in details view.                │
 │                                                                           │
+│ [gift] Incentive disclosure [DISCLOSED]                                  │
+│        Customer received a sample for an honest review.                  │
+│                                                                           │
 │ English (en)                                          487 characters     │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
@@ -292,7 +288,9 @@ KPI panel:
 - Body показывается полностью; details modal уже имеет собственный scroll.
 - Locale выводится читаемым label + code через `shopLocales`, а не только `en`.
 - Character count — secondary text, без отдельного `Descriptions` ради одного поля.
-- Action: `EditAction`, label `Edit review content`.
+- Incentive alert рендерится только при `isIncentivized=true`; это disclosure marker из API, а не сведения о начисленном вознаграждении.
+- При `isIncentivized=false` не показывать `Not incentivized`, пустой placeholder или отдельный вертикальный отступ.
+- Section menu содержит `Edit review content` и условный `Edit incentive disclosure`; обе modal отправляют независимые subtrees.
 
 ### ReviewModerationSection
 
@@ -302,10 +300,16 @@ KPI panel:
 
 ```text
 ┌─ Moderation ─────────────────────────────────────────────────────── [⋯] ┐
-│ [PUBLISHED]  Moderated Jul 16, 14:32 by Admin                            │
+│ Moderation status                                                        │
+│ ┌──────────────────┬──────────────────┬──────────────────┐               │
+│ │ ◷ Pending        │ ✓ Published      │ ⊗ Rejected       │  read-only    │
+│ └──────────────────┴──────────────────┴──────────────────┘               │
+│ Moderated Jul 16, 14:32 by Admin                                        │
 │                                                                           │
 │ Internal note                                                            │
 │ Relevant first-hand product experience.                                  │
+│                                                                           │
+│ [shield] Purchase verification  [VERIFIED]  Order match · Jul 16, 14:30 │
 │                                                                           │
 │ ──────────────────────────────────────────────────────────────────────── │
 │                                                                           │
@@ -323,14 +327,19 @@ KPI panel:
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Верхняя строка: status tag, moderated timestamp и moderator.
+- Верхняя часть повторяет прежний horizontal status pattern из версии до `034f0c32`: три равных segment, текущий status выделен семантическим цветом.
+- В details это read-only presentation: segments не имеют `onChange`, hover/focus state и не должны объявляться screen reader как selectable controls.
+- В edit modal тот же визуальный pattern становится настоящим `Segmented block`; одинаковая геометрия сохраняет узнаваемость view/edit state.
+- Под status strip показываются moderated timestamp и moderator.
 - `moderationNote` отображается как нормальный текст; при отсутствии — `No internal note` secondary.
+- Purchase verification — одна компактная строка: status, method и verified timestamp. Она заменяет отдельный `Trust & incentive` Paper.
+- `Verified purchase` в header остаётся только summary badge; полные verification values не дублируются там.
 - Ниже показывается `openReportCount / reportCount`.
 - Сначала открытые reports, затем закрытые; внутри одинаковой группы — новые первыми.
 - По умолчанию видны максимум три report rows, затем `Show all reports (N)`.
 - Report row показывает status, human-readable reason, reporter, date и details.
 - `last-child` border отсутствует, как в существующем reports list.
-- Action редактирует только moderation decision. Report resolution не смешивается с review status update.
+- Section menu содержит два независимых действия: `Review moderation` и `Edit purchase verification`. Report resolution не смешивается ни с одним из них.
 - При отсутствии reports использовать `EntityDetailsEmptyState`, а не большой `Empty` illustration.
 
 ### ReviewSubjectSection
@@ -447,83 +456,37 @@ Details presentation переиспользует визуальный grid `Med
 - Empty state: `No replies yet` + пояснение без action.
 - На этом этапе секция read-only: текущий Review Details не имеет отдельного reply management flow. Не показывать неработающую кнопку `Manage`.
 
-### ReviewTrustSection
+### Почему нет Trust & incentive и Author & source
 
-![Trust and incentive section](assets/review-details-redesign/08-trust-incentive.png)
-
-`Descriptions` подходит для компактных scalar values, но labels должны быть человеческими:
+Эти standalone sections удалены намеренно: они повторяли header и показывали технические scalar values как равнозначный business content.
 
 ```text
-┌─ Trust & incentive ──────────────────────────────────────────────── [⋯] ┐
-│ Verification       [VERIFIED]       Method          Order match         │
-│ Verified at        Jul 16, 14:30    Purchase        [VERIFIED PURCHASE] │
-│                                                                           │
-│ ──────────────────────────────────────────────────────────────────────── │
-│                                                                           │
-│ Incentive          [DISCLOSED]                                            │
-│ Disclosure         Customer received a sample for an honest review.      │
-└───────────────────────────────────────────────────────────────────────────┘
+Удалённый блок                  Новое место
+─────────────────────────────  ───────────────────────────────────────────
+Author name / type             ReviewInfoHeader
+Source / created / updated     компактная audit line в ReviewInfoHeader
+Verified purchase summary      badge в ReviewInfoHeader
+Verification status/details    compact row в ReviewModerationSection
+Incentive disclosure           conditional alert в ReviewContentSection
+Author email / customer ID     Edit reviewer modal
+Principal / idempotency / JSON View technical metadata из header overflow
 ```
 
-- Verification: `Verified`, `Unverified`, `Revoked`;
-- Method;
-- Verified at;
-- Incentive: `Not incentivized` или `Disclosed`;
-- Disclosure.
-
-`isVerifiedPurchase` — производный badge в summary. Источником редактируемого state остаётся `verificationStatus` и verification input contract.
-
-### ReviewAuthorSourceSection
-
-![Author and source section](assets/review-details-redesign/09-author-source.png)
-
-В основной части показываются:
+`View technical metadata` — read-only utility modal/drawer, не details section:
 
 ```text
-┌─ Author & source ────────────────────────────────────────────────── [⋯] ┐
-│ Author          Maria Johnson        Type             Customer           │
-│ Email           maria@example.com    Linked customer  [ID 01J7… copy]    │
-│ Source          STOREFRONT           Created          Jul 15, 18:04      │
-│                                                                           │
-│ ┌─ Technical metadata ────────────────────────────────────────────────┐  │
-│ │ > collapsed                                                        │  │
-│ └─────────────────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────────────────────┘
-
-Expanded state:
-
-┌─ Technical metadata ─────────────────────────────────────────────────────┐
-│ Principal ID       [principal_01J…                               copy]   │
-│ Idempotency key    [storefront-review-8452                       copy]   │
-│ Source metadata                                                         │
-│ ┌──────────────────────────────────────────────────────────────────────┐ │
-│ │ {                                                                    │ │
-│ │   "device": "mobile",                                               │ │
-│ │   "campaign": "post-purchase"                                       │ │
-│ │ }                                                                    │ │
-│ └──────────────────────────────────────────────────────────────────────┘ │
-└───────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│ ×  Technical metadata                                             │
+├────────────────────────────────────────────────────────────────────┤
+│ Principal ID       [principal_01J…                         copy]   │
+│ Idempotency key    [storefront-review-8452                 copy]   │
+│ Source             Storefront                                     │
+│ Source metadata                                                    │
+│ { "device": "mobile", "campaign": "post-purchase" }             │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
-- display name;
-- author type;
-- email;
-- linked customer;
-- source channel;
-- created timestamp.
-
-Action `Edit reviewer` редактирует author identity, но не source audit data.
-
-Technical metadata находится в collapsed `Collapse`:
-
-```text
-> Technical metadata
-  Principal ID       [copy]
-  Idempotency key    [copy]
-  Source metadata    { formatted JSON }
-```
-
-JSON показывается в token-based code container с horizontal scroll. Пустой `{}` не рендерится отдельным блоком.
+JSON используется в token-based code container с horizontal scroll. Пустой `{}` не создаёт отдельную строку. Modal не содержит `Save`, потому что source audit data immutable в Review Admin flow.
 
 ### ReviewExternalReferencesSection
 
@@ -695,37 +658,44 @@ ModalLayout
 
 ### 5. Review Moderation
 
+![Edit review moderation modal](assets/review-details-redesign/11-edit-review-moderation.png)
+
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ ×  Review moderation                                        [Save]      │
 ├──────────────────────────────────────────────────────────────────────────┤
 │  ┌─ Moderation decision ──────────────────────────────────────────────┐  │
-│  │ [ Pending ]       [ Published ]       [ Rejected ]                 │  │
-│  │   Awaiting          Visible in          Hidden after               │  │
-│  │   decision          review surfaces     moderation                  │  │
+│  │ [◷ Pending       ] [✓ Published     ] [⊗ Rejected      ]           │  │
 │  │                                                                    │  │
-│  │ Internal note                                                     │  │
+│  │ ┌────────────────────────────────────────────────────────────────┐ │  │
+│  │ │ Published                                                      │ │  │
+│  │ │ Visible on product pages and included in rating aggregates.    │ │  │
+│  │ └────────────────────────────────────────────────────────────────┘ │  │
+│  │                                                                    │  │
+│  │ Internal moderation note                                          │  │
 │  │ [Relevant first-hand product experience.                       ]  │  │
 │  │ [                                                               ]  │  │
 │  │                                                       55 / 1000   │  │
-│  │ A note is required when the review is rejected.                   │  │
+│  │ This note is never shown to customers.                            │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
 │  Current decision: Published · Jul 16, 14:32 · Admin                    │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Сохраняется существующий `Segmented block`, но рядом с каждым status появляется краткое consequence copy.
+- Восстанавливается точный interaction pattern до `034f0c32`: full-width `Segmented block` с иконками `ClockCircleOutlined`, `CheckCircleOutlined`, `CloseCircleOutlined`.
+- Consequence copy показывается один раз в отдельной semantic context panel для выбранного status, а не трижды внутри segments.
+- Details и form используют одинаковый horizontal layout; разница выражена поведением: details static/read-only, form selectable и сохраняется через `Save`.
 - Rejected требует non-empty moderation note.
 - Current moderator/time — read-only secondary line вне editable fields.
 - Reports видны в parent details и не повторяются внутри edit form.
 - Submit subtree: `content.moderation`.
 
-### 6. Edit Trust & Incentive
+### 6. Edit Purchase Verification
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ×  Edit trust & incentive                                   [Save]      │
+│ ×  Edit purchase verification                               [Save]      │
 ├──────────────────────────────────────────────────────────────────────────┤
 │  ┌─ Purchase verification ────────────────────────────────────────────┐  │
 │  │ Status *                                                          │  │
@@ -734,24 +704,36 @@ ModalLayout
 │  │ Method                          Verified at                        │  │
 │  │ [Order match________________]  [Jul 16, 2026  14:30___________]   │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
-│                                                                          │
-│  ┌─ Incentive disclosure ─────────────────────────────────────────────┐  │
-│  │ [●] This review was incentivized                                  │  │
-│  │                                                                    │  │
-│  │ Public disclosure                                                 │  │
-│  │ [Customer received a sample for an honest review.              ]  │  │
-│  │ This text may be shown next to the review in customer surfaces.   │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 - Verification status — `Segmented` из трёх значений.
 - Method и verified datetime доступны для `VERIFIED`; при другом status UI явно показывает, будут ли значения сохранены или очищены согласно mapper policy.
-- Incentive — `Switch`; disclosure появляется только при enabled.
-- Не использовать одно поле `verificationStatus`, как в текущем draft: API также поддерживает method/time и incentive data.
-- Submit subtrees: `verification` и `incentive`.
+- Не использовать одно поле `verificationStatus`, как в текущем draft: API также поддерживает method/time.
+- Submit subtree: `verification`.
 
-### 7. Edit Customer Media
+### 7. Edit Incentive Disclosure
+
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ×  Edit incentive disclosure                                [Save]      │
+├──────────────────────────────────────────────────────────────────────────┤
+│  ┌─ Disclosure ───────────────────────────────────────────────────────┐  │
+│  │ [●] This review was incentivized                                  │  │
+│  │                                                                    │  │
+│  │ Public disclosure *                                               │  │
+│  │ [Customer received a sample for an honest review.              ]  │  │
+│  │ This is a disclosure marker; Shopana does not issue a reward.     │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+- `Switch` управляет `isIncentivized`; disclosure появляется и становится required только при enabled.
+- При disabled API получает `isIncentivized=false`, а disclosure очищается согласно существующему contract.
+- Не добавлять reward type, amount, coupon или payout: таких полей и выдачи вознаграждения в API нет.
+- Submit subtree: `incentive`.
+
+### 8. Edit Customer Media
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -798,7 +780,7 @@ Nested media details:
 
 `Apply` изменяет только draft родительской media modal. Server update выполняется один раз по `Save` родителя, потому что `ReviewUpdateInput.media` является complete replacement.
 
-### 8. External Reference Create/Edit
+### 9. External Reference Create/Edit
 
 Существующая modal сохраняется, но получает более спокойную иерархию:
 
@@ -894,8 +876,6 @@ admin/src/domains/customer-content/reviews/components/review-details-card/
 │   ├── review-ratings-section.tsx
 │   ├── review-media-section.tsx
 │   ├── review-replies-section.tsx
-│   ├── review-trust-section.tsx
-│   ├── review-author-source-section.tsx
 │   └── review-external-references-section.tsx
 └── hooks/
     └── use-review-modals.ts
@@ -913,7 +893,9 @@ admin/src/domains/customer-content/reviews/modals/
 ├── edit-review-subject-modal/
 ├── edit-review-ratings-modal/
 ├── edit-review-moderation-modal/
-├── edit-review-trust-modal/
+├── edit-review-verification-modal/
+├── edit-review-incentive-modal/
+├── review-technical-metadata-modal/
 ├── edit-review-media-modal/
 └── edit-review-media-item-modal/
 ```
@@ -927,11 +909,12 @@ admin/src/domains/customer-content/reviews/modals/
 | Edit product & purchase | `{ subject: { productId, variantId, orderId, orderLineId } }` |
 | Edit ratings | `{ rating: { overall, criteria } }` |
 | Review moderation | `{ content: { moderation: { status, moderationNote } } }` |
-| Edit trust & incentive | `{ verification: { ... }, incentive: { ... } }` |
+| Edit purchase verification | `{ verification: { ... } }` |
+| Edit incentive disclosure | `{ incentive: { isIncentivized, disclosure } }` |
 | Edit customer media | `{ media: [...] }` complete replacement |
 | External reference | отдельные external reference create/update/delete mutations |
 
-Это ключевое правило redesign: открытие `Edit review content` не должно повторно отправлять author, product, rating, moderation, trust или media из устаревшего form snapshot.
+Это ключевое правило redesign: открытие `Edit review content` не должно повторно отправлять author, product, rating, moderation, verification, incentive или media из устаревшего form snapshot.
 
 ## Data readiness
 
@@ -1021,8 +1004,9 @@ It may have been deleted or is no longer available.
 - Content и moderation доступны без прокрутки через technical metadata.
 - Engagement counters не дублируются отдельной секцией.
 - Reports находятся рядом с moderation decision и сортируются open-first.
-- Author/source technical JSON скрыт по умолчанию.
-- Review content, reviewer, subject, ratings, moderation, trust и media имеют независимые edit flows.
+- Standalone `Trust & incentive` и `Author & source` отсутствуют; их уникальные данные распределены по header, content и moderation без повторов.
+- Raw source metadata не участвует в основном scroll и доступна через отдельный read-only utility view.
+- Review content, reviewer, subject, ratings, moderation, verification, incentive и media имеют независимые edit flows.
 - Каждая edit modal отправляет только собственный `ReviewUpdateInput` subtree.
 - Product, Variant, Customer и Media selection переиспользуют существующие pickers.
 - Media переиспользует gallery/preview/upload primitives и сохраняет caption/moderation metadata.
