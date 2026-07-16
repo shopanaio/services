@@ -362,22 +362,30 @@ KPI panel:
 ![Review ratings section](assets/review-details-redesign/05-review-ratings.png)
 
 ```text
-┌─ Ratings ────────────────────────────────────────────────────────── [⋯] ┐
-│ ┌──────────────────────┐   Sound quality      ★ ★ ★ ★ ★       5 / 5   │
-│ │                      │                                               │
-│ │         4.0          │   Comfort           ★ ★ ★ ★ ☆       4 / 5   │
-│ │     ★ ★ ★ ★ ☆      │                                               │
-│ │                      │   Build quality      ★ ★ ★ ☆ ☆       3 / 5   │
-│ │   Overall rating     │                                               │
-│ └──────────────────────┘   Value for money    ★ ★ ★ ★ ☆       4 / 5   │
+┌─ Review rating ─────────────────────────────────────────────── [Edit] ┐
+│  Submitted by the reviewer                                           │
+│                                                                      │
+│ ┌─ Overall rating ────────┐  ┌─ Criteria breakdown ── [4 criteria] ┐ │
+│ │                         │  │ Individual scores for this review    │ │
+│ │           4.0           │  │                                      │ │
+│ │      ★ ★ ★ ★ ☆         │  │ Sound quality    ▰ ▰ ▰ ▰ ▰    5.0  │ │
+│ │        4 out of 5       │  │ Comfort          ▰ ▰ ▰ ▰ ▱    4.0  │ │
+│ │                         │  │ Build quality    ▰ ▰ ▰ ▱ ▱    3.0  │ │
+│ └─────────────────────────┘  │ Value for money  ▰ ▰ ▰ ▰ ▱    4.0  │ │
+│                              │ ──────────────────────────────────── │ │
+│                              │ ✓ All assigned criteria answered    │ │
+│                              └──────────────────────────────────────┘ │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Слева — общий rating крупным числом, disabled `Rate`, подпись `Overall rating`.
-- Справа — criterion ratings в API order: title, disabled `Rate`, `{value}/5`.
-- Если detailed ratings отсутствуют, показывать только overall tile и secondary message `No criterion ratings`.
-- Не использовать `Statistic` в одну длинную строку: на узкой ширине названия criteria теряют связь со значениями.
-- Action: `Edit ratings`.
+- Название `Review rating` и helper text `Submitted by the reviewer` явно отделяют оценку конкретного review от агрегированного product rating.
+- Слева — компактный overall summary: крупное значение, disabled `Rate`, текстовое `{value} out of 5`.
+- Справа — вложенная панель `Criteria breakdown`: count badge, пояснение и criterion ratings в API order.
+- Criterion row состоит из title, пятисегментной шкалы и числового значения. Сегменты визуально отличаются от stars общей оценки и лучше сканируются в плотном списке.
+- Footer `All assigned criteria answered` показывается только когда API подтверждает полноту применимых criteria; при отсутствии такой проверки footer не выводится.
+- Если detailed ratings отсутствуют, панель показывает компактный empty state `No criterion scores were submitted` без count badge и completion footer.
+- На узкой ширине колонки складываются вертикально: overall summary сверху, criteria panel снизу; title и value каждой строки остаются на одной линии.
+- Единственное действие секции — явная кнопка `Edit`, открывающая `Edit ratings`; ambiguous overflow menu здесь не нужен.
 
 ### ReviewMediaSection
 
