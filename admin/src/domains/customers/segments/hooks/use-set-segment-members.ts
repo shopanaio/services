@@ -1,31 +1,22 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { requestSetCustomerSegmentMembers } from "../api/request-segments";
-import type {
-  CustomerSegmentMembersSetInput,
-  CustomerSegmentMutationPayload,
-} from "../graphql/operation-types";
+import { useCallback } from "react";
+import { useMutation } from "@apollo/client/react";
+import type { ApiCustomerSegmentCustomersSetInput, ApiGenericUserError } from "@/graphql/types";
+import { CUSTOMER_SEGMENT_CUSTOMERS_SET_MUTATION, CUSTOMER_SEGMENTS_QUERY } from "../graphql";
+import type { CustomerSegmentCustomersSetMutationData, CustomerSegmentCustomersSetMutationVariables } from "../graphql/operation-types";
 
 export function useSetCustomerSegmentMembers() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const setSegmentMembers = useCallback(async (
-    input: CustomerSegmentMembersSetInput,
-  ): Promise<CustomerSegmentMutationPayload> => {
-    setLoading(true);
-    setError(null);
+  const [mutate, { loading, error, reset }] = useMutation<CustomerSegmentCustomersSetMutationData, CustomerSegmentCustomersSetMutationVariables>(CUSTOMER_SEGMENT_CUSTOMERS_SET_MUTATION);
+  const setSegmentMembers = useCallback(async (input: ApiCustomerSegmentCustomersSetInput) => {
     try {
-      return await requestSetCustomerSegmentMembers(input);
+      const result = await mutate({ variables: { input }, refetchQueries: [CUSTOMER_SEGMENTS_QUERY] });
+      const payload = result.data?.customersMutation.customerSegmentCustomersSet;
+      return { segment: payload?.segment ?? null, userErrors: payload?.userErrors ?? [] };
     } catch (cause) {
-      const normalized = cause instanceof Error ? cause : new Error("Unable to update segment customers");
-      setError(normalized);
-      return { segment: null, userErrors: [{ code: "UNEXPECTED_ERROR", message: normalized.message }] };
-    } finally {
-      setLoading(false);
+      const message = cause instanceof Error ? cause.message : "Unable to update segment customers";
+      return { segment: null, userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[] };
     }
-  }, []);
-
-  return { setSegmentMembers, loading, error, reset: () => setError(null) };
+  }, [mutate]);
+  return { setSegmentMembers, loading, error: error ?? null, reset };
 }

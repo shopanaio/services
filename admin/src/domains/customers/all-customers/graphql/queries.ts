@@ -9,6 +9,7 @@ export const CUSTOMERS_QUERY = gql`
     $before: String
     $where: CustomerWhereInput
     $orderBy: [CustomerOrderByInput!]
+    $currencyCode: String
   ) {
     customersQuery {
       customers(
@@ -39,7 +40,7 @@ export const CUSTOMERS_QUERY = gql`
 `;
 
 export const CUSTOMER_QUERY = gql`
-  query Customer($id: ID!) {
+  query Customer($id: ID!, $currencyCode: String) {
     customersQuery {
       customer(id: $id) {
         ...CustomerDetailsFields
@@ -47,4 +48,27 @@ export const CUSTOMER_QUERY = gql`
     }
   }
   ${CUSTOMER_DETAILS_FRAGMENT}
+`;
+
+export const CUSTOMER_EDITOR_CONTEXT_QUERY = gql`
+  query CustomerEditorContext {
+    customersQuery {
+      customerSegments(first: 250, where: { type: { _eq: MANUAL }, status: { _eq: ACTIVE } }) {
+        edges {
+          node {
+            id
+            name
+          }
+        }
+      }
+      customerTags(first: 250) {
+        edges {
+          node {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
 `;

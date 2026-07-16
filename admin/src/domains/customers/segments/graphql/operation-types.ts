@@ -1,131 +1,35 @@
-import type { ApiPageInfo } from "@/graphql/types";
+import type {
+  ApiCustomerSegment,
+  ApiCustomerSegmentConnection,
+  ApiCustomerSegmentCreateInput,
+  ApiCustomerSegmentCreatePayload,
+  ApiCustomerSegmentCustomersSetInput,
+  ApiCustomerSegmentCustomersSetPayload,
+  ApiCustomerSegmentDeleteInput,
+  ApiCustomerSegmentDeletePayload,
+  ApiCustomerSegmentOrderByInput,
+  ApiCustomerSegmentUpdateInput,
+  ApiCustomerSegmentUpdatePayload,
+  ApiCustomerSegmentWhereInput,
+  ApiCustomersMutation,
+  ApiCustomersQuery,
+} from "@/graphql/types";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
-import type { ApiCustomer } from "../../all-customers/graphql/operation-types";
-
-/** Temporary API-shaped contract for manual segments in the customers service. */
-export enum CustomerSegmentType {
-  Manual = "MANUAL",
-}
-
-export enum CustomerSegmentOrderField {
-  Name = "NAME",
-  MemberCount = "MEMBER_COUNT",
-  CreatedAt = "CREATED_AT",
-  UpdatedAt = "UPDATED_AT",
-}
-
-export type CustomerSegmentSortDirection = "ASC" | "DESC";
-
-export interface ApiCustomerSegment {
-  id: string;
-  version: number;
-  name: string;
-  description: string | null;
-  color: string;
-  type: CustomerSegmentType;
-  memberCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CustomerSegmentMemberEdge {
-  cursor: string;
-  node: Pick<ApiCustomer, "id">;
-}
-
-export interface CustomerSegmentMemberConnection {
-  edges: CustomerSegmentMemberEdge[];
-  pageInfo: ApiPageInfo;
-  totalCount: number;
-}
-
-export interface ApiCustomerSegmentDetails extends ApiCustomerSegment {
-  members: CustomerSegmentMemberConnection;
-}
-
-export interface CustomerSegmentUserError {
-  code: string;
-  field?: string | null;
-  message: string;
-}
-
-export interface CustomerSegmentCreateInput {
-  clientMutationId: string;
-  name: string;
-  description?: string | null;
-  color: string;
-}
-
-export interface CustomerSegmentUpdateInput {
-  id: string;
-  expectedVersion: number;
-  name: string;
-  description?: string | null;
-  color: string;
-}
-
-export interface CustomerSegmentDeleteInput {
-  id: string;
-  expectedVersion: number;
-}
-
-export interface CustomerSegmentMembersSetInput {
-  id: string;
-  expectedVersion: number;
-  customerIds: string[];
-}
-
-export interface CustomerSegmentMutationPayload {
-  segment: ApiCustomerSegment | null;
-  userErrors: CustomerSegmentUserError[];
-}
-
-export interface CustomerSegmentDeletePayload {
-  deletedSegmentId: string | null;
-  userErrors: CustomerSegmentUserError[];
-}
-
-export interface CustomerSegmentWhereInput {
-  _and?: CustomerSegmentWhereInput[];
-  _or?: CustomerSegmentWhereInput[];
-  name?: Record<string, unknown>;
-  description?: Record<string, unknown>;
-  type?: Record<string, unknown>;
-  memberCount?: Record<string, unknown>;
-  createdAt?: Record<string, unknown>;
-  updatedAt?: Record<string, unknown>;
-}
-
-export interface CustomerSegmentOrderByInput {
-  field: CustomerSegmentOrderField;
-  direction: CustomerSegmentSortDirection;
-}
-
-export interface CustomerSegmentEdge {
-  cursor: string;
-  node: ApiCustomerSegment;
-}
-
-export interface CustomerSegmentConnection {
-  edges: CustomerSegmentEdge[];
-  pageInfo: ApiPageInfo;
-  totalCount: number;
-}
 
 export interface CustomerSegmentsQueryData {
-  customersQuery: {
-    segments: CustomerSegmentConnection;
+  customersQuery: Pick<ApiCustomersQuery, "customerSegments"> & {
+    customerSegments: ApiCustomerSegmentConnection;
   };
 }
 
 export interface CustomerSegmentsQueryVariables extends RelayCursorPaginationVariables {
-  where?: CustomerSegmentWhereInput | null;
-  orderBy?: CustomerSegmentOrderByInput[] | null;
+  where?: ApiCustomerSegmentWhereInput | null;
+  orderBy?: ApiCustomerSegmentOrderByInput[] | null;
 }
 
 export interface CustomerSegmentQueryData {
-  customersQuery: {
-    segment: ApiCustomerSegmentDetails | null;
+  customersQuery: Pick<ApiCustomersQuery, "customerSegment"> & {
+    customerSegment: ApiCustomerSegment | null;
   };
 }
 
@@ -134,41 +38,43 @@ export interface CustomerSegmentQueryVariables {
 }
 
 export interface CustomerSegmentCreateMutationData {
-  customersMutation: {
-    customerSegmentCreate: CustomerSegmentMutationPayload;
+  customersMutation: Pick<ApiCustomersMutation, "customerSegmentCreate"> & {
+    customerSegmentCreate: ApiCustomerSegmentCreatePayload;
   };
 }
 
 export interface CustomerSegmentCreateMutationVariables {
-  input: CustomerSegmentCreateInput;
+  input: ApiCustomerSegmentCreateInput;
 }
 
 export interface CustomerSegmentUpdateMutationData {
-  customersMutation: {
-    customerSegmentUpdate: CustomerSegmentMutationPayload;
+  customersMutation: Pick<ApiCustomersMutation, "customerSegmentUpdate"> & {
+    customerSegmentUpdate: ApiCustomerSegmentUpdatePayload;
   };
 }
 
 export interface CustomerSegmentUpdateMutationVariables {
-  input: CustomerSegmentUpdateInput;
+  segmentId: string;
+  expectedRevision?: number | null;
+  operations: ApiCustomerSegmentUpdateInput;
 }
 
 export interface CustomerSegmentDeleteMutationData {
-  customersMutation: {
-    customerSegmentDelete: CustomerSegmentDeletePayload;
+  customersMutation: Pick<ApiCustomersMutation, "customerSegmentDelete"> & {
+    customerSegmentDelete: ApiCustomerSegmentDeletePayload;
   };
 }
 
 export interface CustomerSegmentDeleteMutationVariables {
-  input: CustomerSegmentDeleteInput;
+  input: ApiCustomerSegmentDeleteInput;
 }
 
-export interface CustomerSegmentMembersSetMutationData {
-  customersMutation: {
-    customerSegmentMembersSet: CustomerSegmentMutationPayload;
+export interface CustomerSegmentCustomersSetMutationData {
+  customersMutation: Pick<ApiCustomersMutation, "customerSegmentCustomersSet"> & {
+    customerSegmentCustomersSet: ApiCustomerSegmentCustomersSetPayload;
   };
 }
 
-export interface CustomerSegmentMembersSetMutationVariables {
-  input: CustomerSegmentMembersSetInput;
+export interface CustomerSegmentCustomersSetMutationVariables {
+  input: ApiCustomerSegmentCustomersSetInput;
 }

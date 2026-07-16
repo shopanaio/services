@@ -22,6 +22,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
+import { CustomerSegmentType } from "@/graphql/types";
 import {
   ModalHeader,
   ModalLayout,
@@ -126,13 +127,13 @@ export function CustomerSegmentModal() {
     reset({
       name: segmentQuery.segment.name,
       description: segmentQuery.segment.description ?? "",
-      color: segmentQuery.segment.color,
+      color: segmentQuery.segment.color ?? "#1677ff",
     });
   }, [isEdit, reset, segmentQuery.segment]);
 
   const memberIds = useMemo(
-    () => segmentQuery.segment?.members.edges.map((edge) => edge.node.id) ?? [],
-    [segmentQuery.segment?.members.edges],
+    () => segmentQuery.segment?.customerMemberships.edges.map((edge) => edge.node.customer.id) ?? [],
+    [segmentQuery.segment?.customerMemberships.edges],
   );
 
   const handleSetMembers = useCallback(async (
@@ -142,8 +143,8 @@ export function CustomerSegmentModal() {
     const current = segmentQuery.segment;
     if (!current) return;
     const result = await setSegmentMembers({
-      id: current.id,
-      expectedVersion: current.version,
+      segmentId: current.id,
+      expectedRevision: current.revision,
       customerIds,
     });
     if (!result.segment || result.userErrors.length > 0) {
@@ -170,7 +171,7 @@ export function CustomerSegmentModal() {
     clearErrors();
     const current = segmentQuery.segment;
     const result = isEdit && current
-      ? await updateSegment(buildCustomerSegmentUpdateInput(values, current))
+      ? await updateSegment(current.id, current.revision, buildCustomerSegmentUpdateInput(values))
       : await createSegment(buildCustomerSegmentCreateInput(values));
 
     if (!result.segment || result.userErrors.length > 0) {
@@ -194,7 +195,7 @@ export function CustomerSegmentModal() {
     if (!current) return;
     const confirmed = await modal.confirm({
       title: "Delete customer segment?",
-      content: `${current.name} will be removed from ${current.memberCount} customer${current.memberCount === 1 ? "" : "s"}.`,
+      content: `${current.name} will be removed from ${current.customersCount} customer${current.customersCount === 1 ? "" : "s"}.`,
       okText: "Delete",
       okButtonProps: { danger: true },
     });
@@ -202,7 +203,7 @@ export function CustomerSegmentModal() {
 
     const result = await deleteSegment({
       id: current.id,
-      expectedVersion: current.version,
+      expectedRevision: current.revision,
     });
     if (!result.deletedSegmentId || result.userErrors.length > 0) {
       message.error(result.userErrors[0]?.message ?? "Unable to delete segment");
@@ -250,7 +251,9 @@ export function CustomerSegmentModal() {
             onClose={pop}
             extra={
               <Flex align="center" gap="small">
-                <Tag color="blue">Manual</Tag>
+                <Tag color="blue">
+                  {segment?.type === CustomerSegmentType.Dynamic ? "Dynamic" : "Manual"}
+                </Tag>
                 {isEdit ? (
                   <Button
                     type="text"
@@ -348,10 +351,10 @@ export function CustomerSegmentModal() {
           <Flex vertical gap="middle">
             <Flex align="center" justify="space-between" gap="middle" wrap className={styles.membershipCard}>
               <div>
-                <Typography.Title level={3} className={styles.memberCount}>{segment?.memberCount ?? 0}</Typography.Title>
+                <Typography.Title level={3} className={styles.memberCount}>{segment?.customersCount ?? 0}</Typography.Title>
                 <Typography.Text type="secondary">customers assigned manually</Typography.Text>
               </div>
-              {isEdit ? (
+              {isEdit && segment?.type === CustomerSegmentType.Manual ? (
                 <Tooltip title={isDirty ? "Save segment details before changing customers" : undefined}>
                   <span>
                     <Button
@@ -364,6 +367,8 @@ export function CustomerSegmentModal() {
                     </Button>
                   </span>
                 </Tooltip>
+              ) : isEdit ? (
+                <Typography.Text type="secondary">Dynamic membership is managed by the segment definition.</Typography.Text>
               ) : (
                 <Typography.Text type="secondary">Create the segment before assigning customers.</Typography.Text>
               )}

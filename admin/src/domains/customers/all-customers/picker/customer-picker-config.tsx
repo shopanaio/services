@@ -23,40 +23,40 @@ import {
   customerFilterTransformers,
   customerSortFieldMapping,
 } from "../page/page-config";
-import type {
-  ApiCustomer,
-  CustomerOrderByInput,
-  CustomerWhereInput,
-} from "../graphql/operation-types";
 import {
+  type ApiCustomer,
+  type ApiCustomerOrderByInput,
+  type ApiCustomerWhereInput,
   CustomerOrderField,
-  CustomerStatus,
-} from "../graphql/operation-types";
+  CustomerLifecycleStatus,
+} from "@/graphql/types";
 
 interface CustomerPickerEntity extends IPickableEntity {
   email: string;
   ordersCount: number;
-  customerStatus: CustomerStatus;
+  customerStatus: CustomerLifecycleStatus;
 }
 
 function transformCustomer(customer: ApiCustomer): CustomerPickerEntity {
   return {
     id: customer.id,
     title: customer.displayName,
-    email: customer.email,
-    ordersCount: customer.activity.ordersCount,
-    customerStatus: customer.status,
+    email: customer.email ?? "",
+    ordersCount: customer.statistics?.ordersCount ?? 0,
+    customerStatus: customer.lifecycleStatus,
   };
 }
 
-const statusCopy: Record<CustomerStatus, { label: string; color: string }> = {
-  [CustomerStatus.Active]: { label: "Active", color: "green" },
-  [CustomerStatus.Disabled]: { label: "Disabled", color: "default" },
-  [CustomerStatus.Blocked]: { label: "Blocked", color: "red" },
+const statusCopy: Record<CustomerLifecycleStatus, { label: string; color: string }> = {
+  [CustomerLifecycleStatus.Active]: { label: "Active", color: "green" },
+  [CustomerLifecycleStatus.Disabled]: { label: "Disabled", color: "default" },
+  [CustomerLifecycleStatus.Blocked]: { label: "Blocked", color: "red" },
+  [CustomerLifecycleStatus.Merged]: { label: "Merged", color: "purple" },
+  [CustomerLifecycleStatus.Redacted]: { label: "Redacted", color: "default" },
 };
 
-function CustomerStatusCell({ value }: CustomCellRendererProps<CustomerPickerEntity, CustomerStatus>) {
-  const status = statusCopy[value ?? CustomerStatus.Active];
+function CustomerStatusCell({ value }: CustomCellRendererProps<CustomerPickerEntity, CustomerLifecycleStatus>) {
+  const status = statusCopy[value ?? CustomerLifecycleStatus.Active];
   return <Tag color={status.color}>{status.label}</Tag>;
 }
 
@@ -80,9 +80,9 @@ function useCustomersPickerData(options: {
     orderBy,
     excludeIds,
   } = options;
-  const customerWhere = useMemo<CustomerWhereInput | null>(() => {
-    const conditions: CustomerWhereInput[] = [];
-    if (where) conditions.push(where as CustomerWhereInput);
+  const customerWhere = useMemo<ApiCustomerWhereInput | null>(() => {
+    const conditions: ApiCustomerWhereInput[] = [];
+    if (where) conditions.push(where as ApiCustomerWhereInput);
     if (excludeIds.length > 0) conditions.push({ id: { _notIn: excludeIds } });
     if (conditions.length === 0) return null;
     if (conditions.length === 1) return conditions[0]!;
@@ -94,7 +94,7 @@ function useCustomersPickerData(options: {
     last,
     before,
     where: customerWhere,
-    orderBy: orderBy as CustomerOrderByInput[] | null,
+    orderBy: orderBy as ApiCustomerOrderByInput[] | null,
   });
   const data = useMemo(() => customers.map(transformCustomer), [customers]);
 
@@ -145,7 +145,7 @@ const customerPickerColumns: ColDef<CustomerPickerEntity>[] = [
 
 export const customerPickerConfig: IEntityPickerConfig<
   CustomerPickerEntity,
-  CustomerWhereInput,
+  ApiCustomerWhereInput,
   CustomerOrderField
 > = {
   entityType: "customer",

@@ -5,14 +5,8 @@ export const CUSTOMER_SEGMENT_CREATE_MUTATION = gql`
   mutation CustomerSegmentCreate($input: CustomerSegmentCreateInput!) {
     customersMutation {
       customerSegmentCreate(input: $input) {
-        segment {
-          ...CustomerSegmentListFields
-        }
-        userErrors {
-          code
-          field
-          message
-        }
+        segment { ...CustomerSegmentListFields }
+        userErrors { code field message }
       }
     }
   }
@@ -20,17 +14,24 @@ export const CUSTOMER_SEGMENT_CREATE_MUTATION = gql`
 `;
 
 export const CUSTOMER_SEGMENT_UPDATE_MUTATION = gql`
-  mutation CustomerSegmentUpdate($input: CustomerSegmentUpdateInput!) {
+  mutation CustomerSegmentUpdate(
+    $segmentId: ID!
+    $expectedRevision: Int
+    $operations: CustomerSegmentUpdateInput!
+  ) {
     customersMutation {
-      customerSegmentUpdate(input: $input) {
-        segment {
-          ...CustomerSegmentListFields
+      customerSegmentUpdate(
+        segmentId: $segmentId
+        expectedRevision: $expectedRevision
+        operations: $operations
+      ) {
+        segment { ...CustomerSegmentListFields }
+        operationResults {
+          type
+          applied
+          errors { code field message }
         }
-        userErrors {
-          code
-          field
-          message
-        }
+        userErrors { code field message }
       }
     }
   }
@@ -42,28 +43,18 @@ export const CUSTOMER_SEGMENT_DELETE_MUTATION = gql`
     customersMutation {
       customerSegmentDelete(input: $input) {
         deletedSegmentId
-        userErrors {
-          code
-          field
-          message
-        }
+        userErrors { code field message }
       }
     }
   }
 `;
 
-export const CUSTOMER_SEGMENT_MEMBERS_SET_MUTATION = gql`
-  mutation CustomerSegmentMembersSet($input: CustomerSegmentMembersSetInput!) {
+export const CUSTOMER_SEGMENT_CUSTOMERS_SET_MUTATION = gql`
+  mutation CustomerSegmentCustomersSet($input: CustomerSegmentCustomersSetInput!) {
     customersMutation {
-      customerSegmentMembersSet(input: $input) {
-        segment {
-          ...CustomerSegmentListFields
-        }
-        userErrors {
-          code
-          field
-          message
-        }
+      customerSegmentCustomersSet(input: $input) {
+        segment { ...CustomerSegmentListFields }
+        userErrors { code field message }
       }
     }
   }

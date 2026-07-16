@@ -1,32 +1,44 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { requestUpdateCustomer } from "../api/request-customers";
+import { useCallback } from "react";
+import { useMutation } from "@apollo/client/react";
+import type { ApiCustomerUpdateInput, ApiGenericUserError } from "@/graphql/types";
+import { CUSTOMER_UPDATE_MUTATION, CUSTOMERS_QUERY } from "../graphql";
 import type {
-  CustomerMutationPayload,
-  CustomerUpdateInput,
+  CustomerUpdateMutationData,
+  CustomerUpdateMutationVariables,
 } from "../graphql/operation-types";
 
 export function useUpdateCustomer() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [mutate, { loading, error, reset }] = useMutation<
+    CustomerUpdateMutationData,
+    CustomerUpdateMutationVariables
+  >(CUSTOMER_UPDATE_MUTATION);
 
-  const updateCustomer = useCallback(async (input: CustomerUpdateInput): Promise<CustomerMutationPayload> => {
-    setLoading(true);
-    setError(null);
+  const updateCustomer = useCallback(async (
+    customerId: string,
+    expectedRevision: number,
+    operations: ApiCustomerUpdateInput,
+  ) => {
     try {
-      return await requestUpdateCustomer(input);
+      const result = await mutate({
+        variables: { customerId, expectedRevision, operations },
+        refetchQueries: [CUSTOMERS_QUERY],
+      });
+      const payload = result.data?.customersMutation.customerUpdate;
+      const operationErrors = payload?.operationResults.flatMap((item) => item.errors) ?? [];
+      return {
+        customer: payload?.customer ?? null,
+        userErrors: [...(payload?.userErrors ?? []), ...operationErrors],
+      };
     } catch (cause) {
-      const normalized = cause instanceof Error ? cause : new Error("Unable to update customer");
-      setError(normalized);
+      const message = cause instanceof Error ? cause.message : "Unable to update customer";
       return {
         customer: null,
-        userErrors: [{ code: "UNEXPECTED_ERROR", message: normalized.message }],
+        userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
       };
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [mutate]);
 
-  return { updateCustomer, loading, error, reset: () => setError(null) };
+  return { updateCustomer, loading, error: error ?? null, reset };
 }

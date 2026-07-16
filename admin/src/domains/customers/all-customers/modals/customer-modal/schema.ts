@@ -1,8 +1,8 @@
 import { z } from "zod";
 import {
-  CustomerMarketingState,
-  CustomerStatus,
-} from "../../graphql/operation-types";
+  CustomerAdminLifecycleStatus,
+  CustomerConsentAdminState,
+} from "@/graphql/types";
 
 export const customerFormSchema = z
   .object({
@@ -11,23 +11,24 @@ export const customerFormSchema = z
     email: z.string().trim().email("Enter a valid email address").max(254),
     phone: z.string().trim().max(40, "Phone number is too long"),
     status: z.enum([
-      CustomerStatus.Active,
-      CustomerStatus.Disabled,
-      CustomerStatus.Blocked,
+      CustomerAdminLifecycleStatus.Active,
+      CustomerAdminLifecycleStatus.Disabled,
+      CustomerAdminLifecycleStatus.Blocked,
     ]),
     locale: z.string().min(1, "Locale is required"),
-    taxExempt: z.boolean(),
-    tags: z.array(z.string().trim().min(1).max(40)).max(20, "Use at most 20 tags"),
+    tagIds: z.array(z.string()),
     note: z.string().trim().max(2000, "Note must be at most 2,000 characters"),
     emailMarketingState: z.enum([
-      CustomerMarketingState.Subscribed,
-      CustomerMarketingState.NotSubscribed,
-      CustomerMarketingState.Pending,
+      CustomerConsentAdminState.Subscribed,
+      CustomerConsentAdminState.NotSubscribed,
+      CustomerConsentAdminState.Pending,
+      CustomerConsentAdminState.Unsubscribed,
     ]),
     smsMarketingState: z.enum([
-      CustomerMarketingState.Subscribed,
-      CustomerMarketingState.NotSubscribed,
-      CustomerMarketingState.Pending,
+      CustomerConsentAdminState.Subscribed,
+      CustomerConsentAdminState.NotSubscribed,
+      CustomerConsentAdminState.Pending,
+      CustomerConsentAdminState.Unsubscribed,
     ]),
     segmentIds: z.array(z.string()),
     defaultAddress: z.object({
@@ -42,7 +43,7 @@ export const customerFormSchema = z
     moderationNote: z.string().trim().max(2000, "Moderation note must be at most 2,000 characters"),
   })
   .superRefine((values, context) => {
-    if (values.status === CustomerStatus.Blocked && !values.blockedReason) {
+    if (values.status === CustomerAdminLifecycleStatus.Blocked && !values.blockedReason) {
       context.addIssue({
         code: "custom",
         path: ["blockedReason"],

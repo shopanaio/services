@@ -11,7 +11,6 @@ import {
   Segmented,
   Select,
   Skeleton,
-  Switch,
   Tag,
   Typography,
 } from "antd";
@@ -31,6 +30,13 @@ import { createStyles } from "antd-style";
 import { shopCountries, shopLocales } from "@/defs/localization";
 import { useDefaultCurrency } from "@/domains/workspace";
 import {
+  CustomerAdminLifecycleStatus,
+  CustomerConsentAdminState,
+  CustomerConsentChannel,
+  CustomerConsentState,
+  type ApiCustomer,
+} from "@/graphql/types";
+import {
   ModalHeader,
   ModalLayout,
   useModalStackContext,
@@ -43,10 +49,6 @@ import {
   useCustomerEditorContext,
   useUpdateCustomer,
 } from "../../hooks";
-import {
-  CustomerMarketingState,
-  CustomerStatus,
-} from "../../graphql/operation-types";
 import {
   buildCustomerCreateInput,
   buildCustomerUpdateInput,
@@ -108,13 +110,12 @@ const DEFAULT_VALUES: CustomerFormValues = {
   lastName: "",
   email: "",
   phone: "",
-  status: CustomerStatus.Active,
+  status: CustomerAdminLifecycleStatus.Active,
   locale: "en",
-  taxExempt: false,
-  tags: [],
+  tagIds: [],
   note: "",
-  emailMarketingState: CustomerMarketingState.NotSubscribed,
-  smsMarketingState: CustomerMarketingState.NotSubscribed,
+  emailMarketingState: CustomerConsentAdminState.NotSubscribed,
+  smsMarketingState: CustomerConsentAdminState.NotSubscribed,
   segmentIds: [],
   defaultAddress: {
     address1: "",
@@ -128,18 +129,18 @@ const DEFAULT_VALUES: CustomerFormValues = {
   moderationNote: "",
 };
 
-const statusCopy: Record<CustomerStatus, { title: string; description: string; color: string }> = {
-  [CustomerStatus.Active]: {
+const statusCopy: Record<CustomerAdminLifecycleStatus, { title: string; description: string; color: string }> = {
+  [CustomerAdminLifecycleStatus.Active]: {
     title: "Active",
     description: "The customer can place orders and receive permitted communications.",
     color: "green",
   },
-  [CustomerStatus.Disabled]: {
+  [CustomerAdminLifecycleStatus.Disabled]: {
     title: "Disabled",
     description: "The profile stays available to operators, but new customer activity is paused.",
     color: "default",
   },
-  [CustomerStatus.Blocked]: {
+  [CustomerAdminLifecycleStatus.Blocked]: {
     title: "Blocked",
     description: "New orders require operator review and marketing messages are suppressed.",
     color: "red",
@@ -147,10 +148,24 @@ const statusCopy: Record<CustomerStatus, { title: string; description: string; c
 };
 
 const marketingOptions = [
-  { value: CustomerMarketingState.Subscribed, label: "Subscribed" },
-  { value: CustomerMarketingState.NotSubscribed, label: "Not subscribed" },
-  { value: CustomerMarketingState.Pending, label: "Pending confirmation" },
+  { value: CustomerConsentAdminState.Subscribed, label: "Subscribed" },
+  { value: CustomerConsentAdminState.NotSubscribed, label: "Not subscribed" },
+  { value: CustomerConsentAdminState.Pending, label: "Pending confirmation" },
+  { value: CustomerConsentAdminState.Unsubscribed, label: "Unsubscribed" },
 ];
+
+function editableConsentState(state?: CustomerConsentState): CustomerConsentAdminState {
+  if (state === CustomerConsentState.Subscribed) return CustomerConsentAdminState.Subscribed;
+  if (state === CustomerConsentState.Pending) return CustomerConsentAdminState.Pending;
+  if (state === CustomerConsentState.Unsubscribed) return CustomerConsentAdminState.Unsubscribed;
+  return CustomerConsentAdminState.NotSubscribed;
+}
+
+function editableLifecycleStatus(customer: ApiCustomer): CustomerAdminLifecycleStatus {
+  if (customer.lifecycleStatus === "BLOCKED") return CustomerAdminLifecycleStatus.Blocked;
+  if (customer.lifecycleStatus === "DISABLED") return CustomerAdminLifecycleStatus.Disabled;
+  return CustomerAdminLifecycleStatus.Active;
+}
 
 const customerDateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -201,28 +216,27 @@ export function CustomerModal() {
     if (!isEdit || !customerQuery.customer) return;
     const customer = customerQuery.customer;
     reset({
-      firstName: customer.firstName,
-      lastName: customer.lastName,
-      email: customer.email,
-      phone: customer.phone ?? "",
-      status: customer.status,
-      locale: customer.locale,
-      taxExempt: customer.taxExempt,
-      tags: customer.tags,
+      firstName: customer.firstName ?? "",
+      lastName: customer.lastName ?? "",
+      email: customer.email ?? "",
+      phone: customer.phoneE164 ?? "",
+      status: editableLifecycleStatus(customer),
+      locale: customer.preferredLocale ?? "en",
+      tagIds: customer.tagAssignments.edges.map((edge) => edge.node.tag.id),
       note: customer.note ?? "",
-      emailMarketingState: customer.emailMarketingState,
-      smsMarketingState: customer.smsMarketingState,
-      segmentIds: customer.segments.map((segment) => segment.id),
+      emailMarketingState: editableConsentState(customer.consents.find((consent) => consent.channel === CustomerConsentChannel.Email)?.state),
+      smsMarketingState: editableConsentState(customer.consents.find((consent) => consent.channel === CustomerConsentChannel.Sms)?.state),
+      segmentIds: customer.segmentMemberships.edges.map((edge) => edge.node.segment.id),
       defaultAddress: {
-        address1: customer.defaultAddress?.address1 ?? "",
-        address2: customer.defaultAddress?.address2 ?? "",
-        city: customer.defaultAddress?.city ?? "",
-        province: customer.defaultAddress?.province ?? "",
-        postalCode: customer.defaultAddress?.postalCode ?? "",
-        countryCode: customer.defaultAddress?.countryCode ?? "",
+        address1: customer.defaultShippingAddress?.address1 ?? "",
+        address2: customer.defaultShippingAddress?.address2 ?? "",
+        city: customer.defaultShippingAddress?.city ?? "",
+        province: customer.defaultShippingAddress?.regionName ?? "",
+        postalCode: customer.defaultShippingAddress?.postalCode ?? "",
+        countryCode: customer.defaultShippingAddress?.countryCode ?? "",
       },
-      blockedReason: customer.moderation.blockedReason ?? "",
-      moderationNote: customer.moderation.moderationNote ?? "",
+      blockedReason: customer.blockedReason ?? "",
+      moderationNote: customer.moderationNote ?? "",
     });
   }, [customerQuery.customer, isEdit, reset]);
 
@@ -232,6 +246,10 @@ export function CustomerModal() {
       label: segment.name,
     })) ?? [],
     [editorContext.context?.segments],
+  );
+  const tagOptions = useMemo(
+    () => editorContext.context?.tags.map((tag) => ({ value: tag.id, label: tag.name })) ?? [],
+    [editorContext.context?.tags],
   );
   const countryOptions = useMemo(
     () => shopCountries.map((country) => ({ value: country.value, label: country.name })),
@@ -246,9 +264,20 @@ export function CustomerModal() {
     setGlobalErrors([]);
     clearErrors();
     const current = customerQuery.customer;
-    const result = isEdit && current
-      ? await updateCustomer(buildCustomerUpdateInput(values, current))
-      : await createCustomer(buildCustomerCreateInput(values));
+    let result;
+    if (isEdit && current) {
+      result = await updateCustomer(current.id, current.revision, buildCustomerUpdateInput(values, current));
+    } else {
+      const created = await createCustomer(buildCustomerCreateInput(values));
+      result = created;
+      if (created.customer && created.userErrors.length === 0) {
+        result = await updateCustomer(
+          created.customer.id,
+          created.customer.revision,
+          buildCustomerUpdateInput(values),
+        );
+      }
+    }
 
     if (!result.customer || result.userErrors.length > 0) {
       const global: string[] = [];
@@ -476,13 +505,13 @@ export function CustomerModal() {
             <div>
               <label className={styles.label} htmlFor="customer-tags">Tags</label>
               <Controller
-                name="tags"
+                name="tagIds"
                 control={control}
                 render={({ field }) => (
-                  <Select {...field} id="customer-tags" mode="tags" tokenSeparators={[","]} placeholder="Add operator tags" style={{ width: "100%" }} />
+                  <Select {...field} id="customer-tags" mode="multiple" allowClear options={tagOptions} placeholder="Assign customer tags" style={{ width: "100%" }} />
                 )}
               />
-              {errors.tags ? <div className={styles.error}>{errors.tags.message}</div> : null}
+              {errors.tagIds ? <div className={styles.error}>{errors.tagIds.message}</div> : null}
             </div>
             <div className={styles.fullWidth}>
               <label className={styles.label} htmlFor="customer-note">Internal note</label>
@@ -495,14 +524,6 @@ export function CustomerModal() {
               />
               {errors.note ? <div className={styles.error}>{errors.note.message}</div> : <div className={styles.help}>Visible only to store operators.</div>}
             </div>
-            <Flex align="center" justify="space-between" gap="middle" className={`${styles.fullWidth} ${styles.switchRow}`}>
-              <div>
-                <Typography.Text strong>Tax exempt</Typography.Text>
-                <br />
-                <Typography.Text type="secondary">Use only when the customer has a verified exemption.</Typography.Text>
-              </div>
-              <Controller name="taxExempt" control={control} render={({ field }) => <Switch checked={field.value} onChange={field.onChange} />} />
-            </Flex>
           </div>
         </Paper>
 
@@ -512,20 +533,20 @@ export function CustomerModal() {
             <div className={styles.metricGrid}>
               <Flex vertical gap={4} className={styles.metric}>
                 <Typography.Text type="secondary">Orders</Typography.Text>
-                <Typography.Title level={4} className={styles.metricValue}>{customer?.activity.ordersCount ?? 0}</Typography.Title>
+                <Typography.Title level={4} className={styles.metricValue}>{customer?.statistics?.ordersCount ?? 0}</Typography.Title>
               </Flex>
               <Flex vertical gap={4} className={styles.metric}>
                 <Typography.Text type="secondary">Total spent</Typography.Text>
-                <Typography.Title level={4} className={styles.metricValue}>{formatMoney(customer?.activity.totalSpentMinor ?? 0, defaultCurrency)}</Typography.Title>
+                <Typography.Title level={4} className={styles.metricValue}>{formatMoney(customer?.monetaryStatistics.edges[0]?.node.totalSpentMinor ?? 0, defaultCurrency)}</Typography.Title>
               </Flex>
               <Flex vertical gap={4} className={styles.metric}>
                 <Typography.Text type="secondary">Returns</Typography.Text>
-                <Typography.Title level={4} className={styles.metricValue}>{customer?.activity.returnsCount ?? 0}</Typography.Title>
+                <Typography.Title level={4} className={styles.metricValue}>{customer?.statistics?.returnsCount ?? 0}</Typography.Title>
               </Flex>
               <Flex vertical gap={4} className={styles.metric}>
                 <Typography.Text type="secondary">Last order</Typography.Text>
                 <Typography.Title level={5} className={styles.metricValue}>
-                  {customer?.activity.lastOrderAt ? customerDateFormatter.format(new Date(customer.activity.lastOrderAt)) : "No orders"}
+                  {customer?.statistics?.lastOrderAt ? customerDateFormatter.format(new Date(customer.statistics.lastOrderAt)) : "No orders"}
                 </Typography.Title>
               </Flex>
             </div>
@@ -565,9 +586,9 @@ export function CustomerModal() {
                     value={field.value}
                     onChange={field.onChange}
                     options={[
-                      { value: CustomerStatus.Active, label: "Active", icon: <CheckCircleOutlined /> },
-                      { value: CustomerStatus.Disabled, label: "Disabled", icon: <ClockCircleOutlined /> },
-                      { value: CustomerStatus.Blocked, label: "Blocked", icon: <StopOutlined /> },
+                      { value: CustomerAdminLifecycleStatus.Active, label: "Active", icon: <CheckCircleOutlined /> },
+                      { value: CustomerAdminLifecycleStatus.Disabled, label: "Disabled", icon: <ClockCircleOutlined /> },
+                      { value: CustomerAdminLifecycleStatus.Blocked, label: "Blocked", icon: <StopOutlined /> },
                     ]}
                   />
                 )}
@@ -578,7 +599,7 @@ export function CustomerModal() {
               <br />
               <Typography.Text type="secondary">{currentStatus.description}</Typography.Text>
             </div>
-            {status === CustomerStatus.Blocked ? (
+            {status === CustomerAdminLifecycleStatus.Blocked ? (
               <div>
                 <label className={styles.label} htmlFor="customer-blocked-reason"><CloseCircleOutlined /> Block reason *</label>
                 <Controller

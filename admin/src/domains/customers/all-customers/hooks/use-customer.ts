@@ -1,34 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { requestCustomer } from "../api/request-customers";
-import type { ApiCustomer } from "../graphql/operation-types";
+import { useQuery } from "@apollo/client/react";
+import { useDefaultCurrency } from "@/domains/workspace";
+import { CUSTOMER_QUERY } from "../graphql";
+import type {
+  CustomerQueryData,
+  CustomerQueryVariables,
+} from "../graphql/operation-types";
 
 export function useCustomer(id?: string) {
-  const [customer, setCustomer] = useState<ApiCustomer | null>(null);
-  const [loading, setLoading] = useState(Boolean(id));
-  const [error, setError] = useState<Error | null>(null);
+  const currencyCode = useDefaultCurrency();
+  const { data, previousData, loading, error, refetch } = useQuery<
+    CustomerQueryData,
+    CustomerQueryVariables
+  >(CUSTOMER_QUERY, {
+    variables: { id: id ?? "", currencyCode },
+    skip: !id,
+    fetchPolicy: "cache-and-network",
+  });
 
-  const execute = useCallback(async () => {
-    if (!id) return null;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await requestCustomer(id);
-      setCustomer(result);
-      return result;
-    } catch (cause) {
-      const normalized = cause instanceof Error ? cause : new Error("Unable to load customer");
-      setError(normalized);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void execute();
-  }, [execute]);
-
-  return { customer, loading, error, refetch: execute };
+  return {
+    customer: (data ?? previousData)?.customersQuery.customer ?? null,
+    loading,
+    error: error ?? null,
+    refetch: () => refetch(),
+  };
 }

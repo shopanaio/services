@@ -1,34 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { requestCustomerSegment } from "../api/request-segments";
-import type { ApiCustomerSegmentDetails } from "../graphql/operation-types";
+import { useQuery } from "@apollo/client/react";
+import { CUSTOMER_SEGMENT_QUERY } from "../graphql";
+import type { CustomerSegmentQueryData, CustomerSegmentQueryVariables } from "../graphql/operation-types";
 
 export function useCustomerSegment(id?: string) {
-  const [segment, setSegment] = useState<ApiCustomerSegmentDetails | null>(null);
-  const [loading, setLoading] = useState(Boolean(id));
-  const [error, setError] = useState<Error | null>(null);
+  const { data, previousData, loading, error, refetch } = useQuery<
+    CustomerSegmentQueryData,
+    CustomerSegmentQueryVariables
+  >(CUSTOMER_SEGMENT_QUERY, {
+    variables: { id: id ?? "" },
+    skip: !id,
+    fetchPolicy: "cache-and-network",
+  });
 
-  const execute = useCallback(async () => {
-    if (!id) return null;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await requestCustomerSegment(id);
-      setSegment(result);
-      return result;
-    } catch (cause) {
-      const normalized = cause instanceof Error ? cause : new Error("Unable to load customer segment");
-      setError(normalized);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void execute();
-  }, [execute]);
-
-  return { segment, loading, error, refetch: execute };
+  return {
+    segment: (data ?? previousData)?.customersQuery.customerSegment ?? null,
+    loading,
+    error: error ?? null,
+    refetch: () => refetch(),
+  };
 }

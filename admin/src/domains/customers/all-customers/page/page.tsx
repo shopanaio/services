@@ -18,22 +18,23 @@ import {
   type ColDef,
 } from "ag-grid-community";
 import { useDefaultCurrency } from "@/domains/workspace";
+import {
+  CustomerConsentChannel,
+  CustomerConsentState,
+  CustomerLifecycleStatus,
+  CustomerOrderField,
+  CustomerSegmentStatus,
+  type ApiCustomer,
+  type ApiCustomerWhereInput,
+} from "@/graphql/types";
 import { useAgGridTheme, usePageConfig } from "@/hooks";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useCustomers } from "../hooks";
+import { useCustomerSegments } from "../../segments/hooks";
 import { useCustomerModal } from "../modals";
-import type {
-  ApiCustomer,
-  CustomerWhereInput,
-} from "../graphql/operation-types";
-import {
-  CustomerMarketingState,
-  CustomerOrderField,
-  CustomerStatus,
-} from "../graphql/operation-types";
-import { filterSchema } from "./filter-schema";
+import { createCustomerFilterSchema } from "./filter-schema";
 import {
   buildCustomerSearchCondition,
   buildCustomersQueryVariables,
@@ -43,10 +44,12 @@ import {
 
 ModuleRegistry.registerModules([AllCommunityModule, GridStateModule]);
 
-const statusConfig: Record<CustomerStatus, { color: string; label: string }> = {
-  [CustomerStatus.Active]: { color: "green", label: "Active" },
-  [CustomerStatus.Disabled]: { color: "default", label: "Disabled" },
-  [CustomerStatus.Blocked]: { color: "red", label: "Blocked" },
+const statusConfig: Record<CustomerLifecycleStatus, { color: string; label: string }> = {
+  [CustomerLifecycleStatus.Active]: { color: "green", label: "Active" },
+  [CustomerLifecycleStatus.Disabled]: { color: "default", label: "Disabled" },
+  [CustomerLifecycleStatus.Blocked]: { color: "red", label: "Blocked" },
+  [CustomerLifecycleStatus.Merged]: { color: "purple", label: "Merged" },
+  [CustomerLifecycleStatus.Redacted]: { color: "default", label: "Redacted" },
 };
 
 const customerDateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -66,41 +69,41 @@ function formatMoney(amountMinor: number, currency: string | null): string {
 
 function CustomerCell({ data }: CustomCellRendererProps<ApiCustomer>) {
   if (!data) return null;
-  const initials = `${data.firstName[0] ?? ""}${data.lastName[0] ?? ""}`.toUpperCase();
+  const initials = `${data.firstName?.[0] ?? ""}${data.lastName?.[0] ?? ""}`.toUpperCase();
 
   return (
     <Flex align="center" gap="small" style={{ minWidth: 0 }}>
       <Avatar>{initials}</Avatar>
       <Flex vertical gap={2} style={{ minWidth: 0 }}>
         <Typography.Text strong ellipsis title={data.displayName}>{data.displayName}</Typography.Text>
-        <Typography.Text type="secondary" ellipsis title={data.email}>{data.email}</Typography.Text>
+        <Typography.Text type="secondary" ellipsis title={data.email ?? undefined}>{data.email ?? "No email"}</Typography.Text>
       </Flex>
     </Flex>
   );
 }
 
-function StatusCell({ value }: CustomCellRendererProps<ApiCustomer, CustomerStatus>) {
-  const config = statusConfig[value ?? CustomerStatus.Active];
+function StatusCell({ value }: CustomCellRendererProps<ApiCustomer, CustomerLifecycleStatus>) {
+  const config = statusConfig[value ?? CustomerLifecycleStatus.Active];
   return <Tag color={config.color}>{config.label}</Tag>;
 }
 
-function MarketingCell({ value }: CustomCellRendererProps<ApiCustomer, CustomerMarketingState>) {
-  if (value === CustomerMarketingState.Subscribed) {
+function MarketingCell({ value }: CustomCellRendererProps<ApiCustomer, CustomerConsentState>) {
+  if (value === CustomerConsentState.Subscribed) {
     return <Flex align="center" gap={6}><CheckCircleFilled style={{ color: "#52c41a" }} /><Typography.Text>Subscribed</Typography.Text></Flex>;
   }
-  if (value === CustomerMarketingState.Pending) {
+  if (value === CustomerConsentState.Pending) {
     return <Flex align="center" gap={6}><ClockCircleOutlined style={{ color: "#d48806" }} /><Typography.Text>Pending</Typography.Text></Flex>;
   }
   return <Flex align="center" gap={6}><MailOutlined /><Typography.Text type="secondary">Not subscribed</Typography.Text></Flex>;
 }
 
 function LocationCell({ data }: CustomCellRendererProps<ApiCustomer>) {
-  if (!data?.defaultAddress) return <Typography.Text type="secondary">No address</Typography.Text>;
+  if (!data?.defaultShippingAddress) return <Typography.Text type="secondary">No address</Typography.Text>;
   return (
     <Flex align="center" gap={6} style={{ minWidth: 0 }}>
       <EnvironmentOutlined style={{ color: "#8c8c8c" }} />
-      <Typography.Text ellipsis title={`${data.defaultAddress.city}, ${data.defaultAddress.countryCode}`}>
-        {data.defaultAddress.city}, {data.defaultAddress.countryCode}
+      <Typography.Text ellipsis title={`${data.defaultShippingAddress.city}, ${data.defaultShippingAddress.countryCode}`}>
+        {data.defaultShippingAddress.city}, {data.defaultShippingAddress.countryCode}
       </Typography.Text>
     </Flex>
   );
@@ -115,8 +118,18 @@ function LastOrderCell({ value }: CustomCellRendererProps<ApiCustomer, string | 
 export default function AllCustomersPage() {
   const agGridTheme = useAgGridTheme();
   const defaultCurrency = useDefaultCurrency();
+  const segmentQuery = useCustomerSegments({
+    first: 250,
+    where: { status: { _eq: CustomerSegmentStatus.Active } },
+  });
+  const filterSchema = useMemo(
+    () => createCustomerFilterSchema(
+      segmentQuery.connection?.edges.map((edge) => edge.node) ?? [],
+    ),
+    [segmentQuery.connection],
+  );
   const gridRef = useRef<AgGridReact<ApiCustomer>>(null);
-  const pageConfig = usePageConfig<ApiCustomer, CustomerWhereInput, CustomerOrderField>({
+  const pageConfig = usePageConfig<ApiCustomer, ApiCustomerWhereInput, CustomerOrderField>({
     gridRef,
     storageKey: "customers-grid-state",
     filterSchema,
@@ -128,7 +141,7 @@ export default function AllCustomersPage() {
     filterTransformers: customerFilterTransformers,
   });
   const variables = useMemo(
-    () => buildCustomersQueryVariables(pageConfig),
+    () => ({ ...buildCustomersQueryVariables(pageConfig), currencyCode: defaultCurrency }),
     [
       pageConfig.first,
       pageConfig.after,
@@ -136,6 +149,7 @@ export default function AllCustomersPage() {
       pageConfig.before,
       pageConfig.where,
       pageConfig.orderBy,
+      defaultCurrency,
     ],
   );
   const { customers, totalCount, pageInfo, loading, error, refetch } = useCustomers(variables);
@@ -167,13 +181,13 @@ export default function AllCustomersPage() {
     },
     {
       headerName: "Status",
-      field: "status",
+      field: "lifecycleStatus",
       cellRenderer: StatusCell,
       width: 120,
     },
     {
       headerName: "Marketing",
-      field: "emailMarketingState",
+      valueGetter: ({ data }) => data?.consents.find((consent) => consent.channel === CustomerConsentChannel.Email)?.state ?? CustomerConsentState.NotSubscribed,
       cellRenderer: MarketingCell,
       minWidth: 165,
       sortable: false,
@@ -188,20 +202,20 @@ export default function AllCustomersPage() {
     {
       headerName: "Orders",
       colId: "ordersCount",
-      valueGetter: ({ data }) => data?.activity.ordersCount ?? 0,
+      valueGetter: ({ data }) => data?.statistics?.ordersCount ?? 0,
       width: 105,
     },
     {
       headerName: "Total spent",
       colId: "totalSpentMinor",
-      valueGetter: ({ data }) => data?.activity.totalSpentMinor ?? 0,
+      valueGetter: ({ data }) => data?.monetaryStatistics.edges[0]?.node.totalSpentMinor ?? 0,
       valueFormatter: ({ value }) => formatMoney(Number(value ?? 0), defaultCurrency),
       minWidth: 135,
     },
     {
       headerName: "Last order",
       colId: "lastOrderAt",
-      valueGetter: ({ data }) => data?.activity.lastOrderAt ?? null,
+      valueGetter: ({ data }) => data?.statistics?.lastOrderAt ?? null,
       cellRenderer: LastOrderCell,
       minWidth: 145,
     },

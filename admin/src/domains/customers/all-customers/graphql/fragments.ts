@@ -3,29 +3,38 @@ import { gql } from "@apollo/client";
 export const CUSTOMER_LIST_FRAGMENT = gql`
   fragment CustomerListFields on Customer {
     id
-    version
+    revision
     displayName
     firstName
     lastName
     email
-    phone
-    status
-    emailMarketingState
-    segments {
+    phoneE164
+    lifecycleStatus
+    consents {
       id
-      name
+      channel
+      state
+      contactPoint
     }
-    defaultAddress {
+    defaultShippingAddress {
       id
       city
       countryCode
     }
-    activity {
+    statistics {
       ordersCount
-      totalSpentMinor
-      averageOrderValueMinor
       returnsCount
       lastOrderAt
+    }
+    monetaryStatistics(first: 1, where: { currencyCode: { _eq: $currencyCode } }) {
+      edges {
+        node {
+          id
+          currencyCode
+          totalSpentMinor
+          averageOrderValueMinor
+        }
+      }
     }
     createdAt
     updatedAt
@@ -35,23 +44,40 @@ export const CUSTOMER_LIST_FRAGMENT = gql`
 export const CUSTOMER_DETAILS_FRAGMENT = gql`
   fragment CustomerDetailsFields on Customer {
     ...CustomerListFields
-    locale
-    taxExempt
-    tags
+    preferredLocale
     note
-    smsMarketingState
-    defaultAddress {
+    blockedReason
+    moderationNote
+    segmentMemberships(first: 250) {
+      edges {
+        node {
+          id
+          segment {
+            id
+            name
+          }
+        }
+      }
+    }
+    tagAssignments(first: 250) {
+      edges {
+        node {
+          id
+          tag {
+            id
+            name
+          }
+        }
+      }
+    }
+    defaultShippingAddress {
       id
       address1
       address2
       city
-      province
+      regionName
       postalCode
       countryCode
-    }
-    moderation {
-      blockedReason
-      moderationNote
     }
   }
   ${CUSTOMER_LIST_FRAGMENT}

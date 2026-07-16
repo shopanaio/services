@@ -14,7 +14,7 @@ export const CUSTOMER_SEGMENTS_QUERY = gql`
     $orderBy: [CustomerSegmentOrderByInput!]
   ) {
     customersQuery {
-      segments(
+      customerSegments(
         first: $first
         after: $after
         last: $last
@@ -44,7 +44,7 @@ export const CUSTOMER_SEGMENTS_QUERY = gql`
 export const CUSTOMER_SEGMENT_QUERY = gql`
   query CustomerSegment($id: ID!) {
     customersQuery {
-      segment(id: $id) {
+      customerSegment(id: $id) {
         ...CustomerSegmentDetailsFields
       }
     }

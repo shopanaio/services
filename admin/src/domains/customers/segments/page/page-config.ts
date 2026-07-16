@@ -4,24 +4,24 @@ import type {
   SortFieldMapping,
   UsePageConfigReturn,
 } from "@/hooks";
-import { SortDirection } from "@/graphql/types";
-import type {
-  CustomerSegmentOrderByInput,
-  CustomerSegmentsQueryVariables,
-  CustomerSegmentWhereInput,
-} from "../graphql/operation-types";
-import { CustomerSegmentOrderField } from "../graphql/operation-types";
+import {
+  CustomerSegmentOrderField,
+  SortDirection,
+  type ApiCustomerSegmentOrderByInput,
+  type ApiCustomerSegmentWhereInput,
+} from "@/graphql/types";
+import type { CustomerSegmentsQueryVariables } from "../graphql/operation-types";
 
 export const customerSegmentSortFieldMapping: SortFieldMapping<CustomerSegmentOrderField> = {
   name: CustomerSegmentOrderField.Name,
-  memberCount: CustomerSegmentOrderField.MemberCount,
+  customersCount: CustomerSegmentOrderField.CustomersCount,
   createdAt: CustomerSegmentOrderField.CreatedAt,
   updatedAt: CustomerSegmentOrderField.UpdatedAt,
 };
 
 export const buildCustomerSegmentSearchCondition = (
   search: string,
-): Partial<CustomerSegmentWhereInput> => ({
+): Partial<ApiCustomerSegmentWhereInput> => ({
   _or: [
     { name: { _containsi: search } },
     { description: { _containsi: search } },
@@ -30,15 +30,15 @@ export const buildCustomerSegmentSearchCondition = (
 
 export const customerSegmentFilterTransformers: Record<
   string,
-  FilterTransformer<CustomerSegmentWhereInput>
+  FilterTransformer<ApiCustomerSegmentWhereInput>
 > = {
-  createdAt: createGraphqlDateTimeRangeFilterTransformer<CustomerSegmentWhereInput>("createdAt"),
-  updatedAt: createGraphqlDateTimeRangeFilterTransformer<CustomerSegmentWhereInput>("updatedAt"),
+  createdAt: createGraphqlDateTimeRangeFilterTransformer<ApiCustomerSegmentWhereInput>("createdAt"),
+  updatedAt: createGraphqlDateTimeRangeFilterTransformer<ApiCustomerSegmentWhereInput>("updatedAt"),
 };
 
 export function buildCustomerSegmentsQueryVariables(
   pageConfig: Pick<
-    UsePageConfigReturn<CustomerSegmentWhereInput, CustomerSegmentOrderField>,
+    UsePageConfigReturn<ApiCustomerSegmentWhereInput, CustomerSegmentOrderField>,
     "first" | "after" | "last" | "before" | "where" | "orderBy"
   >,
 ): CustomerSegmentsQueryVariables {
@@ -50,7 +50,7 @@ export function buildCustomerSegmentsQueryVariables(
     where: pageConfig.where ?? null,
     orderBy: pageConfig.orderBy?.map((order) => ({
       field: order.field,
-      direction: order.direction === SortDirection.Asc ? "ASC" : "DESC",
-    })) as CustomerSegmentOrderByInput[] | undefined,
+      direction: order.direction === SortDirection.Asc ? SortDirection.Asc : SortDirection.Desc,
+    })) as ApiCustomerSegmentOrderByInput[] | undefined,
   };
 }

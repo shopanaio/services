@@ -1,31 +1,22 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { requestCreateCustomerSegment } from "../api/request-segments";
-import type {
-  CustomerSegmentCreateInput,
-  CustomerSegmentMutationPayload,
-} from "../graphql/operation-types";
+import { useCallback } from "react";
+import { useMutation } from "@apollo/client/react";
+import type { ApiCustomerSegmentCreateInput, ApiGenericUserError } from "@/graphql/types";
+import { CUSTOMER_SEGMENT_CREATE_MUTATION, CUSTOMER_SEGMENTS_QUERY } from "../graphql";
+import type { CustomerSegmentCreateMutationData, CustomerSegmentCreateMutationVariables } from "../graphql/operation-types";
 
 export function useCreateCustomerSegment() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const createSegment = useCallback(async (
-    input: CustomerSegmentCreateInput,
-  ): Promise<CustomerSegmentMutationPayload> => {
-    setLoading(true);
-    setError(null);
+  const [mutate, { loading, error, reset }] = useMutation<CustomerSegmentCreateMutationData, CustomerSegmentCreateMutationVariables>(CUSTOMER_SEGMENT_CREATE_MUTATION);
+  const createSegment = useCallback(async (input: ApiCustomerSegmentCreateInput) => {
     try {
-      return await requestCreateCustomerSegment(input);
+      const result = await mutate({ variables: { input }, refetchQueries: [CUSTOMER_SEGMENTS_QUERY] });
+      const payload = result.data?.customersMutation.customerSegmentCreate;
+      return { segment: payload?.segment ?? null, userErrors: payload?.userErrors ?? [] };
     } catch (cause) {
-      const normalized = cause instanceof Error ? cause : new Error("Unable to create customer segment");
-      setError(normalized);
-      return { segment: null, userErrors: [{ code: "UNEXPECTED_ERROR", message: normalized.message }] };
-    } finally {
-      setLoading(false);
+      const message = cause instanceof Error ? cause.message : "Unable to create customer segment";
+      return { segment: null, userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[] };
     }
-  }, []);
-
-  return { createSegment, loading, error, reset: () => setError(null) };
+  }, [mutate]);
+  return { createSegment, loading, error: error ?? null, reset };
 }

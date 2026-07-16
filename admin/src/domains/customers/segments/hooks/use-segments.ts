@@ -1,17 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { ApiPageInfo } from "@/graphql/types";
-import { requestCustomerSegments } from "../api/request-segments";
-import type {
-  ApiCustomerSegment,
-  CustomerSegmentConnection,
-  CustomerSegmentsQueryVariables,
-} from "../graphql/operation-types";
+import { useQuery } from "@apollo/client/react";
+import type { ApiCustomerSegment, ApiCustomerSegmentConnection, ApiPageInfo } from "@/graphql/types";
+import { CUSTOMER_SEGMENTS_QUERY } from "../graphql";
+import type { CustomerSegmentsQueryData, CustomerSegmentsQueryVariables } from "../graphql/operation-types";
 
 export interface UseCustomerSegmentsReturn {
   segments: ApiCustomerSegment[];
-  connection: CustomerSegmentConnection | null;
+  connection: ApiCustomerSegmentConnection | null;
   totalCount: number;
   pageInfo: ApiPageInfo | null;
   loading: boolean;
@@ -19,36 +15,12 @@ export interface UseCustomerSegmentsReturn {
   refetch: () => Promise<unknown>;
 }
 
-export function useCustomerSegments(
-  variables: CustomerSegmentsQueryVariables,
-): UseCustomerSegmentsReturn {
-  const requestIdRef = useRef(0);
-  const [connection, setConnection] = useState<CustomerSegmentConnection | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const execute = useCallback(async () => {
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await requestCustomerSegments(variables);
-      if (requestId === requestIdRef.current) {
-        setConnection(data.customersQuery.segments);
-      }
-      return data;
-    } catch (cause) {
-      const normalized = cause instanceof Error ? cause : new Error("Unable to load customer segments");
-      if (requestId === requestIdRef.current) setError(normalized);
-      throw normalized;
-    } finally {
-      if (requestId === requestIdRef.current) setLoading(false);
-    }
-  }, [variables]);
-
-  useEffect(() => {
-    void execute().catch(() => undefined);
-  }, [execute]);
+export function useCustomerSegments(variables: CustomerSegmentsQueryVariables): UseCustomerSegmentsReturn {
+  const { data, previousData, loading, error, refetch } = useQuery<
+    CustomerSegmentsQueryData,
+    CustomerSegmentsQueryVariables
+  >(CUSTOMER_SEGMENTS_QUERY, { variables, fetchPolicy: "cache-and-network" });
+  const connection = (data ?? previousData)?.customersQuery.customerSegments ?? null;
 
   return {
     segments: connection?.edges.map((edge) => edge.node) ?? [],
@@ -56,7 +28,7 @@ export function useCustomerSegments(
     totalCount: connection?.totalCount ?? 0,
     pageInfo: connection?.pageInfo ?? null,
     loading,
-    error,
-    refetch: execute,
+    error: error ?? null,
+    refetch: () => refetch(),
   };
 }

@@ -15,16 +15,14 @@ import { useAgGridTheme, usePageConfig } from "@/hooks";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import { useCustomerSegments } from "../hooks";
-import { useCustomerSegmentModal } from "../modals";
-import type {
-  ApiCustomerSegment,
-  CustomerSegmentWhereInput,
-} from "../graphql/operation-types";
 import {
   CustomerSegmentOrderField,
   CustomerSegmentType,
-} from "../graphql/operation-types";
+  type ApiCustomerSegment,
+  type ApiCustomerSegmentWhereInput,
+} from "@/graphql/types";
+import { useCustomerSegments } from "../hooks";
+import { useCustomerSegmentModal } from "../modals";
 import { filterSchema } from "./filter-schema";
 import {
   buildCustomerSegmentSearchCondition,
@@ -51,7 +49,7 @@ function SegmentCell({ data }: CustomCellRendererProps<ApiCustomerSegment>) {
           width: 12,
           height: 12,
           borderRadius: "50%",
-          background: data.color,
+          background: data.color ?? "#8c8c8c",
           flex: "0 0 auto",
         }}
       />
@@ -87,7 +85,7 @@ export default function CustomerSegmentsPage() {
   const gridRef = useRef<AgGridReact<ApiCustomerSegment>>(null);
   const pageConfig = usePageConfig<
     ApiCustomerSegment,
-    CustomerSegmentWhereInput,
+    ApiCustomerSegmentWhereInput,
     CustomerSegmentOrderField
   >({
     gridRef,
@@ -140,8 +138,8 @@ export default function CustomerSegmentsPage() {
     },
     {
       headerName: "Customers",
-      colId: "memberCount",
-      field: "memberCount",
+      colId: "customersCount",
+      field: "customersCount",
       cellRenderer: MemberCountCell,
       width: 135,
     },

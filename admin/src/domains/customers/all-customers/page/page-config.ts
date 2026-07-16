@@ -7,18 +7,18 @@ import {
   type SortFieldMapping,
   type UsePageConfigReturn,
 } from "@/hooks";
-import { SortDirection } from "@/graphql/types";
-import type {
-  CustomerOrderByInput,
-  CustomersQueryVariables,
-  CustomerWhereInput,
-} from "../graphql/operation-types";
-import { CustomerOrderField } from "../graphql/operation-types";
+import {
+  CustomerOrderField,
+  SortDirection,
+  type ApiCustomerOrderByInput,
+  type ApiCustomerWhereInput,
+} from "@/graphql/types";
+import type { CustomersQueryVariables } from "../graphql/operation-types";
 
 export const customerSortFieldMapping: SortFieldMapping<CustomerOrderField> = {
   displayName: CustomerOrderField.DisplayName,
   email: CustomerOrderField.Email,
-  status: CustomerOrderField.Status,
+  lifecycleStatus: CustomerOrderField.LifecycleStatus,
   ordersCount: CustomerOrderField.OrdersCount,
   totalSpentMinor: CustomerOrderField.TotalSpentMinor,
   lastOrderAt: CustomerOrderField.LastOrderAt,
@@ -28,26 +28,26 @@ export const customerSortFieldMapping: SortFieldMapping<CustomerOrderField> = {
 
 export const buildCustomerSearchCondition = (
   search: string,
-): Partial<CustomerWhereInput> => ({
+): Partial<ApiCustomerWhereInput> => ({
   _or: [
     { displayName: { _containsi: search } },
     { email: { _containsi: search } },
-    { phone: { _containsi: search } },
+    { phoneE164: { _containsi: search } },
   ],
 });
 
 export const customerFilterTransformers: Record<
   string,
-  FilterTransformer<CustomerWhereInput>
+  FilterTransformer<ApiCustomerWhereInput>
 > = {
-  totalSpentMinor: createMinorUnitPriceTransformer<CustomerWhereInput>("totalSpentMinor"),
-  lastOrderAt: createGraphqlDateTimeRangeFilterTransformer<CustomerWhereInput>("lastOrderAt"),
-  createdAt: createGraphqlDateTimeRangeFilterTransformer<CustomerWhereInput>("createdAt"),
+  totalSpentMinor: createMinorUnitPriceTransformer<ApiCustomerWhereInput>("totalSpentMinor"),
+  lastOrderAt: createGraphqlDateTimeRangeFilterTransformer<ApiCustomerWhereInput>("lastOrderAt"),
+  createdAt: createGraphqlDateTimeRangeFilterTransformer<ApiCustomerWhereInput>("createdAt"),
 };
 
 export function buildCustomersQueryVariables(
   pageConfig: Pick<
-    UsePageConfigReturn<CustomerWhereInput, CustomerOrderField>,
+    UsePageConfigReturn<ApiCustomerWhereInput, CustomerOrderField>,
     "first" | "after" | "last" | "before" | "where" | "orderBy"
   >,
 ): CustomersQueryVariables {
@@ -59,7 +59,7 @@ export function buildCustomersQueryVariables(
     where: pageConfig.where ?? null,
     orderBy: pageConfig.orderBy?.map((order) => ({
       field: order.field,
-      direction: order.direction === SortDirection.Asc ? "ASC" : "DESC",
-    })) as CustomerOrderByInput[] | undefined,
+      direction: order.direction === SortDirection.Asc ? SortDirection.Asc : SortDirection.Desc,
+    })) as ApiCustomerOrderByInput[] | undefined,
   };
 }

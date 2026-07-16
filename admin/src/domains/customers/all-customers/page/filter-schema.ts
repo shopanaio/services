@@ -8,9 +8,9 @@ import {
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 import {
-  CustomerMarketingState,
-  CustomerStatus,
-} from "../graphql/operation-types";
+  CustomerLifecycleStatus,
+  CustomerConsentState,
+} from "@/graphql/types";
 
 const countryOptions = allowedCountries.map((countryCode) => ({
   value: countryCode,
@@ -25,29 +25,11 @@ export const filterSchema: IFilterSchema[] = [
     description: "Filter by customer account status",
     type: FilterType.Enum,
     operators: enumOperators,
-    payloadKey: "status",
+    payloadKey: "lifecycleStatus",
     options: [
-      { label: "Active", value: CustomerStatus.Active },
-      { label: "Disabled", value: CustomerStatus.Disabled },
-      { label: "Blocked", value: CustomerStatus.Blocked },
-    ],
-  },
-  {
-    key: "segment",
-    label: "Segment",
-    description: "Filter by assigned customer segment",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "segmentId",
-    options: [
-      { label: "VIP", value: "segment-vip" },
-      { label: "Repeat customers", value: "segment-repeat" },
-      { label: "New customers", value: "segment-new" },
-      { label: "At risk", value: "segment-at-risk" },
-      { label: "Wholesale", value: "segment-wholesale" },
-      { label: "Newsletter engaged", value: "segment-newsletter" },
-      { label: "Local pickup", value: "segment-local-pickup" },
-      { label: "Support follow-up", value: "segment-support" },
+      { label: "Active", value: CustomerLifecycleStatus.Active },
+      { label: "Disabled", value: CustomerLifecycleStatus.Disabled },
+      { label: "Blocked", value: CustomerLifecycleStatus.Blocked },
     ],
   },
   {
@@ -58,9 +40,10 @@ export const filterSchema: IFilterSchema[] = [
     operators: enumOperators,
     payloadKey: "emailMarketingState",
     options: [
-      { label: "Subscribed", value: CustomerMarketingState.Subscribed },
-      { label: "Not subscribed", value: CustomerMarketingState.NotSubscribed },
-      { label: "Pending confirmation", value: CustomerMarketingState.Pending },
+      { label: "Subscribed", value: CustomerConsentState.Subscribed },
+      { label: "Not subscribed", value: CustomerConsentState.NotSubscribed },
+      { label: "Pending confirmation", value: CustomerConsentState.Pending },
+      { label: "Unsubscribed", value: CustomerConsentState.Unsubscribed },
     ],
   },
   {
@@ -69,7 +52,7 @@ export const filterSchema: IFilterSchema[] = [
     description: "Filter by default-address country",
     type: FilterType.Enum,
     operators: enumOperators,
-    payloadKey: "countryCode",
+    payloadKey: "defaultShippingCountryCode",
     options: countryOptions,
   },
   {
@@ -105,3 +88,23 @@ export const filterSchema: IFilterSchema[] = [
     payloadKey: "createdAt",
   },
 ];
+
+export function createCustomerFilterSchema(
+  segments: Array<{ id: string; name: string }>,
+): IFilterSchema[] {
+  if (segments.length === 0) return filterSchema;
+
+  return [
+    filterSchema[0]!,
+    {
+      key: "segment",
+      label: "Segment",
+      description: "Filter by assigned customer segment",
+      type: FilterType.Enum,
+      operators: enumOperators,
+      payloadKey: "segmentId",
+      options: segments.map((segment) => ({ label: segment.name, value: segment.id })),
+    },
+    ...filterSchema.slice(1),
+  ];
+}

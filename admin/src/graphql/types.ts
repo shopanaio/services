@@ -13,6 +13,8 @@ export type Scalars = {
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
   BigInt: { input: number; output: number; }
+  /** Calendar date in ISO 8601 YYYY-MM-DD form. */
+  Date: { input: any; output: any; }
   /** ISO 8601 date-time string */
   DateTime: { input: string; output: string; }
   /** Valid email address */
@@ -22,6 +24,8 @@ export type Scalars = {
   Timestamp: { input: string; output: string; }
   TransportOptions: { input: unknown; output: unknown; }
   Upload: { input: File; output: File; }
+  _CustomersGeneratedFilterPlaceholder: { input: any; output: any; }
+  _ReviewsGeneratedFilterPlaceholder: { input: any; output: any; }
   join__FieldSet: { input: any; output: any; }
   link__Import: { input: any; output: any; }
 };
@@ -218,6 +222,20 @@ export type ApiAvatarUploadPayload = {
   file?: Maybe<ApiFile>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiBigIntFilter = {
+  _between?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  _eq?: InputMaybe<Scalars['BigInt']['input']>;
+  _gt?: InputMaybe<Scalars['BigInt']['input']>;
+  _gte?: InputMaybe<Scalars['BigInt']['input']>;
+  _in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['BigInt']['input']>;
+  _lte?: InputMaybe<Scalars['BigInt']['input']>;
+  _neq?: InputMaybe<Scalars['BigInt']['input']>;
+  _notIn?: InputMaybe<Array<Scalars['BigInt']['input']>>;
 };
 
 /** Filter operators for Boolean fields */
@@ -2944,9 +2962,2337 @@ export type ApiCurrencyUpdatePayload = {
   userErrors: Array<ApiUserError>;
 };
 
-export type ApiCustomer = {
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomer = ApiNode & {
   __typename?: 'Customer';
+  accountStatus: CustomerAccountStatus;
+  addresses: ApiCustomerAddressConnection;
+  /** Reason the customer is currently blocked. Null for other lifecycle states. */
+  blockedReason?: Maybe<Scalars['String']['output']>;
+  companyName?: Maybe<Scalars['String']['output']>;
+  /** At most one current consent record per channel. */
+  consents: Array<ApiCustomerConsent>;
+  createdAt: Scalars['DateTime']['output'];
+  createdByUserId?: Maybe<Scalars['String']['output']>;
+  dateOfBirth?: Maybe<Scalars['Date']['output']>;
+  defaultBillingAddress?: Maybe<ApiCustomerAddress>;
+  defaultShippingAddress?: Maybe<ApiCustomerAddress>;
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  displayName: Scalars['String']['output'];
+  email?: Maybe<Scalars['Email']['output']>;
+  emailVerified: Scalars['Boolean']['output'];
+  firstName?: Maybe<Scalars['String']['output']>;
+  gender?: Maybe<Scalars['String']['output']>;
+  groupMemberships: ApiCustomerGroupMembershipConnection;
+  /** Opaque IAM principal identifier. Null for guests and imported profiles. */
+  iamPrincipalId?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  jobTitle?: Maybe<Scalars['String']['output']>;
+  lastActivityAt?: Maybe<Scalars['DateTime']['output']>;
+  lastName?: Maybe<Scalars['String']['output']>;
+  lifecycleStatus: CustomerLifecycleStatus;
+  mergedInto?: Maybe<ApiCustomer>;
+  middleName?: Maybe<Scalars['String']['output']>;
+  /** Internal moderation context visible only to administrators. */
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  monetaryStatistics: ApiCustomerMonetaryStatisticsConnection;
+  note?: Maybe<Scalars['String']['output']>;
+  phoneE164?: Maybe<Scalars['String']['output']>;
+  phoneVerified: Scalars['Boolean']['output'];
+  preferredLocale?: Maybe<Scalars['String']['output']>;
+  prefix?: Maybe<Scalars['String']['output']>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  revision: Scalars['Int']['output'];
+  segmentMemberships: ApiCustomerSegmentMembershipConnection;
+  source: Scalars['String']['output'];
+  statistics?: Maybe<ApiCustomerStatistics>;
+  suffix?: Maybe<Scalars['String']['output']>;
+  tagAssignments: ApiCustomerTagAssignmentConnection;
+  taxExemptions: ApiCustomerTaxExemptionConnection;
+  taxIdentifiers: ApiCustomerTaxIdentifierConnection;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerAddressesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerAddressOrderByInput>>;
+  where?: InputMaybe<ApiCustomerAddressWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerGroupMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerGroupMembershipOrderByInput>>;
+  where?: InputMaybe<ApiCustomerGroupMembershipWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerMonetaryStatisticsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerMonetaryStatisticsOrderByInput>>;
+  where?: InputMaybe<ApiCustomerMonetaryStatisticsWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerSegmentMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerSegmentMembershipOrderByInput>>;
+  where?: InputMaybe<ApiCustomerSegmentMembershipWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerTagAssignmentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTagAssignmentOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTagAssignmentWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerTaxExemptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTaxExemptionOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTaxExemptionWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerTaxIdentifiersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTaxIdentifierOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTaxIdentifierWhereInput>;
+};
+
+export enum CustomerAccountStatus {
+  Guest = 'GUEST',
+  Invited = 'INVITED',
+  Registered = 'REGISTERED'
+}
+
+export type ApiCustomerAccountStatusFilter = {
+  _eq?: InputMaybe<CustomerAccountStatus>;
+  _in?: InputMaybe<Array<CustomerAccountStatus>>;
+  _neq?: InputMaybe<CustomerAccountStatus>;
+  _notIn?: InputMaybe<Array<CustomerAccountStatus>>;
+};
+
+export type ApiCustomerAddress = ApiNode & {
+  __typename?: 'CustomerAddress';
+  address1: Scalars['String']['output'];
+  address2?: Maybe<Scalars['String']['output']>;
+  city: Scalars['String']['output'];
+  companyName?: Maybe<Scalars['String']['output']>;
+  /** Uppercase ISO 3166-1 alpha-2 code. */
+  countryCode: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  firstName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isDefaultBilling: Scalars['Boolean']['output'];
+  isDefaultShipping: Scalars['Boolean']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  lastName?: Maybe<Scalars['String']['output']>;
+  latitude?: Maybe<Scalars['Float']['output']>;
+  longitude?: Maybe<Scalars['Float']['output']>;
+  middleName?: Maybe<Scalars['String']['output']>;
+  phoneE164?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+  prefix?: Maybe<Scalars['String']['output']>;
+  regionCode?: Maybe<Scalars['String']['output']>;
+  regionName?: Maybe<Scalars['String']['output']>;
+  suffix?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  validatedAt?: Maybe<Scalars['DateTime']['output']>;
+  validationStatus: CustomerAddressValidationStatus;
+};
+
+export type ApiCustomerAddressConnection = {
+  __typename?: 'CustomerAddressConnection';
+  edges: Array<ApiCustomerAddressEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerAddressCreateInput = {
+  address1: Scalars['String']['input'];
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city: Scalars['String']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode: Scalars['String']['input'];
+  customerId: Scalars['ID']['input'];
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  regionName?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Address values used inside the atomic customerUpdate operation. */
+export type ApiCustomerAddressCreateOperationInput = {
+  address1: Scalars['String']['input'];
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city: Scalars['String']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode: Scalars['String']['input'];
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  regionName?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerAddressCreatePayload = {
+  __typename?: 'CustomerAddressCreatePayload';
+  address?: Maybe<ApiCustomerAddress>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Atomically replaces both defaults. Null clears a default. */
+export type ApiCustomerAddressDefaultsUpdateInput = {
+  billingAddressId?: InputMaybe<Scalars['ID']['input']>;
+  customerId: Scalars['ID']['input'];
+  shippingAddressId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiCustomerAddressDefaultsUpdatePayload = {
+  __typename?: 'CustomerAddressDefaultsUpdatePayload';
+  customer?: Maybe<ApiCustomer>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerAddressDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerAddressDeletePayload = {
+  __typename?: 'CustomerAddressDeletePayload';
+  deletedAddressId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerAddressEdge = {
+  __typename?: 'CustomerAddressEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerAddress;
+};
+
+export type ApiCustomerAddressOrderByInput = {
+  direction: SortDirection;
+  field: CustomerAddressOrderField;
+};
+
+export enum CustomerAddressOrderField {
+  City = 'city',
+  CountryCode = 'countryCode',
+  CreatedAt = 'createdAt',
+  FirstName = 'firstName',
+  Id = 'id',
+  IsDefaultBilling = 'isDefaultBilling',
+  IsDefaultShipping = 'isDefaultShipping',
+  Label = 'label',
+  LastName = 'lastName',
+  PostalCode = 'postalCode',
+  RegionCode = 'regionCode',
+  UpdatedAt = 'updatedAt',
+  ValidationStatus = 'validationStatus'
+}
+
+export type ApiCustomerAddressUpdateInput = {
+  address1?: InputMaybe<Scalars['String']['input']>;
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city?: InputMaybe<Scalars['String']['input']>;
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  regionName?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerAddressUpdateOperationInput = {
+  addressId: Scalars['ID']['input'];
+  operations: ApiCustomerAddressUpdateInput;
+};
+
+export type ApiCustomerAddressUpdatePayload = {
+  __typename?: 'CustomerAddressUpdatePayload';
+  address?: Maybe<ApiCustomerAddress>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum CustomerAddressValidationStatus {
+  Invalid = 'INVALID',
+  Unvalidated = 'UNVALIDATED',
+  Valid = 'VALID'
+}
+
+export type ApiCustomerAddressValidationStatusFilter = {
+  _eq?: InputMaybe<CustomerAddressValidationStatus>;
+  _in?: InputMaybe<Array<CustomerAddressValidationStatus>>;
+  _neq?: InputMaybe<CustomerAddressValidationStatus>;
+  _notIn?: InputMaybe<Array<CustomerAddressValidationStatus>>;
+};
+
+export type ApiCustomerAddressWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerAddressWhereInput>>;
+  _not?: InputMaybe<ApiCustomerAddressWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerAddressWhereInput>>;
+  city?: InputMaybe<ApiStringFilter>;
+  companyName?: InputMaybe<ApiStringFilter>;
+  countryCode?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  firstName?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  isDefaultBilling?: InputMaybe<ApiBooleanFilter>;
+  isDefaultShipping?: InputMaybe<ApiBooleanFilter>;
+  label?: InputMaybe<ApiStringFilter>;
+  lastName?: InputMaybe<ApiStringFilter>;
+  phoneE164?: InputMaybe<ApiStringFilter>;
+  postalCode?: InputMaybe<ApiStringFilter>;
+  regionCode?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  validationStatus?: InputMaybe<ApiCustomerAddressValidationStatusFilter>;
+};
+
+/** Atomic address changes scoped to the customer being updated. */
+export type ApiCustomerAddressesUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerAddressCreateOperationInput>>;
+  /** Existing address ID to make the default. Explicit null clears the default. */
+  defaultBillingAddressId?: InputMaybe<Scalars['ID']['input']>;
+  /** Existing address ID to make the default. Explicit null clears the default. */
+  defaultShippingAddressId?: InputMaybe<Scalars['ID']['input']>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerAddressUpdateOperationInput>>;
+};
+
+/** Lifecycle states that a merchant administrator may select directly. */
+export enum CustomerAdminLifecycleStatus {
+  Active = 'ACTIVE',
+  Blocked = 'BLOCKED',
+  Disabled = 'DISABLED'
+}
+
+export enum CustomerAssignmentSource {
+  Import = 'IMPORT',
+  Manual = 'MANUAL',
+  Rule = 'RULE',
+  System = 'SYSTEM'
+}
+
+export type ApiCustomerAssignmentSourceFilter = {
+  _eq?: InputMaybe<CustomerAssignmentSource>;
+  _in?: InputMaybe<Array<CustomerAssignmentSource>>;
+  _neq?: InputMaybe<CustomerAssignmentSource>;
+  _notIn?: InputMaybe<Array<CustomerAssignmentSource>>;
+};
+
+/** Company fields in the unified customer update. */
+export type ApiCustomerCompanyUpdateInput = {
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  jobTitle?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerConnection = {
+  __typename?: 'CustomerConnection';
+  edges: Array<ApiCustomerEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Current consent state for one customer and channel. */
+export type ApiCustomerConsent = ApiNode & {
+  __typename?: 'CustomerConsent';
+  channel: CustomerConsentChannel;
+  consentedAt?: Maybe<Scalars['DateTime']['output']>;
+  contactPoint: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  events: ApiCustomerConsentEventConnection;
+  id: Scalars['ID']['output'];
+  optInLevel: CustomerConsentOptInLevel;
+  source: Scalars['String']['output'];
+  sourceIp?: Maybe<Scalars['String']['output']>;
+  sourceLocationId?: Maybe<Scalars['ID']['output']>;
+  state: CustomerConsentState;
+  updatedAt: Scalars['DateTime']['output'];
+  userAgent?: Maybe<Scalars['String']['output']>;
+  withdrawnAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+
+/** Current consent state for one customer and channel. */
+export type ApiCustomerConsentEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerConsentEventOrderByInput>>;
+};
+
+/** Consent states that a merchant administrator may set explicitly. */
+export enum CustomerConsentAdminState {
+  NotSubscribed = 'NOT_SUBSCRIBED',
+  Pending = 'PENDING',
+  Subscribed = 'SUBSCRIBED',
+  Unsubscribed = 'UNSUBSCRIBED'
+}
+
+export enum CustomerConsentChannel {
+  Email = 'EMAIL',
+  Push = 'PUSH',
+  Sms = 'SMS',
+  Whatsapp = 'WHATSAPP'
+}
+
+/** Immutable evidence record for a consent transition. */
+export type ApiCustomerConsentEvent = ApiNode & {
+  __typename?: 'CustomerConsentEvent';
+  actorId?: Maybe<Scalars['String']['output']>;
+  actorType: Scalars['String']['output'];
+  channel: CustomerConsentChannel;
+  consent: ApiCustomerConsent;
+  contactPoint: Scalars['String']['output'];
+  customer: ApiCustomer;
+  evidence: Scalars['JSON']['output'];
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  newState: CustomerConsentState;
+  occurredAt: Scalars['DateTime']['output'];
+  optInLevel: CustomerConsentOptInLevel;
+  previousState?: Maybe<CustomerConsentState>;
+  requestId?: Maybe<Scalars['String']['output']>;
+  source: Scalars['String']['output'];
+  sourceIp?: Maybe<Scalars['String']['output']>;
+  sourceLocationId?: Maybe<Scalars['ID']['output']>;
+  userAgent?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiCustomerConsentEventConnection = {
+  __typename?: 'CustomerConsentEventConnection';
+  edges: Array<ApiCustomerConsentEventEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerConsentEventEdge = {
+  __typename?: 'CustomerConsentEventEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerConsentEvent;
+};
+
+export type ApiCustomerConsentEventOrderByInput = {
+  direction: SortDirection;
+  field: CustomerConsentEventOrderField;
+};
+
+export enum CustomerConsentEventOrderField {
+  ActorType = 'actorType',
+  Channel = 'channel',
+  Id = 'id',
+  NewState = 'newState',
+  OccurredAt = 'occurredAt',
+  Source = 'source'
+}
+
+export enum CustomerConsentOptInLevel {
+  ConfirmedOptIn = 'CONFIRMED_OPT_IN',
+  SingleOptIn = 'SINGLE_OPT_IN',
+  Unknown = 'UNKNOWN'
+}
+
+export type ApiCustomerConsentSetInput = {
+  channel: CustomerConsentChannel;
+  contactPoint: Scalars['String']['input'];
+  customerId: Scalars['ID']['input'];
+  evidence?: InputMaybe<Scalars['JSON']['input']>;
+  /** Defaults to UNKNOWN when omitted. */
+  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
+  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
+  state: CustomerConsentAdminState;
+};
+
+export type ApiCustomerConsentSetPayload = {
+  __typename?: 'CustomerConsentSetPayload';
+  consent?: Maybe<ApiCustomerConsent>;
+  event?: Maybe<ApiCustomerConsentEvent>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum CustomerConsentState {
+  Invalid = 'INVALID',
+  NotSubscribed = 'NOT_SUBSCRIBED',
+  Pending = 'PENDING',
+  Redacted = 'REDACTED',
+  Subscribed = 'SUBSCRIBED',
+  Unsubscribed = 'UNSUBSCRIBED'
+}
+
+export type ApiCustomerConsentStateFilter = {
+  _eq?: InputMaybe<CustomerConsentState>;
+  _in?: InputMaybe<Array<CustomerConsentState>>;
+  _neq?: InputMaybe<CustomerConsentState>;
+  _notIn?: InputMaybe<Array<CustomerConsentState>>;
+};
+
+/** Consent transition scoped to the customer being updated. */
+export type ApiCustomerConsentUpdateOperationInput = {
+  channel: CustomerConsentChannel;
+  contactPoint: Scalars['String']['input'];
+  evidence?: InputMaybe<Scalars['JSON']['input']>;
+  /** Defaults to UNKNOWN when omitted. */
+  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
+  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
+  state: CustomerConsentAdminState;
+};
+
+/** Atomic consent transitions keyed by channel. */
+export type ApiCustomerConsentsUpdateInput = {
+  set: Array<ApiCustomerConsentUpdateOperationInput>;
+};
+
+/** Contact projections in the unified customer update. */
+export type ApiCustomerContactUpdateInput = {
+  email?: InputMaybe<Scalars['Email']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerCreateInput = {
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  dateOfBirth?: InputMaybe<Scalars['Date']['input']>;
+  email?: InputMaybe<Scalars['Email']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  gender?: InputMaybe<Scalars['String']['input']>;
+  jobTitle?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  moderationNote?: InputMaybe<Scalars['String']['input']>;
+  note?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  preferredLocale?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerCreatePayload = {
+  __typename?: 'CustomerCreatePayload';
+  customer?: Maybe<ApiCustomer>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Auditable privacy access, export, correction or erasure workflow. */
+export type ApiCustomerDataRequest = ApiNode & {
+  __typename?: 'CustomerDataRequest';
+  customer: ApiCustomer;
+  dueAt?: Maybe<Scalars['DateTime']['output']>;
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  legalBasis?: Maybe<Scalars['String']['output']>;
+  rejectionReason?: Maybe<Scalars['String']['output']>;
+  requestMetadata: Scalars['JSON']['output'];
+  requestedAt: Scalars['DateTime']['output'];
+  requestedById?: Maybe<Scalars['String']['output']>;
+  requestedByType: Scalars['String']['output'];
+  resultFile?: Maybe<ApiFile>;
+  resultFileId?: Maybe<Scalars['ID']['output']>;
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: CustomerDataRequestStatus;
+  type: CustomerDataRequestType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiCustomerDataRequestCancelInput = {
+  id: Scalars['ID']['input'];
+  reason?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerDataRequestCancelPayload = {
+  __typename?: 'CustomerDataRequestCancelPayload';
+  dataRequest?: Maybe<ApiCustomerDataRequest>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerDataRequestConnection = {
+  __typename?: 'CustomerDataRequestConnection';
+  edges: Array<ApiCustomerDataRequestEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerDataRequestCreateInput = {
+  customerId: Scalars['ID']['input'];
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  legalBasis?: InputMaybe<Scalars['String']['input']>;
+  requestMetadata?: InputMaybe<Scalars['JSON']['input']>;
+  type: CustomerDataRequestType;
+};
+
+export type ApiCustomerDataRequestCreatePayload = {
+  __typename?: 'CustomerDataRequestCreatePayload';
+  dataRequest?: Maybe<ApiCustomerDataRequest>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerDataRequestEdge = {
+  __typename?: 'CustomerDataRequestEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerDataRequest;
+};
+
+export type ApiCustomerDataRequestOrderByInput = {
+  direction: SortDirection;
+  field: CustomerDataRequestOrderField;
+};
+
+export enum CustomerDataRequestOrderField {
+  DueAt = 'dueAt',
+  FinishedAt = 'finishedAt',
+  Id = 'id',
+  RequestedAt = 'requestedAt',
+  StartedAt = 'startedAt',
+  Status = 'status',
+  Type = 'type',
+  UpdatedAt = 'updatedAt'
+}
+
+export enum CustomerDataRequestStatus {
+  Cancelled = 'CANCELLED',
+  Completed = 'COMPLETED',
+  Pending = 'PENDING',
+  Processing = 'PROCESSING',
+  Rejected = 'REJECTED'
+}
+
+export type ApiCustomerDataRequestStatusFilter = {
+  _eq?: InputMaybe<CustomerDataRequestStatus>;
+  _in?: InputMaybe<Array<CustomerDataRequestStatus>>;
+  _neq?: InputMaybe<CustomerDataRequestStatus>;
+  _notIn?: InputMaybe<Array<CustomerDataRequestStatus>>;
+};
+
+export enum CustomerDataRequestType {
+  Access = 'ACCESS',
+  Correction = 'CORRECTION',
+  Erasure = 'ERASURE',
+  Export = 'EXPORT'
+}
+
+export type ApiCustomerDataRequestTypeFilter = {
+  _eq?: InputMaybe<CustomerDataRequestType>;
+  _in?: InputMaybe<Array<CustomerDataRequestType>>;
+  _neq?: InputMaybe<CustomerDataRequestType>;
+  _notIn?: InputMaybe<Array<CustomerDataRequestType>>;
+};
+
+export type ApiCustomerDataRequestWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerDataRequestWhereInput>>;
+  _not?: InputMaybe<ApiCustomerDataRequestWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerDataRequestWhereInput>>;
+  customerId?: InputMaybe<ApiIdFilter>;
+  dueAt?: InputMaybe<ApiDateTimeFilter>;
+  finishedAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  legalBasis?: InputMaybe<ApiStringFilter>;
+  requestedAt?: InputMaybe<ApiDateTimeFilter>;
+  requestedById?: InputMaybe<ApiStringFilter>;
+  requestedByType?: InputMaybe<ApiStringFilter>;
+  startedAt?: InputMaybe<ApiDateTimeFilter>;
+  status?: InputMaybe<ApiCustomerDataRequestStatusFilter>;
+  type?: InputMaybe<ApiCustomerDataRequestTypeFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiCustomerEdge = {
+  __typename?: 'CustomerEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomer;
+};
+
+export type ApiCustomerGroup = ApiNode & {
+  __typename?: 'CustomerGroup';
+  code: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  customerMemberships: ApiCustomerGroupMembershipConnection;
+  customersCount: Scalars['Int']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isDefault: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ApiCustomerGroupCustomerMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerGroupMembershipOrderByInput>>;
+  where?: InputMaybe<ApiCustomerGroupMembershipWhereInput>;
+};
+
+export type ApiCustomerGroupConnection = {
+  __typename?: 'CustomerGroupConnection';
+  edges: Array<ApiCustomerGroupEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerGroupCreateInput = {
+  code: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export type ApiCustomerGroupCreatePayload = {
+  __typename?: 'CustomerGroupCreatePayload';
+  group?: Maybe<ApiCustomerGroup>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerGroupDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerGroupDeletePayload = {
+  __typename?: 'CustomerGroupDeletePayload';
+  deletedGroupId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerGroupEdge = {
+  __typename?: 'CustomerGroupEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerGroup;
+};
+
+export type ApiCustomerGroupMembership = ApiNode & {
+  __typename?: 'CustomerGroupMembership';
+  assignedAt: Scalars['DateTime']['output'];
+  assignedById?: Maybe<Scalars['String']['output']>;
+  customer: ApiCustomer;
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  group: ApiCustomerGroup;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isPrimary: Scalars['Boolean']['output'];
+  source: CustomerAssignmentSource;
+};
+
+export type ApiCustomerGroupMembershipConnection = {
+  __typename?: 'CustomerGroupMembershipConnection';
+  edges: Array<ApiCustomerGroupMembershipEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerGroupMembershipDeleteInput = {
+  customerId: Scalars['ID']['input'];
+  groupId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerGroupMembershipDeletePayload = {
+  __typename?: 'CustomerGroupMembershipDeletePayload';
+  deletedMembershipId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerGroupMembershipEdge = {
+  __typename?: 'CustomerGroupMembershipEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerGroupMembership;
+};
+
+export type ApiCustomerGroupMembershipOrderByInput = {
+  direction: SortDirection;
+  field: CustomerGroupMembershipOrderField;
+};
+
+export enum CustomerGroupMembershipOrderField {
+  AssignedAt = 'assignedAt',
+  ExpiresAt = 'expiresAt',
+  Id = 'id',
+  IsPrimary = 'isPrimary',
+  Source = 'source'
+}
+
+/** Create or update a customer's membership in a group. */
+export type ApiCustomerGroupMembershipSetInput = {
+  customerId: Scalars['ID']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  groupId: Scalars['ID']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiCustomerGroupMembershipSetPayload = {
+  __typename?: 'CustomerGroupMembershipSetPayload';
+  membership?: Maybe<ApiCustomerGroupMembership>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerGroupMembershipUpdateOperationInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  groupId: Scalars['ID']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiCustomerGroupMembershipWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerGroupMembershipWhereInput>>;
+  _not?: InputMaybe<ApiCustomerGroupMembershipWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerGroupMembershipWhereInput>>;
+  assignedAt?: InputMaybe<ApiDateTimeFilter>;
+  customerId?: InputMaybe<ApiIdFilter>;
+  expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  groupId?: InputMaybe<ApiIdFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  isPrimary?: InputMaybe<ApiBooleanFilter>;
+  source?: InputMaybe<ApiCustomerAssignmentSourceFilter>;
+};
+
+/** Replace all manual group memberships for the customer. */
+export type ApiCustomerGroupMembershipsUpdateInput = {
+  memberships: Array<ApiCustomerGroupMembershipUpdateOperationInput>;
+};
+
+export type ApiCustomerGroupOrderByInput = {
+  direction: SortDirection;
+  field: CustomerGroupOrderField;
+};
+
+export enum CustomerGroupOrderField {
+  Code = 'code',
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  IsActive = 'isActive',
+  IsDefault = 'isDefault',
+  Name = 'name',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiCustomerGroupUpdateInput = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerGroupUpdatePayload = {
+  __typename?: 'CustomerGroupUpdatePayload';
+  group?: Maybe<ApiCustomerGroup>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerGroupWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerGroupWhereInput>>;
+  _not?: InputMaybe<ApiCustomerGroupWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerGroupWhereInput>>;
+  code?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  isActive?: InputMaybe<ApiBooleanFilter>;
+  isDefault?: InputMaybe<ApiBooleanFilter>;
+  name?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export enum CustomerLifecycleStatus {
+  Active = 'ACTIVE',
+  Blocked = 'BLOCKED',
+  Disabled = 'DISABLED',
+  Merged = 'MERGED',
+  Redacted = 'REDACTED'
+}
+
+export type ApiCustomerLifecycleStatusFilter = {
+  _eq?: InputMaybe<CustomerLifecycleStatus>;
+  _in?: InputMaybe<Array<CustomerLifecycleStatus>>;
+  _neq?: InputMaybe<CustomerLifecycleStatus>;
+  _notIn?: InputMaybe<Array<CustomerLifecycleStatus>>;
+};
+
+/** Idempotent workflow that merges one customer profile into another. */
+export type ApiCustomerMerge = ApiNode & {
+  __typename?: 'CustomerMerge';
+  errorCode?: Maybe<Scalars['String']['output']>;
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  requestedAt: Scalars['DateTime']['output'];
+  requestedById?: Maybe<Scalars['String']['output']>;
+  requestedByType: Scalars['String']['output'];
+  resolution: Scalars['JSON']['output'];
+  sourceCustomer: ApiCustomer;
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: CustomerMergeStatus;
+  targetCustomer: ApiCustomer;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiCustomerMergeConnection = {
+  __typename?: 'CustomerMergeConnection';
+  edges: Array<ApiCustomerMergeEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerMergeEdge = {
+  __typename?: 'CustomerMergeEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerMerge;
+};
+
+export type ApiCustomerMergeOrderByInput = {
+  direction: SortDirection;
+  field: CustomerMergeOrderField;
+};
+
+export enum CustomerMergeOrderField {
+  FinishedAt = 'finishedAt',
+  Id = 'id',
+  RequestedAt = 'requestedAt',
+  StartedAt = 'startedAt',
+  Status = 'status',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiCustomerMergeRequestInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+  sourceCustomerId: Scalars['ID']['input'];
+  targetCustomerId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerMergeRequestPayload = {
+  __typename?: 'CustomerMergeRequestPayload';
+  merge?: Maybe<ApiCustomerMerge>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum CustomerMergeStatus {
+  Completed = 'COMPLETED',
+  Failed = 'FAILED',
+  InProgress = 'IN_PROGRESS',
+  Requested = 'REQUESTED'
+}
+
+export type ApiCustomerMergeStatusFilter = {
+  _eq?: InputMaybe<CustomerMergeStatus>;
+  _in?: InputMaybe<Array<CustomerMergeStatus>>;
+  _neq?: InputMaybe<CustomerMergeStatus>;
+  _notIn?: InputMaybe<Array<CustomerMergeStatus>>;
+};
+
+export type ApiCustomerMergeWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerMergeWhereInput>>;
+  _not?: InputMaybe<ApiCustomerMergeWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerMergeWhereInput>>;
+  errorCode?: InputMaybe<ApiStringFilter>;
+  finishedAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  idempotencyKey?: InputMaybe<ApiStringFilter>;
+  requestedAt?: InputMaybe<ApiDateTimeFilter>;
+  requestedById?: InputMaybe<ApiStringFilter>;
+  requestedByType?: InputMaybe<ApiStringFilter>;
+  sourceCustomerId?: InputMaybe<ApiIdFilter>;
+  startedAt?: InputMaybe<ApiDateTimeFilter>;
+  status?: InputMaybe<ApiCustomerMergeStatusFilter>;
+  targetCustomerId?: InputMaybe<ApiIdFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Internal moderation context independent from the merchant note. */
+export type ApiCustomerModerationUpdateInput = {
+  moderationNote?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Rebuildable monetary customer projection for one ISO 4217 currency. */
+export type ApiCustomerMonetaryStatistics = ApiNode & {
+  __typename?: 'CustomerMonetaryStatistics';
+  averageOrderValueMinor: Scalars['BigInt']['output'];
+  currencyCode: CurrencyCode;
+  customer: ApiCustomer;
+  id: Scalars['ID']['output'];
+  netSpentMinor: Scalars['BigInt']['output'];
+  ordersCount: Scalars['Int']['output'];
+  totalRefundedMinor: Scalars['BigInt']['output'];
+  totalSpentMinor: Scalars['BigInt']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiCustomerMonetaryStatisticsConnection = {
+  __typename?: 'CustomerMonetaryStatisticsConnection';
+  edges: Array<ApiCustomerMonetaryStatisticsEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerMonetaryStatisticsEdge = {
+  __typename?: 'CustomerMonetaryStatisticsEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerMonetaryStatistics;
+};
+
+export type ApiCustomerMonetaryStatisticsOrderByInput = {
+  direction: SortDirection;
+  field: CustomerMonetaryStatisticsOrderField;
+};
+
+export enum CustomerMonetaryStatisticsOrderField {
+  AverageOrderValueMinor = 'averageOrderValueMinor',
+  CurrencyCode = 'currencyCode',
+  Id = 'id',
+  NetSpentMinor = 'netSpentMinor',
+  OrdersCount = 'ordersCount',
+  TotalRefundedMinor = 'totalRefundedMinor',
+  TotalSpentMinor = 'totalSpentMinor',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiCustomerMonetaryStatisticsWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerMonetaryStatisticsWhereInput>>;
+  _not?: InputMaybe<ApiCustomerMonetaryStatisticsWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerMonetaryStatisticsWhereInput>>;
+  averageOrderValueMinor?: InputMaybe<ApiBigIntFilter>;
+  currencyCode?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  netSpentMinor?: InputMaybe<ApiBigIntFilter>;
+  ordersCount?: InputMaybe<ApiIntFilter>;
+  totalRefundedMinor?: InputMaybe<ApiBigIntFilter>;
+  totalSpentMinor?: InputMaybe<ApiBigIntFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Merchant note in the unified customer update. */
+export type ApiCustomerNoteUpdateInput = {
+  note?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Result of one section in the unified customer update. */
+export type ApiCustomerOperationResult = {
+  __typename?: 'CustomerOperationResult';
+  applied: Scalars['Boolean']['output'];
+  errors: Array<ApiGenericUserError>;
+  type: CustomerOperationType;
+};
+
+export enum CustomerOperationType {
+  AddressUpdate = 'ADDRESS_UPDATE',
+  CompanyUpdate = 'COMPANY_UPDATE',
+  ConsentUpdate = 'CONSENT_UPDATE',
+  ContactUpdate = 'CONTACT_UPDATE',
+  GroupUpdate = 'GROUP_UPDATE',
+  ModerationUpdate = 'MODERATION_UPDATE',
+  NoteUpdate = 'NOTE_UPDATE',
+  ProfileUpdate = 'PROFILE_UPDATE',
+  SegmentUpdate = 'SEGMENT_UPDATE',
+  StatusUpdate = 'STATUS_UPDATE',
+  TagUpdate = 'TAG_UPDATE',
+  TaxExemptionUpdate = 'TAX_EXEMPTION_UPDATE',
+  TaxIdentifierUpdate = 'TAX_IDENTIFIER_UPDATE'
+}
+
+export type ApiCustomerOrderByInput = {
+  direction: SortDirection;
+  field: CustomerOrderField;
+};
+
+export enum CustomerOrderField {
+  AccountStatus = 'accountStatus',
+  CompanyName = 'companyName',
+  CreatedAt = 'createdAt',
+  DateOfBirth = 'dateOfBirth',
+  DisplayName = 'displayName',
+  Email = 'email',
+  FirstName = 'firstName',
+  Id = 'id',
+  LastActivityAt = 'lastActivityAt',
+  LastName = 'lastName',
+  LastOrderAt = 'lastOrderAt',
+  LifecycleStatus = 'lifecycleStatus',
+  OrdersCount = 'ordersCount',
+  PhoneE164 = 'phoneE164',
+  TotalSpentMinor = 'totalSpentMinor',
+  UpdatedAt = 'updatedAt'
+}
+
+/** Personal profile fields in the unified customer update. */
+export type ApiCustomerProfileUpdateInput = {
+  dateOfBirth?: InputMaybe<Scalars['Date']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  gender?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  preferredLocale?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerSegment = ApiNode & {
+  __typename?: 'CustomerSegment';
+  /** Optional merchant-selected #RRGGBB presentation color. */
+  color?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  createdById?: Maybe<Scalars['String']['output']>;
+  customerMemberships: ApiCustomerSegmentMembershipConnection;
+  customersCount: Scalars['Int']['output'];
+  definition: Scalars['JSON']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  query?: Maybe<Scalars['String']['output']>;
+  /** Aggregate revision incremented by definition and membership changes. */
+  revision: Scalars['Int']['output'];
+  status: CustomerSegmentStatus;
+  type: CustomerSegmentType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ApiCustomerSegmentCustomerMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerSegmentMembershipOrderByInput>>;
+  where?: InputMaybe<ApiCustomerSegmentMembershipWhereInput>;
+};
+
+export type ApiCustomerSegmentConnection = {
+  __typename?: 'CustomerSegmentConnection';
+  edges: Array<ApiCustomerSegmentEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerSegmentCreateInput = {
+  color?: InputMaybe<Scalars['String']['input']>;
+  definition?: InputMaybe<Scalars['JSON']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  query?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to DRAFT when omitted. */
+  status?: InputMaybe<CustomerSegmentStatus>;
+  type: CustomerSegmentType;
+};
+
+export type ApiCustomerSegmentCreatePayload = {
+  __typename?: 'CustomerSegmentCreatePayload';
+  segment?: Maybe<ApiCustomerSegment>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Add customers to a manual segment. */
+export type ApiCustomerSegmentCustomersAddInput = {
+  customerIds: Array<Scalars['ID']['input']>;
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  segmentId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerSegmentCustomersAddPayload = {
+  __typename?: 'CustomerSegmentCustomersAddPayload';
+  customers: Array<ApiCustomer>;
+  segment?: Maybe<ApiCustomerSegment>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Remove customers from a manual segment. */
+export type ApiCustomerSegmentCustomersRemoveInput = {
+  customerIds: Array<Scalars['ID']['input']>;
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  segmentId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerSegmentCustomersRemovePayload = {
+  __typename?: 'CustomerSegmentCustomersRemovePayload';
+  removedCustomerIds: Array<Scalars['ID']['output']>;
+  segment?: Maybe<ApiCustomerSegment>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Atomically replace all manual memberships of a segment. */
+export type ApiCustomerSegmentCustomersSetInput = {
+  customerIds: Array<Scalars['ID']['input']>;
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  segmentId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerSegmentCustomersSetPayload = {
+  __typename?: 'CustomerSegmentCustomersSetPayload';
+  customers: Array<ApiCustomer>;
+  segment?: Maybe<ApiCustomerSegment>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerSegmentCustomersUpdateInput = {
+  customerIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiCustomerSegmentDeleteInput = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerSegmentDeletePayload = {
+  __typename?: 'CustomerSegmentDeletePayload';
+  deletedSegmentId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerSegmentEdge = {
+  __typename?: 'CustomerSegmentEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerSegment;
+};
+
+export type ApiCustomerSegmentMembership = ApiNode & {
+  __typename?: 'CustomerSegmentMembership';
+  customer: ApiCustomer;
+  evaluatedAt: Scalars['DateTime']['output'];
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  segment: ApiCustomerSegment;
+  source: CustomerAssignmentSource;
+};
+
+export type ApiCustomerSegmentMembershipConnection = {
+  __typename?: 'CustomerSegmentMembershipConnection';
+  edges: Array<ApiCustomerSegmentMembershipEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerSegmentMembershipEdge = {
+  __typename?: 'CustomerSegmentMembershipEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerSegmentMembership;
+};
+
+export type ApiCustomerSegmentMembershipOrderByInput = {
+  direction: SortDirection;
+  field: CustomerSegmentMembershipOrderField;
+};
+
+export enum CustomerSegmentMembershipOrderField {
+  EvaluatedAt = 'evaluatedAt',
+  ExpiresAt = 'expiresAt',
+  Id = 'id',
+  Source = 'source'
+}
+
+export type ApiCustomerSegmentMembershipWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerSegmentMembershipWhereInput>>;
+  _not?: InputMaybe<ApiCustomerSegmentMembershipWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerSegmentMembershipWhereInput>>;
+  customerId?: InputMaybe<ApiIdFilter>;
+  evaluatedAt?: InputMaybe<ApiDateTimeFilter>;
+  expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  segmentId?: InputMaybe<ApiIdFilter>;
+  source?: InputMaybe<ApiCustomerAssignmentSourceFilter>;
+};
+
+/** Replace all manual segment memberships for the customer. */
+export type ApiCustomerSegmentMembershipsUpdateInput = {
+  segmentIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiCustomerSegmentOrderByInput = {
+  direction: SortDirection;
+  field: CustomerSegmentOrderField;
+};
+
+export enum CustomerSegmentOrderField {
+  CreatedAt = 'createdAt',
+  CustomersCount = 'customersCount',
+  Id = 'id',
+  Name = 'name',
+  Status = 'status',
+  Type = 'type',
+  UpdatedAt = 'updatedAt'
+}
+
+export enum CustomerSegmentStatus {
+  Active = 'ACTIVE',
+  Archived = 'ARCHIVED',
+  Draft = 'DRAFT'
+}
+
+export type ApiCustomerSegmentStatusFilter = {
+  _eq?: InputMaybe<CustomerSegmentStatus>;
+  _in?: InputMaybe<Array<CustomerSegmentStatus>>;
+  _neq?: InputMaybe<CustomerSegmentStatus>;
+  _notIn?: InputMaybe<Array<CustomerSegmentStatus>>;
+};
+
+export enum CustomerSegmentType {
+  Dynamic = 'DYNAMIC',
+  Manual = 'MANUAL'
+}
+
+export type ApiCustomerSegmentTypeFilter = {
+  _eq?: InputMaybe<CustomerSegmentType>;
+  _in?: InputMaybe<Array<CustomerSegmentType>>;
+  _neq?: InputMaybe<CustomerSegmentType>;
+  _notIn?: InputMaybe<Array<CustomerSegmentType>>;
+};
+
+export type ApiCustomerSegmentUpdateInput = {
+  color?: InputMaybe<Scalars['String']['input']>;
+  /** When provided, atomically replaces all manual memberships. */
+  customers?: InputMaybe<ApiCustomerSegmentCustomersUpdateInput>;
+  definition?: InputMaybe<Scalars['JSON']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  query?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<CustomerSegmentStatus>;
+  type?: InputMaybe<CustomerSegmentType>;
+};
+
+export type ApiCustomerSegmentUpdatePayload = {
+  __typename?: 'CustomerSegmentUpdatePayload';
+  operationResults: Array<ApiCustomerOperationResult>;
+  segment?: Maybe<ApiCustomerSegment>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerSegmentWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerSegmentWhereInput>>;
+  _not?: InputMaybe<ApiCustomerSegmentWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerSegmentWhereInput>>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  createdById?: InputMaybe<ApiStringFilter>;
+  customersCount?: InputMaybe<ApiIntFilter>;
+  description?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  name?: InputMaybe<ApiStringFilter>;
+  status?: InputMaybe<ApiCustomerSegmentStatusFilter>;
+  type?: InputMaybe<ApiCustomerSegmentTypeFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Rebuildable, currency-independent customer activity projection. */
+export type ApiCustomerStatistics = {
+  __typename?: 'CustomerStatistics';
+  cancelledOrdersCount: Scalars['Int']['output'];
+  completedOrdersCount: Scalars['Int']['output'];
+  customer: ApiCustomer;
+  firstOrderAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Raw Orders service UUID; Orders Admin type is not a federation entity. */
+  firstOrderId?: Maybe<Scalars['ID']['output']>;
+  lastCheckoutAt?: Maybe<Scalars['DateTime']['output']>;
+  lastOrderAt?: Maybe<Scalars['DateTime']['output']>;
+  lastOrderId?: Maybe<Scalars['ID']['output']>;
+  ordersCount: Scalars['Int']['output'];
+  returnsCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * Lifecycle fields available to Admin. Merge and redaction remain dedicated
+ * workflows and cannot be selected here.
+ */
+export type ApiCustomerStatusUpdateInput = {
+  /** Required for BLOCKED. Omit for ACTIVE and DISABLED. */
+  blockedReason?: InputMaybe<Scalars['String']['input']>;
+  status: CustomerAdminLifecycleStatus;
+};
+
+export type ApiCustomerTag = ApiNode & {
+  __typename?: 'CustomerTag';
+  createdAt: Scalars['DateTime']['output'];
+  customerAssignments: ApiCustomerTagAssignmentConnection;
+  customersCount: Scalars['Int']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  normalizedName: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ApiCustomerTagCustomerAssignmentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTagAssignmentOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTagAssignmentWhereInput>;
+};
+
+export type ApiCustomerTagAssignInput = {
+  customerId: Scalars['ID']['input'];
+  tagId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTagAssignPayload = {
+  __typename?: 'CustomerTagAssignPayload';
+  assignment?: Maybe<ApiCustomerTagAssignment>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTagAssignment = ApiNode & {
+  __typename?: 'CustomerTagAssignment';
+  assignedAt: Scalars['DateTime']['output'];
+  assignedById?: Maybe<Scalars['String']['output']>;
+  customer: ApiCustomer;
+  id: Scalars['ID']['output'];
+  tag: ApiCustomerTag;
+};
+
+export type ApiCustomerTagAssignmentConnection = {
+  __typename?: 'CustomerTagAssignmentConnection';
+  edges: Array<ApiCustomerTagAssignmentEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerTagAssignmentEdge = {
+  __typename?: 'CustomerTagAssignmentEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerTagAssignment;
+};
+
+export type ApiCustomerTagAssignmentOrderByInput = {
+  direction: SortDirection;
+  field: CustomerTagAssignmentOrderField;
+};
+
+export enum CustomerTagAssignmentOrderField {
+  AssignedAt = 'assignedAt',
+  Id = 'id'
+}
+
+export type ApiCustomerTagAssignmentWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerTagAssignmentWhereInput>>;
+  _not?: InputMaybe<ApiCustomerTagAssignmentWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerTagAssignmentWhereInput>>;
+  assignedAt?: InputMaybe<ApiDateTimeFilter>;
+  assignedById?: InputMaybe<ApiStringFilter>;
+  customerId?: InputMaybe<ApiIdFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  tagId?: InputMaybe<ApiIdFilter>;
+};
+
+/** Replace all tag assignments for the customer. */
+export type ApiCustomerTagAssignmentsUpdateInput = {
+  tagIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiCustomerTagConnection = {
+  __typename?: 'CustomerTagConnection';
+  edges: Array<ApiCustomerTagEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerTagCreateInput = {
+  name: Scalars['String']['input'];
+};
+
+export type ApiCustomerTagCreatePayload = {
+  __typename?: 'CustomerTagCreatePayload';
+  tag?: Maybe<ApiCustomerTag>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTagDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTagDeletePayload = {
+  __typename?: 'CustomerTagDeletePayload';
+  deletedTagId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTagEdge = {
+  __typename?: 'CustomerTagEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerTag;
+};
+
+export type ApiCustomerTagOrderByInput = {
+  direction: SortDirection;
+  field: CustomerTagOrderField;
+};
+
+export enum CustomerTagOrderField {
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  Name = 'name',
+  NormalizedName = 'normalizedName',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiCustomerTagUnassignInput = {
+  customerId: Scalars['ID']['input'];
+  tagId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTagUnassignPayload = {
+  __typename?: 'CustomerTagUnassignPayload';
+  deletedAssignmentId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTagUpdateInput = {
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerTagUpdatePayload = {
+  __typename?: 'CustomerTagUpdatePayload';
+  operationResults: Array<ApiCustomerOperationResult>;
+  tag?: Maybe<ApiCustomerTag>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTagWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerTagWhereInput>>;
+  _not?: InputMaybe<ApiCustomerTagWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerTagWhereInput>>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  name?: InputMaybe<ApiStringFilter>;
+  normalizedName?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiCustomerTaxExemption = ApiNode & {
+  __typename?: 'CustomerTaxExemption';
+  certificateFile?: Maybe<ApiFile>;
+  certificateFileId?: Maybe<Scalars['ID']['output']>;
+  code: Scalars['String']['output'];
+  countryCode?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  regionCode?: Maybe<Scalars['String']['output']>;
+  status: CustomerTaxExemptionStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  validFrom?: Maybe<Scalars['Date']['output']>;
+  validTo?: Maybe<Scalars['Date']['output']>;
+};
+
+export type ApiCustomerTaxExemptionConnection = {
+  __typename?: 'CustomerTaxExemptionConnection';
+  edges: Array<ApiCustomerTaxExemptionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerTaxExemptionCreateInput = {
+  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
+  code: Scalars['String']['input'];
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  customerId: Scalars['ID']['input'];
+  reason?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to ACTIVE when omitted. */
+  status?: InputMaybe<CustomerTaxExemptionStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+};
+
+export type ApiCustomerTaxExemptionCreateOperationInput = {
+  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
+  code: Scalars['String']['input'];
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  reason?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to ACTIVE when omitted. */
+  status?: InputMaybe<CustomerTaxExemptionStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+};
+
+export type ApiCustomerTaxExemptionCreatePayload = {
+  __typename?: 'CustomerTaxExemptionCreatePayload';
+  taxExemption?: Maybe<ApiCustomerTaxExemption>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTaxExemptionDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTaxExemptionDeletePayload = {
+  __typename?: 'CustomerTaxExemptionDeletePayload';
+  deletedTaxExemptionId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTaxExemptionEdge = {
+  __typename?: 'CustomerTaxExemptionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerTaxExemption;
+};
+
+export type ApiCustomerTaxExemptionOrderByInput = {
+  direction: SortDirection;
+  field: CustomerTaxExemptionOrderField;
+};
+
+export enum CustomerTaxExemptionOrderField {
+  Code = 'code',
+  CountryCode = 'countryCode',
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  RegionCode = 'regionCode',
+  Status = 'status',
+  UpdatedAt = 'updatedAt',
+  ValidFrom = 'validFrom',
+  ValidTo = 'validTo'
+}
+
+export enum CustomerTaxExemptionStatus {
+  Active = 'ACTIVE',
+  Expired = 'EXPIRED',
+  Revoked = 'REVOKED'
+}
+
+export type ApiCustomerTaxExemptionStatusFilter = {
+  _eq?: InputMaybe<CustomerTaxExemptionStatus>;
+  _in?: InputMaybe<Array<CustomerTaxExemptionStatus>>;
+  _neq?: InputMaybe<CustomerTaxExemptionStatus>;
+  _notIn?: InputMaybe<Array<CustomerTaxExemptionStatus>>;
+};
+
+export type ApiCustomerTaxExemptionUpdateInput = {
+  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
+  code?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  reason?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<CustomerTaxExemptionStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+};
+
+export type ApiCustomerTaxExemptionUpdateOperationInput = {
+  operations: ApiCustomerTaxExemptionUpdateInput;
+  taxExemptionId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTaxExemptionUpdatePayload = {
+  __typename?: 'CustomerTaxExemptionUpdatePayload';
+  operationResults: Array<ApiCustomerOperationResult>;
+  taxExemption?: Maybe<ApiCustomerTaxExemption>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTaxExemptionWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerTaxExemptionWhereInput>>;
+  _not?: InputMaybe<ApiCustomerTaxExemptionWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerTaxExemptionWhereInput>>;
+  code?: InputMaybe<ApiStringFilter>;
+  countryCode?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  regionCode?: InputMaybe<ApiStringFilter>;
+  status?: InputMaybe<ApiCustomerTaxExemptionStatusFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  validFrom?: InputMaybe<ApiDateFilter>;
+  validTo?: InputMaybe<ApiDateFilter>;
+};
+
+/** Atomic tax exemption changes scoped to the customer being updated. */
+export type ApiCustomerTaxExemptionsUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerTaxExemptionCreateOperationInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerTaxExemptionUpdateOperationInput>>;
+};
+
+export type ApiCustomerTaxIdentifier = ApiNode & {
+  __typename?: 'CustomerTaxIdentifier';
+  countryCode?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  identifierType: Scalars['String']['output'];
+  isPrimary: Scalars['Boolean']['output'];
+  normalizedValue: Scalars['String']['output'];
+  status: CustomerTaxIdentifierStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  validFrom?: Maybe<Scalars['Date']['output']>;
+  validTo?: Maybe<Scalars['Date']['output']>;
+  value: Scalars['String']['output'];
+  verifiedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type ApiCustomerTaxIdentifierConnection = {
+  __typename?: 'CustomerTaxIdentifierConnection';
+  edges: Array<ApiCustomerTaxIdentifierEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerTaxIdentifierCreateInput = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  customerId: Scalars['ID']['input'];
+  identifierType: Scalars['String']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Defaults to UNVERIFIED when omitted. */
+  status?: InputMaybe<CustomerTaxIdentifierStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+  value: Scalars['String']['input'];
+};
+
+export type ApiCustomerTaxIdentifierCreateOperationInput = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  identifierType: Scalars['String']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Defaults to UNVERIFIED when omitted. */
+  status?: InputMaybe<CustomerTaxIdentifierStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+  value: Scalars['String']['input'];
+};
+
+export type ApiCustomerTaxIdentifierCreatePayload = {
+  __typename?: 'CustomerTaxIdentifierCreatePayload';
+  taxIdentifier?: Maybe<ApiCustomerTaxIdentifier>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTaxIdentifierDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTaxIdentifierDeletePayload = {
+  __typename?: 'CustomerTaxIdentifierDeletePayload';
+  deletedTaxIdentifierId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTaxIdentifierEdge = {
+  __typename?: 'CustomerTaxIdentifierEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerTaxIdentifier;
+};
+
+export type ApiCustomerTaxIdentifierOrderByInput = {
+  direction: SortDirection;
+  field: CustomerTaxIdentifierOrderField;
+};
+
+export enum CustomerTaxIdentifierOrderField {
+  CountryCode = 'countryCode',
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  IdentifierType = 'identifierType',
+  IsPrimary = 'isPrimary',
+  Status = 'status',
+  UpdatedAt = 'updatedAt',
+  ValidFrom = 'validFrom',
+  ValidTo = 'validTo'
+}
+
+export enum CustomerTaxIdentifierStatus {
+  Expired = 'EXPIRED',
+  Rejected = 'REJECTED',
+  Unverified = 'UNVERIFIED',
+  Verified = 'VERIFIED'
+}
+
+export type ApiCustomerTaxIdentifierStatusFilter = {
+  _eq?: InputMaybe<CustomerTaxIdentifierStatus>;
+  _in?: InputMaybe<Array<CustomerTaxIdentifierStatus>>;
+  _neq?: InputMaybe<CustomerTaxIdentifierStatus>;
+  _notIn?: InputMaybe<Array<CustomerTaxIdentifierStatus>>;
+};
+
+export type ApiCustomerTaxIdentifierUpdateInput = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  identifierType?: InputMaybe<Scalars['String']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  status?: InputMaybe<CustomerTaxIdentifierStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+  value?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerTaxIdentifierUpdateOperationInput = {
+  operations: ApiCustomerTaxIdentifierUpdateInput;
+  taxIdentifierId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTaxIdentifierUpdatePayload = {
+  __typename?: 'CustomerTaxIdentifierUpdatePayload';
+  operationResults: Array<ApiCustomerOperationResult>;
+  taxIdentifier?: Maybe<ApiCustomerTaxIdentifier>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTaxIdentifierWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerTaxIdentifierWhereInput>>;
+  _not?: InputMaybe<ApiCustomerTaxIdentifierWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerTaxIdentifierWhereInput>>;
+  countryCode?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  identifierType?: InputMaybe<ApiStringFilter>;
+  isPrimary?: InputMaybe<ApiBooleanFilter>;
+  status?: InputMaybe<ApiCustomerTaxIdentifierStatusFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  validFrom?: InputMaybe<ApiDateFilter>;
+  validTo?: InputMaybe<ApiDateFilter>;
+  value?: InputMaybe<ApiStringFilter>;
+};
+
+/** Atomic tax identifier changes scoped to the customer being updated. */
+export type ApiCustomerTaxIdentifiersUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerTaxIdentifierCreateOperationInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerTaxIdentifierUpdateOperationInput>>;
+};
+
+/** Customer-level operations applied atomically by customerUpdate. */
+export type ApiCustomerUpdateInput = {
+  addresses?: InputMaybe<ApiCustomerAddressesUpdateInput>;
+  company?: InputMaybe<ApiCustomerCompanyUpdateInput>;
+  consents?: InputMaybe<ApiCustomerConsentsUpdateInput>;
+  contact?: InputMaybe<ApiCustomerContactUpdateInput>;
+  groups?: InputMaybe<ApiCustomerGroupMembershipsUpdateInput>;
+  moderation?: InputMaybe<ApiCustomerModerationUpdateInput>;
+  note?: InputMaybe<ApiCustomerNoteUpdateInput>;
+  profile?: InputMaybe<ApiCustomerProfileUpdateInput>;
+  segments?: InputMaybe<ApiCustomerSegmentMembershipsUpdateInput>;
+  status?: InputMaybe<ApiCustomerStatusUpdateInput>;
+  tags?: InputMaybe<ApiCustomerTagAssignmentsUpdateInput>;
+  taxExemptions?: InputMaybe<ApiCustomerTaxExemptionsUpdateInput>;
+  taxIdentifiers?: InputMaybe<ApiCustomerTaxIdentifiersUpdateInput>;
+};
+
+export type ApiCustomerUpdatePayload = {
+  __typename?: 'CustomerUpdatePayload';
+  customer?: Maybe<ApiCustomer>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerWhereInput = {
+  _and?: InputMaybe<Array<ApiCustomerWhereInput>>;
+  _not?: InputMaybe<ApiCustomerWhereInput>;
+  _or?: InputMaybe<Array<ApiCustomerWhereInput>>;
+  accountStatus?: InputMaybe<ApiCustomerAccountStatusFilter>;
+  companyName?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  dateOfBirth?: InputMaybe<ApiDateFilter>;
+  defaultShippingCity?: InputMaybe<ApiStringFilter>;
+  defaultShippingCountryCode?: InputMaybe<ApiStringFilter>;
+  defaultShippingRegionCode?: InputMaybe<ApiStringFilter>;
+  displayName?: InputMaybe<ApiStringFilter>;
+  email?: InputMaybe<ApiStringFilter>;
+  emailMarketingState?: InputMaybe<ApiCustomerConsentStateFilter>;
+  emailVerified?: InputMaybe<ApiBooleanFilter>;
+  firstName?: InputMaybe<ApiStringFilter>;
+  iamPrincipalId?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  lastActivityAt?: InputMaybe<ApiDateTimeFilter>;
+  lastName?: InputMaybe<ApiStringFilter>;
+  lastOrderAt?: InputMaybe<ApiDateTimeFilter>;
+  lifecycleStatus?: InputMaybe<ApiCustomerLifecycleStatusFilter>;
+  ordersCount?: InputMaybe<ApiIntFilter>;
+  phoneE164?: InputMaybe<ApiStringFilter>;
+  phoneVerified?: InputMaybe<ApiBooleanFilter>;
+  preferredLocale?: InputMaybe<ApiStringFilter>;
+  /** Match customers with a current membership in the selected segment IDs. */
+  segmentId?: InputMaybe<ApiIdFilter>;
+  source?: InputMaybe<ApiStringFilter>;
+  totalSpentMinor?: InputMaybe<ApiBigIntFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutation = {
+  __typename?: 'CustomersMutation';
+  customerAddressCreate: ApiCustomerAddressCreatePayload;
+  customerAddressDefaultsUpdate: ApiCustomerAddressDefaultsUpdatePayload;
+  customerAddressDelete: ApiCustomerAddressDeletePayload;
+  customerAddressUpdate: ApiCustomerAddressUpdatePayload;
+  /** Change current consent state and append an immutable evidence event. */
+  customerConsentSet: ApiCustomerConsentSetPayload;
+  customerCreate: ApiCustomerCreatePayload;
+  customerDataRequestCancel: ApiCustomerDataRequestCancelPayload;
+  customerDataRequestCreate: ApiCustomerDataRequestCreatePayload;
+  customerGroupCreate: ApiCustomerGroupCreatePayload;
+  customerGroupDelete: ApiCustomerGroupDeletePayload;
+  customerGroupMembershipDelete: ApiCustomerGroupMembershipDeletePayload;
+  customerGroupMembershipSet: ApiCustomerGroupMembershipSetPayload;
+  customerGroupUpdate: ApiCustomerGroupUpdatePayload;
+  customerMergeRequest: ApiCustomerMergeRequestPayload;
+  customerSegmentCreate: ApiCustomerSegmentCreatePayload;
+  customerSegmentCustomersAdd: ApiCustomerSegmentCustomersAddPayload;
+  customerSegmentCustomersRemove: ApiCustomerSegmentCustomersRemovePayload;
+  customerSegmentCustomersSet: ApiCustomerSegmentCustomersSetPayload;
+  customerSegmentDelete: ApiCustomerSegmentDeletePayload;
+  customerSegmentUpdate: ApiCustomerSegmentUpdatePayload;
+  customerTagAssign: ApiCustomerTagAssignPayload;
+  customerTagCreate: ApiCustomerTagCreatePayload;
+  customerTagDelete: ApiCustomerTagDeletePayload;
+  customerTagUnassign: ApiCustomerTagUnassignPayload;
+  customerTagUpdate: ApiCustomerTagUpdatePayload;
+  customerTaxExemptionCreate: ApiCustomerTaxExemptionCreatePayload;
+  customerTaxExemptionDelete: ApiCustomerTaxExemptionDeletePayload;
+  customerTaxExemptionUpdate: ApiCustomerTaxExemptionUpdatePayload;
+  customerTaxIdentifierCreate: ApiCustomerTaxIdentifierCreatePayload;
+  customerTaxIdentifierDelete: ApiCustomerTaxIdentifierDeletePayload;
+  customerTaxIdentifierUpdate: ApiCustomerTaxIdentifierUpdatePayload;
+  /** Unified customer profile update with optimistic locking. */
+  customerUpdate: ApiCustomerUpdatePayload;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerAddressCreateArgs = {
+  input: ApiCustomerAddressCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerAddressDefaultsUpdateArgs = {
+  input: ApiCustomerAddressDefaultsUpdateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerAddressDeleteArgs = {
+  input: ApiCustomerAddressDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerAddressUpdateArgs = {
+  addressId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiCustomerAddressUpdateInput>;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerConsentSetArgs = {
+  input: ApiCustomerConsentSetInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerCreateArgs = {
+  input: ApiCustomerCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerDataRequestCancelArgs = {
+  input: ApiCustomerDataRequestCancelInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerDataRequestCreateArgs = {
+  input: ApiCustomerDataRequestCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerGroupCreateArgs = {
+  input: ApiCustomerGroupCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerGroupDeleteArgs = {
+  input: ApiCustomerGroupDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerGroupMembershipDeleteArgs = {
+  input: ApiCustomerGroupMembershipDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerGroupMembershipSetArgs = {
+  input: ApiCustomerGroupMembershipSetInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerGroupUpdateArgs = {
+  groupId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiCustomerGroupUpdateInput>;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerMergeRequestArgs = {
+  input: ApiCustomerMergeRequestInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerSegmentCreateArgs = {
+  input: ApiCustomerSegmentCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerSegmentCustomersAddArgs = {
+  input: ApiCustomerSegmentCustomersAddInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerSegmentCustomersRemoveArgs = {
+  input: ApiCustomerSegmentCustomersRemoveInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerSegmentCustomersSetArgs = {
+  input: ApiCustomerSegmentCustomersSetInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerSegmentDeleteArgs = {
+  input: ApiCustomerSegmentDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerSegmentUpdateArgs = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations?: InputMaybe<ApiCustomerSegmentUpdateInput>;
+  segmentId: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTagAssignArgs = {
+  input: ApiCustomerTagAssignInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTagCreateArgs = {
+  input: ApiCustomerTagCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTagDeleteArgs = {
+  input: ApiCustomerTagDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTagUnassignArgs = {
+  input: ApiCustomerTagUnassignInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTagUpdateArgs = {
+  operations?: InputMaybe<ApiCustomerTagUpdateInput>;
+  tagId: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTaxExemptionCreateArgs = {
+  input: ApiCustomerTaxExemptionCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTaxExemptionDeleteArgs = {
+  input: ApiCustomerTaxExemptionDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTaxExemptionUpdateArgs = {
+  operations?: InputMaybe<ApiCustomerTaxExemptionUpdateInput>;
+  taxExemptionId: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTaxIdentifierCreateArgs = {
+  input: ApiCustomerTaxIdentifierCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTaxIdentifierDeleteArgs = {
+  input: ApiCustomerTaxIdentifierDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTaxIdentifierUpdateArgs = {
+  operations?: InputMaybe<ApiCustomerTaxIdentifierUpdateInput>;
+  taxIdentifierId: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerUpdateArgs = {
+  customerId: Scalars['ID']['input'];
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations?: InputMaybe<ApiCustomerUpdateInput>;
+};
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQuery = {
+  __typename?: 'CustomersQuery';
+  customer?: Maybe<ApiCustomer>;
+  customerAddress?: Maybe<ApiCustomerAddress>;
+  customerByEmail?: Maybe<ApiCustomer>;
+  customerConsent?: Maybe<ApiCustomerConsent>;
+  customerDataRequest?: Maybe<ApiCustomerDataRequest>;
+  customerDataRequests: ApiCustomerDataRequestConnection;
+  customerGroup?: Maybe<ApiCustomerGroup>;
+  customerGroups: ApiCustomerGroupConnection;
+  customerMerge?: Maybe<ApiCustomerMerge>;
+  customerMerges: ApiCustomerMergeConnection;
+  customerSegment?: Maybe<ApiCustomerSegment>;
+  customerSegments: ApiCustomerSegmentConnection;
+  customerTag?: Maybe<ApiCustomerTag>;
+  customerTags: ApiCustomerTagConnection;
+  customerTaxExemption?: Maybe<ApiCustomerTaxExemption>;
+  customerTaxIdentifier?: Maybe<ApiCustomerTaxIdentifier>;
+  customers: ApiCustomerConnection;
+  /** Resolve a customer-owned Relay node by global ID. */
+  node?: Maybe<ApiNode>;
+  /** Resolve customer-owned Relay nodes while preserving input order. */
+  nodes: Array<Maybe<ApiNode>>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerAddressArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerByEmailArgs = {
+  email: Scalars['Email']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerConsentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerDataRequestArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerDataRequestsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerDataRequestOrderByInput>>;
+  where?: InputMaybe<ApiCustomerDataRequestWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerGroupArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerGroupsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerGroupOrderByInput>>;
+  where?: InputMaybe<ApiCustomerGroupWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerMergeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerMergesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerMergeOrderByInput>>;
+  where?: InputMaybe<ApiCustomerMergeWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerSegmentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerSegmentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerSegmentOrderByInput>>;
+  where?: InputMaybe<ApiCustomerSegmentWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerTagArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerTagsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTagOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTagWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerTaxExemptionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerTaxIdentifierArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerOrderByInput>>;
+  where?: InputMaybe<ApiCustomerWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+export type ApiDateFilter = {
+  _between?: InputMaybe<Array<Scalars['Date']['input']>>;
+  _eq?: InputMaybe<Scalars['Date']['input']>;
+  _gt?: InputMaybe<Scalars['Date']['input']>;
+  _gte?: InputMaybe<Scalars['Date']['input']>;
+  _in?: InputMaybe<Array<Scalars['Date']['input']>>;
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['Date']['input']>;
+  _lte?: InputMaybe<Scalars['Date']['input']>;
+  _neq?: InputMaybe<Scalars['Date']['input']>;
+  _notIn?: InputMaybe<Array<Scalars['Date']['input']>>;
 };
 
 /** Filter operators for DateTime fields */
@@ -5217,6 +7563,8 @@ export type ApiMutation = {
   authMutation: ApiAuthMutation;
   /** Catalog mutation namespace for product, variant, category, and collection operations */
   catalogMutation: ApiCatalogMutation;
+  /** Customers Admin mutation namespace. */
+  customersMutation: ApiCustomersMutation;
   /** Inventory mutation namespace for warehouse, stock, and inventory item operations */
   inventoryMutation: ApiInventoryMutation;
   /** Listing mutation namespace. */
@@ -5225,6 +7573,8 @@ export type ApiMutation = {
   orderMutation: ApiOrderMutation;
   /** Organization management mutations. */
   organizationMutation: ApiOrganizationMutation;
+  /** Reviews mutation namespace. */
+  reviewsMutation: ApiReviewsMutation;
   /** Role management mutations. */
   roleMutation: ApiRoleMutation;
   /** Store-related mutations */
@@ -6664,6 +9014,8 @@ export type ApiQuery = {
   appsQuery: ApiAppsQuery;
   /** Catalog query namespace for product, variant, category, and collection operations */
   catalogQuery: ApiCatalogQuery;
+  /** Customers Admin query namespace. */
+  customersQuery: ApiCustomersQuery;
   /** Inventory query namespace for warehouse, stock, and inventory item operations */
   inventoryQuery: ApiInventoryQuery;
   /** Listing query namespace. */
@@ -6672,6 +9024,8 @@ export type ApiQuery = {
   orderQuery: ApiOrderQuery;
   /** Organization queries namespace. */
   organizationQuery: ApiOrganizationQuery;
+  /** Reviews query namespace. */
+  reviewsQuery: ApiReviewsQuery;
   /** Store-related queries */
   storeQuery: ApiStoreQuery;
   /** User management queries. */
@@ -6691,6 +9045,18 @@ export type ApiResourceDefinition = {
   displayName?: Maybe<Scalars['String']['output']>;
   /** Resource name (product, order, etc.). */
   name: Scalars['String']['output'];
+};
+
+/** Internal placeholder for the future admin mutation namespace. */
+export type ApiReviewsMutation = {
+  __typename?: 'ReviewsMutation';
+  _empty: Scalars['Boolean']['output'];
+};
+
+/** Internal placeholder for the future admin query namespace. */
+export type ApiReviewsQuery = {
+  __typename?: 'ReviewsQuery';
+  _empty: Scalars['Boolean']['output'];
 };
 
 /** Rich text content in multiple formats. */
@@ -8960,11 +11326,13 @@ export type ApiWidgetQueryPricingArgs = {
 export enum Join__Graph {
   AppsAdmin = 'APPS_ADMIN',
   CatalogAdmin = 'CATALOG_ADMIN',
+  CustomersAdmin = 'CUSTOMERS_ADMIN',
   IamAdmin = 'IAM_ADMIN',
   ListingAdmin = 'LISTING_ADMIN',
   MediaAdmin = 'MEDIA_ADMIN',
   OrdersAdmin = 'ORDERS_ADMIN',
-  ProjectAdmin = 'PROJECT_ADMIN'
+  ProjectAdmin = 'PROJECT_ADMIN',
+  ReviewsAdmin = 'REVIEWS_ADMIN'
 }
 
 export enum Link__Purpose {

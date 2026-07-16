@@ -5,7 +5,7 @@ import {
   numberOperators,
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
-import { CustomerSegmentType } from "../graphql/operation-types";
+import { CustomerSegmentType } from "@/graphql/types";
 
 export const filterSchema: IFilterSchema[] = [
   {
@@ -15,15 +15,18 @@ export const filterSchema: IFilterSchema[] = [
     type: FilterType.Enum,
     operators: enumOperators,
     payloadKey: "type",
-    options: [{ label: "Manual", value: CustomerSegmentType.Manual }],
+    options: [
+      { label: "Manual", value: CustomerSegmentType.Manual },
+      { label: "Dynamic", value: CustomerSegmentType.Dynamic },
+    ],
   },
   {
-    key: "memberCount",
+    key: "customersCount",
     label: "Customers",
     description: "Filter by assigned customer count",
     type: FilterType.Integer,
     operators: numberOperators,
-    payloadKey: "memberCount",
+    payloadKey: "customersCount",
   },
   {
     key: "createdAt",

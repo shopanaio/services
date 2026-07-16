@@ -1,34 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { requestCustomerEditorContext } from "../api/request-customers";
-
-type CustomerEditorContext = Awaited<ReturnType<typeof requestCustomerEditorContext>>;
+import { useQuery } from "@apollo/client/react";
+import { CUSTOMER_EDITOR_CONTEXT_QUERY } from "../graphql";
+import type { CustomerEditorContextQueryData } from "../graphql/operation-types";
 
 export function useCustomerEditorContext() {
-  const [context, setContext] = useState<CustomerEditorContext | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data, previousData, loading, error, refetch } = useQuery<
+    CustomerEditorContextQueryData
+  >(CUSTOMER_EDITOR_CONTEXT_QUERY, { fetchPolicy: "cache-and-network" });
+  const customersQuery = (data ?? previousData)?.customersQuery;
 
-  const execute = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await requestCustomerEditorContext();
-      setContext(result);
-      return result;
-    } catch (cause) {
-      const normalized = cause instanceof Error ? cause : new Error("Unable to load customer editor data");
-      setError(normalized);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void execute();
-  }, [execute]);
-
-  return { context, loading, error, refetch: execute };
+  return {
+    context: customersQuery
+      ? {
+          segments: customersQuery.customerSegments.edges.map((edge) => edge.node),
+          tags: customersQuery.customerTags.edges.map((edge) => edge.node),
+        }
+      : null,
+    loading,
+    error: error ?? null,
+    refetch: () => refetch(),
+  };
 }
