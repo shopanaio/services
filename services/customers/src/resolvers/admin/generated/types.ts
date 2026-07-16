@@ -22,7 +22,6 @@ export type Scalars = {
   DateTime: { input: string; output: string; }
   Email: { input: string; output: string; }
   JSON: { input: Record<string, unknown>; output: Record<string, unknown>; }
-  _CustomersGeneratedFilterPlaceholder: { input: any; output: any; }
   _FieldSet: { input: any; output: any; }
 };
 
@@ -638,24 +637,41 @@ export type CustomerAddressEdge = {
   node: CustomerAddress;
 };
 
+/** Ordering configuration for CustomerAddress */
 export type CustomerAddressOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerAddressOrderField;
 };
 
+/** Fields available for sorting CustomerAddress */
 export enum CustomerAddressOrderField {
+  /** Sort by city */
   City = 'city',
+  /** Sort by countryCode */
   CountryCode = 'countryCode',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by firstName */
   FirstName = 'firstName',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isDefaultBilling */
   IsDefaultBilling = 'isDefaultBilling',
+  /** Sort by isDefaultShipping */
   IsDefaultShipping = 'isDefaultShipping',
+  /** Sort by label */
   Label = 'label',
+  /** Sort by lastName */
   LastName = 'lastName',
+  /** Sort by postalCode */
   PostalCode = 'postalCode',
+  /** Sort by regionCode */
   RegionCode = 'regionCode',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by validationStatus */
   ValidationStatus = 'validationStatus'
 }
 
@@ -704,24 +720,43 @@ export type CustomerAddressValidationStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerAddressValidationStatus>>;
 };
 
+/** Filter conditions for CustomerAddress */
 export type CustomerAddressWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerAddressWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerAddressWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerAddressWhereInput>>;
+  /** Filter by city */
   city?: InputMaybe<StringFilter>;
+  /** Filter by companyName */
   companyName?: InputMaybe<StringFilter>;
+  /** Filter by countryCode */
   countryCode?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by firstName */
   firstName?: InputMaybe<StringFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by isDefaultBilling */
   isDefaultBilling?: InputMaybe<BooleanFilter>;
+  /** Filter by isDefaultShipping */
   isDefaultShipping?: InputMaybe<BooleanFilter>;
+  /** Filter by label */
   label?: InputMaybe<StringFilter>;
+  /** Filter by lastName */
   lastName?: InputMaybe<StringFilter>;
+  /** Filter by phoneE164 */
   phoneE164?: InputMaybe<StringFilter>;
+  /** Filter by postalCode */
   postalCode?: InputMaybe<StringFilter>;
+  /** Filter by regionCode */
   regionCode?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by validationStatus */
   validationStatus?: InputMaybe<CustomerAddressValidationStatusFilter>;
 };
 
@@ -851,17 +886,27 @@ export type CustomerConsentEventEdge = {
   node: CustomerConsentEvent;
 };
 
+/** Ordering configuration for CustomerConsentEvent */
 export type CustomerConsentEventOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerConsentEventOrderField;
 };
 
+/** Fields available for sorting CustomerConsentEvent */
 export enum CustomerConsentEventOrderField {
+  /** Sort by actorType */
   ActorType = 'actorType',
+  /** Sort by channel */
   Channel = 'channel',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by newState */
   NewState = 'newState',
+  /** Sort by occurredAt */
   OccurredAt = 'occurredAt',
+  /** Sort by source */
   Source = 'source'
 }
 
@@ -1010,19 +1055,31 @@ export type CustomerDataRequestEdge = {
   node: CustomerDataRequest;
 };
 
+/** Ordering configuration for CustomerDataRequest */
 export type CustomerDataRequestOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerDataRequestOrderField;
 };
 
+/** Fields available for sorting CustomerDataRequest */
 export enum CustomerDataRequestOrderField {
+  /** Sort by dueAt */
   DueAt = 'dueAt',
+  /** Sort by finishedAt */
   FinishedAt = 'finishedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by requestedAt */
   RequestedAt = 'requestedAt',
+  /** Sort by startedAt */
   StartedAt = 'startedAt',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by type */
   Type = 'type',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1055,21 +1112,37 @@ export type CustomerDataRequestTypeFilter = {
   _notIn?: InputMaybe<Array<CustomerDataRequestType>>;
 };
 
+/** Filter conditions for CustomerDataRequest */
 export type CustomerDataRequestWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerDataRequestWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerDataRequestWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerDataRequestWhereInput>>;
+  /** Filter by customerId */
   customerId?: InputMaybe<IdFilter>;
+  /** Filter by dueAt */
   dueAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by finishedAt */
   finishedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by legalBasis */
   legalBasis?: InputMaybe<StringFilter>;
+  /** Filter by requestedAt */
   requestedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by requestedById */
   requestedById?: InputMaybe<StringFilter>;
+  /** Filter by requestedByType */
   requestedByType?: InputMaybe<StringFilter>;
+  /** Filter by startedAt */
   startedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by status */
   status?: InputMaybe<CustomerDataRequestStatusFilter>;
+  /** Filter by type */
   type?: InputMaybe<CustomerDataRequestTypeFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -1178,16 +1251,25 @@ export type CustomerGroupMembershipEdge = {
   node: CustomerGroupMembership;
 };
 
+/** Ordering configuration for CustomerGroupMembership */
 export type CustomerGroupMembershipOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerGroupMembershipOrderField;
 };
 
+/** Fields available for sorting CustomerGroupMembership */
 export enum CustomerGroupMembershipOrderField {
+  /** Sort by assignedAt */
   AssignedAt = 'assignedAt',
+  /** Sort by expiresAt */
   ExpiresAt = 'expiresAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isPrimary */
   IsPrimary = 'isPrimary',
+  /** Sort by source */
   Source = 'source'
 }
 
@@ -1211,16 +1293,27 @@ export type CustomerGroupMembershipUpdateOperationInput = {
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
+/** Filter conditions for CustomerGroupMembership */
 export type CustomerGroupMembershipWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerGroupMembershipWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerGroupMembershipWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerGroupMembershipWhereInput>>;
+  /** Filter by assignedAt */
   assignedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by customerId */
   customerId?: InputMaybe<IdFilter>;
+  /** Filter by expiresAt */
   expiresAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by groupId */
   groupId?: InputMaybe<IdFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by isPrimary */
   isPrimary?: InputMaybe<BooleanFilter>;
+  /** Filter by source */
   source?: InputMaybe<CustomerAssignmentSourceFilter>;
 };
 
@@ -1229,18 +1322,29 @@ export type CustomerGroupMembershipsUpdateInput = {
   memberships: Array<CustomerGroupMembershipUpdateOperationInput>;
 };
 
+/** Ordering configuration for CustomerGroup */
 export type CustomerGroupOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerGroupOrderField;
 };
 
+/** Fields available for sorting CustomerGroup */
 export enum CustomerGroupOrderField {
+  /** Sort by code */
   Code = 'code',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isActive */
   IsActive = 'isActive',
+  /** Sort by isDefault */
   IsDefault = 'isDefault',
+  /** Sort by name */
   Name = 'name',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1259,16 +1363,27 @@ export type CustomerGroupUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for CustomerGroup */
 export type CustomerGroupWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerGroupWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerGroupWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerGroupWhereInput>>;
+  /** Filter by code */
   code?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by isActive */
   isActive?: InputMaybe<BooleanFilter>;
+  /** Filter by isDefault */
   isDefault?: InputMaybe<BooleanFilter>;
+  /** Filter by name */
   name?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -1320,17 +1435,27 @@ export type CustomerMergeEdge = {
   node: CustomerMerge;
 };
 
+/** Ordering configuration for CustomerMerge */
 export type CustomerMergeOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerMergeOrderField;
 };
 
+/** Fields available for sorting CustomerMerge */
 export enum CustomerMergeOrderField {
+  /** Sort by finishedAt */
   FinishedAt = 'finishedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by requestedAt */
   RequestedAt = 'requestedAt',
+  /** Sort by startedAt */
   StartedAt = 'startedAt',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1360,21 +1485,37 @@ export type CustomerMergeStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerMergeStatus>>;
 };
 
+/** Filter conditions for CustomerMerge */
 export type CustomerMergeWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerMergeWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerMergeWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerMergeWhereInput>>;
+  /** Filter by errorCode */
   errorCode?: InputMaybe<StringFilter>;
+  /** Filter by finishedAt */
   finishedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by idempotencyKey */
   idempotencyKey?: InputMaybe<StringFilter>;
+  /** Filter by requestedAt */
   requestedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by requestedById */
   requestedById?: InputMaybe<StringFilter>;
+  /** Filter by requestedByType */
   requestedByType?: InputMaybe<StringFilter>;
+  /** Filter by sourceCustomerId */
   sourceCustomerId?: InputMaybe<IdFilter>;
+  /** Filter by startedAt */
   startedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by status */
   status?: InputMaybe<CustomerMergeStatusFilter>;
+  /** Filter by targetCustomerId */
   targetCustomerId?: InputMaybe<IdFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -1410,33 +1551,57 @@ export type CustomerMonetaryStatisticsEdge = {
   node: CustomerMonetaryStatistics;
 };
 
+/** Ordering configuration for CustomerMonetaryStatistics */
 export type CustomerMonetaryStatisticsOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerMonetaryStatisticsOrderField;
 };
 
+/** Fields available for sorting CustomerMonetaryStatistics */
 export enum CustomerMonetaryStatisticsOrderField {
+  /** Sort by averageOrderValueMinor */
   AverageOrderValueMinor = 'averageOrderValueMinor',
+  /** Sort by currencyCode */
   CurrencyCode = 'currencyCode',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by netSpentMinor */
   NetSpentMinor = 'netSpentMinor',
+  /** Sort by ordersCount */
   OrdersCount = 'ordersCount',
+  /** Sort by totalRefundedMinor */
   TotalRefundedMinor = 'totalRefundedMinor',
+  /** Sort by totalSpentMinor */
   TotalSpentMinor = 'totalSpentMinor',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
+/** Filter conditions for CustomerMonetaryStatistics */
 export type CustomerMonetaryStatisticsWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerMonetaryStatisticsWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerMonetaryStatisticsWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerMonetaryStatisticsWhereInput>>;
+  /** Filter by averageOrderValueMinor */
   averageOrderValueMinor?: InputMaybe<BigIntFilter>;
+  /** Filter by currencyCode */
   currencyCode?: InputMaybe<StringFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by netSpentMinor */
   netSpentMinor?: InputMaybe<BigIntFilter>;
+  /** Filter by ordersCount */
   ordersCount?: InputMaybe<IntFilter>;
+  /** Filter by totalRefundedMinor */
   totalRefundedMinor?: InputMaybe<BigIntFilter>;
+  /** Filter by totalSpentMinor */
   totalSpentMinor?: InputMaybe<BigIntFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -1469,27 +1634,47 @@ export enum CustomerOperationType {
   TaxIdentifierUpdate = 'TAX_IDENTIFIER_UPDATE'
 }
 
+/** Ordering configuration for Customer */
 export type CustomerOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerOrderField;
 };
 
+/** Fields available for sorting Customer */
 export enum CustomerOrderField {
+  /** Sort by accountStatus */
   AccountStatus = 'accountStatus',
+  /** Sort by companyName */
   CompanyName = 'companyName',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by dateOfBirth */
   DateOfBirth = 'dateOfBirth',
+  /** Sort by displayName */
   DisplayName = 'displayName',
+  /** Sort by email */
   Email = 'email',
+  /** Sort by firstName */
   FirstName = 'firstName',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by lastActivityAt */
   LastActivityAt = 'lastActivityAt',
+  /** Sort by lastName */
   LastName = 'lastName',
+  /** Sort by lastOrderAt */
   LastOrderAt = 'lastOrderAt',
+  /** Sort by lifecycleStatus */
   LifecycleStatus = 'lifecycleStatus',
+  /** Sort by ordersCount */
   OrdersCount = 'ordersCount',
+  /** Sort by phoneE164 */
   PhoneE164 = 'phoneE164',
+  /** Sort by totalSpentMinor */
   TotalSpentMinor = 'totalSpentMinor',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1647,27 +1832,45 @@ export type CustomerSegmentMembershipEdge = {
   node: CustomerSegmentMembership;
 };
 
+/** Ordering configuration for CustomerSegmentMembership */
 export type CustomerSegmentMembershipOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerSegmentMembershipOrderField;
 };
 
+/** Fields available for sorting CustomerSegmentMembership */
 export enum CustomerSegmentMembershipOrderField {
+  /** Sort by evaluatedAt */
   EvaluatedAt = 'evaluatedAt',
+  /** Sort by expiresAt */
   ExpiresAt = 'expiresAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by source */
   Source = 'source'
 }
 
+/** Filter conditions for CustomerSegmentMembership */
 export type CustomerSegmentMembershipWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerSegmentMembershipWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerSegmentMembershipWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerSegmentMembershipWhereInput>>;
+  /** Filter by customerId */
   customerId?: InputMaybe<IdFilter>;
+  /** Filter by evaluatedAt */
   evaluatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by expiresAt */
   expiresAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by segmentId */
   segmentId?: InputMaybe<IdFilter>;
+  /** Filter by source */
   source?: InputMaybe<CustomerAssignmentSourceFilter>;
 };
 
@@ -1676,18 +1879,29 @@ export type CustomerSegmentMembershipsUpdateInput = {
   segmentIds: Array<Scalars['ID']['input']>;
 };
 
+/** Ordering configuration for CustomerSegment */
 export type CustomerSegmentOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerSegmentOrderField;
 };
 
+/** Fields available for sorting CustomerSegment */
 export enum CustomerSegmentOrderField {
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by customersCount */
   CustomersCount = 'customersCount',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by name */
   Name = 'name',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by type */
   Type = 'type',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1735,18 +1949,31 @@ export type CustomerSegmentUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for CustomerSegment */
 export type CustomerSegmentWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerSegmentWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerSegmentWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerSegmentWhereInput>>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by createdById */
   createdById?: InputMaybe<StringFilter>;
+  /** Filter by customersCount */
   customersCount?: InputMaybe<IntFilter>;
+  /** Filter by description */
   description?: InputMaybe<StringFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by name */
   name?: InputMaybe<StringFilter>;
+  /** Filter by status */
   status?: InputMaybe<CustomerSegmentStatusFilter>;
+  /** Filter by type */
   type?: InputMaybe<CustomerSegmentTypeFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -1832,24 +2059,39 @@ export type CustomerTagAssignmentEdge = {
   node: CustomerTagAssignment;
 };
 
+/** Ordering configuration for CustomerTagAssignment */
 export type CustomerTagAssignmentOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerTagAssignmentOrderField;
 };
 
+/** Fields available for sorting CustomerTagAssignment */
 export enum CustomerTagAssignmentOrderField {
+  /** Sort by assignedAt */
   AssignedAt = 'assignedAt',
+  /** Sort by id */
   Id = 'id'
 }
 
+/** Filter conditions for CustomerTagAssignment */
 export type CustomerTagAssignmentWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerTagAssignmentWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerTagAssignmentWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerTagAssignmentWhereInput>>;
+  /** Filter by assignedAt */
   assignedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by assignedById */
   assignedById?: InputMaybe<StringFilter>;
+  /** Filter by customerId */
   customerId?: InputMaybe<IdFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by tagId */
   tagId?: InputMaybe<IdFilter>;
 };
 
@@ -1891,16 +2133,25 @@ export type CustomerTagEdge = {
   node: CustomerTag;
 };
 
+/** Ordering configuration for CustomerTag */
 export type CustomerTagOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerTagOrderField;
 };
 
+/** Fields available for sorting CustomerTag */
 export enum CustomerTagOrderField {
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by name */
   Name = 'name',
+  /** Sort by normalizedName */
   NormalizedName = 'normalizedName',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1926,14 +2177,23 @@ export type CustomerTagUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for CustomerTag */
 export type CustomerTagWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerTagWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerTagWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerTagWhereInput>>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by name */
   name?: InputMaybe<StringFilter>;
+  /** Filter by normalizedName */
   normalizedName?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -2009,20 +2269,33 @@ export type CustomerTaxExemptionEdge = {
   node: CustomerTaxExemption;
 };
 
+/** Ordering configuration for CustomerTaxExemption */
 export type CustomerTaxExemptionOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerTaxExemptionOrderField;
 };
 
+/** Fields available for sorting CustomerTaxExemption */
 export enum CustomerTaxExemptionOrderField {
+  /** Sort by code */
   Code = 'code',
+  /** Sort by countryCode */
   CountryCode = 'countryCode',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by regionCode */
   RegionCode = 'regionCode',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by validFrom */
   ValidFrom = 'validFrom',
+  /** Sort by validTo */
   ValidTo = 'validTo'
 }
 
@@ -2062,18 +2335,31 @@ export type CustomerTaxExemptionUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for CustomerTaxExemption */
 export type CustomerTaxExemptionWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerTaxExemptionWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerTaxExemptionWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerTaxExemptionWhereInput>>;
+  /** Filter by code */
   code?: InputMaybe<StringFilter>;
+  /** Filter by countryCode */
   countryCode?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by regionCode */
   regionCode?: InputMaybe<StringFilter>;
+  /** Filter by status */
   status?: InputMaybe<CustomerTaxExemptionStatusFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by validFrom */
   validFrom?: InputMaybe<DateFilter>;
+  /** Filter by validTo */
   validTo?: InputMaybe<DateFilter>;
 };
 
@@ -2154,20 +2440,33 @@ export type CustomerTaxIdentifierEdge = {
   node: CustomerTaxIdentifier;
 };
 
+/** Ordering configuration for CustomerTaxIdentifier */
 export type CustomerTaxIdentifierOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: CustomerTaxIdentifierOrderField;
 };
 
+/** Fields available for sorting CustomerTaxIdentifier */
 export enum CustomerTaxIdentifierOrderField {
+  /** Sort by countryCode */
   CountryCode = 'countryCode',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by identifierType */
   IdentifierType = 'identifierType',
+  /** Sort by isPrimary */
   IsPrimary = 'isPrimary',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by validFrom */
   ValidFrom = 'validFrom',
+  /** Sort by validTo */
   ValidTo = 'validTo'
 }
 
@@ -2207,19 +2506,33 @@ export type CustomerTaxIdentifierUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for CustomerTaxIdentifier */
 export type CustomerTaxIdentifierWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerTaxIdentifierWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerTaxIdentifierWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerTaxIdentifierWhereInput>>;
+  /** Filter by countryCode */
   countryCode?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by identifierType */
   identifierType?: InputMaybe<StringFilter>;
+  /** Filter by isPrimary */
   isPrimary?: InputMaybe<BooleanFilter>;
+  /** Filter by status */
   status?: InputMaybe<CustomerTaxIdentifierStatusFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by validFrom */
   validFrom?: InputMaybe<DateFilter>;
+  /** Filter by validTo */
   validTo?: InputMaybe<DateFilter>;
+  /** Filter by value */
   value?: InputMaybe<StringFilter>;
 };
 
@@ -2254,36 +2567,65 @@ export type CustomerUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for Customer */
 export type CustomerWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<CustomerWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<CustomerWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<CustomerWhereInput>>;
+  /** Filter by accountStatus */
   accountStatus?: InputMaybe<CustomerAccountStatusFilter>;
+  /** Filter by companyName */
   companyName?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by dateOfBirth */
   dateOfBirth?: InputMaybe<DateFilter>;
+  /** Filter by defaultShippingCity */
   defaultShippingCity?: InputMaybe<StringFilter>;
+  /** Filter by defaultShippingCountryCode */
   defaultShippingCountryCode?: InputMaybe<StringFilter>;
+  /** Filter by defaultShippingRegionCode */
   defaultShippingRegionCode?: InputMaybe<StringFilter>;
+  /** Filter by displayName */
   displayName?: InputMaybe<StringFilter>;
+  /** Filter by email */
   email?: InputMaybe<StringFilter>;
+  /** Filter by emailMarketingState */
   emailMarketingState?: InputMaybe<CustomerConsentStateFilter>;
+  /** Filter by emailVerified */
   emailVerified?: InputMaybe<BooleanFilter>;
+  /** Filter by firstName */
   firstName?: InputMaybe<StringFilter>;
+  /** Filter by iamPrincipalId */
   iamPrincipalId?: InputMaybe<StringFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by lastActivityAt */
   lastActivityAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by lastName */
   lastName?: InputMaybe<StringFilter>;
+  /** Filter by lastOrderAt */
   lastOrderAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by lifecycleStatus */
   lifecycleStatus?: InputMaybe<CustomerLifecycleStatusFilter>;
+  /** Filter by ordersCount */
   ordersCount?: InputMaybe<IntFilter>;
+  /** Filter by phoneE164 */
   phoneE164?: InputMaybe<StringFilter>;
+  /** Filter by phoneVerified */
   phoneVerified?: InputMaybe<BooleanFilter>;
+  /** Filter by preferredLocale */
   preferredLocale?: InputMaybe<StringFilter>;
   /** Match customers with a current membership in the selected segment IDs. */
   segmentId?: InputMaybe<IdFilter>;
+  /** Filter by source */
   source?: InputMaybe<StringFilter>;
+  /** Filter by totalSpentMinor */
   totalSpentMinor?: InputMaybe<BigIntFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -3511,7 +3853,6 @@ export type ResolversTypes = ResolversObject<{
   StringFilter: StringFilter;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   WeightUnit: WeightUnit;
-  _CustomersGeneratedFilterPlaceholder: ResolverTypeWrapper<Scalars['_CustomersGeneratedFilterPlaceholder']['output']>;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -3713,7 +4054,6 @@ export type ResolversParentTypes = ResolversObject<{
   Query: {};
   StringFilter: StringFilter;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
-  _CustomersGeneratedFilterPlaceholder: Scalars['_CustomersGeneratedFilterPlaceholder']['output'];
 }>;
 
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
@@ -4529,10 +4869,6 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 }>;
 
-export interface _CustomersGeneratedFilterPlaceholderScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['_CustomersGeneratedFilterPlaceholder'], any> {
-  name: '_CustomersGeneratedFilterPlaceholder';
-}
-
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   Customer?: CustomerResolvers<ContextType>;
@@ -4625,5 +4961,4 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   PageInfo?: PageInfoResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
-  _CustomersGeneratedFilterPlaceholder?: GraphQLScalarType;
 }>;

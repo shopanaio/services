@@ -1,4 +1,800 @@
 # Auto-generated GraphQL filters for Customers service.
 # Do not edit manually. Run: yarn shopana codegen --service customers
 
-scalar _CustomersGeneratedFilterPlaceholder @inaccessible
+# ---- Customer ----
+
+"""Filter conditions for Customer"""
+input CustomerWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerWhereInput!]
+  """Negate the condition"""
+  _not: CustomerWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by iamPrincipalId"""
+  iamPrincipalId: StringFilter
+  """Filter by lifecycleStatus"""
+  lifecycleStatus: CustomerLifecycleStatusFilter
+  """Filter by accountStatus"""
+  accountStatus: CustomerAccountStatusFilter
+  """Filter by email"""
+  email: StringFilter
+  """Filter by emailVerified"""
+  emailVerified: BooleanFilter
+  """Filter by phoneE164"""
+  phoneE164: StringFilter
+  """Filter by phoneVerified"""
+  phoneVerified: BooleanFilter
+  """Filter by firstName"""
+  firstName: StringFilter
+  """Filter by lastName"""
+  lastName: StringFilter
+  """Filter by preferredLocale"""
+  preferredLocale: StringFilter
+  """Filter by dateOfBirth"""
+  dateOfBirth: DateFilter
+  """Filter by companyName"""
+  companyName: StringFilter
+  """Filter by source"""
+  source: StringFilter
+  """Filter by lastActivityAt"""
+  lastActivityAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by displayName"""
+  displayName: StringFilter
+  """Filter by defaultShippingCity"""
+  defaultShippingCity: StringFilter
+  """Filter by defaultShippingRegionCode"""
+  defaultShippingRegionCode: StringFilter
+  """Filter by defaultShippingCountryCode"""
+  defaultShippingCountryCode: StringFilter
+  """Filter by emailMarketingState"""
+  emailMarketingState: CustomerConsentStateFilter
+  """Filter by ordersCount"""
+  ordersCount: IntFilter
+  """Filter by lastOrderAt"""
+  lastOrderAt: DateTimeFilter
+  """Filter by totalSpentMinor"""
+  totalSpentMinor: BigIntFilter
+  """Match customers with a current membership in the selected segment IDs."""
+  segmentId: IDFilter
+}
+
+"""Fields available for sorting Customer"""
+enum CustomerOrderField {
+  """Sort by id"""
+  id
+  """Sort by lifecycleStatus"""
+  lifecycleStatus
+  """Sort by accountStatus"""
+  accountStatus
+  """Sort by email"""
+  email
+  """Sort by phoneE164"""
+  phoneE164
+  """Sort by firstName"""
+  firstName
+  """Sort by lastName"""
+  lastName
+  """Sort by dateOfBirth"""
+  dateOfBirth
+  """Sort by companyName"""
+  companyName
+  """Sort by lastActivityAt"""
+  lastActivityAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by displayName"""
+  displayName
+  """Sort by ordersCount"""
+  ordersCount
+  """Sort by lastOrderAt"""
+  lastOrderAt
+  """Sort by totalSpentMinor"""
+  totalSpentMinor
+}
+
+"""Ordering configuration for Customer"""
+input CustomerOrderByInput {
+  """Field to order by"""
+  field: CustomerOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerAddress ----
+
+"""Filter conditions for CustomerAddress"""
+input CustomerAddressWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerAddressWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerAddressWhereInput!]
+  """Negate the condition"""
+  _not: CustomerAddressWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by label"""
+  label: StringFilter
+  """Filter by firstName"""
+  firstName: StringFilter
+  """Filter by lastName"""
+  lastName: StringFilter
+  """Filter by companyName"""
+  companyName: StringFilter
+  """Filter by phoneE164"""
+  phoneE164: StringFilter
+  """Filter by city"""
+  city: StringFilter
+  """Filter by regionCode"""
+  regionCode: StringFilter
+  """Filter by postalCode"""
+  postalCode: StringFilter
+  """Filter by countryCode"""
+  countryCode: StringFilter
+  """Filter by isDefaultShipping"""
+  isDefaultShipping: BooleanFilter
+  """Filter by isDefaultBilling"""
+  isDefaultBilling: BooleanFilter
+  """Filter by validationStatus"""
+  validationStatus: CustomerAddressValidationStatusFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerAddress"""
+enum CustomerAddressOrderField {
+  """Sort by id"""
+  id
+  """Sort by label"""
+  label
+  """Sort by firstName"""
+  firstName
+  """Sort by lastName"""
+  lastName
+  """Sort by city"""
+  city
+  """Sort by regionCode"""
+  regionCode
+  """Sort by postalCode"""
+  postalCode
+  """Sort by countryCode"""
+  countryCode
+  """Sort by isDefaultShipping"""
+  isDefaultShipping
+  """Sort by isDefaultBilling"""
+  isDefaultBilling
+  """Sort by validationStatus"""
+  validationStatus
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for CustomerAddress"""
+input CustomerAddressOrderByInput {
+  """Field to order by"""
+  field: CustomerAddressOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerTaxIdentifier ----
+
+"""Filter conditions for CustomerTaxIdentifier"""
+input CustomerTaxIdentifierWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerTaxIdentifierWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerTaxIdentifierWhereInput!]
+  """Negate the condition"""
+  _not: CustomerTaxIdentifierWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by identifierType"""
+  identifierType: StringFilter
+  """Filter by countryCode"""
+  countryCode: StringFilter
+  """Filter by value"""
+  value: StringFilter
+  """Filter by status"""
+  status: CustomerTaxIdentifierStatusFilter
+  """Filter by isPrimary"""
+  isPrimary: BooleanFilter
+  """Filter by validFrom"""
+  validFrom: DateFilter
+  """Filter by validTo"""
+  validTo: DateFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerTaxIdentifier"""
+enum CustomerTaxIdentifierOrderField {
+  """Sort by id"""
+  id
+  """Sort by identifierType"""
+  identifierType
+  """Sort by countryCode"""
+  countryCode
+  """Sort by status"""
+  status
+  """Sort by isPrimary"""
+  isPrimary
+  """Sort by validFrom"""
+  validFrom
+  """Sort by validTo"""
+  validTo
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for CustomerTaxIdentifier"""
+input CustomerTaxIdentifierOrderByInput {
+  """Field to order by"""
+  field: CustomerTaxIdentifierOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerTaxExemption ----
+
+"""Filter conditions for CustomerTaxExemption"""
+input CustomerTaxExemptionWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerTaxExemptionWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerTaxExemptionWhereInput!]
+  """Negate the condition"""
+  _not: CustomerTaxExemptionWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by code"""
+  code: StringFilter
+  """Filter by countryCode"""
+  countryCode: StringFilter
+  """Filter by regionCode"""
+  regionCode: StringFilter
+  """Filter by status"""
+  status: CustomerTaxExemptionStatusFilter
+  """Filter by validFrom"""
+  validFrom: DateFilter
+  """Filter by validTo"""
+  validTo: DateFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerTaxExemption"""
+enum CustomerTaxExemptionOrderField {
+  """Sort by id"""
+  id
+  """Sort by code"""
+  code
+  """Sort by countryCode"""
+  countryCode
+  """Sort by regionCode"""
+  regionCode
+  """Sort by status"""
+  status
+  """Sort by validFrom"""
+  validFrom
+  """Sort by validTo"""
+  validTo
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for CustomerTaxExemption"""
+input CustomerTaxExemptionOrderByInput {
+  """Field to order by"""
+  field: CustomerTaxExemptionOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerConsentEvent ----
+
+"""Fields available for sorting CustomerConsentEvent"""
+enum CustomerConsentEventOrderField {
+  """Sort by id"""
+  id
+  """Sort by channel"""
+  channel
+  """Sort by newState"""
+  newState
+  """Sort by source"""
+  source
+  """Sort by actorType"""
+  actorType
+  """Sort by occurredAt"""
+  occurredAt
+}
+
+"""Ordering configuration for CustomerConsentEvent"""
+input CustomerConsentEventOrderByInput {
+  """Field to order by"""
+  field: CustomerConsentEventOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerGroup ----
+
+"""Filter conditions for CustomerGroup"""
+input CustomerGroupWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerGroupWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerGroupWhereInput!]
+  """Negate the condition"""
+  _not: CustomerGroupWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by code"""
+  code: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by isDefault"""
+  isDefault: BooleanFilter
+  """Filter by isActive"""
+  isActive: BooleanFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerGroup"""
+enum CustomerGroupOrderField {
+  """Sort by id"""
+  id
+  """Sort by code"""
+  code
+  """Sort by name"""
+  name
+  """Sort by isDefault"""
+  isDefault
+  """Sort by isActive"""
+  isActive
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for CustomerGroup"""
+input CustomerGroupOrderByInput {
+  """Field to order by"""
+  field: CustomerGroupOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerGroupMembership ----
+
+"""Filter conditions for CustomerGroupMembership"""
+input CustomerGroupMembershipWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerGroupMembershipWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerGroupMembershipWhereInput!]
+  """Negate the condition"""
+  _not: CustomerGroupMembershipWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by customerId"""
+  customerId: IDFilter
+  """Filter by groupId"""
+  groupId: IDFilter
+  """Filter by isPrimary"""
+  isPrimary: BooleanFilter
+  """Filter by source"""
+  source: CustomerAssignmentSourceFilter
+  """Filter by assignedAt"""
+  assignedAt: DateTimeFilter
+  """Filter by expiresAt"""
+  expiresAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerGroupMembership"""
+enum CustomerGroupMembershipOrderField {
+  """Sort by id"""
+  id
+  """Sort by isPrimary"""
+  isPrimary
+  """Sort by source"""
+  source
+  """Sort by assignedAt"""
+  assignedAt
+  """Sort by expiresAt"""
+  expiresAt
+}
+
+"""Ordering configuration for CustomerGroupMembership"""
+input CustomerGroupMembershipOrderByInput {
+  """Field to order by"""
+  field: CustomerGroupMembershipOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerTag ----
+
+"""Filter conditions for CustomerTag"""
+input CustomerTagWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerTagWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerTagWhereInput!]
+  """Negate the condition"""
+  _not: CustomerTagWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by normalizedName"""
+  normalizedName: StringFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerTag"""
+enum CustomerTagOrderField {
+  """Sort by id"""
+  id
+  """Sort by name"""
+  name
+  """Sort by normalizedName"""
+  normalizedName
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for CustomerTag"""
+input CustomerTagOrderByInput {
+  """Field to order by"""
+  field: CustomerTagOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerTagAssignment ----
+
+"""Filter conditions for CustomerTagAssignment"""
+input CustomerTagAssignmentWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerTagAssignmentWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerTagAssignmentWhereInput!]
+  """Negate the condition"""
+  _not: CustomerTagAssignmentWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by customerId"""
+  customerId: IDFilter
+  """Filter by tagId"""
+  tagId: IDFilter
+  """Filter by assignedById"""
+  assignedById: StringFilter
+  """Filter by assignedAt"""
+  assignedAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerTagAssignment"""
+enum CustomerTagAssignmentOrderField {
+  """Sort by id"""
+  id
+  """Sort by assignedAt"""
+  assignedAt
+}
+
+"""Ordering configuration for CustomerTagAssignment"""
+input CustomerTagAssignmentOrderByInput {
+  """Field to order by"""
+  field: CustomerTagAssignmentOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerSegment ----
+
+"""Filter conditions for CustomerSegment"""
+input CustomerSegmentWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerSegmentWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerSegmentWhereInput!]
+  """Negate the condition"""
+  _not: CustomerSegmentWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by description"""
+  description: StringFilter
+  """Filter by type"""
+  type: CustomerSegmentTypeFilter
+  """Filter by status"""
+  status: CustomerSegmentStatusFilter
+  """Filter by createdById"""
+  createdById: StringFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by customersCount"""
+  customersCount: IntFilter
+}
+
+"""Fields available for sorting CustomerSegment"""
+enum CustomerSegmentOrderField {
+  """Sort by id"""
+  id
+  """Sort by name"""
+  name
+  """Sort by type"""
+  type
+  """Sort by status"""
+  status
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by customersCount"""
+  customersCount
+}
+
+"""Ordering configuration for CustomerSegment"""
+input CustomerSegmentOrderByInput {
+  """Field to order by"""
+  field: CustomerSegmentOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerSegmentMembership ----
+
+"""Filter conditions for CustomerSegmentMembership"""
+input CustomerSegmentMembershipWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerSegmentMembershipWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerSegmentMembershipWhereInput!]
+  """Negate the condition"""
+  _not: CustomerSegmentMembershipWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by customerId"""
+  customerId: IDFilter
+  """Filter by segmentId"""
+  segmentId: IDFilter
+  """Filter by source"""
+  source: CustomerAssignmentSourceFilter
+  """Filter by evaluatedAt"""
+  evaluatedAt: DateTimeFilter
+  """Filter by expiresAt"""
+  expiresAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerSegmentMembership"""
+enum CustomerSegmentMembershipOrderField {
+  """Sort by id"""
+  id
+  """Sort by source"""
+  source
+  """Sort by evaluatedAt"""
+  evaluatedAt
+  """Sort by expiresAt"""
+  expiresAt
+}
+
+"""Ordering configuration for CustomerSegmentMembership"""
+input CustomerSegmentMembershipOrderByInput {
+  """Field to order by"""
+  field: CustomerSegmentMembershipOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerMonetaryStatistics ----
+
+"""Filter conditions for CustomerMonetaryStatistics"""
+input CustomerMonetaryStatisticsWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerMonetaryStatisticsWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerMonetaryStatisticsWhereInput!]
+  """Negate the condition"""
+  _not: CustomerMonetaryStatisticsWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by currencyCode"""
+  currencyCode: StringFilter
+  """Filter by ordersCount"""
+  ordersCount: IntFilter
+  """Filter by totalSpentMinor"""
+  totalSpentMinor: BigIntFilter
+  """Filter by totalRefundedMinor"""
+  totalRefundedMinor: BigIntFilter
+  """Filter by netSpentMinor"""
+  netSpentMinor: BigIntFilter
+  """Filter by averageOrderValueMinor"""
+  averageOrderValueMinor: BigIntFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerMonetaryStatistics"""
+enum CustomerMonetaryStatisticsOrderField {
+  """Sort by id"""
+  id
+  """Sort by currencyCode"""
+  currencyCode
+  """Sort by ordersCount"""
+  ordersCount
+  """Sort by totalSpentMinor"""
+  totalSpentMinor
+  """Sort by totalRefundedMinor"""
+  totalRefundedMinor
+  """Sort by netSpentMinor"""
+  netSpentMinor
+  """Sort by averageOrderValueMinor"""
+  averageOrderValueMinor
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for CustomerMonetaryStatistics"""
+input CustomerMonetaryStatisticsOrderByInput {
+  """Field to order by"""
+  field: CustomerMonetaryStatisticsOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerMerge ----
+
+"""Filter conditions for CustomerMerge"""
+input CustomerMergeWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerMergeWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerMergeWhereInput!]
+  """Negate the condition"""
+  _not: CustomerMergeWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by sourceCustomerId"""
+  sourceCustomerId: IDFilter
+  """Filter by targetCustomerId"""
+  targetCustomerId: IDFilter
+  """Filter by status"""
+  status: CustomerMergeStatusFilter
+  """Filter by requestedByType"""
+  requestedByType: StringFilter
+  """Filter by requestedById"""
+  requestedById: StringFilter
+  """Filter by idempotencyKey"""
+  idempotencyKey: StringFilter
+  """Filter by errorCode"""
+  errorCode: StringFilter
+  """Filter by requestedAt"""
+  requestedAt: DateTimeFilter
+  """Filter by startedAt"""
+  startedAt: DateTimeFilter
+  """Filter by finishedAt"""
+  finishedAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerMerge"""
+enum CustomerMergeOrderField {
+  """Sort by id"""
+  id
+  """Sort by status"""
+  status
+  """Sort by requestedAt"""
+  requestedAt
+  """Sort by startedAt"""
+  startedAt
+  """Sort by finishedAt"""
+  finishedAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for CustomerMerge"""
+input CustomerMergeOrderByInput {
+  """Field to order by"""
+  field: CustomerMergeOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CustomerDataRequest ----
+
+"""Filter conditions for CustomerDataRequest"""
+input CustomerDataRequestWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CustomerDataRequestWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CustomerDataRequestWhereInput!]
+  """Negate the condition"""
+  _not: CustomerDataRequestWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by customerId"""
+  customerId: IDFilter
+  """Filter by type"""
+  type: CustomerDataRequestTypeFilter
+  """Filter by status"""
+  status: CustomerDataRequestStatusFilter
+  """Filter by requestedByType"""
+  requestedByType: StringFilter
+  """Filter by requestedById"""
+  requestedById: StringFilter
+  """Filter by legalBasis"""
+  legalBasis: StringFilter
+  """Filter by requestedAt"""
+  requestedAt: DateTimeFilter
+  """Filter by dueAt"""
+  dueAt: DateTimeFilter
+  """Filter by startedAt"""
+  startedAt: DateTimeFilter
+  """Filter by finishedAt"""
+  finishedAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting CustomerDataRequest"""
+enum CustomerDataRequestOrderField {
+  """Sort by id"""
+  id
+  """Sort by type"""
+  type
+  """Sort by status"""
+  status
+  """Sort by requestedAt"""
+  requestedAt
+  """Sort by dueAt"""
+  dueAt
+  """Sort by startedAt"""
+  startedAt
+  """Sort by finishedAt"""
+  finishedAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for CustomerDataRequest"""
+input CustomerDataRequestOrderByInput {
+  """Field to order by"""
+  field: CustomerDataRequestOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}

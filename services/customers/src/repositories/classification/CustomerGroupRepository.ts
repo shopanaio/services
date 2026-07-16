@@ -16,6 +16,7 @@ import {
   decodeCustomerGroupMembershipGlobalId,
 } from "../global-id-where-mappers.js";
 import {
+  customer,
   customerGroup,
   customerGroupMembership,
   type CustomerGroup,
@@ -304,20 +305,41 @@ export class CustomerGroupRepository extends BaseRepository {
 
   @ReadOnly()
   async countCurrentCustomers(groupId: string): Promise<number> {
+    const counts = await this.countCurrentCustomersByGroupIds([groupId]);
+    return counts.get(groupId) ?? 0;
+  }
+
+  @ReadOnly()
+  async countCurrentCustomersByGroupIds(
+    groupIds: readonly string[]
+  ): Promise<Map<string, number>> {
+    if (groupIds.length === 0) return new Map();
     const rows = await this.connection
-      .select({ count: count() })
+      .select({
+        groupId: customerGroupMembership.groupId,
+        count: count(),
+      })
       .from(customerGroupMembership)
+      .innerJoin(
+        customer,
+        and(
+          eq(customer.storeId, customerGroupMembership.storeId),
+          eq(customer.id, customerGroupMembership.customerId),
+          isNull(customer.deletedAt)
+        )
+      )
       .where(
         and(
           eq(customerGroupMembership.storeId, this.storeId),
-          eq(customerGroupMembership.groupId, groupId),
+          inArray(customerGroupMembership.groupId, [...new Set(groupIds)]),
           or(
             isNull(customerGroupMembership.expiresAt),
             sql`${customerGroupMembership.expiresAt} > now()`
           )
         )
-      );
-    return rows[0]?.count ?? 0;
+      )
+      .groupBy(customerGroupMembership.groupId);
+    return new Map(rows.map((row) => [row.groupId, row.count]));
   }
 
   @ReadOnly()

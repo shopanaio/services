@@ -16,6 +16,7 @@ import {
   decodeCustomerTagGlobalId,
 } from "../global-id-where-mappers.js";
 import {
+  customer,
   customerTag,
   customerTagAssignment,
   type CustomerTag,
@@ -253,16 +254,37 @@ export class CustomerTagRepository extends BaseRepository {
 
   @ReadOnly()
   async countCustomers(tagId: string): Promise<number> {
+    const counts = await this.countCustomersByTagIds([tagId]);
+    return counts.get(tagId) ?? 0;
+  }
+
+  @ReadOnly()
+  async countCustomersByTagIds(
+    tagIds: readonly string[]
+  ): Promise<Map<string, number>> {
+    if (tagIds.length === 0) return new Map();
     const rows = await this.connection
-      .select({ count: count() })
+      .select({
+        tagId: customerTagAssignment.tagId,
+        count: count(),
+      })
       .from(customerTagAssignment)
+      .innerJoin(
+        customer,
+        and(
+          eq(customer.storeId, customerTagAssignment.storeId),
+          eq(customer.id, customerTagAssignment.customerId),
+          isNull(customer.deletedAt)
+        )
+      )
       .where(
         and(
           eq(customerTagAssignment.storeId, this.storeId),
-          eq(customerTagAssignment.tagId, tagId)
+          inArray(customerTagAssignment.tagId, [...new Set(tagIds)])
         )
-      );
-    return rows[0]?.count ?? 0;
+      )
+      .groupBy(customerTagAssignment.tagId);
+    return new Map(rows.map((row) => [row.tagId, row.count]));
   }
 
   @ReadOnly()

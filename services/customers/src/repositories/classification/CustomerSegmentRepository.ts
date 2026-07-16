@@ -16,6 +16,7 @@ import {
   decodeCustomerSegmentMembershipGlobalId,
 } from "../global-id-where-mappers.js";
 import {
+  customer,
   customerSegment,
   customerSegmentListView,
   customerSegmentMembership,
@@ -149,6 +150,39 @@ export class CustomerSegmentRepository extends BaseRepository {
           inArray(customerSegmentMembership.customerId, [...new Set(customerIds)])
         )
       );
+  }
+
+  @ReadOnly()
+  async countCurrentCustomersBySegmentIds(
+    segmentIds: readonly string[]
+  ): Promise<Map<string, number>> {
+    if (segmentIds.length === 0) return new Map();
+    const rows = await this.connection
+      .select({
+        segmentId: customerSegmentMembership.segmentId,
+        count: sql<number>`count(*)::integer`,
+      })
+      .from(customerSegmentMembership)
+      .innerJoin(
+        customer,
+        and(
+          eq(customer.storeId, customerSegmentMembership.storeId),
+          eq(customer.id, customerSegmentMembership.customerId),
+          isNull(customer.deletedAt)
+        )
+      )
+      .where(
+        and(
+          eq(customerSegmentMembership.storeId, this.storeId),
+          inArray(
+            customerSegmentMembership.segmentId,
+            [...new Set(segmentIds)]
+          ),
+          sql`(${customerSegmentMembership.expiresAt} IS NULL OR ${customerSegmentMembership.expiresAt} > now())`
+        )
+      )
+      .groupBy(customerSegmentMembership.segmentId);
+    return new Map(rows.map((row) => [row.segmentId, row.count]));
   }
 
   async create(data: {

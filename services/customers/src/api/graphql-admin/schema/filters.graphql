@@ -47,110 +47,11 @@ input CustomerConsentStateFilter {
   _notIn: [CustomerConsentState!]
 }
 
-input CustomerWhereInput {
-  _and: [CustomerWhereInput!]
-  _or: [CustomerWhereInput!]
-  _not: CustomerWhereInput
-  id: IDFilter
-  lifecycleStatus: CustomerLifecycleStatusFilter
-  accountStatus: CustomerAccountStatusFilter
-  iamPrincipalId: StringFilter
-  displayName: StringFilter
-  email: StringFilter
-  phoneE164: StringFilter
-  firstName: StringFilter
-  lastName: StringFilter
-  companyName: StringFilter
-  preferredLocale: StringFilter
-  source: StringFilter
-  dateOfBirth: DateFilter
-  emailVerified: BooleanFilter
-  phoneVerified: BooleanFilter
-  defaultShippingCity: StringFilter
-  defaultShippingRegionCode: StringFilter
-  defaultShippingCountryCode: StringFilter
-  emailMarketingState: CustomerConsentStateFilter
-  """Match customers with a current membership in the selected segment IDs."""
-  segmentId: IDFilter
-  ordersCount: IntFilter
-  totalSpentMinor: BigIntFilter
-  lastOrderAt: DateTimeFilter
-  lastActivityAt: DateTimeFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerOrderField {
-  id
-  displayName
-  lifecycleStatus
-  accountStatus
-  email
-  phoneE164
-  firstName
-  lastName
-  companyName
-  dateOfBirth
-  ordersCount
-  totalSpentMinor
-  lastOrderAt
-  lastActivityAt
-  createdAt
-  updatedAt
-}
-
-input CustomerOrderByInput {
-  field: CustomerOrderField!
-  direction: SortDirection!
-}
-
 input CustomerAddressValidationStatusFilter {
   _eq: CustomerAddressValidationStatus
   _neq: CustomerAddressValidationStatus
   _in: [CustomerAddressValidationStatus!]
   _notIn: [CustomerAddressValidationStatus!]
-}
-
-input CustomerAddressWhereInput {
-  _and: [CustomerAddressWhereInput!]
-  _or: [CustomerAddressWhereInput!]
-  _not: CustomerAddressWhereInput
-  id: IDFilter
-  label: StringFilter
-  firstName: StringFilter
-  lastName: StringFilter
-  companyName: StringFilter
-  phoneE164: StringFilter
-  city: StringFilter
-  regionCode: StringFilter
-  postalCode: StringFilter
-  countryCode: StringFilter
-  isDefaultShipping: BooleanFilter
-  isDefaultBilling: BooleanFilter
-  validationStatus: CustomerAddressValidationStatusFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerAddressOrderField {
-  id
-  label
-  firstName
-  lastName
-  city
-  regionCode
-  postalCode
-  countryCode
-  isDefaultShipping
-  isDefaultBilling
-  validationStatus
-  createdAt
-  updatedAt
-}
-
-input CustomerAddressOrderByInput {
-  field: CustomerAddressOrderField!
-  direction: SortDirection!
 }
 
 input CustomerTaxIdentifierStatusFilter {
@@ -160,39 +61,6 @@ input CustomerTaxIdentifierStatusFilter {
   _notIn: [CustomerTaxIdentifierStatus!]
 }
 
-input CustomerTaxIdentifierWhereInput {
-  _and: [CustomerTaxIdentifierWhereInput!]
-  _or: [CustomerTaxIdentifierWhereInput!]
-  _not: CustomerTaxIdentifierWhereInput
-  id: IDFilter
-  identifierType: StringFilter
-  countryCode: StringFilter
-  value: StringFilter
-  status: CustomerTaxIdentifierStatusFilter
-  isPrimary: BooleanFilter
-  validFrom: DateFilter
-  validTo: DateFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerTaxIdentifierOrderField {
-  id
-  identifierType
-  countryCode
-  status
-  isPrimary
-  validFrom
-  validTo
-  createdAt
-  updatedAt
-}
-
-input CustomerTaxIdentifierOrderByInput {
-  field: CustomerTaxIdentifierOrderField!
-  direction: SortDirection!
-}
-
 input CustomerTaxExemptionStatusFilter {
   _eq: CustomerTaxExemptionStatus
   _neq: CustomerTaxExemptionStatus
@@ -200,156 +68,11 @@ input CustomerTaxExemptionStatusFilter {
   _notIn: [CustomerTaxExemptionStatus!]
 }
 
-input CustomerTaxExemptionWhereInput {
-  _and: [CustomerTaxExemptionWhereInput!]
-  _or: [CustomerTaxExemptionWhereInput!]
-  _not: CustomerTaxExemptionWhereInput
-  id: IDFilter
-  code: StringFilter
-  countryCode: StringFilter
-  regionCode: StringFilter
-  status: CustomerTaxExemptionStatusFilter
-  validFrom: DateFilter
-  validTo: DateFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerTaxExemptionOrderField {
-  id
-  code
-  countryCode
-  regionCode
-  status
-  validFrom
-  validTo
-  createdAt
-  updatedAt
-}
-
-input CustomerTaxExemptionOrderByInput {
-  field: CustomerTaxExemptionOrderField!
-  direction: SortDirection!
-}
-
-enum CustomerConsentEventOrderField {
-  id
-  channel
-  newState
-  source
-  actorType
-  occurredAt
-}
-
-input CustomerConsentEventOrderByInput {
-  field: CustomerConsentEventOrderField!
-  direction: SortDirection!
-}
-
-input CustomerGroupWhereInput {
-  _and: [CustomerGroupWhereInput!]
-  _or: [CustomerGroupWhereInput!]
-  _not: CustomerGroupWhereInput
-  id: IDFilter
-  code: StringFilter
-  name: StringFilter
-  isDefault: BooleanFilter
-  isActive: BooleanFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerGroupOrderField {
-  id
-  code
-  name
-  isDefault
-  isActive
-  createdAt
-  updatedAt
-}
-
-input CustomerGroupOrderByInput {
-  field: CustomerGroupOrderField!
-  direction: SortDirection!
-}
-
 input CustomerAssignmentSourceFilter {
   _eq: CustomerAssignmentSource
   _neq: CustomerAssignmentSource
   _in: [CustomerAssignmentSource!]
   _notIn: [CustomerAssignmentSource!]
-}
-
-input CustomerGroupMembershipWhereInput {
-  _and: [CustomerGroupMembershipWhereInput!]
-  _or: [CustomerGroupMembershipWhereInput!]
-  _not: CustomerGroupMembershipWhereInput
-  id: IDFilter
-  customerId: IDFilter
-  groupId: IDFilter
-  isPrimary: BooleanFilter
-  source: CustomerAssignmentSourceFilter
-  assignedAt: DateTimeFilter
-  expiresAt: DateTimeFilter
-}
-
-enum CustomerGroupMembershipOrderField {
-  id
-  isPrimary
-  source
-  assignedAt
-  expiresAt
-}
-
-input CustomerGroupMembershipOrderByInput {
-  field: CustomerGroupMembershipOrderField!
-  direction: SortDirection!
-}
-
-input CustomerTagWhereInput {
-  _and: [CustomerTagWhereInput!]
-  _or: [CustomerTagWhereInput!]
-  _not: CustomerTagWhereInput
-  id: IDFilter
-  name: StringFilter
-  normalizedName: StringFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerTagOrderField {
-  id
-  name
-  normalizedName
-  createdAt
-  updatedAt
-}
-
-input CustomerTagOrderByInput {
-  field: CustomerTagOrderField!
-  direction: SortDirection!
-}
-
-input CustomerTagAssignmentWhereInput {
-  _and: [CustomerTagAssignmentWhereInput!]
-  _or: [CustomerTagAssignmentWhereInput!]
-  _not: CustomerTagAssignmentWhereInput
-  id: IDFilter
-  customerId: IDFilter
-  tagId: IDFilter
-  assignedById: StringFilter
-  assignedAt: DateTimeFilter
-}
-
-enum CustomerTagAssignmentOrderField {
-  id
-  assignedAt
-}
-
-input CustomerTagAssignmentOrderByInput {
-  field: CustomerTagAssignmentOrderField!
-  direction: SortDirection!
 }
 
 input CustomerSegmentTypeFilter {
@@ -366,127 +89,11 @@ input CustomerSegmentStatusFilter {
   _notIn: [CustomerSegmentStatus!]
 }
 
-input CustomerSegmentWhereInput {
-  _and: [CustomerSegmentWhereInput!]
-  _or: [CustomerSegmentWhereInput!]
-  _not: CustomerSegmentWhereInput
-  id: IDFilter
-  name: StringFilter
-  description: StringFilter
-  type: CustomerSegmentTypeFilter
-  status: CustomerSegmentStatusFilter
-  customersCount: IntFilter
-  createdById: StringFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerSegmentOrderField {
-  id
-  name
-  type
-  status
-  customersCount
-  createdAt
-  updatedAt
-}
-
-input CustomerSegmentOrderByInput {
-  field: CustomerSegmentOrderField!
-  direction: SortDirection!
-}
-
-input CustomerSegmentMembershipWhereInput {
-  _and: [CustomerSegmentMembershipWhereInput!]
-  _or: [CustomerSegmentMembershipWhereInput!]
-  _not: CustomerSegmentMembershipWhereInput
-  id: IDFilter
-  customerId: IDFilter
-  segmentId: IDFilter
-  source: CustomerAssignmentSourceFilter
-  evaluatedAt: DateTimeFilter
-  expiresAt: DateTimeFilter
-}
-
-enum CustomerSegmentMembershipOrderField {
-  id
-  source
-  evaluatedAt
-  expiresAt
-}
-
-input CustomerSegmentMembershipOrderByInput {
-  field: CustomerSegmentMembershipOrderField!
-  direction: SortDirection!
-}
-
-input CustomerMonetaryStatisticsWhereInput {
-  _and: [CustomerMonetaryStatisticsWhereInput!]
-  _or: [CustomerMonetaryStatisticsWhereInput!]
-  _not: CustomerMonetaryStatisticsWhereInput
-  id: IDFilter
-  currencyCode: StringFilter
-  ordersCount: IntFilter
-  totalSpentMinor: BigIntFilter
-  totalRefundedMinor: BigIntFilter
-  netSpentMinor: BigIntFilter
-  averageOrderValueMinor: BigIntFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerMonetaryStatisticsOrderField {
-  id
-  currencyCode
-  ordersCount
-  totalSpentMinor
-  totalRefundedMinor
-  netSpentMinor
-  averageOrderValueMinor
-  updatedAt
-}
-
-input CustomerMonetaryStatisticsOrderByInput {
-  field: CustomerMonetaryStatisticsOrderField!
-  direction: SortDirection!
-}
-
 input CustomerMergeStatusFilter {
   _eq: CustomerMergeStatus
   _neq: CustomerMergeStatus
   _in: [CustomerMergeStatus!]
   _notIn: [CustomerMergeStatus!]
-}
-
-input CustomerMergeWhereInput {
-  _and: [CustomerMergeWhereInput!]
-  _or: [CustomerMergeWhereInput!]
-  _not: CustomerMergeWhereInput
-  id: IDFilter
-  sourceCustomerId: IDFilter
-  targetCustomerId: IDFilter
-  status: CustomerMergeStatusFilter
-  requestedByType: StringFilter
-  requestedById: StringFilter
-  idempotencyKey: StringFilter
-  errorCode: StringFilter
-  requestedAt: DateTimeFilter
-  startedAt: DateTimeFilter
-  finishedAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerMergeOrderField {
-  id
-  status
-  requestedAt
-  startedAt
-  finishedAt
-  updatedAt
-}
-
-input CustomerMergeOrderByInput {
-  field: CustomerMergeOrderField!
-  direction: SortDirection!
 }
 
 input CustomerDataRequestTypeFilter {
@@ -501,38 +108,4 @@ input CustomerDataRequestStatusFilter {
   _neq: CustomerDataRequestStatus
   _in: [CustomerDataRequestStatus!]
   _notIn: [CustomerDataRequestStatus!]
-}
-
-input CustomerDataRequestWhereInput {
-  _and: [CustomerDataRequestWhereInput!]
-  _or: [CustomerDataRequestWhereInput!]
-  _not: CustomerDataRequestWhereInput
-  id: IDFilter
-  customerId: IDFilter
-  type: CustomerDataRequestTypeFilter
-  status: CustomerDataRequestStatusFilter
-  requestedByType: StringFilter
-  requestedById: StringFilter
-  legalBasis: StringFilter
-  requestedAt: DateTimeFilter
-  dueAt: DateTimeFilter
-  startedAt: DateTimeFilter
-  finishedAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-enum CustomerDataRequestOrderField {
-  id
-  type
-  status
-  requestedAt
-  dueAt
-  startedAt
-  finishedAt
-  updatedAt
-}
-
-input CustomerDataRequestOrderByInput {
-  field: CustomerDataRequestOrderField!
-  direction: SortDirection!
 }
