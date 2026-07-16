@@ -20,7 +20,6 @@ export type Scalars = {
   DateTime: { input: string; output: string; }
   Email: { input: string; output: string; }
   JSON: { input: Record<string, unknown>; output: Record<string, unknown>; }
-  _ReviewsGeneratedFilterPlaceholder: { input: any; output: any; }
   _FieldSet: { input: any; output: any; }
 };
 
@@ -1034,23 +1033,39 @@ export type ProductQuestionAnswerEdge = {
   node: ProductQuestionAnswer;
 };
 
+/** Ordering configuration for ProductQuestionAnswer */
 export type ProductQuestionAnswerOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ProductQuestionAnswerOrderField;
 };
 
+/** Fields available for sorting ProductQuestionAnswer */
 export enum ProductQuestionAnswerOrderField {
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isAccepted */
   IsAccepted = 'isAccepted',
+  /** Sort by isOfficial */
   IsOfficial = 'isOfficial',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by questionId */
   QuestionId = 'questionId',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sortIndex */
   SortIndex = 'sortIndex',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1077,23 +1092,41 @@ export type ProductQuestionAnswerUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for ProductQuestionAnswer */
 export type ProductQuestionAnswerWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ProductQuestionAnswerWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ProductQuestionAnswerWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ProductQuestionAnswerWhereInput>>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<IdFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<StringFilter>;
+  /** Filter by body */
   body?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by isAccepted */
   isAccepted?: InputMaybe<BooleanFilter>;
+  /** Filter by isOfficial */
   isOfficial?: InputMaybe<BooleanFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by questionId */
   questionId?: InputMaybe<IdFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<IntFilter>;
+  /** Filter by sortIndex */
   sortIndex?: InputMaybe<IntFilter>;
+  /** Filter by status */
   status?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -1128,29 +1161,51 @@ export type ProductQuestionEdge = {
   node: ProductQuestion;
 };
 
+/** Ordering configuration for ProductQuestion */
 export type ProductQuestionOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ProductQuestionOrderField;
 };
 
+/** Fields available for sorting ProductQuestion */
 export enum ProductQuestionOrderField {
+  /** Sort by acceptedAnswerCount */
   AcceptedAnswerCount = 'acceptedAnswerCount',
+  /** Sort by answerCount */
   AnswerCount = 'answerCount',
+  /** Sort by answerState */
   AnswerState = 'answerState',
+  /** Sort by authorDisplayName */
   AuthorDisplayName = 'authorDisplayName',
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by officialAnswerCount */
   OfficialAnswerCount = 'officialAnswerCount',
+  /** Sort by productId */
   ProductId = 'productId',
+  /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
+  /** Sort by reportCount */
   ReportCount = 'reportCount',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sourceChannel */
   SourceChannel = 'sourceChannel',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by variantId */
   VariantId = 'variantId'
 }
 
@@ -1230,29 +1285,53 @@ export type ProductQuestionUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for ProductQuestion */
 export type ProductQuestionWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ProductQuestionWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ProductQuestionWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ProductQuestionWhereInput>>;
+  /** Filter by acceptedAnswerCount */
   acceptedAnswerCount?: InputMaybe<IntFilter>;
+  /** Filter by answerCount */
   answerCount?: InputMaybe<IntFilter>;
+  /** Filter by answerState */
   answerState?: InputMaybe<StringFilter>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<IdFilter>;
+  /** Filter by authorDisplayName */
   authorDisplayName?: InputMaybe<StringFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<StringFilter>;
+  /** Filter by body */
   body?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by officialAnswerCount */
   officialAnswerCount?: InputMaybe<IntFilter>;
+  /** Filter by productId */
   productId?: InputMaybe<IdFilter>;
+  /** Filter by publishedAt */
   publishedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by reportCount */
   reportCount?: InputMaybe<IntFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<IntFilter>;
+  /** Filter by sourceChannel */
   sourceChannel?: InputMaybe<StringFilter>;
+  /** Filter by status */
   status?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by variantId */
   variantId?: InputMaybe<IdFilter>;
 };
 
@@ -1550,13 +1629,7 @@ export type ReviewContentConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-/**
- * Relay filter contract for the admin read models.
- *
- * Names, logical operators, scalar filters, lower-case sort direction, and
- * multi-column order inputs intentionally match @shopana/drizzle-query output.
- * Tenant fields are never exposed and are always injected by repositories.
- */
+/** Repository-enforced visibility controls for moderated content lists. */
 export type ReviewContentConnectionMetaInput = {
   /** Include soft-deleted content; false by default. */
   includeDeleted?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1656,22 +1729,37 @@ export type ReviewContentExternalReferenceIdentityInput = {
   externalUrl?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** Ordering configuration for ReviewContentExternalReference */
 export type ReviewContentExternalReferenceOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewContentExternalReferenceOrderField;
 };
 
+/** Fields available for sorting ReviewContentExternalReference */
 export enum ReviewContentExternalReferenceOrderField {
+  /** Sort by contentId */
   ContentId = 'contentId',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by direction */
   Direction = 'direction',
+  /** Sort by externalId */
   ExternalId = 'externalId',
+  /** Sort by externalSystem */
   ExternalSystem = 'externalSystem',
+  /** Sort by externalType */
   ExternalType = 'externalType',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by lastSyncedAt */
   LastSyncedAt = 'lastSyncedAt',
+  /** Sort by syncStatus */
   SyncStatus = 'syncStatus',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1695,20 +1783,35 @@ export type ReviewContentExternalReferenceUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for ReviewContentExternalReference */
 export type ReviewContentExternalReferenceWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ReviewContentExternalReferenceWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ReviewContentExternalReferenceWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ReviewContentExternalReferenceWhereInput>>;
+  /** Filter by contentId */
   contentId?: InputMaybe<IdFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by direction */
   direction?: InputMaybe<StringFilter>;
+  /** Filter by externalId */
   externalId?: InputMaybe<StringFilter>;
+  /** Filter by externalSystem */
   externalSystem?: InputMaybe<StringFilter>;
+  /** Filter by externalType */
   externalType?: InputMaybe<StringFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by lastSyncedAt */
   lastSyncedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by syncStatus */
   syncStatus?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -1739,31 +1842,55 @@ export type ReviewContentModerationInput = {
   status: ReviewContentStatus;
 };
 
+/** Ordering configuration for ReviewContent */
 export type ReviewContentOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewContentOrderField;
 };
 
+/** Fields available for sorting ReviewContent */
 export enum ReviewContentOrderField {
+  /** Sort by authorDisplayName */
   AuthorDisplayName = 'authorDisplayName',
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by childCount */
   ChildCount = 'childCount',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by dislikeCount */
   DislikeCount = 'dislikeCount',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by kind */
   Kind = 'kind',
+  /** Sort by likeCount */
   LikeCount = 'likeCount',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by mediaCount */
   MediaCount = 'mediaCount',
+  /** Sort by openReportCount */
   OpenReportCount = 'openReportCount',
+  /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
+  /** Sort by redactedAt */
   RedactedAt = 'redactedAt',
+  /** Sort by reportCount */
   ReportCount = 'reportCount',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sourceChannel */
   SourceChannel = 'sourceChannel',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by title */
   Title = 'title',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1869,21 +1996,35 @@ export type ReviewContentReportEdge = {
   node: ReviewContentReport;
 };
 
+/** Ordering configuration for ReviewContentReport */
 export type ReviewContentReportOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewContentReportOrderField;
 };
 
+/** Fields available for sorting ReviewContentReport */
 export enum ReviewContentReportOrderField {
+  /** Sort by assignedToPrincipalId */
   AssignedToPrincipalId = 'assignedToPrincipalId',
+  /** Sort by contentId */
   ContentId = 'contentId',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by reason */
   Reason = 'reason',
+  /** Sort by reporterCustomerId */
   ReporterCustomerId = 'reporterCustomerId',
+  /** Sort by resolvedAt */
   ResolvedAt = 'resolvedAt',
+  /** Sort by resolvedByPrincipalId */
   ResolvedByPrincipalId = 'resolvedByPrincipalId',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -1926,19 +2067,33 @@ export type ReviewContentReportUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for ReviewContentReport */
 export type ReviewContentReportWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ReviewContentReportWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ReviewContentReportWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ReviewContentReportWhereInput>>;
+  /** Filter by assignedToPrincipalId */
   assignedToPrincipalId?: InputMaybe<StringFilter>;
+  /** Filter by contentId */
   contentId?: InputMaybe<IdFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by reason */
   reason?: InputMaybe<StringFilter>;
+  /** Filter by reporterCustomerId */
   reporterCustomerId?: InputMaybe<IdFilter>;
+  /** Filter by resolvedAt */
   resolvedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by resolvedByPrincipalId */
   resolvedByPrincipalId?: InputMaybe<StringFilter>;
+  /** Filter by status */
   status?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -2108,31 +2263,57 @@ export enum ReviewContentVoteType {
   Like = 'LIKE'
 }
 
+/** Filter conditions for ReviewContent */
 export type ReviewContentWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ReviewContentWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ReviewContentWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ReviewContentWhereInput>>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<IdFilter>;
+  /** Filter by authorDisplayName */
   authorDisplayName?: InputMaybe<StringFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<StringFilter>;
+  /** Filter by body */
   body?: InputMaybe<StringFilter>;
+  /** Filter by childCount */
   childCount?: InputMaybe<IntFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by dislikeCount */
   dislikeCount?: InputMaybe<IntFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by kind */
   kind?: InputMaybe<StringFilter>;
+  /** Filter by likeCount */
   likeCount?: InputMaybe<IntFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by mediaCount */
   mediaCount?: InputMaybe<IntFilter>;
+  /** Filter by openReportCount */
   openReportCount?: InputMaybe<IntFilter>;
+  /** Filter by publishedAt */
   publishedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by redactedAt */
   redactedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by reportCount */
   reportCount?: InputMaybe<IntFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<IntFilter>;
+  /** Filter by sourceChannel */
   sourceChannel?: InputMaybe<StringFilter>;
+  /** Filter by status */
   status?: InputMaybe<StringFilter>;
+  /** Filter by title */
   title?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -2293,23 +2474,39 @@ export type ReviewModerationCaseEdge = {
   node: ReviewModerationCase;
 };
 
+/** Ordering configuration for ReviewModerationCase */
 export type ReviewModerationCaseOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewModerationCaseOrderField;
 };
 
+/** Fields available for sorting ReviewModerationCase */
 export enum ReviewModerationCaseOrderField {
+  /** Sort by assignedToPrincipalId */
   AssignedToPrincipalId = 'assignedToPrincipalId',
+  /** Sort by contentId */
   ContentId = 'contentId',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by dueAt */
   DueAt = 'dueAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by priority */
   Priority = 'priority',
+  /** Sort by reasonCode */
   ReasonCode = 'reasonCode',
+  /** Sort by resolutionCode */
   ResolutionCode = 'resolutionCode',
+  /** Sort by resolvedAt */
   ResolvedAt = 'resolvedAt',
+  /** Sort by resolvedByPrincipalId */
   ResolvedByPrincipalId = 'resolvedByPrincipalId',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -2339,21 +2536,37 @@ export type ReviewModerationCaseUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for ReviewModerationCase */
 export type ReviewModerationCaseWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ReviewModerationCaseWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ReviewModerationCaseWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ReviewModerationCaseWhereInput>>;
+  /** Filter by assignedToPrincipalId */
   assignedToPrincipalId?: InputMaybe<StringFilter>;
+  /** Filter by contentId */
   contentId?: InputMaybe<IdFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by dueAt */
   dueAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by priority */
   priority?: InputMaybe<IntFilter>;
+  /** Filter by reasonCode */
   reasonCode?: InputMaybe<StringFilter>;
+  /** Filter by resolutionCode */
   resolutionCode?: InputMaybe<StringFilter>;
+  /** Filter by resolvedAt */
   resolvedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by resolvedByPrincipalId */
   resolvedByPrincipalId?: InputMaybe<StringFilter>;
+  /** Filter by status */
   status?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -2434,33 +2647,59 @@ export enum ReviewNotificationChannel {
   Sms = 'SMS'
 }
 
+/** Ordering configuration for Review */
 export type ReviewOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewOrderField;
 };
 
+/** Fields available for sorting Review */
 export enum ReviewOrderField {
+  /** Sort by authorDisplayName */
   AuthorDisplayName = 'authorDisplayName',
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by dislikeCount */
   DislikeCount = 'dislikeCount',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isIncentivized */
   IsIncentivized = 'isIncentivized',
+  /** Sort by likeCount */
   LikeCount = 'likeCount',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by mediaCount */
   MediaCount = 'mediaCount',
+  /** Sort by openReportCount */
   OpenReportCount = 'openReportCount',
+  /** Sort by productId */
   ProductId = 'productId',
+  /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
+  /** Sort by rating */
   Rating = 'rating',
+  /** Sort by reportCount */
   ReportCount = 'reportCount',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sourceChannel */
   SourceChannel = 'sourceChannel',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by title */
   Title = 'title',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by variantId */
   VariantId = 'variantId',
+  /** Sort by verificationStatus */
   VerificationStatus = 'verificationStatus'
 }
 
@@ -2584,22 +2823,37 @@ export type ReviewRatingCriterionEdge = {
   node: ReviewRatingCriterion;
 };
 
+/** Ordering configuration for ReviewRatingCriterion */
 export type ReviewRatingCriterionOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewRatingCriterionOrderField;
 };
 
+/** Fields available for sorting ReviewRatingCriterion */
 export enum ReviewRatingCriterionOrderField {
+  /** Sort by appliesToAllProducts */
   AppliesToAllProducts = 'appliesToAllProducts',
+  /** Sort by code */
   Code = 'code',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by defaultTitle */
   DefaultTitle = 'defaultTitle',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isActive */
   IsActive = 'isActive',
+  /** Sort by isRequired */
   IsRequired = 'isRequired',
+  /** Sort by sortIndex */
   SortIndex = 'sortIndex',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by weight */
   Weight = 'weight'
 }
 
@@ -2641,20 +2895,35 @@ export type ReviewRatingCriterionUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for ReviewRatingCriterion */
 export type ReviewRatingCriterionWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ReviewRatingCriterionWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ReviewRatingCriterionWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ReviewRatingCriterionWhereInput>>;
+  /** Filter by appliesToAllProducts */
   appliesToAllProducts?: InputMaybe<BooleanFilter>;
+  /** Filter by code */
   code?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by defaultTitle */
   defaultTitle?: InputMaybe<StringFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by isActive */
   isActive?: InputMaybe<BooleanFilter>;
+  /** Filter by isRequired */
   isRequired?: InputMaybe<BooleanFilter>;
+  /** Filter by sortIndex */
   sortIndex?: InputMaybe<IntFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by weight */
   weight?: InputMaybe<FloatFilter>;
 };
 
@@ -2794,22 +3063,37 @@ export type ReviewReplyEdge = {
   node: ReviewReply;
 };
 
+/** Ordering configuration for ReviewReply */
 export type ReviewReplyOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewReplyOrderField;
 };
 
+/** Fields available for sorting ReviewReply */
 export enum ReviewReplyOrderField {
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isOfficial */
   IsOfficial = 'isOfficial',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by reviewId */
   ReviewId = 'reviewId',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sortIndex */
   SortIndex = 'sortIndex',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -2830,22 +3114,39 @@ export type ReviewReplyUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for ReviewReply */
 export type ReviewReplyWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ReviewReplyWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ReviewReplyWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ReviewReplyWhereInput>>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<IdFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<StringFilter>;
+  /** Filter by body */
   body?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by isOfficial */
   isOfficial?: InputMaybe<BooleanFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by reviewId */
   reviewId?: InputMaybe<IdFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<IntFilter>;
+  /** Filter by sortIndex */
   sortIndex?: InputMaybe<IntFilter>;
+  /** Filter by status */
   status?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
@@ -2960,32 +3261,57 @@ export enum ReviewRequestEventType {
   Submitted = 'SUBMITTED'
 }
 
+/** Ordering configuration for ReviewRequest */
 export type ReviewRequestOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewRequestOrderField;
 };
 
+/** Fields available for sorting ReviewRequest */
 export enum ReviewRequestOrderField {
+  /** Sort by attemptCount */
   AttemptCount = 'attemptCount',
+  /** Sort by channel */
   Channel = 'channel',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by customerId */
   CustomerId = 'customerId',
+  /** Sort by deliveredAt */
   DeliveredAt = 'deliveredAt',
+  /** Sort by expiresAt */
   ExpiresAt = 'expiresAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by openedAt */
   OpenedAt = 'openedAt',
+  /** Sort by orderId */
   OrderId = 'orderId',
+  /** Sort by orderLineId */
   OrderLineId = 'orderLineId',
+  /** Sort by productId */
   ProductId = 'productId',
+  /** Sort by providerMessageId */
   ProviderMessageId = 'providerMessageId',
+  /** Sort by reviewId */
   ReviewId = 'reviewId',
+  /** Sort by scheduledAt */
   ScheduledAt = 'scheduledAt',
+  /** Sort by sentAt */
   SentAt = 'sentAt',
+  /** Sort by sourceChannel */
   SourceChannel = 'sourceChannel',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by submittedAt */
   SubmittedAt = 'submittedAt',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by variantId */
   VariantId = 'variantId'
 }
 
@@ -3030,30 +3356,55 @@ export type ReviewRequestUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for ReviewRequest */
 export type ReviewRequestWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ReviewRequestWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ReviewRequestWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ReviewRequestWhereInput>>;
+  /** Filter by attemptCount */
   attemptCount?: InputMaybe<IntFilter>;
+  /** Filter by channel */
   channel?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by customerId */
   customerId?: InputMaybe<IdFilter>;
+  /** Filter by deliveredAt */
   deliveredAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by expiresAt */
   expiresAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by openedAt */
   openedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by orderId */
   orderId?: InputMaybe<IdFilter>;
+  /** Filter by orderLineId */
   orderLineId?: InputMaybe<IdFilter>;
+  /** Filter by productId */
   productId?: InputMaybe<IdFilter>;
+  /** Filter by providerMessageId */
   providerMessageId?: InputMaybe<StringFilter>;
+  /** Filter by reviewId */
   reviewId?: InputMaybe<IdFilter>;
+  /** Filter by scheduledAt */
   scheduledAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by sentAt */
   sentAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by sourceChannel */
   sourceChannel?: InputMaybe<StringFilter>;
+  /** Filter by status */
   status?: InputMaybe<StringFilter>;
+  /** Filter by submittedAt */
   submittedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by variantId */
   variantId?: InputMaybe<IdFilter>;
 };
 
@@ -3154,35 +3505,65 @@ export type ReviewVerificationUpdateInput = {
   verifiedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
+/** Filter conditions for Review */
 export type ReviewWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ReviewWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ReviewWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ReviewWhereInput>>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<IdFilter>;
+  /** Filter by authorDisplayName */
   authorDisplayName?: InputMaybe<StringFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<StringFilter>;
+  /** Filter by body */
   body?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by dislikeCount */
   dislikeCount?: InputMaybe<IntFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by isIncentivized */
   isIncentivized?: InputMaybe<BooleanFilter>;
+  /** Filter by likeCount */
   likeCount?: InputMaybe<IntFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by mediaCount */
   mediaCount?: InputMaybe<IntFilter>;
+  /** Filter by openReportCount */
   openReportCount?: InputMaybe<IntFilter>;
+  /** Filter by orderId */
   orderId?: InputMaybe<IdFilter>;
+  /** Filter by orderLineId */
   orderLineId?: InputMaybe<IdFilter>;
+  /** Filter by productId */
   productId?: InputMaybe<IdFilter>;
+  /** Filter by publishedAt */
   publishedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by rating */
   rating?: InputMaybe<IntFilter>;
+  /** Filter by reportCount */
   reportCount?: InputMaybe<IntFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<IntFilter>;
+  /** Filter by sourceChannel */
   sourceChannel?: InputMaybe<StringFilter>;
+  /** Filter by status */
   status?: InputMaybe<StringFilter>;
+  /** Filter by title */
   title?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by variantId */
   variantId?: InputMaybe<IdFilter>;
+  /** Filter by verificationStatus */
   verificationStatus?: InputMaybe<StringFilter>;
 };
 
@@ -4149,7 +4530,6 @@ export type ResolversTypes = ResolversObject<{
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   Variant: ResolverTypeWrapper<Variant>;
   WeightUnit: WeightUnit;
-  _ReviewsGeneratedFilterPlaceholder: ResolverTypeWrapper<Scalars['_ReviewsGeneratedFilterPlaceholder']['output']>;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -4364,7 +4744,6 @@ export type ResolversParentTypes = ResolversObject<{
   StringFilter: StringFilter;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
   Variant: Variant;
-  _ReviewsGeneratedFilterPlaceholder: Scalars['_ReviewsGeneratedFilterPlaceholder']['output'];
 }>;
 
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
@@ -5510,10 +5889,6 @@ export type VariantResolvers<ContextType = ServiceContext, ParentType extends Re
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export interface _ReviewsGeneratedFilterPlaceholderScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['_ReviewsGeneratedFilterPlaceholder'], any> {
-  name: '_ReviewsGeneratedFilterPlaceholder';
-}
-
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   Category?: CategoryResolvers<ContextType>;
@@ -5628,6 +6003,5 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ReviewsQuery?: ReviewsQueryResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
   Variant?: VariantResolvers<ContextType>;
-  _ReviewsGeneratedFilterPlaceholder?: GraphQLScalarType;
 }>;
 

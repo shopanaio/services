@@ -1,4 +1,858 @@
 # Auto-generated GraphQL filters for Reviews service.
 # Do not edit manually. Run: yarn shopana codegen --service reviews
 
-scalar _ReviewsGeneratedFilterPlaceholder @inaccessible
+# ---- ReviewContent ----
+
+"""Filter conditions for ReviewContent"""
+input ReviewContentWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ReviewContentWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ReviewContentWhereInput!]
+  """Negate the condition"""
+  _not: ReviewContentWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by kind"""
+  kind: StringFilter
+  """Filter by title"""
+  title: StringFilter
+  """Filter by body"""
+  body: StringFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by authorType"""
+  authorType: StringFilter
+  """Filter by authorCustomerId"""
+  authorCustomerId: IDFilter
+  """Filter by authorDisplayName"""
+  authorDisplayName: StringFilter
+  """Filter by sourceChannel"""
+  sourceChannel: StringFilter
+  """Filter by status"""
+  status: StringFilter
+  """Filter by revision"""
+  revision: IntFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by deletedAt"""
+  deletedAt: DateTimeFilter
+  """Filter by redactedAt"""
+  redactedAt: DateTimeFilter
+  """Filter by likeCount"""
+  likeCount: IntFilter
+  """Filter by dislikeCount"""
+  dislikeCount: IntFilter
+  """Filter by reportCount"""
+  reportCount: IntFilter
+  """Filter by openReportCount"""
+  openReportCount: IntFilter
+  """Filter by mediaCount"""
+  mediaCount: IntFilter
+  """Filter by childCount"""
+  childCount: IntFilter
+}
+
+"""Fields available for sorting ReviewContent"""
+enum ReviewContentOrderField {
+  """Sort by id"""
+  id
+  """Sort by kind"""
+  kind
+  """Sort by title"""
+  title
+  """Sort by locale"""
+  locale
+  """Sort by authorType"""
+  authorType
+  """Sort by authorDisplayName"""
+  authorDisplayName
+  """Sort by sourceChannel"""
+  sourceChannel
+  """Sort by status"""
+  status
+  """Sort by revision"""
+  revision
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by deletedAt"""
+  deletedAt
+  """Sort by redactedAt"""
+  redactedAt
+  """Sort by likeCount"""
+  likeCount
+  """Sort by dislikeCount"""
+  dislikeCount
+  """Sort by reportCount"""
+  reportCount
+  """Sort by openReportCount"""
+  openReportCount
+  """Sort by mediaCount"""
+  mediaCount
+  """Sort by childCount"""
+  childCount
+}
+
+"""Ordering configuration for ReviewContent"""
+input ReviewContentOrderByInput {
+  """Field to order by"""
+  field: ReviewContentOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- Review ----
+
+"""Filter conditions for Review"""
+input ReviewWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ReviewWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ReviewWhereInput!]
+  """Negate the condition"""
+  _not: ReviewWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by title"""
+  title: StringFilter
+  """Filter by body"""
+  body: StringFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by authorType"""
+  authorType: StringFilter
+  """Filter by authorCustomerId"""
+  authorCustomerId: IDFilter
+  """Filter by authorDisplayName"""
+  authorDisplayName: StringFilter
+  """Filter by sourceChannel"""
+  sourceChannel: StringFilter
+  """Filter by status"""
+  status: StringFilter
+  """Filter by revision"""
+  revision: IntFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by deletedAt"""
+  deletedAt: DateTimeFilter
+  """Filter by likeCount"""
+  likeCount: IntFilter
+  """Filter by dislikeCount"""
+  dislikeCount: IntFilter
+  """Filter by reportCount"""
+  reportCount: IntFilter
+  """Filter by openReportCount"""
+  openReportCount: IntFilter
+  """Filter by mediaCount"""
+  mediaCount: IntFilter
+  """Filter by productId"""
+  productId: IDFilter
+  """Filter by variantId"""
+  variantId: IDFilter
+  """Filter by orderId"""
+  orderId: IDFilter
+  """Filter by orderLineId"""
+  orderLineId: IDFilter
+  """Filter by rating"""
+  rating: IntFilter
+  """Filter by verificationStatus"""
+  verificationStatus: StringFilter
+  """Filter by isIncentivized"""
+  isIncentivized: BooleanFilter
+}
+
+"""Fields available for sorting Review"""
+enum ReviewOrderField {
+  """Sort by id"""
+  id
+  """Sort by title"""
+  title
+  """Sort by locale"""
+  locale
+  """Sort by authorType"""
+  authorType
+  """Sort by authorDisplayName"""
+  authorDisplayName
+  """Sort by sourceChannel"""
+  sourceChannel
+  """Sort by status"""
+  status
+  """Sort by revision"""
+  revision
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by deletedAt"""
+  deletedAt
+  """Sort by likeCount"""
+  likeCount
+  """Sort by dislikeCount"""
+  dislikeCount
+  """Sort by reportCount"""
+  reportCount
+  """Sort by openReportCount"""
+  openReportCount
+  """Sort by mediaCount"""
+  mediaCount
+  """Sort by productId"""
+  productId
+  """Sort by variantId"""
+  variantId
+  """Sort by rating"""
+  rating
+  """Sort by verificationStatus"""
+  verificationStatus
+  """Sort by isIncentivized"""
+  isIncentivized
+}
+
+"""Ordering configuration for Review"""
+input ReviewOrderByInput {
+  """Field to order by"""
+  field: ReviewOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- ReviewReply ----
+
+"""Filter conditions for ReviewReply"""
+input ReviewReplyWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ReviewReplyWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ReviewReplyWhereInput!]
+  """Negate the condition"""
+  _not: ReviewReplyWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by body"""
+  body: StringFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by authorType"""
+  authorType: StringFilter
+  """Filter by authorCustomerId"""
+  authorCustomerId: IDFilter
+  """Filter by status"""
+  status: StringFilter
+  """Filter by revision"""
+  revision: IntFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by deletedAt"""
+  deletedAt: DateTimeFilter
+  """Filter by reviewId"""
+  reviewId: IDFilter
+  """Filter by isOfficial"""
+  isOfficial: BooleanFilter
+  """Filter by sortIndex"""
+  sortIndex: IntFilter
+}
+
+"""Fields available for sorting ReviewReply"""
+enum ReviewReplyOrderField {
+  """Sort by id"""
+  id
+  """Sort by locale"""
+  locale
+  """Sort by authorType"""
+  authorType
+  """Sort by status"""
+  status
+  """Sort by revision"""
+  revision
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by deletedAt"""
+  deletedAt
+  """Sort by reviewId"""
+  reviewId
+  """Sort by isOfficial"""
+  isOfficial
+  """Sort by sortIndex"""
+  sortIndex
+}
+
+"""Ordering configuration for ReviewReply"""
+input ReviewReplyOrderByInput {
+  """Field to order by"""
+  field: ReviewReplyOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- ProductQuestion ----
+
+"""Filter conditions for ProductQuestion"""
+input ProductQuestionWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ProductQuestionWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ProductQuestionWhereInput!]
+  """Negate the condition"""
+  _not: ProductQuestionWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by productId"""
+  productId: IDFilter
+  """Filter by variantId"""
+  variantId: IDFilter
+  """Filter by body"""
+  body: StringFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by authorType"""
+  authorType: StringFilter
+  """Filter by authorCustomerId"""
+  authorCustomerId: IDFilter
+  """Filter by authorDisplayName"""
+  authorDisplayName: StringFilter
+  """Filter by sourceChannel"""
+  sourceChannel: StringFilter
+  """Filter by status"""
+  status: StringFilter
+  """Filter by answerState"""
+  answerState: StringFilter
+  """Filter by revision"""
+  revision: IntFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by deletedAt"""
+  deletedAt: DateTimeFilter
+  """Filter by answerCount"""
+  answerCount: IntFilter
+  """Filter by officialAnswerCount"""
+  officialAnswerCount: IntFilter
+  """Filter by acceptedAnswerCount"""
+  acceptedAnswerCount: IntFilter
+  """Filter by reportCount"""
+  reportCount: IntFilter
+}
+
+"""Fields available for sorting ProductQuestion"""
+enum ProductQuestionOrderField {
+  """Sort by id"""
+  id
+  """Sort by productId"""
+  productId
+  """Sort by variantId"""
+  variantId
+  """Sort by locale"""
+  locale
+  """Sort by authorType"""
+  authorType
+  """Sort by authorDisplayName"""
+  authorDisplayName
+  """Sort by sourceChannel"""
+  sourceChannel
+  """Sort by status"""
+  status
+  """Sort by answerState"""
+  answerState
+  """Sort by revision"""
+  revision
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by deletedAt"""
+  deletedAt
+  """Sort by answerCount"""
+  answerCount
+  """Sort by officialAnswerCount"""
+  officialAnswerCount
+  """Sort by acceptedAnswerCount"""
+  acceptedAnswerCount
+  """Sort by reportCount"""
+  reportCount
+}
+
+"""Ordering configuration for ProductQuestion"""
+input ProductQuestionOrderByInput {
+  """Field to order by"""
+  field: ProductQuestionOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- ProductQuestionAnswer ----
+
+"""Filter conditions for ProductQuestionAnswer"""
+input ProductQuestionAnswerWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ProductQuestionAnswerWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ProductQuestionAnswerWhereInput!]
+  """Negate the condition"""
+  _not: ProductQuestionAnswerWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by body"""
+  body: StringFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by authorType"""
+  authorType: StringFilter
+  """Filter by authorCustomerId"""
+  authorCustomerId: IDFilter
+  """Filter by status"""
+  status: StringFilter
+  """Filter by revision"""
+  revision: IntFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by deletedAt"""
+  deletedAt: DateTimeFilter
+  """Filter by questionId"""
+  questionId: IDFilter
+  """Filter by isOfficial"""
+  isOfficial: BooleanFilter
+  """Filter by isAccepted"""
+  isAccepted: BooleanFilter
+  """Filter by sortIndex"""
+  sortIndex: IntFilter
+}
+
+"""Fields available for sorting ProductQuestionAnswer"""
+enum ProductQuestionAnswerOrderField {
+  """Sort by id"""
+  id
+  """Sort by locale"""
+  locale
+  """Sort by authorType"""
+  authorType
+  """Sort by status"""
+  status
+  """Sort by revision"""
+  revision
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by deletedAt"""
+  deletedAt
+  """Sort by questionId"""
+  questionId
+  """Sort by isOfficial"""
+  isOfficial
+  """Sort by isAccepted"""
+  isAccepted
+  """Sort by sortIndex"""
+  sortIndex
+}
+
+"""Ordering configuration for ProductQuestionAnswer"""
+input ProductQuestionAnswerOrderByInput {
+  """Field to order by"""
+  field: ProductQuestionAnswerOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- ReviewRequest ----
+
+"""Filter conditions for ReviewRequest"""
+input ReviewRequestWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ReviewRequestWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ReviewRequestWhereInput!]
+  """Negate the condition"""
+  _not: ReviewRequestWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by customerId"""
+  customerId: IDFilter
+  """Filter by orderId"""
+  orderId: IDFilter
+  """Filter by orderLineId"""
+  orderLineId: IDFilter
+  """Filter by productId"""
+  productId: IDFilter
+  """Filter by variantId"""
+  variantId: IDFilter
+  """Filter by reviewId"""
+  reviewId: IDFilter
+  """Filter by channel"""
+  channel: StringFilter
+  """Filter by status"""
+  status: StringFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by sourceChannel"""
+  sourceChannel: StringFilter
+  """Filter by providerMessageId"""
+  providerMessageId: StringFilter
+  """Filter by attemptCount"""
+  attemptCount: IntFilter
+  """Filter by scheduledAt"""
+  scheduledAt: DateTimeFilter
+  """Filter by sentAt"""
+  sentAt: DateTimeFilter
+  """Filter by deliveredAt"""
+  deliveredAt: DateTimeFilter
+  """Filter by openedAt"""
+  openedAt: DateTimeFilter
+  """Filter by submittedAt"""
+  submittedAt: DateTimeFilter
+  """Filter by expiresAt"""
+  expiresAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting ReviewRequest"""
+enum ReviewRequestOrderField {
+  """Sort by id"""
+  id
+  """Sort by customerId"""
+  customerId
+  """Sort by orderId"""
+  orderId
+  """Sort by orderLineId"""
+  orderLineId
+  """Sort by productId"""
+  productId
+  """Sort by variantId"""
+  variantId
+  """Sort by reviewId"""
+  reviewId
+  """Sort by channel"""
+  channel
+  """Sort by status"""
+  status
+  """Sort by locale"""
+  locale
+  """Sort by sourceChannel"""
+  sourceChannel
+  """Sort by providerMessageId"""
+  providerMessageId
+  """Sort by attemptCount"""
+  attemptCount
+  """Sort by scheduledAt"""
+  scheduledAt
+  """Sort by sentAt"""
+  sentAt
+  """Sort by deliveredAt"""
+  deliveredAt
+  """Sort by openedAt"""
+  openedAt
+  """Sort by submittedAt"""
+  submittedAt
+  """Sort by expiresAt"""
+  expiresAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for ReviewRequest"""
+input ReviewRequestOrderByInput {
+  """Field to order by"""
+  field: ReviewRequestOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- ReviewRatingCriterion ----
+
+"""Filter conditions for ReviewRatingCriterion"""
+input ReviewRatingCriterionWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ReviewRatingCriterionWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ReviewRatingCriterionWhereInput!]
+  """Negate the condition"""
+  _not: ReviewRatingCriterionWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by code"""
+  code: StringFilter
+  """Filter by defaultTitle"""
+  defaultTitle: StringFilter
+  """Filter by weight"""
+  weight: FloatFilter
+  """Filter by isRequired"""
+  isRequired: BooleanFilter
+  """Filter by isActive"""
+  isActive: BooleanFilter
+  """Filter by appliesToAllProducts"""
+  appliesToAllProducts: BooleanFilter
+  """Filter by sortIndex"""
+  sortIndex: IntFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by deletedAt"""
+  deletedAt: DateTimeFilter
+}
+
+"""Fields available for sorting ReviewRatingCriterion"""
+enum ReviewRatingCriterionOrderField {
+  """Sort by id"""
+  id
+  """Sort by code"""
+  code
+  """Sort by defaultTitle"""
+  defaultTitle
+  """Sort by weight"""
+  weight
+  """Sort by isRequired"""
+  isRequired
+  """Sort by isActive"""
+  isActive
+  """Sort by appliesToAllProducts"""
+  appliesToAllProducts
+  """Sort by sortIndex"""
+  sortIndex
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by deletedAt"""
+  deletedAt
+}
+
+"""Ordering configuration for ReviewRatingCriterion"""
+input ReviewRatingCriterionOrderByInput {
+  """Field to order by"""
+  field: ReviewRatingCriterionOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- ReviewContentReport ----
+
+"""Filter conditions for ReviewContentReport"""
+input ReviewContentReportWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ReviewContentReportWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ReviewContentReportWhereInput!]
+  """Negate the condition"""
+  _not: ReviewContentReportWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by contentId"""
+  contentId: IDFilter
+  """Filter by reporterCustomerId"""
+  reporterCustomerId: IDFilter
+  """Filter by reason"""
+  reason: StringFilter
+  """Filter by status"""
+  status: StringFilter
+  """Filter by assignedToPrincipalId"""
+  assignedToPrincipalId: StringFilter
+  """Filter by resolvedByPrincipalId"""
+  resolvedByPrincipalId: StringFilter
+  """Filter by resolvedAt"""
+  resolvedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting ReviewContentReport"""
+enum ReviewContentReportOrderField {
+  """Sort by id"""
+  id
+  """Sort by contentId"""
+  contentId
+  """Sort by reporterCustomerId"""
+  reporterCustomerId
+  """Sort by reason"""
+  reason
+  """Sort by status"""
+  status
+  """Sort by assignedToPrincipalId"""
+  assignedToPrincipalId
+  """Sort by resolvedByPrincipalId"""
+  resolvedByPrincipalId
+  """Sort by resolvedAt"""
+  resolvedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for ReviewContentReport"""
+input ReviewContentReportOrderByInput {
+  """Field to order by"""
+  field: ReviewContentReportOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- ReviewModerationCase ----
+
+"""Filter conditions for ReviewModerationCase"""
+input ReviewModerationCaseWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ReviewModerationCaseWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ReviewModerationCaseWhereInput!]
+  """Negate the condition"""
+  _not: ReviewModerationCaseWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by contentId"""
+  contentId: IDFilter
+  """Filter by status"""
+  status: StringFilter
+  """Filter by priority"""
+  priority: IntFilter
+  """Filter by reasonCode"""
+  reasonCode: StringFilter
+  """Filter by assignedToPrincipalId"""
+  assignedToPrincipalId: StringFilter
+  """Filter by dueAt"""
+  dueAt: DateTimeFilter
+  """Filter by resolutionCode"""
+  resolutionCode: StringFilter
+  """Filter by resolvedByPrincipalId"""
+  resolvedByPrincipalId: StringFilter
+  """Filter by resolvedAt"""
+  resolvedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting ReviewModerationCase"""
+enum ReviewModerationCaseOrderField {
+  """Sort by id"""
+  id
+  """Sort by contentId"""
+  contentId
+  """Sort by status"""
+  status
+  """Sort by priority"""
+  priority
+  """Sort by reasonCode"""
+  reasonCode
+  """Sort by assignedToPrincipalId"""
+  assignedToPrincipalId
+  """Sort by dueAt"""
+  dueAt
+  """Sort by resolutionCode"""
+  resolutionCode
+  """Sort by resolvedByPrincipalId"""
+  resolvedByPrincipalId
+  """Sort by resolvedAt"""
+  resolvedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for ReviewModerationCase"""
+input ReviewModerationCaseOrderByInput {
+  """Field to order by"""
+  field: ReviewModerationCaseOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- ReviewContentExternalReference ----
+
+"""Filter conditions for ReviewContentExternalReference"""
+input ReviewContentExternalReferenceWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ReviewContentExternalReferenceWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ReviewContentExternalReferenceWhereInput!]
+  """Negate the condition"""
+  _not: ReviewContentExternalReferenceWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by contentId"""
+  contentId: IDFilter
+  """Filter by externalSystem"""
+  externalSystem: StringFilter
+  """Filter by externalType"""
+  externalType: StringFilter
+  """Filter by externalId"""
+  externalId: StringFilter
+  """Filter by direction"""
+  direction: StringFilter
+  """Filter by syncStatus"""
+  syncStatus: StringFilter
+  """Filter by lastSyncedAt"""
+  lastSyncedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by deletedAt"""
+  deletedAt: DateTimeFilter
+}
+
+"""Fields available for sorting ReviewContentExternalReference"""
+enum ReviewContentExternalReferenceOrderField {
+  """Sort by id"""
+  id
+  """Sort by contentId"""
+  contentId
+  """Sort by externalSystem"""
+  externalSystem
+  """Sort by externalType"""
+  externalType
+  """Sort by externalId"""
+  externalId
+  """Sort by direction"""
+  direction
+  """Sort by syncStatus"""
+  syncStatus
+  """Sort by lastSyncedAt"""
+  lastSyncedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by deletedAt"""
+  deletedAt
+}
+
+"""Ordering configuration for ReviewContentExternalReference"""
+input ReviewContentExternalReferenceOrderByInput {
+  """Field to order by"""
+  field: ReviewContentExternalReferenceOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
