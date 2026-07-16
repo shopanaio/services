@@ -215,6 +215,42 @@ export interface CustomerUpdatedPayload {
 export interface CustomerUpdatedEvent
   extends DomainEvent<"customerUpdated", CustomerUpdatedPayload> {}
 
+export interface ReviewRatingCriterionCreatedEvent
+  extends DomainEvent<
+    "reviewRatingCriterionCreated",
+    { criterionId: string; storeId: string }
+  > {}
+
+export interface ReviewCreatedEvent
+  extends DomainEvent<
+    "reviewCreated",
+    { reviewId: string; storeId: string; productId: string }
+  > {}
+
+export interface ProductQuestionCreatedEvent
+  extends DomainEvent<
+    "productQuestionCreated",
+    { productQuestionId: string; storeId: string; productId: string }
+  > {}
+
+export interface ReviewRequestCreatedEvent
+  extends DomainEvent<
+    "reviewRequestCreated",
+    { reviewRequestId: string; storeId: string; customerId: string; productId: string }
+  > {}
+
+export interface ReviewModerationCaseCreatedEvent
+  extends DomainEvent<
+    "reviewModerationCaseCreated",
+    { moderationCaseId: string; storeId: string; contentId: string }
+  > {}
+
+export interface ReviewContentExternalReferenceCreatedEvent
+  extends DomainEvent<
+    "reviewContentExternalReferenceCreated",
+    { externalReferenceId: string; storeId: string; contentId: string }
+  > {}
+
 export interface FacetCreatedEvent
   extends DomainEvent<
     "facetCreated",
@@ -343,6 +379,12 @@ export type ShopanaEvent =
   | CustomerCreatedEvent
   | CustomerDeletedEvent
   | CustomerUpdatedEvent
+  | ReviewRatingCriterionCreatedEvent
+  | ReviewCreatedEvent
+  | ProductQuestionCreatedEvent
+  | ReviewRequestCreatedEvent
+  | ReviewModerationCaseCreatedEvent
+  | ReviewContentExternalReferenceCreatedEvent
   | FacetCreatedEvent
   | FacetUpdatedEvent
   | FacetDeletedEvent
