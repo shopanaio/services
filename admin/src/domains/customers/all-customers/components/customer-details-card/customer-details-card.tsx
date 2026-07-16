@@ -19,12 +19,10 @@ interface CustomerDetailsCardProps {
   customer: ApiCustomer;
   onEdit: (section: CustomerEditSection) => void;
   onDelete: () => void;
-  onMerge: () => void;
-  onCreateDataRequest: () => void;
   onTechnicalMetadata: () => void;
 }
 
-export function CustomerDetailsCard({ customer, onEdit, onDelete, onMerge, onCreateDataRequest, onTechnicalMetadata }: CustomerDetailsCardProps) {
+export function CustomerDetailsCard({ customer, onEdit, onDelete, onTechnicalMetadata }: CustomerDetailsCardProps) {
   const { styles } = useCustomerDetailsStyles();
   const currency = useDefaultCurrency();
 
@@ -35,8 +33,6 @@ export function CustomerDetailsCard({ customer, onEdit, onDelete, onMerge, onCre
         currency={currency}
         onEdit={onEdit}
         onDelete={onDelete}
-        onMerge={onMerge}
-        onCreateDataRequest={onCreateDataRequest}
         onTechnicalMetadata={onTechnicalMetadata}
       />
       <CustomerProfileSection customer={customer} onEdit={onEdit} />
@@ -45,7 +41,7 @@ export function CustomerDetailsCard({ customer, onEdit, onDelete, onMerge, onCre
       <CustomerConsentsSection customer={customer} onEdit={onEdit} />
       <CustomerClassificationSection customer={customer} onEdit={onEdit} />
       <CustomerTaxSection customer={customer} onEdit={onEdit} />
-      <CustomerAccountSection customer={customer} onEdit={onEdit} onMerge={onMerge} onCreateDataRequest={onCreateDataRequest} />
+      <CustomerAccountSection customer={customer} onEdit={onEdit} />
     </div>
   );
 }

@@ -48,25 +48,13 @@ registerModule({
       component: dynamic(() => import("@/domains/customers/tags/page/page")),
     },
     {
-      key: "customer-privacy-requests-list",
-      path: "/:orgName/:storeName/customers/privacy-requests",
-      sidebar: { label: "Privacy requests", icon: null, order: 5 },
-      component: dynamic(() => import("@/domains/customers/lifecycle/privacy-page/page")),
-    },
-    {
-      key: "customer-merges-list",
-      path: "/:orgName/:storeName/customers/merges",
-      sidebar: { label: "Merges", icon: null, order: 6 },
-      component: dynamic(() => import("@/domains/customers/lifecycle/merges-page/page")),
-    },
-    {
       key: "loyalty-programs-list",
       path: "/:orgName/:storeName/customers/loyalty/programs",
       disabled: true,
       sidebar: {
         label: "Loyalty",
         icon: null,
-        order: 7,
+        order: 5,
       },
       component: dynamic(
         () => import("@/domains/customers/loyalty-programs/page/page"),

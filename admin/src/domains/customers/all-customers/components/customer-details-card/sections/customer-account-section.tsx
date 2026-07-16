@@ -9,16 +9,13 @@ import type { CustomerEditSection } from "../../../modals";
 import { useCustomerDetailsStyles } from "../customer-details-card.styles";
 import { formatCustomerDate, shortCustomerId } from "../customer-details-utils";
 
-export function CustomerAccountSection({ customer, onEdit, onMerge, onCreateDataRequest }: { customer: ApiCustomer; onEdit: (section: CustomerEditSection) => void; onMerge: () => void; onCreateDataRequest: () => void }) {
+export function CustomerAccountSection({ customer, onEdit }: { customer: ApiCustomer; onEdit: (section: CustomerEditSection) => void }) {
   const { styles, cx } = useCustomerDetailsStyles();
   const terminal = customer.lifecycleStatus === CustomerLifecycleStatus.Merged || customer.lifecycleStatus === CustomerLifecycleStatus.Redacted;
   const items = [
     { key: "status", label: "Change customer status", "data-testid": "customer-account-status-menu-item", disabled: terminal, onClick: () => onEdit("status") },
     { key: "note", label: "Edit merchant note", "data-testid": "customer-account-note-menu-item", onClick: () => onEdit("note") },
     { key: "moderation", label: "Edit moderation note", "data-testid": "customer-account-moderation-menu-item", onClick: () => onEdit("moderation") },
-    { type: "divider" as const },
-    { key: "merge", label: "Merge customer", "data-testid": "customer-account-merge-menu-item", onClick: onMerge },
-    { key: "privacy", label: "Create privacy request", "data-testid": "customer-account-privacy-menu-item", onClick: onCreateDataRequest },
   ];
 
   return (

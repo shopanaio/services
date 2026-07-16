@@ -19,7 +19,7 @@ function LoadedCustomer({ query, payload }: { query: ReturnType<typeof useCustom
     {query.error ? <Alert type="warning" showIcon message="Customer details could not be refreshed." description={query.error.message} action={<Button onClick={() => void query.refetch()}>Retry</Button>} /> : null}
     {actions.deleteConflict ? <Alert type="warning" showIcon message="This customer changed after the delete confirmation was opened." action={<Button onClick={() => void actions.reloadAfterConflict()}>Reload latest data</Button>} /> : null}
     {actions.deleteError ? <Alert type="error" showIcon message={actions.deleteError} /> : null}
-    <CustomerDetailsCard customer={query.customer!} onEdit={actions.edit} onDelete={actions.confirmDelete} onMerge={actions.openMerge} onCreateDataRequest={actions.openPrivacy} onTechnicalMetadata={actions.openMetadata} />
+    <CustomerDetailsCard customer={query.customer!} onEdit={actions.edit} onDelete={actions.confirmDelete} onTechnicalMetadata={actions.openMetadata} />
   </>;
 }
 

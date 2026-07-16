@@ -35,8 +35,6 @@ interface CustomerInfoHeaderProps {
   currency: string | null;
   onEdit: (section: CustomerEditSection) => void;
   onTechnicalMetadata: () => void;
-  onMerge: () => void;
-  onCreateDataRequest: () => void;
   onDelete: () => void;
 }
 
@@ -84,8 +82,6 @@ export function CustomerInfoHeader({
   currency,
   onEdit,
   onTechnicalMetadata,
-  onMerge,
-  onCreateDataRequest,
   onDelete,
 }: CustomerInfoHeaderProps) {
   const { styles } = useCustomerDetailsStyles();
@@ -123,9 +119,6 @@ export function CustomerInfoHeader({
     { key: "tax-identifiers", label: "Manage tax identifiers", "data-testid": "customer-manage-tax-identifiers-menu-item", onClick: () => onEdit("taxIdentifiers") },
     { key: "tax-exemptions", label: "Manage tax exemptions", "data-testid": "customer-manage-tax-exemptions-menu-item", onClick: () => onEdit("taxExemptions") },
     { key: "metadata", label: "View technical metadata", "data-testid": "customer-technical-metadata-menu-item", onClick: onTechnicalMetadata },
-    { type: "divider" as const },
-    { key: "merge", label: "Merge customer", "data-testid": "customer-merge-menu-item", onClick: onMerge },
-    { key: "privacy", label: "Create privacy request", "data-testid": "customer-privacy-request-menu-item", onClick: onCreateDataRequest },
     { type: "divider" as const },
     { key: "delete", label: "Delete customer", danger: true, "data-testid": "customer-delete-menu-item", onClick: onDelete },
   ];

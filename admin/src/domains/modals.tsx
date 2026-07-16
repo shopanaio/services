@@ -766,26 +766,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard unsaved tag changes?',
     },
     {
-      type: 'customer-data-request',
-      component: dynamic(() =>
-        import('@/domains/customers/lifecycle/modals/data-request-modal').then(
-          (m) => m.CustomerDataRequestModal
-        )
-      ),
-      confirmOnDirtyClose: true,
-      closeConfirmMessage: 'Discard unsaved privacy request changes?',
-    },
-    {
-      type: 'customer-merge',
-      component: dynamic(() =>
-        import('@/domains/customers/lifecycle/modals/merge-modal').then(
-          (m) => m.CustomerMergeModal
-        )
-      ),
-      confirmOnDirtyClose: true,
-      closeConfirmMessage: 'Discard unsaved merge changes?',
-    },
-    {
       type: 'customer-review',
       component: dynamic(() =>
         import('@/domains/customer-content/reviews/modals/review-details-modal').then(
