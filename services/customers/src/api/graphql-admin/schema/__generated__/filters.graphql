@@ -357,6 +357,8 @@ input CustomerGroupWhereInput {
   isDefault: BooleanFilter
   """Filter by isActive"""
   isActive: BooleanFilter
+  """Filter by revision"""
+  revision: IntFilter
   """Filter by createdAt"""
   createdAt: DateTimeFilter
   """Filter by updatedAt"""
@@ -375,6 +377,8 @@ enum CustomerGroupOrderField {
   isDefault
   """Sort by isActive"""
   isActive
+  """Sort by revision"""
+  revision
   """Sort by createdAt"""
   createdAt
   """Sort by updatedAt"""

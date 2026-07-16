@@ -305,6 +305,7 @@ const groupFields = [
   "name",
   "isDefault",
   "isActive",
+  "revision",
   "createdAt",
   "updatedAt",
 ] as const;

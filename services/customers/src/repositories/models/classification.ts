@@ -30,6 +30,7 @@ export const customerGroup = customersSchema.table(
     description: text("description"),
     isDefault: boolean("is_default").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
+    revision: integer("revision").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -46,6 +47,10 @@ export const customerGroup = customersSchema.table(
     check(
       "customer_group_name_check",
       sql`length(btrim(${table.name})) > 0`
+    ),
+    check(
+      "customer_group_revision_nonnegative_check",
+      sql`${table.revision} >= 0`
     ),
     uniqueIndex("customer_group_store_code_unique")
       .on(table.storeId, table.code)

@@ -22,7 +22,7 @@ purchase statistics, merge support and privacy requests.
 | `0200` | Addresses | `customer_address` |
 | `0300` | Tax | `customer_tax_identifier`, `customer_tax_exemption` |
 | `0400` | Marketing | `customer_consent`, `customer_consent_event` |
-| `0500` | Classification | groups, tags, segments, memberships and segment revision metadata |
+| `0500` | Classification | groups, tags, segments, memberships and aggregate revision metadata |
 | `0700` | Integrations | `customer_external_reference` |
 | `0800` | Read models | order and currency-specific monetary statistics |
 | `0900` | Lifecycle | merges and privacy data requests |
@@ -77,9 +77,10 @@ memberships. Tags support simple merchant labels. Segments support both manual
 membership and dynamic rule/query definitions in the Shopify style. These are
 separate concepts and are not collapsed into one array column.
 
-Segment `revision` is aggregate concurrency state: definition updates and
-manual membership changes increment it. An optional `color` is presentation
-metadata owned by the merchant and validated as `#RRGGBB` when present.
+Group and segment `revision` fields are aggregate concurrency state: definition
+updates and manual membership changes increment them. A segment's optional
+`color` is presentation metadata owned by the merchant and validated as
+`#RRGGBB` when present.
 
 ### Moderation
 
@@ -108,6 +109,9 @@ as booleans.
 customer memberships atomically under the same aggregate revision. The
 dedicated membership-set command remains available for membership-only writes.
 
+`customerGroupUpdate` uses the same revision-guarded contract for group
+definition, state and customer membership changes.
+
 ### Statistics and lifecycle
 
 `customer_statistics` stores rebuildable order counters and first/last activity
@@ -128,5 +132,7 @@ turning a destructive operation into a single unaudited flag update.
 - Monetary values are non-negative and `net = spent - refunded`.
 - Cross-service IDs such as IAM principal, order, location and media file IDs do
   not receive database foreign keys.
+- Customer group revision is non-negative and covers definition, state and
+  manual membership changes.
 - Customer segment revision is non-negative and covers definition and manual
   membership changes.

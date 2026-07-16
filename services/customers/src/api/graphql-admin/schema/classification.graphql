@@ -23,6 +23,8 @@ type CustomerGroup implements Node {
   description: String
   isDefault: Boolean!
   isActive: Boolean!
+  """Aggregate revision incremented by definition and membership changes."""
+  revision: Int!
   customersCount: Int!
   createdAt: DateTime!
   updatedAt: DateTime!

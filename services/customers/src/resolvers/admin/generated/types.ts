@@ -1122,6 +1122,8 @@ export type CustomerGroup = Node & {
   isActive: Scalars['Boolean']['output'];
   isDefault: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
+  /** Aggregate revision incremented by definition and membership changes. */
+  revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -1303,6 +1305,8 @@ export enum CustomerGroupOrderField {
   IsDefault = 'isDefault',
   /** Sort by name */
   Name = 'name',
+  /** Sort by revision */
+  Revision = 'revision',
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
@@ -1346,6 +1350,8 @@ export type CustomerGroupWhereInput = {
   isDefault?: InputMaybe<BooleanFilter>;
   /** Filter by name */
   name?: InputMaybe<StringFilter>;
+  /** Filter by revision */
+  revision?: InputMaybe<IntFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
@@ -2590,7 +2596,7 @@ export type CustomersMutationCustomerGroupDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerGroupUpdateArgs = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
+  expectedRevision: Scalars['Int']['input'];
   groupId: Scalars['ID']['input'];
   operations: CustomerGroupUpdateInput;
 };
@@ -4061,6 +4067,7 @@ export type CustomerGroupResolvers<ContextType = ServiceContext, ParentType exte
   isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -4440,7 +4447,7 @@ export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType 
   customerDelete?: Resolver<ResolversTypes['CustomerDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDeleteArgs, 'input'>>;
   customerGroupCreate?: Resolver<ResolversTypes['CustomerGroupCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupCreateArgs, 'input'>>;
   customerGroupDelete?: Resolver<ResolversTypes['CustomerGroupDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupDeleteArgs, 'input'>>;
-  customerGroupUpdate?: Resolver<ResolversTypes['CustomerGroupUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupUpdateArgs, 'expectedUpdatedAt' | 'groupId' | 'operations'>>;
+  customerGroupUpdate?: Resolver<ResolversTypes['CustomerGroupUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupUpdateArgs, 'expectedRevision' | 'groupId' | 'operations'>>;
   customerMergeCreate?: Resolver<ResolversTypes['CustomerMergeCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeCreateArgs, 'input'>>;
   customerMergeDelete?: Resolver<ResolversTypes['CustomerMergeDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeDeleteArgs, 'input'>>;
   customerMergeUpdate?: Resolver<ResolversTypes['CustomerMergeUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeUpdateArgs, 'mergeId'>>;

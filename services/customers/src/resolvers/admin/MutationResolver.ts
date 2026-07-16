@@ -361,7 +361,7 @@ export class CustomersMutationResolver extends CustomersType<
     const workflowInput: CustomerGroupUpdateWorkflowInput = {
       params: {
         id: groupId,
-        expectedUpdatedAt: args.expectedUpdatedAt,
+        expectedRevision: args.expectedRevision,
         operations,
       },
       context: this.mutationWorkflowContext(),

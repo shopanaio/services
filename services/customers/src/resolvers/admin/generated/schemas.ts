@@ -498,6 +498,7 @@ export function CustomerGroupWhereInputSchema(): z.ZodObject<Properties<Customer
     isActive: z.lazy(() => BooleanFilterSchema().nullish()),
     isDefault: z.lazy(() => BooleanFilterSchema().nullish()),
     name: z.lazy(() => StringFilterSchema().nullish()),
+    revision: z.lazy(() => IntFilterSchema().nullish()),
     updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
   })
 }

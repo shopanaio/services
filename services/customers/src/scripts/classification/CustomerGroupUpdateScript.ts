@@ -4,7 +4,7 @@ import { isUniqueViolation } from "../../kernel/types.js";
 
 export interface CustomerGroupUpdateParams {
   id: string;
-  expectedUpdatedAt: string;
+  expectedRevision: number;
   operations: {
     definition?: {
       code?: string | null;
@@ -32,7 +32,7 @@ export interface CustomerGroupUpdateParams {
 }
 
 export interface CustomerGroupUpdateResult {
-  group?: { id: string };
+  group?: { id: string; revision: number };
   affectedCustomerIds: string[];
   userErrors: UserError[];
 }
@@ -47,7 +47,7 @@ export class CustomerGroupUpdateScript extends BaseScript<
   ): Promise<CustomerGroupUpdateResult> {
     const current = await this.repository.group.findById(params.id);
     if (!current) return notFound();
-    if (current.updatedAt !== params.expectedUpdatedAt) return updateConflict();
+    if (current.revision !== params.expectedRevision) return updateConflict();
 
     const errors = validateGroup(current, params.operations);
     const code = params.operations.definition?.code?.trim().toLowerCase();
@@ -180,7 +180,7 @@ export class CustomerGroupUpdateScript extends BaseScript<
       const group = await this.repository.group.update(
         params.id,
         groupPatch(params.operations),
-        params.expectedUpdatedAt
+        params.expectedRevision
       );
       if (!group) return updateConflict();
 
@@ -219,9 +219,12 @@ export class CustomerGroupUpdateScript extends BaseScript<
         }
       }
 
-      this.logger.info({ groupId: group.id }, "Customer group updated");
+      this.logger.info(
+        { groupId: group.id, revision: group.revision },
+        "Customer group updated"
+      );
       return {
-        group: { id: group.id },
+        group: { id: group.id, revision: group.revision },
         affectedCustomerIds: [...affectedCustomerIds],
         userErrors: [],
       };
@@ -378,7 +381,7 @@ function updateConflict(): CustomerGroupUpdateResult {
     userErrors: [
       {
         message: "Customer group was modified by another user",
-        field: ["expectedUpdatedAt"],
+        field: ["expectedRevision"],
         code: "REVISION_CONFLICT",
       },
     ],

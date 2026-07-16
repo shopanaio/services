@@ -39,6 +39,10 @@ export class CustomerGroupResolver extends CustomersType<string, CustomerGroup> 
     return this.$get("isActive");
   }
 
+  revision() {
+    return this.$get("revision");
+  }
+
   customersCount() {
     return this.$ctx.loaders.groupCustomersCount.load(this.$props);
   }

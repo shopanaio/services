@@ -164,6 +164,7 @@ export class CustomerGroupRepository extends BaseRepository {
       description: data.description ?? null,
       isDefault: data.isDefault ?? false,
       isActive: data.isActive ?? true,
+      revision: 0,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -178,9 +179,22 @@ export class CustomerGroupRepository extends BaseRepository {
     patch: Partial<
       Pick<NewCustomerGroup, "code" | "name" | "description" | "isDefault" | "isActive">
     >,
-    expectedUpdatedAt: string
+    expectedRevision: number
   ): Promise<CustomerGroup | null> {
-    const current = await this.findById(id);
+    const currentRows = await this.connection
+      .select()
+      .from(customerGroup)
+      .where(
+        and(
+          eq(customerGroup.storeId, this.storeId),
+          eq(customerGroup.id, id),
+          eq(customerGroup.revision, expectedRevision),
+          isNull(customerGroup.deletedAt)
+        )
+      )
+      .limit(1)
+      .for("update");
+    const current = currentRows[0];
     if (!current) return null;
     const nextActive = patch.isActive ?? current.isActive;
     const nextDefault = patch.isDefault ?? current.isDefault;
@@ -192,13 +206,14 @@ export class CustomerGroupRepository extends BaseRepository {
         ...(patch.code !== undefined ? { code: normalizeCode(patch.code) } : {}),
         ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
         ...(!nextActive ? { isDefault: false } : {}),
+        revision: sql`${customerGroup.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(
         and(
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.id, id),
-          eq(customerGroup.updatedAt, expectedUpdatedAt),
+          eq(customerGroup.revision, expectedRevision),
           isNull(customerGroup.deletedAt)
         )
       )
@@ -210,7 +225,13 @@ export class CustomerGroupRepository extends BaseRepository {
     const now = new Date().toISOString();
     const rows = await this.connection
       .update(customerGroup)
-      .set({ isActive: false, isDefault: false, deletedAt: now, updatedAt: now })
+      .set({
+        isActive: false,
+        isDefault: false,
+        revision: sql`${customerGroup.revision} + 1`,
+        deletedAt: now,
+        updatedAt: now,
+      })
       .where(
         and(
           eq(customerGroup.storeId, this.storeId),
@@ -283,6 +304,16 @@ export class CustomerGroupRepository extends BaseRepository {
     customerId: string,
     memberships: readonly Omit<CustomerGroupMembershipSetData, "customerId" | "source">[]
   ): Promise<CustomerGroupMembership[]> {
+    const previous = await this.connection
+      .select({ groupId: customerGroupMembership.groupId })
+      .from(customerGroupMembership)
+      .where(
+        and(
+          eq(customerGroupMembership.storeId, this.storeId),
+          eq(customerGroupMembership.customerId, customerId),
+          eq(customerGroupMembership.source, "MANUAL")
+        )
+      );
     await this.connection
       .delete(customerGroupMembership)
       .where(
@@ -301,6 +332,28 @@ export class CustomerGroupRepository extends BaseRepository {
           source: "MANUAL",
         })
       );
+    }
+
+    const affected = [
+      ...new Set([
+        ...previous.map((row) => row.groupId),
+        ...memberships.map((membership) => membership.groupId),
+      ]),
+    ];
+    if (affected.length > 0) {
+      await this.connection
+        .update(customerGroup)
+        .set({
+          revision: sql`${customerGroup.revision} + 1`,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(
+          and(
+            eq(customerGroup.storeId, this.storeId),
+            inArray(customerGroup.id, affected),
+            isNull(customerGroup.deletedAt)
+          )
+        );
     }
     return result;
   }
@@ -414,7 +467,11 @@ export class CustomerGroupRepository extends BaseRepository {
   private async clearDefault(exceptId?: string): Promise<void> {
     await this.connection
       .update(customerGroup)
-      .set({ isDefault: false, updatedAt: new Date().toISOString() })
+      .set({
+        isDefault: false,
+        revision: sql`${customerGroup.revision} + 1`,
+        updatedAt: new Date().toISOString(),
+      })
       .where(
         and(
           eq(customerGroup.storeId, this.storeId),

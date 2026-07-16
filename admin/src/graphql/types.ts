@@ -3705,6 +3705,8 @@ export type ApiCustomerGroup = ApiNode & {
   isActive: Scalars['Boolean']['output'];
   isDefault: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
+  /** Aggregate revision incremented by definition and membership changes. */
+  revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -3886,6 +3888,8 @@ export enum CustomerGroupOrderField {
   IsDefault = 'isDefault',
   /** Sort by name */
   Name = 'name',
+  /** Sort by revision */
+  Revision = 'revision',
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
@@ -3929,6 +3933,8 @@ export type ApiCustomerGroupWhereInput = {
   isDefault?: InputMaybe<ApiBooleanFilter>;
   /** Filter by name */
   name?: InputMaybe<ApiStringFilter>;
+  /** Filter by revision */
+  revision?: InputMaybe<ApiIntFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
@@ -5173,7 +5179,7 @@ export type ApiCustomersMutationCustomerGroupDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerGroupUpdateArgs = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
+  expectedRevision: Scalars['Int']['input'];
   groupId: Scalars['ID']['input'];
   operations: ApiCustomerGroupUpdateInput;
 };

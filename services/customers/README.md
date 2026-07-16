@@ -75,7 +75,7 @@ opt-in, отзыв согласия и удаление персональных
 
 | Сущность | Назначение |
 | --- | --- |
-| `customer_group` | Управляемая магазином бизнес-группа, например `retail`, `wholesale` или `vip`. Может использоваться pricing, tax и promotion policies. Store может иметь одну default group. |
+| `customer_group` | Управляемая магазином бизнес-группа, например `retail`, `wholesale` или `vip`. Может использоваться pricing, tax и promotion policies. Store может иметь одну default group и aggregate revision для optimistic locking определения, состояния и memberships. |
 | `customer_group_membership` | Связь Customer с группой. Хранит основной статус membership, источник назначения, автора и срок действия. Модель допускает несколько групп, но только одну активную primary group. |
 | `customer_tag` | Свободная merchant-метка, например `influencer`, `fraud-review` или `newsletter-2026`. Имеет нормализованное уникальное имя внутри Store. |
 | `customer_tag_assignment` | Связь Customer с тегом и информация о том, кто и когда назначил тег. |
@@ -126,6 +126,7 @@ Merge и erasure представлены отдельными workflow-сущн
 - Monetary statistics не допускает отрицательные суммы и сохраняет
   `net = spent - refunded`.
 - UUID-идентификаторы генерируются PostgreSQL-функцией `uuidv7()`.
+- Group revision изменяется при обновлении определения, состояния и ручного membership.
 - Segment revision изменяется при обновлении определения и ручного membership.
 
 ## Admin update contract
@@ -146,6 +147,9 @@ exemptions, group memberships, tag assignments и manual segment memberships.
 `expectedRevision`.
 Membership-only обновления выполняются через
 `customerSegmentUpdate.operations.memberships.setCustomerIds`.
+
+`customerGroupUpdate` изменяет definition, state и memberships под одним
+обязательным `expectedRevision`.
 - `store_id` не входит в primary и foreign keys; tenant isolation обеспечивается
   обязательным store scope и отдельными индексами.
 
