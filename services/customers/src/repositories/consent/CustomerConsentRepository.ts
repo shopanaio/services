@@ -59,11 +59,19 @@ export interface CustomerConsentSetData {
   idempotencyKey?: string | null;
   evidence?: Record<string, unknown>;
   occurredAt?: string;
+  createOnly?: boolean;
 }
 
 export interface CustomerConsentSetResult {
   consent: CustomerConsent;
   event: CustomerConsentEvent;
+}
+
+export class CustomerConsentAlreadyExistsError extends Error {
+  constructor() {
+    super("A consent record already exists for this customer and channel");
+    this.name = "CustomerConsentAlreadyExistsError";
+  }
 }
 
 export class CustomerConsentRepository extends BaseRepository {
@@ -177,6 +185,9 @@ export class CustomerConsentRepository extends BaseRepository {
       data.customerId,
       data.channel
     );
+    if (current && data.createOnly) {
+      throw new CustomerConsentAlreadyExistsError();
+    }
     const now = data.occurredAt ?? new Date().toISOString();
     const timestamps = consentTimestamps(data.state, current, now);
     const consentRow: NewCustomerConsent = {
