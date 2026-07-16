@@ -15,7 +15,11 @@ import type {
   ReviewContentUpdateInput,
 } from "../../resolvers/admin/generated/types.js";
 
-type ContentKind = "REVIEW" | "REVIEW_REPLY";
+type ContentKind =
+  | "REVIEW"
+  | "REVIEW_REPLY"
+  | "PRODUCT_QUESTION"
+  | "QUESTION_ANSWER";
 
 export interface ContentPatchMappingResult {
   patch: ContentPatch;
@@ -462,7 +466,9 @@ function changedPatch(current: ContentItem, patch: ContentPatch): ContentPatch {
 }
 
 function minimumBodyLength(kind: ContentKind): number {
-  return kind === "REVIEW" ? 20 : 1;
+  if (kind === "REVIEW") return 20;
+  if (kind === "PRODUCT_QUESTION" || kind === "QUESTION_ANSWER") return 10;
+  return 1;
 }
 
 function hasOwn(input: object, field: PropertyKey): boolean {

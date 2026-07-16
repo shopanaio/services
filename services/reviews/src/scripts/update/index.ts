@@ -1,3 +1,7 @@
+export * from "./ProductQuestionAnswerCreateScript.js";
+export * from "./ProductQuestionAnswerDeleteScript.js";
+export * from "./ProductQuestionAnswerUpdateScript.js";
+export * from "./ProductQuestionSectionUpdateScript.js";
 export * from "./ReviewReplyCreateScript.js";
 export * from "./ReviewReplyDeleteScript.js";
 export * from "./ReviewReplyUpdateScript.js";

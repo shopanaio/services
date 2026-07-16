@@ -16,6 +16,9 @@ import type {
   ProductQuestionCreateWorkflowResult,
   ProductQuestionDeleteWorkflowInput,
   ProductQuestionDeleteWorkflowResult,
+  ProductQuestionUpdateOperation,
+  ProductQuestionUpdateWorkflowInput,
+  ProductQuestionUpdateWorkflowResult,
   RatingCriterionCreateWorkflowInput,
   RatingCriterionCreateWorkflowResult,
   RatingCriterionDeleteWorkflowInput,
@@ -65,6 +68,7 @@ import type {
   ReviewsMutationModerationCaseCreateArgs,
   ReviewsMutationProductQuestionCreateArgs,
   ReviewsMutationProductQuestionDeleteArgs,
+  ReviewsMutationProductQuestionUpdateArgs,
   ReviewsMutationRatingCriterionCreateArgs,
   ReviewsMutationRatingCriterionDeleteArgs,
   ReviewsMutationReviewCreateArgs,
@@ -72,6 +76,10 @@ import type {
   ReviewsMutationReviewRequestCreateArgs,
   ReviewsMutationReviewUpdateArgs,
 } from "./generated/types.js";
+import {
+  mapProductQuestionUpdateInput,
+  type ProductQuestionUpdateMappedEntry,
+} from "./productQuestionUpdateMapper.js";
 import {
   mapReviewUpdateInput,
   type ReviewUpdateMappedEntry,
@@ -220,7 +228,70 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     };
   }
 
-  productQuestionUpdate() { return updatePayload("productQuestion"); }
+  async productQuestionUpdate(args: ReviewsMutationProductQuestionUpdateArgs) {
+    const mapped = mapProductQuestionUpdateInput(args.operations);
+    const productQuestionId = safeDecodeId(
+      args.productQuestionId,
+      GlobalIdEntity.ProductQuestion
+    );
+    if (!productQuestionId) {
+      const error = {
+        message: "Invalid ID format",
+        field: ["productQuestionId"],
+        code: "INVALID_ID",
+      };
+      return {
+        productQuestion: null,
+        operationResults: mapped.entries.map(
+          mapProductQuestionPreflightOperationResult
+        ),
+        userErrors: [error, ...mapped.errors],
+      };
+    }
+
+    if (mapped.errors.length > 0) {
+      return {
+        productQuestion: null,
+        operationResults: mapped.entries.map(
+          mapProductQuestionPreflightOperationResult
+        ),
+        userErrors: mapped.errors,
+      };
+    }
+
+    const workflowInput: ProductQuestionUpdateWorkflowInput = {
+      productQuestionId,
+      expectedRevision: args.expectedRevision,
+      operations: mapped.operations,
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runMutationWorkflow<ProductQuestionUpdateWorkflowResult>(
+        "productQuestionUpdate",
+        workflowInput,
+        productQuestionId
+      );
+
+    this.clearProductQuestionUpdateLoaders(productQuestionId, result);
+    return {
+      productQuestion: result.productQuestion
+        ? new ProductQuestionResolver(result.productQuestion.id, this.$ctx)
+        : null,
+      operationResults: result.operationResults.map((operation) => ({
+        type: toGraphqlProductQuestionOperationType(operation.type),
+        applied: operation.applied,
+        clientMutationId: operation.clientMutationId,
+        entityId: operation.entityId
+          ? this.encodeId(
+              operation.entityId,
+              GlobalIdEntity.ProductQuestionAnswer
+            )
+          : undefined,
+        errors: operation.errors,
+      })),
+      userErrors: result.userErrors,
+    };
+  }
   @ZodResolver(ReviewContentDeleteInputSchema())
   async productQuestionDelete(args: ReviewsMutationProductQuestionDeleteArgs) {
     const decoded = decodeDeleteInput(args.input, GlobalIdEntity.ProductQuestion);
@@ -352,6 +423,26 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     for (const operation of result.operationResults) {
       if (!operation.entityId) continue;
       this.$ctx.loaders.reviewReply.clear(operation.entityId);
+      this.$ctx.loaders.content.clear(operation.entityId);
+      this.$ctx.loaders.contentMetrics.clear(operation.entityId);
+      this.$ctx.loaders.contentTranslations.clear(operation.entityId);
+      this.$ctx.loaders.contentPublications.clear(operation.entityId);
+    }
+  }
+
+  private clearProductQuestionUpdateLoaders(
+    productQuestionId: string,
+    result: ProductQuestionUpdateWorkflowResult
+  ) {
+    this.$ctx.loaders.productQuestion.clear(productQuestionId);
+    this.$ctx.loaders.content.clear(productQuestionId);
+    this.$ctx.loaders.contentMetrics.clear(productQuestionId);
+    this.$ctx.loaders.contentTranslations.clear(productQuestionId);
+    this.$ctx.loaders.contentPublications.clear(productQuestionId);
+
+    for (const operation of result.operationResults) {
+      if (!operation.entityId) continue;
+      this.$ctx.loaders.productQuestionAnswer.clear(operation.entityId);
       this.$ctx.loaders.content.clear(operation.entityId);
       this.$ctx.loaders.contentMetrics.clear(operation.entityId);
       this.$ctx.loaders.contentTranslations.clear(operation.entityId);
@@ -526,6 +617,41 @@ function toGraphqlReviewOperationType(
     reviewReplyCreate: "REVIEW_REPLY_CREATE",
     reviewReplyUpdate: "REVIEW_REPLY_UPDATE",
     reviewReplyDelete: "REVIEW_REPLY_DELETE",
+  };
+  return types[type];
+}
+
+function mapProductQuestionPreflightOperationResult(
+  entry: ProductQuestionUpdateMappedEntry
+) {
+  return {
+    type: toGraphqlProductQuestionOperationType(entry.type),
+    applied: false,
+    clientMutationId: entry.clientMutationId,
+    entityId: entry.entityId
+      ? encodeGlobalIdByType(
+          entry.entityId,
+          GlobalIdEntity.ProductQuestionAnswer
+        )
+      : undefined,
+    errors: entry.errors,
+  };
+}
+
+function toGraphqlProductQuestionOperationType(
+  type: ProductQuestionUpdateOperation["type"]
+): string {
+  const types: Record<ProductQuestionUpdateOperation["type"], string> = {
+    contentUpdate: "CONTENT_UPDATE",
+    contentAuthorUpdate: "CONTENT_AUTHOR_UPDATE",
+    contentSourceUpdate: "CONTENT_SOURCE_UPDATE",
+    contentModerationUpdate: "CONTENT_MODERATION_UPDATE",
+    contentTranslationsSync: "CONTENT_TRANSLATIONS_SYNC",
+    contentPublicationsSync: "CONTENT_PUBLICATIONS_SYNC",
+    productQuestionUpdate: "PRODUCT_QUESTION_UPDATE",
+    productQuestionAnswerCreate: "PRODUCT_QUESTION_ANSWER_CREATE",
+    productQuestionAnswerUpdate: "PRODUCT_QUESTION_ANSWER_UPDATE",
+    productQuestionAnswerDelete: "PRODUCT_QUESTION_ANSWER_DELETE",
   };
   return types[type];
 }

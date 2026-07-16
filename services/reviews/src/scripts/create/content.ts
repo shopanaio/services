@@ -2,7 +2,11 @@ import type { ReviewContentCreateInput } from "../../resolvers/admin/generated/t
 import type { NewContentItem } from "../../repositories/models/index.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 
-type ContentKind = "REVIEW" | "REVIEW_REPLY" | "PRODUCT_QUESTION";
+type ContentKind =
+  | "REVIEW"
+  | "REVIEW_REPLY"
+  | "PRODUCT_QUESTION"
+  | "QUESTION_ANSWER";
 type ContentCreateValues = Omit<
   NewContentItem,
   | "id"
@@ -23,7 +27,11 @@ export function mapContentCreate(
   const errors: UserError[] = [];
   const body = input.body.trim();
   const minimumBodyLength =
-    kind === "REVIEW" ? 20 : kind === "PRODUCT_QUESTION" ? 10 : 1;
+    kind === "REVIEW"
+      ? 20
+      : kind === "PRODUCT_QUESTION" || kind === "QUESTION_ANSWER"
+        ? 10
+        : 1;
   const title = input.title?.trim() || null;
   const locale = input.locale.trim();
   const displayName = input.author.displayName.trim();
