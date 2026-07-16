@@ -1,3 +1,5 @@
+import type { MenuProps } from "antd";
+import type { ReactNode } from "react";
 import type { ApiFile } from "@/graphql/types";
 
 export type ViewMode = "grid" | "list";
@@ -15,6 +17,8 @@ export interface IEntityMediaGalleryProps {
   showViewSwitcher?: boolean;
   /** Whether to show the upload area */
   showUpload?: boolean;
+  /** Whether to show a dedicated upload button in the populated gallery header */
+  showUploadButtonInHeader?: boolean;
   /** Whether media can be removed from the gallery */
   allowDelete?: boolean;
   /** Whether media can be promoted to featured */
@@ -45,4 +49,17 @@ export interface IEntityMediaGalleryProps {
   headerExtra?: React.ReactNode;
   /** Minimum number of cells to show (fills empty cells with placeholders) */
   minCells?: number;
+  /** Optional badge rendered over a grid thumbnail */
+  renderItemBadge?: (file: ApiFile, index: number) => ReactNode;
+  /** Optional metadata rendered in list mode */
+  renderListMeta?: (file: ApiFile, index: number) => ReactNode;
+  /** Optional domain-specific menu items appended to built-in item actions */
+  getItemMenuItems?: (
+    file: ApiFile,
+    index: number,
+  ) => MenuProps["items"];
+  /** Optional domain-specific item editor */
+  onEditItem?: (file: ApiFile, index: number) => void;
+  /** Label for the domain-specific item editor */
+  editItemLabel?: string;
 }

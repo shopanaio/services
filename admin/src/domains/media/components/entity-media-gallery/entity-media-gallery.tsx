@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, CSSProperties } from "react";
+import { useCallback, useMemo, useState, CSSProperties, ReactNode } from "react";
 import {
   Button,
   Typography,
@@ -9,8 +9,9 @@ import {
   Flex,
   Empty,
   Space,
+  type MenuProps,
 } from "antd";
-import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuStar as StarOutlined, LuStar as StarFilled, LuEllipsis as MoreOutlined, LuEye as EyeOutlined, LuUpload as UploadOutlined, LuLayoutGrid as AppstoreOutlined, LuList as UnorderedListOutlined, LuGripVertical as HolderOutlined, LuFolderOpen as FolderOpenOutlined } from "react-icons/lu";
+import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuStar as StarOutlined, LuStar as StarFilled, LuEllipsis as MoreOutlined, LuEye as EyeOutlined, LuUpload as UploadOutlined, LuLayoutGrid as AppstoreOutlined, LuList as UnorderedListOutlined, LuGripVertical as HolderOutlined, LuFolderOpen as FolderOpenOutlined, LuPencil as EditOutlined } from "react-icons/lu";
 import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import {
   DndContext,
@@ -89,6 +90,10 @@ interface ISortableGridItemProps {
   selectionMode: boolean;
   selected: boolean;
   onSelectedChange: (id: string, selected: boolean) => void;
+  badge?: ReactNode;
+  customMenuItems?: MenuProps["items"];
+  onEditItem?: (item: ApiFile, index: number) => void;
+  editItemLabel: string;
 }
 
 const SortableGridItem = ({
@@ -103,6 +108,10 @@ const SortableGridItem = ({
   selectionMode,
   selected,
   onSelectedChange,
+  badge,
+  customMenuItems,
+  onEditItem,
+  editItemLabel,
 }: ISortableGridItemProps) => {
   const { styles, cx } = useStyles();
   const {
@@ -165,7 +174,19 @@ const SortableGridItem = ({
   };
 
   const name = getFileName(item);
-  const actionItems = [
+  const domainItems: MenuProps["items"] = [
+    ...(onEditItem
+      ? [{
+          key: "editItem",
+          label: editItemLabel,
+          icon: <EditOutlined />,
+          "data-testid": `entity-media-edit-menu-item-${item.id}`,
+          onClick: () => onEditItem(item, index),
+        }]
+      : []),
+    ...(customMenuItems ?? []),
+  ];
+  const actionItems: MenuProps["items"] = [
     ...(onPreview
       ? [
           {
@@ -186,6 +207,14 @@ const SortableGridItem = ({
             "data-testid": `entity-media-set-featured-menu-item-${item.id}`,
             onClick: () => onSetFeatured(item),
           },
+        ]
+      : []),
+    ...(domainItems.length > 0
+      ? [
+          ...(onPreview || (allowSetFeatured && !isFeatured)
+            ? [{ type: "divider" as const }]
+            : []),
+          ...domainItems,
         ]
       : []),
     ...(allowDelete
@@ -217,6 +246,8 @@ const SortableGridItem = ({
     >
       {isFeatured && <FeaturedBadge />}
 
+      {badge ? <div className={styles.itemBadge}>{badge}</div> : null}
+
       <MediaThumbnail item={item} className={styles.mediaImage} />
 
       {actionItems.length > 0 && (
@@ -231,7 +262,9 @@ const SortableGridItem = ({
             size="small"
             shape="circle"
             icon={<MoreOutlined />}
+            aria-label={`Actions for ${name}`}
             data-testid={`entity-media-actions-button-${item.id}`}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           />
         </Dropdown>
@@ -264,6 +297,10 @@ interface ISortableListItemProps {
   onSelectedChange: (id: string, selected: boolean) => void;
   selectionAction?: "add" | "remove";
   sortableDisabled?: boolean;
+  listMeta?: ReactNode;
+  customMenuItems?: MenuProps["items"];
+  onEditItem?: (item: ApiFile, index: number) => void;
+  editItemLabel: string;
 }
 
 const SortableListItem = ({
@@ -281,6 +318,10 @@ const SortableListItem = ({
   onSelectedChange,
   selectionAction,
   sortableDisabled = false,
+  listMeta,
+  customMenuItems,
+  onEditItem,
+  editItemLabel,
 }: ISortableListItemProps) => {
   const { styles, cx } = useStyles();
   const {
@@ -303,6 +344,18 @@ const SortableListItem = ({
     ? selectionAction === "remove"
     : allowDelete;
   const showAddButton = selectionMode && selectionAction === "add";
+  const domainItems: MenuProps["items"] = [
+    ...(onEditItem
+      ? [{
+          key: "editItem",
+          label: editItemLabel,
+          icon: <EditOutlined />,
+          "data-testid": `entity-media-edit-menu-item-${item.id}`,
+          onClick: () => onEditItem(item, index),
+        }]
+      : []),
+    ...(customMenuItems ?? []),
+  ];
 
   return (
     <div
@@ -333,6 +386,7 @@ const SortableListItem = ({
         <div className={styles.listItemMeta}>
           <span>{formatFileSize(getFileSize(item))}</span>
           {ext && <span>{ext}</span>}
+          {listMeta}
           {isFeatured && (
             <Typography.Text type="success" style={{ fontSize: 12 }}>
               <StarFilled style={{ marginRight: 4 }} />
@@ -343,12 +397,26 @@ const SortableListItem = ({
       </div>
 
       <div className={styles.listItemActions}>
+        {domainItems.length > 0 && (
+          <Dropdown menu={{ items: domainItems }} trigger={["click"]}>
+            <Button
+              size="small"
+              type="text"
+              icon={<MoreOutlined />}
+              aria-label={editItemLabel}
+              data-testid={`entity-media-actions-button-${item.id}`}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            />
+          </Dropdown>
+        )}
         {onPreview && (
           <Tooltip title="Preview">
             <Button
               size="small"
               type="text"
               icon={<EyeOutlined />}
+              aria-label={`Preview ${name}`}
               data-testid={`entity-media-preview-button-${item.id}`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -364,6 +432,7 @@ const SortableListItem = ({
               size="small"
               type="text"
               icon={<StarOutlined />}
+              aria-label={`Set ${name} as featured`}
               data-testid={`entity-media-set-featured-button-${item.id}`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -379,6 +448,7 @@ const SortableListItem = ({
               size="small"
               type="text"
               icon={<DeleteOutlined />}
+              aria-label={`${selectionMode ? "Remove" : "Delete"} ${name}`}
               data-testid={`entity-media-delete-button-${item.id}`}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
@@ -399,6 +469,7 @@ const SortableListItem = ({
               size="small"
               type="text"
               icon={<PlusOutlined />}
+              aria-label={`Add ${name}`}
               data-testid={`entity-media-add-button-${item.id}`}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
@@ -476,6 +547,7 @@ export const EntityMediaGallery = ({
   onViewModeChange,
   showViewSwitcher = false,
   showUpload = true,
+  showUploadButtonInHeader = false,
   allowDelete = true,
   allowSetFeatured = true,
   selectionMode = false,
@@ -491,6 +563,11 @@ export const EntityMediaGallery = ({
   minCells = 13,
   title,
   headerExtra,
+  renderItemBadge,
+  renderListMeta,
+  getItemMenuItems,
+  onEditItem,
+  editItemLabel = "Edit details",
 }: IEntityMediaGalleryProps) => {
   const { styles } = useStyles();
   const { push: openUploadModal } = useUploadMediaModal();
@@ -648,21 +725,30 @@ export const EntityMediaGallery = ({
         </Typography.Text>
         <Flex gap={8} align="center">
           {canAddMedia && (
-            <Button size="small" icon={<FolderOpenOutlined />} onClick={openMediaPicker}>
-              Browse
-            </Button>
+            <>
+              <Button size="small" icon={<FolderOpenOutlined />} onClick={openMediaPicker}>
+                Add from library
+              </Button>
+              {showUploadButtonInHeader ? (
+                <Button size="small" icon={<UploadOutlined />} onClick={handleOpenUploadModal}>
+                  Upload
+                </Button>
+              ) : null}
+            </>
           )}
           {showViewSwitcher && (
             <Space.Compact size="small">
               <Button
                 type={viewMode === "grid" ? "primary" : "default"}
                 icon={<AppstoreOutlined />}
+                aria-label="Grid view"
                 data-testid="entity-media-grid-view-button"
                 onClick={() => setViewMode("grid")}
               />
               <Button
                 type={viewMode === "list" ? "primary" : "default"}
                 icon={<UnorderedListOutlined />}
+                aria-label="List view"
                 data-testid="entity-media-list-view-button"
                 onClick={() => setViewMode("list")}
               />
@@ -747,6 +833,10 @@ export const EntityMediaGallery = ({
                     selectionMode={selectionMode}
                     selected={selectedIdSet.has(item.id)}
                     onSelectedChange={handleSelectedChange}
+                    badge={renderItemBadge?.(item, idx)}
+                    customMenuItems={getItemMenuItems?.(item, idx)}
+                    onEditItem={onEditItem}
+                    editItemLabel={editItemLabel}
                   />
                 ))}
               </SortableContext>
@@ -827,6 +917,10 @@ export const EntityMediaGallery = ({
                       selected
                       onSelectedChange={handleSelectedChange}
                       selectionAction="remove"
+                      listMeta={renderListMeta?.(item, idx)}
+                      customMenuItems={getItemMenuItems?.(item, idx)}
+                      onEditItem={onEditItem}
+                      editItemLabel={editItemLabel}
                     />
                   ))}
                 </SortableContext>
@@ -868,6 +962,10 @@ export const EntityMediaGallery = ({
                       onSelectedChange={handleSelectedChange}
                       selectionAction="add"
                       sortableDisabled
+                      listMeta={renderListMeta?.(item, selectedItems.length + idx)}
+                      customMenuItems={getItemMenuItems?.(item, selectedItems.length + idx)}
+                      onEditItem={onEditItem}
+                      editItemLabel={editItemLabel}
                     />
                   ))}
                 </SortableContext>
@@ -904,6 +1002,10 @@ export const EntityMediaGallery = ({
                   selectionMode={selectionMode}
                   selected={selectedIdSet.has(item.id)}
                   onSelectedChange={handleSelectedChange}
+                  listMeta={renderListMeta?.(item, idx)}
+                  customMenuItems={getItemMenuItems?.(item, idx)}
+                  onEditItem={onEditItem}
+                  editItemLabel={editItemLabel}
                 />
               ))}
             </SortableContext>

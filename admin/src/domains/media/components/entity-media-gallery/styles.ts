@@ -75,6 +75,13 @@ export const useStyles = createStyles(({ token }) => ({
     opacity: 0,
     transition: "opacity 0.2s ease",
   },
+  itemBadge: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    zIndex: 2,
+    pointerEvents: "none",
+  },
   uploadArea: {
     width: "100%",
     height: "100%",

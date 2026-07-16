@@ -49,6 +49,13 @@ export const useMediaStyles = createStyles(({ token }) => ({
   mediaFeaturedWrapper: {
     position: "relative",
   },
+  mediaItemBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    zIndex: 2,
+    pointerEvents: "none",
+  },
   uploadCell: {
     aspectRatio: "1/1",
     width: "100%",

@@ -34,6 +34,7 @@ import {
 
 interface VariantPickerQueryMeta {
   warehouseId?: string | null;
+  productId?: string | null;
 }
 
 interface VariantPickerEntity extends IPickableEntity {
@@ -207,7 +208,7 @@ function useVariantsPickerData(options: {
     queryMeta,
     search,
   } = options;
-  const { warehouseId = null } = (queryMeta ?? {}) as VariantPickerQueryMeta;
+  const { warehouseId = null, productId = null } = (queryMeta ?? {}) as VariantPickerQueryMeta;
   const variantsWhere = useMemo<ApiVariantWhereInput | null>(() => {
     const conditions: ApiVariantWhereInput[] = [];
 
@@ -219,6 +220,10 @@ function useVariantsPickerData(options: {
       conditions.push(buildVariantSearchCondition(search.trim()));
     }
 
+    if (productId) {
+      conditions.push({ productId: { _eq: productId } });
+    }
+
     if (excludeIds.length > 0) {
       conditions.push({ id: { _notIn: excludeIds } });
     }
@@ -227,7 +232,7 @@ function useVariantsPickerData(options: {
     if (conditions.length === 1) return conditions[0];
 
     return { _and: conditions };
-  }, [excludeIds, search, warehouseId, where]);
+  }, [excludeIds, productId, search, warehouseId, where]);
   const warehouseAssignableVariantsWhere =
     useMemo<ApiWarehouseAssignableVariantWhereInput | null>(() => {
       const conditions: ApiWarehouseAssignableVariantWhereInput[] = [];

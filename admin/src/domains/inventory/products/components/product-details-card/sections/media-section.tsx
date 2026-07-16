@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Image, Flex } from "antd";
 import { LuEye as EyeOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -18,6 +19,10 @@ interface IMediaSectionProps {
   editLabel?: string;
   hasFeatured?: boolean;
   testIdPrefix?: string;
+  renderItemBadge?: (file: ApiFile, index: number) => ReactNode;
+  onOpenItem?: (file: ApiFile, index: number) => void;
+  footer?: ReactNode;
+  emptyState?: ReactNode;
 }
 
 export const MediaSection = ({
@@ -27,6 +32,10 @@ export const MediaSection = ({
   editLabel = "Edit media",
   hasFeatured = true,
   testIdPrefix = "product-media",
+  renderItemBadge,
+  onOpenItem,
+  footer,
+  emptyState,
 }: IMediaSectionProps) => {
   const { styles } = useMediaStyles();
   const mediaPreview = useMediaPreview(mediaFiles);
@@ -50,12 +59,16 @@ export const MediaSection = ({
       />
       {hasMedia ? (
         <div className={styles.mediaGrid} data-testid={`${testIdPrefix}-section`}>
-          {visibleMediaFiles.map((media, index) =>
-            index === 0 && hasFeatured ? (
-              <div
-                key={media.id}
-                className={styles.mediaFeaturedWrapper}
-              >
+          {visibleMediaFiles.map((media, index) => {
+            const open = () => {
+              if (onOpenItem) {
+                onOpenItem(media, index);
+                return;
+              }
+              mediaPreview.open(index);
+            };
+            return (
+              <div key={media.id} className={styles.mediaFeaturedWrapper}>
                 {media.mimeType?.startsWith("video/") ? (
                   <video
                     src={media.url}
@@ -65,7 +78,7 @@ export const MediaSection = ({
                     muted
                     playsInline
                     preload="metadata"
-                    onClick={() => mediaPreview.open(index)}
+                    onClick={open}
                   />
                 ) : (
                   <Image
@@ -82,43 +95,18 @@ export const MediaSection = ({
                         </Flex>
                       ),
                     }}
-                    onClick={() => mediaPreview.open(index)}
+                    onClick={open}
                   />
                 )}
-                <FeaturedBadge />
+                {index === 0 && hasFeatured ? <FeaturedBadge /> : null}
+                {renderItemBadge ? (
+                  <div className={styles.mediaItemBadge}>
+                    {renderItemBadge(media, index)}
+                  </div>
+                ) : null}
               </div>
-            ) : media.mimeType?.startsWith("video/") ? (
-              <video
-                key={media.id}
-                src={media.url}
-                aria-label={media.altText || media.originalName || "Video"}
-                className={styles.mediaImage}
-                data-testid={`${testIdPrefix}-item-${media.id}`}
-                muted
-                playsInline
-                preload="metadata"
-                onClick={() => mediaPreview.open(index)}
-              />
-            ) : (
-              <Image
-                key={media.id}
-                src={media.url}
-                alt={media.altText || media.originalName || ""}
-                className={styles.mediaImage}
-                data-testid={`${testIdPrefix}-item-${media.id}`}
-                preview={{
-                  visible: false,
-                  mask: (
-                    <Flex gap={4} className={styles.mediaPreview}>
-                      <EyeOutlined />
-                      Preview
-                    </Flex>
-                  ),
-                }}
-                onClick={() => mediaPreview.open(index)}
-              />
-            )
-          )}
+            );
+          })}
           {showMore && (
             <Flex
               align="center"
@@ -156,9 +144,11 @@ export const MediaSection = ({
         </div>
       ) : (
         <div data-testid={`${testIdPrefix}-section`}>
-          <EntityMediaEmptyState />
+          {emptyState ?? <EntityMediaEmptyState />}
         </div>
       )}
+
+      {footer}
 
       <MediaPreview
         items={mediaFiles}

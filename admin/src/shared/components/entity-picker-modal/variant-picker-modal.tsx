@@ -17,6 +17,7 @@ export interface IVariantPickerPayload {
   maxSelection?: number;
   queryMeta?: {
     warehouseId?: string | null;
+    productId?: string | null;
   };
   onConfirm: (entities: IPickableEntity[], ids: string[]) => void;
 }

@@ -1,4 +1,5 @@
 import { Button, Dropdown } from "antd";
+import type { MenuProps } from "antd";
 import { LuEllipsis as MoreOutlined } from "react-icons/lu";
 
 interface IEditActionProps {
@@ -7,6 +8,7 @@ interface IEditActionProps {
   testId?: string;
   loading?: boolean;
   disabled?: boolean;
+  items?: MenuProps["items"];
 }
 
 export const EditAction = ({
@@ -15,20 +17,22 @@ export const EditAction = ({
   testId,
   loading = false,
   disabled = false,
+  items,
 }: IEditActionProps) => {
   const isDisabled = disabled || loading;
 
   return (
     <Dropdown
       menu={{
-        items: [
+        items: items ?? [
           {
             key: "edit",
-            label: <span data-testid={testId ? `${testId}-menu-item` : undefined}>{label}</span>,
+            label,
+            "data-testid": testId ? `${testId}-menu-item` : undefined,
             disabled: isDisabled,
           },
         ],
-        onClick: () => {
+        onClick: items ? undefined : () => {
           if (!isDisabled) {
             void onEdit();
           }

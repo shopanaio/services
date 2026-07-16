@@ -714,14 +714,62 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard unsaved review changes?',
     },
     {
-      type: 'customer-review-edit',
-      component: dynamic(() =>
-        import('@/domains/customer-content/reviews/modals/review-modal').then(
-          (m) => m.ReviewEditModal
-        )
-      ),
+      type: 'customer-review-edit-content',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/edit-review-content-modal').then((m) => m.EditReviewContentModal)),
       confirmOnDirtyClose: true,
-      closeConfirmMessage: 'Discard unsaved review changes?',
+      closeConfirmMessage: 'Discard unsaved review content changes?',
+    },
+    {
+      type: 'customer-review-edit-reviewer',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/edit-reviewer-modal').then((m) => m.EditReviewerModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved reviewer changes?',
+    },
+    {
+      type: 'customer-review-edit-subject',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/edit-review-subject-modal').then((m) => m.EditReviewSubjectModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved product and purchase changes?',
+    },
+    {
+      type: 'customer-review-edit-ratings',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/edit-review-ratings-modal').then((m) => m.EditReviewRatingsModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved rating changes?',
+    },
+    {
+      type: 'customer-review-edit-moderation',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/edit-review-moderation-modal').then((m) => m.EditReviewModerationModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved moderation changes?',
+    },
+    {
+      type: 'customer-review-edit-verification',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/edit-review-verification-modal').then((m) => m.EditReviewVerificationModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved verification changes?',
+    },
+    {
+      type: 'customer-review-edit-incentive',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/edit-review-incentive-modal').then((m) => m.EditReviewIncentiveModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved incentive disclosure changes?',
+    },
+    {
+      type: 'customer-review-edit-media',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/edit-review-media-modal').then((m) => m.EditReviewMediaModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved media changes?',
+    },
+    {
+      type: 'customer-review-edit-media-item',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/edit-review-media-item-modal').then((m) => m.EditReviewMediaItemModal)),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved media detail changes?',
+    },
+    {
+      type: 'customer-review-technical-metadata',
+      component: dynamic(() => import('@/domains/customer-content/reviews/modals/review-technical-metadata-modal').then((m) => m.ReviewTechnicalMetadataModal)),
     },
     {
       type: 'customer-question',

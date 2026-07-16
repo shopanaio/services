@@ -6,7 +6,7 @@ export const REVIEW_DETAILS_FRAGMENT = gql`
     id revision title body locale status
     sourceChannel sourceMetadata idempotencyKey
     moderationNote moderatedByPrincipalId moderatedAt
-    createdAt
+    createdAt updatedAt
     author {
       type principalId displayName email
       customer { id displayName email preferredLocale }
