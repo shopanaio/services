@@ -624,6 +624,24 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
           (m) => m.CustomerModal
         )
       ),
+    },
+    {
+      type: 'customer-create',
+      component: dynamic(() =>
+        import('@/domains/customers/all-customers/modals/create-customer-modal').then(
+          (m) => m.CreateCustomerModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard this new customer?',
+    },
+    {
+      type: 'customer-edit',
+      component: dynamic(() =>
+        import('@/domains/customers/all-customers/modals/customer-edit-modal').then(
+          (m) => m.CustomerEditModal
+        )
+      ),
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard unsaved customer changes?',
     },
@@ -636,6 +654,46 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard unsaved segment changes?',
+    },
+    {
+      type: 'customer-group',
+      component: dynamic(() =>
+        import('@/domains/customers/groups/modals/group-modal').then(
+          (m) => m.CustomerGroupModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved group changes?',
+    },
+    {
+      type: 'customer-tag',
+      component: dynamic(() =>
+        import('@/domains/customers/tags/modals/tag-modal').then(
+          (m) => m.CustomerTagModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved tag changes?',
+    },
+    {
+      type: 'customer-data-request',
+      component: dynamic(() =>
+        import('@/domains/customers/lifecycle/modals/data-request-modal').then(
+          (m) => m.CustomerDataRequestModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved privacy request changes?',
+    },
+    {
+      type: 'customer-merge',
+      component: dynamic(() =>
+        import('@/domains/customers/lifecycle/modals/merge-modal').then(
+          (m) => m.CustomerMergeModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard unsaved merge changes?',
     },
     {
       type: 'customer-review',

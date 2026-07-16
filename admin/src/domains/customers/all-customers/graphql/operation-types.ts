@@ -3,11 +3,14 @@ import type {
   ApiCustomerConnection,
   ApiCustomerCreateInput,
   ApiCustomerCreatePayload,
+  ApiCustomerDeleteInput,
+  ApiCustomerDeletePayload,
   ApiCustomerOrderByInput,
   ApiCustomersMutation,
   ApiCustomersQuery,
   ApiCustomerSegmentConnection,
   ApiCustomerTagConnection,
+  ApiCustomerGroupConnection,
   ApiCustomerUpdateInput,
   ApiCustomerUpdatePayload,
   ApiCustomerWhereInput,
@@ -34,13 +37,13 @@ export interface CustomerQueryData {
 
 export interface CustomerQueryVariables {
   id: string;
-  currencyCode?: string | null;
 }
 
 export interface CustomerEditorContextQueryData {
-  customersQuery: Pick<ApiCustomersQuery, "customerSegments" | "customerTags"> & {
+  customersQuery: Pick<ApiCustomersQuery, "customerSegments" | "customerTags" | "customerGroups"> & {
     customerSegments: ApiCustomerSegmentConnection;
     customerTags: ApiCustomerTagConnection;
+    customerGroups: ApiCustomerGroupConnection;
   };
 }
 
@@ -64,4 +67,14 @@ export interface CustomerUpdateMutationVariables {
   customerId: string;
   expectedRevision: number;
   operations: ApiCustomerUpdateInput;
+}
+
+export interface CustomerDeleteMutationData {
+  customersMutation: Pick<ApiCustomersMutation, "customerDelete"> & {
+    customerDelete: ApiCustomerDeletePayload;
+  };
+}
+
+export interface CustomerDeleteMutationVariables {
+  input: ApiCustomerDeleteInput;
 }

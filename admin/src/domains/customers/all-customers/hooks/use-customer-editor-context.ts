@@ -15,6 +15,7 @@ export function useCustomerEditorContext() {
       ? {
           segments: customersQuery.customerSegments.edges.map((edge) => edge.node),
           tags: customersQuery.customerTags.edges.map((edge) => edge.node),
+          groups: customersQuery.customerGroups.edges.map((edge) => edge.node),
         }
       : null,
     loading,

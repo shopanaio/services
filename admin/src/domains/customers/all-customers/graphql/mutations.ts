@@ -50,3 +50,18 @@ export const CUSTOMER_UPDATE_MUTATION = gql`
     }
   }
 `;
+
+export const CUSTOMER_DELETE_MUTATION = gql`
+  mutation CustomerDelete($input: CustomerDeleteInput!) {
+    customersMutation {
+      customerDelete(input: $input) {
+        deletedCustomerId
+        userErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  }
+`;

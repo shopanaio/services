@@ -40,7 +40,7 @@ export const CUSTOMERS_QUERY = gql`
 `;
 
 export const CUSTOMER_QUERY = gql`
-  query Customer($id: ID!, $currencyCode: String) {
+  query Customer($id: ID!) {
     customersQuery {
       customer(id: $id) {
         ...CustomerDetailsFields
@@ -66,6 +66,16 @@ export const CUSTOMER_EDITOR_CONTEXT_QUERY = gql`
           node {
             id
             name
+          }
+        }
+      }
+      customerGroups(first: 250, where: { isActive: { _eq: true } }) {
+        edges {
+          node {
+            id
+            code
+            name
+            isDefault
           }
         }
       }

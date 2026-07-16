@@ -24,16 +24,40 @@ registerModule({
       ),
     },
     {
+      key: "customer-groups-list",
+      path: "/:orgName/:storeName/customers/groups",
+      sidebar: { label: "Groups", icon: null, order: 2 },
+      component: dynamic(() => import("@/domains/customers/groups/page/page")),
+    },
+    {
       key: "customer-segments-list",
       path: "/:orgName/:storeName/customers/segments",
       sidebar: {
         label: "Segments",
         icon: null,
-        order: 2,
+        order: 3,
       },
       component: dynamic(
         () => import("@/domains/customers/segments/page/page"),
       ),
+    },
+    {
+      key: "customer-tags-list",
+      path: "/:orgName/:storeName/customers/tags",
+      sidebar: { label: "Tags", icon: null, order: 4 },
+      component: dynamic(() => import("@/domains/customers/tags/page/page")),
+    },
+    {
+      key: "customer-privacy-requests-list",
+      path: "/:orgName/:storeName/customers/privacy-requests",
+      sidebar: { label: "Privacy requests", icon: null, order: 5 },
+      component: dynamic(() => import("@/domains/customers/lifecycle/privacy-page/page")),
+    },
+    {
+      key: "customer-merges-list",
+      path: "/:orgName/:storeName/customers/merges",
+      sidebar: { label: "Merges", icon: null, order: 6 },
+      component: dynamic(() => import("@/domains/customers/lifecycle/merges-page/page")),
     },
     {
       key: "loyalty-programs-list",
@@ -42,7 +66,7 @@ registerModule({
       sidebar: {
         label: "Loyalty",
         icon: null,
-        order: 3,
+        order: 7,
       },
       component: dynamic(
         () => import("@/domains/customers/loyalty-programs/page/page"),

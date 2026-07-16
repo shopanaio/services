@@ -22,7 +22,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
-import { CustomerSegmentType } from "@/graphql/types";
+import { CustomerSegmentStatus, CustomerSegmentType } from "@/graphql/types";
 import {
   ModalHeader,
   ModalLayout,
@@ -105,6 +105,11 @@ export function CustomerSegmentModal() {
   const { deleteSegment, loading: deleting, error: deleteError } = useDeleteCustomerSegment();
   const { setSegmentMembers, loading: settingMembers, error: membersError } = useSetCustomerSegmentMembers();
   const [globalErrors, setGlobalErrors] = useState<string[]>([]);
+  const [advancedDirty, setAdvancedDirty] = useState(false);
+  const [segmentType, setSegmentType] = useState(CustomerSegmentType.Manual);
+  const [segmentStatus, setSegmentStatus] = useState(CustomerSegmentStatus.Active);
+  const [query, setQuery] = useState("");
+  const [definition, setDefinition] = useState("{}");
 
   const methods = useForm<SegmentFormValues>({
     resolver: zodResolver(segmentFormSchema),
@@ -120,7 +125,8 @@ export function CustomerSegmentModal() {
     formState: { errors, isDirty, isValid },
   } = methods;
 
-  useEffect(() => setDirty(isDirty), [isDirty, setDirty]);
+  const combinedDirty = isDirty || advancedDirty;
+  useEffect(() => setDirty(combinedDirty), [combinedDirty, setDirty]);
 
   useEffect(() => {
     if (!isEdit || !segmentQuery.segment) return;
@@ -129,6 +135,11 @@ export function CustomerSegmentModal() {
       description: segmentQuery.segment.description ?? "",
       color: segmentQuery.segment.color ?? "#1677ff",
     });
+    setSegmentType(segmentQuery.segment.type);
+    setSegmentStatus(segmentQuery.segment.status);
+    setQuery(segmentQuery.segment.query ?? "");
+    setDefinition(JSON.stringify(segmentQuery.segment.definition ?? {}, null, 2));
+    setAdvancedDirty(false);
   }, [isEdit, reset, segmentQuery.segment]);
 
   const memberIds = useMemo(
@@ -170,8 +181,23 @@ export function CustomerSegmentModal() {
     setGlobalErrors([]);
     clearErrors();
     const current = segmentQuery.segment;
+    let parsedDefinition: Record<string, unknown> | null = null;
+    if (isEdit) {
+      try {
+        const parsed = JSON.parse(definition);
+        if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error();
+        parsedDefinition = parsed as Record<string, unknown>;
+      } catch {
+        setGlobalErrors(["Segment definition must be a valid JSON object."]);
+        return;
+      }
+    }
     const result = isEdit && current
-      ? await updateSegment(current.id, current.revision, buildCustomerSegmentUpdateInput(values))
+      ? await updateSegment(current.id, current.revision, {
+          ...buildCustomerSegmentUpdateInput(values),
+          definition: { type: segmentType, query: query.trim() || null, definition: parsedDefinition },
+          state: { status: segmentStatus },
+        })
       : await createSegment(buildCustomerSegmentCreateInput(values));
 
     if (!result.segment || result.userErrors.length > 0) {
@@ -188,7 +214,7 @@ export function CustomerSegmentModal() {
     setDirty(false);
     message.success(isEdit ? "Segment updated" : "Segment created");
     forcePop();
-  }, [clearErrors, createSegment, forcePop, isEdit, message, segmentQuery.segment, setDirty, setError, typedPayload, updateSegment]);
+  }, [clearErrors, createSegment, definition, forcePop, isEdit, message, query, segmentQuery.segment, segmentStatus, segmentType, setDirty, setError, typedPayload, updateSegment]);
 
   const handleDelete = useCallback(async () => {
     const current = segmentQuery.segment;
@@ -271,7 +297,7 @@ export function CustomerSegmentModal() {
             submitButtonProps={{
               children: isEdit ? "Save" : "Create",
               loading: saving,
-              disabled: saving || deleting || !isValid || (isEdit && !isDirty),
+              disabled: saving || deleting || !isValid || (isEdit && !combinedDirty),
               onClick: handleSubmit(onSubmit),
             }}
           />
@@ -346,6 +372,46 @@ export function CustomerSegmentModal() {
           </div>
         </Paper>
 
+        {isEdit ? (
+          <Paper>
+            <PaperHeader title="Definition & state" icon={<InfoCircleOutlined />} />
+            <Flex vertical gap="middle">
+              <div className={styles.fields}>
+                <div>
+                  <label className={styles.label}>Segment type</label>
+                  <Select
+                    value={segmentType}
+                    options={Object.values(CustomerSegmentType).map((value) => ({ value, label: value.toLowerCase() }))}
+                    onChange={(value) => { setSegmentType(value); setAdvancedDirty(true); }}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label className={styles.label}>Status</label>
+                  <Select
+                    value={segmentStatus}
+                    options={Object.values(CustomerSegmentStatus).map((value) => ({ value, label: value.toLowerCase() }))}
+                    onChange={(value) => { setSegmentStatus(value); setAdvancedDirty(true); }}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              </div>
+              {segmentType === CustomerSegmentType.Dynamic ? (
+                <>
+                  <div>
+                    <label className={styles.label}>Query</label>
+                    <Input.TextArea value={query} onChange={(event) => { setQuery(event.target.value); setAdvancedDirty(true); }} rows={4} />
+                  </div>
+                  <div>
+                    <label className={styles.label}>Definition (JSON)</label>
+                    <Input.TextArea value={definition} onChange={(event) => { setDefinition(event.target.value); setAdvancedDirty(true); }} rows={10} style={{ fontFamily: "monospace" }} />
+                  </div>
+                </>
+              ) : null}
+            </Flex>
+          </Paper>
+        ) : null}
+
         <Paper>
           <PaperHeader title="Customers" icon={<TeamOutlined />} />
           <Flex vertical gap="middle">
@@ -376,7 +442,9 @@ export function CustomerSegmentModal() {
             <Flex align="flex-start" gap="small" className={styles.manualNotice}>
               <InfoCircleOutlined style={{ marginTop: 3 }} />
               <Typography.Text type="secondary">
-                Membership is manual for now. Adding or removing a customer never happens automatically.
+                {segment?.type === CustomerSegmentType.Dynamic
+                  ? "Dynamic memberships are read from the materialized segment evaluation."
+                  : "Manual memberships change only when an administrator updates the segment."}
               </Typography.Text>
             </Flex>
           </Flex>

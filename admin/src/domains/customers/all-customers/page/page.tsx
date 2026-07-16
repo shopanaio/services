@@ -33,7 +33,7 @@ import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useCustomers } from "../hooks";
 import { useCustomerSegments } from "../../segments/hooks";
-import { useCustomerModal } from "../modals";
+import { useCustomerCreateModal, useCustomerModal } from "../modals";
 import { createCustomerFilterSchema } from "./filter-schema";
 import {
   buildCustomerSearchCondition,
@@ -154,13 +154,14 @@ export default function AllCustomersPage() {
   );
   const { customers, totalCount, pageInfo, loading, error, refetch } = useCustomers(variables);
   const { push: openCustomerModal } = useCustomerModal();
+  const { push: openCustomerCreateModal } = useCustomerCreateModal();
 
   const handleCreate = useCallback(() => {
-    openCustomerModal({ mode: "create", onSaved: refetch });
-  }, [openCustomerModal, refetch]);
+    openCustomerCreateModal({ onCreated: refetch });
+  }, [openCustomerCreateModal, refetch]);
 
   const handleEdit = useCallback((customer: ApiCustomer) => {
-    openCustomerModal({ mode: "edit", entityId: customer.id, onSaved: refetch });
+    openCustomerModal({ entityId: customer.id, onSaved: refetch });
   }, [openCustomerModal, refetch]);
 
   const handleNextPage = useCallback(() => {
