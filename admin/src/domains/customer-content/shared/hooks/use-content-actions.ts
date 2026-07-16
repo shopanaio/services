@@ -5,7 +5,6 @@ import { useMutation } from "@apollo/client/react";
 import type { ApiGenericUserError, ApiReviewContentDeleteInput } from "@/graphql/types";
 import {
   CONTENT_REDACT_MUTATION,
-  CONTENT_REVISION_RESTORE_MUTATION,
   QUESTION_DELETE_MUTATION,
   REVIEW_DELETE_MUTATION,
 } from "../graphql/actions";
@@ -13,7 +12,7 @@ import {
 type MutationErrors = { userErrors: ApiGenericUserError[]; operationResults?: Array<{ errors: ApiGenericUserError[] }> };
 type ReviewDeleteData = { reviewsMutation: { reviewDelete: MutationErrors & { deletedReviewId?: string | null } } };
 type QuestionDeleteData = { reviewsMutation: { productQuestionDelete: MutationErrors & { deletedProductQuestionId?: string | null } } };
-type ContentUpdateData<K extends "contentRedact" | "contentRevisionRestore"> = { reviewsMutation: Record<K, MutationErrors & { content?: { id: string; revision: number; updatedAt: string } | null }> };
+type ContentUpdateData = { reviewsMutation: { contentRedact: MutationErrors & { content?: { id: string; revision: number; updatedAt: string } | null } } };
 
 function collectErrors(payload?: MutationErrors | null) {
   return [...(payload?.userErrors ?? []), ...(payload?.operationResults?.flatMap((item) => item.errors) ?? [])];
@@ -22,8 +21,7 @@ function collectErrors(payload?: MutationErrors | null) {
 export function useContentActions() {
   const [deleteReviewMutation, deleteReviewState] = useMutation<ReviewDeleteData, { input: ApiReviewContentDeleteInput }>(REVIEW_DELETE_MUTATION);
   const [deleteQuestionMutation, deleteQuestionState] = useMutation<QuestionDeleteData, { input: ApiReviewContentDeleteInput }>(QUESTION_DELETE_MUTATION);
-  const [redactMutation, redactState] = useMutation<ContentUpdateData<"contentRedact">, { contentId: string; expectedRevision: number }>(CONTENT_REDACT_MUTATION);
-  const [restoreMutation, restoreState] = useMutation<ContentUpdateData<"contentRevisionRestore">, { contentId: string; revision: number; expectedRevision: number }>(CONTENT_REVISION_RESTORE_MUTATION);
+  const [redactMutation, redactState] = useMutation<ContentUpdateData, { contentId: string; expectedRevision: number }>(CONTENT_REDACT_MUTATION);
 
   const deleteReview = useCallback(async (input: ApiReviewContentDeleteInput) => {
     const result = await deleteReviewMutation({ variables: { input } });
@@ -43,18 +41,11 @@ export function useContentActions() {
     return { content: payload?.content ?? null, errors: collectErrors(payload) };
   }, [redactMutation]);
 
-  const restoreRevision = useCallback(async (contentId: string, revision: number, expectedRevision: number) => {
-    const result = await restoreMutation({ variables: { contentId, revision, expectedRevision } });
-    const payload = result.data?.reviewsMutation.contentRevisionRestore;
-    return { content: payload?.content ?? null, errors: collectErrors(payload) };
-  }, [restoreMutation]);
-
   return {
     deleteReview,
     deleteQuestion,
     redact,
-    restoreRevision,
-    loading: deleteReviewState.loading || deleteQuestionState.loading || redactState.loading || restoreState.loading,
-    error: deleteReviewState.error ?? deleteQuestionState.error ?? redactState.error ?? restoreState.error ?? null,
+    loading: deleteReviewState.loading || deleteQuestionState.loading || redactState.loading,
+    error: deleteReviewState.error ?? deleteQuestionState.error ?? redactState.error ?? null,
   };
 }

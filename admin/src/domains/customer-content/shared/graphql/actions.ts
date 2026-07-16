@@ -23,15 +23,3 @@ export const CONTENT_REDACT_MUTATION = gql`
     }
   }
 `;
-
-export const CONTENT_REVISION_RESTORE_MUTATION = gql`
-  mutation AdminContentRevisionRestore($contentId: ID!, $revision: Int!, $expectedRevision: Int!) {
-    reviewsMutation {
-      contentRevisionRestore(contentId: $contentId, revision: $revision, expectedRevision: $expectedRevision) {
-        content { id revision updatedAt }
-        operationResults { errors { code field message } }
-        userErrors { code field message }
-      }
-    }
-  }
-`;

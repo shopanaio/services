@@ -13,8 +13,6 @@ interface ReviewDetailsCardProps {
   onEdit: (section: ReviewEditSection) => void;
   onDelete: () => Promise<void> | void;
   onRedact: () => Promise<void> | void;
-  onRestoreRevision?: (revision: number) => void;
-  onCreateCase?: () => void;
   onManageExternalReferences?: () => void;
 }
 
@@ -25,7 +23,7 @@ const statusColor: Record<ReviewContentStatus, string> = {
 };
 const formatDate = (value?: string | null) => value ? new Date(value).toLocaleString() : "—";
 
-export function ReviewDetailsCard({ review, onEdit, onDelete, onRedact, onRestoreRevision, onCreateCase, onManageExternalReferences }: ReviewDetailsCardProps) {
+export function ReviewDetailsCard({ review, onEdit, onDelete, onRedact, onManageExternalReferences }: ReviewDetailsCardProps) {
   const { modal } = App.useApp();
   const confirm = (kind: "delete" | "redact") => modal.confirm({
     title: kind === "delete" ? "Delete review?" : "Redact review?",
@@ -112,7 +110,7 @@ export function ReviewDetailsCard({ review, onEdit, onDelete, onRedact, onRestor
         {review.replies.edges.length ? <List dataSource={review.replies.edges.map((edge) => edge.node)} renderItem={(reply) => <List.Item><List.Item.Meta title={<Flex gap={6}><Typography.Text strong>{reply.author.displayName}</Typography.Text>{reply.isOfficial ? <Tag color="blue">Official</Tag> : null}<Tag>{reply.status.toLowerCase()}</Tag></Flex>} description={reply.body} /></List.Item>} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No replies" />}
       </Paper>
 
-      <ContentDetailsSections content={review} onCreateCase={onCreateCase} onRestoreRevision={onRestoreRevision} onManageExternalReferences={onManageExternalReferences} />
+      <ContentDetailsSections content={review} onManageExternalReferences={onManageExternalReferences} />
     </Flex>
   );
 }
