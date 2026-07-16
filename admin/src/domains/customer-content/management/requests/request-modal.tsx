@@ -21,7 +21,7 @@ export function ReviewRequestModal() {
   const { message } = App.useApp(); const { payload, pop, forcePop, setDirty } = useModalStackContext(); const value = payload as ReviewRequestModalPayload; const current = value.reviewRequest; const mutations = useManagementMutations();
   const [customer, setCustomer] = useState<IPickableEntity | null>(current ? { id: current.customer.id, title: current.customer.displayName } : null);
   const [product, setProduct] = useState<IPickableEntity | null>(current ? { id: current.product.id, title: current.product.title } : null);
-  const [variant, setVariant] = useState<IPickableEntity | null>(current?.variant ? { id: current.variant.id, title: current.variant.title } : null);
+  const [variant, setVariant] = useState<IPickableEntity | null>(current?.variant ? { id: current.variant.id, title: current.variant.title ?? "Untitled variant" } : null);
   const [orderId, setOrderId] = useState(current?.orderId ?? ""); const [orderLineId, setOrderLineId] = useState(current?.orderLineId ?? "");
   const [channel, setChannel] = useState(current?.channel ?? ReviewNotificationChannel.Email); const [locale, setLocale] = useState(current?.locale ?? "en");
   const [scheduledAt, setScheduledAt] = useState(current?.scheduledAt.slice(0, 16) ?? defaultScheduledAt);

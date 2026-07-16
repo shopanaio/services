@@ -36,10 +36,10 @@ export default function UgcPage() {
   const reviews = useReviews({ first: 1 });
   const questions = useQuestions({ first: 1 });
   const moderation = useModerationContents({ first: 1 });
-  const reports = useContentReports();
-  const cases = useModerationCases();
-  const reviewRequests = useReviewRequests();
-  const externalReferences = useExternalReferences();
+  const reports = useContentReports({ first: 1 });
+  const cases = useModerationCases({ first: 1 });
+  const reviewRequests = useReviewRequests({ first: 1 });
+  const externalReferences = useExternalReferences({ first: 1 });
   const error = reviews.error ?? questions.error ?? moderation.error ?? reports.error ?? cases.error ?? reviewRequests.error ?? externalReferences.error;
   const count = (value: number, label: string, loading: boolean) => loading ? <Skeleton.Input active size="small" style={{ width: 88 }} /> : <Tag bordered={false} color={value > 0 ? "blue" : undefined}>{value} {label}</Tag>;
 
@@ -69,7 +69,7 @@ export default function UgcPage() {
           title: "Moderation",
           description: "Inspect customer content and apply moderation decisions.",
           icon: <ModerationOutlined />,
-          trailing: count(moderation.data?.reviewsQuery.contents.totalCount ?? 0, "items", moderation.loading),
+          trailing: count(moderation.totalCount, "items", moderation.loading),
           onClick: open("/:orgName/:storeName/customer-content/moderation"),
         },
         {
@@ -77,7 +77,7 @@ export default function UgcPage() {
           title: "Reports",
           description: "Handle content reports submitted by customers and staff.",
           icon: <ReportsOutlined />,
-          trailing: count(reports.data?.reviewsQuery.contentReports.totalCount ?? 0, "reports", reports.loading),
+          trailing: count(reports.totalCount, "reports", reports.loading),
           onClick: open("/:orgName/:storeName/customer-content/reports"),
         },
         {
@@ -85,7 +85,7 @@ export default function UgcPage() {
           title: "Moderation cases",
           description: "Track escalated moderation investigations and resolutions.",
           icon: <CasesOutlined />,
-          trailing: count(cases.data?.reviewsQuery.moderationCases.totalCount ?? 0, "cases", cases.loading),
+          trailing: count(cases.totalCount, "cases", cases.loading),
           onClick: open("/:orgName/:storeName/customer-content/cases"),
         },
         {
@@ -93,7 +93,7 @@ export default function UgcPage() {
           title: "Review requests",
           description: "Schedule and monitor post-purchase review invitations.",
           icon: <RequestsOutlined />,
-          trailing: count(reviewRequests.data?.reviewsQuery.reviewRequests.totalCount ?? 0, "requests", reviewRequests.loading),
+          trailing: count(reviewRequests.totalCount, "requests", reviewRequests.loading),
           onClick: open("/:orgName/:storeName/customer-content/review-requests"),
         },
         {
@@ -101,7 +101,7 @@ export default function UgcPage() {
           title: "External sync",
           description: "Manage review references synchronized with external platforms.",
           icon: <SyncOutlined />,
-          trailing: count(externalReferences.data?.reviewsQuery.contentExternalReferences.totalCount ?? 0, "references", externalReferences.loading),
+          trailing: count(externalReferences.totalCount, "references", externalReferences.loading),
           onClick: open("/:orgName/:storeName/customer-content/external-sync"),
         },
         {

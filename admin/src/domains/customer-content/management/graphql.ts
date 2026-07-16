@@ -54,7 +54,7 @@ export const RATING_CRITERION_DELETE_MUTATION = gql`
 export const MODERATION_CONTENTS_QUERY = gql`
   query AdminModerationContents($first: Int, $after: String, $last: Int, $before: String, $where: ReviewContentWhereInput, $orderBy: [ReviewContentOrderByInput!]) {
     reviewsQuery { contents(first: $first, after: $after, last: $last, before: $before, where: $where, orderBy: $orderBy, meta: { includeDeleted: true, includeRedacted: true }) {
-      totalCount edges { node { id __typename title body locale status moderationNote revision redactedAt deletedAt createdAt updatedAt
+      totalCount edges { cursor node { id __typename kind title body locale status moderationNote revision redactedAt deletedAt createdAt updatedAt
         author { type displayName email customer { id displayName } }
         metrics { likeCount dislikeCount reportCount childCount mediaCount }
       } } pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
@@ -63,12 +63,12 @@ export const MODERATION_CONTENTS_QUERY = gql`
 `;
 
 export const CONTENT_REPORTS_QUERY = gql`
-  query AdminContentReports {
-    reviewsQuery { contentReports(first: 100, orderBy: [{ field: createdAt, direction: desc }]) { totalCount edges { node {
+  query AdminContentReports($first: Int, $after: String, $last: Int, $before: String, $where: ReviewContentReportWhereInput, $orderBy: [ReviewContentReportOrderByInput!]) {
+    reviewsQuery { contentReports(first: $first, after: $after, last: $last, before: $before, where: $where, orderBy: $orderBy) { totalCount edges { cursor node {
       id reason details status assignedToPrincipalId resolutionNote resolvedByPrincipalId resolvedAt createdAt updatedAt
       reporterCustomer { id displayName email }
       content { id __typename body status author { displayName } }
-    } } } }
+    } } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } } }
   }
 `;
 
@@ -81,11 +81,11 @@ export const CONTENT_REPORT_UPDATE_MUTATION = gql`
 `;
 
 export const MODERATION_CASES_QUERY = gql`
-  query AdminModerationCases {
-    reviewsQuery { moderationCases(first: 100, orderBy: [{ field: createdAt, direction: desc }]) { totalCount edges { node {
+  query AdminModerationCases($first: Int, $after: String, $last: Int, $before: String, $where: ReviewModerationCaseWhereInput, $orderBy: [ReviewModerationCaseOrderByInput!]) {
+    reviewsQuery { moderationCases(first: $first, after: $after, last: $last, before: $before, where: $where, orderBy: $orderBy) { totalCount edges { cursor node {
       id status priority reasonCode assignedToPrincipalId dueAt resolutionCode resolutionNote resolvedByPrincipalId resolvedAt createdAt updatedAt
       content { id __typename body status author { displayName } }
-    } } } }
+    } } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } } }
   }
 `;
 
@@ -104,12 +104,12 @@ export const MODERATION_CASE_UPDATE_MUTATION = gql`
 `;
 
 export const REVIEW_REQUESTS_QUERY = gql`
-  query AdminReviewRequests {
-    reviewsQuery { reviewRequests(first: 100, orderBy: [{ field: createdAt, direction: desc }]) { totalCount edges { node {
+  query AdminReviewRequests($first: Int, $after: String, $last: Int, $before: String, $where: ReviewRequestWhereInput, $orderBy: [ReviewRequestOrderByInput!]) {
+    reviewsQuery { reviewRequests(first: $first, after: $after, last: $last, before: $before, where: $where, orderBy: $orderBy) { totalCount edges { cursor node {
       id orderId orderLineId channel status locale sourceChannel providerMessageId attemptCount scheduledAt sentAt deliveredAt openedAt submittedAt expiresAt lastError createdAt updatedAt
       customer { id displayName email } product { id title } variant { id title } review { id title }
       events(first: 100) { totalCount edges { node { id type providerEventId metadata occurredAt createdAt } } }
-    } } } }
+    } } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } } }
   }
 `;
 
@@ -128,11 +128,11 @@ export const REVIEW_REQUEST_UPDATE_MUTATION = gql`
 `;
 
 export const EXTERNAL_REFERENCES_QUERY = gql`
-  query AdminExternalReferences {
-    reviewsQuery { contentExternalReferences(first: 100, orderBy: [{ field: updatedAt, direction: desc }]) { totalCount edges { node {
+  query AdminExternalReferences($first: Int, $after: String, $last: Int, $before: String, $where: ReviewContentExternalReferenceWhereInput, $orderBy: [ReviewContentExternalReferenceOrderByInput!]) {
+    reviewsQuery { contentExternalReferences(first: $first, after: $after, last: $last, before: $before, where: $where, orderBy: $orderBy) { totalCount edges { cursor node {
       id externalSystem externalType externalId externalUrl direction syncStatus etag contentChecksum lastSyncedAt lastError metadata createdAt updatedAt deletedAt
       content { id __typename body status author { displayName } }
-    } } } }
+    } } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } } }
   }
 `;
 

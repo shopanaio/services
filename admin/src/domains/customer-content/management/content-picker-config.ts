@@ -18,8 +18,7 @@ function useContentPickerData(options: { pageSize: number; first?: number; after
     return conditions.length > 1 ? { _and: conditions } : conditions[0] ?? null;
   }, [options.excludeIds, options.where]);
   const query = useModerationContents({ first: options.first, after: options.after, last: options.last, before: options.before, where, orderBy: options.orderBy as ApiReviewContentOrderByInput[] | null });
-  const connection = query.data?.reviewsQuery.contents;
-  return { data: connection?.edges.map(({ node }) => ({ id: node.id, title: node.title || `${node.__typename}: ${node.body.slice(0, 100)}`, status: node.status })) ?? [], isLoading: query.loading, error: query.error ?? null, pagination: { total: connection?.totalCount ?? 0, pageSize: options.pageSize, hasNext: connection?.pageInfo?.hasNextPage ?? false, hasPrev: connection?.pageInfo?.hasPreviousPage ?? false, startCursor: connection?.pageInfo?.startCursor, endCursor: connection?.pageInfo?.endCursor } };
+  return { data: query.contents.map((node) => ({ id: node.id, title: node.title || `${node.kind}: ${node.body.slice(0, 100)}`, status: node.status })), isLoading: query.loading, error: query.error, pagination: { total: query.totalCount, pageSize: options.pageSize, hasNext: query.pageInfo?.hasNextPage ?? false, hasPrev: query.pageInfo?.hasPreviousPage ?? false, startCursor: query.pageInfo?.startCursor, endCursor: query.pageInfo?.endCursor } };
 }
 
 const columns: ColDef<IPickableEntity>[] = [

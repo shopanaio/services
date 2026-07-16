@@ -3,22 +3,42 @@
 import { useCallback } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import type {
+  ApiReviewContent,
+  ApiReviewContentConnection,
+  ApiReviewContentExternalReference,
+  ApiReviewContentExternalReferenceConnection,
+  ApiReviewContentExternalReferenceOrderByInput,
+  ApiReviewContentExternalReferenceWhereInput,
   ApiProductQuestionSubscriptionUpdateInput,
   ApiReviewContentExternalReferenceCreateInput,
   ApiReviewContentExternalReferenceDeleteInput,
   ApiReviewContentExternalReferenceUpdateInput,
+  ApiReviewContentReport,
+  ApiReviewContentReportConnection,
+  ApiReviewContentReportOrderByInput,
+  ApiReviewContentReportWhereInput,
   ApiReviewContentReportUpdateInput,
   ApiReviewContentOrderByInput,
   ApiReviewContentWhereInput,
+  ApiReviewModerationCase,
+  ApiReviewModerationCaseConnection,
+  ApiReviewModerationCaseOrderByInput,
+  ApiReviewModerationCaseWhereInput,
   ApiReviewModerationCaseCreateInput,
   ApiReviewModerationCaseUpdateInput,
   ApiReviewRatingCriterionCreateInput,
   ApiReviewRatingCriterionDeleteInput,
   ApiReviewRatingCriterionUpdateInput,
+  ApiReviewRequest,
+  ApiReviewRequestConnection,
+  ApiReviewRequestOrderByInput,
+  ApiReviewRequestWhereInput,
   ApiReviewRequestCreateInput,
   ApiReviewRequestUpdateInput,
   ApiReviewStoreConfigurationUpdateInput,
 } from "@/graphql/types";
+import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
+import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import {
   CONTENT_REPORTS_QUERY, EXTERNAL_REFERENCES_QUERY, MODERATION_CASES_QUERY, MODERATION_CONTENTS_QUERY,
   RATING_CRITERIA_QUERY, REVIEW_CONFIGURATION_QUERY, REVIEW_REQUESTS_QUERY,
@@ -28,7 +48,7 @@ import {
   RATING_CRITERION_UPDATE_MUTATION, REVIEW_CONFIGURATION_UPDATE_MUTATION, REVIEW_REQUEST_CREATE_MUTATION,
   REVIEW_REQUEST_UPDATE_MUTATION,
 } from "./graphql";
-import type { ContentReport, ContentSummary, ExternalReference, ManagementUserError, ModerationCase, RatingCriterion, ReviewConfiguration, ReviewRequest } from "./types";
+import type { ManagementUserError, RatingCriterion, ReviewConfiguration } from "./types";
 
 type Connection<T> = { totalCount: number; edges: Array<{ node: T }>; pageInfo?: { hasNextPage: boolean; hasPreviousPage: boolean; startCursor?: string | null; endCursor?: string | null } };
 type OperationPayload<T> = { userErrors: ManagementUserError[]; operationResults?: Array<{ errors: ManagementUserError[] }>; } & T;
@@ -40,20 +60,71 @@ export function useReviewConfiguration() {
 export function useRatingCriteria() {
   return useQuery<{ reviewsQuery: { ratingCriteria: Connection<RatingCriterion> } }>(RATING_CRITERIA_QUERY, { fetchPolicy: "cache-and-network" });
 }
-export function useModerationContents(variables: { first?: number; after?: string | null; last?: number; before?: string | null; where?: ApiReviewContentWhereInput | null; orderBy?: ApiReviewContentOrderByInput[] | null } = { first: 100 }) {
-  return useQuery<{ reviewsQuery: { contents: Connection<ContentSummary> } }>(MODERATION_CONTENTS_QUERY, { variables, fetchPolicy: "cache-and-network" });
+export interface ModerationContentsQueryVariables extends RelayCursorPaginationVariables {
+  where?: ApiReviewContentWhereInput | null;
+  orderBy?: ApiReviewContentOrderByInput[] | null;
 }
-export function useContentReports() {
-  return useQuery<{ reviewsQuery: { contentReports: Connection<ContentReport> } }>(CONTENT_REPORTS_QUERY, { fetchPolicy: "cache-and-network" });
+export interface ContentReportsQueryVariables extends RelayCursorPaginationVariables {
+  where?: ApiReviewContentReportWhereInput | null;
+  orderBy?: ApiReviewContentReportOrderByInput[] | null;
 }
-export function useModerationCases() {
-  return useQuery<{ reviewsQuery: { moderationCases: Connection<ModerationCase> } }>(MODERATION_CASES_QUERY, { fetchPolicy: "cache-and-network" });
+export interface ModerationCasesQueryVariables extends RelayCursorPaginationVariables {
+  where?: ApiReviewModerationCaseWhereInput | null;
+  orderBy?: ApiReviewModerationCaseOrderByInput[] | null;
 }
-export function useReviewRequests() {
-  return useQuery<{ reviewsQuery: { reviewRequests: Connection<ReviewRequest> } }>(REVIEW_REQUESTS_QUERY, { fetchPolicy: "cache-and-network" });
+export interface ReviewRequestsQueryVariables extends RelayCursorPaginationVariables {
+  where?: ApiReviewRequestWhereInput | null;
+  orderBy?: ApiReviewRequestOrderByInput[] | null;
 }
-export function useExternalReferences() {
-  return useQuery<{ reviewsQuery: { contentExternalReferences: Connection<ExternalReference> } }>(EXTERNAL_REFERENCES_QUERY, { fetchPolicy: "cache-and-network" });
+export interface ExternalReferencesQueryVariables extends RelayCursorPaginationVariables {
+  where?: ApiReviewContentExternalReferenceWhereInput | null;
+  orderBy?: ApiReviewContentExternalReferenceOrderByInput[] | null;
+}
+
+export function useModerationContents(variables: ModerationContentsQueryVariables = { first: 20 }) {
+  const result = useRelayConnectionQuery<
+    { reviewsQuery: { contents: ApiReviewContentConnection } },
+    ModerationContentsQueryVariables,
+    ApiReviewContent,
+    ApiReviewContentConnection
+  >({ query: MODERATION_CONTENTS_QUERY, variables, getConnection: (data) => data?.reviewsQuery.contents });
+  return { contents: result.nodes, ...result };
+}
+export function useContentReports(variables: ContentReportsQueryVariables = { first: 20 }) {
+  const result = useRelayConnectionQuery<
+    { reviewsQuery: { contentReports: ApiReviewContentReportConnection } },
+    ContentReportsQueryVariables,
+    ApiReviewContentReport,
+    ApiReviewContentReportConnection
+  >({ query: CONTENT_REPORTS_QUERY, variables, getConnection: (data) => data?.reviewsQuery.contentReports });
+  return { reports: result.nodes, ...result };
+}
+export function useModerationCases(variables: ModerationCasesQueryVariables = { first: 20 }) {
+  const result = useRelayConnectionQuery<
+    { reviewsQuery: { moderationCases: ApiReviewModerationCaseConnection } },
+    ModerationCasesQueryVariables,
+    ApiReviewModerationCase,
+    ApiReviewModerationCaseConnection
+  >({ query: MODERATION_CASES_QUERY, variables, getConnection: (data) => data?.reviewsQuery.moderationCases });
+  return { moderationCases: result.nodes, ...result };
+}
+export function useReviewRequests(variables: ReviewRequestsQueryVariables = { first: 20 }) {
+  const result = useRelayConnectionQuery<
+    { reviewsQuery: { reviewRequests: ApiReviewRequestConnection } },
+    ReviewRequestsQueryVariables,
+    ApiReviewRequest,
+    ApiReviewRequestConnection
+  >({ query: REVIEW_REQUESTS_QUERY, variables, getConnection: (data) => data?.reviewsQuery.reviewRequests });
+  return { reviewRequests: result.nodes, ...result };
+}
+export function useExternalReferences(variables: ExternalReferencesQueryVariables = { first: 20 }) {
+  const result = useRelayConnectionQuery<
+    { reviewsQuery: { contentExternalReferences: ApiReviewContentExternalReferenceConnection } },
+    ExternalReferencesQueryVariables,
+    ApiReviewContentExternalReference,
+    ApiReviewContentExternalReferenceConnection
+  >({ query: EXTERNAL_REFERENCES_QUERY, variables, getConnection: (data) => data?.reviewsQuery.contentExternalReferences });
+  return { externalReferences: result.nodes, ...result };
 }
 export function useManagementMutations() {
   const [configurationUpdate, configurationState] = useMutation<{ reviewsMutation: { storeConfigurationUpdate: OperationPayload<{ configuration: { id: string; revision: number; updatedAt: string } | null }> } }, { configurationId: string; expectedRevision: number; operations: ApiReviewStoreConfigurationUpdateInput }>(REVIEW_CONFIGURATION_UPDATE_MUTATION);
