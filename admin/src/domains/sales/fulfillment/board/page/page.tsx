@@ -1,7 +1,7 @@
 "use client";
 
 import { Alert, Button, Checkbox, Flex, Input, Select, Skeleton } from "antd";
-import { ReloadOutlined } from "@ant-design/icons";
+import { LuRefreshCw as ReloadOutlined } from "react-icons/lu";
 import { useDeferredValue, useMemo, useState } from "react";
 import { BoardEmptyState, BoardErrorState, FulfillmentBoard, FulfillmentLayout } from "../components";
 import { useFulfillmentBoard } from "../hooks";

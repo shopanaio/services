@@ -2,7 +2,7 @@
 
 import { createElement, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
-import { PictureOutlined } from "@ant-design/icons";
+import { LuImage as PictureOutlined } from "react-icons/lu";
 import { useProducts } from "@/domains/inventory/products/hooks";
 import { filterSchema } from "@/domains/inventory/products/page/filter-schema";
 import {

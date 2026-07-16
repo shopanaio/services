@@ -2,12 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback } from "react";
 import { Alert, App, Typography, Flex, Button } from "antd";
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  PictureOutlined,
-} from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuPencil as EditOutlined, LuTrash2 as DeleteOutlined, LuImage as PictureOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
 import {

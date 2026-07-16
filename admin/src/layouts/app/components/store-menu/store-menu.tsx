@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useThemeContext } from "@/ui-kit/theme";
 import { useStore, useWorkspace } from "@/domains/workspace";
 import { useSession, useSignOut } from "@/domains/auth";
-import { ShopOutlined } from "@ant-design/icons";
+import { LuStore as ShopOutlined } from "react-icons/lu";
 
 const useStyles = createStyles(({ css, token }, { isCollapsed }: { isCollapsed: boolean }) => ({
   container: css`

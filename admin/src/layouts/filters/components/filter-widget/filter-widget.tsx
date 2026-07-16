@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { Flex, Badge, Button, Card, Dropdown, Input, Tag, Typography } from 'antd';
-import { FilterOutlined, RightOutlined, CloseOutlined } from '@ant-design/icons';
+import { LuFilter as FilterOutlined, LuChevronRight as RightOutlined, LuX as CloseOutlined } from "react-icons/lu";
 import { IFilterSchema, IFilterValue } from '../../core/types';
 import { operatorsMeta } from '../../core/operators';
 import { findFilter } from '../../utils/find-filter';

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { App, Button, Flex, Input, Select, Typography } from "antd";
-import { CloseOutlined } from "@ant-design/icons";
+import { LuX as CloseOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";

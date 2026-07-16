@@ -1,11 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  CheckCircleOutlined,
-  CheckSquareOutlined,
-  MenuOutlined,
-  SlidersOutlined,
-  UnorderedListOutlined,
-} from "@ant-design/icons";
+import { LuCircleCheck as CheckCircleOutlined, LuSquareCheckBig as CheckSquareOutlined, LuMenu as MenuOutlined, LuSlidersHorizontal as SlidersOutlined, LuList as UnorderedListOutlined } from "react-icons/lu";
 import {
   LuDollarSign,
   LuPackageCheck,

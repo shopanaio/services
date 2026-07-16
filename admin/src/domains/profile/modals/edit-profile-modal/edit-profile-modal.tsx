@@ -3,11 +3,7 @@
 import { useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Upload, Typography, Button, Input, Flex, Select, Spin } from "antd";
-import {
-  UploadOutlined,
-  UserOutlined,
-  LoadingOutlined,
-} from "@ant-design/icons";
+import { LuUpload as UploadOutlined, LuUser as UserOutlined, LuLoaderCircle as LoadingOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import {
   useModalStackContext,
@@ -205,7 +201,7 @@ export const EditProfileModal = () => {
           <div className={styles.avatarSection}>
             {uploading ? (
               <div className={styles.avatarPlaceholder}>
-                <Spin indicator={<LoadingOutlined spin />} />
+                <Spin indicator={<LoadingOutlined />} />
               </div>
             ) : avatarUrl ? (
               <img

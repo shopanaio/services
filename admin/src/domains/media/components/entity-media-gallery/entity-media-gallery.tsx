@@ -10,19 +10,7 @@ import {
   Empty,
   Space,
 } from "antd";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  StarOutlined,
-  StarFilled,
-  MoreOutlined,
-  EyeOutlined,
-  UploadOutlined,
-  AppstoreOutlined,
-  UnorderedListOutlined,
-  HolderOutlined,
-  FolderOpenOutlined,
-} from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuStar as StarOutlined, LuStar as StarFilled, LuEllipsis as MoreOutlined, LuEye as EyeOutlined, LuUpload as UploadOutlined, LuLayoutGrid as AppstoreOutlined, LuList as UnorderedListOutlined, LuGripVertical as HolderOutlined, LuFolderOpen as FolderOpenOutlined } from "react-icons/lu";
 import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import {
   DndContext,

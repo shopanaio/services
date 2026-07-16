@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Alert, App, Button, Flex, InputNumber, Select, Skeleton, Switch, Typography } from "antd";
-import { SaveOutlined, SettingOutlined } from "@ant-design/icons";
+import { LuSave as SaveOutlined, LuSettings as SettingOutlined } from "react-icons/lu";
 import { ReviewDuplicatePolicy, ReviewModerationMode, type ApiReviewStoreConfigurationUpdateInput } from "@/graphql/types";
 import { DataLayout } from "@/layouts/data";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

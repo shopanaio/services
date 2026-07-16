@@ -1,4 +1,4 @@
-import { SortAscendingOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { LuArrowDownAZ as SortAscendingOutlined, LuArrowUp as ArrowUpOutlined, LuArrowDown as ArrowDownOutlined } from "react-icons/lu";
 import { Button, Dropdown, Flex, Radio, Typography } from 'antd';
 import { useState } from 'react';
 

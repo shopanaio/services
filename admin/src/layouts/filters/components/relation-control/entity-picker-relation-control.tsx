@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Button, Tooltip, Typography } from "antd";
-import { DownOutlined } from "@ant-design/icons";
+import { LuChevronDown as DownOutlined } from "react-icons/lu";
 import { useModalStack } from "@/layouts/modals";
 import type { IRelationControlProps } from "../../core/types";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";

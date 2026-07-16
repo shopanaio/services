@@ -2,13 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import { Button, Tag, Typography, Dropdown, Tooltip, Flex, Avatar } from "antd";
-import {
-  CheckOutlined,
-  MoreOutlined,
-  LinkOutlined,
-  BankOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
+import { LuCheck as CheckOutlined, LuEllipsis as MoreOutlined, LuLink as LinkOutlined, LuLandmark as BankOutlined, LuCircleCheck as CheckCircleOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { CopyableChip } from "@/ui-kit/copyable-chip";

@@ -5,7 +5,7 @@ import { Handle, Position } from "@xyflow/react";
 import type { NodeProps, Node } from "@xyflow/react";
 import { createStyles } from "antd-style";
 import { Typography, Badge, Tag } from "antd";
-import { ThunderboltOutlined } from "@ant-design/icons";
+import { LuZap as ThunderboltOutlined } from "react-icons/lu";
 
 import type { RuleNodeData } from "../types";
 import { NODE_DIMENSIONS } from "../constants";

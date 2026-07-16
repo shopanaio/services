@@ -1,5 +1,5 @@
 import { createStyles } from 'antd-style';
-import { DownOutlined, CheckOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { LuChevronDown as DownOutlined, LuCheck as CheckOutlined, LuPencil as EditOutlined, LuTrash2 as DeleteOutlined } from "react-icons/lu";
 import { Button, Dropdown, Flex, Typography, App } from 'antd';
 import type { MenuProps } from 'antd';
 import { ReactNode } from 'react';

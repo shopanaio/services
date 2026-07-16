@@ -1,7 +1,7 @@
 "use client";
 
 import { Flex, Button, Typography, Tooltip } from "antd";
-import { CheckSquareOutlined } from "@ant-design/icons";
+import { LuSquareCheckBig as CheckSquareOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { PanelBase } from "../components";
 import type { ActionConfig } from "../core/types";

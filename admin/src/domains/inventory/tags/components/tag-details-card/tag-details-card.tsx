@@ -1,10 +1,7 @@
 "use client";
 
 import { Button, Dropdown, Flex, Tag, Typography } from "antd";
-import {
-  MoreOutlined,
-  TagOutlined,
-} from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined, LuTag as TagOutlined } from "react-icons/lu";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";

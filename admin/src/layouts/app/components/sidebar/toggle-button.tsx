@@ -1,4 +1,4 @@
-import { ArrowRightOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { LuArrowRight as ArrowRightOutlined, LuArrowLeft as ArrowLeftOutlined } from "react-icons/lu";
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 

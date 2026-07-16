@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Typography } from "antd";
-import { FileTextOutlined } from "@ant-design/icons";
+import { LuFileText as FileTextOutlined } from "react-icons/lu";
 import { useEntityContentTabsStyles } from "./entity-content-tabs.styles";
 import type { EntityContentTabsEmptyState } from "./types";
 

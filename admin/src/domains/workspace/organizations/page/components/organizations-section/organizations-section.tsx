@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Typography, Button, Empty, Skeleton } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useStyles } from "../../organizations-page.styles";
 import type { OrganizationsSectionProps } from "../../types";

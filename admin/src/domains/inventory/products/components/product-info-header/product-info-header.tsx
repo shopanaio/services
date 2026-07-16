@@ -10,13 +10,7 @@ import {
   Divider,
   App,
 } from "antd";
-import {
-  CheckOutlined,
-  MoreOutlined,
-  LinkOutlined,
-  EyeOutlined,
-  ShareAltOutlined,
-} from "@ant-design/icons";
+import { LuCheck as CheckOutlined, LuEllipsis as MoreOutlined, LuLink as LinkOutlined, LuEye as EyeOutlined, LuShare2 as ShareAltOutlined } from "react-icons/lu";
 import { useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";

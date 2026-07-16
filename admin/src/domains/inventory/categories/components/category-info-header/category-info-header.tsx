@@ -11,13 +11,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import {
-  CheckOutlined,
-  EyeOutlined,
-  LinkOutlined,
-  MoreOutlined,
-  ShareAltOutlined,
-} from "@ant-design/icons";
+import { LuCheck as CheckOutlined, LuEye as EyeOutlined, LuLink as LinkOutlined, LuEllipsis as MoreOutlined, LuShare2 as ShareAltOutlined } from "react-icons/lu";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {

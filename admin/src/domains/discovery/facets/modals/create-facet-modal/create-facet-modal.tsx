@@ -5,7 +5,7 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App, Button, Flex, Input } from "antd";
 import { createStyles } from "antd-style";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { LuSwatchBook } from "react-icons/lu";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {

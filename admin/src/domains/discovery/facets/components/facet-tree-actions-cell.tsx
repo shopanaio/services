@@ -1,9 +1,4 @@
-import {
-  CopyOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  MoreOutlined,
-} from "@ant-design/icons";
+import { LuCopy as CopyOutlined, LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined } from "react-icons/lu";
 import { Button, Dropdown } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { MenuProps } from "antd";

@@ -2,7 +2,7 @@
 
 import { createElement, useMemo } from "react";
 import { Tag } from "antd";
-import { UserOutlined } from "@ant-design/icons";
+import { LuUser as UserOutlined } from "react-icons/lu";
 import type { ColDef } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {

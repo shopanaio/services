@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Descriptions, Empty, Flex, List, Statistic, Tag, Timeline, Typography } from "antd";
-import { HistoryOutlined, SafetyCertificateOutlined, ShareAltOutlined, TeamOutlined } from "@ant-design/icons";
+import { LuHistory as HistoryOutlined, LuBadgeCheck as SafetyCertificateOutlined, LuShare2 as ShareAltOutlined, LuUsers as TeamOutlined } from "react-icons/lu";
 import type { ApiReviewContent } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 

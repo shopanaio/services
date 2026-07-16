@@ -3,12 +3,7 @@
 import { useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Upload, Typography, Button, Input, Flex, App, Spin } from "antd";
-import {
-  UploadOutlined,
-  TeamOutlined,
-  WarningOutlined,
-  LoadingOutlined,
-} from "@ant-design/icons";
+import { LuUpload as UploadOutlined, LuUsers as TeamOutlined, LuTriangleAlert as WarningOutlined, LuLoaderCircle as LoadingOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import {
   useModalStackContext,
@@ -205,7 +200,7 @@ export const EditOrganizationModal = () => {
           <div className={styles.logoSection}>
             {uploading ? (
               <div className={styles.avatarPlaceholder}>
-                <Spin indicator={<LoadingOutlined spin />} />
+                <Spin indicator={<LoadingOutlined />} />
               </div>
             ) : logoUrl ? (
               <img

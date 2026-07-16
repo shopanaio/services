@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { Flex, Image, Tabs, Typography } from "antd";
-import {
-  FacebookOutlined,
-  GoogleOutlined,
-  PictureOutlined,
-} from "@ant-design/icons";
+import { LuFacebook as FacebookOutlined, LuChrome as GoogleOutlined, LuImage as PictureOutlined } from "react-icons/lu";
 import { useSeoPreviewStyles } from "./seo-preview.styles";
 import type { EntitySeoPreviewData } from "./types";
 

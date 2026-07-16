@@ -1,7 +1,7 @@
 "use client";
 import { forwardRef, useEffect, useState, type HTMLAttributes, type ReactNode } from "react";
 import { Button, Flex, Input, InputNumber, Popover, Select, Space, Typography } from "antd";
-import { EditOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { LuPencil as EditOutlined, LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined } from "react-icons/lu";
 import { useUpdateOrderItem } from "../../hooks";
 import type { ApiOrderItem } from "../../graphql/operation-types";
 

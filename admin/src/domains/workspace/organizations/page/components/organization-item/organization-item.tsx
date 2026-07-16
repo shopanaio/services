@@ -1,7 +1,7 @@
 "use client";
 
 import { Typography, Avatar, Flex } from "antd";
-import { BankOutlined, RightOutlined } from "@ant-design/icons";
+import { LuLandmark as BankOutlined, LuChevronRight as RightOutlined } from "react-icons/lu";
 import { useStyles } from "../../organizations-page.styles";
 import type { OrganizationItemProps } from "../../types";
 

@@ -1,4 +1,4 @@
-import { MoreOutlined } from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined } from "react-icons/lu";
 import type { ApiApiKey } from "@/graphql/types";
 import type { ColumnsType } from "antd/es/table";
 import { Button, Dropdown, Table, Tag, Typography } from "antd";

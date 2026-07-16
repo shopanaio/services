@@ -1,6 +1,6 @@
 import { AppLayout } from "@/layouts/app/components/layout/layout";
 import { registerDomain } from "@/registry";
-import { ShopOutlined } from "@ant-design/icons";
+import { LuStore as ShopOutlined } from "react-icons/lu";
 import { InventorySidebarConfigLoader } from "./components/inventory-sidebar-config-loader";
 
 registerDomain({

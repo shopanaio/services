@@ -12,7 +12,7 @@ import {
   Skeleton,
   Typography,
 } from "antd";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { shopCountries, shopLocales } from "@/defs/localization";
 import type { ApiCustomer, ApiCustomerUpdateInput } from "@/graphql/types";

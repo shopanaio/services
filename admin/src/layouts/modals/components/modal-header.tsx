@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, ButtonProps, Flex, Typography } from "antd";
-import { CloseOutlined } from "@ant-design/icons";
+import { LuX as CloseOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
 

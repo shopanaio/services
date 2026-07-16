@@ -1,4 +1,4 @@
-import { DollarOutlined } from "@ant-design/icons";
+import { LuCircleDollarSign as DollarOutlined } from "react-icons/lu";
 import type { CurrencyCode } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingValue } from "./setting-value";

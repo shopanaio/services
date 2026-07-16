@@ -3,13 +3,7 @@
 import { useState, useCallback } from "react";
 import { Upload, Input, Button, Tabs, message, Progress } from "antd";
 import { Paper } from "@/ui-kit/paper";
-import {
-  CloudUploadOutlined,
-  LinkOutlined,
-  DeleteOutlined,
-  InfoCircleOutlined,
-  PlayCircleOutlined,
-} from "@ant-design/icons";
+import { LuCloudUpload as CloudUploadOutlined, LuLink as LinkOutlined, LuTrash2 as DeleteOutlined, LuCircleHelp as InfoCircleOutlined, LuCirclePlay as PlayCircleOutlined } from "react-icons/lu";
 import {
   ModalLayout,
   ModalHeader,

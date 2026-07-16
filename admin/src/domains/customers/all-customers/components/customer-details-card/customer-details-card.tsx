@@ -14,21 +14,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import {
-  DeleteOutlined,
-  EditOutlined,
-  EnvironmentOutlined,
-  FileProtectOutlined,
-  MailOutlined,
-  MergeCellsOutlined,
-  MoreOutlined,
-  SafetyCertificateOutlined,
-  ShoppingOutlined,
-  StopOutlined,
-  TagsOutlined,
-  TeamOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuMapPin as EnvironmentOutlined, LuFileLock2 as FileProtectOutlined, LuMail as MailOutlined, LuMerge as MergeCellsOutlined, LuEllipsis as MoreOutlined, LuBadgeCheck as SafetyCertificateOutlined, LuShoppingBag as ShoppingOutlined, LuBan as StopOutlined, LuTags as TagsOutlined, LuUsers as TeamOutlined, LuUser as UserOutlined } from "react-icons/lu";
 import type { ApiCustomer } from "@/graphql/types";
 import {
   CustomerConsentState,

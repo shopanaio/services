@@ -1,5 +1,5 @@
 import { registerModule } from "@/registry";
-import { ShoppingCartOutlined } from "@ant-design/icons";
+import { LuShoppingCart as ShoppingCartOutlined } from "react-icons/lu";
 import dynamic from "next/dynamic";
 
 registerModule({

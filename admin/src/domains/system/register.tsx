@@ -1,9 +1,7 @@
 import { registerModule } from "@/registry";
-import {
-  ApiOutlined,
-  HistoryOutlined,
-  SettingOutlined,
-} from "@ant-design/icons";
+import { LuPlug as ApiOutlined } from "react-icons/lu";
+import { LuHistory as HistoryOutlined } from "react-icons/lu";
+import { LuSettings as SettingOutlined } from "react-icons/lu";
 import dynamic from "next/dynamic";
 
 registerModule({

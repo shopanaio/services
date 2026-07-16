@@ -1,5 +1,5 @@
 import { Tag } from "antd";
-import { ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
+import { LuArrowUp as ArrowUpOutlined, LuArrowDown as ArrowDownOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 
 const useStyles = createStyles(() => ({

@@ -1,7 +1,7 @@
 "use client";
 
 import { Typography, Avatar, Tag } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import { LuImage as PictureOutlined } from "react-icons/lu";
 import type { BundleItem } from "@/domains/inventory/bundles/types";
 import {
   getItemImageUrl,

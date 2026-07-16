@@ -1,7 +1,7 @@
 "use client";
 
 import { Image, Flex } from "antd";
-import { EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { LuEye as EyeOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import { MediaPreview, useMediaPreview } from "@/domains/media/components/media-preview";

@@ -1,7 +1,7 @@
 import React from "react";
 import { createStyles } from "antd-style";
 import { Popover, Checkbox, Divider, Typography, Button } from "antd";
-import { SettingOutlined } from "@ant-design/icons";
+import { LuSettings as SettingOutlined } from "react-icons/lu";
 import { useVariantsEditorStore } from "../hooks";
 import {
   MEDIA_COLUMNS,

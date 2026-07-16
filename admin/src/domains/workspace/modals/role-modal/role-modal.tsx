@@ -13,13 +13,7 @@ import {
   Tooltip,
   Divider,
 } from "antd";
-import {
-  LockOutlined,
-  EditOutlined,
-  EyeOutlined,
-  PlusOutlined,
-  InfoCircleOutlined,
-} from "@ant-design/icons";
+import { LuLockKeyhole as LockOutlined, LuPencil as EditOutlined, LuEye as EyeOutlined, LuPlus as PlusOutlined, LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {

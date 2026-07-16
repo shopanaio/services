@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import { createStyles } from "antd-style";
 import { Typography, Avatar, Flex, Button, Tag } from "antd";
-import { EditOutlined, UserOutlined, TeamOutlined } from "@ant-design/icons";
+import { LuPencil as EditOutlined, LuUser as UserOutlined, LuUsers as TeamOutlined } from "react-icons/lu";
 
 const useStyles = createStyles(({ token }) => ({
   card: {

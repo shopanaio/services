@@ -663,7 +663,7 @@ category-details-card.tsx
 ├── antd: Flex, Tag, Typography, Breadcrumb, Avatar, Button,
 │         Dropdown, Image, Divider, Skeleton, Tooltip, Popover
 │
-└── @ant-design/icons: MoreOutlined, PlusOutlined, EyeOutlined,
+└── react-icons/lu: LuEllipsis, LuPlus, LuEye,
                        FolderOutlined, StarFilled, LinkOutlined,
                        CheckOutlined, ShareAltOutlined, WarningOutlined
 ```

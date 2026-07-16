@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Typography, Progress, Flex } from "antd";
-import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import { LuCheck as CheckOutlined, LuX as CloseOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 
 const useStyles = createStyles(({ token }) => ({

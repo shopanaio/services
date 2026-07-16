@@ -1,10 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  ThunderboltOutlined,
-  TagOutlined,
-  FolderOutlined,
-  GiftOutlined,
-} from "@ant-design/icons";
+import { LuZap as ThunderboltOutlined, LuTag as TagOutlined, LuFolder as FolderOutlined, LuGift as GiftOutlined } from "react-icons/lu";
 
 import { DependencyTargetType } from "./enums";
 

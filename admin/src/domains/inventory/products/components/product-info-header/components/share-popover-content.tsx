@@ -1,5 +1,5 @@
 import { Button, Flex, Input, Tooltip } from "antd";
-import { CopyOutlined, CheckOutlined } from "@ant-design/icons";
+import { LuCopy as CopyOutlined, LuCheck as CheckOutlined } from "react-icons/lu";
 import {
   FaTelegramPlane,
   FaWhatsapp,

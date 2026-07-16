@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Alert, App, Button, Descriptions, Flex, Input, Skeleton, Tag, Typography } from "antd";
-import { DeleteOutlined, MergeCellsOutlined, UserOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuMerge as MergeCellsOutlined, LuUser as UserOutlined } from "react-icons/lu";
 import { CustomerMergeStatus } from "@/graphql/types";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals"; import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useEntityPicker } from "@/shared/components/entity-picker-modal"; import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types"; import "@/domains/customers/all-customers/picker/customer-picker-config";

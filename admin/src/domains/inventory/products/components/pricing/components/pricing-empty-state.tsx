@@ -1,5 +1,5 @@
 import { Typography } from "antd";
-import { DollarOutlined } from "@ant-design/icons";
+import { LuCircleDollarSign as DollarOutlined } from "react-icons/lu";
 import { useStyles } from "./pricing-empty-state.styles";
 
 export const PricingEmptyState = () => {

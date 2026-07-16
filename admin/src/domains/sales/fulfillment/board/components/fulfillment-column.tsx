@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge, Button, Flex } from "antd";
-import { DragOutlined } from "@ant-design/icons";
+import { LuGrip as DragOutlined } from "react-icons/lu";
 import { memo } from "react";
 import type { RenderColumnProps } from "../dnd";
 import type { LegacyFulfillmentColumnView } from "../models/legacy-fulfillment-board-view";

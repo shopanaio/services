@@ -2,16 +2,7 @@
 
 import { Typography, Button, Tag, App, Dropdown, Spin } from "antd";
 import { createStyles } from "antd-style";
-import {
-  LockOutlined,
-  DesktopOutlined,
-  MobileOutlined,
-  CloseOutlined,
-  MoreOutlined,
-  CheckCircleOutlined,
-  SunOutlined,
-  MoonOutlined,
-} from "@ant-design/icons";
+import { LuLockKeyhole as LockOutlined, LuMonitor as DesktopOutlined, LuSmartphone as MobileOutlined, LuX as CloseOutlined, LuEllipsis as MoreOutlined, LuCircleCheck as CheckCircleOutlined, LuSun as SunOutlined, LuMoon as MoonOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsLayout } from "@/domains/workspace/layout";
 import { DangerZone } from "@/domains/workspace/shared";

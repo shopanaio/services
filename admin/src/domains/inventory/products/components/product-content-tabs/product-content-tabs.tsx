@@ -1,5 +1,5 @@
 import { App, Button, Dropdown, Flex } from "antd";
-import { MoreOutlined } from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined } from "react-icons/lu";
 import type { OutputData } from "@editorjs/editorjs";
 import type { RenderedContent } from "@/ui-kit/editor/renderers";
 import { AIButton } from "@/ui-kit/ai-button";

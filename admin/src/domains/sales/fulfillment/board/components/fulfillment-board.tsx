@@ -1,7 +1,7 @@
 "use client";
 
 import { App, Button } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { useCallback, useEffect, useState } from "react";
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import isEqual from "lodash/isEqual";

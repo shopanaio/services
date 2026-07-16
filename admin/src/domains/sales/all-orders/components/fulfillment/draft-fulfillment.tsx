@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useState } from "react";
 import { App, Avatar, Button, Dropdown, Flex, Table, Typography } from "antd";
-import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { useProductPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import { OrderPaper, OrderPaperHeader } from "../legacy/order-paper";

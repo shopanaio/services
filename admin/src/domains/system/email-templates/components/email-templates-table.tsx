@@ -1,4 +1,4 @@
-import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import type { ColumnsType } from "antd/es/table";
 import { Button, Dropdown, Table, Typography } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

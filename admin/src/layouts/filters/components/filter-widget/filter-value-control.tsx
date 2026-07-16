@@ -2,7 +2,7 @@
 
 import { DatePicker, Input, InputNumber, Select, SelectProps, Tag, Tooltip } from 'antd';
 import type { Dayjs } from 'dayjs';
-import { CloseOutlined } from '@ant-design/icons';
+import { LuX as CloseOutlined } from "react-icons/lu";
 import { FilterType, FilterOperator, IFilterSchema, IFilterValue } from '../../core/types';
 import { isMultipleValueOperator } from '../../core/operators';
 import { RelationControl } from '../relation-control';

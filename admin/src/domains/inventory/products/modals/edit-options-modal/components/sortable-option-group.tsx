@@ -1,5 +1,5 @@
 import { Button, Dropdown, Flex, Input } from "antd";
-import { DeleteOutlined, HolderOutlined, PlusOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuGripVertical as HolderOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import {
   DndContext,
   KeyboardSensor,

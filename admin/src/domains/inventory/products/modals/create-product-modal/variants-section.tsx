@@ -3,7 +3,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import { Input, Select, Button, Typography, Flex, Switch, Alert } from "antd";
-import { PlusOutlined, CloseOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuX as CloseOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import type {
   ColDef,

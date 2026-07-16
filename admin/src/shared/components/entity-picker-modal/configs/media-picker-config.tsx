@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Typography, Flex, Tag } from "antd";
-import { FileOutlined } from "@ant-design/icons";
+import { LuFile as FileOutlined } from "react-icons/lu";
 import type { ColDef } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { registerEntityPickerConfig } from ".";

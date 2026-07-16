@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Upload, Typography, Button, App } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { LuUpload as UploadOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import {
   useModalStackContext,

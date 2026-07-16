@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Tag, Tooltip, Typography } from "antd";
-import { CopyOutlined, CheckOutlined } from "@ant-design/icons";
+import { LuCopy as CopyOutlined, LuCheck as CheckOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 
 // ============================================================================

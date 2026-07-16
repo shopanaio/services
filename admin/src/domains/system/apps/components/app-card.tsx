@@ -1,4 +1,4 @@
-import { CheckCircleFilled, MoreOutlined } from "@ant-design/icons";
+import { LuCircleCheckBig as CheckCircleFilled, LuEllipsis as MoreOutlined } from "react-icons/lu";
 import type { ApiApp } from "@/graphql/types";
 import { App as AntApp, Avatar, Button, Card, Dropdown, Flex, Typography } from "antd";
 import { createStyles } from "antd-style";

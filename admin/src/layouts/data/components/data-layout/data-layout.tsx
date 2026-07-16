@@ -10,7 +10,7 @@ import {
 } from "react";
 import { createStyles } from "antd-style";
 import { Badge, Button, Typography, Flex, Spin } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { LuArrowLeft as ArrowLeftOutlined } from "react-icons/lu";
 
 // ============================================================================
 // Styles

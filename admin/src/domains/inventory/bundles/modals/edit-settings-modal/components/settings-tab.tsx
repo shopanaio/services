@@ -9,7 +9,7 @@ import {
   Tooltip,
   Flex,
 } from "antd";
-import { InfoCircleOutlined } from "@ant-design/icons";
+import { LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { DisplayStyle, OutOfStockBehavior } from "@/domains/inventory/bundles/types";

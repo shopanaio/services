@@ -1,5 +1,5 @@
 import { createStyles } from 'antd-style';
-import { SettingOutlined } from '@ant-design/icons';
+import { LuSettings as SettingOutlined } from "react-icons/lu";
 import { Button, Checkbox, Dropdown, Flex, Typography, theme } from 'antd';
 import { ReactElement, cloneElement, CSSProperties } from 'react';
 

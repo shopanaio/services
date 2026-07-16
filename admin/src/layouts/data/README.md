@@ -270,7 +270,7 @@ const { loading } = useDataLayoutContext();
 
 import { useState } from "react";
 import { Button } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus } from "react-icons/lu";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget, useFilters } from "@/layouts/filters";
 import { useModalStack } from "@/layouts/modals";
@@ -285,7 +285,7 @@ export default function ProductsPage() {
       title="Products"
       count={products.length}
       actions={
-        <Button type="primary" icon={<PlusOutlined />}>
+        <Button type="primary" icon={<LuPlus />}>
           Add Product
         </Button>
       }

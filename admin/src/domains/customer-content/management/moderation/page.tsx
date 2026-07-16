@@ -1,7 +1,7 @@
 "use client";
 
 import { Alert, App, Button, Flex, Table, Tag, Typography } from "antd";
-import { FolderAddOutlined, StopOutlined } from "@ant-design/icons";
+import { LuFolderPlus as FolderAddOutlined, LuBan as StopOutlined } from "react-icons/lu";
 import type { ColumnsType } from "antd/es/table";
 import { DataLayout } from "@/layouts/data";
 import { useReviewModal } from "@/domains/customer-content/reviews/modals";

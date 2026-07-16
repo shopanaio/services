@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Flex, Typography } from "antd";
-import { WarningOutlined } from "@ant-design/icons";
+import { LuTriangleAlert as WarningOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SeoPreview } from "./seo-preview";
 import type { EntitySeoBlockData, EntitySeoPreviewData } from "./types";

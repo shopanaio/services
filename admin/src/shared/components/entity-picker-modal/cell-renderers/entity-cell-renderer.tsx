@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Flex, Typography } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import { LuImage as PictureOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import type { IPickableEntity } from "../types";

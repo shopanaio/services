@@ -3,12 +3,7 @@
 import { useState, useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { Button, Steps, App } from "antd";
-import {
-  ShopOutlined,
-  GlobalOutlined,
-  RocketOutlined,
-  ArrowLeftOutlined,
-} from "@ant-design/icons";
+import { LuStore as ShopOutlined, LuGlobe as GlobalOutlined, LuRocket as RocketOutlined, LuArrowLeft as ArrowLeftOutlined } from "react-icons/lu";
 import {
   useModalStackContext,
   ModalLayout,

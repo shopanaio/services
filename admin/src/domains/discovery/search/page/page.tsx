@@ -1,7 +1,7 @@
 "use client";
 
 import { Alert, Card, Skeleton, Tag, Typography } from "antd";
-import { BarChartOutlined, FontSizeOutlined } from "@ant-design/icons";
+import { LuChartBar as BarChartOutlined, LuType as FontSizeOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";

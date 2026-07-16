@@ -1,5 +1,5 @@
 import { createStyles } from 'antd-style';
-import { SearchOutlined, SettingOutlined } from '@ant-design/icons';
+import { LuSearch as SearchOutlined, LuSettings as SettingOutlined } from "react-icons/lu";
 import { Button, Dropdown, Flex, Input, Radio, Space, Typography } from 'antd';
 import { useState } from 'react';
 

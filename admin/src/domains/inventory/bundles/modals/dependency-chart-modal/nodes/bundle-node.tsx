@@ -5,7 +5,7 @@ import { Handle, Position } from "@xyflow/react";
 import type { NodeProps, Node } from "@xyflow/react";
 import { createStyles } from "antd-style";
 import { Typography } from "antd";
-import { GiftOutlined } from "@ant-design/icons";
+import { LuGift as GiftOutlined } from "react-icons/lu";
 
 import type { BundleNodeData } from "../types";
 import { NODE_DIMENSIONS } from "../constants";

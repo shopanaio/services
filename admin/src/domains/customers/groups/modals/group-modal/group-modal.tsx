@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alert, App, Button, Checkbox, Descriptions, Empty, Flex, Input, Select, Skeleton, Tag, Typography } from "antd";
-import { DeleteOutlined, TeamOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuUsers as TeamOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

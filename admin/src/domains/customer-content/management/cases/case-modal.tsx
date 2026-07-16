@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Alert, App, Button, Flex, Input, InputNumber, Select, Typography } from "antd";
 import { ReviewModerationCaseStatus } from "@/graphql/types";
-import { FileSearchOutlined } from "@ant-design/icons";
+import { LuFileSearch as FileSearchOutlined } from "react-icons/lu";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useManagementMutations } from "../hooks";

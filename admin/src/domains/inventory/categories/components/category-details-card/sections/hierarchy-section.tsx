@@ -8,11 +8,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import {
-  FolderOutlined,
-  MoreOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { LuFolder as FolderOutlined, LuEllipsis as MoreOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiCategory } from "@/graphql/types";
 import { useHierarchyStyles } from "../category-details-card.styles";

@@ -2,7 +2,7 @@
 
 import { createElement, useEffect, useMemo, useState } from "react";
 import type { ColDef } from "ag-grid-community";
-import { ShopOutlined } from "@ant-design/icons";
+import { LuStore as ShopOutlined } from "react-icons/lu";
 import { useVendors } from "@/domains/inventory/products/hooks/use-vendors";
 import { EntityCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";

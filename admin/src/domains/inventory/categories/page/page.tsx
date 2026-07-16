@@ -8,11 +8,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  FolderOutlined,
-} from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuFolder as FolderOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,

@@ -1,5 +1,5 @@
 import { registerModule } from "@/registry";
-import { NotificationOutlined } from "@ant-design/icons";
+import { LuBell as NotificationOutlined } from "react-icons/lu";
 import dynamic from "next/dynamic";
 
 registerModule({

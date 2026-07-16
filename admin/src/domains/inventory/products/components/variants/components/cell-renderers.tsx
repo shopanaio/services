@@ -1,6 +1,6 @@
 import React from "react";
 import { Avatar, Button } from "antd";
-import { DeleteOutlined, PictureOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuImage as PictureOutlined } from "react-icons/lu";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
   SelectableCell,

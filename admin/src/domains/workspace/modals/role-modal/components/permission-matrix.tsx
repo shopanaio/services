@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useCallback } from "react";
-import { CheckCircleFilled, MinusCircleOutlined } from "@ant-design/icons";
+import { LuCircleCheckBig as CheckCircleFilled, LuCircleMinus as MinusCircleOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {

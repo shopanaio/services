@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { App, Button, Tag, Flex, Dropdown } from "antd";
-import { PlusOutlined, MoreOutlined, TagsOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuEllipsis as MoreOutlined, LuTags as TagsOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useTagPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";

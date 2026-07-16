@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Alert, App, Button, Descriptions, Flex, Input, Select, Skeleton, Tag, Typography } from "antd";
-import { DeleteOutlined, FileProtectOutlined, StopOutlined, UserOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuFileLock2 as FileProtectOutlined, LuBan as StopOutlined, LuUser as UserOutlined } from "react-icons/lu";
 import { CustomerDataRequestStatus, CustomerDataRequestType } from "@/graphql/types";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

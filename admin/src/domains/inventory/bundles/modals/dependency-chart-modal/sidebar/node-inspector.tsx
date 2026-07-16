@@ -12,23 +12,7 @@ import {
   Flex,
   Divider,
   } from "antd";
-import {
-  LeftOutlined,
-  RightOutlined,
-  FolderOutlined,
-  PictureOutlined,
-  GiftOutlined,
-  EyeOutlined,
-  EyeInvisibleOutlined,
-  CheckCircleOutlined,
-  CheckSquareOutlined,
-  MinusCircleOutlined,
-  NumberOutlined,
-  DollarOutlined,
-  AppstoreOutlined,
-  LockOutlined,
-  UnlockOutlined,
-  } from "@ant-design/icons";
+import { LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined, LuFolder as FolderOutlined, LuImage as PictureOutlined, LuGift as GiftOutlined, LuEye as EyeOutlined, LuEyeOff as EyeInvisibleOutlined, LuCircleCheck as CheckCircleOutlined, LuSquareCheckBig as CheckSquareOutlined, LuCircleMinus as MinusCircleOutlined, LuHash as NumberOutlined, LuCircleDollarSign as DollarOutlined, LuLayoutGrid as AppstoreOutlined, LuLockKeyhole as LockOutlined, LuLockOpen as UnlockOutlined } from "react-icons/lu";
 
 import type { IBundleGroup,
   BundleItem } from "@/domains/inventory/bundles/types";

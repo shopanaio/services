@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { App, Flex, Spin } from "antd";
-import { LoadingOutlined } from "@ant-design/icons";
+import { LuLoaderCircle as LoadingOutlined } from "react-icons/lu";
 import { Paper } from "@/ui-kit/paper";
 import type {
   ApiProduct,
@@ -256,7 +256,7 @@ export const PricingBlock = ({
     return (
       <Paper className={styles.card}>
         <Flex justify="center" align="center" style={{ minHeight: 200 }}>
-          <Spin indicator={<LoadingOutlined spin />} />
+          <Spin indicator={<LoadingOutlined />} />
         </Flex>
       </Paper>
     );

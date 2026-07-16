@@ -1,7 +1,7 @@
 "use client";
 
 import { Flex, Button, Typography } from "antd";
-import { EditOutlined } from "@ant-design/icons";
+import { LuPencil as EditOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { PanelBase } from "../components";
 

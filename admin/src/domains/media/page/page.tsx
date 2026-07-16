@@ -12,11 +12,7 @@ import {
   SelectionChangedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import {
-  CloudUploadOutlined,
-  DeleteOutlined,
-  FileOutlined,
-} from "@ant-design/icons";
+import { LuCloudUpload as CloudUploadOutlined, LuTrash2 as DeleteOutlined, LuFile as FileOutlined } from "react-icons/lu";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";

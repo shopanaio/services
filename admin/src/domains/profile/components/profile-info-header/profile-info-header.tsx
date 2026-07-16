@@ -9,11 +9,7 @@ import {
   Flex,
   Avatar,
 } from "antd";
-import {
-  MoreOutlined,
-  UserOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined, LuUser as UserOutlined, LuCircleCheck as CheckCircleOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { CopyableChip } from "@/ui-kit/copyable-chip";

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { App, Avatar, Button, Dropdown, Flex, Input, Space, Table, Tag, Typography } from "antd";
-import { MinusOutlined, MoreOutlined, PlusOutlined } from "@ant-design/icons";
+import { LuMinus as MinusOutlined, LuEllipsis as MoreOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { OrderPaper, OrderPaperHeader } from "../legacy/order-paper";
 import { OrderPrice } from "../money/price";
 import { CostPricePopover } from "../items/item-edit-popover";

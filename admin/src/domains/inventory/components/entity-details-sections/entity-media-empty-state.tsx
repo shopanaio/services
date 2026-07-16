@@ -1,6 +1,6 @@
 "use client";
 
-import { PictureOutlined } from "@ant-design/icons";
+import { LuImage as PictureOutlined } from "react-icons/lu";
 import { EntityDetailsEmptyState } from "./entity-details-empty-state";
 
 export const EntityMediaEmptyState = () => (

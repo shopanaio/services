@@ -1,7 +1,7 @@
 "use client";
 
 import { Typography, Avatar, Flex, Tag } from "antd";
-import { ShopOutlined, RightOutlined } from "@ant-design/icons";
+import { LuStore as ShopOutlined, LuChevronRight as RightOutlined } from "react-icons/lu";
 import { StoreStatus } from "@/graphql/types";
 import { useStyles } from "../../organization-page.styles";
 import type { StoreItemProps } from "../../types";

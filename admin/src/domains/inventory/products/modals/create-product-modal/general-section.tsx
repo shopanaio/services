@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Input, Tooltip } from "antd";
-import { InfoCircleOutlined } from "@ant-design/icons";
+import { LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

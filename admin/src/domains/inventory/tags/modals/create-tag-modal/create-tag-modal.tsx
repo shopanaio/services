@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App, Input, Tooltip } from "antd";
-import { InfoCircleOutlined } from "@ant-design/icons";
+import { LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {

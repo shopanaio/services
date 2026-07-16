@@ -12,12 +12,7 @@ import {
   Alert,
   Divider,
 } from "antd";
-import {
-  ThunderboltOutlined,
-  ReloadOutlined,
-  TagOutlined,
-  FolderOutlined,
-} from "@ant-design/icons";
+import { LuZap as ThunderboltOutlined, LuRefreshCw as ReloadOutlined, LuTag as TagOutlined, LuFolder as FolderOutlined } from "react-icons/lu";
 import {
   useModalStackContext,
   ModalLayout,

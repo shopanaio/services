@@ -10,11 +10,7 @@ import {
   Divider,
   message,
 } from "antd";
-import {
-  SearchOutlined,
-  PlusOutlined,
-  TagOutlined,
-} from "@ant-design/icons";
+import { LuSearch as SearchOutlined, LuPlus as PlusOutlined, LuTag as TagOutlined } from "react-icons/lu";
 import {
   useModalStackContext,
   ModalLayout,

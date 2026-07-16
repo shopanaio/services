@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Input, Typography, App } from "antd";
 import { createStyles } from "antd-style";
-import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import { LuCheck as CheckOutlined, LuX as CloseOutlined } from "react-icons/lu";
 import {
   useModalStackContext,
   ModalLayout,

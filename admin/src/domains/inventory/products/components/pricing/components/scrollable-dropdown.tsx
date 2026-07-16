@@ -1,6 +1,6 @@
 import { Dropdown, Spin } from "antd";
 import type { DropdownProps } from "antd";
-import { LoadingOutlined } from "@ant-design/icons";
+import { LuLoaderCircle as LoadingOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import InfiniteScroll from "react-infinite-scroller";
 
@@ -53,7 +53,7 @@ export const ScrollableDropdown = ({
             threshold={threshold}
             loader={
               <div key="loader" className={styles.loadingItem}>
-                <Spin indicator={<LoadingOutlined spin />} size="small" />
+                <Spin indicator={<LoadingOutlined />} size="small" />
               </div>
             }
           >

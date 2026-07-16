@@ -1,5 +1,5 @@
 import { registerModule } from "@/registry";
-import { GiftOutlined } from "@ant-design/icons";
+import { LuGift as GiftOutlined } from "react-icons/lu";
 import dynamic from "next/dynamic";
 
 registerModule({

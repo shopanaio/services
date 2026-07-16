@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { Button, Divider, Dropdown } from "antd";
-import { PlusOutlined, FolderOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuFolder as FolderOutlined } from "react-icons/lu";
 import { useModalStackContext, ModalLayout } from "@/layouts/modals";
 
 import { useStyles } from "./edit-groups-modal.styles";

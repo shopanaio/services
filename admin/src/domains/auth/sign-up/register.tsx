@@ -1,6 +1,6 @@
 import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
-import { UserAddOutlined } from "@ant-design/icons";
+import { LuUserPlus as UserAddOutlined } from "react-icons/lu";
 
 registerModule({
   key: "sign-up",

@@ -1,5 +1,5 @@
 import { registerModule } from "@/registry";
-import { FileTextOutlined } from "@ant-design/icons";
+import { LuFileText as FileTextOutlined } from "react-icons/lu";
 import dynamic from "next/dynamic";
 import { LuSearch } from "react-icons/lu";
 

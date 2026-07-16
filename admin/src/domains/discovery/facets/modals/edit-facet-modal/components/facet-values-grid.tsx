@@ -12,7 +12,7 @@ import type {
 } from "ag-grid-community";
 import { Button, Dropdown, Flex, Input, Space, Tooltip, Typography } from "antd";
 import { createStyles } from "antd-style";
-import { SearchOutlined } from "@ant-design/icons";
+import { LuSearch as SearchOutlined } from "react-icons/lu";
 import { LuEllipsis } from "react-icons/lu";
 import { FacetValueKind } from "@/graphql/types";
 import { useAgGridTheme } from "@/hooks";

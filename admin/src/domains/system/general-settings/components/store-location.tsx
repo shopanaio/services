@@ -1,4 +1,4 @@
-import { EnvironmentOutlined, FieldTimeOutlined } from "@ant-design/icons";
+import { LuMapPin as EnvironmentOutlined, LuTimer as FieldTimeOutlined } from "react-icons/lu";
 import { Flex } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { GeneralSettingsStore } from "../types";

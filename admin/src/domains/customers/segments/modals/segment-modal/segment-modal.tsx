@@ -15,12 +15,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import {
-  DeleteOutlined,
-  EditOutlined,
-  InfoCircleOutlined,
-  TeamOutlined,
-} from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuCircleHelp as InfoCircleOutlined, LuUsers as TeamOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { CustomerSegmentStatus, CustomerSegmentType } from "@/graphql/types";
 import {

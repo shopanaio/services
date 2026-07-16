@@ -459,7 +459,7 @@ export default function SignInPage() {
 
 import { Controller, type UseFormReturn } from 'react-hook-form';
 import { Button, Input, Typography, Checkbox, Flex } from 'antd';
-import { MailOutlined, LockOutlined } from '@ant-design/icons';
+import { LuMail, LuLockKeyhole } from 'react-icons/lu';
 import Link from 'next/link';
 import type { SignInFormValues } from '../../schemas';
 import { FormField, FormError } from '../../components/form';
@@ -492,7 +492,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
           render={({ field }) => (
             <Input
               {...field}
-              prefix={<MailOutlined />}
+              prefix={<LuMail />}
               placeholder="email@example.com"
               autoComplete="email"
               status={errors.email ? 'error' : undefined}
@@ -509,7 +509,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
           render={({ field }) => (
             <Input.Password
               {...field}
-              prefix={<LockOutlined />}
+              prefix={<LuLockKeyhole />}
               placeholder="Enter your password"
               autoComplete="current-password"
               status={errors.password ? 'error' : undefined}
@@ -856,7 +856,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
 import { useMemo } from 'react';
 import { Typography, Progress, Flex } from 'antd';
-import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { LuCheck, LuX } from 'react-icons/lu';
 import { useStyles } from './password-strength.styles';
 
 interface PasswordStrengthProps {
@@ -928,9 +928,9 @@ export function PasswordStrength({ password, showRequirements = true }: Password
               className={req.met ? styles.requirementMet : styles.requirementUnmet}
             >
               {req.met ? (
-                <CheckOutlined className={styles.iconMet} />
+                <LuCheck className={styles.iconMet} />
               ) : (
-                <CloseOutlined className={styles.iconUnmet} />
+                <LuX className={styles.iconUnmet} />
               )}
               <Typography.Text
                 type={req.met ? undefined : 'secondary'}

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Flex, Spin } from "antd";
-import { LoadingOutlined } from "@ant-design/icons";
+import { LuLoaderCircle as LoadingOutlined } from "react-icons/lu";
 import {
   useModalStackContext,
   ModalLayout,
@@ -74,7 +74,7 @@ export const PriceHistoryModal = () => {
         }
       >
         <Flex justify="center" align="center" style={{ minHeight: 300 }}>
-          <Spin indicator={<LoadingOutlined spin />} size="large" />
+          <Spin indicator={<LoadingOutlined />} size="large" />
         </Flex>
       </ModalLayout>
     );

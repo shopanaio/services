@@ -1,7 +1,7 @@
 "use client";
 
 import { Flex, Tag, Typography } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import { LuImage as PictureOutlined } from "react-icons/lu";
 import type { CategoryListingPreviewItem } from "../../graphql/operation-types";
 import { useListingPreviewStyles } from "./listing-preview-modal.styles";
 

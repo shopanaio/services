@@ -1,5 +1,5 @@
 import { Typography, Button, Dropdown, Flex } from "antd";
-import { DownOutlined, MoreOutlined } from "@ant-design/icons";
+import { LuChevronDown as DownOutlined, LuEllipsis as MoreOutlined } from "react-icons/lu";
 import { PaperHeader } from "@/ui-kit/paper";
 import { ScrollableDropdown } from "./scrollable-dropdown";
 import { useStyles } from "../pricing-block.styles";

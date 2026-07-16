@@ -910,7 +910,7 @@ Ant Design компоненты из старого UI в основном со�
 - `Avatar`, `Button`, `Divider`, `Dropdown`, `Input`, `Popover`, `Select`,
   `Skeleton`, `Tag`, `Typography`;
 - `react-hook-form` и `Controller`;
-- иконки заменяются на `@ant-design/icons`, если в новом Admin уже есть
+- иконки заменяются на Lucide из `react-icons/lu`, если в новом Admin уже есть
   эквивалент.
 
 Полноэкранные модалки используют новый `ModalLayout`; небольшие confirm UI

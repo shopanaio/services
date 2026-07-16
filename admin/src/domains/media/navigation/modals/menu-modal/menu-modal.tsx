@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { App, Button, Input, Select, Typography } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

@@ -2,7 +2,7 @@
 
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { Button, Input, Typography, Checkbox, Flex } from "antd";
-import { LockOutlined } from "@ant-design/icons";
+import { LuLockKeyhole as LockOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import Link from "next/link";
 import type { SignInFormValues } from "../../schemas/sign-in.schema";

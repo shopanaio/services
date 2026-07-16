@@ -2,13 +2,7 @@
 
 import type { KeyboardEvent, MouseEvent } from "react";
 import { App, Button, Dropdown, Flex, Tabs, Tag, Typography } from "antd";
-import {
-  DeleteOutlined,
-  EditOutlined,
-  MoreOutlined,
-  PartitionOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined, LuGitBranch as PartitionOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
 import type { IBundleConfiguration } from "@/domains/inventory/bundles/types";

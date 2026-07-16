@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Dropdown, Flex } from "antd";
-import { MoreOutlined } from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined } from "react-icons/lu";
 import { EntityContentTabs } from "@/domains/inventory/components/entity-details-sections";
 import type { ApiCategory } from "@/graphql/types";
 

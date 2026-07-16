@@ -2,7 +2,7 @@
 
 import { createElement, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
-import { FolderOutlined } from "@ant-design/icons";
+import { LuFolder as FolderOutlined } from "react-icons/lu";
 import { useCategories } from "@/domains/inventory/categories/hooks";
 import { filterSchema } from "@/domains/inventory/categories/page/filter-schema";
 import {

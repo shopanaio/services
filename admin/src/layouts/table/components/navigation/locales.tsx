@@ -1,4 +1,4 @@
-import { TranslationOutlined } from '@ant-design/icons';
+import { LuLanguages as TranslationOutlined } from "react-icons/lu";
 import { Button, Dropdown, Flex, Radio, Typography } from 'antd';
 import { useState } from 'react';
 

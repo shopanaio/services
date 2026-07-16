@@ -1,4 +1,4 @@
-import { EyeOutlined, EditOutlined, SafetyOutlined } from "@ant-design/icons";
+import { LuEye as EyeOutlined, LuPencil as EditOutlined, LuShield as SafetyOutlined } from "react-icons/lu";
 import { Action } from "@/graphql/types";
 import type { ApiResourceDefinition } from "@/graphql/types";
 import type {

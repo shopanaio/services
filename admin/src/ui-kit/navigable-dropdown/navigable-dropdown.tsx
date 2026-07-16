@@ -3,7 +3,7 @@
 import { useState, useRef, type ReactNode } from "react";
 import { Dropdown } from "antd";
 import type { MenuProps } from "antd";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined } from "react-icons/lu";
 
 import { useStyles } from "./navigable-dropdown.styles";
 

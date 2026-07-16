@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Avatar, Button, Flex, Tag, Typography } from "antd";
-import { PlusOutlined, TruckOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuTruck as TruckOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { AllCommunityModule, GridStateModule, ModuleRegistry, type ColDef } from "ag-grid-community";

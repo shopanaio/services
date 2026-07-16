@@ -1,8 +1,4 @@
-import {
-  CheckCircleFilled,
-  ClockCircleFilled,
-  StopOutlined,
-} from "@ant-design/icons";
+import { LuCircleCheckBig as CheckCircleFilled, LuClock as ClockCircleFilled, LuBan as StopOutlined } from "react-icons/lu";
 import { createElement, type ReactNode } from "react";
 import {
   PRODUCT_STATUS_COLORS,

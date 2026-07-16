@@ -3,12 +3,7 @@
 import { useState } from "react";
 import { Button, Divider, Dropdown, Flex, Popover, Tag, Typography } from "antd";
 import type { MenuProps } from "antd";
-import {
-  CheckCircleOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  MoreOutlined,
-} from "@ant-design/icons";
+import { LuCircleCheck as CheckCircleOutlined, LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined } from "react-icons/lu";
 import type { ApiWarehouse } from "@/graphql/types";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { KPITile } from "@/ui-kit/kpi-tile";

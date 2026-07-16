@@ -1,12 +1,7 @@
 "use client";
 
 import { Typography, Tag } from "antd";
-import {
-  LockOutlined,
-  UnlockOutlined,
-  CheckCircleOutlined,
-  CheckSquareOutlined,
-} from "@ant-design/icons";
+import { LuLockKeyhole as LockOutlined, LuLockOpen as UnlockOutlined, LuCircleCheck as CheckCircleOutlined, LuSquareCheckBig as CheckSquareOutlined } from "react-icons/lu";
 import type { IBundleGroup } from "@/domains/inventory/bundles/types";
 import { getSelectionLabel } from "../helpers";
 import { useStyles } from "../styles";

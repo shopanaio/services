@@ -12,7 +12,7 @@ import type {
 } from "ag-grid-community";
 import { Alert, Button, Input, Space, Typography } from "antd";
 import { createStyles } from "antd-style";
-import { SearchOutlined } from "@ant-design/icons";
+import { LuSearch as SearchOutlined } from "react-icons/lu";
 import {
   FacetType,
   FacetValueCandidateOrderField,

@@ -2,7 +2,7 @@
 
 import { createElement, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
-import { TagOutlined } from "@ant-design/icons";
+import { LuTag as TagOutlined } from "react-icons/lu";
 import { EntityCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {

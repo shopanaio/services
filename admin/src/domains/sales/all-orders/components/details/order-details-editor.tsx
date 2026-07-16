@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Avatar, Button, Flex, Select, Skeleton, Typography } from "antd";
-import { CloseOutlined } from "@ant-design/icons";
+import { LuX as CloseOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { useOrder, useUpdatePaymentDetails, useUpdateShippingDetails } from "../../hooks";

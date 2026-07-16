@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Alert, App, Button } from "antd";
-import { DeleteOutlined, ImportOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuImport as ImportOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {

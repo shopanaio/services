@@ -2,13 +2,7 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Avatar, Button, Flex, Tag, Typography } from "antd";
-import {
-  CheckCircleFilled,
-  ClockCircleOutlined,
-  EnvironmentOutlined,
-  MailOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { LuCircleCheckBig as CheckCircleFilled, LuClock as ClockCircleOutlined, LuMapPin as EnvironmentOutlined, LuMail as MailOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {

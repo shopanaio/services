@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Alert, App, Button, Descriptions, Flex, Input, Select, Timeline, Typography } from "antd";
-import { ShoppingOutlined, UserOutlined } from "@ant-design/icons";
+import { LuShoppingBag as ShoppingOutlined, LuUser as UserOutlined } from "react-icons/lu";
 import { ReviewNotificationChannel, ReviewRequestTransitionAction } from "@/graphql/types";
 import { shopLocales } from "@/defs/localization";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";

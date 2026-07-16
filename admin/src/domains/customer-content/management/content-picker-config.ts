@@ -1,7 +1,7 @@
 "use client";
 
 import { createElement, useMemo } from "react";
-import { FileTextOutlined } from "@ant-design/icons";
+import { LuFileText as FileTextOutlined } from "react-icons/lu";
 import type { ColDef } from "ag-grid-community";
 import type { ApiReviewContentOrderByInput, ApiReviewContentWhereInput } from "@/graphql/types";
 import { ReviewContentOrderField } from "@/graphql/types";

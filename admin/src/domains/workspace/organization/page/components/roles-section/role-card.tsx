@@ -1,13 +1,7 @@
 "use client";
 
 import { Typography, Button, Dropdown } from "antd";
-import {
-  SafetyOutlined,
-  EditOutlined,
-  EyeOutlined,
-  DeleteOutlined,
-  MoreOutlined,
-} from "@ant-design/icons";
+import { LuShield as SafetyOutlined, LuPencil as EditOutlined, LuEye as EyeOutlined, LuTrash2 as DeleteOutlined, LuEllipsis as MoreOutlined } from "react-icons/lu";
 import { useStyles } from "../../organization-page.styles";
 import type { RoleCardProps } from "../../types";
 

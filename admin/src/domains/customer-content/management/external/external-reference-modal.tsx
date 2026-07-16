@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Alert, App, Button, Descriptions, Flex, Input, Select, Typography } from "antd";
-import { DeleteOutlined, FileSearchOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuFileSearch as FileSearchOutlined } from "react-icons/lu";
 import { ReviewExternalSyncDirection, ReviewExternalSyncStatus } from "@/graphql/types";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

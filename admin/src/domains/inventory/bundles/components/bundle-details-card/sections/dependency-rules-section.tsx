@@ -5,9 +5,7 @@ import {
   Empty,
   Tag,
   Button } from "antd";
-import {
-  RightOutlined,
-  } from "@ant-design/icons";
+import { LuChevronRight as RightOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import type { IBundleGroup } from "@/domains/inventory/bundles/types";
 import type { IDependencyRule } from "@/domains/inventory/bundles/dependency-rules/types";

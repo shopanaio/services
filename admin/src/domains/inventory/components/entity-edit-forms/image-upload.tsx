@@ -1,5 +1,5 @@
 import { Button, Flex, Image, Typography } from "antd";
-import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuUpload as UploadOutlined } from "react-icons/lu";
 import { useUploadMediaModal } from "@/domains/media/modals";
 import type { ApiFile } from "@/graphql/types";
 import { useEntityEditFormStyles } from "./entity-edit-forms.styles";

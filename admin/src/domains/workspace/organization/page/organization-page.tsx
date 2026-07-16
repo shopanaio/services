@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Flex, Skeleton, Divider, App } from "antd";
-import { TeamOutlined, SafetyOutlined, ShopOutlined } from "@ant-design/icons";
+import { LuUsers as TeamOutlined, LuShield as SafetyOutlined, LuStore as ShopOutlined } from "react-icons/lu";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { SettingsLayout } from "../../layout";
 import { DangerZone } from "../../shared";

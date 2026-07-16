@@ -1,7 +1,7 @@
 "use client";
 
 import { createStyles } from "antd-style";
-import { StarFilled } from "@ant-design/icons";
+import { LuStar as StarFilled } from "react-icons/lu";
 import { Tag } from "antd";
 
 const useStyles = createStyles(({ token }) => ({

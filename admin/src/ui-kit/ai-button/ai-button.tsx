@@ -1,5 +1,5 @@
 import { createStyles } from "antd-style";
-import { ThunderboltOutlined } from "@ant-design/icons";
+import { LuZap as ThunderboltOutlined } from "react-icons/lu";
 
 const AI_GRADIENT = "linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%)";
 const AI_GRADIENT_HOVER = "linear-gradient(135deg, #7c3aed 0%, #c026d3 50%, #d946ef 100%)";

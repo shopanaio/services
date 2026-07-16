@@ -1,5 +1,5 @@
 import { Button, Flex, Input } from "antd";
-import { CloseOutlined, HolderOutlined } from "@ant-design/icons";
+import { LuX as CloseOutlined, LuGripVertical as HolderOutlined } from "react-icons/lu";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { OptionDisplayType } from "@/graphql/types";

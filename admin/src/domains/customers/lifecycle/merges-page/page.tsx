@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useMemo, useState } from "react";
-import { Alert, Button, Flex, Select, Tag, Typography } from "antd"; import { PlusOutlined } from "@ant-design/icons";
+import { Alert, Button, Flex, Select, Tag, Typography } from "antd";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { AgGridReact, type CustomCellRendererProps } from "ag-grid-react"; import { AllCommunityModule, ModuleRegistry, type ColDef } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data"; import { useAgGridTheme } from "@/hooks"; import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { CustomerMergeOrderField, CustomerMergeStatus, SortDirection, type ApiCustomerMerge } from "@/graphql/types";

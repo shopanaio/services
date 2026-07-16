@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar, Flex, Typography } from "antd";
-import { PhoneOutlined } from "@ant-design/icons";
+import { LuPhone as PhoneOutlined } from "react-icons/lu";
 import dayjs from "dayjs";
 import { memo } from "react";
 import type { RenderItemProps } from "../dnd";

@@ -2,12 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { App, Button, Dropdown, Flex, Tag } from "antd";
-import {
-  FolderOutlined,
-  MoreOutlined,
-  PlusOutlined,
-  StarFilled,
-} from "@ant-design/icons";
+import { LuFolder as FolderOutlined, LuEllipsis as MoreOutlined, LuPlus as PlusOutlined, LuStar as StarFilled } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";

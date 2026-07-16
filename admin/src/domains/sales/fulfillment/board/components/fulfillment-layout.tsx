@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge, Button, Flex, Progress, Typography } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import type { ReactNode } from "react";
 import { useFulfillmentLayoutStyles } from "./fulfillment-layout.styles";
 

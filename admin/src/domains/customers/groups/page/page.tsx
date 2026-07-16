@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Alert, Button, Flex, Input, Tag, Typography } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { AgGridReact, type CustomCellRendererProps } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry, type ColDef } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";

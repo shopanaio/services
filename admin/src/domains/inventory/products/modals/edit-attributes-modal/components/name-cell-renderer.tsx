@@ -1,10 +1,4 @@
-import {
-  FolderOutlined,
-  FolderOpenOutlined,
-  TagsOutlined,
-  RightOutlined,
-  DownOutlined,
-} from "@ant-design/icons";
+import { LuFolder as FolderOutlined, LuFolderOpen as FolderOpenOutlined, LuTags as TagsOutlined, LuChevronRight as RightOutlined, LuChevronDown as DownOutlined } from "react-icons/lu";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-attributes-modal.styles";
 import type { AttributeEditorRow } from "../types";

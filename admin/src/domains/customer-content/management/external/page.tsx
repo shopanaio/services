@@ -1,7 +1,7 @@
 "use client";
 
 import { Alert, Button, Flex, Table, Tag, Typography } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import type { ColumnsType } from "antd/es/table";
 import { DataLayout } from "@/layouts/data";
 import { useExternalReferences } from "../hooks";

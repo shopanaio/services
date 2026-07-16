@@ -1,9 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  BgColorsOutlined,
-  CheckCircleOutlined,
-  MenuOutlined,
-} from "@ant-design/icons";
+import { LuPalette as BgColorsOutlined, LuCircleCheck as CheckCircleOutlined, LuMenu as MenuOutlined } from "react-icons/lu";
 import { OptionDisplayType, SwatchType } from "@/graphql/types";
 import type { OptionEditorSwatch } from "./types";
 

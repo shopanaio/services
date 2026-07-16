@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Button, Flex, Tag, Typography } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { useRouter } from "next/navigation";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";

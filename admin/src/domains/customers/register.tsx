@@ -1,5 +1,5 @@
 import { registerModule } from "@/registry";
-import { TeamOutlined } from "@ant-design/icons";
+import { LuUsers as TeamOutlined } from "react-icons/lu";
 import dynamic from "next/dynamic";
 
 registerModule({

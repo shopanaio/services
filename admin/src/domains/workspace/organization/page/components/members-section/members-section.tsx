@@ -3,7 +3,7 @@
 import { useMemo, useCallback } from "react";
 import { Typography, Button, Avatar, Dropdown, Table, Tag, Skeleton } from "antd";
 import type { MenuProps } from "antd";
-import { MoreOutlined, UserOutlined, UserAddOutlined } from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined, LuUser as UserOutlined, LuUserPlus as UserAddOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiMember } from "@/graphql/types";
 import { useStyles } from "../../organization-page.styles";

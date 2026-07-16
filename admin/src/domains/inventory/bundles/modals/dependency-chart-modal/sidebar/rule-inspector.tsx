@@ -15,19 +15,7 @@ import {
   Tag,
   Tooltip,
   } from "antd";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  LeftOutlined,
-  RightOutlined,
-  CheckSquareOutlined,
-  NumberOutlined,
-  OrderedListOutlined,
-  DollarOutlined,
-  EyeOutlined,
-  ThunderboltOutlined,
-  InfoCircleOutlined,
-  } from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined, LuSquareCheckBig as CheckSquareOutlined, LuHash as NumberOutlined, LuListOrdered as OrderedListOutlined, LuCircleDollarSign as DollarOutlined, LuEye as EyeOutlined, LuZap as ThunderboltOutlined, LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 
 import type { IBundleGroup } from "@/domains/inventory/bundles/types";
 import type { IDependencyRule } from "@/domains/inventory/bundles/dependency-rules/types";

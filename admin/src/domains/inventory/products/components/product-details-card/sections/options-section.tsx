@@ -2,12 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Typography, Tag, Flex } from "antd";
-import {
-  BgColorsOutlined,
-  CheckCircleOutlined,
-  MenuOutlined,
-  PictureOutlined,
-} from "@ant-design/icons";
+import { LuPalette as BgColorsOutlined, LuCircleCheck as CheckCircleOutlined, LuMenu as MenuOutlined, LuImage as PictureOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import { useOptionsStyles } from "../product-details-card.styles";

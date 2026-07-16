@@ -1,4 +1,4 @@
-import { ColumnWidthOutlined, DashboardOutlined } from "@ant-design/icons";
+import { LuColumns2 as ColumnWidthOutlined, LuGauge as DashboardOutlined } from "react-icons/lu";
 import type { DimensionUnit, WeightUnit } from "@/graphql/types";
 import { Flex } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

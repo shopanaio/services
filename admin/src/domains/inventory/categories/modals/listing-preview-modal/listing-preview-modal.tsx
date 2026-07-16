@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Alert, Button, Collapse, Flex, Input, Spin, Tag, Typography } from "antd";
-import { FilterOutlined } from "@ant-design/icons";
+import { LuFilter as FilterOutlined } from "react-icons/lu";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import {
   ListingSortBy,

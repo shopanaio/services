@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import { App, Button, Flex, Tag, Typography } from "antd";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { AgGridReact, type CustomCellRendererProps } from "ag-grid-react";
 import {
   AllCommunityModule,

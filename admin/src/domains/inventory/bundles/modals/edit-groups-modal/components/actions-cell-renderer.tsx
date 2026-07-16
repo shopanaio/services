@@ -1,11 +1,5 @@
 import { Button, Dropdown } from "antd";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  MoreOutlined,
-  CopyOutlined,
-  SettingOutlined,
-} from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuEllipsis as MoreOutlined, LuCopy as CopyOutlined, LuSettings as SettingOutlined } from "react-icons/lu";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { MenuProps } from "antd";
 import { useStyles } from "../edit-groups-modal.styles";

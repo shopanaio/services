@@ -1,6 +1,6 @@
 import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
-import { BankOutlined } from "@ant-design/icons";
+import { LuLandmark as BankOutlined } from "react-icons/lu";
 
 registerModule({
   key: "organization",

@@ -1,7 +1,7 @@
 import { useMemo, ReactNode } from "react";
 import { createStyles } from "antd-style";
 import { Descriptions, Flex, Typography } from "antd";
-import { TagsOutlined } from "@ant-design/icons";
+import { LuTags as TagsOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import type { ApiProductFeature, ApiProductFeatureValue } from "@/graphql/types";

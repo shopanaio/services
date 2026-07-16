@@ -7,9 +7,7 @@ import {
   Alert, App, Avatar, Button, Descriptions, Dropdown, Flex, Input, InputNumber, Select,
   Skeleton, Space, Table, Tag, Timeline, Typography,
 } from "antd";
-import {
-  CloseOutlined, EditOutlined, MoreOutlined, PlusOutlined,
-} from "@ant-design/icons";
+import { LuX as CloseOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { OrderPaper as Paper, OrderPaperHeader as PaperHeader } from "../../components/legacy/order-paper";

@@ -9,7 +9,7 @@ import {
   Upload,
   Tabs,
 } from "antd";
-import { CloseOutlined, PictureOutlined, UploadOutlined } from "@ant-design/icons";
+import { LuX as CloseOutlined, LuImage as PictureOutlined, LuUpload as UploadOutlined } from "react-icons/lu";
 import { SwatchType } from "@/graphql/types";
 import { useStyles } from "../edit-options-modal.styles";
 import { SWATCH_MODE_OPTIONS, type SwatchModeType } from "../edit-options-modal.constants";

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, App, Button, Descriptions, Empty, Flex, Input, Skeleton, Tag } from "antd";
-import { DeleteOutlined, TagsOutlined, TeamOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuTags as TagsOutlined, LuUsers as TeamOutlined } from "react-icons/lu";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useEntityPicker } from "@/shared/components/entity-picker-modal";

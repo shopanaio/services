@@ -490,7 +490,7 @@ export function ProtectedRoute({
 
 import { Result, Button } from 'antd';
 import { useRouter } from 'next/navigation';
-import { LockOutlined } from '@ant-design/icons';
+import { LuLockKeyhole } from 'react-icons/lu';
 
 interface AccessDeniedProps {
   /** Reason for denial (from server) */
@@ -514,7 +514,7 @@ export function AccessDenied({
   return (
     <Result
       status="403"
-      icon={<LockOutlined />}
+      icon={<LuLockKeyhole />}
       title={title}
       subTitle={reason || "You don't have permission to access this resource."}
       extra={

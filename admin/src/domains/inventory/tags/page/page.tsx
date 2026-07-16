@@ -8,7 +8,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { PlusOutlined, TagOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuTag as TagOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,

@@ -1,7 +1,7 @@
 "use client";
 
 import { App, Button, Descriptions, Dropdown, Empty, Flex, List, Select, Tag, Typography } from "antd";
-import { DeleteOutlined, EditOutlined, MessageOutlined, MoreOutlined, StopOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuMessageSquare as MessageOutlined, LuEllipsis as MoreOutlined, LuBan as StopOutlined } from "react-icons/lu";
 import type { ApiProductQuestion } from "@/graphql/types";
 import { ProductQuestionSubscriptionStatus, ReviewContentStatus } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

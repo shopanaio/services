@@ -13,7 +13,7 @@ import {
   Skeleton,
   Typography,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { LuSwatchBook } from "react-icons/lu";
 import { slugify } from "transliteration/dist/node/src/node/index.js";

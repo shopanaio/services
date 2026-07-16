@@ -3,11 +3,7 @@
 import { ReactNode } from "react";
 import { Typography, Tooltip, Flex } from "antd";
 import { createStyles } from "antd-style";
-import {
-  InfoCircleOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
-} from "@ant-design/icons";
+import { LuCircleHelp as InfoCircleOutlined, LuArrowUp as ArrowUpOutlined, LuArrowDown as ArrowDownOutlined } from "react-icons/lu";
 
 // ============================================================================
 // Types

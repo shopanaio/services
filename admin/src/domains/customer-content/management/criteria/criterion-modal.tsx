@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alert, App, Button, Flex, Input, InputNumber, Select, Switch, Tag, Typography } from "antd";
-import { DeleteOutlined, PlusOutlined, ShoppingOutlined, TagsOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuPlus as PlusOutlined, LuShoppingBag as ShoppingOutlined, LuTags as TagsOutlined } from "react-icons/lu";
 import { ReviewRatingCriterionTargetType } from "@/graphql/types";
 import { shopLocales } from "@/defs/localization";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";

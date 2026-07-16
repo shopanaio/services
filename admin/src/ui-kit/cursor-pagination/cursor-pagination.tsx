@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Flex, Button, Select, Typography, Tooltip } from "antd";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined } from "react-icons/lu";
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 

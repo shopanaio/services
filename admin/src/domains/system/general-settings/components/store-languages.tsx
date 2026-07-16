@@ -1,8 +1,4 @@
-import {
-  MoreOutlined,
-  PlusOutlined,
-  TranslationOutlined,
-} from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined, LuPlus as PlusOutlined, LuLanguages as TranslationOutlined } from "react-icons/lu";
 import type { ApiLocale, LocaleCode } from "@/graphql/types";
 import { Dropdown, Flex, Tag, Typography } from "antd";
 import { createStyles } from "antd-style";

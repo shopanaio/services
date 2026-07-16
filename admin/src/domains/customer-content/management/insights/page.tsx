@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Alert, Button, Descriptions, Empty, Flex, Progress, Skeleton, Statistic, Typography } from "antd";
-import { BarChartOutlined, ShoppingOutlined, StarFilled } from "@ant-design/icons";
+import { LuChartBar as BarChartOutlined, LuShoppingBag as ShoppingOutlined, LuStar as StarFilled } from "react-icons/lu";
 import { DataLayout } from "@/layouts/data";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useEntityPicker } from "@/shared/components/entity-picker-modal";

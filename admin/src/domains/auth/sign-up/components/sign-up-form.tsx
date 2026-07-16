@@ -2,7 +2,7 @@
 
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { Button, Input, Typography, Flex, Popover } from "antd";
-import { LockOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { LuLockKeyhole as LockOutlined, LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import Link from "next/link";
 import type { SignUpFormValues } from "../../schemas/sign-up.schema";

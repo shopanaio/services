@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Alert, App, Button, Dropdown, Flex, Typography } from "antd";
-import { PlusOutlined, FolderOutlined, TagsOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuFolder as FolderOutlined, LuTags as TagsOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,

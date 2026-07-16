@@ -1,7 +1,7 @@
 "use client";
 
 import { Flex, Progress, Rate, Skeleton, Typography } from "antd";
-import { StarFilled } from "@ant-design/icons";
+import { LuStar as StarFilled } from "react-icons/lu";
 import type { ApiProductReviewSummary } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";

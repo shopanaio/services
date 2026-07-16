@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { Alert, Button } from "antd";
 import { useCallback } from "react";
 import { DataLayout } from "@/layouts/data";

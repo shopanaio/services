@@ -7,11 +7,7 @@ import {
   Skeleton,
   Flex,
 } from "antd";
-import {
-  ClockCircleFilled,
-  WarningOutlined,
-  StopOutlined,
-} from "@ant-design/icons";
+import { LuClock as ClockCircleFilled, LuTriangleAlert as WarningOutlined, LuBan as StopOutlined } from "react-icons/lu";
 import { useState } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";

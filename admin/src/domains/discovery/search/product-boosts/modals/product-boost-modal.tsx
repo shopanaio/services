@@ -23,12 +23,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import {
-  ArrowDownOutlined,
-  ArrowUpOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { LuArrowDown as ArrowDownOutlined, LuArrowUp as ArrowUpOutlined, LuTrash2 as DeleteOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import {
   ModalHeader,

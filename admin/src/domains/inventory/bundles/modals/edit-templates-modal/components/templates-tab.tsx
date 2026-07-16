@@ -15,14 +15,7 @@ import {
   Empty,
   Tag,
 } from "antd";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  SaveOutlined,
-  CloseOutlined,
-  InfoCircleOutlined,
-} from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuSave as SaveOutlined, LuX as CloseOutlined, LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 import type { ColumnsType } from "antd/es/table";
 
 import { Paper, PaperHeader } from "@/ui-kit/paper";

@@ -1,6 +1,6 @@
 import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
-import { AppstoreOutlined } from "@ant-design/icons";
+import { LuLayoutGrid as AppstoreOutlined } from "react-icons/lu";
 
 registerModule({
   key: "organizations",

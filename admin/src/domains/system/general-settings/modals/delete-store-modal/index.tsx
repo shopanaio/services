@@ -1,6 +1,6 @@
 "use client";
 
-import { ShopOutlined } from "@ant-design/icons";
+import { LuStore as ShopOutlined } from "react-icons/lu";
 import { Alert, App, Avatar, Button, Flex, Typography } from "antd";
 import { createStyles } from "antd-style";
 import {

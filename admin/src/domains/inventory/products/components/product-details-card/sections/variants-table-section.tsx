@@ -1,13 +1,7 @@
 "use client";
 
 import { Typography, Button, Dropdown, Flex } from "antd";
-import {
-  MoreOutlined,
-  PictureOutlined,
-  SortAscendingOutlined,
-  LeftOutlined,
-  RightOutlined,
-} from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined, LuImage as PictureOutlined, LuArrowDownAZ as SortAscendingOutlined, LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";

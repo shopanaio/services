@@ -1,5 +1,5 @@
 import { createStyles } from 'antd-style';
-import { PlusOutlined } from '@ant-design/icons';
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { Badge, Button, ButtonProps, Flex, Typography } from 'antd';
 import { ReactNode } from 'react';
 

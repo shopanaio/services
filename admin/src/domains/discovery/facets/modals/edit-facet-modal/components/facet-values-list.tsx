@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Input, Typography } from "antd";
-import { HolderOutlined } from "@ant-design/icons";
+import { LuGripVertical as HolderOutlined } from "react-icons/lu";
 import {
   closestCenter,
   DndContext,

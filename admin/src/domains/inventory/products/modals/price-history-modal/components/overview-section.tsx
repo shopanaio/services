@@ -1,5 +1,5 @@
 import { Typography, Flex, Button } from "antd";
-import { DownOutlined } from "@ant-design/icons";
+import { LuChevronDown as DownOutlined } from "react-icons/lu";
 import { Paper } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { PeriodSwitch } from "../../../components/period-switch";

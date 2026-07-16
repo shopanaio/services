@@ -1,7 +1,7 @@
 "use client";
 
 import { App, Button, Descriptions, Dropdown, Empty, Flex, List, Rate, Statistic, Tag, Typography } from "antd";
-import { DeleteOutlined, EditOutlined, MoreOutlined, SafetyCertificateOutlined, StarFilled, StopOutlined } from "@ant-design/icons";
+import { LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined, LuBadgeCheck as SafetyCertificateOutlined, LuStar as StarFilled, LuBan as StopOutlined } from "react-icons/lu";
 import type { ApiReview } from "@/graphql/types";
 import { ReviewContentStatus, ReviewVerificationStatus } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

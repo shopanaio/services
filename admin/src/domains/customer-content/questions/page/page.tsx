@@ -2,14 +2,7 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Button, Flex, Tag, Typography } from "antd";
-import {
-  DislikeOutlined,
-  FlagOutlined,
-  LikeOutlined,
-  MessageOutlined,
-  PlusOutlined,
-  ShoppingOutlined,
-} from "@ant-design/icons";
+import { LuThumbsDown as DislikeOutlined, LuFlag as FlagOutlined, LuThumbsUp as LikeOutlined, LuMessageSquare as MessageOutlined, LuPlus as PlusOutlined, LuShoppingBag as ShoppingOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { AllCommunityModule, GridStateModule, ModuleRegistry, type ColDef } from "ag-grid-community";

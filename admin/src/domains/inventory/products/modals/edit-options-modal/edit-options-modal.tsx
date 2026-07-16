@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Alert, App, Button, Typography, Flex } from "antd";
-import { PlusOutlined, HolderOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuGripVertical as HolderOutlined } from "react-icons/lu";
 import {
   DndContext,
   KeyboardSensor,

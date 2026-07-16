@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Alert, App, Button, Flex, Input, Rate, Segmented, Select, Skeleton, Typography } from "antd";
-import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, ShoppingOutlined, UserOutlined } from "@ant-design/icons";
+import { LuCircleCheck as CheckCircleOutlined, LuClock as ClockCircleOutlined, LuCircleX as CloseCircleOutlined, LuShoppingBag as ShoppingOutlined, LuUser as UserOutlined } from "react-icons/lu";
 import type { ApiFile, ApiReviewUpdateInput } from "@/graphql/types";
 import { ReviewContentAuthorType, ReviewContentStatus, ReviewVerificationStatus } from "@/graphql/types";
 import { shopLocales } from "@/defs/localization";

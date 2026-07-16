@@ -1,4 +1,4 @@
-import { EditOutlined } from "@ant-design/icons";
+import { LuPencil as EditOutlined } from "react-icons/lu";
 import { Button, Flex, Input, Typography } from "antd";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";

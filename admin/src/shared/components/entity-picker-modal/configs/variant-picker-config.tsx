@@ -2,7 +2,7 @@
 
 import { createElement, useMemo } from "react";
 import { Flex, Typography } from "antd";
-import { CheckCircleOutlined, PictureOutlined } from "@ant-design/icons";
+import { LuCircleCheck as CheckCircleOutlined, LuImage as PictureOutlined } from "react-icons/lu";
 import type { ColDef } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {

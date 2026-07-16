@@ -1,5 +1,5 @@
 import { Button, Dropdown } from "antd";
-import { PlusOutlined, DeleteOutlined, MoreOutlined } from "@ant-design/icons";
+import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuEllipsis as MoreOutlined } from "react-icons/lu";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-attributes-modal.styles";
 import type { AttributeEditorRow } from "../types";

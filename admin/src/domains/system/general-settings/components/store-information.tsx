@@ -1,9 +1,4 @@
-import {
-  EditOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  ShopOutlined,
-} from "@ant-design/icons";
+import { LuPencil as EditOutlined, LuMail as MailOutlined, LuPhone as PhoneOutlined, LuStore as ShopOutlined } from "react-icons/lu";
 import { Button, Flex } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useEditStoreInformationModal } from "../modals";

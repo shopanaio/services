@@ -1,5 +1,5 @@
 import { Button, Dropdown } from "antd";
-import { MoreOutlined } from "@ant-design/icons";
+import { LuEllipsis as MoreOutlined } from "react-icons/lu";
 
 interface IEditActionProps {
   onEdit: () => void | Promise<void>;
