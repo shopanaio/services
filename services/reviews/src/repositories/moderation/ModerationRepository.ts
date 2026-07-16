@@ -184,6 +184,25 @@ export class ModerationRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async findRevision(
+    contentId: string,
+    revision: number
+  ): Promise<ContentRevision | null> {
+    const rows = await this.connection
+      .select()
+      .from(contentRevision)
+      .where(
+        and(
+          eq(contentRevision.storeId, this.storeId),
+          eq(contentRevision.contentId, contentId),
+          eq(contentRevision.revision, revision)
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
   async getRevisionsByIds(ids: readonly string[]): Promise<ContentRevision[]> {
     if (ids.length === 0) return [];
     return this.connection

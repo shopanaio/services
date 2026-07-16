@@ -352,6 +352,25 @@ export class ConfigurationRepository extends BaseRepository {
   }
 
   @Transactional()
+  async updateCriterionWithinVersion(
+    id: string,
+    patch: RatingCriterionPatch
+  ): Promise<RatingCriterion | null> {
+    const rows = await this.connection
+      .update(ratingCriterion)
+      .set({ ...patch, updatedAt: new Date().toISOString() })
+      .where(
+        and(
+          eq(ratingCriterion.storeId, this.storeId),
+          eq(ratingCriterion.id, id),
+          isNull(ratingCriterion.deletedAt)
+        )
+      )
+      .returning();
+    return rows[0] ?? null;
+  }
+
+  @Transactional()
   async replaceCriterionTranslations(
     criterionId: string,
     items: readonly Omit<

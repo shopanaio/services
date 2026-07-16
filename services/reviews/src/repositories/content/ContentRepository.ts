@@ -73,6 +73,10 @@ export type ContentPatch = Partial<
   >
 >;
 
+export type ContentRestorePatch = ContentPatch & {
+  redactedAt: string | null;
+};
+
 export type ContentTranslationPatch = Partial<
   Pick<
     NewContentTranslation,
@@ -294,6 +298,32 @@ export class ContentRepository extends BaseRepository {
         redactedAt: now,
         updatedAt: now,
         revision: sql`${contentItem.revision} + 1`,
+      })
+      .where(
+        and(
+          eq(contentItem.storeId, this.storeId),
+          eq(contentItem.id, id),
+          eq(contentItem.revision, expectedRevision),
+          isNull(contentItem.deletedAt)
+        )
+      )
+      .returning();
+    if (rows[0]) return { status: "applied", value: rows[0] };
+    return this.optimisticContentMiss(id);
+  }
+
+  @Transactional()
+  async restore(
+    id: string,
+    expectedRevision: number,
+    patch: ContentRestorePatch
+  ): Promise<OptimisticMutationResult<ContentItem>> {
+    const rows = await this.connection
+      .update(contentItem)
+      .set({
+        ...patch,
+        revision: sql`${contentItem.revision} + 1`,
+        updatedAt: new Date().toISOString(),
       })
       .where(
         and(

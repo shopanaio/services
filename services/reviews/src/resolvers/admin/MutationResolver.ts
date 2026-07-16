@@ -10,8 +10,18 @@ import type {
   ContentExternalReferenceCreateWorkflowResult,
   ContentExternalReferenceDeleteWorkflowInput,
   ContentExternalReferenceDeleteWorkflowResult,
+  ContentExternalReferenceUpdateWorkflowInput,
+  ContentExternalReferenceUpdateWorkflowResult,
+  ContentRedactWorkflowInput,
+  ContentRedactWorkflowResult,
+  ContentReportUpdateWorkflowInput,
+  ContentReportUpdateWorkflowResult,
+  ContentRevisionRestoreWorkflowInput,
+  ContentRevisionRestoreWorkflowResult,
   ModerationCaseCreateWorkflowInput,
   ModerationCaseCreateWorkflowResult,
+  ModerationCaseUpdateWorkflowInput,
+  ModerationCaseUpdateWorkflowResult,
   ProductQuestionCreateWorkflowInput,
   ProductQuestionCreateWorkflowResult,
   ProductQuestionDeleteWorkflowInput,
@@ -19,10 +29,14 @@ import type {
   ProductQuestionUpdateOperation,
   ProductQuestionUpdateWorkflowInput,
   ProductQuestionUpdateWorkflowResult,
+  QuestionSubscriptionUpdateWorkflowInput,
+  QuestionSubscriptionUpdateWorkflowResult,
   RatingCriterionCreateWorkflowInput,
   RatingCriterionCreateWorkflowResult,
   RatingCriterionDeleteWorkflowInput,
   RatingCriterionDeleteWorkflowResult,
+  RatingCriterionUpdateWorkflowInput,
+  RatingCriterionUpdateWorkflowResult,
   ReviewCreateWorkflowInput,
   ReviewCreateWorkflowResult,
   ReviewDeleteWorkflowInput,
@@ -32,12 +46,25 @@ import type {
   ReviewUpdateWorkflowResult,
   ReviewRequestCreateWorkflowInput,
   ReviewRequestCreateWorkflowResult,
+  ReviewRequestUpdateWorkflowInput,
+  ReviewRequestUpdateWorkflowResult,
   ReviewsMutationWorkflowContext,
+  ReviewsUpdateOperationResult,
+  ReviewsUpdateOperationType,
+  StoreConfigurationUpdateWorkflowInput,
+  StoreConfigurationUpdateWorkflowResult,
 } from "../../workflows/dto/index.js";
-import { RatingCriterionResolver } from "./ConfigurationResolver.js";
+import {
+  RatingCriterionResolver,
+  StoreConfigurationResolver,
+} from "./ConfigurationResolver.js";
+import { ContentReportResolver } from "./EngagementResolver.js";
 import { ContentExternalReferenceResolver } from "./ExternalReferenceResolver.js";
 import { ModerationCaseResolver } from "./ModerationResolver.js";
-import { ProductQuestionResolver } from "./QuestionResolver.js";
+import {
+  ProductQuestionResolver,
+  QuestionSubscriptionResolver,
+} from "./QuestionResolver.js";
 import { ReviewRequestResolver } from "./ReviewRequestResolver.js";
 import { ReviewResolver } from "./ReviewResolver.js";
 import { ReviewsType } from "./ReviewsType.js";
@@ -65,27 +92,38 @@ import type {
   ReviewRequestCreateInput,
   ReviewsMutationContentExternalReferenceCreateArgs,
   ReviewsMutationContentExternalReferenceDeleteArgs,
+  ReviewsMutationContentExternalReferenceUpdateArgs,
+  ReviewsMutationContentRedactArgs,
+  ReviewsMutationContentReportUpdateArgs,
+  ReviewsMutationContentRevisionRestoreArgs,
   ReviewsMutationModerationCaseCreateArgs,
+  ReviewsMutationModerationCaseUpdateArgs,
   ReviewsMutationProductQuestionCreateArgs,
   ReviewsMutationProductQuestionDeleteArgs,
+  ReviewsMutationProductQuestionSubscriptionUpdateArgs,
   ReviewsMutationProductQuestionUpdateArgs,
   ReviewsMutationRatingCriterionCreateArgs,
   ReviewsMutationRatingCriterionDeleteArgs,
+  ReviewsMutationRatingCriterionUpdateArgs,
   ReviewsMutationReviewCreateArgs,
   ReviewsMutationReviewDeleteArgs,
   ReviewsMutationReviewRequestCreateArgs,
+  ReviewsMutationReviewRequestUpdateArgs,
   ReviewsMutationReviewUpdateArgs,
+  ReviewsMutationStoreConfigurationUpdateArgs,
 } from "./generated/types.js";
 import {
   mapProductQuestionUpdateInput,
   type ProductQuestionUpdateMappedEntry,
 } from "./productQuestionUpdateMapper.js";
 import {
+  mapRatingCriterionUpdateInput,
+  type RatingCriterionUpdateMappedEntry,
+} from "./ratingCriterionUpdateMapper.js";
+import {
   mapReviewUpdateInput,
   type ReviewUpdateMappedEntry,
 } from "./reviewUpdateMapper.js";
-
-const updatePayload = (field: string) => ({ [field]: null, operationResults: [], userErrors: [] });
 
 @ApolloMutation
 export class MutationResolver extends ReviewsType<Record<string, never>> {
@@ -95,7 +133,34 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
 }
 
 export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> {
-  storeConfigurationUpdate() { return updatePayload("configuration"); }
+  async storeConfigurationUpdate(args: ReviewsMutationStoreConfigurationUpdateArgs) {
+    const configurationId = safeDecodeId(
+      args.configurationId,
+      GlobalIdEntity.ReviewStoreConfiguration
+    );
+    if (!configurationId) {
+      return invalidSingleUpdate("configuration", "storeConfigurationUpdate", "configurationId");
+    }
+    const result = await this.runMutationWorkflow<StoreConfigurationUpdateWorkflowResult>(
+      "storeConfigurationUpdate",
+      {
+        params: {
+          configurationId,
+          expectedRevision: args.expectedRevision,
+          operations: args.operations,
+        },
+        context: this.mutationWorkflowContext(),
+      } satisfies StoreConfigurationUpdateWorkflowInput,
+      configurationId
+    );
+    return {
+      configuration: result.configuration
+        ? new StoreConfigurationResolver(result.configuration, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
+  }
 
   @ZodResolver(ReviewRatingCriterionCreateInputSchema())
   async ratingCriterionCreate(args: ReviewsMutationRatingCriterionCreateArgs) {
@@ -111,7 +176,48 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     };
   }
 
-  ratingCriterionUpdate() { return updatePayload("criterion"); }
+  async ratingCriterionUpdate(args: ReviewsMutationRatingCriterionUpdateArgs) {
+    const mapped = mapRatingCriterionUpdateInput(args.operations);
+    const criterionId = safeDecodeId(
+      args.criterionId,
+      GlobalIdEntity.ReviewRatingCriterion
+    );
+    if (!criterionId) {
+      const error = invalidIdError("criterionId");
+      return {
+        criterion: null,
+        operationResults: mapped.entries.map(mapRatingCriterionPreflightResult),
+        userErrors: [error, ...mapped.errors],
+      };
+    }
+    if (mapped.errors.length > 0) {
+      return {
+        criterion: null,
+        operationResults: mapped.entries.map(mapRatingCriterionPreflightResult),
+        userErrors: mapped.errors,
+      };
+    }
+    const result = await this.runMutationWorkflow<RatingCriterionUpdateWorkflowResult>(
+      "ratingCriterionUpdate",
+      {
+        criterionId,
+        expectedUpdatedAt: args.expectedUpdatedAt,
+        operations: mapped.operations,
+        context: this.mutationWorkflowContext(),
+      } satisfies RatingCriterionUpdateWorkflowInput,
+      criterionId
+    );
+    this.$ctx.loaders.ratingCriterion.clear(criterionId);
+    this.$ctx.loaders.ratingCriterionTranslations.clear(criterionId);
+    this.$ctx.loaders.ratingCriterionAssignments.clear(criterionId);
+    return {
+      criterion: result.criterion
+        ? new RatingCriterionResolver(result.criterion.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
+  }
   @ZodResolver(ReviewRatingCriterionDeleteInputSchema())
   async ratingCriterionDelete(args: ReviewsMutationRatingCriterionDeleteArgs) {
     const decoded = decodeDeleteInput(args.input, GlobalIdEntity.ReviewRatingCriterion);
@@ -311,9 +417,91 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       userErrors: result.userErrors,
     };
   }
-  productQuestionSubscriptionUpdate() { return updatePayload("subscription"); }
-  contentRedact() { return updatePayload("content"); }
-  contentRevisionRestore() { return updatePayload("content"); }
+  async productQuestionSubscriptionUpdate(
+    args: ReviewsMutationProductQuestionSubscriptionUpdateArgs
+  ) {
+    const subscriptionId = safeDecodeId(
+      args.subscriptionId,
+      GlobalIdEntity.ProductQuestionSubscription
+    );
+    if (!subscriptionId) {
+      return invalidSingleUpdate(
+        "subscription",
+        "productQuestionSubscriptionUpdate",
+        "subscriptionId"
+      );
+    }
+    const result = await this.runMutationWorkflow<QuestionSubscriptionUpdateWorkflowResult>(
+      "productQuestionSubscriptionUpdate",
+      {
+        params: {
+          subscriptionId,
+          expectedUpdatedAt: args.expectedUpdatedAt,
+          operations: args.operations,
+        },
+        context: this.mutationWorkflowContext(),
+      } satisfies QuestionSubscriptionUpdateWorkflowInput,
+      subscriptionId
+    );
+    this.$ctx.loaders.questionSubscription.clear(subscriptionId);
+    return {
+      subscription: result.subscription
+        ? new QuestionSubscriptionResolver(result.subscription.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
+  }
+
+  async contentRedact(args: ReviewsMutationContentRedactArgs) {
+    const contentId = safeDecodeId(args.contentId, undefined);
+    if (!contentId) {
+      return invalidSingleUpdate("content", "contentRedact", "contentId");
+    }
+    const result = await this.runMutationWorkflow<ContentRedactWorkflowResult>(
+      "contentRedact",
+      {
+        params: { contentId, expectedRevision: args.expectedRevision },
+        context: this.mutationWorkflowContext(),
+      } satisfies ContentRedactWorkflowInput,
+      contentId
+    );
+    this.clearContentLoaders(contentId);
+    return {
+      content: result.content ? await this.resolvers.content(result.content.id) : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
+  }
+
+  async contentRevisionRestore(args: ReviewsMutationContentRevisionRestoreArgs) {
+    const contentId = safeDecodeId(args.contentId, undefined);
+    if (!contentId) {
+      return invalidSingleUpdate(
+        "content",
+        "contentRevisionRestore",
+        "contentId"
+      );
+    }
+    const result = await this.runMutationWorkflow<ContentRevisionRestoreWorkflowResult>(
+      "contentRevisionRestore",
+      {
+        params: {
+          contentId,
+          revision: args.revision,
+          expectedRevision: args.expectedRevision,
+        },
+        context: this.mutationWorkflowContext(),
+      } satisfies ContentRevisionRestoreWorkflowInput,
+      contentId
+    );
+    this.clearContentLoaders(contentId);
+    return {
+      content: result.content ? await this.resolvers.content(result.content.id) : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
+  }
 
   @ZodResolver(ReviewRequestCreateInputSchema())
   async reviewRequestCreate(args: ReviewsMutationReviewRequestCreateArgs) {
@@ -329,8 +517,76 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     };
   }
 
-  reviewRequestUpdate() { return updatePayload("reviewRequest"); }
-  contentReportUpdate() { return updatePayload("contentReport"); }
+  async reviewRequestUpdate(args: ReviewsMutationReviewRequestUpdateArgs) {
+    const reviewRequestId = safeDecodeId(
+      args.reviewRequestId,
+      GlobalIdEntity.ReviewRequest
+    );
+    if (!reviewRequestId) {
+      return invalidSingleUpdate(
+        "reviewRequest",
+        "reviewRequestUpdate",
+        "reviewRequestId"
+      );
+    }
+    const result = await this.runMutationWorkflow<ReviewRequestUpdateWorkflowResult>(
+      "reviewRequestUpdate",
+      {
+        params: {
+          reviewRequestId,
+          expectedUpdatedAt: args.expectedUpdatedAt,
+          operations: args.operations,
+        },
+        context: this.mutationWorkflowContext(),
+      } satisfies ReviewRequestUpdateWorkflowInput,
+      reviewRequestId
+    );
+    this.$ctx.loaders.reviewRequest.clear(reviewRequestId);
+    return {
+      reviewRequest: result.reviewRequest
+        ? new ReviewRequestResolver(result.reviewRequest.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
+  }
+
+  async contentReportUpdate(args: ReviewsMutationContentReportUpdateArgs) {
+    const contentReportId = safeDecodeId(
+      args.contentReportId,
+      GlobalIdEntity.ReviewContentReport
+    );
+    if (!contentReportId) {
+      return invalidSingleUpdate(
+        "contentReport",
+        "contentReportUpdate",
+        "contentReportId"
+      );
+    }
+    const result = await this.runMutationWorkflow<ContentReportUpdateWorkflowResult>(
+      "contentReportUpdate",
+      {
+        params: {
+          contentReportId,
+          expectedUpdatedAt: args.expectedUpdatedAt,
+          operations: args.operations,
+        },
+        context: this.mutationWorkflowContext(),
+      } satisfies ContentReportUpdateWorkflowInput,
+      contentReportId
+    );
+    this.$ctx.loaders.contentReport.clear(contentReportId);
+    if (result.contentReport) {
+      this.$ctx.loaders.contentMetrics.clear(result.contentReport.contentId);
+    }
+    return {
+      contentReport: result.contentReport
+        ? new ContentReportResolver(result.contentReport.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
+  }
 
   @ZodResolver(ReviewModerationCaseCreateInputSchema())
   async moderationCaseCreate(args: ReviewsMutationModerationCaseCreateArgs) {
@@ -346,7 +602,39 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     };
   }
 
-  moderationCaseUpdate() { return updatePayload("moderationCase"); }
+  async moderationCaseUpdate(args: ReviewsMutationModerationCaseUpdateArgs) {
+    const moderationCaseId = safeDecodeId(
+      args.moderationCaseId,
+      GlobalIdEntity.ReviewModerationCase
+    );
+    if (!moderationCaseId) {
+      return invalidSingleUpdate(
+        "moderationCase",
+        "moderationCaseUpdate",
+        "moderationCaseId"
+      );
+    }
+    const result = await this.runMutationWorkflow<ModerationCaseUpdateWorkflowResult>(
+      "moderationCaseUpdate",
+      {
+        params: {
+          moderationCaseId,
+          expectedUpdatedAt: args.expectedUpdatedAt,
+          operations: args.operations,
+        },
+        context: this.mutationWorkflowContext(),
+      } satisfies ModerationCaseUpdateWorkflowInput,
+      moderationCaseId
+    );
+    this.$ctx.loaders.moderationCase.clear(moderationCaseId);
+    return {
+      moderationCase: result.moderationCase
+        ? new ModerationCaseResolver(result.moderationCase.id, this.$ctx)
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
+  }
 
   @ZodResolver(ReviewContentExternalReferenceCreateInputSchema())
   async contentExternalReferenceCreate(args: ReviewsMutationContentExternalReferenceCreateArgs) {
@@ -362,7 +650,44 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     };
   }
 
-  contentExternalReferenceUpdate() { return updatePayload("externalReference"); }
+  async contentExternalReferenceUpdate(
+    args: ReviewsMutationContentExternalReferenceUpdateArgs
+  ) {
+    const externalReferenceId = safeDecodeId(
+      args.externalReferenceId,
+      GlobalIdEntity.ReviewContentExternalReference
+    );
+    if (!externalReferenceId) {
+      return invalidSingleUpdate(
+        "externalReference",
+        "contentExternalReferenceUpdate",
+        "externalReferenceId"
+      );
+    }
+    const result = await this.runMutationWorkflow<ContentExternalReferenceUpdateWorkflowResult>(
+      "contentExternalReferenceUpdate",
+      {
+        params: {
+          externalReferenceId,
+          expectedUpdatedAt: args.expectedUpdatedAt,
+          operations: args.operations,
+        },
+        context: this.mutationWorkflowContext(),
+      } satisfies ContentExternalReferenceUpdateWorkflowInput,
+      externalReferenceId
+    );
+    this.$ctx.loaders.contentExternalReference.clear(externalReferenceId);
+    return {
+      externalReference: result.externalReference
+        ? new ContentExternalReferenceResolver(
+            result.externalReference.id,
+            this.$ctx
+          )
+        : null,
+      operationResults: mapOperationResults(result.operationResults),
+      userErrors: result.userErrors,
+    };
+  }
   @ZodResolver(ReviewContentExternalReferenceDeleteInputSchema())
   async contentExternalReferenceDelete(args: ReviewsMutationContentExternalReferenceDeleteArgs) {
     const decoded = decodeExternalReferenceDeleteInput(args.input);
@@ -448,6 +773,17 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       this.$ctx.loaders.contentTranslations.clear(operation.entityId);
       this.$ctx.loaders.contentPublications.clear(operation.entityId);
     }
+  }
+
+  private clearContentLoaders(contentId: string) {
+    this.$ctx.loaders.content.clear(contentId);
+    this.$ctx.loaders.contentMetrics.clear(contentId);
+    this.$ctx.loaders.contentTranslations.clear(contentId);
+    this.$ctx.loaders.contentPublications.clear(contentId);
+    this.$ctx.loaders.review.clear(contentId);
+    this.$ctx.loaders.reviewReply.clear(contentId);
+    this.$ctx.loaders.productQuestion.clear(contentId);
+    this.$ctx.loaders.productQuestionAnswer.clear(contentId);
   }
 }
 
@@ -575,12 +911,78 @@ function decodeId(value: string, type: GlobalIdType | undefined, field: string[]
   }
 }
 
-function safeDecodeId(value: string, type: GlobalIdType): string | null {
+function safeDecodeId(
+  value: string,
+  type: GlobalIdType | undefined
+): string | null {
   try {
     return decodeGlobalIdByType(value, type);
   } catch {
     return null;
   }
+}
+
+function invalidIdError(field: string) {
+  return {
+    message: "Invalid ID format",
+    field: [field],
+    code: "INVALID_ID",
+  };
+}
+
+function invalidSingleUpdate(
+  field: string,
+  type: ReviewsUpdateOperationType,
+  idField: string
+) {
+  const error = invalidIdError(idField);
+  return {
+    [field]: null,
+    operationResults: [{
+      type: toGraphqlReviewsUpdateOperationType(type),
+      applied: false,
+      errors: [error],
+    }],
+    userErrors: [error],
+  };
+}
+
+function mapOperationResults(results: ReviewsUpdateOperationResult[]) {
+  return results.map((result) => ({
+    type: toGraphqlReviewsUpdateOperationType(result.type),
+    applied: result.applied,
+    errors: result.errors,
+  }));
+}
+
+function mapRatingCriterionPreflightResult(
+  entry: RatingCriterionUpdateMappedEntry
+) {
+  return {
+    type: toGraphqlReviewsUpdateOperationType(entry.type),
+    applied: false,
+    errors: entry.errors,
+  };
+}
+
+function toGraphqlReviewsUpdateOperationType(
+  type: ReviewsUpdateOperationType
+): string {
+  const types: Record<ReviewsUpdateOperationType, string> = {
+    storeConfigurationUpdate: "STORE_CONFIGURATION_UPDATE",
+    ratingCriterionDefinitionUpdate: "RATING_CRITERION_DEFINITION_UPDATE",
+    ratingCriterionApplicabilityUpdate: "RATING_CRITERION_APPLICABILITY_UPDATE",
+    ratingCriterionTranslationsSync: "RATING_CRITERION_TRANSLATIONS_SYNC",
+    ratingCriterionAssignmentsSync: "RATING_CRITERION_ASSIGNMENTS_SYNC",
+    productQuestionSubscriptionUpdate: "PRODUCT_QUESTION_SUBSCRIPTION_UPDATE",
+    contentRedact: "CONTENT_REDACT",
+    contentRevisionRestore: "CONTENT_REVISION_RESTORE",
+    reviewRequestUpdate: "REVIEW_REQUEST_UPDATE",
+    contentReportUpdate: "CONTENT_REPORT_UPDATE",
+    moderationCaseUpdate: "MODERATION_CASE_UPDATE",
+    contentExternalReferenceUpdate: "CONTENT_EXTERNAL_REFERENCE_UPDATE",
+  };
+  return types[type];
 }
 
 function mapPreflightOperationResult(entry: ReviewUpdateMappedEntry) {

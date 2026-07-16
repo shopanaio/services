@@ -22,6 +22,26 @@ import type {
   ReviewDeleteParams,
   ReviewDeleteResult,
 } from "../../scripts/delete/index.js";
+import type {
+  ContentExternalReferenceUpdateParams,
+  ContentExternalReferenceUpdateResult,
+  ContentRedactParams,
+  ContentRedactResult,
+  ContentReportUpdateParams,
+  ContentReportUpdateResult,
+  ContentRevisionRestoreParams,
+  ContentRevisionRestoreResult,
+  ModerationCaseUpdateParams,
+  ModerationCaseUpdateResult,
+  QuestionSubscriptionUpdateParams,
+  QuestionSubscriptionUpdateResult,
+  ReviewsUpdateOperationResult,
+  ReviewsUpdateOperationType,
+  ReviewRequestUpdateParams,
+  ReviewRequestUpdateResult,
+  StoreConfigurationUpdateParams,
+  StoreConfigurationUpdateResult,
+} from "../../scripts/update/index.js";
 
 export interface ReviewsMutationWorkflowContext {
   organizationId: string;
@@ -92,3 +112,65 @@ export interface ContentExternalReferenceDeleteWorkflowInput {
 }
 export type ContentExternalReferenceDeleteWorkflowResult =
   ContentExternalReferenceDeleteResult;
+
+export type SingleOperationWorkflowResult<TResult> = TResult & {
+  operationResults: ReviewsUpdateOperationResult[];
+};
+
+export interface StoreConfigurationUpdateWorkflowInput {
+  params: StoreConfigurationUpdateParams;
+  context: ReviewsMutationWorkflowContext;
+}
+export type StoreConfigurationUpdateWorkflowResult =
+  SingleOperationWorkflowResult<StoreConfigurationUpdateResult>;
+
+export interface QuestionSubscriptionUpdateWorkflowInput {
+  params: QuestionSubscriptionUpdateParams;
+  context: ReviewsMutationWorkflowContext;
+}
+export type QuestionSubscriptionUpdateWorkflowResult =
+  SingleOperationWorkflowResult<QuestionSubscriptionUpdateResult>;
+
+export interface ContentRedactWorkflowInput {
+  params: ContentRedactParams;
+  context: ReviewsMutationWorkflowContext;
+}
+export type ContentRedactWorkflowResult =
+  SingleOperationWorkflowResult<ContentRedactResult>;
+
+export interface ContentRevisionRestoreWorkflowInput {
+  params: ContentRevisionRestoreParams;
+  context: ReviewsMutationWorkflowContext;
+}
+export type ContentRevisionRestoreWorkflowResult =
+  SingleOperationWorkflowResult<ContentRevisionRestoreResult>;
+
+export interface ReviewRequestUpdateWorkflowInput {
+  params: ReviewRequestUpdateParams;
+  context: ReviewsMutationWorkflowContext;
+}
+export type ReviewRequestUpdateWorkflowResult =
+  SingleOperationWorkflowResult<ReviewRequestUpdateResult>;
+
+export interface ContentReportUpdateWorkflowInput {
+  params: ContentReportUpdateParams;
+  context: ReviewsMutationWorkflowContext;
+}
+export type ContentReportUpdateWorkflowResult =
+  SingleOperationWorkflowResult<ContentReportUpdateResult>;
+
+export interface ModerationCaseUpdateWorkflowInput {
+  params: ModerationCaseUpdateParams;
+  context: ReviewsMutationWorkflowContext;
+}
+export type ModerationCaseUpdateWorkflowResult =
+  SingleOperationWorkflowResult<ModerationCaseUpdateResult>;
+
+export interface ContentExternalReferenceUpdateWorkflowInput {
+  params: ContentExternalReferenceUpdateParams;
+  context: ReviewsMutationWorkflowContext;
+}
+export type ContentExternalReferenceUpdateWorkflowResult =
+  SingleOperationWorkflowResult<ContentExternalReferenceUpdateResult>;
+
+export type { ReviewsUpdateOperationResult, ReviewsUpdateOperationType };
