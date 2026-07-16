@@ -207,7 +207,28 @@ type ReviewEditSection =
 
 ### ReviewInfoHeader
 
+![Review info header](assets/review-details-redesign/01-review-info-header.png)
+
 Композиция повторяет `ProductInfoHeader` и `CategoryInfoHeader`, но показывает только релевантные review actions.
+
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│ [PUBLISHED ✓]  Updated Jul 16, 14:32 by Admin          [Copy link] [⋯] │
+│                                                                          │
+│ Excellent sound, comfortable fit                                         │
+│ ★ ★ ★ ★ ☆  4 / 5                                                       │
+│                                                                          │
+│ By Maria Johnson  [Customer] [Verified purchase] [Incentivized]          │
+│ [ID 01J8A7C2]                                                            │
+│                                                                          │
+│ ──────────────────────────────────────────────────────────────────────── │
+│                                                                          │
+│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐    │
+│ │ Helpful      │ │ Unhelpful    │ │ Open reports │ │ Replies      │    │
+│ │ 24           │ │ 2            │ │ 1            │ │ 3            │    │
+│ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘    │
+└──────────────────────────────────────────────────────────────────────────┘
+```
 
 `PaperHeader title`:
 
@@ -256,6 +277,8 @@ KPI panel:
 
 ### ReviewContentSection
 
+![Review content section](assets/review-details-redesign/02-review-content.png)
+
 ```text
 ┌─ Review content ────────────────────────────────────────────────── [⋯] ┐
 │ Full plain-text review body. Preserve user line breaks.                  │
@@ -273,7 +296,32 @@ KPI panel:
 
 ### ReviewModerationSection
 
+![Review moderation section](assets/review-details-redesign/03-review-moderation.png)
+
 Секция объединяет текущие `Moderation` и reports. Это убирает дублирование и держит решение рядом с evidence.
+
+```text
+┌─ Moderation ─────────────────────────────────────────────────────── [⋯] ┐
+│ [PUBLISHED]  Moderated Jul 16, 14:32 by Admin                            │
+│                                                                           │
+│ Internal note                                                            │
+│ Relevant first-hand product experience.                                  │
+│                                                                           │
+│ ──────────────────────────────────────────────────────────────────────── │
+│                                                                           │
+│ Abuse reports                                          1 open / 2 total  │
+│ ┌───────────────────────────────────────────────────────────────────────┐ │
+│ │ [OPEN] [Spam or promotion]                              Jul 16, 11:40 │ │
+│ │ Alex Brown · alex@example.com                                        │ │
+│ │ “Contains a link to another store.”                                  │ │
+│ └───────────────────────────────────────────────────────────────────────┘ │
+│ ┌───────────────────────────────────────────────────────────────────────┐ │
+│ │ [DISMISSED] [Not relevant]                              Jul 15, 18:20 │ │
+│ │ Anonymous reporter                                                   │ │
+│ └───────────────────────────────────────────────────────────────────────┘ │
+│ [Show all reports (2)]                                                   │
+└───────────────────────────────────────────────────────────────────────────┘
+```
 
 - Верхняя строка: status tag, moderated timestamp и moderator.
 - `moderationNote` отображается как нормальный текст; при отсутствии — `No internal note` secondary.
@@ -287,6 +335,22 @@ KPI panel:
 
 ### ReviewSubjectSection
 
+![Product and purchase section](assets/review-details-redesign/04-product-purchase.png)
+
+```text
+┌─ Product & purchase ─────────────────────────────────────────────── [⋯] ┐
+│ [bag]  Sony WH-1000XM5                                  [Open product]  │
+│        Variant: Midnight black                                           │
+│                                                                           │
+│ ──────────────────────────────────────────────────────────────────────── │
+│                                                                           │
+│ Order ID                              Order line ID                       │
+│ [gid://shopana/Order/8452       copy] [gid://shopana/OrderLine/31  copy] │
+│                                                                           │
+│ Purchase evidence is linked to this review but is not displayed publicly.│
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
 - Product title — link/button, открывающий существующий Product Details modal.
 - Variant — link на Variant details, если entity доступна; иначе copyable ID/title.
 - Order и Order line остаются copyable global IDs: admin federation entity для orders пока отсутствует.
@@ -294,6 +358,20 @@ KPI panel:
 - Action: `Edit product & purchase`.
 
 ### ReviewRatingsSection
+
+![Review ratings section](assets/review-details-redesign/05-review-ratings.png)
+
+```text
+┌─ Ratings ────────────────────────────────────────────────────────── [⋯] ┐
+│ ┌──────────────────────┐   Sound quality      ★ ★ ★ ★ ★       5 / 5   │
+│ │                      │                                               │
+│ │         4.0          │   Comfort           ★ ★ ★ ★ ☆       4 / 5   │
+│ │     ★ ★ ★ ★ ☆      │                                               │
+│ │                      │   Build quality      ★ ★ ★ ☆ ☆       3 / 5   │
+│ │   Overall rating     │                                               │
+│ └──────────────────────┘   Value for money    ★ ★ ★ ★ ☆       4 / 5   │
+└───────────────────────────────────────────────────────────────────────────┘
+```
 
 - Слева — общий rating крупным числом, disabled `Rate`, подпись `Overall rating`.
 - Справа — criterion ratings в API order: title, disabled `Rate`, `{value}/5`.
@@ -303,7 +381,26 @@ KPI panel:
 
 ### ReviewMediaSection
 
+![Customer media section](assets/review-details-redesign/06-customer-media.png)
+
 Details presentation переиспользует визуальный grid `MediaSection` Product Details:
+
+```text
+┌─ Customer media (5) ────────────────────────────────────────────── [⋯] ┐
+│ ┌─────────────────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐            │
+│ │ [PUBLISHED]         │ │ [PUBL.] │ │ [PEND.] │ │ [PUBL.] │            │
+│ │                     │ │         │ │         │ │         │            │
+│ │      image 1        │ │ image 2 │ │ video 3 │ │ image 4 │            │
+│ │                     │ │         │ │   ▶     │ │         │            │
+│ │ hover: Preview      │ └─────────┘ └─────────┘ └─────────┘            │
+│ └─────────────────────┘ ┌─────────┐ ┌─────────┐ ┌╌╌╌╌╌╌╌╌╌┐            │
+│                         │ [REJ.]  │ │         │ ╎    +    ╎            │
+│                         │ image 5 │ │ empty   │ ╎ Add media╎            │
+│                         └─────────┘ └─────────┘ └╌╌╌╌╌╌╌╌╌┘            │
+│                                                                           │
+│ Click an item to preview caption, file details and moderation state.     │
+└───────────────────────────────────────────────────────────────────────────┘
+```
 
 - `hasFeatured={false}`;
 - `MediaPreview` для изображений и video;
@@ -316,6 +413,26 @@ Details presentation переиспользует визуальный grid `Med
 
 ### ReviewRepliesSection
 
+![Review replies section](assets/review-details-redesign/07-review-replies.png)
+
+```text
+┌─ Replies (3) ────────────────────────────────────────────────────────────┐
+│ Store Support  [Official] [Published]                     Jul 16, 15:10 │
+│ Thank you for the feedback. We can help with a replacement case.         │
+│ 4 helpful · 0 reports                                                    │
+│ ──────────────────────────────────────────────────────────────────────── │
+│ Maria Johnson  [Customer] [Published]                     Jul 16, 15:22 │
+│ Thanks — I will contact support.                                         │
+│ 1 helpful · 0 reports                                                    │
+│ ──────────────────────────────────────────────────────────────────────── │
+│ Store Support  [Official] [Pending]                       Jul 16, 15:40 │
+│ A private support case has been created for you…            [Show more] │
+│ 0 helpful · 1 report                                                     │
+│                                                                           │
+│ [Show all replies (3)]                                                    │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
 - Reply row: author, official/customer tag, publication status, created date, body, helpful/report counts.
 - Длинный body ограничивается четырьмя строками с `Show more`.
 - По умолчанию показываются первые пять replies; `Show all (N)` раскрывает список внутри секции.
@@ -324,7 +441,21 @@ Details presentation переиспользует визуальный grid `Med
 
 ### ReviewTrustSection
 
+![Trust and incentive section](assets/review-details-redesign/08-trust-incentive.png)
+
 `Descriptions` подходит для компактных scalar values, но labels должны быть человеческими:
+
+```text
+┌─ Trust & incentive ──────────────────────────────────────────────── [⋯] ┐
+│ Verification       [VERIFIED]       Method          Order match         │
+│ Verified at        Jul 16, 14:30    Purchase        [VERIFIED PURCHASE] │
+│                                                                           │
+│ ──────────────────────────────────────────────────────────────────────── │
+│                                                                           │
+│ Incentive          [DISCLOSED]                                            │
+│ Disclosure         Customer received a sample for an honest review.      │
+└───────────────────────────────────────────────────────────────────────────┘
+```
 
 - Verification: `Verified`, `Unverified`, `Revoked`;
 - Method;
@@ -336,7 +467,35 @@ Details presentation переиспользует визуальный grid `Med
 
 ### ReviewAuthorSourceSection
 
+![Author and source section](assets/review-details-redesign/09-author-source.png)
+
 В основной части показываются:
+
+```text
+┌─ Author & source ────────────────────────────────────────────────── [⋯] ┐
+│ Author          Maria Johnson        Type             Customer           │
+│ Email           maria@example.com    Linked customer  [ID 01J7… copy]    │
+│ Source          STOREFRONT           Created          Jul 15, 18:04      │
+│                                                                           │
+│ ┌─ Technical metadata ────────────────────────────────────────────────┐  │
+│ │ > collapsed                                                        │  │
+│ └─────────────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────────────────────┘
+
+Expanded state:
+
+┌─ Technical metadata ─────────────────────────────────────────────────────┐
+│ Principal ID       [principal_01J…                               copy]   │
+│ Idempotency key    [storefront-review-8452                       copy]   │
+│ Source metadata                                                         │
+│ ┌──────────────────────────────────────────────────────────────────────┐ │
+│ │ {                                                                    │ │
+│ │   "device": "mobile",                                               │ │
+│ │   "campaign": "post-purchase"                                       │ │
+│ │ }                                                                    │ │
+│ └──────────────────────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────────────────┘
+```
 
 - display name;
 - author type;
@@ -359,6 +518,27 @@ Technical metadata находится в collapsed `Collapse`:
 JSON показывается в token-based code container с horizontal scroll. Пустой `{}` не рендерится отдельным блоком.
 
 ### ReviewExternalReferencesSection
+
+![External references section](assets/review-details-redesign/10-external-references.png)
+
+```text
+┌─ External references (2) ────────────────────────────────────── [+ Add] ┐
+│ [SYNCED]  Trustpilot · REVIEW · TP-18372                         [⋯]    │
+│           Last synced Jul 16, 14:40 · Open external link                │
+│ ──────────────────────────────────────────────────────────────────────── │
+│ [FAILED]  Bazaarvoice · REVIEW · BV-99102                        [⋯]    │
+│           Sync failed Jul 16, 13:05                                     │
+│           Authentication token expired                                  │
+└───────────────────────────────────────────────────────────────────────────┘
+
+Empty state:
+
+┌─ External references (0) ────────────────────────────────────── [+ Add] ┐
+│ [link icon]  No external references                                    │
+│              Connect this review to an external review system.          │
+│              [Add external reference]                                   │
+└───────────────────────────────────────────────────────────────────────────┘
+```
 
 - Header action — small `+ Add`, потому что это create collection action, а не редактирование всей секции.
 - Row: sync status tag, system/type/id, last synced или last error, optional external URL.
