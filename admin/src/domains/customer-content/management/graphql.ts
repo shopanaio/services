@@ -156,15 +156,6 @@ export const EXTERNAL_REFERENCE_DELETE_MUTATION = gql`
   } ${USER_ERRORS}
 `;
 
-export const PRODUCT_CONTENT_SUMMARIES_QUERY = gql`
-  query AdminProductContentSummaries($productId: ID!) {
-    reviewsQuery {
-      productReviewSummary(productId: $productId) { product { id title } reviewCount verifiedReviewCount mediaReviewCount ratingSum averageRating ratingBreakdown { rating1Count rating2Count rating3Count rating4Count rating5Count } criteria { criterion { id defaultTitle } reviewCount ratingSum averageRating updatedAt ratingBreakdown { rating1Count rating2Count rating3Count rating4Count rating5Count } } lastReviewedAt updatedAt }
-      productQuestionSummary(productId: $productId) { product { id title } questionCount answeredQuestionCount unansweredQuestionCount answerCount officialAnswerCount lastQuestionAt lastAnsweredAt updatedAt }
-    }
-  }
-`;
-
 export const QUESTION_SUBSCRIPTION_UPDATE_MUTATION = gql`
   mutation AdminQuestionSubscriptionUpdate($subscriptionId: ID!, $expectedUpdatedAt: DateTime!, $operations: ProductQuestionSubscriptionUpdateInput) {
     reviewsMutation { productQuestionSubscriptionUpdate(subscriptionId: $subscriptionId, expectedUpdatedAt: $expectedUpdatedAt, operations: $operations) {

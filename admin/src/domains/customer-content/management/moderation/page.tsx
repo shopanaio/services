@@ -10,8 +10,10 @@ import { useContentActions } from "@/domains/customer-content/shared/hooks";
 import { useModerationContents } from "../hooks";
 import { useModerationCaseModal } from "../modals";
 import type { ContentSummary } from "../types";
+import { useUgcNavigation } from "@/domains/customer-content/use-ugc-navigation";
 
 export default function ModerationQueuePage() {
+  const { backToUgc } = useUgcNavigation();
   const { message, modal } = App.useApp(); const query = useModerationContents(); const connection = query.data?.reviewsQuery.contents;
   const actions = useContentActions(); const reviewModal = useReviewModal(); const questionModal = useQuestionModal(); const caseModal = useModerationCaseModal();
   const open = (content: ContentSummary) => { if (content.__typename === "Review") reviewModal.push({ entityId: content.id, onSaved: query.refetch }); else if (content.__typename === "ProductQuestion") questionModal.push({ entityId: content.id, onSaved: query.refetch }); };
@@ -26,5 +28,5 @@ export default function ModerationQueuePage() {
     { title: "Updated", dataIndex: "updatedAt", width: 180, render: (value) => new Date(value).toLocaleString() },
     { title: "Actions", key: "actions", width: 190, render: (_, item) => <Flex gap="small"><Button size="small" icon={<FolderAddOutlined />} onClick={(event) => { event.stopPropagation(); caseModal.push({ contentId: item.id, onSaved: query.refetch }); }}>Case</Button><Button size="small" danger icon={<StopOutlined />} disabled={!!item.redactedAt || item.revision == null} onClick={(event) => { event.stopPropagation(); void redact(item); }}>Redact</Button></Flex> },
   ];
-  return <DataLayout fullWidth name="moderation" title="Moderation" count={connection?.totalCount ?? 0}>{query.error || actions.error ? <Alert type="error" showIcon message={(query.error ?? actions.error)?.message} /> : null}<Table rowKey="id" loading={query.loading || actions.loading} dataSource={connection?.edges.map((edge) => edge.node) ?? []} columns={columns} pagination={{ pageSize: 20, showSizeChanger: true }} onRow={(content) => ({ onClick: () => open(content), style: { cursor: ["Review", "ProductQuestion"].includes(content.__typename ?? "") ? "pointer" : "default" } })} /></DataLayout>;
+  return <DataLayout fullWidth name="moderation" title="Moderation" count={connection?.totalCount ?? 0} onBack={backToUgc}>{query.error || actions.error ? <Alert type="error" showIcon message={(query.error ?? actions.error)?.message} /> : null}<Table rowKey="id" loading={query.loading || actions.loading} dataSource={connection?.edges.map((edge) => edge.node) ?? []} columns={columns} pagination={{ pageSize: 20, showSizeChanger: true }} onRow={(content) => ({ onClick: () => open(content), style: { cursor: ["Review", "ProductQuestion"].includes(content.__typename ?? "") ? "pointer" : "default" } })} /></DataLayout>;
 }

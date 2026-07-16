@@ -1,7 +1,7 @@
 "use client";
 
 import { Flex, Progress, Rate, Skeleton, Typography } from "antd";
-import { LuStar as StarFilled } from "react-icons/lu";
+import { LuChartBar as BarChartOutlined, LuPencil as EditOutlined, LuStar as StarFilled } from "react-icons/lu";
 import type { ApiProductReviewSummary } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
@@ -12,6 +12,7 @@ interface ReviewsSectionProps {
   loading?: boolean;
   error?: Error | null;
   onEdit?: () => void;
+  onViewInsights?: () => void;
 }
 
 export const ReviewsSection = ({
@@ -19,6 +20,7 @@ export const ReviewsSection = ({
   loading = false,
   error = null,
   onEdit,
+  onViewInsights,
 }: ReviewsSectionProps) => {
   const { styles } = useReviewsStyles();
   const reviewCount = summary?.reviewCount ?? 0;
@@ -37,7 +39,10 @@ export const ReviewsSection = ({
     <Paper>
       <PaperHeader
         title="Reviews"
-        actions={onEdit ? <EditAction onEdit={onEdit} label="Edit reviews" /> : undefined}
+        actions={onEdit || onViewInsights ? <EditAction onEdit={onEdit ?? (() => undefined)} items={[
+          ...(onViewInsights ? [{ key: "insights", label: "Product insights", icon: <BarChartOutlined />, onClick: onViewInsights }] : []),
+          ...(onEdit ? [{ key: "edit", label: "Edit reviews", icon: <EditOutlined />, onClick: onEdit }] : []),
+        ]} /> : undefined}
       />
       {loading && !summary ? (
         <Skeleton active paragraph={{ rows: 3 }} />

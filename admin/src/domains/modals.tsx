@@ -901,6 +901,12 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard unsaved external reference changes?',
     },
+    {
+      type: 'product-insights',
+      component: dynamic(() =>
+        import('@/domains/customer-content/management/insights').then((m) => m.ProductInsightsModal)
+      ),
+    },
     // ========================================
     // Fulfillment modals
     // ========================================

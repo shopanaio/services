@@ -18,6 +18,7 @@ import {
 } from "@/graphql/types";
 import { useQuestions } from "../hooks";
 import { useQuestionCreateModal, useQuestionModal } from "../modals";
+import { useUgcNavigation } from "../../use-ugc-navigation";
 import { filterSchema } from "./filter-schema";
 import { buildQuestionSearchCondition, buildQuestionsQueryVariables, questionSortFieldMapping } from "./page-config";
 
@@ -90,6 +91,7 @@ function DateCell({ value }: CustomCellRendererProps<ApiProductQuestion, string>
 }
 
 export default function CustomerQuestionsPage() {
+  const { backToUgc } = useUgcNavigation();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiProductQuestion>>(null);
   const pageConfig = usePageConfig<ApiProductQuestion, ApiProductQuestionWhereInput, ProductQuestionOrderField>({
@@ -123,7 +125,7 @@ export default function CustomerQuestionsPage() {
   const defaultColDef = useMemo<ColDef<ApiProductQuestion>>(() => ({ resizable: true, sortable: true, comparator: () => 0, cellStyle: { display: "flex", alignItems: "center" } }), []);
 
   return (
-    <DataLayout fullWidth name="questions" title="Questions" count={totalCount} actions={<Button icon={<PlusOutlined />} onClick={createQuestion}>Create question</Button>}>
+    <DataLayout fullWidth name="questions" title="Questions" count={totalCount} onBack={backToUgc} actions={<Button icon={<PlusOutlined />} onClick={createQuestion}>Create question</Button>}>
       <DataLayout.Toolbar left={<FilterWidget {...pageConfig.filterWidgetProps} searchPlaceholder="Search questions..." />} />
       <div style={{ height: "100%", paddingBottom: 16, display: "flex", flexDirection: "column" }}>
         {error ? <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} /> : null}

@@ -19,6 +19,7 @@ import type { ApiReview, ApiReviewWhereInput } from "@/graphql/types";
 import { ReviewContentStatus, ReviewOrderField } from "@/graphql/types";
 import { useReviews } from "../hooks";
 import { useReviewCreateModal, useReviewModal } from "../modals";
+import { useUgcNavigation } from "../../use-ugc-navigation";
 import { filterSchema } from "./filter-schema";
 import {
   buildReviewSearchCondition,
@@ -144,6 +145,7 @@ function DateCell({ value }: CustomCellRendererProps<ApiReview, string>) {
 }
 
 export default function CustomerReviewsPage() {
+  const { backToUgc } = useUgcNavigation();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiReview>>(null);
   const pageConfig = usePageConfig<ApiReview, ApiReviewWhereInput, ReviewOrderField>({
@@ -265,6 +267,7 @@ export default function CustomerReviewsPage() {
       name="reviews"
       title="Reviews"
       count={totalCount}
+      onBack={backToUgc}
       actions={
         <Button icon={<PlusOutlined />} onClick={handleCreateReview}>
           Create review

@@ -9,6 +9,7 @@ import { AttributesSection } from "../attributes-section";
 import { EditAction } from "../edit-action";
 import { useDefaultCurrency } from "@/domains/workspace";
 import { useProductReviewSummary } from "@/domains/customer-content/reviews/hooks";
+import { useProductInsightsModal } from "@/domains/customer-content/management/modals";
 import {
   MediaSection,
   CategoriesSection,
@@ -57,6 +58,7 @@ export const ProductDetailsCard = ({
     defaultCurrency,
   });
   const reviewSummary = useProductReviewSummary(product.id);
+  const { push: openProductInsights } = useProductInsightsModal();
   const shouldRenderVariantsSection =
     !!variantsTableData &&
     (variantsTableData.totalCount > 0 || product.variantsCount > 0);
@@ -100,6 +102,10 @@ export const ProductDetailsCard = ({
         loading={reviewSummary.loading}
         error={reviewSummary.error}
         onEdit={() => handleEdit("reviews")}
+        onViewInsights={() => openProductInsights({
+          product: { id: product.id, title: product.title, handle: product.handle },
+          summary: reviewSummary.summary,
+        })}
       />
 
       {/* ATTRIBUTES */}

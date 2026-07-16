@@ -21,7 +21,7 @@ import type {
 } from "@/graphql/types";
 import {
   CONTENT_REPORTS_QUERY, EXTERNAL_REFERENCES_QUERY, MODERATION_CASES_QUERY, MODERATION_CONTENTS_QUERY,
-  PRODUCT_CONTENT_SUMMARIES_QUERY, RATING_CRITERIA_QUERY, REVIEW_CONFIGURATION_QUERY, REVIEW_REQUESTS_QUERY,
+  RATING_CRITERIA_QUERY, REVIEW_CONFIGURATION_QUERY, REVIEW_REQUESTS_QUERY,
   CONTENT_REPORT_UPDATE_MUTATION, EXTERNAL_REFERENCE_CREATE_MUTATION, EXTERNAL_REFERENCE_DELETE_MUTATION,
   EXTERNAL_REFERENCE_UPDATE_MUTATION, MODERATION_CASE_CREATE_MUTATION, MODERATION_CASE_UPDATE_MUTATION,
   QUESTION_SUBSCRIPTION_UPDATE_MUTATION, RATING_CRITERION_CREATE_MUTATION, RATING_CRITERION_DELETE_MUTATION,
@@ -55,10 +55,6 @@ export function useReviewRequests() {
 export function useExternalReferences() {
   return useQuery<{ reviewsQuery: { contentExternalReferences: Connection<ExternalReference> } }>(EXTERNAL_REFERENCES_QUERY, { fetchPolicy: "cache-and-network" });
 }
-export function useProductContentSummaries(productId?: string) {
-  return useQuery<{ reviewsQuery: { productReviewSummary: Record<string, unknown> | null; productQuestionSummary: Record<string, unknown> | null } }>(PRODUCT_CONTENT_SUMMARIES_QUERY, { variables: { productId: productId ?? "" }, skip: !productId, fetchPolicy: "cache-and-network" });
-}
-
 export function useManagementMutations() {
   const [configurationUpdate, configurationState] = useMutation<{ reviewsMutation: { storeConfigurationUpdate: OperationPayload<{ configuration: { id: string; revision: number; updatedAt: string } | null }> } }, { configurationId: string; expectedRevision: number; operations: ApiReviewStoreConfigurationUpdateInput }>(REVIEW_CONFIGURATION_UPDATE_MUTATION);
   const [criterionCreate, criterionCreateState] = useMutation<{ reviewsMutation: { ratingCriterionCreate: OperationPayload<{ criterion: { id: string; updatedAt: string } | null }> } }, { input: ApiReviewRatingCriterionCreateInput }>(RATING_CRITERION_CREATE_MUTATION);

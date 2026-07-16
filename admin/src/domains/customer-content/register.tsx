@@ -12,13 +12,28 @@ registerModule({
   },
   items: [
     {
-      key: "customer-reviews-list",
-      path: "/:orgName/:storeName/customer-content/reviews",
+      key: "customer-content",
+      path: "/:orgName/:storeName/customer-content",
       sidebar: {
-        label: "Reviews",
+        label: "UGC",
         icon: null,
         order: 1,
+        activePaths: [
+          "/:orgName/:storeName/customer-content/reviews",
+          "/:orgName/:storeName/customer-content/questions",
+          "/:orgName/:storeName/customer-content/moderation",
+          "/:orgName/:storeName/customer-content/reports",
+          "/:orgName/:storeName/customer-content/cases",
+          "/:orgName/:storeName/customer-content/review-requests",
+          "/:orgName/:storeName/customer-content/external-sync",
+          "/:orgName/:storeName/customer-content/settings",
+        ],
       },
+      component: dynamic(() => import("@/domains/customer-content/page/page")),
+    },
+    {
+      key: "customer-reviews-list",
+      path: "/:orgName/:storeName/customer-content/reviews",
       component: dynamic(
         () => import("@/domains/customer-content/reviews/page/page"),
       ),
@@ -26,11 +41,6 @@ registerModule({
     {
       key: "customer-questions-list",
       path: "/:orgName/:storeName/customer-content/questions",
-      sidebar: {
-        label: "Q&A",
-        icon: null,
-        order: 2,
-      },
       component: dynamic(
         () => import("@/domains/customer-content/questions/page/page"),
       ),
@@ -38,49 +48,31 @@ registerModule({
     {
       key: "customer-content-moderation",
       path: "/:orgName/:storeName/customer-content/moderation",
-      sidebar: { label: "Moderation", icon: null, order: 3 },
       component: dynamic(() => import("@/domains/customer-content/management/moderation/page")),
     },
     {
       key: "customer-content-reports",
       path: "/:orgName/:storeName/customer-content/reports",
-      sidebar: { label: "Reports", icon: null, order: 4 },
       component: dynamic(() => import("@/domains/customer-content/management/reports/page")),
     },
     {
       key: "customer-content-cases",
       path: "/:orgName/:storeName/customer-content/cases",
-      sidebar: { label: "Cases", icon: null, order: 5 },
       component: dynamic(() => import("@/domains/customer-content/management/cases/page")),
     },
     {
       key: "review-requests",
       path: "/:orgName/:storeName/customer-content/review-requests",
-      sidebar: { label: "Review requests", icon: null, order: 6 },
       component: dynamic(() => import("@/domains/customer-content/management/requests/page")),
-    },
-    {
-      key: "review-rating-criteria",
-      path: "/:orgName/:storeName/customer-content/rating-criteria",
-      sidebar: { label: "Rating criteria", icon: null, order: 7 },
-      component: dynamic(() => import("@/domains/customer-content/management/criteria/page")),
     },
     {
       key: "review-external-sync",
       path: "/:orgName/:storeName/customer-content/external-sync",
-      sidebar: { label: "External sync", icon: null, order: 8 },
       component: dynamic(() => import("@/domains/customer-content/management/external/page")),
-    },
-    {
-      key: "customer-content-insights",
-      path: "/:orgName/:storeName/customer-content/insights",
-      sidebar: { label: "Product insights", icon: null, order: 9 },
-      component: dynamic(() => import("@/domains/customer-content/management/insights/page")),
     },
     {
       key: "review-settings",
       path: "/:orgName/:storeName/customer-content/settings",
-      sidebar: { label: "Settings", icon: null, order: 10 },
       component: dynamic(() => import("@/domains/customer-content/management/settings/page")),
     },
     {

@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, App, Button, Flex, InputNumber, Select, Skeleton, Switch, Typography } from "antd";
-import { LuSave as SaveOutlined, LuSettings as SettingOutlined } from "react-icons/lu";
+import { Alert, App, Button, Flex, InputNumber, Select, Skeleton, Switch, Table, Tag, Typography } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { LuPlus as PlusOutlined, LuSave as SaveOutlined, LuSettings as SettingOutlined } from "react-icons/lu";
 import { ReviewDuplicatePolicy, ReviewModerationMode, type ApiReviewStoreConfigurationUpdateInput } from "@/graphql/types";
 import { DataLayout } from "@/layouts/data";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { useManagementMutations, useReviewConfiguration } from "../hooks";
-import type { ReviewConfiguration } from "../types";
+import { useRatingCriterionModal } from "../modals";
+import { useManagementMutations, useRatingCriteria, useReviewConfiguration } from "../hooks";
+import type { RatingCriterion, ReviewConfiguration } from "../types";
+import { useUgcNavigation } from "@/domains/customer-content/use-ugc-navigation";
 
 const moderationOptions = Object.values(ReviewModerationMode).map((value) => ({ value, label: value.toLowerCase().replaceAll("_", " ") }));
 const duplicateOptions = Object.values(ReviewDuplicatePolicy).map((value) => ({ value, label: value.toLowerCase().replaceAll("_", " ") }));
@@ -21,10 +24,14 @@ const editableValues = (item: ReviewConfiguration): ApiReviewStoreConfigurationU
 });
 
 export default function ReviewSettingsPage() {
+  const { backToUgc } = useUgcNavigation();
   const { message } = App.useApp();
+  const { push: pushCriterion } = useRatingCriterionModal();
   const query = useReviewConfiguration();
+  const criteriaQuery = useRatingCriteria();
   const mutations = useManagementMutations();
   const configuration = query.data?.reviewsQuery.storeConfiguration;
+  const criteriaConnection = criteriaQuery.data?.reviewsQuery.ratingCriteria;
   const [values, setValues] = useState<ApiReviewStoreConfigurationUpdateInput>({});
   const [dirty, setDirty] = useState(false);
   const [loadedRevision, setLoadedRevision] = useState<number | null>(null);
@@ -38,8 +45,16 @@ export default function ReviewSettingsPage() {
   };
   const toggle = (key: keyof ApiReviewStoreConfigurationUpdateInput, label: string, description: string) => <Flex justify="space-between" align="center" gap="large"><div><Typography.Text strong>{label}</Typography.Text><br /><Typography.Text type="secondary">{description}</Typography.Text></div><Switch checked={Boolean(values[key])} onChange={(checked) => set(key, checked)} /></Flex>;
   const number = (key: keyof ApiReviewStoreConfigurationUpdateInput, label: string, min = 0) => <Flex justify="space-between" align="center" gap="large"><Typography.Text>{label}</Typography.Text><InputNumber min={min} value={values[key] as number | undefined} onChange={(value) => set(key, value ?? min)} /></Flex>;
-  return <DataLayout name="review-settings" title="Reviews & Q&A settings" actions={<Button type="primary" icon={<SaveOutlined />} disabled={!dirty || !configuration} loading={mutations.loading} onClick={save}>Save</Button>}>
-    {query.error ? <Alert type="error" showIcon message={query.error.message} /> : null}
+  const criterionColumns: ColumnsType<RatingCriterion> = [
+    { title: "Criterion", key: "title", render: (_, item) => <Flex vertical><Typography.Text strong>{item.defaultTitle}</Typography.Text><Typography.Text type="secondary">{item.code}</Typography.Text></Flex> },
+    { title: "Weight", dataIndex: "weight", width: 100 },
+    { title: "Scope", key: "scope", render: (_, item) => item.appliesToAllProducts ? "All products" : `${item.assignments.length} assignments` },
+    { title: "Required", dataIndex: "isRequired", width: 110, render: (value) => value ? <Tag color="blue">Required</Tag> : "Optional" },
+    { title: "Status", dataIndex: "isActive", width: 100, render: (value) => <Tag color={value ? "green" : undefined}>{value ? "Active" : "Inactive"}</Tag> },
+    { title: "Updated", dataIndex: "updatedAt", width: 190, render: (value) => new Date(value).toLocaleString() },
+  ];
+  return <DataLayout name="review-settings" title="Reviews & Q&A settings" onBack={backToUgc} actions={<Button type="primary" icon={<SaveOutlined />} disabled={!dirty || !configuration} loading={mutations.loading} onClick={save}>Save</Button>}>
+    {query.error || criteriaQuery.error ? <Alert type="error" showIcon message={(query.error ?? criteriaQuery.error)?.message} /> : null}
     {query.loading && !configuration ? <Skeleton active /> : null}
     {configuration ? <Flex vertical gap={12} style={{ paddingBottom: 24 }}>
       <Paper><PaperHeader title="Storefront features" icon={<SettingOutlined />} /><Flex vertical gap="large">
@@ -62,6 +77,11 @@ export default function ReviewSettingsPage() {
         {number("reviewEditWindowHours", "Review edit window (hours)")}{number("questionEditWindowHours", "Question edit window (hours)")}{number("answerEditWindowHours", "Answer edit window (hours)")}
         {number("maxReviewMediaCount", "Maximum review media")}{number("maxAnswersPerQuestion", "Maximum answers per question", 1)}
       </Flex></Paper>
+      <Paper>
+        <PaperHeader title="Rating criteria" actions={<Button icon={<PlusOutlined />} onClick={() => pushCriterion({ onSaved: criteriaQuery.refetch })}>Create criterion</Button>} />
+        <Typography.Paragraph type="secondary">Configure additional rating dimensions that customers can score alongside the overall product rating.</Typography.Paragraph>
+        <Table rowKey="id" loading={criteriaQuery.loading} dataSource={criteriaConnection?.edges.map((edge) => edge.node) ?? []} columns={criterionColumns} pagination={false} onRow={(criterion) => ({ onClick: () => pushCriterion({ criterion, onSaved: criteriaQuery.refetch }), style: { cursor: "pointer" } })} />
+      </Paper>
       <Typography.Text type="secondary">Revision {configuration.revision} · updated {new Date(configuration.updatedAt).toLocaleString()}</Typography.Text>
     </Flex> : null}
   </DataLayout>;

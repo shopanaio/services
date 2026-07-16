@@ -7,8 +7,10 @@ import { ReviewContentReportStatus } from "@/graphql/types";
 import { DataLayout } from "@/layouts/data";
 import { useContentReports, useManagementMutations } from "../hooks";
 import type { ContentReport } from "../types";
+import { useUgcNavigation } from "@/domains/customer-content/use-ugc-navigation";
 
 export default function ContentReportsPage() {
+  const { backToUgc } = useUgcNavigation();
   const { message } = App.useApp(); const query = useContentReports(); const mutations = useManagementMutations(); const connection = query.data?.reviewsQuery.contentReports;
   const [selected, setSelected] = useState<ContentReport | null>(null); const [assignee, setAssignee] = useState(""); const [status, setStatus] = useState<ReviewContentReportStatus | undefined>(); const [note, setNote] = useState("");
   const openReport = (report: ContentReport) => { setSelected(report); setAssignee(report.assignedToPrincipalId ?? ""); setStatus([ReviewContentReportStatus.Actioned, ReviewContentReportStatus.Dismissed].includes(report.status) ? report.status : undefined); setNote(report.resolutionNote ?? ""); };
@@ -24,7 +26,7 @@ export default function ContentReportsPage() {
     { title: "Assignee", dataIndex: "assignedToPrincipalId", width: 170, render: (value) => value ?? "Unassigned" },
     { title: "Created", dataIndex: "createdAt", width: 180, render: (value) => new Date(value).toLocaleString() },
   ];
-  return <DataLayout fullWidth name="content-reports" title="Content reports" count={connection?.totalCount ?? 0}>
+  return <DataLayout fullWidth name="content-reports" title="Content reports" count={connection?.totalCount ?? 0} onBack={backToUgc}>
     {query.error ? <Alert type="error" showIcon message={query.error.message} /> : null}<Table rowKey="id" loading={query.loading} dataSource={connection?.edges.map((edge) => edge.node) ?? []} columns={columns} pagination={{ pageSize: 20, showSizeChanger: true }} onRow={(report) => ({ onClick: () => openReport(report), style: { cursor: "pointer" } })} />
     <Modal title="Content report" open={!!selected} onCancel={() => setSelected(null)} footer={<Flex justify="flex-end" gap="small"><Button onClick={() => setSelected(null)}>Cancel</Button><Button type="primary" loading={mutations.loading} onClick={save}>Save</Button></Flex>}>
       <Flex vertical gap="middle"><Alert type="info" message={selected?.details || "No reporter details"} /><div><Typography.Text strong>Assigned principal</Typography.Text><Input value={assignee} onChange={(event) => setAssignee(event.target.value)} style={{ marginTop: 8 }} /></div><div><Typography.Text strong>Resolution</Typography.Text><Select allowClear value={status} placeholder="Keep open" options={[ReviewContentReportStatus.Actioned, ReviewContentReportStatus.Dismissed].map((value) => ({ value, label: value.toLowerCase() }))} onChange={setStatus} style={{ width: "100%", marginTop: 8 }} /></div><div><Typography.Text strong>Resolution note</Typography.Text><Input.TextArea value={note} onChange={(event) => setNote(event.target.value)} rows={4} style={{ marginTop: 8 }} /></div></Flex>
