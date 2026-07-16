@@ -1,0 +1,186 @@
+type ReviewContentReport implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  reporterCustomer: Customer
+  reason: ReviewContentReportReason!
+  details: String
+  status: ReviewContentReportStatus!
+  assignedToPrincipalId: String
+  resolutionNote: String
+  resolvedByPrincipalId: String
+  resolvedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ReviewModerationCase implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  status: ReviewModerationCaseStatus!
+  priority: Int!
+  reasonCode: String!
+  assignedToPrincipalId: String
+  dueAt: DateTime
+  resolutionCode: String
+  resolutionNote: String
+  resolvedByPrincipalId: String
+  resolvedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Append-only moderation timeline entry."""
+type ReviewModerationEvent implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  moderationCase: ReviewModerationCase
+  action: ReviewModerationAction!
+  fromStatus: ReviewContentStatus
+  toStatus: ReviewContentStatus
+  actorType: String!
+  actorId: String
+  reasonCode: String
+  note: String
+  isAutomated: Boolean!
+  metadata: JSON!
+  createdAt: DateTime!
+}
+
+"""Immutable aggregate snapshot used for audit and restore workflows."""
+type ReviewContentRevision implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  revision: Int!
+  snapshot: JSON!
+  changedByType: String!
+  changedById: String
+  changeReason: String
+  createdAt: DateTime!
+}
+
+"""Immutable automated moderation evidence; it is not the moderation decision."""
+type ReviewModerationSignal implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  provider: String!
+  signalType: String!
+  score: Float
+  verdict: ReviewModerationVerdict!
+  modelVersion: String
+  evidence: JSON!
+  createdAt: DateTime!
+}
+
+type ReviewContentReportConnection {
+  edges: [ReviewContentReportEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewContentReportEdge {
+  node: ReviewContentReport!
+  cursor: String!
+}
+
+type ReviewModerationCaseConnection {
+  edges: [ReviewModerationCaseEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewModerationCaseEdge {
+  node: ReviewModerationCase!
+  cursor: String!
+}
+
+type ReviewModerationEventConnection {
+  edges: [ReviewModerationEventEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewModerationEventEdge {
+  node: ReviewModerationEvent!
+  cursor: String!
+}
+
+type ReviewContentRevisionConnection {
+  edges: [ReviewContentRevisionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewContentRevisionEdge {
+  node: ReviewContentRevision!
+  cursor: String!
+}
+
+type ReviewModerationSignalConnection {
+  edges: [ReviewModerationSignalEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewModerationSignalEdge {
+  node: ReviewModerationSignal!
+  cursor: String!
+}
+
+input ReviewContentReportAssignmentInput {
+  assignedToPrincipalId: String
+}
+
+input ReviewContentReportResolutionInput {
+  """Must be ACTIONED or DISMISSED."""
+  status: ReviewContentReportStatus!
+  note: String
+}
+
+input ReviewContentReportUpdateInput {
+  assignment: ReviewContentReportAssignmentInput
+  resolution: ReviewContentReportResolutionInput
+}
+
+input ReviewModerationCaseCreateInput {
+  contentId: ID!
+  priority: Int
+  reasonCode: String!
+  assignedToPrincipalId: String
+  dueAt: DateTime
+}
+
+input ReviewModerationCaseDetailsInput {
+  priority: Int
+  reasonCode: String
+  assignedToPrincipalId: String
+  dueAt: DateTime
+}
+
+input ReviewModerationCaseResolutionInput {
+  """Must be RESOLVED or CANCELLED."""
+  status: ReviewModerationCaseStatus!
+  resolutionCode: String
+  resolutionNote: String
+}
+
+input ReviewModerationCaseUpdateInput {
+  details: ReviewModerationCaseDetailsInput
+  resolution: ReviewModerationCaseResolutionInput
+}
+
+type ReviewContentReportUpdatePayload {
+  contentReport: ReviewContentReport
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewModerationCaseCreatePayload {
+  moderationCase: ReviewModerationCase
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewModerationCaseUpdatePayload {
+  moderationCase: ReviewModerationCase
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}

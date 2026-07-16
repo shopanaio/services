@@ -1,0 +1,43 @@
+type ReviewRatingBreakdown {
+  rating1Count: Int!
+  rating2Count: Int!
+  rating3Count: Int!
+  rating4Count: Int!
+  rating5Count: Int!
+}
+
+"""Read-only projection over currently published, non-deleted product reviews."""
+type ProductReviewSummary {
+  product: Product!
+  reviewCount: Int!
+  verifiedReviewCount: Int!
+  mediaReviewCount: Int!
+  ratingSum: BigInt!
+  averageRating: Float!
+  ratingBreakdown: ReviewRatingBreakdown!
+  criteria: [ProductRatingCriterionSummary!]!
+  lastReviewedAt: DateTime
+  updatedAt: DateTime!
+}
+
+type ProductRatingCriterionSummary {
+  criterion: ReviewRatingCriterion!
+  reviewCount: Int!
+  ratingSum: BigInt!
+  averageRating: Float!
+  ratingBreakdown: ReviewRatingBreakdown!
+  updatedAt: DateTime!
+}
+
+"""Read-only projection over currently published product questions and answers."""
+type ProductQuestionSummary {
+  product: Product!
+  questionCount: Int!
+  answeredQuestionCount: Int!
+  unansweredQuestionCount: Int!
+  answerCount: Int!
+  officialAnswerCount: Int!
+  lastQuestionAt: DateTime
+  lastAnsweredAt: DateTime
+  updatedAt: DateTime!
+}

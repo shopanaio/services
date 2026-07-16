@@ -1,0 +1,208 @@
+type ProductQuestion implements Node & ReviewContent @key(fields: "id") {
+  id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: String!
+  author: ReviewContentAuthor!
+  sourceChannel: String!
+  sourceMetadata: JSON!
+  idempotencyKey: String
+  status: ReviewContentStatus!
+  moderationNote: String
+  moderatedByPrincipalId: String
+  moderatedAt: DateTime
+  publishedAt: DateTime
+  unpublishedAt: DateTime
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+  redactedAt: DateTime
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  publications: [ReviewContentPublication!]!
+  votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
+  reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
+  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
+  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
+  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
+  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+
+  product: Product!
+  variant: Variant
+  answerState: ProductQuestionAnswerState!
+  answers(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ProductQuestionAnswerWhereInput
+    orderBy: [ProductQuestionAnswerOrderByInput!]
+    meta: ReviewContentConnectionMetaInput
+  ): ProductQuestionAnswerConnection!
+  subscriptions(first: Int, after: String, last: Int, before: String): ProductQuestionSubscriptionConnection!
+}
+
+type ProductQuestionAnswer implements Node & ReviewContent @key(fields: "id") {
+  id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: String!
+  author: ReviewContentAuthor!
+  sourceChannel: String!
+  sourceMetadata: JSON!
+  idempotencyKey: String
+  status: ReviewContentStatus!
+  moderationNote: String
+  moderatedByPrincipalId: String
+  moderatedAt: DateTime
+  publishedAt: DateTime
+  unpublishedAt: DateTime
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+  redactedAt: DateTime
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  publications: [ReviewContentPublication!]!
+  votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
+  reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
+  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
+  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
+  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
+  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+
+  question: ProductQuestion!
+  isOfficial: Boolean!
+  isAccepted: Boolean!
+  sortIndex: Int!
+}
+
+type ProductQuestionSubscription implements Node @key(fields: "id") {
+  id: ID!
+  question: ProductQuestion!
+  subscriberCustomer: Customer
+  channel: ReviewNotificationChannel!
+  status: ProductQuestionSubscriptionStatus!
+  locale: String!
+  lastNotifiedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ProductQuestionConnection {
+  edges: [ProductQuestionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductQuestionEdge {
+  node: ProductQuestion!
+  cursor: String!
+}
+
+type ProductQuestionAnswerConnection {
+  edges: [ProductQuestionAnswerEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductQuestionAnswerEdge {
+  node: ProductQuestionAnswer!
+  cursor: String!
+}
+
+type ProductQuestionSubscriptionConnection {
+  edges: [ProductQuestionSubscriptionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductQuestionSubscriptionEdge {
+  node: ProductQuestionSubscription!
+  cursor: String!
+}
+
+input ProductQuestionCreateInput {
+  content: ReviewContentCreateInput!
+  productId: ID!
+  variantId: ID
+}
+
+input ProductQuestionSubjectUpdateInput {
+  productId: ID
+  variantId: ID
+}
+
+input ProductQuestionUpdateInput {
+  content: ReviewContentUpdateInput
+  subject: ProductQuestionSubjectUpdateInput
+}
+
+input ProductQuestionAnswerCreateInput {
+  questionId: ID!
+  content: ReviewContentCreateInput!
+  isOfficial: Boolean
+  isAccepted: Boolean
+  sortIndex: Int
+}
+
+input ProductQuestionAnswerPropertiesUpdateInput {
+  isOfficial: Boolean
+  isAccepted: Boolean
+  sortIndex: Int
+}
+
+input ProductQuestionAnswerUpdateInput {
+  content: ReviewContentUpdateInput
+  properties: ProductQuestionAnswerPropertiesUpdateInput
+}
+
+input ProductQuestionSubscriptionUpdateInput {
+  status: ProductQuestionSubscriptionStatus
+  channel: ReviewNotificationChannel
+  locale: String
+}
+
+type ProductQuestionCreatePayload {
+  productQuestion: ProductQuestion
+  userErrors: [GenericUserError!]!
+}
+
+type ProductQuestionUpdatePayload {
+  productQuestion: ProductQuestion
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ProductQuestionDeletePayload {
+  deletedProductQuestionId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type ProductQuestionAnswerCreatePayload {
+  productQuestionAnswer: ProductQuestionAnswer
+  userErrors: [GenericUserError!]!
+}
+
+type ProductQuestionAnswerUpdatePayload {
+  productQuestionAnswer: ProductQuestionAnswer
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ProductQuestionAnswerDeletePayload {
+  deletedProductQuestionAnswerId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type ProductQuestionSubscriptionUpdatePayload {
+  subscription: ProductQuestionSubscription
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}

@@ -12,22 +12,279 @@ extend schema
     ]
   )
 
-type Query {
-  """Reviews query namespace."""
-  reviewsQuery: ReviewsQuery! @inaccessible
+extend type Query {
+  """Admin-only Reviews query namespace."""
+  reviewsQuery: ReviewsQuery!
 }
 
-type Mutation {
-  """Reviews mutation namespace."""
-  reviewsMutation: ReviewsMutation! @inaccessible
+extend type Mutation {
+  """Admin-only Reviews mutation namespace."""
+  reviewsMutation: ReviewsMutation!
 }
 
-"""Internal placeholder for the future admin query namespace."""
-type ReviewsQuery @inaccessible {
-  _empty: Boolean!
+"""Administrative reads for review, Q&A, moderation, and configuration data."""
+type ReviewsQuery {
+  """Resolve a Reviews-owned node by global ID."""
+  node(id: ID!): Node
+
+  """Resolve multiple Reviews-owned nodes while preserving input order."""
+  nodes(ids: [ID!]!): [Node]!
+
+  """Current store review and Q&A configuration."""
+  storeConfiguration: ReviewStoreConfiguration
+
+  ratingCriterion(id: ID!): ReviewRatingCriterion
+  ratingCriteria(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ReviewRatingCriterionWhereInput
+    orderBy: [ReviewRatingCriterionOrderByInput!]
+  ): ReviewRatingCriterionConnection!
+
+  """Any moderated content aggregate owned by Reviews."""
+  content(id: ID!): ReviewContent
+  contents(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ReviewContentWhereInput
+    orderBy: [ReviewContentOrderByInput!]
+    meta: ReviewContentConnectionMetaInput
+  ): ReviewContentConnection!
+
+  review(id: ID!): Review
+  reviews(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ReviewWhereInput
+    orderBy: [ReviewOrderByInput!]
+    meta: ReviewContentConnectionMetaInput
+  ): ReviewConnection!
+
+  reviewReply(id: ID!): ReviewReply
+  reviewReplies(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ReviewReplyWhereInput
+    orderBy: [ReviewReplyOrderByInput!]
+    meta: ReviewContentConnectionMetaInput
+  ): ReviewReplyConnection!
+
+  productQuestion(id: ID!): ProductQuestion
+  productQuestions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ProductQuestionWhereInput
+    orderBy: [ProductQuestionOrderByInput!]
+    meta: ReviewContentConnectionMetaInput
+  ): ProductQuestionConnection!
+
+  productQuestionAnswer(id: ID!): ProductQuestionAnswer
+  productQuestionAnswers(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ProductQuestionAnswerWhereInput
+    orderBy: [ProductQuestionAnswerOrderByInput!]
+    meta: ReviewContentConnectionMetaInput
+  ): ProductQuestionAnswerConnection!
+
+  reviewRequest(id: ID!): ReviewRequest
+  reviewRequests(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ReviewRequestWhereInput
+    orderBy: [ReviewRequestOrderByInput!]
+  ): ReviewRequestConnection!
+
+  contentReport(id: ID!): ReviewContentReport
+  contentReports(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ReviewContentReportWhereInput
+    orderBy: [ReviewContentReportOrderByInput!]
+  ): ReviewContentReportConnection!
+
+  moderationCase(id: ID!): ReviewModerationCase
+  moderationCases(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ReviewModerationCaseWhereInput
+    orderBy: [ReviewModerationCaseOrderByInput!]
+  ): ReviewModerationCaseConnection!
+
+  contentExternalReference(id: ID!): ReviewContentExternalReference
+  contentExternalReferences(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ReviewContentExternalReferenceWhereInput
+    orderBy: [ReviewContentExternalReferenceOrderByInput!]
+  ): ReviewContentExternalReferenceConnection!
+
+  productReviewSummary(productId: ID!): ProductReviewSummary
+  productQuestionSummary(productId: ID!): ProductQuestionSummary
 }
 
-"""Internal placeholder for the future admin mutation namespace."""
-type ReviewsMutation @inaccessible {
-  _empty: Boolean!
+"""Administrative commands. Storefront submission and engagement commands live elsewhere."""
+type ReviewsMutation {
+  storeConfigurationUpdate(
+    configurationId: ID!
+    expectedRevision: Int!
+    operations: ReviewStoreConfigurationUpdateInput
+  ): ReviewStoreConfigurationUpdatePayload!
+
+  ratingCriterionCreate(
+    input: ReviewRatingCriterionCreateInput!
+  ): ReviewRatingCriterionCreatePayload!
+  ratingCriterionUpdate(
+    criterionId: ID!
+    expectedUpdatedAt: DateTime!
+    operations: ReviewRatingCriterionUpdateInput
+  ): ReviewRatingCriterionUpdatePayload!
+  ratingCriterionDelete(
+    input: ReviewRatingCriterionDeleteInput!
+  ): ReviewRatingCriterionDeletePayload!
+
+  reviewCreate(input: ReviewCreateInput!): ReviewCreatePayload!
+  reviewUpdate(
+    reviewId: ID!
+    expectedRevision: Int!
+    operations: ReviewUpdateInput
+  ): ReviewUpdatePayload!
+  reviewDelete(input: ReviewContentDeleteInput!): ReviewDeletePayload!
+
+  reviewMediaUpdate(
+    reviewMediaId: ID!
+    expectedUpdatedAt: DateTime!
+    operations: ReviewMediaUpdateInput
+  ): ReviewMediaUpdatePayload!
+
+  reviewReplyCreate(input: ReviewReplyCreateInput!): ReviewReplyCreatePayload!
+  reviewReplyUpdate(
+    reviewReplyId: ID!
+    expectedRevision: Int!
+    operations: ReviewReplyUpdateInput
+  ): ReviewReplyUpdatePayload!
+  reviewReplyDelete(input: ReviewContentDeleteInput!): ReviewReplyDeletePayload!
+
+  productQuestionCreate(
+    input: ProductQuestionCreateInput!
+  ): ProductQuestionCreatePayload!
+  productQuestionUpdate(
+    productQuestionId: ID!
+    expectedRevision: Int!
+    operations: ProductQuestionUpdateInput
+  ): ProductQuestionUpdatePayload!
+  productQuestionDelete(
+    input: ReviewContentDeleteInput!
+  ): ProductQuestionDeletePayload!
+
+  productQuestionAnswerCreate(
+    input: ProductQuestionAnswerCreateInput!
+  ): ProductQuestionAnswerCreatePayload!
+  productQuestionAnswerUpdate(
+    productQuestionAnswerId: ID!
+    expectedRevision: Int!
+    operations: ProductQuestionAnswerUpdateInput
+  ): ProductQuestionAnswerUpdatePayload!
+  productQuestionAnswerDelete(
+    input: ReviewContentDeleteInput!
+  ): ProductQuestionAnswerDeletePayload!
+
+  productQuestionSubscriptionUpdate(
+    subscriptionId: ID!
+    expectedUpdatedAt: DateTime!
+    operations: ProductQuestionSubscriptionUpdateInput
+  ): ProductQuestionSubscriptionUpdatePayload!
+
+  contentTranslationCreate(
+    input: ReviewContentTranslationCreateInput!
+  ): ReviewContentTranslationCreatePayload!
+  contentTranslationUpdate(
+    translationId: ID!
+    expectedRevision: Int!
+    operations: ReviewContentTranslationUpdateInput
+  ): ReviewContentTranslationUpdatePayload!
+  contentTranslationDelete(
+    input: ReviewContentTranslationDeleteInput!
+  ): ReviewContentTranslationDeletePayload!
+
+  contentPublicationCreate(
+    input: ReviewContentPublicationCreateInput!
+  ): ReviewContentPublicationCreatePayload!
+  contentPublicationUpdate(
+    publicationId: ID!
+    expectedUpdatedAt: DateTime!
+    operations: ReviewContentPublicationUpdateInput
+  ): ReviewContentPublicationUpdatePayload!
+  contentPublicationDelete(
+    input: ReviewContentPublicationDeleteInput!
+  ): ReviewContentPublicationDeletePayload!
+
+  contentModerate(
+    contentId: ID!
+    expectedRevision: Int!
+    operations: ReviewContentModerationInput!
+  ): ReviewContentUpdatePayload!
+  contentRedact(
+    contentId: ID!
+    expectedRevision: Int!
+  ): ReviewContentUpdatePayload!
+  contentRevisionRestore(
+    contentId: ID!
+    revision: Int!
+    expectedRevision: Int!
+  ): ReviewContentUpdatePayload!
+
+  reviewRequestCreate(input: ReviewRequestCreateInput!): ReviewRequestCreatePayload!
+  reviewRequestUpdate(
+    reviewRequestId: ID!
+    expectedUpdatedAt: DateTime!
+    operations: ReviewRequestUpdateInput
+  ): ReviewRequestUpdatePayload!
+
+  contentReportUpdate(
+    contentReportId: ID!
+    expectedUpdatedAt: DateTime!
+    operations: ReviewContentReportUpdateInput
+  ): ReviewContentReportUpdatePayload!
+
+  moderationCaseCreate(
+    input: ReviewModerationCaseCreateInput!
+  ): ReviewModerationCaseCreatePayload!
+  moderationCaseUpdate(
+    moderationCaseId: ID!
+    expectedUpdatedAt: DateTime!
+    operations: ReviewModerationCaseUpdateInput
+  ): ReviewModerationCaseUpdatePayload!
+
+  contentExternalReferenceCreate(
+    input: ReviewContentExternalReferenceCreateInput!
+  ): ReviewContentExternalReferenceCreatePayload!
+  contentExternalReferenceUpdate(
+    externalReferenceId: ID!
+    expectedUpdatedAt: DateTime!
+    operations: ReviewContentExternalReferenceUpdateInput
+  ): ReviewContentExternalReferenceUpdatePayload!
+  contentExternalReferenceDelete(
+    input: ReviewContentExternalReferenceDeleteInput!
+  ): ReviewContentExternalReferenceDeletePayload!
 }

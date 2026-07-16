@@ -1,0 +1,171 @@
+type ReviewStoreConfiguration implements Node @key(fields: "id") {
+  id: ID!
+  reviewsEnabled: Boolean!
+  questionsEnabled: Boolean!
+  guestReviewsEnabled: Boolean!
+  guestQuestionsEnabled: Boolean!
+  customerAnswersEnabled: Boolean!
+  verifiedPurchaseRequired: Boolean!
+  reviewModerationMode: ReviewModerationMode!
+  questionModerationMode: ReviewModerationMode!
+  answerModerationMode: ReviewModerationMode!
+  reviewDuplicatePolicy: ReviewDuplicatePolicy!
+  reviewRequestsEnabled: Boolean!
+  reviewRequestDelayDays: Int!
+  reviewRequestExpiryDays: Int!
+  reviewEditWindowHours: Int!
+  questionEditWindowHours: Int!
+  answerEditWindowHours: Int!
+  maxReviewMediaCount: Int!
+  maxAnswersPerQuestion: Int!
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ReviewRatingCriterion implements Node @key(fields: "id") {
+  id: ID!
+  code: String!
+  defaultTitle: String!
+  defaultDescription: String
+  weight: Float!
+  isRequired: Boolean!
+  isActive: Boolean!
+  appliesToAllProducts: Boolean!
+  sortIndex: Int!
+  translations: [ReviewRatingCriterionTranslation!]!
+  assignments: [ReviewRatingCriterionAssignment!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+type ReviewRatingCriterionTranslation {
+  locale: String!
+  title: String!
+  description: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+union ReviewRatingCriterionTarget = Product | Category
+
+type ReviewRatingCriterionAssignment implements Node @key(fields: "id") {
+  id: ID!
+  criterion: ReviewRatingCriterion!
+  targetType: ReviewRatingCriterionTargetType!
+  targetId: ID!
+  target: ReviewRatingCriterionTarget!
+  isRequiredOverride: Boolean
+  sortIndexOverride: Int
+  createdAt: DateTime!
+}
+
+type ReviewRatingCriterionConnection {
+  edges: [ReviewRatingCriterionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewRatingCriterionEdge {
+  node: ReviewRatingCriterion!
+  cursor: String!
+}
+
+input ReviewStoreConfigurationUpdateInput {
+  reviewsEnabled: Boolean
+  questionsEnabled: Boolean
+  guestReviewsEnabled: Boolean
+  guestQuestionsEnabled: Boolean
+  customerAnswersEnabled: Boolean
+  verifiedPurchaseRequired: Boolean
+  reviewModerationMode: ReviewModerationMode
+  questionModerationMode: ReviewModerationMode
+  answerModerationMode: ReviewModerationMode
+  reviewDuplicatePolicy: ReviewDuplicatePolicy
+  reviewRequestsEnabled: Boolean
+  reviewRequestDelayDays: Int
+  reviewRequestExpiryDays: Int
+  reviewEditWindowHours: Int
+  questionEditWindowHours: Int
+  answerEditWindowHours: Int
+  maxReviewMediaCount: Int
+  maxAnswersPerQuestion: Int
+}
+
+input ReviewRatingCriterionTranslationInput {
+  locale: String!
+  title: String!
+  description: String
+}
+
+input ReviewRatingCriterionAssignmentInput {
+  targetType: ReviewRatingCriterionTargetType!
+  targetId: ID!
+  isRequiredOverride: Boolean
+  sortIndexOverride: Int
+}
+
+input ReviewRatingCriterionCreateInput {
+  code: String!
+  defaultTitle: String!
+  defaultDescription: String
+  weight: Float
+  isRequired: Boolean
+  isActive: Boolean
+  appliesToAllProducts: Boolean
+  sortIndex: Int
+  translations: [ReviewRatingCriterionTranslationInput!]
+  assignments: [ReviewRatingCriterionAssignmentInput!]
+}
+
+input ReviewRatingCriterionDefinitionInput {
+  code: String
+  defaultTitle: String
+  defaultDescription: String
+  weight: Float
+  isRequired: Boolean
+  isActive: Boolean
+  sortIndex: Int
+}
+
+input ReviewRatingCriterionApplicabilityInput {
+  appliesToAllProducts: Boolean!
+}
+
+input ReviewRatingCriterionUpdateInput {
+  definition: ReviewRatingCriterionDefinitionInput
+  applicability: ReviewRatingCriterionApplicabilityInput
+  """Complete translation replacement when supplied."""
+  translations: [ReviewRatingCriterionTranslationInput!]
+  """Complete product/category assignment replacement when supplied."""
+  assignments: [ReviewRatingCriterionAssignmentInput!]
+}
+
+input ReviewRatingCriterionDeleteInput {
+  id: ID!
+  expectedUpdatedAt: DateTime!
+  permanent: Boolean = false
+}
+
+type ReviewStoreConfigurationUpdatePayload {
+  configuration: ReviewStoreConfiguration
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewRatingCriterionCreatePayload {
+  criterion: ReviewRatingCriterion
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewRatingCriterionUpdatePayload {
+  criterion: ReviewRatingCriterion
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewRatingCriterionDeletePayload {
+  deletedCriterionId: ID
+  userErrors: [GenericUserError!]!
+}

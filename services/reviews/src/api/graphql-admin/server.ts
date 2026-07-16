@@ -97,9 +97,21 @@ export async function startServer(serverConfig: ServerConfig) {
     "shared-units.graphql",
     "scalars.graphql",
     "base.graphql",
+    "enums.graphql",
+    "references.graphql",
     "__generated__/base-filters.graphql",
     "__generated__/filters.graphql",
+    "filters.graphql",
     "relay.graphql",
+    "content.graphql",
+    "configuration.graphql",
+    "review.graphql",
+    "question.graphql",
+    "request.graphql",
+    "engagement.graphql",
+    "moderation.graphql",
+    "integration.graphql",
+    "summary.graphql",
   ];
 
   const modules = schemaFiles.map((file) => ({

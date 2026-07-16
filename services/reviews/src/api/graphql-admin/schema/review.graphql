@@ -1,0 +1,261 @@
+type Review implements Node & ReviewContent @key(fields: "id") {
+  id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: String!
+  author: ReviewContentAuthor!
+  sourceChannel: String!
+  sourceMetadata: JSON!
+  idempotencyKey: String
+  status: ReviewContentStatus!
+  moderationNote: String
+  moderatedByPrincipalId: String
+  moderatedAt: DateTime
+  publishedAt: DateTime
+  unpublishedAt: DateTime
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+  redactedAt: DateTime
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  publications: [ReviewContentPublication!]!
+  votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
+  reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
+  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
+  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
+  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
+  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+
+  product: Product!
+  variant: Variant
+  """Orders is not yet an admin federation entity, so evidence remains a global ID contract."""
+  orderId: ID
+  orderLineId: ID
+  rating: Int!
+  ratings: [ReviewRating!]!
+  verificationStatus: ReviewVerificationStatus!
+  verificationMethod: String
+  verifiedAt: DateTime
+  isVerifiedPurchase: Boolean!
+  isIncentivized: Boolean!
+  incentiveDisclosure: String
+  media: [ReviewMedia!]!
+  replies(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ReviewReplyWhereInput
+    orderBy: [ReviewReplyOrderByInput!]
+    meta: ReviewContentConnectionMetaInput
+  ): ReviewReplyConnection!
+}
+
+type ReviewRating {
+  criterion: ReviewRatingCriterion!
+  value: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ReviewMedia implements Node @key(fields: "id") {
+  id: ID!
+  review: Review!
+  file: File!
+  sortIndex: Int!
+  caption: String
+  status: ReviewContentStatus!
+  moderationNote: String
+  moderatedByPrincipalId: String
+  moderatedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ReviewReply implements Node & ReviewContent @key(fields: "id") {
+  id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: String!
+  author: ReviewContentAuthor!
+  sourceChannel: String!
+  sourceMetadata: JSON!
+  idempotencyKey: String
+  status: ReviewContentStatus!
+  moderationNote: String
+  moderatedByPrincipalId: String
+  moderatedAt: DateTime
+  publishedAt: DateTime
+  unpublishedAt: DateTime
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+  redactedAt: DateTime
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  publications: [ReviewContentPublication!]!
+  votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
+  reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
+  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
+  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
+  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
+  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+
+  review: Review!
+  isOfficial: Boolean!
+  sortIndex: Int!
+}
+
+type ReviewConnection {
+  edges: [ReviewEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewEdge {
+  node: Review!
+  cursor: String!
+}
+
+type ReviewReplyConnection {
+  edges: [ReviewReplyEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewReplyEdge {
+  node: ReviewReply!
+  cursor: String!
+}
+
+input ReviewRatingValueInput {
+  criterionId: ID!
+  value: Int!
+}
+
+input ReviewRatingUpdateInput {
+  overall: Int
+  """Complete detailed criterion rating replacement when supplied."""
+  criteria: [ReviewRatingValueInput!]
+}
+
+input ReviewSubjectUpdateInput {
+  productId: ID
+  variantId: ID
+  orderId: ID
+  orderLineId: ID
+}
+
+input ReviewVerificationUpdateInput {
+  status: ReviewVerificationStatus!
+  method: String
+  verifiedAt: DateTime
+}
+
+input ReviewIncentiveUpdateInput {
+  isIncentivized: Boolean!
+  disclosure: String
+}
+
+input ReviewMediaSyncItemInput {
+  fileId: ID!
+  sortIndex: Int!
+  caption: String
+  status: ReviewContentStatus
+}
+
+input ReviewCreateInput {
+  content: ReviewContentCreateInput!
+  productId: ID!
+  variantId: ID
+  orderId: ID
+  orderLineId: ID
+  rating: Int!
+  ratings: [ReviewRatingValueInput!]
+  verification: ReviewVerificationUpdateInput
+  incentive: ReviewIncentiveUpdateInput
+  media: [ReviewMediaSyncItemInput!]
+}
+
+"""Section-based aggregate update following Catalog productUpdate semantics."""
+input ReviewUpdateInput {
+  content: ReviewContentUpdateInput
+  subject: ReviewSubjectUpdateInput
+  rating: ReviewRatingUpdateInput
+  verification: ReviewVerificationUpdateInput
+  incentive: ReviewIncentiveUpdateInput
+  """Complete media replacement when supplied. Empty removes every attachment."""
+  media: [ReviewMediaSyncItemInput!]
+}
+
+input ReviewMediaDetailsUpdateInput {
+  sortIndex: Int
+  caption: String
+}
+
+input ReviewMediaUpdateInput {
+  details: ReviewMediaDetailsUpdateInput
+  moderation: ReviewContentModerationInput
+}
+
+input ReviewReplyCreateInput {
+  reviewId: ID!
+  content: ReviewContentCreateInput!
+  isOfficial: Boolean = true
+  sortIndex: Int
+}
+
+input ReviewReplyPropertiesUpdateInput {
+  isOfficial: Boolean
+  sortIndex: Int
+}
+
+input ReviewReplyUpdateInput {
+  content: ReviewContentUpdateInput
+  properties: ReviewReplyPropertiesUpdateInput
+}
+
+type ReviewCreatePayload {
+  review: Review
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewUpdatePayload {
+  review: Review
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewDeletePayload {
+  deletedReviewId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewMediaUpdatePayload {
+  reviewMedia: ReviewMedia
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewReplyCreatePayload {
+  reviewReply: ReviewReply
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewReplyUpdatePayload {
+  reviewReply: ReviewReply
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewReplyDeletePayload {
+  deletedReviewReplyId: ID
+  userErrors: [GenericUserError!]!
+}

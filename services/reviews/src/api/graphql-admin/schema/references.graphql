@@ -1,0 +1,24 @@
+# Catalog Product reference. Reviews never joins the Catalog database.
+extend type Product implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+# Catalog Variant reference. Reviews never joins the Catalog database.
+extend type Variant implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+# Catalog Category reference used by rating criterion assignments.
+extend type Category implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+# Customers reference for authenticated authors, reporters, and subscribers.
+extend type Customer implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+# Media File reference for review attachments.
+extend type File implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}

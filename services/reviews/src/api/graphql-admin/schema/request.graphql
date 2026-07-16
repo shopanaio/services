@@ -1,0 +1,103 @@
+type ReviewRequest implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  orderId: ID!
+  orderLineId: ID!
+  product: Product!
+  variant: Variant
+  review: Review
+  channel: ReviewNotificationChannel!
+  status: ReviewRequestStatus!
+  locale: String!
+  sourceChannel: String!
+  providerMessageId: String
+  attemptCount: Int!
+  scheduledAt: DateTime!
+  sentAt: DateTime
+  deliveredAt: DateTime
+  openedAt: DateTime
+  submittedAt: DateTime
+  expiresAt: DateTime
+  lastError: String
+  events(first: Int, after: String, last: Int, before: String): ReviewRequestEventConnection!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ReviewRequestEvent implements Node @key(fields: "id") {
+  id: ID!
+  reviewRequest: ReviewRequest!
+  type: ReviewRequestEventType!
+  providerEventId: String
+  metadata: JSON!
+  occurredAt: DateTime!
+  createdAt: DateTime!
+}
+
+type ReviewRequestConnection {
+  edges: [ReviewRequestEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewRequestEdge {
+  node: ReviewRequest!
+  cursor: String!
+}
+
+type ReviewRequestEventConnection {
+  edges: [ReviewRequestEventEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewRequestEventEdge {
+  node: ReviewRequestEvent!
+  cursor: String!
+}
+
+input ReviewRequestCreateInput {
+  customerId: ID!
+  orderId: ID!
+  orderLineId: ID!
+  productId: ID!
+  variantId: ID
+  channel: ReviewNotificationChannel!
+  locale: String!
+  sourceChannel: String = "ADMIN"
+  idempotencyKey: String!
+  scheduledAt: DateTime!
+  expiresAt: DateTime
+}
+
+input ReviewRequestDeliveryUpdateInput {
+  channel: ReviewNotificationChannel
+  locale: String
+}
+
+input ReviewRequestScheduleUpdateInput {
+  scheduledAt: DateTime!
+  expiresAt: DateTime
+}
+
+input ReviewRequestTransitionInput {
+  action: ReviewRequestTransitionAction!
+  reason: String
+}
+
+input ReviewRequestUpdateInput {
+  delivery: ReviewRequestDeliveryUpdateInput
+  schedule: ReviewRequestScheduleUpdateInput
+  transition: ReviewRequestTransitionInput
+}
+
+type ReviewRequestCreatePayload {
+  reviewRequest: ReviewRequest
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewRequestUpdatePayload {
+  reviewRequest: ReviewRequest
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}

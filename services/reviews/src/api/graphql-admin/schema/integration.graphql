@@ -1,0 +1,81 @@
+type ReviewContentExternalReference implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  externalSystem: String!
+  externalType: String!
+  externalId: String!
+  externalUrl: String
+  direction: ReviewExternalSyncDirection!
+  syncStatus: ReviewExternalSyncStatus!
+  etag: String
+  contentChecksum: String
+  lastSyncedAt: DateTime
+  lastError: String
+  metadata: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+type ReviewContentExternalReferenceConnection {
+  edges: [ReviewContentExternalReferenceEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewContentExternalReferenceEdge {
+  node: ReviewContentExternalReference!
+  cursor: String!
+}
+
+input ReviewContentExternalReferenceCreateInput {
+  contentId: ID!
+  externalSystem: String!
+  externalType: String!
+  externalId: String!
+  externalUrl: String
+  direction: ReviewExternalSyncDirection!
+  metadata: JSON
+}
+
+input ReviewContentExternalReferenceIdentityInput {
+  externalSystem: String
+  externalType: String
+  externalId: String
+  externalUrl: String
+}
+
+input ReviewContentExternalReferenceSyncInput {
+  direction: ReviewExternalSyncDirection
+  status: ReviewExternalSyncStatus
+  etag: String
+  contentChecksum: String
+  metadata: JSON
+}
+
+input ReviewContentExternalReferenceUpdateInput {
+  identity: ReviewContentExternalReferenceIdentityInput
+  sync: ReviewContentExternalReferenceSyncInput
+}
+
+input ReviewContentExternalReferenceDeleteInput {
+  id: ID!
+  expectedUpdatedAt: DateTime!
+  permanent: Boolean = false
+}
+
+type ReviewContentExternalReferenceCreatePayload {
+  externalReference: ReviewContentExternalReference
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewContentExternalReferenceUpdatePayload {
+  externalReference: ReviewContentExternalReference
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewContentExternalReferenceDeletePayload {
+  deletedExternalReferenceId: ID
+  userErrors: [GenericUserError!]!
+}

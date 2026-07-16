@@ -1,0 +1,281 @@
+"""Shared contract implemented by every moderated Reviews content aggregate."""
+interface ReviewContent implements Node {
+  id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: String!
+  author: ReviewContentAuthor!
+  sourceChannel: String!
+  sourceMetadata: JSON!
+  idempotencyKey: String
+  status: ReviewContentStatus!
+  moderationNote: String
+  moderatedByPrincipalId: String
+  moderatedAt: DateTime
+  publishedAt: DateTime
+  unpublishedAt: DateTime
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+  redactedAt: DateTime
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  publications: [ReviewContentPublication!]!
+  votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
+  reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
+  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
+  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
+  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
+  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+}
+
+type ReviewContentAuthor {
+  type: ReviewContentAuthorType!
+  customer: Customer
+  principalId: String
+  displayName: String!
+  """Snapshot email; null after privacy redaction or when not collected."""
+  email: Email
+}
+
+"""Transactionally maintained counters used by admin filtering and sorting."""
+type ReviewContentMetrics {
+  likeCount: Int!
+  dislikeCount: Int!
+  reportCount: Int!
+  openReportCount: Int!
+  mediaCount: Int!
+  childCount: Int!
+  officialChildCount: Int!
+  acceptedChildCount: Int!
+  lastChildAt: DateTime
+  updatedAt: DateTime!
+}
+
+type ReviewContentConnection {
+  edges: [ReviewContentEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewContentEdge {
+  node: ReviewContent!
+  cursor: String!
+}
+
+type ReviewContentTranslation implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  locale: String!
+  title: String
+  body: String!
+  source: ReviewTranslationSource!
+  status: ReviewContentStatus!
+  revision: Int!
+  reviewedByPrincipalId: String
+  reviewedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ReviewContentPublication implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  channel: String!
+  locale: String
+  status: ReviewPublicationStatus!
+  scheduledAt: DateTime
+  publishedAt: DateTime
+  unpublishedAt: DateTime
+  lastError: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Result for one section of a unified update."""
+type ReviewsOperationResult {
+  type: ReviewsOperationType!
+  applied: Boolean!
+  clientMutationId: String
+  entityId: ID
+  errors: [GenericUserError!]!
+}
+
+input ReviewContentAuthorCreateInput {
+  type: ReviewContentAuthorType!
+  customerId: ID
+  principalId: String
+  displayName: String!
+  email: Email
+}
+
+input ReviewContentAuthorUpdateInput {
+  type: ReviewContentAuthorType
+  """Pass null to remove the customer link when the resulting author type allows it."""
+  customerId: ID
+  principalId: String
+  displayName: String
+  email: Email
+}
+
+input ReviewContentSourceCreateInput {
+  channel: String = "ADMIN"
+  metadata: JSON
+  idempotencyKey: String
+}
+
+input ReviewContentSourceUpdateInput {
+  channel: String
+  metadata: JSON
+  idempotencyKey: String
+}
+
+input ReviewContentCreateInput {
+  title: String
+  body: String!
+  locale: String!
+  author: ReviewContentAuthorCreateInput!
+  source: ReviewContentSourceCreateInput
+  """Admin imports may set an initial status; PENDING is the default."""
+  status: ReviewContentStatus
+  moderationNote: String
+}
+
+input ReviewContentTextUpdateInput {
+  title: String
+  body: String
+  locale: String
+}
+
+input ReviewContentModerationInput {
+  status: ReviewContentStatus!
+  moderationNote: String
+}
+
+"""Common section operations reused by all content aggregate updates."""
+input ReviewContentUpdateInput {
+  text: ReviewContentTextUpdateInput
+  author: ReviewContentAuthorUpdateInput
+  source: ReviewContentSourceUpdateInput
+  moderation: ReviewContentModerationInput
+  """Complete translation replacement when supplied. Empty removes all translations."""
+  translations: [ReviewContentTranslationSyncInput!]
+  """Complete publication destination replacement when supplied."""
+  publications: [ReviewContentPublicationSyncInput!]
+}
+
+input ReviewContentDeleteInput {
+  id: ID!
+  expectedRevision: Int!
+  """Hard deletion is reserved for explicit privacy or retention workflows."""
+  permanent: Boolean = false
+}
+
+input ReviewContentTranslationSyncInput {
+  locale: String!
+  title: String
+  body: String!
+  source: ReviewTranslationSource!
+  status: ReviewContentStatus
+}
+
+input ReviewContentPublicationSyncInput {
+  channel: String!
+  locale: String
+  status: ReviewPublicationStatus!
+  scheduledAt: DateTime
+}
+
+input ReviewContentTranslationCreateInput {
+  contentId: ID!
+  locale: String!
+  title: String
+  body: String!
+  source: ReviewTranslationSource!
+  status: ReviewContentStatus
+}
+
+input ReviewContentTranslationTextInput {
+  title: String
+  body: String
+}
+
+input ReviewContentTranslationUpdateInput {
+  text: ReviewContentTranslationTextInput
+  source: ReviewTranslationSource
+  moderation: ReviewContentModerationInput
+}
+
+input ReviewContentTranslationDeleteInput {
+  id: ID!
+  expectedRevision: Int!
+}
+
+input ReviewContentPublicationCreateInput {
+  contentId: ID!
+  channel: String!
+  locale: String
+  status: ReviewPublicationStatus
+  scheduledAt: DateTime
+}
+
+input ReviewContentPublicationDestinationInput {
+  channel: String
+  locale: String
+}
+
+input ReviewContentPublicationStateInput {
+  status: ReviewPublicationStatus!
+  scheduledAt: DateTime
+}
+
+input ReviewContentPublicationUpdateInput {
+  destination: ReviewContentPublicationDestinationInput
+  state: ReviewContentPublicationStateInput
+}
+
+input ReviewContentPublicationDeleteInput {
+  id: ID!
+  expectedUpdatedAt: DateTime!
+}
+
+type ReviewContentUpdatePayload {
+  content: ReviewContent
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewContentTranslationCreatePayload {
+  translation: ReviewContentTranslation
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewContentTranslationUpdatePayload {
+  translation: ReviewContentTranslation
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewContentTranslationDeletePayload {
+  deletedTranslationId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewContentPublicationCreatePayload {
+  publication: ReviewContentPublication
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewContentPublicationUpdatePayload {
+  publication: ReviewContentPublication
+  operationResults: [ReviewsOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ReviewContentPublicationDeletePayload {
+  deletedPublicationId: ID
+  userErrors: [GenericUserError!]!
+}
