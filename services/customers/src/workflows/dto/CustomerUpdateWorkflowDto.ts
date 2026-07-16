@@ -1,12 +1,7 @@
 import type { UserError } from "../../kernel/BaseScript.js";
+import type { CustomerMutationWorkflowContext } from "./CustomerMutationWorkflowDto.js";
 
-export interface CustomerUpdateWorkflowContext {
-  organizationId: string;
-  storeId: string;
-  userId?: string;
-  locale?: string;
-  requestId: string;
-}
+export type CustomerUpdateWorkflowContext = CustomerMutationWorkflowContext;
 
 export interface CustomerUpdateOperationMeta {
   fieldPrefix: string[];

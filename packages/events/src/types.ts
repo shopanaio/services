@@ -167,6 +167,26 @@ export interface ProductUpdatedPayload {
 export interface ProductUpdatedEvent
   extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
 
+export interface CustomerCreatedEvent
+  extends DomainEvent<
+    "customerCreated",
+    {
+      customerId: string;
+      storeId: string;
+    }
+  > {}
+
+export interface CustomerDeletedEvent
+  extends DomainEvent<
+    "customerDeleted",
+    {
+      customerId: string;
+      storeId: string;
+      revision: number;
+      deletedAt: string;
+    }
+  > {}
+
 export type CustomerUpdatedReason =
   | "profile"
   | "contact"
@@ -320,6 +340,8 @@ export type ShopanaEvent =
   | ProductCreatedEvent
   | ProductDeletedEvent
   | ProductUpdatedEvent
+  | CustomerCreatedEvent
+  | CustomerDeletedEvent
   | CustomerUpdatedEvent
   | FacetCreatedEvent
   | FacetUpdatedEvent

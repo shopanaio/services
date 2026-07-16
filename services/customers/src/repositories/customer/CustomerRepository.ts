@@ -328,7 +328,10 @@ export class CustomerRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async softDelete(id: string, expectedRevision?: number): Promise<boolean> {
+  async softDelete(
+    id: string,
+    expectedRevision?: number
+  ): Promise<Customer | null> {
     const now = new Date().toISOString();
     const conditions = [
       eq(customer.storeId, this.storeId),
@@ -346,8 +349,8 @@ export class CustomerRepository extends BaseRepository {
         revision: sql`${customer.revision} + 1`,
       })
       .where(and(...conditions))
-      .returning({ id: customer.id });
-    return rows.length > 0;
+      .returning();
+    return rows[0] ?? null;
   }
 
   @ReadOnly()

@@ -1,16 +1,30 @@
 import {
   decodeGlobalIdByType,
+  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import { ApolloMutation } from "@shopana/type-resolver";
+import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
+  CustomerCreateWorkflowInput,
+  CustomerCreateWorkflowResult,
+  CustomerDeleteWorkflowInput,
+  CustomerDeleteWorkflowResult,
+  CustomerMutationWorkflowContext,
   CustomerUpdateOperation,
   CustomerUpdateWorkflowInput,
   CustomerUpdateWorkflowResult,
 } from "../../workflows/dto/index.js";
 import { CustomerResolver } from "./CustomerResolver.js";
 import { CustomersType } from "./CustomersType.js";
-import type { CustomersMutationCustomerUpdateArgs } from "./generated/types.js";
+import {
+  CustomerCreateInputSchema,
+  CustomerDeleteInputSchema,
+} from "./generated/schemas.js";
+import type {
+  CustomersMutationCustomerCreateArgs,
+  CustomersMutationCustomerDeleteArgs,
+  CustomersMutationCustomerUpdateArgs,
+} from "./generated/types.js";
 import { mapCustomerUpdateInput } from "./customerUpdateMapper.js";
 
 const emptyEntityPayload = (field: string) => ({
@@ -34,8 +48,35 @@ export class MutationResolver extends CustomersType<Record<string, never>> {
 export class CustomersMutationResolver extends CustomersType<
   Record<string, never>
 > {
-  customerCreate() {
-    return emptyEntityPayload("customer");
+  @ZodResolver(CustomerCreateInputSchema())
+  async customerCreate(args: CustomersMutationCustomerCreateArgs) {
+    const workflowInput: CustomerCreateWorkflowInput = {
+      params: {
+        ...args.input,
+        source: "admin",
+        createdByUserId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+      },
+      context: this.mutationWorkflowContext(),
+    };
+
+    const result = (await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow(
+        "customers.customerCreate",
+        workflowInput,
+        {
+          source: "workflow",
+          workflowId: `customerCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+          stepId: "start",
+        }
+      )) as CustomerCreateWorkflowResult;
+
+    return {
+      customer: result.customer
+        ? new CustomerResolver(result.customer.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
   }
 
   async customerUpdate(args: CustomersMutationCustomerUpdateArgs) {
@@ -75,13 +116,7 @@ export class CustomersMutationResolver extends CustomersType<
       customerId,
       expectedRevision: args.expectedRevision ?? undefined,
       operations: mapped.operations,
-      context: {
-        organizationId: this.$ctx.store.organizationId,
-        storeId: this.$ctx.store.id,
-        userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-        locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
-        requestId: this.$ctx.requestId,
-      },
+      context: this.mutationWorkflowContext(),
     };
 
     const result = (await this.$ctx.kernel
@@ -110,10 +145,60 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  customerDelete() {
+  @ZodResolver(CustomerDeleteInputSchema())
+  async customerDelete(args: CustomersMutationCustomerDeleteArgs) {
+    const customerId = safeDecodeCustomerId(args.input.id);
+    if (!customerId) {
+      return {
+        deletedCustomerId: null,
+        userErrors: [
+          {
+            message: "Invalid ID format",
+            field: ["input", "id"],
+            code: "INVALID_ID",
+          },
+        ],
+      };
+    }
+
+    const workflowInput: CustomerDeleteWorkflowInput = {
+      params: {
+        id: customerId,
+        expectedRevision: args.input.expectedRevision ?? undefined,
+      },
+      context: this.mutationWorkflowContext(),
+    };
+    const result = (await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow(
+        "customers.customerDelete",
+        workflowInput,
+        {
+          source: "workflow",
+          workflowId: `customerDelete:${customerId}:${this.$ctx.requestId}`,
+          stepId: "start",
+        }
+      )) as CustomerDeleteWorkflowResult;
+
+    this.$ctx.loaders.customer.clear(customerId);
     return {
-      deletedCustomerId: null,
-      userErrors: [],
+      deletedCustomerId: result.deletedCustomerId
+        ? encodeGlobalIdByType(
+            result.deletedCustomerId,
+            GlobalIdEntity.Customer
+          )
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  private mutationWorkflowContext(): CustomerMutationWorkflowContext {
+    return {
+      organizationId: this.$ctx.store.organizationId,
+      storeId: this.$ctx.store.id,
+      userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+      locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
+      requestId: this.$ctx.requestId,
     };
   }
 
