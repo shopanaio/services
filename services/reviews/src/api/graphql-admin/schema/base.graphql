@@ -171,12 +171,6 @@ type ReviewsMutation {
   ): ReviewUpdatePayload!
   reviewDelete(input: ReviewContentDeleteInput!): ReviewDeletePayload!
 
-  reviewMediaUpdate(
-    reviewMediaId: ID!
-    expectedUpdatedAt: DateTime!
-    operations: ReviewMediaUpdateInput
-  ): ReviewMediaUpdatePayload!
-
   reviewReplyCreate(input: ReviewReplyCreateInput!): ReviewReplyCreatePayload!
   reviewReplyUpdate(
     reviewReplyId: ID!
@@ -215,35 +209,6 @@ type ReviewsMutation {
     operations: ProductQuestionSubscriptionUpdateInput
   ): ProductQuestionSubscriptionUpdatePayload!
 
-  contentTranslationCreate(
-    input: ReviewContentTranslationCreateInput!
-  ): ReviewContentTranslationCreatePayload!
-  contentTranslationUpdate(
-    translationId: ID!
-    expectedRevision: Int!
-    operations: ReviewContentTranslationUpdateInput
-  ): ReviewContentTranslationUpdatePayload!
-  contentTranslationDelete(
-    input: ReviewContentTranslationDeleteInput!
-  ): ReviewContentTranslationDeletePayload!
-
-  contentPublicationCreate(
-    input: ReviewContentPublicationCreateInput!
-  ): ReviewContentPublicationCreatePayload!
-  contentPublicationUpdate(
-    publicationId: ID!
-    expectedUpdatedAt: DateTime!
-    operations: ReviewContentPublicationUpdateInput
-  ): ReviewContentPublicationUpdatePayload!
-  contentPublicationDelete(
-    input: ReviewContentPublicationDeleteInput!
-  ): ReviewContentPublicationDeletePayload!
-
-  contentModerate(
-    contentId: ID!
-    expectedRevision: Int!
-    operations: ReviewContentModerationInput!
-  ): ReviewContentUpdatePayload!
   contentRedact(
     contentId: ID!
     expectedRevision: Int!

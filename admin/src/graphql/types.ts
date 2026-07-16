@@ -24,7 +24,6 @@ export type Scalars = {
   Timestamp: { input: string; output: string; }
   TransportOptions: { input: unknown; output: unknown; }
   Upload: { input: File; output: File; }
-  _ReviewsGeneratedFilterPlaceholder: { input: any; output: any; }
   join__FieldSet: { input: any; output: any; }
   link__Import: { input: any; output: any; }
 };
@@ -9473,23 +9472,39 @@ export type ApiProductQuestionAnswerEdge = {
   node: ApiProductQuestionAnswer;
 };
 
+/** Ordering configuration for ProductQuestionAnswer */
 export type ApiProductQuestionAnswerOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ProductQuestionAnswerOrderField;
 };
 
+/** Fields available for sorting ProductQuestionAnswer */
 export enum ProductQuestionAnswerOrderField {
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isAccepted */
   IsAccepted = 'isAccepted',
+  /** Sort by isOfficial */
   IsOfficial = 'isOfficial',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by questionId */
   QuestionId = 'questionId',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sortIndex */
   SortIndex = 'sortIndex',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -9505,6 +9520,7 @@ export enum ProductQuestionAnswerState {
 }
 
 export type ApiProductQuestionAnswerUpdateInput = {
+  /** Text, author, source, moderation, translations, and publications. */
   content?: InputMaybe<ApiReviewContentUpdateInput>;
   properties?: InputMaybe<ApiProductQuestionAnswerPropertiesUpdateInput>;
 };
@@ -9516,23 +9532,41 @@ export type ApiProductQuestionAnswerUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for ProductQuestionAnswer */
 export type ApiProductQuestionAnswerWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiProductQuestionAnswerWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiProductQuestionAnswerWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiProductQuestionAnswerWhereInput>>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
   body?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isAccepted */
   isAccepted?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by isOfficial */
   isOfficial?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by questionId */
   questionId?: InputMaybe<ApiIdFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sortIndex */
   sortIndex?: InputMaybe<ApiIntFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -9567,29 +9601,51 @@ export type ApiProductQuestionEdge = {
   node: ApiProductQuestion;
 };
 
+/** Ordering configuration for ProductQuestion */
 export type ApiProductQuestionOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ProductQuestionOrderField;
 };
 
+/** Fields available for sorting ProductQuestion */
 export enum ProductQuestionOrderField {
+  /** Sort by acceptedAnswerCount */
   AcceptedAnswerCount = 'acceptedAnswerCount',
+  /** Sort by answerCount */
   AnswerCount = 'answerCount',
+  /** Sort by answerState */
   AnswerState = 'answerState',
+  /** Sort by authorDisplayName */
   AuthorDisplayName = 'authorDisplayName',
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by officialAnswerCount */
   OfficialAnswerCount = 'officialAnswerCount',
+  /** Sort by productId */
   ProductId = 'productId',
+  /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
+  /** Sort by reportCount */
   ReportCount = 'reportCount',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sourceChannel */
   SourceChannel = 'sourceChannel',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by variantId */
   VariantId = 'variantId'
 }
 
@@ -9658,6 +9714,7 @@ export type ApiProductQuestionSummary = {
 };
 
 export type ApiProductQuestionUpdateInput = {
+  /** Text, author, source, moderation, translations, and publications. */
   content?: InputMaybe<ApiReviewContentUpdateInput>;
   subject?: InputMaybe<ApiProductQuestionSubjectUpdateInput>;
 };
@@ -9669,29 +9726,53 @@ export type ApiProductQuestionUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for ProductQuestion */
 export type ApiProductQuestionWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiProductQuestionWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiProductQuestionWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiProductQuestionWhereInput>>;
+  /** Filter by acceptedAnswerCount */
   acceptedAnswerCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by answerCount */
   answerCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by answerState */
   answerState?: InputMaybe<ApiStringFilter>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorDisplayName */
   authorDisplayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
   body?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by officialAnswerCount */
   officialAnswerCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by productId */
   productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by publishedAt */
   publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by reportCount */
   reportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sourceChannel */
   sourceChannel?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by variantId */
   variantId?: InputMaybe<ApiIdFilter>;
 };
 
@@ -10167,13 +10248,7 @@ export type ApiReviewContentConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-/**
- * Relay filter contract for the admin read models.
- *
- * Names, logical operators, scalar filters, lower-case sort direction, and
- * multi-column order inputs intentionally match @shopana/drizzle-query output.
- * Tenant fields are never exposed and are always injected by repositories.
- */
+/** Repository-enforced visibility controls for moderated content lists. */
 export type ApiReviewContentConnectionMetaInput = {
   /** Include soft-deleted content; false by default. */
   includeDeleted?: InputMaybe<Scalars['Boolean']['input']>;
@@ -10273,22 +10348,37 @@ export type ApiReviewContentExternalReferenceIdentityInput = {
   externalUrl?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** Ordering configuration for ReviewContentExternalReference */
 export type ApiReviewContentExternalReferenceOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewContentExternalReferenceOrderField;
 };
 
+/** Fields available for sorting ReviewContentExternalReference */
 export enum ReviewContentExternalReferenceOrderField {
+  /** Sort by contentId */
   ContentId = 'contentId',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by direction */
   Direction = 'direction',
+  /** Sort by externalId */
   ExternalId = 'externalId',
+  /** Sort by externalSystem */
   ExternalSystem = 'externalSystem',
+  /** Sort by externalType */
   ExternalType = 'externalType',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by lastSyncedAt */
   LastSyncedAt = 'lastSyncedAt',
+  /** Sort by syncStatus */
   SyncStatus = 'syncStatus',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -10312,20 +10402,35 @@ export type ApiReviewContentExternalReferenceUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for ReviewContentExternalReference */
 export type ApiReviewContentExternalReferenceWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiReviewContentExternalReferenceWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiReviewContentExternalReferenceWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiReviewContentExternalReferenceWhereInput>>;
+  /** Filter by contentId */
   contentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by direction */
   direction?: InputMaybe<ApiStringFilter>;
+  /** Filter by externalId */
   externalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by externalSystem */
   externalSystem?: InputMaybe<ApiStringFilter>;
+  /** Filter by externalType */
   externalType?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by lastSyncedAt */
   lastSyncedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by syncStatus */
   syncStatus?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -10356,31 +10461,55 @@ export type ApiReviewContentModerationInput = {
   status: ReviewContentStatus;
 };
 
+/** Ordering configuration for ReviewContent */
 export type ApiReviewContentOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewContentOrderField;
 };
 
+/** Fields available for sorting ReviewContent */
 export enum ReviewContentOrderField {
+  /** Sort by authorDisplayName */
   AuthorDisplayName = 'authorDisplayName',
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by childCount */
   ChildCount = 'childCount',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by dislikeCount */
   DislikeCount = 'dislikeCount',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by kind */
   Kind = 'kind',
+  /** Sort by likeCount */
   LikeCount = 'likeCount',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by mediaCount */
   MediaCount = 'mediaCount',
+  /** Sort by openReportCount */
   OpenReportCount = 'openReportCount',
+  /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
+  /** Sort by redactedAt */
   RedactedAt = 'redactedAt',
+  /** Sort by reportCount */
   ReportCount = 'reportCount',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sourceChannel */
   SourceChannel = 'sourceChannel',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by title */
   Title = 'title',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -10399,58 +10528,11 @@ export type ApiReviewContentPublication = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiReviewContentPublicationCreateInput = {
-  channel: Scalars['String']['input'];
-  contentId: Scalars['ID']['input'];
-  locale?: InputMaybe<Scalars['String']['input']>;
-  scheduledAt?: InputMaybe<Scalars['DateTime']['input']>;
-  status?: InputMaybe<ReviewPublicationStatus>;
-};
-
-export type ApiReviewContentPublicationCreatePayload = {
-  __typename?: 'ReviewContentPublicationCreatePayload';
-  publication?: Maybe<ApiReviewContentPublication>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiReviewContentPublicationDeleteInput = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
-  id: Scalars['ID']['input'];
-};
-
-export type ApiReviewContentPublicationDeletePayload = {
-  __typename?: 'ReviewContentPublicationDeletePayload';
-  deletedPublicationId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiReviewContentPublicationDestinationInput = {
-  channel?: InputMaybe<Scalars['String']['input']>;
-  locale?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiReviewContentPublicationStateInput = {
-  scheduledAt?: InputMaybe<Scalars['DateTime']['input']>;
-  status: ReviewPublicationStatus;
-};
-
 export type ApiReviewContentPublicationSyncInput = {
   channel: Scalars['String']['input'];
   locale?: InputMaybe<Scalars['String']['input']>;
   scheduledAt?: InputMaybe<Scalars['DateTime']['input']>;
   status: ReviewPublicationStatus;
-};
-
-export type ApiReviewContentPublicationUpdateInput = {
-  destination?: InputMaybe<ApiReviewContentPublicationDestinationInput>;
-  state?: InputMaybe<ApiReviewContentPublicationStateInput>;
-};
-
-export type ApiReviewContentPublicationUpdatePayload = {
-  __typename?: 'ReviewContentPublicationUpdatePayload';
-  operationResults: Array<ApiReviewsOperationResult>;
-  publication?: Maybe<ApiReviewContentPublication>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiReviewContentReport = ApiNode & {
@@ -10486,21 +10568,35 @@ export type ApiReviewContentReportEdge = {
   node: ApiReviewContentReport;
 };
 
+/** Ordering configuration for ReviewContentReport */
 export type ApiReviewContentReportOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewContentReportOrderField;
 };
 
+/** Fields available for sorting ReviewContentReport */
 export enum ReviewContentReportOrderField {
+  /** Sort by assignedToPrincipalId */
   AssignedToPrincipalId = 'assignedToPrincipalId',
+  /** Sort by contentId */
   ContentId = 'contentId',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by reason */
   Reason = 'reason',
+  /** Sort by reporterCustomerId */
   ReporterCustomerId = 'reporterCustomerId',
+  /** Sort by resolvedAt */
   ResolvedAt = 'resolvedAt',
+  /** Sort by resolvedByPrincipalId */
   ResolvedByPrincipalId = 'resolvedByPrincipalId',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -10543,19 +10639,33 @@ export type ApiReviewContentReportUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for ReviewContentReport */
 export type ApiReviewContentReportWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiReviewContentReportWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiReviewContentReportWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiReviewContentReportWhereInput>>;
+  /** Filter by assignedToPrincipalId */
   assignedToPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by contentId */
   contentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by reason */
   reason?: InputMaybe<ApiStringFilter>;
+  /** Filter by reporterCustomerId */
   reporterCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by resolvedAt */
   resolvedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by resolvedByPrincipalId */
   resolvedByPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -10625,56 +10735,12 @@ export type ApiReviewContentTranslation = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiReviewContentTranslationCreateInput = {
-  body: Scalars['String']['input'];
-  contentId: Scalars['ID']['input'];
-  locale: Scalars['String']['input'];
-  source: ReviewTranslationSource;
-  status?: InputMaybe<ReviewContentStatus>;
-  title?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiReviewContentTranslationCreatePayload = {
-  __typename?: 'ReviewContentTranslationCreatePayload';
-  translation?: Maybe<ApiReviewContentTranslation>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiReviewContentTranslationDeleteInput = {
-  expectedRevision: Scalars['Int']['input'];
-  id: Scalars['ID']['input'];
-};
-
-export type ApiReviewContentTranslationDeletePayload = {
-  __typename?: 'ReviewContentTranslationDeletePayload';
-  deletedTranslationId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 export type ApiReviewContentTranslationSyncInput = {
   body: Scalars['String']['input'];
   locale: Scalars['String']['input'];
   source: ReviewTranslationSource;
   status?: InputMaybe<ReviewContentStatus>;
   title?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiReviewContentTranslationTextInput = {
-  body?: InputMaybe<Scalars['String']['input']>;
-  title?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiReviewContentTranslationUpdateInput = {
-  moderation?: InputMaybe<ApiReviewContentModerationInput>;
-  source?: InputMaybe<ReviewTranslationSource>;
-  text?: InputMaybe<ApiReviewContentTranslationTextInput>;
-};
-
-export type ApiReviewContentTranslationUpdatePayload = {
-  __typename?: 'ReviewContentTranslationUpdatePayload';
-  operationResults: Array<ApiReviewsOperationResult>;
-  translation?: Maybe<ApiReviewContentTranslation>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Common section operations reused by all content aggregate updates. */
@@ -10725,31 +10791,57 @@ export enum ReviewContentVoteType {
   Like = 'LIKE'
 }
 
+/** Filter conditions for ReviewContent */
 export type ApiReviewContentWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiReviewContentWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiReviewContentWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiReviewContentWhereInput>>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorDisplayName */
   authorDisplayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
   body?: InputMaybe<ApiStringFilter>;
+  /** Filter by childCount */
   childCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by dislikeCount */
   dislikeCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by kind */
   kind?: InputMaybe<ApiStringFilter>;
+  /** Filter by likeCount */
   likeCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by mediaCount */
   mediaCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by openReportCount */
   openReportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by publishedAt */
   publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by redactedAt */
   redactedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by reportCount */
   reportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sourceChannel */
   sourceChannel?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiStringFilter>;
+  /** Filter by title */
   title?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -10823,28 +10915,11 @@ export type ApiReviewMedia = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiReviewMediaDetailsUpdateInput = {
-  caption?: InputMaybe<Scalars['String']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-};
-
 export type ApiReviewMediaSyncItemInput = {
   caption?: InputMaybe<Scalars['String']['input']>;
   fileId: Scalars['ID']['input'];
-  sortIndex: Scalars['Int']['input'];
-  status?: InputMaybe<ReviewContentStatus>;
-};
-
-export type ApiReviewMediaUpdateInput = {
-  details?: InputMaybe<ApiReviewMediaDetailsUpdateInput>;
   moderation?: InputMaybe<ApiReviewContentModerationInput>;
-};
-
-export type ApiReviewMediaUpdatePayload = {
-  __typename?: 'ReviewMediaUpdatePayload';
-  operationResults: Array<ApiReviewsOperationResult>;
-  reviewMedia?: Maybe<ApiReviewMedia>;
-  userErrors: Array<ApiGenericUserError>;
+  sortIndex: Scalars['Int']['input'];
 };
 
 export enum ReviewModerationAction {
@@ -10910,23 +10985,39 @@ export type ApiReviewModerationCaseEdge = {
   node: ApiReviewModerationCase;
 };
 
+/** Ordering configuration for ReviewModerationCase */
 export type ApiReviewModerationCaseOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewModerationCaseOrderField;
 };
 
+/** Fields available for sorting ReviewModerationCase */
 export enum ReviewModerationCaseOrderField {
+  /** Sort by assignedToPrincipalId */
   AssignedToPrincipalId = 'assignedToPrincipalId',
+  /** Sort by contentId */
   ContentId = 'contentId',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by dueAt */
   DueAt = 'dueAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by priority */
   Priority = 'priority',
+  /** Sort by reasonCode */
   ReasonCode = 'reasonCode',
+  /** Sort by resolutionCode */
   ResolutionCode = 'resolutionCode',
+  /** Sort by resolvedAt */
   ResolvedAt = 'resolvedAt',
+  /** Sort by resolvedByPrincipalId */
   ResolvedByPrincipalId = 'resolvedByPrincipalId',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -10956,21 +11047,37 @@ export type ApiReviewModerationCaseUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for ReviewModerationCase */
 export type ApiReviewModerationCaseWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiReviewModerationCaseWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiReviewModerationCaseWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiReviewModerationCaseWhereInput>>;
+  /** Filter by assignedToPrincipalId */
   assignedToPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by contentId */
   contentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by dueAt */
   dueAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by priority */
   priority?: InputMaybe<ApiIntFilter>;
+  /** Filter by reasonCode */
   reasonCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by resolutionCode */
   resolutionCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by resolvedAt */
   resolvedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by resolvedByPrincipalId */
   resolvedByPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -11051,33 +11158,59 @@ export enum ReviewNotificationChannel {
   Sms = 'SMS'
 }
 
+/** Ordering configuration for Review */
 export type ApiReviewOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewOrderField;
 };
 
+/** Fields available for sorting Review */
 export enum ReviewOrderField {
+  /** Sort by authorDisplayName */
   AuthorDisplayName = 'authorDisplayName',
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by dislikeCount */
   DislikeCount = 'dislikeCount',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isIncentivized */
   IsIncentivized = 'isIncentivized',
+  /** Sort by likeCount */
   LikeCount = 'likeCount',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by mediaCount */
   MediaCount = 'mediaCount',
+  /** Sort by openReportCount */
   OpenReportCount = 'openReportCount',
+  /** Sort by productId */
   ProductId = 'productId',
+  /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
+  /** Sort by rating */
   Rating = 'rating',
+  /** Sort by reportCount */
   ReportCount = 'reportCount',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sourceChannel */
   SourceChannel = 'sourceChannel',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by title */
   Title = 'title',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by variantId */
   VariantId = 'variantId',
+  /** Sort by verificationStatus */
   VerificationStatus = 'verificationStatus'
 }
 
@@ -11201,22 +11334,37 @@ export type ApiReviewRatingCriterionEdge = {
   node: ApiReviewRatingCriterion;
 };
 
+/** Ordering configuration for ReviewRatingCriterion */
 export type ApiReviewRatingCriterionOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewRatingCriterionOrderField;
 };
 
+/** Fields available for sorting ReviewRatingCriterion */
 export enum ReviewRatingCriterionOrderField {
+  /** Sort by appliesToAllProducts */
   AppliesToAllProducts = 'appliesToAllProducts',
+  /** Sort by code */
   Code = 'code',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by defaultTitle */
   DefaultTitle = 'defaultTitle',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isActive */
   IsActive = 'isActive',
+  /** Sort by isRequired */
   IsRequired = 'isRequired',
+  /** Sort by sortIndex */
   SortIndex = 'sortIndex',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by weight */
   Weight = 'weight'
 }
 
@@ -11258,20 +11406,35 @@ export type ApiReviewRatingCriterionUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for ReviewRatingCriterion */
 export type ApiReviewRatingCriterionWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiReviewRatingCriterionWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiReviewRatingCriterionWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiReviewRatingCriterionWhereInput>>;
+  /** Filter by appliesToAllProducts */
   appliesToAllProducts?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by code */
   code?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by defaultTitle */
   defaultTitle?: InputMaybe<ApiStringFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isActive */
   isActive?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by isRequired */
   isRequired?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by sortIndex */
   sortIndex?: InputMaybe<ApiIntFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by weight */
   weight?: InputMaybe<ApiFloatFilter>;
 };
 
@@ -11411,22 +11574,37 @@ export type ApiReviewReplyEdge = {
   node: ApiReviewReply;
 };
 
+/** Ordering configuration for ReviewReply */
 export type ApiReviewReplyOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewReplyOrderField;
 };
 
+/** Fields available for sorting ReviewReply */
 export enum ReviewReplyOrderField {
+  /** Sort by authorType */
   AuthorType = 'authorType',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by deletedAt */
   DeletedAt = 'deletedAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by isOfficial */
   IsOfficial = 'isOfficial',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by reviewId */
   ReviewId = 'reviewId',
+  /** Sort by revision */
   Revision = 'revision',
+  /** Sort by sortIndex */
   SortIndex = 'sortIndex',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
 
@@ -11436,6 +11614,7 @@ export type ApiReviewReplyPropertiesUpdateInput = {
 };
 
 export type ApiReviewReplyUpdateInput = {
+  /** Text, author, source, moderation, translations, and publications. */
   content?: InputMaybe<ApiReviewContentUpdateInput>;
   properties?: InputMaybe<ApiReviewReplyPropertiesUpdateInput>;
 };
@@ -11447,22 +11626,39 @@ export type ApiReviewReplyUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for ReviewReply */
 export type ApiReviewReplyWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiReviewReplyWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiReviewReplyWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiReviewReplyWhereInput>>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
   body?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isOfficial */
   isOfficial?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by reviewId */
   reviewId?: InputMaybe<ApiIdFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sortIndex */
   sortIndex?: InputMaybe<ApiIntFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
@@ -11577,32 +11773,57 @@ export enum ReviewRequestEventType {
   Submitted = 'SUBMITTED'
 }
 
+/** Ordering configuration for ReviewRequest */
 export type ApiReviewRequestOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: ReviewRequestOrderField;
 };
 
+/** Fields available for sorting ReviewRequest */
 export enum ReviewRequestOrderField {
+  /** Sort by attemptCount */
   AttemptCount = 'attemptCount',
+  /** Sort by channel */
   Channel = 'channel',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by customerId */
   CustomerId = 'customerId',
+  /** Sort by deliveredAt */
   DeliveredAt = 'deliveredAt',
+  /** Sort by expiresAt */
   ExpiresAt = 'expiresAt',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by openedAt */
   OpenedAt = 'openedAt',
+  /** Sort by orderId */
   OrderId = 'orderId',
+  /** Sort by orderLineId */
   OrderLineId = 'orderLineId',
+  /** Sort by productId */
   ProductId = 'productId',
+  /** Sort by providerMessageId */
   ProviderMessageId = 'providerMessageId',
+  /** Sort by reviewId */
   ReviewId = 'reviewId',
+  /** Sort by scheduledAt */
   ScheduledAt = 'scheduledAt',
+  /** Sort by sentAt */
   SentAt = 'sentAt',
+  /** Sort by sourceChannel */
   SourceChannel = 'sourceChannel',
+  /** Sort by status */
   Status = 'status',
+  /** Sort by submittedAt */
   SubmittedAt = 'submittedAt',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by variantId */
   VariantId = 'variantId'
 }
 
@@ -11647,30 +11868,55 @@ export type ApiReviewRequestUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for ReviewRequest */
 export type ApiReviewRequestWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiReviewRequestWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiReviewRequestWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiReviewRequestWhereInput>>;
+  /** Filter by attemptCount */
   attemptCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by channel */
   channel?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by customerId */
   customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by deliveredAt */
   deliveredAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by expiresAt */
   expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by openedAt */
   openedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by orderId */
   orderId?: InputMaybe<ApiIdFilter>;
+  /** Filter by orderLineId */
   orderLineId?: InputMaybe<ApiIdFilter>;
+  /** Filter by productId */
   productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by providerMessageId */
   providerMessageId?: InputMaybe<ApiStringFilter>;
+  /** Filter by reviewId */
   reviewId?: InputMaybe<ApiIdFilter>;
+  /** Filter by scheduledAt */
   scheduledAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by sentAt */
   sentAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by sourceChannel */
   sourceChannel?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiStringFilter>;
+  /** Filter by submittedAt */
   submittedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by variantId */
   variantId?: InputMaybe<ApiIdFilter>;
 };
 
@@ -11743,6 +11989,7 @@ export enum ReviewTranslationSource {
 
 /** Section-based aggregate update following Catalog productUpdate semantics. */
 export type ApiReviewUpdateInput = {
+  /** Text, author, source, moderation, translations, and publications. */
   content?: InputMaybe<ApiReviewContentUpdateInput>;
   incentive?: InputMaybe<ApiReviewIncentiveUpdateInput>;
   /** Complete media replacement when supplied. Empty removes every attachment. */
@@ -11771,35 +12018,65 @@ export type ApiReviewVerificationUpdateInput = {
   verifiedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
+/** Filter conditions for Review */
 export type ApiReviewWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiReviewWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiReviewWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiReviewWhereInput>>;
+  /** Filter by authorCustomerId */
   authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorDisplayName */
   authorDisplayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by authorType */
   authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
   body?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
   deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by dislikeCount */
   dislikeCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isIncentivized */
   isIncentivized?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by likeCount */
   likeCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by mediaCount */
   mediaCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by openReportCount */
   openReportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by orderId */
   orderId?: InputMaybe<ApiIdFilter>;
+  /** Filter by orderLineId */
   orderLineId?: InputMaybe<ApiIdFilter>;
+  /** Filter by productId */
   productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by publishedAt */
   publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by rating */
   rating?: InputMaybe<ApiIntFilter>;
+  /** Filter by reportCount */
   reportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by revision */
   revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sourceChannel */
   sourceChannel?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
   status?: InputMaybe<ApiStringFilter>;
+  /** Filter by title */
   title?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by variantId */
   variantId?: InputMaybe<ApiIdFilter>;
+  /** Filter by verificationStatus */
   verificationStatus?: InputMaybe<ApiStringFilter>;
 };
 
@@ -11809,16 +12086,9 @@ export type ApiReviewsMutation = {
   contentExternalReferenceCreate: ApiReviewContentExternalReferenceCreatePayload;
   contentExternalReferenceDelete: ApiReviewContentExternalReferenceDeletePayload;
   contentExternalReferenceUpdate: ApiReviewContentExternalReferenceUpdatePayload;
-  contentModerate: ApiReviewContentUpdatePayload;
-  contentPublicationCreate: ApiReviewContentPublicationCreatePayload;
-  contentPublicationDelete: ApiReviewContentPublicationDeletePayload;
-  contentPublicationUpdate: ApiReviewContentPublicationUpdatePayload;
   contentRedact: ApiReviewContentUpdatePayload;
   contentReportUpdate: ApiReviewContentReportUpdatePayload;
   contentRevisionRestore: ApiReviewContentUpdatePayload;
-  contentTranslationCreate: ApiReviewContentTranslationCreatePayload;
-  contentTranslationDelete: ApiReviewContentTranslationDeletePayload;
-  contentTranslationUpdate: ApiReviewContentTranslationUpdatePayload;
   moderationCaseCreate: ApiReviewModerationCaseCreatePayload;
   moderationCaseUpdate: ApiReviewModerationCaseUpdatePayload;
   productQuestionAnswerCreate: ApiProductQuestionAnswerCreatePayload;
@@ -11833,7 +12103,6 @@ export type ApiReviewsMutation = {
   ratingCriterionUpdate: ApiReviewRatingCriterionUpdatePayload;
   reviewCreate: ApiReviewCreatePayload;
   reviewDelete: ApiReviewDeletePayload;
-  reviewMediaUpdate: ApiReviewMediaUpdatePayload;
   reviewReplyCreate: ApiReviewReplyCreatePayload;
   reviewReplyDelete: ApiReviewReplyDeletePayload;
   reviewReplyUpdate: ApiReviewReplyUpdatePayload;
@@ -11865,34 +12134,6 @@ export type ApiReviewsMutationContentExternalReferenceUpdateArgs = {
 
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationContentModerateArgs = {
-  contentId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
-  operations: ApiReviewContentModerationInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationContentPublicationCreateArgs = {
-  input: ApiReviewContentPublicationCreateInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationContentPublicationDeleteArgs = {
-  input: ApiReviewContentPublicationDeleteInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationContentPublicationUpdateArgs = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
-  operations?: InputMaybe<ApiReviewContentPublicationUpdateInput>;
-  publicationId: Scalars['ID']['input'];
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationContentRedactArgs = {
   contentId: Scalars['ID']['input'];
   expectedRevision: Scalars['Int']['input'];
@@ -11912,26 +12153,6 @@ export type ApiReviewsMutationContentRevisionRestoreArgs = {
   contentId: Scalars['ID']['input'];
   expectedRevision: Scalars['Int']['input'];
   revision: Scalars['Int']['input'];
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationContentTranslationCreateArgs = {
-  input: ApiReviewContentTranslationCreateInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationContentTranslationDeleteArgs = {
-  input: ApiReviewContentTranslationDeleteInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationContentTranslationUpdateArgs = {
-  expectedRevision: Scalars['Int']['input'];
-  operations?: InputMaybe<ApiReviewContentTranslationUpdateInput>;
-  translationId: Scalars['ID']['input'];
 };
 
 
@@ -12030,14 +12251,6 @@ export type ApiReviewsMutationReviewDeleteArgs = {
 
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ApiReviewsMutationReviewMediaUpdateArgs = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
-  operations?: InputMaybe<ApiReviewMediaUpdateInput>;
-  reviewMediaId: Scalars['ID']['input'];
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationReviewReplyCreateArgs = {
   input: ApiReviewReplyCreateInput;
 };
@@ -12102,13 +12315,11 @@ export enum ReviewsOperationType {
   ContentExternalReferenceUpdate = 'CONTENT_EXTERNAL_REFERENCE_UPDATE',
   ContentModerationUpdate = 'CONTENT_MODERATION_UPDATE',
   ContentPublicationsSync = 'CONTENT_PUBLICATIONS_SYNC',
-  ContentPublicationUpdate = 'CONTENT_PUBLICATION_UPDATE',
   ContentRedact = 'CONTENT_REDACT',
   ContentReportUpdate = 'CONTENT_REPORT_UPDATE',
   ContentRevisionRestore = 'CONTENT_REVISION_RESTORE',
   ContentSourceUpdate = 'CONTENT_SOURCE_UPDATE',
   ContentTranslationsSync = 'CONTENT_TRANSLATIONS_SYNC',
-  ContentTranslationUpdate = 'CONTENT_TRANSLATION_UPDATE',
   ContentUpdate = 'CONTENT_UPDATE',
   ModerationCaseUpdate = 'MODERATION_CASE_UPDATE',
   ProductQuestionAnswerUpdate = 'PRODUCT_QUESTION_ANSWER_UPDATE',
@@ -12120,7 +12331,6 @@ export enum ReviewsOperationType {
   RatingCriterionTranslationsSync = 'RATING_CRITERION_TRANSLATIONS_SYNC',
   ReviewIncentiveUpdate = 'REVIEW_INCENTIVE_UPDATE',
   ReviewMediaSync = 'REVIEW_MEDIA_SYNC',
-  ReviewMediaUpdate = 'REVIEW_MEDIA_UPDATE',
   ReviewRatingUpdate = 'REVIEW_RATING_UPDATE',
   ReviewReplyUpdate = 'REVIEW_REPLY_UPDATE',
   ReviewRequestUpdate = 'REVIEW_REQUEST_UPDATE',

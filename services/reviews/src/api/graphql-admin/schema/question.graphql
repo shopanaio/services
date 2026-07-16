@@ -140,6 +140,7 @@ input ProductQuestionSubjectUpdateInput {
 }
 
 input ProductQuestionUpdateInput {
+  """Text, author, source, moderation, translations, and publications."""
   content: ReviewContentUpdateInput
   subject: ProductQuestionSubjectUpdateInput
 }
@@ -159,6 +160,7 @@ input ProductQuestionAnswerPropertiesUpdateInput {
 }
 
 input ProductQuestionAnswerUpdateInput {
+  """Text, author, source, moderation, translations, and publications."""
   content: ReviewContentUpdateInput
   properties: ProductQuestionAnswerPropertiesUpdateInput
 }

@@ -31,7 +31,6 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   reviewCreate() { return createPayload("review"); }
   reviewUpdate() { return updatePayload("review"); }
   reviewDelete() { return deletePayload("deletedReviewId"); }
-  reviewMediaUpdate() { return updatePayload("reviewMedia"); }
   reviewReplyCreate() { return createPayload("reviewReply"); }
   reviewReplyUpdate() { return updatePayload("reviewReply"); }
   reviewReplyDelete() { return deletePayload("deletedReviewReplyId"); }
@@ -44,13 +43,6 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   productQuestionAnswerDelete() { return deletePayload("deletedProductQuestionAnswerId"); }
   productQuestionSubscriptionUpdate() { return updatePayload("subscription"); }
 
-  contentTranslationCreate() { return createPayload("translation"); }
-  contentTranslationUpdate() { return updatePayload("translation"); }
-  contentTranslationDelete() { return deletePayload("deletedTranslationId"); }
-  contentPublicationCreate() { return createPayload("publication"); }
-  contentPublicationUpdate() { return updatePayload("publication"); }
-  contentPublicationDelete() { return deletePayload("deletedPublicationId"); }
-  contentModerate() { return updatePayload("content"); }
   contentRedact() { return updatePayload("content"); }
   contentRevisionRestore() { return updatePayload("content"); }
 

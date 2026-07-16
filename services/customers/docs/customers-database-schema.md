@@ -90,10 +90,10 @@ the reason is cleared when the profile leaves the blocked state.
 `moderation_note` stores internal operator context separately from the general
 merchant-facing note.
 
-### Atomic Admin updates
+### Admin updates
 
 The Admin `customerUpdate` command is customer-scoped and revision-guarded. It
-can atomically update the profile together with addresses, consent transitions,
+can update the profile together with addresses, consent transitions,
 tax identifiers, tax exemptions, group memberships, tag assignments and manual
 segment memberships. Nested operation inputs deliberately omit `customer_id`;
 the command must validate every referenced entity against the outer customer
@@ -102,7 +102,7 @@ and trusted Store scope.
 Assignment sections use replacement semantics so an explicit empty list clears
 manual assignments, while an omitted section leaves them unchanged. Consent
 transitions remain evidence-producing state changes and are never represented
-as booleans. Any section failure rolls back the complete command.
+as booleans.
 
 `customerSegmentUpdate` can update definition metadata and replace manual
 customer memberships atomically under the same aggregate revision. The

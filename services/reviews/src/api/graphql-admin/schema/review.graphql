@@ -168,7 +168,7 @@ input ReviewMediaSyncItemInput {
   fileId: ID!
   sortIndex: Int!
   caption: String
-  status: ReviewContentStatus
+  moderation: ReviewContentModerationInput
 }
 
 input ReviewCreateInput {
@@ -186,6 +186,7 @@ input ReviewCreateInput {
 
 """Section-based aggregate update following Catalog productUpdate semantics."""
 input ReviewUpdateInput {
+  """Text, author, source, moderation, translations, and publications."""
   content: ReviewContentUpdateInput
   subject: ReviewSubjectUpdateInput
   rating: ReviewRatingUpdateInput
@@ -193,16 +194,6 @@ input ReviewUpdateInput {
   incentive: ReviewIncentiveUpdateInput
   """Complete media replacement when supplied. Empty removes every attachment."""
   media: [ReviewMediaSyncItemInput!]
-}
-
-input ReviewMediaDetailsUpdateInput {
-  sortIndex: Int
-  caption: String
-}
-
-input ReviewMediaUpdateInput {
-  details: ReviewMediaDetailsUpdateInput
-  moderation: ReviewContentModerationInput
 }
 
 input ReviewReplyCreateInput {
@@ -218,6 +209,7 @@ input ReviewReplyPropertiesUpdateInput {
 }
 
 input ReviewReplyUpdateInput {
+  """Text, author, source, moderation, translations, and publications."""
   content: ReviewContentUpdateInput
   properties: ReviewReplyPropertiesUpdateInput
 }
@@ -235,12 +227,6 @@ type ReviewUpdatePayload {
 
 type ReviewDeletePayload {
   deletedReviewId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type ReviewMediaUpdatePayload {
-  reviewMedia: ReviewMedia
-  operationResults: [ReviewsOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 

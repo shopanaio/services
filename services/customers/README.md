@@ -131,7 +131,7 @@ Merge и erasure представлены отдельными workflow-сущн
 ## Admin update contract
 
 `customerUpdate` принимает один `customerId`, опциональный `expectedRevision`
-и набор атомарных секций. Помимо profile/contact/company/status/note/moderation,
+и набор секций. Помимо profile/contact/company/status/note/moderation,
 операция поддерживает addresses, consent transitions, tax identifiers, tax
 exemptions, group memberships, tag assignments и manual segment memberships.
 Вложенные inputs не содержат `customerId`: все идентификаторы проверяются как
@@ -139,7 +139,7 @@ exemptions, group memberships, tag assignments и manual segment memberships.
 
 Секции assignments используют replace semantics. Пустые `tagIds`, `segmentIds`
 или `memberships` очищают соответствующие ручные связи. Отсутствующая секция не
-изменяет данные. Любая ошибка секции откатывает весь `customerUpdate`.
+изменяет данные.
 
 `customerSegmentUpdate` аналогично может атомарно изменить definition metadata
 и заменить manual customer memberships под одним `expectedRevision`.
