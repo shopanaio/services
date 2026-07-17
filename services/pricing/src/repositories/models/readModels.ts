@@ -52,6 +52,7 @@ const discountListColumns = {
   effectiveStatus: discountEffectiveStatusEnum("effective_status").notNull(),
   title: varchar("title", { length: 255 }),
   primaryCode: varchar("primary_code", { length: 255 }),
+  searchCodes: text("search_codes"),
   codesCount: integer("codes_count").notNull(),
   currency: currencyCodeEnum("currency").notNull(),
   priority: integer("priority").notNull(),
@@ -72,6 +73,9 @@ const discountListColumns = {
   tags: text("tags").array().notNull(),
   channelCodes: text("channel_codes").array().notNull(),
   featuredChannelCodes: text("featured_channel_codes").array().notNull(),
+  searchTags: text("search_tags").notNull(),
+  searchChannelCodes: text("search_channel_codes").notNull(),
+  searchFeaturedChannelCodes: text("search_featured_channel_codes").notNull(),
   combinesWithProductDiscounts: boolean(
     "combines_with_product_discounts",
   ).notNull(),

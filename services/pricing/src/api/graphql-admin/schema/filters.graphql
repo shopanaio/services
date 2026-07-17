@@ -167,6 +167,8 @@ input DiscountWhereInput {
   state: DiscountStateFilter
   effectiveStatus: DiscountEffectiveStatusFilter
   title: StringFilter
+  """Match any code assigned to the discount, including disabled codes."""
+  code: StringFilter
   primaryCode: StringFilter
   currency: DiscountCurrencyFilter
   priority: IntFilter

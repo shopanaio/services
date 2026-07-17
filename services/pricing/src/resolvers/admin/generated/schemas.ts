@@ -575,6 +575,7 @@ export function DiscountWhereInputSchema(): z.ZodObject<Properties<DiscountWhere
     appliesOncePerCustomer: z.lazy(() => BooleanFilterSchema().nullish()),
     archivedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
     channelCode: z.lazy(() => StringFilterSchema().nullish()),
+    code: z.lazy(() => StringFilterSchema().nullish()),
     combinesWithOrderDiscounts: z.lazy(() => BooleanFilterSchema().nullish()),
     combinesWithProductDiscounts: z.lazy(() => BooleanFilterSchema().nullish()),
     combinesWithShippingDiscounts: z.lazy(() => BooleanFilterSchema().nullish()),

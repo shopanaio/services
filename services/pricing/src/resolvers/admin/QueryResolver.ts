@@ -1,4 +1,7 @@
 import { ApolloQuery } from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import type { DiscountConnectionInput } from "../../repositories/DiscountRepository.js";
+import { DiscountConnectionResolver } from "./DiscountConnectionResolver.js";
 import { PricingType } from "./PricingType.js";
 
 @ApolloQuery
@@ -9,7 +12,12 @@ export class QueryResolver extends PricingType<Record<string, never>> {
 }
 
 export class PricingQueryResolver extends PricingType<Record<string, never>> {
-  _placeholder(): boolean {
-    return true;
+  discount(args: { id: string }) {
+    const id = this.decodeId(args.id, GlobalIdEntity.Discount);
+    return this.resolvers.discount(id);
+  }
+
+  discounts(args: DiscountConnectionInput) {
+    return new DiscountConnectionResolver(args, this.$ctx);
   }
 }

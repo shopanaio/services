@@ -1403,6 +1403,8 @@ export type DiscountWhereInput = {
   archivedAt?: InputMaybe<DateTimeFilter>;
   /** Match discounts available on a channel code. */
   channelCode?: InputMaybe<StringFilter>;
+  /** Match any code assigned to the discount, including disabled codes. */
+  code?: InputMaybe<StringFilter>;
   combinesWithOrderDiscounts?: InputMaybe<BooleanFilter>;
   combinesWithProductDiscounts?: InputMaybe<BooleanFilter>;
   combinesWithShippingDiscounts?: InputMaybe<BooleanFilter>;

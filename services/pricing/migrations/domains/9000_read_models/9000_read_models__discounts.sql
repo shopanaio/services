@@ -20,6 +20,7 @@ SELECT
   )::"pricing"."discount_effective_status" AS effective_status,
   discount.title,
   code_stats.primary_code,
+  code_stats.search_codes,
   COALESCE(code_stats.codes_count, 0)::integer AS codes_count,
   discount.currency,
   discount.priority,
@@ -38,6 +39,12 @@ SELECT
   COALESCE(tags.tags, ARRAY[]::text[]) AS tags,
   COALESCE(channels.channel_codes, ARRAY[]::text[]) AS channel_codes,
   COALESCE(channels.featured_channel_codes, ARRAY[]::text[]) AS featured_channel_codes,
+  array_to_string(COALESCE(tags.tags, ARRAY[]::text[]), E'\n') AS search_tags,
+  array_to_string(COALESCE(channels.channel_codes, ARRAY[]::text[]), E'\n') AS search_channel_codes,
+  array_to_string(
+    COALESCE(channels.featured_channel_codes, ARRAY[]::text[]),
+    E'\n'
+  ) AS search_featured_channel_codes,
   EXISTS (
     SELECT 1
     FROM "pricing"."discount_combination_class" combination
@@ -72,7 +79,8 @@ LEFT JOIN LATERAL (
         code.code
         ORDER BY (code.status = 'ACTIVE') DESC, code.created_at, code.id
       )
-    )[1] AS primary_code
+    )[1] AS primary_code,
+    string_agg(code.code, E'\n' ORDER BY code.created_at, code.id) AS search_codes
   FROM "pricing"."discount_code" code
   WHERE code.store_id = discount.store_id
     AND code.discount_id = discount.id

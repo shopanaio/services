@@ -5,3 +5,5 @@ export {
   PricingMutationResolver,
 } from "./MutationResolver.js";
 export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";
+export { DiscountResolver } from "./DiscountResolver.js";
+export { DiscountConnectionResolver } from "./DiscountConnectionResolver.js";

@@ -153,6 +153,8 @@ export enum GlobalIdEntity {
   InventoryItem = "InventoryItem",
   Warehouse = "Warehouse",
   WarehouseStock = "WarehouseStock",
+  // Pricing
+  Discount = "Discount",
   // Media
   File = "File",
   MediaAssetGroup = "MediaAssetGroup",

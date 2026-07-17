@@ -6474,6 +6474,8 @@ export type ApiDiscountWhereInput = {
   archivedAt?: InputMaybe<ApiDateTimeFilter>;
   /** Match discounts available on a channel code. */
   channelCode?: InputMaybe<ApiStringFilter>;
+  /** Match any code assigned to the discount, including disabled codes. */
+  code?: InputMaybe<ApiStringFilter>;
   combinesWithOrderDiscounts?: InputMaybe<ApiBooleanFilter>;
   combinesWithProductDiscounts?: InputMaybe<ApiBooleanFilter>;
   combinesWithShippingDiscounts?: InputMaybe<ApiBooleanFilter>;

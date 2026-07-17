@@ -22,4 +22,9 @@ export class ResolverRegistry {
     const { PricingMutationResolver } = await import("./MutationResolver.js");
     return new PricingMutationResolver({}, this.ctx);
   }
+
+  async discount(id: string) {
+    const { DiscountResolver } = await import("./DiscountResolver.js");
+    return new DiscountResolver(id, this.ctx);
+  }
 }
