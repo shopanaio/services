@@ -12,6 +12,7 @@ import {
   eq,
   getViewSelectedFields,
   inArray,
+  isNull,
 } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database.js";
 import { BaseRepository } from "./BaseRepository.js";
@@ -62,6 +63,7 @@ import {
   type DiscountEligibleCustomer,
   type DiscountEligibleSegment,
   type DiscountExternalReference,
+  type NewDiscountExternalReference,
   type DiscountFreeShipping,
   type DiscountListView,
   type DiscountMinimumRequirement,
@@ -301,6 +303,28 @@ export interface DiscountCodeDeleteWriteInput {
   codeId: string;
   expectedUpdatedAt: string;
 }
+
+export type DiscountExternalReferencePatch = Partial<
+  Pick<
+    NewDiscountExternalReference,
+    | "externalSystem"
+    | "externalType"
+    | "externalId"
+    | "externalUrl"
+    | "direction"
+    | "syncStatus"
+    | "etag"
+    | "contentChecksum"
+    | "lastSyncedAt"
+    | "lastError"
+    | "metadata"
+  >
+>;
+
+export type DiscountExternalReferenceMutationResult =
+  | { status: "applied"; value: DiscountExternalReference }
+  | { status: "not_found" }
+  | { status: "conflict"; current: DiscountExternalReference };
 
 export class DiscountCodeRevisionConflictError extends Error {
   constructor(public readonly codeId: string) {
@@ -1252,6 +1276,112 @@ export class DiscountRepository extends BaseRepository {
           inArray(discountExternalReference.id, [...new Set(ids)]),
         ),
       );
+  }
+
+  @ReadOnly()
+  async findExternalReferenceById(
+    id: string,
+    includeDeleted = false,
+  ): Promise<DiscountExternalReference | null> {
+    const rows = await this.connection
+      .select()
+      .from(discountExternalReference)
+      .where(
+        and(
+          eq(discountExternalReference.storeId, this.storeId),
+          eq(discountExternalReference.id, id),
+          ...(includeDeleted
+            ? []
+            : [isNull(discountExternalReference.deletedAt)]),
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async createExternalReference(
+    input: { id: string } & Omit<
+      NewDiscountExternalReference,
+      "id" | "storeId" | "createdAt" | "updatedAt" | "deletedAt"
+    >,
+  ): Promise<DiscountExternalReference> {
+    const now = new Date().toISOString();
+    const rows = await this.connection
+      .insert(discountExternalReference)
+      .values({
+        ...input,
+        storeId: this.storeId,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      })
+      .onConflictDoNothing({ target: discountExternalReference.id })
+      .returning();
+    if (rows[0]) return rows[0];
+
+    const existing = await this.findExternalReferenceById(input.id, true);
+    if (!existing) {
+      throw new Error("External reference ID conflict belongs to another store");
+    }
+    return existing;
+  }
+
+  async updateExternalReference(
+    id: string,
+    expectedUpdatedAt: string,
+    patch: DiscountExternalReferencePatch,
+  ): Promise<DiscountExternalReferenceMutationResult> {
+    const rows = await this.connection
+      .update(discountExternalReference)
+      .set({ ...patch, updatedAt: new Date().toISOString() })
+      .where(
+        and(
+          eq(discountExternalReference.storeId, this.storeId),
+          eq(discountExternalReference.id, id),
+          eq(discountExternalReference.updatedAt, expectedUpdatedAt),
+          isNull(discountExternalReference.deletedAt),
+        ),
+      )
+      .returning();
+    if (rows[0]) return { status: "applied", value: rows[0] };
+    return this.externalReferenceMutationMiss(id);
+  }
+
+  async deleteExternalReference(input: {
+    id: string;
+    expectedUpdatedAt: string;
+    permanent: boolean;
+  }): Promise<DiscountExternalReferenceMutationResult> {
+    const conditions = and(
+      eq(discountExternalReference.storeId, this.storeId),
+      eq(discountExternalReference.id, input.id),
+      eq(discountExternalReference.updatedAt, input.expectedUpdatedAt),
+      isNull(discountExternalReference.deletedAt),
+    );
+    const rows = input.permanent
+      ? await this.connection
+          .delete(discountExternalReference)
+          .where(conditions)
+          .returning()
+      : await this.connection
+          .update(discountExternalReference)
+          .set({
+            deletedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          })
+          .where(conditions)
+          .returning();
+    if (rows[0]) return { status: "applied", value: rows[0] };
+    return this.externalReferenceMutationMiss(input.id);
+  }
+
+  private async externalReferenceMutationMiss(
+    id: string,
+  ): Promise<DiscountExternalReferenceMutationResult> {
+    const current = await this.findExternalReferenceById(id, true);
+    return current
+      ? { status: "conflict", current }
+      : { status: "not_found" };
   }
 
   @ReadOnly()

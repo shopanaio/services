@@ -7,13 +7,23 @@ import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
   PricingMutationDiscountCreateArgs,
   PricingMutationDiscountDeleteArgs,
+  PricingMutationDiscountExternalReferenceCreateArgs,
+  PricingMutationDiscountExternalReferenceDeleteArgs,
+  PricingMutationDiscountExternalReferenceUpdateArgs,
   PricingMutationDiscountUpdateArgs,
 } from "./generated/types.js";
+import { DiscountOperationType } from "./generated/types.js";
 import type {
   DiscountCreateWorkflowInput,
   DiscountCreateWorkflowResult,
   DiscountDeleteWorkflowInput,
   DiscountDeleteWorkflowResult,
+  DiscountExternalReferenceCreateWorkflowInput,
+  DiscountExternalReferenceCreateWorkflowResult,
+  DiscountExternalReferenceDeleteWorkflowInput,
+  DiscountExternalReferenceDeleteWorkflowResult,
+  DiscountExternalReferenceUpdateWorkflowInput,
+  DiscountExternalReferenceUpdateWorkflowResult,
   DiscountUpdateWorkflowInput,
   DiscountUpdateWorkflowResult,
   PricingMutationWorkflowContext,
@@ -28,7 +38,10 @@ import {
 import {
   DiscountCreateInputSchema,
   DiscountDeleteInputSchema,
+  DiscountExternalReferenceCreateInputSchema,
+  DiscountExternalReferenceDeleteInputSchema,
 } from "./generated/schemas.js";
+import { DiscountExternalReferenceResolver } from "./DiscountEntityResolver.js";
 import { PricingType } from "./PricingType.js";
 
 @ApolloMutation
@@ -104,6 +117,136 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
         ? encodeGlobalIdByType(
             result.deletedDiscountId,
             GlobalIdEntity.Discount,
+          )
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(DiscountExternalReferenceCreateInputSchema())
+  async discountExternalReferenceCreate(
+    args: PricingMutationDiscountExternalReferenceCreateArgs,
+  ) {
+    let discountId: string;
+    try {
+      discountId = decodeGlobalIdByType(
+        args.input.discountId,
+        GlobalIdEntity.Discount,
+      );
+    } catch {
+      return {
+        externalReference: null,
+        userErrors: [invalidIdError(["input", "discountId"])],
+      };
+    }
+
+    const workflowInput: DiscountExternalReferenceCreateWorkflowInput = {
+      params: { input: { ...args.input, discountId } },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runMutationWorkflow<DiscountExternalReferenceCreateWorkflowResult>(
+        "discountExternalReferenceCreate",
+        workflowInput,
+        discountId,
+      );
+    return {
+      externalReference: result.externalReference
+        ? new DiscountExternalReferenceResolver(
+            result.externalReference.id,
+            this.$ctx,
+          )
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async discountExternalReferenceUpdate(
+    args: PricingMutationDiscountExternalReferenceUpdateArgs,
+  ) {
+    let externalReferenceId: string;
+    try {
+      externalReferenceId = decodeGlobalIdByType(
+        args.externalReferenceId,
+        GlobalIdEntity.DiscountExternalReference,
+      );
+    } catch {
+      const error = invalidIdError(["externalReferenceId"]);
+      return {
+        externalReference: null,
+        operationResults: [externalReferenceOperationResult([error])],
+        userErrors: [error],
+      };
+    }
+
+    const workflowInput: DiscountExternalReferenceUpdateWorkflowInput = {
+      params: {
+        externalReferenceId,
+        expectedUpdatedAt: args.expectedUpdatedAt,
+        operations: args.operations,
+      },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runMutationWorkflow<DiscountExternalReferenceUpdateWorkflowResult>(
+        "discountExternalReferenceUpdate",
+        workflowInput,
+        externalReferenceId,
+      );
+    this.$ctx.loaders.discountExternalReference.clear(externalReferenceId);
+    return {
+      externalReference: result.externalReference
+        ? new DiscountExternalReferenceResolver(
+            result.externalReference.id,
+            this.$ctx,
+          )
+        : null,
+      operationResults: result.operationResults.map((operation) => ({
+        type: DiscountOperationType.ExternalReferenceUpdate,
+        applied: operation.applied,
+        errors: operation.errors,
+      })),
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(DiscountExternalReferenceDeleteInputSchema())
+  async discountExternalReferenceDelete(
+    args: PricingMutationDiscountExternalReferenceDeleteArgs,
+  ) {
+    let externalReferenceId: string;
+    try {
+      externalReferenceId = decodeGlobalIdByType(
+        args.input.id,
+        GlobalIdEntity.DiscountExternalReference,
+      );
+    } catch {
+      return {
+        deletedExternalReferenceId: null,
+        userErrors: [invalidIdError(["input", "id"])],
+      };
+    }
+
+    const workflowInput: DiscountExternalReferenceDeleteWorkflowInput = {
+      params: {
+        id: externalReferenceId,
+        expectedUpdatedAt: args.input.expectedUpdatedAt,
+        permanent: args.input.permanent ?? false,
+      },
+      context: this.mutationWorkflowContext(),
+    };
+    const result =
+      await this.runMutationWorkflow<DiscountExternalReferenceDeleteWorkflowResult>(
+        "discountExternalReferenceDelete",
+        workflowInput,
+        externalReferenceId,
+      );
+    this.$ctx.loaders.discountExternalReference.clear(externalReferenceId);
+    return {
+      deletedExternalReferenceId: result.deletedExternalReferenceId
+        ? encodeGlobalIdByType(
+            result.deletedExternalReferenceId,
+            GlobalIdEntity.DiscountExternalReference,
           )
         : null,
       userErrors: result.userErrors,
@@ -229,4 +372,18 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     this.$ctx.loaders.discountCombinations.clear(discountId);
     this.$ctx.loaders.discountUsageSummary.clear(discountId);
   }
+}
+
+function invalidIdError(field: string[]) {
+  return { message: "Invalid ID format", field, code: "INVALID_ID" };
+}
+
+function externalReferenceOperationResult(
+  errors: Array<{ message: string; field?: string[]; code?: string }>,
+) {
+  return {
+    type: DiscountOperationType.ExternalReferenceUpdate,
+    applied: errors.length === 0,
+    errors,
+  };
 }

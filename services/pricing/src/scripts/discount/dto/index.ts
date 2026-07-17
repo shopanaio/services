@@ -1,5 +1,6 @@
 export * from "./DiscountCreateDto.js";
 export * from "./DiscountDeleteDto.js";
+export * from "./DiscountExternalReferenceDto.js";
 export * from "./DiscountUpdateChannelsDto.js";
 export * from "./DiscountUpdateCodesDto.js";
 export * from "./DiscountUpdateCombinationsDto.js";
