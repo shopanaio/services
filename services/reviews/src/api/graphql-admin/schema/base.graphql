@@ -148,8 +148,6 @@ type ReviewsQuery {
     orderBy: [ReviewContentExternalReferenceOrderByInput!]
   ): ReviewContentExternalReferenceConnection!
 
-  productReviewSummary(productId: ID!): ProductReviewSummary
-  productQuestionSummary(productId: ID!): ProductQuestionSummary
 }
 
 """Administrative commands. Storefront submission and engagement commands live elsewhere."""

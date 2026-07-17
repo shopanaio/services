@@ -33,10 +33,6 @@ import {
 import { ReviewRequestConnectionResolver } from "./ReviewRequestConnectionResolver.js";
 import { ReviewsType } from "./ReviewsType.js";
 import { WidgetQueryResolver } from "./ProductReviewsWidgetResolver.js";
-import {
-  ProductQuestionSummaryResolver,
-  ProductReviewSummaryResolver,
-} from "./SummaryResolver.js";
 
 @ApolloQuery
 export class QueryResolver extends ReviewsType<Record<string, never>> {
@@ -285,24 +281,6 @@ export class ReviewsQueryResolver extends ReviewsType<Record<string, never>> {
 
   contentExternalReferences(args: ContentExternalReferenceRelayInput) {
     return new ContentExternalReferenceConnectionResolver(args, this.$ctx);
-  }
-
-  async productReviewSummary(args: { productId: string }) {
-    const productId = this.decodeId(args.productId, GlobalIdEntity.Product);
-    const aggregate = await this.$ctx.loaders.productReviewSummary.load(
-      productId
-    );
-    return aggregate
-      ? new ProductReviewSummaryResolver(aggregate, this.$ctx)
-      : null;
-  }
-
-  async productQuestionSummary(args: { productId: string }) {
-    const productId = this.decodeId(args.productId, GlobalIdEntity.Product);
-    const summary = await this.$ctx.loaders.productQuestionSummary.load(
-      productId
-    );
-    return summary ? new ProductQuestionSummaryResolver(summary, this.$ctx) : null;
   }
 
   private isContentResolver(value: unknown): boolean {

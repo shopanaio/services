@@ -12102,9 +12102,7 @@ export type ApiReviewsQuery = {
   productQuestion?: Maybe<ApiProductQuestion>;
   productQuestionAnswer?: Maybe<ApiProductQuestionAnswer>;
   productQuestionAnswers: ApiProductQuestionAnswerConnection;
-  productQuestionSummary?: Maybe<ApiProductQuestionSummary>;
   productQuestions: ApiProductQuestionConnection;
-  productReviewSummary?: Maybe<ApiProductReviewSummary>;
   ratingCriteria: ApiReviewRatingCriterionConnection;
   ratingCriterion?: Maybe<ApiReviewRatingCriterion>;
   review?: Maybe<ApiReview>;
@@ -12224,12 +12222,6 @@ export type ApiReviewsQueryProductQuestionAnswersArgs = {
 
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
-export type ApiReviewsQueryProductQuestionSummaryArgs = {
-  productId: Scalars['ID']['input'];
-};
-
-
-/** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryProductQuestionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -12238,12 +12230,6 @@ export type ApiReviewsQueryProductQuestionsArgs = {
   meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
   orderBy?: InputMaybe<Array<ApiProductQuestionOrderByInput>>;
   where?: InputMaybe<ApiProductQuestionWhereInput>;
-};
-
-
-/** Administrative reads for review, Q&A, moderation, and configuration data. */
-export type ApiReviewsQueryProductReviewSummaryArgs = {
-  productId: Scalars['ID']['input'];
 };
 
 
