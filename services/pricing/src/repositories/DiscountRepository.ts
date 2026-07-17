@@ -219,6 +219,24 @@ export type DiscountRootPatch = Partial<
   >
 >;
 
+export interface DiscountCreateWriteInput {
+  id: string;
+  method: Discount["method"];
+  kind: Discount["kind"];
+  discountClass: Discount["discountClass"];
+  title: string | null;
+  currency: Discount["currency"];
+  priority: number;
+  usageLimit: bigint | null;
+  appliesOncePerCustomer: boolean;
+  appliesOnOneTimePurchase: boolean;
+  appliesOnSubscription: boolean;
+  startsAt?: string;
+  endsAt: string | null;
+  createdById: string | null;
+  metadata: Record<string, unknown>;
+}
+
 export type DiscountRuleWriteInput =
   | {
       type: "amountOff";
@@ -505,6 +523,43 @@ export class DiscountRepository extends BaseRepository {
       channels,
       combinations,
     };
+  }
+
+  async create(
+    input: DiscountCreateWriteInput,
+  ): Promise<{ discount: Discount; created: boolean }> {
+    const rows = await this.connection
+      .insert(discount)
+      .values({
+        ...input,
+        storeId: this.storeId,
+        state: "DRAFT",
+      })
+      .onConflictDoNothing({ target: discount.id })
+      .returning();
+
+    if (rows[0]) {
+      await this.connection.insert(discountUsageCounter).values({
+        discountId: rows[0].id,
+        storeId: this.storeId,
+      });
+      return { discount: rows[0], created: true };
+    }
+
+    const [existing] = await this.connection
+      .select()
+      .from(discount)
+      .where(
+        and(
+          eq(discount.storeId, this.storeId),
+          eq(discount.id, input.id),
+        ),
+      )
+      .limit(1);
+    if (!existing) {
+      throw new Error("Discount ID conflict belongs to another store");
+    }
+    return { discount: existing, created: false };
   }
 
   async updateRoot(id: string, patch: DiscountRootPatch): Promise<boolean> {

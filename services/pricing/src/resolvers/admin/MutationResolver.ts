@@ -2,21 +2,26 @@ import {
   decodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import { ApolloMutation } from "@shopana/type-resolver";
+import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
+  PricingMutationDiscountCreateArgs,
   PricingMutationDiscountUpdateArgs,
 } from "./generated/types.js";
 import type {
+  DiscountCreateWorkflowInput,
+  DiscountCreateWorkflowResult,
   DiscountUpdateWorkflowInput,
   DiscountUpdateWorkflowResult,
   PricingMutationWorkflowContext,
 } from "../../workflows/dto/index.js";
 import { DiscountResolver } from "./DiscountResolver.js";
+import { mapDiscountCreateInput } from "./discountCreateMapper.js";
 import {
   mapDiscountUpdateInput,
   mapPreflightDiscountOperationResult,
   toGraphqlDiscountOperationType,
 } from "./discountUpdateMapper.js";
+import { DiscountCreateInputSchema } from "./generated/schemas.js";
 import { PricingType } from "./PricingType.js";
 
 @ApolloMutation
@@ -27,6 +32,30 @@ export class MutationResolver extends PricingType<Record<string, never>> {
 }
 
 export class PricingMutationResolver extends PricingType<Record<string, never>> {
+  @ZodResolver(DiscountCreateInputSchema())
+  async discountCreate(args: PricingMutationDiscountCreateArgs) {
+    const mapped = mapDiscountCreateInput(args.input);
+    if (mapped.errors.length > 0) {
+      return { discount: null, userErrors: mapped.errors };
+    }
+
+    const workflowInput: DiscountCreateWorkflowInput = {
+      input: mapped.input,
+      context: this.mutationWorkflowContext(),
+    };
+    const result = await this.runMutationWorkflow<DiscountCreateWorkflowResult>(
+      "discountCreate",
+      workflowInput,
+      this.$ctx.store.id,
+    );
+    return {
+      discount: result.discount
+        ? new DiscountResolver(result.discount.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
   async discountUpdate(args: PricingMutationDiscountUpdateArgs) {
     const mapped = mapDiscountUpdateInput(args.operations);
     let discountId: string | undefined;

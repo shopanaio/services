@@ -1,3 +1,4 @@
+export * from "./DiscountCreateDto.js";
 export * from "./DiscountUpdateChannelsDto.js";
 export * from "./DiscountUpdateCodesDto.js";
 export * from "./DiscountUpdateCombinationsDto.js";
