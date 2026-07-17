@@ -25,6 +25,7 @@ export const CODEGEN_SERVICE_NAMES = [
   "listing",
   "media",
   "orders",
+  "pricing",
   "project",
   "reviews",
 ] as const;
@@ -37,6 +38,7 @@ export const MIGRATION_SERVICE_NAMES = [
   "iam",
   "listing",
   "media",
+  "pricing",
   "project",
   "reviews",
 ] as const;

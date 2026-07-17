@@ -1,8 +1,10 @@
 {
   "name": "@shopana/pricing-service",
   "version": "0.0.1",
+  "description": "Pricing microservice skeleton",
   "private": true,
   "type": "module",
+  "main": "dist/index.js",
   "exports": {
     ".": {
       "import": "./dist/pricing.module.js",
@@ -10,25 +12,44 @@
     }
   },
   "dependencies": {
-    "@event-driven-io/dumbo": "^0.13.0-alpha.6",
-    "@shopana/plugin-sdk": "*",
+    "@apollo/server": "^4.11.0",
+    "@apollo/subgraph": "^2.9.0",
+    "@as-integrations/fastify": "^2.1.1",
+    "@nestjs/common": "^10.0.0",
+    "@shopana/drizzle-query": "*",
+    "@shopana/events": "*",
+    "@shopana/shared-context": "*",
+    "@shopana/shared-graphql-guid": "*",
     "@shopana/shared-kernel": "*",
-    "@shopana/shared-money": "0.0.1",
     "@shopana/shared-references": "*",
-    "@types/uuid": "^10.0.0",
-    "async-retry": "^1.3.3",
+    "@shopana/shared-service-config": "*",
+    "@shopana/type-resolver": "*",
+    "cache-manager": "^7.2.7",
+    "dataloader": "^2.2.3",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.45.1",
-    "knex": "^3.1.0",
-    "pg": "^8.16.3",
+    "fastify": "^4.28.1",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
+    "node-pg-migrate": "^8.0.4",
     "pino": "^9.3.2",
-    "uuid": "^11.1.0",
+    "pino-pretty": "^11.2.2",
+    "postgres": "^3.4.7",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/typescript": "^4.0.8",
+    "@graphql-codegen/typescript-resolvers": "^4.0.9",
     "@shopana/build-tools": "0.0.1",
-    "@types/node": "^22.7.4",
-    "tsx": "^4.19.0",
+    "@types/node": "^20.14.14",
+    "graphql-codegen-typescript-validation-schema": "^0.18.1",
+    "tsx": "^4.16.2",
     "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

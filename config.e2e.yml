@@ -117,7 +117,13 @@ services:
 
   payments: {}
 
-  pricing: {}
+  pricing:
+    ports:
+      admin_graphql: 11015
+      metrics: 13042
+    db:
+      <<: *db_default
+      schema: null
 
   test:
     ports:

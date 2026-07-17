@@ -126,7 +126,13 @@ services:
 
   payments: {}
 
-  pricing: {}
+  pricing:
+    ports:
+      admin_graphql: 10015
+      metrics: 3042
+    db:
+      <<: *db_default
+      schema: null
 
 # ═══════════════════════════════════════════════════════════════════
 # WORKFLOWS (DBOS Transact)
