@@ -41,9 +41,45 @@ type PricingQuery {
   ): DiscountConnection!
 
   discountCode(id: ID!): DiscountCode
+  discountCodes(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: DiscountCodeWhereInput
+    orderBy: [DiscountCodeOrderByInput!]
+  ): DiscountCodeConnection!
+
   discountUsageReservation(id: ID!): DiscountUsageReservation
+  discountUsageReservations(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: DiscountUsageReservationWhereInput
+    orderBy: [DiscountUsageReservationOrderByInput!]
+  ): DiscountUsageReservationConnection!
+
   discountRedemption(id: ID!): DiscountRedemption
+  discountRedemptions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: DiscountRedemptionWhereInput
+    orderBy: [DiscountRedemptionOrderByInput!]
+  ): DiscountRedemptionConnection!
+  discountRedemptionAllocation(id: ID!): DiscountRedemptionAllocation
+
   discountExternalReference(id: ID!): DiscountExternalReference
+  discountExternalReferences(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: DiscountExternalReferenceWhereInput
+    orderBy: [DiscountExternalReferenceOrderByInput!]
+  ): DiscountExternalReferenceConnection!
 }
 
 """Store-scoped pricing commands."""

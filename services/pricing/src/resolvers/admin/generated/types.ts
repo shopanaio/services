@@ -1820,9 +1820,14 @@ export type PricingQuery = {
   __typename?: 'PricingQuery';
   discount: Maybe<Discount>;
   discountCode: Maybe<DiscountCode>;
+  discountCodes: DiscountCodeConnection;
   discountExternalReference: Maybe<DiscountExternalReference>;
+  discountExternalReferences: DiscountExternalReferenceConnection;
   discountRedemption: Maybe<DiscountRedemption>;
+  discountRedemptionAllocation: Maybe<DiscountRedemptionAllocation>;
+  discountRedemptions: DiscountRedemptionConnection;
   discountUsageReservation: Maybe<DiscountUsageReservation>;
+  discountUsageReservations: DiscountUsageReservationConnection;
   discounts: DiscountConnection;
   /** Resolve a Pricing-owned Relay node by global ID. */
   node: Maybe<Node>;
@@ -1844,8 +1849,30 @@ export type PricingQueryDiscountCodeArgs = {
 
 
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type PricingQueryDiscountCodesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<DiscountCodeOrderByInput>>;
+  where?: InputMaybe<DiscountCodeWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type PricingQueryDiscountExternalReferenceArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type PricingQueryDiscountExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<DiscountExternalReferenceOrderByInput>>;
+  where?: InputMaybe<DiscountExternalReferenceWhereInput>;
 };
 
 
@@ -1856,8 +1883,36 @@ export type PricingQueryDiscountRedemptionArgs = {
 
 
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type PricingQueryDiscountRedemptionAllocationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type PricingQueryDiscountRedemptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<DiscountRedemptionOrderByInput>>;
+  where?: InputMaybe<DiscountRedemptionWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type PricingQueryDiscountUsageReservationArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type PricingQueryDiscountUsageReservationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<DiscountUsageReservationOrderByInput>>;
+  where?: InputMaybe<DiscountUsageReservationWhereInput>;
 };
 
 
@@ -2024,7 +2079,6 @@ export type ResolversUnionTypes<_RefType extends Record<string, unknown>> = Reso
   DiscountCatalogTarget: ( Category ) | ( Product ) | ( Variant );
   DiscountRule: ( DiscountAmountOffRule ) | ( DiscountBuyXGetYRule ) | ( DiscountFreeShippingRule );
 }>;
-
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   Node: ( Category ) | ( Customer ) | ( Omit<Discount, 'codes' | 'combinations' | 'rule' | 'targetSelections'> & { codes: _RefType['DiscountCodeConnection'], combinations: Array<_RefType['DiscountCombination']>, rule?: Maybe<_RefType['DiscountRule']>, targetSelections: Array<_RefType['DiscountTargetSelection']> } ) | ( Omit<DiscountCode, 'discount'> & { discount: _RefType['Discount'] } ) | ( Omit<DiscountExternalReference, 'discount'> & { discount: _RefType['Discount'] } ) | ( Omit<DiscountRedemption, 'discount' | 'discountCode'> & { discount: _RefType['Discount'], discountCode?: Maybe<_RefType['DiscountCode']> } ) | ( DiscountRedemptionAllocation ) | ( Omit<DiscountUsageReservation, 'discount' | 'discountCode'> & { discount: _RefType['Discount'], discountCode?: Maybe<_RefType['DiscountCode']> } ) | ( Product ) | ( Variant );
@@ -2163,7 +2217,7 @@ export type ResolversTypes = ResolversObject<{
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
   PricingMutation: ResolverTypeWrapper<Omit<PricingMutation, 'discountCreate' | 'discountUpdate'> & { discountCreate: ResolversTypes['DiscountCreatePayload'], discountUpdate: ResolversTypes['DiscountUpdatePayload'] }>;
-  PricingQuery: ResolverTypeWrapper<Omit<PricingQuery, 'discount' | 'discountCode' | 'discounts' | 'node' | 'nodes'> & { discount?: Maybe<ResolversTypes['Discount']>, discountCode?: Maybe<ResolversTypes['DiscountCode']>, discounts: ResolversTypes['DiscountConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
+  PricingQuery: ResolverTypeWrapper<Omit<PricingQuery, 'discount' | 'discountCode' | 'discountCodes' | 'discounts' | 'node' | 'nodes'> & { discount?: Maybe<ResolversTypes['Discount']>, discountCode?: Maybe<ResolversTypes['DiscountCode']>, discountCodes: ResolversTypes['DiscountCodeConnection'], discounts: ResolversTypes['DiscountConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   Product: ResolverTypeWrapper<Product>;
   Query: ResolverTypeWrapper<{}>;
   SortDirection: SortDirection;
@@ -2278,7 +2332,7 @@ export type ResolversParentTypes = ResolversObject<{
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   PageInfo: PageInfo;
   PricingMutation: Omit<PricingMutation, 'discountCreate' | 'discountUpdate'> & { discountCreate: ResolversParentTypes['DiscountCreatePayload'], discountUpdate: ResolversParentTypes['DiscountUpdatePayload'] };
-  PricingQuery: Omit<PricingQuery, 'discount' | 'discountCode' | 'discounts' | 'node' | 'nodes'> & { discount?: Maybe<ResolversParentTypes['Discount']>, discountCode?: Maybe<ResolversParentTypes['DiscountCode']>, discounts: ResolversParentTypes['DiscountConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
+  PricingQuery: Omit<PricingQuery, 'discount' | 'discountCode' | 'discountCodes' | 'discounts' | 'node' | 'nodes'> & { discount?: Maybe<ResolversParentTypes['Discount']>, discountCode?: Maybe<ResolversParentTypes['DiscountCode']>, discountCodes: ResolversParentTypes['DiscountCodeConnection'], discounts: ResolversParentTypes['DiscountConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   Product: Product;
   Query: {};
   StringFilter: StringFilter;
@@ -2716,9 +2770,14 @@ export type PricingMutationResolvers<ContextType = ServiceContext, ParentType ex
 export type PricingQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['PricingQuery'] = ResolversParentTypes['PricingQuery']> = ResolversObject<{
   discount?: Resolver<Maybe<ResolversTypes['Discount']>, ParentType, ContextType, RequireFields<PricingQueryDiscountArgs, 'id'>>;
   discountCode?: Resolver<Maybe<ResolversTypes['DiscountCode']>, ParentType, ContextType, RequireFields<PricingQueryDiscountCodeArgs, 'id'>>;
+  discountCodes?: Resolver<ResolversTypes['DiscountCodeConnection'], ParentType, ContextType, Partial<PricingQueryDiscountCodesArgs>>;
   discountExternalReference?: Resolver<Maybe<ResolversTypes['DiscountExternalReference']>, ParentType, ContextType, RequireFields<PricingQueryDiscountExternalReferenceArgs, 'id'>>;
+  discountExternalReferences?: Resolver<ResolversTypes['DiscountExternalReferenceConnection'], ParentType, ContextType, Partial<PricingQueryDiscountExternalReferencesArgs>>;
   discountRedemption?: Resolver<Maybe<ResolversTypes['DiscountRedemption']>, ParentType, ContextType, RequireFields<PricingQueryDiscountRedemptionArgs, 'id'>>;
+  discountRedemptionAllocation?: Resolver<Maybe<ResolversTypes['DiscountRedemptionAllocation']>, ParentType, ContextType, RequireFields<PricingQueryDiscountRedemptionAllocationArgs, 'id'>>;
+  discountRedemptions?: Resolver<ResolversTypes['DiscountRedemptionConnection'], ParentType, ContextType, Partial<PricingQueryDiscountRedemptionsArgs>>;
   discountUsageReservation?: Resolver<Maybe<ResolversTypes['DiscountUsageReservation']>, ParentType, ContextType, RequireFields<PricingQueryDiscountUsageReservationArgs, 'id'>>;
+  discountUsageReservations?: Resolver<ResolversTypes['DiscountUsageReservationConnection'], ParentType, ContextType, Partial<PricingQueryDiscountUsageReservationsArgs>>;
   discounts?: Resolver<ResolversTypes['DiscountConnection'], ParentType, ContextType, Partial<PricingQueryDiscountsArgs>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<PricingQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<PricingQueryNodesArgs, 'ids'>>;

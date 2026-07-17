@@ -155,6 +155,11 @@ export enum GlobalIdEntity {
   WarehouseStock = "WarehouseStock",
   // Pricing
   Discount = "Discount",
+  DiscountCode = "DiscountCode",
+  DiscountUsageReservation = "DiscountUsageReservation",
+  DiscountRedemption = "DiscountRedemption",
+  DiscountRedemptionAllocation = "DiscountRedemptionAllocation",
+  DiscountExternalReference = "DiscountExternalReference",
   // Media
   File = "File",
   MediaAssetGroup = "MediaAssetGroup",

@@ -27,4 +27,39 @@ export class ResolverRegistry {
     const { DiscountResolver } = await import("./DiscountResolver.js");
     return new DiscountResolver(id, this.ctx);
   }
+
+  async discountCode(id: string) {
+    const { DiscountCodeResolver } = await import(
+      "./DiscountEntityResolver.js"
+    );
+    return new DiscountCodeResolver(id, this.ctx);
+  }
+
+  async discountUsageReservation(id: string) {
+    const { DiscountUsageReservationResolver } = await import(
+      "./DiscountEntityResolver.js"
+    );
+    return new DiscountUsageReservationResolver(id, this.ctx);
+  }
+
+  async discountRedemption(id: string) {
+    const { DiscountRedemptionResolver } = await import(
+      "./DiscountEntityResolver.js"
+    );
+    return new DiscountRedemptionResolver(id, this.ctx);
+  }
+
+  async discountRedemptionAllocation(id: string) {
+    const { DiscountRedemptionAllocationResolver } = await import(
+      "./DiscountEntityResolver.js"
+    );
+    return new DiscountRedemptionAllocationResolver(id, this.ctx);
+  }
+
+  async discountExternalReference(id: string) {
+    const { DiscountExternalReferenceResolver } = await import(
+      "./DiscountEntityResolver.js"
+    );
+    return new DiscountExternalReferenceResolver(id, this.ctx);
+  }
 }
