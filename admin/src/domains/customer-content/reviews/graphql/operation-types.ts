@@ -3,7 +3,7 @@ import type {
   ApiCustomerConnection,
   ApiCustomersQuery,
   ApiProductConnection,
-  ApiProductReviewSummary,
+  ApiProductReviewsWidget,
   ApiReview,
   ApiReviewConnection,
   ApiReviewCreateInput,
@@ -14,6 +14,7 @@ import type {
   ApiReviewUpdateInput,
   ApiReviewUpdatePayload,
   ApiReviewWhereInput,
+  ApiWidgetQuery,
 } from "@/graphql/types";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 
@@ -69,12 +70,12 @@ export interface ReviewUpdateMutationVariables {
   operations: ApiReviewUpdateInput;
 }
 
-export interface ProductReviewSummaryQueryData {
-  reviewsQuery: Pick<ApiReviewsQuery, "productReviewSummary"> & {
-    productReviewSummary: ApiProductReviewSummary | null;
+export interface ProductReviewsWidgetQueryData {
+  widgetQuery: Pick<ApiWidgetQuery, "reviews"> & {
+    reviews: ApiProductReviewsWidget;
   };
 }
 
-export interface ProductReviewSummaryQueryVariables {
+export interface ProductReviewsWidgetQueryVariables {
   productId: string;
 }

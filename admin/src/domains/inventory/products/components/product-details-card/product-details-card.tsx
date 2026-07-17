@@ -8,7 +8,7 @@ import { SeoBlock } from "../seo";
 import { AttributesSection } from "../attributes-section";
 import { EditAction } from "../edit-action";
 import { useDefaultCurrency } from "@/domains/workspace";
-import { useProductReviewSummary } from "@/domains/customer-content/reviews/hooks";
+import { useProductReviewsWidget } from "@/domains/customer-content/reviews/hooks";
 import { useProductInsightsModal } from "@/domains/customer-content/management/modals";
 import {
   MediaSection,
@@ -57,7 +57,7 @@ export const ProductDetailsCard = ({
     onProductRefresh,
     defaultCurrency,
   });
-  const reviewSummary = useProductReviewSummary(product.id);
+  const reviewsWidget = useProductReviewsWidget(product.id);
   const { push: openProductInsights } = useProductInsightsModal();
   const shouldRenderVariantsSection =
     !!variantsTableData &&
@@ -98,13 +98,12 @@ export const ProductDetailsCard = ({
 
       {/* REVIEWS */}
       <ReviewsSection
-        summary={reviewSummary.summary}
-        loading={reviewSummary.loading}
-        error={reviewSummary.error}
+        summary={reviewsWidget.data?.reviewSummary ?? null}
+        loading={reviewsWidget.loading}
+        error={reviewsWidget.error}
         onEdit={() => handleEdit("reviews")}
         onViewInsights={() => openProductInsights({
           product: { id: product.id, title: product.title, handle: product.handle },
-          summary: reviewSummary.summary,
         })}
       />
 

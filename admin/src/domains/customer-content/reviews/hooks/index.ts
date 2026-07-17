@@ -4,4 +4,4 @@ export { useReview } from "./use-review";
 export { useReviewEditorContext } from "./use-review-editor-context";
 export { useCreateReview } from "./use-create-review";
 export { useUpdateReview } from "./use-update-review";
-export { useProductReviewSummary } from "./use-product-review-summary";
+export { useProductReviewsWidget } from "./use-product-reviews-widget";

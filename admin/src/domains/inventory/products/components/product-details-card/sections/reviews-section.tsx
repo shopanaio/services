@@ -25,15 +25,13 @@ export const ReviewsSection = ({
   const { styles } = useReviewsStyles();
   const reviewCount = summary?.reviewCount ?? 0;
   const rating = summary?.averageRating ?? 0;
-  const breakdown = summary
-    ? [
-        { stars: 5, count: summary.ratingBreakdown.rating5Count },
-        { stars: 4, count: summary.ratingBreakdown.rating4Count },
-        { stars: 3, count: summary.ratingBreakdown.rating3Count },
-        { stars: 2, count: summary.ratingBreakdown.rating2Count },
-        { stars: 1, count: summary.ratingBreakdown.rating1Count },
-      ]
-    : [];
+  const breakdown = [
+    { stars: 5, count: summary?.ratingBreakdown.rating5Count ?? 0 },
+    { stars: 4, count: summary?.ratingBreakdown.rating4Count ?? 0 },
+    { stars: 3, count: summary?.ratingBreakdown.rating3Count ?? 0 },
+    { stars: 2, count: summary?.ratingBreakdown.rating2Count ?? 0 },
+    { stars: 1, count: summary?.ratingBreakdown.rating1Count ?? 0 },
+  ];
 
   return (
     <Paper>

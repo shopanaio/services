@@ -9575,6 +9575,15 @@ export type ApiProductReviewSummary = {
   verifiedReviewCount: Scalars['Int']['output'];
 };
 
+/** Aggregated Reviews data used by product management widgets. */
+export type ApiProductReviewsWidget = {
+  __typename?: 'ProductReviewsWidget';
+  /** Published question and answer aggregates for the product. */
+  questionSummary?: Maybe<ApiProductQuestionSummary>;
+  /** Published review aggregates for the product. */
+  reviewSummary?: Maybe<ApiProductReviewSummary>;
+};
+
 /** SEO and Open Graph metadata for a product. */
 export type ApiProductSeo = {
   __typename?: 'ProductSeo';
@@ -14557,6 +14566,8 @@ export type ApiWidgetQuery = {
   inventory?: Maybe<ApiProductInventoryWidget>;
   /** Get pricing widget data for a variant. */
   pricing: ApiPricingWidgetPayload;
+  /** Aggregated reviews and Q&A data for a product. */
+  reviews: ApiProductReviewsWidget;
 };
 
 
@@ -14569,6 +14580,12 @@ export type ApiWidgetQueryInventoryArgs = {
 /** Widget query namespace for dashboard widgets. */
 export type ApiWidgetQueryPricingArgs = {
   input: ApiPricingWidgetInput;
+};
+
+
+/** Widget query namespace for dashboard widgets. */
+export type ApiWidgetQueryReviewsArgs = {
+  productId: Scalars['ID']['input'];
 };
 
 export enum Join__Graph {

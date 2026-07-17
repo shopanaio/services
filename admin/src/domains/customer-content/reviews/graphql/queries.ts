@@ -77,23 +77,43 @@ export const REVIEW_EDITOR_CONTEXT_QUERY = gql`
   }
 `;
 
-export const PRODUCT_REVIEW_SUMMARY_QUERY = gql`
-  query ProductReviewSummary($productId: ID!) {
-    reviewsQuery {
-      productReviewSummary(productId: $productId) {
-        reviewCount
-        verifiedReviewCount
-        mediaReviewCount
-        averageRating
-        ratingBreakdown {
-          rating1Count
-          rating2Count
-          rating3Count
-          rating4Count
-          rating5Count
+export const PRODUCT_REVIEWS_WIDGET_QUERY = gql`
+  query ProductReviewsWidget($productId: ID!) {
+    widgetQuery {
+      reviews(productId: $productId) {
+        reviewSummary {
+          reviewCount
+          verifiedReviewCount
+          mediaReviewCount
+          averageRating
+          ratingBreakdown {
+            rating1Count
+            rating2Count
+            rating3Count
+            rating4Count
+            rating5Count
+          }
+          criteria {
+            criterion {
+              id
+              defaultTitle
+            }
+            reviewCount
+            averageRating
+          }
+          lastReviewedAt
+          updatedAt
         }
-        lastReviewedAt
-        updatedAt
+        questionSummary {
+          questionCount
+          answeredQuestionCount
+          unansweredQuestionCount
+          answerCount
+          officialAnswerCount
+          lastQuestionAt
+          lastAnsweredAt
+          updatedAt
+        }
       }
     }
   }

@@ -1,7 +1,7 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { RatingCriterion } from "./types";
-import type { ApiProductReviewSummary, ApiReviewContentExternalReference, ApiReviewModerationCase, ApiReviewRequest } from "@/graphql/types";
+import type { ApiReviewContentExternalReference, ApiReviewModerationCase, ApiReviewRequest } from "@/graphql/types";
 
 export const RATING_CRITERION_MODAL_TYPE = "review-rating-criterion";
 export const MODERATION_CASE_MODAL_TYPE = "review-moderation-case";
@@ -20,7 +20,6 @@ export interface ExternalReferenceModalPayload extends SavedPayload {
 }
 export interface ProductInsightsModalPayload extends IModalStackPayload {
   product: { id: string; title: string; handle: string };
-  summary?: ApiProductReviewSummary | null;
 }
 
 declare module "@/layouts/modals" {

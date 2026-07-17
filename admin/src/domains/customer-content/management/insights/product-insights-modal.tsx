@@ -4,14 +4,15 @@ import { Alert, Descriptions, Flex, Progress, Skeleton, Statistic, Typography } 
 import { LuChartBar as BarChartOutlined, LuCircleHelp as QuestionOutlined, LuStar as StarFilled } from "react-icons/lu";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { useProductReviewsWidget } from "@/domains/customer-content/reviews/hooks";
 import type { ProductInsightsModalPayload } from "../modals";
-import { useProductQuestionSummary } from "./use-product-question-summary";
 
 export function ProductInsightsModal() {
   const { payload, pop } = useModalStackContext();
   const value = payload as ProductInsightsModalPayload;
-  const summary = value.summary;
-  const questions = useProductQuestionSummary(value.product.id);
+  const widget = useProductReviewsWidget(value.product.id);
+  const summary = widget.data?.reviewSummary;
+  const questions = widget.data?.questionSummary;
   const reviewCount = summary?.reviewCount ?? 0;
   const averageRating = summary?.averageRating ?? 0;
   const verifiedReviewCount = summary?.verifiedReviewCount ?? 0;
@@ -38,6 +39,7 @@ export function ProductInsightsModal() {
         { key: "id", label: "Product ID", children: value.product.id },
       ]} />
     </Paper>
+    {widget.error ? <Alert type="error" showIcon message={widget.error.message} /> : null}
     <Paper>
       <PaperHeader title="Reviews" icon={<StarFilled />} />
       <Flex gap="large" wrap="wrap">
@@ -63,13 +65,12 @@ export function ProductInsightsModal() {
     </Paper>
     <Paper>
       <PaperHeader title="Questions & answers" icon={<QuestionOutlined />} />
-      {questions.error ? <Alert type="error" showIcon message={questions.error.message} /> : null}
-      {questions.loading && !questions.summary ? <Skeleton active paragraph={{ rows: 2 }} /> : <Flex gap="large" wrap="wrap">
-        <Statistic title="Questions" value={questions.summary?.questionCount ?? 0} />
-        <Statistic title="Answered" value={questions.summary?.answeredQuestionCount ?? 0} />
-        <Statistic title="Unanswered" value={questions.summary?.unansweredQuestionCount ?? 0} />
-        <Statistic title="Answers" value={questions.summary?.answerCount ?? 0} />
-        <Statistic title="Official answers" value={questions.summary?.officialAnswerCount ?? 0} />
+      {widget.loading && !widget.data ? <Skeleton active paragraph={{ rows: 2 }} /> : <Flex gap="large" wrap="wrap">
+        <Statistic title="Questions" value={questions?.questionCount ?? 0} />
+        <Statistic title="Answered" value={questions?.answeredQuestionCount ?? 0} />
+        <Statistic title="Unanswered" value={questions?.unansweredQuestionCount ?? 0} />
+        <Statistic title="Answers" value={questions?.answerCount ?? 0} />
+        <Statistic title="Official answers" value={questions?.officialAnswerCount ?? 0} />
       </Flex>}
     </Paper>
   </ModalLayout>;
