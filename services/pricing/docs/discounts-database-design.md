@@ -19,15 +19,15 @@ Behavior-specific data is normalized into exactly one applicable subtype:
 
 - `discount_amount_off` for product and order amount-off rules;
 - `discount_buy_x_get_y` for qualifier/benefit quantities and values;
-- `discount_free_shipping` for destination and shipping-rate limits.
+- `discount_free_shipping` for shipping-rate limits.
 
-Deferred constraint triggers validate complete non-draft aggregates at transaction commit. Drafts can be assembled incrementally, while incompatible subtypes, targets, contexts, and destinations are rejected for every lifecycle state.
+The pricing service validates complete non-draft aggregates inside the transaction that persists configuration changes. Drafts can be assembled incrementally, while incompatible subtypes, targets, and contexts are rejected by application-level aggregate validation.
 
 ## Cross-service references
 
 Catalog product, variant, and collection IDs, customer and segment IDs, checkout IDs, and order IDs are stored with `store_id` but intentionally have no cross-service foreign keys. Their owner service validates them. Pricing keeps a `VALID`/`STALE` reference state where a long-lived rule needs reconciliation without silently losing historical configuration.
 
-All local child relationships use composite `(store_id, parent_id)` foreign keys wherever the parent exposes that key. This makes accidental cross-tenant attachment impossible inside the pricing schema.
+Local child relationships use stable entity identifiers in primary and foreign keys. `store_id` remains a tenant-scope column used by repository predicates, unique constraints, and lookup indexes, but does not participate in foreign keys.
 
 ## Money and percentages
 
@@ -47,11 +47,11 @@ Percentages use basis points (`1..10000`) rather than floating point. This suppo
 
 Finite usage is protected through transactionally maintained aggregate and code counters plus expiring checkout reservations. The service must lock the relevant counter rows before checking and reserving capacity.
 
-Committed `discount_redemption` rows are immutable accounting headers keyed idempotently to orders. Allocation rows identify order, order-line, or shipping-line impact, and a deferred constraint requires allocation totals to equal the redemption amount. Reversals preserve the original application and record a reason instead of deleting history.
+Committed `discount_redemption` rows are accounting headers keyed idempotently to orders. Allocation rows identify order, order-line, or shipping-line impact. The pricing service validates allocation totals and applies reversals inside the same transaction as counter updates.
 
 ## Audit and integrations
 
-`discount_revision` stores immutable configuration snapshots for deterministic historical evaluation. `discount_event` provides an ordered, idempotent timeline. `discount_external_reference` maps native aggregates to imported/exported provider identities without putting provider-specific payloads into the normalized rule tables.
+`discount_revision` stores configuration snapshots for deterministic historical evaluation. `discount_event` provides an ordered, idempotent timeline. The pricing service owns append-only behavior for both tables. `discount_external_reference` maps native aggregates to imported/exported provider identities without putting provider-specific payloads into the normalized rule tables.
 
 ## Read models
 
@@ -66,13 +66,12 @@ Committed `discount_redemption` rows are immutable accounting headers keyed idem
 0000_foundation  schema and enums
 0100_discounts   aggregate roots, redeem codes, tags
 0200_rules       native rule subtypes and minimum requirements
-0300_targets     catalog target selections and shipping destinations
+0300_targets     catalog target selections
 0400_eligibility buyer contexts, customers, segments
 0500_availability sales channels and featured access
 0600_combinations compatible discount classes
 0700_usage       counters, reservations, redemptions, allocations
-0800_audit       immutable revisions and events
+0800_audit       revisions and events
 0900_integrations external system mappings
-1000_integrity   deferred aggregate and accounting constraints
 9000_read_models Admin and usage projections
 ```
