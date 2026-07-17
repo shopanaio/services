@@ -1,0 +1,21 @@
+# Catalog Product reference. Pricing never joins the Catalog database.
+extend type Product implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+# Catalog Variant reference. Pricing never joins the Catalog database.
+extend type Variant implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+# Catalog Collection reference. Pricing never joins the Catalog database.
+extend type Collection implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+# Customers reference used by discount eligibility and usage history.
+extend type Customer implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+union DiscountCatalogTarget = Product | Variant | Collection

@@ -1,0 +1,365 @@
+input StringFilter {
+  _eq: String
+  _neq: String
+  _in: [String!]
+  _notIn: [String!]
+  _is: Boolean
+  _isNot: Boolean
+  _contains: String
+  _containsi: String
+  _notContains: String
+  _notContainsi: String
+  _startsWith: String
+  _startsWithi: String
+  _endsWith: String
+  _endsWithi: String
+}
+
+input IDFilter {
+  _eq: ID
+  _neq: ID
+  _in: [ID!]
+  _notIn: [ID!]
+  _is: Boolean
+  _isNot: Boolean
+}
+
+input IntFilter {
+  _eq: Int
+  _neq: Int
+  _gt: Int
+  _gte: Int
+  _lt: Int
+  _lte: Int
+  _in: [Int!]
+  _notIn: [Int!]
+  _is: Boolean
+  _isNot: Boolean
+  _between: [Int!]
+}
+
+input BooleanFilter {
+  _eq: Boolean
+  _neq: Boolean
+  _is: Boolean
+  _isNot: Boolean
+}
+
+input DateTimeFilter {
+  _eq: DateTime
+  _neq: DateTime
+  _gt: DateTime
+  _gte: DateTime
+  _lt: DateTime
+  _lte: DateTime
+  _in: [DateTime!]
+  _notIn: [DateTime!]
+  _is: Boolean
+  _isNot: Boolean
+  _between: [DateTime!]
+}
+
+input BigIntFilter {
+  _eq: BigInt
+  _neq: BigInt
+  _gt: BigInt
+  _gte: BigInt
+  _lt: BigInt
+  _lte: BigInt
+  _in: [BigInt!]
+  _notIn: [BigInt!]
+  _is: Boolean
+  _isNot: Boolean
+  _between: [BigInt!]
+}
+
+enum SortDirection {
+  asc
+  desc
+}
+
+input DiscountMethodFilter {
+  _eq: DiscountMethod
+  _neq: DiscountMethod
+  _in: [DiscountMethod!]
+  _notIn: [DiscountMethod!]
+}
+
+input DiscountKindFilter {
+  _eq: DiscountKind
+  _neq: DiscountKind
+  _in: [DiscountKind!]
+  _notIn: [DiscountKind!]
+}
+
+input DiscountClassFilter {
+  _eq: DiscountClass
+  _neq: DiscountClass
+  _in: [DiscountClass!]
+  _notIn: [DiscountClass!]
+}
+
+input DiscountStateFilter {
+  _eq: DiscountState
+  _neq: DiscountState
+  _in: [DiscountState!]
+  _notIn: [DiscountState!]
+}
+
+input DiscountEffectiveStatusFilter {
+  _eq: DiscountEffectiveStatus
+  _neq: DiscountEffectiveStatus
+  _in: [DiscountEffectiveStatus!]
+  _notIn: [DiscountEffectiveStatus!]
+}
+
+input DiscountCodeStatusFilter {
+  _eq: DiscountCodeStatus
+  _neq: DiscountCodeStatus
+  _in: [DiscountCodeStatus!]
+  _notIn: [DiscountCodeStatus!]
+}
+
+input DiscountReservationStatusFilter {
+  _eq: DiscountReservationStatus
+  _neq: DiscountReservationStatus
+  _in: [DiscountReservationStatus!]
+  _notIn: [DiscountReservationStatus!]
+}
+
+input DiscountRedemptionStatusFilter {
+  _eq: DiscountRedemptionStatus
+  _neq: DiscountRedemptionStatus
+  _in: [DiscountRedemptionStatus!]
+  _notIn: [DiscountRedemptionStatus!]
+}
+
+input DiscountExternalSyncDirectionFilter {
+  _eq: DiscountExternalSyncDirection
+  _neq: DiscountExternalSyncDirection
+  _in: [DiscountExternalSyncDirection!]
+  _notIn: [DiscountExternalSyncDirection!]
+}
+
+input DiscountExternalSyncStatusFilter {
+  _eq: DiscountExternalSyncStatus
+  _neq: DiscountExternalSyncStatus
+  _in: [DiscountExternalSyncStatus!]
+  _notIn: [DiscountExternalSyncStatus!]
+}
+
+input DiscountCurrencyFilter {
+  _eq: CurrencyCode
+  _neq: CurrencyCode
+  _in: [CurrencyCode!]
+  _notIn: [CurrencyCode!]
+}
+
+"""Filters backed by pricing.discount_list_view and store-scoped relations."""
+input DiscountWhereInput {
+  _and: [DiscountWhereInput!]
+  _or: [DiscountWhereInput!]
+  _not: DiscountWhereInput
+  id: IDFilter
+  method: DiscountMethodFilter
+  kind: DiscountKindFilter
+  discountClass: DiscountClassFilter
+  state: DiscountStateFilter
+  effectiveStatus: DiscountEffectiveStatusFilter
+  title: StringFilter
+  primaryCode: StringFilter
+  currency: DiscountCurrencyFilter
+  priority: IntFilter
+  usageLimit: BigIntFilter
+  appliesOncePerCustomer: BooleanFilter
+  appliesOnOneTimePurchase: BooleanFilter
+  appliesOnSubscription: BooleanFilter
+  startsAt: DateTimeFilter
+  endsAt: DateTimeFilter
+  revision: IntFilter
+  reservedUsageCount: BigIntFilter
+  usageCount: BigIntFilter
+  """Match discounts assigned to at least one normalized tag."""
+  tag: StringFilter
+  """Match discounts available on a channel code."""
+  channelCode: StringFilter
+  """Match discounts featured on a channel code."""
+  featuredChannelCode: StringFilter
+  combinesWithProductDiscounts: BooleanFilter
+  combinesWithOrderDiscounts: BooleanFilter
+  combinesWithShippingDiscounts: BooleanFilter
+  createdById: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  archivedAt: DateTimeFilter
+}
+
+enum DiscountOrderField {
+  id
+  method
+  kind
+  discountClass
+  state
+  effectiveStatus
+  title
+  primaryCode
+  codesCount
+  currency
+  priority
+  usageLimit
+  reservedUsageCount
+  usageCount
+  startsAt
+  endsAt
+  revision
+  createdAt
+  updatedAt
+  archivedAt
+}
+
+input DiscountOrderByInput {
+  field: DiscountOrderField!
+  direction: SortDirection!
+}
+
+input DiscountCodeWhereInput {
+  _and: [DiscountCodeWhereInput!]
+  _or: [DiscountCodeWhereInput!]
+  _not: DiscountCodeWhereInput
+  id: IDFilter
+  discountId: IDFilter
+  code: StringFilter
+  normalizedCode: StringFilter
+  status: DiscountCodeStatusFilter
+  usageLimit: BigIntFilter
+  reservedCount: BigIntFilter
+  usageCount: BigIntFilter
+  remainingCount: BigIntFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  disabledAt: DateTimeFilter
+}
+
+enum DiscountCodeOrderField {
+  id
+  code
+  normalizedCode
+  status
+  usageLimit
+  reservedCount
+  usageCount
+  remainingCount
+  createdAt
+  updatedAt
+  disabledAt
+}
+
+input DiscountCodeOrderByInput {
+  field: DiscountCodeOrderField!
+  direction: SortDirection!
+}
+
+input DiscountUsageReservationWhereInput {
+  _and: [DiscountUsageReservationWhereInput!]
+  _or: [DiscountUsageReservationWhereInput!]
+  _not: DiscountUsageReservationWhereInput
+  id: IDFilter
+  discountId: IDFilter
+  codeId: IDFilter
+  customerId: IDFilter
+  checkoutId: IDFilter
+  status: DiscountReservationStatusFilter
+  expiresAt: DateTimeFilter
+  committedAt: DateTimeFilter
+  closedAt: DateTimeFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+enum DiscountUsageReservationOrderField {
+  id
+  status
+  expiresAt
+  committedAt
+  closedAt
+  createdAt
+  updatedAt
+}
+
+input DiscountUsageReservationOrderByInput {
+  field: DiscountUsageReservationOrderField!
+  direction: SortDirection!
+}
+
+input DiscountRedemptionWhereInput {
+  _and: [DiscountRedemptionWhereInput!]
+  _or: [DiscountRedemptionWhereInput!]
+  _not: DiscountRedemptionWhereInput
+  id: IDFilter
+  discountId: IDFilter
+  codeId: IDFilter
+  reservationId: IDFilter
+  customerId: IDFilter
+  checkoutId: IDFilter
+  orderId: IDFilter
+  status: DiscountRedemptionStatusFilter
+  discountClass: DiscountClassFilter
+  configurationRevision: IntFilter
+  currency: DiscountCurrencyFilter
+  amountMinor: BigIntFilter
+  committedAt: DateTimeFilter
+  reversedAt: DateTimeFilter
+  createdAt: DateTimeFilter
+}
+
+enum DiscountRedemptionOrderField {
+  id
+  status
+  discountClass
+  configurationRevision
+  currency
+  amountMinor
+  committedAt
+  reversedAt
+  createdAt
+}
+
+input DiscountRedemptionOrderByInput {
+  field: DiscountRedemptionOrderField!
+  direction: SortDirection!
+}
+
+input DiscountExternalReferenceWhereInput {
+  _and: [DiscountExternalReferenceWhereInput!]
+  _or: [DiscountExternalReferenceWhereInput!]
+  _not: DiscountExternalReferenceWhereInput
+  id: IDFilter
+  discountId: IDFilter
+  externalSystem: StringFilter
+  externalType: StringFilter
+  externalId: StringFilter
+  direction: DiscountExternalSyncDirectionFilter
+  syncStatus: DiscountExternalSyncStatusFilter
+  lastSyncedAt: DateTimeFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  deletedAt: DateTimeFilter
+}
+
+enum DiscountExternalReferenceOrderField {
+  id
+  externalSystem
+  externalType
+  externalId
+  direction
+  syncStatus
+  lastSyncedAt
+  createdAt
+  updatedAt
+  deletedAt
+}
+
+input DiscountExternalReferenceOrderByInput {
+  field: DiscountExternalReferenceOrderField!
+  direction: SortDirection!
+}

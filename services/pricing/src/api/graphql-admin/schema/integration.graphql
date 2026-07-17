@@ -1,0 +1,83 @@
+type DiscountExternalReference implements Node @key(fields: "id") {
+  id: ID!
+  discount: Discount!
+  externalSystem: String!
+  externalType: String!
+  externalId: String!
+  externalUrl: String
+  direction: DiscountExternalSyncDirection!
+  syncStatus: DiscountExternalSyncStatus!
+  etag: String
+  contentChecksum: String
+  lastSyncedAt: DateTime
+  lastError: String
+  metadata: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+type DiscountExternalReferenceConnection {
+  edges: [DiscountExternalReferenceEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type DiscountExternalReferenceEdge {
+  node: DiscountExternalReference!
+  cursor: String!
+}
+
+input DiscountExternalReferenceCreateInput {
+  discountId: ID!
+  externalSystem: String!
+  externalType: String = "discount"
+  externalId: String!
+  externalUrl: String
+  direction: DiscountExternalSyncDirection!
+  metadata: JSON
+}
+
+input DiscountExternalReferenceIdentityInput {
+  externalSystem: String
+  externalType: String
+  externalId: String
+  externalUrl: String
+}
+
+input DiscountExternalReferenceSyncInput {
+  direction: DiscountExternalSyncDirection
+  status: DiscountExternalSyncStatus
+  etag: String
+  contentChecksum: String
+  lastSyncedAt: DateTime
+  lastError: String
+  metadata: JSON
+}
+
+input DiscountExternalReferenceUpdateInput {
+  identity: DiscountExternalReferenceIdentityInput
+  sync: DiscountExternalReferenceSyncInput
+}
+
+input DiscountExternalReferenceDeleteInput {
+  id: ID!
+  expectedUpdatedAt: DateTime!
+  permanent: Boolean = false
+}
+
+type DiscountExternalReferenceCreatePayload {
+  externalReference: DiscountExternalReference
+  userErrors: [GenericUserError!]!
+}
+
+type DiscountExternalReferenceUpdatePayload {
+  externalReference: DiscountExternalReference
+  operationResults: [DiscountOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type DiscountExternalReferenceDeletePayload {
+  deletedExternalReferenceId: ID
+  userErrors: [GenericUserError!]!
+}

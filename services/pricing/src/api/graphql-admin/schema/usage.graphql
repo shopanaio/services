@@ -1,0 +1,117 @@
+"""A redeemable code and its usage projection."""
+type DiscountCode implements Node @key(fields: "id") {
+  id: ID!
+  discount: Discount!
+  code: String!
+  normalizedCode: String!
+  status: DiscountCodeStatus!
+  usageLimit: BigInt
+  reservedCount: BigInt!
+  committedCount: BigInt!
+  reversedCount: BigInt!
+  usageCount: BigInt!
+  remainingCount: BigInt
+  metadata: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  disabledAt: DateTime
+}
+
+type DiscountCodeConnection {
+  edges: [DiscountCodeEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type DiscountCodeEdge {
+  node: DiscountCode!
+  cursor: String!
+}
+
+"""Aggregate usage accounting including active checkout reservations."""
+type DiscountUsageSummary {
+  usageLimit: BigInt
+  reservedCount: BigInt!
+  committedCount: BigInt!
+  reversedCount: BigInt!
+  netCommittedCount: BigInt!
+  consumedCount: BigInt!
+  remainingCount: BigInt
+  version: BigInt
+  updatedAt: DateTime
+}
+
+"""Operational capacity reservation retained as an audit record after closing."""
+type DiscountUsageReservation implements Node @key(fields: "id") {
+  id: ID!
+  discount: Discount!
+  discountCode: DiscountCode
+  customerId: ID
+  customer: Customer
+  checkoutId: ID!
+  idempotencyKey: String!
+  status: DiscountReservationStatus!
+  expiresAt: DateTime!
+  committedAt: DateTime
+  closedAt: DateTime
+  metadata: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type DiscountUsageReservationConnection {
+  edges: [DiscountUsageReservationEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type DiscountUsageReservationEdge {
+  node: DiscountUsageReservation!
+  cursor: String!
+}
+
+"""Order-level discount accounting header."""
+type DiscountRedemption implements Node @key(fields: "id") {
+  id: ID!
+  discount: Discount!
+  discountCode: DiscountCode
+  reservation: DiscountUsageReservation
+  customerId: ID
+  customer: Customer
+  checkoutId: ID!
+  orderId: ID!
+  idempotencyKey: String!
+  status: DiscountRedemptionStatus!
+  discountClass: DiscountClass!
+  configurationRevision: Int!
+  currency: CurrencyCode!
+  amountMinor: BigInt!
+  committedAt: DateTime!
+  reversedAt: DateTime
+  reversalReason: String
+  metadata: JSON!
+  createdAt: DateTime!
+  allocations: [DiscountRedemptionAllocation!]!
+}
+
+type DiscountRedemptionAllocation implements Node @key(fields: "id") {
+  id: ID!
+  redemption: DiscountRedemption!
+  targetType: DiscountAllocationTargetType!
+  targetId: ID
+  quantity: Int
+  amountMinor: BigInt!
+  metadata: JSON!
+  createdAt: DateTime!
+}
+
+type DiscountRedemptionConnection {
+  edges: [DiscountRedemptionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type DiscountRedemptionEdge {
+  node: DiscountRedemption!
+  cursor: String!
+}

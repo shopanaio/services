@@ -6,6 +6,5 @@ export * from "./eligibility.js";
 export * from "./availability.js";
 export * from "./combinations.js";
 export * from "./usage.js";
-export * from "./audit.js";
 export * from "./integrations.js";
 export * from "./readModels.js";

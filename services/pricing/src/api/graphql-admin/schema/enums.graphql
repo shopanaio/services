@@ -1,0 +1,125 @@
+enum DiscountMethod {
+  CODE
+  AUTOMATIC
+}
+
+enum DiscountKind {
+  AMOUNT_OFF_PRODUCTS
+  BUY_X_GET_Y
+  AMOUNT_OFF_ORDER
+  FREE_SHIPPING
+}
+
+enum DiscountClass {
+  PRODUCT
+  ORDER
+  SHIPPING
+}
+
+enum DiscountState {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+"""Lifecycle plus schedule-derived state used by Admin list views."""
+enum DiscountEffectiveStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  EXPIRED
+  ARCHIVED
+}
+
+enum DiscountCodeStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum DiscountValueType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE
+}
+
+enum DiscountAllocationMethod {
+  EACH
+  ACROSS
+}
+
+enum DiscountRequirementType {
+  SUBTOTAL
+  QUANTITY
+}
+
+enum DiscountTargetRole {
+  QUALIFIER
+  BENEFIT
+}
+
+enum DiscountTargetType {
+  ALL_PRODUCTS
+  PRODUCTS
+  VARIANTS
+  COLLECTIONS
+}
+
+enum DiscountBuyerContextType {
+  ALL
+  CUSTOMERS
+  SEGMENTS
+}
+
+enum DiscountReferenceStatus {
+  VALID
+  STALE
+}
+
+enum DiscountReservationStatus {
+  ACTIVE
+  COMMITTED
+  RELEASED
+  EXPIRED
+}
+
+enum DiscountRedemptionStatus {
+  COMMITTED
+  REVERSED
+}
+
+enum DiscountAllocationTargetType {
+  ORDER
+  ORDER_LINE
+  SHIPPING_LINE
+}
+
+enum DiscountExternalSyncDirection {
+  IMPORT
+  EXPORT
+  BIDIRECTIONAL
+}
+
+enum DiscountExternalSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  DISABLED
+}
+
+"""Sections executed by the unified discountUpdate workflow."""
+enum DiscountOperationType {
+  DEFINITION_UPDATE
+  RULE_UPDATE
+  MINIMUM_REQUIREMENT_UPDATE
+  TARGETS_UPDATE
+  ELIGIBILITY_UPDATE
+  CODES_UPDATE
+  TAGS_UPDATE
+  CHANNELS_UPDATE
+  COMBINATIONS_UPDATE
+  LIFECYCLE_UPDATE
+  METADATA_UPDATE
+  EXTERNAL_REFERENCE_UPDATE
+}

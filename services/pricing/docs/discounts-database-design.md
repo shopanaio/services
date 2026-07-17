@@ -9,11 +9,11 @@ This baseline models the four native discount flows represented by the Admin UI 
 - amount off order;
 - free shipping.
 
-Every kind supports code or automatic activation where the product contract allows it. Shared capabilities include buyer eligibility, minimum requirements, usage limits, customer limits, sales channels, tags, combinations, scheduling, redemption accounting, revisions, and external synchronization.
+Every kind supports code or automatic activation where the product contract allows it. Shared capabilities include buyer eligibility, minimum requirements, usage limits, customer limits, sales channels, tags, combinations, scheduling, redemption accounting, optimistic revisions, and external synchronization.
 
 ## Aggregate boundaries
 
-`pricing.discount` is the tenant-scoped aggregate root. It owns lifecycle, activation method, native kind/class, schedule, currency, purchase modes, aggregate usage limits, and optimistic revision.
+`pricing.discount` is the tenant-scoped aggregate root. It owns lifecycle, activation method, native kind/class, schedule, currency, purchase modes, aggregate usage limits, and an optimistic concurrency revision. Configuration updates advance the revision but do not create immutable configuration snapshots.
 
 Behavior-specific data is normalized into exactly one applicable subtype:
 
@@ -49,9 +49,9 @@ Finite usage is protected through transactionally maintained aggregate and code 
 
 Committed `discount_redemption` rows are accounting headers keyed idempotently to orders. Allocation rows identify order, order-line, or shipping-line impact. The pricing service validates allocation totals and applies reversals inside the same transaction as counter updates.
 
-## Audit and integrations
+## Integrations
 
-`discount_revision` stores configuration snapshots for deterministic historical evaluation. `discount_event` provides an ordered, idempotent timeline. The pricing service owns append-only behavior for both tables. `discount_external_reference` maps native aggregates to imported/exported provider identities without putting provider-specific payloads into the normalized rule tables.
+`discount_external_reference` maps native aggregates to imported/exported provider identities without putting provider-specific payloads into the normalized rule tables. Pricing does not keep a separate configuration snapshot or domain-event timeline for discounts.
 
 ## Read models
 
@@ -71,7 +71,6 @@ Committed `discount_redemption` rows are accounting headers keyed idempotently t
 0500_availability sales channels and featured access
 0600_combinations compatible discount classes
 0700_usage       counters, reservations, redemptions, allocations
-0800_audit       revisions and events
 0900_integrations external system mappings
 9000_read_models Admin and usage projections
 ```

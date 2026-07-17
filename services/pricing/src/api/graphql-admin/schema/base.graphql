@@ -22,16 +22,56 @@ type Mutation {
   pricingMutation: PricingMutation!
 }
 
-"""Scaffold for pricing reads. Add domain fields in dedicated schema files."""
+"""Store-scoped pricing reads. The current Store is taken from trusted context."""
 type PricingQuery {
-  """Scaffold-only field; remove after adding the first pricing query."""
-  _placeholder: Boolean!
-    @deprecated(reason: "Replace with pricing query fields")
+  """Resolve a Pricing-owned Relay node by global ID."""
+  node(id: ID!): Node
+
+  """Resolve Pricing-owned Relay nodes while preserving input order."""
+  nodes(ids: [ID!]!): [Node]!
+
+  discount(id: ID!): Discount
+  discounts(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: DiscountWhereInput
+    orderBy: [DiscountOrderByInput!]
+  ): DiscountConnection!
+
+  discountCode(id: ID!): DiscountCode
+  discountUsageReservation(id: ID!): DiscountUsageReservation
+  discountRedemption(id: ID!): DiscountRedemption
+  discountExternalReference(id: ID!): DiscountExternalReference
 }
 
-"""Scaffold for pricing commands. Add domain fields in dedicated schema files."""
+"""Store-scoped pricing commands."""
 type PricingMutation {
-  """Scaffold-only field; remove after adding the first pricing mutation."""
-  _placeholder: Boolean!
-    @deprecated(reason: "Replace with pricing mutation fields")
+  discountCreate(input: DiscountCreateInput!): DiscountCreatePayload!
+
+  """Unified discount configuration update with optimistic locking."""
+  discountUpdate(
+    discountId: ID!
+    expectedRevision: Int!
+    operations: DiscountUpdateInput!
+  ): DiscountUpdatePayload!
+
+  """
+  Permanently delete an unused draft. Active, historical, or redeemed discounts
+  must be archived through discountUpdate instead.
+  """
+  discountDelete(input: DiscountDeleteInput!): DiscountDeletePayload!
+
+  discountExternalReferenceCreate(
+    input: DiscountExternalReferenceCreateInput!
+  ): DiscountExternalReferenceCreatePayload!
+  discountExternalReferenceUpdate(
+    externalReferenceId: ID!
+    expectedUpdatedAt: DateTime!
+    operations: DiscountExternalReferenceUpdateInput!
+  ): DiscountExternalReferenceUpdatePayload!
+  discountExternalReferenceDelete(
+    input: DiscountExternalReferenceDeleteInput!
+  ): DiscountExternalReferenceDeletePayload!
 }

@@ -1,0 +1,364 @@
+"""A store-scoped native discount aggregate owned by Pricing."""
+type Discount implements Node @key(fields: "id") {
+  id: ID!
+  method: DiscountMethod!
+  kind: DiscountKind!
+  discountClass: DiscountClass!
+  state: DiscountState!
+  effectiveStatus: DiscountEffectiveStatus!
+  title: String
+  """First active code, or the oldest code when all codes are disabled."""
+  primaryCode: String
+  codesCount: Int!
+  currency: CurrencyCode!
+  priority: Int!
+  usageLimit: BigInt
+  appliesOncePerCustomer: Boolean!
+  appliesOnOneTimePurchase: Boolean!
+  appliesOnSubscription: Boolean!
+  startsAt: DateTime!
+  endsAt: DateTime
+  revision: Int!
+  reservedUsageCount: BigInt!
+  usageCount: BigInt!
+  tags: [String!]!
+  channelCodes: [String!]!
+  featuredChannelCodes: [String!]!
+  combinesWithProductDiscounts: Boolean!
+  combinesWithOrderDiscounts: Boolean!
+  combinesWithShippingDiscounts: Boolean!
+  createdById: String
+  metadata: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  archivedAt: DateTime
+
+  """Exactly one rule subtype is present for a complete aggregate."""
+  rule: DiscountRule
+  minimumRequirement: DiscountMinimumRequirement
+  targetSelections: [DiscountTargetSelection!]!
+  buyerContext: DiscountBuyerContext!
+  channels: [DiscountChannel!]!
+  combinations: [DiscountCombination!]!
+  usage: DiscountUsageSummary!
+
+  codes(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: DiscountCodeWhereInput
+    orderBy: [DiscountCodeOrderByInput!]
+  ): DiscountCodeConnection!
+
+  usageReservations(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: DiscountUsageReservationWhereInput
+    orderBy: [DiscountUsageReservationOrderByInput!]
+  ): DiscountUsageReservationConnection!
+
+  redemptions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: DiscountRedemptionWhereInput
+    orderBy: [DiscountRedemptionOrderByInput!]
+  ): DiscountRedemptionConnection!
+
+  externalReferences(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: DiscountExternalReferenceWhereInput
+    orderBy: [DiscountExternalReferenceOrderByInput!]
+  ): DiscountExternalReferenceConnection!
+}
+
+union DiscountRule =
+    DiscountAmountOffRule
+  | DiscountBuyXGetYRule
+  | DiscountFreeShippingRule
+
+"""Percentage or fixed-amount rule used by product and order discounts."""
+type DiscountAmountOffRule {
+  valueType: DiscountValueType!
+  percentageBps: Int
+  amountMinor: BigInt
+  allocationMethod: DiscountAllocationMethod!
+  maximumDiscountMinor: BigInt
+}
+
+type DiscountBuyXGetYRule {
+  requirementType: DiscountRequirementType!
+  requiredQuantity: Int
+  requiredSubtotalMinor: BigInt
+  benefitQuantity: Int!
+  benefitValueType: DiscountValueType!
+  benefitPercentageBps: Int
+  benefitAmountMinor: BigInt
+  usesPerOrderLimit: Int
+}
+
+type DiscountFreeShippingRule {
+  maximumShippingPriceMinor: BigInt
+}
+
+type DiscountMinimumRequirement {
+  requirementType: DiscountRequirementType!
+  subtotalMinor: BigInt
+  quantity: Int
+}
+
+type DiscountTargetSelection {
+  role: DiscountTargetRole!
+  targetType: DiscountTargetType!
+  targets: [DiscountTarget!]!
+}
+
+"""A long-lived cross-service target reference and its reconciliation state."""
+type DiscountTarget {
+  targetId: ID!
+  targetType: DiscountTargetType!
+  target: DiscountCatalogTarget
+  referenceStatus: DiscountReferenceStatus!
+  referenceStatusChangedAt: DateTime
+  referenceCheckedAt: DateTime
+  createdAt: DateTime!
+}
+
+type DiscountBuyerContext {
+  type: DiscountBuyerContextType!
+  customers: [DiscountEligibleCustomer!]!
+  segments: [DiscountEligibleSegment!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type DiscountEligibleCustomer {
+  customerId: ID!
+  customer: Customer
+  referenceStatus: DiscountReferenceStatus!
+  referenceStatusChangedAt: DateTime
+  referenceCheckedAt: DateTime
+  createdAt: DateTime!
+}
+
+type DiscountEligibleSegment {
+  segmentId: ID!
+  referenceStatus: DiscountReferenceStatus!
+  referenceStatusChangedAt: DateTime
+  referenceCheckedAt: DateTime
+  createdAt: DateTime!
+}
+
+type DiscountChannel {
+  code: String!
+  featured: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type DiscountCombination {
+  discountClass: DiscountClass!
+  createdAt: DateTime!
+}
+
+type DiscountConnection {
+  edges: [DiscountEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type DiscountEdge {
+  node: Discount!
+  cursor: String!
+}
+
+input DiscountAmountOffRuleInput {
+  valueType: DiscountValueType!
+  percentageBps: Int
+  amountMinor: BigInt
+  """Defaults to ACROSS when omitted."""
+  allocationMethod: DiscountAllocationMethod
+  maximumDiscountMinor: BigInt
+}
+
+input DiscountBuyXGetYRuleInput {
+  requirementType: DiscountRequirementType!
+  requiredQuantity: Int
+  requiredSubtotalMinor: BigInt
+  benefitQuantity: Int!
+  benefitValueType: DiscountValueType!
+  benefitPercentageBps: Int
+  benefitAmountMinor: BigInt
+  usesPerOrderLimit: Int
+}
+
+input DiscountFreeShippingRuleInput {
+  maximumShippingPriceMinor: BigInt
+}
+
+"""Exactly one rule field must match the owning discount kind."""
+input DiscountRuleInput {
+  amountOff: DiscountAmountOffRuleInput
+  buyXGetY: DiscountBuyXGetYRuleInput
+  freeShipping: DiscountFreeShippingRuleInput
+}
+
+input DiscountMinimumRequirementInput {
+  requirementType: DiscountRequirementType!
+  subtotalMinor: BigInt
+  quantity: Int
+}
+
+"""Wrapper used by updates so a null requirement can explicitly clear it."""
+input DiscountMinimumRequirementSyncInput {
+  requirement: DiscountMinimumRequirementInput
+}
+
+input DiscountTargetSelectionInput {
+  role: DiscountTargetRole!
+  targetType: DiscountTargetType!
+  """Must be empty for ALL_PRODUCTS and non-empty for specific target types."""
+  targetIds: [ID!]!
+}
+
+input DiscountBuyerContextInput {
+  type: DiscountBuyerContextType!
+  customerIds: [ID!]
+  segmentIds: [ID!]
+}
+
+input DiscountChannelInput {
+  code: String!
+  featured: Boolean = false
+}
+
+input DiscountPurchaseModesInput {
+  appliesOnOneTimePurchase: Boolean!
+  appliesOnSubscription: Boolean!
+}
+
+input DiscountScheduleInput {
+  startsAt: DateTime!
+  endsAt: DateTime
+}
+
+input DiscountUsageLimitsInput {
+  usageLimit: BigInt
+  appliesOncePerCustomer: Boolean!
+}
+
+input DiscountCodeCreateOperationInput {
+  """Client-provided correlation key returned in the operation result."""
+  clientMutationId: String
+  code: String!
+  usageLimit: BigInt
+  metadata: JSON
+}
+
+input DiscountCodeUpdateOperationInput {
+  codeId: ID!
+  expectedUpdatedAt: DateTime!
+  code: String
+  status: DiscountCodeStatus
+  usageLimit: BigInt
+  metadata: JSON
+}
+
+input DiscountCodeDeleteOperationInput {
+  codeId: ID!
+  expectedUpdatedAt: DateTime!
+}
+
+input DiscountCodesUpdateInput {
+  create: [DiscountCodeCreateOperationInput!]
+  update: [DiscountCodeUpdateOperationInput!]
+  delete: [DiscountCodeDeleteOperationInput!]
+}
+
+input DiscountCreateInput {
+  method: DiscountMethod!
+  kind: DiscountKind!
+  """Defaults to DRAFT when omitted."""
+  state: DiscountState
+  title: String
+  currency: CurrencyCode!
+  priority: Int = 0
+  usage: DiscountUsageLimitsInput
+  purchaseModes: DiscountPurchaseModesInput
+  schedule: DiscountScheduleInput
+  rule: DiscountRuleInput
+  minimumRequirement: DiscountMinimumRequirementInput
+  targetSelections: [DiscountTargetSelectionInput!]
+  buyerContext: DiscountBuyerContextInput
+  codes: [DiscountCodeCreateOperationInput!]
+  tags: [String!]
+  channels: [DiscountChannelInput!]
+  combinesWith: [DiscountClass!]
+  metadata: JSON
+}
+
+input DiscountDefinitionUpdateInput {
+  title: String
+  priority: Int
+  usage: DiscountUsageLimitsInput
+  purchaseModes: DiscountPurchaseModesInput
+  schedule: DiscountScheduleInput
+}
+
+input DiscountLifecycleUpdateInput {
+  state: DiscountState!
+}
+
+"""Discount-level sections executed by the unified discountUpdate workflow."""
+input DiscountUpdateInput {
+  definition: DiscountDefinitionUpdateInput
+  rule: DiscountRuleInput
+  minimumRequirement: DiscountMinimumRequirementSyncInput
+  """Complete qualifier/benefit target replacement when supplied."""
+  targetSelections: [DiscountTargetSelectionInput!]
+  eligibility: DiscountBuyerContextInput
+  codes: DiscountCodesUpdateInput
+  """Complete tag replacement when supplied. Empty removes every tag."""
+  tags: [String!]
+  """Complete channel replacement when supplied. Empty removes every channel."""
+  channels: [DiscountChannelInput!]
+  """Complete compatible-class replacement when supplied."""
+  combinesWith: [DiscountClass!]
+  lifecycle: DiscountLifecycleUpdateInput
+  metadata: JSON
+}
+
+input DiscountDeleteInput {
+  id: ID!
+  expectedRevision: Int!
+}
+
+"""Result of one section in a discount aggregate update."""
+type DiscountOperationResult {
+  type: DiscountOperationType!
+  applied: Boolean!
+  errors: [GenericUserError!]!
+}
+
+type DiscountCreatePayload {
+  discount: Discount
+  userErrors: [GenericUserError!]!
+}
+
+type DiscountUpdatePayload {
+  discount: Discount
+  operationResults: [DiscountOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type DiscountDeletePayload {
+  deletedDiscountId: ID
+  userErrors: [GenericUserError!]!
+}

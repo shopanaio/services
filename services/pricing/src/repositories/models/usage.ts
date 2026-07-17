@@ -224,8 +224,6 @@ export const discountRedemption = pricingSchema.table(
       .default("COMMITTED"),
     discountClass: discountClassEnum("discount_class").notNull(),
     configurationRevision: integer("configuration_revision").notNull(),
-    title: varchar("title", { length: 255 }),
-    code: varchar("code", { length: 255 }),
     currency: currencyCodeEnum("currency").notNull(),
     amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
     committedAt: timestamp("committed_at", {
@@ -285,14 +283,6 @@ export const discountRedemption = pricingSchema.table(
     check(
       "discount_redemption_revision_check",
       sql`${table.configurationRevision} >= 0`,
-    ),
-    check(
-      "discount_redemption_title_check",
-      sql`${table.title} IS NULL OR length(btrim(${table.title})) > 0`,
-    ),
-    check(
-      "discount_redemption_code_check",
-      sql`${table.code} IS NULL OR length(btrim(${table.code})) > 0`,
     ),
     check(
       "discount_redemption_amount_check",

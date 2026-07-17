@@ -13,8 +13,6 @@ CREATE TABLE "pricing"."discount_redemption" (
   "status" "pricing"."discount_redemption_status" NOT NULL DEFAULT 'COMMITTED',
   "discount_class" "pricing"."discount_class" NOT NULL,
   "configuration_revision" integer NOT NULL,
-  "title" varchar(255),
-  "code" varchar(255),
   "currency" "pricing"."currency_code" NOT NULL,
   "amount_minor" bigint NOT NULL,
   "committed_at" timestamptz NOT NULL DEFAULT now(),
@@ -54,10 +52,6 @@ CREATE TABLE "pricing"."discount_redemption" (
     CHECK (length(btrim("idempotency_key")) > 0),
   CONSTRAINT "discount_redemption_revision_check"
     CHECK ("configuration_revision" >= 0),
-  CONSTRAINT "discount_redemption_title_check"
-    CHECK ("title" IS NULL OR length(btrim("title")) > 0),
-  CONSTRAINT "discount_redemption_code_check"
-    CHECK ("code" IS NULL OR length(btrim("code")) > 0),
   CONSTRAINT "discount_redemption_amount_check"
     CHECK ("amount_minor" >= 0),
   CONSTRAINT "discount_redemption_status_check"

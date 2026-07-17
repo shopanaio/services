@@ -202,12 +202,9 @@ Catalog остается владельцем этих идентификато�
 ### `discount_redemption`
 
 Фиксирует применение скидки к заказу. Помимо ссылок на discount, code,
-reservation, checkout и order хранит snapshot важных вычисленных значений:
-
-- класс и revision конфигурации;
-- отображаемые title и code;
-- currency и итоговую сумму скидки;
-- время применения или отмены и причину reversal.
+reservation, checkout и order хранит класс и revision конфигурации, currency,
+итоговую сумму, время применения или отмены и причину reversal. Отображаемые
+title и code читаются из связанных сущностей и отдельно не снапшотятся.
 
 Уникальность по Store, Discount и Order защищает от повторного применения одной
 скидки к одному заказу.
@@ -223,19 +220,7 @@ reservation, checkout и order хранит snapshot важных вычисле
 Для line allocation хранится внешний `target_id`, количество и сумма в minor
 units.
 
-## История и интеграции
-
-### `discount_revision`
-
-JSON snapshot конфигурации скидки для конкретной revision. Используется для
-воспроизводимого анализа исторических расчетов. Append-only поведение
-обеспечивает сервисный слой.
-
-### `discount_event`
-
-Упорядоченная лента доменных событий скидки. Глобальный `sequence` задает
-порядок, а `idempotency_key` защищает обработку повторной команды. Payload
-хранится как JSON object.
+## Интеграции
 
 ### `discount_external_reference`
 
@@ -280,7 +265,6 @@ soft-delete timestamp.
 - доступность aggregate и code usage limits;
 - допустимость переходов reservation и redemption;
 - равенство суммы allocations итоговой сумме redemption;
-- append-only семантику revisions и events.
 
 ## Структура миграций
 
@@ -297,7 +281,6 @@ Handwritten PostgreSQL migrations находятся в `migrations/domains/**/*
 | `0500` | Sales channels. |
 | `0600` | Discount combinations. |
 | `0700` | Counters, reservations, redemptions и allocations. |
-| `0800` | Revisions и events. |
 | `0900` | External references. |
 | `9000` | Read views. |
 
