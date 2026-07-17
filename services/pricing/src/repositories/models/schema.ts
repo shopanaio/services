@@ -65,7 +65,7 @@ export const discountTargetRoleEnum = pricingSchema.enum(
 
 export const discountTargetTypeEnum = pricingSchema.enum(
   "discount_target_type",
-  ["ALL_PRODUCTS", "PRODUCTS", "VARIANTS", "COLLECTIONS"],
+  ["ALL_PRODUCTS", "PRODUCTS", "VARIANTS", "CATEGORIES"],
 );
 
 export const discountBuyerContextTypeEnum = pricingSchema.enum(

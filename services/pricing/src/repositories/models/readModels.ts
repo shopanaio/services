@@ -26,7 +26,7 @@ import {
 
 export interface DiscountTargetSelectionItem {
   role: "QUALIFIER" | "BENEFIT";
-  targetType: "ALL_PRODUCTS" | "PRODUCTS" | "VARIANTS" | "COLLECTIONS";
+  targetType: "ALL_PRODUCTS" | "PRODUCTS" | "VARIANTS" | "CATEGORIES";
   targetIds: string[];
 }
 

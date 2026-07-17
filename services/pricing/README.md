@@ -119,14 +119,14 @@ Buy X Get Y хранит собственное условие покупки и
 | Поле | Значения |
 | --- | --- |
 | `role` | `QUALIFIER` — товары, выполняющие условие; `BENEFIT` — товары, получающие скидку. |
-| `target_type` | `ALL_PRODUCTS`, `PRODUCTS`, `VARIANTS`, `COLLECTIONS`. |
+| `target_type` | `ALL_PRODUCTS`, `PRODUCTS`, `VARIANTS`, `CATEGORIES`. |
 
 Для скидки на товары используется `BENEFIT`. Buy X Get Y использует две
 выборки: `QUALIFIER` и `BENEFIT`.
 
 ### `discount_target`
 
-Содержит конкретный `product`, `variant` или `collection` ID для selection.
+Содержит конкретный `product`, `variant` или `category` ID для selection.
 Catalog остается владельцем этих идентификаторов, поэтому cross-service FK не
 создается.
 

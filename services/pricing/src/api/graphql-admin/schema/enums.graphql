@@ -63,7 +63,7 @@ enum DiscountTargetType {
   ALL_PRODUCTS
   PRODUCTS
   VARIANTS
-  COLLECTIONS
+  CATEGORIES
 }
 
 enum DiscountBuyerContextType {

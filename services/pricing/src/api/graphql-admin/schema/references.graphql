@@ -8,8 +8,8 @@ extend type Variant implements Node @key(fields: "id", resolvable: false) {
   id: ID! @external
 }
 
-# Catalog Collection reference. Pricing never joins the Catalog database.
-extend type Collection implements Node @key(fields: "id", resolvable: false) {
+# Catalog Category reference. Pricing never joins the Catalog database.
+extend type Category implements Node @key(fields: "id", resolvable: false) {
   id: ID! @external
 }
 
@@ -18,4 +18,4 @@ extend type Customer implements Node @key(fields: "id", resolvable: false) {
   id: ID! @external
 }
 
-union DiscountCatalogTarget = Product | Variant | Collection
+union DiscountCatalogTarget = Product | Variant | Category

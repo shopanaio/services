@@ -25,7 +25,7 @@ The pricing service validates complete non-draft aggregates inside the transacti
 
 ## Cross-service references
 
-Catalog product, variant, and collection IDs, customer and segment IDs, checkout IDs, and order IDs are stored with `store_id` but intentionally have no cross-service foreign keys. Their owner service validates them. Pricing keeps a `VALID`/`STALE` reference state where a long-lived rule needs reconciliation without silently losing historical configuration.
+Catalog product, variant, and category IDs, customer and segment IDs, checkout IDs, and order IDs are stored with `store_id` but intentionally have no cross-service foreign keys. Their owner service validates them. Pricing keeps a `VALID`/`STALE` reference state where a long-lived rule needs reconciliation without silently losing historical configuration.
 
 Local child relationships use stable entity identifiers in primary and foreign keys. `store_id` remains a tenant-scope column used by repository predicates, unique constraints, and lookup indexes, but does not participate in foreign keys.
 
@@ -37,7 +37,7 @@ Percentages use basis points (`1..10000`) rather than floating point. This suppo
 
 ## Targeting and eligibility
 
-`discount_target_selection` defines one `QUALIFIER` or `BENEFIT` selection as all products, products, variants, or collections. Specific selections own rows in `discount_target`; all-product selections own none.
+`discount_target_selection` defines one `QUALIFIER` or `BENEFIT` selection as all products, products, variants, or categories. Specific selections own rows in `discount_target`; all-product selections own none.
 
 `discount_buyer_context` selects all buyers, specific customers, or customer segments. Customer and segment rows are mutually exclusive by context.
 

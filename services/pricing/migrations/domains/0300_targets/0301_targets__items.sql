@@ -1,6 +1,6 @@
 -- Up Migration
 
--- Catalog-owned product, variant, and collection IDs are intentionally not
+-- Catalog-owned product, variant, and category IDs are intentionally not
 -- protected by cross-service foreign keys. The pricing service validates them
 -- through catalog and records staleness without losing historical rules.
 CREATE TABLE "pricing"."discount_target" (

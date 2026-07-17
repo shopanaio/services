@@ -43,8 +43,8 @@ export type BooleanFilter = {
   _neq?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
-export type Collection = Node & {
-  __typename?: 'Collection';
+export type Category = Node & {
+  __typename?: 'Category';
   id: Scalars['ID']['output'];
 };
 
@@ -574,7 +574,7 @@ export enum DiscountBuyerContextType {
   Segments = 'SEGMENTS'
 }
 
-export type DiscountCatalogTarget = Collection | Product | Variant;
+export type DiscountCatalogTarget = Category | Product | Variant;
 
 export type DiscountChannel = {
   __typename?: 'DiscountChannel';
@@ -1272,7 +1272,7 @@ export type DiscountTargetSelectionInput = {
 
 export enum DiscountTargetType {
   AllProducts = 'ALL_PRODUCTS',
-  Collections = 'COLLECTIONS',
+  Categories = 'CATEGORIES',
   Products = 'PRODUCTS',
   Variants = 'VARIANTS'
 }
@@ -2019,13 +2019,13 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of union types */
 export type ResolversUnionTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  DiscountCatalogTarget: ( Collection ) | ( Product ) | ( Variant );
+  DiscountCatalogTarget: ( Category ) | ( Product ) | ( Variant );
   DiscountRule: ( DiscountAmountOffRule ) | ( DiscountBuyXGetYRule ) | ( DiscountFreeShippingRule );
 }>;
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Collection ) | ( Customer ) | ( Omit<Discount, 'codes' | 'combinations' | 'rule' | 'targetSelections'> & { codes: _RefType['DiscountCodeConnection'], combinations: Array<_RefType['DiscountCombination']>, rule?: Maybe<_RefType['DiscountRule']>, targetSelections: Array<_RefType['DiscountTargetSelection']> } ) | ( Omit<DiscountCode, 'discount'> & { discount: _RefType['Discount'] } ) | ( Omit<DiscountExternalReference, 'discount'> & { discount: _RefType['Discount'] } ) | ( Omit<DiscountRedemption, 'discount' | 'discountCode'> & { discount: _RefType['Discount'], discountCode?: Maybe<_RefType['DiscountCode']> } ) | ( DiscountRedemptionAllocation ) | ( Omit<DiscountUsageReservation, 'discount' | 'discountCode'> & { discount: _RefType['Discount'], discountCode?: Maybe<_RefType['DiscountCode']> } ) | ( Product ) | ( Variant );
+  Node: ( Category ) | ( Customer ) | ( Omit<Discount, 'codes' | 'combinations' | 'rule' | 'targetSelections'> & { codes: _RefType['DiscountCodeConnection'], combinations: Array<_RefType['DiscountCombination']>, rule?: Maybe<_RefType['DiscountRule']>, targetSelections: Array<_RefType['DiscountTargetSelection']> } ) | ( Omit<DiscountCode, 'discount'> & { discount: _RefType['Discount'] } ) | ( Omit<DiscountExternalReference, 'discount'> & { discount: _RefType['Discount'] } ) | ( Omit<DiscountRedemption, 'discount' | 'discountCode'> & { discount: _RefType['Discount'], discountCode?: Maybe<_RefType['DiscountCode']> } ) | ( DiscountRedemptionAllocation ) | ( Omit<DiscountUsageReservation, 'discount' | 'discountCode'> & { discount: _RefType['Discount'], discountCode?: Maybe<_RefType['DiscountCode']> } ) | ( Product ) | ( Variant );
   UserError: ( GenericUserError );
 }>;
 
@@ -2035,7 +2035,7 @@ export type ResolversTypes = ResolversObject<{
   BigIntFilter: BigIntFilter;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   BooleanFilter: BooleanFilter;
-  Collection: ResolverTypeWrapper<Collection>;
+  Category: ResolverTypeWrapper<Category>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   CurrencyCode: CurrencyCode;
   Customer: ResolverTypeWrapper<Customer>;
@@ -2177,7 +2177,7 @@ export type ResolversParentTypes = ResolversObject<{
   BigIntFilter: BigIntFilter;
   Boolean: Scalars['Boolean']['output'];
   BooleanFilter: BooleanFilter;
-  Collection: Collection;
+  Category: Category;
   ID: Scalars['ID']['output'];
   Customer: Customer;
   DateTime: Scalars['DateTime']['output'];
@@ -2288,8 +2288,8 @@ export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTyp
   name: 'BigInt';
 }
 
-export type CollectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Collection'] = ResolversParentTypes['Collection']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType>;
+export type CategoryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Category'] = ResolversParentTypes['Category']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -2382,7 +2382,7 @@ export type DiscountBuyerContextResolvers<ContextType = ServiceContext, ParentTy
 }>;
 
 export type DiscountCatalogTargetResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DiscountCatalogTarget'] = ResolversParentTypes['DiscountCatalogTarget']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Collection' | 'Product' | 'Variant', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Category' | 'Product' | 'Variant', ParentType, ContextType>;
 }>;
 
 export type DiscountChannelResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DiscountChannel'] = ResolversParentTypes['DiscountChannel']> = ResolversObject<{
@@ -2689,7 +2689,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Collection' | 'Customer' | 'Discount' | 'DiscountCode' | 'DiscountExternalReference' | 'DiscountRedemption' | 'DiscountRedemptionAllocation' | 'DiscountUsageReservation' | 'Product' | 'Variant', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Category' | 'Customer' | 'Discount' | 'DiscountCode' | 'DiscountExternalReference' | 'DiscountRedemption' | 'DiscountRedemptionAllocation' | 'DiscountUsageReservation' | 'Product' | 'Variant', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -2748,7 +2748,7 @@ export type VariantResolvers<ContextType = ServiceContext, ParentType extends Re
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
-  Collection?: CollectionResolvers<ContextType>;
+  Category?: CategoryResolvers<ContextType>;
   Customer?: CustomerResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Discount?: DiscountResolvers<ContextType>;
