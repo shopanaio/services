@@ -112,6 +112,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "moderation.graphql",
     "integration.graphql",
     "summary.graphql",
+    "reviews-widget.graphql",
   ];
 
   const modules = schemaFiles.map((file) => ({

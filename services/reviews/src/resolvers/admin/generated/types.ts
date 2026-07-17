@@ -1365,10 +1365,21 @@ export type ProductReviewSummary = {
   verifiedReviewCount: Scalars['Int']['output'];
 };
 
+/** Aggregated Reviews data used by product management widgets. */
+export type ProductReviewsWidget = {
+  __typename?: 'ProductReviewsWidget';
+  /** Published question and answer aggregates for the product. */
+  questionSummary: Maybe<ProductQuestionSummary>;
+  /** Published review aggregates for the product. */
+  reviewSummary: Maybe<ProductReviewSummary>;
+};
+
 export type Query = {
   __typename?: 'Query';
   /** Admin-only Reviews query namespace. */
   reviewsQuery: ReviewsQuery;
+  /** Shared query namespace for product widgets. */
+  widgetQuery: WidgetQuery;
 };
 
 export type Review = Node & ReviewContent & {
@@ -3981,6 +3992,19 @@ export enum WeightUnit {
   Oz = 'oz'
 }
 
+/** Product widgets contributed by the Reviews service. */
+export type WidgetQuery = {
+  __typename?: 'WidgetQuery';
+  /** Aggregated reviews and Q&A data for a product. */
+  reviews: ProductReviewsWidget;
+};
+
+
+/** Product widgets contributed by the Reviews service. */
+export type WidgetQueryReviewsArgs = {
+  productId: Scalars['ID']['input'];
+};
+
 export type WithIndex<TObject> = TObject & Record<string, any>;
 export type ResolversObject<TObject> = WithIndex<TObject>;
 
@@ -4133,6 +4157,7 @@ export type ResolversTypes = ResolversObject<{
   ProductQuestionWhereInput: ProductQuestionWhereInput;
   ProductRatingCriterionSummary: ResolverTypeWrapper<Omit<ProductRatingCriterionSummary, 'criterion'> & { criterion: ResolversTypes['ReviewRatingCriterion'] }>;
   ProductReviewSummary: ResolverTypeWrapper<Omit<ProductReviewSummary, 'criteria'> & { criteria: Array<ResolversTypes['ProductRatingCriterionSummary']> }>;
+  ProductReviewsWidget: ResolverTypeWrapper<Omit<ProductReviewsWidget, 'reviewSummary'> & { reviewSummary?: Maybe<ResolversTypes['ProductReviewSummary']> }>;
   Query: ResolverTypeWrapper<{}>;
   Review: ResolverTypeWrapper<Omit<Review, 'externalReferences' | 'media' | 'moderationCases' | 'moderationEvents' | 'moderationSignals' | 'publications' | 'ratings' | 'replies' | 'reports' | 'revisions' | 'translations' | 'votes'> & { externalReferences: ResolversTypes['ReviewContentExternalReferenceConnection'], media: Array<ResolversTypes['ReviewMedia']>, moderationCases: ResolversTypes['ReviewModerationCaseConnection'], moderationEvents: ResolversTypes['ReviewModerationEventConnection'], moderationSignals: ResolversTypes['ReviewModerationSignalConnection'], publications: Array<ResolversTypes['ReviewContentPublication']>, ratings: Array<ResolversTypes['ReviewRating']>, replies: ResolversTypes['ReviewReplyConnection'], reports: ResolversTypes['ReviewContentReportConnection'], revisions: ResolversTypes['ReviewContentRevisionConnection'], translations: Array<ResolversTypes['ReviewContentTranslation']>, votes: ResolversTypes['ReviewContentVoteConnection'] }>;
   ReviewConnection: ResolverTypeWrapper<Omit<ReviewConnection, 'edges'> & { edges: Array<ResolversTypes['ReviewEdge']> }>;
@@ -4305,6 +4330,7 @@ export type ResolversTypes = ResolversObject<{
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   Variant: ResolverTypeWrapper<Variant>;
   WeightUnit: WeightUnit;
+  WidgetQuery: ResolverTypeWrapper<Omit<WidgetQuery, 'reviews'> & { reviews: ResolversTypes['ProductReviewsWidget'] }>;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -4361,6 +4387,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductQuestionWhereInput: ProductQuestionWhereInput;
   ProductRatingCriterionSummary: Omit<ProductRatingCriterionSummary, 'criterion'> & { criterion: ResolversParentTypes['ReviewRatingCriterion'] };
   ProductReviewSummary: Omit<ProductReviewSummary, 'criteria'> & { criteria: Array<ResolversParentTypes['ProductRatingCriterionSummary']> };
+  ProductReviewsWidget: Omit<ProductReviewsWidget, 'reviewSummary'> & { reviewSummary?: Maybe<ResolversParentTypes['ProductReviewSummary']> };
   Query: {};
   Review: Omit<Review, 'externalReferences' | 'media' | 'moderationCases' | 'moderationEvents' | 'moderationSignals' | 'publications' | 'ratings' | 'replies' | 'reports' | 'revisions' | 'translations' | 'votes'> & { externalReferences: ResolversParentTypes['ReviewContentExternalReferenceConnection'], media: Array<ResolversParentTypes['ReviewMedia']>, moderationCases: ResolversParentTypes['ReviewModerationCaseConnection'], moderationEvents: ResolversParentTypes['ReviewModerationEventConnection'], moderationSignals: ResolversParentTypes['ReviewModerationSignalConnection'], publications: Array<ResolversParentTypes['ReviewContentPublication']>, ratings: Array<ResolversParentTypes['ReviewRating']>, replies: ResolversParentTypes['ReviewReplyConnection'], reports: ResolversParentTypes['ReviewContentReportConnection'], revisions: ResolversParentTypes['ReviewContentRevisionConnection'], translations: Array<ResolversParentTypes['ReviewContentTranslation']>, votes: ResolversParentTypes['ReviewContentVoteConnection'] };
   ReviewConnection: Omit<ReviewConnection, 'edges'> & { edges: Array<ResolversParentTypes['ReviewEdge']> };
@@ -4501,6 +4528,7 @@ export type ResolversParentTypes = ResolversObject<{
   StringFilter: StringFilter;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
   Variant: Variant;
+  WidgetQuery: Omit<WidgetQuery, 'reviews'> & { reviews: ResolversParentTypes['ProductReviewsWidget'] };
 }>;
 
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
@@ -4762,8 +4790,15 @@ export type ProductReviewSummaryResolvers<ContextType = ServiceContext, ParentTy
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ProductReviewsWidgetResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductReviewsWidget'] = ResolversParentTypes['ProductReviewsWidget']> = ResolversObject<{
+  questionSummary?: Resolver<Maybe<ResolversTypes['ProductQuestionSummary']>, ParentType, ContextType>;
+  reviewSummary?: Resolver<Maybe<ResolversTypes['ProductReviewSummary']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   reviewsQuery?: Resolver<ResolversTypes['ReviewsQuery'], ParentType, ContextType>;
+  widgetQuery?: Resolver<ResolversTypes['WidgetQuery'], ParentType, ContextType>;
 }>;
 
 export type ReviewResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Review'] = ResolversParentTypes['Review']> = ResolversObject<{
@@ -5549,6 +5584,11 @@ export type VariantResolvers<ContextType = ServiceContext, ParentType extends Re
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type WidgetQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WidgetQuery'] = ResolversParentTypes['WidgetQuery']> = ResolversObject<{
+  reviews?: Resolver<ResolversTypes['ProductReviewsWidget'], ParentType, ContextType, RequireFields<WidgetQueryReviewsArgs, 'productId'>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   Category?: CategoryResolvers<ContextType>;
@@ -5578,6 +5618,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductQuestionUpdatePayload?: ProductQuestionUpdatePayloadResolvers<ContextType>;
   ProductRatingCriterionSummary?: ProductRatingCriterionSummaryResolvers<ContextType>;
   ProductReviewSummary?: ProductReviewSummaryResolvers<ContextType>;
+  ProductReviewsWidget?: ProductReviewsWidgetResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Review?: ReviewResolvers<ContextType>;
   ReviewConnection?: ReviewConnectionResolvers<ContextType>;
@@ -5650,5 +5691,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ReviewsQuery?: ReviewsQueryResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
   Variant?: VariantResolvers<ContextType>;
+  WidgetQuery?: WidgetQueryResolvers<ContextType>;
 }>;
 

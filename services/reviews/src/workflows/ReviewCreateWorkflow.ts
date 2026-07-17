@@ -24,6 +24,10 @@ export class ReviewCreateWorkflow extends ReviewsMutationWorkflow {
   async run(input: ReviewCreateWorkflowInput): Promise<ReviewCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.review && result.userErrors.length === 0) {
+      await this.stepRefreshProductReviewSummary({
+        context: input.context,
+        productId: result.review.productId,
+      });
       await this.workflowEmitEvent(input, result.review);
     }
     return result;

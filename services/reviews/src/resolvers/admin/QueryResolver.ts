@@ -32,6 +32,7 @@ import {
 } from "./ReviewConnectionResolver.js";
 import { ReviewRequestConnectionResolver } from "./ReviewRequestConnectionResolver.js";
 import { ReviewsType } from "./ReviewsType.js";
+import { WidgetQueryResolver } from "./ProductReviewsWidgetResolver.js";
 import {
   ProductQuestionSummaryResolver,
   ProductReviewSummaryResolver,
@@ -41,6 +42,10 @@ import {
 export class QueryResolver extends ReviewsType<Record<string, never>> {
   reviewsQuery() {
     return this.resolvers.reviewsQuery();
+  }
+
+  widgetQuery() {
+    return new WidgetQueryResolver({}, this.$ctx);
   }
 }
 

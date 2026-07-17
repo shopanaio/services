@@ -20,3 +20,4 @@ export * from "./EngagementResolver.js";
 export * from "./ModerationResolver.js";
 export * from "./ExternalReferenceResolver.js";
 export * from "./SummaryResolver.js";
+export * from "./ProductReviewsWidgetResolver.js";

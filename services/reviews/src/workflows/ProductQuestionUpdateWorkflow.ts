@@ -69,6 +69,13 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
       });
     }
 
+    if (operationResults.some((result) => result.applied)) {
+      await this.stepRefreshProductQuestionSummary({
+        context: input.context,
+        productId: acquired.productId,
+      });
+    }
+
     return {
       productQuestion: {
         id: input.productQuestionId,
@@ -84,7 +91,7 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
     productQuestionId: string,
     expectedRevision: number
   ): Promise<
-    | { revision: number }
+    | { revision: number; productId: string }
     | { error: { message: string; code: string; field: string[] } }
   > {
     const question = await this.kernel.repository.productQuestion.findById(
@@ -106,7 +113,10 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
       {}
     );
     if (acquired.status === "applied") {
-      return { revision: acquired.value.revision };
+      return {
+        revision: acquired.value.revision,
+        productId: question.question.productId,
+      };
     }
     if (acquired.status === "conflict") {
       return {

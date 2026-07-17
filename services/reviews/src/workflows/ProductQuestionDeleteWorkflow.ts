@@ -26,6 +26,10 @@ export class ProductQuestionDeleteWorkflow extends ReviewsMutationWorkflow {
   ): Promise<ProductQuestionDeleteWorkflowResult> {
     const result = await this.stepDelete(input);
     if (result.deletedProductQuestionId && result.productId && result.permanent !== undefined && result.userErrors.length === 0) {
+      await this.stepRefreshProductQuestionSummary({
+        context: input.context,
+        productId: result.productId,
+      });
       await this.workflowEmitEvent(input, {
         productQuestionId: result.deletedProductQuestionId,
         productId: result.productId,

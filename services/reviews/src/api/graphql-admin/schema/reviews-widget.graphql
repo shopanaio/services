@@ -1,0 +1,8 @@
+"""Aggregated Reviews data used by product management widgets."""
+type ProductReviewsWidget {
+  """Published review aggregates for the product."""
+  reviewSummary: ProductReviewSummary
+
+  """Published question and answer aggregates for the product."""
+  questionSummary: ProductQuestionSummary
+}

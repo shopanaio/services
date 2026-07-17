@@ -15,6 +15,15 @@ extend schema
 extend type Query {
   """Admin-only Reviews query namespace."""
   reviewsQuery: ReviewsQuery!
+
+  """Shared query namespace for product widgets."""
+  widgetQuery: WidgetQuery! @shareable
+}
+
+"""Product widgets contributed by the Reviews service."""
+type WidgetQuery {
+  """Aggregated reviews and Q&A data for a product."""
+  reviews(productId: ID!): ProductReviewsWidget!
 }
 
 extend type Mutation {
