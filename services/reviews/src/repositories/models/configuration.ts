@@ -14,6 +14,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import {
+  localeCodeEnum,
   moderationModeEnum,
   ratingCriterionTargetTypeEnum,
   reviewsSchema,
@@ -105,7 +106,7 @@ export const ratingCriterionTranslation = reviewsSchema.table(
     criterionId: uuid("criterion_id")
       .notNull()
       .references(() => ratingCriterion.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 35 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     title: varchar("title", { length: 150 }).notNull(),
     description: text("description"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })

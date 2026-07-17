@@ -3,7 +3,7 @@ type Review implements Node & ReviewContent @key(fields: "id") {
   kind: ReviewContentKind!
   title: String
   body: String!
-  locale: String!
+  locale: LocaleCode!
   author: ReviewContentAuthor!
   sourceChannel: String!
   sourceMetadata: JSON!
@@ -81,7 +81,7 @@ type ReviewReply implements Node & ReviewContent @key(fields: "id") {
   kind: ReviewContentKind!
   title: String
   body: String!
-  locale: String!
+  locale: LocaleCode!
   author: ReviewContentAuthor!
   sourceChannel: String!
   sourceMetadata: JSON!

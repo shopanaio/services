@@ -1,6 +1,12 @@
 import { customType, pgSchema } from "drizzle-orm/pg-core";
+import { LOCALE_CODES } from "@shopana/shared-references";
 
 export const reviewsSchema = pgSchema("reviews");
+
+export const localeCodeEnum = reviewsSchema.enum(
+  "locale_code",
+  LOCALE_CODES as [string, ...string[]]
+);
 
 export const contentKindEnum = reviewsSchema.enum("content_kind", [
   "REVIEW",

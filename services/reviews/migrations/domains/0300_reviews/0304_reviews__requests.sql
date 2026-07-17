@@ -11,7 +11,7 @@ CREATE TABLE "reviews"."review_request" (
   "review_id" uuid,
   "channel" "reviews"."notification_channel" NOT NULL,
   "status" "reviews"."review_request_status" NOT NULL DEFAULT 'SCHEDULED',
-  "locale" varchar(35) NOT NULL,
+  "locale" "reviews"."locale_code" NOT NULL,
   "source_channel" varchar(64) NOT NULL DEFAULT 'STOREFRONT',
   "idempotency_key" text NOT NULL,
   "access_token_hash" bytea,
@@ -33,8 +33,6 @@ CREATE TABLE "reviews"."review_request" (
     ON DELETE RESTRICT,
   CONSTRAINT "review_request_store_idempotency_unique"
     UNIQUE ("store_id", "idempotency_key"),
-  CONSTRAINT "review_request_locale_check"
-    CHECK (length(btrim("locale")) > 0),
   CONSTRAINT "review_request_source_check"
     CHECK (length(btrim("source_channel")) > 0),
   CONSTRAINT "review_request_attempt_count_check"

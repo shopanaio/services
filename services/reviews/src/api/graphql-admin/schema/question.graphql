@@ -3,7 +3,7 @@ type ProductQuestion implements Node & ReviewContent @key(fields: "id") {
   kind: ReviewContentKind!
   title: String
   body: String!
-  locale: String!
+  locale: LocaleCode!
   author: ReviewContentAuthor!
   sourceChannel: String!
   sourceMetadata: JSON!
@@ -50,7 +50,7 @@ type ProductQuestionAnswer implements Node & ReviewContent @key(fields: "id") {
   kind: ReviewContentKind!
   title: String
   body: String!
-  locale: String!
+  locale: LocaleCode!
   author: ReviewContentAuthor!
   sourceChannel: String!
   sourceMetadata: JSON!
@@ -89,7 +89,7 @@ type ProductQuestionSubscription implements Node @key(fields: "id") {
   subscriberCustomer: Customer
   channel: ReviewNotificationChannel!
   status: ProductQuestionSubscriptionStatus!
-  locale: String!
+  locale: LocaleCode!
   lastNotifiedAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -190,7 +190,7 @@ input ProductQuestionAnswersUpdateInput {
 input ProductQuestionSubscriptionUpdateInput {
   status: ProductQuestionSubscriptionStatus
   channel: ReviewNotificationChannel
-  locale: String
+  locale: LocaleCode
 }
 
 type ProductQuestionCreatePayload {

@@ -41,7 +41,7 @@ type ReviewRatingCriterion implements Node @key(fields: "id") {
 }
 
 type ReviewRatingCriterionTranslation {
-  locale: String!
+  locale: LocaleCode!
   title: String!
   description: String
   createdAt: DateTime!
@@ -94,7 +94,7 @@ input ReviewStoreConfigurationUpdateInput {
 }
 
 input ReviewRatingCriterionTranslationInput {
-  locale: String!
+  locale: LocaleCode!
   title: String!
   description: String
 }

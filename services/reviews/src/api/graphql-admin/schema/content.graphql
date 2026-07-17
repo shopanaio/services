@@ -4,7 +4,7 @@ interface ReviewContent implements Node {
   kind: ReviewContentKind!
   title: String
   body: String!
-  locale: String!
+  locale: LocaleCode!
   author: ReviewContentAuthor!
   sourceChannel: String!
   sourceMetadata: JSON!
@@ -69,7 +69,7 @@ type ReviewContentEdge {
 type ReviewContentTranslation implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
-  locale: String!
+  locale: LocaleCode!
   title: String
   body: String!
   source: ReviewTranslationSource!
@@ -85,7 +85,7 @@ type ReviewContentPublication implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
   channel: String!
-  locale: String
+  locale: LocaleCode
   status: ReviewPublicationStatus!
   scheduledAt: DateTime
   publishedAt: DateTime
@@ -136,7 +136,7 @@ input ReviewContentSourceUpdateInput {
 input ReviewContentCreateInput {
   title: String
   body: String!
-  locale: String!
+  locale: LocaleCode!
   author: ReviewContentAuthorCreateInput!
   source: ReviewContentSourceCreateInput
   """Admin imports may set an initial status; PENDING is the default."""
@@ -147,7 +147,7 @@ input ReviewContentCreateInput {
 input ReviewContentTextUpdateInput {
   title: String
   body: String
-  locale: String
+  locale: LocaleCode
 }
 
 input ReviewContentModerationInput {
@@ -175,7 +175,7 @@ input ReviewContentDeleteInput {
 }
 
 input ReviewContentTranslationSyncInput {
-  locale: String!
+  locale: LocaleCode!
   title: String
   body: String!
   source: ReviewTranslationSource!
@@ -184,7 +184,7 @@ input ReviewContentTranslationSyncInput {
 
 input ReviewContentPublicationSyncInput {
   channel: String!
-  locale: String
+  locale: LocaleCode
   status: ReviewPublicationStatus!
   scheduledAt: DateTime
 }

@@ -4,7 +4,7 @@ CREATE TABLE "reviews"."content_translation" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "content_id" uuid NOT NULL,
-  "locale" varchar(35) NOT NULL,
+  "locale" "reviews"."locale_code" NOT NULL,
   "title" varchar(150),
   "body" text NOT NULL,
   "source" "reviews"."translation_source" NOT NULL,
@@ -21,8 +21,6 @@ CREATE TABLE "reviews"."content_translation" (
     ON DELETE CASCADE,
   CONSTRAINT "content_translation_content_locale_unique"
     UNIQUE ("content_id", "locale"),
-  CONSTRAINT "content_translation_locale_check"
-    CHECK (length(btrim("locale")) > 0),
   CONSTRAINT "content_translation_title_check"
     CHECK ("title" IS NULL OR length(btrim("title")) BETWEEN 1 AND 150),
   CONSTRAINT "content_translation_body_check"

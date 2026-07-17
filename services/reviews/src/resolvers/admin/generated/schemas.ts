@@ -260,7 +260,7 @@ export function ProductQuestionSubjectUpdateInputSchema(): z.ZodObject<Propertie
 export function ProductQuestionSubscriptionUpdateInputSchema(): z.ZodObject<Properties<ProductQuestionSubscriptionUpdateInput>> {
   return z.object({
     channel: ReviewNotificationChannelSchema.nullish(),
-    locale: z.string().nullish(),
+    locale: LocaleCodeSchema.nullish(),
     status: ProductQuestionSubscriptionStatusSchema.nullish()
   })
 }
@@ -332,7 +332,7 @@ export function ReviewContentCreateInputSchema(): z.ZodObject<Properties<ReviewC
   return z.object({
     author: z.lazy(() => ReviewContentAuthorCreateInputSchema()),
     body: z.string(),
-    locale: z.string(),
+    locale: LocaleCodeSchema,
     moderationNote: z.string().nullish(),
     source: z.lazy(() => ReviewContentSourceCreateInputSchema().nullish()),
     status: ReviewContentStatusSchema.nullish(),
@@ -437,7 +437,7 @@ export function ReviewContentOrderByInputSchema(): z.ZodObject<Properties<Review
 export function ReviewContentPublicationSyncInputSchema(): z.ZodObject<Properties<ReviewContentPublicationSyncInput>> {
   return z.object({
     channel: z.string(),
-    locale: z.string().nullish(),
+    locale: LocaleCodeSchema.nullish(),
     scheduledAt: z.string().nullish(),
     status: ReviewPublicationStatusSchema
   })
@@ -507,7 +507,7 @@ export function ReviewContentSourceUpdateInputSchema(): z.ZodObject<Properties<R
 export function ReviewContentTextUpdateInputSchema(): z.ZodObject<Properties<ReviewContentTextUpdateInput>> {
   return z.object({
     body: z.string().nullish(),
-    locale: z.string().nullish(),
+    locale: LocaleCodeSchema.nullish(),
     title: z.string().nullish()
   })
 }
@@ -515,7 +515,7 @@ export function ReviewContentTextUpdateInputSchema(): z.ZodObject<Properties<Rev
 export function ReviewContentTranslationSyncInputSchema(): z.ZodObject<Properties<ReviewContentTranslationSyncInput>> {
   return z.object({
     body: z.string(),
-    locale: z.string(),
+    locale: LocaleCodeSchema,
     source: ReviewTranslationSourceSchema,
     status: ReviewContentStatusSchema.nullish(),
     title: z.string().nullish()
@@ -722,7 +722,7 @@ export function ReviewRatingCriterionOrderByInputSchema(): z.ZodObject<Propertie
 export function ReviewRatingCriterionTranslationInputSchema(): z.ZodObject<Properties<ReviewRatingCriterionTranslationInput>> {
   return z.object({
     description: z.string().nullish(),
-    locale: z.string(),
+    locale: LocaleCodeSchema,
     title: z.string()
   })
 }
@@ -850,7 +850,7 @@ export function ReviewRequestCreateInputSchema(): z.ZodObject<Properties<ReviewR
     customerId: z.string(),
     expiresAt: z.string().nullish(),
     idempotencyKey: z.string(),
-    locale: z.string(),
+    locale: LocaleCodeSchema,
     orderId: z.string(),
     orderLineId: z.string(),
     productId: z.string(),
@@ -863,7 +863,7 @@ export function ReviewRequestCreateInputSchema(): z.ZodObject<Properties<ReviewR
 export function ReviewRequestDeliveryUpdateInputSchema(): z.ZodObject<Properties<ReviewRequestDeliveryUpdateInput>> {
   return z.object({
     channel: ReviewNotificationChannelSchema.nullish(),
-    locale: z.string().nullish()
+    locale: LocaleCodeSchema.nullish()
   })
 }
 

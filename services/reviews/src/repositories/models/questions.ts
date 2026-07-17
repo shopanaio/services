@@ -12,6 +12,7 @@ import {
 import { contentItem } from "./content.js";
 import {
   contentKindEnum,
+  localeCodeEnum,
   notificationChannelEnum,
   reviewsSchema,
   subscriptionStatusEnum,
@@ -89,7 +90,7 @@ export const questionSubscription = reviewsSchema.table(
     subscriberKey: varchar("subscriber_key", { length: 160 }).notNull(),
     channel: notificationChannelEnum("channel").notNull(),
     status: subscriptionStatusEnum("status").notNull().default("ACTIVE"),
-    locale: varchar("locale", { length: 35 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     lastNotifiedAt: timestamp("last_notified_at", {
       withTimezone: true,
       mode: "string",

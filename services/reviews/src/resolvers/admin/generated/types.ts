@@ -804,7 +804,7 @@ export type ProductQuestion = Node & ReviewContent & {
   id: Scalars['ID']['output'];
   idempotencyKey: Maybe<Scalars['String']['output']>;
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   metrics: ReviewContentMetrics;
   moderatedAt: Maybe<Scalars['DateTime']['output']>;
   moderatedByPrincipalId: Maybe<Scalars['String']['output']>;
@@ -918,7 +918,7 @@ export type ProductQuestionAnswer = Node & ReviewContent & {
   isAccepted: Scalars['Boolean']['output'];
   isOfficial: Scalars['Boolean']['output'];
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   metrics: ReviewContentMetrics;
   moderatedAt: Maybe<Scalars['DateTime']['output']>;
   moderatedByPrincipalId: Maybe<Scalars['String']['output']>;
@@ -1222,7 +1222,7 @@ export type ProductQuestionSubscription = Node & {
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   lastNotifiedAt: Maybe<Scalars['DateTime']['output']>;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   question: ProductQuestion;
   status: ProductQuestionSubscriptionStatus;
   subscriberCustomer: Maybe<Customer>;
@@ -1250,7 +1250,7 @@ export enum ProductQuestionSubscriptionStatus {
 
 export type ProductQuestionSubscriptionUpdateInput = {
   channel?: InputMaybe<ReviewNotificationChannel>;
-  locale?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<LocaleCode>;
   status?: InputMaybe<ProductQuestionSubscriptionStatus>;
 };
 
@@ -1395,7 +1395,7 @@ export type Review = Node & ReviewContent & {
   isIncentivized: Scalars['Boolean']['output'];
   isVerifiedPurchase: Scalars['Boolean']['output'];
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   media: Array<ReviewMedia>;
   metrics: ReviewContentMetrics;
   moderatedAt: Maybe<Scalars['DateTime']['output']>;
@@ -1515,7 +1515,7 @@ export type ReviewContent = {
   id: Scalars['ID']['output'];
   idempotencyKey: Maybe<Scalars['String']['output']>;
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   metrics: ReviewContentMetrics;
   moderatedAt: Maybe<Scalars['DateTime']['output']>;
   moderatedByPrincipalId: Maybe<Scalars['String']['output']>;
@@ -1656,7 +1656,7 @@ export type ReviewContentConnectionMetaInput = {
 export type ReviewContentCreateInput = {
   author: ReviewContentAuthorCreateInput;
   body: Scalars['String']['input'];
-  locale: Scalars['String']['input'];
+  locale: LocaleCode;
   moderationNote?: InputMaybe<Scalars['String']['input']>;
   source?: InputMaybe<ReviewContentSourceCreateInput>;
   /** Admin imports may set an initial status; PENDING is the default. */
@@ -1917,7 +1917,7 @@ export type ReviewContentPublication = Node & {
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   lastError: Maybe<Scalars['String']['output']>;
-  locale: Maybe<Scalars['String']['output']>;
+  locale: Maybe<LocaleCode>;
   publishedAt: Maybe<Scalars['DateTime']['output']>;
   scheduledAt: Maybe<Scalars['DateTime']['output']>;
   status: ReviewPublicationStatus;
@@ -1927,7 +1927,7 @@ export type ReviewContentPublication = Node & {
 
 export type ReviewContentPublicationSyncInput = {
   channel: Scalars['String']['input'];
-  locale?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<LocaleCode>;
   scheduledAt?: InputMaybe<Scalars['DateTime']['input']>;
   status: ReviewPublicationStatus;
 };
@@ -2112,7 +2112,7 @@ export enum ReviewContentStatus {
 
 export type ReviewContentTextUpdateInput = {
   body?: InputMaybe<Scalars['String']['input']>;
-  locale?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<LocaleCode>;
   title?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2122,7 +2122,7 @@ export type ReviewContentTranslation = Node & {
   content: ReviewContent;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   reviewedAt: Maybe<Scalars['DateTime']['output']>;
   reviewedByPrincipalId: Maybe<Scalars['String']['output']>;
   revision: Scalars['Int']['output'];
@@ -2134,7 +2134,7 @@ export type ReviewContentTranslation = Node & {
 
 export type ReviewContentTranslationSyncInput = {
   body: Scalars['String']['input'];
-  locale: Scalars['String']['input'];
+  locale: LocaleCode;
   source: ReviewTranslationSource;
   status?: InputMaybe<ReviewContentStatus>;
   title?: InputMaybe<Scalars['String']['input']>;
@@ -2776,14 +2776,14 @@ export type ReviewRatingCriterionTranslation = {
   __typename?: 'ReviewRatingCriterionTranslation';
   createdAt: Scalars['DateTime']['output'];
   description: Maybe<Scalars['String']['output']>;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   title: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
 export type ReviewRatingCriterionTranslationInput = {
   description?: InputMaybe<Scalars['String']['input']>;
-  locale: Scalars['String']['input'];
+  locale: LocaleCode;
   title: Scalars['String']['input'];
 };
 
@@ -2863,7 +2863,7 @@ export type ReviewReply = Node & ReviewContent & {
   idempotencyKey: Maybe<Scalars['String']['output']>;
   isOfficial: Scalars['Boolean']['output'];
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   metrics: ReviewContentMetrics;
   moderatedAt: Maybe<Scalars['DateTime']['output']>;
   moderatedByPrincipalId: Maybe<Scalars['String']['output']>;
@@ -3071,7 +3071,7 @@ export type ReviewRequest = Node & {
   expiresAt: Maybe<Scalars['DateTime']['output']>;
   id: Scalars['ID']['output'];
   lastError: Maybe<Scalars['String']['output']>;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   openedAt: Maybe<Scalars['DateTime']['output']>;
   orderId: Scalars['ID']['output'];
   orderLineId: Scalars['ID']['output'];
@@ -3107,7 +3107,7 @@ export type ReviewRequestCreateInput = {
   customerId: Scalars['ID']['input'];
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   idempotencyKey: Scalars['String']['input'];
-  locale: Scalars['String']['input'];
+  locale: LocaleCode;
   orderId: Scalars['ID']['input'];
   orderLineId: Scalars['ID']['input'];
   productId: Scalars['ID']['input'];
@@ -3124,7 +3124,7 @@ export type ReviewRequestCreatePayload = {
 
 export type ReviewRequestDeliveryUpdateInput = {
   channel?: InputMaybe<ReviewNotificationChannel>;
-  locale?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<LocaleCode>;
 };
 
 export type ReviewRequestEdge = {
@@ -4593,7 +4593,7 @@ export type ProductQuestionResolvers<ContextType = ServiceContext, ParentType ex
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ReviewContentKind'], ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   metrics?: Resolver<ResolversTypes['ReviewContentMetrics'], ParentType, ContextType>;
   moderatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   moderatedByPrincipalId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4633,7 +4633,7 @@ export type ProductQuestionAnswerResolvers<ContextType = ServiceContext, ParentT
   isAccepted?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isOfficial?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ReviewContentKind'], ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   metrics?: Resolver<ResolversTypes['ReviewContentMetrics'], ParentType, ContextType>;
   moderatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   moderatedByPrincipalId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4704,7 +4704,7 @@ export type ProductQuestionSubscriptionResolvers<ContextType = ServiceContext, P
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   lastNotifiedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   question?: Resolver<ResolversTypes['ProductQuestion'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ProductQuestionSubscriptionStatus'], ParentType, ContextType>;
   subscriberCustomer?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType>;
@@ -4800,7 +4800,7 @@ export type ReviewResolvers<ContextType = ServiceContext, ParentType extends Res
   isIncentivized?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isVerifiedPurchase?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ReviewContentKind'], ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['ReviewMedia']>, ParentType, ContextType>;
   metrics?: Resolver<ResolversTypes['ReviewContentMetrics'], ParentType, ContextType>;
   moderatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
@@ -4853,7 +4853,7 @@ export type ReviewContentResolvers<ContextType = ServiceContext, ParentType exte
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ReviewContentKind'], ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   metrics?: Resolver<ResolversTypes['ReviewContentMetrics'], ParentType, ContextType>;
   moderatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   moderatedByPrincipalId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4973,7 +4973,7 @@ export type ReviewContentPublicationResolvers<ContextType = ServiceContext, Pare
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   lastError?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  locale?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  locale?: Resolver<Maybe<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   scheduledAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ReviewPublicationStatus'], ParentType, ContextType>;
@@ -5051,7 +5051,7 @@ export type ReviewContentTranslationResolvers<ContextType = ServiceContext, Pare
   content?: Resolver<ResolversTypes['ReviewContent'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   reviewedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   reviewedByPrincipalId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -5310,7 +5310,7 @@ export type ReviewRatingCriterionTargetResolvers<ContextType = ServiceContext, P
 export type ReviewRatingCriterionTranslationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ReviewRatingCriterionTranslation'] = ResolversParentTypes['ReviewRatingCriterionTranslation']> = ResolversObject<{
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -5334,7 +5334,7 @@ export type ReviewReplyResolvers<ContextType = ServiceContext, ParentType extend
   idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   isOfficial?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ReviewContentKind'], ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   metrics?: Resolver<ResolversTypes['ReviewContentMetrics'], ParentType, ContextType>;
   moderatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   moderatedByPrincipalId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -5385,7 +5385,7 @@ export type ReviewRequestResolvers<ContextType = ServiceContext, ParentType exte
   expiresAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   lastError?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   openedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   orderId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   orderLineId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;

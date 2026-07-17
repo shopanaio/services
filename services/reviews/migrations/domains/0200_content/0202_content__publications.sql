@@ -5,7 +5,7 @@ CREATE TABLE "reviews"."content_publication" (
   "store_id" uuid NOT NULL,
   "content_id" uuid NOT NULL,
   "channel" varchar(64) NOT NULL,
-  "locale" varchar(35),
+  "locale" "reviews"."locale_code",
   "status" "reviews"."publication_status" NOT NULL DEFAULT 'DRAFT',
   "scheduled_at" timestamptz,
   "published_at" timestamptz,
@@ -20,8 +20,6 @@ CREATE TABLE "reviews"."content_publication" (
     ON DELETE CASCADE,
   CONSTRAINT "content_publication_channel_check"
     CHECK (length(btrim("channel")) > 0),
-  CONSTRAINT "content_publication_locale_check"
-    CHECK ("locale" IS NULL OR length(btrim("locale")) > 0),
   CONSTRAINT "content_publication_scheduled_check"
     CHECK ("status" <> 'SCHEDULED' OR "scheduled_at" IS NOT NULL),
   CONSTRAINT "content_publication_published_check"
@@ -40,7 +38,7 @@ CREATE UNIQUE INDEX "content_publication_destination_unique"
   ON "reviews"."content_publication" (
     "content_id",
     "channel",
-    COALESCE("locale", '')
+    COALESCE("locale"::text, '')
   );
 
 CREATE INDEX "content_publication_schedule_idx"

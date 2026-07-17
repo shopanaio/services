@@ -14,6 +14,7 @@ import {
   contentAuthorTypeEnum,
   contentKindEnum,
   contentStatusEnum,
+  localeCodeEnum,
   publicationStatusEnum,
   reviewsSchema,
   translationSourceEnum,
@@ -27,7 +28,7 @@ export const contentItem = reviewsSchema.table(
     kind: contentKindEnum("kind").notNull(),
     title: varchar("title", { length: 150 }),
     body: text("body").notNull(),
-    locale: varchar("locale", { length: 35 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     authorType: contentAuthorTypeEnum("author_type").notNull(),
     authorCustomerId: uuid("author_customer_id"),
     authorPrincipalId: text("author_principal_id"),
@@ -90,7 +91,7 @@ export const contentTranslation = reviewsSchema.table(
     contentId: uuid("content_id")
       .notNull()
       .references(() => contentItem.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 35 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     title: varchar("title", { length: 150 }),
     body: text("body").notNull(),
     source: translationSourceEnum("source").notNull(),
@@ -128,7 +129,7 @@ export const contentPublication = reviewsSchema.table(
       .notNull()
       .references(() => contentItem.id, { onDelete: "cascade" }),
     channel: varchar("channel", { length: 64 }).notNull(),
-    locale: varchar("locale", { length: 35 }),
+    locale: localeCodeEnum("locale"),
     status: publicationStatusEnum("status").notNull().default("DRAFT"),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true, mode: "string" }),
     publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }),
@@ -145,7 +146,7 @@ export const contentPublication = reviewsSchema.table(
     uniqueIndex("content_publication_destination_unique").on(
       table.contentId,
       table.channel,
-      sql`coalesce(${table.locale}, '')`
+      sql`coalesce(${table.locale}::text, '')`
     ),
     index("content_publication_schedule_idx")
       .on(table.scheduledAt, table.id)

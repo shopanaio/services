@@ -6,7 +6,7 @@ CREATE TABLE "reviews"."content_item" (
   "kind" "reviews"."content_kind" NOT NULL,
   "title" varchar(150),
   "body" text NOT NULL,
-  "locale" varchar(35) NOT NULL,
+  "locale" "reviews"."locale_code" NOT NULL,
   "author_type" "reviews"."content_author_type" NOT NULL,
   "author_customer_id" uuid,
   "author_principal_id" text,
@@ -41,8 +41,6 @@ CREATE TABLE "reviews"."content_item" (
         WHEN 'REVIEW_REPLY' THEN length(btrim("body")) BETWEEN 1 AND 5000
       END
     ),
-  CONSTRAINT "content_item_locale_check"
-    CHECK (length(btrim("locale")) > 0),
   CONSTRAINT "content_item_author_name_check"
     CHECK (length(btrim("author_display_name")) > 0),
   CONSTRAINT "content_item_guest_email_check"

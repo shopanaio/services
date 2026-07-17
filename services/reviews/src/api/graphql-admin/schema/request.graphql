@@ -8,7 +8,7 @@ type ReviewRequest implements Node @key(fields: "id") {
   review: Review
   channel: ReviewNotificationChannel!
   status: ReviewRequestStatus!
-  locale: String!
+  locale: LocaleCode!
   sourceChannel: String!
   providerMessageId: String
   attemptCount: Int!
@@ -63,7 +63,7 @@ input ReviewRequestCreateInput {
   productId: ID!
   variantId: ID
   channel: ReviewNotificationChannel!
-  locale: String!
+  locale: LocaleCode!
   sourceChannel: String = "ADMIN"
   idempotencyKey: String!
   scheduledAt: DateTime!
@@ -72,7 +72,7 @@ input ReviewRequestCreateInput {
 
 input ReviewRequestDeliveryUpdateInput {
   channel: ReviewNotificationChannel
-  locale: String
+  locale: LocaleCode
 }
 
 input ReviewRequestScheduleUpdateInput {

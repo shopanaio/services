@@ -38,7 +38,7 @@ CREATE INDEX "rating_criterion_store_active_sort_idx"
 CREATE TABLE "reviews"."rating_criterion_translation" (
   "store_id" uuid NOT NULL,
   "criterion_id" uuid NOT NULL,
-  "locale" varchar(35) NOT NULL,
+  "locale" "reviews"."locale_code" NOT NULL,
   "title" varchar(150) NOT NULL,
   "description" text,
   "created_at" timestamptz NOT NULL DEFAULT now(),
@@ -50,8 +50,6 @@ CREATE TABLE "reviews"."rating_criterion_translation" (
     FOREIGN KEY ("criterion_id")
     REFERENCES "reviews"."rating_criterion" ("id")
     ON DELETE CASCADE,
-  CONSTRAINT "rating_criterion_translation_locale_check"
-    CHECK (length(btrim("locale")) > 0),
   CONSTRAINT "rating_criterion_translation_title_check"
     CHECK (length(btrim("title")) > 0)
 );

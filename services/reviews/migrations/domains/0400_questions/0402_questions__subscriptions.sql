@@ -8,7 +8,7 @@ CREATE TABLE "reviews"."question_subscription" (
   "subscriber_key" varchar(160) NOT NULL,
   "channel" "reviews"."notification_channel" NOT NULL,
   "status" "reviews"."subscription_status" NOT NULL DEFAULT 'ACTIVE',
-  "locale" varchar(35) NOT NULL,
+  "locale" "reviews"."locale_code" NOT NULL,
   "last_notified_at" timestamptz,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
@@ -20,9 +20,7 @@ CREATE TABLE "reviews"."question_subscription" (
   CONSTRAINT "question_subscription_unique"
     UNIQUE ("question_id", "subscriber_key", "channel"),
   CONSTRAINT "question_subscription_key_check"
-    CHECK (length(btrim("subscriber_key")) > 0),
-  CONSTRAINT "question_subscription_locale_check"
-    CHECK (length(btrim("locale")) > 0)
+    CHECK (length(btrim("subscriber_key")) > 0)
 );
 
 CREATE INDEX "question_subscription_store_customer_idx"

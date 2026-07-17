@@ -19,6 +19,7 @@ import {
   bytea,
   contentKindEnum,
   contentStatusEnum,
+  localeCodeEnum,
   notificationChannelEnum,
   reviewsSchema,
   reviewRequestEventTypeEnum,
@@ -181,7 +182,7 @@ export const reviewRequest = reviewsSchema.table(
     }),
     channel: notificationChannelEnum("channel").notNull(),
     status: reviewRequestStatusEnum("status").notNull().default("SCHEDULED"),
-    locale: varchar("locale", { length: 35 }).notNull(),
+    locale: localeCodeEnum("locale").notNull(),
     sourceChannel: varchar("source_channel", { length: 64 })
       .notNull()
       .default("STOREFRONT"),
