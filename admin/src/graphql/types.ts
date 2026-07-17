@@ -5478,6 +5478,1030 @@ export type ApiDimensionsInput = {
   width: Scalars['Int']['input'];
 };
 
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscount = ApiNode & {
+  __typename?: 'Discount';
+  appliesOnOneTimePurchase: Scalars['Boolean']['output'];
+  appliesOnSubscription: Scalars['Boolean']['output'];
+  appliesOncePerCustomer: Scalars['Boolean']['output'];
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  buyerContext: ApiDiscountBuyerContext;
+  channelCodes: Array<Scalars['String']['output']>;
+  channels: Array<ApiDiscountChannel>;
+  codes: ApiDiscountCodeConnection;
+  codesCount: Scalars['Int']['output'];
+  combinations: Array<ApiDiscountCombination>;
+  combinesWithOrderDiscounts: Scalars['Boolean']['output'];
+  combinesWithProductDiscounts: Scalars['Boolean']['output'];
+  combinesWithShippingDiscounts: Scalars['Boolean']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  createdById?: Maybe<Scalars['String']['output']>;
+  currency: CurrencyCode;
+  discountClass: DiscountClass;
+  effectiveStatus: DiscountEffectiveStatus;
+  endsAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiDiscountExternalReferenceConnection;
+  featuredChannelCodes: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  kind: DiscountKind;
+  metadata: Scalars['JSON']['output'];
+  method: DiscountMethod;
+  minimumRequirement?: Maybe<ApiDiscountMinimumRequirement>;
+  /** First active code, or the oldest code when all codes are disabled. */
+  primaryCode?: Maybe<Scalars['String']['output']>;
+  priority: Scalars['Int']['output'];
+  redemptions: ApiDiscountRedemptionConnection;
+  reservedUsageCount: Scalars['BigInt']['output'];
+  revision: Scalars['Int']['output'];
+  /** Exactly one rule subtype is present for a complete aggregate. */
+  rule?: Maybe<ApiDiscountRule>;
+  startsAt: Scalars['DateTime']['output'];
+  state: DiscountState;
+  tags: Array<Scalars['String']['output']>;
+  targetSelections: Array<ApiDiscountTargetSelection>;
+  title?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  usage: ApiDiscountUsageSummary;
+  usageCount: Scalars['BigInt']['output'];
+  usageLimit?: Maybe<Scalars['BigInt']['output']>;
+  usageReservations: ApiDiscountUsageReservationConnection;
+};
+
+
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscountCodesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountCodeOrderByInput>>;
+  where?: InputMaybe<ApiDiscountCodeWhereInput>;
+};
+
+
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscountExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountExternalReferenceOrderByInput>>;
+  where?: InputMaybe<ApiDiscountExternalReferenceWhereInput>;
+};
+
+
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscountRedemptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountRedemptionOrderByInput>>;
+  where?: InputMaybe<ApiDiscountRedemptionWhereInput>;
+};
+
+
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscountUsageReservationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountUsageReservationOrderByInput>>;
+  where?: InputMaybe<ApiDiscountUsageReservationWhereInput>;
+};
+
+export enum DiscountAllocationMethod {
+  Across = 'ACROSS',
+  Each = 'EACH'
+}
+
+export enum DiscountAllocationTargetType {
+  Order = 'ORDER',
+  OrderLine = 'ORDER_LINE',
+  ShippingLine = 'SHIPPING_LINE'
+}
+
+/** Percentage or fixed-amount rule used by product and order discounts. */
+export type ApiDiscountAmountOffRule = {
+  __typename?: 'DiscountAmountOffRule';
+  allocationMethod: DiscountAllocationMethod;
+  amountMinor?: Maybe<Scalars['BigInt']['output']>;
+  maximumDiscountMinor?: Maybe<Scalars['BigInt']['output']>;
+  percentageBps?: Maybe<Scalars['Int']['output']>;
+  valueType: DiscountValueType;
+};
+
+export type ApiDiscountAmountOffRuleInput = {
+  /** Defaults to ACROSS when omitted. */
+  allocationMethod?: InputMaybe<DiscountAllocationMethod>;
+  amountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  maximumDiscountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  percentageBps?: InputMaybe<Scalars['Int']['input']>;
+  valueType: DiscountValueType;
+};
+
+export type ApiDiscountBuyXGetYRule = {
+  __typename?: 'DiscountBuyXGetYRule';
+  benefitAmountMinor?: Maybe<Scalars['BigInt']['output']>;
+  benefitPercentageBps?: Maybe<Scalars['Int']['output']>;
+  benefitQuantity: Scalars['Int']['output'];
+  benefitValueType: DiscountValueType;
+  requiredQuantity?: Maybe<Scalars['Int']['output']>;
+  requiredSubtotalMinor?: Maybe<Scalars['BigInt']['output']>;
+  requirementType: DiscountRequirementType;
+  usesPerOrderLimit?: Maybe<Scalars['Int']['output']>;
+};
+
+export type ApiDiscountBuyXGetYRuleInput = {
+  benefitAmountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  benefitPercentageBps?: InputMaybe<Scalars['Int']['input']>;
+  benefitQuantity: Scalars['Int']['input'];
+  benefitValueType: DiscountValueType;
+  requiredQuantity?: InputMaybe<Scalars['Int']['input']>;
+  requiredSubtotalMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  requirementType: DiscountRequirementType;
+  usesPerOrderLimit?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiDiscountBuyerContext = {
+  __typename?: 'DiscountBuyerContext';
+  createdAt: Scalars['DateTime']['output'];
+  customers: Array<ApiDiscountEligibleCustomer>;
+  segments: Array<ApiDiscountEligibleSegment>;
+  type: DiscountBuyerContextType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDiscountBuyerContextInput = {
+  customerIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  segmentIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  type: DiscountBuyerContextType;
+};
+
+export enum DiscountBuyerContextType {
+  All = 'ALL',
+  Customers = 'CUSTOMERS',
+  Segments = 'SEGMENTS'
+}
+
+export type ApiDiscountCatalogTarget = ApiCategory | ApiProduct | ApiVariant;
+
+export type ApiDiscountChannel = {
+  __typename?: 'DiscountChannel';
+  code: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  featured: Scalars['Boolean']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDiscountChannelInput = {
+  code: Scalars['String']['input'];
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export enum DiscountClass {
+  Order = 'ORDER',
+  Product = 'PRODUCT',
+  Shipping = 'SHIPPING'
+}
+
+export type ApiDiscountClassFilter = {
+  _eq?: InputMaybe<DiscountClass>;
+  _in?: InputMaybe<Array<DiscountClass>>;
+  _neq?: InputMaybe<DiscountClass>;
+  _notIn?: InputMaybe<Array<DiscountClass>>;
+};
+
+/** A redeemable code and its usage projection. */
+export type ApiDiscountCode = ApiNode & {
+  __typename?: 'DiscountCode';
+  code: Scalars['String']['output'];
+  committedCount: Scalars['BigInt']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  disabledAt?: Maybe<Scalars['DateTime']['output']>;
+  discount: ApiDiscount;
+  id: Scalars['ID']['output'];
+  metadata: Scalars['JSON']['output'];
+  normalizedCode: Scalars['String']['output'];
+  remainingCount?: Maybe<Scalars['BigInt']['output']>;
+  reservedCount: Scalars['BigInt']['output'];
+  reversedCount: Scalars['BigInt']['output'];
+  status: DiscountCodeStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  usageCount: Scalars['BigInt']['output'];
+  usageLimit?: Maybe<Scalars['BigInt']['output']>;
+};
+
+export type ApiDiscountCodeConnection = {
+  __typename?: 'DiscountCodeConnection';
+  edges: Array<ApiDiscountCodeEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountCodeCreateOperationInput = {
+  /** Client-provided correlation key returned in the operation result. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  code: Scalars['String']['input'];
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export type ApiDiscountCodeDeleteOperationInput = {
+  codeId: Scalars['ID']['input'];
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+};
+
+export type ApiDiscountCodeEdge = {
+  __typename?: 'DiscountCodeEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscountCode;
+};
+
+export type ApiDiscountCodeOrderByInput = {
+  direction: SortDirection;
+  field: DiscountCodeOrderField;
+};
+
+export enum DiscountCodeOrderField {
+  Code = 'code',
+  CreatedAt = 'createdAt',
+  DisabledAt = 'disabledAt',
+  Id = 'id',
+  NormalizedCode = 'normalizedCode',
+  RemainingCount = 'remainingCount',
+  ReservedCount = 'reservedCount',
+  Status = 'status',
+  UpdatedAt = 'updatedAt',
+  UsageCount = 'usageCount',
+  UsageLimit = 'usageLimit'
+}
+
+export enum DiscountCodeStatus {
+  Active = 'ACTIVE',
+  Disabled = 'DISABLED'
+}
+
+export type ApiDiscountCodeStatusFilter = {
+  _eq?: InputMaybe<DiscountCodeStatus>;
+  _in?: InputMaybe<Array<DiscountCodeStatus>>;
+  _neq?: InputMaybe<DiscountCodeStatus>;
+  _notIn?: InputMaybe<Array<DiscountCodeStatus>>;
+};
+
+export type ApiDiscountCodeUpdateOperationInput = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  codeId: Scalars['ID']['input'];
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  status?: InputMaybe<DiscountCodeStatus>;
+  usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export type ApiDiscountCodeWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountCodeWhereInput>>;
+  _not?: InputMaybe<ApiDiscountCodeWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountCodeWhereInput>>;
+  code?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  disabledAt?: InputMaybe<ApiDateTimeFilter>;
+  discountId?: InputMaybe<ApiIdFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  normalizedCode?: InputMaybe<ApiStringFilter>;
+  remainingCount?: InputMaybe<ApiBigIntFilter>;
+  reservedCount?: InputMaybe<ApiBigIntFilter>;
+  status?: InputMaybe<ApiDiscountCodeStatusFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  usageCount?: InputMaybe<ApiBigIntFilter>;
+  usageLimit?: InputMaybe<ApiBigIntFilter>;
+};
+
+export type ApiDiscountCodesUpdateInput = {
+  create?: InputMaybe<Array<ApiDiscountCodeCreateOperationInput>>;
+  delete?: InputMaybe<Array<ApiDiscountCodeDeleteOperationInput>>;
+  update?: InputMaybe<Array<ApiDiscountCodeUpdateOperationInput>>;
+};
+
+export type ApiDiscountCombination = {
+  __typename?: 'DiscountCombination';
+  createdAt: Scalars['DateTime']['output'];
+  discountClass: DiscountClass;
+};
+
+export type ApiDiscountConnection = {
+  __typename?: 'DiscountConnection';
+  edges: Array<ApiDiscountEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountCreateInput = {
+  buyerContext?: InputMaybe<ApiDiscountBuyerContextInput>;
+  channels?: InputMaybe<Array<ApiDiscountChannelInput>>;
+  codes?: InputMaybe<Array<ApiDiscountCodeCreateOperationInput>>;
+  combinesWith?: InputMaybe<Array<DiscountClass>>;
+  currency: CurrencyCode;
+  kind: DiscountKind;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  method: DiscountMethod;
+  minimumRequirement?: InputMaybe<ApiDiscountMinimumRequirementInput>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  purchaseModes?: InputMaybe<ApiDiscountPurchaseModesInput>;
+  rule?: InputMaybe<ApiDiscountRuleInput>;
+  schedule?: InputMaybe<ApiDiscountScheduleInput>;
+  /** Defaults to DRAFT when omitted. */
+  state?: InputMaybe<DiscountState>;
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+  targetSelections?: InputMaybe<Array<ApiDiscountTargetSelectionInput>>;
+  title?: InputMaybe<Scalars['String']['input']>;
+  usage?: InputMaybe<ApiDiscountUsageLimitsInput>;
+};
+
+export type ApiDiscountCreatePayload = {
+  __typename?: 'DiscountCreatePayload';
+  discount?: Maybe<ApiDiscount>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountCurrencyFilter = {
+  _eq?: InputMaybe<CurrencyCode>;
+  _in?: InputMaybe<Array<CurrencyCode>>;
+  _neq?: InputMaybe<CurrencyCode>;
+  _notIn?: InputMaybe<Array<CurrencyCode>>;
+};
+
+export type ApiDiscountDefinitionUpdateInput = {
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  purchaseModes?: InputMaybe<ApiDiscountPurchaseModesInput>;
+  schedule?: InputMaybe<ApiDiscountScheduleInput>;
+  title?: InputMaybe<Scalars['String']['input']>;
+  usage?: InputMaybe<ApiDiscountUsageLimitsInput>;
+};
+
+export type ApiDiscountDeleteInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type ApiDiscountDeletePayload = {
+  __typename?: 'DiscountDeletePayload';
+  deletedDiscountId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountEdge = {
+  __typename?: 'DiscountEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscount;
+};
+
+/** Lifecycle plus schedule-derived state used by Admin list views. */
+export enum DiscountEffectiveStatus {
+  Active = 'ACTIVE',
+  Archived = 'ARCHIVED',
+  Draft = 'DRAFT',
+  Expired = 'EXPIRED',
+  Paused = 'PAUSED',
+  Scheduled = 'SCHEDULED'
+}
+
+export type ApiDiscountEffectiveStatusFilter = {
+  _eq?: InputMaybe<DiscountEffectiveStatus>;
+  _in?: InputMaybe<Array<DiscountEffectiveStatus>>;
+  _neq?: InputMaybe<DiscountEffectiveStatus>;
+  _notIn?: InputMaybe<Array<DiscountEffectiveStatus>>;
+};
+
+export type ApiDiscountEligibleCustomer = {
+  __typename?: 'DiscountEligibleCustomer';
+  createdAt: Scalars['DateTime']['output'];
+  customer?: Maybe<ApiCustomer>;
+  customerId: Scalars['ID']['output'];
+  referenceCheckedAt?: Maybe<Scalars['DateTime']['output']>;
+  referenceStatus: DiscountReferenceStatus;
+  referenceStatusChangedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type ApiDiscountEligibleSegment = {
+  __typename?: 'DiscountEligibleSegment';
+  createdAt: Scalars['DateTime']['output'];
+  referenceCheckedAt?: Maybe<Scalars['DateTime']['output']>;
+  referenceStatus: DiscountReferenceStatus;
+  referenceStatusChangedAt?: Maybe<Scalars['DateTime']['output']>;
+  segmentId: Scalars['ID']['output'];
+};
+
+export type ApiDiscountExternalReference = ApiNode & {
+  __typename?: 'DiscountExternalReference';
+  contentChecksum?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  direction: DiscountExternalSyncDirection;
+  discount: ApiDiscount;
+  etag?: Maybe<Scalars['String']['output']>;
+  externalId: Scalars['String']['output'];
+  externalSystem: Scalars['String']['output'];
+  externalType: Scalars['String']['output'];
+  externalUrl?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  lastSyncedAt?: Maybe<Scalars['DateTime']['output']>;
+  metadata: Scalars['JSON']['output'];
+  syncStatus: DiscountExternalSyncStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDiscountExternalReferenceConnection = {
+  __typename?: 'DiscountExternalReferenceConnection';
+  edges: Array<ApiDiscountExternalReferenceEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountExternalReferenceCreateInput = {
+  direction: DiscountExternalSyncDirection;
+  discountId: Scalars['ID']['input'];
+  externalId: Scalars['String']['input'];
+  externalSystem: Scalars['String']['input'];
+  externalType?: InputMaybe<Scalars['String']['input']>;
+  externalUrl?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiDiscountExternalReferenceCreatePayload = {
+  __typename?: 'DiscountExternalReferenceCreatePayload';
+  externalReference?: Maybe<ApiDiscountExternalReference>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountExternalReferenceDeleteInput = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  id: Scalars['ID']['input'];
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiDiscountExternalReferenceDeletePayload = {
+  __typename?: 'DiscountExternalReferenceDeletePayload';
+  deletedExternalReferenceId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountExternalReferenceEdge = {
+  __typename?: 'DiscountExternalReferenceEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscountExternalReference;
+};
+
+export type ApiDiscountExternalReferenceIdentityInput = {
+  externalId?: InputMaybe<Scalars['String']['input']>;
+  externalSystem?: InputMaybe<Scalars['String']['input']>;
+  externalType?: InputMaybe<Scalars['String']['input']>;
+  externalUrl?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiDiscountExternalReferenceOrderByInput = {
+  direction: SortDirection;
+  field: DiscountExternalReferenceOrderField;
+};
+
+export enum DiscountExternalReferenceOrderField {
+  CreatedAt = 'createdAt',
+  DeletedAt = 'deletedAt',
+  Direction = 'direction',
+  ExternalId = 'externalId',
+  ExternalSystem = 'externalSystem',
+  ExternalType = 'externalType',
+  Id = 'id',
+  LastSyncedAt = 'lastSyncedAt',
+  SyncStatus = 'syncStatus',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiDiscountExternalReferenceSyncInput = {
+  contentChecksum?: InputMaybe<Scalars['String']['input']>;
+  direction?: InputMaybe<DiscountExternalSyncDirection>;
+  etag?: InputMaybe<Scalars['String']['input']>;
+  lastError?: InputMaybe<Scalars['String']['input']>;
+  lastSyncedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  status?: InputMaybe<DiscountExternalSyncStatus>;
+};
+
+export type ApiDiscountExternalReferenceUpdateInput = {
+  identity?: InputMaybe<ApiDiscountExternalReferenceIdentityInput>;
+  sync?: InputMaybe<ApiDiscountExternalReferenceSyncInput>;
+};
+
+export type ApiDiscountExternalReferenceUpdatePayload = {
+  __typename?: 'DiscountExternalReferenceUpdatePayload';
+  externalReference?: Maybe<ApiDiscountExternalReference>;
+  operationResults: Array<ApiDiscountOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountExternalReferenceWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountExternalReferenceWhereInput>>;
+  _not?: InputMaybe<ApiDiscountExternalReferenceWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountExternalReferenceWhereInput>>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  direction?: InputMaybe<ApiDiscountExternalSyncDirectionFilter>;
+  discountId?: InputMaybe<ApiIdFilter>;
+  externalId?: InputMaybe<ApiStringFilter>;
+  externalSystem?: InputMaybe<ApiStringFilter>;
+  externalType?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  lastSyncedAt?: InputMaybe<ApiDateTimeFilter>;
+  syncStatus?: InputMaybe<ApiDiscountExternalSyncStatusFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export enum DiscountExternalSyncDirection {
+  Bidirectional = 'BIDIRECTIONAL',
+  Export = 'EXPORT',
+  Import = 'IMPORT'
+}
+
+export type ApiDiscountExternalSyncDirectionFilter = {
+  _eq?: InputMaybe<DiscountExternalSyncDirection>;
+  _in?: InputMaybe<Array<DiscountExternalSyncDirection>>;
+  _neq?: InputMaybe<DiscountExternalSyncDirection>;
+  _notIn?: InputMaybe<Array<DiscountExternalSyncDirection>>;
+};
+
+export enum DiscountExternalSyncStatus {
+  Disabled = 'DISABLED',
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Synced = 'SYNCED'
+}
+
+export type ApiDiscountExternalSyncStatusFilter = {
+  _eq?: InputMaybe<DiscountExternalSyncStatus>;
+  _in?: InputMaybe<Array<DiscountExternalSyncStatus>>;
+  _neq?: InputMaybe<DiscountExternalSyncStatus>;
+  _notIn?: InputMaybe<Array<DiscountExternalSyncStatus>>;
+};
+
+export type ApiDiscountFreeShippingRule = {
+  __typename?: 'DiscountFreeShippingRule';
+  maximumShippingPriceMinor?: Maybe<Scalars['BigInt']['output']>;
+};
+
+export type ApiDiscountFreeShippingRuleInput = {
+  maximumShippingPriceMinor?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export enum DiscountKind {
+  AmountOffOrder = 'AMOUNT_OFF_ORDER',
+  AmountOffProducts = 'AMOUNT_OFF_PRODUCTS',
+  BuyXGetY = 'BUY_X_GET_Y',
+  FreeShipping = 'FREE_SHIPPING'
+}
+
+export type ApiDiscountKindFilter = {
+  _eq?: InputMaybe<DiscountKind>;
+  _in?: InputMaybe<Array<DiscountKind>>;
+  _neq?: InputMaybe<DiscountKind>;
+  _notIn?: InputMaybe<Array<DiscountKind>>;
+};
+
+export type ApiDiscountLifecycleUpdateInput = {
+  state: DiscountState;
+};
+
+export enum DiscountMethod {
+  Automatic = 'AUTOMATIC',
+  Code = 'CODE'
+}
+
+export type ApiDiscountMethodFilter = {
+  _eq?: InputMaybe<DiscountMethod>;
+  _in?: InputMaybe<Array<DiscountMethod>>;
+  _neq?: InputMaybe<DiscountMethod>;
+  _notIn?: InputMaybe<Array<DiscountMethod>>;
+};
+
+export type ApiDiscountMinimumRequirement = {
+  __typename?: 'DiscountMinimumRequirement';
+  quantity?: Maybe<Scalars['Int']['output']>;
+  requirementType: DiscountRequirementType;
+  subtotalMinor?: Maybe<Scalars['BigInt']['output']>;
+};
+
+export type ApiDiscountMinimumRequirementInput = {
+  quantity?: InputMaybe<Scalars['Int']['input']>;
+  requirementType: DiscountRequirementType;
+  subtotalMinor?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+/** Wrapper used by updates so a null requirement can explicitly clear it. */
+export type ApiDiscountMinimumRequirementSyncInput = {
+  requirement?: InputMaybe<ApiDiscountMinimumRequirementInput>;
+};
+
+/** Result of one section in a discount aggregate update. */
+export type ApiDiscountOperationResult = {
+  __typename?: 'DiscountOperationResult';
+  applied: Scalars['Boolean']['output'];
+  errors: Array<ApiGenericUserError>;
+  type: DiscountOperationType;
+};
+
+/** Sections executed by the unified discountUpdate workflow. */
+export enum DiscountOperationType {
+  ChannelsUpdate = 'CHANNELS_UPDATE',
+  CodesUpdate = 'CODES_UPDATE',
+  CombinationsUpdate = 'COMBINATIONS_UPDATE',
+  DefinitionUpdate = 'DEFINITION_UPDATE',
+  EligibilityUpdate = 'ELIGIBILITY_UPDATE',
+  ExternalReferenceUpdate = 'EXTERNAL_REFERENCE_UPDATE',
+  LifecycleUpdate = 'LIFECYCLE_UPDATE',
+  MetadataUpdate = 'METADATA_UPDATE',
+  MinimumRequirementUpdate = 'MINIMUM_REQUIREMENT_UPDATE',
+  RuleUpdate = 'RULE_UPDATE',
+  TagsUpdate = 'TAGS_UPDATE',
+  TargetsUpdate = 'TARGETS_UPDATE'
+}
+
+export type ApiDiscountOrderByInput = {
+  direction: SortDirection;
+  field: DiscountOrderField;
+};
+
+export enum DiscountOrderField {
+  ArchivedAt = 'archivedAt',
+  CodesCount = 'codesCount',
+  CreatedAt = 'createdAt',
+  Currency = 'currency',
+  DiscountClass = 'discountClass',
+  EffectiveStatus = 'effectiveStatus',
+  EndsAt = 'endsAt',
+  Id = 'id',
+  Kind = 'kind',
+  Method = 'method',
+  PrimaryCode = 'primaryCode',
+  Priority = 'priority',
+  ReservedUsageCount = 'reservedUsageCount',
+  Revision = 'revision',
+  StartsAt = 'startsAt',
+  State = 'state',
+  Title = 'title',
+  UpdatedAt = 'updatedAt',
+  UsageCount = 'usageCount',
+  UsageLimit = 'usageLimit'
+}
+
+export type ApiDiscountPurchaseModesInput = {
+  appliesOnOneTimePurchase: Scalars['Boolean']['input'];
+  appliesOnSubscription: Scalars['Boolean']['input'];
+};
+
+/** Order-level discount accounting header. */
+export type ApiDiscountRedemption = ApiNode & {
+  __typename?: 'DiscountRedemption';
+  allocations: Array<ApiDiscountRedemptionAllocation>;
+  amountMinor: Scalars['BigInt']['output'];
+  checkoutId: Scalars['ID']['output'];
+  committedAt: Scalars['DateTime']['output'];
+  configurationRevision: Scalars['Int']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  currency: CurrencyCode;
+  customer?: Maybe<ApiCustomer>;
+  customerId?: Maybe<Scalars['ID']['output']>;
+  discount: ApiDiscount;
+  discountClass: DiscountClass;
+  discountCode?: Maybe<ApiDiscountCode>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  metadata: Scalars['JSON']['output'];
+  orderId: Scalars['ID']['output'];
+  reservation?: Maybe<ApiDiscountUsageReservation>;
+  reversalReason?: Maybe<Scalars['String']['output']>;
+  reversedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: DiscountRedemptionStatus;
+};
+
+export type ApiDiscountRedemptionAllocation = ApiNode & {
+  __typename?: 'DiscountRedemptionAllocation';
+  amountMinor: Scalars['BigInt']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  metadata: Scalars['JSON']['output'];
+  quantity?: Maybe<Scalars['Int']['output']>;
+  redemption: ApiDiscountRedemption;
+  targetId?: Maybe<Scalars['ID']['output']>;
+  targetType: DiscountAllocationTargetType;
+};
+
+export type ApiDiscountRedemptionConnection = {
+  __typename?: 'DiscountRedemptionConnection';
+  edges: Array<ApiDiscountRedemptionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountRedemptionEdge = {
+  __typename?: 'DiscountRedemptionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscountRedemption;
+};
+
+export type ApiDiscountRedemptionOrderByInput = {
+  direction: SortDirection;
+  field: DiscountRedemptionOrderField;
+};
+
+export enum DiscountRedemptionOrderField {
+  AmountMinor = 'amountMinor',
+  CommittedAt = 'committedAt',
+  ConfigurationRevision = 'configurationRevision',
+  CreatedAt = 'createdAt',
+  Currency = 'currency',
+  DiscountClass = 'discountClass',
+  Id = 'id',
+  ReversedAt = 'reversedAt',
+  Status = 'status'
+}
+
+export enum DiscountRedemptionStatus {
+  Committed = 'COMMITTED',
+  Reversed = 'REVERSED'
+}
+
+export type ApiDiscountRedemptionStatusFilter = {
+  _eq?: InputMaybe<DiscountRedemptionStatus>;
+  _in?: InputMaybe<Array<DiscountRedemptionStatus>>;
+  _neq?: InputMaybe<DiscountRedemptionStatus>;
+  _notIn?: InputMaybe<Array<DiscountRedemptionStatus>>;
+};
+
+export type ApiDiscountRedemptionWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountRedemptionWhereInput>>;
+  _not?: InputMaybe<ApiDiscountRedemptionWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountRedemptionWhereInput>>;
+  amountMinor?: InputMaybe<ApiBigIntFilter>;
+  checkoutId?: InputMaybe<ApiIdFilter>;
+  codeId?: InputMaybe<ApiIdFilter>;
+  committedAt?: InputMaybe<ApiDateTimeFilter>;
+  configurationRevision?: InputMaybe<ApiIntFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  currency?: InputMaybe<ApiDiscountCurrencyFilter>;
+  customerId?: InputMaybe<ApiIdFilter>;
+  discountClass?: InputMaybe<ApiDiscountClassFilter>;
+  discountId?: InputMaybe<ApiIdFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  orderId?: InputMaybe<ApiIdFilter>;
+  reservationId?: InputMaybe<ApiIdFilter>;
+  reversedAt?: InputMaybe<ApiDateTimeFilter>;
+  status?: InputMaybe<ApiDiscountRedemptionStatusFilter>;
+};
+
+export enum DiscountReferenceStatus {
+  Stale = 'STALE',
+  Valid = 'VALID'
+}
+
+export enum DiscountRequirementType {
+  Quantity = 'QUANTITY',
+  Subtotal = 'SUBTOTAL'
+}
+
+export enum DiscountReservationStatus {
+  Active = 'ACTIVE',
+  Committed = 'COMMITTED',
+  Expired = 'EXPIRED',
+  Released = 'RELEASED'
+}
+
+export type ApiDiscountReservationStatusFilter = {
+  _eq?: InputMaybe<DiscountReservationStatus>;
+  _in?: InputMaybe<Array<DiscountReservationStatus>>;
+  _neq?: InputMaybe<DiscountReservationStatus>;
+  _notIn?: InputMaybe<Array<DiscountReservationStatus>>;
+};
+
+export type ApiDiscountRule = ApiDiscountAmountOffRule | ApiDiscountBuyXGetYRule | ApiDiscountFreeShippingRule;
+
+/** Exactly one rule field must match the owning discount kind. */
+export type ApiDiscountRuleInput = {
+  amountOff?: InputMaybe<ApiDiscountAmountOffRuleInput>;
+  buyXGetY?: InputMaybe<ApiDiscountBuyXGetYRuleInput>;
+  freeShipping?: InputMaybe<ApiDiscountFreeShippingRuleInput>;
+};
+
+export type ApiDiscountScheduleInput = {
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  startsAt: Scalars['DateTime']['input'];
+};
+
+export enum DiscountState {
+  Active = 'ACTIVE',
+  Archived = 'ARCHIVED',
+  Draft = 'DRAFT',
+  Paused = 'PAUSED'
+}
+
+export type ApiDiscountStateFilter = {
+  _eq?: InputMaybe<DiscountState>;
+  _in?: InputMaybe<Array<DiscountState>>;
+  _neq?: InputMaybe<DiscountState>;
+  _notIn?: InputMaybe<Array<DiscountState>>;
+};
+
+/** A long-lived cross-service target reference and its reconciliation state. */
+export type ApiDiscountTarget = {
+  __typename?: 'DiscountTarget';
+  createdAt: Scalars['DateTime']['output'];
+  referenceCheckedAt?: Maybe<Scalars['DateTime']['output']>;
+  referenceStatus: DiscountReferenceStatus;
+  referenceStatusChangedAt?: Maybe<Scalars['DateTime']['output']>;
+  target?: Maybe<ApiDiscountCatalogTarget>;
+  targetId: Scalars['ID']['output'];
+  targetType: DiscountTargetType;
+};
+
+export enum DiscountTargetRole {
+  Benefit = 'BENEFIT',
+  Qualifier = 'QUALIFIER'
+}
+
+export type ApiDiscountTargetSelection = {
+  __typename?: 'DiscountTargetSelection';
+  role: DiscountTargetRole;
+  targetType: DiscountTargetType;
+  targets: Array<ApiDiscountTarget>;
+};
+
+export type ApiDiscountTargetSelectionInput = {
+  role: DiscountTargetRole;
+  /** Must be empty for ALL_PRODUCTS and non-empty for specific target types. */
+  targetIds: Array<Scalars['ID']['input']>;
+  targetType: DiscountTargetType;
+};
+
+export enum DiscountTargetType {
+  AllProducts = 'ALL_PRODUCTS',
+  Categories = 'CATEGORIES',
+  Products = 'PRODUCTS',
+  Variants = 'VARIANTS'
+}
+
+/** Discount-level sections executed by the unified discountUpdate workflow. */
+export type ApiDiscountUpdateInput = {
+  /** Complete channel replacement when supplied. Empty removes every channel. */
+  channels?: InputMaybe<Array<ApiDiscountChannelInput>>;
+  codes?: InputMaybe<ApiDiscountCodesUpdateInput>;
+  /** Complete compatible-class replacement when supplied. */
+  combinesWith?: InputMaybe<Array<DiscountClass>>;
+  definition?: InputMaybe<ApiDiscountDefinitionUpdateInput>;
+  eligibility?: InputMaybe<ApiDiscountBuyerContextInput>;
+  lifecycle?: InputMaybe<ApiDiscountLifecycleUpdateInput>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  minimumRequirement?: InputMaybe<ApiDiscountMinimumRequirementSyncInput>;
+  rule?: InputMaybe<ApiDiscountRuleInput>;
+  /** Complete tag replacement when supplied. Empty removes every tag. */
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Complete qualifier/benefit target replacement when supplied. */
+  targetSelections?: InputMaybe<Array<ApiDiscountTargetSelectionInput>>;
+};
+
+export type ApiDiscountUpdatePayload = {
+  __typename?: 'DiscountUpdatePayload';
+  discount?: Maybe<ApiDiscount>;
+  operationResults: Array<ApiDiscountOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountUsageLimitsInput = {
+  appliesOncePerCustomer: Scalars['Boolean']['input'];
+  usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+/** Operational capacity reservation retained as an audit record after closing. */
+export type ApiDiscountUsageReservation = ApiNode & {
+  __typename?: 'DiscountUsageReservation';
+  checkoutId: Scalars['ID']['output'];
+  closedAt?: Maybe<Scalars['DateTime']['output']>;
+  committedAt?: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customer?: Maybe<ApiCustomer>;
+  customerId?: Maybe<Scalars['ID']['output']>;
+  discount: ApiDiscount;
+  discountCode?: Maybe<ApiDiscountCode>;
+  expiresAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  metadata: Scalars['JSON']['output'];
+  status: DiscountReservationStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDiscountUsageReservationConnection = {
+  __typename?: 'DiscountUsageReservationConnection';
+  edges: Array<ApiDiscountUsageReservationEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountUsageReservationEdge = {
+  __typename?: 'DiscountUsageReservationEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscountUsageReservation;
+};
+
+export type ApiDiscountUsageReservationOrderByInput = {
+  direction: SortDirection;
+  field: DiscountUsageReservationOrderField;
+};
+
+export enum DiscountUsageReservationOrderField {
+  ClosedAt = 'closedAt',
+  CommittedAt = 'committedAt',
+  CreatedAt = 'createdAt',
+  ExpiresAt = 'expiresAt',
+  Id = 'id',
+  Status = 'status',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiDiscountUsageReservationWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountUsageReservationWhereInput>>;
+  _not?: InputMaybe<ApiDiscountUsageReservationWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountUsageReservationWhereInput>>;
+  checkoutId?: InputMaybe<ApiIdFilter>;
+  closedAt?: InputMaybe<ApiDateTimeFilter>;
+  codeId?: InputMaybe<ApiIdFilter>;
+  committedAt?: InputMaybe<ApiDateTimeFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  customerId?: InputMaybe<ApiIdFilter>;
+  discountId?: InputMaybe<ApiIdFilter>;
+  expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  status?: InputMaybe<ApiDiscountReservationStatusFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Aggregate usage accounting including active checkout reservations. */
+export type ApiDiscountUsageSummary = {
+  __typename?: 'DiscountUsageSummary';
+  committedCount: Scalars['BigInt']['output'];
+  consumedCount: Scalars['BigInt']['output'];
+  netCommittedCount: Scalars['BigInt']['output'];
+  remainingCount?: Maybe<Scalars['BigInt']['output']>;
+  reservedCount: Scalars['BigInt']['output'];
+  reversedCount: Scalars['BigInt']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  usageLimit?: Maybe<Scalars['BigInt']['output']>;
+  version?: Maybe<Scalars['BigInt']['output']>;
+};
+
+export enum DiscountValueType {
+  FixedAmount = 'FIXED_AMOUNT',
+  Free = 'FREE',
+  Percentage = 'PERCENTAGE'
+}
+
+/** Filters backed by pricing.discount_list_view and store-scoped relations. */
+export type ApiDiscountWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountWhereInput>>;
+  _not?: InputMaybe<ApiDiscountWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountWhereInput>>;
+  appliesOnOneTimePurchase?: InputMaybe<ApiBooleanFilter>;
+  appliesOnSubscription?: InputMaybe<ApiBooleanFilter>;
+  appliesOncePerCustomer?: InputMaybe<ApiBooleanFilter>;
+  archivedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Match discounts available on a channel code. */
+  channelCode?: InputMaybe<ApiStringFilter>;
+  combinesWithOrderDiscounts?: InputMaybe<ApiBooleanFilter>;
+  combinesWithProductDiscounts?: InputMaybe<ApiBooleanFilter>;
+  combinesWithShippingDiscounts?: InputMaybe<ApiBooleanFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  createdById?: InputMaybe<ApiStringFilter>;
+  currency?: InputMaybe<ApiDiscountCurrencyFilter>;
+  discountClass?: InputMaybe<ApiDiscountClassFilter>;
+  effectiveStatus?: InputMaybe<ApiDiscountEffectiveStatusFilter>;
+  endsAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Match discounts featured on a channel code. */
+  featuredChannelCode?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  kind?: InputMaybe<ApiDiscountKindFilter>;
+  method?: InputMaybe<ApiDiscountMethodFilter>;
+  primaryCode?: InputMaybe<ApiStringFilter>;
+  priority?: InputMaybe<ApiIntFilter>;
+  reservedUsageCount?: InputMaybe<ApiBigIntFilter>;
+  revision?: InputMaybe<ApiIntFilter>;
+  startsAt?: InputMaybe<ApiDateTimeFilter>;
+  state?: InputMaybe<ApiDiscountStateFilter>;
+  /** Match discounts assigned to at least one normalized tag. */
+  tag?: InputMaybe<ApiStringFilter>;
+  title?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  usageCount?: InputMaybe<ApiBigIntFilter>;
+  usageLimit?: InputMaybe<ApiBigIntFilter>;
+};
+
 /** Exchange rate representation using integer arithmetic for precision */
 export type ApiExchangeRate = {
   __typename?: 'ExchangeRate';
@@ -7712,6 +8736,8 @@ export type ApiMutation = {
   orderMutation: ApiOrderMutation;
   /** Organization management mutations. */
   organizationMutation: ApiOrganizationMutation;
+  /** Pricing Admin mutation namespace. */
+  pricingMutation: ApiPricingMutation;
   /** Admin-only Reviews mutation namespace. */
   reviewsMutation: ApiReviewsMutation;
   /** Role management mutations. */
@@ -8209,6 +9235,130 @@ export type ApiPageInfo = {
   hasPreviousPage: Scalars['Boolean']['output'];
   /** When paginating backwards, the cursor to continue. */
   startCursor?: Maybe<Scalars['String']['output']>;
+};
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutation = {
+  __typename?: 'PricingMutation';
+  discountCreate: ApiDiscountCreatePayload;
+  /**
+   * Permanently delete an unused draft. Active, historical, or redeemed discounts
+   * must be archived through discountUpdate instead.
+   */
+  discountDelete: ApiDiscountDeletePayload;
+  discountExternalReferenceCreate: ApiDiscountExternalReferenceCreatePayload;
+  discountExternalReferenceDelete: ApiDiscountExternalReferenceDeletePayload;
+  discountExternalReferenceUpdate: ApiDiscountExternalReferenceUpdatePayload;
+  /** Unified discount configuration update with optimistic locking. */
+  discountUpdate: ApiDiscountUpdatePayload;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountCreateArgs = {
+  input: ApiDiscountCreateInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountDeleteArgs = {
+  input: ApiDiscountDeleteInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountExternalReferenceCreateArgs = {
+  input: ApiDiscountExternalReferenceCreateInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountExternalReferenceDeleteArgs = {
+  input: ApiDiscountExternalReferenceDeleteInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountExternalReferenceUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  externalReferenceId: Scalars['ID']['input'];
+  operations: ApiDiscountExternalReferenceUpdateInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountUpdateArgs = {
+  discountId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiDiscountUpdateInput;
+};
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQuery = {
+  __typename?: 'PricingQuery';
+  discount?: Maybe<ApiDiscount>;
+  discountCode?: Maybe<ApiDiscountCode>;
+  discountExternalReference?: Maybe<ApiDiscountExternalReference>;
+  discountRedemption?: Maybe<ApiDiscountRedemption>;
+  discountUsageReservation?: Maybe<ApiDiscountUsageReservation>;
+  discounts: ApiDiscountConnection;
+  /** Resolve a Pricing-owned Relay node by global ID. */
+  node?: Maybe<ApiNode>;
+  /** Resolve Pricing-owned Relay nodes while preserving input order. */
+  nodes: Array<Maybe<ApiNode>>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountCodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountExternalReferenceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountRedemptionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountUsageReservationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountOrderByInput>>;
+  where?: InputMaybe<ApiDiscountWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
 };
 
 /** Input for pricing widget query. */
@@ -9014,7 +10164,7 @@ export type ApiProductQuestion = ApiNode & ApiReviewContent & {
   id: Scalars['ID']['output'];
   idempotencyKey?: Maybe<Scalars['String']['output']>;
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   metrics: ApiReviewContentMetrics;
   moderatedAt?: Maybe<Scalars['DateTime']['output']>;
   moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
@@ -9128,7 +10278,7 @@ export type ApiProductQuestionAnswer = ApiNode & ApiReviewContent & {
   isAccepted: Scalars['Boolean']['output'];
   isOfficial: Scalars['Boolean']['output'];
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   metrics: ApiReviewContentMetrics;
   moderatedAt?: Maybe<Scalars['DateTime']['output']>;
   moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
@@ -9432,7 +10582,7 @@ export type ApiProductQuestionSubscription = ApiNode & {
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   lastNotifiedAt?: Maybe<Scalars['DateTime']['output']>;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   question: ApiProductQuestion;
   status: ProductQuestionSubscriptionStatus;
   subscriberCustomer?: Maybe<ApiCustomer>;
@@ -9460,7 +10610,7 @@ export enum ProductQuestionSubscriptionStatus {
 
 export type ApiProductQuestionSubscriptionUpdateInput = {
   channel?: InputMaybe<ReviewNotificationChannel>;
-  locale?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<LocaleCode>;
   status?: InputMaybe<ProductQuestionSubscriptionStatus>;
 };
 
@@ -9745,6 +10895,8 @@ export type ApiQuery = {
   orderQuery: ApiOrderQuery;
   /** Organization queries namespace. */
   organizationQuery: ApiOrganizationQuery;
+  /** Pricing Admin query namespace. */
+  pricingQuery: ApiPricingQuery;
   /** Admin-only Reviews query namespace. */
   reviewsQuery: ApiReviewsQuery;
   /** Store-related queries */
@@ -9781,7 +10933,7 @@ export type ApiReview = ApiNode & ApiReviewContent & {
   isIncentivized: Scalars['Boolean']['output'];
   isVerifiedPurchase: Scalars['Boolean']['output'];
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   media: Array<ApiReviewMedia>;
   metrics: ApiReviewContentMetrics;
   moderatedAt?: Maybe<Scalars['DateTime']['output']>;
@@ -9901,7 +11053,7 @@ export type ApiReviewContent = {
   id: Scalars['ID']['output'];
   idempotencyKey?: Maybe<Scalars['String']['output']>;
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   metrics: ApiReviewContentMetrics;
   moderatedAt?: Maybe<Scalars['DateTime']['output']>;
   moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
@@ -10042,7 +11194,7 @@ export type ApiReviewContentConnectionMetaInput = {
 export type ApiReviewContentCreateInput = {
   author: ApiReviewContentAuthorCreateInput;
   body: Scalars['String']['input'];
-  locale: Scalars['String']['input'];
+  locale: LocaleCode;
   moderationNote?: InputMaybe<Scalars['String']['input']>;
   source?: InputMaybe<ApiReviewContentSourceCreateInput>;
   /** Admin imports may set an initial status; PENDING is the default. */
@@ -10303,7 +11455,7 @@ export type ApiReviewContentPublication = ApiNode & {
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   lastError?: Maybe<Scalars['String']['output']>;
-  locale?: Maybe<Scalars['String']['output']>;
+  locale?: Maybe<LocaleCode>;
   publishedAt?: Maybe<Scalars['DateTime']['output']>;
   scheduledAt?: Maybe<Scalars['DateTime']['output']>;
   status: ReviewPublicationStatus;
@@ -10313,7 +11465,7 @@ export type ApiReviewContentPublication = ApiNode & {
 
 export type ApiReviewContentPublicationSyncInput = {
   channel: Scalars['String']['input'];
-  locale?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<LocaleCode>;
   scheduledAt?: InputMaybe<Scalars['DateTime']['input']>;
   status: ReviewPublicationStatus;
 };
@@ -10498,7 +11650,7 @@ export enum ReviewContentStatus {
 
 export type ApiReviewContentTextUpdateInput = {
   body?: InputMaybe<Scalars['String']['input']>;
-  locale?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<LocaleCode>;
   title?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -10508,7 +11660,7 @@ export type ApiReviewContentTranslation = ApiNode & {
   content: ApiReviewContent;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   reviewedAt?: Maybe<Scalars['DateTime']['output']>;
   reviewedByPrincipalId?: Maybe<Scalars['String']['output']>;
   revision: Scalars['Int']['output'];
@@ -10520,7 +11672,7 @@ export type ApiReviewContentTranslation = ApiNode & {
 
 export type ApiReviewContentTranslationSyncInput = {
   body: Scalars['String']['input'];
-  locale: Scalars['String']['input'];
+  locale: LocaleCode;
   source: ReviewTranslationSource;
   status?: InputMaybe<ReviewContentStatus>;
   title?: InputMaybe<Scalars['String']['input']>;
@@ -11162,14 +12314,14 @@ export type ApiReviewRatingCriterionTranslation = {
   __typename?: 'ReviewRatingCriterionTranslation';
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   title: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
 export type ApiReviewRatingCriterionTranslationInput = {
   description?: InputMaybe<Scalars['String']['input']>;
-  locale: Scalars['String']['input'];
+  locale: LocaleCode;
   title: Scalars['String']['input'];
 };
 
@@ -11249,7 +12401,7 @@ export type ApiReviewReply = ApiNode & ApiReviewContent & {
   idempotencyKey?: Maybe<Scalars['String']['output']>;
   isOfficial: Scalars['Boolean']['output'];
   kind: ReviewContentKind;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   metrics: ApiReviewContentMetrics;
   moderatedAt?: Maybe<Scalars['DateTime']['output']>;
   moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
@@ -11457,7 +12609,7 @@ export type ApiReviewRequest = ApiNode & {
   expiresAt?: Maybe<Scalars['DateTime']['output']>;
   id: Scalars['ID']['output'];
   lastError?: Maybe<Scalars['String']['output']>;
-  locale: Scalars['String']['output'];
+  locale: LocaleCode;
   openedAt?: Maybe<Scalars['DateTime']['output']>;
   orderId: Scalars['ID']['output'];
   orderLineId: Scalars['ID']['output'];
@@ -11493,7 +12645,7 @@ export type ApiReviewRequestCreateInput = {
   customerId: Scalars['ID']['input'];
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   idempotencyKey: Scalars['String']['input'];
-  locale: Scalars['String']['input'];
+  locale: LocaleCode;
   orderId: Scalars['ID']['input'];
   orderLineId: Scalars['ID']['input'];
   productId: Scalars['ID']['input'];
@@ -11510,7 +12662,7 @@ export type ApiReviewRequestCreatePayload = {
 
 export type ApiReviewRequestDeliveryUpdateInput = {
   channel?: InputMaybe<ReviewNotificationChannel>;
-  locale?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<LocaleCode>;
 };
 
 export type ApiReviewRequestEdge = {
@@ -14582,6 +15734,7 @@ export enum Join__Graph {
   ListingAdmin = 'LISTING_ADMIN',
   MediaAdmin = 'MEDIA_ADMIN',
   OrdersAdmin = 'ORDERS_ADMIN',
+  PricingAdmin = 'PRICING_ADMIN',
   ProjectAdmin = 'PROJECT_ADMIN',
   ReviewsAdmin = 'REVIEWS_ADMIN'
 }
