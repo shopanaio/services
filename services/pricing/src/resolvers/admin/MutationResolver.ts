@@ -1,15 +1,19 @@
 import {
   decodeGlobalIdByType,
+  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
   PricingMutationDiscountCreateArgs,
+  PricingMutationDiscountDeleteArgs,
   PricingMutationDiscountUpdateArgs,
 } from "./generated/types.js";
 import type {
   DiscountCreateWorkflowInput,
   DiscountCreateWorkflowResult,
+  DiscountDeleteWorkflowInput,
+  DiscountDeleteWorkflowResult,
   DiscountUpdateWorkflowInput,
   DiscountUpdateWorkflowResult,
   PricingMutationWorkflowContext,
@@ -21,7 +25,10 @@ import {
   mapPreflightDiscountOperationResult,
   toGraphqlDiscountOperationType,
 } from "./discountUpdateMapper.js";
-import { DiscountCreateInputSchema } from "./generated/schemas.js";
+import {
+  DiscountCreateInputSchema,
+  DiscountDeleteInputSchema,
+} from "./generated/schemas.js";
 import { PricingType } from "./PricingType.js";
 
 @ApolloMutation
@@ -51,6 +58,53 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     return {
       discount: result.discount
         ? new DiscountResolver(result.discount.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(DiscountDeleteInputSchema())
+  async discountDelete(args: PricingMutationDiscountDeleteArgs) {
+    let discountId: string;
+    try {
+      discountId = decodeGlobalIdByType(
+        args.input.id,
+        GlobalIdEntity.Discount,
+      );
+    } catch {
+      return {
+        deletedDiscountId: null,
+        userErrors: [
+          {
+            message: "Invalid ID format",
+            field: ["input", "id"],
+            code: "INVALID_ID",
+          },
+        ],
+      };
+    }
+
+    const workflowInput: DiscountDeleteWorkflowInput = {
+      discountId,
+      expectedRevision: args.input.expectedRevision,
+      context: this.mutationWorkflowContext(),
+    };
+    const result = await this.runMutationWorkflow<DiscountDeleteWorkflowResult>(
+      "discountDelete",
+      workflowInput,
+      discountId,
+    );
+
+    this.clearDiscountLoaders(discountId);
+    for (const codeId of result.deletedCodeIds) {
+      this.$ctx.loaders.discountCode.clear(codeId);
+    }
+    return {
+      deletedDiscountId: result.deletedDiscountId
+        ? encodeGlobalIdByType(
+            result.deletedDiscountId,
+            GlobalIdEntity.Discount,
+          )
         : null,
       userErrors: result.userErrors,
     };
@@ -149,6 +203,20 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     discountId: string,
     input: DiscountUpdateWorkflowInput,
   ) {
+    this.clearDiscountLoaders(discountId);
+
+    for (const operation of input.operations) {
+      if (operation.type !== "discountCodesUpdate") continue;
+      for (const item of operation.params.update ?? []) {
+        this.$ctx.loaders.discountCode.clear(item.codeId);
+      }
+      for (const item of operation.params.delete ?? []) {
+        this.$ctx.loaders.discountCode.clear(item.codeId);
+      }
+    }
+  }
+
+  private clearDiscountLoaders(discountId: string) {
     this.$ctx.loaders.discount.clear(discountId);
     this.$ctx.loaders.discountRule.clear(discountId);
     this.$ctx.loaders.discountMinimumRequirement.clear(discountId);
@@ -160,15 +228,5 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     this.$ctx.loaders.discountChannels.clear(discountId);
     this.$ctx.loaders.discountCombinations.clear(discountId);
     this.$ctx.loaders.discountUsageSummary.clear(discountId);
-
-    for (const operation of input.operations) {
-      if (operation.type !== "discountCodesUpdate") continue;
-      for (const item of operation.params.update ?? []) {
-        this.$ctx.loaders.discountCode.clear(item.codeId);
-      }
-      for (const item of operation.params.delete ?? []) {
-        this.$ctx.loaders.discountCode.clear(item.codeId);
-      }
-    }
   }
 }

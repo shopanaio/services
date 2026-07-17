@@ -562,6 +562,47 @@ export class DiscountRepository extends BaseRepository {
     return { discount: existing, created: false };
   }
 
+  async hasUsageHistory(id: string): Promise<boolean> {
+    const [reservations, redemptions] = await Promise.all([
+      this.connection
+        .select({ id: discountUsageReservation.id })
+        .from(discountUsageReservation)
+        .where(
+          and(
+            eq(discountUsageReservation.storeId, this.storeId),
+            eq(discountUsageReservation.discountId, id),
+          ),
+        )
+        .limit(1),
+      this.connection
+        .select({ id: discountRedemption.id })
+        .from(discountRedemption)
+        .where(
+          and(
+            eq(discountRedemption.storeId, this.storeId),
+            eq(discountRedemption.discountId, id),
+          ),
+        )
+        .limit(1),
+    ]);
+    return reservations.length > 0 || redemptions.length > 0;
+  }
+
+  async deleteDraft(id: string, expectedRevision: number): Promise<boolean> {
+    const rows = await this.connection
+      .delete(discount)
+      .where(
+        and(
+          eq(discount.storeId, this.storeId),
+          eq(discount.id, id),
+          eq(discount.state, "DRAFT"),
+          eq(discount.revision, expectedRevision),
+        ),
+      )
+      .returning({ id: discount.id });
+    return rows.length > 0;
+  }
+
   async updateRoot(id: string, patch: DiscountRootPatch): Promise<boolean> {
     if (Object.keys(patch).length === 0) return false;
     const rows = await this.connection
