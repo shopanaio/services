@@ -1,28 +1,30 @@
 # Reviews Service
 
-Shopana bounded context for product reviews and product Q&A.
+Reviews Service — ограниченный контекст Shopana для отзывов о товарах и
+вопросов покупателей.
 
-The service uses handwritten PostgreSQL migrations executed by
-`node-pg-migrate`. Runtime repositories use Drizzle, but the migration SQL is
-the source of truth for the physical database layout.
+Сервис использует написанные вручную миграции PostgreSQL, выполняемые через
+`node-pg-migrate`. Репозитории времени выполнения используют Drizzle, но
+источником истины для физической структуры базы данных остается SQL миграций.
 
-## Model principles
+## Принципы модели
 
-- Every tenant-owned row carries `store_id`. Tenant scope is indexed but is not
-  part of primary or foreign keys.
-- All persisted UUIDs are UUIDv7. UUID references owned by another service do
-  not have cross-service database foreign keys.
-- `content_item` is the common UGC root. Reviews, review replies, product
-  questions and question answers extend it through a local typed foreign key.
-- Moderation eligibility and channel publication are separate concerns:
-  `content_item.status` records the moderation result, while
-  `content_publication` controls delivery to a locale/channel destination.
-- Content supports optimistic concurrency through `revision`, soft deletion
-  through `deleted_at`, and privacy redaction through `redacted_at`.
-- Counters and product summaries are explicit read models. Database triggers do
-  not maintain them.
+- Каждая принадлежащая магазину строка содержит `store_id`. Tenant scope
+  индексируется, но не входит в первичные и внешние ключи.
+- Все сохраняемые UUID имеют версию UUIDv7. Для UUID-ссылок на сущности других
+  сервисов не создаются межсервисные внешние ключи базы данных.
+- `content_item` является общим корнем пользовательского контента. Отзывы,
+  ответы на отзывы, вопросы о товарах и ответы на вопросы расширяют его через
+  локальный типизированный внешний ключ.
+- Допуск модерацией и публикация в канале являются разными аспектами:
+  `content_item.status` хранит результат модерации, а
+  `content_publication` управляет доставкой в конкретный язык и канал.
+- Контент поддерживает оптимистическую конкурентность через `revision`,
+  мягкое удаление через `deleted_at` и обезличивание через `redacted_at`.
+- Счетчики и сводки по товарам представлены явными моделями чтения. Триггеры
+  базы данных их не обновляют.
 
-## Entity relationships
+## Связи сущностей
 
 ```text
 content_item
@@ -53,326 +55,342 @@ rating_criterion
 └── product_rating_criterion_summary
 ```
 
-## Configuration entities
+## Сущности конфигурации
 
 ### `store_configuration`
 
-One configuration row per store. It controls whether reviews, questions, guest
-submissions, customer answers and review requests are enabled. It also defines
-moderation modes, verified-purchase requirements, duplicate-review policy,
-request scheduling, edit windows and review/Q&A size limits.
+Одна строка конфигурации на магазин. Определяет, включены ли отзывы, вопросы,
+публикации гостей, ответы покупателей и запросы отзывов. Также задает режимы
+модерации, требования к подтвержденной покупке, политику повторных отзывов,
+расписание запросов, периоды редактирования и ограничения размера отзывов и
+вопросов.
 
-The row has its own UUID identity; `store_id` is protected by a unique
-constraint rather than used as the primary key.
+Строка имеет собственный UUID. `store_id` защищен уникальным ограничением, но
+не используется как первичный ключ.
 
 ### `rating_criterion`
 
-Defines an optional detailed rating dimension such as quality, value, fit or
-delivery experience. A criterion contains a stable store-local code, default
-label and description, aggregation weight, required/active flags, default
-catalog scope and display order.
+Определяет дополнительный критерий оценки, например качество, ценность,
+соответствие размера или впечатление от доставки. Критерий содержит стабильный
+код внутри магазина, стандартные название и описание, вес при агрегации,
+признаки обязательности и активности, стандартную область Catalog и порядок
+отображения.
 
-The top-level `review.rating` remains the required overall 1–5 rating. Detailed
-criteria complement it and do not replace it.
+Поле `review.rating` остается обязательной общей оценкой от 1 до 5.
+Дополнительные критерии дополняют, а не заменяют ее.
 
 ### `rating_criterion_translation`
 
-Localized title and description for a rating criterion. A criterion has at most
-one translation per locale.
+Локализованные название и описание критерия оценки. Для одного критерия может
+существовать не более одного перевода на каждый язык.
 
 ### `rating_criterion_assignment`
 
-Restricts a criterion to a catalog product or category and can override whether
-the criterion is required and where it appears. `target_id` points to Catalog;
-the Reviews database intentionally does not create a cross-service FK.
+Ограничивает критерий конкретным товаром или категорией Catalog и может
+переопределять обязательность и порядок отображения. `target_id` указывает на
+Catalog; база Reviews намеренно не создает межсервисный внешний ключ.
 
-## Shared content entities
+## Общие сущности контента
 
 ### `content_item`
 
-Canonical UGC record shared by all public content types:
+Каноническая запись пользовательского контента для всех публичных типов:
 
 - `REVIEW`;
 - `REVIEW_REPLY`;
 - `PRODUCT_QUESTION`;
 - `QUESTION_ANSWER`.
 
-It owns the title where applicable, body, source locale, author snapshot,
-optional Customers/IAM identities, source channel, idempotency key, moderation
-status, moderator note, publication timestamps and optimistic revision.
+Сущность хранит заголовок, когда он применим, текст, исходный язык, снимок
+автора, опциональные идентификаторы Customers и IAM, исходный канал, ключ
+идемпотентности, статус модерации, заметку модератора, время публикации и
+revision для оптимистической конкурентности.
 
-The author snapshot allows imported and guest content to survive customer
-profile changes. `author_customer_id` is used for federation when the author is
-a Shopana customer; guest email can be removed during privacy redaction.
+Снимок автора позволяет импортированному и гостевому контенту сохраняться после
+изменения профиля покупателя. `author_customer_id` используется для federation,
+если автор является покупателем Shopana; email гостя может быть удален при
+обезличивании.
 
-Status values are `PENDING`, `PUBLISHED` and `REJECTED`. Rejected content must
-have a moderation note, and published content must have a publication timestamp.
-Trigram indexes support case-insensitive Admin search over title and body.
+Возможные статусы: `PENDING`, `PUBLISHED` и `REJECTED`. Отклоненный контент
+должен иметь заметку модератора, а опубликованный — время публикации.
+Триграммные индексы обеспечивают регистронезависимый поиск в Admin по заголовку
+и тексту.
 
 ### `content_translation`
 
-Stores a human, machine or imported translation of a content item. Each
-content/locale pair is unique and has its own moderation status, revision and
-reviewer audit fields. The original text remains on `content_item`.
+Хранит ручной, машинный или импортированный перевод контента. Каждая пара
+контент/язык уникальна и имеет собственный статус модерации, revision и поля
+аудита проверяющего. Исходный текст остается в `content_item`.
 
 ### `content_publication`
 
-Tracks delivery of a content item to a channel and optional locale. It supports
-draft, scheduled, published, unpublished and failed states, enabling separate
-visibility for native storefronts, marketplaces and partner channels.
+Отслеживает доставку контента в канал и опциональный язык. Поддерживает
+черновик, запланированную, опубликованную, снятую с публикации и неуспешную
+публикацию. Благодаря этому нативная витрина, маркетплейсы и партнерские каналы
+могут иметь разную видимость контента.
 
-There can be only one publication state for a content/channel/locale
-destination.
+Для одной комбинации контента, канала и языка может существовать только одно
+состояние публикации.
 
-## Review entities
+## Сущности отзывов
 
 ### `review`
 
-Typed extension of `content_item` for a product review. It stores:
+Типизированное расширение `content_item` для отзыва о товаре. Хранит:
 
-- Catalog `product_id` and optional `variant_id`;
-- optional Orders `order_id` and `order_line_id` evidence;
-- required overall rating from 1 to 5;
-- purchase verification state, method and timestamp;
-- incentivized-review flag and required public disclosure.
+- `product_id` Catalog и опциональный `variant_id`;
+- опциональные подтверждающие `order_id` и `order_line_id` из Orders;
+- обязательную общую оценку от 1 до 5;
+- состояние, способ и время подтверждения покупки;
+- признак стимулированного отзыва и обязательное публичное раскрытие.
 
-Verification has three states: `UNVERIFIED`, `VERIFIED` and `REVOKED`.
-Storefront `isVerifiedPurchase` is derived from the `VERIFIED` state. A revoked
-verification preserves the original verification audit data.
+Подтверждение имеет три состояния: `UNVERIFIED`, `VERIFIED` и `REVOKED`.
+Поле витрины `isVerifiedPurchase` вычисляется из состояния `VERIFIED`.
+Отозванное подтверждение сохраняет первоначальные данные аудита.
 
 ### `review_rating`
 
-Stores a review's 1–5 value for one detailed `rating_criterion`. The
-review/criterion pair is unique. Deleting a review cascades to its values;
-deleting a criterion is restricted while review evidence still references it.
+Хранит оценку от 1 до 5 по одному дополнительному `rating_criterion`. Пара
+отзыв/критерий уникальна. Удаление отзыва каскадно удаляет его оценки, а удаление
+критерия запрещено, пока на него ссылаются данные отзывов.
 
 ### `review_media`
 
-Associates a Media service `file_id` with a review. It owns display order,
-caption and independent media moderation fields. This supports images and video
-without copying file metadata into the Reviews database.
+Связывает `file_id` Media Service с отзывом. Хранит порядок отображения,
+подпись и независимые поля модерации медиа. Это позволяет поддерживать
+изображения и видео без копирования метаданных файлов в Reviews.
 
-The review/file pair is unique. Maximum attachment count and allowed MIME/size
-rules are enforced by the application using `store_configuration` and Media
-metadata.
+Пара отзыв/файл уникальна. Максимальное число вложений, допустимые MIME-типы и
+размеры проверяются приложением по `store_configuration` и метаданным Media.
 
 ### `review_reply`
 
-Typed extension of `content_item` for a merchant response to a review. It links
-to the parent review, records whether the response is official and preserves
-display order. Multiple replies are supported so imported partner threads and
-reply history are not forced into a single mutable field.
+Типизированное расширение `content_item` для ответа продавца на отзыв. Связано
+с родительским отзывом, хранит признак официального ответа и порядок
+отображения. Поддерживаются несколько ответов, чтобы импортированные обсуждения
+и история ответов не сводились к одному изменяемому полю.
 
-Admin reply writes are owned by `reviewUpdate.operations.replies`; there are no
-standalone reply create, update or delete mutations. Existing replies keep their
-own content revision for nested update/delete conflict checks.
+Admin-запись ответов выполняется через `reviewUpdate.operations.replies`;
+отдельных мутаций создания, обновления или удаления ответа нет. Существующие
+ответы сохраняют собственную revision контента для проверки конфликтов при
+вложенном обновлении или удалении.
 
 ### `review_request`
 
-Represents a post-purchase invitation to review an order line. It references
-Customers, Orders and Catalog by UUID and records notification channel, locale,
-idempotency key, secure access-token hash, provider message ID, attempts and
-lifecycle timestamps.
+Представляет послепродажное приглашение оставить отзыв о строке заказа. Содержит
+UUID-ссылки на Customers, Orders и Catalog, канал уведомления, язык, ключ
+идемпотентности, хеш безопасного токена доступа, идентификатор сообщения
+провайдера, число попыток и временные метки жизненного цикла.
 
-Supported lifecycle states are scheduled, sent, delivered, opened, submitted,
-expired, cancelled and failed. A submitted request must reference the resulting
-review. The active review is protected from hard deletion by a local FK.
+Поддерживаемые состояния: запланирован, отправлен, доставлен, открыт, завершен
+отзывом, истек, отменен и завершен с ошибкой. Завершенный запрос должен
+ссылаться на созданный отзыв. Локальный внешний ключ защищает активный отзыв от
+физического удаления.
 
 ### `review_request_event`
 
-Append-oriented delivery history for a review request. It captures provider
-events such as sent, delivered, opened, clicked, submitted, bounced, complained,
-failed, cancelled and expired. Provider event IDs are deduplicated per store.
+Дополняемая история доставки запроса отзыва. Фиксирует события провайдера:
+отправлено, доставлено, открыто, выполнен переход, создан отзыв, отклонено,
+получена жалоба, ошибка, отмена и истечение. Идентификаторы событий провайдера
+дедуплицируются внутри магазина.
 
-The request row provides the current state; events preserve the integration and
-conversion audit trail.
+Строка запроса хранит текущее состояние, а события сохраняют аудит интеграции и
+конверсии.
 
-## Product Q&A entities
+## Сущности вопросов о товарах
 
 ### `product_question`
 
-Typed extension of `content_item` for a customer product question. It references
-a Catalog product and optional variant. Author, body, status, revision and
-moderation data are inherited from `content_item`.
+Типизированное расширение `content_item` для вопроса покупателя о товаре.
+Содержит ссылку на товар Catalog и опциональный вариант. Автор, текст, статус,
+revision и данные модерации наследуются от `content_item`.
 
-`answerState` is a derived API value: a question is answered when its maintained
-child count contains an eligible answer.
+`answerState` — вычисляемое поле API: вопрос считается отвеченным, если
+поддерживаемый счетчик дочерних сущностей содержит допустимый ответ.
 
 ### `question_answer`
 
-Typed extension of `content_item` linked to a product question. Answers can be
-customer, seller or staff authored, official and/or accepted. At most one answer
-can be accepted for a question. Each answer has independent moderation,
-publication, revisions, reports and votes through the shared content tables.
+Типизированное расширение `content_item`, связанное с вопросом о товаре. Автором
+может быть покупатель, продавец или сотрудник; ответ может быть официальным и
+принятым. Для вопроса допускается не более одного принятого ответа. Каждый ответ
+имеет независимые модерацию, публикацию, revisions, жалобы и голоса через общие
+таблицы контента.
 
-Admin answer writes are owned by `productQuestionUpdate.operations.answers`;
-there are no standalone answer create, update or delete mutations. Existing
-answers keep their own content revision for nested update/delete conflict checks.
+Admin-запись ответов выполняется через
+`productQuestionUpdate.operations.answers`; отдельных мутаций создания,
+обновления или удаления ответа нет. Существующие ответы сохраняют собственную
+revision контента для проверки конфликтов при вложенном изменении.
 
 ### `question_subscription`
 
-Stores a customer's or guest subscriber's request to receive question updates.
-It uses a stable `subscriber_key` for deduplication, optionally references a
-Customers entity, selects a notification channel and locale, and tracks active,
-paused or unsubscribed state plus the last notification time.
+Хранит намерение покупателя или гостя получать обновления вопроса. Стабильный
+`subscriber_key` используется для дедупликации; запись может ссылаться на
+Customers, выбирает канал уведомления и язык, хранит активное, приостановленное
+или отмененное состояние и время последнего уведомления.
 
-Notification destinations and message delivery belong to the notification
-integration; this table records Reviews-domain subscription intent.
+Адреса уведомлений и доставка сообщений принадлежат соответствующей интеграции.
+Эта таблица хранит только намерение подписки в домене Reviews.
 
-## Engagement entities
+## Сущности вовлеченности
 
 ### `content_vote`
 
-Stores one `LIKE` or `DISLIKE` vote per content item and stable voter key. The
-optional `voter_customer_id` supports customer federation and abuse analysis,
-while the voter key also supports authenticated guests without persisting a
-browser/session UUID as an entity identity.
+Хранит один голос `LIKE` или `DISLIKE` для пары контент/стабильный ключ
+голосующего. Опциональный `voter_customer_id` поддерживает federation с
+покупателем и анализ злоупотреблений. Ключ голосующего также позволяет
+поддерживать авторизованных гостей без сохранения UUID браузера или сессии как
+идентификатора сущности.
 
-Updating a reaction changes the existing row instead of creating multiple votes.
+Изменение реакции обновляет существующую строку, а не создает несколько голосов.
 
 ### `content_report`
 
-Abuse report against any content item. It stores reporter identity, reason,
-details, assignment and resolution audit. Reasons cover spam, offensive content,
-harassment, hate speech, fraud, personal information, illegal content,
-intellectual-property issues, conflicts of interest, irrelevant content and an
-extensible `OTHER` category.
+Жалоба на любой контент. Хранит автора жалобы, причину, подробности, назначение и
+аудит решения. Причины включают спам, оскорбительный контент, преследование,
+язык ненависти, мошенничество, персональные данные, незаконный контент,
+нарушение интеллектуальной собственности, конфликт интересов, нерелевантный
+контент и расширяемую категорию `OTHER`.
 
-Only one open/under-review report per content/reporter pair is allowed. Actioned
-and dismissed reports must identify the resolver and resolution time.
+Для пары контент/автор допускается только одна открытая или рассматриваемая
+жалоба. Обработанные и отклоненные жалобы должны содержать исполнителя и время
+решения.
 
 ### `content_metrics`
 
-One denormalized counter row per content item. It supports Admin filtering and
-sorting without repeatedly aggregating large engagement tables:
+Одна денормализованная строка счетчиков на единицу контента. Обеспечивает
+фильтрацию и сортировку в Admin без постоянной агрегации больших таблиц:
 
-- like and dislike counts;
-- total and currently open report counts;
-- attached media count;
-- child, official-child and accepted-child counts;
-- timestamp of the latest child.
+- число положительных и отрицательных голосов;
+- общее число жалоб и число открытых жалоб;
+- число прикрепленных медиа;
+- число дочерних, официальных и принятых дочерних сущностей;
+- время появления последней дочерней сущности.
 
-For reviews, media and child counters represent attachments and replies. For
-questions, child counters represent answers. Mutation transactions or durable
-projection handlers must update this row together with source changes.
+Для отзывов счетчики медиа и дочерних сущностей отражают вложения и ответы. Для
+вопросов дочерними сущностями являются ответы. Транзакции мутаций или надежные
+обработчики проекций должны обновлять эту строку вместе с исходными данными.
 
-## Moderation and audit entities
+## Сущности модерации и аудита
 
 ### `moderation_case`
 
-Operational moderation queue item for a content record. It carries status,
-priority, reason, assignee, SLA due time and resolution audit. A content item can
-have only one active `OPEN`/`IN_REVIEW` case, while completed cases remain as
-history.
+Элемент операционной очереди модерации для контента. Хранит статус, приоритет,
+причину, исполнителя, контрольный срок SLA и аудит решения. У контента может быть
+только один активный case в состоянии `OPEN` или `IN_REVIEW`; завершенные
+case остаются в истории.
 
-Indexes support store queues, assignee queues and overdue-case scans.
+Индексы поддерживают очереди магазина, очереди исполнителей и поиск просроченных
+case.
 
 ### `moderation_event`
 
-Append-only moderation timeline for submissions, automated flags, assignments,
-publishing, rejection, restoration, edits, redaction and deletion. It records
-optional status transitions, actor, reason, note and structured metadata and can
-be linked to a moderation case.
+Добавляемая хронология модерации: отправка на проверку, автоматические флаги,
+назначение, публикация, отклонение, восстановление, редактирование,
+обезличивание и удаление. Хранит опциональные переходы статусов, автора действия,
+причину, заметку и структурированные метаданные; может быть связана с
+moderation case.
 
 ### `content_revision`
 
-Immutable JSON snapshot of a content aggregate at a specific optimistic
-revision. It records who changed the aggregate and why. The content/revision pair
-is unique, allowing moderators to inspect edits and restore prior data without
-overloading the current-state tables.
+Неизменяемый JSON snapshot агрегата контента для конкретной optimistic revision.
+Фиксирует автора и причину изменения. Пара контент/revision уникальна, благодаря
+чему модераторы могут изучать изменения и восстанавливать предыдущие данные, не
+перегружая таблицы текущего состояния.
 
-The snapshot should contain the root and relevant typed-extension fields needed
-to reproduce that version.
+Snapshot должен содержать корневые поля и необходимые поля типизированного
+расширения для воспроизведения версии.
 
 ### `moderation_signal`
 
-Evidence emitted by automated moderation, fraud or policy providers. A signal
-records provider, category, optional normalized score, `PASS`/`REVIEW`/`BLOCK`
-verdict, model version and structured evidence. Signals are immutable inputs to
-moderation decisions rather than the decision itself.
+Свидетельство от автоматической модерации, системы обнаружения мошенничества или
+провайдера политик. Содержит провайдера, категорию, опциональную нормализованную
+оценку, решение `PASS`/`REVIEW`/`BLOCK`, версию модели и структурированные
+данные. Signals являются неизменяемыми входными данными решения модерации, а не
+самим решением.
 
-## Integration entity
+## Сущность интеграции
 
 ### `content_external_reference`
 
-Maps a content item to an external review/Q&A provider or marketplace identity.
-It supports import, export and bidirectional sync, current sync status, external
-URL, ETag/checksum, last error and provider metadata.
+Связывает контент с идентификатором внешнего поставщика отзывов и вопросов или
+маркетплейса. Поддерживает импорт, экспорт и двунаправленную синхронизацию,
+текущий статус, внешний URL, ETag/checksum, последнюю ошибку и метаданные
+провайдера.
 
-External identities are unique per store/system/type. A content item can have
-one active reference for a given system and external type. Soft deletion keeps
-historical integration mappings available for audit while allowing a later
-replacement.
+Внешняя идентичность уникальна для комбинации магазин/система/тип. Контент может
+иметь одну активную ссылку для конкретной системы и внешнего типа. Мягкое
+удаление сохраняет историю интеграции и позволяет позднее создать замену.
 
-## Read-model entities
+## Сущности моделей чтения
 
 ### `product_review_summary`
 
-One storefront projection per Catalog product over currently published,
-non-deleted reviews. It stores review, verified-review and media-review counts,
-rating sum, complete 1–5 star breakdown, generated average rating and the latest
-review timestamp.
+Одна проекция витрины на товар Catalog по опубликованным и не удаленным отзывам.
+Хранит число отзывов, подтвержденных отзывов и отзывов с медиа, сумму оценок,
+полное распределение по 1–5 звездам, вычисляемую среднюю оценку и время
+последнего отзыва.
 
-Database checks guarantee that the star buckets equal the review count and that
-their weighted total equals `rating_sum`.
+Ограничения базы гарантируют, что сумма звездных групп равна числу отзывов, а их
+взвешенная сумма равна `rating_sum`.
 
 ### `product_rating_criterion_summary`
 
-Per-product aggregate for one detailed rating criterion. It stores review count,
-rating sum, 1–5 breakdown and generated average. This powers Adobe-like detailed
-rating displays without aggregating every `review_rating` row on storefront
-requests.
+Агрегат по товару и одному дополнительному критерию оценки. Хранит число
+отзывов, сумму оценок, распределение 1–5 и вычисляемое среднее. Позволяет
+показывать подробные рейтинги без агрегации всех `review_rating` при каждом
+запросе витрины.
 
 ### `product_question_summary`
 
-One storefront projection per Catalog product over currently published,
-non-deleted questions and answers. It stores question count, answered count,
-generated unanswered count, total and official answer counts, and latest
-question/answer timestamps.
+Одна проекция витрины на товар Catalog по опубликованным и не удаленным вопросам
+и ответам. Хранит число вопросов и вопросов с ответами, вычисляемое число
+вопросов без ответа, общее число и число официальных ответов, а также время
+последних вопроса и ответа.
 
-## Cross-service references
+## Межсервисные ссылки
 
-The following UUID columns are references by contract, not PostgreSQL FKs:
+Следующие UUID-поля являются контрактными ссылками, а не внешними ключами
+PostgreSQL:
 
-| Reviews column | Owning service |
+| Поле Reviews | Сервис-владелец |
 | --- | --- |
-| `store_id` | Project/store context |
-| `product_id`, `variant_id`, criterion assignment `target_id` | Catalog |
-| author, reporter, voter, subscriber and request `customer_id` | Customers |
+| `store_id` | Контекст Project/Store |
+| `product_id`, `variant_id`, `target_id` назначения критерия | Catalog |
+| Идентификаторы покупателей для авторов, жалоб, голосов, подписок и запросов | Customers |
 | `order_id`, `order_line_id` | Orders |
 | `file_id` | Media |
-| principal identifiers | IAM |
+| Идентификаторы principal | IAM |
 
-Local Reviews relationships always use database FKs. Cross-service existence and
-tenant consistency must be validated through service context, federation or
-event-fed reference validation; the Reviews service must not join another
-service's database schema in application code.
+Локальные связи Reviews всегда используют внешние ключи базы данных.
+Существование и tenant consistency межсервисных ссылок должны проверяться через
+контекст сервиса, federation или проверку ссылок по событиям. Reviews не должен
+выполнять join к схеме базы данных другого сервиса из прикладного кода.
 
-## Projection ownership
+## Владение проекциями
 
 `content_metrics`, `product_review_summary`,
-`product_rating_criterion_summary` and `product_question_summary` are read
-models. Application transactions or durable projection handlers must update them
-together with source mutations. Rebuild handlers must be idempotent so these
-tables can be regenerated from the canonical content, engagement, media and
-rating tables.
+`product_rating_criterion_summary` и `product_question_summary` являются
+моделями чтения. Транзакции приложения или надежные обработчики проекций должны
+обновлять их вместе с исходными изменениями. Обработчики пересборки должны быть
+идемпотентными, чтобы таблицы можно было восстановить из канонических таблиц
+контента, вовлеченности, медиа и оценок.
 
-## Migration layout
+## Структура миграций
 
 ```text
 migrations/domains/
-├── 0000_foundation/    schema, enums and PostgreSQL extensions
-├── 0100_configuration/ store configuration and rating criteria
-├── 0200_content/       shared content, translations and publications
-├── 0300_reviews/       reviews, ratings, media, replies and requests
-├── 0400_questions/     product questions, answers and subscriptions
-├── 0500_engagement/    votes, reports and counters
-├── 0600_moderation/    cases, events, revisions and automated signals
-├── 0700_integrations/  external provider references
-└── 9000_read_models/   product review and Q&A projections
+├── 0000_foundation/    схема, enum и расширения PostgreSQL
+├── 0100_configuration/ конфигурация магазина и критерии оценки
+├── 0200_content/       общий контент, переводы и публикации
+├── 0300_reviews/       отзывы, оценки, медиа, ответы и запросы отзывов
+├── 0400_questions/     вопросы о товарах, ответы и подписки
+├── 0500_engagement/    голоса, жалобы и счетчики
+├── 0600_moderation/    case, события, revisions и автоматические signals
+├── 0700_integrations/  ссылки на внешних провайдеров
+└── 9000_read_models/   проекции отзывов и вопросов по товарам
 ```
 
-Migration basenames are globally unique because the runner loads domain files in
-glob mode and tracks them in `reviews.pgmigrations`.
+Имена файлов миграций глобально уникальны, поскольку runner загружает доменные
+файлы в glob mode и отслеживает их в `reviews.pgmigrations`.
 
-GraphQL operations and Drizzle models remain separate follow-up work.
+GraphQL-операции и Drizzle-модели остаются отдельной последующей задачей.
