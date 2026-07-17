@@ -13,6 +13,11 @@ export * from "./currency.js";
 // Store (imports locale and currency)
 export * from "./store.js";
 
+// Commerce contexts
+export * from "./market.js";
+export * from "./salesChannel.js";
+export * from "./marketSalesChannel.js";
+
 // API Key
 export * from "./apiKey.js";
 
