@@ -8051,18 +8051,9 @@
                   "reusable": true,
                   "width": 800,
                   "fill": "#FFFFFF",
-                  "cornerRadius": [
-                    0,
-                    0,
-                    8,
-                    8
-                  ],
+                  "cornerRadius": 8,
                   "stroke": "#F0F0F0",
-                  "strokeWidth": {
-                    "right": 1,
-                    "bottom": 1,
-                    "left": 1
-                  },
+                  "strokeWidth": 1,
                   "layout": "vertical",
                   "gap": 10,
                   "padding": 12,
@@ -9576,8 +9567,8 @@
             {
               "type": "frame",
               "id": "I8hu9",
-              "name": "Discount block / Eligibility & distribution / Default",
-              "context": "Standalone combined block for buyer eligibility, all available channel states, and all discount-class combination states.",
+              "name": "Discount block / Distribution / Default",
+              "context": "Standalone distribution block for sales channels and discount-class combination states.",
               "reusable": true,
               "width": 800,
               "fill": "#FFFFFF",
@@ -9609,7 +9600,7 @@
                           "id": "uoOjF",
                           "name": "Discount distribution section title",
                           "fill": "#262626",
-                          "content": "Eligibility & distribution",
+                          "content": "Distribution",
                           "fontFamily": "$--font-secondary",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -9661,123 +9652,6 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "l3brW",
-                      "name": "Combined customer eligibility tile",
-                      "width": "fill_container",
-                      "height": 78,
-                      "fill": "#FAFAFA",
-                      "cornerRadius": 8,
-                      "stroke": "#E8E8E8",
-                      "strokeWidth": 1,
-                      "gap": 10,
-                      "padding": 10,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "Ob27I",
-                          "name": "Combined customer eligibility icon background",
-                          "width": 36,
-                          "height": 36,
-                          "fill": "#E6F4FF",
-                          "cornerRadius": 8,
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon",
-                              "id": "z3YOz",
-                              "name": "Combined customer eligibility icon",
-                              "width": 17,
-                              "height": 17,
-                              "icon": "users",
-                              "library": "lucide",
-                              "fill": "#1677FF"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "bGxCO",
-                          "name": "Combined customer eligibility copy",
-                          "width": "fill_container",
-                          "layout": "vertical",
-                          "gap": 2,
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "Ls3CE",
-                              "name": "Combined customer eligibility label",
-                              "fill": "#8C8C8C",
-                              "content": "CUSTOMER ELIGIBILITY",
-                              "fontFamily": "Safiro",
-                              "fontSize": 9,
-                              "fontWeight": "500",
-                              "letterSpacing": 0.4
-                            },
-                            {
-                              "type": "text",
-                              "id": "ga2sC",
-                              "name": "Combined customer eligibility value",
-                              "fill": "#262626",
-                              "content": "All customers",
-                              "fontFamily": "Safiro",
-                              "fontSize": 13,
-                              "fontWeight": "650"
-                            },
-                            {
-                              "type": "text",
-                              "id": "S7YGd",
-                              "name": "Combined customer eligibility caption",
-                              "fill": "#8C8C8C",
-                              "content": "No customer or segment restrictions",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "doSj1",
-                          "name": "Combined customer eligibility status",
-                          "fill": "#F6FFED",
-                          "cornerRadius": 999,
-                          "stroke": "#B7EB8F",
-                          "strokeWidth": 1,
-                          "gap": 4,
-                          "padding": [
-                            4,
-                            8
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon",
-                              "id": "s2Vqly",
-                              "name": "Combined customer eligibility status icon",
-                              "width": 11,
-                              "height": 11,
-                              "icon": "circle-check",
-                              "library": "lucide",
-                              "fill": "#389E0D"
-                            },
-                            {
-                              "type": "text",
-                              "id": "qbqu8",
-                              "name": "Combined customer eligibility status label",
-                              "fill": "#389E0D",
-                              "content": "Eligible",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
                       "id": "hz5R2",
                       "name": "Combined channels and combinations row",
                       "width": "fill_container",
@@ -9790,7 +9664,7 @@
                           "name": "Combined channels tile",
                           "width": 280,
                           "height": "fill_container",
-                          "fill": "#FAFAFA",
+                          "fill": "#FFFFFF",
                           "cornerRadius": 8,
                           "stroke": "#E8E8E8",
                           "strokeWidth": 1,
@@ -10061,7 +9935,7 @@
                           "name": "Combined combinations tile",
                           "width": "fill_container",
                           "height": "fill_container",
-                          "fill": "#FAFAFA",
+                          "fill": "#FFFFFF",
                           "cornerRadius": 8,
                           "stroke": "#E8E8E8",
                           "strokeWidth": 1,
@@ -13284,412 +13158,99 @@
                       "y": 599
                     },
                     {
-                      "id": "p0uMD7",
+                      "id": "OT6SM",
                       "type": "ref",
-                      "ref": "I8hu9",
-                      "name": "Amount off products eligibility and distribution",
+                      "ref": "H99ci",
+                      "name": "Amount off products customer eligibility",
                       "width": 800,
-                      "x": 0,
-                      "y": 747,
                       "children": [
                         {
-                          "id": "t4mGZg",
+                          "id": "cxqXi",
                           "type": "ref",
-                          "ref": "t4mGZg",
+                          "ref": "cxqXi",
                           "children": [
                             {
-                              "id": "NCZKJ",
+                              "id": "Chyth",
                               "type": "ref",
-                              "ref": "NCZKJ",
+                              "ref": "Chyth",
                               "children": [
                                 {
-                                  "id": "uoOjF",
+                                  "id": "D7BWgW",
                                   "type": "ref",
-                                  "ref": "uoOjF"
+                                  "ref": "D7BWgW"
                                 },
                                 {
-                                  "id": "T8rZFZ",
+                                  "id": "BFVG5",
                                   "type": "ref",
-                                  "ref": "T8rZFZ",
+                                  "ref": "BFVG5",
                                   "children": [
                                     {
-                                      "id": "RABhM",
+                                      "id": "HKrSg",
                                       "type": "ref",
-                                      "ref": "RABhM"
+                                      "ref": "HKrSg"
                                     }
                                   ]
                                 }
                               ]
                             },
                             {
-                              "id": "IoeSH",
+                              "id": "h7c3M",
                               "type": "ref",
-                              "ref": "IoeSH"
+                              "ref": "h7c3M"
                             }
                           ]
                         },
                         {
-                          "id": "ho2Zh",
+                          "id": "hWiix",
                           "type": "ref",
-                          "ref": "ho2Zh",
+                          "ref": "hWiix",
                           "children": [
                             {
-                              "id": "l3brW",
+                              "id": "mTlmY",
                               "type": "ref",
-                              "ref": "l3brW",
+                              "ref": "mTlmY",
                               "children": [
                                 {
-                                  "id": "Ob27I",
+                                  "id": "Wv9BV",
                                   "type": "ref",
-                                  "ref": "Ob27I",
-                                  "children": [
-                                    {
-                                      "id": "z3YOz",
-                                      "type": "ref",
-                                      "ref": "z3YOz"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "bGxCO",
-                                  "type": "ref",
-                                  "ref": "bGxCO",
-                                  "children": [
-                                    {
-                                      "id": "Ls3CE",
-                                      "type": "ref",
-                                      "ref": "Ls3CE"
-                                    },
-                                    {
-                                      "id": "ga2sC",
-                                      "type": "ref",
-                                      "ref": "ga2sC"
-                                    },
-                                    {
-                                      "id": "S7YGd",
-                                      "type": "ref",
-                                      "ref": "S7YGd"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "doSj1",
-                                  "type": "ref",
-                                  "ref": "doSj1",
-                                  "children": [
-                                    {
-                                      "id": "s2Vqly",
-                                      "type": "ref",
-                                      "ref": "s2Vqly"
-                                    },
-                                    {
-                                      "id": "qbqu8",
-                                      "type": "ref",
-                                      "ref": "qbqu8"
-                                    }
-                                  ]
+                                  "ref": "Wv9BV"
                                 }
                               ]
                             },
                             {
-                              "id": "hz5R2",
+                              "id": "g1SZVo",
                               "type": "ref",
-                              "ref": "hz5R2",
+                              "ref": "g1SZVo",
                               "children": [
                                 {
-                                  "id": "tdzli",
+                                  "id": "yOd4C",
                                   "type": "ref",
-                                  "ref": "tdzli",
-                                  "width": 280,
-                                  "children": [
-                                    {
-                                      "id": "e02VRG",
-                                      "type": "ref",
-                                      "ref": "e02VRG",
-                                      "children": [
-                                        {
-                                          "id": "LPvIv",
-                                          "type": "ref",
-                                          "ref": "LPvIv",
-                                          "children": [
-                                            {
-                                              "id": "J8X8cN",
-                                              "type": "ref",
-                                              "ref": "J8X8cN"
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "MAJgu",
-                                          "type": "ref",
-                                          "ref": "MAJgu",
-                                          "children": [
-                                            {
-                                              "id": "uoS5H",
-                                              "type": "ref",
-                                              "ref": "uoS5H"
-                                            },
-                                            {
-                                              "id": "ivSB8",
-                                              "type": "ref",
-                                              "ref": "ivSB8"
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "id": "Gs3Fv",
-                                      "type": "ref",
-                                      "ref": "Gs3Fv",
-                                      "children": [
-                                        {
-                                          "id": "VzjqX",
-                                          "type": "ref",
-                                          "ref": "VzjqX",
-                                          "height": 29,
-                                          "children": [
-                                            {
-                                              "id": "l9OH6G",
-                                              "type": "ref",
-                                              "ref": "l9OH6G"
-                                            },
-                                            {
-                                              "id": "Dn1yi",
-                                              "type": "ref",
-                                              "ref": "Dn1yi",
-                                              "children": [
-                                                {
-                                                  "id": "TIt83",
-                                                  "type": "ref",
-                                                  "ref": "TIt83"
-                                                },
-                                                {
-                                                  "id": "jansP",
-                                                  "type": "ref",
-                                                  "ref": "jansP"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "XpLgu",
-                                          "type": "ref",
-                                          "ref": "XpLgu",
-                                          "height": 29,
-                                          "children": [
-                                            {
-                                              "id": "Z1vwsU",
-                                              "type": "ref",
-                                              "ref": "Z1vwsU"
-                                            },
-                                            {
-                                              "id": "w7cjs",
-                                              "type": "ref",
-                                              "ref": "w7cjs",
-                                              "children": [
-                                                {
-                                                  "id": "qPoG7",
-                                                  "type": "ref",
-                                                  "ref": "qPoG7"
-                                                },
-                                                {
-                                                  "id": "N7gsp",
-                                                  "type": "ref",
-                                                  "ref": "N7gsp"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "q2ZHZ",
-                                          "type": "ref",
-                                          "ref": "q2ZHZ",
-                                          "height": 28,
-                                          "children": [
-                                            {
-                                              "id": "tAs4D",
-                                              "type": "ref",
-                                              "ref": "tAs4D"
-                                            },
-                                            {
-                                              "id": "hh4Wg",
-                                              "type": "ref",
-                                              "ref": "hh4Wg",
-                                              "children": [
-                                                {
-                                                  "id": "LNdTk",
-                                                  "type": "ref",
-                                                  "ref": "LNdTk"
-                                                },
-                                                {
-                                                  "id": "DrOmC",
-                                                  "type": "ref",
-                                                  "ref": "DrOmC"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  ]
+                                  "ref": "yOd4C",
+                                  "content": "All customers"
                                 },
                                 {
-                                  "id": "l3vG05",
+                                  "id": "x4JVtT",
                                   "type": "ref",
-                                  "ref": "l3vG05",
-                                  "width": "fill_container",
-                                  "children": [
-                                    {
-                                      "id": "H6qGY",
-                                      "type": "ref",
-                                      "ref": "H6qGY",
-                                      "children": [
-                                        {
-                                          "id": "rdyUQ",
-                                          "type": "ref",
-                                          "ref": "rdyUQ",
-                                          "children": [
-                                            {
-                                              "id": "eMyaN",
-                                              "type": "ref",
-                                              "ref": "eMyaN"
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "QtV97",
-                                          "type": "ref",
-                                          "ref": "QtV97",
-                                          "children": [
-                                            {
-                                              "id": "AfcHm",
-                                              "type": "ref",
-                                              "ref": "AfcHm"
-                                            },
-                                            {
-                                              "id": "lvx0f",
-                                              "type": "ref",
-                                              "ref": "lvx0f"
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "id": "XXXaJ",
-                                      "type": "ref",
-                                      "ref": "XXXaJ",
-                                      "height": "fill_container",
-                                      "children": [
-                                        {
-                                          "id": "Aklbn",
-                                          "type": "ref",
-                                          "ref": "Aklbn",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "B99jyT",
-                                              "type": "ref",
-                                              "ref": "B99jyT",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "f3QhL",
-                                              "type": "ref",
-                                              "ref": "f3QhL",
-                                              "children": [
-                                                {
-                                                  "id": "w6Q70",
-                                                  "type": "ref",
-                                                  "ref": "w6Q70",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "q3N75T",
-                                                  "type": "ref",
-                                                  "ref": "q3N75T"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "zNAeY",
-                                          "type": "ref",
-                                          "ref": "zNAeY",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "K1EfD",
-                                              "type": "ref",
-                                              "ref": "K1EfD",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "ajK1X",
-                                              "type": "ref",
-                                              "ref": "ajK1X",
-                                              "children": [
-                                                {
-                                                  "id": "C739DT",
-                                                  "type": "ref",
-                                                  "ref": "C739DT",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "lQc5T",
-                                                  "type": "ref",
-                                                  "ref": "lQc5T"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "L1ZKc",
-                                          "type": "ref",
-                                          "ref": "L1ZKc",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "p157e",
-                                              "type": "ref",
-                                              "ref": "p157e",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "MYP1d",
-                                              "type": "ref",
-                                              "ref": "MYP1d",
-                                              "children": [
-                                                {
-                                                  "id": "n6u2G",
-                                                  "type": "ref",
-                                                  "ref": "n6u2G",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "yGHK0",
-                                                  "type": "ref",
-                                                  "ref": "yGHK0"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  ]
+                                  "ref": "x4JVtT",
+                                  "content": "No customer or segment restrictions"
+                                }
+                              ]
+                            },
+                            {
+                              "id": "mt3DX",
+                              "type": "ref",
+                              "ref": "mt3DX",
+                              "children": [
+                                {
+                                  "id": "zezeL",
+                                  "type": "ref",
+                                  "ref": "zezeL"
+                                },
+                                {
+                                  "id": "VBwAa",
+                                  "type": "ref",
+                                  "ref": "VBwAa",
+                                  "content": "Eligible"
                                 }
                               ]
                             }
@@ -13698,13 +13259,20 @@
                       ]
                     },
                     {
+                      "id": "dt2bO",
+                      "type": "ref",
+                      "ref": "I8hu9",
+                      "name": "Amount off products distribution",
+                      "width": 800
+                    },
+                    {
                       "id": "K0acmz",
                       "type": "ref",
                       "ref": "h90YJS",
                       "name": "Amount off products availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1062,
+                      "y": 1111,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 18, 2026 at 09:00"
@@ -14012,7 +13580,7 @@
                       "name": "Amount off products discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1317
+                      "y": 1366
                     },
                     {
                       "id": "E07UZ",
@@ -14021,7 +13589,7 @@
                       "name": "Amount off products external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1512
+                      "y": 1561
                     }
                   ]
                 }
@@ -14471,434 +14039,107 @@
                       }
                     },
                     {
-                      "id": "pbCg1",
+                      "id": "pTcBC",
                       "type": "ref",
-                      "ref": "I8hu9",
-                      "name": "Buy X Get Y eligibility and distribution",
+                      "ref": "H99ci",
+                      "name": "Buy X Get Y customer eligibility",
                       "width": 800,
-                      "x": 0,
-                      "y": 807,
                       "children": [
                         {
-                          "id": "t4mGZg",
+                          "id": "cxqXi",
                           "type": "ref",
-                          "ref": "t4mGZg",
+                          "ref": "cxqXi",
                           "children": [
                             {
-                              "id": "NCZKJ",
+                              "id": "Chyth",
                               "type": "ref",
-                              "ref": "NCZKJ",
+                              "ref": "Chyth",
                               "children": [
                                 {
-                                  "id": "uoOjF",
+                                  "id": "D7BWgW",
                                   "type": "ref",
-                                  "ref": "uoOjF"
+                                  "ref": "D7BWgW"
                                 },
                                 {
-                                  "id": "T8rZFZ",
+                                  "id": "BFVG5",
                                   "type": "ref",
-                                  "ref": "T8rZFZ",
+                                  "ref": "BFVG5",
                                   "children": [
                                     {
-                                      "id": "RABhM",
+                                      "id": "HKrSg",
                                       "type": "ref",
-                                      "ref": "RABhM"
+                                      "ref": "HKrSg"
                                     }
                                   ]
                                 }
                               ]
                             },
                             {
-                              "id": "IoeSH",
+                              "id": "h7c3M",
                               "type": "ref",
-                              "ref": "IoeSH"
+                              "ref": "h7c3M"
                             }
                           ]
                         },
                         {
-                          "id": "ho2Zh",
+                          "id": "hWiix",
                           "type": "ref",
-                          "ref": "ho2Zh",
+                          "ref": "hWiix",
                           "children": [
                             {
-                              "id": "l3brW",
+                              "id": "mTlmY",
                               "type": "ref",
-                              "ref": "l3brW",
+                              "ref": "mTlmY",
+                              "fill": "#F0F5FF",
                               "children": [
                                 {
-                                  "id": "Ob27I",
+                                  "id": "Wv9BV",
                                   "type": "ref",
-                                  "ref": "Ob27I",
-                                  "children": [
-                                    {
-                                      "id": "z3YOz",
-                                      "type": "ref",
-                                      "ref": "z3YOz"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "bGxCO",
-                                  "type": "ref",
-                                  "ref": "bGxCO",
-                                  "children": [
-                                    {
-                                      "id": "Ls3CE",
-                                      "type": "ref",
-                                      "ref": "Ls3CE"
-                                    },
-                                    {
-                                      "id": "ga2sC",
-                                      "type": "ref",
-                                      "ref": "ga2sC",
-                                      "content": "Selected segments · 2"
-                                    },
-                                    {
-                                      "id": "S7YGd",
-                                      "type": "ref",
-                                      "ref": "S7YGd",
-                                      "content": "VIP customers · High lifetime value"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "doSj1",
-                                  "type": "ref",
-                                  "ref": "doSj1",
-                                  "fill": "#F0F5FF",
-                                  "stroke": "#ADC6FF",
-                                  "children": [
-                                    {
-                                      "id": "s2Vqly",
-                                      "type": "ref",
-                                      "ref": "s2Vqly",
-                                      "icon": "users-round",
-                                      "fill": "#1677FF"
-                                    },
-                                    {
-                                      "id": "qbqu8",
-                                      "type": "ref",
-                                      "ref": "qbqu8",
-                                      "content": "2 segments",
-                                      "fill": "#1677FF"
-                                    }
-                                  ]
+                                  "ref": "Wv9BV",
+                                  "icon": "users-round",
+                                  "fill": "#1677FF"
                                 }
                               ]
                             },
                             {
-                              "id": "hz5R2",
+                              "id": "g1SZVo",
                               "type": "ref",
-                              "ref": "hz5R2",
+                              "ref": "g1SZVo",
                               "children": [
                                 {
-                                  "id": "tdzli",
+                                  "id": "yOd4C",
                                   "type": "ref",
-                                  "ref": "tdzli",
-                                  "width": 280,
-                                  "children": [
-                                    {
-                                      "id": "e02VRG",
-                                      "type": "ref",
-                                      "ref": "e02VRG",
-                                      "children": [
-                                        {
-                                          "id": "LPvIv",
-                                          "type": "ref",
-                                          "ref": "LPvIv",
-                                          "children": [
-                                            {
-                                              "id": "J8X8cN",
-                                              "type": "ref",
-                                              "ref": "J8X8cN"
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "MAJgu",
-                                          "type": "ref",
-                                          "ref": "MAJgu",
-                                          "children": [
-                                            {
-                                              "id": "uoS5H",
-                                              "type": "ref",
-                                              "ref": "uoS5H"
-                                            },
-                                            {
-                                              "id": "ivSB8",
-                                              "type": "ref",
-                                              "ref": "ivSB8",
-                                              "content": "2 of 3 active"
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "id": "Gs3Fv",
-                                      "type": "ref",
-                                      "ref": "Gs3Fv",
-                                      "children": [
-                                        {
-                                          "id": "VzjqX",
-                                          "type": "ref",
-                                          "ref": "VzjqX",
-                                          "height": 29,
-                                          "children": [
-                                            {
-                                              "id": "l9OH6G",
-                                              "type": "ref",
-                                              "ref": "l9OH6G"
-                                            },
-                                            {
-                                              "id": "Dn1yi",
-                                              "type": "ref",
-                                              "ref": "Dn1yi",
-                                              "children": [
-                                                {
-                                                  "id": "TIt83",
-                                                  "type": "ref",
-                                                  "ref": "TIt83"
-                                                },
-                                                {
-                                                  "id": "jansP",
-                                                  "type": "ref",
-                                                  "ref": "jansP"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "XpLgu",
-                                          "type": "ref",
-                                          "ref": "XpLgu",
-                                          "fill": "#FFFFFF",
-                                          "stroke": "#F0F0F0",
-                                          "height": 29,
-                                          "children": [
-                                            {
-                                              "id": "Z1vwsU",
-                                              "type": "ref",
-                                              "ref": "Z1vwsU",
-                                              "fill": "#1677FF"
-                                            },
-                                            {
-                                              "id": "w7cjs",
-                                              "type": "ref",
-                                              "ref": "w7cjs",
-                                              "children": [
-                                                {
-                                                  "id": "qPoG7",
-                                                  "type": "ref",
-                                                  "ref": "qPoG7",
-                                                  "icon": "circle-check",
-                                                  "fill": "#1677FF"
-                                                },
-                                                {
-                                                  "id": "N7gsp",
-                                                  "type": "ref",
-                                                  "ref": "N7gsp",
-                                                  "fill": "#262626"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "q2ZHZ",
-                                          "type": "ref",
-                                          "ref": "q2ZHZ",
-                                          "height": 28,
-                                          "children": [
-                                            {
-                                              "id": "tAs4D",
-                                              "type": "ref",
-                                              "ref": "tAs4D"
-                                            },
-                                            {
-                                              "id": "hh4Wg",
-                                              "type": "ref",
-                                              "ref": "hh4Wg",
-                                              "children": [
-                                                {
-                                                  "id": "LNdTk",
-                                                  "type": "ref",
-                                                  "ref": "LNdTk"
-                                                },
-                                                {
-                                                  "id": "DrOmC",
-                                                  "type": "ref",
-                                                  "ref": "DrOmC"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  ]
+                                  "ref": "yOd4C",
+                                  "content": "Selected segments · 2"
                                 },
                                 {
-                                  "id": "l3vG05",
+                                  "id": "x4JVtT",
                                   "type": "ref",
-                                  "ref": "l3vG05",
-                                  "width": "fill_container",
-                                  "children": [
-                                    {
-                                      "id": "H6qGY",
-                                      "type": "ref",
-                                      "ref": "H6qGY",
-                                      "children": [
-                                        {
-                                          "id": "rdyUQ",
-                                          "type": "ref",
-                                          "ref": "rdyUQ",
-                                          "children": [
-                                            {
-                                              "id": "eMyaN",
-                                              "type": "ref",
-                                              "ref": "eMyaN"
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "QtV97",
-                                          "type": "ref",
-                                          "ref": "QtV97",
-                                          "children": [
-                                            {
-                                              "id": "AfcHm",
-                                              "type": "ref",
-                                              "ref": "AfcHm"
-                                            },
-                                            {
-                                              "id": "lvx0f",
-                                              "type": "ref",
-                                              "ref": "lvx0f",
-                                              "content": "1 of 3 enabled"
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "id": "XXXaJ",
-                                      "type": "ref",
-                                      "ref": "XXXaJ",
-                                      "height": "fill_container",
-                                      "children": [
-                                        {
-                                          "id": "Aklbn",
-                                          "type": "ref",
-                                          "ref": "Aklbn",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "B99jyT",
-                                              "type": "ref",
-                                              "ref": "B99jyT",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "f3QhL",
-                                              "type": "ref",
-                                              "ref": "f3QhL",
-                                              "children": [
-                                                {
-                                                  "id": "w6Q70",
-                                                  "type": "ref",
-                                                  "ref": "w6Q70",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "q3N75T",
-                                                  "type": "ref",
-                                                  "ref": "q3N75T"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "zNAeY",
-                                          "type": "ref",
-                                          "ref": "zNAeY",
-                                          "fill": "#FFFFFF",
-                                          "stroke": "#E8E8E8",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "K1EfD",
-                                              "type": "ref",
-                                              "ref": "K1EfD",
-                                              "fill": "#BFBFBF",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "ajK1X",
-                                              "type": "ref",
-                                              "ref": "ajK1X",
-                                              "children": [
-                                                {
-                                                  "id": "C739DT",
-                                                  "type": "ref",
-                                                  "ref": "C739DT",
-                                                  "icon": "circle",
-                                                  "fill": "#BFBFBF",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "lQc5T",
-                                                  "type": "ref",
-                                                  "ref": "lQc5T",
-                                                  "fill": "#8C8C8C"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "L1ZKc",
-                                          "type": "ref",
-                                          "ref": "L1ZKc",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "p157e",
-                                              "type": "ref",
-                                              "ref": "p157e",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "MYP1d",
-                                              "type": "ref",
-                                              "ref": "MYP1d",
-                                              "children": [
-                                                {
-                                                  "id": "n6u2G",
-                                                  "type": "ref",
-                                                  "ref": "n6u2G",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "yGHK0",
-                                                  "type": "ref",
-                                                  "ref": "yGHK0"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  ]
+                                  "ref": "x4JVtT",
+                                  "content": "VIP customers · High lifetime value"
+                                }
+                              ]
+                            },
+                            {
+                              "id": "mt3DX",
+                              "type": "ref",
+                              "ref": "mt3DX",
+                              "fill": "#F0F5FF",
+                              "stroke": "#ADC6FF",
+                              "children": [
+                                {
+                                  "id": "zezeL",
+                                  "type": "ref",
+                                  "ref": "zezeL",
+                                  "icon": "users-round",
+                                  "fill": "#1677FF"
+                                },
+                                {
+                                  "id": "VBwAa",
+                                  "type": "ref",
+                                  "ref": "VBwAa",
+                                  "content": "2 segments",
+                                  "fill": "#1677FF"
                                 }
                               ]
                             }
@@ -14907,13 +14148,52 @@
                       ]
                     },
                     {
+                      "id": "N5emie",
+                      "type": "ref",
+                      "ref": "I8hu9",
+                      "name": "Buy X Get Y distribution",
+                      "width": 800,
+                      "descendants": {
+                        "ivSB8": {
+                          "content": "2 of 3 active"
+                        },
+                        "Z1vwsU": {
+                          "fill": "#1677FF"
+                        },
+                        "N7gsp": {
+                          "fill": "#262626"
+                        },
+                        "qPoG7": {
+                          "fill": "#1677FF",
+                          "icon": "circle-check"
+                        },
+                        "lvx0f": {
+                          "content": "1 of 3 enabled"
+                        },
+                        "zNAeY": {
+                          "fill": "#FFFFFF",
+                          "stroke": "#E8E8E8"
+                        },
+                        "K1EfD": {
+                          "fill": "#BFBFBF"
+                        },
+                        "C739DT": {
+                          "fill": "#BFBFBF",
+                          "icon": "circle"
+                        },
+                        "lQc5T": {
+                          "fill": "#8C8C8C"
+                        }
+                      }
+                    },
+                    {
                       "id": "JP1iN",
                       "type": "ref",
                       "ref": "h90YJS",
                       "name": "Buy X Get Y availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1122,
+                      "y": 1171,
                       "descendants": {
                         "exHTS": {
                           "content": "Aug 1, 2026 at 00:00"
@@ -15117,7 +14397,7 @@
                       "name": "Buy X Get Y discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1378,
+                      "y": 1427,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -15196,7 +14476,7 @@
                       "name": "Buy X Get Y external references empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1515,
+                      "y": 1564,
                       "descendants": {
                         "RrC1t": {
                           "content": "0"
@@ -15689,440 +14969,107 @@
                       }
                     },
                     {
-                      "id": "w3eytc",
+                      "id": "njXts",
                       "type": "ref",
-                      "ref": "I8hu9",
-                      "name": "Amount off order eligibility and distribution",
+                      "ref": "H99ci",
+                      "name": "Amount off order customer eligibility",
                       "width": 800,
-                      "x": 0,
-                      "y": 759,
                       "children": [
                         {
-                          "id": "t4mGZg",
+                          "id": "cxqXi",
                           "type": "ref",
-                          "ref": "t4mGZg",
+                          "ref": "cxqXi",
                           "children": [
                             {
-                              "id": "NCZKJ",
+                              "id": "Chyth",
                               "type": "ref",
-                              "ref": "NCZKJ",
+                              "ref": "Chyth",
                               "children": [
                                 {
-                                  "id": "uoOjF",
+                                  "id": "D7BWgW",
                                   "type": "ref",
-                                  "ref": "uoOjF"
+                                  "ref": "D7BWgW"
                                 },
                                 {
-                                  "id": "T8rZFZ",
+                                  "id": "BFVG5",
                                   "type": "ref",
-                                  "ref": "T8rZFZ",
+                                  "ref": "BFVG5",
                                   "children": [
                                     {
-                                      "id": "RABhM",
+                                      "id": "HKrSg",
                                       "type": "ref",
-                                      "ref": "RABhM"
+                                      "ref": "HKrSg"
                                     }
                                   ]
                                 }
                               ]
                             },
                             {
-                              "id": "IoeSH",
+                              "id": "h7c3M",
                               "type": "ref",
-                              "ref": "IoeSH"
+                              "ref": "h7c3M"
                             }
                           ]
                         },
                         {
-                          "id": "ho2Zh",
+                          "id": "hWiix",
                           "type": "ref",
-                          "ref": "ho2Zh",
+                          "ref": "hWiix",
                           "children": [
                             {
-                              "id": "l3brW",
+                              "id": "mTlmY",
                               "type": "ref",
-                              "ref": "l3brW",
+                              "ref": "mTlmY",
+                              "fill": "#F0F5FF",
                               "children": [
                                 {
-                                  "id": "Ob27I",
+                                  "id": "Wv9BV",
                                   "type": "ref",
-                                  "ref": "Ob27I",
-                                  "children": [
-                                    {
-                                      "id": "z3YOz",
-                                      "type": "ref",
-                                      "ref": "z3YOz"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "bGxCO",
-                                  "type": "ref",
-                                  "ref": "bGxCO",
-                                  "children": [
-                                    {
-                                      "id": "Ls3CE",
-                                      "type": "ref",
-                                      "ref": "Ls3CE"
-                                    },
-                                    {
-                                      "id": "ga2sC",
-                                      "type": "ref",
-                                      "ref": "ga2sC",
-                                      "content": "Selected customers · 2"
-                                    },
-                                    {
-                                      "id": "S7YGd",
-                                      "type": "ref",
-                                      "ref": "S7YGd",
-                                      "content": "Mia Rodriguez · Noah Williams"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "doSj1",
-                                  "type": "ref",
-                                  "ref": "doSj1",
-                                  "fill": "#F0F5FF",
-                                  "stroke": "#ADC6FF",
-                                  "children": [
-                                    {
-                                      "id": "s2Vqly",
-                                      "type": "ref",
-                                      "ref": "s2Vqly",
-                                      "icon": "contact-round",
-                                      "fill": "#1677FF"
-                                    },
-                                    {
-                                      "id": "qbqu8",
-                                      "type": "ref",
-                                      "ref": "qbqu8",
-                                      "content": "2 customers",
-                                      "fill": "#1677FF"
-                                    }
-                                  ]
+                                  "ref": "Wv9BV",
+                                  "icon": "contact-round",
+                                  "fill": "#1677FF"
                                 }
                               ]
                             },
                             {
-                              "id": "hz5R2",
+                              "id": "g1SZVo",
                               "type": "ref",
-                              "ref": "hz5R2",
+                              "ref": "g1SZVo",
                               "children": [
                                 {
-                                  "id": "tdzli",
+                                  "id": "yOd4C",
                                   "type": "ref",
-                                  "ref": "tdzli",
-                                  "width": 280,
-                                  "children": [
-                                    {
-                                      "id": "e02VRG",
-                                      "type": "ref",
-                                      "ref": "e02VRG",
-                                      "children": [
-                                        {
-                                          "id": "LPvIv",
-                                          "type": "ref",
-                                          "ref": "LPvIv",
-                                          "children": [
-                                            {
-                                              "id": "J8X8cN",
-                                              "type": "ref",
-                                              "ref": "J8X8cN"
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "MAJgu",
-                                          "type": "ref",
-                                          "ref": "MAJgu",
-                                          "children": [
-                                            {
-                                              "id": "uoS5H",
-                                              "type": "ref",
-                                              "ref": "uoS5H"
-                                            },
-                                            {
-                                              "id": "ivSB8",
-                                              "type": "ref",
-                                              "ref": "ivSB8",
-                                              "content": "2 of 3 active"
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "id": "Gs3Fv",
-                                      "type": "ref",
-                                      "ref": "Gs3Fv",
-                                      "children": [
-                                        {
-                                          "id": "VzjqX",
-                                          "type": "ref",
-                                          "ref": "VzjqX",
-                                          "height": 29,
-                                          "children": [
-                                            {
-                                              "id": "l9OH6G",
-                                              "type": "ref",
-                                              "ref": "l9OH6G"
-                                            },
-                                            {
-                                              "id": "Dn1yi",
-                                              "type": "ref",
-                                              "ref": "Dn1yi",
-                                              "children": [
-                                                {
-                                                  "id": "TIt83",
-                                                  "type": "ref",
-                                                  "ref": "TIt83"
-                                                },
-                                                {
-                                                  "id": "jansP",
-                                                  "type": "ref",
-                                                  "ref": "jansP"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "XpLgu",
-                                          "type": "ref",
-                                          "ref": "XpLgu",
-                                          "height": 29,
-                                          "children": [
-                                            {
-                                              "id": "Z1vwsU",
-                                              "type": "ref",
-                                              "ref": "Z1vwsU"
-                                            },
-                                            {
-                                              "id": "w7cjs",
-                                              "type": "ref",
-                                              "ref": "w7cjs",
-                                              "children": [
-                                                {
-                                                  "id": "qPoG7",
-                                                  "type": "ref",
-                                                  "ref": "qPoG7"
-                                                },
-                                                {
-                                                  "id": "N7gsp",
-                                                  "type": "ref",
-                                                  "ref": "N7gsp"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "q2ZHZ",
-                                          "type": "ref",
-                                          "ref": "q2ZHZ",
-                                          "fill": "#FFFFFF",
-                                          "stroke": "#FFFFFF",
-                                          "height": 28,
-                                          "children": [
-                                            {
-                                              "id": "tAs4D",
-                                              "type": "ref",
-                                              "ref": "tAs4D",
-                                              "fill": "#1677FF"
-                                            },
-                                            {
-                                              "id": "hh4Wg",
-                                              "type": "ref",
-                                              "ref": "hh4Wg",
-                                              "children": [
-                                                {
-                                                  "id": "LNdTk",
-                                                  "type": "ref",
-                                                  "ref": "LNdTk",
-                                                  "icon": "circle-check",
-                                                  "fill": "#1677FF"
-                                                },
-                                                {
-                                                  "id": "DrOmC",
-                                                  "type": "ref",
-                                                  "ref": "DrOmC",
-                                                  "fill": "#262626"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  ]
+                                  "ref": "yOd4C",
+                                  "content": "Selected customers · 2"
                                 },
                                 {
-                                  "id": "l3vG05",
+                                  "id": "x4JVtT",
                                   "type": "ref",
-                                  "ref": "l3vG05",
-                                  "width": "fill_container",
-                                  "children": [
-                                    {
-                                      "id": "H6qGY",
-                                      "type": "ref",
-                                      "ref": "H6qGY",
-                                      "children": [
-                                        {
-                                          "id": "rdyUQ",
-                                          "type": "ref",
-                                          "ref": "rdyUQ",
-                                          "children": [
-                                            {
-                                              "id": "eMyaN",
-                                              "type": "ref",
-                                              "ref": "eMyaN"
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "QtV97",
-                                          "type": "ref",
-                                          "ref": "QtV97",
-                                          "children": [
-                                            {
-                                              "id": "AfcHm",
-                                              "type": "ref",
-                                              "ref": "AfcHm"
-                                            },
-                                            {
-                                              "id": "lvx0f",
-                                              "type": "ref",
-                                              "ref": "lvx0f",
-                                              "content": "2 of 3 enabled"
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "id": "XXXaJ",
-                                      "type": "ref",
-                                      "ref": "XXXaJ",
-                                      "height": "fill_container",
-                                      "children": [
-                                        {
-                                          "id": "Aklbn",
-                                          "type": "ref",
-                                          "ref": "Aklbn",
-                                          "fill": "#FFFFFF",
-                                          "stroke": "#E8E8E8",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "B99jyT",
-                                              "type": "ref",
-                                              "ref": "B99jyT",
-                                              "fill": "#BFBFBF",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "f3QhL",
-                                              "type": "ref",
-                                              "ref": "f3QhL",
-                                              "children": [
-                                                {
-                                                  "id": "w6Q70",
-                                                  "type": "ref",
-                                                  "ref": "w6Q70",
-                                                  "icon": "circle",
-                                                  "fill": "#BFBFBF",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "q3N75T",
-                                                  "type": "ref",
-                                                  "ref": "q3N75T",
-                                                  "fill": "#8C8C8C"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "zNAeY",
-                                          "type": "ref",
-                                          "ref": "zNAeY",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "K1EfD",
-                                              "type": "ref",
-                                              "ref": "K1EfD",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "ajK1X",
-                                              "type": "ref",
-                                              "ref": "ajK1X",
-                                              "children": [
-                                                {
-                                                  "id": "C739DT",
-                                                  "type": "ref",
-                                                  "ref": "C739DT",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "lQc5T",
-                                                  "type": "ref",
-                                                  "ref": "lQc5T"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "L1ZKc",
-                                          "type": "ref",
-                                          "ref": "L1ZKc",
-                                          "fill": "#E6F4FF",
-                                          "stroke": "#91CAFF",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "p157e",
-                                              "type": "ref",
-                                              "ref": "p157e",
-                                              "fill": "#1677FF",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "MYP1d",
-                                              "type": "ref",
-                                              "ref": "MYP1d",
-                                              "children": [
-                                                {
-                                                  "id": "n6u2G",
-                                                  "type": "ref",
-                                                  "ref": "n6u2G",
-                                                  "icon": "circle-check",
-                                                  "fill": "#1677FF",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "yGHK0",
-                                                  "type": "ref",
-                                                  "ref": "yGHK0",
-                                                  "fill": "#262626"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  ]
+                                  "ref": "x4JVtT",
+                                  "content": "Mia Rodriguez · Noah Williams"
+                                }
+                              ]
+                            },
+                            {
+                              "id": "mt3DX",
+                              "type": "ref",
+                              "ref": "mt3DX",
+                              "fill": "#F0F5FF",
+                              "stroke": "#ADC6FF",
+                              "children": [
+                                {
+                                  "id": "zezeL",
+                                  "type": "ref",
+                                  "ref": "zezeL",
+                                  "icon": "contact-round",
+                                  "fill": "#1677FF"
+                                },
+                                {
+                                  "id": "VBwAa",
+                                  "type": "ref",
+                                  "ref": "VBwAa",
+                                  "content": "2 customers",
+                                  "fill": "#1677FF"
                                 }
                               ]
                             }
@@ -16131,13 +15078,66 @@
                       ]
                     },
                     {
+                      "id": "L15mO",
+                      "type": "ref",
+                      "ref": "I8hu9",
+                      "name": "Amount off order distribution",
+                      "width": 800,
+                      "descendants": {
+                        "ivSB8": {
+                          "content": "2 of 3 active"
+                        },
+                        "tAs4D": {
+                          "fill": "#1677FF"
+                        },
+                        "DrOmC": {
+                          "fill": "#262626"
+                        },
+                        "LNdTk": {
+                          "fill": "#1677FF",
+                          "icon": "circle-check"
+                        },
+                        "lvx0f": {
+                          "content": "2 of 3 enabled"
+                        },
+                        "Aklbn": {
+                          "fill": "#FFFFFF",
+                          "stroke": "#E8E8E8"
+                        },
+                        "B99jyT": {
+                          "fill": "#BFBFBF"
+                        },
+                        "w6Q70": {
+                          "fill": "#BFBFBF",
+                          "icon": "circle"
+                        },
+                        "q3N75T": {
+                          "fill": "#8C8C8C"
+                        },
+                        "L1ZKc": {
+                          "fill": "#E6F4FF",
+                          "stroke": "#91CAFF"
+                        },
+                        "p157e": {
+                          "fill": "#1677FF"
+                        },
+                        "n6u2G": {
+                          "fill": "#1677FF",
+                          "icon": "circle-check"
+                        },
+                        "yGHK0": {
+                          "fill": "#262626"
+                        }
+                      }
+                    },
+                    {
                       "id": "DzZ1Z",
                       "type": "ref",
                       "ref": "h90YJS",
                       "name": "Amount off order availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1074,
+                      "y": 1123,
                       "descendants": {
                         "exHTS": {
                           "content": "Jun 1, 2026 at 00:00"
@@ -16445,7 +15445,7 @@
                       "name": "Amount off order discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1329,
+                      "y": 1378,
                       "descendants": {
                         "EFRB1": {
                           "content": "ORDER25"
@@ -16480,7 +15480,7 @@
                       "name": "Amount off order external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1524,
+                      "y": 1573,
                       "descendants": {
                         "APFYm": {
                           "content": "Shopify Plus"
@@ -16946,425 +15946,109 @@
                       }
                     },
                     {
-                      "id": "aGIlJ",
+                      "id": "hRDGS",
                       "type": "ref",
-                      "ref": "I8hu9",
-                      "name": "Free shipping eligibility and distribution",
+                      "ref": "H99ci",
+                      "name": "Free shipping customer eligibility",
                       "width": 800,
-                      "x": 0,
-                      "y": 759,
                       "children": [
                         {
-                          "id": "t4mGZg",
+                          "id": "cxqXi",
                           "type": "ref",
-                          "ref": "t4mGZg",
+                          "ref": "cxqXi",
                           "children": [
                             {
-                              "id": "NCZKJ",
+                              "id": "Chyth",
                               "type": "ref",
-                              "ref": "NCZKJ",
+                              "ref": "Chyth",
                               "children": [
                                 {
-                                  "id": "uoOjF",
+                                  "id": "D7BWgW",
                                   "type": "ref",
-                                  "ref": "uoOjF"
+                                  "ref": "D7BWgW"
                                 },
                                 {
-                                  "id": "T8rZFZ",
+                                  "id": "BFVG5",
                                   "type": "ref",
-                                  "ref": "T8rZFZ",
+                                  "ref": "BFVG5",
                                   "children": [
                                     {
-                                      "id": "RABhM",
+                                      "id": "HKrSg",
                                       "type": "ref",
-                                      "ref": "RABhM"
+                                      "ref": "HKrSg"
                                     }
                                   ]
                                 }
                               ]
                             },
                             {
-                              "id": "IoeSH",
+                              "id": "h7c3M",
                               "type": "ref",
-                              "ref": "IoeSH"
+                              "ref": "h7c3M"
                             }
                           ]
                         },
                         {
-                          "id": "ho2Zh",
+                          "id": "hWiix",
                           "type": "ref",
-                          "ref": "ho2Zh",
+                          "ref": "hWiix",
+                          "fill": "#FFFBE6",
+                          "stroke": "#FFE58F",
                           "children": [
                             {
-                              "id": "l3brW",
+                              "id": "mTlmY",
                               "type": "ref",
-                              "ref": "l3brW",
-                              "fill": "#FFFBE6",
-                              "stroke": "#FFE58F",
+                              "ref": "mTlmY",
+                              "fill": "#FFF1B8",
                               "children": [
                                 {
-                                  "id": "Ob27I",
+                                  "id": "Wv9BV",
                                   "type": "ref",
-                                  "ref": "Ob27I",
-                                  "fill": "#FFF1B8",
-                                  "children": [
-                                    {
-                                      "id": "z3YOz",
-                                      "type": "ref",
-                                      "ref": "z3YOz",
-                                      "icon": "user-round-x",
-                                      "fill": "#D48806"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "bGxCO",
-                                  "type": "ref",
-                                  "ref": "bGxCO",
-                                  "children": [
-                                    {
-                                      "id": "Ls3CE",
-                                      "type": "ref",
-                                      "ref": "Ls3CE"
-                                    },
-                                    {
-                                      "id": "ga2sC",
-                                      "type": "ref",
-                                      "ref": "ga2sC",
-                                      "content": "Selected customers · 2"
-                                    },
-                                    {
-                                      "id": "S7YGd",
-                                      "type": "ref",
-                                      "ref": "S7YGd",
-                                      "content": "Mia Rodriguez · 1 unavailable"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "doSj1",
-                                  "type": "ref",
-                                  "ref": "doSj1",
-                                  "fill": "#FFFBE6",
-                                  "stroke": "#FFE58F",
-                                  "children": [
-                                    {
-                                      "id": "s2Vqly",
-                                      "type": "ref",
-                                      "ref": "s2Vqly",
-                                      "icon": "triangle-alert",
-                                      "fill": "#D48806"
-                                    },
-                                    {
-                                      "id": "qbqu8",
-                                      "type": "ref",
-                                      "ref": "qbqu8",
-                                      "content": "1 stale",
-                                      "fill": "#D48806"
-                                    }
-                                  ]
+                                  "ref": "Wv9BV",
+                                  "icon": "user-round-x",
+                                  "fill": "#D48806"
                                 }
                               ]
                             },
                             {
-                              "id": "hz5R2",
+                              "id": "g1SZVo",
                               "type": "ref",
-                              "ref": "hz5R2",
+                              "ref": "g1SZVo",
                               "children": [
                                 {
-                                  "id": "tdzli",
+                                  "id": "yOd4C",
                                   "type": "ref",
-                                  "ref": "tdzli",
-                                  "width": 280,
-                                  "children": [
-                                    {
-                                      "id": "e02VRG",
-                                      "type": "ref",
-                                      "ref": "e02VRG",
-                                      "children": [
-                                        {
-                                          "id": "LPvIv",
-                                          "type": "ref",
-                                          "ref": "LPvIv",
-                                          "children": [
-                                            {
-                                              "id": "J8X8cN",
-                                              "type": "ref",
-                                              "ref": "J8X8cN"
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "MAJgu",
-                                          "type": "ref",
-                                          "ref": "MAJgu",
-                                          "children": [
-                                            {
-                                              "id": "uoS5H",
-                                              "type": "ref",
-                                              "ref": "uoS5H"
-                                            },
-                                            {
-                                              "id": "ivSB8",
-                                              "type": "ref",
-                                              "ref": "ivSB8"
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "id": "Gs3Fv",
-                                      "type": "ref",
-                                      "ref": "Gs3Fv",
-                                      "children": [
-                                        {
-                                          "id": "VzjqX",
-                                          "type": "ref",
-                                          "ref": "VzjqX",
-                                          "height": 29,
-                                          "children": [
-                                            {
-                                              "id": "l9OH6G",
-                                              "type": "ref",
-                                              "ref": "l9OH6G"
-                                            },
-                                            {
-                                              "id": "Dn1yi",
-                                              "type": "ref",
-                                              "ref": "Dn1yi",
-                                              "children": [
-                                                {
-                                                  "id": "TIt83",
-                                                  "type": "ref",
-                                                  "ref": "TIt83"
-                                                },
-                                                {
-                                                  "id": "jansP",
-                                                  "type": "ref",
-                                                  "ref": "jansP"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "XpLgu",
-                                          "type": "ref",
-                                          "ref": "XpLgu",
-                                          "height": 29,
-                                          "children": [
-                                            {
-                                              "id": "Z1vwsU",
-                                              "type": "ref",
-                                              "ref": "Z1vwsU"
-                                            },
-                                            {
-                                              "id": "w7cjs",
-                                              "type": "ref",
-                                              "ref": "w7cjs",
-                                              "children": [
-                                                {
-                                                  "id": "qPoG7",
-                                                  "type": "ref",
-                                                  "ref": "qPoG7"
-                                                },
-                                                {
-                                                  "id": "N7gsp",
-                                                  "type": "ref",
-                                                  "ref": "N7gsp"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "q2ZHZ",
-                                          "type": "ref",
-                                          "ref": "q2ZHZ",
-                                          "height": 28,
-                                          "children": [
-                                            {
-                                              "id": "tAs4D",
-                                              "type": "ref",
-                                              "ref": "tAs4D"
-                                            },
-                                            {
-                                              "id": "hh4Wg",
-                                              "type": "ref",
-                                              "ref": "hh4Wg",
-                                              "children": [
-                                                {
-                                                  "id": "LNdTk",
-                                                  "type": "ref",
-                                                  "ref": "LNdTk"
-                                                },
-                                                {
-                                                  "id": "DrOmC",
-                                                  "type": "ref",
-                                                  "ref": "DrOmC"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  ]
+                                  "ref": "yOd4C",
+                                  "content": "Selected customers · 2"
                                 },
                                 {
-                                  "id": "l3vG05",
+                                  "id": "x4JVtT",
                                   "type": "ref",
-                                  "ref": "l3vG05",
-                                  "width": "fill_container",
-                                  "children": [
-                                    {
-                                      "id": "H6qGY",
-                                      "type": "ref",
-                                      "ref": "H6qGY",
-                                      "children": [
-                                        {
-                                          "id": "rdyUQ",
-                                          "type": "ref",
-                                          "ref": "rdyUQ",
-                                          "children": [
-                                            {
-                                              "id": "eMyaN",
-                                              "type": "ref",
-                                              "ref": "eMyaN"
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "QtV97",
-                                          "type": "ref",
-                                          "ref": "QtV97",
-                                          "children": [
-                                            {
-                                              "id": "AfcHm",
-                                              "type": "ref",
-                                              "ref": "AfcHm"
-                                            },
-                                            {
-                                              "id": "lvx0f",
-                                              "type": "ref",
-                                              "ref": "lvx0f"
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "id": "XXXaJ",
-                                      "type": "ref",
-                                      "ref": "XXXaJ",
-                                      "height": "fill_container",
-                                      "children": [
-                                        {
-                                          "id": "Aklbn",
-                                          "type": "ref",
-                                          "ref": "Aklbn",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "B99jyT",
-                                              "type": "ref",
-                                              "ref": "B99jyT",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "f3QhL",
-                                              "type": "ref",
-                                              "ref": "f3QhL",
-                                              "children": [
-                                                {
-                                                  "id": "w6Q70",
-                                                  "type": "ref",
-                                                  "ref": "w6Q70",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "q3N75T",
-                                                  "type": "ref",
-                                                  "ref": "q3N75T"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "zNAeY",
-                                          "type": "ref",
-                                          "ref": "zNAeY",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "K1EfD",
-                                              "type": "ref",
-                                              "ref": "K1EfD",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "ajK1X",
-                                              "type": "ref",
-                                              "ref": "ajK1X",
-                                              "children": [
-                                                {
-                                                  "id": "C739DT",
-                                                  "type": "ref",
-                                                  "ref": "C739DT",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "lQc5T",
-                                                  "type": "ref",
-                                                  "ref": "lQc5T"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        },
-                                        {
-                                          "id": "L1ZKc",
-                                          "type": "ref",
-                                          "ref": "L1ZKc",
-                                          "gap": 8,
-                                          "children": [
-                                            {
-                                              "id": "p157e",
-                                              "type": "ref",
-                                              "ref": "p157e",
-                                              "width": 22,
-                                              "height": 22
-                                            },
-                                            {
-                                              "id": "MYP1d",
-                                              "type": "ref",
-                                              "ref": "MYP1d",
-                                              "children": [
-                                                {
-                                                  "id": "n6u2G",
-                                                  "type": "ref",
-                                                  "ref": "n6u2G",
-                                                  "width": 12,
-                                                  "height": 12
-                                                },
-                                                {
-                                                  "id": "yGHK0",
-                                                  "type": "ref",
-                                                  "ref": "yGHK0"
-                                                }
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  ]
+                                  "ref": "x4JVtT",
+                                  "content": "Mia Rodriguez · 1 unavailable"
+                                }
+                              ]
+                            },
+                            {
+                              "id": "mt3DX",
+                              "type": "ref",
+                              "ref": "mt3DX",
+                              "fill": "#FFFBE6",
+                              "stroke": "#FFE58F",
+                              "children": [
+                                {
+                                  "id": "zezeL",
+                                  "type": "ref",
+                                  "ref": "zezeL",
+                                  "icon": "triangle-alert",
+                                  "fill": "#D48806"
+                                },
+                                {
+                                  "id": "VBwAa",
+                                  "type": "ref",
+                                  "ref": "VBwAa",
+                                  "content": "1 stale",
+                                  "fill": "#D48806"
                                 }
                               ]
                             }
@@ -17373,13 +16057,20 @@
                       ]
                     },
                     {
+                      "id": "FO7u0",
+                      "type": "ref",
+                      "ref": "I8hu9",
+                      "name": "Free shipping distribution",
+                      "width": 800
+                    },
+                    {
                       "id": "Z6Fw86",
                       "type": "ref",
                       "ref": "h90YJS",
                       "name": "Free shipping availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1074,
+                      "y": 1123,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 1, 2026 at 00:00"
@@ -17583,7 +16274,7 @@
                       "name": "Free shipping discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1330,
+                      "y": 1379,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -17662,7 +16353,7 @@
                       "name": "Free shipping external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1467,
+                      "y": 1516,
                       "descendants": {
                         "RrC1t": {
                           "content": "1"
