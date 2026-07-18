@@ -146,6 +146,10 @@ function createScopedCustomAdapter(
       const isScopedModel = (model: string): boolean =>
         SCOPED_MODELS.has(getDefaultModelName(model) as AuthModelName);
 
+      const isApplicationUserModel = (model: string): boolean =>
+        scope.kind === "application" &&
+        getDefaultModelName(model) === "user";
+
       const getScopeFields = (model: string) => ({
         authScopeField: getFieldName({ model, field: "authScope" }),
         applicationIdField: getFieldName({ model, field: "applicationId" }),
@@ -208,6 +212,77 @@ function createScopedCustomAdapter(
           );
         }
         return column;
+      };
+
+      /**
+       * A global user belongs to an application auth realm only after that
+       * realm has linked at least one account to the user. This makes Better
+       * Auth's duplicate-email lookup application-local while the user profile
+       * remains global.
+       */
+      const getApplicationUserCondition = (model: string) => {
+        if (!isApplicationUserModel(model) || scope.kind !== "application") {
+          return undefined;
+        }
+
+        const scopedUserIds = connection
+          .select({ userId: account.userId })
+          .from(account)
+          .where(
+            and(
+              eq(account.authScope, "application"),
+              eq(account.applicationId, scope.applicationId)
+            )
+          );
+
+        return inArray(user.id, scopedUserIds);
+      };
+
+      /**
+       * Application sign-up may encounter a global user created by another
+       * auth realm. Reuse that identity without mutating its global profile;
+       * Better Auth will create the application-scoped account afterwards.
+       */
+      const createOrReuseApplicationUser = async (
+        model: string,
+        schemaModel: Record<string, any>,
+        values: Record<string, any>
+      ) => {
+        const emailField = getFieldName({ model, field: "email" });
+        const emailColumn = getColumn(schemaModel, model, "email");
+        const emailValue = values[emailField];
+
+        if (typeof emailValue !== "string" || !emailValue.trim()) {
+          throw new BetterAuthError(
+            "An email is required to create an application user"
+          );
+        }
+
+        const normalizedEmail = emailValue.trim().toLowerCase();
+        const rows = await connection
+          .insert(schemaModel)
+          .values({
+            ...values,
+            [emailField]: normalizedEmail,
+          })
+          .onConflictDoNothing({ target: emailColumn })
+          .returning();
+
+        if (rows[0]) return rows[0];
+
+        const existingRows = await connection
+          .select()
+          .from(schemaModel)
+          .where(eq(emailColumn, normalizedEmail))
+          .limit(1);
+        const existing = existingRows[0];
+        if (!existing) {
+          throw new BetterAuthError(
+            "Failed to create or reuse the global application user"
+          );
+        }
+
+        return existing;
       };
 
       const convertCondition = (
@@ -290,7 +365,10 @@ function createScopedCustomAdapter(
       ) => {
         const schemaModel = getSchemaModel(model);
         const scopedWhere = scopeWhere(model, where) ?? [];
-        if (scopedWhere.length === 0) return [];
+        const applicationUserCondition = getApplicationUserCondition(model);
+        if (scopedWhere.length === 0) {
+          return applicationUserCondition ? [applicationUserCondition] : [];
+        }
 
         const andConditions = scopedWhere
           .filter((item) => item.connector !== "OR")
@@ -301,10 +379,16 @@ function createScopedCustomAdapter(
 
         const andClause = and(...andConditions);
         const orClause = or(...orConditions);
-        if (andClause && orClause) return [and(andClause, orClause)];
-        if (andClause) return [andClause];
-        if (orClause) return [orClause];
-        return [];
+        const whereClause =
+          andClause && orClause
+            ? and(andClause, orClause)
+            : andClause ?? orClause;
+
+        if (whereClause && applicationUserCondition) {
+          return [and(whereClause, applicationUserCondition)];
+        }
+        if (whereClause) return [whereClause];
+        return applicationUserCondition ? [applicationUserCondition] : [];
       };
 
       const createSelection = (
@@ -332,6 +416,9 @@ function createScopedCustomAdapter(
         async create({ model, data }) {
           const schemaModel = getSchemaModel(model);
           const values = scopeData(model, data);
+          if (isApplicationUserModel(model)) {
+            return createOrReuseApplicationUser(model, schemaModel, values);
+          }
           const rows = await connection
             .insert(schemaModel)
             .values(values)
