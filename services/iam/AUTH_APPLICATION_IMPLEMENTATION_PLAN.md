@@ -38,7 +38,7 @@ Shopana реализует только интеграционный слой:
 - проверку административных действий через Casbin;
 - реестр разрешённых scopes и audiences;
 - получение organization/store context;
-- application-specific требования к login/MFA, которых нет в OAuth Provider;
+- application-specific требования к login, которых нет в OAuth Provider;
 - безопасные custom claims через callbacks Better Auth;
 - проверку JWT и scopes в gateway/subgraphs;
 - GraphQL API и Admin UI поверх server API Better Auth;
@@ -436,7 +436,7 @@ clientPrivileges: async ({ action, user, session, headers }) => {
 
   return casbin.enforce({
     organizationId,
-    subject: user.id,
+    principal: { kind: "user", id: user.id },
     domain: "org",
     resource: "iam.oauth_applications",
     action: mapClientAction(action),
@@ -447,6 +447,34 @@ clientPrivileges: async ({ action, user, session, headers }) => {
 Точный callback не должен зависеть от GraphQL context. Он должен получать IAM dependencies через безопасную service factory/closure.
 
 Проверки GraphQL resolver и `clientPrivileges` должны работать как defense in depth.
+
+### 8.1 Представление principals в Casbin
+
+Текущая Casbin model `sub, dom, obj, act` не меняется. Не изменяются также Casbin policy schema и domain semantics.
+
+IAM должен расширить программный API `CasbinService`, чтобы он принимал типизированный principal, а не считал любой subject пользователем:
+
+```typescript
+type CasbinPrincipal =
+  | { kind: "user"; id: string }
+  | { kind: "oauth-client"; id: string };
+
+function formatCasbinSubject(principal: CasbinPrincipal): string {
+  return `${principal.kind}:${principal.id}`;
+}
+```
+
+Единый formatter должен применяться внутри Casbin boundary во всех операциях:
+
+- `enforce`;
+- назначение и удаление ролей;
+- добавление и удаление direct policies;
+- удаление всех bindings principal;
+- audit и cache invalidation.
+
+Для пользователей сохраняется существующий формат `user:{userId}`, поэтому миграция текущих user policies не требуется. Для machine clients используется отдельный формат `oauth-client:{clientId}`.
+
+Нельзя передавать заранее отформатированную строку в API, который дополнительно добавляет `user:`. Публичные методы Casbin integration должны принимать `CasbinPrincipal` и форматировать subject ровно один раз.
 
 ## 9. Scopes и Casbin permissions
 
@@ -653,7 +681,7 @@ https://shopana.io/claims/policy_version
 
 ## 12. Application-specific login policy
 
-OAuth Provider не является полноценным движком правил MFA/login на уровне каждого client. Для этой части допускается небольшой Shopana extension.
+OAuth Provider не является полноценным движком правил login на уровне каждого client. Для этой части допускается небольшой Shopana extension.
 
 ### 12.1 Companion policy table
 
@@ -663,7 +691,6 @@ OAuth Provider не является полноценным движком пр�
 iam.oauth_client_policy
   client_id
   require_email_verification
-  mfa_mode                 // off | optional | required
   max_authentication_age
   allowed_identity_providers
   policy_version
@@ -680,13 +707,13 @@ Policy должна проверяться в реальном flow:
 
 1. OAuth Provider выполняет login и передаёт только подписанный `oauth_query`;
 2. `postLogin.shouldRedirect` определяет необходимость выбора organization и дополнительных login requirements;
-3. страница `postLogin.page` получает client только через проверенный OAuth Provider flow, загружает `oauth_client_policy` и требует email verification/MFA/recent authentication;
+3. страница `postLogin.page` получает client только через проверенный OAuth Provider flow, загружает `oauth_client_policy` и требует email verification/recent authentication;
 4. после успешного выполнения страница вызывает официальный `oauth2Continue({ postLogin: true })`;
 5. `postLogin.consentReferenceId` возвращает проверенный `activeOrganizationId` для Shopana scopes или отклоняет flow;
 6. при выпуске и refresh access token `customAccessTokenClaims` повторно проверяет актуальный membership и состояние organization;
 7. изменение login policy отзывает связанные refresh tokens/grants и требует нового authorization flow; уже выпущенные JWT доживают не дольше настроенного короткого TTL.
 
-Нельзя читать `client_id`, organization или результат MFA из неподписанных query parameters. Для `max_authentication_age` хранить и проверять server-side authentication time/assurance state, связанный с Better Auth session. Не пытаться проверять MFA policy через `customAccessTokenClaims`: его контракт не содержит необходимых данных.
+Нельзя читать `client_id` или organization из неподписанных query parameters. Для `max_authentication_age` хранить и проверять server-side authentication time, связанный с Better Auth session. Не пытаться проверять login policy через `customAccessTokenClaims`: его контракт не содержит необходимых данных.
 
 Не добавлять в GraphQL настройки, которые login flow пока не умеет исполнять.
 
@@ -703,16 +730,27 @@ Policy должна проверяться в реальном flow:
 - scopes ограничиваются зарегистрированными scopes клиента;
 - OAuth Provider добавляет проверенный `azp = clientId`;
 - resource server получает owner organization client по `azp` через IAM registry/cache;
-- Casbin проверяет service-account/client subject без изменения существующей Casbin model;
+- Casbin проверяет типизированный OAuth-client principal без изменения существующей Casbin model;
 - интерактивная session и consent не используются.
 
-Если Casbin требует отдельный subject, использовать стабильное значение:
+Для OAuth client использовать стабильное представление subject:
 
 ```text
 oauth-client:{clientId}
 ```
 
-Текущая Casbin model `sub, dom, obj, act` не меняется. `oauth-client:{clientId}` является только новым форматом `sub`.
+`oauth-client:{clientId}` является только новым значением существующего поля `sub`. Casbin model, matcher, domain layout и policy schema не меняются.
+
+Resource server строит principal только после проверки JWT и получения `clientId` из проверенного `azp`:
+
+```typescript
+const principal: CasbinPrincipal = {
+  kind: "oauth-client",
+  id: verifiedToken.azp,
+};
+```
+
+Нельзя использовать для M2M `user:{clientId}` или передавать `oauth-client:{clientId}` как значение `userId` в существующие user-only методы.
 
 Для M2M необходимо реализовать lifecycle authorization policies:
 
@@ -835,7 +873,10 @@ scopes: openid profile email offline_access admin:read admin:write
 
 ```typescript
 interface AuthenticatedPrincipal {
-  subject: string;
+  tokenSubject: string;
+  authorizationPrincipal:
+    | { kind: "user"; id: string }
+    | { kind: "oauth-client"; id: string };
   userId: string | null;
   clientId: string;
   sessionId: string | null;
@@ -849,7 +890,11 @@ interface AuthenticatedPrincipal {
 
 Для user token `organizationId` берётся только из проверенного namespaced claim, основанного на `postLogin.consentReferenceId`.
 
-Для M2M token `userId` и `sessionId` равны `null`, `clientId` берётся из проверенного `azp`, а `organizationId` разрешается IAM по `oauthClient.reference_id`. Результат можно кратковременно кэшировать с обязательной invalidation при disable/delete client.
+Для user token `authorizationPrincipal` равен `{ kind: "user", id: userId }`.
+
+Для M2M token `userId` и `sessionId` равны `null`, `clientId` берётся из проверенного `azp`, `authorizationPrincipal` равен `{ kind: "oauth-client", id: clientId }`, а `organizationId` разрешается IAM по `oauthClient.reference_id`. Результат можно кратковременно кэшировать с обязательной invalidation при disable/delete client.
+
+`tokenSubject` сохраняет исходный проверенный OAuth/JWT `sub` и не используется как готовая строка Casbin subject. Casbin subject всегда формируется из `authorizationPrincipal` единым formatter из раздела 8.1.
 
 Middleware должен использовать проверенный JWT payload, а не доверять headers с organization/store IDs.
 
@@ -959,7 +1004,7 @@ Organization/store header может только выбрать context, пос
 
 - Добавить `oauth_client_policy` только для реально исполняемых полей.
 - Интегрировать policy в login/authorize flow.
-- Добавить MFA/email verification/recent-auth enforcement.
+- Добавить email verification/recent-auth enforcement.
 - При изменении policy отзывать связанные refresh tokens/grants и требовать новый authorization flow.
 
 **Критерий завершения:** изменение application policy реально меняет login behavior.
@@ -967,8 +1012,9 @@ Organization/store header может только выбрать context, пос
 ### Этап 7 — M2M и external clients
 
 - Включить Client Credentials Flow.
-- Определить Casbin subject для OAuth client.
-- Реализовать назначение и отзыв Casbin roles/policies для OAuth client subject.
+- Расширить API `CasbinService` типом `CasbinPrincipal`, не меняя Casbin model.
+- Использовать единый formatter для user и OAuth-client subjects во всех Casbin operations.
+- Реализовать назначение и отзыв Casbin roles/policies для `{ kind: "oauth-client", id: clientId }`.
 - Реализовать разрешение organization по проверенному `azp`.
 - Добавить consent UI для third-party user clients.
 - Добавить client revocation и operational UI.
@@ -997,6 +1043,9 @@ Organization/store header может только выбрать context, пос
 - email отсутствует без scope `email`;
 - machine token выпускается без user session;
 - machine principal получает organization только по проверенному `azp` и IAM client registry;
+- user principal форматируется как `user:{userId}`, а machine principal — как `oauth-client:{clientId}`;
+- OAuth client roles назначаются, проверяются и удаляются без добавления префикса `user:`;
+- существующие user policies продолжают работать без миграции Casbin model или policy schema;
 - удаление/disable machine client инвалидирует его Casbin bindings/cache;
 - user token получает organization через `postLogin.consentReferenceId`, а не через client ownership;
 - OAuth discovery/JWKS доступны по canonical external issuer;
@@ -1020,15 +1069,16 @@ Organization/store header может только выбрать context, пос
 8. Custom access token claims формируются server-side callbacks Better Auth.
 9. User organization context основан на `postLogin.consentReferenceId` и актуальном membership.
 10. M2M organization context разрешается по проверенному `azp` через IAM client registry.
-11. Casbin model не меняется и остаётся источником fine-grained authorization для user и machine principals.
-12. Client secrets и token values хранятся безопасным способом Better Auth.
-13. Admin использует Authorization Code + PKCE и стандартный Refresh Token Flow.
-14. Better Auth session cookie не используется как OAuth refresh token.
-15. M2M использует встроенный Client Credentials Flow и управляемые Casbin bindings.
-16. Application-specific login policy реализована через официальный `postLogin` continuation flow.
-17. Security-sensitive операции аудируются без утечки secrets/tokens.
-18. OAuth/JWKS/discovery endpoints публикуют canonical external issuer metadata.
-19. IAM service успешно собирается через `shopana-cli`.
+11. Casbin model, matcher и policy schema не меняются и остаются источником fine-grained authorization для user и machine principals.
+12. `CasbinService` принимает типизированный principal и единообразно форматирует `user:{userId}` и `oauth-client:{clientId}` без двойных префиксов.
+13. Client secrets и token values хранятся безопасным способом Better Auth.
+14. Admin использует Authorization Code + PKCE и стандартный Refresh Token Flow.
+15. Better Auth session cookie не используется как OAuth refresh token.
+16. M2M использует встроенный Client Credentials Flow и управляемые Casbin bindings.
+17. Application-specific login policy реализована через официальный `postLogin` continuation flow.
+18. Security-sensitive операции аудируются без утечки secrets/tokens.
+19. OAuth/JWKS/discovery endpoints публикуют canonical external issuer metadata.
+20. IAM service успешно собирается через `shopana-cli`.
 
 ## 22. Рекомендуемое разделение на изменения
 
@@ -1038,7 +1088,7 @@ Organization/store header может только выбрать context, пос
 4. **JWT integration:** audiences, claims и resource verification.
 5. **Management API:** GraphQL facade и Admin UI.
 6. **Admin migration:** Authorization Code + PKCE и legacy removal.
-7. **Login policies:** MFA/email/recent-auth per client.
+7. **Login policies:** email/recent-auth per client.
 8. **External/M2M:** consent, Client Credentials Flow, machine Casbin bindings и operational hardening.
 
 Каждое изменение должно расширять Better Auth через официальные APIs и callbacks, а не заменять его собственным OAuth implementation.
