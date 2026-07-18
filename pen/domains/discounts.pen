@@ -1481,7 +1481,7 @@
       "context": "Discount details draft following ProductDetailsCard and CategoryDetailsCard: summary Paper followed by read-only Paper sections with local EditAction menus.",
       "clip": true,
       "width": 1440,
-      "height": 1208,
+      "height": 1224,
       "fill": "#F6F6F4",
       "layout": "none",
       "children": [
@@ -1492,7 +1492,7 @@
           "y": 0,
           "name": "Admin sidebar background",
           "width": 240,
-          "height": 1208,
+          "height": 1224,
           "fill": "$--sidebar",
           "layout": "vertical",
           "gap": 28,
@@ -1748,7 +1748,7 @@
           "y": 0,
           "name": "Discounts page background",
           "width": 1200,
-          "height": 1208,
+          "height": 1224,
           "fill": "$--background",
           "layout": "vertical",
           "gap": 24,
@@ -1914,7 +1914,7 @@
           "context": "React: DiscountDetailsModal rendered with ModalStack and DiscountDetailsCard.",
           "clip": true,
           "width": 1440,
-          "height": 1208,
+          "height": 1224,
           "fill": "#F6F6F4",
           "layout": "none",
           "children": [
@@ -1926,7 +1926,7 @@
               "name": "ModalStack backdrop",
               "fill": "#10111285",
               "width": 1440,
-              "height": 1208
+              "height": 1224
             },
             {
               "type": "frame",
@@ -1936,7 +1936,7 @@
               "name": "ModalStack surface",
               "clip": true,
               "width": 1404,
-              "height": 1172,
+              "height": 1188,
               "fill": "#F4F4F1",
               "cornerRadius": 14,
               "effect": {
@@ -2063,7 +2063,7 @@
                   "id": "JkXL3",
                   "name": "ModalStack body",
                   "width": "fill_container",
-                  "height": 1124,
+                  "height": 1140,
                   "fill": "#F5F5F5",
                   "layout": "vertical",
                   "padding": [
@@ -2077,7 +2077,7 @@
                       "id": "PveCM",
                       "name": "ModalStack content slot",
                       "width": 800,
-                      "height": 1076,
+                      "height": 1092,
                       "layout": "vertical",
                       "gap": 12,
                       "children": [
@@ -5468,53 +5468,27 @@
                             {
                               "type": "frame",
                               "id": "l9qs3O",
-                              "name": "Selected products scope tags",
-                              "gap": 6,
+                              "name": "Selected products heading",
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
                                   "type": "frame",
                                   "id": "sGnxC",
-                                  "name": "Benefit badge",
-                                  "fill": "#E6F4FF",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    3,
-                                    7
-                                  ],
+                                  "name": "Selected products title group",
+                                  "fill": "#FFFFFF00",
+                                  "layout": "vertical",
+                                  "gap": 1,
                                   "children": [
                                     {
                                       "type": "text",
                                       "id": "JxxP2",
-                                      "name": "Benefit badge label",
-                                      "fill": "#0958D9",
-                                      "content": "Receives discount",
+                                      "name": "Selected products title",
+                                      "fill": "#262626",
+                                      "content": "Selected products",
                                       "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "r3cJ5p",
-                                  "name": "Products badge",
-                                  "fill": "#F5F5F5",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    3,
-                                    7
-                                  ],
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "b82ZM",
-                                      "name": "Products badge label",
-                                      "fill": "#595959",
-                                      "content": "Products",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
                                     }
                                   ]
                                 }
@@ -5750,6 +5724,1382 @@
             },
             {
               "type": "frame",
+              "id": "Kxvr4",
+              "name": "Playground stage · BUY X GET Y · Products to products",
+              "width": 880,
+              "layout": "vertical",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "note",
+                  "id": "Sui7h",
+                  "name": "New Buy X Get Y variant marker",
+                  "width": 800,
+                  "height": 32,
+                  "content": "↓ ВАРИАНТ 2 — ВЕРТИКАЛЬНОЕ ПРАВИЛО — NODE ID: WcvkP ↓"
+                },
+                {
+                  "type": "frame",
+                  "id": "WcvkP",
+                  "name": "Discount block / Applies to / Stacked rule variant",
+                  "width": 800,
+                  "fill": "#FFFFFF",
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": {
+                    "right": 1,
+                    "left": 1
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "k8XzvQ",
+                      "name": "Stacked rule header",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "QCYA0",
+                          "name": "Section title",
+                          "fill": "#262626",
+                          "content": "Applies to",
+                          "fontFamily": "Safiro",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Qq0XQ",
+                          "name": "Change targets action",
+                          "height": 32,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "zPeHa",
+                              "name": "Change icon",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "pencil",
+                              "library": "lucide",
+                              "fill": "#595959"
+                            },
+                            {
+                              "type": "text",
+                              "id": "gkSQl",
+                              "name": "Change label",
+                              "fill": "#595959",
+                              "content": "Change",
+                              "fontFamily": "Safiro",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Z2RT8Q",
+                      "name": "Discount rule summary",
+                      "clip": true,
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#E8E8E8",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nMGEA",
+                          "name": "When section label",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "#FAFAFA",
+                          "stroke": "#F0F0F0",
+                          "strokeWidth": {
+                            "top": 1,
+                            "bottom": 1
+                          },
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "gdt84",
+                              "name": "Transition arrow",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "arrow-down",
+                              "library": "lucide",
+                              "fill": "#737373"
+                            },
+                            {
+                              "type": "text",
+                              "id": "hnBdg",
+                              "name": "When label",
+                              "fill": "#737373",
+                              "content": "WHEN",
+                              "fontFamily": "Safiro",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "RWP7a",
+                          "name": "Purchase condition row",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "gap": 12,
+                          "padding": 16,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "KInBq",
+                              "name": "Customer buys icon background",
+                              "width": 32,
+                              "height": 32,
+                              "fill": "#F2F3F0",
+                              "cornerRadius": 16,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "Fdtnj",
+                                  "name": "Customer buys icon",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "shopping-cart",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "WZcGX",
+                              "name": "Condition copy",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "f5lqca",
+                                  "name": "Condition eyebrow",
+                                  "fill": "#595959",
+                                  "content": "CUSTOMER BUYS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "RV5T3",
+                                  "name": "Condition title",
+                                  "fill": "#262626",
+                                  "content": "Any of 2 selected products",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "xojE0",
+                                  "name": "Condition products",
+                                  "fill": "#595959",
+                                  "content": "Classic tee  ·  +1 more",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ks7t3",
+                          "name": "Rule transition",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "#FAFAFA",
+                          "stroke": "#F0F0F0",
+                          "strokeWidth": {
+                            "top": 1,
+                            "bottom": 1
+                          },
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "nkmo3",
+                              "name": "Transition arrow",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "arrow-down",
+                              "library": "lucide",
+                              "fill": "#737373"
+                            },
+                            {
+                              "type": "text",
+                              "id": "kXMLa",
+                              "name": "Transition label",
+                              "fill": "#737373",
+                              "content": "THEN",
+                              "fontFamily": "Safiro",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "TdY7Q",
+                          "name": "Reward result row",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "gap": 12,
+                          "padding": 16,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "PHWHZ",
+                              "name": "Reward step icon",
+                              "width": 32,
+                              "height": 32,
+                              "fill": "#D6E9FF",
+                              "cornerRadius": 16,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "fbU8a",
+                                  "name": "Reward gift icon",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "gift",
+                                  "library": "lucide",
+                                  "fill": "#0958D9"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "y1DM7",
+                              "name": "Reward copy",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "aHfW6",
+                                  "name": "Reward eyebrow",
+                                  "fill": "#0958D9",
+                                  "content": "CUSTOMER GETS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "tVluf",
+                                  "name": "Reward title",
+                                  "fill": "#1D2733",
+                                  "content": "Travel backpack",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 15,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "WpcgD",
+                                  "name": "Reward description",
+                                  "fill": "#52606D",
+                                  "content": "Specific product",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "p8o2K",
+              "name": "Playground stage · BUY X GET Y · Categories to products",
+              "width": 880,
+              "layout": "vertical",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "note",
+                  "id": "o6cXO",
+                  "name": "Design comment · Applies to Buy X Get Y",
+                  "width": 800,
+                  "height": 72,
+                  "content": "BUY X GET Y · CATEGORIES → PRODUCTS\nQUALIFIER targets two categories; any qualifying product inside them may satisfy the buy condition.\nBENEFIT targets one specific product."
+                },
+                {
+                  "type": "frame",
+                  "id": "C2NuvA",
+                  "name": "Discount block / Applies to / Stacked rule · Categories to products",
+                  "width": 800,
+                  "fill": "#FFFFFF",
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": {
+                    "right": 1,
+                    "left": 1
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "MOrfg",
+                      "name": "Stacked rule header",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "MmeKH",
+                          "name": "Section title",
+                          "fill": "#262626",
+                          "content": "Applies to",
+                          "fontFamily": "Safiro",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "x6LsTa",
+                          "name": "Change targets action",
+                          "height": 32,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "a0WCm5",
+                              "name": "Change icon",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "pencil",
+                              "library": "lucide",
+                              "fill": "#595959"
+                            },
+                            {
+                              "type": "text",
+                              "id": "HsxXh",
+                              "name": "Change label",
+                              "fill": "#595959",
+                              "content": "Change",
+                              "fontFamily": "Safiro",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LTcWL",
+                      "name": "Discount rule summary",
+                      "clip": true,
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#E8E8E8",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "qxx6n",
+                          "name": "When section label",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "#FAFAFA",
+                          "stroke": "#F0F0F0",
+                          "strokeWidth": {
+                            "top": 1,
+                            "bottom": 1
+                          },
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "a43eBi",
+                              "name": "Transition arrow",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "arrow-down",
+                              "library": "lucide",
+                              "fill": "#737373"
+                            },
+                            {
+                              "type": "text",
+                              "id": "krKSs",
+                              "name": "When label",
+                              "fill": "#737373",
+                              "content": "WHEN",
+                              "fontFamily": "Safiro",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "oxMHA",
+                          "name": "Purchase condition row",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "gap": 12,
+                          "padding": 16,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "h9tTuY",
+                              "name": "Customer buys icon background",
+                              "width": 32,
+                              "height": 32,
+                              "fill": "#F2F3F0",
+                              "cornerRadius": 16,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "V8rrX",
+                                  "name": "Customer buys icon",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "shopping-cart",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "R1mr6W",
+                              "name": "Condition copy",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "sa0hg",
+                                  "name": "Condition eyebrow",
+                                  "fill": "#595959",
+                                  "content": "CUSTOMER BUYS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "me2DD",
+                                  "name": "Condition title",
+                                  "fill": "#262626",
+                                  "content": "Any product from 2 selected categories",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "uLZzR",
+                                  "name": "Condition products",
+                                  "fill": "#595959",
+                                  "content": "Summer essentials  ·  +1 more",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qKJAw",
+                          "name": "Rule transition",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "#FAFAFA",
+                          "stroke": "#F0F0F0",
+                          "strokeWidth": {
+                            "top": 1,
+                            "bottom": 1
+                          },
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "Q9EU2l",
+                              "name": "Transition arrow",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "arrow-down",
+                              "library": "lucide",
+                              "fill": "#737373"
+                            },
+                            {
+                              "type": "text",
+                              "id": "HGZAu",
+                              "name": "Transition label",
+                              "fill": "#737373",
+                              "content": "THEN",
+                              "fontFamily": "Safiro",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "N4cFq",
+                          "name": "Reward result row",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "gap": 12,
+                          "padding": 16,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "VIXL5",
+                              "name": "Reward step icon",
+                              "width": 32,
+                              "height": 32,
+                              "fill": "#D6E9FF",
+                              "cornerRadius": 16,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "c74ok",
+                                  "name": "Reward gift icon",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "gift",
+                                  "library": "lucide",
+                                  "fill": "#0958D9"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "cesc9",
+                              "name": "Reward copy",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "dgAnz",
+                                  "name": "Reward eyebrow",
+                                  "fill": "#0958D9",
+                                  "content": "CUSTOMER GETS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "nDT1q",
+                                  "name": "Reward title",
+                                  "fill": "#1D2733",
+                                  "content": "Travel backpack",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 15,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "w6X93t",
+                                  "name": "Reward description",
+                                  "fill": "#52606D",
+                                  "content": "Specific product",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "WxPPq",
+              "name": "Playground stage · BUY X GET Y · All products to variants",
+              "width": 880,
+              "layout": "vertical",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "note",
+                  "id": "fxj2n",
+                  "name": "Design comment · Applies to Buy X Get Y",
+                  "width": 800,
+                  "height": 72,
+                  "content": "BUY X GET Y · ALL PRODUCTS → VARIANTS\nQUALIFIER uses ALL_PRODUCTS with no target IDs, so the complete catalog can satisfy the condition.\nBENEFIT targets one specific variant and exposes its SKU."
+                },
+                {
+                  "type": "frame",
+                  "id": "OAiJY",
+                  "name": "Discount block / Applies to / Stacked rule · All products to variant",
+                  "width": 800,
+                  "fill": "#FFFFFF",
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": {
+                    "right": 1,
+                    "left": 1
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "LJm4Z",
+                      "name": "Stacked rule header",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "M3wXO6",
+                          "name": "Section title",
+                          "fill": "#262626",
+                          "content": "Applies to",
+                          "fontFamily": "Safiro",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "a3Q8LZ",
+                          "name": "Change targets action",
+                          "height": 32,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "drCTX",
+                              "name": "Change icon",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "pencil",
+                              "library": "lucide",
+                              "fill": "#595959"
+                            },
+                            {
+                              "type": "text",
+                              "id": "sJumo",
+                              "name": "Change label",
+                              "fill": "#595959",
+                              "content": "Change",
+                              "fontFamily": "Safiro",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "AIEQn",
+                      "name": "Discount rule summary",
+                      "clip": true,
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#E8E8E8",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "YcYL8",
+                          "name": "When section label",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "#FAFAFA",
+                          "stroke": "#F0F0F0",
+                          "strokeWidth": {
+                            "top": 1,
+                            "bottom": 1
+                          },
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "Ms4Qq",
+                              "name": "Transition arrow",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "arrow-down",
+                              "library": "lucide",
+                              "fill": "#737373"
+                            },
+                            {
+                              "type": "text",
+                              "id": "dfbTf",
+                              "name": "When label",
+                              "fill": "#737373",
+                              "content": "WHEN",
+                              "fontFamily": "Safiro",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "I0F8o",
+                          "name": "Purchase condition row",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "gap": 12,
+                          "padding": 16,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "I5lr3",
+                              "name": "Customer buys icon background",
+                              "width": 32,
+                              "height": 32,
+                              "fill": "#F2F3F0",
+                              "cornerRadius": 16,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "B0Idw8",
+                                  "name": "Customer buys icon",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "shopping-cart",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "vmCcm",
+                              "name": "Condition copy",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "QLuxI",
+                                  "name": "Condition eyebrow",
+                                  "fill": "#595959",
+                                  "content": "CUSTOMER BUYS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "S1NI8n",
+                                  "name": "Condition title",
+                                  "fill": "#262626",
+                                  "content": "Any product in the catalog",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "U803t",
+                                  "name": "Condition products",
+                                  "fill": "#595959",
+                                  "content": "Entire catalog  ·  New products included automatically",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "SI2cb",
+                          "name": "Rule transition",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "#FAFAFA",
+                          "stroke": "#F0F0F0",
+                          "strokeWidth": {
+                            "top": 1,
+                            "bottom": 1
+                          },
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "ujk43",
+                              "name": "Transition arrow",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "arrow-down",
+                              "library": "lucide",
+                              "fill": "#737373"
+                            },
+                            {
+                              "type": "text",
+                              "id": "bSPgC",
+                              "name": "Transition label",
+                              "fill": "#737373",
+                              "content": "THEN",
+                              "fontFamily": "Safiro",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "FCrb0",
+                          "name": "Reward result row",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "gap": 12,
+                          "padding": 16,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "ndX8F",
+                              "name": "Reward step icon",
+                              "width": 32,
+                              "height": 32,
+                              "fill": "#D6E9FF",
+                              "cornerRadius": 16,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "obcY8",
+                                  "name": "Reward gift icon",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "gift",
+                                  "library": "lucide",
+                                  "fill": "#0958D9"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "j6aOE",
+                              "name": "Reward copy",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "UP5D1",
+                                  "name": "Reward eyebrow",
+                                  "fill": "#0958D9",
+                                  "content": "CUSTOMER GETS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "PxqpE",
+                                  "name": "Reward title",
+                                  "fill": "#1D2733",
+                                  "content": "Travel backpack · Navy",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 15,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "hzxJa",
+                                  "name": "Reward description",
+                                  "fill": "#52606D",
+                                  "content": "Variant · SKU BAG-NVY",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ZpNvS",
+              "name": "Playground stage · BUY X GET Y · Variants to categories",
+              "width": 880,
+              "layout": "vertical",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "note",
+                  "id": "wumOD",
+                  "name": "Design comment · Applies to Buy X Get Y",
+                  "width": 800,
+                  "height": 72,
+                  "content": "BUY X GET Y · VARIANTS → CATEGORIES\nQUALIFIER targets exact variants and shows their SKUs. BENEFIT targets a category, allowing a reward item from that category.\nCounts describe selected targets, not the buy or reward quantity."
+                },
+                {
+                  "type": "frame",
+                  "id": "Aj1QH",
+                  "name": "Discount block / Applies to / Stacked rule · Variants to category",
+                  "width": 800,
+                  "fill": "#FFFFFF",
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": {
+                    "right": 1,
+                    "left": 1
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "S7tty",
+                      "name": "Stacked rule header",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Ddac1",
+                          "name": "Section title",
+                          "fill": "#262626",
+                          "content": "Applies to",
+                          "fontFamily": "Safiro",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "wwIAt",
+                          "name": "Change targets action",
+                          "height": 32,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "L92FYg",
+                              "name": "Change icon",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "pencil",
+                              "library": "lucide",
+                              "fill": "#595959"
+                            },
+                            {
+                              "type": "text",
+                              "id": "rEDBv",
+                              "name": "Change label",
+                              "fill": "#595959",
+                              "content": "Change",
+                              "fontFamily": "Safiro",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "G1NNOw",
+                      "name": "Discount rule summary",
+                      "clip": true,
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#E8E8E8",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "xCIEn",
+                          "name": "When section label",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "#FAFAFA",
+                          "stroke": "#F0F0F0",
+                          "strokeWidth": {
+                            "top": 1,
+                            "bottom": 1
+                          },
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "l7IThI",
+                              "name": "Transition arrow",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "arrow-down",
+                              "library": "lucide",
+                              "fill": "#737373"
+                            },
+                            {
+                              "type": "text",
+                              "id": "gnYPh",
+                              "name": "When label",
+                              "fill": "#737373",
+                              "content": "WHEN",
+                              "fontFamily": "Safiro",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Akumg",
+                          "name": "Purchase condition row",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "gap": 12,
+                          "padding": 16,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "EA1NR",
+                              "name": "Customer buys icon background",
+                              "width": 32,
+                              "height": 32,
+                              "fill": "#F2F3F0",
+                              "cornerRadius": 16,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "zORNN",
+                                  "name": "Customer buys icon",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "shopping-cart",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "izOqq",
+                              "name": "Condition copy",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "MR1t7",
+                                  "name": "Condition eyebrow",
+                                  "fill": "#595959",
+                                  "content": "CUSTOMER BUYS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "p3T2xH",
+                                  "name": "Condition title",
+                                  "fill": "#262626",
+                                  "content": "Any of 2 selected variants",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "r17VN",
+                                  "name": "Condition products",
+                                  "fill": "#595959",
+                                  "content": "Classic tee · Black  ·  +1 more",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "NyKZ3",
+                          "name": "Rule transition",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "#FAFAFA",
+                          "stroke": "#F0F0F0",
+                          "strokeWidth": {
+                            "top": 1,
+                            "bottom": 1
+                          },
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "wXnRl",
+                              "name": "Transition arrow",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "arrow-down",
+                              "library": "lucide",
+                              "fill": "#737373"
+                            },
+                            {
+                              "type": "text",
+                              "id": "qg6G4",
+                              "name": "Transition label",
+                              "fill": "#737373",
+                              "content": "THEN",
+                              "fontFamily": "Safiro",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "slKm0",
+                          "name": "Reward result row",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "gap": 12,
+                          "padding": 16,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "ZRylV",
+                              "name": "Reward step icon",
+                              "width": 32,
+                              "height": 32,
+                              "fill": "#D6E9FF",
+                              "cornerRadius": 16,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "VeeVX",
+                                  "name": "Reward gift icon",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "gift",
+                                  "library": "lucide",
+                                  "fill": "#0958D9"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "yPBKy",
+                              "name": "Reward copy",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "woCL2",
+                                  "name": "Reward eyebrow",
+                                  "fill": "#0958D9",
+                                  "content": "CUSTOMER GETS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "UPQo6",
+                                  "name": "Reward title",
+                                  "fill": "#1D2733",
+                                  "content": "Summer essentials",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 15,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "lyf2L",
+                                  "name": "Reward description",
+                                  "fill": "#52606D",
+                                  "content": "Category · 24 eligible products",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
               "id": "TFPhd",
               "name": "Playground stage · Applies to all products",
               "width": 880,
@@ -5792,45 +7142,17 @@
                               "type": "frame",
                               "id": "GXUkB",
                               "name": "All products benefit badge",
-                              "fill": "#E6F4FF",
-                              "cornerRadius": 999,
-                              "padding": [
-                                3,
-                                7
-                              ],
+                              "fill": "#FFFFFF00",
                               "children": [
                                 {
                                   "type": "text",
                                   "id": "yk2IM",
-                                  "name": "All products benefit badge label",
-                                  "fill": "#0958D9",
-                                  "content": "Receives discount",
-                                  "fontFamily": "$--font-secondary",
-                                  "fontSize": 12,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "gXbfv",
-                              "name": "All products type badge",
-                              "fill": "#F5F5F5",
-                              "cornerRadius": 999,
-                              "padding": [
-                                3,
-                                7
-                              ],
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "pQXEu",
-                                  "name": "All products type badge label",
-                                  "fill": "#595959",
+                                  "name": "All products title",
+                                  "fill": "#262626",
                                   "content": "All products",
                                   "fontFamily": "$--font-secondary",
-                                  "fontSize": 12,
-                                  "fontWeight": "500"
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
                                 }
                               ]
                             }
@@ -5961,45 +7283,17 @@
                                   "type": "frame",
                                   "id": "XdrND",
                                   "name": "Variants benefit badge",
-                                  "fill": "#E6F4FF",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    3,
-                                    7
-                                  ],
+                                  "fill": "#FFFFFF00",
                                   "children": [
                                     {
                                       "type": "text",
                                       "id": "egeQO",
-                                      "name": "Variants benefit badge label",
-                                      "fill": "#0958D9",
-                                      "content": "Receives discount",
+                                      "name": "Selected variants title",
+                                      "fill": "#262626",
+                                      "content": "Selected variants",
                                       "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "Ab8rX",
-                                  "name": "Variants type badge",
-                                  "fill": "#F5F5F5",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    3,
-                                    7
-                                  ],
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "L33Hj",
-                                      "name": "Variants type badge label",
-                                      "fill": "#595959",
-                                      "content": "Variants",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
                                     }
                                   ]
                                 }
@@ -6287,45 +7581,17 @@
                                   "type": "frame",
                                   "id": "PUDW9",
                                   "name": "Categories benefit badge",
-                                  "fill": "#E6F4FF",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    3,
-                                    7
-                                  ],
+                                  "fill": "#FFFFFF00",
                                   "children": [
                                     {
                                       "type": "text",
                                       "id": "TTryc",
-                                      "name": "Categories benefit badge label",
-                                      "fill": "#0958D9",
-                                      "content": "Receives discount",
+                                      "name": "Selected categories title",
+                                      "fill": "#262626",
+                                      "content": "Selected categories",
                                       "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "N8CHR",
-                                  "name": "Categories type badge",
-                                  "fill": "#F5F5F5",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    3,
-                                    7
-                                  ],
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "tGnnd",
-                                      "name": "Categories type badge label",
-                                      "fill": "#595959",
-                                      "content": "Categories",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
                                     }
                                   ]
                                 }
@@ -6614,45 +7880,17 @@
                                   "type": "frame",
                                   "id": "ITPGx",
                                   "name": "Many products benefit badge",
-                                  "fill": "#E6F4FF",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    3,
-                                    7
-                                  ],
+                                  "fill": "#FFFFFF00",
                                   "children": [
                                     {
                                       "type": "text",
                                       "id": "QrBdk",
-                                      "name": "Many products benefit badge label",
-                                      "fill": "#0958D9",
-                                      "content": "Receives discount",
+                                      "name": "Many selected products title",
+                                      "fill": "#262626",
+                                      "content": "Selected products",
                                       "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "uj61Z",
-                                  "name": "Many products type badge",
-                                  "fill": "#F5F5F5",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    3,
-                                    7
-                                  ],
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "gL7SX",
-                                      "name": "Many products type badge label",
-                                      "fill": "#595959",
-                                      "content": "Products",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "500"
+                                      "fontSize": 13,
+                                      "fontWeight": "600"
                                     }
                                   ]
                                 }
@@ -6972,22 +8210,17 @@
                               "type": "frame",
                               "id": "jbtjv",
                               "name": "Draft status badge",
-                              "fill": "#F5F5F5",
-                              "cornerRadius": 999,
-                              "padding": [
-                                3,
-                                7
-                              ],
+                              "fill": "#FFFFFF00",
                               "children": [
                                 {
                                   "type": "text",
                                   "id": "ot4Qo",
                                   "name": "Draft status badge label",
-                                  "fill": "#595959",
-                                  "content": "Draft",
+                                  "fill": "#262626",
+                                  "content": "No target selection",
                                   "fontFamily": "$--font-secondary",
-                                  "fontSize": 12,
-                                  "fontWeight": "500"
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
                                 }
                               ]
                             },
@@ -6996,10 +8229,10 @@
                               "id": "QqwGY",
                               "name": "Draft target status text",
                               "fill": "#8C8C8C",
-                              "content": "No target selection",
+                              "content": "Draft only · Configure before activation",
                               "fontFamily": "$--font-secondary",
-                              "fontSize": 12,
-                              "fontWeight": "500"
+                              "fontSize": 11,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
