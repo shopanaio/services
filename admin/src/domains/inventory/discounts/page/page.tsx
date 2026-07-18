@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef } from "react";
-import { Alert, Flex, Tag, Typography } from "antd";
+import { Alert, Button, Flex, Tag, Typography } from "antd";
 import {
   AllCommunityModule,
   GridStateModule,
@@ -10,6 +10,7 @@ import {
 } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
+import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
@@ -20,6 +21,7 @@ import {
   DiscountOrderField,
 } from "@/graphql/types";
 import { useDiscounts } from "../hooks";
+import { useCreateDiscountModal } from "../modals";
 import { filterSchema } from "./filter-schema";
 import {
   buildDiscountSearchCondition,
@@ -131,8 +133,15 @@ export default function DiscountsPage() {
       pageConfig.orderBy,
     ],
   );
-  const { discounts, totalCount, pageInfo, loading, error } =
+  const { discounts, totalCount, pageInfo, loading, error, refetch } =
     useDiscounts(variables);
+  const { push: openCreateDiscountModal } = useCreateDiscountModal();
+
+  const handleOpenCreateDiscountModal = useCallback(() => {
+    openCreateDiscountModal({
+      onCreated: () => refetch(),
+    });
+  }, [openCreateDiscountModal, refetch]);
 
   const handleNextPage = useCallback(() => {
     if (pageInfo?.endCursor) {
@@ -207,7 +216,21 @@ export default function DiscountsPage() {
   );
 
   return (
-    <DataLayout fullWidth name="discounts" title="Discounts" count={totalCount}>
+    <DataLayout
+      fullWidth
+      name="discounts"
+      title="Discounts"
+      count={totalCount}
+      actions={
+        <Button
+          data-testid="discounts-create-button"
+          icon={<PlusOutlined />}
+          onClick={handleOpenCreateDiscountModal}
+        >
+          Create
+        </Button>
+      }
+    >
       <DataLayout.Toolbar
         left={
           <FilterWidget

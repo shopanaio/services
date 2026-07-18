@@ -1,0 +1,2280 @@
+{
+  "version": "2.14",
+  "children": [
+    {
+      "type": "frame",
+      "id": "rlkEL",
+      "x": 0,
+      "y": 0,
+      "name": "Discount creation modal redesign",
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": "#F6F6F4",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "vmIwj",
+          "x": 0,
+          "y": 0,
+          "name": "Admin sidebar background",
+          "width": 240,
+          "height": 1000,
+          "fill": "$--sidebar",
+          "layout": "vertical",
+          "gap": 28,
+          "padding": [
+            28,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Y3fgnk",
+              "name": "Shopana brand",
+              "width": "fill_container",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "XBG7L",
+                  "name": "Shopana brand mark",
+                  "width": 28,
+                  "height": 28,
+                  "fill": "$--foreground",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "d7V2S",
+                      "name": "Shopana mark icon",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "sparkles",
+                      "library": "lucide",
+                      "fill": "$--white"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "x3EEP",
+                  "name": "Shopana brand name",
+                  "fill": "$--foreground",
+                  "content": "shopana",
+                  "fontFamily": "$--font-secondary",
+                  "fontSize": 18,
+                  "fontWeight": "650"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nDwRs",
+              "name": "Admin navigation",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "xDZp5",
+                  "name": "Overview navigation item",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "#00000000",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "OoTuv",
+                      "name": "Overview navigation icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "layout-dashboard",
+                      "library": "lucide",
+                      "fill": "$--sidebar-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "UsXWa",
+                      "name": "Overview navigation label",
+                      "fill": "$--sidebar-foreground",
+                      "content": "Overview",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "450"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "U7LIkb",
+                  "name": "Catalog navigation item",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "#00000000",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "E853hd",
+                      "name": "Catalog navigation icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "package",
+                      "library": "lucide",
+                      "fill": "$--sidebar-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hlK10",
+                      "name": "Catalog navigation label",
+                      "fill": "$--sidebar-foreground",
+                      "content": "Catalog",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "450"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wdmkj",
+                  "name": "Orders navigation item",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "#00000000",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "PWyT4",
+                      "name": "Orders navigation icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "shopping-bag",
+                      "library": "lucide",
+                      "fill": "$--sidebar-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "vZYKg",
+                      "name": "Orders navigation label",
+                      "fill": "$--sidebar-foreground",
+                      "content": "Orders",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "450"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "xioFE",
+                  "name": "Discounts navigation item",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "$--sidebar-accent",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "WpezM",
+                      "name": "Discounts navigation icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "badge-percent",
+                      "library": "lucide",
+                      "fill": "$--foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "QtB7Q",
+                      "name": "Discounts navigation label",
+                      "fill": "$--foreground",
+                      "content": "Discounts",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "qL2ml",
+                  "name": "Customers navigation item",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "#00000000",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "bRqBz",
+                      "name": "Customers navigation icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "users",
+                      "library": "lucide",
+                      "fill": "$--sidebar-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "HhIrX",
+                      "name": "Customers navigation label",
+                      "fill": "$--sidebar-foreground",
+                      "content": "Customers",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "450"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "K9cxI",
+          "x": 240,
+          "y": 0,
+          "name": "Discounts page background",
+          "width": 1200,
+          "height": 1000,
+          "fill": "$--background",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            32,
+            40
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "qlsHi",
+              "name": "Discounts page header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rB8Tt",
+                  "name": "Discounts page title group",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WoKpD",
+                      "name": "Discounts page title",
+                      "fill": "$--foreground",
+                      "content": "Discounts",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 28,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "T5RxW",
+                      "name": "Discounts page subtitle",
+                      "fill": "$--muted-foreground",
+                      "content": "Create and manage promotions for your store",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lyfzz",
+                  "name": "New discount background button",
+                  "height": 40,
+                  "fill": "#1677FF",
+                  "cornerRadius": 10,
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "AigW8",
+                      "name": "New discount plus icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "plus",
+                      "library": "lucide",
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lWHMj",
+                      "name": "New discount button label",
+                      "fill": "#FFFFFF",
+                      "content": "New discount",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "t0KJe",
+              "name": "Discounts table background",
+              "width": "fill_container",
+              "height": 420,
+              "fill": "$--card",
+              "cornerRadius": 16,
+              "stroke": "$--border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 18,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "YtCb8",
+                  "name": "Discounts table heading",
+                  "fill": "$--foreground",
+                  "content": "All discounts",
+                  "fontFamily": "$--font-secondary",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 8,
+                  "id": "sW1jX",
+                  "name": "Muted table row 1",
+                  "fill": "$--muted",
+                  "width": "fill_container",
+                  "height": 48
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 8,
+                  "id": "O6KQyj",
+                  "name": "Muted table row 2",
+                  "fill": "#00000000",
+                  "width": "fill_container",
+                  "height": 48
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 8,
+                  "id": "dGsdz",
+                  "name": "Muted table row 3",
+                  "fill": "$--muted",
+                  "width": "fill_container",
+                  "height": 48
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 8,
+                  "id": "pjanJ",
+                  "name": "Muted table row 4",
+                  "fill": "#00000000",
+                  "width": "fill_container",
+                  "height": 48
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 8,
+                  "id": "mNHHx",
+                  "name": "Muted table row 5",
+                  "fill": "$--muted",
+                  "width": "fill_container",
+                  "height": 48
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "A0sVhn",
+          "type": "ref",
+          "ref": "XpaRF",
+          "name": "Create discount / ModalStack instance",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1000,
+          "descendants": {
+            "hiurZ": {
+              "content": "Create discount"
+            },
+            "oAh1F/NfVEx": {
+              "content": "Create draft"
+            },
+            "Zd34t": {
+              "children": [
+                {
+                  "id": "x728U",
+                  "type": "ref",
+                  "ref": "i2AEQE",
+                  "name": "Discount type paper",
+                  "width": "fill_container",
+                  "descendants": {
+                    "pKSOY/bEn5V": {
+                      "content": "1  Discount type"
+                    },
+                    "pKSOY/CMHDV": {
+                      "content": "Choose what this promotion applies to."
+                    },
+                    "xEhCr": {
+                      "id": "HkFbi",
+                      "type": "ref",
+                      "ref": "k6b25",
+                      "name": "Discount type content",
+                      "width": "fill_container"
+                    }
+                  }
+                },
+                {
+                  "id": "A32TEJ",
+                  "type": "ref",
+                  "ref": "i2AEQE",
+                  "name": "Activation paper",
+                  "width": "fill_container",
+                  "descendants": {
+                    "pKSOY/bEn5V": {
+                      "content": "2  Activation"
+                    },
+                    "pKSOY/CMHDV": {
+                      "content": "Choose how customers receive this discount."
+                    },
+                    "xEhCr": {
+                      "id": "J5z75",
+                      "type": "ref",
+                      "ref": "xOthU",
+                      "name": "Activation content",
+                      "width": "fill_container"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "fuyZD",
+                  "name": "Draft configuration note",
+                  "width": "fill_container",
+                  "fill": "#E9EAE6",
+                  "cornerRadius": 10,
+                  "stroke": "#D9DAD6",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    14
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ZlGfV",
+                      "name": "Draft note icon background",
+                      "width": 28,
+                      "height": 28,
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "MDBPG",
+                          "name": "Draft note info icon",
+                          "width": 15,
+                          "height": 15,
+                          "icon": "info",
+                          "library": "lucide",
+                          "fill": "#666666"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "yLSkk",
+                      "name": "Draft configuration note text",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Value and conditions are configured in the next step.",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ZlKd2",
+      "x": 3409,
+      "y": 189,
+      "name": "Ant Button / Primary / Small",
+      "context": "React: Button from antd — type=primary, size=small.",
+      "reusable": true,
+      "height": 24,
+      "fill": "$ant-blue-6",
+      "cornerRadius": "$button-radius-small",
+      "padding": [
+        0,
+        7
+      ],
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "NfVEx",
+          "name": "Button label",
+          "fill": "#FFFFFF",
+          "content": "Button",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "O2WZu",
+      "x": 3579,
+      "y": 189,
+      "name": "Ant Button / Default / Small",
+      "context": "React: Button from antd — type=default, size=small.",
+      "reusable": true,
+      "height": 24,
+      "fill": "#FFFFFF",
+      "cornerRadius": "$button-radius-small",
+      "stroke": "#D9D9D9",
+      "strokeWidth": 1,
+      "padding": [
+        0,
+        7
+      ],
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "fDvIt",
+          "name": "Button label",
+          "fill": "#111111",
+          "content": "Button",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "KSBhR",
+      "x": 3409,
+      "y": 261,
+      "name": "Ant Button / Primary / Middle",
+      "context": "React: Button from antd — type=primary, size=middle.",
+      "reusable": true,
+      "height": 32,
+      "fill": "$ant-blue-6",
+      "cornerRadius": "$button-radius-middle",
+      "padding": [
+        0,
+        15
+      ],
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "trryM",
+          "name": "Button label",
+          "fill": "#FFFFFF",
+          "content": "Button",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "yIR65",
+      "x": 3579,
+      "y": 261,
+      "name": "Ant Button / Default / Middle",
+      "context": "React: Button from antd — type=default, size=middle.",
+      "reusable": true,
+      "height": 32,
+      "fill": "#FFFFFF",
+      "cornerRadius": "$button-radius-middle",
+      "stroke": "#D9D9D9",
+      "strokeWidth": 1,
+      "padding": [
+        0,
+        15
+      ],
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "BNDq5",
+          "name": "Button label",
+          "fill": "#111111",
+          "content": "Button",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "OWCz2",
+      "x": 3409,
+      "y": 341,
+      "name": "Ant Button / Primary / Large",
+      "context": "React: Button from antd — type=primary, size=large.",
+      "reusable": true,
+      "height": 40,
+      "fill": "$ant-blue-6",
+      "cornerRadius": "$button-radius-large",
+      "padding": [
+        0,
+        15
+      ],
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "Fg86X",
+          "name": "Button label",
+          "fill": "#FFFFFF",
+          "content": "Button",
+          "fontFamily": "Geist",
+          "fontSize": 16,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "xCe9K",
+      "x": 3579,
+      "y": 341,
+      "name": "Ant Button / Default / Large",
+      "context": "React: Button from antd — type=default, size=large.",
+      "reusable": true,
+      "height": 40,
+      "fill": "#FFFFFF",
+      "cornerRadius": "$button-radius-large",
+      "stroke": "#D9D9D9",
+      "strokeWidth": 1,
+      "padding": [
+        0,
+        15
+      ],
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "OAoud",
+          "name": "Button label",
+          "fill": "#111111",
+          "content": "Button",
+          "fontFamily": "Geist",
+          "fontSize": 16,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "XpaRF",
+      "x": 1889,
+      "y": 0,
+      "name": "ModalStack / Overlay",
+      "context": "React: CreateDiscountModal rendered with ModalStack, ModalLayout and ModalHeader. Source: admin/src/domains/inventory/discounts/modals/create-discount-modal/create-discount-modal.tsx.",
+      "reusable": true,
+      "clip": true,
+      "width": 1440,
+      "height": 1000,
+      "fill": "#F6F6F4",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "u6776v",
+          "x": 0,
+          "y": 0,
+          "name": "ModalStack backdrop",
+          "fill": "#10111285",
+          "width": 1440,
+          "height": 1000
+        },
+        {
+          "type": "frame",
+          "id": "hy87V",
+          "x": 18,
+          "y": 18,
+          "name": "ModalStack surface",
+          "clip": true,
+          "width": 1404,
+          "height": 964,
+          "fill": "#F4F4F1",
+          "cornerRadius": 14,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000045",
+            "offset": {
+              "x": 0,
+              "y": 10
+            },
+            "blur": 36,
+            "spread": -8
+          },
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "n2d8G",
+              "name": "ModalStack header",
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#FFFFFF",
+              "stroke": "#D9D9D9",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "padding": [
+                0,
+                12,
+                0,
+                0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "DWNHx",
+                  "name": "ModalStack header left",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uVROE",
+                      "name": "ModalStack close zone",
+                      "width": 112,
+                      "height": "fill_container",
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": {
+                        "right": 1
+                      },
+                      "gap": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Un55R",
+                          "name": "ModalStack close button",
+                          "width": 24,
+                          "height": 24,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 4,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "v8OmNJ",
+                              "name": "ModalStack close icon",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "#595959"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Epz84",
+                          "name": "ModalStack escape badge",
+                          "width": 30,
+                          "height": 22,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 4,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "K5bgtb",
+                              "name": "ModalStack escape label",
+                              "fill": "#8C8C8C",
+                              "content": "esc",
+                              "fontFamily": "Geist",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "hiurZ",
+                      "name": "ModalStack title",
+                      "fill": "#262626",
+                      "content": "Modal title",
+                      "fontFamily": "Geist",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Cd4Qz",
+                  "name": "ModalStack header actions slot",
+                  "slot": [
+                    "O2WZu",
+                    "ZlKd2"
+                  ],
+                  "gap": 8,
+                  "justifyContent": "end",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "oAh1F",
+                      "type": "ref",
+                      "ref": "ZlKd2",
+                      "name": "ModalStack primary action",
+                      "descendants": {
+                        "NfVEx": {
+                          "content": "Save"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "uhejE",
+              "name": "ModalStack body",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#F5F5F5",
+              "layout": "vertical",
+              "padding": [
+                24,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Zd34t",
+                  "name": "ModalStack content slot",
+                  "slot": [],
+                  "width": 800,
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "W3u8r",
+      "x": 3409,
+      "y": 103,
+      "name": "Ant Radio / Default",
+      "context": "React: Radio from antd — unchecked state; usually inside Radio.Group.",
+      "reusable": true,
+      "width": 16,
+      "height": 16,
+      "fill": "#FFFFFF",
+      "cornerRadius": 999,
+      "stroke": "#D9D9D9",
+      "strokeWidth": 1,
+      "justifyContent": "center",
+      "alignItems": "center"
+    },
+    {
+      "type": "frame",
+      "id": "tOgA5",
+      "x": 3473,
+      "y": 103,
+      "name": "Ant Radio / Checked",
+      "context": "React: Radio from antd — checked state; controlled by Radio.Group value.",
+      "reusable": true,
+      "width": 16,
+      "height": 16,
+      "fill": "$ant-blue-6",
+      "cornerRadius": 999,
+      "stroke": "$ant-blue-6",
+      "strokeWidth": 1,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "ellipse",
+          "id": "K8a8R",
+          "name": "Radio checked dot",
+          "fill": "#FFFFFF",
+          "width": 6,
+          "height": 6
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "eXqFP",
+      "x": 0,
+      "y": -170,
+      "name": "Paper / Header",
+      "context": "React: PaperHeader from @/ui-kit/paper. Source: admin/src/ui-kit/paper/paper-header.tsx.",
+      "reusable": true,
+      "width": 800,
+      "layout": "vertical",
+      "gap": 12,
+      "children": [
+        {
+          "type": "frame",
+          "id": "zpFJk",
+          "name": "Paper header copy",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "bEn5V",
+              "name": "Paper header title",
+              "fill": "#262626",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Section title",
+              "fontFamily": "Geist",
+              "fontSize": 16,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "CMHDV",
+              "name": "Paper header description",
+              "fill": "#8C8C8C",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Section description",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "w881k",
+          "name": "Paper header divider",
+          "fill": "#F0F0F0",
+          "width": "fill_container",
+          "height": 1
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "k6b25",
+      "x": 0,
+      "y": -406,
+      "name": "Discount type / Content",
+      "context": "React: DiscountTypeSelector. Source: admin/src/domains/inventory/discounts/modals/select-discount-type-modal/discount-type-selector.tsx.",
+      "reusable": true,
+      "width": 800,
+      "layout": "vertical",
+      "gap": 12,
+      "children": [
+        {
+          "type": "frame",
+          "id": "h3k8j",
+          "name": "Discount type option row 1",
+          "width": "fill_container",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "rWDiK",
+              "name": "Amount off products option",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FFFFFF",
+              "cornerRadius": 12,
+              "stroke": "$ant-blue-6",
+              "strokeWidth": 2,
+              "gap": 14,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "bCNGk",
+                  "name": "Amount off products icon background",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "$ant-blue-1",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "Cl0Ow",
+                      "name": "Amount off products icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "tags",
+                      "library": "lucide",
+                      "fill": "$ant-blue-6"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "GiTFT",
+                  "name": "Amount off products copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "z1XnJ",
+                      "name": "Amount off products title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Amount off products",
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZU28v",
+                      "name": "Amount off products description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Reduce the price of selected products or collections.",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "CRNQv",
+              "name": "Buy X get Y option",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FFFFFF",
+              "cornerRadius": 12,
+              "stroke": "#CBCCC9",
+              "strokeWidth": 1,
+              "gap": 14,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "P9KHG3",
+                  "name": "Buy X get Y icon background",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#F2F3F0",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "wr3ly",
+                      "name": "Buy X get Y icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "gift",
+                      "library": "lucide",
+                      "fill": "#111111"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x6J7f7",
+                  "name": "Buy X get Y copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "u7jzd",
+                      "name": "Buy X get Y title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Buy X get Y",
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Pa3TZ",
+                      "name": "Buy X get Y description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Reward customers when they buy qualifying items.",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "JxBKd",
+          "name": "Discount type option row 2",
+          "width": "fill_container",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "bldPi",
+              "name": "Amount off order option",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FFFFFF",
+              "cornerRadius": 12,
+              "stroke": "#CBCCC9",
+              "strokeWidth": 1,
+              "gap": 14,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "q0d50U",
+                  "name": "Amount off order icon background",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#F2F3F0",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "n4ygh",
+                      "name": "Amount off order icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "shopping-bag",
+                      "library": "lucide",
+                      "fill": "#111111"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "KjbLU",
+                  "name": "Amount off order copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dEVhy",
+                      "name": "Amount off order title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Amount off order",
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bPday",
+                      "name": "Amount off order description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Apply a fixed or percentage discount to the order.",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OHO0w",
+              "name": "Free shipping option",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FFFFFF",
+              "cornerRadius": 12,
+              "stroke": "#CBCCC9",
+              "strokeWidth": 1,
+              "gap": 14,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "D1DSsu",
+                  "name": "Free shipping icon background",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#F2F3F0",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "m4BnI",
+                      "name": "Free shipping icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "truck",
+                      "library": "lucide",
+                      "fill": "#111111"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "c7IXo",
+                  "name": "Free shipping copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "L40ils",
+                      "name": "Free shipping title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Free shipping",
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "wzvo1",
+                      "name": "Free shipping description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Remove shipping costs when conditions are met.",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "xOthU",
+      "x": 0,
+      "y": -616,
+      "name": "Activation / Content",
+      "context": "React: activation fields in CreateDiscountModal; use Radio.Group, Radio and Input from antd.",
+      "reusable": true,
+      "width": 800,
+      "layout": "vertical",
+      "gap": 16,
+      "children": [
+        {
+          "type": "frame",
+          "id": "v74jKy",
+          "name": "Activation method options",
+          "width": "fill_container",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "A8eE7",
+              "name": "Discount code method",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "#FFFFFF",
+              "cornerRadius": 10,
+              "stroke": "#CBCCC9",
+              "strokeWidth": 1,
+              "gap": 12,
+              "padding": [
+                12,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "gwaCl",
+                  "type": "ref",
+                  "ref": "W3u8r",
+                  "name": "Discount code radio"
+                },
+                {
+                  "type": "frame",
+                  "id": "LBKsV",
+                  "name": "Discount code method copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "mVMqi",
+                      "name": "Discount code method title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Discount code",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AaBqI",
+                      "name": "Discount code method description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Customers enter a code at checkout.",
+                      "fontFamily": "Geist",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Tv4lU",
+              "name": "Automatic discount method",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "$ant-blue-1",
+              "cornerRadius": 10,
+              "stroke": "$ant-blue-6",
+              "strokeWidth": 2,
+              "gap": 12,
+              "padding": [
+                12,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "DPRQF",
+                  "type": "ref",
+                  "ref": "tOgA5",
+                  "name": "Automatic discount radio"
+                },
+                {
+                  "type": "frame",
+                  "id": "XHCDb",
+                  "name": "Automatic discount method copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "p7jeQm",
+                      "name": "Automatic discount method title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Automatic discount",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "FcV4z",
+                      "name": "Automatic discount method description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Applied automatically when conditions match.",
+                      "fontFamily": "Geist",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "iB6XN",
+          "name": "Automatic discount title field",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "frame",
+              "id": "L6M8qj",
+              "name": "Automatic discount title label row",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "TD7HG",
+                  "name": "Automatic discount title label",
+                  "fill": "#111111",
+                  "content": "Title",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "p6owWR",
+                  "name": "Automatic discount required hint",
+                  "fill": "#666666",
+                  "content": "Required for automatic discounts",
+                  "fontFamily": "Geist",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ez2T4",
+              "name": "Automatic discount title input",
+              "width": "fill_container",
+              "height": 42,
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": "#A7A8A5",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "P1tugL",
+                  "name": "Automatic discount title placeholder",
+                  "fill": "#8A8B88",
+                  "content": "e.g. Summer sale",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "i2AEQE",
+      "x": 0,
+      "y": -936,
+      "name": "Paper / Section",
+      "context": "React: Paper + PaperHeader from @/ui-kit/paper. Source: admin/src/ui-kit/paper.",
+      "reusable": true,
+      "width": 800,
+      "fill": "#FFFFFF",
+      "cornerRadius": 8,
+      "stroke": "#F0F0F0",
+      "strokeWidth": 1,
+      "effect": [
+        {
+          "type": "shadow",
+          "shadowType": "outer",
+          "color": "#00000008",
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "blur": 2
+        },
+        {
+          "type": "shadow",
+          "shadowType": "outer",
+          "color": "#00000005",
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "blur": 6,
+          "spread": -1
+        },
+        {
+          "type": "shadow",
+          "shadowType": "outer",
+          "color": "#00000005",
+          "offset": {
+            "x": 0,
+            "y": 2
+          },
+          "blur": 4
+        }
+      ],
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 16,
+      "children": [
+        {
+          "id": "pKSOY",
+          "type": "ref",
+          "ref": "eXqFP",
+          "name": "Paper section header",
+          "width": "fill_container"
+        },
+        {
+          "type": "frame",
+          "id": "xEhCr",
+          "name": "Paper section content slot",
+          "slot": [
+            "k6b25",
+            "xOthU"
+          ],
+          "width": "fill_container",
+          "height": 1,
+          "layout": "vertical"
+        }
+      ]
+    }
+  ],
+  "themes": {
+    "Mode": [
+      "Light",
+      "Dark"
+    ]
+  },
+  "variables": {
+    "--sidebar": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#E7E8E5"
+        },
+        {
+          "value": "#18181b",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#666666"
+        },
+        {
+          "value": "#fafafa",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-primary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#18181b"
+        },
+        {
+          "value": "#18181b",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-primary-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#fafafa"
+        },
+        {
+          "value": "#fafafa",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-border": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#CBCCC9"
+        },
+        {
+          "value": "#ffffff1a",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-accent": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#CBCCC9"
+        },
+        {
+          "value": "#2a2a30",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-accent-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#18181b"
+        },
+        {
+          "value": "#fafafa",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-ring": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#71717a"
+        },
+        {
+          "value": "#71717a",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--background": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#F2F3F0"
+        },
+        {
+          "value": "#111111",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--card": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FFFFFF"
+        },
+        {
+          "value": "#1A1A1A",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--card-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--popover": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FFFFFF"
+        },
+        {
+          "value": "#1A1A1A",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--popover-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--primary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#1677FF",
+          "theme": {
+            "Mode": "Light"
+          }
+        },
+        {
+          "value": "#1668DC",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--primary-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Light"
+          }
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--secondary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#E7E8E5"
+        },
+        {
+          "value": "#2E2E2E",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--secondary-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--muted": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#F2F3F0"
+        },
+        {
+          "value": "#2E2E2E",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--muted-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#666666"
+        },
+        {
+          "value": "#B8B9B6",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--accent": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#F2F3F0"
+        },
+        {
+          "value": "#111111",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--accent-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#F2F3F0",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--destructive": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#D93C15"
+        },
+        {
+          "value": "#FF5C33",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--border": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#CBCCC9"
+        },
+        {
+          "value": "#2E2E2E",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--input": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#CBCCC9"
+        },
+        {
+          "value": "#2E2E2E",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--ring": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#666666"
+        },
+        {
+          "value": "#666666",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--white": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "--black": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "--font-primary": {
+      "type": "string",
+      "value": "JetBrains Mono"
+    },
+    "--font-secondary": {
+      "type": "string",
+      "value": "Geist"
+    },
+    "--radius-none": {
+      "type": "number",
+      "value": 0
+    },
+    "--radius-pill": {
+      "type": "number",
+      "value": 999
+    },
+    "--color-success": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#DFE6E1"
+        },
+        {
+          "value": "#222924",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-success-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#004D1A"
+        },
+        {
+          "value": "#B6FFCE",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-warning": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#E9E3D8"
+        },
+        {
+          "value": "#291C0F",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-warning-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#804200"
+        },
+        {
+          "value": "#FF8400",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-error": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#E5DCDA"
+        },
+        {
+          "value": "#24100B",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-error-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#8C1C00"
+        },
+        {
+          "value": "#FF5C33",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-info": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#DFDFE6"
+        },
+        {
+          "value": "#222229",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-info-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#000066"
+        },
+        {
+          "value": "#B2B2FF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--radius-m": {
+      "type": "number",
+      "value": 16
+    },
+    "ant-blue-1": {
+      "type": "color",
+      "value": "#E6F4FF"
+    },
+    "ant-blue-2": {
+      "type": "color",
+      "value": "#BAE0FF"
+    },
+    "ant-blue-3": {
+      "type": "color",
+      "value": "#91CAFF"
+    },
+    "ant-blue-4": {
+      "type": "color",
+      "value": "#69B1FF"
+    },
+    "ant-blue-5": {
+      "type": "color",
+      "value": "#4096FF"
+    },
+    "ant-blue-6": {
+      "type": "color",
+      "value": "#1677FF"
+    },
+    "ant-blue-7": {
+      "type": "color",
+      "value": "#0958D9"
+    },
+    "ant-blue-8": {
+      "type": "color",
+      "value": "#003EB3"
+    },
+    "ant-blue-9": {
+      "type": "color",
+      "value": "#002C8C"
+    },
+    "ant-blue-10": {
+      "type": "color",
+      "value": "#001D66"
+    },
+    "--primary-bg": {
+      "type": "color",
+      "value": "#E6F4FF"
+    },
+    "--primary-bg-hover": {
+      "type": "color",
+      "value": "#BAE0FF"
+    },
+    "--primary-border": {
+      "type": "color",
+      "value": "#91CAFF"
+    },
+    "--primary-border-hover": {
+      "type": "color",
+      "value": "#69B1FF"
+    },
+    "--primary-hover": {
+      "type": "color",
+      "value": "#4096FF"
+    },
+    "--primary-active": {
+      "type": "color",
+      "value": "#0958D9"
+    },
+    "button-height-small": {
+      "type": "number",
+      "value": 24
+    },
+    "button-height-middle": {
+      "type": "number",
+      "value": 32
+    },
+    "button-height-large": {
+      "type": "number",
+      "value": 40
+    },
+    "button-radius-small": {
+      "type": "number",
+      "value": 4
+    },
+    "button-radius-middle": {
+      "type": "number",
+      "value": 6
+    },
+    "button-radius-large": {
+      "type": "number",
+      "value": 8
+    },
+    "radio-size": {
+      "type": "number",
+      "value": 16
+    },
+    "radio-dot-size": {
+      "type": "number",
+      "value": 6
+    },
+    "control-line-width": {
+      "type": "number",
+      "value": 1
+    }
+  },
+  "fileToken": "76029155-29a8-464e-832b-65de10bb1f06"
+}
