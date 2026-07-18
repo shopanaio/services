@@ -10735,7 +10735,7 @@
               "name": "Design comment · Distribution & combinations",
               "width": 800,
               "height": 72,
-              "content": "ELIGIBILITY & DISTRIBUTION\nAPI: buyerContext defines ALL, CUSTOMERS or SEGMENTS. channels contains active channel codes and featured state. combinesWith contains PRODUCT, ORDER and/or SHIPPING.\nEvery available channel and combination class remains visible; only active values are selected."
+              "content": "ELIGIBILITY & DISTRIBUTION\nAPI: buyerContext defines ALL, CUSTOMERS or SEGMENTS. channels contains active channel codes and featured state. combinesWith contains PRODUCT, ORDER and/or SHIPPING.\nEvery available channel is shown as a compact icon list with trailing state; every combination class remains visible. Only active values are selected."
             },
             {
               "type": "frame",
@@ -10945,7 +10945,7 @@
                       "id": "hz5R2",
                       "name": "Combined channels and combinations row",
                       "width": "fill_container",
-                      "height": 120,
+                      "height": 150,
                       "gap": 8,
                       "children": [
                         {
@@ -10959,7 +10959,7 @@
                           "stroke": "#E8E8E8",
                           "strokeWidth": 1,
                           "layout": "vertical",
-                          "gap": 9,
+                          "gap": 8,
                           "padding": 10,
                           "children": [
                             {
@@ -11032,30 +11032,33 @@
                               "id": "Gs3Fv",
                               "name": "Combined channel options",
                               "width": "fill_container",
-                              "height": 58,
-                              "gap": 6,
+                              "height": 86,
+                              "layout": "vertical",
                               "children": [
                                 {
                                   "type": "frame",
                                   "id": "VzjqX",
                                   "name": "Online store channel option",
                                   "width": "fill_container",
-                                  "height": "fill_container",
-                                  "fill": "#E6F4FF",
-                                  "cornerRadius": 7,
-                                  "stroke": "#91CAFF",
-                                  "strokeWidth": 1,
-                                  "layout": "vertical",
-                                  "gap": 4,
-                                  "justifyContent": "center",
+                                  "height": 29,
+                                  "fill": "#FFFFFF",
+                                  "stroke": "#F0F0F0",
+                                  "strokeWidth": {
+                                    "bottom": 1
+                                  },
+                                  "gap": 8,
+                                  "padding": [
+                                    0,
+                                    4
+                                  ],
                                   "alignItems": "center",
                                   "children": [
                                     {
                                       "type": "icon",
                                       "id": "l9OH6G",
                                       "name": "Online store channel option icon",
-                                      "width": 14,
-                                      "height": 14,
+                                      "width": 16,
+                                      "height": 16,
                                       "icon": "store",
                                       "library": "lucide",
                                       "fill": "#1677FF"
@@ -11064,19 +11067,11 @@
                                       "type": "frame",
                                       "id": "Dn1yi",
                                       "name": "Online store channel option status",
+                                      "width": "fill_container",
                                       "gap": 4,
+                                      "justifyContent": "space_between",
                                       "alignItems": "center",
                                       "children": [
-                                        {
-                                          "type": "icon",
-                                          "id": "TIt83",
-                                          "name": "Online store channel option status icon",
-                                          "width": 10,
-                                          "height": 10,
-                                          "icon": "circle-check",
-                                          "library": "lucide",
-                                          "fill": "#1677FF"
-                                        },
                                         {
                                           "type": "text",
                                           "id": "jansP",
@@ -11084,8 +11079,18 @@
                                           "fill": "#262626",
                                           "content": "Online store",
                                           "fontFamily": "Safiro",
-                                          "fontSize": 9,
+                                          "fontSize": 10,
                                           "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "icon",
+                                          "id": "TIt83",
+                                          "name": "Online store channel option status icon",
+                                          "width": 12,
+                                          "height": 12,
+                                          "icon": "circle-check",
+                                          "library": "lucide",
+                                          "fill": "#1677FF"
                                         }
                                       ]
                                     }
@@ -11096,22 +11101,25 @@
                                   "id": "XpLgu",
                                   "name": "Mobile app channel option",
                                   "width": "fill_container",
-                                  "height": "fill_container",
+                                  "height": 29,
                                   "fill": "#FFFFFF",
-                                  "cornerRadius": 7,
-                                  "stroke": "#E8E8E8",
-                                  "strokeWidth": 1,
-                                  "layout": "vertical",
-                                  "gap": 4,
-                                  "justifyContent": "center",
+                                  "stroke": "#F0F0F0",
+                                  "strokeWidth": {
+                                    "bottom": 1
+                                  },
+                                  "gap": 8,
+                                  "padding": [
+                                    0,
+                                    4
+                                  ],
                                   "alignItems": "center",
                                   "children": [
                                     {
                                       "type": "icon",
                                       "id": "Z1vwsU",
                                       "name": "Mobile app channel option icon",
-                                      "width": 14,
-                                      "height": 14,
+                                      "width": 16,
+                                      "height": 16,
                                       "icon": "smartphone",
                                       "library": "lucide",
                                       "fill": "#BFBFBF"
@@ -11120,19 +11128,11 @@
                                       "type": "frame",
                                       "id": "w7cjs",
                                       "name": "Mobile app channel option status",
+                                      "width": "fill_container",
                                       "gap": 4,
+                                      "justifyContent": "space_between",
                                       "alignItems": "center",
                                       "children": [
-                                        {
-                                          "type": "icon",
-                                          "id": "qPoG7",
-                                          "name": "Mobile app channel option status icon",
-                                          "width": 10,
-                                          "height": 10,
-                                          "icon": "circle",
-                                          "library": "lucide",
-                                          "fill": "#BFBFBF"
-                                        },
                                         {
                                           "type": "text",
                                           "id": "N7gsp",
@@ -11140,8 +11140,18 @@
                                           "fill": "#8C8C8C",
                                           "content": "Mobile app",
                                           "fontFamily": "Safiro",
-                                          "fontSize": 9,
+                                          "fontSize": 10,
                                           "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "icon",
+                                          "id": "qPoG7",
+                                          "name": "Mobile app channel option status icon",
+                                          "width": 12,
+                                          "height": 12,
+                                          "icon": "circle",
+                                          "library": "lucide",
+                                          "fill": "#BFBFBF"
                                         }
                                       ]
                                     }
@@ -11152,22 +11162,22 @@
                                   "id": "q2ZHZ",
                                   "name": "POS channel option",
                                   "width": "fill_container",
-                                  "height": "fill_container",
+                                  "height": 28,
                                   "fill": "#FFFFFF",
-                                  "cornerRadius": 7,
-                                  "stroke": "#E8E8E8",
-                                  "strokeWidth": 1,
-                                  "layout": "vertical",
-                                  "gap": 4,
-                                  "justifyContent": "center",
+                                  "stroke": "#FFFFFF",
+                                  "gap": 8,
+                                  "padding": [
+                                    0,
+                                    4
+                                  ],
                                   "alignItems": "center",
                                   "children": [
                                     {
                                       "type": "icon",
                                       "id": "tAs4D",
                                       "name": "POS channel option icon",
-                                      "width": 14,
-                                      "height": 14,
+                                      "width": 16,
+                                      "height": 16,
                                       "icon": "credit-card",
                                       "library": "lucide",
                                       "fill": "#BFBFBF"
@@ -11176,19 +11186,11 @@
                                       "type": "frame",
                                       "id": "hh4Wg",
                                       "name": "POS channel option status",
+                                      "width": "fill_container",
                                       "gap": 4,
+                                      "justifyContent": "space_between",
                                       "alignItems": "center",
                                       "children": [
-                                        {
-                                          "type": "icon",
-                                          "id": "LNdTk",
-                                          "name": "POS channel option status icon",
-                                          "width": 10,
-                                          "height": 10,
-                                          "icon": "circle",
-                                          "library": "lucide",
-                                          "fill": "#BFBFBF"
-                                        },
                                         {
                                           "type": "text",
                                           "id": "DrOmC",
@@ -11196,8 +11198,18 @@
                                           "fill": "#8C8C8C",
                                           "content": "POS",
                                           "fontFamily": "Safiro",
-                                          "fontSize": 9,
+                                          "fontSize": 10,
                                           "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "icon",
+                                          "id": "LNdTk",
+                                          "name": "POS channel option status icon",
+                                          "width": 12,
+                                          "height": 12,
+                                          "icon": "circle",
+                                          "library": "lucide",
+                                          "fill": "#BFBFBF"
                                         }
                                       ]
                                     }
@@ -14640,7 +14652,18 @@
                       "name": "Amount off products eligibility and distribution",
                       "width": 800,
                       "x": 0,
-                      "y": 747
+                      "y": 747,
+                      "descendants": {
+                        "VzjqX": {
+                          "height": 29
+                        },
+                        "XpLgu": {
+                          "height": 29
+                        },
+                        "q2ZHZ": {
+                          "height": 28
+                        }
+                      }
                     },
                     {
                       "id": "K0acmz",
@@ -14649,7 +14672,7 @@
                       "name": "Amount off products availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1032,
+                      "y": 1062,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 18, 2026 at 09:00"
@@ -14779,7 +14802,7 @@
                       "name": "Amount off products tags",
                       "width": 800,
                       "x": 0,
-                      "y": 1192,
+                      "y": 1222,
                       "descendants": {
                         "azXUc": {
                           "content": "summer"
@@ -14796,7 +14819,7 @@
                       "name": "Amount off products discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1287
+                      "y": 1317
                     },
                     {
                       "id": "E07UZ",
@@ -14805,7 +14828,7 @@
                       "name": "Amount off products external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1482
+                      "y": 1512
                     }
                   ]
                 }
@@ -15574,19 +15597,26 @@
                         "ivSB8": {
                           "content": "2 of 3 active"
                         },
+                        "VzjqX": {
+                          "height": 29
+                        },
                         "XpLgu": {
-                          "fill": "#E6F4FF",
-                          "stroke": "#91CAFF"
+                          "fill": "#FFFFFF",
+                          "stroke": "#F0F0F0",
+                          "height": 29
                         },
                         "Z1vwsU": {
                           "fill": "#1677FF"
+                        },
+                        "N7gsp": {
+                          "fill": "#262626"
                         },
                         "qPoG7": {
                           "icon": "circle-check",
                           "fill": "#1677FF"
                         },
-                        "N7gsp": {
-                          "fill": "#262626"
+                        "q2ZHZ": {
+                          "height": 28
                         },
                         "lvx0f": {
                           "content": "1 of 3 enabled"
@@ -15614,7 +15644,7 @@
                       "name": "Buy X Get Y availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1164,
+                      "y": 1194,
                       "descendants": {
                         "exHTS": {
                           "content": "Aug 1, 2026 at 00:00"
@@ -15640,7 +15670,7 @@
                       "name": "Buy X Get Y tags",
                       "width": 800,
                       "x": 0,
-                      "y": 1325,
+                      "y": 1355,
                       "descendants": {
                         "azXUc": {
                           "content": "bogo"
@@ -15657,7 +15687,7 @@
                       "name": "Buy X Get Y discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1420,
+                      "y": 1450,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -15736,7 +15766,7 @@
                       "name": "Buy X Get Y external references empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1557,
+                      "y": 1587,
                       "descendants": {
                         "RrC1t": {
                           "content": "0"
@@ -16258,19 +16288,26 @@
                         "ivSB8": {
                           "content": "2 of 3 active"
                         },
+                        "VzjqX": {
+                          "height": 29
+                        },
+                        "XpLgu": {
+                          "height": 29
+                        },
                         "q2ZHZ": {
-                          "fill": "#E6F4FF",
-                          "stroke": "#91CAFF"
+                          "fill": "#FFFFFF",
+                          "stroke": "#FFFFFF",
+                          "height": 28
                         },
                         "tAs4D": {
                           "fill": "#1677FF"
                         },
+                        "DrOmC": {
+                          "fill": "#262626"
+                        },
                         "LNdTk": {
                           "icon": "circle-check",
                           "fill": "#1677FF"
-                        },
-                        "DrOmC": {
-                          "fill": "#262626"
                         },
                         "lvx0f": {
                           "content": "2 of 3 enabled"
@@ -16312,7 +16349,7 @@
                       "name": "Amount off order availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1044,
+                      "y": 1074,
                       "descendants": {
                         "exHTS": {
                           "content": "Jun 1, 2026 at 00:00"
@@ -16442,7 +16479,7 @@
                       "name": "Amount off order tags",
                       "width": 800,
                       "x": 0,
-                      "y": 1204,
+                      "y": 1234,
                       "descendants": {
                         "azXUc": {
                           "content": "loyalty"
@@ -16459,7 +16496,7 @@
                       "name": "Amount off order discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1299,
+                      "y": 1329,
                       "descendants": {
                         "EFRB1": {
                           "content": "ORDER25"
@@ -16494,7 +16531,7 @@
                       "name": "Amount off order external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1494,
+                      "y": 1524,
                       "descendants": {
                         "APFYm": {
                           "content": "Shopify Plus"
@@ -16996,6 +17033,15 @@
                         "qbqu8": {
                           "content": "1 stale",
                           "fill": "#D48806"
+                        },
+                        "VzjqX": {
+                          "height": 29
+                        },
+                        "XpLgu": {
+                          "height": 29
+                        },
+                        "q2ZHZ": {
+                          "height": 28
                         }
                       }
                     },
@@ -17006,7 +17052,7 @@
                       "name": "Free shipping availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1044,
+                      "y": 1074,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 1, 2026 at 00:00"
@@ -17032,7 +17078,7 @@
                       "name": "Free shipping tags",
                       "width": 800,
                       "x": 0,
-                      "y": 1205,
+                      "y": 1235,
                       "descendants": {
                         "azXUc": {
                           "content": "shipping"
@@ -17049,7 +17095,7 @@
                       "name": "Free shipping discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1300,
+                      "y": 1330,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -17128,7 +17174,7 @@
                       "name": "Free shipping external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1437,
+                      "y": 1467,
                       "descendants": {
                         "RrC1t": {
                           "content": "1"
