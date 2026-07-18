@@ -38,8 +38,8 @@ CREATE UNIQUE INDEX "content_publication_destination_unique"
   ON "reviews"."content_publication" (
     "content_id",
     "channel",
-    COALESCE("locale"::text, '')
-  );
+    "locale"
+  ) NULLS NOT DISTINCT;
 
 CREATE INDEX "content_publication_schedule_idx"
   ON "reviews"."content_publication" ("scheduled_at", "id")
