@@ -15,7 +15,7 @@ export type ApplicationMemberStatus = "active" | "blocked";
 
 /**
  * Links a global Better Auth identity to an application.
- * Profile, credentials, sessions, verifications, and signing keys stay global.
+ * The user profile stays global; authentication state is scoped separately.
  */
 export const applicationMember = iamSchema.table(
   "application_member",

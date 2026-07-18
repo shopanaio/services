@@ -1,12 +1,14 @@
 import {
   text,
   boolean,
+  check,
   timestamp,
   index,
   uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { application } from "./authorization.js";
 import { iamSchema } from "./schema.js";
 
@@ -42,7 +44,7 @@ export type NewUser = typeof user.$inferInsert;
 // Session table
 // ============================================================================
 
-export type SessionScope = "platform" | "application";
+export type AuthScope = "platform" | "application";
 
 export const session = iamSchema.table(
   "session",
@@ -52,8 +54,8 @@ export const session = iamSchema.table(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     token: text("token").notNull().unique(),
-    scope: varchar("scope", { length: 16 })
-      .$type<SessionScope>()
+    authScope: varchar("scope", { length: 16 })
+      .$type<AuthScope>()
       .notNull()
       .default("platform"),
     applicationId: uuid("application_id").references(() => application.id, {
@@ -69,11 +71,15 @@ export const session = iamSchema.table(
     index("idx_session_user_id").on(table.userId),
     index("idx_session_application").on(table.applicationId),
     index("idx_session_scope_application").on(
-      table.scope,
+      table.authScope,
       table.applicationId
     ),
     uniqueIndex("idx_session_token").on(table.token),
     index("idx_session_expires_at").on(table.expiresAt),
+    check(
+      "chk_session_auth_scope_application",
+      sql`(${table.authScope} = 'platform' AND ${table.applicationId} IS NULL) OR (${table.authScope} = 'application' AND ${table.applicationId} IS NOT NULL)`
+    ),
   ]
 );
 
@@ -93,6 +99,13 @@ export const account = iamSchema.table(
       .references(() => user.id, { onDelete: "cascade" }),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(), // "credential", "google", "github", etc.
+    authScope: varchar("auth_scope", { length: 16 })
+      .$type<AuthScope>()
+      .notNull()
+      .default("platform"),
+    applicationId: uuid("application_id").references(() => application.id, {
+      onDelete: "cascade",
+    }),
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
     accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
@@ -105,7 +118,21 @@ export const account = iamSchema.table(
   },
   (table) => [
     index("idx_account_user_id").on(table.userId),
-    uniqueIndex("idx_account_provider").on(table.providerId, table.accountId),
+    index("idx_account_scope_application_user").on(
+      table.authScope,
+      table.applicationId,
+      table.userId
+    ),
+    uniqueIndex("idx_account_platform_provider")
+      .on(table.providerId, table.accountId)
+      .where(sql`${table.authScope} = 'platform'`),
+    uniqueIndex("idx_account_application_provider")
+      .on(table.applicationId, table.providerId, table.accountId)
+      .where(sql`${table.authScope} = 'application'`),
+    check(
+      "chk_account_auth_scope_application",
+      sql`(${table.authScope} = 'platform' AND ${table.applicationId} IS NULL) OR (${table.authScope} = 'application' AND ${table.applicationId} IS NOT NULL)`
+    ),
   ]
 );
 
@@ -122,13 +149,29 @@ export const verification = iamSchema.table(
     id: text("id").primaryKey(),
     identifier: text("identifier").notNull(), // email or other identifier
     value: text("value").notNull(), // verification code/token
+    authScope: varchar("auth_scope", { length: 16 })
+      .$type<AuthScope>()
+      .notNull()
+      .default("platform"),
+    applicationId: uuid("application_id").references(() => application.id, {
+      onDelete: "cascade",
+    }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_verification_identifier").on(table.identifier),
+    index("idx_verification_scope_application_identifier").on(
+      table.authScope,
+      table.applicationId,
+      table.identifier
+    ),
     index("idx_verification_expires_at").on(table.expiresAt),
+    check(
+      "chk_verification_auth_scope_application",
+      sql`(${table.authScope} = 'platform' AND ${table.applicationId} IS NULL) OR (${table.authScope} = 'application' AND ${table.applicationId} IS NOT NULL)`
+    ),
   ]
 );
 
