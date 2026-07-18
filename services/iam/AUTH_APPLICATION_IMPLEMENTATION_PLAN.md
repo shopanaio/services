@@ -7,7 +7,7 @@
 - **Базовая версия:** `better-auth@1.6.23`
 - **OAuth Provider:** `@better-auth/oauth-provider@1.6.23`
 - **Основная цель:** реализовать модель OAuth Application, управление правилами доступа и настраиваемые JWT claims средствами Better Auth, не создавая собственный OAuth/OIDC server.
-- **Стратегия запуска:** clean cutover без обратной совместимости, переноса auth-данных и параллельной поддержки legacy flow.
+- **Стратегия запуска:** атомарная замена исходного auth-flow и schema baseline в pre-release окружении без пользователей и сохраняемых auth-данных.
 
 ## 1. Итоговое архитектурное решение
 
@@ -47,19 +47,20 @@ Shopana реализует только интеграционный слой:
 
 ### 1.1 Условия clean cutover
 
-Реализация рассчитана на окружение без production-данных и активных пользователей. Новый OAuth flow вводится как единственный поддерживаемый способ получения access/refresh tokens.
+Реализация выполняется в pre-release окружении. Пользователей, accounts, sessions, access/refresh tokens, OAuth clients, grants, consents и Casbin bindings, которые требуется сохранить, нет.
 
-Не выполнять import, conversion или backfill для:
+Это schema/auth-flow replacement, а не data migration. Не реализовывать:
 
-- существующих пользователей и accounts;
-- Better Auth sessions;
-- legacy JWT и refresh/session tokens;
-- OAuth/OIDC clients, grants и consents;
-- Casbin roles и policies, связанных с прежним auth flow.
+- import, conversion или backfill прежних auth-данных;
+- dual read/write или compatibility adapters;
+- параллельную выдачу legacy и OAuth tokens;
+- grace period, purge campaign или runtime-механику отзыва несуществующих legacy sessions/tokens.
 
-После развёртывания принимаются только токены, выпущенные новым OAuth Provider. Legacy JWT и sessions считаются недействительными сразу, независимо от их оставшегося TTL. First-party clients создаются заново через bootstrap/deployment configuration.
+Generated Drizzle migration создаёт полную целевую IAM auth schema, включая core Better Auth models, OAuth Provider models и server-controlled session fields. Она может удалить obsolete pre-release auth/OIDC models или columns. Data migration и backfill отсутствуют.
 
-Миграция Drizzle в этом плане создаёт только актуальную схему OAuth Provider. Она не переносит и не преобразует данные прежней реализации аутентификации.
+До первой активации удалить legacy issuance/verification source code. Platform clients и актуальные RBAC definitions создаются server-controlled bootstrap. Пользователи, memberships, grants и consents после активации возникают только через новый flow.
+
+Если до cutover появятся данные, которые требуется сохранить, этот план должен быть пересмотрен как отдельный migration plan; текущий документ не разрешает применять clean-slate допущения к непустому окружению.
 
 ## 2. Распределение ответственности
 
@@ -79,7 +80,6 @@ Better Auth отвечает за:
 - consent;
 - JWT access tokens;
 - JWT ID tokens;
-- opaque access tokens, когда они допустимы;
 - scopes и resources/audiences;
 - JWKS и ротацию signing keys;
 - introspection и revocation;
@@ -96,6 +96,7 @@ IAM отвечает за:
 - Drizzle mapping схемы официального плагина;
 - выбор поддерживаемых scopes и audiences;
 - проверку владельца OAuth client через organization membership;
+- server-only привязку каждого client к разрешённым audiences/resources;
 - Casbin authorization для CRUD OAuth clients;
 - проверку актуального membership при выдаче claims;
 - mapping OAuth scopes на Shopana resources/actions;
@@ -135,7 +136,9 @@ Better Auth OAuth Provider
 Shopana IAM callbacks
   ├── clientReference → ownerOrganizationId
   ├── postLogin.consentReferenceId → authorizationOrganizationId
+  ├── getOAuthProviderState → signed/canonical OAuth query
   ├── clientPrivileges → Casbin
+  ├── mandatory resource guard
   ├── customAccessTokenClaims
   ├── customIdTokenClaims
   ├── customUserInfoClaims
@@ -184,16 +187,34 @@ Better Auth 1.6.23 ожидает `drizzle-orm ^0.45.2`, тогда как пр�
 
 ```typescript
 import { betterAuth } from "better-auth";
-import { bearer, jwt } from "better-auth/plugins";
-import { oauthProvider } from "@better-auth/oauth-provider";
+import { jwt } from "better-auth/plugins";
+import {
+  getOAuthProviderState,
+  oauthProvider,
+} from "@better-auth/oauth-provider";
 
 const auth = betterAuth({
-  baseURL: config.oauth.issuer,
+  baseURL: config.oauth.publicOrigin,
+  basePath: config.oauth.basePath,
   trustedOrigins: config.oauth.trustedOrigins,
   disabledPaths: ["/token"],
 
+  session: {
+    additionalFields: {
+      activeOrganizationId: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+      lastStrongAuthenticationAt: {
+        type: "date",
+        required: false,
+        input: false,
+      },
+    },
+  },
+
   plugins: [
-    bearer(),
     jwt({
       jwt: {
         issuer: config.oauth.issuer,
@@ -203,6 +224,8 @@ const auth = betterAuth({
           alg: "EdDSA",
           crv: "Ed25519",
         },
+        rotationInterval: 60 * 60 * 24 * 30,
+        gracePeriod: 60 * 60 * 24 * 7,
       },
       disableSettingJwtHeader: true,
     }),
@@ -217,6 +240,7 @@ const auth = betterAuth({
 
       accessTokenExpiresIn: 15 * 60,
       m2mAccessTokenExpiresIn: 10 * 60,
+      clientCredentialGrantDefaultScopes: [],
 
       scopes: [
         "openid",
@@ -248,23 +272,77 @@ const auth = betterAuth({
 
 Конкретные URLs и scopes должны поступать из типизированной конфигурации Shopana, а не быть разбросаны строками по сервису.
 
+`bearer()` не входит в целевую конфигурацию: OAuth Provider не требует его, а Better Auth session token не должен приниматься как API bearer. `disabledPaths: ["/token"]` отключает legacy JWT token endpoint, а не `<auth-base>/oauth2/token` Provider.
+
+Автоматическая ротация signing keys JWT plugin по умолчанию не предполагается. `rotationInterval` задаётся явно, а `gracePeriod` должен превышать максимальный access/ID token TTL, допустимый clock skew и JWKS cache window. Clean-slate deployment создаёт новый первоначальный signing key без переноса прежних JWKS.
+
 `loginPage`, `consentPage` и `postLogin.page` должны быть абсолютными внешними URLs Admin frontend из validated configuration. IAM не обслуживает HTML/SPA этих страниц.
 
 JWT plugin должен использовать тот же canonical HTTPS issuer, что и OAuth Provider. Значения вроде `shopana-iam`, внутренний hostname или адрес отдельного pod не являются допустимым production issuer.
 
 ### 5.1 HTTP topology OAuth Provider
 
-До добавления GraphQL facade IAM должен предоставить публичный HTTP-контур Better Auth:
+Для production v1 используется один browser origin с path-based routing. Значения задаются typed config, например:
+
+```text
+config.oauth.publicOrigin = https://admin.shopana.io
+config.oauth.basePath = /api/auth
+
+/api/auth/<public-allowlist> → IAM Fastify / Better Auth
+/api/auth/* otherwise        → 404 до auth.handler
+/.well-known/<allowlist>     → IAM Fastify
+/graphql                     → Hive Gateway
+остальные routes             → Admin frontend
+```
+
+Далее `<auth-base>` означает внешний `config.oauth.basePath` (`/api/auth` в примере). Любой Provider path используется только как `<auth-base>/oauth2/...`; root aliases `/oauth2/...` не создаются.
+
+До добавления GraphQL facade IAM должен предоставить HTTP-контур Better Auth:
 
 - смонтировать `auth.handler` в IAM Fastify server;
-- направить в него `/oauth2/*`, `/jwks` и `/.well-known/*` согласно фактическому auth base path;
-- опубликовать эти маршруты через внешний gateway/reverse proxy без изменения canonical issuer;
-- корректно передавать `host`, `proto`, client IP и request ID через trusted proxy configuration;
-- настроить secure/httpOnly/SameSite cookies, `trustedOrigins` и production CORS policy;
-- не применять GraphQL authentication middleware к OAuth/discovery endpoints;
+- направить в него только explicit public allowlist OAuth, session, JWKS и discovery paths согласно установленной версии и `basePath`;
+- опубликовать маршруты через конкретный edge/reverse-proxy component без изменения canonical issuer;
+- удалить недоверенные client-supplied forwarded headers и выставить `host`, `proto`, client IP и request ID доверенным proxy;
+- использовать host-only cookie с `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` и предпочтительно `__Host-` prefix;
+- не задавать cookie `Domain` и не включать broad cross-subdomain cookies;
+- оставить production browser flow same-origin; dev origins разрешать только точным allowlist;
+- не применять GraphQL authentication middleware к OAuth/session/discovery endpoints;
 - проверить, что discovery metadata содержит внешние, а не внутренние URLs.
 
-OAuth endpoints и GraphQL могут находиться на одном Fastify instance, но их middleware chains должны быть разделены.
+`baseURL`, issuer и endpoint URLs формируются только из `publicOrigin` и явного `basePath`; точным canonical issuer считается значение из discovery metadata. Gateway передаёт `cookie`, `origin`, `user-agent` и request ID только в IAM subgraph для OAuth Application management, но не broadcast-ит session cookie в другие subgraphs.
+
+OAuth endpoints и GraphQL имеют разные middleware chains. Separate-origin production topology в первую версию не входит: она потребовала бы отдельного BFF/cross-origin cookie design и нового security review.
+
+Public route allowlist v1 фиксируется без wildcard:
+
+```text
+<auth-base>/sign-up/email
+<auth-base>/sign-in/email
+<auth-base>/get-session
+
+<auth-base>/oauth2/authorize
+<auth-base>/oauth2/token
+<auth-base>/oauth2/consent
+<auth-base>/oauth2/continue
+<auth-base>/oauth2/userinfo
+<auth-base>/oauth2/introspect
+<auth-base>/oauth2/revoke
+<auth-base>/oauth2/public-client
+<auth-base>/oauth2/public-client-prelogin
+
+<auth-base>/shopana/organizations
+<auth-base>/shopana/organization/bootstrap
+<auth-base>/shopana/organization/select
+<auth-base>/shopana/logout
+<auth-base>/shopana/policy/complete
+
+configured JWKS path
+issuer-specific OAuth/OIDC discovery paths
+```
+
+Social-provider callback, email verification/reset и `end-session` paths добавляются в allowlist только одновременно с соответствующей реализованной feature; `end-session` дополнительно требует client `enableEndSession` и `id_token_hint` flow. Dynamic registration, client create/get/list/update/delete, secret rotation, admin OAuth endpoints и все неизвестные paths отклоняются до `auth.handler`. Allowlist хранится как version-pinned configuration и пересматривается при upgrade Provider.
+
+Core `/sign-out` наружу не публикуется: он обошёл бы удаление OAuth refresh grants. `<auth-base>/shopana/logout` сначала выполняет lifecycle cleanup, затем вызывает core Better Auth sign-out in-process.
 
 ### 5.2 OAuth UI topology
 
@@ -276,15 +354,31 @@ OAuth endpoints и GraphQL могут находиться на одном Fasti
 
 IAM обслуживает только Better Auth HTTP endpoints, включая authorization, token, consent/continue API, JWKS и discovery. Admin frontend обслуживает HTML, JavaScript и browser navigation для OAuth UI.
 
-Reverse proxy должен маршрутизировать запросы по внешнему hostname и path без подмены canonical issuer:
+Reverse proxy должен маршрутизировать запросы по единому внешнему origin и path без подмены canonical issuer:
 
 - OAuth/Better Auth paths фактического auth base path направляются в IAM Fastify;
 - пути страниц из `config.oauth.ui.*` направляются в Admin frontend;
-- если IAM и Admin frontend опубликованы на разных origins, `trustedOrigins`, credentialed CORS и cookie policy должны явно разрешать только configured Admin frontend origin;
 - Admin frontend вызывает consent/continue endpoints с `credentials: "include"` и передаёт только подписанный OAuth Provider параметр `oauth_query`;
 - GraphQL authentication middleware не применяется к OAuth protocol endpoints.
 
-Допускается один внешний hostname с path-based routing или отдельные hostnames для IAM issuer и Admin frontend. В обоих вариантах discovery metadata, redirects и cookies проверяются по внешним URLs, а не по внутренним адресам сервисов.
+Discovery metadata, redirects и cookies проверяются по внешним URLs, а не по внутренним адресам сервисов.
+
+### 5.3 Typed configuration
+
+`ServiceConfigSchema.passthrough()` не является достаточной OAuth validation. IAM добавляет отдельный Zod contract как минимум для:
+
+- `publicOrigin`, `issuer` и `basePath`;
+- UI/callback/logout URLs;
+- exact trusted/dev origins;
+- global audiences и scope registry;
+- Admin redirect/post-logout URIs;
+- access/M2M token TTL;
+- maximum organization clients/list size;
+- JWKS rotation/grace;
+- cookie name/prefix и proxy trust policy;
+- platform client allowlist и server-only allowed resources.
+
+Config validation должна отклонять non-HTTPS production URLs, relative external URLs, wildcard origins/resources и несовпадение configured issuer с discovery issuer.
 
 ## 6. OAuth Client как Application
 
@@ -311,9 +405,30 @@ Reverse proxy должен маршрутизировать запросы по 
 
 ### 6.1 Владение приложением
 
-`oauthClient.reference_id` означает organization-владельца приложения и используется только для CRUD ownership. Назовём это значение `ownerOrganizationId`.
+Первая версия поддерживает два вида ownership и не поддерживает user-owned clients:
 
-Текущая IAM session не содержит `activeOrganizationId`. До подключения OAuth Provider IAM должен добавить его как server-controlled additional session field и реализовать авторизованную операцию переключения активной организации. Операция обязана проверить актуальный `organizationMember` и не должна принимать membership на доверии от клиента.
+```typescript
+type OAuthClientOwnership =
+  | { kind: "organization"; ownerOrganizationId: string }
+  | { kind: "platform" };
+```
+
+Для organization-managed client `oauthClient.reference_id` равен `ownerOrganizationId` и используется только для CRUD ownership. Platform client использует зарезервированный server-controlled reference `platform:shopana`, исключённый из tenant CRUD.
+
+Текущая IAM session не содержит `activeOrganizationId`. До подключения OAuth Provider IAM должен добавить nullable server-controlled additional session field с `input: false` и реализовать custom session HTTP endpoint `activeOrganizationSelect` внутри Better Auth/IAM auth chain. Endpoint использует только действительную session cookie, exact origin/CSRF protection и server-side membership check; bearer token на этом pre-authorization шаге ещё отсутствует. Он не должен принимать membership или organization header как доказательство доступа и очищает поле при удалении membership/organization.
+
+Cookie-only GET endpoint `authorizationOrganizations` возвращает минимальный список `{ id, name }` только из актуальных memberships текущей session user. Он не принимает user/organization filters, не возвращает role/policy graph и использует same-origin/no-store response. Organization-selection UI не обращается за этим списком к bearer-protected GraphQL.
+
+Для первого пользователя clean-slate окружения нужен отдельный pre-authorization onboarding endpoint, поскольку organization-bound token ещё нельзя получить. `organizationBootstrap` работает в той же cookie-only auth chain и:
+
+- доступен только действительной session пользователя без memberships;
+- использует exact origin, CSRF protection, Zod input и idempotency key;
+- транзакционно создаёт organization, owner membership и обязательные system-role bindings;
+- устанавливает `session.activeOrganizationId` server-side;
+- публикует audit event и при retry возвращает тот же результат;
+- не выдаёт token и не предоставляет site-admin privileges.
+
+После появления хотя бы одного membership обычное создание организаций выполняется целевым авторизованным API, а bootstrap endpoint для этого пользователя закрыт.
 
 После этого для владения приложением использовать встроенный `clientReference`:
 
@@ -321,7 +436,7 @@ Reverse proxy должен маршрутизировать запросы по 
 clientReference: async ({ user, session }) => {
   const organizationId = session?.activeOrganizationId as string | undefined;
   if (!user || !organizationId) {
-    throw new Error("Active organization is required for OAuth client management");
+    throw oauthManagementError("ACTIVE_ORGANIZATION_REQUIRED");
   }
 
   await assertOrganizationMembership(user.id, organizationId);
@@ -329,31 +444,35 @@ clientReference: async ({ user, session }) => {
 }
 ```
 
-`reference_id` OAuth client соответствует `organizationId` Shopana.
+Ожидаемые отказы callback оформляются контролируемой Better Auth/API error, а не generic `Error`/500.
 
-Первая версия Shopana поддерживает только organization-owned OAuth clients. User-owned clients не создаются и не отображаются. Любая create/list/read/update/delete/rotate операция требует действительную session с `activeOrganizationId`, актуальный organization membership и успешную Casbin-проверку.
+Любая tenant create/list/read/update/delete/disable/rotate операция требует действительную session с `activeOrganizationId`, актуальный organization membership и успешную Casbin-проверку. Platform clients не отображаются и не изменяются этим API.
 
 `clientReference` обязан всегда возвращать проверенный `activeOrganizationId` или отклонять операцию. Возврат `undefined` недопустим для Shopana client management, поскольку Better Auth в этом случае может создать user-owned client через `user_id`.
 
-Не дублировать `organizationId` в отдельной таблице без необходимости.
-
 `clientReference` не задаёт tenant context access token. Для user authorization tenant выбирается отдельно через `postLogin.consentReferenceId` и сохраняется как reference consent/authorization. Это значение называется `authorizationOrganizationId`.
 
-Приложение, принадлежащее одной организации, может быть разрешено для работы с другой организацией только если это явно поддерживаемый third-party сценарий и пользователь состоит в целевой организации. Для internal organization-bound clients дополнительно проверять равенство `ownerOrganizationId === authorizationOrganizationId`.
+Приложение, принадлежащее одной организации, может быть разрешено для работы с другой организацией только если это явно поддерживаемый third-party сценарий и пользователь состоит в целевой организации. Для internal organization-bound clients дополнительно проверять равенство `ownerOrganizationId === authorizationOrganizationId`. Для platform Admin client это равенство неприменимо: client не получает прав владельца в выбранной пользователем организации.
 
 ### 6.2 Platform clients
 
-Shopana Admin и другие first-party clients должны создаваться как trusted/cached clients через поддерживаемый Better Auth механизм.
+`adminCreateOAuthClient` не используется для deployment bootstrap: в версии `1.6.23` он требует действительную Better Auth session, не принимает заданный `client_id` и использует глобальный `generateClientId()`.
 
-Для них допускается:
+В clean-slate deployment Shopana Admin создаётся idempotent bootstrap seed через узкий IAM OAuth lifecycle repository по точной schema OAuth Provider `1.6.23`. Это разрешённое исключение из общего запрета прямой записи в OAuth tables.
 
-- фиксированный стабильный `client_id`;
-- запрет редактирования через обычный client CRUD;
-- consent bypass только для явно доверенных first-party applications;
-- инициализация при bootstrap/deployment;
-- отдельная проверка site admin для конфигурационных изменений.
+Bootstrap:
 
-Нельзя разрешать organization admin устанавливать trusted или skip-consent flags.
+- задаёт стабильный `clientId`, `reference_id = platform:shopana`, public-client settings, redirect URIs, scopes, PKCE и timestamps;
+- записывает только server-controlled metadata, включая `allowedResources`;
+- добавляет созданный ID в `cachedTrustedClients` configuration;
+- выполняется до открытия OAuth HTTP routes;
+- проверяет существующую запись на полное совпадение и fail-fast при drift.
+
+`cachedTrustedClients` не создаёт client: он только кэширует уже существующую запись и делает её immutable для обычных/admin endpoints. Изменение platform client выполняется deployment configuration + controlled bootstrap/restart, а не tenant GraphQL CRUD.
+
+Startup order фиксирован: apply schema migration → run idempotent platform seed → create Better Auth с `cachedTrustedClients` → открыть listener. Нельзя запускать auth instance с cached ID, для которого ещё нет записи в database.
+
+Consent bypass допускается только для server-controlled platform allowlist. Organization admin не может установить trusted/cached/skip-consent flags или превратить tenant client в platform client.
 
 ### 6.3 Public clients
 
@@ -379,17 +498,26 @@ Web/server applications:
 
 GraphQL resolvers не должны напрямую изменять OAuth tables.
 
-Resolvers запускают IAM scripts через `Kernel.runScript`. Scripts выполняют Casbin authorization, вызывают server API Better Auth и публикуют audit events:
+Resolvers запускают IAM scripts через `Kernel.runScript`. Scripts выполняют Casbin authorization, вызывают server API Better Auth и публикуют audit events для:
 
 - `createOAuthClient`;
 - `getOAuthClient`;
 - list OAuth clients;
 - update OAuth client;
-- delete/disable OAuth client;
+- delete OAuth client;
 - generate/rotate client secret, если поддерживается соответствующим endpoint;
-- consent/revocation endpoints.
+- Shopana-managed disable и bulk lifecycle операций.
 
-Для обычных полей использовать пользовательские OAuth client endpoints. Server-only `adminCreateOAuthClient`/`adminUpdateOAuthClient` допускаются только внутри IAM scripts для trusted client bootstrap или restricted полей вроде `disabled`, после явной проверки owner, site-admin/Casbin permissions и allowlist обновляемых полей. Generic admin update input наружу не передавать.
+Для полей, реально поддерживаемых установленным server API, использовать Better Auth client endpoints. `adminCreateOAuthClient`/`adminUpdateOAuthClient` требуют действительную session, не принимают фиксированный `client_id` и в `1.6.23` не поддерживают `disabled`. Generic Better Auth admin input наружу не передавать.
+
+Узкий audited OAuth lifecycle repository разрешён только для возможностей, отсутствующих в server API `1.6.23`:
+
+- idempotent bootstrap platform client с фиксированным ID;
+- server-controlled `metadata.allowedResources` при невозможности безопасно записать его через server API;
+- disable/enable lifecycle flag;
+- bulk revoke refresh/opaque tokens и cleanup consent/policy state.
+
+Repository version-pinned к schema `1.6.23`, не экспортируется resolver-ам и не превращается в generic table CRUD. Обычные create/read/update/delete/rotate операции по-прежнему проходят через Better Auth API.
 
 GraphQL нужен как Shopana-facing facade для:
 
@@ -400,7 +528,7 @@ GraphQL нужен как Shopana-facing facade для:
 - audit events;
 - скрытия restricted Better Auth fields.
 
-Обычные `/oauth2/create-client`, `/oauth2/update-client`, `/oauth2/delete-client` и rotate endpoints остаются официальными endpoints Better Auth и защищаются тем же `clientPrivileges`. GraphQL facade не должен создавать расходящуюся модель ownership.
+Внешний edge не публикует Better Auth client-management endpoints (`create-client`, `update-client`, `delete-client`, list/get и rotate). Они вызываются только как server API из IAM scripts. Публично доступны OAuth protocol/session/discovery endpoints, а Shopana management доступен только через GraphQL facade. Это обеспечивает единые Zod inputs, restricted fields, Casbin и audit.
 
 Better Auth client CRUD требует действительную Better Auth session. После перехода Admin на OAuth access tokens management requests используют одновременно:
 
@@ -409,15 +537,46 @@ Better Auth client CRUD требует действительную Better Auth 
 
 GraphQL server формирует для `auth.api.*` allowlist исходных session headers текущего запроса: `cookie`, `origin`, `user-agent` и проверенные proxy headers. OAuth `Authorization: Bearer ...` не передаётся как Better Auth session token. Нельзя синтезировать session из `userId`, JWT claims или organization header. Management mutations должны использовать same-site cookie policy и CSRF protection.
 
-### 7.1 GraphQL namespaces
+### 7.1 Связывание OAuth JWT и Better Auth session
+
+До resolver/script IAM GraphQL boundary создаёт одну проверенную management identity:
+
+```typescript
+interface OAuthApplicationManagementIdentity {
+  principal: { kind: "user"; id: string };
+  sessionId: string;
+  clientId: string;
+  organizationId: string;
+  audience: string[];
+  scopes: string[];
+}
+```
+
+Boundary обязан:
+
+1. проверить bearer JWT официальным resource client;
+2. запретить M2M principal для tenant application management первой версии;
+3. потребовать management audience и `admin:read`/`admin:write` согласно операции;
+4. получить Better Auth session только из исходной secure cookie;
+5. потребовать `jwt.userId === session.userId`;
+6. потребовать обязательный Admin JWT `sid` и `jwt.sessionId === session.id`;
+7. потребовать `jwt.organizationId === session.activeOrganizationId`;
+8. повторно проверить актуальный organization membership;
+9. передать один `principal`/`sessionId`/`organizationId` в GraphQL policy, script и audit.
+
+`clientPrivileges` независимо повторяет session, membership и Casbin checks как defense in depth, но не выбирает другой tenant. JWT пользователя A с cookie пользователя B, JWT другой session того же пользователя, JWT organization A с active organization B и M2M bearer с browser session всегда отклоняются.
+
+После смены `activeOrganizationId` старый organization-bound access token непригоден для management request. Admin проходит новый Authorization Code flow; refresh старого grant не меняет authorization organization.
+
+### 7.2 GraphQL namespaces
 
 Использовать `oauthApplicationQuery` и `oauthApplicationMutation`, чтобы не конфликтовать с сервисом `apps`.
 
 ```graphql
 type OAuthApplicationQuery {
-  applications(first: Int, after: String): OAuthApplicationConnection!
+  applications: [OAuthApplication!]!
 
-  application(clientId: ID!): OAuthApplication
+  application(clientId: String!): OAuthApplication
   availableScopes: [OAuthScope!]!
   availableAudiences: [OAuthAudience!]!
 }
@@ -443,13 +602,18 @@ type OAuthApplicationMutation {
     input: OAuthApplicationSecretRotateInput!
   ): OAuthApplicationSecretRotatePayload!
 }
+
 ```
 
-Названия GraphQL types могут содержать `Application`, но persistence и business source of truth остаются в Better Auth `oauthClient`.
+`OAuthApplication` содержит GraphQL global `id: ID!` и отдельный protocol identifier `clientId: String!`. Mutation inputs принимают `clientId: String!`, а не смешивают OAuth identifier с Relay ID. Тип не возвращает secret hash, raw `reference_id`, `user_id`, private metadata или trusted flags. Plaintext secret существует только в create/rotate payload, возвращается один раз и помечается `Cache-Control: no-store`.
+
+`getOAuthClients` версии `1.6.23` не предоставляет cursor pagination. Первая версия возвращает ограниченный quota список текущей организации без фиктивного Relay connection; pagination добавляется только вместе со стабильным source-level ordering/cursor strategy.
 
 Список приложений всегда определяется текущим `activeOrganizationId` через `clientReference`. Произвольный `organizationId` не принимается как фильтр, чтобы не создавать второй источник tenant context.
 
-### 7.2 Restricted fields
+Provider errors преобразуются в стабильные Shopana `userErrors { code field message }`. Этап включает IAM schema registration/codegen, federation compose и отдельный Admin codegen. `activeOrganizationSelect` не является OAuth Application GraphQL mutation и не попадает под dual-credential boundary раздела 7.1; его отдельный cookie-only contract описан в разделе 6.1.
+
+### 7.3 Restricted fields
 
 Через organization-level GraphQL API нельзя напрямую задавать:
 
@@ -472,6 +636,17 @@ iam.oauth_credentials: read | write | admin
 iam.oauth_consents: read | write | admin
 ```
 
+Ресурсы добавляются в статический registry/validators `@shopana/rbac` и в default organization-admin role. Матрица операций фиксируется явно:
+
+| Операция | Resource/action |
+| --- | --- |
+| list/read application | `iam.oauth_applications/read` |
+| create/update application | `iam.oauth_applications/write` |
+| disable/delete application | `iam.oauth_applications/admin` |
+| create/rotate/revoke secret | `iam.oauth_credentials/admin` |
+| revoke consent | `iam.oauth_consents/write` |
+| platform/trusted configuration | site-admin + deployment-only |
+
 Проверку встроить в `clientPrivileges`:
 
 ```typescript
@@ -481,12 +656,14 @@ clientPrivileges: async ({ action, user, session, headers }) => {
 
   await assertOrganizationMembership(user.id, organizationId);
 
+  const permission = mapClientAction(action);
+
   return casbin.enforce({
     organizationId,
     principal: { kind: "user", id: user.id },
     domain: "org",
-    resource: "iam.oauth_applications",
-    action: mapClientAction(action),
+    resource: permission.resource,
+    action: permission.action,
   });
 }
 ```
@@ -502,11 +679,11 @@ clientPrivileges: async ({ action, user, session, headers }) => {
 IAM должен расширить программный API `CasbinService`, чтобы он принимал типизированный principal, а не считал любой subject пользователем:
 
 ```typescript
-type CasbinPrincipal =
+export type AuthorizationPrincipal =
   | { kind: "user"; id: string }
   | { kind: "oauth-client"; id: string };
 
-function formatCasbinSubject(principal: CasbinPrincipal): string {
+function formatCasbinSubject(principal: AuthorizationPrincipal): string {
   return `${principal.kind}:${principal.id}`;
 }
 ```
@@ -519,9 +696,21 @@ function formatCasbinSubject(principal: CasbinPrincipal): string {
 - удаление всех bindings principal;
 - audit и cache invalidation.
 
-Для пользователей используется формат `user:{userId}`, для machine clients — `oauth-client:{clientId}`. Существующие roles и policies не переносятся и не преобразуются; необходимые bindings создаются заново после clean cutover.
+Для пользователей используется формат `user:{userId}`, для machine clients — `oauth-client:{clientId}`. Поскольку сохраняемых policies нет, старые subjects не мигрируются и не преобразуются; system roles/bindings создаются сразу в целевом формате.
 
-Нельзя передавать заранее отформатированную строку в API, который дополнительно добавляет `user:`. Публичные методы Casbin integration должны принимать `CasbinPrincipal` и форматировать subject ровно один раз.
+Нельзя передавать заранее отформатированную строку в API, который дополнительно добавляет `user:`. Публичные методы Casbin integration должны принимать общий `AuthorizationPrincipal` и форматировать subject ровно один раз.
+
+Typed principal является общей authorization foundation, а не локальным изменением `CasbinService`. До реализации `clientPrivileges` и resource verification его необходимо протянуть через:
+
+- `@shopana/rbac` `AuthorizeParams`/`AuthProvider`;
+- `@shopana/shared-kernel` policy execution;
+- `@shopana/type-resolver` type policies;
+- `@shopana/shared-context` и IAM `ServiceContext`;
+- `iam.getCurrentPrincipal`, `iam.authorize` и batch broker DTO/actions;
+- admin contexts/AuthProviders всех subgraphs;
+- role/direct-policy operations, audit и authorization cache keys.
+
+Строковый `subject` существует только внутри Casbin boundary после formatter. Site-admin/organization-owner bypass применяется только к `{ kind: "user" }`. Machine principal не проходит через `currentUser`, `isAdmin(userId)`, `isOwner(userId)` или другие user-only методы. Для machine role assignments использовать generic Casbin policy storage; не записывать OAuth client в физически user-specific `user_role`.
 
 ## 9. Scopes и Casbin permissions
 
@@ -554,6 +743,8 @@ organization:admin
 
 Не генерировать scope для каждого ID ресурса и каждой отдельной Casbin policy.
 
+Каждый M2M client обязан иметь явный непустой набор non-OIDC scopes. `clientCredentialGrantDefaultScopes` задаётся пустым списком, чтобы Client Credentials Flow не наследовал глобальные `openid/profile/email/offline_access` при отсутствии client-specific scopes.
+
 ### 9.2 Mapping scopes на authorization requirements
 
 Хранить mapping централизованно в IAM/RBAC package:
@@ -572,7 +763,9 @@ const SCOPE_REQUIREMENTS = {
 } as const;
 ```
 
-На request boundary проверяются scope и audience. В business operation дополнительно выполняется обычный Casbin check для фактического resource/domain.
+Shared resource-server middleware проверяет signature/issuer/audience/expiration и формирует verified principal. Требуемые scopes задаются operation-level metadata/decorator и проверяются до запуска resolver/script. В business operation дополнительно выполняется обычный Casbin check для фактического resource/domain.
+
+Gateway выполняет внешнюю базовую проверку, но subgraphs не доверяют unsigned organization/user headers: каждый subgraph использует общий verified-token middleware либо подписанный внутренний context contract. Для v1 выбран общий verifier raw bearer JWT в IAM/admin subgraphs с JWKS caching; operation-specific scope и Casbin checks выполняются в фактическом resource service.
 
 ### 9.3 Scope expiration
 
@@ -603,11 +796,25 @@ validAudiences: [
 
 Production URLs должны поступать из validated service config.
 
+`validAudiences` является только глобальным allowlist Provider. Он не означает, что любой client может получить token для любого Shopana API. Разрешённые конкретному client resources хранятся в server-only `oauthClient.metadata.allowedResources`, которое заполняет только IAM script/bootstrap/lifecycle repository.
+
 ### 10.2 Обязательный `resource`
 
-Клиенты Shopana должны передавать `resource` при authorization/token flow.
+В OAuth Provider `1.6.23` параметр `resource` поддерживается только в `<auth-base>/oauth2/token`, является optional и не хранится в OAuth client, authorization code или refresh token. Shopana делает его обязательным через Better Auth `hooks.before` для каждого:
 
-Для валидного resource OAuth Provider выпускает JWT access token, который API проверяет локально через JWKS.
+- authorization-code exchange;
+- refresh-token request;
+- client-credentials request.
+
+Отсутствующий или неизвестный `resource` отклоняется до выдачи token. Клиент обязан повторно передавать `resource` при каждом refresh. Передавать `resource` в `<auth-base>/oauth2/authorize` не требуется и контрактом `1.6.23` не поддерживается.
+
+Pre-token guard выполняется до Provider side effects: authorization code не потребляется, refresh token не ротируется и новый refresh token не создаётся, пока resource policy не пройдена. Guard извлекает candidate client ID из body/Basic credentials, загружает его server-only metadata и может только отклонить запрос; он не считает client аутентифицированным и не выдаёт claims.
+
+После guard Provider сам аутентифицирует client, связывает code/refresh token с ним и выбирает JWT branch. `customAccessTokenClaims` повторно проверяет тот же shared `assertClientResourceAllowed(resource, metadata.allowedResources)` уже на metadata аутентифицированного Provider client. Таким образом подмена body `client_id` не может расширить доступ, а policy failure не оставляет rotated/consumed credentials.
+
+Missing/forbidden resource возвращает контролируемую OAuth/API error (`invalid_target` либо согласованный стабильный code), а не generic 500. Guard является middleware вокруг official token endpoint, но не собственным token endpoint.
+
+Opaque access tokens в Shopana flows не выпускаются и Shopana API их не принимают. Если позднее понадобится opaque-token flow, он требует отдельного architecture decision и обязательной introspection.
 
 Resource servers Shopana должны:
 
@@ -619,8 +826,6 @@ Resource servers Shopana должны:
 - проверять `exp` и `nbf`;
 - требовать нужные scopes;
 - проверять `azp`/client identity, когда это необходимо.
-
-Opaque tokens оставить только для flows, где явно используется introspection и это согласовано архитектурно.
 
 ### 10.3 Resource client
 
@@ -641,7 +846,11 @@ customAccessTokenClaims: async ({
   user,
   scopes,
   referenceId,
+  resource,
+  metadata,
 }) => {
+  assertClientResourceAllowed(resource, metadata?.allowedResources);
+
   if (!user) {
     // M2M identity is represented by the provider-managed `azp` claim.
     // Tenant context is resolved by the resource server from verified `azp`.
@@ -649,7 +858,7 @@ customAccessTokenClaims: async ({
   }
 
   if (requiresOrganizationContext(scopes) && !referenceId) {
-    throw new Error("Organization context is required for Shopana scopes");
+    throw oauthTokenError("organization_context_required");
   }
   if (referenceId) {
     await assertOrganizationMembership(user.id, referenceId);
@@ -672,10 +881,12 @@ customAccessTokenClaims: async ({
 Callback access-token claims отклоняет выпуск токена, если:
 
 - пользователь больше не состоит в организации;
-- organization suspended/deleted;
+- organization удалена или недоступна;
 - обязательный organization context отсутствует.
 
-Состояние OAuth client проверяет сам OAuth Provider. Application login policy исполняется в `postLogin` flow, а не внутри claims callback, потому что callback не получает `clientId`, session assurance state или grant type.
+Все ожидаемые resource/membership/organization denials преобразуются в стабильные OAuth/API errors. Generic `Error` в authorize/token callbacks запрещён, чтобы policy denial не превращался в необъяснимый HTTP 500.
+
+Claims callback не получает `clientId` отдельным аргументом. Per-client login policy исполняется в `postLogin` через `getOAuthProviderState()` и server-side completion state; claims callback отвечает за client resource allowlist и актуальность membership/organization при issuance/refresh.
 
 Здесь `referenceId` является `authorizationOrganizationId`, установленным через `postLogin.consentReferenceId`, а не `oauthClient.reference_id` владельца приложения.
 
@@ -695,7 +906,7 @@ Fine-grained permissions не помещать в ID token.
 
 ### 11.3 UserInfo claims
 
-Использовать `customUserInfoClaims` для claims, доступных через `/oauth2/userinfo` согласно выданным scopes.
+Использовать `customUserInfoClaims` для claims, доступных через `<auth-base>/oauth2/userinfo` согласно выданным scopes.
 
 Не возвращать email/profile без соответствующего scope.
 
@@ -726,41 +937,59 @@ https://shopana.io/claims/policy_version
 - Не считать roles/permissions в JWT источником истины для критических операций.
 - Все дополнительные claims объявить в `advertisedMetadata.claims_supported`.
 
+В `1.6.23` `advertisedMetadata.claims_supported` заменяет, а не дополняет built-in список. Конфигурация должна перечислять стандартные OIDC claims и Shopana custom claims вместе.
+
 ## 12. Application-specific login policy
 
 OAuth Provider не является полноценным движком правил login на уровне каждого client. Для этой части допускается небольшой Shopana extension.
 
 ### 12.1 Companion policy table
 
-Создать только при наличии реально исполняемых настроек:
+Tables создаются пустыми в clean target schema baseline, чтобы activation не требовал второй schema mode. GraphQL fields и enforcement включаются только одновременно с реально исполняемыми настройками:
 
 ```text
 iam.oauth_client_policy
   client_id
   require_email_verification
   max_authentication_age
-  allowed_identity_providers
   policy_version
   updated_at
+
+iam.oauth_authorization_policy_state
+  id
+  session_id
+  client_id
+  authorization_request_hash
+  authorization_organization_id
+  policy_version
+  completed_at
+  consumed_at
+  expires_at
 ```
 
 Не дублировать в ней redirect URIs, scopes, audiences, client secrets, grants, tokens или consent.
 
 `client_id` логически ссылается на Better Auth `oauthClient`.
 
+`allowed_identity_providers` не входит в первый schema/API, пока IAM не хранит и не проверяет server-verified authentication method. Поле добавляется только одновременно с реальным enforcement.
+
 ### 12.2 Enforcement
 
 Policy должна проверяться в реальном flow:
 
 1. OAuth Provider выполняет login и передаёт только подписанный `oauth_query`;
-2. `postLogin.shouldRedirect` определяет необходимость выбора organization и дополнительных login requirements;
-3. страница `postLogin.page` получает client только через проверенный OAuth Provider flow, загружает `oauth_client_policy` и требует email verification/recent authentication;
-4. после успешного выполнения страница вызывает официальный `oauth2Continue({ postLogin: true })`;
-5. `postLogin.consentReferenceId` возвращает проверенный `activeOrganizationId` для Shopana scopes или отклоняет flow;
-6. при выпуске и refresh access token `customAccessTokenClaims` повторно проверяет актуальный membership и состояние organization;
-7. изменение login policy отзывает связанные refresh tokens/grants и требует нового authorization flow; уже выпущенные новым OAuth Provider JWT доживают не дольше настроенного короткого TTL.
+2. `postLogin` callbacks получают client не аргументом: они вызывают async request-local `getOAuthProviderState()`, разбирают `client_id` из `state.query` и повторно загружают client из official adapter; callbacks выполняются после Provider validation исходного authorization request;
+3. IAM загружает официальный `oauthClient` и `oauth_client_policy`, выбирает organization и создаёт короткоживущий one-time completion record, связанный с session, client, hash authorization request, organization и policy version;
+4. IAM completion endpoint работает внутри Better Auth request pipeline, принимает подписанный `oauth_query` и действительную session; Provider hook сначала проверяет подпись и заполняет `getOAuthProviderState()`, после чего endpoint повторно загружает client и сверяет hash canonical query;
+5. endpoint проверяет email verification, `lastStrongAuthenticationAt`, membership и другие реально поддержанные требования, затем отмечает record completed;
+6. `postLogin.shouldRedirect` разрешает продолжение только при совпадающем completed record; прямой `<auth-base>/oauth2/continue` без выполненной policy снова приводит к redirect/controlled reject;
+7. `postLogin.consentReferenceId` через тот же validated client проверяет membership и для organization-bound internal client равенство `ownerOrganizationId === authorizationOrganizationId`;
+8. UI вызывает официальный `oauth2Continue({ postLogin: true, oauth_query })`; record одноразово потребляется и истекает вместе с authorization request;
+9. при issuance/refresh `customAccessTokenClaims` повторно проверяет актуальные membership, organization и allowed resource.
 
-Нельзя читать `client_id` или organization из неподписанных query parameters. Для `max_authentication_age` хранить и проверять server-side authentication time, связанный с Better Auth session. Не пытаться проверять login policy через `customAccessTokenClaims`: его контракт не содержит необходимых данных.
+Нельзя читать `client_id` или organization из неподписанных query parameters и нельзя считать UI redirect доказательством выполнения policy. Для `max_authentication_age` использовать server-controlled `session.lastStrongAuthenticationAt`, обновляемый только успешным sign-in/reauth flow.
+
+Изменение policy требует bulk revoke связанных refresh tokens/consents через lifecycle repository и нового authorization flow. Уже выпущенные JWT не имеют server-side deny state и действуют не дольше короткого `exp`; критические операции могут проверять `policyVersion` online.
 
 Не добавлять в GraphQL настройки, которые login flow пока не умеет исполнять.
 
@@ -773,25 +1002,27 @@ Policy должна проверяться в реальном flow:
 - нужен confidential OAuth client;
 - user отсутствует;
 - `customAccessTokenClaims` должен корректно обрабатывать `user === undefined`;
-- subject/client identity берётся из Better Auth token contract;
-- scopes ограничиваются зарегистрированными scopes клиента;
+- client identity берётся из Better Auth token contract;
+- scopes являются явными, непустыми, client-specific и не содержат OIDC user scopes;
 - OAuth Provider добавляет проверенный `azp = clientId`;
 - resource server получает owner organization client по `azp` через IAM registry/cache;
 - Casbin проверяет типизированный OAuth-client principal через целевую Casbin model;
 - интерактивная session и consent не используются.
 
-Для OAuth client использовать стабильное представление subject:
+В `client_credentials` OAuth Provider `1.6.23` устанавливает `azp = clientId`, но не устанавливает `sub`, поскольку user отсутствует.
+
+Для OAuth client использовать стабильное внутреннее представление Casbin subject:
 
 ```text
 oauth-client:{clientId}
 ```
 
-`oauth-client:{clientId}` хранится в поле `sub`. Для user и machine principals используется одна целевая Casbin model, matcher, domain layout и policy schema.
+`oauth-client:{clientId}` не является JWT claim. Его формирует resource server только после проверки JWT и строкового `azp`. Для user и machine principals используется одна целевая Casbin model, matcher, domain layout и policy schema.
 
 Resource server строит principal только после проверки JWT и получения `clientId` из проверенного `azp`:
 
 ```typescript
-const principal: CasbinPrincipal = {
+const principal: AuthorizationPrincipal = {
   kind: "oauth-client",
   id: verifiedToken.azp,
 };
@@ -807,6 +1038,8 @@ const principal: CasbinPrincipal = {
 - удаление или деактивацию grouping/policy bindings при disable/delete client;
 - audit каждого изменения machine permissions;
 - cache invalidation при изменении client или Casbin policy.
+
+Owner organization разрешается только для существующего, не удалённого organization. Удаление organization должно disable/delete принадлежащие ему clients, отозвать refresh/opaque tokens и consent, удалить machine bindings и очистить caches. Состояние suspension не обещается, пока его нет в organization model.
 
 Наличие OAuth scope ограничивает верхнюю границу запрашиваемых действий, но не создаёт Casbin policy автоматически.
 
@@ -825,43 +1058,55 @@ const principal: CasbinPrincipal = {
 
 ### Introspection
 
-- Использовать для opaque tokens только в явно разрешённых flows.
-- Не выполнять introspection каждого JWT-запроса.
+- Shopana API не использует opaque tokens в первой версии.
+- Endpoint сохраняется как protocol capability Provider, но не заменяет локальную JWT verification.
 - Ограничить доступ к introspection согласно возможностям OAuth Provider.
 
 ### Revocation
 
-- Использовать официальный revocation endpoint для access/refresh tokens.
-- Отключение OAuth client должно блокировать новые authorization/refresh operations.
+- Официальный `<auth-base>/oauth2/revoke` использовать для client-initiated отзыва одного известного plaintext token confidential client-ом.
+- В `1.6.23` этот endpoint требует client secret и не подходит public Admin client с `token_endpoint_auth_method: none`.
+- Admin использует custom cookie/session-authenticated `adminLogout` endpoint: exact origin + CSRF, удаление всех `oauthRefreshToken` для `(clientId = shopana-admin, userId = session.userId, sessionId = session.id)` до core Better Auth sign-out в одной lifecycle operation. Plaintext token не требуется, поэтому logout отзывает и refresh tokens, потерянные браузером после reload.
+- Endpoint не выполняет bulk revoke по `clientId`; revocation JWT access token не создаёт server-side deny state.
+- При disable/delete client, изменении login policy или отзыве consent IAM lifecycle repository транзакционно блокирует новые grants, удаляет/помечает revoked связанные `oauthRefreshToken`, удаляет opaque token rows, consent и policy-completion records, а также очищает Casbin bindings/caches.
 - Для JWT, выпущенных новым OAuth Provider, использовать явно настроенный TTL: 15 минут для user access token и 10 минут для M2M, с меньшим TTL для high-risk scopes.
-- Критические операции могут дополнительно проверять client/grant online.
+- Уже выпущенные JWT действуют до `exp`; критические операции могут дополнительно проверять client/grant/policy version online.
 
 ## 15. Database schema и migrations
 
 ### 15.1 Source of truth
 
-Схема OAuth tables определяется `@better-auth/oauth-provider`, а не проектируется вручную по аналогии с Auth0.
+Provider-owned schema определяется `better-auth@1.6.23` и `@better-auth/oauth-provider@1.6.23`, а не проектируется вручную по аналогии с Auth0.
 
-Ожидаемые модели включают:
+Target baseline включает:
 
+- core `user`, `account`, `session`, `verification`, `jwks` models, необходимые новой конфигурации;
 - `oauthClient`;
 - `oauthAccessToken`;
 - `oauthRefreshToken`;
 - `oauthConsent`;
 - дополнительные verification/authorization данные плагина.
+- nullable `session.activeOrganizationId` и `session.lastStrongAuthenticationAt`;
+- Shopana companion tables `oauth_client_policy` и `oauth_authorization_policy_state`.
 
-Точный список полей брать из установленной версии `1.6.23`.
+Точный список provider fields брать из установленной версии `1.6.23`. Companion tables содержат только Shopana policy/lifecycle state и не дублируют OAuth clients, codes, tokens, scopes или consent.
+
+`activeOrganizationId` и `lastStrongAuthenticationAt` объявляются в Better Auth `session.additionalFields` с `input: false`. Клиент не может изменить их через generic session update. `activeOrganizationId` меняет только Shopana operation после membership check; при удалении membership/organization значение очищается. FK `ON DELETE SET NULL` используется, если он совместим с adapter mapping, но не заменяет runtime membership/deleted check.
 
 ### 15.2 Интеграция с текущим Drizzle adapter
 
 Так как IAM явно передаёт Drizzle schema в `drizzleAdapter`, необходимо:
 
-1. получить schema официального OAuth Provider для `1.6.23`;
-2. добавить эквивалентные Drizzle models в IAM без изменения семантики полей;
-3. передать models в adapter под ожидаемыми model names;
-4. сгенерировать migration через `shopana-cli`;
-5. не редактировать generated migration metadata вручную;
-6. не создавать старые таблицы deprecated `oidcProvider` и не переносить из них данные.
+1. получить schema core Better Auth и OAuth Provider для `1.6.23`;
+2. добавить эквивалентные Drizzle models в IAM без изменения семантики provider fields;
+3. добавить server-controlled session fields и Shopana companion tables;
+4. передать models в adapter под точными ожидаемыми model names;
+5. удалить obsolete pre-release legacy auth/OIDC models, не нужные target runtime;
+6. сгенерировать единую baseline migration через `shopana-cli`;
+7. не редактировать generated migration metadata вручную;
+8. не реализовывать data conversion/backfill: целевые окружения пусты.
+
+Критерий schema baseline: fresh database поднимается непосредственно в target schema, adapter видит все обязательные model names, server-only session fields нельзя записать client input-ом, legacy tables/models не нужны для startup.
 
 ### 15.3 Хранение secrets/tokens
 
@@ -877,41 +1122,73 @@ Admin должен использовать только стандартный 
 
 ### 16.1 Создание first-party client
 
-Создать trusted public client:
+Idempotent bootstrap lifecycle repository создаёт platform trusted public client до открытия OAuth routes:
 
 ```text
 name: Shopana Admin
 client_id: shopana-admin
+reference_id: platform:shopana
 token_endpoint_auth_method: none
 grant_types: authorization_code, refresh_token
 require_pkce: true
-resource: https://admin-api.shopana.io
 scopes: openid profile email offline_access admin:read admin:write
+server-only metadata.allowedResources:
+  - https://admin-api.shopana.io
+cachedTrustedClient: true
+skipConsent: true
+enable_end_session: false
 ```
+
+`resource` не является полем OAuth client в `1.6.23`. Admin передаёт его только при code exchange и каждом refresh request. Redirect URIs и post-logout URIs задаются exact allowlist deployment configuration.
 
 ### 16.2 Новый frontend flow
 
-1. Admin инициирует `/oauth2/authorize` с PKCE S256.
-2. Если session отсутствует, Better Auth переводит пользователя на login page.
-3. После login пользователь возвращается в authorization flow.
-4. Authorization code обменивается на tokens через `/oauth2/token`.
-5. Admin использует JWT access token для GraphQL.
-6. Refresh выполняется стандартным OAuth refresh token grant.
-7. Better Auth session cookie сохраняется как secure httpOnly cookie и используется только для browser authorization flow и OAuth Application management; она не возвращается приложению как refresh token.
+Admin реализует обязательные routes:
+
+```text
+/oauth/start
+/sign-in
+/sign-up
+/oauth/select-organization
+/oauth/consent
+/oauth/callback
+/oauth/error
+/logout
+```
+
+Clean-slate v1 использует Better Auth email/password self-registration для создания первого account/session, после чего `organizationBootstrap` создаёт initial organization/owner membership. Если product решит перейти на invite-only registration, до activation должен появиться отдельный invite provisioning contract; молчаливое отключение `/sign-up` нарушит onboarding flow этого плана.
+
+Flow:
+
+1. `/oauth/start` генерирует одноразовые `state`, `nonce`, PKCE verifier/challenge S256 и проверяет return path по allowlist.
+2. `state`, `nonce`, verifier и return path хранятся в `sessionStorage`, не в URL или `localStorage`.
+3. Admin открывает `<auth-base>/oauth2/authorize`. Если session отсутствует, Better Auth переводит на login page с подписанным `oauth_query`.
+4. Sign-in/sign-up вызывают Better Auth HTTP API с `credentials: "include"`; session cookie устанавливается браузеру напрямую, после чего продолжается исходный authorization request.
+5. Organization page получает minimal memberships через cookie-only `authorizationOrganizations` и вызывает `activeOrganizationSelect`; consent/policy pages используют только signed Provider state.
+6. Callback проверяет одноразовый `state`, обменивает code с PKCE verifier и `resource=https://admin-api.shopana.io`, проверяет OIDC nonce и очищает временные значения.
+7. JWT access token и OAuth refresh token хранятся только в памяти. Они не записываются в `localStorage`, IndexedDB или обычную cookie. После reload Admin начинает новый authorize flow, который использует существующую httpOnly Better Auth session.
+8. Во время жизни вкладки refresh использует стандартный OAuth grant и каждый раз передаёт тот же `resource`. При `invalid_grant` локальные tokens очищаются и запускается новый authorize flow.
+9. Все GraphQL transports, включая upload, используют bearer access token и same-origin `credentials: "include"`; IAM связывает token с session по правилам раздела 7.1.
+10. Logout вызывает cookie/session-authenticated `adminLogout`, который удаляет все session-bound Admin refresh grants через lifecycle repository и завершает core Better Auth session. Admin v1 не использует Provider end-session и не требует `id_token_hint`; redirect допускается только из allowlist.
+
+Если потребуется долговечное token storage, устойчивое к reload без повторного authorize, это отдельный BFF design. Persistent browser refresh token в scope первой версии не входит.
 
 ### 16.3 Правила clean cutover
 
-OAuth Provider, Admin client и новый frontend flow вводятся одним согласованным изменением:
+Cutover является атомарной заменой source code и schema baseline. Production data migration не выполняется, потому что данных и пользователей нет. Development database при необходимости пересоздаётся из актуальных generated migrations.
 
-1. создать актуальную OAuth Provider schema без переноса данных deprecated auth/OIDC tables;
-2. создать trusted Admin client через bootstrap/deployment configuration;
-3. подключить в Admin Authorization Code + PKCE и OAuth Refresh Token Flow;
-4. удалить GraphQL `signIn` и `tokenRefresh`, legacy JWT issuance и session-token-as-refresh behavior;
-5. удалить legacy JWT verification и глобальный JWT `definePayload`, если он не нужен новому OAuth flow;
-6. инвалидировать прежние sessions и не принимать ранее выпущенные JWT или refresh/session tokens;
-7. создать пользователей, accounts, memberships, Casbin bindings, grants и consents заново через актуальные flows.
+В одном activation change:
 
-Параллельная работа legacy и OAuth token issuance/verification не допускается. Grace period по TTL старых JWT не предоставляется.
+1. поднять fresh target schema и выполнить platform Admin bootstrap;
+2. включить OAuth HTTP routes, frontend PKCE flow и official resource verification;
+3. удалить GraphQL `signIn`, `signUp`, `signOut`, `tokenRefresh`, их schema/resolvers/scripts/hooks и generated documents;
+4. удалить session-token-as-refresh, fallback приёма Better Auth session token как API bearer и legacy token-prefix logging;
+5. удалить локальный JWT parser, legacy `definePayload`, `bearer()` и старый issuer/audience contract;
+6. заменить user-only `getCurrentUser`/shared context новым verified-principal contract;
+7. удалить Admin Apollo refresh loop и access/refresh/session token `localStorage`;
+8. не добавлять import/backfill/compatibility code для несуществующих auth-данных.
+
+Core Better Auth `user`, `account`, `session`, `verification` и `jwks` сохраняются, поскольку нужны новому flow. Удаляются только obsolete source/schema elements. Старые и новые issuance/verification paths не сосуществуют ни в одном активируемом deployment.
 
 ## 17. Request context и resource server authorization
 
@@ -919,10 +1196,8 @@ OAuth Provider, Admin client и новый frontend flow вводятся одн
 
 ```typescript
 interface AuthenticatedPrincipal {
-  tokenSubject: string;
-  authorizationPrincipal:
-    | { kind: "user"; id: string }
-    | { kind: "oauth-client"; id: string };
+  tokenSubject: string | null;
+  authorizationPrincipal: AuthorizationPrincipal;
   userId: string | null;
   clientId: string;
   sessionId: string | null;
@@ -938,9 +1213,9 @@ interface AuthenticatedPrincipal {
 
 Для user token `authorizationPrincipal` равен `{ kind: "user", id: userId }`.
 
-Для M2M token `userId` и `sessionId` равны `null`, `clientId` берётся из проверенного `azp`, `authorizationPrincipal` равен `{ kind: "oauth-client", id: clientId }`, а `organizationId` разрешается IAM по `oauthClient.reference_id`. Результат можно кратковременно кэшировать с обязательной invalidation при disable/delete client.
+Для M2M token `tokenSubject`, `userId` и `sessionId` равны `null`, `clientId` берётся из проверенного `azp`, `authorizationPrincipal` равен `{ kind: "oauth-client", id: clientId }`, а `organizationId` разрешается IAM по `oauthClient.reference_id`. Результат можно кратковременно кэшировать с обязательной invalidation при disable/delete client. Не пытаться добавлять machine `sub` через custom claims.
 
-`tokenSubject` сохраняет исходный проверенный OAuth/JWT `sub` и не используется как готовая строка Casbin subject. Casbin subject всегда формируется из `authorizationPrincipal` единым formatter из раздела 8.1.
+`tokenSubject` сохраняет исходный проверенный OAuth/JWT `sub`, если claim присутствует, и не используется как готовая строка Casbin subject. Casbin subject всегда формируется из `authorizationPrincipal` единым formatter из раздела 8.1.
 
 Middleware должен использовать проверенный JWT payload, а не доверять headers с organization/store IDs.
 
@@ -978,98 +1253,106 @@ Organization/store header может только выбрать context, пос
 
 ## 19. Этапы реализации
 
-### Этап 0 — Dependency alignment
+### Этап 0 — Architecture и contracts
 
-- Зафиксировать `better-auth@1.6.23`.
-- Добавить `@better-auth/oauth-provider@1.6.23`.
-- Согласовать Drizzle ORM с peer requirements Better Auth.
-- Выполнить IAM build через `shopana-cli`.
+- Зафиксировать single-origin edge topology, canonical issuer/basePath и конкретный edge component/config file.
+- Зафиксировать публичные OAuth/session/discovery и закрытые management paths.
+- Зафиксировать cookie/header forwarding только в IAM subgraph.
+- Зафиксировать platform/organization ownership и bootstrap contract.
+- Зафиксировать GraphQL types, management JWT/session binding и место scope enforcement.
+- Проверить фактические options/callbacks/models `1.6.23`, включая `getOAuthProviderState`, resource behavior и ограничения admin APIs.
 
-**Критерий завершения:** IAM собирается без Better Auth/Drizzle peer incompatibility.
+**Критерий завершения:** каждый внешний URL, path, cookie, header, client owner и authorization boundary имеет один документированный contract без альтернативной production topology.
 
-### Этап 1 — OAuth HTTP topology и Provider schema
+### Этап 1 — Dependencies, typed config и target schema baseline
 
-- Зафиксировать canonical external issuer/baseURL и auth base path.
-- Смонтировать `auth.handler` и маршруты OAuth/JWKS/discovery с отдельной middleware chain.
-- Добавить validated absolute URLs `config.oauth.ui.signInUrl`, `consentUrl` и `selectOrganizationUrl`.
-- Настроить reverse proxy routing: Better Auth protocol paths в IAM, OAuth UI pages в Admin frontend.
-- Настроить trusted proxy, cookies, trusted origins и CORS.
-- Подключить `oauthProvider` сначала без открытия external client registration.
-- Добавить официальные OAuth Provider models в IAM Drizzle schema.
-- Сгенерировать migration через `shopana-cli`.
-- Проверить hashed storage configuration.
-- Проверить discovery и JWKS routing в Fastify/Nest bootstrap.
+- Зафиксировать `better-auth@1.6.23` и добавить `@better-auth/oauth-provider@1.6.23`.
+- Согласовать Drizzle ORM с peer requirements Better Auth во всех затронутых workspaces.
+- Добавить строгий IAM OAuth Zod config.
+- Добавить core/Provider models, server-controlled session fields и companion policy/state tables.
+- Удалить obsolete pre-release auth/OIDC models.
+- Сгенерировать одну clean-slate migration через `shopana-cli`, без data conversion/backfill.
+- Выполнить build затронутых packages/IAM через `shopana-cli`.
 
-**Критерий завершения:** OAuth Provider инициализируется, schema соответствует версии `1.6.23`, discovery/JWKS возвращают canonical external URLs, а login/consent/organization-selection redirects открывают Admin frontend и продолжают flow через IAM endpoints.
+**Критерий завершения:** fresh database поднимается непосредственно в target schema, а IAM собирается без Better Auth/Drizzle incompatibility.
 
-### Этап 2 — Shopana configuration и Casbin
+### Этап 2 — Typed authorization principal и RBAC foundation
 
-- Определить valid audiences.
-- Определить начальный scope registry.
-- Реализовать `clientReference`.
-- Добавить server-controlled `activeOrganizationId` в Better Auth session и безопасное переключение organization.
-- Реализовать `postLogin` и `consentReferenceId` для authorization organization context.
-- Реализовать `clientPrivileges` через Casbin.
-- Зарегистрировать IAM resources.
-- Добавить audit hooks.
+- Ввести общий `AuthorizationPrincipal` для user и OAuth client.
+- Протянуть его через RBAC, shared kernel/context, type policies, broker DTO/actions и subgraph AuthProviders.
+- Перевести `CasbinService` и role/direct-policy operations на единый formatter.
+- Ограничить user-only owner/site-admin bypass типом user principal.
+- Зарегистрировать OAuth IAM resources, validators, operation matrix и default organization-admin grants.
 
-**Критерий завершения:** organization admin управляет только OAuth clients своей организации.
+**Критерий завершения:** user principal работает через новый contract, machine principal представим end-to-end без `user:{clientId}` и без изменения Casbin model.
 
-### Этап 3 — JWT claims и resource verification
+### Этап 3 — IAM HTTP Provider и edge
 
-- Реализовать `customAccessTokenClaims`.
-- Реализовать `customIdTokenClaims`.
-- Реализовать `customUserInfoClaims`.
-- Настроить `advertisedMetadata.claims_supported`.
-- Внедрить официальный access-token verification в IAM/gateway/subgraphs.
-- Расширить request context.
+- Смонтировать Better Auth handler в IAM Fastify с отдельными OAuth/session/discovery middleware chains.
+- Реализовать lifecycle repository и выполнить idempotent seed platform Admin client до `createAuth`/listener; UI и external activation пока остаются закрыты.
+- Настроить path routing, trusted proxy, host-only cookie, CSRF/origin policy и route allowlist.
+- Подключить OAuth Provider без external client registration и без публичных management endpoints.
+- Настроить hashed storage, explicit JWKS rotation, discovery и audit middleware/hooks.
+- Добавить минимальные Better Auth HTTP sign-in/sign-up/session operations, необходимые будущему UI.
 
-**Критерий завершения:** Shopana API принимает application-specific JWT и корректно проверяет audience/scopes/Casbin.
+**Критерий завершения:** discovery/JWKS публикуют canonical external URLs, Better Auth HTTP session cookie создаётся по same-origin policy, UI redirect URLs валидны. Полный consent/callback UI на этом этапе не требуется.
 
-### Этап 4 — GraphQL management API
+### Этап 4 — Tenant integration, claims и resource verification
 
-- Добавить OAuth Application GraphQL types.
-- Реализовать resolvers через IAM scripts как facade над Better Auth API.
-- Передавать Better Auth session cookie в server API без синтеза session из JWT claims.
-- Скрыть restricted fields.
-- Добавить secret rotation response с однократным plaintext.
-- Добавить audit events.
+- Реализовать cookie-only `organizationBootstrap`, `authorizationOrganizations`, `activeOrganizationSelect`, затем `clientReference` и platform ownership rules.
+- Реализовать `postLogin`/`consentReferenceId` через `getOAuthProviderState()`.
+- Реализовать `clientPrivileges` через новый typed Casbin API.
+- Добавить lifecycle hooks до Admin activation: member removal очищает matching `session.activeOrganizationId`; organization deletion disable/delete все owned clients, отзывает refresh/consent/policy state и очищает sessions/caches.
+- Добавить mandatory-resource hook и server-only client `allowedResources`.
+- Реализовать access/ID/UserInfo claims и полный `claims_supported`.
+- Внедрить официальный resource verifier, audience/scope enforcement и verified request context в gateway/subgraphs.
+- Использовать audited lifecycle repository для неподдерживаемых Provider операций и добавить audit hooks.
 
-**Критерий завершения:** приложения управляются через Admin API без прямой записи в OAuth tables.
+**Критерий завершения:** owner и authorization organization разделены; удаление membership/organization закрывает session/client access; Shopana API принимает только Provider JWT с разрешённым client resource и исполняет scopes/Casbin.
 
-### Этап 5 — Admin OAuth activation
+### Этап 5 — GraphQL Application management
 
-- Создать trusted public Admin client.
-- Подключить OAuth Provider client к Admin frontend.
-- Реализовать Authorization Code + PKCE.
-- Использовать новый JWT access token во всех GraphQL requests.
-- Использовать OAuth refresh token grant.
-- Удалить legacy GraphQL auth endpoints, token issuance и verification в том же изменении.
-- Не переносить пользователей, sessions, tokens, grants, consents или Casbin bindings из прежнего flow.
+- Добавить финальный OAuth Application GraphQL contract.
+- Реализовать IAM scripts как facade над Better Auth API и узким lifecycle repository.
+- Реализовать binding OAuth JWT + Better Auth cookie session.
+- Скрыть restricted fields и закрыть внешние Better Auth management endpoints.
+- Добавить one-time secret payload, stable `userErrors`, quota list и audit events.
+- Выполнить IAM codegen, federation compose и Admin codegen/build.
 
-**Критерий завершения:** Admin работает только через OAuth; legacy auth endpoints и tokens не поддерживаются.
+**Критерий завершения:** organization-scoped CRUD доступен только через совпадающие session/JWT tenant identity и Casbin; platform clients исключены из tenant API.
 
-### Этап 6 — Application login policy
+### Этап 6 — Admin OAuth UI и atomic source cutover
 
-- Добавить `oauth_client_policy` только для реально исполняемых полей.
-- Интегрировать policy в login/authorize flow.
+- Активировать заранее созданный platform Admin client из cached trusted allowlist и проверить deployment drift.
+- Реализовать OAuth start/sign-in/sign-up/organization/consent/callback/error/logout routes.
+- Реализовать PKCE, state, nonce, code exchange и in-memory refresh flow с обязательным `resource`.
+- Перевести AuthGuard, Apollo и upload transport на OAuth bearer + same-origin credentials.
+- Открыть OAuth routes и удалить полный legacy source inventory из раздела 16.3 в том же activation change.
+- При необходимости пересоздать disposable development database; не мигрировать несуществующие auth-данные.
+- Выполнить IAM, federation и Admin builds через проектные команды.
+
+**Критерий завершения:** fresh account/session проходит OAuth authorize → Admin callback → GraphQL request; в source/runtime нет legacy issuance, parser, session-token-as-refresh или dual verification.
+
+### Этап 7 — Application login policy
+
+- Включить только реально исполняемые поля `oauth_client_policy`.
+- Реализовать `getOAuthProviderState()` + one-time policy-completion state.
 - Добавить email verification/recent-auth enforcement.
-- При изменении policy отзывать связанные refresh tokens/grants и требовать новый authorization flow.
+- При изменении policy выполнять bulk refresh/consent cleanup и требовать новый authorization flow.
 
-**Критерий завершения:** изменение application policy реально меняет login behavior.
+**Критерий завершения:** UI невозможно обойти прямым `oauth2Continue`, а изменение policy реально меняет login behavior.
 
-### Этап 7 — M2M и external clients
+### Этап 8 — M2M и external clients
 
-- Включить Client Credentials Flow.
-- Расширить API `CasbinService` типом `CasbinPrincipal`, не меняя Casbin model.
-- Использовать единый formatter для user и OAuth-client subjects во всех Casbin operations.
-- Реализовать назначение и отзыв Casbin roles/policies для `{ kind: "oauth-client", id: clientId }`.
-- Реализовать разрешение organization по проверенному `azp`.
-- Добавить consent UI для third-party user clients.
-- Добавить client revocation и operational UI.
+- Включить Client Credentials Flow только с explicit non-OIDC scopes и mandatory resource.
+- Реализовать назначение/отзыв Casbin roles/policies для OAuth-client principal.
+- Разрешать organization только по проверенному `azp` и активному owner client/organization.
+- Добавить third-party consent, client disable/revocation UI и расширить уже существующий lifecycle cleanup удалением machine Casbin bindings.
 - Добавить rate-limit/abuse monitoring.
 
-**Критерий завершения:** machine и third-party clients используют стандартный OAuth 2.1 flow без кастомных token endpoints.
+**Критерий завершения:** machine и third-party clients используют стандартные OAuth flows; M2M JWT идентифицируется через `azp`, а Casbin subject формируется только внутри authorization boundary.
+
+Этапы 1–5 являются implementation changes, но не отдельными production modes. До атомарной активации этапа 6 OAuth issuance и legacy flow не публикуются параллельно.
 
 ## 20. Сценарии проверки
 
@@ -1079,20 +1362,32 @@ Organization/store header может только выбрать context, пос
 - confidential client secret хранится как hash;
 - redirect URI проверяется точно, кроме поддерживаемого OAuth Provider loopback-исключения для native client;
 - Authorization Code Flow требует PKCE S256;
-- неизвестный resource отклоняется;
+- token request без `resource`, включая refresh, отклоняется до opaque issuance;
+- неизвестный resource и resource вне client `metadata.allowedResources` отклоняются;
 - JWT получает корректный `aud`;
 - resource server отклоняет opaque token;
 - незарегистрированный scope отклоняется;
 - high-risk scope сокращает TTL;
 - organization admin не видит clients другой организации;
+- organization admin не видит/не изменяет platform client;
+- первый session-authenticated пользователь без memberships атомарно создаёт organization/owner membership через onboarding endpoint и продолжает OAuth flow;
+- onboarding endpoint закрыт после появления membership и не выдаёт token/site-admin privilege;
 - OAuth client нельзя создать или получить без проверенного `activeOrganizationId`;
+- generic session update не может записать `activeOrganizationId`;
 - user-owned OAuth client через `user_id` не создаётся;
 - organization admin не изменяет trusted client;
 - Casbin запрещает неразрешённый client CRUD;
+- JWT user A + cookie session B отклоняется;
+- JWT `sid` session A + cookie session B того же пользователя отклоняется;
+- JWT organization A + session active organization B отклоняется;
+- после смены active organization старый organization-bound access token отклоняется management boundary;
 - удалённый member не получает новый token;
+- удаление membership очищает matching active organization sessions;
+- удаление organization блокирует owned user/M2M clients и отзывает refresh/consent state до Admin activation;
 - custom claims не переопределяют reserved claims;
 - email отсутствует без scope `email`;
 - machine token выпускается без user session;
+- M2M JWT содержит `azp`, не содержит user `sub`, а Casbin subject локально формируется как `oauth-client:{azp}`;
 - machine principal получает organization только по проверенному `azp` и IAM client registry;
 - user principal форматируется как `user:{userId}`, а machine principal — как `oauth-client:{clientId}`;
 - OAuth client roles назначаются, проверяются и удаляются без добавления префикса `user:`;
@@ -1101,9 +1396,12 @@ Organization/store header может только выбрать context, пос
 - user token получает organization через `postLogin.consentReferenceId`, а не через client ownership;
 - OAuth discovery/JWKS доступны по canonical external issuer;
 - login, consent и organization-selection pages обслуживаются Admin frontend, а OAuth protocol endpoints — IAM;
+- прямой `oauth2Continue` без server-side policy-completion state отклоняется/возвращается в policy flow;
 - revocation блокирует refresh;
 - отключённый client не получает новые tokens;
-- legacy Admin flow отсутствует, а ранее выпущенные JWT, sessions и refresh tokens не принимаются.
+- fresh database поддерживает account/session → OAuth authorize → Admin callback → GraphQL request;
+- legacy Admin source/runtime flow, parser и session-token-as-refresh отсутствуют;
+- Admin не сохраняет OAuth access/refresh/session tokens в `localStorage`.
 
 По текущим правилам проекта test-команды не запускать. Для проверки новой версии кода использовать соответствующий build через `shopana-cli`.
 
@@ -1113,36 +1411,43 @@ Organization/store header может только выбрать context, пос
 
 1. IAM использует `@better-auth/oauth-provider`, а не deprecated `oidcProvider`.
 2. В проекте нет собственной дублирующей реализации OAuth clients/tokens/consent/PKCE.
-3. OAuth clients принадлежат организации через `oauthClient.reference_id`; user-owned clients в первой версии не поддерживаются.
+3. Organization clients принадлежат организации через `oauthClient.reference_id`; platform clients server-controlled и исключены из tenant CRUD; user-owned clients не поддерживаются.
 4. Owner organization client и authorization organization user token разделены и проверяются независимо.
-5. CRUD OAuth clients защищён Casbin через `clientPrivileges`, IAM scripts и GraphQL authorization.
-6. Access tokens выпускаются как JWT для зарегистрированных Shopana resources с явно заданными TTL.
+5. CRUD OAuth clients защищён Casbin через `clientPrivileges`, IAM scripts и GraphQL authorization; JWT user/organization связан с Better Auth session user/active organization.
+6. Каждый token/refresh request требует `resource`, разрешённый глобально и конкретному client; Shopana access tokens выпускаются как JWT с явно заданными TTL.
 7. Gateway/subgraphs проверяют signature, issuer, audience, expiration и scopes официальным resource client.
 8. Custom access token claims формируются server-side callbacks Better Auth.
 9. User organization context основан на `postLogin.consentReferenceId` и актуальном membership.
 10. M2M organization context разрешается по проверенному `azp` через IAM client registry.
 11. Единая целевая Casbin model, matcher и policy schema являются источником fine-grained authorization для user и machine principals.
 12. `CasbinService` принимает типизированный principal и единообразно форматирует `user:{userId}` и `oauth-client:{clientId}` без двойных префиксов.
-13. Client secrets и token values хранятся безопасным способом Better Auth.
-14. Admin использует Authorization Code + PKCE и стандартный Refresh Token Flow.
-15. Better Auth session cookie не используется как OAuth refresh token.
-16. M2M использует встроенный Client Credentials Flow и управляемые Casbin bindings.
-17. Application-specific login policy реализована через официальный `postLogin` continuation flow.
-18. Security-sensitive операции аудируются без утечки secrets/tokens.
-19. OAuth/JWKS/discovery endpoints публикуют canonical external issuer metadata.
-20. IAM service успешно собирается через `shopana-cli`.
-21. Legacy GraphQL auth endpoints, issuance и verification отсутствуют; ранее выпущенные auth artifacts не принимаются.
-22. Пользователи, accounts, sessions, tokens, clients, grants, consents и Casbin bindings прежнего flow не импортируются и не backfill-ятся.
+13. Единый `AuthorizationPrincipal` проходит end-to-end через shared context, broker и subgraph AuthProviders; user-only bypass недоступен machine principal.
+14. Первый пользователь может создать initial organization/owner membership через cookie-only onboarding до получения organization-bound token.
+15. Client secrets и token values хранятся безопасным способом Better Auth.
+16. Admin использует Authorization Code + PKCE, state/nonce и стандартный Refresh Token Flow; tokens хранятся только в памяти.
+17. Admin management требует совпадения JWT `userId`/`sid`/organization с cookie session.
+18. Better Auth session cookie не используется как OAuth refresh token.
+19. M2M использует встроенный Client Credentials Flow и управляемые Casbin bindings.
+20. Application-specific login policy использует `getOAuthProviderState()` и одноразовый server-side completion state; UI continuation невозможно использовать как bypass.
+21. Membership/organization deletion очищает sessions и owned client token/consent state до открытия Admin OAuth flow.
+22. Security-sensitive операции аудируются без утечки secrets/tokens.
+23. OAuth/JWKS/discovery endpoints публикуют canonical metadata через single-origin path topology; session cookie передаётся только IAM management boundary.
+24. Platform Admin client создаётся idempotent bootstrap, а tenant API не может изменить его trusted/server-only fields.
+25. IAM/federation/Admin успешно собираются через проектные build-команды.
+26. Legacy GraphQL auth endpoints, issuance, verification, parser и session-token-as-refresh отсутствуют в source/runtime.
+27. Fresh target schema не требует legacy tables/models или data migration.
+28. План не содержит import/backfill/invalidation механики для несуществующих пользователей, sessions, tokens или Casbin bindings.
 
 ## 22. Рекомендуемое разделение на изменения
 
-1. **Dependencies:** Better Auth, OAuth Provider и Drizzle alignment.
-2. **Provider topology/schema:** public routing, issuer, plugin configuration, Drizzle models и migration.
-3. **Tenant and authorization integration:** active organization session, `clientReference`, `postLogin.consentReferenceId`, `clientPrivileges`, scopes и Casbin.
-4. **JWT integration:** audiences, claims и resource verification.
-5. **Management API:** GraphQL facade и Admin UI.
-6. **Admin OAuth activation:** Authorization Code + PKCE, удаление legacy auth и clean cutover без переноса данных.
-7. **Login policies:** email/recent-auth per client.
-8. **External/M2M:** consent, Client Credentials Flow, machine Casbin bindings и operational hardening.
+1. **Architecture/contracts:** single-origin edge, route ownership, cookie/header contract, ownership, GraphQL and scope boundaries.
+2. **Dependencies/config/schema:** Better Auth/OAuth Provider/Drizzle alignment, typed config и clean target baseline migration.
+3. **Authorization foundation:** typed principal во всех packages/services, Casbin formatter и OAuth RBAC resources.
+4. **Provider HTTP/edge:** Fastify handler, proxy/cookie/CSRF policy, discovery/JWKS и route allowlist.
+5. **Tenant/JWT integration:** active organization, `clientReference`, `getOAuthProviderState`, mandatory resource, claims и official verifier.
+6. **Management API:** GraphQL facade, JWT/session binding, lifecycle repository, codegen/compose и audit.
+7. **Admin OAuth activation:** platform bootstrap, полный PKCE UI, in-memory tokens и atomic legacy source removal.
+8. **Login policies:** one-time completion state, email/recent-auth и bulk refresh/consent cleanup.
+9. **External/M2M:** third-party consent, Client Credentials Flow, machine Casbin bindings, lifecycle и abuse hardening.
 
-Каждое изменение должно расширять Better Auth через официальные APIs и callbacks, а не заменять его собственным OAuth implementation.
+Каждое изменение расширяет Better Auth через официальные APIs/callbacks. Прямой доступ к provider tables допустим только через version-pinned bootstrap/lifecycle repository для возможностей, отсутствующих в server API `1.6.23`; собственный OAuth protocol/server не создаётся.
