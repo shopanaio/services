@@ -506,6 +506,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     // Discount modals
     // ========================================
     {
+      type: 'discount',
+      component: dynamic(() =>
+        import('@/domains/inventory/discounts/modals/discount-modal').then(
+          (m) => m.DiscountModal
+        )
+      ),
+    },
+    {
       type: 'discount-create',
       component: dynamic(() =>
         import('@/domains/inventory/discounts/modals/create-discount-modal').then(

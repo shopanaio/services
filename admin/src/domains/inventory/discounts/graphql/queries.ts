@@ -1,5 +1,8 @@
 import { gql } from "@apollo/client";
-import { DISCOUNT_LIST_FRAGMENT } from "./fragments";
+import {
+  DISCOUNT_DETAILS_FRAGMENT,
+  DISCOUNT_LIST_FRAGMENT,
+} from "./fragments";
 
 export const DISCOUNTS_QUERY = gql`
   query Discounts(
@@ -36,4 +39,15 @@ export const DISCOUNTS_QUERY = gql`
     }
   }
   ${DISCOUNT_LIST_FRAGMENT}
+`;
+
+export const DISCOUNT_DETAILS_QUERY = gql`
+  query DiscountDetails($id: ID!) {
+    pricingQuery {
+      discount(id: $id) {
+        ...DiscountDetailsFields
+      }
+    }
+  }
+  ${DISCOUNT_DETAILS_FRAGMENT}
 `;

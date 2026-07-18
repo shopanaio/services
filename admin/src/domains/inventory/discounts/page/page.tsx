@@ -21,7 +21,7 @@ import {
   DiscountOrderField,
 } from "@/graphql/types";
 import { useDiscounts } from "../hooks";
-import { useCreateDiscountModal } from "../modals";
+import { useCreateDiscountModal, useDiscountModal } from "../modals";
 import { filterSchema } from "./filter-schema";
 import {
   buildDiscountSearchCondition,
@@ -136,6 +136,7 @@ export default function DiscountsPage() {
   const { discounts, totalCount, pageInfo, loading, error, refetch } =
     useDiscounts(variables);
   const { push: openCreateDiscountModal } = useCreateDiscountModal();
+  const { push: openDiscountModal } = useDiscountModal();
 
   const handleOpenCreateDiscountModal = useCallback(() => {
     openCreateDiscountModal({
@@ -267,6 +268,12 @@ export default function DiscountsPage() {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
             rowHeight={64}
+            rowStyle={{ cursor: "pointer" }}
+            onRowClicked={(event) => {
+              if (event.data) {
+                openDiscountModal({ entityId: event.data.id });
+              }
+            }}
             suppressCellFocus
             suppressMovableColumns
             onSortChanged={pageConfig.onSortChanged}

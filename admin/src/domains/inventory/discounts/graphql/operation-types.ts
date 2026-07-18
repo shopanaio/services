@@ -1,5 +1,6 @@
 import type {
   ApiDiscountConnection,
+  ApiDiscount,
   ApiDiscountCreateInput,
   ApiDiscountCreatePayload,
   ApiDiscountOrderByInput,
@@ -18,6 +19,33 @@ export interface DiscountsQueryData {
 export interface DiscountsQueryVariables extends RelayCursorPaginationVariables {
   where?: ApiDiscountWhereInput | null;
   orderBy?: ApiDiscountOrderByInput[] | null;
+}
+
+export type DiscountDetailsQueryDiscount = Pick<
+  ApiDiscount,
+  | "id"
+  | "revision"
+  | "title"
+  | "primaryCode"
+  | "method"
+  | "kind"
+  | "discountClass"
+  | "currency"
+  | "state"
+  | "effectiveStatus"
+  | "createdAt"
+  | "updatedAt"
+  | "archivedAt"
+>;
+
+export interface DiscountDetailsQueryData {
+  pricingQuery: {
+    discount: DiscountDetailsQueryDiscount | null;
+  };
+}
+
+export interface DiscountDetailsQueryVariables {
+  id: string;
 }
 
 export interface DiscountCreateMutationData {

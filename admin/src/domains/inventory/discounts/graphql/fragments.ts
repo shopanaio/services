@@ -22,3 +22,21 @@ export const DISCOUNT_LIST_FRAGMENT = gql`
     updatedAt
   }
 `;
+
+export const DISCOUNT_DETAILS_FRAGMENT = gql`
+  fragment DiscountDetailsFields on Discount {
+    id
+    revision
+    title
+    primaryCode
+    method
+    kind
+    discountClass
+    currency
+    state
+    effectiveStatus
+    createdAt
+    updatedAt
+    archivedAt
+  }
+`;
