@@ -3,559 +3,6 @@
   "children": [
     {
       "type": "frame",
-      "id": "rlkEL",
-      "x": 0,
-      "y": 0,
-      "name": "Discount creation modal redesign",
-      "clip": true,
-      "width": 1440,
-      "height": 1000,
-      "fill": "#F6F6F4",
-      "layout": "none",
-      "children": [
-        {
-          "type": "frame",
-          "id": "vmIwj",
-          "x": 0,
-          "y": 0,
-          "name": "Admin sidebar background",
-          "width": 240,
-          "height": 1000,
-          "fill": "$--sidebar",
-          "layout": "vertical",
-          "gap": 28,
-          "padding": [
-            28,
-            24
-          ],
-          "children": [
-            {
-              "type": "frame",
-              "id": "Y3fgnk",
-              "name": "Shopana brand",
-              "width": "fill_container",
-              "gap": 10,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "XBG7L",
-                  "name": "Shopana brand mark",
-                  "width": 28,
-                  "height": 28,
-                  "fill": "$--foreground",
-                  "cornerRadius": 8,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "d7V2S",
-                      "name": "Shopana mark icon",
-                      "width": 15,
-                      "height": 15,
-                      "icon": "sparkles",
-                      "library": "lucide",
-                      "fill": "$--white"
-                    }
-                  ]
-                },
-                {
-                  "type": "text",
-                  "id": "x3EEP",
-                  "name": "Shopana brand name",
-                  "fill": "$--foreground",
-                  "content": "shopana",
-                  "fontFamily": "$--font-secondary",
-                  "fontSize": 18,
-                  "fontWeight": "650"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "nDwRs",
-              "name": "Admin navigation",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 8,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "xDZp5",
-                  "name": "Overview navigation item",
-                  "width": "fill_container",
-                  "height": 44,
-                  "fill": "#00000000",
-                  "cornerRadius": 10,
-                  "gap": 12,
-                  "padding": [
-                    0,
-                    12
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "OoTuv",
-                      "name": "Overview navigation icon",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "layout-dashboard",
-                      "library": "lucide",
-                      "fill": "$--sidebar-foreground"
-                    },
-                    {
-                      "type": "text",
-                      "id": "UsXWa",
-                      "name": "Overview navigation label",
-                      "fill": "$--sidebar-foreground",
-                      "content": "Overview",
-                      "fontFamily": "$--font-secondary",
-                      "fontSize": 14,
-                      "fontWeight": "450"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "U7LIkb",
-                  "name": "Catalog navigation item",
-                  "width": "fill_container",
-                  "height": 44,
-                  "fill": "#00000000",
-                  "cornerRadius": 10,
-                  "gap": 12,
-                  "padding": [
-                    0,
-                    12
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "E853hd",
-                      "name": "Catalog navigation icon",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "package",
-                      "library": "lucide",
-                      "fill": "$--sidebar-foreground"
-                    },
-                    {
-                      "type": "text",
-                      "id": "hlK10",
-                      "name": "Catalog navigation label",
-                      "fill": "$--sidebar-foreground",
-                      "content": "Catalog",
-                      "fontFamily": "$--font-secondary",
-                      "fontSize": 14,
-                      "fontWeight": "450"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "wdmkj",
-                  "name": "Orders navigation item",
-                  "width": "fill_container",
-                  "height": 44,
-                  "fill": "#00000000",
-                  "cornerRadius": 10,
-                  "gap": 12,
-                  "padding": [
-                    0,
-                    12
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "PWyT4",
-                      "name": "Orders navigation icon",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "shopping-bag",
-                      "library": "lucide",
-                      "fill": "$--sidebar-foreground"
-                    },
-                    {
-                      "type": "text",
-                      "id": "vZYKg",
-                      "name": "Orders navigation label",
-                      "fill": "$--sidebar-foreground",
-                      "content": "Orders",
-                      "fontFamily": "$--font-secondary",
-                      "fontSize": 14,
-                      "fontWeight": "450"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "xioFE",
-                  "name": "Discounts navigation item",
-                  "width": "fill_container",
-                  "height": 44,
-                  "fill": "$--sidebar-accent",
-                  "cornerRadius": 10,
-                  "gap": 12,
-                  "padding": [
-                    0,
-                    12
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "WpezM",
-                      "name": "Discounts navigation icon",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "badge-percent",
-                      "library": "lucide",
-                      "fill": "$--foreground"
-                    },
-                    {
-                      "type": "text",
-                      "id": "QtB7Q",
-                      "name": "Discounts navigation label",
-                      "fill": "$--foreground",
-                      "content": "Discounts",
-                      "fontFamily": "$--font-secondary",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "qL2ml",
-                  "name": "Customers navigation item",
-                  "width": "fill_container",
-                  "height": 44,
-                  "fill": "#00000000",
-                  "cornerRadius": 10,
-                  "gap": 12,
-                  "padding": [
-                    0,
-                    12
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "bRqBz",
-                      "name": "Customers navigation icon",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "users",
-                      "library": "lucide",
-                      "fill": "$--sidebar-foreground"
-                    },
-                    {
-                      "type": "text",
-                      "id": "HhIrX",
-                      "name": "Customers navigation label",
-                      "fill": "$--sidebar-foreground",
-                      "content": "Customers",
-                      "fontFamily": "$--font-secondary",
-                      "fontSize": 14,
-                      "fontWeight": "450"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "K9cxI",
-          "x": 240,
-          "y": 0,
-          "name": "Discounts page background",
-          "width": 1200,
-          "height": 1000,
-          "fill": "$--background",
-          "layout": "vertical",
-          "gap": 24,
-          "padding": [
-            32,
-            40
-          ],
-          "children": [
-            {
-              "type": "frame",
-              "id": "qlsHi",
-              "name": "Discounts page header",
-              "width": "fill_container",
-              "justifyContent": "space_between",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "rB8Tt",
-                  "name": "Discounts page title group",
-                  "layout": "vertical",
-                  "gap": 6,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "WoKpD",
-                      "name": "Discounts page title",
-                      "fill": "$--foreground",
-                      "content": "Discounts",
-                      "fontFamily": "$--font-secondary",
-                      "fontSize": 28,
-                      "fontWeight": "650"
-                    },
-                    {
-                      "type": "text",
-                      "id": "T5RxW",
-                      "name": "Discounts page subtitle",
-                      "fill": "$--muted-foreground",
-                      "content": "Create and manage promotions for your store",
-                      "fontFamily": "$--font-secondary",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "lyfzz",
-                  "name": "New discount background button",
-                  "height": 40,
-                  "fill": "#1677FF",
-                  "cornerRadius": 10,
-                  "gap": 8,
-                  "padding": [
-                    0,
-                    16
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "AigW8",
-                      "name": "New discount plus icon",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "plus",
-                      "library": "lucide",
-                      "fill": "#FFFFFF"
-                    },
-                    {
-                      "type": "text",
-                      "id": "lWHMj",
-                      "name": "New discount button label",
-                      "fill": "#FFFFFF",
-                      "content": "New discount",
-                      "fontFamily": "$--font-secondary",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "t0KJe",
-              "name": "Discounts table background",
-              "width": "fill_container",
-              "height": 420,
-              "fill": "$--card",
-              "cornerRadius": 16,
-              "stroke": "$--border",
-              "strokeWidth": 1,
-              "layout": "vertical",
-              "gap": 18,
-              "padding": 24,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "YtCb8",
-                  "name": "Discounts table heading",
-                  "fill": "$--foreground",
-                  "content": "All discounts",
-                  "fontFamily": "$--font-secondary",
-                  "fontSize": 16,
-                  "fontWeight": "600"
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 8,
-                  "id": "sW1jX",
-                  "name": "Muted table row 1",
-                  "fill": "$--muted",
-                  "width": "fill_container",
-                  "height": 48
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 8,
-                  "id": "O6KQyj",
-                  "name": "Muted table row 2",
-                  "fill": "#00000000",
-                  "width": "fill_container",
-                  "height": 48
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 8,
-                  "id": "dGsdz",
-                  "name": "Muted table row 3",
-                  "fill": "$--muted",
-                  "width": "fill_container",
-                  "height": 48
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 8,
-                  "id": "pjanJ",
-                  "name": "Muted table row 4",
-                  "fill": "#00000000",
-                  "width": "fill_container",
-                  "height": 48
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 8,
-                  "id": "mNHHx",
-                  "name": "Muted table row 5",
-                  "fill": "$--muted",
-                  "width": "fill_container",
-                  "height": 48
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "A0sVhn",
-          "type": "ref",
-          "ref": "XpaRF",
-          "name": "Create discount / ModalStack instance",
-          "x": 0,
-          "y": 0,
-          "width": 1440,
-          "height": 1000,
-          "descendants": {
-            "hiurZ": {
-              "content": "Create discount"
-            },
-            "oAh1F/NfVEx": {
-              "content": "Create draft"
-            },
-            "Zd34t": {
-              "children": [
-                {
-                  "id": "x728U",
-                  "type": "ref",
-                  "ref": "i2AEQE",
-                  "name": "Discount type paper",
-                  "width": "fill_container",
-                  "descendants": {
-                    "pKSOY/bEn5V": {
-                      "content": "1  Discount type"
-                    },
-                    "pKSOY/CMHDV": {
-                      "content": "Choose what this promotion applies to."
-                    },
-                    "xEhCr": {
-                      "id": "HkFbi",
-                      "type": "ref",
-                      "ref": "k6b25",
-                      "name": "Discount type content",
-                      "width": "fill_container"
-                    }
-                  }
-                },
-                {
-                  "id": "A32TEJ",
-                  "type": "ref",
-                  "ref": "i2AEQE",
-                  "name": "Activation paper",
-                  "width": "fill_container",
-                  "descendants": {
-                    "pKSOY/bEn5V": {
-                      "content": "2  Activation"
-                    },
-                    "pKSOY/CMHDV": {
-                      "content": "Choose how customers receive this discount."
-                    },
-                    "xEhCr": {
-                      "id": "J5z75",
-                      "type": "ref",
-                      "ref": "xOthU",
-                      "name": "Activation content",
-                      "width": "fill_container"
-                    }
-                  }
-                },
-                {
-                  "type": "frame",
-                  "id": "fuyZD",
-                  "name": "Draft configuration note",
-                  "width": "fill_container",
-                  "fill": "#E9EAE6",
-                  "cornerRadius": 10,
-                  "stroke": "#D9DAD6",
-                  "strokeWidth": 1,
-                  "gap": 8,
-                  "padding": [
-                    12,
-                    14
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "ZlGfV",
-                      "name": "Draft note icon background",
-                      "width": 28,
-                      "height": 28,
-                      "fill": "#FFFFFF",
-                      "cornerRadius": 8,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "MDBPG",
-                          "name": "Draft note info icon",
-                          "width": 15,
-                          "height": 15,
-                          "icon": "info",
-                          "library": "lucide",
-                          "fill": "#666666"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "text",
-                      "id": "yLSkk",
-                      "name": "Draft configuration note text",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Value and conditions are configured in the next step.",
-                      "fontFamily": "Geist",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "type": "frame",
       "id": "ZlKd2",
       "x": 3409,
       "y": 189,
@@ -1654,6 +1101,392 @@
           "width": "fill_container",
           "height": 1,
           "layout": "vertical"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "grqRo",
+      "x": 3778,
+      "y": -936,
+      "name": "Ant Design / Input",
+      "width": 1040,
+      "height": 72,
+      "fill": "$--card",
+      "cornerRadius": 12,
+      "stroke": "$--border",
+      "strokeWidth": 1,
+      "layout": "vertical",
+      "gap": 4,
+      "padding": [
+        14,
+        16
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "K3IYLJ",
+          "name": "Input library title",
+          "fill": "$--foreground",
+          "content": "Ant Design / Input",
+          "fontFamily": "Geist",
+          "fontSize": 20,
+          "fontWeight": "600"
+        },
+        {
+          "type": "text",
+          "id": "iiXQO",
+          "name": "Input library description",
+          "fill": "$--muted-foreground",
+          "content": "Outlined sizes, validation states, variants, and TextArea",
+          "fontFamily": "Geist",
+          "fontSize": 12,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "PjO9J",
+      "x": 3778,
+      "y": -824,
+      "name": "Ant Input / Outlined / Small",
+      "context": "Ant Design Input — variant=outlined, size=small.",
+      "reusable": true,
+      "width": 320,
+      "height": 24,
+      "fill": "#FFFFFF",
+      "cornerRadius": 4,
+      "stroke": "#D9D9D9",
+      "strokeWidth": 1,
+      "padding": [
+        0,
+        7
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "a1hgyH",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Enter value",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "vaZha",
+      "x": 4138,
+      "y": -824,
+      "name": "Ant Input / Outlined / Middle",
+      "context": "Ant Design Input — variant=outlined, size=middle.",
+      "reusable": true,
+      "width": 320,
+      "height": 32,
+      "fill": "#FFFFFF",
+      "cornerRadius": 6,
+      "stroke": "#D9D9D9",
+      "strokeWidth": 1,
+      "padding": [
+        4,
+        11
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "e5wVg",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Enter value",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "gPUwK",
+      "x": 4498,
+      "y": -824,
+      "name": "Ant Input / Outlined / Large",
+      "context": "Ant Design Input — variant=outlined, size=large.",
+      "reusable": true,
+      "width": 320,
+      "height": 40,
+      "fill": "#FFFFFF",
+      "cornerRadius": 8,
+      "stroke": "#D9D9D9",
+      "strokeWidth": 1,
+      "padding": [
+        7,
+        11
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "gsn4o",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Enter value",
+          "fontFamily": "Geist",
+          "fontSize": 16,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "SGd2A",
+      "x": 3778,
+      "y": -752,
+      "name": "Ant Input / Outlined / Focus",
+      "context": "Ant Design Input — focused outlined state. activeBorderColor #1677FF; activeShadow rgba(5,145,255,0.1).",
+      "reusable": true,
+      "width": 320,
+      "height": 32,
+      "fill": "#FFFFFF",
+      "cornerRadius": 6,
+      "stroke": "#1677FF",
+      "strokeWidth": 1,
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "#0591FF1A",
+        "spread": 2
+      },
+      "padding": [
+        4,
+        11
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "WcFHR",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Enter value",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "PK9qR",
+      "x": 4138,
+      "y": -752,
+      "name": "Ant Input / Outlined / Error",
+      "context": "Ant Design Input — status=error.",
+      "reusable": true,
+      "width": 320,
+      "height": 32,
+      "fill": "#FFFFFF",
+      "cornerRadius": 6,
+      "stroke": "#FF4D4F",
+      "strokeWidth": 1,
+      "padding": [
+        4,
+        11
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "FgHGR",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Enter value",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "MvLyz",
+      "x": 4498,
+      "y": -752,
+      "name": "Ant Input / Outlined / Disabled",
+      "context": "Ant Design Input — disabled state; background rgba(0,0,0,0.04).",
+      "reusable": true,
+      "width": 320,
+      "height": 32,
+      "fill": "#F5F5F5",
+      "cornerRadius": 6,
+      "stroke": "#D9D9D9",
+      "strokeWidth": 1,
+      "padding": [
+        4,
+        11
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "FgKnP",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Disabled",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "txl3v",
+      "x": 3778,
+      "y": -680,
+      "name": "Ant Input / Filled / Middle",
+      "context": "Ant Design Input — variant=filled, size=middle.",
+      "reusable": true,
+      "width": 320,
+      "height": 32,
+      "fill": "#F5F5F5",
+      "cornerRadius": 6,
+      "stroke": "#00000000",
+      "strokeWidth": 1,
+      "padding": [
+        4,
+        11
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "t2jcr",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Enter value",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "qg6lB",
+      "x": 4138,
+      "y": -680,
+      "name": "Ant Input / Borderless / Middle",
+      "context": "Ant Design Input — variant=borderless, size=middle.",
+      "reusable": true,
+      "width": 320,
+      "height": 32,
+      "fill": "#00000000",
+      "stroke": "#00000000",
+      "strokeWidth": 1,
+      "padding": [
+        4,
+        11
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "TlmJd",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Enter value",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "P1kiZ",
+      "x": 4498,
+      "y": -680,
+      "name": "Ant Input / Underlined / Middle",
+      "context": "Ant Design Input — variant=underlined, size=middle.",
+      "reusable": true,
+      "width": 320,
+      "height": 32,
+      "fill": "#00000000",
+      "stroke": "#D9D9D9",
+      "strokeWidth": {
+        "bottom": 1
+      },
+      "padding": [
+        4,
+        0
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "wvZSa",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Enter value",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "bxpW5",
+      "x": 3778,
+      "y": -608,
+      "name": "Ant Input / TextArea / Outlined",
+      "context": "Ant Design Input.TextArea — outlined default state.",
+      "reusable": true,
+      "width": 320,
+      "height": 96,
+      "fill": "#FFFFFF",
+      "cornerRadius": 6,
+      "stroke": "#D9D9D9",
+      "strokeWidth": 1,
+      "padding": [
+        8,
+        11
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "ErSIF",
+          "name": "Input placeholder",
+          "fill": "#BFBFBF",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Enter multiple lines",
+          "fontFamily": "Geist",
+          "fontSize": 14,
+          "fontWeight": "normal"
         }
       ]
     }
