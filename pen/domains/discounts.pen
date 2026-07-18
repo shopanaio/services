@@ -6324,18 +6324,11 @@
                   "content": "↓ ВАРИАНТ 2 — ВЕРТИКАЛЬНОЕ ПРАВИЛО — NODE ID: WcvkP ↓"
                 },
                 {
-                  "type": "frame",
                   "id": "MVENV",
+                  "type": "ref",
+                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · Products to products",
-                  "width": 800,
-                  "height": "fit_content(196)",
-                  "fill": "#FFFFFF",
-                  "cornerRadius": 8,
-                  "stroke": "#F0F0F0",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "gap": 12,
-                  "padding": 12
+                  "width": 800
                 }
               ]
             },
@@ -6357,18 +6350,11 @@
                   "content": "BUY X GET Y · CATEGORIES → PRODUCTS\nQUALIFIER targets two categories; any qualifying product inside them may satisfy the buy condition.\nBENEFIT targets one specific product."
                 },
                 {
-                  "type": "frame",
                   "id": "SEqz6",
+                  "type": "ref",
+                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · Categories to products",
-                  "width": 800,
-                  "height": "fit_content(196)",
-                  "fill": "#FFFFFF",
-                  "cornerRadius": 8,
-                  "stroke": "#F0F0F0",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "gap": 12,
-                  "padding": 12
+                  "width": 800
                 }
               ]
             },
@@ -6390,18 +6376,11 @@
                   "content": "BUY X GET Y · ALL PRODUCTS → VARIANTS\nQUALIFIER uses ALL_PRODUCTS with no target IDs, so the complete catalog can satisfy the condition.\nBENEFIT targets one specific variant and exposes its SKU."
                 },
                 {
-                  "type": "frame",
                   "id": "wZr0Z",
+                  "type": "ref",
+                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · All products to variant",
-                  "width": 800,
-                  "height": "fit_content(196)",
-                  "fill": "#FFFFFF",
-                  "cornerRadius": 8,
-                  "stroke": "#F0F0F0",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "gap": 12,
-                  "padding": 12
+                  "width": 800
                 }
               ]
             },
@@ -6423,18 +6402,11 @@
                   "content": "BUY X GET Y · VARIANTS → CATEGORIES\nQUALIFIER targets exact variants and shows their SKUs. BENEFIT targets a category, allowing a reward item from that category.\nCounts describe selected targets, not the buy or reward quantity."
                 },
                 {
-                  "type": "frame",
                   "id": "HGijy",
+                  "type": "ref",
+                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · Variants to category",
-                  "width": 800,
-                  "height": "fit_content(196)",
-                  "fill": "#FFFFFF",
-                  "cornerRadius": 8,
-                  "stroke": "#F0F0F0",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "gap": 12,
-                  "padding": 12
+                  "width": 800
                 }
               ]
             },
@@ -13648,18 +13620,11 @@
                       }
                     },
                     {
-                      "type": "frame",
                       "id": "d4YIO4",
+                      "type": "ref",
+                      "ref": "UhABC",
                       "name": "Buy X Get Y connected category to product targets",
-                      "width": 800,
-                      "height": "fit_content(196)",
-                      "fill": "#FFFFFF",
-                      "cornerRadius": 8,
-                      "stroke": "#F0F0F0",
-                      "strokeWidth": 1,
-                      "layout": "vertical",
-                      "gap": 12,
-                      "padding": 12
+                      "width": 800
                     },
                     {
                       "id": "pTcBC",
@@ -16370,6 +16335,282 @@
                       "fontFamily": "Safiro",
                       "fontSize": 11,
                       "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "UhABC",
+      "x": 17354,
+      "y": -2177,
+      "name": "Discount block / Buy X Get Y rule / Connected flow",
+      "reusable": true,
+      "width": 800,
+      "fill": "#FFFFFF",
+      "cornerRadius": 8,
+      "stroke": "#F0F0F0",
+      "strokeWidth": 1,
+      "layout": "vertical",
+      "gap": 12,
+      "padding": 12,
+      "children": [
+        {
+          "type": "frame",
+          "id": "Eb8UM",
+          "name": "Connected flow section header",
+          "width": "fill_container",
+          "height": 32,
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "AsmDK",
+              "name": "Connected flow section title",
+              "fill": "#111111",
+              "content": "Applies to",
+              "lineHeight": 1.5,
+              "fontFamily": "Safiro",
+              "fontSize": 16,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "y8tOLH",
+              "name": "Change targets action",
+              "height": 32,
+              "fill": "#FFFFFF",
+              "cornerRadius": 6,
+              "stroke": "#D9D9D9",
+              "strokeWidth": 1,
+              "gap": 6,
+              "padding": [
+                0,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "oFOwS",
+                  "name": "Change targets icon",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "pencil",
+                  "library": "lucide",
+                  "fill": "#595959"
+                },
+                {
+                  "type": "text",
+                  "id": "szl5n",
+                  "name": "Change targets label",
+                  "fill": "#666666",
+                  "content": "Change",
+                  "lineHeight": 1.6666666667,
+                  "fontFamily": "Safiro",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "KSKlm",
+          "name": "Buy X Get Y compact rule stepper",
+          "width": "fill_container",
+          "height": 128,
+          "fill": "#FFFFFF",
+          "stroke": "#E8E8E8",
+          "gap": 12,
+          "padding": [
+            8,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "cE5Eo",
+              "name": "Compact rule stepper rail",
+              "width": 24,
+              "height": 112,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "P3oFT",
+                  "x": 11,
+                  "y": 24,
+                  "name": "Compact stepper connector line",
+                  "fill": "#E8E8E8",
+                  "width": 2,
+                  "height": 40
+                },
+                {
+                  "type": "frame",
+                  "id": "w6tRBk",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Condition timeline icon node",
+                  "width": 24,
+                  "height": 24,
+                  "fill": "#F2F3F0",
+                  "cornerRadius": 999,
+                  "stroke": "#D9D9D9",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "Kyt1P",
+                      "name": "Condition timeline shopping cart icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "shopping-cart",
+                      "library": "lucide",
+                      "fill": "#595959"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "CYEsk",
+                  "x": 0,
+                  "y": 64,
+                  "name": "Reward timeline icon node",
+                  "width": 24,
+                  "height": 24,
+                  "fill": "#E6F4FF",
+                  "cornerRadius": 999,
+                  "stroke": "#91CAFF",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "iZaho",
+                      "name": "Reward timeline gift icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "gift",
+                      "library": "lucide",
+                      "fill": "#0958D9"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "C4crc",
+              "name": "Compact rule stepper content",
+              "width": "fill_container",
+              "height": 112,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "PPJdb",
+                  "name": "Compact condition step",
+                  "width": "fill_container",
+                  "height": 48,
+                  "layout": "vertical",
+                  "gap": 3,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "wz6LK",
+                      "name": "Compact condition label",
+                      "fill": "#666666",
+                      "content": "WHEN · CUSTOMER BUYS",
+                      "fontFamily": "Safiro",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.7
+                    },
+                    {
+                      "type": "text",
+                      "id": "y4pBdT",
+                      "name": "Compact condition title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "2 eligible items from selected categories",
+                      "lineHeight": 1.2,
+                      "fontFamily": "Safiro",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "s1ngF",
+                      "name": "Compact condition metadata",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Summer essentials · +1 more",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Safiro",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Xd0xX",
+                  "name": "Compact reward step",
+                  "width": "fill_container",
+                  "height": 48,
+                  "layout": "vertical",
+                  "gap": 3,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "LIQra",
+                      "name": "Compact reward label",
+                      "fill": "#1677FF",
+                      "content": "THEN · CUSTOMER GETS",
+                      "fontFamily": "Safiro",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.7
+                    },
+                    {
+                      "type": "text",
+                      "id": "fsE5D",
+                      "name": "Compact reward title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Travel backpack",
+                      "lineHeight": 1.2,
+                      "fontFamily": "Safiro",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "WCa1d",
+                      "name": "Compact reward metadata",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "1 eligible item free · Up to 2 times per order",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Safiro",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
