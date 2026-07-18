@@ -452,608 +452,48 @@
             "Zd34t": {
               "children": [
                 {
-                  "type": "frame",
-                  "id": "CGoc3",
-                  "name": "Discount type section",
+                  "id": "x728U",
+                  "type": "ref",
+                  "ref": "i2AEQE",
+                  "name": "Discount type paper",
                   "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 14,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "s28jCB",
-                      "name": "Discount type section header",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "nb9nk",
-                          "name": "Discount type step title",
-                          "fill": "#111111",
-                          "content": "1  Discount type",
-                          "fontFamily": "Geist",
-                          "fontSize": 16,
-                          "fontWeight": "650"
-                        },
-                        {
-                          "type": "text",
-                          "id": "n9LY9",
-                          "name": "Discount type step description",
-                          "fill": "#666666",
-                          "content": "Choose what this promotion applies to.",
-                          "fontFamily": "Geist",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
-                        }
-                      ]
+                  "descendants": {
+                    "pKSOY/bEn5V": {
+                      "content": "1  Discount type"
                     },
-                    {
-                      "type": "frame",
-                      "id": "k6b25",
-                      "name": "Discount type options grid",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "h3k8j",
-                          "name": "Discount type option row 1",
-                          "width": "fill_container",
-                          "gap": 12,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "rWDiK",
-                              "name": "Amount off products option",
-                              "width": "fill_container",
-                              "height": 104,
-                              "fill": "#FFFFFF",
-                              "cornerRadius": 12,
-                              "stroke": "$ant-blue-6",
-                              "strokeWidth": 2,
-                              "gap": 14,
-                              "padding": 16,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "bCNGk",
-                                  "name": "Amount off products icon background",
-                                  "width": 40,
-                                  "height": 40,
-                                  "fill": "$ant-blue-1",
-                                  "cornerRadius": 10,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "Cl0Ow",
-                                      "name": "Amount off products icon",
-                                      "width": 20,
-                                      "height": 20,
-                                      "icon": "tags",
-                                      "library": "lucide",
-                                      "fill": "$ant-blue-6"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "GiTFT",
-                                  "name": "Amount off products copy",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 4,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "z1XnJ",
-                                      "name": "Amount off products title",
-                                      "fill": "#111111",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Amount off products",
-                                      "fontFamily": "Geist",
-                                      "fontSize": 15,
-                                      "fontWeight": "650"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "ZU28v",
-                                      "name": "Amount off products description",
-                                      "fill": "#666666",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Reduce the price of selected products or collections.",
-                                      "lineHeight": 1.35,
-                                      "fontFamily": "Geist",
-                                      "fontSize": 12,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "CRNQv",
-                              "name": "Buy X get Y option",
-                              "width": "fill_container",
-                              "height": 104,
-                              "fill": "#FFFFFF",
-                              "cornerRadius": 12,
-                              "stroke": "#CBCCC9",
-                              "strokeWidth": 1,
-                              "gap": 14,
-                              "padding": 16,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "P9KHG3",
-                                  "name": "Buy X get Y icon background",
-                                  "width": 40,
-                                  "height": 40,
-                                  "fill": "#F2F3F0",
-                                  "cornerRadius": 10,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "wr3ly",
-                                      "name": "Buy X get Y icon",
-                                      "width": 20,
-                                      "height": 20,
-                                      "icon": "gift",
-                                      "library": "lucide",
-                                      "fill": "#111111"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "x6J7f7",
-                                  "name": "Buy X get Y copy",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 4,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "u7jzd",
-                                      "name": "Buy X get Y title",
-                                      "fill": "#111111",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Buy X get Y",
-                                      "fontFamily": "Geist",
-                                      "fontSize": 15,
-                                      "fontWeight": "650"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "Pa3TZ",
-                                      "name": "Buy X get Y description",
-                                      "fill": "#666666",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Reward customers when they buy qualifying items.",
-                                      "lineHeight": 1.35,
-                                      "fontFamily": "Geist",
-                                      "fontSize": 12,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "JxBKd",
-                          "name": "Discount type option row 2",
-                          "width": "fill_container",
-                          "gap": 12,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "bldPi",
-                              "name": "Amount off order option",
-                              "width": "fill_container",
-                              "height": 104,
-                              "fill": "#FFFFFF",
-                              "cornerRadius": 12,
-                              "stroke": "#CBCCC9",
-                              "strokeWidth": 1,
-                              "gap": 14,
-                              "padding": 16,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "q0d50U",
-                                  "name": "Amount off order icon background",
-                                  "width": 40,
-                                  "height": 40,
-                                  "fill": "#F2F3F0",
-                                  "cornerRadius": 10,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "n4ygh",
-                                      "name": "Amount off order icon",
-                                      "width": 20,
-                                      "height": 20,
-                                      "icon": "shopping-bag",
-                                      "library": "lucide",
-                                      "fill": "#111111"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "KjbLU",
-                                  "name": "Amount off order copy",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 4,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "dEVhy",
-                                      "name": "Amount off order title",
-                                      "fill": "#111111",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Amount off order",
-                                      "fontFamily": "Geist",
-                                      "fontSize": 15,
-                                      "fontWeight": "650"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "bPday",
-                                      "name": "Amount off order description",
-                                      "fill": "#666666",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Apply a fixed or percentage discount to the order.",
-                                      "lineHeight": 1.35,
-                                      "fontFamily": "Geist",
-                                      "fontSize": 12,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "OHO0w",
-                              "name": "Free shipping option",
-                              "width": "fill_container",
-                              "height": 104,
-                              "fill": "#FFFFFF",
-                              "cornerRadius": 12,
-                              "stroke": "#CBCCC9",
-                              "strokeWidth": 1,
-                              "gap": 14,
-                              "padding": 16,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "D1DSsu",
-                                  "name": "Free shipping icon background",
-                                  "width": 40,
-                                  "height": 40,
-                                  "fill": "#F2F3F0",
-                                  "cornerRadius": 10,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "m4BnI",
-                                      "name": "Free shipping icon",
-                                      "width": 20,
-                                      "height": 20,
-                                      "icon": "truck",
-                                      "library": "lucide",
-                                      "fill": "#111111"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "c7IXo",
-                                  "name": "Free shipping copy",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 4,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "L40ils",
-                                      "name": "Free shipping title",
-                                      "fill": "#111111",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Free shipping",
-                                      "fontFamily": "Geist",
-                                      "fontSize": 15,
-                                      "fontWeight": "650"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "wzvo1",
-                                      "name": "Free shipping description",
-                                      "fill": "#666666",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Remove shipping costs when conditions are met.",
-                                      "lineHeight": 1.35,
-                                      "fontFamily": "Geist",
-                                      "fontSize": 12,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                    "pKSOY/CMHDV": {
+                      "content": "Choose what this promotion applies to."
+                    },
+                    "xEhCr": {
+                      "id": "HkFbi",
+                      "type": "ref",
+                      "ref": "k6b25",
+                      "name": "Discount type content",
+                      "width": "fill_container"
                     }
-                  ]
+                  }
                 },
                 {
-                  "type": "frame",
-                  "id": "rnd0D",
-                  "name": "Activation section",
+                  "id": "A32TEJ",
+                  "type": "ref",
+                  "ref": "i2AEQE",
+                  "name": "Activation paper",
                   "width": "fill_container",
-                  "fill": "#FFFFFF",
-                  "cornerRadius": 14,
-                  "stroke": "#CBCCC9",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "gap": 14,
-                  "padding": 18,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "sgw5W",
-                      "name": "Activation section header",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "X0947",
-                          "name": "Activation step title",
-                          "fill": "#111111",
-                          "content": "2  Activation",
-                          "fontFamily": "Geist",
-                          "fontSize": 16,
-                          "fontWeight": "650"
-                        },
-                        {
-                          "type": "text",
-                          "id": "p5Dlq",
-                          "name": "Activation step description",
-                          "fill": "#666666",
-                          "content": "Choose how customers receive this discount.",
-                          "fontFamily": "Geist",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
-                        }
-                      ]
+                  "descendants": {
+                    "pKSOY/bEn5V": {
+                      "content": "2  Activation"
                     },
-                    {
-                      "type": "frame",
-                      "id": "v74jKy",
-                      "name": "Activation method options",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "A8eE7",
-                          "name": "Discount code method",
-                          "width": "fill_container",
-                          "height": 72,
-                          "fill": "#FFFFFF",
-                          "cornerRadius": 10,
-                          "stroke": "#CBCCC9",
-                          "strokeWidth": 1,
-                          "gap": 12,
-                          "padding": [
-                            12,
-                            14
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "id": "gwaCl",
-                              "type": "ref",
-                              "ref": "W3u8r",
-                              "name": "Discount code radio"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "LBKsV",
-                              "name": "Discount code method copy",
-                              "width": "fill_container",
-                              "layout": "vertical",
-                              "gap": 2,
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "mVMqi",
-                                  "name": "Discount code method title",
-                                  "fill": "#111111",
-                                  "textGrowth": "fixed-width",
-                                  "width": "fill_container",
-                                  "content": "Discount code",
-                                  "fontFamily": "Geist",
-                                  "fontSize": 14,
-                                  "fontWeight": "650"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "AaBqI",
-                                  "name": "Discount code method description",
-                                  "fill": "#666666",
-                                  "textGrowth": "fixed-width",
-                                  "width": "fill_container",
-                                  "content": "Customers enter a code at checkout.",
-                                  "fontFamily": "Geist",
-                                  "fontSize": 11,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Tv4lU",
-                          "name": "Automatic discount method",
-                          "width": "fill_container",
-                          "height": 72,
-                          "fill": "$ant-blue-1",
-                          "cornerRadius": 10,
-                          "stroke": "$ant-blue-6",
-                          "strokeWidth": 2,
-                          "gap": 12,
-                          "padding": [
-                            12,
-                            14
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "id": "DPRQF",
-                              "type": "ref",
-                              "ref": "tOgA5",
-                              "name": "Automatic discount radio"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "XHCDb",
-                              "name": "Automatic discount method copy",
-                              "width": "fill_container",
-                              "layout": "vertical",
-                              "gap": 2,
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "p7jeQm",
-                                  "name": "Automatic discount method title",
-                                  "fill": "#111111",
-                                  "textGrowth": "fixed-width",
-                                  "width": "fill_container",
-                                  "content": "Automatic discount",
-                                  "fontFamily": "Geist",
-                                  "fontSize": 14,
-                                  "fontWeight": "650"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "FcV4z",
-                                  "name": "Automatic discount method description",
-                                  "fill": "#666666",
-                                  "textGrowth": "fixed-width",
-                                  "width": "fill_container",
-                                  "content": "Applied automatically when conditions match.",
-                                  "fontFamily": "Geist",
-                                  "fontSize": 11,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                    "pKSOY/CMHDV": {
+                      "content": "Choose how customers receive this discount."
                     },
-                    {
-                      "type": "frame",
-                      "id": "iB6XN",
-                      "name": "Automatic discount title field",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 6,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "L6M8qj",
-                          "name": "Automatic discount title label row",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "TD7HG",
-                              "name": "Automatic discount title label",
-                              "fill": "#111111",
-                              "content": "Title",
-                              "fontFamily": "Geist",
-                              "fontSize": 13,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "text",
-                              "id": "p6owWR",
-                              "name": "Automatic discount required hint",
-                              "fill": "#666666",
-                              "content": "Required for automatic discounts",
-                              "fontFamily": "Geist",
-                              "fontSize": 11,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "ez2T4",
-                          "name": "Automatic discount title input",
-                          "width": "fill_container",
-                          "height": 42,
-                          "fill": "#FFFFFF",
-                          "cornerRadius": 8,
-                          "stroke": "#A7A8A5",
-                          "strokeWidth": 1,
-                          "padding": [
-                            0,
-                            12
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "P1tugL",
-                              "name": "Automatic discount title placeholder",
-                              "fill": "#8A8B88",
-                              "content": "e.g. Summer sale",
-                              "fontFamily": "Geist",
-                              "fontSize": 13,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        }
-                      ]
+                    "xEhCr": {
+                      "id": "J5z75",
+                      "type": "ref",
+                      "ref": "xOthU",
+                      "name": "Activation content",
+                      "width": "fill_container"
                     }
-                  ]
+                  }
                 },
                 {
                   "type": "frame",
@@ -1117,9 +557,10 @@
     {
       "type": "frame",
       "id": "ZlKd2",
-      "x": 1520,
-      "y": 0,
+      "x": 3409,
+      "y": 189,
       "name": "Ant Button / Primary / Small",
+      "context": "React: Button from antd — type=primary, size=small.",
       "reusable": true,
       "height": 24,
       "fill": "$ant-blue-6",
@@ -1138,16 +579,18 @@
           "fill": "#FFFFFF",
           "content": "Button",
           "fontFamily": "Geist",
-          "fontSize": 14
+          "fontSize": 14,
+          "fontWeight": "normal"
         }
       ]
     },
     {
       "type": "frame",
       "id": "O2WZu",
-      "x": 1690,
-      "y": 0,
+      "x": 3579,
+      "y": 189,
       "name": "Ant Button / Default / Small",
+      "context": "React: Button from antd — type=default, size=small.",
       "reusable": true,
       "height": 24,
       "fill": "#FFFFFF",
@@ -1168,16 +611,18 @@
           "fill": "#111111",
           "content": "Button",
           "fontFamily": "Geist",
-          "fontSize": 14
+          "fontSize": 14,
+          "fontWeight": "normal"
         }
       ]
     },
     {
       "type": "frame",
       "id": "KSBhR",
-      "x": 1520,
-      "y": 72,
+      "x": 3409,
+      "y": 261,
       "name": "Ant Button / Primary / Middle",
+      "context": "React: Button from antd — type=primary, size=middle.",
       "reusable": true,
       "height": 32,
       "fill": "$ant-blue-6",
@@ -1196,16 +641,18 @@
           "fill": "#FFFFFF",
           "content": "Button",
           "fontFamily": "Geist",
-          "fontSize": 14
+          "fontSize": 14,
+          "fontWeight": "normal"
         }
       ]
     },
     {
       "type": "frame",
       "id": "yIR65",
-      "x": 1690,
-      "y": 72,
+      "x": 3579,
+      "y": 261,
       "name": "Ant Button / Default / Middle",
+      "context": "React: Button from antd — type=default, size=middle.",
       "reusable": true,
       "height": 32,
       "fill": "#FFFFFF",
@@ -1226,16 +673,18 @@
           "fill": "#111111",
           "content": "Button",
           "fontFamily": "Geist",
-          "fontSize": 14
+          "fontSize": 14,
+          "fontWeight": "normal"
         }
       ]
     },
     {
       "type": "frame",
       "id": "OWCz2",
-      "x": 1520,
-      "y": 152,
+      "x": 3409,
+      "y": 341,
       "name": "Ant Button / Primary / Large",
+      "context": "React: Button from antd — type=primary, size=large.",
       "reusable": true,
       "height": 40,
       "fill": "$ant-blue-6",
@@ -1254,16 +703,18 @@
           "fill": "#FFFFFF",
           "content": "Button",
           "fontFamily": "Geist",
-          "fontSize": 16
+          "fontSize": 16,
+          "fontWeight": "normal"
         }
       ]
     },
     {
       "type": "frame",
       "id": "xCe9K",
-      "x": 1690,
-      "y": 152,
+      "x": 3579,
+      "y": 341,
       "name": "Ant Button / Default / Large",
+      "context": "React: Button from antd — type=default, size=large.",
       "reusable": true,
       "height": 40,
       "fill": "#FFFFFF",
@@ -1284,7 +735,8 @@
           "fill": "#111111",
           "content": "Button",
           "fontFamily": "Geist",
-          "fontSize": 16
+          "fontSize": 16,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -1294,6 +746,7 @@
       "x": 1889,
       "y": 0,
       "name": "ModalStack / Overlay",
+      "context": "React: CreateDiscountModal rendered with ModalStack, ModalLayout and ModalHeader. Source: admin/src/domains/inventory/discounts/modals/create-discount-modal/create-discount-modal.tsx.",
       "reusable": true,
       "clip": true,
       "width": 1440,
@@ -1420,7 +873,8 @@
                               "fill": "#8C8C8C",
                               "content": "esc",
                               "fontFamily": "Geist",
-                              "fontSize": 11
+                              "fontSize": 11,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -1499,8 +953,9 @@
       "type": "frame",
       "id": "W3u8r",
       "x": 3409,
-      "y": 0,
+      "y": 103,
       "name": "Ant Radio / Default",
+      "context": "React: Radio from antd — unchecked state; usually inside Radio.Group.",
       "reusable": true,
       "width": 16,
       "height": 16,
@@ -1515,8 +970,9 @@
       "type": "frame",
       "id": "tOgA5",
       "x": 3473,
-      "y": 0,
+      "y": 103,
       "name": "Ant Radio / Checked",
+      "context": "React: Radio from antd — checked state; controlled by Radio.Group value.",
       "reusable": true,
       "width": 16,
       "height": 16,
@@ -1534,6 +990,670 @@
           "fill": "#FFFFFF",
           "width": 6,
           "height": 6
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "eXqFP",
+      "x": 0,
+      "y": -170,
+      "name": "Paper / Header",
+      "context": "React: PaperHeader from @/ui-kit/paper. Source: admin/src/ui-kit/paper/paper-header.tsx.",
+      "reusable": true,
+      "width": 800,
+      "layout": "vertical",
+      "gap": 12,
+      "children": [
+        {
+          "type": "frame",
+          "id": "zpFJk",
+          "name": "Paper header copy",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "bEn5V",
+              "name": "Paper header title",
+              "fill": "#262626",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Section title",
+              "fontFamily": "Geist",
+              "fontSize": 16,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "CMHDV",
+              "name": "Paper header description",
+              "fill": "#8C8C8C",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Section description",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "w881k",
+          "name": "Paper header divider",
+          "fill": "#F0F0F0",
+          "width": "fill_container",
+          "height": 1
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "k6b25",
+      "x": 0,
+      "y": -406,
+      "name": "Discount type / Content",
+      "context": "React: DiscountTypeSelector. Source: admin/src/domains/inventory/discounts/modals/select-discount-type-modal/discount-type-selector.tsx.",
+      "reusable": true,
+      "width": 800,
+      "layout": "vertical",
+      "gap": 12,
+      "children": [
+        {
+          "type": "frame",
+          "id": "h3k8j",
+          "name": "Discount type option row 1",
+          "width": "fill_container",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "rWDiK",
+              "name": "Amount off products option",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FFFFFF",
+              "cornerRadius": 12,
+              "stroke": "$ant-blue-6",
+              "strokeWidth": 2,
+              "gap": 14,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "bCNGk",
+                  "name": "Amount off products icon background",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "$ant-blue-1",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "Cl0Ow",
+                      "name": "Amount off products icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "tags",
+                      "library": "lucide",
+                      "fill": "$ant-blue-6"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "GiTFT",
+                  "name": "Amount off products copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "z1XnJ",
+                      "name": "Amount off products title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Amount off products",
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZU28v",
+                      "name": "Amount off products description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Reduce the price of selected products or collections.",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "CRNQv",
+              "name": "Buy X get Y option",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FFFFFF",
+              "cornerRadius": 12,
+              "stroke": "#CBCCC9",
+              "strokeWidth": 1,
+              "gap": 14,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "P9KHG3",
+                  "name": "Buy X get Y icon background",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#F2F3F0",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "wr3ly",
+                      "name": "Buy X get Y icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "gift",
+                      "library": "lucide",
+                      "fill": "#111111"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x6J7f7",
+                  "name": "Buy X get Y copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "u7jzd",
+                      "name": "Buy X get Y title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Buy X get Y",
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Pa3TZ",
+                      "name": "Buy X get Y description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Reward customers when they buy qualifying items.",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "JxBKd",
+          "name": "Discount type option row 2",
+          "width": "fill_container",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "bldPi",
+              "name": "Amount off order option",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FFFFFF",
+              "cornerRadius": 12,
+              "stroke": "#CBCCC9",
+              "strokeWidth": 1,
+              "gap": 14,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "q0d50U",
+                  "name": "Amount off order icon background",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#F2F3F0",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "n4ygh",
+                      "name": "Amount off order icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "shopping-bag",
+                      "library": "lucide",
+                      "fill": "#111111"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "KjbLU",
+                  "name": "Amount off order copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dEVhy",
+                      "name": "Amount off order title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Amount off order",
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bPday",
+                      "name": "Amount off order description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Apply a fixed or percentage discount to the order.",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OHO0w",
+              "name": "Free shipping option",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FFFFFF",
+              "cornerRadius": 12,
+              "stroke": "#CBCCC9",
+              "strokeWidth": 1,
+              "gap": 14,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "D1DSsu",
+                  "name": "Free shipping icon background",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#F2F3F0",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "m4BnI",
+                      "name": "Free shipping icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "truck",
+                      "library": "lucide",
+                      "fill": "#111111"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "c7IXo",
+                  "name": "Free shipping copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "L40ils",
+                      "name": "Free shipping title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Free shipping",
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "wzvo1",
+                      "name": "Free shipping description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Remove shipping costs when conditions are met.",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "xOthU",
+      "x": 0,
+      "y": -616,
+      "name": "Activation / Content",
+      "context": "React: activation fields in CreateDiscountModal; use Radio.Group, Radio and Input from antd.",
+      "reusable": true,
+      "width": 800,
+      "layout": "vertical",
+      "gap": 16,
+      "children": [
+        {
+          "type": "frame",
+          "id": "v74jKy",
+          "name": "Activation method options",
+          "width": "fill_container",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "A8eE7",
+              "name": "Discount code method",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "#FFFFFF",
+              "cornerRadius": 10,
+              "stroke": "#CBCCC9",
+              "strokeWidth": 1,
+              "gap": 12,
+              "padding": [
+                12,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "gwaCl",
+                  "type": "ref",
+                  "ref": "W3u8r",
+                  "name": "Discount code radio"
+                },
+                {
+                  "type": "frame",
+                  "id": "LBKsV",
+                  "name": "Discount code method copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "mVMqi",
+                      "name": "Discount code method title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Discount code",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AaBqI",
+                      "name": "Discount code method description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Customers enter a code at checkout.",
+                      "fontFamily": "Geist",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Tv4lU",
+              "name": "Automatic discount method",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "$ant-blue-1",
+              "cornerRadius": 10,
+              "stroke": "$ant-blue-6",
+              "strokeWidth": 2,
+              "gap": 12,
+              "padding": [
+                12,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "DPRQF",
+                  "type": "ref",
+                  "ref": "tOgA5",
+                  "name": "Automatic discount radio"
+                },
+                {
+                  "type": "frame",
+                  "id": "XHCDb",
+                  "name": "Automatic discount method copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "p7jeQm",
+                      "name": "Automatic discount method title",
+                      "fill": "#111111",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Automatic discount",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "650"
+                    },
+                    {
+                      "type": "text",
+                      "id": "FcV4z",
+                      "name": "Automatic discount method description",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Applied automatically when conditions match.",
+                      "fontFamily": "Geist",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "iB6XN",
+          "name": "Automatic discount title field",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "frame",
+              "id": "L6M8qj",
+              "name": "Automatic discount title label row",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "TD7HG",
+                  "name": "Automatic discount title label",
+                  "fill": "#111111",
+                  "content": "Title",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "p6owWR",
+                  "name": "Automatic discount required hint",
+                  "fill": "#666666",
+                  "content": "Required for automatic discounts",
+                  "fontFamily": "Geist",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ez2T4",
+              "name": "Automatic discount title input",
+              "width": "fill_container",
+              "height": 42,
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": "#A7A8A5",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "P1tugL",
+                  "name": "Automatic discount title placeholder",
+                  "fill": "#8A8B88",
+                  "content": "e.g. Summer sale",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "i2AEQE",
+      "x": 0,
+      "y": -936,
+      "name": "Paper / Section",
+      "context": "React: Paper + PaperHeader from @/ui-kit/paper. Source: admin/src/ui-kit/paper.",
+      "reusable": true,
+      "width": 800,
+      "fill": "#FFFFFF",
+      "cornerRadius": 8,
+      "stroke": "#F0F0F0",
+      "strokeWidth": 1,
+      "effect": [
+        {
+          "type": "shadow",
+          "shadowType": "outer",
+          "color": "#00000008",
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "blur": 2
+        },
+        {
+          "type": "shadow",
+          "shadowType": "outer",
+          "color": "#00000005",
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "blur": 6,
+          "spread": -1
+        },
+        {
+          "type": "shadow",
+          "shadowType": "outer",
+          "color": "#00000005",
+          "offset": {
+            "x": 0,
+            "y": 2
+          },
+          "blur": 4
+        }
+      ],
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 16,
+      "children": [
+        {
+          "id": "pKSOY",
+          "type": "ref",
+          "ref": "eXqFP",
+          "name": "Paper section header",
+          "width": "fill_container"
+        },
+        {
+          "type": "frame",
+          "id": "xEhCr",
+          "name": "Paper section content slot",
+          "slot": [
+            "k6b25",
+            "xOthU"
+          ],
+          "width": "fill_container",
+          "height": 1,
+          "layout": "vertical"
         }
       ]
     }
