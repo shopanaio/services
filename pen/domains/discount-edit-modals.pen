@@ -4924,7 +4924,7 @@
       "x": 1520,
       "y": 0,
       "name": "Edit discount · Summary",
-      "context": "Uses project ModalLayout, ModalHeader, Paper/PaperHeader and shared form-field patterns.",
+      "context": "API: discountUpdate with definition and lifecycle. Method, kind and currency are immutable.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -5176,7 +5176,7 @@
                           "width": "fill_container",
                           "descendants": {
                             "SHhQZ": {
-                              "content": "Identity"
+                              "content": "Definition"
                             },
                             "Tbwxh": {
                               "content": "",
@@ -5226,61 +5226,6 @@
                                 "KsvEI": {
                                   "content": "Higher values are evaluated first.",
                                   "enabled": true
-                                }
-                              }
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "sCbjv",
-                          "name": "Immutable identity row",
-                          "width": "fill_container",
-                          "gap": 16,
-                          "children": [
-                            {
-                              "id": "qDstz",
-                              "type": "ref",
-                              "ref": "DgeXc",
-                              "name": "Discount method read only field",
-                              "width": "fill_container",
-                              "descendants": {
-                                "C3n3Uv": {
-                                  "content": "Method"
-                                },
-                                "BSzYr": {
-                                  "fill": "#F5F5F5"
-                                },
-                                "D1j3pp": {
-                                  "content": "Code",
-                                  "fill": "#8C8C8C"
-                                },
-                                "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
-                                }
-                              }
-                            },
-                            {
-                              "id": "pUT0P",
-                              "type": "ref",
-                              "ref": "DgeXc",
-                              "name": "Discount kind read only field",
-                              "width": "fill_container",
-                              "descendants": {
-                                "C3n3Uv": {
-                                  "content": "Type"
-                                },
-                                "BSzYr": {
-                                  "fill": "#F5F5F5"
-                                },
-                                "D1j3pp": {
-                                  "content": "Amount off products",
-                                  "fill": "#8C8C8C"
-                                },
-                                "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
                                 }
                               }
                             }
@@ -5335,26 +5280,27 @@
                               "content": "Lifecycle"
                             },
                             "Tbwxh": {
-                              "content": "Current: Active",
+                              "content": "Current: ACTIVE",
                               "enabled": true
                             }
                           }
                         },
                         {
-                          "id": "z1OXZy",
+                          "id": "RePUr",
                           "type": "ref",
-                          "ref": "p1fsX",
-                          "name": "Discount lifecycle segmented",
+                          "ref": "LYopE",
+                          "name": "Lifecycle state select",
                           "width": "fill_container",
                           "descendants": {
-                            "ZU9vQ": {
+                            "MJ3S4": {
+                              "content": "State *"
+                            },
+                            "r8Vzgf": {
                               "content": "Active"
                             },
-                            "lOFyj": {
-                              "content": "Paused"
-                            },
-                            "Xd22g": {
-                              "content": "Archived"
+                            "XO4rw": {
+                              "content": "DRAFT, ACTIVE, PAUSED or ARCHIVED. Archived discounts cannot be restored.",
+                              "enabled": true
                             }
                           }
                         },
@@ -5374,7 +5320,7 @@
                               "id": "keMBB",
                               "name": "Lifecycle consequence title",
                               "fill": "#262626",
-                              "content": "Active",
+                              "content": "ACTIVE",
                               "fontFamily": "$--font-secondary",
                               "fontSize": 14,
                               "fontWeight": "600"
@@ -5384,7 +5330,7 @@
                               "id": "TCix8",
                               "name": "Lifecycle consequence description",
                               "fill": "#595959",
-                              "content": "Customers can redeem the discount while its schedule and usage limits allow it.",
+                              "content": "Submitted as lifecycle.state. Availability still depends on schedule, limits and aggregate validity.",
                               "fontFamily": "$--font-secondary",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -5407,7 +5353,7 @@
       "x": 3040,
       "y": 0,
       "name": "Edit discount · Value and requirements",
-      "context": "Uses project ModalLayout, ModalHeader, Paper/PaperHeader and shared form-field patterns.",
+      "context": "API: operations.rule.amountOff and operations.minimumRequirement.requirement for AMOUNT_OFF_PRODUCTS.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -5682,14 +5628,14 @@
                               "width": "fill_container",
                               "descendants": {
                                 "MJ3S4": {
-                                  "content": "Value type"
+                                  "content": "Value type *"
                                 },
                                 "r8Vzgf": {
                                   "content": "Percentage"
                                 },
                                 "XO4rw": {
-                                  "content": "",
-                                  "enabled": false
+                                  "content": "PERCENTAGE or FIXED_AMOUNT.",
+                                  "enabled": true
                                 }
                               }
                             },
@@ -5701,14 +5647,14 @@
                               "width": "fill_container",
                               "descendants": {
                                 "C3n3Uv": {
-                                  "content": "Percentage off"
+                                  "content": "Percentage *"
                                 },
                                 "D1j3pp": {
-                                  "content": "20"
+                                  "content": "20%"
                                 },
                                 "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
+                                  "content": "Sent as percentageBps: 2000. Valid range is 1 to 10000.",
+                                  "enabled": true
                                 }
                               }
                             }
@@ -5729,10 +5675,29 @@
                               "enabled": true
                             },
                             "v3aYJ3": {
-                              "content": "Apply the value to each eligible item"
+                              "content": "Allocate to each eligible line"
                             },
                             "t78i1": {
-                              "content": "When disabled, the value is allocated once across eligible products."
+                              "content": "EACH when enabled; ACROSS when disabled."
+                            }
+                          }
+                        },
+                        {
+                          "id": "gbIhw",
+                          "type": "ref",
+                          "ref": "DgeXc",
+                          "name": "Maximum discount input field",
+                          "width": "fill_container",
+                          "descendants": {
+                            "C3n3Uv": {
+                              "content": "Maximum discount"
+                            },
+                            "D1j3pp": {
+                              "content": "No limit"
+                            },
+                            "KsvEI": {
+                              "content": "Optional maximumDiscountMinor; must be a positive amount.",
+                              "enabled": true
                             }
                           }
                         }
@@ -5801,11 +5766,11 @@
                               "content": "Requirement"
                             },
                             "r8Vzgf": {
-                              "content": "Minimum purchase amount"
+                              "content": "Minimum subtotal"
                             },
                             "XO4rw": {
-                              "content": "",
-                              "enabled": false
+                              "content": "None clears requirement; otherwise SUBTOTAL or QUANTITY.",
+                              "enabled": true
                             }
                           }
                         },
@@ -5824,59 +5789,18 @@
                               "width": "fill_container",
                               "descendants": {
                                 "C3n3Uv": {
-                                  "content": "Minimum amount"
+                                  "content": "Minimum subtotal *"
                                 },
                                 "D1j3pp": {
                                   "content": "$50.00"
                                 },
                                 "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
-                                }
-                              }
-                            },
-                            {
-                              "id": "gbIhw",
-                              "type": "ref",
-                              "ref": "DgeXc",
-                              "name": "Maximum discount input field",
-                              "width": "fill_container",
-                              "descendants": {
-                                "C3n3Uv": {
-                                  "content": "Maximum discount"
-                                },
-                                "D1j3pp": {
-                                  "content": "No limit"
-                                },
-                                "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
+                                  "content": "Sent as subtotalMinor; quantity is omitted.",
+                                  "enabled": true
                                 }
                               }
                             }
                           ]
-                        },
-                        {
-                          "id": "NPIJc",
-                          "type": "ref",
-                          "ref": "YwH07",
-                          "name": "Maximum limit checkbox",
-                          "width": "fill_container",
-                          "descendants": {
-                            "yI9QE": {
-                              "fill": "#FFFFFF",
-                              "stroke": "#D9D9D9"
-                            },
-                            "vPA4s": {
-                              "enabled": false
-                            },
-                            "v3aYJ3": {
-                              "content": "Limit the maximum discount amount"
-                            },
-                            "t78i1": {
-                              "content": "Enable to cap the benefit after allocation."
-                            }
-                          }
                         }
                       ]
                     }
@@ -5894,7 +5818,7 @@
       "x": 4560,
       "y": 0,
       "name": "Edit discount · Applies to",
-      "context": "Uses project ModalLayout, ModalHeader, Paper/PaperHeader, Radio.Group cards and EntityPickerModal form pattern.",
+      "context": "API: operations.targetSelections complete replacement. AMOUNT_OFF_PRODUCTS allows exactly one BENEFIT role.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -6146,7 +6070,7 @@
                           "width": "fill_container",
                           "descendants": {
                             "SHhQZ": {
-                              "content": "Target type"
+                              "content": "Benefit target"
                             },
                             "Tbwxh": {
                               "content": "",
@@ -6486,7 +6410,7 @@
                           "width": "fill_container",
                           "descendants": {
                             "SHhQZ": {
-                              "content": "Products"
+                              "content": "BENEFIT · PRODUCTS"
                             },
                             "Tbwxh": {
                               "content": "3 selected",
@@ -6508,7 +6432,7 @@
                               "content": "3 products selected"
                             },
                             "B0PfUl": {
-                              "content": "Opens the shared ProductPickerModal with multi-selection.",
+                              "content": "Produces targetIds for the PRODUCTS selection; at least one ID is required.",
                               "enabled": true
                             }
                           }
@@ -6653,7 +6577,7 @@
       "x": 6080,
       "y": 0,
       "name": "Edit discount · Customer eligibility",
-      "context": "Uses project ModalLayout, ModalHeader, Paper/PaperHeader, Radio.Group cards and EntityPickerModal form pattern.",
+      "context": "API: operations.eligibility with type ALL, CUSTOMERS or SEGMENTS and the matching ID list only.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -6905,7 +6829,7 @@
                           "width": "fill_container",
                           "descendants": {
                             "SHhQZ": {
-                              "content": "Eligibility scope"
+                              "content": "Buyer context"
                             },
                             "Tbwxh": {
                               "content": "",
@@ -7032,7 +6956,7 @@
                           "width": "fill_container",
                           "descendants": {
                             "SHhQZ": {
-                              "content": "Selection controls"
+                              "content": "customerIds"
                             },
                             "Tbwxh": {
                               "content": "2 selected",
@@ -7054,7 +6978,7 @@
                               "content": "2 customers selected"
                             },
                             "B0PfUl": {
-                              "content": "Uses CustomerPickerModal with multi-selection.",
+                              "content": "CUSTOMERS requires customerIds and forbids segmentIds.",
                               "enabled": true
                             }
                           }
@@ -7075,7 +6999,7 @@
       "x": 7600,
       "y": 0,
       "name": "Edit discount · Channels",
-      "context": "Uses project ModalLayout, ModalHeader, Paper/PaperHeader and Ant Checkbox behavior-section pattern.",
+      "context": "API: operations.channels is a complete array replacement of { code, featured }. Empty is valid only while DRAFT.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -7330,7 +7254,7 @@
                               "content": "Sales channels"
                             },
                             "Tbwxh": {
-                              "content": "1 of 3 active",
+                              "content": "1 of 3 included",
                               "enabled": true
                             }
                           }
@@ -7361,7 +7285,7 @@
                                   "content": "Online store"
                                 },
                                 "t78i1": {
-                                  "content": "Allow storefront checkout and customer-account redemptions."
+                                  "content": "code: online-store"
                                 }
                               }
                             },
@@ -7383,7 +7307,7 @@
                                   "content": "Mobile app"
                                 },
                                 "t78i1": {
-                                  "content": "Allow native mobile checkout redemptions."
+                                  "content": "code: mobile-app"
                                 }
                               }
                             },
@@ -7405,11 +7329,93 @@
                                   "content": "Point of sale"
                                 },
                                 "t78i1": {
-                                  "content": "Allow staff to apply the discount to in-person orders."
+                                  "content": "code: point-of-sale"
                                 }
                               }
                             }
                           ]
+                        },
+                        {
+                          "id": "Ir9zV",
+                          "type": "ref",
+                          "ref": "HxlBC",
+                          "name": "Featured channels header",
+                          "width": "fill_container",
+                          "descendants": {
+                            "SHhQZ": {
+                              "content": "Featured"
+                            },
+                            "Tbwxh": {
+                              "content": "featured flag",
+                              "enabled": true
+                            }
+                          }
+                        },
+                        {
+                          "id": "E1U2Y",
+                          "type": "ref",
+                          "ref": "YwH07",
+                          "name": "Online store featured checkbox",
+                          "width": "fill_container",
+                          "descendants": {
+                            "yI9QE": {
+                              "fill": "#1677FF",
+                              "stroke": "#1677FF"
+                            },
+                            "vPA4s": {
+                              "enabled": true
+                            },
+                            "v3aYJ3": {
+                              "content": "Feature Online store"
+                            },
+                            "t78i1": {
+                              "content": "Sends featured: true for online-store."
+                            }
+                          }
+                        },
+                        {
+                          "id": "HXF3i",
+                          "type": "ref",
+                          "ref": "YwH07",
+                          "name": "Mobile app featured checkbox",
+                          "width": "fill_container",
+                          "descendants": {
+                            "yI9QE": {
+                              "fill": "#FFFFFF",
+                              "stroke": "#D9D9D9"
+                            },
+                            "vPA4s": {
+                              "enabled": false
+                            },
+                            "v3aYJ3": {
+                              "content": "Feature Mobile app"
+                            },
+                            "t78i1": {
+                              "content": "Sends featured: true for mobile-app when that channel is included."
+                            }
+                          }
+                        },
+                        {
+                          "id": "YAMmr",
+                          "type": "ref",
+                          "ref": "YwH07",
+                          "name": "Point of sale featured checkbox",
+                          "width": "fill_container",
+                          "descendants": {
+                            "yI9QE": {
+                              "fill": "#FFFFFF",
+                              "stroke": "#D9D9D9"
+                            },
+                            "vPA4s": {
+                              "enabled": false
+                            },
+                            "v3aYJ3": {
+                              "content": "Feature Point of sale"
+                            },
+                            "t78i1": {
+                              "content": "Sends featured: true for point-of-sale when that channel is included."
+                            }
+                          }
                         }
                       ]
                     },
@@ -7457,7 +7463,7 @@
                           "id": "K2j2Ew",
                           "name": "Channel note text",
                           "fill": "#8C8C8C",
-                          "content": "At least one sales channel must remain enabled.",
+                          "content": "A non-draft discount requires at least one channel. Removing all channels is allowed only in DRAFT.",
                           "fontFamily": "$--font-secondary",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -7478,7 +7484,7 @@
       "x": 9120,
       "y": 0,
       "name": "Edit discount · Combinations",
-      "context": "Uses project ModalLayout, ModalHeader, Paper/PaperHeader and Ant Checkbox behavior-section pattern.",
+      "context": "API: operations.combinesWith is a complete replacement array of PRODUCT, ORDER and SHIPPING.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -7860,7 +7866,7 @@
                           "id": "NSfQg",
                           "name": "Combination note text",
                           "fill": "#8C8C8C",
-                          "content": "Priority and allocation still determine the final applied amount.",
+                          "content": "Checked rows are submitted as the combinesWith DiscountClass array.",
                           "fontFamily": "$--font-secondary",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -7881,7 +7887,7 @@
       "x": 10640,
       "y": 0,
       "name": "Edit discount · Availability and limits",
-      "context": "Uses project ModalLayout, ModalHeader, Paper/PaperHeader and shared form controls.",
+      "context": "API: operations.definition contains schedule, purchaseModes and usage. This discount uses method CODE.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -8156,14 +8162,14 @@
                               "width": "fill_container",
                               "descendants": {
                                 "C3n3Uv": {
-                                  "content": "Starts at"
+                                  "content": "Starts at *"
                                 },
                                 "D1j3pp": {
                                   "content": "2026-07-01T09:00"
                                 },
                                 "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
+                                  "content": "Required DateTime.",
+                                  "enabled": true
                                 }
                               }
                             },
@@ -8181,7 +8187,7 @@
                                   "content": "2026-08-31T23:59"
                                 },
                                 "KsvEI": {
-                                  "content": "Leave empty for no end date.",
+                                  "content": "Optional DateTime; must be after startsAt.",
                                   "enabled": true
                                 }
                               }
@@ -8237,8 +8243,8 @@
                               "content": "Purchase modes"
                             },
                             "Tbwxh": {
-                              "content": "",
-                              "enabled": false
+                              "content": "At least one required",
+                              "enabled": true
                             }
                           }
                         },
@@ -8257,10 +8263,10 @@
                               "enabled": true
                             },
                             "v3aYJ3": {
-                              "content": "Online checkout"
+                              "content": "One-time purchase"
                             },
                             "t78i1": {
-                              "content": "Allow storefront and mobile checkout redemptions."
+                              "content": "appliesOnOneTimePurchase: true"
                             }
                           }
                         },
@@ -8279,10 +8285,10 @@
                               "enabled": false
                             },
                             "v3aYJ3": {
-                              "content": "Point of sale"
+                              "content": "Subscription"
                             },
                             "t78i1": {
-                              "content": "Allow staff to apply the discount to in-person orders."
+                              "content": "appliesOnSubscription: false"
                             }
                           }
                         }
@@ -8355,33 +8361,14 @@
                               "width": "fill_container",
                               "descendants": {
                                 "C3n3Uv": {
-                                  "content": "Total redemptions"
+                                  "content": "Total usage limit"
                                 },
                                 "D1j3pp": {
                                   "content": "1,000"
                                 },
                                 "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
-                                }
-                              }
-                            },
-                            {
-                              "id": "TcA2i",
-                              "type": "ref",
-                              "ref": "DgeXc",
-                              "name": "Per customer limit field",
-                              "width": "fill_container",
-                              "descendants": {
-                                "C3n3Uv": {
-                                  "content": "Per customer"
-                                },
-                                "D1j3pp": {
-                                  "content": "1"
-                                },
-                                "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
+                                  "content": "Optional usageLimit; must not be below reserved and consumed usage.",
+                                  "enabled": true
                                 }
                               }
                             }
@@ -8405,7 +8392,7 @@
                               "content": "Limit to one use per customer"
                             },
                             "t78i1": {
-                              "content": "Requires an authenticated customer identity."
+                              "content": "appliesOncePerCustomer. Available for CODE discounts only."
                             }
                           }
                         }
@@ -8425,7 +8412,7 @@
       "x": 12160,
       "y": 0,
       "name": "Edit discount · Tags",
-      "context": "Uses project ModalLayout, ModalHeader, Paper/PaperHeader and shared form controls.",
+      "context": "API: operations.tags is a complete string-array replacement; an empty selection removes every tag.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -8781,7 +8768,7 @@
                           "id": "PIVaD",
                           "name": "Available tags hint",
                           "fill": "#8C8C8C",
-                          "content": "Click on tags to select or deselect them.",
+                          "content": "Select existing strings or add a new tag; saving replaces the complete tags array.",
                           "fontFamily": "$--font-secondary",
                           "fontSize": 11,
                           "fontWeight": "normal"
@@ -9230,7 +9217,7 @@
       "x": 13680,
       "y": 0,
       "name": "Edit discount · Discount codes",
-      "context": "Uses project ModalLayout, Paper/PaperHeader, EditorGrid and shared external-reference form patterns.",
+      "context": "API: operations.codes with create, update and delete arrays. Existing rows require codeId and expectedUpdatedAt.",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -9603,7 +9590,7 @@
                                   "type": "frame",
                                   "id": "H7hkxA",
                                   "name": "Primary header cell",
-                                  "width": 100,
+                                  "width": 120,
                                   "height": "fill_container",
                                   "padding": [
                                     0,
@@ -9616,7 +9603,7 @@
                                       "id": "R2AQA",
                                       "name": "Primary header label",
                                       "fill": "#595959",
-                                      "content": "Primary",
+                                      "content": "Usage limit",
                                       "fontFamily": "$--font-secondary",
                                       "fontSize": 12,
                                       "fontWeight": "500"
@@ -9748,7 +9735,7 @@
                                   "type": "frame",
                                   "id": "O0vx2g",
                                   "name": "SUMMER20 editor row primary cell",
-                                  "width": 100,
+                                  "width": 120,
                                   "height": "fill_container",
                                   "padding": [
                                     0,
@@ -9758,26 +9745,29 @@
                                   "children": [
                                     {
                                       "type": "frame",
-                                      "id": "OLeVO",
-                                      "name": "SUMMER20 editor row primary checkbox",
-                                      "width": 16,
-                                      "height": 16,
-                                      "fill": "#1677FF",
-                                      "cornerRadius": 4,
-                                      "stroke": "#1677FF",
+                                      "id": "mdk3R",
+                                      "name": "SUMMER20 usage limit input",
+                                      "width": "fill_container",
+                                      "height": 32,
+                                      "fill": "#FFFFFF",
+                                      "cornerRadius": 6,
+                                      "stroke": "#D9D9D9",
                                       "strokeWidth": 1,
-                                      "justifyContent": "center",
+                                      "padding": [
+                                        4,
+                                        11
+                                      ],
                                       "alignItems": "center",
                                       "children": [
                                         {
-                                          "type": "icon",
-                                          "id": "Rt0Gy",
-                                          "name": "SUMMER20 editor row primary check",
-                                          "width": 12,
-                                          "height": 12,
-                                          "icon": "check",
-                                          "library": "lucide",
-                                          "fill": "#FFFFFF"
+                                          "type": "text",
+                                          "id": "Y4wGf",
+                                          "name": "SUMMER20 usage limit value",
+                                          "fill": "#262626",
+                                          "content": "500",
+                                          "fontFamily": "Safiro",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -9920,7 +9910,7 @@
                                   "type": "frame",
                                   "id": "HmiZJ",
                                   "name": "VIP20 editor row primary cell",
-                                  "width": 100,
+                                  "width": 120,
                                   "height": "fill_container",
                                   "padding": [
                                     0,
@@ -9930,16 +9920,31 @@
                                   "children": [
                                     {
                                       "type": "frame",
-                                      "id": "aI5HG",
-                                      "name": "VIP20 editor row primary checkbox",
-                                      "width": 16,
-                                      "height": 16,
+                                      "id": "g1TDUS",
+                                      "name": "VIP20 usage limit input",
+                                      "width": "fill_container",
+                                      "height": 32,
                                       "fill": "#FFFFFF",
-                                      "cornerRadius": 4,
+                                      "cornerRadius": 6,
                                       "stroke": "#D9D9D9",
                                       "strokeWidth": 1,
-                                      "justifyContent": "center",
-                                      "alignItems": "center"
+                                      "padding": [
+                                        4,
+                                        11
+                                      ],
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "MK103",
+                                          "name": "VIP20 usage limit value",
+                                          "fill": "#8C8C8C",
+                                          "content": "No limit",
+                                          "fontFamily": "Safiro",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
                                     }
                                   ]
                                 },
@@ -9983,7 +9988,7 @@
                               "id": "LG5PZ",
                               "name": "Redeem codes help",
                               "fill": "#8C8C8C",
-                              "content": "Codes are case-insensitive and must be unique in the workspace.",
+                              "content": "Create: code + optional usageLimit. Update/Delete: codeId + expectedUpdatedAt. Primary code is derived, not edited.",
                               "fontFamily": "$--font-secondary",
                               "fontSize": 12,
                               "fontWeight": "normal"
@@ -10016,7 +10021,7 @@
       "x": 15200,
       "y": 0,
       "name": "Edit discount · External reference",
-      "context": "Uses project ModalLayout, Paper/PaperHeader, EditorGrid and shared external-reference form patterns.",
+      "context": "Separate API mutation: discountExternalReferenceUpdate(externalReferenceId, expectedUpdatedAt, operations: { identity, sync }).",
       "clip": true,
       "width": 1440,
       "height": 1000,
@@ -10277,29 +10282,6 @@
                           }
                         },
                         {
-                          "id": "q0vq18",
-                          "type": "ref",
-                          "ref": "O5MXnw",
-                          "name": "Discount reference picker",
-                          "width": "fill_container",
-                          "descendants": {
-                            "ijN6Z": {
-                              "content": "Discount"
-                            },
-                            "YmSGh": {
-                              "content": "Summer Essentials 20%"
-                            },
-                            "O2Dgnt": {
-                              "fill": "#F5F5F5",
-                              "opacity": 0.55
-                            },
-                            "B0PfUl": {
-                              "content": "The current discount is locked for an existing reference.",
-                              "enabled": true
-                            }
-                          }
-                        },
-                        {
                           "type": "frame",
                           "id": "M4WDAC",
                           "name": "External identity field row",
@@ -10314,14 +10296,14 @@
                               "width": "fill_container",
                               "descendants": {
                                 "C3n3Uv": {
-                                  "content": "External system *"
+                                  "content": "External system"
                                 },
                                 "D1j3pp": {
                                   "content": "Shopify"
                                 },
                                 "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
+                                  "content": "identity.externalSystem",
+                                  "enabled": true
                                 }
                               }
                             },
@@ -10333,14 +10315,14 @@
                               "width": "fill_container",
                               "descendants": {
                                 "C3n3Uv": {
-                                  "content": "Type *"
+                                  "content": "External type"
                                 },
                                 "D1j3pp": {
                                   "content": "Discount code"
                                 },
                                 "KsvEI": {
-                                  "content": "",
-                                  "enabled": false
+                                  "content": "identity.externalType",
+                                  "enabled": true
                                 }
                               }
                             }
@@ -10354,14 +10336,14 @@
                           "width": "fill_container",
                           "descendants": {
                             "C3n3Uv": {
-                              "content": "External ID *"
+                              "content": "External ID"
                             },
                             "D1j3pp": {
                               "content": "gid://shopify/DiscountCode/9821"
                             },
                             "KsvEI": {
-                              "content": "",
-                              "enabled": false
+                              "content": "identity.externalId",
+                              "enabled": true
                             }
                           }
                         },
@@ -10379,8 +10361,8 @@
                               "content": "https://admin.shopify.com/discounts/9821"
                             },
                             "KsvEI": {
-                              "content": "",
-                              "enabled": false
+                              "content": "identity.externalUrl",
+                              "enabled": true
                             }
                           }
                         }
@@ -10453,14 +10435,14 @@
                               "width": "fill_container",
                               "descendants": {
                                 "MJ3S4": {
-                                  "content": "Direction *"
+                                  "content": "Direction"
                                 },
                                 "r8Vzgf": {
                                   "content": "Bidirectional"
                                 },
                                 "XO4rw": {
-                                  "content": "",
-                                  "enabled": false
+                                  "content": "IMPORT, EXPORT or BIDIRECTIONAL.",
+                                  "enabled": true
                                 }
                               }
                             },
@@ -10478,8 +10460,8 @@
                                   "content": "Synced"
                                 },
                                 "XO4rw": {
-                                  "content": "",
-                                  "enabled": false
+                                  "content": "PENDING, SYNCED, FAILED or DISABLED.",
+                                  "enabled": true
                                 }
                               }
                             }
@@ -10487,105 +10469,124 @@
                         },
                         {
                           "type": "frame",
-                          "id": "h4l8u",
-                          "name": "Synchronization descriptions",
+                          "id": "iplTH",
+                          "name": "Synchronization optional fields",
                           "width": "fill_container",
                           "gap": 16,
                           "children": [
                             {
-                              "type": "frame",
-                              "id": "uk9Yx",
-                              "name": "Last synced description",
+                              "id": "KBt0i",
+                              "type": "ref",
+                              "ref": "DgeXc",
+                              "name": "Last synced at field",
                               "width": "fill_container",
-                              "layout": "vertical",
-                              "gap": 4,
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "wUNo9",
-                                  "name": "Last synced label",
-                                  "fill": "#8C8C8C",
-                                  "content": "Last synced",
-                                  "fontFamily": "$--font-secondary",
-                                  "fontSize": 12,
-                                  "fontWeight": "normal"
+                              "descendants": {
+                                "C3n3Uv": {
+                                  "content": "Last synced at"
                                 },
-                                {
-                                  "type": "text",
-                                  "id": "ODOpO",
-                                  "name": "Last synced value",
-                                  "fill": "#262626",
-                                  "content": "Jul 18, 2026 · 22:41",
-                                  "fontFamily": "$--font-secondary",
-                                  "fontSize": 14,
-                                  "fontWeight": "normal"
+                                "D1j3pp": {
+                                  "content": "2026-07-18T22:41:00Z"
+                                },
+                                "KsvEI": {
+                                  "content": "sync.lastSyncedAt",
+                                  "enabled": true
                                 }
-                              ]
+                              }
                             },
                             {
-                              "type": "frame",
-                              "id": "Q6sqOg",
-                              "name": "Last error description",
+                              "id": "GVHDf",
+                              "type": "ref",
+                              "ref": "DgeXc",
+                              "name": "Last error field",
                               "width": "fill_container",
-                              "layout": "vertical",
-                              "gap": 4,
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "hSvHz",
-                                  "name": "Last error label",
-                                  "fill": "#8C8C8C",
-                                  "content": "Last error",
-                                  "fontFamily": "$--font-secondary",
-                                  "fontSize": 12,
-                                  "fontWeight": "normal"
+                              "descendants": {
+                                "C3n3Uv": {
+                                  "content": "Last error"
                                 },
-                                {
-                                  "type": "text",
-                                  "id": "sPXGp",
-                                  "name": "Last error value",
-                                  "fill": "#262626",
-                                  "content": "—",
-                                  "fontFamily": "$--font-secondary",
-                                  "fontSize": 14,
-                                  "fontWeight": "normal"
+                                "D1j3pp": {
+                                  "content": "No error"
+                                },
+                                "KsvEI": {
+                                  "content": "sync.lastError",
+                                  "enabled": true
                                 }
-                              ]
+                              }
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "TK8Pi",
-                          "name": "Synchronization advanced collapse",
+                          "id": "jsxTP",
+                          "name": "Advanced sync fields",
                           "width": "fill_container",
-                          "height": 32,
-                          "gap": 8,
-                          "padding": [
-                            0,
-                            4
-                          ],
-                          "alignItems": "center",
+                          "layout": "vertical",
+                          "gap": 16,
                           "children": [
                             {
-                              "type": "icon",
-                              "id": "t5XbHS",
-                              "name": "Advanced collapse chevron",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "chevron-right",
-                              "library": "lucide",
-                              "fill": "#8C8C8C"
+                              "type": "frame",
+                              "id": "ebS9Z",
+                              "name": "ETag and checksum row",
+                              "width": "fill_container",
+                              "gap": 16,
+                              "children": [
+                                {
+                                  "id": "ukNAC",
+                                  "type": "ref",
+                                  "ref": "DgeXc",
+                                  "name": "ETag field",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "C3n3Uv": {
+                                      "content": "ETag"
+                                    },
+                                    "D1j3pp": {
+                                      "content": "W/abc-9821"
+                                    },
+                                    "KsvEI": {
+                                      "content": "sync.etag",
+                                      "enabled": true
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "kiIno",
+                                  "type": "ref",
+                                  "ref": "DgeXc",
+                                  "name": "Content checksum field",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "C3n3Uv": {
+                                      "content": "Content checksum"
+                                    },
+                                    "D1j3pp": {
+                                      "content": "sha256:8ef1…"
+                                    },
+                                    "KsvEI": {
+                                      "content": "sync.contentChecksum",
+                                      "enabled": true
+                                    }
+                                  }
+                                }
+                              ]
                             },
                             {
-                              "type": "text",
-                              "id": "y0L1CS",
-                              "name": "Advanced collapse label",
-                              "fill": "#262626",
-                              "content": "Advanced",
-                              "fontFamily": "$--font-secondary",
-                              "fontSize": 14,
-                              "fontWeight": "normal"
+                              "id": "KoUEm",
+                              "type": "ref",
+                              "ref": "DgeXc",
+                              "name": "Metadata JSON field",
+                              "width": "fill_container",
+                              "descendants": {
+                                "C3n3Uv": {
+                                  "content": "Metadata (JSON)"
+                                },
+                                "D1j3pp": {
+                                  "content": "{}"
+                                },
+                                "KsvEI": {
+                                  "content": "sync.metadata",
+                                  "enabled": true
+                                }
+                              }
                             }
                           ]
                         }
