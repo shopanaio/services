@@ -5114,7 +5114,7 @@
         {
           "type": "frame",
           "id": "u3hGp9",
-          "name": "Section · Value & requirements",
+          "name": "Section · Value & usage",
           "width": 880,
           "layout": "vertical",
           "gap": 64,
@@ -6324,11 +6324,277 @@
                   "content": "↓ ВАРИАНТ 2 — ВЕРТИКАЛЬНОЕ ПРАВИЛО — NODE ID: WcvkP ↓"
                 },
                 {
+                  "type": "frame",
                   "id": "MVENV",
-                  "type": "ref",
-                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · Products to products",
-                  "width": 800
+                  "width": 800,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "gxJW3",
+                      "name": "Connected flow section header",
+                      "width": "fill_container",
+                      "height": 32,
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "T5R9nk",
+                          "name": "Connected flow section title",
+                          "fill": "#111111",
+                          "content": "Applies to",
+                          "lineHeight": 1.5,
+                          "fontFamily": "Safiro",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "L6TrTb",
+                          "name": "Change targets action",
+                          "height": 32,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "z3gN2v",
+                              "name": "Change targets icon",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "pencil",
+                              "library": "lucide",
+                              "fill": "#595959"
+                            },
+                            {
+                              "type": "text",
+                              "id": "dVzba",
+                              "name": "Change targets label",
+                              "fill": "#666666",
+                              "content": "Change",
+                              "lineHeight": 1.6666666667,
+                              "fontFamily": "Safiro",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HHEDW",
+                      "name": "Buy X Get Y compact rule stepper",
+                      "width": "fill_container",
+                      "height": 128,
+                      "fill": "#FFFFFF",
+                      "stroke": "#E8E8E8",
+                      "gap": 12,
+                      "padding": [
+                        8,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "xdF63",
+                          "name": "Compact rule stepper rail",
+                          "width": 24,
+                          "height": 112,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "axrdV",
+                              "x": 11,
+                              "y": 24,
+                              "name": "Compact stepper connector line",
+                              "fill": "#E8E8E8",
+                              "width": 2,
+                              "height": 40
+                            },
+                            {
+                              "type": "frame",
+                              "id": "m16AQ",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Condition timeline icon node",
+                              "width": 24,
+                              "height": 24,
+                              "fill": "#F2F3F0",
+                              "cornerRadius": 999,
+                              "stroke": "#D9D9D9",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "YqW0J",
+                                  "name": "Condition timeline shopping cart icon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "icon": "shopping-cart",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "GqgRD",
+                              "x": 0,
+                              "y": 64,
+                              "name": "Reward timeline icon node",
+                              "width": 24,
+                              "height": 24,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "stroke": "#91CAFF",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "sKg99",
+                                  "name": "Reward timeline gift icon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "icon": "gift",
+                                  "library": "lucide",
+                                  "fill": "#0958D9"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "H5EK5",
+                          "name": "Compact rule stepper content",
+                          "width": "fill_container",
+                          "height": 112,
+                          "layout": "vertical",
+                          "gap": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "cxDPM",
+                              "name": "Compact condition step",
+                              "width": "fill_container",
+                              "height": 48,
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "l93qLR",
+                                  "name": "Compact condition label",
+                                  "fill": "#666666",
+                                  "content": "WHEN · CUSTOMER BUYS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.7
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "c9sDQV",
+                                  "name": "Compact condition title",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "2 eligible items from selected categories",
+                                  "lineHeight": 1.2,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "neQVx",
+                                  "name": "Compact condition metadata",
+                                  "fill": "#666666",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Summer essentials · +1 more",
+                                  "lineHeight": 1.35,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "IxgCT",
+                              "name": "Compact reward step",
+                              "width": "fill_container",
+                              "height": 48,
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "b7gyX1",
+                                  "name": "Compact reward label",
+                                  "fill": "#1677FF",
+                                  "content": "THEN · CUSTOMER GETS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.7
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "CziaH",
+                                  "name": "Compact reward title",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Travel backpack",
+                                  "lineHeight": 1.2,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "x6kFL",
+                                  "name": "Compact reward metadata",
+                                  "fill": "#666666",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "1 eligible item free · Up to 2 times per order",
+                                  "lineHeight": 1.35,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             },
@@ -6350,11 +6616,277 @@
                   "content": "BUY X GET Y · CATEGORIES → PRODUCTS\nQUALIFIER targets two categories; any qualifying product inside them may satisfy the buy condition.\nBENEFIT targets one specific product."
                 },
                 {
+                  "type": "frame",
                   "id": "SEqz6",
-                  "type": "ref",
-                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · Categories to products",
-                  "width": 800
+                  "width": 800,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "RvBDT",
+                      "name": "Connected flow section header",
+                      "width": "fill_container",
+                      "height": 32,
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "v7iWAH",
+                          "name": "Connected flow section title",
+                          "fill": "#111111",
+                          "content": "Applies to",
+                          "lineHeight": 1.5,
+                          "fontFamily": "Safiro",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "d5zVL2",
+                          "name": "Change targets action",
+                          "height": 32,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "gukyP",
+                              "name": "Change targets icon",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "pencil",
+                              "library": "lucide",
+                              "fill": "#595959"
+                            },
+                            {
+                              "type": "text",
+                              "id": "wbj8G",
+                              "name": "Change targets label",
+                              "fill": "#666666",
+                              "content": "Change",
+                              "lineHeight": 1.6666666667,
+                              "fontFamily": "Safiro",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uR9xO",
+                      "name": "Buy X Get Y compact rule stepper",
+                      "width": "fill_container",
+                      "height": 128,
+                      "fill": "#FFFFFF",
+                      "stroke": "#E8E8E8",
+                      "gap": 12,
+                      "padding": [
+                        8,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "CHnrg",
+                          "name": "Compact rule stepper rail",
+                          "width": 24,
+                          "height": 112,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "LZCSg",
+                              "x": 11,
+                              "y": 24,
+                              "name": "Compact stepper connector line",
+                              "fill": "#E8E8E8",
+                              "width": 2,
+                              "height": 40
+                            },
+                            {
+                              "type": "frame",
+                              "id": "x3EepB",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Condition timeline icon node",
+                              "width": 24,
+                              "height": 24,
+                              "fill": "#F2F3F0",
+                              "cornerRadius": 999,
+                              "stroke": "#D9D9D9",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "GDncM",
+                                  "name": "Condition timeline shopping cart icon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "icon": "shopping-cart",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "MoWxR",
+                              "x": 0,
+                              "y": 64,
+                              "name": "Reward timeline icon node",
+                              "width": 24,
+                              "height": 24,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "stroke": "#91CAFF",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "kuuiK",
+                                  "name": "Reward timeline gift icon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "icon": "gift",
+                                  "library": "lucide",
+                                  "fill": "#0958D9"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "h4yMXX",
+                          "name": "Compact rule stepper content",
+                          "width": "fill_container",
+                          "height": 112,
+                          "layout": "vertical",
+                          "gap": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "DZubm",
+                              "name": "Compact condition step",
+                              "width": "fill_container",
+                              "height": 48,
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "VNWST",
+                                  "name": "Compact condition label",
+                                  "fill": "#666666",
+                                  "content": "WHEN · CUSTOMER BUYS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.7
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "eENCP",
+                                  "name": "Compact condition title",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "2 eligible items from selected categories",
+                                  "lineHeight": 1.2,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "ibtu6",
+                                  "name": "Compact condition metadata",
+                                  "fill": "#666666",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Summer essentials · +1 more",
+                                  "lineHeight": 1.35,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Izawk",
+                              "name": "Compact reward step",
+                              "width": "fill_container",
+                              "height": 48,
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "leEre",
+                                  "name": "Compact reward label",
+                                  "fill": "#1677FF",
+                                  "content": "THEN · CUSTOMER GETS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.7
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "yTpTi",
+                                  "name": "Compact reward title",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Travel backpack",
+                                  "lineHeight": 1.2,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "k1Tf58",
+                                  "name": "Compact reward metadata",
+                                  "fill": "#666666",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "1 eligible item free · Up to 2 times per order",
+                                  "lineHeight": 1.35,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             },
@@ -6376,11 +6908,277 @@
                   "content": "BUY X GET Y · ALL PRODUCTS → VARIANTS\nQUALIFIER uses ALL_PRODUCTS with no target IDs, so the complete catalog can satisfy the condition.\nBENEFIT targets one specific variant and exposes its SKU."
                 },
                 {
+                  "type": "frame",
                   "id": "wZr0Z",
-                  "type": "ref",
-                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · All products to variant",
-                  "width": 800
+                  "width": 800,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "YRFQQ",
+                      "name": "Connected flow section header",
+                      "width": "fill_container",
+                      "height": 32,
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Fqzv4",
+                          "name": "Connected flow section title",
+                          "fill": "#111111",
+                          "content": "Applies to",
+                          "lineHeight": 1.5,
+                          "fontFamily": "Safiro",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Z17Dm",
+                          "name": "Change targets action",
+                          "height": 32,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "SPDTG",
+                              "name": "Change targets icon",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "pencil",
+                              "library": "lucide",
+                              "fill": "#595959"
+                            },
+                            {
+                              "type": "text",
+                              "id": "hNFN1",
+                              "name": "Change targets label",
+                              "fill": "#666666",
+                              "content": "Change",
+                              "lineHeight": 1.6666666667,
+                              "fontFamily": "Safiro",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HwSve",
+                      "name": "Buy X Get Y compact rule stepper",
+                      "width": "fill_container",
+                      "height": 128,
+                      "fill": "#FFFFFF",
+                      "stroke": "#E8E8E8",
+                      "gap": 12,
+                      "padding": [
+                        8,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "RCvjw",
+                          "name": "Compact rule stepper rail",
+                          "width": 24,
+                          "height": 112,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "z5rvI",
+                              "x": 11,
+                              "y": 24,
+                              "name": "Compact stepper connector line",
+                              "fill": "#E8E8E8",
+                              "width": 2,
+                              "height": 40
+                            },
+                            {
+                              "type": "frame",
+                              "id": "lVzjS",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Condition timeline icon node",
+                              "width": 24,
+                              "height": 24,
+                              "fill": "#F2F3F0",
+                              "cornerRadius": 999,
+                              "stroke": "#D9D9D9",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "J3SgZ",
+                                  "name": "Condition timeline shopping cart icon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "icon": "shopping-cart",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "d4w9O",
+                              "x": 0,
+                              "y": 64,
+                              "name": "Reward timeline icon node",
+                              "width": 24,
+                              "height": 24,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "stroke": "#91CAFF",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "sdbeo",
+                                  "name": "Reward timeline gift icon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "icon": "gift",
+                                  "library": "lucide",
+                                  "fill": "#0958D9"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "zNC5l",
+                          "name": "Compact rule stepper content",
+                          "width": "fill_container",
+                          "height": 112,
+                          "layout": "vertical",
+                          "gap": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "UAD6v",
+                              "name": "Compact condition step",
+                              "width": "fill_container",
+                              "height": 48,
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "hiDgp",
+                                  "name": "Compact condition label",
+                                  "fill": "#666666",
+                                  "content": "WHEN · CUSTOMER BUYS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.7
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "K4JZN",
+                                  "name": "Compact condition title",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "2 eligible items from selected categories",
+                                  "lineHeight": 1.2,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "cc8Vd",
+                                  "name": "Compact condition metadata",
+                                  "fill": "#666666",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Summer essentials · +1 more",
+                                  "lineHeight": 1.35,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "wgWtr",
+                              "name": "Compact reward step",
+                              "width": "fill_container",
+                              "height": 48,
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "B84mL2",
+                                  "name": "Compact reward label",
+                                  "fill": "#1677FF",
+                                  "content": "THEN · CUSTOMER GETS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.7
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "c0fjxP",
+                                  "name": "Compact reward title",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Travel backpack",
+                                  "lineHeight": 1.2,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "h0DlI",
+                                  "name": "Compact reward metadata",
+                                  "fill": "#666666",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "1 eligible item free · Up to 2 times per order",
+                                  "lineHeight": 1.35,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             },
@@ -6402,11 +7200,277 @@
                   "content": "BUY X GET Y · VARIANTS → CATEGORIES\nQUALIFIER targets exact variants and shows their SKUs. BENEFIT targets a category, allowing a reward item from that category.\nCounts describe selected targets, not the buy or reward quantity."
                 },
                 {
+                  "type": "frame",
                   "id": "HGijy",
-                  "type": "ref",
-                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · Variants to category",
-                  "width": 800
+                  "width": 800,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SDAHt",
+                      "name": "Connected flow section header",
+                      "width": "fill_container",
+                      "height": 32,
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SHbnu",
+                          "name": "Connected flow section title",
+                          "fill": "#111111",
+                          "content": "Applies to",
+                          "lineHeight": 1.5,
+                          "fontFamily": "Safiro",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "IRpb0",
+                          "name": "Change targets action",
+                          "height": 32,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "W0KIk5",
+                              "name": "Change targets icon",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "pencil",
+                              "library": "lucide",
+                              "fill": "#595959"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Intoc",
+                              "name": "Change targets label",
+                              "fill": "#666666",
+                              "content": "Change",
+                              "lineHeight": 1.6666666667,
+                              "fontFamily": "Safiro",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pMVVv",
+                      "name": "Buy X Get Y compact rule stepper",
+                      "width": "fill_container",
+                      "height": 128,
+                      "fill": "#FFFFFF",
+                      "stroke": "#E8E8E8",
+                      "gap": 12,
+                      "padding": [
+                        8,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "wS7Aj",
+                          "name": "Compact rule stepper rail",
+                          "width": 24,
+                          "height": 112,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "XBnR6",
+                              "x": 11,
+                              "y": 24,
+                              "name": "Compact stepper connector line",
+                              "fill": "#E8E8E8",
+                              "width": 2,
+                              "height": 40
+                            },
+                            {
+                              "type": "frame",
+                              "id": "eGv1L",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Condition timeline icon node",
+                              "width": 24,
+                              "height": 24,
+                              "fill": "#F2F3F0",
+                              "cornerRadius": 999,
+                              "stroke": "#D9D9D9",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "A2RSt",
+                                  "name": "Condition timeline shopping cart icon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "icon": "shopping-cart",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "V18M3",
+                              "x": 0,
+                              "y": 64,
+                              "name": "Reward timeline icon node",
+                              "width": 24,
+                              "height": 24,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "stroke": "#91CAFF",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "iNHm8",
+                                  "name": "Reward timeline gift icon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "icon": "gift",
+                                  "library": "lucide",
+                                  "fill": "#0958D9"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "DlF5W",
+                          "name": "Compact rule stepper content",
+                          "width": "fill_container",
+                          "height": 112,
+                          "layout": "vertical",
+                          "gap": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "C9rZA",
+                              "name": "Compact condition step",
+                              "width": "fill_container",
+                              "height": 48,
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "h3GLaL",
+                                  "name": "Compact condition label",
+                                  "fill": "#666666",
+                                  "content": "WHEN · CUSTOMER BUYS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.7
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "e7lgj",
+                                  "name": "Compact condition title",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "2 eligible items from selected categories",
+                                  "lineHeight": 1.2,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "lOnGW",
+                                  "name": "Compact condition metadata",
+                                  "fill": "#666666",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Summer essentials · +1 more",
+                                  "lineHeight": 1.35,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Fz7BB",
+                              "name": "Compact reward step",
+                              "width": "fill_container",
+                              "height": 48,
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "JzE7E",
+                                  "name": "Compact reward label",
+                                  "fill": "#1677FF",
+                                  "content": "THEN · CUSTOMER GETS",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.7
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "ivddb",
+                                  "name": "Compact reward title",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Travel backpack",
+                                  "lineHeight": 1.2,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "wR3Sj",
+                                  "name": "Compact reward metadata",
+                                  "fill": "#666666",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "1 eligible item free · Up to 2 times per order",
+                                  "lineHeight": 1.35,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             },
@@ -9155,660 +10219,69 @@
         },
         {
           "type": "frame",
-          "id": "m7V6PG",
-          "name": "Playground stage · Eligibility & distribution",
+          "id": "P5ctog",
+          "name": "Section · Channels & combinations",
           "width": 880,
           "layout": "vertical",
-          "gap": 16,
+          "gap": 64,
           "alignItems": "center",
           "children": [
             {
-              "type": "note",
-              "id": "WXA7o",
-              "name": "Design comment · Distribution & combinations",
-              "width": 800,
-              "height": 72,
-              "content": "ELIGIBILITY & DISTRIBUTION\nAPI: buyerContext defines ALL, CUSTOMERS or SEGMENTS. channels contains active channel codes and featured state. combinesWith contains PRODUCT, ORDER and/or SHIPPING.\nEvery available channel is shown as a compact icon list with trailing state; every combination class remains visible. Only active values are selected."
+              "type": "frame",
+              "id": "TXLMC",
+              "name": "Playground stage · Channels · Updated screen example",
+              "width": 880,
+              "layout": "vertical",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "note",
+                  "id": "ikpH9",
+                  "name": "Design comment · Channels · Updated",
+                  "width": 800,
+                  "height": 56,
+                  "content": "CHANNELS\nUpdated standalone Paper section used by the discount details screens. Active-state count is shown below the section content."
+                },
+                {
+                  "id": "ZjWdf",
+                  "type": "ref",
+                  "ref": "avwDn",
+                  "name": "Discount block / Channels / Updated screen example",
+                  "width": 800,
+                  "height": 169
+                }
+              ]
             },
             {
               "type": "frame",
-              "id": "I8hu9",
-              "name": "Discount block / Distribution / Default",
-              "context": "Standalone distribution block for sales channels and discount-class combination states.",
-              "reusable": true,
-              "width": 800,
-              "fill": "#FFFFFF",
-              "cornerRadius": 8,
-              "stroke": "#F0F0F0",
-              "strokeWidth": 1,
+              "id": "CpUUU",
+              "name": "Playground stage · Combinations · Updated screen example",
+              "width": 880,
               "layout": "vertical",
-              "gap": 10,
-              "padding": 12,
+              "gap": 16,
+              "alignItems": "center",
               "children": [
                 {
-                  "type": "frame",
-                  "id": "t4mGZg",
-                  "name": "Discount distribution section header",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 8,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "NCZKJ",
-                      "name": "Discount distribution section header row",
-                      "width": "fill_container",
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "uoOjF",
-                          "name": "Discount distribution section title",
-                          "fill": "#262626",
-                          "content": "Distribution",
-                          "fontFamily": "$--font-secondary",
-                          "fontSize": 16,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "T8rZFZ",
-                          "name": "Discount distribution section actions",
-                          "width": 24,
-                          "height": 24,
-                          "fill": "#FFFFFF",
-                          "cornerRadius": 4,
-                          "stroke": "#D9D9D9",
-                          "strokeWidth": 1,
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon",
-                              "id": "RABhM",
-                              "name": "Discount distribution section actions icon",
-                              "width": 13,
-                              "height": 13,
-                              "icon": "ellipsis",
-                              "library": "lucide",
-                              "fill": "#595959"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "rectangle",
-                      "id": "IoeSH",
-                      "name": "Discount distribution section header divider",
-                      "fill": "#F0F0F0",
-                      "width": "fill_container",
-                      "height": 1
-                    }
-                  ]
+                  "type": "note",
+                  "id": "tkjQ3",
+                  "name": "Design comment · Combinations · Updated",
+                  "width": 800,
+                  "height": 56,
+                  "content": "COMBINATIONS\nUpdated standalone Paper section used by the discount details screens. Options are compact and the enabled count is shown below the section content."
                 },
                 {
-                  "type": "frame",
-                  "id": "ho2Zh",
-                  "name": "Eligibility and distribution content",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 8,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "hz5R2",
-                      "name": "Combined channels and combinations row",
-                      "width": "fill_container",
-                      "height": 150,
-                      "gap": 8,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "tdzli",
-                          "name": "Combined channels tile",
-                          "width": 280,
-                          "height": "fill_container",
-                          "fill": "#FFFFFF",
-                          "cornerRadius": 8,
-                          "stroke": "#E8E8E8",
-                          "strokeWidth": 1,
-                          "layout": "vertical",
-                          "gap": 8,
-                          "padding": 10,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "e02VRG",
-                              "name": "Combined channels header",
-                              "width": "fill_container",
-                              "gap": 7,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "LPvIv",
-                                  "name": "Combined channels icon background",
-                                  "width": 26,
-                                  "height": 26,
-                                  "fill": "#FFFFFF",
-                                  "cornerRadius": 7,
-                                  "stroke": "#E8E8E8",
-                                  "strokeWidth": 1,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "J8X8cN",
-                                      "name": "Combined channels icon",
-                                      "width": 13,
-                                      "height": 13,
-                                      "icon": "radio-tower",
-                                      "library": "lucide",
-                                      "fill": "#595959"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "MAJgu",
-                                  "name": "Combined channels copy",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 1,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "uoS5H",
-                                      "name": "Combined channels title",
-                                      "fill": "#262626",
-                                      "content": "Channels",
-                                      "fontFamily": "Safiro",
-                                      "fontSize": 11,
-                                      "fontWeight": "650"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "ivSB8",
-                                      "name": "Combined channels caption",
-                                      "fill": "#8C8C8C",
-                                      "content": "1 of 3 active",
-                                      "fontFamily": "Safiro",
-                                      "fontSize": 9,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Gs3Fv",
-                              "name": "Combined channel options",
-                              "width": "fill_container",
-                              "height": 86,
-                              "layout": "vertical",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "VzjqX",
-                                  "name": "Online store channel option",
-                                  "width": "fill_container",
-                                  "height": 29,
-                                  "fill": "#FFFFFF",
-                                  "stroke": "#F0F0F0",
-                                  "strokeWidth": {
-                                    "bottom": 1
-                                  },
-                                  "gap": 8,
-                                  "padding": [
-                                    0,
-                                    4
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "l9OH6G",
-                                      "name": "Online store channel option icon",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "store",
-                                      "library": "lucide",
-                                      "fill": "#1677FF"
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "Dn1yi",
-                                      "name": "Online store channel option status",
-                                      "width": "fill_container",
-                                      "gap": 4,
-                                      "justifyContent": "space_between",
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "jansP",
-                                          "name": "Online store channel option label",
-                                          "fill": "#262626",
-                                          "content": "Online store",
-                                          "fontFamily": "Safiro",
-                                          "fontSize": 10,
-                                          "fontWeight": "600"
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "TIt83",
-                                          "name": "Online store channel option status icon",
-                                          "width": 12,
-                                          "height": 12,
-                                          "icon": "circle-check",
-                                          "library": "lucide",
-                                          "fill": "#1677FF"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "XpLgu",
-                                  "name": "Mobile app channel option",
-                                  "width": "fill_container",
-                                  "height": 29,
-                                  "fill": "#FFFFFF",
-                                  "stroke": "#F0F0F0",
-                                  "strokeWidth": {
-                                    "bottom": 1
-                                  },
-                                  "gap": 8,
-                                  "padding": [
-                                    0,
-                                    4
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "Z1vwsU",
-                                      "name": "Mobile app channel option icon",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "smartphone",
-                                      "library": "lucide",
-                                      "fill": "#BFBFBF"
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "w7cjs",
-                                      "name": "Mobile app channel option status",
-                                      "width": "fill_container",
-                                      "gap": 4,
-                                      "justifyContent": "space_between",
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "N7gsp",
-                                          "name": "Mobile app channel option label",
-                                          "fill": "#8C8C8C",
-                                          "content": "Mobile app",
-                                          "fontFamily": "Safiro",
-                                          "fontSize": 10,
-                                          "fontWeight": "600"
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "qPoG7",
-                                          "name": "Mobile app channel option status icon",
-                                          "width": 12,
-                                          "height": 12,
-                                          "icon": "circle",
-                                          "library": "lucide",
-                                          "fill": "#BFBFBF"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "q2ZHZ",
-                                  "name": "POS channel option",
-                                  "width": "fill_container",
-                                  "height": 28,
-                                  "fill": "#FFFFFF",
-                                  "stroke": "#FFFFFF",
-                                  "gap": 8,
-                                  "padding": [
-                                    0,
-                                    4
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "tAs4D",
-                                      "name": "POS channel option icon",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "credit-card",
-                                      "library": "lucide",
-                                      "fill": "#BFBFBF"
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "hh4Wg",
-                                      "name": "POS channel option status",
-                                      "width": "fill_container",
-                                      "gap": 4,
-                                      "justifyContent": "space_between",
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "DrOmC",
-                                          "name": "POS channel option label",
-                                          "fill": "#8C8C8C",
-                                          "content": "POS",
-                                          "fontFamily": "Safiro",
-                                          "fontSize": 10,
-                                          "fontWeight": "600"
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "LNdTk",
-                                          "name": "POS channel option status icon",
-                                          "width": 12,
-                                          "height": 12,
-                                          "icon": "circle",
-                                          "library": "lucide",
-                                          "fill": "#BFBFBF"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "l3vG05",
-                          "name": "Combined combinations tile",
-                          "width": "fill_container",
-                          "height": 90,
-                          "fill": "#FFFFFF",
-                          "cornerRadius": 8,
-                          "stroke": "#E8E8E8",
-                          "strokeWidth": 1,
-                          "layout": "vertical",
-                          "gap": 8,
-                          "padding": 10,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "H6qGY",
-                              "name": "Combined combinations header",
-                              "width": "fill_container",
-                              "gap": 7,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "rdyUQ",
-                                  "name": "Combined combinations icon background",
-                                  "width": 26,
-                                  "height": 26,
-                                  "fill": "#FFFFFF",
-                                  "cornerRadius": 7,
-                                  "stroke": "#E8E8E8",
-                                  "strokeWidth": 1,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "eMyaN",
-                                      "name": "Combined combinations icon",
-                                      "width": 13,
-                                      "height": 13,
-                                      "icon": "combine",
-                                      "library": "lucide",
-                                      "fill": "#595959"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "QtV97",
-                                  "name": "Combined combinations copy",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 1,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "AfcHm",
-                                      "name": "Combined combinations title",
-                                      "fill": "#262626",
-                                      "content": "Combinations",
-                                      "fontFamily": "Safiro",
-                                      "fontSize": 11,
-                                      "fontWeight": "650"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "lvx0f",
-                                      "name": "Combined combinations caption",
-                                      "fill": "#8C8C8C",
-                                      "content": "2 of 3 enabled",
-                                      "fontFamily": "Safiro",
-                                      "fontSize": 9,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "XXXaJ",
-                              "name": "Combined combination options",
-                              "width": "fill_container",
-                              "height": 36,
-                              "gap": 6,
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "Aklbn",
-                                  "name": "Product combination option",
-                                  "width": "fill_container",
-                                  "height": "fill_container",
-                                  "fill": "#E6F4FF",
-                                  "cornerRadius": 6,
-                                  "stroke": "#91CAFF",
-                                  "strokeWidth": 1,
-                                  "gap": 7,
-                                  "padding": [
-                                    0,
-                                    10
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "B99jyT",
-                                      "name": "Product combination option icon",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "package-check",
-                                      "library": "lucide",
-                                      "fill": "#1677FF"
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "f3QhL",
-                                      "name": "Product combination option status",
-                                      "width": "fill_container",
-                                      "gap": 4,
-                                      "justifyContent": "space_between",
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "q3N75T",
-                                          "name": "Product combination option label",
-                                          "fill": "#262626",
-                                          "content": "Product",
-                                          "fontFamily": "Safiro",
-                                          "fontSize": 10,
-                                          "fontWeight": "600"
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "w6Q70",
-                                          "name": "Product combination option status icon",
-                                          "width": 12,
-                                          "height": 12,
-                                          "icon": "circle-check",
-                                          "library": "lucide",
-                                          "fill": "#1677FF"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "zNAeY",
-                                  "name": "Order combination option",
-                                  "width": "fill_container",
-                                  "height": "fill_container",
-                                  "fill": "#E6F4FF",
-                                  "cornerRadius": 6,
-                                  "stroke": "#91CAFF",
-                                  "strokeWidth": 1,
-                                  "gap": 7,
-                                  "padding": [
-                                    0,
-                                    10
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "K1EfD",
-                                      "name": "Order combination option icon",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "receipt-text",
-                                      "library": "lucide",
-                                      "fill": "#1677FF"
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "ajK1X",
-                                      "name": "Order combination option status",
-                                      "width": "fill_container",
-                                      "gap": 4,
-                                      "justifyContent": "space_between",
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "lQc5T",
-                                          "name": "Order combination option label",
-                                          "fill": "#262626",
-                                          "content": "Order",
-                                          "fontFamily": "Safiro",
-                                          "fontSize": 10,
-                                          "fontWeight": "600"
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "C739DT",
-                                          "name": "Order combination option status icon",
-                                          "width": 12,
-                                          "height": 12,
-                                          "icon": "circle-check",
-                                          "library": "lucide",
-                                          "fill": "#1677FF"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "L1ZKc",
-                                  "name": "Shipping combination option",
-                                  "width": "fill_container",
-                                  "height": "fill_container",
-                                  "fill": "#FFFFFF",
-                                  "cornerRadius": 6,
-                                  "stroke": "#E8E8E8",
-                                  "strokeWidth": 1,
-                                  "gap": 7,
-                                  "padding": [
-                                    0,
-                                    10
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "p157e",
-                                      "name": "Shipping combination option icon",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "truck",
-                                      "library": "lucide",
-                                      "fill": "#BFBFBF"
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "MYP1d",
-                                      "name": "Shipping combination option status",
-                                      "width": "fill_container",
-                                      "gap": 4,
-                                      "justifyContent": "space_between",
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "yGHK0",
-                                          "name": "Shipping combination option label",
-                                          "fill": "#8C8C8C",
-                                          "content": "Shipping",
-                                          "fontFamily": "Safiro",
-                                          "fontSize": 10,
-                                          "fontWeight": "600"
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "n6u2G",
-                                          "name": "Shipping combination option status icon",
-                                          "width": 12,
-                                          "height": 12,
-                                          "icon": "circle",
-                                          "library": "lucide",
-                                          "fill": "#BFBFBF"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                  "id": "o8aupB",
+                  "type": "ref",
+                  "ref": "mvjvy",
+                  "name": "Discount block / Combinations / Updated screen example",
+                  "width": 800,
+                  "height": 119,
+                  "descendants": {
+                    "zaObD": {
+                      "height": 36
                     }
-                  ]
+                  }
                 }
               ]
             }
@@ -10200,937 +10673,6 @@
                                   "fontWeight": "600"
                                 }
                               ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "DzKJJ",
-          "name": "Playground stage · Usage history",
-          "width": 880,
-          "layout": "vertical",
-          "gap": 16,
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "note",
-              "id": "V4v1X4",
-              "name": "Design comment · Usage history",
-              "width": 800,
-              "height": 72,
-              "content": "USAGE HISTORY\nAPI: aggregate usage summary, reservations, redemptions and allocation rows.\nThe section separates current capacity from the chronological record of committed, reversed and reserved usage."
-            },
-            {
-              "type": "frame",
-              "id": "dxElx",
-              "name": "Discount block / Usage history / Default",
-              "reusable": true,
-              "width": 800,
-              "fill": "#FFFFFF",
-              "cornerRadius": 8,
-              "stroke": "#F0F0F0",
-              "strokeWidth": 1,
-              "layout": "vertical",
-              "gap": 10,
-              "padding": 12,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "BI92w",
-                  "name": "Usage history section header",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 8,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "Pc6iq",
-                      "name": "Usage history section header row",
-                      "width": "fill_container",
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "seM3U",
-                          "name": "Usage history section title",
-                          "fill": "#262626",
-                          "content": "Usage history",
-                          "fontFamily": "Safiro",
-                          "fontSize": 16,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "YNaI7",
-                          "name": "View all usage history",
-                          "height": 24,
-                          "fill": "#FFFFFF",
-                          "cornerRadius": 4,
-                          "stroke": "#D9D9D9",
-                          "strokeWidth": 1,
-                          "gap": 5,
-                          "padding": [
-                            0,
-                            8
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "kPmDA",
-                              "name": "View all usage history label",
-                              "fill": "#595959",
-                              "content": "View all",
-                              "fontFamily": "Safiro",
-                              "fontSize": 11,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "icon",
-                              "id": "unk3s",
-                              "name": "View all usage history icon",
-                              "width": 11,
-                              "height": 11,
-                              "icon": "arrow-up-right",
-                              "library": "lucide",
-                              "fill": "#595959"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "rectangle",
-                      "id": "MVbP6",
-                      "name": "Usage history section header divider",
-                      "fill": "#F0F0F0",
-                      "width": "fill_container",
-                      "height": 1
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "gyaZ6",
-                  "name": "Aggregate discount usage summary",
-                  "width": "fill_container",
-                  "gap": 8,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "TedW4",
-                      "name": "USAGE LIMIT usage tile",
-                      "width": "fill_container",
-                      "fill": "#FAFAFA",
-                      "cornerRadius": 7,
-                      "stroke": "#E8E8E8",
-                      "strokeWidth": 1,
-                      "layout": "vertical",
-                      "gap": 3,
-                      "padding": [
-                        10,
-                        12
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "sezMO",
-                          "name": "USAGE LIMIT usage label",
-                          "fill": "#8C8C8C",
-                          "content": "USAGE LIMIT",
-                          "fontFamily": "Safiro",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "TiLig",
-                          "name": "USAGE LIMIT usage value",
-                          "fill": "#262626",
-                          "content": "1,000",
-                          "fontFamily": "Safiro",
-                          "fontSize": 20,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "eZhHr",
-                          "name": "USAGE LIMIT usage detail",
-                          "fill": "#8C8C8C",
-                          "content": "Aggregate cap",
-                          "fontFamily": "Safiro",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "BhtQF",
-                      "name": "CONSUMED usage tile",
-                      "width": "fill_container",
-                      "fill": "#F0F5FF",
-                      "cornerRadius": 7,
-                      "stroke": "#ADC6FF",
-                      "strokeWidth": 1,
-                      "layout": "vertical",
-                      "gap": 3,
-                      "padding": [
-                        10,
-                        12
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "w9HOU3",
-                          "name": "CONSUMED usage label",
-                          "fill": "#8C8C8C",
-                          "content": "CONSUMED",
-                          "fontFamily": "Safiro",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "EHIbW",
-                          "name": "CONSUMED usage value",
-                          "fill": "#2F54EB",
-                          "content": "248",
-                          "fontFamily": "Safiro",
-                          "fontSize": 20,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "heHBz",
-                          "name": "CONSUMED usage detail",
-                          "fill": "#8C8C8C",
-                          "content": "234 net committed · 14 reserved",
-                          "fontFamily": "Safiro",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "HcNzy",
-                      "name": "REVERSED usage tile",
-                      "width": "fill_container",
-                      "fill": "#FAFAFA",
-                      "cornerRadius": 7,
-                      "stroke": "#E8E8E8",
-                      "strokeWidth": 1,
-                      "layout": "vertical",
-                      "gap": 3,
-                      "padding": [
-                        10,
-                        12
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "NxTur",
-                          "name": "REVERSED usage label",
-                          "fill": "#8C8C8C",
-                          "content": "REVERSED",
-                          "fontFamily": "Safiro",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "cYOF7",
-                          "name": "REVERSED usage value",
-                          "fill": "#262626",
-                          "content": "6",
-                          "fontFamily": "Safiro",
-                          "fontSize": 20,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "HfCj4",
-                          "name": "REVERSED usage detail",
-                          "fill": "#8C8C8C",
-                          "content": "Excluded from consumed",
-                          "fontFamily": "Safiro",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "TTAOc",
-                      "name": "REMAINING usage tile",
-                      "width": "fill_container",
-                      "fill": "#F6FFED",
-                      "cornerRadius": 7,
-                      "stroke": "#B7EB8F",
-                      "strokeWidth": 1,
-                      "layout": "vertical",
-                      "gap": 3,
-                      "padding": [
-                        10,
-                        12
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "YpUBi",
-                          "name": "REMAINING usage label",
-                          "fill": "#8C8C8C",
-                          "content": "REMAINING",
-                          "fontFamily": "Safiro",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "y2dBy",
-                          "name": "REMAINING usage value",
-                          "fill": "#389E0D",
-                          "content": "752",
-                          "fontFamily": "Safiro",
-                          "fontSize": 20,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "irvIt",
-                          "name": "REMAINING usage detail",
-                          "fill": "#8C8C8C",
-                          "content": "75.2% available",
-                          "fontFamily": "Safiro",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "x3zSD",
-                  "name": "Usage history status summary",
-                  "width": "fill_container",
-                  "justifyContent": "space_between",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "BOk1h",
-                      "name": "Usage history status counts",
-                      "gap": 6,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "A7L3sr",
-                          "name": "Committed activity count",
-                          "fill": "#F6FFED",
-                          "cornerRadius": 999,
-                          "gap": 4,
-                          "padding": [
-                            3,
-                            7
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "mLVj1",
-                              "name": "Committed activity label",
-                              "fill": "#389E0D",
-                              "content": "Committed",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "text",
-                              "id": "ORKMw",
-                              "name": "Committed activity value",
-                              "fill": "#389E0D",
-                              "content": "240",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "MBfBu",
-                          "name": "Reversed activity count",
-                          "fill": "#FFFBE6",
-                          "cornerRadius": 999,
-                          "gap": 4,
-                          "padding": [
-                            3,
-                            7
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "CUwSh",
-                              "name": "Reversed activity label",
-                              "fill": "#D48806",
-                              "content": "Reversed",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "text",
-                              "id": "syBBF",
-                              "name": "Reversed activity value",
-                              "fill": "#D48806",
-                              "content": "6",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "cSZME",
-                          "name": "Active reservations activity count",
-                          "fill": "#E6F4FF",
-                          "cornerRadius": 999,
-                          "gap": 4,
-                          "padding": [
-                            3,
-                            7
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "r14dF",
-                              "name": "Active reservations activity label",
-                              "fill": "#1677FF",
-                              "content": "Active reservations",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "text",
-                              "id": "jaxnj",
-                              "name": "Active reservations activity value",
-                              "fill": "#1677FF",
-                              "content": "14",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "text",
-                      "id": "ZbC24",
-                      "name": "Usage history updated timestamp",
-                      "fill": "#8C8C8C",
-                      "content": "Updated 2 minutes ago",
-                      "fontFamily": "Safiro",
-                      "fontSize": 10,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "koK3e",
-                  "name": "Redemption and reservation list",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 8,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "DqwP7",
-                      "name": "Order #10482 activity row",
-                      "width": "fill_container",
-                      "height": 58,
-                      "fill": "#FAFAFA",
-                      "cornerRadius": 7,
-                      "stroke": "#E8E8E8",
-                      "strokeWidth": 1,
-                      "gap": 10,
-                      "padding": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "Ufbo7",
-                          "name": "Order #10482 activity icon background",
-                          "width": 34,
-                          "height": 34,
-                          "fill": "#F6FFED",
-                          "cornerRadius": 7,
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon",
-                              "id": "vaxCV",
-                              "name": "Order #10482 activity icon",
-                              "width": 16,
-                              "height": 16,
-                              "icon": "receipt-text",
-                              "library": "lucide",
-                              "fill": "#389E0D"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "ScDBG",
-                          "name": "Order #10482 activity copy",
-                          "width": "fill_container",
-                          "layout": "vertical",
-                          "gap": 1,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "njzLw",
-                              "name": "Order #10482 activity title row",
-                              "gap": 6,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "vHaHX",
-                                  "name": "Order #10482 activity title",
-                                  "fill": "#262626",
-                                  "content": "Order #10482",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 13,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "qYb1n",
-                                  "name": "Order #10482 activity type badge",
-                                  "fill": "#F0F0F0",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    2,
-                                    6
-                                  ],
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "FlrRo",
-                                      "name": "Order #10482 activity type label",
-                                      "fill": "#595959",
-                                      "content": "Redemption",
-                                      "fontFamily": "Safiro",
-                                      "fontSize": 9,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "kha4I",
-                              "name": "Order #10482 activity detail",
-                              "fill": "#8C8C8C",
-                              "content": "Mia Rodriguez · 2 order-line allocations",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "qnV09",
-                          "name": "Order #10482 activity amount",
-                          "width": 84,
-                          "layout": "vertical",
-                          "gap": 1,
-                          "alignItems": "end",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "ujmpX",
-                              "name": "Order #10482 activity amount value",
-                              "fill": "#262626",
-                              "content": "$24.80",
-                              "fontFamily": "Safiro",
-                              "fontSize": 13,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "text",
-                              "id": "EbtgT",
-                              "name": "Order #10482 activity timestamp",
-                              "fill": "#8C8C8C",
-                              "content": "Today · 14:32",
-                              "fontFamily": "Safiro",
-                              "fontSize": 9,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "ervLs",
-                          "name": "Order #10482 activity status",
-                          "width": 72,
-                          "fill": "#F6FFED",
-                          "cornerRadius": 999,
-                          "padding": [
-                            3,
-                            7
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "BhtCU",
-                              "name": "Order #10482 activity status label",
-                              "fill": "#389E0D",
-                              "content": "Committed",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "V0b7Q",
-                      "name": "Order #10431 activity row",
-                      "width": "fill_container",
-                      "height": 58,
-                      "fill": "#FAFAFA",
-                      "cornerRadius": 7,
-                      "stroke": "#E8E8E8",
-                      "strokeWidth": 1,
-                      "gap": 10,
-                      "padding": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "f7aOur",
-                          "name": "Order #10431 activity icon background",
-                          "width": 34,
-                          "height": 34,
-                          "fill": "#FFFBE6",
-                          "cornerRadius": 7,
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon",
-                              "id": "WTC47",
-                              "name": "Order #10431 activity icon",
-                              "width": 16,
-                              "height": 16,
-                              "icon": "rotate-ccw",
-                              "library": "lucide",
-                              "fill": "#D48806"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "fLJvP",
-                          "name": "Order #10431 activity copy",
-                          "width": "fill_container",
-                          "layout": "vertical",
-                          "gap": 1,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "H3Zye",
-                              "name": "Order #10431 activity title row",
-                              "gap": 6,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "E9NHU",
-                                  "name": "Order #10431 activity title",
-                                  "fill": "#262626",
-                                  "content": "Order #10431",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 13,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "X6Mbx2",
-                                  "name": "Order #10431 activity type badge",
-                                  "fill": "#F0F0F0",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    2,
-                                    6
-                                  ],
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "UFU68",
-                                      "name": "Order #10431 activity type label",
-                                      "fill": "#595959",
-                                      "content": "Redemption",
-                                      "fontFamily": "Safiro",
-                                      "fontSize": 9,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "jEFkW",
-                              "name": "Order #10431 activity detail",
-                              "fill": "#8C8C8C",
-                              "content": "Noah Williams · Reversal: Order cancelled",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "quZoC",
-                          "name": "Order #10431 activity amount",
-                          "width": 84,
-                          "layout": "vertical",
-                          "gap": 1,
-                          "alignItems": "end",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "fQqie",
-                              "name": "Order #10431 activity amount value",
-                              "fill": "#262626",
-                              "content": "$15.00",
-                              "fontFamily": "Safiro",
-                              "fontSize": 13,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "text",
-                              "id": "p0bkW",
-                              "name": "Order #10431 activity timestamp",
-                              "fill": "#8C8C8C",
-                              "content": "Yesterday · 18:06",
-                              "fontFamily": "Safiro",
-                              "fontSize": 9,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "bdRe1",
-                          "name": "Order #10431 activity status",
-                          "width": 72,
-                          "fill": "#FFFBE6",
-                          "cornerRadius": 999,
-                          "padding": [
-                            3,
-                            7
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "Ny5bd",
-                              "name": "Order #10431 activity status label",
-                              "fill": "#D48806",
-                              "content": "Reversed",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "OcXTi",
-                      "name": "Checkout ck_8F21A activity row",
-                      "width": "fill_container",
-                      "height": 58,
-                      "fill": "#FAFAFA",
-                      "cornerRadius": 7,
-                      "stroke": "#E8E8E8",
-                      "strokeWidth": 1,
-                      "gap": 10,
-                      "padding": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "YrLnq",
-                          "name": "Checkout ck_8F21A activity icon background",
-                          "width": 34,
-                          "height": 34,
-                          "fill": "#E6F4FF",
-                          "cornerRadius": 7,
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon",
-                              "id": "jSz3Q",
-                              "name": "Checkout ck_8F21A activity icon",
-                              "width": 16,
-                              "height": 16,
-                              "icon": "hourglass",
-                              "library": "lucide",
-                              "fill": "#1677FF"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "fws8s",
-                          "name": "Checkout ck_8F21A activity copy",
-                          "width": "fill_container",
-                          "layout": "vertical",
-                          "gap": 1,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "UqJ3s",
-                              "name": "Checkout ck_8F21A activity title row",
-                              "gap": 6,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "f122iw",
-                                  "name": "Checkout ck_8F21A activity title",
-                                  "fill": "#262626",
-                                  "content": "Checkout ck_8F21A",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 13,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "oIfib",
-                                  "name": "Checkout ck_8F21A activity type badge",
-                                  "fill": "#F0F0F0",
-                                  "cornerRadius": 999,
-                                  "padding": [
-                                    2,
-                                    6
-                                  ],
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "n1loQ",
-                                      "name": "Checkout ck_8F21A activity type label",
-                                      "fill": "#595959",
-                                      "content": "Reservation",
-                                      "fontFamily": "Safiro",
-                                      "fontSize": 9,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "M1wzx",
-                              "name": "Checkout ck_8F21A activity detail",
-                              "fill": "#8C8C8C",
-                              "content": "Mia Rodriguez · Expires in 11 minutes",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "el9ZR",
-                          "name": "Checkout ck_8F21A activity amount",
-                          "width": 84,
-                          "layout": "vertical",
-                          "gap": 1,
-                          "alignItems": "end",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "WBeUn",
-                              "name": "Checkout ck_8F21A activity amount value",
-                              "fill": "#262626",
-                              "content": "—",
-                              "fontFamily": "Safiro",
-                              "fontSize": 13,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "text",
-                              "id": "aTH11",
-                              "name": "Checkout ck_8F21A activity timestamp",
-                              "fill": "#8C8C8C",
-                              "content": "Today · 14:41",
-                              "fontFamily": "Safiro",
-                              "fontSize": 9,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "W70qI",
-                          "name": "Checkout ck_8F21A activity status",
-                          "width": 72,
-                          "fill": "#E6F4FF",
-                          "cornerRadius": 999,
-                          "padding": [
-                            3,
-                            7
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "JMAxV",
-                              "name": "Checkout ck_8F21A activity status label",
-                              "fill": "#1677FF",
-                              "content": "Active",
-                              "fontFamily": "Safiro",
-                              "fontSize": 10,
-                              "fontWeight": "600"
                             }
                           ]
                         }
@@ -11728,640 +11270,6 @@
                               ]
                             }
                           ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "FAko5",
-          "name": "Playground stage · Technical metadata",
-          "width": 880,
-          "layout": "vertical",
-          "gap": 16,
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "note",
-              "id": "QgyFp",
-              "name": "Design comment · Technical metadata",
-              "width": 800,
-              "height": 72,
-              "content": "TECHNICAL METADATA\nAPI: priority, revision, createdById, metadata and created/updated/archived timestamps belong to the discount aggregate.\nKeep operational identifiers copyable while JSON stays progressively disclosed and read-only in the details view."
-            },
-            {
-              "type": "frame",
-              "id": "GMaqF",
-              "name": "Discount block / Technical metadata / Default",
-              "reusable": true,
-              "width": 800,
-              "fill": "#FFFFFF",
-              "cornerRadius": 8,
-              "stroke": "#F0F0F0",
-              "strokeWidth": 1,
-              "layout": "vertical",
-              "gap": 10,
-              "padding": 12,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "K2GOxW",
-                  "name": "Technical metadata section header",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 8,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "a0lqZ",
-                      "name": "Technical metadata section header row",
-                      "width": "fill_container",
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "XcfUP",
-                          "name": "Technical metadata section title",
-                          "fill": "#262626",
-                          "content": "Technical metadata",
-                          "fontFamily": "Safiro",
-                          "fontSize": 16,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "OCd86",
-                          "name": "Copy discount metadata action",
-                          "height": 24,
-                          "fill": "#FFFFFF",
-                          "cornerRadius": 4,
-                          "stroke": "#D9D9D9",
-                          "strokeWidth": 1,
-                          "gap": 5,
-                          "padding": [
-                            0,
-                            8
-                          ],
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon",
-                              "id": "Vbucg",
-                              "name": "Copy discount metadata icon",
-                              "width": 11,
-                              "height": 11,
-                              "icon": "copy",
-                              "library": "lucide",
-                              "fill": "#595959"
-                            },
-                            {
-                              "type": "text",
-                              "id": "md8oB",
-                              "name": "Copy discount metadata label",
-                              "fill": "#595959",
-                              "content": "Copy JSON",
-                              "fontFamily": "Safiro",
-                              "fontSize": 11,
-                              "fontWeight": "500"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "rectangle",
-                      "id": "TZCSn",
-                      "name": "Technical metadata section header divider",
-                      "fill": "#F0F0F0",
-                      "width": "fill_container",
-                      "height": 1
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "ukAyr",
-                  "name": "Discount technical details",
-                  "width": "fill_container",
-                  "fill": "#FAFAFA",
-                  "cornerRadius": 8,
-                  "stroke": "#E8E8E8",
-                  "strokeWidth": 1,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "zfOHQ",
-                      "name": "Discount technical details left column",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "padding": [
-                        2,
-                        10
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "fuqYg",
-                          "name": "Revision metadata row",
-                          "width": "fill_container",
-                          "height": 38,
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "PQPB8",
-                              "name": "Revision metadata label group",
-                              "gap": 7,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "hK5uC",
-                                  "name": "Revision metadata icon",
-                                  "width": 13,
-                                  "height": 13,
-                                  "icon": "hash",
-                                  "library": "lucide",
-                                  "fill": "#8C8C8C"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "qnrNg",
-                                  "name": "Revision metadata label",
-                                  "fill": "#8C8C8C",
-                                  "content": "Revision",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Uahvs",
-                              "name": "Revision metadata value group",
-                              "gap": 5,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "kCgGL",
-                                  "name": "Revision metadata value",
-                                  "fill": "#262626",
-                                  "content": "12",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "rectangle",
-                          "id": "nU2yk",
-                          "name": "Priority metadata row divider",
-                          "fill": "#F0F0F0",
-                          "width": "fill_container",
-                          "height": 1
-                        },
-                        {
-                          "type": "frame",
-                          "id": "wVrkp",
-                          "name": "Priority metadata row",
-                          "width": "fill_container",
-                          "height": 38,
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "Z8FHN",
-                              "name": "Priority metadata label group",
-                              "gap": 7,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "csjej",
-                                  "name": "Priority metadata icon",
-                                  "width": 13,
-                                  "height": 13,
-                                  "icon": "list-filter",
-                                  "library": "lucide",
-                                  "fill": "#8C8C8C"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "xj41v",
-                                  "name": "Priority metadata label",
-                                  "fill": "#8C8C8C",
-                                  "content": "Priority",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "DDAwU",
-                              "name": "Priority metadata value group",
-                              "gap": 5,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "i9dQ5",
-                                  "name": "Priority metadata value",
-                                  "fill": "#262626",
-                                  "content": "10",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "rectangle",
-                          "id": "purUa",
-                          "name": "Created by metadata row divider",
-                          "fill": "#F0F0F0",
-                          "width": "fill_container",
-                          "height": 1
-                        },
-                        {
-                          "type": "frame",
-                          "id": "CLT5P",
-                          "name": "Created by metadata row",
-                          "width": "fill_container",
-                          "height": 38,
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "MZ8GK",
-                              "name": "Created by metadata label group",
-                              "gap": 7,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "JjsNX",
-                                  "name": "Created by metadata icon",
-                                  "width": 13,
-                                  "height": 13,
-                                  "icon": "user-round",
-                                  "library": "lucide",
-                                  "fill": "#8C8C8C"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "HN7Lf",
-                                  "name": "Created by metadata label",
-                                  "fill": "#8C8C8C",
-                                  "content": "Created by",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "mkPkd",
-                              "name": "Created by metadata value group",
-                              "gap": 5,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "AV4pf",
-                                  "name": "Created by metadata value",
-                                  "fill": "#262626",
-                                  "content": "usr_01J2M7X8H4",
-                                  "fontFamily": "IBM Plex Mono",
-                                  "fontSize": 11,
-                                  "fontWeight": "500"
-                                },
-                                {
-                                  "type": "icon",
-                                  "id": "BdMSW",
-                                  "name": "Created by copy icon",
-                                  "width": 10,
-                                  "height": 10,
-                                  "icon": "copy",
-                                  "library": "lucide",
-                                  "fill": "#8C8C8C"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "ycR73",
-                      "name": "Discount technical details right column",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "padding": [
-                        2,
-                        10
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "tPqEp",
-                          "name": "Created metadata row",
-                          "width": "fill_container",
-                          "height": 38,
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "opXWE",
-                              "name": "Created metadata label group",
-                              "gap": 7,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "g1vzs",
-                                  "name": "Created metadata icon",
-                                  "width": 13,
-                                  "height": 13,
-                                  "icon": "calendar-plus",
-                                  "library": "lucide",
-                                  "fill": "#8C8C8C"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "UlzoI",
-                                  "name": "Created metadata label",
-                                  "fill": "#8C8C8C",
-                                  "content": "Created",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "B6eqPJ",
-                              "name": "Created metadata value group",
-                              "gap": 5,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "B1b2WR",
-                                  "name": "Created metadata value",
-                                  "fill": "#262626",
-                                  "content": "Jul 1, 2026 · 09:12",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "rectangle",
-                          "id": "u0NswE",
-                          "name": "Updated metadata row divider",
-                          "fill": "#F0F0F0",
-                          "width": "fill_container",
-                          "height": 1
-                        },
-                        {
-                          "type": "frame",
-                          "id": "JRQFR",
-                          "name": "Updated metadata row",
-                          "width": "fill_container",
-                          "height": 38,
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "sXQ9Y",
-                              "name": "Updated metadata label group",
-                              "gap": 7,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "P9dvq",
-                                  "name": "Updated metadata icon",
-                                  "width": 13,
-                                  "height": 13,
-                                  "icon": "calendar-clock",
-                                  "library": "lucide",
-                                  "fill": "#8C8C8C"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "h5mznJ",
-                                  "name": "Updated metadata label",
-                                  "fill": "#8C8C8C",
-                                  "content": "Updated",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "z2pbfp",
-                              "name": "Updated metadata value group",
-                              "gap": 5,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "E7THL",
-                                  "name": "Updated metadata value",
-                                  "fill": "#262626",
-                                  "content": "Jul 18, 2026 · 14:41",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "rectangle",
-                          "id": "FksL9",
-                          "name": "Archived metadata row divider",
-                          "fill": "#F0F0F0",
-                          "width": "fill_container",
-                          "height": 1
-                        },
-                        {
-                          "type": "frame",
-                          "id": "FIG5i",
-                          "name": "Archived metadata row",
-                          "width": "fill_container",
-                          "height": 38,
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "f5R85q",
-                              "name": "Archived metadata label group",
-                              "gap": 7,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "n3mABl",
-                                  "name": "Archived metadata icon",
-                                  "width": 13,
-                                  "height": 13,
-                                  "icon": "archive",
-                                  "library": "lucide",
-                                  "fill": "#8C8C8C"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "Z35OB",
-                                  "name": "Archived metadata label",
-                                  "fill": "#8C8C8C",
-                                  "content": "Archived",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "lgUky",
-                              "name": "Archived metadata value group",
-                              "gap": 5,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "ib7ZN",
-                                  "name": "Archived metadata value",
-                                  "fill": "#262626",
-                                  "content": "Not archived",
-                                  "fontFamily": "Safiro",
-                                  "fontSize": 11,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "SA8p1",
-                  "name": "Discount custom metadata preview",
-                  "width": "fill_container",
-                  "fill": "#FAFAFA",
-                  "cornerRadius": 8,
-                  "stroke": "#E8E8E8",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "gap": 7,
-                  "padding": 10,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "SNY1A",
-                      "name": "Discount custom metadata header",
-                      "width": "fill_container",
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "gfs6m",
-                          "name": "Discount custom metadata title group",
-                          "gap": 6,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon",
-                              "id": "H0bGu",
-                              "name": "Discount custom metadata icon",
-                              "width": 13,
-                              "height": 13,
-                              "icon": "braces",
-                              "library": "lucide",
-                              "fill": "#595959"
-                            },
-                            {
-                              "type": "text",
-                              "id": "BwK5V",
-                              "name": "Discount custom metadata title",
-                              "fill": "#262626",
-                              "content": "Custom metadata",
-                              "fontFamily": "Safiro",
-                              "fontSize": 12,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "zxJnk",
-                          "name": "Discount custom metadata size",
-                          "fill": "#8C8C8C",
-                          "content": "2 keys · 62 B",
-                          "fontFamily": "Safiro",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "cmqbe",
-                      "name": "Discount custom metadata JSON",
-                      "width": "fill_container",
-                      "fill": "#262626",
-                      "cornerRadius": 6,
-                      "padding": [
-                        8,
-                        10
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "z1YkQw",
-                          "name": "Discount custom metadata JSON value",
-                          "fill": "#D9F7BE",
-                          "content": "{\"campaign\":\"summer-2026\",\"source\":\"admin\"}",
-                          "fontFamily": "IBM Plex Mono",
-                          "fontSize": 10,
-                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -13620,11 +12528,277 @@
                       }
                     },
                     {
+                      "type": "frame",
                       "id": "d4YIO4",
-                      "type": "ref",
-                      "ref": "UhABC",
                       "name": "Buy X Get Y connected category to product targets",
-                      "width": 800
+                      "width": 800,
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "gYw4o",
+                          "name": "Connected flow section header",
+                          "width": "fill_container",
+                          "height": 32,
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "y2v2z",
+                              "name": "Connected flow section title",
+                              "fill": "#111111",
+                              "content": "Applies to",
+                              "lineHeight": 1.5,
+                              "fontFamily": "Safiro",
+                              "fontSize": 16,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "v2VpVw",
+                              "name": "Change targets action",
+                              "height": 32,
+                              "fill": "#FFFFFF",
+                              "cornerRadius": 6,
+                              "stroke": "#D9D9D9",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                0,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "GCDKc",
+                                  "name": "Change targets icon",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "pencil",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "i7YJqD",
+                                  "name": "Change targets label",
+                                  "fill": "#666666",
+                                  "content": "Change",
+                                  "lineHeight": 1.6666666667,
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Oitu0",
+                          "name": "Buy X Get Y compact rule stepper",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FFFFFF",
+                          "stroke": "#E8E8E8",
+                          "gap": 12,
+                          "padding": [
+                            8,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "DRc4l",
+                              "name": "Compact rule stepper rail",
+                              "width": 24,
+                              "height": 112,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "id": "lwWe0",
+                                  "x": 11,
+                                  "y": 24,
+                                  "name": "Compact stepper connector line",
+                                  "fill": "#E8E8E8",
+                                  "width": 2,
+                                  "height": 40
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "rOH7T",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Condition timeline icon node",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#F2F3F0",
+                                  "cornerRadius": 999,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "kO30w",
+                                      "name": "Condition timeline shopping cart icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "shopping-cart",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Cmk0W",
+                                  "x": 0,
+                                  "y": 64,
+                                  "name": "Reward timeline icon node",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#E6F4FF",
+                                  "cornerRadius": 999,
+                                  "stroke": "#91CAFF",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "Fwovm",
+                                      "name": "Reward timeline gift icon",
+                                      "width": 12,
+                                      "height": 12,
+                                      "icon": "gift",
+                                      "library": "lucide",
+                                      "fill": "#0958D9"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "VqnDO",
+                              "name": "Compact rule stepper content",
+                              "width": "fill_container",
+                              "height": 112,
+                              "layout": "vertical",
+                              "gap": 16,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "cI0Ga",
+                                  "name": "Compact condition step",
+                                  "width": "fill_container",
+                                  "height": 48,
+                                  "layout": "vertical",
+                                  "gap": 3,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "RQx2H",
+                                      "name": "Compact condition label",
+                                      "fill": "#666666",
+                                      "content": "WHEN · CUSTOMER BUYS",
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 10,
+                                      "fontWeight": "600",
+                                      "letterSpacing": 0.7
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "zsBQW",
+                                      "name": "Compact condition title",
+                                      "fill": "#111111",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "2 eligible items from selected categories",
+                                      "lineHeight": 1.2,
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 14,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "NTLji",
+                                      "name": "Compact condition metadata",
+                                      "fill": "#666666",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Summer essentials · +1 more",
+                                      "lineHeight": 1.35,
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "T8SYu",
+                                  "name": "Compact reward step",
+                                  "width": "fill_container",
+                                  "height": 48,
+                                  "layout": "vertical",
+                                  "gap": 3,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "F2iIt",
+                                      "name": "Compact reward label",
+                                      "fill": "#1677FF",
+                                      "content": "THEN · CUSTOMER GETS",
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 10,
+                                      "fontWeight": "600",
+                                      "letterSpacing": 0.7
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "w2QjD",
+                                      "name": "Compact reward title",
+                                      "fill": "#111111",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Travel backpack",
+                                      "lineHeight": 1.2,
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 14,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "KBssa",
+                                      "name": "Compact reward metadata",
+                                      "fill": "#666666",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "1 eligible item free · Up to 2 times per order",
+                                      "lineHeight": 1.35,
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
                     },
                     {
                       "id": "pTcBC",
@@ -16147,9 +15321,9 @@
     {
       "type": "frame",
       "id": "R0yIfO",
-      "x": 12750,
+      "x": 11866,
       "y": 37,
-      "name": "Playground stage · Tags",
+      "name": "Playground stage · Tags · Updated screen example",
       "width": 880,
       "layout": "vertical",
       "gap": 16,
@@ -16161,14 +15335,13 @@
           "name": "Design comment · Tags",
           "width": 800,
           "height": 72,
-          "content": "TAGS\nStandalone Paper section matching ProductDetailsCard TagsSection. API: tags is a string list replaced as a complete set on update. Tags are editable admin organization metadata and do not belong to Distribution & combinations."
+          "content": "TAGS\nUpdated standalone Paper section copied from the current discount details screen. Tags remain separate from Channels and Combinations."
         },
         {
           "type": "frame",
-          "id": "ghEv2",
-          "name": "Discount block / Tags / Default",
+          "id": "RaeX3",
+          "name": "Discount block / Tags / Updated screen example",
           "context": "Standalone discount tags section matching ProductDetailsCard TagsSection.",
-          "reusable": true,
           "width": 800,
           "fill": "#FFFFFF",
           "cornerRadius": 8,
@@ -16180,7 +15353,7 @@
           "children": [
             {
               "type": "frame",
-              "id": "Xxpb6",
+              "id": "pAbEo",
               "name": "Discount tags section header",
               "width": "fill_container",
               "layout": "vertical",
@@ -16188,7 +15361,7 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "f6Gmm",
+                  "id": "vtiZ1",
                   "name": "Discount tags section header row",
                   "width": "fill_container",
                   "justifyContent": "space_between",
@@ -16196,7 +15369,7 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "wOGME",
+                      "id": "l1Pcd",
                       "name": "Discount tags section title",
                       "fill": "#262626",
                       "content": "Tags",
@@ -16208,7 +15381,7 @@
                 },
                 {
                   "type": "rectangle",
-                  "id": "tW6o2",
+                  "id": "Q4C3u",
                   "name": "Discount tags section header divider",
                   "fill": "#F0F0F0",
                   "width": "fill_container",
@@ -16218,7 +15391,7 @@
             },
             {
               "type": "frame",
-              "id": "z15gn3",
+              "id": "xZtVH",
               "name": "Discount tags list",
               "width": "fill_container",
               "gap": 6,
@@ -16226,7 +15399,7 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "trBzf",
+                  "id": "STKHV",
                   "name": "Primary discount tag",
                   "height": 24,
                   "fill": "#FAFAFA",
@@ -16242,7 +15415,7 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "MPzxU",
+                      "id": "j1XuYA",
                       "name": "Primary discount tag label",
                       "fill": "#595959",
                       "content": "summer",
@@ -16252,7 +15425,7 @@
                     },
                     {
                       "type": "icon",
-                      "id": "P7CpIF",
+                      "id": "W4LUUc",
                       "name": "Primary discount tag menu",
                       "width": 11,
                       "height": 11,
@@ -16264,7 +15437,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "WYRYV",
+                  "id": "DadJl",
                   "name": "Secondary discount tag",
                   "height": 24,
                   "fill": "#FAFAFA",
@@ -16280,17 +15453,17 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "KGBwn",
+                      "id": "Wg8yO",
                       "name": "Secondary discount tag label",
                       "fill": "#595959",
-                      "content": "seasonal",
+                      "content": "featured",
                       "fontFamily": "Safiro",
                       "fontSize": 11,
                       "fontWeight": "500"
                     },
                     {
                       "type": "icon",
-                      "id": "vg1xJ",
+                      "id": "GUBtY",
                       "name": "Secondary discount tag menu",
                       "width": 11,
                       "height": 11,
@@ -16302,7 +15475,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "T0UXj8",
+                  "id": "bQiPz",
                   "name": "Add discount tag action",
                   "height": 24,
                   "fill": "#FFFFFF",
@@ -16318,7 +15491,7 @@
                   "children": [
                     {
                       "type": "icon",
-                      "id": "Mpd7f",
+                      "id": "cr9xi",
                       "name": "Add discount tag icon",
                       "width": 11,
                       "height": 11,
@@ -16328,289 +15501,13 @@
                     },
                     {
                       "type": "text",
-                      "id": "Dh8aB",
+                      "id": "rLHJj",
                       "name": "Add discount tag label",
                       "fill": "#595959",
                       "content": "Add Tag",
                       "fontFamily": "Safiro",
                       "fontSize": 11,
                       "fontWeight": "500"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "frame",
-      "id": "UhABC",
-      "x": 17354,
-      "y": -2177,
-      "name": "Discount block / Buy X Get Y rule / Connected flow",
-      "reusable": true,
-      "width": 800,
-      "fill": "#FFFFFF",
-      "cornerRadius": 8,
-      "stroke": "#F0F0F0",
-      "strokeWidth": 1,
-      "layout": "vertical",
-      "gap": 12,
-      "padding": 12,
-      "children": [
-        {
-          "type": "frame",
-          "id": "Eb8UM",
-          "name": "Connected flow section header",
-          "width": "fill_container",
-          "height": 32,
-          "justifyContent": "space_between",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "text",
-              "id": "AsmDK",
-              "name": "Connected flow section title",
-              "fill": "#111111",
-              "content": "Applies to",
-              "lineHeight": 1.5,
-              "fontFamily": "Safiro",
-              "fontSize": 16,
-              "fontWeight": "600"
-            },
-            {
-              "type": "frame",
-              "id": "y8tOLH",
-              "name": "Change targets action",
-              "height": 32,
-              "fill": "#FFFFFF",
-              "cornerRadius": 6,
-              "stroke": "#D9D9D9",
-              "strokeWidth": 1,
-              "gap": 6,
-              "padding": [
-                0,
-                10
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon",
-                  "id": "oFOwS",
-                  "name": "Change targets icon",
-                  "width": 13,
-                  "height": 13,
-                  "icon": "pencil",
-                  "library": "lucide",
-                  "fill": "#595959"
-                },
-                {
-                  "type": "text",
-                  "id": "szl5n",
-                  "name": "Change targets label",
-                  "fill": "#666666",
-                  "content": "Change",
-                  "lineHeight": 1.6666666667,
-                  "fontFamily": "Safiro",
-                  "fontSize": 12,
-                  "fontWeight": "500"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "KSKlm",
-          "name": "Buy X Get Y compact rule stepper",
-          "width": "fill_container",
-          "height": 128,
-          "fill": "#FFFFFF",
-          "stroke": "#E8E8E8",
-          "gap": 12,
-          "padding": [
-            8,
-            0
-          ],
-          "children": [
-            {
-              "type": "frame",
-              "id": "cE5Eo",
-              "name": "Compact rule stepper rail",
-              "width": 24,
-              "height": 112,
-              "layout": "none",
-              "children": [
-                {
-                  "type": "rectangle",
-                  "id": "P3oFT",
-                  "x": 11,
-                  "y": 24,
-                  "name": "Compact stepper connector line",
-                  "fill": "#E8E8E8",
-                  "width": 2,
-                  "height": 40
-                },
-                {
-                  "type": "frame",
-                  "id": "w6tRBk",
-                  "x": 0,
-                  "y": 0,
-                  "name": "Condition timeline icon node",
-                  "width": 24,
-                  "height": 24,
-                  "fill": "#F2F3F0",
-                  "cornerRadius": 999,
-                  "stroke": "#D9D9D9",
-                  "strokeWidth": 1,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "Kyt1P",
-                      "name": "Condition timeline shopping cart icon",
-                      "width": 12,
-                      "height": 12,
-                      "icon": "shopping-cart",
-                      "library": "lucide",
-                      "fill": "#595959"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "CYEsk",
-                  "x": 0,
-                  "y": 64,
-                  "name": "Reward timeline icon node",
-                  "width": 24,
-                  "height": 24,
-                  "fill": "#E6F4FF",
-                  "cornerRadius": 999,
-                  "stroke": "#91CAFF",
-                  "strokeWidth": 1,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "iZaho",
-                      "name": "Reward timeline gift icon",
-                      "width": 12,
-                      "height": 12,
-                      "icon": "gift",
-                      "library": "lucide",
-                      "fill": "#0958D9"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "C4crc",
-              "name": "Compact rule stepper content",
-              "width": "fill_container",
-              "height": 112,
-              "layout": "vertical",
-              "gap": 16,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "PPJdb",
-                  "name": "Compact condition step",
-                  "width": "fill_container",
-                  "height": 48,
-                  "layout": "vertical",
-                  "gap": 3,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "wz6LK",
-                      "name": "Compact condition label",
-                      "fill": "#666666",
-                      "content": "WHEN · CUSTOMER BUYS",
-                      "fontFamily": "Safiro",
-                      "fontSize": 10,
-                      "fontWeight": "600",
-                      "letterSpacing": 0.7
-                    },
-                    {
-                      "type": "text",
-                      "id": "y4pBdT",
-                      "name": "Compact condition title",
-                      "fill": "#111111",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "2 eligible items from selected categories",
-                      "lineHeight": 1.2,
-                      "fontFamily": "Safiro",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "text",
-                      "id": "s1ngF",
-                      "name": "Compact condition metadata",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Summer essentials · +1 more",
-                      "lineHeight": 1.35,
-                      "fontFamily": "Safiro",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "Xd0xX",
-                  "name": "Compact reward step",
-                  "width": "fill_container",
-                  "height": 48,
-                  "layout": "vertical",
-                  "gap": 3,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "LIQra",
-                      "name": "Compact reward label",
-                      "fill": "#1677FF",
-                      "content": "THEN · CUSTOMER GETS",
-                      "fontFamily": "Safiro",
-                      "fontSize": 10,
-                      "fontWeight": "600",
-                      "letterSpacing": 0.7
-                    },
-                    {
-                      "type": "text",
-                      "id": "fsE5D",
-                      "name": "Compact reward title",
-                      "fill": "#111111",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Travel backpack",
-                      "lineHeight": 1.2,
-                      "fontFamily": "Safiro",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "text",
-                      "id": "WCa1d",
-                      "name": "Compact reward metadata",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "1 eligible item free · Up to 2 times per order",
-                      "lineHeight": 1.35,
-                      "fontFamily": "Safiro",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -18817,6 +17714,76 @@
           ]
         }
       ]
+    },
+    {
+      "type": "note",
+      "id": "xbkbK",
+      "x": -593,
+      "y": -2316,
+      "name": "Screen note · Discount creation modal",
+      "width": 1440,
+      "height": 72,
+      "content": "DISCOUNT CREATION MODAL\nCreation flow with section-based discount configuration."
+    },
+    {
+      "type": "note",
+      "id": "vYAKj",
+      "x": 3080,
+      "y": -2316,
+      "name": "Screen note · Discount details modal draft",
+      "width": 1440,
+      "height": 72,
+      "content": "DISCOUNT DETAILS MODAL · DRAFT\nInitial details-modal exploration and section composition."
+    },
+    {
+      "type": "note",
+      "id": "AADge",
+      "x": 15754,
+      "y": -2202,
+      "name": "Screen note · Amount off products",
+      "width": 1440,
+      "height": 72,
+      "content": "AMOUNT OFF PRODUCTS · CODE · ACTIVE\nFilled discount details example."
+    },
+    {
+      "type": "note",
+      "id": "v0xjrh",
+      "x": 17354,
+      "y": -2202,
+      "name": "Screen note · Buy X Get Y",
+      "width": 1440,
+      "height": 72,
+      "content": "BUY X GET Y · AUTOMATIC · SCHEDULED\nFilled discount details example."
+    },
+    {
+      "type": "note",
+      "id": "Ikxq4",
+      "x": 18954,
+      "y": -2202,
+      "name": "Screen note · Amount off order",
+      "width": 1440,
+      "height": 72,
+      "content": "AMOUNT OFF ORDER · CODE · PAUSED\nFilled discount details example."
+    },
+    {
+      "type": "note",
+      "id": "sObxU",
+      "x": 20554,
+      "y": -2202,
+      "name": "Screen note · Free shipping",
+      "width": 1440,
+      "height": 72,
+      "content": "FREE SHIPPING · AUTOMATIC · ACTIVE\nFilled discount details example."
+    },
+    {
+      "type": "note",
+      "id": "kNfgE",
+      "x": 22074,
+      "y": -2202,
+      "name": "Screen note · Title only empty sections",
+      "width": 1440,
+      "height": 72,
+      "content": "TITLE ONLY · DRAFT\nOnly the title is configured; all remaining sections use current empty states."
     }
   ],
   "themes": {
