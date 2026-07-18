@@ -7,225 +7,246 @@
 Исходные условия:
 
 - сервис не запущен в stage/production;
-- пользователей и пользовательских данных нет;
-- обратная совместимость с текущим форматом JWT не требуется;
-- перенос и backfill данных не требуются;
-- OAuth 2.0, OpenID Connect, сторонние клиенты и social login не входят в scope;
-- тесты и тестовая инфраструктура не входят в scope этого плана;
-- Better Auth остаётся механизмом проверки credentials и управления сессиями;
-- Casbin остаётся источником истины для пользовательских ролей и разрешений.
+- существующих пользователей и пользовательских данных нет;
+- перенос данных и обратная совместимость не требуются;
+- OAuth 2.0, OpenID Connect и внешние клиенты не входят в scope;
+- тесты и тестовая инфраструктура не входят в scope;
+- Better Auth является единственным владельцем аутентификации, сессий и JWT lifecycle;
+- существующая бизнес-авторизация Shopana не изменяется этим планом.
 
-`Application` в этом плане — внутренняя first-party граница безопасности IAM. Она описывает, какое приложение Shopana инициировало сессию, какие возможности ему доступны, какие правила аутентификации применяются и какие claims IAM добавляет в выпущенный для него JWT.
+`Application` — конфигурация first-party приложения Shopana, например `admin` или `storefront`. Она определяет, с каким приложением связана Better Auth session и какие настройки Better Auth применяет к входу, сессии и JWT.
 
-Термин не связан с устанавливаемыми расширениями платформы из сервиса `apps`. В TypeScript-коде и GraphQL следует использовать имя `IamApplication`, чтобы избежать неоднозначности.
+Чтобы не путать сущность с устанавливаемыми расширениями из сервиса `apps`, в TypeScript и GraphQL используется имя `IamApplication`.
+
+---
+
+## Термины и границы
+
+В рамках этого плана необходимо разделять:
+
+- **Authentication** — проверка credentials, sign-up/sign-in, session, bearer token;
+- **JWT lifecycle** — payload, подпись, JWKS, выпуск и проверка токена;
+- **Business authorization** — доступ к товарам, заказам, магазинам и другим ресурсам Shopana.
+
+Первые два пункта полностью принадлежат Better Auth.
+
+Business authorization не является частью `IamApplication`:
+
+- роли не хранятся в Application;
+- permissions не хранятся в Application;
+- Application не принимает решение `allow/deny` для бизнес-операций;
+- существующий RBAC проекта не заменяется;
+- Better Auth `dynamicAccessControl` не требуется для реализации Application;
+- изменение Casbin, role tables и authorization scripts не входит в scope.
+
+Настройки Application следует называть `AuthenticationConfig`, а не authorization rules, чтобы не смешивать их с RBAC.
+
+---
+
+## Обязательный архитектурный принцип
+
+IAM не реализует собственный authentication или JWT engine.
+
+Допустимо:
+
+- хранить конфигурацию `IamApplication`;
+- использовать официальные Better Auth options;
+- использовать Better Auth request hooks и database hooks;
+- использовать Better Auth plugins;
+- вызывать Better Auth server API из GraphQL adapters;
+- возвращать результат Better Auth в GraphQL contract;
+- читать Application config внутри официальных Better Auth callbacks.
+
+Запрещено:
+
+- реализовывать собственный `TokenIssuer`;
+- реализовывать собственный `TokenVerifier`;
+- подписывать или проверять JWT напрямую через `jose`;
+- создавать собственный JWKS cache;
+- создавать собственный refresh-token protocol;
+- создавать отдельный claim execution engine;
+- реализовывать собственные password/session algorithms;
+- копировать Better Auth session lifecycle в repository;
+- использовать JWT claims как замену существующей бизнес-авторизации.
+
+GraphQL является transport adapter над Better Auth для auth/session/token операций.
+
+---
+
+## Распределение ответственности
+
+| Задача | Владелец |
+| --- | --- |
+| Email/password sign-up и sign-in | Better Auth core |
+| Password hashing и accounts | Better Auth core |
+| Создание и обновление session | Better Auth core |
+| Отзыв session | Better Auth session APIs |
+| Bearer session token | Better Auth `bearer` plugin |
+| JWT payload callback | Better Auth `jwt.definePayload` |
+| JWT подпись и JWKS | Better Auth `jwt` plugin |
+| JWT выпуск | Better Auth `auth.api.getToken` |
+| JWT verification | Better Auth `auth.api.verifyJWT` |
+| Дополнительные session fields | Better Auth `session.additionalFields` |
+| Application configuration persistence | IAM Application repository |
+| Business authorization | Существующий RBAC, вне scope этого плана |
 
 ---
 
 ## Цели
 
-1. Создать управляемую сущность `IamApplication` для first-party приложений, например `admin` и `storefront`.
-2. Разрешить отдельно для каждого приложения настраивать:
-   - правила входа и сессии;
-   - максимальный набор доступных ресурсов и действий;
-   - audience и время жизни access token;
-   - состав встроенных и пользовательских JWT claims.
-3. Привязать каждую сессию и каждый JWT к конкретному приложению.
-4. Обеспечить default-deny при неизвестном, отключённом или неправильно настроенном приложении.
-5. Позволить инвалидировать ранее выпущенные токены после критического изменения конфигурации.
-6. Не дублировать пользовательские роли и permissions из Casbin в конфигурации приложения.
+1. Добавить first-party сущность `IamApplication`.
+2. Привязать каждую Better Auth session к одному Application.
+3. Разрешить Application настраивать поддерживаемые Better Auth параметры:
+   - доступность sign-up и sign-in;
+   - session TTL;
+   - trusted origins;
+   - JWT TTL;
+   - включение поддерживаемых JWT claims;
+   - namespaced static JWT claims.
+4. Выпускать и проверять JWT только через Better Auth.
+5. Удалить текущую ручную JWT verification.
+6. Не менять бизнес-авторизацию и RBAC проекта.
 
 ## Не входит в scope
 
-- OAuth/OIDC endpoints и протоколы;
-- `client_id`/`client_secret`, redirect URI, grant types, consent и PKCE;
-- регистрация внешних приложений;
+- OAuth/OIDC;
+- `client_id`, `client_secret`, redirect URI, PKCE и consent;
+- external applications;
+- social providers;
 - machine-to-machine authentication;
 - API keys;
-- social providers;
-- произвольный JavaScript для вычисления claims;
-- UI в Admin frontend;
-- миграция существующих пользователей, сессий или токенов;
-- тесты любого уровня.
+- роли и permissions;
+- Casbin policies;
+- resource/action catalogs;
+- собственный policy DSL;
+- произвольные executable JWT expressions;
+- Admin frontend UI;
+- миграция существующих пользователей и sessions;
+- тесты.
 
 ---
 
-## Архитектурные решения
+## Поддерживаемые Better Auth extension points
 
-### 1. Application является first-party контекстом, а не OAuth-клиентом
+Целевая реализация использует только официальные механизмы Better Auth:
 
-Приложение идентифицируется стабильным публичным `key`, например:
-
-- `admin`;
-- `storefront`;
-- `internal-tools`.
-
-`key` не является секретом и может передаваться в GraphQL input или заголовке `X-Application-Key`. Доверие к приложению не строится на знании этого значения: безопасность обеспечивается credentials пользователя, проверкой сессии, application capability ceiling и Casbin.
-
-### 2. Application policy ограничивает Casbin, но не расширяет его
-
-Итоговое решение об авторизации вычисляется как пересечение:
-
-```text
-allowed = applicationAllows(request) && casbinAllows(user, request)
+```typescript
+betterAuth({
+  database: drizzleAdapter(db, { schema }),
+  emailAndPassword: {
+    enabled: true,
+  },
+  session: {
+    additionalFields: {
+      applicationId: {
+        type: "string",
+        required: true,
+        input: false,
+      },
+      applicationKey: {
+        type: "string",
+        required: true,
+        input: false,
+      },
+    },
+  },
+  trustedOrigins: resolveApplicationTrustedOrigins,
+  hooks: {
+    before: applicationRequestHook,
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        before: applicationSessionCreateHook,
+      },
+    },
+  },
+  plugins: [
+    bearer(),
+    jwt({
+      jwt: {
+        issuer: IAM_ISSUER,
+        audience: IAM_AUDIENCE,
+        definePayload: defineApplicationJwtPayload,
+      },
+      jwks: IAM_JWKS_OPTIONS,
+    }),
+  ],
+});
 ```
 
-Таким образом:
-
-- Casbin определяет, что разрешено пользователю;
-- Application определяет, какие операции вообще доступны из конкретного приложения;
-- Application никогда не может выдать пользователю право, отсутствующее в Casbin;
-- отсутствие application rule означает запрет.
-
-### 3. JWT configuration отделяется от authentication и authorization
-
-У приложения должны быть независимые конфигурации:
-
-- `ApplicationAuthenticationPolicy` — правила входа и сессии;
-- `ApplicationPermission` — capability ceiling приложения;
-- `ApplicationTokenProfile` — параметры JWT;
-- `ApplicationClaim` — декларативные custom claims.
-
-Не следует хранить все настройки в одном невалидируемом JSONB-поле.
-
-### 4. Better Auth не выпускает API access token
-
-Better Auth отвечает за:
-
-- email/password authentication;
-- password hashing;
-- создание и проверку сессии;
-- lifecycle сессии.
-
-Новый `TokenIssuer` IAM отвечает за:
-
-- загрузку Application и TokenProfile;
-- вычисление effective permissions;
-- построение claims;
-- подпись JWT;
-- применение application-specific TTL и audience.
-
-Текущий вызов `auth.api.getToken()` необходимо удалить из основного sign-in/refresh flow. Глобальная JWT-конфигурация в `createAuth()` не должна оставаться вторым способом выпуска access token.
-
-### 5. JWT claims описываются декларативно
-
-Claim может получать значение только из зарегистрированного источника. Выполнение пользовательского кода запрещено.
-
-Разрешённые источники первой версии:
-
-- `user.id`;
-- `user.email`;
-- `user.name`;
-- `session.id`;
-- `application.id`;
-- `application.key`;
-- `organization.id`;
-- `store.id`;
-- `authorization.roles`;
-- `authorization.permissions`;
-- `literal` для заранее провалидированного JSON-значения.
+Callback-функции в примере являются адаптерами Application config к lifecycle Better Auth. Они не подписывают токены, не проверяют passwords и не принимают решения бизнес-авторизации.
 
 ---
 
-## Целевая модель данных
+## Модель данных
 
-Все таблицы находятся в PostgreSQL schema `iam` и описываются через Drizzle.
+Все новые таблицы находятся в PostgreSQL schema `iam` и описываются через Drizzle.
 
 ### `application`
 
-Основная сущность и aggregate root.
-
-| Поле | Тип | Ограничения | Назначение |
-| --- | --- | --- | --- |
-| `id` | `uuid` | PK, default random | Внутренний идентификатор |
-| `organization_id` | `uuid nullable` | FK organization | `null` для системных приложений |
-| `key` | `varchar(64)` | unique, immutable | Публичный идентификатор приложения |
-| `name` | `varchar(128)` | not null | Отображаемое имя |
-| `description` | `text nullable` | | Описание назначения |
-| `status` | `varchar(16)` | `active`/`disabled` | Возможность создавать и использовать сессии |
-| `tokens_valid_after` | `timestamptz` | not null | Отсечение ранее выпущенных JWT |
-| `config_version` | `integer` | not null, default `1` | Версия конфигурации для cache invalidation |
-| `created_at` | `timestamptz` | not null | Дата создания |
-| `updated_at` | `timestamptz` | not null | Дата изменения |
-
-Ограничения:
-
-- `key` имеет формат `^[a-z][a-z0-9-]{2,63}$`;
-- после создания `key` не изменяется;
-- системное приложение нельзя удалить через публичный GraphQL API;
-- отключённое приложение не может создавать, обновлять или использовать access token.
-
-### `application_authentication_policy`
-
-One-to-one конфигурация входа и сессии.
-
-| Поле | Тип | Значение по умолчанию |
-| --- | --- | --- |
-| `application_id` | `uuid`, PK/FK | |
-| `sign_up_enabled` | `boolean` | `false` |
-| `password_enabled` | `boolean` | `true` |
-| `require_email_verification` | `boolean` | `false` до появления email service |
-| `session_ttl_seconds` | `integer` | `604800` |
-| `session_update_age_seconds` | `integer` | `86400` |
-| `max_active_sessions` | `integer nullable` | `null` |
-| `organization_required` | `boolean` | зависит от приложения |
-| `store_required` | `boolean` | зависит от приложения |
-| `updated_at` | `timestamptz` | now |
-
-Валидация:
-
-- TTL задаётся в допустимом сервером диапазоне;
-- `store_required=true` требует `organization_required=true`;
-- нельзя выключить все поддерживаемые способы входа;
-- правила применяются сервером, а не клиентским интерфейсом.
-
-### `application_token_profile`
-
-One-to-one профиль выпуска access token.
-
 | Поле | Тип | Назначение |
 | --- | --- | --- |
-| `application_id` | `uuid`, PK/FK | Владелец профиля |
-| `audience` | `varchar(128)` | Ожидаемый `aud` |
-| `access_token_ttl_seconds` | `integer` | Время жизни access token |
-| `include_email` | `boolean` | Добавлять email при наличии |
-| `include_name` | `boolean` | Добавлять display name |
-| `include_organization` | `boolean` | Добавлять organization context |
-| `include_store` | `boolean` | Добавлять store context |
-| `include_roles` | `boolean` | Добавлять ограниченный список ролей |
-| `include_permissions` | `boolean` | Добавлять effective permissions |
-| `updated_at` | `timestamptz` | Дата изменения |
-
-Требования:
-
-- `audience` уникален среди активных приложений;
-- рекомендуемый TTL — 5–15 минут;
-- размер итогового JWT ограничивается на уровне `TokenIssuer`;
-- включение permissions является оптимизацией UI, а не заменой серверной проверки Casbin.
-
-### `application_claim`
-
-Декларативные custom claims.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `id` | `uuid` | PK |
-| `application_id` | `uuid` | FK application |
-| `name` | `varchar(256)` | Имя claim |
-| `source` | `varchar(64)` | Зарегистрированный источник |
-| `source_argument` | `jsonb nullable` | Параметр для `literal` или зарегистрированного resolver |
-| `required` | `boolean` | Ошибка выпуска токена, если значение отсутствует |
-| `enabled` | `boolean` | Включение правила |
-| `position` | `integer` | Детерминированный порядок вычисления |
+| `id` | `uuid` | Внутренний идентификатор |
+| `key` | `varchar(64)` | Стабильный публичный идентификатор |
+| `name` | `varchar(128)` | Отображаемое имя |
+| `description` | `text nullable` | Назначение приложения |
+| `status` | `varchar(16)` | `active` или `disabled` |
 | `created_at` | `timestamptz` | Дата создания |
 | `updated_at` | `timestamptz` | Дата изменения |
 
 Ограничения:
 
-- unique `(application_id, name)`;
-- имя custom claim должно быть namespaced, например `https://shopana.io/claims/store_id`;
-- зарезервированные claims нельзя создать или переопределить;
-- итоговое значение проверяется на JSON-совместимый тип и лимит размера;
-- secrets, password hashes, session token и внутренние credentials не являются допустимыми источниками.
+- `key` unique и immutable;
+- формат `key`: `^[a-z][a-z0-9-]{2,63}$`;
+- `key` не является secret;
+- неизвестное или disabled Application нельзя использовать для нового sign-in/sign-up;
+- таблица не содержит credentials, session tokens, roles или permissions.
+
+### `application_authentication_config`
+
+One-to-one конфигурация, применяемая Better Auth hooks.
+
+| Поле | Тип | Назначение |
+| --- | --- | --- |
+| `application_id` | `uuid`, PK/FK | Application |
+| `sign_in_enabled` | `boolean` | Разрешён ли Better Auth sign-in |
+| `sign_up_enabled` | `boolean` | Разрешён ли Better Auth sign-up |
+| `session_ttl_seconds` | `integer` | `expiresAt` создаваемой Better Auth session |
+| `trusted_origins` | `jsonb` | Origins для Better Auth `trustedOrigins` callback |
+| `updated_at` | `timestamptz` | Дата изменения |
+
+Ограничения:
+
+- `sessionTtlSeconds` проверяется по серверному min/max диапазону;
+- origins должны быть абсолютными URL;
+- production origins используют HTTPS;
+- wildcard origins запрещены по умолчанию;
+- конфигурация не определяет роли, permissions или resource access.
+
+### `application_jwt_config`
+
+One-to-one конфигурация, используемая Better Auth `jwt.definePayload`.
+
+| Поле | Тип | Назначение |
+| --- | --- | --- |
+| `application_id` | `uuid`, PK/FK | Application |
+| `ttl_seconds` | `integer` | Значение `exp` для нового JWT |
+| `include_email` | `boolean` | Включать `user.email` |
+| `include_name` | `boolean` | Включать `user.name` |
+| `include_email_verified` | `boolean` | Включать `user.emailVerified` |
+| `include_session_id` | `boolean` | Включать `session.id` как `sid` |
+| `static_claims` | `jsonb` | Namespaced scalar claims |
+| `updated_at` | `timestamptz` | Дата изменения |
+
+Ограничения:
+
+- `ttlSeconds` проверяется по серверному min/max диапазону;
+- `staticClaims` допускает только string/number/boolean;
+- custom claim names должны быть namespaced;
+- roles и permissions нельзя добавлять через эту конфигурацию;
+- зарезервированные claims нельзя переопределить;
+- размер итогового payload ограничивается.
 
 Зарезервированные claims:
 
@@ -233,356 +254,346 @@ One-to-one профиль выпуска access token.
 iss sub aud exp iat nbf jti sid azp application_id application_key
 ```
 
-### `application_permission`
+### Изменение Better Auth `session`
 
-Allow-only capability ceiling приложения.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `id` | `uuid` | PK |
-| `application_id` | `uuid` | FK application |
-| `domain` | `varchar(256)` | `org`, `store:*` или конкретный domain |
-| `resource` | `varchar(256)` | Resource из registry IAM/RBAC |
-| `action` | `varchar(64)` | Действие из resource definition |
-| `created_at` | `timestamptz` | Дата создания |
-
-Ограничения:
-
-- unique `(application_id, domain, resource, action)`;
-- разрешены только зарегистрированные resources/actions;
-- wildcard разрешён только системному администратору;
-- deny-правила в первой версии отсутствуют: default-deny и allow-only уменьшают неоднозначность;
-- иерархия действий должна совпадать с `@shopana/rbac`.
-
-### Изменение `session`
-
-Поскольку данных нет, существующая session schema меняется напрямую без compatibility layer.
-
-Добавить:
+Добавить поля через `session.additionalFields` и соответствующие Drizzle columns:
 
 | Поле | Тип | Назначение |
 | --- | --- | --- |
-| `application_id` | `uuid not null` | FK application |
-| `organization_id` | `uuid nullable` | Выбранная организация |
-| `store_id` | `uuid/text nullable` | Выбранный магазин |
-| `auth_policy_version` | `integer not null` | Policy version при создании сессии |
+| `application_id` | `uuid/text not null` | Application текущей session |
+| `application_key` | `varchar(64) not null` | Immutable snapshot key |
 
-Refresh/session token всегда связан с одним Application. Его нельзя использовать для выпуска JWT другого приложения.
+Application fields являются частью Better Auth session model. Отдельная IAM session table или session repository не создаются.
 
 ---
 
-## JWT contract
+## Application resolution
 
-### Обязательный payload
+### Входной contract
 
-```json
-{
-  "iss": "https://iam.shopana.io",
-  "sub": "user-id",
-  "aud": "shopana-admin-api",
-  "iat": 1784370000,
-  "exp": 1784370900,
-  "jti": "token-id",
-  "sid": "session-id",
-  "azp": "admin",
-  "application_id": "application-uuid",
-  "application_key": "admin",
-  "config_ver": 4
-}
+Для unauthenticated Better Auth operations Application передаётся через:
+
+```http
+X-Application-Key: admin
 ```
 
-Контекстные claims добавляются только при наличии и если это разрешено TokenProfile:
+Header обязателен для:
 
-```json
-{
-  "organization_id": "organization-uuid",
-  "store_id": "store-uuid",
-  "roles": ["owner"],
-  "permissions": ["store.products:write"]
-}
-```
+- sign-up;
+- sign-in;
+- password reset request, когда эта функция будет включена;
+- email verification request, когда эта функция будет включена.
 
-### Правила подписи и проверки
+### Better Auth request hook
 
-- единый доверенный `issuer` управляется IAM config и не редактируется через Application API;
-- JWT подписывается текущим приватным ключом из JWKS;
-- `kid` обязателен;
-- алгоритм задаётся IAM и не выбирается Application;
-- verifier проверяет signature, `iss`, `aud`, `exp`, `iat`, `application_id` и status приложения;
-- verifier отклоняет токен, если `iat < application.tokens_valid_after`;
-- неизвестное или отключённое приложение приводит к unauthenticated context;
-- `audience` берётся из сохранённого TokenProfile, а не из request header.
+Официальный Better Auth `hooks.before`:
+
+1. читает `X-Application-Key`;
+2. загружает Application и AuthenticationConfig;
+3. отклоняет неизвестное/disabled Application через Better Auth `APIError`;
+4. отклоняет sign-in при `signInEnabled=false`;
+5. отклоняет sign-up при `signUpEnabled=false`;
+6. сохраняет проверенный Application context в рамках текущего Better Auth request.
+
+Запрещён fallback на default Application при отсутствующем или неверном header.
+
+Этот hook не проверяет бизнес-permissions и не заменяет RBAC.
+
+### Session creation hook
+
+Официальный `databaseHooks.session.create.before`:
+
+1. получает Application context текущего Better Auth request;
+2. добавляет `applicationId/applicationKey` в session data;
+3. устанавливает `expiresAt` из `sessionTtlSeconds`;
+4. возвращает изменённые data Better Auth;
+5. не создаёт и не сохраняет session самостоятельно.
+
+Better Auth adapter остаётся единственным владельцем persistence session.
+
+### Trusted origins
+
+Better Auth `trustedOrigins` callback:
+
+1. получает текущий request;
+2. определяет Application по проверенному key;
+3. возвращает сохранённые origins;
+4. не отключает Better Auth origin/CSRF checks;
+5. использует fail-closed при неизвестном Application.
 
 ---
 
-## Основные runtime-компоненты
+## Better Auth session flow
 
-### `ApplicationRepository`
-
-Отвечает только за persistence:
-
-- загрузка приложения по `id` и `key`;
-- создание aggregate вместе с default policies;
-- атомарное обновление AuthenticationPolicy и TokenProfile;
-- CRUD claim rules и permissions;
-- увеличение `configVersion` при каждом security-relevant изменении;
-- обновление `tokensValidAfter` при принудительной инвалидации.
-
-Все изменения aggregate выполняются в транзакции через существующий `TransactionManager`.
-
-### `ApplicationResolver`
-
-Request-scoped компонент:
-
-1. получает application key из явно определённого источника;
-2. загружает Application из cache/repository;
-3. проверяет status;
-4. возвращает immutable snapshot конфигурации;
-5. не использует fallback application при неизвестном key.
-
-Приоритет источников:
-
-1. `applicationKey` в sign-in/sign-up input;
-2. application, уже привязанное к session token при refresh;
-3. `X-Application-Key` для authenticated API request.
-
-Нельзя позволять заголовку переопределить Application, записанное в проверенном JWT.
-
-### `ApplicationAuthorizationService`
-
-Выполняет application-level проверку до Casbin:
-
-```typescript
-applicationAuthorization.authorize({
-  applicationId,
-  domain,
-  resource,
-  action,
-});
-```
-
-Результат не зависит от пользователя. После него выполняется существующая проверка Casbin для user/domain/resource/action.
-
-При изменении application permissions cache инвалидируется через `configVersion` и существующую cache infrastructure.
-
-### `ClaimResolverRegistry`
-
-Registry связывает строковый `source` с доверенным resolver:
-
-```typescript
-type ClaimResolver = (context: TokenContext) => unknown | Promise<unknown>;
-```
-
-Registry должен:
-
-- содержать только resolver-ы, зарегистрированные в коде;
-- валидировать входной `sourceArgument`;
-- исключать `undefined` для optional claim;
-- завершать выпуск ошибкой для отсутствующего required claim;
-- детерминированно ограничивать массивы roles/permissions;
-- вести structured log без записи значения чувствительного claim.
-
-### `TokenIssuer`
-
-Единственная точка выпуска IAM access token.
-
-Алгоритм:
-
-1. Проверить активную Better Auth session.
-2. Загрузить Application, привязанное к session.
-3. Проверить application status и `tokensValidAfter`.
-4. Проверить обязательный organization/store context согласно AuthenticationPolicy.
-5. Получить роли и effective permissions пользователя из Casbin.
-6. Ограничить permissions через `ApplicationPermission`.
-7. Построить стандартный payload.
-8. Добавить claims, разрешённые TokenProfile.
-9. Выполнить custom claim rules через `ClaimResolverRegistry`.
-10. Проверить зарезервированные имена и максимальный размер payload.
-11. Подписать JWT текущим JWKS key.
-12. Вернуть token и фактический `expiresIn`.
-
-### `TokenVerifier`
-
-Заменяет application-unaware проверку JWT.
-
-Результат:
-
-```typescript
-interface VerifiedAccessToken {
-  userId: string;
-  sessionId: string;
-  applicationId: string;
-  applicationKey: string;
-  organizationId: string | null;
-  storeId: string | null;
-  audience: string;
-  configVersion: number;
-}
-```
-
-`TokenVerifier` не должен считать roles/permissions из JWT окончательным источником истины для критических серверных операций.
-
----
-
-## Изменения authentication flow
-
-### Sign up
+### Sign-up
 
 ```text
-applicationKey
-  -> resolve active Application
-  -> verify signUpEnabled
-  -> Better Auth signUp
-  -> create application-bound session
-  -> TokenIssuer.issue
+GraphQL input + X-Application-Key
+  -> auth.api.signUpEmail
+  -> Better Auth hooks.before
+  -> Better Auth password/user lifecycle
+  -> Better Auth databaseHooks.session.create.before
+  -> Better Auth session
 ```
 
-`applicationKey` становится обязательным полем `UserSignUpInput`.
+GraphQL resolver не создаёт user/session напрямую.
 
-### Sign in
+### Sign-in
 
 ```text
-applicationKey + credentials
-  -> resolve active Application
-  -> apply AuthenticationPolicy
-  -> Better Auth signIn
-  -> bind session to Application
-  -> TokenIssuer.issue
+GraphQL input + X-Application-Key
+  -> auth.api.signInEmail
+  -> Better Auth hooks.before
+  -> Better Auth credentials verification
+  -> Better Auth databaseHooks.session.create.before
+  -> Better Auth session
 ```
-
-`applicationKey` становится обязательным полем `UserSignInInput`.
-
-### Refresh
-
-```text
-session token
-  -> validate Better Auth session
-  -> read applicationId from session
-  -> reject disabled/invalidated Application
-  -> TokenIssuer.issue for the same Application
-```
-
-Refresh input не принимает новый `applicationKey`: application switching через refresh запрещён.
 
 ### Authenticated request
 
-```text
-Bearer JWT
-  -> TokenVerifier
-  -> verified Application context
-  -> ServiceContext
-  -> ApplicationAuthorizationService
-  -> Casbin
-  -> resolver/script
+Основным session credential остаётся Better Auth bearer token:
+
+```http
+Authorization: Bearer <better-auth-session-token>
 ```
 
-Целевой `ServiceContext.currentUser`:
+Session проверяется только через:
 
 ```typescript
-interface CurrentUserContext {
-  id: string;
-  sessionId: string;
-  applicationId: string;
-  applicationKey: string;
-  organizationId: string | null;
-  storeId: string | null;
-}
+const session = await auth.api.getSession({ headers });
 ```
+
+Request context получает `user`, `session`, `applicationId` и `applicationKey` из результата Better Auth.
+
+После authentication существующая бизнес-авторизация Shopana выполняется своим текущим механизмом. Этот план её не меняет.
+
+### Session refresh и revoke
+
+Использовать только Better Auth APIs:
+
+- `auth.api.getSession`;
+- `auth.api.listSessions`;
+- `auth.api.revokeSession`;
+- `auth.api.revokeSessions`;
+- `auth.api.signOut`.
+
+Собственный refresh token не создаётся. Session refresh выполняет Better Auth согласно своим `expiresIn/updateAge` правилам.
 
 ---
 
-## GraphQL Admin API
+## Better Auth JWT flow
 
-### Queries
+### Выпуск
+
+JWT получается только через Better Auth:
+
+```typescript
+const result = await auth.api.getToken({ headers });
+```
+
+Запрещено:
+
+- импортировать `SignJWT` в IAM business code;
+- читать private JWK для ручной подписи;
+- создавать собственный token endpoint;
+- подписывать token в repository/script;
+- возвращать самостоятельно сформированный JWT.
+
+### Payload
+
+Claims формируются только официальным Better Auth callback `jwt.definePayload`:
+
+```typescript
+jwt({
+  jwt: {
+    issuer: IAM_ISSUER,
+    audience: IAM_AUDIENCE,
+    definePayload: async ({ user, session }) => {
+      const config = await loadApplicationJwtConfig(session.applicationId);
+      const now = Math.floor(Date.now() / 1000);
+
+      return {
+        sub: user.id,
+        azp: session.applicationKey,
+        application_id: session.applicationId,
+        application_key: session.applicationKey,
+        ...(config.includeSessionId ? { sid: session.id } : {}),
+        ...(config.includeEmail ? { email: user.email } : {}),
+        ...(config.includeName ? { name: user.name } : {}),
+        ...(config.includeEmailVerified
+          ? { email_verified: user.emailVerified }
+          : {}),
+        ...config.staticClaims,
+        exp: now + config.ttlSeconds,
+      };
+    },
+  },
+});
+```
+
+`loadApplicationJwtConfig` является загрузкой конфигурации для Better Auth callback. Он не подписывает token, не проверяет token и не является отдельным claim engine.
+
+### Issuer, audience и keys
+
+Эти параметры являются глобальной конфигурацией Better Auth:
+
+- `issuer`;
+- `audience`;
+- signing algorithm;
+- JWKS storage;
+- key rotation;
+- grace period.
+
+Application не может их переопределять. Это сохраняет единый Better Auth verification contract.
+
+Application определяется claims:
+
+- `azp`;
+- `application_id`;
+- `application_key`.
+
+### Verification
+
+JWT проверяется только через Better Auth:
+
+```typescript
+const result = await auth.api.verifyJWT({
+  body: { token },
+});
+```
+
+Удалить из IAM:
+
+- прямой `jwtVerify` из `jose`;
+- ручную загрузку JWKS;
+- `createLocalJWKSet`;
+- собственный `parseJwt`;
+- собственную проверку issuer/audience;
+- собственный JWKS cache.
+
+JWT verification подтверждает identity и token integrity. Она не заменяет business authorization.
+
+### Изменение JWT config
+
+Изменения применяются при следующем `auth.api.getToken`.
+
+Уже выпущенный stateless JWT действует до `exp`. Собственная blacklist/version validation не добавляется.
+
+При disabled Application:
+
+- Better Auth hook блокирует новые sign-in/sign-up;
+- Better Auth `jwt.definePayload` отклоняет выпуск нового JWT;
+- sessions отзываются официальными Better Auth APIs;
+- уже выпущенный JWT действует до короткого `exp`.
+
+---
+
+## GraphQL API
+
+### Общий принцип
+
+Для auth/session/JWT операций resolver:
+
+1. валидирует форму GraphQL input;
+2. передаёт headers/body в Better Auth server API;
+3. преобразует Better Auth response/error в GraphQL payload;
+4. не выполняет authentication/token logic самостоятельно.
+
+### Application queries
 
 ```graphql
 type IAMApplicationQuery {
   application(id: ID!): IamApplication
+  applicationByKey(key: String!): IamApplication
   applications(first: Int, after: String): IamApplicationConnection!
 }
 ```
 
-Application type должен возвращать:
-
-- основные данные и status;
-- AuthenticationPolicy;
-- TokenProfile;
-- custom claims;
-- application permissions;
-- `configVersion` и `tokensValidAfter`.
-
-### Mutations
+### Application mutations
 
 ```graphql
 type IAMApplicationMutation {
   create(input: IamApplicationCreateInput!): IamApplicationCreatePayload!
   update(input: IamApplicationUpdateInput!): IamApplicationUpdatePayload!
-  updateAuthenticationPolicy(
-    input: IamApplicationAuthenticationPolicyInput!
-  ): IamApplicationUpdatePayload!
-  updateTokenProfile(
-    input: IamApplicationTokenProfileInput!
-  ): IamApplicationUpdatePayload!
-  setPermissions(
-    input: IamApplicationPermissionsInput!
-  ): IamApplicationUpdatePayload!
-  setClaims(
-    input: IamApplicationClaimsInput!
-  ): IamApplicationUpdatePayload!
   setStatus(input: IamApplicationStatusInput!): IamApplicationUpdatePayload!
-  invalidateTokens(
-    input: IamApplicationInvalidateTokensInput!
+  updateAuthenticationConfig(
+    input: IamApplicationAuthenticationConfigInput!
+  ): IamApplicationUpdatePayload!
+  updateJwtConfig(
+    input: IamApplicationJwtConfigInput!
   ): IamApplicationUpdatePayload!
 }
 ```
 
-Правила mutations:
+Application API не содержит:
 
-- bulk `setPermissions` и `setClaims` заменяют конфигурацию атомарно;
-- каждая mutation валидирует aggregate целиком до записи;
-- security-relevant mutation увеличивает `configVersion`;
-- `invalidateTokens` обновляет `tokensValidAfter` текущим временем;
-- изменения пишутся в structured audit log;
-- GraphQL errors следуют существующему `userErrors` pattern.
+- roles;
+- permissions;
+- authorization policies;
+- token signing operations;
+- token verification operations;
+- custom refresh tokens.
 
-### Авторизация управления Application
+Защита management operations использует существующий механизм IAM и не проектируется заново в этом плане.
 
-Зарегистрировать IAM resource:
+### Auth/session/JWT mapping
 
-```text
-iam.application
-```
+| GraphQL operation | Better Auth API |
+| --- | --- |
+| `signUp` | `auth.api.signUpEmail` |
+| `signIn` | `auth.api.signInEmail` |
+| `signOut` | `auth.api.signOut` |
+| current session | `auth.api.getSession` |
+| list sessions | `auth.api.listSessions` |
+| revoke session | `auth.api.revokeSession` |
+| revoke own sessions | `auth.api.revokeSessions` |
+| issue JWT | `auth.api.getToken` |
+| verify JWT | `auth.api.verifyJWT` |
 
-Действия:
-
-```text
-read write admin
-```
-
-- platform admin управляет системными приложениями;
-- organization owner/admin управляет приложениями своей организации;
-- организация не может читать или изменять чужое приложение;
-- изменение wildcard permissions требует platform admin.
+Собственная `tokenRefresh` mutation удаляется либо заменяется тонким adapter над поддерживаемым Better Auth session flow. Новый refresh-token механизм не создаётся.
 
 ---
 
-## Cache и инвалидация
+## Изменения текущего IAM
 
-Кэшировать immutable `ApplicationConfigSnapshot`:
+### Better Auth остаётся владельцем auth lifecycle
 
-```text
-iam:application:{applicationId}:v{configVersion}
-iam:application-key:{applicationKey}
-```
+`UserRepository` не должен оборачивать Better Auth собственной token/session реализацией.
 
-Требования:
+Удалить:
 
-- L1 cache для request path;
-- L2 cache через существующий cache-manager/Keyv;
-- mutation публикует invalidation event после commit;
-- status и `tokensValidAfter` имеют короткий cache TTL;
-- cache miss никогда не превращается в allow;
-- при недоступности конфигурации используется fail-closed поведение.
+- `parseJwt`;
+- `verifyJwtToken`;
+- `getLocalJWKS`;
+- прямые импорты `jose`;
+- собственный JWKS cache;
+- ручное вычисление access-token expiration;
+- собственный dual-token refresh flow.
+
+Оставить или реализовать как тонкие adapters:
+
+- вызов `auth.api.signUpEmail`;
+- вызов `auth.api.signInEmail`;
+- вызов `auth.api.getSession`;
+- вызов `auth.api.getToken`;
+- вызов `auth.api.verifyJWT`;
+- вызов Better Auth session revoke APIs.
+
+### Business authorization не изменяется
+
+Не изменять в рамках этого плана:
+
+- `CasbinService`;
+- Casbin tables;
+- organization roles;
+- role hierarchy;
+- `AuthorizeScript`;
+- `BatchAuthorizeScript`;
+- authorization cache;
+- broker authorization contract;
+- `@shopana/rbac`.
+
+Application context может быть доступен в `ServiceContext`, но не участвует в RBAC до отдельного архитектурного решения.
 
 ---
 
@@ -590,19 +601,10 @@ iam:application-key:{applicationKey}
 
 ```text
 services/iam/src/
-├── application/
-│   ├── ApplicationResolver.ts
-│   ├── ApplicationAuthorizationService.ts
-│   ├── ApplicationConfigCache.ts
-│   └── index.ts
-├── token/
-│   ├── TokenIssuer.ts
-│   ├── TokenVerifier.ts
-│   ├── ClaimResolverRegistry.ts
-│   ├── claims/
-│   │   ├── userClaims.ts
-│   │   ├── contextClaims.ts
-│   │   └── authorizationClaims.ts
+├── auth/
+│   ├── auth.ts
+│   ├── application-hooks.ts
+│   ├── application-jwt-payload.ts
 │   └── index.ts
 ├── repositories/
 │   ├── application/
@@ -613,11 +615,9 @@ services/iam/src/
 │   └── application/
 │       ├── ApplicationCreateScript.ts
 │       ├── ApplicationUpdateScript.ts
-│       ├── ApplicationPolicyUpdateScript.ts
-│       ├── ApplicationClaimsSetScript.ts
-│       ├── ApplicationPermissionsSetScript.ts
-│       ├── ApplicationStatusSetScript.ts
-│       └── ApplicationTokensInvalidateScript.ts
+│       ├── ApplicationAuthenticationConfigUpdateScript.ts
+│       ├── ApplicationJwtConfigUpdateScript.ts
+│       └── ApplicationStatusSetScript.ts
 ├── resolvers/admin/
 │   ├── ApplicationResolver.ts
 │   ├── ApplicationQueryResolver.ts
@@ -626,156 +626,156 @@ services/iam/src/
     └── application.graphql
 ```
 
+Не создавать:
+
+- `token/TokenIssuer.ts`;
+- `token/TokenVerifier.ts`;
+- `authorization/ApplicationAuthorizationService.ts`;
+- `application_permission` table;
+- `ClaimResolverRegistry`;
+- новый role/permission subsystem.
+
 ---
 
 ## Этапы реализации
 
-### Этап 1. Domain model и schema
+### Этап 1. Application schema
 
-1. Добавить Drizzle-модели:
+1. Добавить Drizzle models:
    - `application`;
-   - `application_authentication_policy`;
-   - `application_token_profile`;
-   - `application_claim`;
-   - `application_permission`.
-2. Расширить `session` application/context полями.
-3. Добавить relations, indexes, unique и check constraints.
-4. Экспортировать модели из `repositories/models/index.ts`.
-5. Сгенерировать новую Drizzle migration штатной командой проекта.
-6. Не добавлять compatibility columns и backfill.
+   - `application_authentication_config`;
+   - `application_jwt_config`.
+2. Добавить `applicationId/applicationKey` в Better Auth session schema.
+3. Добавить indexes, unique и check constraints.
+4. Экспортировать models из `repositories/models/index.ts`.
+5. Сгенерировать Drizzle migration штатной командой проекта.
+6. Не добавлять backfill или compatibility columns.
 
-Результат: база данных может хранить валидный Application aggregate и application-bound session.
+Результат: Application config и application-bound Better Auth session представлены в schema.
 
-### Этап 2. Repository и application scripts
+### Этап 2. Application repository и scripts
 
-1. Реализовать `ApplicationRepository`.
-2. Подключить repository к агрегатору `Repository`.
-3. Реализовать create/update/status/invalidate scripts.
-4. Реализовать атомарные `setClaims` и `setPermissions`.
-5. Добавить Zod validation для application key, TTL, audience, claims и permissions.
-6. Добавить structured audit logging.
+1. Реализовать repository только для Application config CRUD.
+2. Реализовать create/update/status scripts.
+3. Реализовать update AuthenticationConfig/JwtConfig scripts.
+4. Добавить Zod validation для key, TTL, origins и static claims.
+5. Подключить repository к существующему IAM Repository.
+6. Не добавлять role/permission operations.
 
-Результат: конфигурация Application изменяется только через валидированный transaction boundary.
+Результат: Application config изменяется через валидированный transaction boundary.
 
-### Этап 3. Token pipeline
+### Этап 3. Better Auth hooks
 
-1. Добавить `ClaimResolverRegistry`.
-2. Реализовать встроенные claim resolvers.
-3. Реализовать `TokenIssuer` на существующей JWKS infrastructure.
-4. Реализовать `TokenVerifier` с application-aware validation.
-5. Удалить глобальный выпуск access token через Better Auth JWT plugin.
-6. Оставить единственный публичный путь выпуска access token через `TokenIssuer`.
+1. Настроить `session.additionalFields`.
+2. Реализовать Better Auth `hooks.before` для Application resolution.
+3. Реализовать Better Auth `databaseHooks.session.create.before`.
+4. Подключить Better Auth dynamic `trustedOrigins` callback.
+5. Не создавать session напрямую.
 
-Результат: JWT всегда имеет проверенный Application context и управляемый TokenProfile.
+Результат: Application config применяется внутри Better Auth lifecycle.
 
-### Этап 4. Authentication и request context
+### Этап 4. Better Auth JWT
 
-1. Добавить обязательный `applicationKey` в sign-up/sign-in DTO и GraphQL inputs.
-2. Применять AuthenticationPolicy до создания сессии.
-3. Привязать Better Auth session к Application.
-4. Запретить refresh для другого приложения.
-5. Заменить текущий JWT parsing в admin context middleware на `TokenVerifier`.
-6. Расширить `ServiceContext` application/organization/store полями.
-7. Удалить silent fallback на глобальные issuer/audience настройки.
+1. Оставить подпись, JWKS и rotation в Better Auth `jwt` plugin.
+2. Реализовать application-aware `jwt.definePayload`.
+3. Использовать глобальные Better Auth issuer/audience.
+4. Выпускать JWT только через `auth.api.getToken`.
+5. Проверять JWT только через `auth.api.verifyJWT`.
+6. Удалить ручной `jose`/JWKS/token code.
 
-Результат: любой authenticated request имеет однозначно определённое активное Application.
+Результат: JWT claims управляются Application config, а JWT lifecycle принадлежит Better Auth.
 
-### Этап 5. Application authorization
+### Этап 5. GraphQL adapters
 
-1. Реализовать allow-only matcher для `ApplicationPermission`.
-2. Подключить проверку до Casbin enforcement.
-3. Использовать те же domain/resource/action definitions, что и `@shopana/rbac`.
-4. Добавить cache и version-based invalidation.
-5. Обеспечить fail-closed при неизвестном resource/action или ошибке загрузки policy.
+1. Добавить Application GraphQL schema.
+2. Реализовать Application query/mutation resolvers.
+3. Перевести auth/session resolvers на Better Auth server APIs.
+4. Добавить выдачу JWT через `auth.api.getToken` при необходимости GraphQL contract.
+5. Удалить собственный refresh-token flow.
+6. Выполнить штатный GraphQL codegen.
 
-Результат: effective access является пересечением application capabilities и пользовательских прав Casbin.
+Результат: GraphQL предоставляет Shopana contract без дублирования Better Auth behavior.
 
-### Этап 6. GraphQL management API
+### Этап 6. Bootstrap defaults
 
-1. Добавить `application.graphql`.
-2. Добавить generated types/schemas через штатный codegen.
-3. Реализовать query/mutation resolvers и connection.
-4. Подключить scripts через Kernel.
-5. Зарегистрировать `iam.application` resource и действия.
-6. Не добавлять Admin frontend UI в рамках этого плана.
+1. Создать системные Applications `admin` и `storefront`.
+2. Определить для каждого AuthenticationConfig.
+3. Определить для каждого JwtConfig.
+4. Выполнить idempotent upsert при bootstrap.
+5. Не создавать roles/permissions/Application policies.
 
-Результат: Application, policies и claims управляются через IAM Admin GraphQL API.
+Результат: новая установка IAM содержит необходимые first-party Applications.
 
-### Этап 7. Bootstrap defaults и удаление legacy path
+### Этап 7. Удаление legacy auth/token path
 
-1. Создать декларативные bootstrap definitions для `admin` и `storefront`.
-2. Upsert выполнять при инициализации IAM или отдельной bootstrap-командой.
-3. Для `admin` включить organization context и ограниченный admin audience.
-4. Для `storefront` определить минимальный allow-list ресурсов.
-5. Удалить старый глобальный JWT payload path и не поддерживать dual mode.
-6. Удалить неиспользуемые environment options, если issuer/audience/TTL перенесены в новый контракт.
-7. Обновить внутреннюю документацию IAM.
+1. Удалить ручную JWT verification из `UserRepository`.
+2. Заменить context JWT parsing на Better Auth `auth.api.verifyJWT`.
+3. Удалить собственный refresh-token flow.
+4. Удалить неиспользуемые token helpers/cache.
+5. Не изменять Casbin/RBAC code.
+6. Обновить IAM документацию.
+7. Собрать IAM штатной build-командой проекта.
 
-Результат: новая установка IAM сразу имеет необходимые first-party приложения и не содержит legacy token flow.
+Результат: Better Auth является единственным authentication/session/JWT engine, а RBAC остаётся независимым.
 
 ---
 
-## Порядок изменения конфигурации
+## Ограничения Better Auth-only подхода
 
-### Обычное изменение claims
+Application может динамически менять только те параметры, для которых Better Auth предоставляет официальный callback/hook.
 
-1. Сохранить новые claim rules.
-2. Увеличить `configVersion`.
-3. Инвалидировать config cache.
-4. Применять правила ко всем новым и обновлённым access token.
-5. Существующие короткоживущие JWT могут жить до `exp`.
+В первой версии динамически поддерживаются:
 
-### Критическое изменение authorization policy
+- sign-in/sign-up availability через Better Auth request hook;
+- session TTL через Better Auth session database hook;
+- trusted origins через Better Auth callback;
+- JWT TTL и payload через Better Auth `definePayload`.
 
-1. Сохранить новый allow-list.
-2. Увеличить `configVersion`.
-3. Обновить `tokensValidAfter`.
-4. Инвалидировать cache.
-5. Отклонять JWT с более старым `iat`.
-6. Применять новую application policy до Casbin.
+Остаются глобальными Better Auth options:
 
-### Отключение приложения
+- `emailAndPassword.enabled`;
+- issuer;
+- audience;
+- signing algorithm;
+- JWKS configuration;
+- key rotation;
+- глобальный rate limiting baseline.
 
-1. Установить `status=disabled`.
-2. Обновить `tokensValidAfter`.
-3. Инвалидировать cache.
-4. Запретить sign-up/sign-in/refresh.
-5. Отклонять ранее выпущенные JWT этого приложения.
+Если Better Auth не предоставляет официальный extension point для настройки, собственная реализация не добавляется. Функциональность остаётся глобальной или откладывается.
 
 ---
 
 ## Security invariants
 
-Реализация считается корректной только при сохранении следующих инвариантов:
-
-1. Токен нельзя выпустить без активного Application.
-2. Session token нельзя использовать для другого Application.
-3. Request header не может переопределить Application из проверенного JWT.
-4. Application permission может только ограничить Casbin permission.
-5. Неизвестный resource/action приводит к deny.
-6. Зарезервированный claim нельзя переопределить конфигурацией.
-7. Application не управляет issuer, алгоритмом подписи или ключами.
-8. JWT не содержит password, session token, secrets или внутренние credentials.
-9. Отключённое Application не может использовать существующий access token.
-10. Любое security-relevant изменение увеличивает `configVersion`.
-11. Критическое изменение может немедленно отсечь старые JWT через `tokensValidAfter`.
-12. Ошибка cache/repository/claim resolution не превращается в allow.
+1. User credentials проверяет Better Auth.
+2. Любую session создаёт Better Auth.
+3. Session хранится через Better Auth adapter.
+4. Session application fields добавляются через Better Auth `additionalFields`/hook.
+5. Любой JWT подписывает Better Auth `jwt` plugin.
+6. Любой JWT проверяется Better Auth `auth.api.verifyJWT`.
+7. Application не управляет signing keys/algorithm/issuer/audience.
+8. Application JWT config не содержит roles или permissions.
+9. JWT claims не заменяют существующую бизнес-авторизацию.
+10. Собственный auth/token fallback отсутствует.
+11. Неизвестное/disabled Application приводит к отказу нового auth request.
+12. Отсутствие официального Better Auth extension point не обходится собственным auth механизмом.
 
 ---
 
 ## Definition of Done
 
-- Application aggregate хранится в schema `iam` и не пересекается с доменом сервиса `apps`.
-- Системные `admin` и `storefront` приложения создаются декларативно.
-- Sign-up/sign-in принимают обязательный application key.
-- Каждая сессия связана ровно с одним Application.
-- Access token выпускается только новым `TokenIssuer`.
-- JWT содержит `application_id`, `application_key`, `azp`, корректный `aud` и `config_ver`.
-- Request context строится только после application-aware JWT validation.
-- Application capability ceiling применяется перед Casbin.
-- AuthenticationPolicy, TokenProfile, claims и permissions доступны через IAM Admin GraphQL API.
-- Отключение Application и `invalidateTokens` отсекают старые JWT.
-- Все изменения конфигурации атомарны, валидируются и инвалидируют cache.
+- `IamApplication` хранит только application-specific Better Auth config.
+- Системные `admin` и `storefront` Applications создаются bootstrap-процессом.
+- Application context записывается в Better Auth session.
+- Sign-up/sign-in/session lifecycle выполняются Better Auth.
+- JWT выпускается `auth.api.getToken`.
+- JWT проверяется `auth.api.verifyJWT`.
+- JWT claims формируются только `jwt.definePayload`.
+- Issuer, audience, JWKS и signing algorithm принадлежат Better Auth config.
+- Роли, permissions и Casbin не изменены этим планом.
+- GraphQL auth/session/token operations являются adapters над Better Auth.
+- Собственные TokenIssuer, TokenVerifier и ClaimResolver отсутствуют.
+- Собственный refresh-token protocol отсутствует.
 - Codegen и Drizzle migration выполняются штатными средствами проекта.
-- IAM service успешно собирается штатной build-командой проекта.
-- Тесты не добавляются и не запускаются в рамках этой реализации.
+- IAM успешно собирается штатной build-командой проекта.
+- Тесты не добавляются и не запускаются в рамках реализации.
