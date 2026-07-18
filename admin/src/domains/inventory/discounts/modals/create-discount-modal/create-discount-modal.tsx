@@ -145,9 +145,6 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorTextSecondary,
     lineHeight: 1.35,
   },
-  titleInput: {
-    height: 42,
-  },
   error: {
     fontSize: 12,
     color: token.colorError,
@@ -399,7 +396,7 @@ export function CreateDiscountModal() {
                   render={({ field }) => (
                     <Input
                       {...field}
-                      className={styles.titleInput}
+                      size="middle"
                       status={errors.title ? "error" : undefined}
                       placeholder="e.g. Summer sale"
                     />
