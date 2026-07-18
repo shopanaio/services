@@ -98,6 +98,7 @@ GraphQL является transport adapter над Better Auth для auth/sessio
 2. Привязать каждую Better Auth session к одному Application.
 3. Разрешить Application настраивать поддерживаемые Better Auth параметры:
    - доступность sign-up и sign-in;
+   - список разрешённых способов входа из зарегистрированного Better Auth method registry;
    - session TTL;
    - trusted origins;
    - JWT TTL;
@@ -163,6 +164,10 @@ betterAuth({
   },
   plugins: [
     bearer(),
+    emailOTP(IAM_EMAIL_OTP_OPTIONS),
+    magicLink(IAM_MAGIC_LINK_OPTIONS),
+    username(IAM_USERNAME_OPTIONS),
+    phoneNumber(IAM_PHONE_NUMBER_OPTIONS),
     jwt({
       jwt: {
         issuer: IAM_ISSUER,
@@ -176,6 +181,8 @@ betterAuth({
 ```
 
 Callback-функции в примере являются адаптерами Application config к lifecycle Better Auth. Они не подписывают токены, не проверяют passwords и не принимают решения бизнес-авторизации.
+
+Все способы входа сначала регистрируются официальными Better Auth core options/plugins. Application не загружает plugins динамически, а только включает или выключает уже зарегистрированный method.
 
 ---
 
@@ -224,6 +231,41 @@ One-to-one конфигурация, применяемая Better Auth hooks.
 - wildcard origins запрещены по умолчанию;
 - конфигурация не определяет роли, permissions или resource access.
 
+### `application_authentication_method`
+
+Allow-list способов входа для конкретного Application.
+
+| Поле | Тип | Назначение |
+| --- | --- | --- |
+| `id` | `uuid` | Внутренний идентификатор |
+| `application_id` | `uuid`, FK | Application |
+| `method` | `varchar(32)` | Ключ зарегистрированного Better Auth method |
+| `enabled` | `boolean` | Доступен ли method для Application |
+| `created_at` | `timestamptz` | Дата создания |
+| `updated_at` | `timestamptz` | Дата изменения |
+
+Первая версия registry:
+
+```typescript
+type ApplicationAuthenticationMethod =
+  | "email_password"
+  | "email_otp"
+  | "magic_link"
+  | "username_password"
+  | "phone_otp";
+```
+
+Ограничения:
+
+- unique `(application_id, method)`;
+- значение `method` должно существовать в server-side registry;
+- `enabled=true` допустим только для подключённого Better Auth core option/plugin;
+- строка method не содержит plugin options и не исполняется как код;
+- изменение `enabled` не изменяет глобальную конфигурацию Better Auth plugin;
+- таблица не хранит passwords, OTP, magic-link tokens или provider secrets.
+
+Application создаётся вместе минимум с одним enabled method. Пустой allow-list запрещён для active Application.
+
 ### `application_jwt_config`
 
 One-to-one конфигурация, используемая Better Auth `jwt.definePayload`.
@@ -269,6 +311,65 @@ Application fields являются частью Better Auth session model. От
 
 ## Application resolution
 
+### Better Auth method registry
+
+IAM содержит статический registry, связывающий Application method с официальными Better Auth endpoints:
+
+```typescript
+const APPLICATION_AUTH_METHODS = {
+  email_password: {
+    endpoints: [
+      "/sign-in/email",
+      "/sign-up/email",
+      "/request-password-reset",
+      "/reset-password",
+    ],
+  },
+  email_otp: {
+    endpoints: [
+      "/email-otp/send-verification-otp",
+      "/email-otp/check-verification-otp",
+      "/email-otp/verify-email",
+      "/sign-in/email-otp",
+      "/email-otp/request-password-reset",
+      "/email-otp/reset-password",
+    ],
+  },
+  magic_link: {
+    endpoints: [
+      "/sign-in/magic-link",
+      "/magic-link/verify",
+    ],
+  },
+  username_password: {
+    endpoints: [
+      "/sign-in/username",
+      "/is-username-available",
+    ],
+  },
+  phone_otp: {
+    endpoints: [
+      "/sign-in/phone-number",
+      "/phone-number/send-otp",
+      "/phone-number/verify",
+      "/phone-number/request-password-reset",
+      "/phone-number/reset-password",
+    ],
+  },
+} as const;
+```
+
+Registry выполняет только маршрутизацию endpoint к Better Auth plugin. Он не проверяет credentials, OTP, password или magic-link token.
+
+Правила registry:
+
+- endpoint принадлежит ровно одному method;
+- request hook проверяет method до выполнения Better Auth endpoint;
+- неизвестный method/endpoint обрабатывается fail-closed для application-scoped auth flow;
+- новый method добавляется только вместе с официальным Better Auth plugin и его schema;
+- включение/выключение уже зарегистрированного method не требует сборки;
+- добавление нового Better Auth plugin требует изменения конфигурации IAM и новой сборки.
+
 ### Входной contract
 
 Для unauthenticated Better Auth operations Application передаётся через:
@@ -291,13 +392,68 @@ Header обязателен для:
 1. читает `X-Application-Key`;
 2. загружает Application и AuthenticationConfig;
 3. отклоняет неизвестное/disabled Application через Better Auth `APIError`;
-4. отклоняет sign-in при `signInEnabled=false`;
-5. отклоняет sign-up при `signUpEnabled=false`;
-6. сохраняет проверенный Application context в рамках текущего Better Auth request.
+4. определяет method по Better Auth endpoint registry;
+5. загружает `application_authentication_method`;
+6. отклоняет endpoint, если method отключён для Application;
+7. отклоняет sign-in при `signInEnabled=false`;
+8. отклоняет sign-up при `signUpEnabled=false`;
+9. сохраняет проверенный Application context в рамках текущего Better Auth request.
 
 Запрещён fallback на default Application при отсутствующем или неверном header.
 
 Этот hook не проверяет бизнес-permissions и не заменяет RBAC.
+
+### Изменение способов входа
+
+Изменение конфигурации выполняется атомарной заменой allow-list:
+
+```typescript
+await setApplicationAuthenticationMethods({
+  applicationId,
+  methods: ["email_password", "email_otp"],
+});
+```
+
+После commit следующий Better Auth request использует новый список. Перезапуск не требуется, потому что меняются только строки `enabled` для уже зарегистрированных plugins.
+
+UI может запросить публичную конфигурацию Application и показать доступные кнопки входа, но UI не является enforcement point. Тот же allow-list обязательно проверяется Better Auth request hook на сервере.
+
+### Глобальные настройки методов
+
+Application управляет доступностью method, но не внутренними plugin options.
+
+Глобальными остаются:
+
+- password min/max length;
+- `requireEmailVerification`;
+- email OTP length/expiry/attempts;
+- magic-link expiry;
+- phone OTP length/expiry/attempts;
+- username validation;
+- callbacks отправки email/SMS;
+- token storage strategy;
+- rate-limit baseline каждого plugin.
+
+Чтобы `signUpEnabled=false` нельзя было обойти через passwordless method, первая версия использует:
+
+```typescript
+emailOTP({
+  ...IAM_EMAIL_OTP_OPTIONS,
+  disableSignUp: true,
+});
+
+magicLink({
+  ...IAM_MAGIC_LINK_OPTIONS,
+  disableSignUp: true,
+});
+
+phoneNumber({
+  ...IAM_PHONE_NUMBER_OPTIONS,
+  signUpOnVerification: undefined,
+});
+```
+
+Создание пользователя выполняется только через Better Auth `/sign-up/email`, который контролируется Application `signUpEnabled`. Разрешение passwordless sign-up для отдельных Applications потребует официальной per-request возможности Better Auth; собственная проверка существования пользователя не добавляется.
 
 ### Session creation hook
 
@@ -506,8 +662,30 @@ type IAMApplicationQuery {
   application(id: ID!): IamApplication
   applicationByKey(key: String!): IamApplication
   applications(first: Int, after: String): IamApplicationConnection!
+  publicAuthenticationConfig(key: String!): IamApplicationPublicAuthConfig
 }
 ```
+
+Публичная конфигурация возвращает только безопасные данные для построения формы входа:
+
+```graphql
+type IamApplicationPublicAuthConfig {
+  applicationKey: String!
+  signInEnabled: Boolean!
+  signUpEnabled: Boolean!
+  enabledMethods: [IamApplicationAuthenticationMethod!]!
+}
+
+enum IamApplicationAuthenticationMethod {
+  EMAIL_PASSWORD
+  EMAIL_OTP
+  MAGIC_LINK
+  USERNAME_PASSWORD
+  PHONE_OTP
+}
+```
+
+Она не возвращает plugin secrets, callbacks, JWT config или внутренние Better Auth options.
 
 ### Application mutations
 
@@ -519,11 +697,25 @@ type IAMApplicationMutation {
   updateAuthenticationConfig(
     input: IamApplicationAuthenticationConfigInput!
   ): IamApplicationUpdatePayload!
+  setAuthenticationMethods(
+    input: IamApplicationAuthenticationMethodsInput!
+  ): IamApplicationUpdatePayload!
   updateJwtConfig(
     input: IamApplicationJwtConfigInput!
   ): IamApplicationUpdatePayload!
 }
 ```
+
+`setAuthenticationMethods` атомарно заменяет allow-list:
+
+```graphql
+input IamApplicationAuthenticationMethodsInput {
+  applicationId: ID!
+  methods: [IamApplicationAuthenticationMethod!]!
+}
+```
+
+Mutation отклоняет пустой список для active Application и method, для которого Better Auth plugin не зарегистрирован.
 
 Application API не содержит:
 
@@ -542,6 +734,13 @@ Application API не содержит:
 | --- | --- |
 | `signUp` | `auth.api.signUpEmail` |
 | `signIn` | `auth.api.signInEmail` |
+| send email OTP | `auth.api.sendVerificationOTP` |
+| sign in by email OTP | `auth.api.signInEmailOTP` |
+| request magic link | `auth.api.signInMagicLink` |
+| verify magic link | Better Auth magic-link verification endpoint |
+| sign in by username | `auth.api.signInUsername` |
+| send phone OTP | `auth.api.sendPhoneNumberOTP` |
+| sign in by phone | `auth.api.signInPhoneNumber` |
 | `signOut` | `auth.api.signOut` |
 | current session | `auth.api.getSession` |
 | list sessions | `auth.api.listSessions` |
@@ -603,6 +802,7 @@ Application context может быть доступен в `ServiceContext`, н
 services/iam/src/
 ├── auth/
 │   ├── auth.ts
+│   ├── application-auth-methods.ts
 │   ├── application-hooks.ts
 │   ├── application-jwt-payload.ts
 │   └── index.ts
@@ -616,6 +816,7 @@ services/iam/src/
 │       ├── ApplicationCreateScript.ts
 │       ├── ApplicationUpdateScript.ts
 │       ├── ApplicationAuthenticationConfigUpdateScript.ts
+│       ├── ApplicationAuthenticationMethodsSetScript.ts
 │       ├── ApplicationJwtConfigUpdateScript.ts
 │       └── ApplicationStatusSetScript.ts
 ├── resolvers/admin/
@@ -644,6 +845,7 @@ services/iam/src/
 1. Добавить Drizzle models:
    - `application`;
    - `application_authentication_config`;
+   - `application_authentication_method`;
    - `application_jwt_config`.
 2. Добавить `applicationId/applicationKey` в Better Auth session schema.
 3. Добавить indexes, unique и check constraints.
@@ -658,19 +860,22 @@ services/iam/src/
 1. Реализовать repository только для Application config CRUD.
 2. Реализовать create/update/status scripts.
 3. Реализовать update AuthenticationConfig/JwtConfig scripts.
-4. Добавить Zod validation для key, TTL, origins и static claims.
-5. Подключить repository к существующему IAM Repository.
-6. Не добавлять role/permission operations.
+4. Реализовать атомарный `setAuthenticationMethods` script.
+5. Добавить Zod validation для key, methods, TTL, origins и static claims.
+6. Подключить repository к существующему IAM Repository.
+7. Не добавлять role/permission operations.
 
 Результат: Application config изменяется через валидированный transaction boundary.
 
 ### Этап 3. Better Auth hooks
 
-1. Настроить `session.additionalFields`.
-2. Реализовать Better Auth `hooks.before` для Application resolution.
-3. Реализовать Better Auth `databaseHooks.session.create.before`.
-4. Подключить Better Auth dynamic `trustedOrigins` callback.
-5. Не создавать session напрямую.
+1. Зарегистрировать поддерживаемые Better Auth core methods/plugins.
+2. Создать статический endpoint-to-method registry.
+3. Настроить `session.additionalFields`.
+4. Реализовать Better Auth `hooks.before` для Application/method resolution.
+5. Реализовать Better Auth `databaseHooks.session.create.before`.
+6. Подключить Better Auth dynamic `trustedOrigins` callback.
+7. Не создавать session и не проверять credentials напрямую.
 
 Результат: Application config применяется внутри Better Auth lifecycle.
 
@@ -689,10 +894,12 @@ services/iam/src/
 
 1. Добавить Application GraphQL schema.
 2. Реализовать Application query/mutation resolvers.
-3. Перевести auth/session resolvers на Better Auth server APIs.
-4. Добавить выдачу JWT через `auth.api.getToken` при необходимости GraphQL contract.
-5. Удалить собственный refresh-token flow.
-6. Выполнить штатный GraphQL codegen.
+3. Добавить public auth config query для формы входа.
+4. Добавить `setAuthenticationMethods` mutation.
+5. Перевести auth/session/method resolvers на Better Auth server APIs.
+6. Добавить выдачу JWT через `auth.api.getToken` при необходимости GraphQL contract.
+7. Удалить собственный refresh-token flow.
+8. Выполнить штатный GraphQL codegen.
 
 Результат: GraphQL предоставляет Shopana contract без дублирования Better Auth behavior.
 
@@ -700,9 +907,10 @@ services/iam/src/
 
 1. Создать системные Applications `admin` и `storefront`.
 2. Определить для каждого AuthenticationConfig.
-3. Определить для каждого JwtConfig.
-4. Выполнить idempotent upsert при bootstrap.
-5. Не создавать roles/permissions/Application policies.
+3. Определить enabled Better Auth methods для каждого Application.
+4. Определить для каждого JwtConfig.
+5. Выполнить idempotent upsert при bootstrap.
+6. Не создавать roles/permissions/Application policies.
 
 Результат: новая установка IAM содержит необходимые first-party Applications.
 
@@ -727,12 +935,15 @@ Application может динамически менять только те п�
 В первой версии динамически поддерживаются:
 
 - sign-in/sign-up availability через Better Auth request hook;
+- включение и выключение уже зарегистрированных Better Auth methods;
 - session TTL через Better Auth session database hook;
 - trusted origins через Better Auth callback;
 - JWT TTL и payload через Better Auth `definePayload`.
 
 Остаются глобальными Better Auth options:
 
+- состав подключённых core methods/plugins;
+- внутренние настройки каждого authentication method;
 - `emailAndPassword.enabled`;
 - issuer;
 - audience;
@@ -748,17 +959,19 @@ Application может динамически менять только те п�
 ## Security invariants
 
 1. User credentials проверяет Better Auth.
-2. Любую session создаёт Better Auth.
-3. Session хранится через Better Auth adapter.
-4. Session application fields добавляются через Better Auth `additionalFields`/hook.
-5. Любой JWT подписывает Better Auth `jwt` plugin.
-6. Любой JWT проверяется Better Auth `auth.api.verifyJWT`.
-7. Application не управляет signing keys/algorithm/issuer/audience.
-8. Application JWT config не содержит roles или permissions.
-9. JWT claims не заменяют существующую бизнес-авторизацию.
-10. Собственный auth/token fallback отсутствует.
-11. Неизвестное/disabled Application приводит к отказу нового auth request.
-12. Отсутствие официального Better Auth extension point не обходится собственным auth механизмом.
+2. Authentication method исполняется только официальным Better Auth core/plugin endpoint.
+3. Application method allow-list проверяется до выполнения endpoint.
+4. Любую session создаёт Better Auth.
+5. Session хранится через Better Auth adapter.
+6. Session application fields добавляются через Better Auth `additionalFields`/hook.
+7. Любой JWT подписывает Better Auth `jwt` plugin.
+8. Любой JWT проверяется Better Auth `auth.api.verifyJWT`.
+9. Application не управляет signing keys/algorithm/issuer/audience.
+10. Application JWT config не содержит roles или permissions.
+11. JWT claims не заменяют существующую бизнес-авторизацию.
+12. Собственный auth/token fallback отсутствует.
+13. Неизвестное/disabled Application или disabled method приводит к отказу нового auth request.
+14. Отсутствие официального Better Auth extension point не обходится собственным auth механизмом.
 
 ---
 
@@ -766,6 +979,10 @@ Application может динамически менять только те п�
 
 - `IamApplication` хранит только application-specific Better Auth config.
 - Системные `admin` и `storefront` Applications создаются bootstrap-процессом.
+- Application хранит allow-list зарегистрированных Better Auth methods.
+- Allow-list проверяется server-side Better Auth request hook.
+- Public auth config позволяет UI показать доступные способы входа.
+- Уже зарегистрированные methods включаются/выключаются без новой сборки.
 - Application context записывается в Better Auth session.
 - Sign-up/sign-in/session lifecycle выполняются Better Auth.
 - JWT выпускается `auth.api.getToken`.
