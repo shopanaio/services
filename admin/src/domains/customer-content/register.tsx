@@ -78,7 +78,7 @@ registerModule({
     {
       key: "discounts-list",
       path: "/:orgName/:storeName/discounts",
-      disabled: true,
+      disabled: false,
       sidebar: {
         label: "Discounts",
         icon: null,
