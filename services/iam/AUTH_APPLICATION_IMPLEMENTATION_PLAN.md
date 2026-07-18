@@ -7,6 +7,7 @@
 - **Базовая версия:** `better-auth@1.6.23`
 - **OAuth Provider:** `@better-auth/oauth-provider@1.6.23`
 - **Основная цель:** реализовать модель OAuth Application, управление правилами доступа и настраиваемые JWT claims средствами Better Auth, не создавая собственный OAuth/OIDC server.
+- **Стратегия запуска:** clean cutover без обратной совместимости, переноса auth-данных и параллельной поддержки legacy flow.
 
 ## 1. Итоговое архитектурное решение
 
@@ -43,6 +44,22 @@ Shopana реализует только интеграционный слой:
 - проверку JWT и scopes в gateway/subgraphs;
 - GraphQL API и Admin UI поверх server API Better Auth;
 - аудит security-sensitive операций.
+
+### 1.1 Условия clean cutover
+
+Реализация рассчитана на окружение без production-данных и активных пользователей. Новый OAuth flow вводится как единственный поддерживаемый способ получения access/refresh tokens.
+
+Не выполнять import, conversion или backfill для:
+
+- существующих пользователей и accounts;
+- Better Auth sessions;
+- legacy JWT и refresh/session tokens;
+- OAuth/OIDC clients, grants и consents;
+- Casbin roles и policies, связанных с прежним auth flow.
+
+После развёртывания принимаются только токены, выпущенные новым OAuth Provider. Legacy JWT и sessions считаются недействительными сразу, независимо от их оставшегося TTL. First-party clients создаются заново через bootstrap/deployment configuration.
+
+Миграция Drizzle в этом плане создаёт только актуальную схему OAuth Provider. Она не переносит и не преобразует данные прежней реализации аутентификации.
 
 ## 2. Распределение ответственности
 
@@ -84,7 +101,7 @@ IAM отвечает за:
 - mapping OAuth scopes на Shopana resources/actions;
 - application-specific login policy;
 - аудит и observability;
-- compatibility migration существующего Admin frontend.
+- одновременное подключение нового OAuth flow в Admin frontend.
 
 ### 2.3 Casbin
 
@@ -131,7 +148,7 @@ Gateway / Subgraphs
   └── Casbin resource authorization
 ```
 
-## 4. Зависимости и совместимость
+## 4. Зависимости и версии
 
 ### 4.1 Обязательные зависимости
 
@@ -480,7 +497,7 @@ clientPrivileges: async ({ action, user, session, headers }) => {
 
 ### 8.1 Представление principals в Casbin
 
-Текущая Casbin model `sub, dom, obj, act` не меняется. Не изменяются также Casbin policy schema и domain semantics.
+Целевая Casbin model использует `sub, dom, obj, act`. Casbin policy schema и domain semantics остаются едиными для user и machine principals.
 
 IAM должен расширить программный API `CasbinService`, чтобы он принимал типизированный principal, а не считал любой subject пользователем:
 
@@ -502,7 +519,7 @@ function formatCasbinSubject(principal: CasbinPrincipal): string {
 - удаление всех bindings principal;
 - audit и cache invalidation.
 
-Для пользователей сохраняется существующий формат `user:{userId}`, поэтому миграция текущих user policies не требуется. Для machine clients используется отдельный формат `oauth-client:{clientId}`.
+Для пользователей используется формат `user:{userId}`, для machine clients — `oauth-client:{clientId}`. Существующие roles и policies не переносятся и не преобразуются; необходимые bindings создаются заново после clean cutover.
 
 Нельзя передавать заранее отформатированную строку в API, который дополнительно добавляет `user:`. Публичные методы Casbin integration должны принимать `CasbinPrincipal` и форматировать subject ровно один раз.
 
@@ -611,7 +628,7 @@ Opaque tokens оставить только для flows, где явно исп
 
 Не поддерживать собственный parser, который знает только один глобальный `JWT_AUDIENCE`.
 
-Текущий `UserRepository.parseJwt()` должен быть заменён или делегировать проверку официальному resource client.
+`UserRepository.parseJwt()` удалить. Все consumers должны проверять access token через официальный resource client.
 
 ## 11. Custom JWT claims
 
@@ -741,7 +758,7 @@ Policy должна проверяться в реальном flow:
 4. после успешного выполнения страница вызывает официальный `oauth2Continue({ postLogin: true })`;
 5. `postLogin.consentReferenceId` возвращает проверенный `activeOrganizationId` для Shopana scopes или отклоняет flow;
 6. при выпуске и refresh access token `customAccessTokenClaims` повторно проверяет актуальный membership и состояние organization;
-7. изменение login policy отзывает связанные refresh tokens/grants и требует нового authorization flow; уже выпущенные JWT доживают не дольше настроенного короткого TTL.
+7. изменение login policy отзывает связанные refresh tokens/grants и требует нового authorization flow; уже выпущенные новым OAuth Provider JWT доживают не дольше настроенного короткого TTL.
 
 Нельзя читать `client_id` или organization из неподписанных query parameters. Для `max_authentication_age` хранить и проверять server-side authentication time, связанный с Better Auth session. Не пытаться проверять login policy через `customAccessTokenClaims`: его контракт не содержит необходимых данных.
 
@@ -760,7 +777,7 @@ Policy должна проверяться в реальном flow:
 - scopes ограничиваются зарегистрированными scopes клиента;
 - OAuth Provider добавляет проверенный `azp = clientId`;
 - resource server получает owner organization client по `azp` через IAM registry/cache;
-- Casbin проверяет типизированный OAuth-client principal без изменения существующей Casbin model;
+- Casbin проверяет типизированный OAuth-client principal через целевую Casbin model;
 - интерактивная session и consent не используются.
 
 Для OAuth client использовать стабильное представление subject:
@@ -769,7 +786,7 @@ Policy должна проверяться в реальном flow:
 oauth-client:{clientId}
 ```
 
-`oauth-client:{clientId}` является только новым значением существующего поля `sub`. Casbin model, matcher, domain layout и policy schema не меняются.
+`oauth-client:{clientId}` хранится в поле `sub`. Для user и machine principals используется одна целевая Casbin model, matcher, domain layout и policy schema.
 
 Resource server строит principal только после проверки JWT и получения `clientId` из проверенного `azp`:
 
@@ -780,7 +797,7 @@ const principal: CasbinPrincipal = {
 };
 ```
 
-Нельзя использовать для M2M `user:{clientId}` или передавать `oauth-client:{clientId}` как значение `userId` в существующие user-only методы.
+Нельзя использовать для M2M `user:{clientId}` или передавать `oauth-client:{clientId}` как значение `userId` в user-only методы.
 
 Для M2M необходимо реализовать lifecycle authorization policies:
 
@@ -816,7 +833,7 @@ const principal: CasbinPrincipal = {
 
 - Использовать официальный revocation endpoint для access/refresh tokens.
 - Отключение OAuth client должно блокировать новые authorization/refresh operations.
-- Для уже выпущенных JWT использовать явно настроенный TTL: 15 минут для user access token и 10 минут для M2M, с меньшим TTL для high-risk scopes.
+- Для JWT, выпущенных новым OAuth Provider, использовать явно настроенный TTL: 15 минут для user access token и 10 минут для M2M, с меньшим TTL для high-risk scopes.
 - Критические операции могут дополнительно проверять client/grant online.
 
 ## 15. Database schema и migrations
@@ -844,7 +861,7 @@ const principal: CasbinPrincipal = {
 3. передать models в adapter под ожидаемыми model names;
 4. сгенерировать migration через `shopana-cli`;
 5. не редактировать generated migration metadata вручную;
-6. не создавать старые таблицы deprecated `oidcProvider`, если миграция с него не требуется.
+6. не создавать старые таблицы deprecated `oidcProvider` и не переносить из них данные.
 
 ### 15.3 Хранение secrets/tokens
 
@@ -854,9 +871,9 @@ const principal: CasbinPrincipal = {
 - GraphQL response с secret не кэшируется.
 - Secrets и tokens не попадают в logs/events.
 
-## 16. Миграция существующей аутентификации Admin
+## 16. Подключение OAuth-аутентификации Admin
 
-Сейчас Admin получает JWT через GraphQL `signIn` и использует Better Auth session token как refresh token. Этот flow должен быть заменён стандартным OAuth flow.
+Admin должен использовать только стандартный OAuth flow. GraphQL `signIn`, GraphQL `tokenRefresh` и Better Auth session token как refresh token не входят в целевую реализацию.
 
 ### 16.1 Создание first-party client
 
@@ -882,20 +899,19 @@ scopes: openid profile email offline_access admin:read admin:write
 6. Refresh выполняется стандартным OAuth refresh token grant.
 7. Better Auth session cookie сохраняется как secure httpOnly cookie и используется только для browser authorization flow и OAuth Application management; она не возвращается приложению как refresh token.
 
-### 16.3 Compatibility window
+### 16.3 Правила clean cutover
 
-Миграция выполняется поэтапно:
+OAuth Provider, Admin client и новый frontend flow вводятся одним согласованным изменением:
 
-1. подключить OAuth Provider и создать Admin client;
-2. сохранить текущий GraphQL auth flow;
-3. добавить OAuth flow в Admin;
-4. переключить Admin на OAuth access/refresh tokens;
-5. прекратить выпуск legacy JWT;
-6. поддерживать проверку legacy JWT не дольше их максимального TTL;
-7. удалить GraphQL `tokenRefresh` и session-token-as-refresh behavior;
-8. удалить глобальный JWT `definePayload`, если он больше не используется другими first-party flows.
+1. создать актуальную OAuth Provider schema без переноса данных deprecated auth/OIDC tables;
+2. создать trusted Admin client через bootstrap/deployment configuration;
+3. подключить в Admin Authorization Code + PKCE и OAuth Refresh Token Flow;
+4. удалить GraphQL `signIn` и `tokenRefresh`, legacy JWT issuance и session-token-as-refresh behavior;
+5. удалить legacy JWT verification и глобальный JWT `definePayload`, если он не нужен новому OAuth flow;
+6. инвалидировать прежние sessions и не принимать ранее выпущенные JWT или refresh/session tokens;
+7. создать пользователей, accounts, memberships, Casbin bindings, grants и consents заново через актуальные flows.
 
-Не сохранять оба token issuance flow на неопределённый срок.
+Параллельная работа legacy и OAuth token issuance/verification не допускается. Grace period по TTL старых JWT не предоставляется.
 
 ## 17. Request context и resource server authorization
 
@@ -1021,16 +1037,17 @@ Organization/store header может только выбрать context, пос
 
 **Критерий завершения:** приложения управляются через Admin API без прямой записи в OAuth tables.
 
-### Этап 5 — Admin OAuth migration
+### Этап 5 — Admin OAuth activation
 
 - Создать trusted public Admin client.
 - Подключить OAuth Provider client к Admin frontend.
 - Реализовать Authorization Code + PKCE.
-- Перевести GraphQL requests на новый JWT access token.
-- Перевести refresh на OAuth grant.
-- Закрыть legacy issuance после compatibility window.
+- Использовать новый JWT access token во всех GraphQL requests.
+- Использовать OAuth refresh token grant.
+- Удалить legacy GraphQL auth endpoints, token issuance и verification в том же изменении.
+- Не переносить пользователей, sessions, tokens, grants, consents или Casbin bindings из прежнего flow.
 
-**Критерий завершения:** Admin не использует session token Better Auth как refresh token.
+**Критерий завершения:** Admin работает только через OAuth; legacy auth endpoints и tokens не поддерживаются.
 
 ### Этап 6 — Application login policy
 
@@ -1079,14 +1096,14 @@ Organization/store header может только выбрать context, пос
 - machine principal получает organization только по проверенному `azp` и IAM client registry;
 - user principal форматируется как `user:{userId}`, а machine principal — как `oauth-client:{clientId}`;
 - OAuth client roles назначаются, проверяются и удаляются без добавления префикса `user:`;
-- существующие user policies продолжают работать без миграции Casbin model или policy schema;
+- user и machine policies создаются в актуальном формате без переноса прежних Casbin bindings;
 - удаление/disable machine client инвалидирует его Casbin bindings/cache;
 - user token получает organization через `postLogin.consentReferenceId`, а не через client ownership;
 - OAuth discovery/JWKS доступны по canonical external issuer;
 - login, consent и organization-selection pages обслуживаются Admin frontend, а OAuth protocol endpoints — IAM;
 - revocation блокирует refresh;
 - отключённый client не получает новые tokens;
-- legacy Admin flow удаляется после migration window.
+- legacy Admin flow отсутствует, а ранее выпущенные JWT, sessions и refresh tokens не принимаются.
 
 По текущим правилам проекта test-команды не запускать. Для проверки новой версии кода использовать соответствующий build через `shopana-cli`.
 
@@ -1104,7 +1121,7 @@ Organization/store header может только выбрать context, пос
 8. Custom access token claims формируются server-side callbacks Better Auth.
 9. User organization context основан на `postLogin.consentReferenceId` и актуальном membership.
 10. M2M organization context разрешается по проверенному `azp` через IAM client registry.
-11. Casbin model, matcher и policy schema не меняются и остаются источником fine-grained authorization для user и machine principals.
+11. Единая целевая Casbin model, matcher и policy schema являются источником fine-grained authorization для user и machine principals.
 12. `CasbinService` принимает типизированный principal и единообразно форматирует `user:{userId}` и `oauth-client:{clientId}` без двойных префиксов.
 13. Client secrets и token values хранятся безопасным способом Better Auth.
 14. Admin использует Authorization Code + PKCE и стандартный Refresh Token Flow.
@@ -1114,6 +1131,8 @@ Organization/store header может только выбрать context, пос
 18. Security-sensitive операции аудируются без утечки secrets/tokens.
 19. OAuth/JWKS/discovery endpoints публикуют canonical external issuer metadata.
 20. IAM service успешно собирается через `shopana-cli`.
+21. Legacy GraphQL auth endpoints, issuance и verification отсутствуют; ранее выпущенные auth artifacts не принимаются.
+22. Пользователи, accounts, sessions, tokens, clients, grants, consents и Casbin bindings прежнего flow не импортируются и не backfill-ятся.
 
 ## 22. Рекомендуемое разделение на изменения
 
@@ -1122,7 +1141,7 @@ Organization/store header может только выбрать context, пос
 3. **Tenant and authorization integration:** active organization session, `clientReference`, `postLogin.consentReferenceId`, `clientPrivileges`, scopes и Casbin.
 4. **JWT integration:** audiences, claims и resource verification.
 5. **Management API:** GraphQL facade и Admin UI.
-6. **Admin migration:** Authorization Code + PKCE и legacy removal.
+6. **Admin OAuth activation:** Authorization Code + PKCE, удаление legacy auth и clean cutover без переноса данных.
 7. **Login policies:** email/recent-auth per client.
 8. **External/M2M:** consent, Client Credentials Flow, machine Casbin bindings и operational hardening.
 
