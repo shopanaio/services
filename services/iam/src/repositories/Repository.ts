@@ -1,6 +1,7 @@
 import { TransactionManager } from "@shopana/shared-kernel";
 import { UserRepository, type User } from "./user/UserRepository.js";
 import { OrganizationRepository } from "./organization/OrganizationRepository.js";
+import { ApplicationUserRepositoryFactory } from "./application-user/ApplicationUserRepository.js";
 
 import { CasbinService } from "../casbin/CasbinService.js";
 import type { Database } from "../infrastructure//db/database.js";
@@ -21,17 +22,20 @@ export interface RepositoryConfig {
  */
 export class Repository {
   public readonly user: UserRepository;
+  public readonly applicationUser: ApplicationUserRepositoryFactory;
   public readonly organization: OrganizationRepository;
   public readonly casbin: CasbinService;
   public readonly txManager: TransactionManager<Database>;
 
   private constructor(
     user: UserRepository,
+    applicationUser: ApplicationUserRepositoryFactory,
     organization: OrganizationRepository,
     casbin: CasbinService,
     txManager: TransactionManager<Database>
   ) {
     this.user = user;
+    this.applicationUser = applicationUser;
     this.organization = organization;
     this.casbin = casbin;
     this.txManager = txManager;
@@ -52,8 +56,15 @@ export class Repository {
 
     // Create repositories
     const userRepo = new UserRepository(db, auth);
+    const applicationUserRepo = new ApplicationUserRepositoryFactory(db);
     const organizationRepo = new OrganizationRepository(db, txManager);
 
-    return new Repository(userRepo, organizationRepo, casbinService, txManager);
+    return new Repository(
+      userRepo,
+      applicationUserRepo,
+      organizationRepo,
+      casbinService,
+      txManager
+    );
   }
 }

@@ -1,310 +1,77 @@
-import { eq, desc } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import {
   createLocalJWKSet,
   jwtVerify,
-  type JWTPayload,
   type JSONWebKeySet,
 } from "jose";
-import type { Database } from "../../infrastructure/db/database.js";
-import { user, session, jwks } from "../models/auth.js";
 import type { Auth } from "../../auth/auth.js";
+import type { Database } from "../../infrastructure/db/database.js";
+import { jwks, session, user } from "../models/auth.js";
+import {
+  BetterAuthUserRepository,
+  type AuthUser,
+  type GetCurrentUserResult as BetterAuthGetCurrentUserResult,
+  type JwtUserPayload,
+  type ParseJwtResult,
+  type SignInResult as BetterAuthSignInResult,
+  type SignUpResult as BetterAuthSignUpResult,
+} from "./BetterAuthUserRepository.js";
 
-export interface JwtUserPayload extends JWTPayload {
-  sub: string;
-  email: string;
-  name: string;
-}
+export type {
+  AuthTokenResult,
+  RefreshTokenResult,
+  RequestHeaders,
+  UserCreateInput,
+} from "./BetterAuthUserRepository.js";
 
-export interface ParseJwtResult {
-  success: boolean;
-  payload: JwtUserPayload | null;
-  error?: string;
-}
-
-// ============================================================================
-// Types
-// ============================================================================
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  firstName: string | null;
-  lastName: string | null;
-  emailVerified: boolean;
-  image: string | null;
+export interface User extends AuthUser {
   admin: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
-export interface RequestHeaders {
-  userAgent?: string;
-  ipAddress?: string;
-}
-
-export interface UserCreateInput {
-  email: string;
-  password: string;
-  name?: string;
-  headers?: RequestHeaders;
-}
-
-export interface AuthTokenResult {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}
-
-export interface SignInResult {
-  success: boolean;
-  user: User | null;
-  token: AuthTokenResult | null;
-  error?: string;
-}
-
-export interface SignUpResult extends SignInResult {}
-
-export interface GetCurrentUserResult {
-  success: boolean;
-  user: User | null;
-  error?: string;
-}
-
-// ============================================================================
-// Repository
-// ============================================================================
+export type SignInResult = BetterAuthSignInResult<User>;
+export type SignUpResult = BetterAuthSignUpResult<User>;
+export type GetCurrentUserResult = BetterAuthGetCurrentUserResult<User>;
 
 /**
- * Repository for user authentication and management.
- * Uses Better Auth for auth operations and Drizzle for direct DB access.
+ * Global IAM user repository.
+ *
+ * Authentication flows are inherited and shared with application users. This
+ * class only owns global-table reads, profile mutations and global JWT checks.
  */
-export class UserRepository {
-  // Cache for JWKS to avoid repeated database queries
+export class UserRepository extends BetterAuthUserRepository<User> {
   private jwksCache: ReturnType<typeof createLocalJWKSet> | null = null;
-  private jwksCacheTime: number = 0;
-  private readonly JWKS_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+  private jwksCacheTime = 0;
+  private readonly jwksCacheTtl = 60 * 60 * 1000;
 
-  constructor(private readonly db: Database, private readonly auth: Auth) {}
-
-  // ==========================================================================
-  // Auth Operations (via Better Auth API)
-  // ==========================================================================
-
-  /**
-   * Sign in a user with email and password
-   */
-  async signIn(input: UserCreateInput): Promise<SignInResult> {
-    const { email, password, headers } = input;
-
-    try {
-      // Build Headers object for better-auth to capture IP and User-Agent
-      const authHeaders = new Headers();
-      if (headers?.userAgent) {
-        authHeaders.set("user-agent", headers.userAgent);
-      }
-      if (headers?.ipAddress) {
-        authHeaders.set("x-forwarded-for", headers.ipAddress);
-      }
-
-      const result = await this.auth.api.signInEmail({
-        body: {
-          email,
-          password,
-        },
-        headers: authHeaders,
-      });
-
-      if (!result.user || !result.token) {
-        return {
-          success: false,
-          user: null,
-          token: null,
-          error: "Invalid credentials",
-        };
-      }
-
-      // Get JWT access token using the session token
-      const jwtResult = await this.auth.api.getToken({
-        headers: {
-          authorization: `Bearer ${result.token}`,
-        },
-      });
-
-      // Access token expires in 15 minutes (900 seconds)
-      const accessTokenExpiresIn = 60 * 15;
-
-      return {
-        success: true,
-        user: this.mapUser(result.user),
-        token: {
-          accessToken: jwtResult.token, // Short-lived JWT
-          refreshToken: result.token, // Session token as refresh token
-          expiresIn: accessTokenExpiresIn,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        user: null,
-        token: null,
-        error: error instanceof Error ? error.message : "Sign in failed",
-      };
-    }
+  constructor(
+    private readonly db: Database,
+    auth: Auth
+  ) {
+    super(auth);
   }
 
-  /**
-   * Sign up a new user
-   */
-  async signUp(input: UserCreateInput): Promise<SignUpResult> {
-    const { email, password, name, headers } = input;
-
-    try {
-      // Build Headers object for better-auth to capture IP and User-Agent
-      const authHeaders = new Headers();
-      if (headers?.userAgent) {
-        authHeaders.set("user-agent", headers.userAgent);
-      }
-      if (headers?.ipAddress) {
-        authHeaders.set("x-forwarded-for", headers.ipAddress);
-      }
-
-      const result = await this.auth.api.signUpEmail({
-        body: {
-          email,
-          password,
-          name: name || email.split("@")[0], // Default name from email
-        },
-        headers: authHeaders,
-      });
-
-      if (!result.user) {
-        return {
-          success: false,
-          user: null,
-          token: null,
-          error: "Sign up failed",
-        };
-      }
-
-      // If we have a session token, get JWT access token
-      let tokenResult: AuthTokenResult | null = null;
-      if (result.token) {
-        const jwtResult = await this.auth.api.getToken({
-          headers: {
-            authorization: `Bearer ${result.token}`,
-          },
-        });
-
-        // Access token expires in 15 minutes (900 seconds)
-        const accessTokenExpiresIn = 60 * 15;
-
-        tokenResult = {
-          accessToken: jwtResult.token, // Short-lived JWT
-          refreshToken: result.token, // Session token as refresh token
-          expiresIn: accessTokenExpiresIn,
-        };
-      }
-
-      return {
-        success: true,
-        user: this.mapUser(result.user),
-        token: tokenResult,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        user: null,
-        token: null,
-        error: error instanceof Error ? error.message : "Sign up failed",
-      };
-    }
-  }
-
-  /**
-   * Get current user from token (JWT access token or session token)
-   * Tries JWT verification first, falls back to session validation
-   */
-  async getCurrentUser(token: string): Promise<GetCurrentUserResult> {
-    console.log(
-      "[IAM UserRepository.getCurrentUser] Token:",
-      token.slice(0, 30) + "..."
-    );
-
-    // Try JWT verification first (for access tokens)
-    const jwtResult = await this.verifyJwtToken(token);
-
-    if (jwtResult.success && jwtResult.user) {
-      return jwtResult;
-    }
-
-    // Fall back to session token validation (for refresh tokens or legacy)
-    try {
-      const result = await this.auth.api.getSession({
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!result || !result.user) {
-        return {
-          success: false,
-          user: null,
-          error: "Invalid or expired session",
-        };
-      }
-
-      return {
-        success: true,
-        user: this.mapUser(result.user),
-      };
-    } catch (error) {
-      return {
-        success: false,
-        user: null,
-        error:
-          error instanceof Error ? error.message : "Session validation failed",
-      };
-    }
-  }
-
-  /**
-   * Parse and verify JWT token, returning the payload without user lookup.
-   * Use this when you need the JWT claims but not the full user record.
-   */
   async parseJwt(token: string): Promise<ParseJwtResult> {
     try {
-      // Check if it looks like a JWT (has 3 parts separated by dots)
       if (!token.includes(".") || token.split(".").length !== 3) {
-        console.log("[IAM parseJwt] Not a JWT token");
         return { success: false, payload: null, error: "Not a JWT token" };
       }
 
-      const issuer = process.env.JWT_ISSUER || "shopana-iam";
-      const audience = process.env.JWT_AUDIENCE || "shopana-api";
-
-      // Get JWKS from database (with caching)
-      const JWKS = await this.getLocalJWKS();
-      if (!JWKS) {
-        console.log("[IAM parseJwt] JWKS not available");
+      const localJwks = await this.getLocalJwks();
+      if (!localJwks) {
         return { success: false, payload: null, error: "JWKS not available" };
       }
 
-      const { payload } = await jwtVerify(token, JWKS, {
-        issuer,
-        audience,
+      const { payload } = await jwtVerify(token, localJwks, {
+        issuer: process.env.JWT_ISSUER || "shopana-iam",
+        audience: process.env.JWT_AUDIENCE || "shopana-api",
       });
-
       const jwtPayload = payload as JwtUserPayload;
 
       if (!jwtPayload.sub) {
         return { success: false, payload: null, error: "Invalid JWT payload" };
       }
 
-      return {
-        success: true,
-        payload: jwtPayload,
-      };
+      return { success: true, payload: jwtPayload };
     } catch (error) {
       return {
         success: false,
@@ -315,211 +82,30 @@ export class UserRepository {
     }
   }
 
-  /**
-   * Verify JWT access token and extract user info
-   */
-  private async verifyJwtToken(token: string): Promise<GetCurrentUserResult> {
-    const parseResult = await this.parseJwt(token);
-
-    if (!parseResult.success || !parseResult.payload) {
-      return {
-        success: false,
-        user: null,
-        error: parseResult.error,
-      };
-    }
-
-    // Fetch full user data from database
-    const userRecord = await this.findById(parseResult.payload.sub);
-    if (!userRecord) {
-      console.log(
-        "[IAM verifyJwtToken] User not found:",
-        parseResult.payload.sub
-      );
-      return { success: false, user: null, error: "User not found" };
-    }
-
-    return {
-      success: true,
-      user: userRecord,
-    };
-  }
-
-  /**
-   * Get JWKS from database for local JWT verification
-   */
-  private async getLocalJWKS(): Promise<ReturnType<
-    typeof createLocalJWKSet
-  > | null> {
-    const now = Date.now();
-
-    // Return cached JWKS if still valid
-    if (this.jwksCache && now - this.jwksCacheTime < this.JWKS_CACHE_TTL) {
-      return this.jwksCache;
-    }
-
-    try {
-      // Fetch all valid JWKS keys from database
-      const keys = await this.db
-        .select()
-        .from(jwks)
-        .orderBy(desc(jwks.createdAt));
-
-      if (keys.length === 0) {
-        return null;
-      }
-
-      // Parse public keys and create JWKS
-      const jwksKeys = keys
-        .map((key) => {
-          try {
-            const parsed = JSON.parse(key.publicKey);
-            // Add kid from database record ID if not present in JSON
-            if (!parsed.kid) {
-              parsed.kid = key.id;
-            }
-            return parsed;
-          } catch (e) {
-            console.log('[IAM getLocalJWKS] Failed to parse key:', e);
-            return null;
-          }
-        })
-        .filter(Boolean);
-
-      if (jwksKeys.length > 0) {
-      }
-
-      if (jwksKeys.length === 0) {
-        return null;
-      }
-
-      const jwksSet: JSONWebKeySet = { keys: jwksKeys };
-      this.jwksCache = createLocalJWKSet(jwksSet);
-      this.jwksCacheTime = now;
-
-      return this.jwksCache;
-    } catch (error) {
-      console.error("Failed to load JWKS from database:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Sign out - revoke session
-   */
-  async signOut(sessionToken: string): Promise<boolean> {
-    try {
-      await this.auth.api.signOut({
-        headers: {
-          authorization: `Bearer ${sessionToken}`,
-        },
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Refresh access token using refresh token (session token)
-   */
-  async refreshToken(refreshToken: string): Promise<{
-    success: boolean;
-    token: AuthTokenResult | null;
-    error?: string;
-  }> {
-    try {
-      // Validate the session token first
-      const sessionResult = await this.auth.api.getSession({
-        headers: {
-          authorization: `Bearer ${refreshToken}`,
-        },
-      });
-
-      if (!sessionResult || !sessionResult.session) {
-        return {
-          success: false,
-          token: null,
-          error: "Invalid or expired refresh token",
-        };
-      }
-
-      // Get new JWT access token
-      const jwtResult = await this.auth.api.getToken({
-        headers: {
-          authorization: `Bearer ${refreshToken}`,
-        },
-      });
-
-      // Access token expires in 15 minutes (900 seconds)
-      const accessTokenExpiresIn = 60 * 15;
-
-      return {
-        success: true,
-        token: {
-          accessToken: jwtResult.token,
-          refreshToken: refreshToken, // Same refresh token (session persists)
-          expiresIn: accessTokenExpiresIn,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        token: null,
-        error: error instanceof Error ? error.message : "Token refresh failed",
-      };
-    }
-  }
-
-  // ==========================================================================
-  // Direct DB Operations (via Drizzle)
-  // ==========================================================================
-
-  /**
-   * Find user by ID
-   */
   async findById(id: string): Promise<User | null> {
-    const [result] = await this.db.select().from(user).where(eq(user.id, id));
-
-    return result ? this.mapDbUser(result) : null;
+    const [row] = await this.db.select().from(user).where(eq(user.id, id));
+    return row ? this.mapDbUser(row) : null;
   }
 
-  /**
-   * Find multiple users by IDs
-   */
   async findByIds(ids: string[]): Promise<Map<string, User>> {
-    if (ids.length === 0) {
-      return new Map();
-    }
+    if (ids.length === 0) return new Map();
 
-    const { inArray } = await import("drizzle-orm");
-    const results = await this.db
+    const rows = await this.db
       .select()
       .from(user)
       .where(inArray(user.id, ids));
 
-    const userMap = new Map<string, User>();
-    for (const u of results) {
-      userMap.set(u.id, this.mapDbUser(u));
-    }
-    return userMap;
+    return new Map(rows.map((row) => [row.id, this.mapDbUser(row)]));
   }
 
-  /**
-   * Find user by email
-   */
   async findByEmail(email: string): Promise<User | null> {
-    const [result] = await this.db
+    const [row] = await this.db
       .select()
       .from(user)
-      .where(eq(user.email, email.toLowerCase()));
-
-    return result ? this.mapDbUser(result) : null;
+      .where(eq(user.email, normalizeEmail(email)));
+    return row ? this.mapDbUser(row) : null;
   }
 
-  /**
-   * Update user profile
-   */
   async updateProfile(
     userId: string,
     updates: {
@@ -529,129 +115,142 @@ export class UserRepository {
       image?: string | null;
     }
   ): Promise<User | null> {
-    const [result] = await this.db
+    const [row] = await this.db
       .update(user)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(user.id, userId))
       .returning();
-
-    return result ? this.mapDbUser(result) : null;
+    return row ? this.mapDbUser(row) : null;
   }
 
-  /**
-   * Update user email
-   */
   async updateEmail(userId: string, newEmail: string): Promise<User | null> {
-    const [result] = await this.db
+    const [row] = await this.db
       .update(user)
       .set({
-        email: newEmail.toLowerCase(),
+        email: normalizeEmail(newEmail),
         emailVerified: false,
         updatedAt: new Date(),
       })
       .where(eq(user.id, userId))
       .returning();
-
-    return result ? this.mapDbUser(result) : null;
+    return row ? this.mapDbUser(row) : null;
   }
 
-  /**
-   * Delete user and all associated data
-   */
   async delete(userId: string): Promise<boolean> {
-    // Cascade delete handles sessions and accounts
-    const result = await this.db
+    const rows = await this.db
       .delete(user)
       .where(eq(user.id, userId))
       .returning({ id: user.id });
-    return result.length > 0;
+    return rows.length > 0;
   }
 
-  /**
-   * Get all sessions for a user
-   */
   async getUserSessions(userId: string) {
     return this.db.select().from(session).where(eq(session.userId, userId));
   }
 
-  /**
-   * Revoke a specific session
-   */
   async revokeSession(sessionId: string): Promise<boolean> {
-    const result = await this.db
+    const rows = await this.db
       .delete(session)
       .where(eq(session.id, sessionId))
       .returning({ id: session.id });
-    return result.length > 0;
+    return rows.length > 0;
   }
 
-  /**
-   * Revoke all sessions for a user
-   */
   async revokeAllSessions(userId: string): Promise<number> {
-    const result = await this.db
+    const rows = await this.db
       .delete(session)
       .where(eq(session.userId, userId))
       .returning({ id: session.id });
-    return result.length;
+    return rows.length;
   }
 
-  // ==========================================================================
-  // Helpers
-  // ==========================================================================
-
-  /**
-   * Set admin flag for user (site admin - bypasses all RBAC)
-   */
   async setAdmin(userId: string, admin: boolean): Promise<User | null> {
-    const [result] = await this.db
+    const [row] = await this.db
       .update(user)
       .set({ admin, updatedAt: new Date() })
       .where(eq(user.id, userId))
       .returning();
-
-    return result ? this.mapDbUser(result) : null;
+    return row ? this.mapDbUser(row) : null;
   }
 
-  /**
-   * Check if user is admin
-   */
   async isAdmin(userId: string): Promise<boolean> {
-    const [result] = await this.db
+    const [row] = await this.db
       .select({ admin: user.admin })
       .from(user)
       .where(eq(user.id, userId));
-
-    return result?.admin ?? false;
+    return row?.admin ?? false;
   }
 
-  private mapUser(u: any): User {
+  protected mapAuthUser(value: unknown): User {
+    const authUser = value as {
+      id: string;
+      email: string;
+      name: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      emailVerified?: boolean;
+      image?: string | null;
+      admin?: boolean;
+      createdAt: Date | string;
+      updatedAt: Date | string;
+    };
+
     return {
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      firstName: u.firstName ?? null,
-      lastName: u.lastName ?? null,
-      emailVerified: u.emailVerified ?? false,
-      image: u.image ?? null,
-      admin: u.admin ?? false,
-      createdAt: new Date(u.createdAt),
-      updatedAt: new Date(u.updatedAt),
+      id: authUser.id,
+      email: authUser.email,
+      name: authUser.name,
+      firstName: authUser.firstName ?? null,
+      lastName: authUser.lastName ?? null,
+      emailVerified: authUser.emailVerified ?? false,
+      image: authUser.image ?? null,
+      admin: authUser.admin ?? false,
+      createdAt: new Date(authUser.createdAt),
+      updatedAt: new Date(authUser.updatedAt),
     };
   }
 
-  private mapDbUser(u: typeof user.$inferSelect): User {
+  private mapDbUser(row: typeof user.$inferSelect): User {
     return {
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      emailVerified: u.emailVerified,
-      image: u.image,
-      admin: u.admin,
-      createdAt: u.createdAt!,
-      updatedAt: u.updatedAt!,
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      emailVerified: row.emailVerified,
+      image: row.image,
+      admin: row.admin,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
     };
   }
+
+  private async getLocalJwks(): Promise<ReturnType<
+    typeof createLocalJWKSet
+  > | null> {
+    const now = Date.now();
+    if (this.jwksCache && now - this.jwksCacheTime < this.jwksCacheTtl) {
+      return this.jwksCache;
+    }
+
+    const keys = await this.db.select().from(jwks).orderBy(desc(jwks.createdAt));
+    if (keys.length === 0) return null;
+
+    const publicKeys = keys.flatMap((key) => {
+      try {
+        const parsed = JSON.parse(key.publicKey) as Record<string, unknown>;
+        return [{ ...parsed, kid: parsed.kid ?? key.id }];
+      } catch {
+        return [];
+      }
+    });
+    if (publicKeys.length === 0) return null;
+
+    this.jwksCache = createLocalJWKSet({ keys: publicKeys } as JSONWebKeySet);
+    this.jwksCacheTime = now;
+    return this.jwksCache;
+  }
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
