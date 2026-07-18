@@ -5341,6 +5341,812 @@
                   }
                 }
               ]
+            },
+            {
+              "type": "frame",
+              "id": "Y8tpW8",
+              "name": "Playground stage · Combined value and usage",
+              "width": 880,
+              "layout": "vertical",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "note",
+                  "id": "v9AQXV",
+                  "name": "Design comment · Combined value and usage",
+                  "width": 800,
+                  "height": 88,
+                  "content": "COMBINED VALUE & USAGE · PROPOSED\nReplaces the separate Value & requirements and Usage history blocks. Mirrors ProductDetails Pricing widget: usage graph on the left, primary discount value with requirements on the right, KPI tiles below.\nAPI: discount rule + minimumRequirement + aggregate usage summary. Chronological redemptions and reservations remain available through View activity."
+                },
+                {
+                  "type": "frame",
+                  "id": "grfdm",
+                  "name": "Discount block / Value & usage / Default",
+                  "context": "Proposed combined DiscountDetailsCard section based on the ProductDetails Pricing widget layout.",
+                  "reusable": true,
+                  "width": 800,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "h2BnHW",
+                      "name": "Value and usage section header",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "VMKO8",
+                          "name": "Value and usage section header row",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "p7K8E",
+                              "name": "Value and usage section title",
+                              "fill": "#262626",
+                              "content": "Value & usage",
+                              "fontFamily": "Safiro",
+                              "fontSize": 16,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "nxbcw",
+                              "name": "View activity action",
+                              "height": 28,
+                              "fill": "#FFFFFF",
+                              "cornerRadius": 6,
+                              "stroke": "#D9D9D9",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                0,
+                                10
+                              ],
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "nK0sc",
+                                  "name": "View activity action label",
+                                  "fill": "#595959",
+                                  "content": "View activity",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 11,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "uGmXD",
+                                  "name": "View activity action icon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "icon": "arrow-up-right",
+                                  "library": "lucide",
+                                  "fill": "#595959"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "C9EyT",
+                          "name": "Value and usage section header divider",
+                          "fill": "#F0F0F0",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "RJAQ3",
+                      "name": "Value and usage primary row",
+                      "width": "fill_container",
+                      "height": 184,
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Wmfqo",
+                          "name": "Discount value and requirements card",
+                          "width": 244,
+                          "height": "fill_container",
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#E8E8E8",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 7,
+                          "padding": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "wuFoU",
+                              "name": "Discount value eyebrow",
+                              "gap": 7,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "IWKUt",
+                                  "name": "Discount value icon background",
+                                  "width": 26,
+                                  "height": 26,
+                                  "fill": "#E6F4FF",
+                                  "cornerRadius": 999,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "QIXGL",
+                                      "name": "Discount value icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "percent",
+                                      "library": "lucide",
+                                      "fill": "#1677FF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "GIKzf",
+                                  "name": "Discount value type",
+                                  "fill": "#595959",
+                                  "content": "Percentage off",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "M619gr",
+                              "name": "Discount primary value",
+                              "fill": "#262626",
+                              "content": "20%",
+                              "lineHeight": 1.05,
+                              "fontFamily": "Safiro",
+                              "fontSize": 36,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "W2pnj",
+                              "name": "Discount value caption",
+                              "fill": "#8C8C8C",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Applied across eligible items",
+                              "fontFamily": "Safiro",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "eq0eE",
+                              "name": "Discount requirements summary",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "mlOaX",
+                                  "name": "Discount allocation requirement",
+                                  "width": "fill_container",
+                                  "justifyContent": "space_between",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "hnLck",
+                                      "name": "Discount allocation label",
+                                      "fill": "#8C8C8C",
+                                      "content": "Allocation",
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 10,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "T1uF1",
+                                      "name": "Discount allocation value",
+                                      "fill": "#262626",
+                                      "content": "Across",
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 10,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "O5r66",
+                                  "name": "Discount minimum requirement",
+                                  "width": "fill_container",
+                                  "justifyContent": "space_between",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "AEO6G",
+                                      "name": "Discount minimum label",
+                                      "fill": "#8C8C8C",
+                                      "content": "Minimum purchase",
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 10,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "XYn0F",
+                                      "name": "Discount minimum value",
+                                      "fill": "#262626",
+                                      "content": "Subtotal $50.00",
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 10,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "w3WhGu",
+                                  "name": "Discount maximum requirement",
+                                  "width": "fill_container",
+                                  "justifyContent": "space_between",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "q0syE",
+                                      "name": "Discount maximum label",
+                                      "fill": "#8C8C8C",
+                                      "content": "Maximum discount",
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 10,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "k8inh",
+                                      "name": "Discount maximum value",
+                                      "fill": "#262626",
+                                      "content": "No limit",
+                                      "fontFamily": "Safiro",
+                                      "fontSize": 10,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "gr8XD",
+                          "name": "Usage chart card",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 8,
+                          "stroke": "#E8E8E8",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "lgK4l",
+                              "name": "Usage chart header",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "RhhNf",
+                                  "name": "Usage chart label",
+                                  "fill": "#8C8C8C",
+                                  "content": "USAGE HISTORY",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 10,
+                                  "fontWeight": "500",
+                                  "letterSpacing": 0.5
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "oJvej",
+                                  "name": "Usage chart period switch",
+                                  "height": 24,
+                                  "fill": "#F5F5F5",
+                                  "cornerRadius": 6,
+                                  "stroke": "#E8E8E8",
+                                  "strokeWidth": 1,
+                                  "gap": 2,
+                                  "padding": 2,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "mDeBJ",
+                                      "name": "Usage period 7 days",
+                                      "height": 18,
+                                      "cornerRadius": 4,
+                                      "padding": [
+                                        0,
+                                        6
+                                      ],
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "sFagZ",
+                                          "name": "Usage period 7 days label",
+                                          "fill": "#8C8C8C",
+                                          "content": "7d",
+                                          "fontFamily": "Safiro",
+                                          "fontSize": 9,
+                                          "fontWeight": "500"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "G9sLmq",
+                                      "name": "Usage period 30 days selected",
+                                      "height": 18,
+                                      "fill": "#FFFFFF",
+                                      "cornerRadius": 4,
+                                      "stroke": "#D9D9D9",
+                                      "strokeWidth": 1,
+                                      "padding": [
+                                        0,
+                                        7
+                                      ],
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "vd2Gr",
+                                          "name": "Usage period 30 days label",
+                                          "fill": "#1677FF",
+                                          "content": "30d",
+                                          "fontFamily": "Safiro",
+                                          "fontSize": 9,
+                                          "fontWeight": "600"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "NdOjD",
+                                      "name": "Usage period 90 days",
+                                      "height": 18,
+                                      "cornerRadius": 4,
+                                      "padding": [
+                                        0,
+                                        6
+                                      ],
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "V2OCg",
+                                          "name": "Usage period 90 days label",
+                                          "fill": "#8C8C8C",
+                                          "content": "90d",
+                                          "fontFamily": "Safiro",
+                                          "fontSize": 9,
+                                          "fontWeight": "500"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "J3isr",
+                              "name": "Usage history chart canvas",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 112,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "id": "ec3pb",
+                                  "x": 0,
+                                  "y": 16,
+                                  "name": "Usage chart grid line top",
+                                  "fill": "#E8E8E8",
+                                  "width": 500,
+                                  "height": 1
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "id": "pJwAV",
+                                  "x": 0,
+                                  "y": 49,
+                                  "name": "Usage chart grid line middle",
+                                  "fill": "#E8E8E8",
+                                  "width": 500,
+                                  "height": 1
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "id": "Q64lxU",
+                                  "x": 0,
+                                  "y": 82,
+                                  "name": "Usage chart grid line bottom",
+                                  "fill": "#E8E8E8",
+                                  "width": 500,
+                                  "height": 1
+                                },
+                                {
+                                  "type": "path",
+                                  "id": "Q7BQU",
+                                  "x": 0,
+                                  "y": 8,
+                                  "name": "Usage chart area",
+                                  "geometry": "M0 76l60-9 60 3 60-16 60 6 60-19 60 4 60-21 60 7 0 51-480 0z",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    480,
+                                    82
+                                  ],
+                                  "fill": {
+                                    "type": "gradient",
+                                    "gradientType": "linear",
+                                    "enabled": true,
+                                    "rotation": 180,
+                                    "size": {
+                                      "height": 1
+                                    },
+                                    "colors": [
+                                      {
+                                        "color": "#E6F4FFCC",
+                                        "position": 0
+                                      },
+                                      {
+                                        "color": "#F0F5FF22",
+                                        "position": 1
+                                      }
+                                    ]
+                                  },
+                                  "width": 500,
+                                  "height": 82
+                                },
+                                {
+                                  "type": "path",
+                                  "id": "XMoaW",
+                                  "x": 0,
+                                  "y": 8,
+                                  "name": "Usage chart line",
+                                  "geometry": "M0 76l60-9 60 3 60-16 60 6 60-19 60 4 60-21 60 7",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    480,
+                                    82
+                                  ],
+                                  "fill": "#FFFFFF00",
+                                  "width": 500,
+                                  "height": 82,
+                                  "stroke": "#1677FF",
+                                  "strokeWidth": 2,
+                                  "strokeLinejoin": "round",
+                                  "strokeLinecap": "round"
+                                },
+                                {
+                                  "type": "ellipse",
+                                  "id": "XAtID",
+                                  "x": 474,
+                                  "y": 33,
+                                  "name": "Usage chart current point",
+                                  "fill": "#1677FF",
+                                  "width": 10,
+                                  "height": 10,
+                                  "stroke": "#FFFFFF",
+                                  "strokeWidth": 2
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "i2PPg",
+                              "name": "Usage chart date labels",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "nj07o",
+                                  "name": "Usage chart start date",
+                                  "fill": "#8C8C8C",
+                                  "content": "Jun 19",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 9,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "xU1eP",
+                                  "name": "Usage chart middle date",
+                                  "fill": "#8C8C8C",
+                                  "content": "Jul 3",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 9,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "sDQam",
+                                  "name": "Usage chart end date",
+                                  "fill": "#8C8C8C",
+                                  "content": "Jul 18",
+                                  "fontFamily": "Safiro",
+                                  "fontSize": 9,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gH3Cf",
+                      "name": "Usage KPI row",
+                      "width": "fill_container",
+                      "height": 72,
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "jA3H2",
+                          "name": "Usage limit KPI tile",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#E8E8E8",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 2,
+                          "padding": [
+                            8,
+                            10
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "p0Zgq",
+                              "name": "Usage limit KPI label",
+                              "fill": "#8C8C8C",
+                              "content": "USAGE LIMIT",
+                              "fontFamily": "Safiro",
+                              "fontSize": 9,
+                              "fontWeight": "500",
+                              "letterSpacing": 0.3
+                            },
+                            {
+                              "type": "text",
+                              "id": "DNOjh",
+                              "name": "Usage limit KPI value",
+                              "fill": "#262626",
+                              "content": "1,000",
+                              "lineHeight": 1.15,
+                              "fontFamily": "Safiro",
+                              "fontSize": 20,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "p0wSB5",
+                              "name": "Usage limit KPI secondary",
+                              "fill": "#8C8C8C",
+                              "content": "Aggregate cap",
+                              "fontFamily": "Safiro",
+                              "fontSize": 8,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "OLax9",
+                          "name": "Consumed KPI tile",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "#F0F5FF",
+                          "cornerRadius": 6,
+                          "stroke": "#ADC6FF",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 2,
+                          "padding": [
+                            8,
+                            10
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "GKZW4",
+                              "name": "Consumed KPI label",
+                              "fill": "#8C8C8C",
+                              "content": "CONSUMED",
+                              "fontFamily": "Safiro",
+                              "fontSize": 9,
+                              "fontWeight": "500",
+                              "letterSpacing": 0.3
+                            },
+                            {
+                              "type": "text",
+                              "id": "VbmtP",
+                              "name": "Consumed KPI value",
+                              "fill": "#2F54EB",
+                              "content": "248",
+                              "lineHeight": 1.15,
+                              "fontFamily": "Safiro",
+                              "fontSize": 20,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "ImSSc",
+                              "name": "Consumed KPI secondary",
+                              "fill": "#8C8C8C",
+                              "content": "242 committed · 6 reserved",
+                              "fontFamily": "Safiro",
+                              "fontSize": 8,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "vuR4M",
+                          "name": "Reversed KPI tile",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 6,
+                          "stroke": "#E8E8E8",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 2,
+                          "padding": [
+                            8,
+                            10
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "q3y6t",
+                              "name": "Reversed KPI label",
+                              "fill": "#8C8C8C",
+                              "content": "REVERSED",
+                              "fontFamily": "Safiro",
+                              "fontSize": 9,
+                              "fontWeight": "500",
+                              "letterSpacing": 0.3
+                            },
+                            {
+                              "type": "text",
+                              "id": "a5zOeR",
+                              "name": "Reversed KPI value",
+                              "fill": "#262626",
+                              "content": "6",
+                              "lineHeight": 1.15,
+                              "fontFamily": "Safiro",
+                              "fontSize": 20,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "QkG6N",
+                              "name": "Reversed KPI secondary",
+                              "fill": "#8C8C8C",
+                              "content": "6 reversed orders",
+                              "fontFamily": "Safiro",
+                              "fontSize": 8,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "aqiIq",
+                          "name": "Remaining KPI tile",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "#F6FFED",
+                          "cornerRadius": 6,
+                          "stroke": "#B7EB8F",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 2,
+                          "padding": [
+                            8,
+                            10
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "H1fYKQ",
+                              "name": "Remaining KPI label",
+                              "fill": "#8C8C8C",
+                              "content": "REMAINING",
+                              "fontFamily": "Safiro",
+                              "fontSize": 9,
+                              "fontWeight": "500",
+                              "letterSpacing": 0.3
+                            },
+                            {
+                              "type": "text",
+                              "id": "i7lmb",
+                              "name": "Remaining KPI value",
+                              "fill": "#389E0D",
+                              "content": "752",
+                              "lineHeight": 1.15,
+                              "fontFamily": "Safiro",
+                              "fontSize": 20,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "bGfqH",
+                              "name": "Remaining KPI secondary",
+                              "fill": "#8C8C8C",
+                              "content": "75.2% available",
+                              "fontFamily": "Safiro",
+                              "fontSize": 8,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
