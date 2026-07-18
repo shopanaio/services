@@ -15,10 +15,9 @@ export {
   type AddMemberInput,
 } from "./organization/OrganizationRepository.js";
 export {
-  ApplicationUserRepository,
-  ApplicationUserRepositoryFactory,
-  type ApplicationUserRepositoryOptions,
-} from "./application-user/ApplicationUserRepository.js";
+  ApplicationMemberRepository,
+  type AddApplicationMemberInput,
+} from "./application-member/ApplicationMemberRepository.js";
 export {
   BetterAuthUserRepository,
   type AuthUser,

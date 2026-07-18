@@ -29,6 +29,13 @@
       "when": 1784391837980,
       "tag": "0003_wet_quasar",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784404157706,
+      "tag": "0004_milky_zaladane",
+      "breakpoints": true
     }
   ]
 }
