@@ -1,16 +1,17 @@
-# Discounts Admin: list page, details и editor modals
+# Discounts Admin: designs и real GraphQL integration plan
 
 ## Цель
 
 Спроектировать полноценный Admin UI для скидок Pricing Service: страницу списка, создание четырёх native discount kinds, details modal и связанные модалки редактирования и управления. UI должен покрывать текущую database model, но выглядеть как часть Shopana Admin: `DataLayout` и AG Grid на list page, `ModalLayout`/Modal Stack для details и editor flows, компактный info header, последовательные `Paper`-секции и переиспользуемые entity pickers.
 
-Документ описывает presentation, interaction design и требования к будущему Admin GraphQL contract. Pricing Service пока содержит database model/read views, но не публикует готовый Admin GraphQL API; имена операций и inputs ниже являются design requirements, а не описанием уже существующей schema.
+Документ описывает presentation, interaction design и интеграцию с **уже существующим** Pricing Admin GraphQL API. List page уже использует `pricingQuery.discounts` через `DISCOUNTS_QUERY`; details/create/edit flows должны расширять этот живой модуль и использовать текущие generated types из `admin/src/graphql/types.ts`. Новые вымышленные endpoint names не вводятся.
 
 Источники функциональности:
 
-- `services/pricing/README.md`;
 - `services/pricing/docs/discounts-database-design.md`;
 - screenshots в `services/pricing/docs/Screenshot 2026-07-17 at *.png`;
+- `services/pricing/src/api/graphql-admin/schema/*.graphql`;
+- `services/pricing/src/resolvers/admin/*`;
 - `services/pricing/src/repositories/models/*`;
 - `services/pricing/migrations/domains/9000_read_models/*`.
 
@@ -52,7 +53,7 @@
 - tags;
 - несколько redeem codes с отдельными limits/status;
 - usage counters, reservations, redemptions и reversals;
-- revisions/events;
+- optimistic `revision` текущей конфигурации; отдельной history/events API в текущей schema нет;
 - external references.
 
 ### Осознанно не входит
@@ -69,8 +70,8 @@
 2. Создание начинается с компактной type selector modal.
 3. Форма группируется в четыре `Paper`: Identity, Rule, Audience & access, Limits & schedule.
 4. Existing discount открывается в read-first Details modal.
-5. Codes, usage, revisions и integrations получают самостоятельные nested flows.
-6. Product/variant/customer selection использует существующий `EntityPickerContent`; collection/segment/channel configs расширяют ту же infrastructure.
+5. Codes, usage и integrations получают самостоятельные nested flows. History не показывается, потому что текущий API отдаёт только номер актуальной ревизии.
+6. Product/variant/category/customer selection использует существующие picker patterns. Customer segments выбираются через живой `customersQuery.customerSegments`; channel entries редактируют реальные строковые `code` и `featured`, потому что отдельного channel registry API сейчас нет.
 7. Денежные значения используют только default currency проекта согласно `knowledge/vault/patterns/currency-handling.md`.
 
 ## Визуальные правила
@@ -111,7 +112,7 @@ Discount details modal
 ├── LimitsAndScheduleSection
 ├── UsageActivitySection
 ├── ExternalReferencesSection
-└── HistorySection
+└── TechnicalMetadataSection
 ```
 
 Порядок намеренный: merchant сначала видит правило и доступность; accounting, integrations и audit находятся ниже.
@@ -122,9 +123,9 @@ Discount details modal
 Discounts page
 ├── Select discount type                           level 0
 │   └── Create discount                            level 1
-│       ├── Product / variant / collection picker  level 2
+│       ├── Product / variant / category picker    level 2
 │       ├── Customer / segment picker              level 2
-│       └── Sales channel picker                   level 2
+│       └── Sales channel code editor              level 2
 └── Discount details                               level 0
     ├── Edit identity                              level 1
     ├── Edit amount-off rule                       level 1
@@ -136,14 +137,12 @@ Discounts page
     ├── Edit eligibility                           level 1
     │   └── Customer / segment picker              level 2
     ├── Edit availability & combinations           level 1
-    │   └── Sales channel picker                   level 2
+    │   └── Sales channel code editor              level 2
     ├── Edit limits & schedule                     level 1
     ├── Manage discount codes                      level 1
     │   └── Add / edit code                        level 2
     ├── Usage activity                             level 1
     │   └── Order details                          level 2
-    ├── Revision history                           level 1
-    │   └── Revision snapshot                      level 2
     ├── External reference create/edit             level 1
     └── View technical metadata                    level 1
 ```
@@ -156,17 +155,17 @@ Discounts page
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ Discounts  48                                                [+ Create]     │
+│ Discounts  48                                                               │
 │                                                                              │
-│ [Search discounts…] [Status] [Type] [Method] [Channel] [More filters]       │
+│ [Search name or code…] [Filters]                              [+ Create]     │
 │                                                                              │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │ Discount          Status    Type           Value      Used    Schedule   │ │
+│ │ Discount       Method     Type          Status    Usage      Schedule    │ │
 │ ├──────────────────────────────────────────────────────────────────────────┤ │
-│ │ SUMMER20          ACTIVE    Products       20%        248     Jul 1–31   │ │
-│ │ Back to school    SCHEDULED Order           €10       0       Aug 1–15   │ │
-│ │ Buy 2 get 1 free  PAUSED    Buy X get Y    Free      103     No end     │ │
-│ │ FREESHIP          EXPIRED   Free shipping  ≤ €15      879     Ended      │ │
+│ │ SUMMER20       Code       Amount off…   Active    248/500   Jul 1–31    │ │
+│ │ Back to school Automatic  Amount off…   Scheduled 0/Unlimited Aug 1–15 │ │
+│ │ Buy 2 get 1    Automatic  Buy X get Y   Paused    103/Unlimited No end │ │
+│ │ FREESHIP       Code       Free shipping Expired   879/1000  Ended       │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │ Showing 1–20 of 48                                [‹ Previous] [Next ›]     │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -176,34 +175,32 @@ Discounts page
 
 | Column | Presentation |
 |---|---|
-| Discount | strong title/primary code; secondary Automatic or Code · N codes |
-| Status | effective status `Tag` |
+| Discount | `title ?? primaryCode ?? "Untitled discount"`; when both exist, primary code and `+N` are secondary |
+| Method | human-readable `CODE / AUTOMATIC` |
 | Type | human-readable kind |
-| Value | `20%`, `€10 off`, `Buy 2, get 1 free`, `Free shipping ≤ €15` |
-| Usage | `248 / 500`, `103`, or `Unlimited`; reserved secondary when >0 |
-| Channels | first two labels + `+N` |
+| Status | server-derived `effectiveStatus` tag |
+| Usage | `usageCount / usageLimit`; null limit renders `Unlimited` |
 | Schedule | compact start/end; `No end date` |
 | Updated | `formatDetailDate(updatedAt)` |
 
-Rows имеют `52px` height. Click открывает details modal.
+Это текущие семь колонок живой страницы; `Value` и `Channels` не добавляются без расширения list fragment. Rows имеют `64px` height. Click открывает details modal.
 
 Search condition:
 
 ```text
 title containsi query
-OR primaryCode containsi query
-OR tags containsi query
+OR any assigned code containsi query
 ```
 
-Filters:
+Current FilterWidget fields:
 
 - Effective status: Draft, Scheduled, Active, Paused, Expired, Archived.
-- Type, method, class, channel, tag.
+- Method and discount type.
+- Usage count.
 - Starts/ends date range.
-- Usage/remaining range.
-- Created/updated date range.
+- Channel code and tag.
 
-Default list excludes `ARCHIVED`. Empty filtered state предлагает `Clear filters`; empty store state — `Create discount`.
+Unfiltered current query does not inject a hidden state condition, so archived rows remain addressable. Empty filtered state предлагает `Clear filters`; empty store state — `Create discount`.
 
 ## Select Discount Type Modal
 
@@ -214,7 +211,7 @@ Default list excludes `ARCHIVED`. Empty filtered state предлагает `Cle
 │ ×  Select discount type                                            │
 ├────────────────────────────────────────────────────────────────────┤
 │ [tag]     Amount off products                                  [›] │
-│           Discount selected products, variants or collections       │
+│           Discount selected products, variants or categories        │
 │ [gift]    Buy X get Y                                         [›] │
 │           Reward a qualifying product purchase                      │
 │ [receipt] Amount off order                                    [›] │
@@ -237,19 +234,19 @@ Modal header title: `Discount details`; discount title/code живёт толь�
 │ ×  Discount details                                                     │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ┌─ DiscountInfoHeader ─────────────────────────────────────────────────┐ │
-│ │ [ACTIVE ✓] Updated Jul 17 by Admin · Active until Jul 31      [⋯]   │ │
+│ │ [ACTIVE ✓] Updated Jul 17 · Active until Jul 31               [⋯]   │ │
 │ │ SUMMER20                                                             │ │
 │ │ [Discount code] [Amount off products] [Product] [ID 01J…]           │ │
-│ │ [Reserved 3] [Used 248] [Reversed 4] [Remaining 252]                │ │
+│ │ [Reserved 3] [Used 248] [Reversed 4] [Remaining 249]                │ │
 │ └──────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ Discount rule ───────────────────────────────────────────── [Edit] ┐ │
-│ │ 20% off selected collections · Maximum €100 per order               │ │
+│ │ 20% off selected categories · Maximum €100 per order                │ │
 │ └──────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ Eligibility & requirements ──────────────────────────────── [⋯]   ┐ │
 │ │ All customers · Minimum subtotal €50 · One-time purchases           │ │
 │ └──────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ Availability & combinations ─────────────────────────────── [⋯]   ┐ │
-│ │ Online Store [Featured], Mobile app · Shipping combinations         │ │
+│ │ ONLINE_STORE [Featured], MOBILE_APP · Shipping combinations         │ │
 │ └──────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ Discount codes (12) ──────────────────────────────────── [Manage] ┐ │
 │ │ SUMMER20 [ACTIVE] 198 / 300 · VIP20 [ACTIVE] 50 / unlimited         │ │
@@ -258,13 +255,10 @@ Modal header title: `Discount details`; discount title/code живёт толь�
 │ │ 248 / 500 · One use per customer · Jul 1 — Jul 31                   │ │
 │ └──────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ Usage activity ────────────────────────────────────── [View all]  ┐ │
-│ │ #10482 · SUMMER20 · €18.40 · Committed · Jul 17                    │ │
+│ │ Order 01JORD… · SUMMER20 · €18.40 · Committed · Jul 17             │ │
 │ └──────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ External references (1) ──────────────────────────────── [+ Add]  ┐ │
 │ │ [SYNCED] Klaviyo · PROMOTION · summer-2026                          │ │
-│ └──────────────────────────────────────────────────────────────────────┘ │
-│ ┌─ History ─────────────────────────────────────────────── [View all] ┐ │
-│ │ Activated · revision 7 · Admin · Jul 17                             │ │
 │ └──────────────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
@@ -290,16 +284,15 @@ Manage codes                  CODE only
 ────────────────────────
 Activate                      DRAFT / PAUSED
 Pause                         ACTIVE / SCHEDULED
-Duplicate
 ────────────────────────
 View usage activity
-View revision history
 View technical metadata
 ────────────────────────
 Archive discount              danger
+Delete draft                  DRAFT only, server-validated
 ```
 
-Title uses primary active code for code discounts and title for automatic discounts. Below: method/kind/class tags, ID, merchant tags.
+Title uses `title` when present and falls back to `primaryCode`, then `Untitled discount`. When a code discount has both title and code, primary code is shown as secondary identity. Below: method/kind/class tags, ID and merchant tags.
 
 KPI use real `discount_usage_summary_view`:
 
@@ -318,10 +311,10 @@ Presentation by kind:
 
 ```text
 Amount off products
-20% off selected collections
+20% off selected categories
 Maximum discount: €100 per order
 Allocation: Across eligible items
-Collections (3): Summer, Accessories, Travel
+Categories (3): Summer, Accessories, Travel
 
 Amount off order
 €10 off eligible order subtotal
@@ -343,7 +336,7 @@ Rules:
 - stale targets remain visible with warning;
 - large selections show first five + `+N more`;
 - product/variant opens existing details modal;
-- collection uses new picker config on shared infrastructure;
+- category uses the existing category picker pattern;
 - one explicit `Edit` action.
 
 ## Eligibility & Requirements
@@ -356,17 +349,17 @@ Full-data state with a specific-customer audience, overflow handling and both pu
 
 ```text
 ┌─ Eligibility & requirements ───────────────────────────────────── [⋯] ┐
-│ Eligible customers: All customers                                     │
-│ Minimum purchase: €50 eligible subtotal                               │
-│ Purchase modes: [One-time purchase]                                   │
+│ [Audience tile: All customers]                                        │
+│ [Minimum tile: €50 subtotal] [Modes: One-time purchase]               │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 - `ALL`: All customers.
-- `CUSTOMERS`: count + first customer chips.
-- `SEGMENTS`: count + segment chips.
+- `CUSTOMERS`: avatar group, count and first federated customer names; stale items retain `customerId` and warning status.
+- `SEGMENTS`: count and chips hydrated by `customersQuery.customerSegments(where: { id: { _in: ... } })`; unresolved items show `segmentId` through `CopyableChip` plus `referenceStatus`.
 - Buy X get Y does not render ordinary minimum requirement.
 - At least one purchase mode is required.
+- Audience, minimum and purchase modes are separate visual tiles, not description-list rows.
 
 ## Availability & Combinations
 
@@ -378,15 +371,17 @@ Full-data state with every supported combination class enabled:
 
 ```text
 ┌─ Availability & combinations ─────────────────────────────────── [⋯] ┐
-│ Sales channels: [Online Store · Featured] [Mobile app]               │
-│ Combines with: [Shipping discounts]                                  │
+│ Channel code chips: [ONLINE_STORE · Featured] [MOBILE_APP]           │
+│ Combination tiles: [Product ○] [Order ○] [Shipping ✓]                │
 │ Both discounts must allow the combination.                           │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
-- Channel registry provides human label; raw code stays in tooltip.
-- `isFeatured` belongs to selected channel.
+- Pricing exposes only `DiscountChannel.code` and `featured`; the raw code is the visible primary label.
+- No `Online Store`/`Mobile app` label is fabricated without a separate registry contract.
+- `featured` belongs to each selected channel entry.
 - Empty combinations: `Does not combine with other discounts`.
+- Channels use removable code chips; combinations use three class tiles with icon, label and selected state.
 
 ## Codes Section and Manager
 
@@ -414,7 +409,7 @@ Manager wireframe:
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-Row actions: Copy, Edit limit, Disable/Enable. Code value becomes immutable after create. Disable retains usage history. Aggregate and per-code limits both apply.
+Row actions: Copy, Edit code/limit, Disable/Enable and Delete when accepted by the API. `DiscountCodeUpdateOperationInput` permits `code`, `status`, `usageLimit` and `metadata` updates and requires `expectedUpdatedAt`; aggregate `discountUpdate` additionally requires `expectedRevision`. Disable retains usage history. Aggregate and per-code limits both apply.
 
 Add code:
 
@@ -427,7 +422,7 @@ Code * [VIP20____________________________] [Generate random code]
 
 ![Limits and schedule section](assets/discounts-admin-design/08-limits-schedule-section.png)
 
-The read view uses data-native components rather than a description list: progress for aggregate usage, a compact customer-limit statistic, priority badge and an explicit active-date timeline.
+The read view uses data-native components rather than a description list: progress uses `usage.consumedCount / usage.usageLimit` (reserved capacity included), a compact customer-limit statistic, numeric priority and an explicit active-date timeline. With the document example, `3 reserved + 248 net committed = 251 of 500`, so `remainingCount` is `249`.
 
 ## Usage Activity
 
@@ -440,9 +435,9 @@ The read view uses data-native components rather than a description list: progre
 │ ×  Usage activity                                                        │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ [Redemptions] [Active reservations]                                      │
-│ Order   Code      Customer       Amount    Status      Committed          │
-│ #10482  SUMMER20  Maria Johnson  €18.40    COMMITTED   Jul 17, 14:20      │
-│ #10471  VIP20     Alex Brown     €12.00    REVERSED    Jul 17, 11:08      │
+│ Order ID     Code      Customer       Amount    Status      Committed      │
+│ 01JORD…      SUMMER20  Maria Johnson  €18.40    COMMITTED   Jul 17, 14:20  │
+│ 01JORD…      VIP20     Alex Brown     €12.00    REVERSED    Jul 17, 11:08  │
 │                                      Reason: Order cancelled             │
 │                                                                          │
 │ Checkout ID       Customer       Code      Expires       Created          │
@@ -451,7 +446,8 @@ The read view uses data-native components rather than a description list: progre
 ```
 
 - Read-only projections.
-- Order/customer open existing details modals when resolvable.
+- `orderId` is shown as a copyable ID and passed to the existing order modal; Pricing does not expose an `order` object or human order number.
+- Federated `customer` opens the existing customer details modal when present; otherwise the row retains `customerId`.
 - Reservation countdown has absolute timestamp tooltip.
 - No manual Reverse action without dedicated API policy.
 
@@ -469,7 +465,7 @@ ModalLayout
     └── Limits & schedule Paper
 ```
 
-Primary action is `Save draft`. Activation is a separate validated command from details.
+Primary action is `Save draft`. Activation is a separate details action implemented through `discountUpdate(... lifecycle: { state: ACTIVE })` and server aggregate validation.
 
 Shared behavior:
 
@@ -493,7 +489,7 @@ Internal title  [Summer campaign_______________________________]
 Tags            [summer] [vip] [+ Add tags]
 ```
 
-Automatic title is required and customer-visible. Code discount title is optional internal identity.
+Automatic title is required by the current server invariant. Code discount title is optional internal identity; the Pricing schema does not claim that either title is storefront-visible.
 
 ### Amount off products
 
@@ -502,7 +498,7 @@ Value type *   [Percentage] [Fixed amount]
 Value *        [20________] %
 Maximum discount [100_____] €  percentage only
 Allocation *   ( ) Each target  (●) Across eligible items
-Applies to *   [All products / Products / Variants / Collections]
+Applies to *   [All products / Products / Variants / Categories]
 [Summer] [Accessories] [Browse]
 ```
 
@@ -574,7 +570,7 @@ Purchase modes *
 [✓] One-time purchase   [ ] Subscription
 
 Sales channels *
-[Online Store · Featured] [Mobile app] [Select]
+[ONLINE_STORE · Featured] [MOBILE_APP] [+ Add channel code]
 
 Combines with
 [ ] Product discounts [ ] Order discounts [✓] Shipping discounts
@@ -583,7 +579,8 @@ Combines with
 - Minimum requirement absent for Buy X get Y.
 - Customers and segments are mutually exclusive.
 - At least one channel and purchase mode are required for activation.
-- Featured toggles independently per channel.
+- The editor trims and validates real channel codes against the server format (`^[A-Z][A-Z0-9_:-]{1,63}$`); it does not invent registry labels.
+- `featured` toggles independently per channel.
 
 ### Limits & schedule
 
@@ -611,17 +608,17 @@ Every editor reloads current details, submits only owned fields and includes `ex
 
 | Modal | Owned fields |
 |---|---|
-| Edit identity | title, tags; method only for safe DRAFT transition |
+| Edit identity | `definition.title` + complete `tags` replacement; method is not updateable by the current API |
 | Edit amount-off rule | amount-off subtype + BENEFIT targets |
 | Edit Buy X get Y rule | subtype + QUALIFIER/BENEFIT targets |
 | Edit free shipping rule | maximumShippingPriceMinor |
 | Edit eligibility | buyer context, eligible IDs, minimum requirement, purchase modes |
 | Edit availability | channels/featured flags, combination classes |
 | Edit limits & schedule | usage limit, once-per-customer, startsAt/endsAt, priority |
-| Manage codes | independent code commands |
+| Manage codes | `operations.codes` inside the unified discount update |
 | External reference | independent create/update/delete commands |
 
-Kind/class are immutable. Method transition is allowed only in `DRAFT`, before usage, after confirmation.
+Kind, class and method are immutable after create because `DiscountUpdateInput` exposes none of them.
 
 Conflict:
 
@@ -641,18 +638,6 @@ No automatic retry with new revision.
 - Row overflow opens create/edit modal.
 - Metadata/etag/checksum under `Advanced`.
 - Failed sync accents only error line.
-
-## Revision History
-
-![Revision history section](assets/discounts-admin-design/11-history-section.png)
-
-```text
-Revision 7  Activated         Admin         Jul 17, 09:00 [View]
-Revision 6  Schedule updated Admin         Jul 16, 18:20 [View]
-Revision 5  Code added       Campaign app  Jul 16, 10:10 [View]
-```
-
-Events define order; revisions provide snapshots. Snapshot modal is read-only, formatted JSON, horizontal scroll and copy action. Raw event payload is collapsed.
 
 ## Technical Metadata
 
@@ -696,15 +681,15 @@ Existing committed redemptions are not changed.
 ```text
 Archive discount?
 The discount will be removed from active management and cannot apply to new
-checkouts. Usage history, revisions and external references are retained.
+checkouts. Usage accounting and external references are retained.
 [Cancel] [Archive]
 ```
 
-No hard delete is exposed.
+Archive uses `discountUpdate(... operations: { lifecycle: { state: ARCHIVED } })`.
 
-### Duplicate
+### Delete unused draft
 
-Copies rule, targeting, eligibility, channels, combinations and tags into a new `DRAFT`. Does not copy codes, counters, redemptions, events, external references or revisions.
+Only an unused `DRAFT` exposes destructive delete. It calls `discountDelete(input: { id, expectedRevision })`; Pricing remains the authority and may reject drafts with historical usage or other protected state.
 
 ## Loading, Empty and Error States
 
@@ -738,7 +723,6 @@ Empty section copy:
 | Usage | `No discount usage yet` |
 | Reservations | `No active reservations` |
 | External refs | `No external references` |
-| History | `No configuration history yet` |
 | Targets | `No targets selected` |
 
 ## Responsive Behavior
@@ -783,7 +767,9 @@ Below `640px`:
 | Dates | `formatDetailDate` + timezone formatter |
 | Products/variants | existing Entity Picker configs |
 | Customers | existing customer picker |
-| Collections/segments/channels | new configs on `EntityPickerContent` |
+| Categories | existing category picker pattern |
+| Customer segments | existing `customersQuery.customerSegments` connection adapted to `EntityPickerContent` |
+| Sales channels | channel-code chips/editor over Pricing `code` + `featured`; no invented registry |
 | Money | default currency context + shared formatter |
 | Forms | `react-hook-form` + Zod |
 | Unsaved close | Modal Stack confirmation |
@@ -794,8 +780,27 @@ Below `640px`:
 ```text
 admin/src/domains/inventory/discounts/
 ├── graphql/
+│   ├── fragments.ts                 # existing list + new details/usage fragments
+│   ├── queries.ts                   # existing DISCOUNTS_QUERY + DISCOUNT_DETAILS_QUERY
+│   ├── activity-queries.ts          # codes, reservations, redemptions, external refs
+│   ├── mutations.ts                 # real PricingMutation operations only
+│   ├── operation-types.ts           # types derived from @/graphql/types
+│   └── index.ts
 ├── hooks/
+│   ├── use-discounts.ts             # already API-backed
+│   ├── use-discount.ts
+│   ├── use-create-discount.ts
+│   ├── use-update-discount.ts
+│   ├── use-delete-discount.ts
+│   ├── use-discount-codes.ts
+│   ├── use-discount-redemptions.ts
+│   ├── use-discount-reservations.ts
+│   └── use-discount-external-references.ts
 ├── mappers/
+│   ├── discount-create-input.mapper.ts
+│   ├── discount-update-operations.mapper.ts
+│   ├── discount-form.mapper.ts
+│   └── discount-errors.mapper.ts
 ├── page/
 │   ├── page.tsx
 │   ├── page-config.ts
@@ -822,83 +827,405 @@ admin/src/domains/inventory/discounts/
 │   ├── manage-discount-codes-modal/
 │   ├── edit-discount-code-modal/
 │   ├── discount-usage-modal/
-│   ├── discount-history-modal/
-│   ├── discount-revision-snapshot-modal/
 │   ├── discount-external-reference-modal/
 │   └── discount-technical-metadata-modal/
 └── pickers/
-    ├── collection-picker-config.tsx
+    ├── category-target-picker-config.tsx
     ├── customer-segment-picker-config.tsx
-    └── sales-channel-picker-config.tsx
+    └── sales-channel-code-editor.tsx
 ```
 
 Generated API types are imported directly from `@/graphql/types`; only form/draft state gets local types.
 
-## Required Admin GraphQL Surface
+## Real Admin GraphQL Integration
 
-Queries:
+### Current implementation baseline
 
-```text
-discounts(first, after, last, before, where, orderBy)
-discount(id)
-discountCodes(discountId, pagination, where, orderBy)
-discountRedemptions(discountId, pagination, where, orderBy)
-discountActiveReservations(discountId, pagination)
-discountEvents(discountId, pagination)
-discountRevisions(discountId, pagination)
-discountExternalReferences(discountId, pagination)
-```
+This is an extension of live code, not a mock replacement project:
 
-Commands:
+- `admin/src/domains/inventory/discounts/graphql/queries.ts` already defines `DISCOUNTS_QUERY` against `pricingQuery.discounts`;
+- `use-discounts.ts` already uses `useRelayConnectionQuery` with `cache-and-network`;
+- `page.tsx` already renders real `ApiDiscount` nodes with server filtering, ordering and cursor pagination;
+- `admin/src/graphql/types.ts` already contains `ApiDiscount*`, `ApiPricingQuery` and `ApiPricingMutation` types from the composed Admin schema;
+- no Pricing schema change and no codegen run is required for the first details/create/edit implementation.
+
+Source of truth:
 
 ```text
-discountCreate(input)
-discountUpdateIdentity(input, expectedRevision)
-discountUpdateAmountOffRule(input, expectedRevision)
-discountUpdateBuyXGetYRule(input, expectedRevision)
-discountUpdateFreeShippingRule(input, expectedRevision)
-discountUpdateEligibility(input, expectedRevision)
-discountUpdateAvailability(input, expectedRevision)
-discountUpdateLimitsAndSchedule(input, expectedRevision)
-discountActivate(id, expectedRevision)
-discountPause(id, expectedRevision)
-discountArchive(id, expectedRevision)
-discountDuplicate(id, expectedRevision)
-discountCodeCreate(input, expectedRevision)
-discountCodeUpdateLimit(input, expectedRevision)
-discountCodeEnable/Disable(input, expectedRevision)
-discountExternalReferenceCreate/Update/Delete(...)
+services/pricing/src/api/graphql-admin/schema/base.graphql
+services/pricing/src/api/graphql-admin/schema/discount.graphql
+services/pricing/src/api/graphql-admin/schema/usage.graphql
+services/pricing/src/api/graphql-admin/schema/integration.graphql
+services/pricing/src/api/graphql-admin/schema/filters.graphql
 ```
 
-All mutations return `userErrors` and new revision.
+### Existing operation map
 
-Read model requirements:
+| UI use case | Existing GraphQL field | Integration rule |
+|---|---|---|
+| List | `pricingQuery.discounts(...)` | Keep current `DISCOUNTS_QUERY` and `useDiscounts` |
+| Details | `pricingQuery.discount(id)` | Add one details fragment with rule union, targets, eligibility, channels, combinations and usage summary |
+| Codes manager | `pricingQuery.discountCodes(...)` or `Discount.codes(...)` | Use top-level connection for independently paginated manager |
+| Redemptions | `pricingQuery.discountRedemptions(...)` | Filter by `discountId`; order by `committedAt desc` |
+| Active reservations | `pricingQuery.discountUsageReservations(...)` | Filter by `discountId` and `status=ACTIVE`; order by `expiresAt asc` |
+| External references | `pricingQuery.discountExternalReferences(...)` | Filter by `discountId`; use the existing connection fields |
+| Create | `pricingMutation.discountCreate(input)` | Send `DiscountCreateInput`; create as `DRAFT` |
+| Every configuration edit | `pricingMutation.discountUpdate(discountId, expectedRevision, operations)` | Use the unified mutation; there are no section-specific mutations |
+| Activate/pause/archive | `pricingMutation.discountUpdate(... lifecycle ...)` | State transition is a lifecycle operation |
+| Delete unused draft | `pricingMutation.discountDelete(input)` | Expose only for draft UI; server remains authoritative |
+| External reference create | `pricingMutation.discountExternalReferenceCreate(input)` | Independent from discount revision |
+| External reference update | `pricingMutation.discountExternalReferenceUpdate(externalReferenceId, expectedUpdatedAt, operations)` | Uses timestamp optimistic lock |
+| External reference delete | `pricingMutation.discountExternalReferenceDelete(input)` | Uses `expectedUpdatedAt`; default is soft delete |
 
-- list uses `discount_list_view` without per-row queries;
-- details uses `discount_configuration_view` + usage summary;
-- codes use `discount_code_list_view`;
-- resolved cross-service labels use federation/batched loaders;
+### Details query
+
+Add `DISCOUNT_DETAILS_FRAGMENT` and `DISCOUNT_DETAILS_QUERY`. Components consume the operation-derived API shape directly; no API-output view model is introduced.
+
+```graphql
+fragment DiscountDetailsFields on Discount {
+  id
+  method
+  kind
+  discountClass
+  state
+  effectiveStatus
+  title
+  primaryCode
+  codesCount
+  currency
+  priority
+  usageLimit
+  appliesOncePerCustomer
+  appliesOnOneTimePurchase
+  appliesOnSubscription
+  startsAt
+  endsAt
+  revision
+  reservedUsageCount
+  usageCount
+  tags
+  channelCodes
+  featuredChannelCodes
+  combinesWithProductDiscounts
+  combinesWithOrderDiscounts
+  combinesWithShippingDiscounts
+  createdById
+  metadata
+  createdAt
+  updatedAt
+  archivedAt
+
+  rule {
+    __typename
+    ... on DiscountAmountOffRule {
+      valueType
+      percentageBps
+      amountMinor
+      allocationMethod
+      maximumDiscountMinor
+    }
+    ... on DiscountBuyXGetYRule {
+      requirementType
+      requiredQuantity
+      requiredSubtotalMinor
+      benefitQuantity
+      benefitValueType
+      benefitPercentageBps
+      benefitAmountMinor
+      usesPerOrderLimit
+    }
+    ... on DiscountFreeShippingRule {
+      maximumShippingPriceMinor
+    }
+  }
+
+  minimumRequirement {
+    requirementType
+    subtotalMinor
+    quantity
+  }
+
+  targetSelections {
+    role
+    targetType
+    targets {
+      targetId
+      targetType
+      referenceStatus
+      referenceStatusChangedAt
+      target {
+        __typename
+        ... on Product { id title }
+        ... on Variant { id title product { id title } }
+        ... on Category { id name }
+      }
+    }
+  }
+
+  buyerContext {
+    type
+    customers {
+      customerId
+      referenceStatus
+      customer { id displayName email }
+    }
+    segments {
+      segmentId
+      referenceStatus
+    }
+  }
+
+  channels { code featured updatedAt }
+  combinations { discountClass createdAt }
+  usage {
+    usageLimit
+    reservedCount
+    committedCount
+    reversedCount
+    netCommittedCount
+    consumedCount
+    remainingCount
+    version
+    updatedAt
+  }
+}
+
+query DiscountDetails($id: ID!) {
+  pricingQuery {
+    discount(id: $id) {
+      ...DiscountDetailsFields
+    }
+  }
+}
+```
+
+`useDiscount({ id, skip })` owns Apollo `useQuery`, returns `discount`, `loading`, `error` and `refetch`, and skips until the details modal has a real global ID. Use `fetchPolicy: "cache-and-network"`; keep previous data while section mutations refetch.
+
+### Operational connection queries
+
+Manager modals use separate Relay queries so opening details does not fetch unbounded operational data.
+
+```graphql
+query DiscountCodes(
+  $first: Int
+  $after: String
+  $where: DiscountCodeWhereInput
+  $orderBy: [DiscountCodeOrderByInput!]
+) {
+  pricingQuery {
+    discountCodes(first: $first, after: $after, where: $where, orderBy: $orderBy) {
+      edges {
+        cursor
+        node {
+          id
+          code
+          status
+          usageLimit
+          reservedCount
+          committedCount
+          reversedCount
+          usageCount
+          remainingCount
+          updatedAt
+          disabledAt
+        }
+      }
+      pageInfo { startCursor endCursor hasPreviousPage hasNextPage }
+      totalCount
+    }
+  }
+}
+```
+
+Variables for the code manager include `where: { discountId: { _eq: discountId } }`. Redemptions, reservations and external references follow the same `useRelayConnectionQuery` pattern with their generated `Api*WhereInput` and `Api*OrderByInput` types.
+
+Activity selections:
+
+- redemption row: `id`, `orderId`, `checkoutId`, `discountCode { id code }`, `customerId`, `customer { id displayName }`, `amountMinor`, `status`, `committedAt`, `reversedAt`, `reversalReason`, `configurationRevision`, `allocations`;
+- active reservation row: `id`, `checkoutId`, `discountCode { id code }`, `customer { id displayName }`, `status`, `expiresAt`, `createdAt`;
+- external reference row: all identity/sync fields required by the existing design, including `updatedAt` for optimistic locking.
+
+Segment labels are an explicit cross-namespace read, not a Pricing field. The eligibility view/picker can reuse `CUSTOMER_SEGMENTS_QUERY` with `customersQuery.customerSegments(where: { id: { _in: $segmentIds } })`. The original `segmentId` and `referenceStatus` remain authoritative and visible when a segment cannot be resolved.
+
+### Real mutations
+
+`graphql/mutations.ts` defines only operations that exist in `PricingMutation`:
+
+```graphql
+mutation DiscountCreate($input: DiscountCreateInput!) {
+  pricingMutation {
+    discountCreate(input: $input) {
+      discount { ...DiscountDetailsFields }
+      userErrors { code field message }
+    }
+  }
+}
+
+mutation DiscountUpdate(
+  $discountId: ID!
+  $expectedRevision: Int!
+  $operations: DiscountUpdateInput!
+) {
+  pricingMutation {
+    discountUpdate(
+      discountId: $discountId
+      expectedRevision: $expectedRevision
+      operations: $operations
+    ) {
+      discount { ...DiscountDetailsFields }
+      operationResults {
+        type
+        applied
+        errors { code field message }
+      }
+      userErrors { code field message }
+    }
+  }
+}
+
+mutation DiscountDelete($input: DiscountDeleteInput!) {
+  pricingMutation {
+    discountDelete(input: $input) {
+      deletedDiscountId
+      userErrors { code field message }
+    }
+  }
+}
+```
+
+The three external-reference mutations live in the same file but use their own payloads and timestamp lock. They must not be emulated through discount metadata.
+
+### UI-to-API update mapping
+
+Every child editor creates a minimal `ApiDiscountUpdateInput` containing only the sections it owns.
+
+| Editor/action | `operations` sent to the existing `discountUpdate` |
+|---|---|
+| Identity | `{ definition: { title }, tags: [...] }` |
+| Amount off products | `{ rule: { amountOff: ... }, targetSelections: [{ role: BENEFIT, ... }] }` |
+| Amount off order | `{ rule: { amountOff: ... } }` |
+| Buy X get Y | `{ rule: { buyXGetY: ... }, targetSelections: [{ role: QUALIFIER, ... }, { role: BENEFIT, ... }] }` |
+| Free shipping | `{ rule: { freeShipping: { maximumShippingPriceMinor } } }` |
+| Eligibility | `{ eligibility: ..., minimumRequirement: { requirement }, definition: { purchaseModes } }` |
+| Availability | `{ channels: [...], combinesWith: [...] }` |
+| Limits and schedule | `{ definition: { usage, schedule, priority } }` |
+| Codes manager | `{ codes: { create, update, delete } }` |
+| Activate | `{ lifecycle: { state: ACTIVE } }` |
+| Pause | `{ lifecycle: { state: PAUSED } }` |
+| Archive | `{ lifecycle: { state: ARCHIVED } }` |
+| Technical metadata | `{ metadata: ... }` |
+
+Replacement semantics from the real schema must be preserved:
+
+- `tags`, `channels`, `combinesWith` and `targetSelections` are complete replacements when supplied;
+- empty arrays clear those sections;
+- omitted sections are untouched;
+- `minimumRequirement: { requirement: null }` explicitly clears the ordinary minimum requirement;
+- method, kind, class and currency are not update fields;
+- code updates require both aggregate `expectedRevision` and per-code `expectedUpdatedAt`;
+- external-reference updates use `expectedUpdatedAt`, not the discount revision.
+
+### Create mapper
+
+`discount-create-input.mapper.ts` converts local create-form state to `ApiDiscountCreateInput`:
+
+- `method`, `kind` and derived class policy come from the selected type flow; class itself is derived by Pricing and is not sent;
+- `state` is always `DRAFT` for Save draft;
+- required `currency` comes from project default currency context;
+- percentages are converted to basis points at the mapper boundary (`20% -> 2000`);
+- major currency values are converted to `BigInt` minor-unit strings;
+- `rule` contains exactly one of `amountOff`, `buyXGetY` or `freeShipping`;
+- Buy X get Y sends both `QUALIFIER` and `BENEFIT` target selections;
+- ordinary `minimumRequirement` is omitted for Buy X get Y;
+- dates are sent as ISO `DateTime` values using the selected project timezone;
+- code discounts send the initial `codes` array; automatic discounts do not send codes;
+- `purchaseModes`, `buyerContext`, `channels`, `combinesWith`, `tags`, limits and schedule use the real input names unchanged.
+
+Do not use output mappers. Details and list components consume generated API objects directly; only form-to-input and API-error mappers are local.
+
+### Hook contracts and mutation result handling
+
+`useCreateDiscount` and `useUpdateDiscount` own Apollo mutations and return normalized results:
+
+```ts
+interface DiscountMutationResult {
+  discount: ApiDiscount | null;
+  operationResults: ApiDiscountOperationResult[];
+  userErrors: ApiGenericUserError[];
+}
+```
+
+For update, `userErrors` exposed to the modal are the concatenation of top-level `payload.userErrors` and every `operationResults[].errors`; keep `operationResults` separately so the UI can identify which submitted section was applied.
+
+Error rules:
+
+- `field` paths are mapped in `discount-errors.mapper.ts` to `react-hook-form` fields;
+- `code=REVISION_CONFLICT` keeps the editor open and shows `Reload latest data`;
+- no automatic retry with a newer revision;
+- transport/GraphQL failures use a modal-level `Alert` and remain separate from user errors;
+- a mutation is successful only when a discount exists, relevant operation results are applied and the merged user-error list is empty.
+
+### Cache and refresh
+
+- After create: `refetchQueries: [DISCOUNTS_QUERY]`, close the create stack and open details with `payload.discount.id`.
+- After section update: write the returned `Discount` fragment through Apollo normalization, refetch `DISCOUNT_DETAILS_QUERY`, then close the child modal.
+- After code update: refetch the active codes connection and details query because `codesCount`, `primaryCode` and usage summaries may change.
+- After lifecycle update: refetch details and the active list query because `state/effectiveStatus` and list membership may change.
+- After draft delete: evict the deleted `Discount` ID or refetch `DISCOUNTS_QUERY`, then close the details stack.
+- Redemptions/reservations are read-only; polling or manual Refresh is allowed, but optimistic client mutations are not.
+
+### Implementation phases
+
+1. **Keep the live list.** Add Create toolbar action and row action that pass a real `ApiDiscount.id` into Modal Stack; do not rewrite `useDiscounts`.
+2. **Add details read integration.** Implement details fragment/query/hook and API-backed details modal with loading/not-found/error states.
+3. **Add create.** Implement form state, `discount-create-input.mapper.ts`, `discountCreate` hook and list refresh/open-details success flow.
+4. **Add unified section updates.** Implement the single `DISCOUNT_UPDATE_MUTATION`, operation mapper, error mapper and section-specific form adapters.
+5. **Add lifecycle and draft deletion.** Use lifecycle operations for activate/pause/archive and `discountDelete` only for server-accepted drafts.
+6. **Add codes and activity connections.** Implement paginated codes, redemptions and reservations using the real filters/order inputs.
+7. **Add external references.** Use the three existing external-reference mutations and `expectedUpdatedAt` locking.
+8. **Keep unsupported concepts out of executable UI.** Do not render History/snapshots or Duplicate until a real backend contract is added.
+
+### Confirmed API gaps
+
+- No discount event, revision-history or revision-snapshot query. Only current `revision` exists.
+- No duplicate mutation.
+- No manual redemption reversal mutation.
+- `DiscountEligibleSegment` exposes `segmentId` and reference status but no resolved segment object/label. A separate existing `customersQuery.customerSegments` lookup may hydrate names; unresolved entries must show the ID and must never fabricate a name.
+- Sales channels expose `code` + `featured`, but no current Admin GraphQL query exposes a channel registry. The design therefore displays and edits the raw code.
+- Redemptions expose `orderId` but no federated `order` object. Opening order details must pass the ID to the existing order modal rather than querying an invented field.
+- Country targeting and POS-specific controls are absent from the Pricing model and remain out of scope.
+
+Read invariants:
+
+- list uses the server connection without per-row follow-up queries;
 - effective status remains server-derived;
 - `remainingCount=null` means Unlimited;
-- large JSON is fetched only on drilldown.
+- target/customer references use federated fields when present and retain stale IDs visibly;
+- metadata is fetched in details but formatted JSON opens only on drilldown;
+- monetary output uses project default currency formatting even though `Discount.currency` remains visible in technical metadata.
 
 ## Acceptance Criteria
 
-- `/discounts` is a real list page with search, filters, sorting and cursor pagination.
-- Create begins with four supported kinds and opens a Modal Stack form.
+- Existing `/discounts` continues to use the live `pricingQuery.discounts` connection; no mock or second list data layer is introduced.
+- Row click and Create toolbar action pass real GraphQL IDs into Modal Stack.
+- Details is loaded by `pricingQuery.discount(id)` through `DISCOUNT_DETAILS_QUERY`.
+- Create begins with four supported kinds and submits the real `discountCreate(input: DiscountCreateInput!)` mutation as `DRAFT`.
 - Supported reference capabilities are represented; countries/POS controls are not faked.
 - Details follows info header + `Paper` sections + local actions.
 - KPIs use real counters and show Unlimited correctly.
 - All four kinds have distinct rule views/editors.
 - Code/automatic methods enforce different constraints.
-- Existing picker infrastructure is reused/extended.
+- Existing picker infrastructure is reused for product/variant/category/customer targets and adapted to the live Customer Segments connection; channels use an API-aligned code editor.
 - Eligibility, minimums, purchase modes, channels, featured flags, combinations, limits, schedule and tags are editable.
-- Multiple codes can be added, limited and enabled/disabled without losing history.
+- Every configuration/lifecycle editor submits the existing unified `discountUpdate` mutation with minimal owned operations and the current `expectedRevision`.
+- Multiple codes can be created, edited, limited, enabled/disabled and deleted through `operations.codes`, using both discount revision and code `expectedUpdatedAt`.
 - Reservations, redemptions and reversals are visible read-only.
-- Revisions/events and external references have utility flows.
-- Every update is revision-aware.
-- Archive replaces hard delete.
+- External references use the existing create/update/delete mutations and timestamp optimistic locking.
+- History/snapshot and Duplicate controls are absent until their API gaps are closed.
+- Archive uses lifecycle update; only unused drafts may call the real `discountDelete` mutation.
 - Money uses default project currency.
+- Existing generated Pricing API types are imported directly from `@/graphql/types`; no output view models or invented endpoint types are added.
+- Top-level `userErrors` and `operationResults[].errors` both reach field/global error UI.
 - Loading, empty, stale, conflict and error states are specified.
 - Narrow modals avoid horizontal scroll in primary forms.
 - All actions are keyboard accessible.
