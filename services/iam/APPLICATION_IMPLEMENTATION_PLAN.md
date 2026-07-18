@@ -81,7 +81,7 @@ GraphQL является transport adapter над Better Auth для auth/sessio
 | Password hashing и accounts | Better Auth core |
 | Создание и обновление session | Better Auth core |
 | Отзыв session | Better Auth session APIs |
-| Bearer session token | Better Auth `bearer` plugin |
+| Внутренний refresh/reissue credential | Better Auth session token + `bearer` plugin |
 | JWT payload callback | Better Auth `jwt.definePayload` |
 | JWT подпись и JWKS | Better Auth `jwt` plugin |
 | JWT выпуск | Better Auth `auth.api.getToken` |
@@ -479,7 +479,11 @@ Better Auth `trustedOrigins` callback:
 
 ---
 
-## Better Auth session flow
+## Внутренняя Better Auth session и API JWT
+
+Shopana API является JWT-based. Better Auth session не используется как credential бизнес-API.
+
+Session необходима внутри IAM, потому что официальный Better Auth `jwt` plugin выпускает JWT через `auth.api.getToken` только для уже аутентифицированной Better Auth session. Эта session также даёт официальный механизм повторного выпуска JWT и отзыва дальнейшего доступа без собственной refresh-token реализации.
 
 ### Sign-up
 
@@ -490,6 +494,8 @@ GraphQL input + X-Application-Key
   -> Better Auth password/user lifecycle
   -> Better Auth databaseHooks.session.create.before
   -> Better Auth session
+  -> auth.api.getToken
+  -> access JWT + Better Auth session token
 ```
 
 GraphQL resolver не создаёт user/session напрямую.
@@ -503,27 +509,62 @@ GraphQL input + X-Application-Key
   -> Better Auth credentials verification
   -> Better Auth databaseHooks.session.create.before
   -> Better Auth session
+  -> auth.api.getToken
+  -> access JWT + Better Auth session token
 ```
 
-### Authenticated request
-
-Основным session credential остаётся Better Auth bearer token:
-
-```http
-Authorization: Bearer <better-auth-session-token>
-```
-
-Session проверяется только через:
+Auth response сохраняет текущий внешний contract:
 
 ```typescript
-const session = await auth.api.getSession({ headers });
+interface AuthTokenResult {
+  accessToken: string;  // JWT from Better Auth jwt plugin
+  refreshToken: string; // Better Auth session token
+  expiresIn: number;
+}
 ```
 
-Request context получает `user`, `session`, `applicationId` и `applicationKey` из результата Better Auth.
+`refreshToken` здесь является именем поля API contract. IAM не генерирует отдельный refresh token: значение полностью принадлежит Better Auth session lifecycle.
+
+### JWT-authenticated API request
+
+Единственный credential бизнес-API:
+
+```http
+Authorization: Bearer <better-auth-jwt>
+```
+
+JWT проверяется только Better Auth:
+
+```typescript
+const result = await auth.api.verifyJWT({
+  body: { token },
+});
+```
+
+Request context получает `userId`, `sessionId`, `applicationId` и `applicationKey` из проверенного JWT payload.
+
+Business resolver не вызывает `auth.api.getSession` и не принимает Better Auth session token в `Authorization` header.
 
 После authentication существующая бизнес-авторизация Shopana выполняется своим текущим механизмом. Этот план её не меняет.
 
-### Session refresh и revoke
+### JWT refresh/reissue
+
+```text
+refreshToken (Better Auth session token)
+  -> auth.api.getSession
+  -> auth.api.getToken
+  -> новый access JWT
+```
+
+GraphQL `tokenRefresh` остаётся тонким adapter:
+
+1. принимает Better Auth session token в поле `refreshToken`;
+2. передаёт его в Better Auth `bearer`/session API;
+3. проверяет session через `auth.api.getSession`;
+4. получает новый JWT через `auth.api.getToken`;
+5. не создаёт и не подписывает token самостоятельно.
+
+### Session revoke
 
 Использовать только Better Auth APIs:
 
@@ -533,7 +574,7 @@ Request context получает `user`, `session`, `applicationId` и `applicat
 - `auth.api.revokeSessions`;
 - `auth.api.signOut`.
 
-Собственный refresh token не создаётся. Session refresh выполняет Better Auth согласно своим `expiresIn/updateAge` правилам.
+Отзыв Better Auth session запрещает дальнейший выпуск JWT. Уже выпущенный stateless access JWT действует до короткого `exp`.
 
 ---
 
@@ -742,14 +783,12 @@ Application API не содержит:
 | send phone OTP | `auth.api.sendPhoneNumberOTP` |
 | sign in by phone | `auth.api.signInPhoneNumber` |
 | `signOut` | `auth.api.signOut` |
-| current session | `auth.api.getSession` |
-| list sessions | `auth.api.listSessions` |
-| revoke session | `auth.api.revokeSession` |
-| revoke own sessions | `auth.api.revokeSessions` |
+| `tokenRefresh` | `auth.api.getSession` + `auth.api.getToken` |
 | issue JWT | `auth.api.getToken` |
 | verify JWT | `auth.api.verifyJWT` |
+| revoke refresh capability | Better Auth session revoke/sign-out API |
 
-Собственная `tokenRefresh` mutation удаляется либо заменяется тонким adapter над поддерживаемым Better Auth session flow. Новый refresh-token механизм не создаётся.
+`tokenRefresh` сохраняется как thin adapter над Better Auth session и JWT plugins. Business API продолжает принимать только JWT.
 
 ---
 
@@ -767,7 +806,7 @@ Application API не содержит:
 - прямые импорты `jose`;
 - собственный JWKS cache;
 - ручное вычисление access-token expiration;
-- собственный dual-token refresh flow.
+- ручную подпись JWT внутри dual-token flow.
 
 Оставить или реализовать как тонкие adapters:
 
@@ -777,6 +816,8 @@ Application API не содержит:
 - вызов `auth.api.getToken`;
 - вызов `auth.api.verifyJWT`;
 - вызов Better Auth session revoke APIs.
+
+`auth.api.getSession` используется только внутри sign-in/refresh/revoke flow. JWT-authenticated business request использует `auth.api.verifyJWT`.
 
 ### Business authorization не изменяется
 
@@ -897,9 +938,10 @@ services/iam/src/
 3. Добавить public auth config query для формы входа.
 4. Добавить `setAuthenticationMethods` mutation.
 5. Перевести auth/session/method resolvers на Better Auth server APIs.
-6. Добавить выдачу JWT через `auth.api.getToken` при необходимости GraphQL contract.
-7. Удалить собственный refresh-token flow.
-8. Выполнить штатный GraphQL codegen.
+6. Возвращать access JWT из `auth.api.getToken` после успешного sign-in/sign-up.
+7. Оставить `tokenRefresh` тонким adapter над Better Auth session + `auth.api.getToken`.
+8. Не передавать Better Auth session token в business API `Authorization` header.
+9. Выполнить штатный GraphQL codegen.
 
 Результат: GraphQL предоставляет Shopana contract без дублирования Better Auth behavior.
 
@@ -918,7 +960,7 @@ services/iam/src/
 
 1. Удалить ручную JWT verification из `UserRepository`.
 2. Заменить context JWT parsing на Better Auth `auth.api.verifyJWT`.
-3. Удалить собственный refresh-token flow.
+3. Перевести `tokenRefresh` на Better Auth `getSession/getToken` без ручной подписи.
 4. Удалить неиспользуемые token helpers/cache.
 5. Не изменять Casbin/RBAC code.
 6. Обновить IAM документацию.
@@ -964,14 +1006,16 @@ Application может динамически менять только те п�
 4. Любую session создаёт Better Auth.
 5. Session хранится через Better Auth adapter.
 6. Session application fields добавляются через Better Auth `additionalFields`/hook.
-7. Любой JWT подписывает Better Auth `jwt` plugin.
-8. Любой JWT проверяется Better Auth `auth.api.verifyJWT`.
-9. Application не управляет signing keys/algorithm/issuer/audience.
-10. Application JWT config не содержит roles или permissions.
-11. JWT claims не заменяют существующую бизнес-авторизацию.
-12. Собственный auth/token fallback отсутствует.
-13. Неизвестное/disabled Application или disabled method приводит к отказу нового auth request.
-14. Отсутствие официального Better Auth extension point не обходится собственным auth механизмом.
+7. Better Auth session token используется только для JWT reissue/revoke, но не для business API authorization.
+8. Business API принимает только Better Auth JWT.
+9. Любой JWT подписывает Better Auth `jwt` plugin.
+10. Любой JWT проверяется Better Auth `auth.api.verifyJWT`.
+11. Application не управляет signing keys/algorithm/issuer/audience.
+12. Application JWT config не содержит roles или permissions.
+13. JWT claims не заменяют существующую бизнес-авторизацию.
+14. Собственный auth/token fallback отсутствует.
+15. Неизвестное/disabled Application или disabled method приводит к отказу нового auth request.
+16. Отсутствие официального Better Auth extension point не обходится собственным auth механизмом.
 
 ---
 
@@ -985,6 +1029,8 @@ Application может динамически менять только те п�
 - Уже зарегистрированные methods включаются/выключаются без новой сборки.
 - Application context записывается в Better Auth session.
 - Sign-up/sign-in/session lifecycle выполняются Better Auth.
+- Business API использует только `Authorization: Bearer <JWT>`.
+- Better Auth session token возвращается только как refresh/reissue credential.
 - JWT выпускается `auth.api.getToken`.
 - JWT проверяется `auth.api.verifyJWT`.
 - JWT claims формируются только `jwt.definePayload`.
@@ -992,7 +1038,7 @@ Application может динамически менять только те п�
 - Роли, permissions и Casbin не изменены этим планом.
 - GraphQL auth/session/token operations являются adapters над Better Auth.
 - Собственные TokenIssuer, TokenVerifier и ClaimResolver отсутствуют.
-- Собственный refresh-token protocol отсутствует.
+- `tokenRefresh` использует Better Auth `getSession/getToken` и не подписывает JWT самостоятельно.
 - Codegen и Drizzle migration выполняются штатными средствами проекта.
 - IAM успешно собирается штатной build-командой проекта.
 - Тесты не добавляются и не запускаются в рамках реализации.
