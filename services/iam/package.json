@@ -24,7 +24,7 @@
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-config": "*",
     "@shopana/type-resolver": "*",
-    "better-auth": "^1.4.7",
+    "better-auth": "1.6.23",
     "cache-manager": "^7.2.7",
     "casbin": "^5.32.0",
     "dataloader": "^2.2.3",

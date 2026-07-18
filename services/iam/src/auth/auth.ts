@@ -1,8 +1,16 @@
-import { betterAuth } from "better-auth";
+import {
+  betterAuth,
+  type Auth as BetterAuthInstance,
+  type BetterAuthOptions,
+} from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, jwt } from "better-auth/plugins";
 import { getDatabase } from "../infrastructure/db/database.js";
 import * as schema from "../repositories/models/index.js";
+
+interface IamAuthOptions extends BetterAuthOptions {
+  plugins: [ReturnType<typeof bearer>, ReturnType<typeof jwt>];
+}
 
 /**
  * Better Auth instance for IAM service.
@@ -14,10 +22,10 @@ import * as schema from "../repositories/models/index.js";
  *
  * Note: Must be initialized after database connection.
  */
-export function createAuth() {
+export function createAuth(): BetterAuthInstance<IamAuthOptions> {
   const db = getDatabase();
 
-  return betterAuth({
+  return betterAuth<IamAuthOptions>({
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: {
