@@ -37,10 +37,10 @@ import {
   user,
   verification,
 } from "../repositories/models/index.js";
-
-export type AuthAdapterScope =
-  | { kind: "platform" }
-  | { kind: "application"; applicationId: string };
+import {
+  assertApplicationId,
+  type AuthAdapterScope,
+} from "./AuthScope.js";
 
 type DrizzleConnection = any;
 type AuthModelName = keyof typeof authSchema;
@@ -70,8 +70,8 @@ export function createScopedDrizzleAdapter(
   db: Database,
   scope: AuthAdapterScope
 ): DBAdapterInstance<BetterAuthOptions> {
-  if (scope.kind === "application" && !scope.applicationId) {
-    throw new Error("Application ID is required for application auth");
+  if (scope.kind === "application") {
+    assertApplicationId(scope.applicationId);
   }
 
   let lazyOptions: CoreBetterAuthOptions | undefined;

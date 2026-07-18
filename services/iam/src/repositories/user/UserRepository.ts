@@ -6,7 +6,7 @@ import {
 } from "jose";
 import type { Auth } from "../../auth/auth.js";
 import type { Database } from "../../infrastructure/db/database.js";
-import { jwks, session, user } from "../models/auth.js";
+import { jwks, user } from "../models/auth.js";
 import {
   BetterAuthUserRepository,
   type AuthUser,
@@ -142,26 +142,6 @@ export class UserRepository extends BetterAuthUserRepository<User> {
       .where(eq(user.id, userId))
       .returning({ id: user.id });
     return rows.length > 0;
-  }
-
-  async getUserSessions(userId: string) {
-    return this.db.select().from(session).where(eq(session.userId, userId));
-  }
-
-  async revokeSession(sessionId: string): Promise<boolean> {
-    const rows = await this.db
-      .delete(session)
-      .where(eq(session.id, sessionId))
-      .returning({ id: session.id });
-    return rows.length > 0;
-  }
-
-  async revokeAllSessions(userId: string): Promise<number> {
-    const rows = await this.db
-      .delete(session)
-      .where(eq(session.userId, userId))
-      .returning({ id: session.id });
-    return rows.length;
   }
 
   async setAdmin(userId: string, admin: boolean): Promise<User | null> {

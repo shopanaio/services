@@ -1,5 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import type { TransactionManager } from "@shopana/shared-kernel";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
+import { and, eq } from "drizzle-orm";
+import { assertApplicationId } from "../../auth/AuthScope.js";
+import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   applicationMember,
@@ -8,24 +11,49 @@ import {
 } from "../models/application-member.js";
 
 export interface AddApplicationMemberInput {
-  applicationId: string;
   userId: string;
 }
 
-/**
- * Repository for linking global Better Auth users to IAM applications.
- * Authentication data and the user profile remain in the global auth tables.
- */
+/** Creates membership repositories bound to one mandatory application. */
+export class ApplicationMemberRepositoryFactory {
+  constructor(
+    private readonly db: Database,
+    private readonly txManager: TransactionManager<Database>
+  ) {}
+
+  forApplication(applicationId: string): ApplicationMemberRepository {
+    assertApplicationId(applicationId);
+    return new ApplicationMemberRepository(
+      this.db,
+      this.txManager,
+      applicationId
+    );
+  }
+}
+
+/** Repository for global-user membership within exactly one application. */
 export class ApplicationMemberRepository extends BaseRepository {
+  constructor(
+    db: Database,
+    txManager: TransactionManager<Database>,
+    private readonly applicationId: string
+  ) {
+    super(db, txManager);
+    assertApplicationId(applicationId);
+  }
+
   /**
-   * Add a user to an application without changing an existing membership.
+   * Add a user without changing an existing membership.
    * In particular, signing in must not reactivate a blocked member.
    */
   @Transactional()
   async add(input: AddApplicationMemberInput): Promise<ApplicationMember> {
     const [created] = await this.connection
       .insert(applicationMember)
-      .values(input)
+      .values({
+        applicationId: this.applicationId,
+        userId: input.userId,
+      })
       .onConflictDoNothing({
         target: [applicationMember.applicationId, applicationMember.userId],
       })
@@ -33,7 +61,7 @@ export class ApplicationMemberRepository extends BaseRepository {
 
     if (created) return created;
 
-    const existing = await this.find(input.applicationId, input.userId);
+    const existing = await this.find(input.userId);
     if (!existing) {
       throw new Error("Failed to create application membership");
     }
@@ -42,16 +70,13 @@ export class ApplicationMemberRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async find(
-    applicationId: string,
-    userId: string
-  ): Promise<ApplicationMember | null> {
+  async find(userId: string): Promise<ApplicationMember | null> {
     const [result] = await this.connection
       .select()
       .from(applicationMember)
       .where(
         and(
-          eq(applicationMember.applicationId, applicationId),
+          eq(applicationMember.applicationId, this.applicationId),
           eq(applicationMember.userId, userId)
         )
       )
@@ -61,30 +86,21 @@ export class ApplicationMemberRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async isActive(applicationId: string, userId: string): Promise<boolean> {
-    const member = await this.find(applicationId, userId);
+  async isActive(userId: string): Promise<boolean> {
+    const member = await this.find(userId);
     return member?.status === "active";
   }
 
   @ReadOnly()
-  async getByApplication(applicationId: string): Promise<ApplicationMember[]> {
+  async getAll(): Promise<ApplicationMember[]> {
     return this.connection
       .select()
       .from(applicationMember)
-      .where(eq(applicationMember.applicationId, applicationId));
-  }
-
-  @ReadOnly()
-  async getByUser(userId: string): Promise<ApplicationMember[]> {
-    return this.connection
-      .select()
-      .from(applicationMember)
-      .where(eq(applicationMember.userId, userId));
+      .where(eq(applicationMember.applicationId, this.applicationId));
   }
 
   @Transactional()
   async setStatus(
-    applicationId: string,
     userId: string,
     status: ApplicationMemberStatus
   ): Promise<ApplicationMember | null> {
@@ -93,7 +109,7 @@ export class ApplicationMemberRepository extends BaseRepository {
       .set({ status, updatedAt: new Date() })
       .where(
         and(
-          eq(applicationMember.applicationId, applicationId),
+          eq(applicationMember.applicationId, this.applicationId),
           eq(applicationMember.userId, userId)
         )
       )
@@ -103,12 +119,12 @@ export class ApplicationMemberRepository extends BaseRepository {
   }
 
   @Transactional()
-  async remove(applicationId: string, userId: string): Promise<boolean> {
+  async remove(userId: string): Promise<boolean> {
     const result = await this.connection
       .delete(applicationMember)
       .where(
         and(
-          eq(applicationMember.applicationId, applicationId),
+          eq(applicationMember.applicationId, this.applicationId),
           eq(applicationMember.userId, userId)
         )
       )

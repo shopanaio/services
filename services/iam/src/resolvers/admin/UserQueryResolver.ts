@@ -35,7 +35,9 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
       return [];
     }
 
-    const sessions = await kernel.repository.user.getUserSessions(currentUser.id);
+    const sessions = await kernel.repository.authSession
+      .forPlatform()
+      .getUserSessions(currentUser.id);
     const currentSessionId = currentUser.sessionId;
 
     return sessions.map(

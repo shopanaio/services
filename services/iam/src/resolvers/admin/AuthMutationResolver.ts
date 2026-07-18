@@ -90,12 +90,14 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
     }
 
     try {
+      const authSession = this.$ctx.kernel.repository.authSession.forPlatform();
       if (input.allSessions) {
-        // Revoke all sessions for the user
-        await this.$ctx.kernel.repository.user.revokeAllSessions(currentUser.id);
+        await authSession.revokeAllSessions(currentUser.id);
       } else if (currentUser.sessionId) {
-        // Revoke only current session
-        await this.$ctx.kernel.repository.user.revokeSession(currentUser.sessionId);
+        await authSession.revokeSession(
+          currentUser.id,
+          currentUser.sessionId
+        );
       }
 
       return {

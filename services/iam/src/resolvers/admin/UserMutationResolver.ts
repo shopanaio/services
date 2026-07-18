@@ -215,9 +215,8 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     }
 
     // Verify the session belongs to the current user
-    const sessions = await kernel.repository.user.getUserSessions(
-      currentUser.id
-    );
+    const authSession = kernel.repository.authSession.forPlatform();
+    const sessions = await authSession.getUserSessions(currentUser.id);
     const sessionBelongsToUser = sessions.some((s) => s.id === sessionId);
 
     if (!sessionBelongsToUser) {
@@ -233,7 +232,10 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       };
     }
 
-    const success = await kernel.repository.user.revokeSession(sessionId);
+    const success = await authSession.revokeSession(
+      currentUser.id,
+      sessionId
+    );
 
     return {
       success,
@@ -268,31 +270,22 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       };
     }
 
-    // Get all sessions to count them
-    const sessions = await kernel.repository.user.getUserSessions(
-      currentUser.id
-    );
-
-    // Filter out current session
-    const sessionsToRevoke = sessions.filter(
-      (s) => s.id !== currentUser.sessionId
-    );
-
-    if (sessionsToRevoke.length === 0) {
+    if (!currentUser.sessionId) {
       return {
         revokedCount: 0,
-        userErrors: [],
+        userErrors: [
+          {
+            code: "INVALID_SESSION",
+            message: "Current session is not available",
+            field: null,
+          },
+        ],
       };
     }
 
-    // Revoke each session individually (to preserve current session)
-    let revokedCount = 0;
-    for (const session of sessionsToRevoke) {
-      const success = await kernel.repository.user.revokeSession(session.id);
-      if (success) {
-        revokedCount++;
-      }
-    }
+    const revokedCount = await kernel.repository.authSession
+      .forPlatform()
+      .revokeOtherSessions(currentUser.id, currentUser.sessionId);
 
     return {
       revokedCount,

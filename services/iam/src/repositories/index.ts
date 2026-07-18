@@ -16,8 +16,13 @@ export {
 } from "./organization/OrganizationRepository.js";
 export {
   ApplicationMemberRepository,
+  ApplicationMemberRepositoryFactory,
   type AddApplicationMemberInput,
 } from "./application-member/ApplicationMemberRepository.js";
+export {
+  AuthSessionRepository,
+  AuthSessionRepositoryFactory,
+} from "./auth-session/AuthSessionRepository.js";
 export {
   BetterAuthUserRepository,
   type AuthUser,

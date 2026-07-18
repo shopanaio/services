@@ -1,7 +1,8 @@
 import { TransactionManager } from "@shopana/shared-kernel";
 import { UserRepository, type User } from "./user/UserRepository.js";
 import { OrganizationRepository } from "./organization/OrganizationRepository.js";
-import { ApplicationMemberRepository } from "./application-member/ApplicationMemberRepository.js";
+import { ApplicationMemberRepositoryFactory } from "./application-member/ApplicationMemberRepository.js";
+import { AuthSessionRepositoryFactory } from "./auth-session/AuthSessionRepository.js";
 
 import { CasbinService } from "../casbin/CasbinService.js";
 import type { Database } from "../infrastructure//db/database.js";
@@ -22,20 +23,23 @@ export interface RepositoryConfig {
  */
 export class Repository {
   public readonly user: UserRepository;
-  public readonly applicationMember: ApplicationMemberRepository;
+  public readonly applicationMember: ApplicationMemberRepositoryFactory;
+  public readonly authSession: AuthSessionRepositoryFactory;
   public readonly organization: OrganizationRepository;
   public readonly casbin: CasbinService;
   public readonly txManager: TransactionManager<Database>;
 
   private constructor(
     user: UserRepository,
-    applicationMember: ApplicationMemberRepository,
+    applicationMember: ApplicationMemberRepositoryFactory,
+    authSession: AuthSessionRepositoryFactory,
     organization: OrganizationRepository,
     casbin: CasbinService,
     txManager: TransactionManager<Database>
   ) {
     this.user = user;
     this.applicationMember = applicationMember;
+    this.authSession = authSession;
     this.organization = organization;
     this.casbin = casbin;
     this.txManager = txManager;
@@ -56,15 +60,17 @@ export class Repository {
 
     // Create repositories
     const userRepo = new UserRepository(db, auth);
-    const applicationMemberRepo = new ApplicationMemberRepository(
+    const applicationMemberRepo = new ApplicationMemberRepositoryFactory(
       db,
       txManager
     );
+    const authSessionRepo = new AuthSessionRepositoryFactory(db, txManager);
     const organizationRepo = new OrganizationRepository(db, txManager);
 
     return new Repository(
       userRepo,
       applicationMemberRepo,
+      authSessionRepo,
       organizationRepo,
       casbinService,
       txManager
