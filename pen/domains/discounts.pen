@@ -13276,7 +13276,7 @@
                       "ref": "avwDn",
                       "name": "Amount off products channels",
                       "width": 800,
-                      "height": 150
+                      "height": 167
                     },
                     {
                       "id": "AzBh7",
@@ -13284,7 +13284,7 @@
                       "ref": "mvjvy",
                       "name": "Amount off products combinations",
                       "width": 800,
-                      "height": 90,
+                      "height": 117,
                       "descendants": {
                         "zaObD": {
                           "height": 36
@@ -13298,7 +13298,7 @@
                       "name": "Amount off products availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1146,
+                      "y": 1190,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 18, 2026 at 09:00"
@@ -13606,7 +13606,7 @@
                       "name": "Amount off products discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1401
+                      "y": 1445
                     },
                     {
                       "id": "E07UZ",
@@ -13615,7 +13615,7 @@
                       "name": "Amount off products external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1596
+                      "y": 1640
                     }
                   ]
                 }
@@ -14179,11 +14179,8 @@
                       "ref": "avwDn",
                       "name": "Buy X Get Y channels",
                       "width": 800,
-                      "height": 150,
+                      "height": 167,
                       "descendants": {
-                        "HpC2x": {
-                          "content": "2 of 3 active"
-                        },
                         "CSYDR": {
                           "fill": "#1677FF"
                         },
@@ -14202,11 +14199,8 @@
                       "ref": "mvjvy",
                       "name": "Buy X Get Y combinations",
                       "width": 800,
-                      "height": 90,
+                      "height": 117,
                       "descendants": {
-                        "DgK3n": {
-                          "content": "1 of 3 enabled"
-                        },
                         "zaObD": {
                           "height": 36
                         },
@@ -14233,7 +14227,7 @@
                       "name": "Buy X Get Y availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1206,
+                      "y": 1250,
                       "descendants": {
                         "exHTS": {
                           "content": "Aug 1, 2026 at 00:00"
@@ -14437,7 +14431,7 @@
                       "name": "Buy X Get Y discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1462,
+                      "y": 1506,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -14516,7 +14510,7 @@
                       "name": "Buy X Get Y external references empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1599,
+                      "y": 1643,
                       "descendants": {
                         "RrC1t": {
                           "content": "0"
@@ -15123,11 +15117,8 @@
                       "ref": "avwDn",
                       "name": "Amount off order channels",
                       "width": 800,
-                      "height": 150,
+                      "height": 167,
                       "descendants": {
-                        "HpC2x": {
-                          "content": "2 of 3 active"
-                        },
                         "QSUCM": {
                           "fill": "#1677FF"
                         },
@@ -15146,7 +15137,7 @@
                       "ref": "mvjvy",
                       "name": "Amount off order combinations",
                       "width": 800,
-                      "height": 90,
+                      "height": 117,
                       "descendants": {
                         "zaObD": {
                           "height": 36
@@ -15188,7 +15179,7 @@
                       "name": "Amount off order availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1158,
+                      "y": 1202,
                       "descendants": {
                         "exHTS": {
                           "content": "Jun 1, 2026 at 00:00"
@@ -15496,7 +15487,7 @@
                       "name": "Amount off order discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1413,
+                      "y": 1457,
                       "descendants": {
                         "EFRB1": {
                           "content": "ORDER25"
@@ -15531,7 +15522,7 @@
                       "name": "Amount off order external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1608,
+                      "y": 1652,
                       "descendants": {
                         "APFYm": {
                           "content": "Shopify Plus"
@@ -16113,7 +16104,7 @@
                       "ref": "avwDn",
                       "name": "Free shipping channels",
                       "width": 800,
-                      "height": 150
+                      "height": 167
                     },
                     {
                       "id": "Ewwix",
@@ -16121,7 +16112,7 @@
                       "ref": "mvjvy",
                       "name": "Free shipping combinations",
                       "width": 800,
-                      "height": 90,
+                      "height": 117,
                       "descendants": {
                         "zaObD": {
                           "height": 36
@@ -16135,7 +16126,7 @@
                       "name": "Free shipping availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1158,
+                      "y": 1202,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 1, 2026 at 00:00"
@@ -16339,7 +16330,7 @@
                       "name": "Free shipping discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1414,
+                      "y": 1458,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -16418,7 +16409,7 @@
                       "name": "Free shipping external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1551,
+                      "y": 1595,
                       "descendants": {
                         "RrC1t": {
                           "content": "1"
@@ -17075,77 +17066,51 @@
       "name": "Discount block / Channels / Standalone",
       "reusable": true,
       "width": 800,
-      "height": 150,
+      "height": 167,
       "fill": "#FFFFFF",
       "cornerRadius": 8,
       "stroke": "#E8E8E8",
       "strokeWidth": 1,
       "layout": "vertical",
-      "gap": 8,
-      "padding": 10,
+      "gap": 10,
+      "padding": 12,
       "children": [
         {
           "type": "frame",
           "id": "ynl6o",
           "name": "Combined channels header",
           "width": "fill_container",
-          "gap": 7,
-          "alignItems": "center",
+          "layout": "vertical",
+          "gap": 8,
           "children": [
-            {
-              "type": "frame",
-              "id": "boHuE",
-              "name": "Combined channels icon background",
-              "width": 26,
-              "height": 26,
-              "fill": "#FFFFFF",
-              "cornerRadius": 7,
-              "stroke": "#E8E8E8",
-              "strokeWidth": 1,
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon",
-                  "id": "r3rqHP",
-                  "name": "Combined channels icon",
-                  "width": 13,
-                  "height": 13,
-                  "icon": "radio-tower",
-                  "library": "lucide",
-                  "fill": "#595959"
-                }
-              ]
-            },
             {
               "type": "frame",
               "id": "KbOjF",
               "name": "Combined channels copy",
               "width": "fill_container",
               "layout": "vertical",
-              "gap": 1,
               "children": [
                 {
                   "type": "text",
                   "id": "u5SrEX",
                   "name": "Combined channels title",
                   "fill": "#262626",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
                   "content": "Channels",
-                  "fontFamily": "Safiro",
-                  "fontSize": 11,
-                  "fontWeight": "650"
-                },
-                {
-                  "type": "text",
-                  "id": "HpC2x",
-                  "name": "Combined channels caption",
-                  "fill": "#8C8C8C",
-                  "content": "1 of 3 active",
-                  "fontFamily": "Safiro",
-                  "fontSize": 9,
-                  "fontWeight": "normal"
+                  "fontFamily": "$--font-secondary",
+                  "fontSize": 16,
+                  "fontWeight": "600"
                 }
               ]
+            },
+            {
+              "type": "rectangle",
+              "id": "HDyVV",
+              "name": "Channels paper header divider",
+              "fill": "#F0F0F0",
+              "width": "fill_container",
+              "height": 1
             }
           ]
         },
@@ -17338,6 +17303,18 @@
               ]
             }
           ]
+        },
+        {
+          "type": "text",
+          "id": "HpC2x",
+          "name": "Combined channels caption",
+          "fill": "#8C8C8C",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "1 of 3 active",
+          "fontFamily": "$--font-secondary",
+          "fontSize": 12,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -17349,77 +17326,51 @@
       "name": "Discount block / Combinations / Standalone",
       "reusable": true,
       "width": 800,
-      "height": 90,
+      "height": 117,
       "fill": "#FFFFFF",
       "cornerRadius": 8,
       "stroke": "#E8E8E8",
       "strokeWidth": 1,
       "layout": "vertical",
-      "gap": 8,
-      "padding": 10,
+      "gap": 10,
+      "padding": 12,
       "children": [
         {
           "type": "frame",
           "id": "BURNu",
           "name": "Combined combinations header",
           "width": "fill_container",
-          "gap": 7,
-          "alignItems": "center",
+          "layout": "vertical",
+          "gap": 8,
           "children": [
-            {
-              "type": "frame",
-              "id": "ZpQyA",
-              "name": "Combined combinations icon background",
-              "width": 26,
-              "height": 26,
-              "fill": "#FFFFFF",
-              "cornerRadius": 7,
-              "stroke": "#E8E8E8",
-              "strokeWidth": 1,
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon",
-                  "id": "d7une",
-                  "name": "Combined combinations icon",
-                  "width": 13,
-                  "height": 13,
-                  "icon": "combine",
-                  "library": "lucide",
-                  "fill": "#595959"
-                }
-              ]
-            },
             {
               "type": "frame",
               "id": "ONPc7",
               "name": "Combined combinations copy",
               "width": "fill_container",
               "layout": "vertical",
-              "gap": 1,
               "children": [
                 {
                   "type": "text",
                   "id": "MYpXJ",
                   "name": "Combined combinations title",
                   "fill": "#262626",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
                   "content": "Combinations",
-                  "fontFamily": "Safiro",
-                  "fontSize": 11,
-                  "fontWeight": "650"
-                },
-                {
-                  "type": "text",
-                  "id": "DgK3n",
-                  "name": "Combined combinations caption",
-                  "fill": "#8C8C8C",
-                  "content": "2 of 3 enabled",
-                  "fontFamily": "Safiro",
-                  "fontSize": 9,
-                  "fontWeight": "normal"
+                  "fontFamily": "$--font-secondary",
+                  "fontSize": 16,
+                  "fontWeight": "600"
                 }
               ]
+            },
+            {
+              "type": "rectangle",
+              "id": "uz7ZF",
+              "name": "Combinations paper header divider",
+              "fill": "#F0F0F0",
+              "width": "fill_container",
+              "height": 1
             }
           ]
         },
@@ -17612,6 +17563,18 @@
               ]
             }
           ]
+        },
+        {
+          "type": "text",
+          "id": "DgK3n",
+          "name": "Combined combinations caption",
+          "fill": "#8C8C8C",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "2 of 3 enabled",
+          "fontFamily": "$--font-secondary",
+          "fontSize": 12,
+          "fontWeight": "normal"
         }
       ]
     }
