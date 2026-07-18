@@ -9,6 +9,7 @@ import { BaseScript } from "./BaseScript.js";
 import { AuthorizationCache, NameResolver } from "../cache/index.js";
 import { createDatabase, type Database } from "../infrastructure/db/database.js";
 import { createAuth, type Auth } from "../auth/auth.js";
+import { ApplicationAuthFactory } from "../auth/ApplicationAuthFactory.js";
 
 /**
  * Extended kernel for IAM microservice (singleton)
@@ -23,6 +24,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public workflow!: WorkflowRegistry;
   public db!: Database;
   public auth!: Auth;
+  public applicationAuth!: ApplicationAuthFactory;
 
   private constructor(
     broker: ServiceBroker,
@@ -33,7 +35,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     nameResolver: NameResolver,
     workflow: WorkflowRegistry,
     db: Database,
-    auth: Auth
+    auth: Auth,
+    applicationAuth: ApplicationAuthFactory
   ) {
     super(broker, logger, { repository, cache, authCache, nameResolver, workflow });
     this.repository = repository;
@@ -43,6 +46,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     this.workflow = workflow;
     this.db = db;
     this.auth = auth;
+    this.applicationAuth = applicationAuth;
   }
 
   static async create(
@@ -63,6 +67,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
 
     const db = createDatabase(dbClient);
     const auth = createAuth();
+    const applicationAuth = new ApplicationAuthFactory();
     const repository = await Repository.create({ db, auth, databaseUrl });
 
     const cache = createCache({
@@ -81,7 +86,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       nameResolver,
       workflow,
       db,
-      auth
+      auth,
+      applicationAuth
     );
     return this.instance;
   }
@@ -100,6 +106,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   }
 
   async close(): Promise<void> {
+    this.applicationAuth.clear();
     Kernel.instance = null;
   }
 

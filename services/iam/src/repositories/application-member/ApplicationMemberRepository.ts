@@ -5,7 +5,7 @@ import {
   applicationMember,
   type ApplicationMember,
   type ApplicationMemberStatus,
-} from "../models/authorization.js";
+} from "../models/application-member.js";
 
 export interface AddApplicationMemberInput {
   applicationId: string;

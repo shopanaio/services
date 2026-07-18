@@ -9,7 +9,6 @@ import {
   serial,
 } from "drizzle-orm/pg-core";
 import { iamSchema } from "./schema.js";
-import { user } from "./auth.js";
 
 // ============================================================================
 // Organization table
@@ -77,52 +76,6 @@ export const application = iamSchema.table(
 
 export type Application = typeof application.$inferSelect;
 export type NewApplication = typeof application.$inferInsert;
-
-// ============================================================================
-// Application Member table
-// Links the global Better Auth identity to applications that the user can use.
-// The user profile, credentials, sessions, verifications, and JWKS remain global.
-// ============================================================================
-
-export type ApplicationMemberStatus = "active" | "blocked";
-
-export const applicationMember = iamSchema.table(
-  "application_member",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    applicationId: uuid("application_id")
-      .notNull()
-      .references(() => application.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    status: varchar("status", { length: 16 })
-      .$type<ApplicationMemberStatus>()
-      .notNull()
-      .default("active"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    index("idx_application_member_application").on(table.applicationId),
-    index("idx_application_member_user").on(table.userId),
-    index("idx_application_member_application_status").on(
-      table.applicationId,
-      table.status
-    ),
-    uniqueIndex("idx_application_member_unique").on(
-      table.applicationId,
-      table.userId
-    ),
-  ]
-);
-
-export type ApplicationMember = typeof applicationMember.$inferSelect;
-export type NewApplicationMember = typeof applicationMember.$inferInsert;
 
 // ============================================================================
 // Organization Member table

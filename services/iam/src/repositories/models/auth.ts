@@ -4,7 +4,10 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
+import { application } from "./authorization.js";
 import { iamSchema } from "./schema.js";
 
 // ============================================================================
@@ -39,6 +42,8 @@ export type NewUser = typeof user.$inferInsert;
 // Session table
 // ============================================================================
 
+export type SessionScope = "platform" | "application";
+
 export const session = iamSchema.table(
   "session",
   {
@@ -47,6 +52,13 @@ export const session = iamSchema.table(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     token: text("token").notNull().unique(),
+    scope: varchar("scope", { length: 16 })
+      .$type<SessionScope>()
+      .notNull()
+      .default("platform"),
+    applicationId: uuid("application_id").references(() => application.id, {
+      onDelete: "cascade",
+    }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
@@ -55,6 +67,11 @@ export const session = iamSchema.table(
   },
   (table) => [
     index("idx_session_user_id").on(table.userId),
+    index("idx_session_application").on(table.applicationId),
+    index("idx_session_scope_application").on(
+      table.scope,
+      table.applicationId
+    ),
     uniqueIndex("idx_session_token").on(table.token),
     index("idx_session_expires_at").on(table.expiresAt),
   ]
