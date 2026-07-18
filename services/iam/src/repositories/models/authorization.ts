@@ -41,6 +41,43 @@ export type Organization = typeof organization.$inferSelect;
 export type NewOrganization = typeof organization.$inferInsert;
 
 // ============================================================================
+// Application table
+// Applications are organization-owned IAM resources
+// ============================================================================
+
+export const application = iamSchema.table(
+  "application",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** URL-friendly identifier, unique within an organization */
+    name: varchar("name", { length: 128 }).notNull(),
+    /** Human-readable application name */
+    displayName: varchar("display_name", { length: 256 }).notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_application_org").on(table.organizationId),
+    uniqueIndex("idx_application_org_name").on(
+      table.organizationId,
+      table.name
+    ),
+  ]
+);
+
+export type Application = typeof application.$inferSelect;
+export type NewApplication = typeof application.$inferInsert;
+
+// ============================================================================
 // Organization Member table
 // Links users to organizations with org-level roles
 // ============================================================================
