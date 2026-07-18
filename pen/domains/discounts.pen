@@ -9934,13 +9934,13 @@
                           "id": "l3vG05",
                           "name": "Combined combinations tile",
                           "width": "fill_container",
-                          "height": "fill_container",
+                          "height": 90,
                           "fill": "#FFFFFF",
                           "cornerRadius": 8,
                           "stroke": "#E8E8E8",
                           "strokeWidth": 1,
                           "layout": "vertical",
-                          "gap": 9,
+                          "gap": 8,
                           "padding": 10,
                           "children": [
                             {
@@ -10013,7 +10013,7 @@
                               "id": "XXXaJ",
                               "name": "Combined combination options",
                               "width": "fill_container",
-                              "height": "fill_container",
+                              "height": 36,
                               "gap": 6,
                               "children": [
                                 {
@@ -10023,20 +10023,22 @@
                                   "width": "fill_container",
                                   "height": "fill_container",
                                   "fill": "#E6F4FF",
-                                  "cornerRadius": 7,
+                                  "cornerRadius": 6,
                                   "stroke": "#91CAFF",
                                   "strokeWidth": 1,
-                                  "layout": "vertical",
-                                  "gap": 8,
-                                  "justifyContent": "center",
+                                  "gap": 7,
+                                  "padding": [
+                                    0,
+                                    10
+                                  ],
                                   "alignItems": "center",
                                   "children": [
                                     {
                                       "type": "icon",
                                       "id": "B99jyT",
                                       "name": "Product combination option icon",
-                                      "width": 22,
-                                      "height": 22,
+                                      "width": 16,
+                                      "height": 16,
                                       "icon": "package-check",
                                       "library": "lucide",
                                       "fill": "#1677FF"
@@ -10045,9 +10047,21 @@
                                       "type": "frame",
                                       "id": "f3QhL",
                                       "name": "Product combination option status",
+                                      "width": "fill_container",
                                       "gap": 4,
+                                      "justifyContent": "space_between",
                                       "alignItems": "center",
                                       "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "q3N75T",
+                                          "name": "Product combination option label",
+                                          "fill": "#262626",
+                                          "content": "Product",
+                                          "fontFamily": "Safiro",
+                                          "fontSize": 10,
+                                          "fontWeight": "600"
+                                        },
                                         {
                                           "type": "icon",
                                           "id": "w6Q70",
@@ -10057,16 +10071,6 @@
                                           "icon": "circle-check",
                                           "library": "lucide",
                                           "fill": "#1677FF"
-                                        },
-                                        {
-                                          "type": "text",
-                                          "id": "q3N75T",
-                                          "name": "Product combination option label",
-                                          "fill": "#262626",
-                                          "content": "Product",
-                                          "fontFamily": "Safiro",
-                                          "fontSize": 9,
-                                          "fontWeight": "600"
                                         }
                                       ]
                                     }
@@ -10079,20 +10083,22 @@
                                   "width": "fill_container",
                                   "height": "fill_container",
                                   "fill": "#E6F4FF",
-                                  "cornerRadius": 7,
+                                  "cornerRadius": 6,
                                   "stroke": "#91CAFF",
                                   "strokeWidth": 1,
-                                  "layout": "vertical",
-                                  "gap": 8,
-                                  "justifyContent": "center",
+                                  "gap": 7,
+                                  "padding": [
+                                    0,
+                                    10
+                                  ],
                                   "alignItems": "center",
                                   "children": [
                                     {
                                       "type": "icon",
                                       "id": "K1EfD",
                                       "name": "Order combination option icon",
-                                      "width": 22,
-                                      "height": 22,
+                                      "width": 16,
+                                      "height": 16,
                                       "icon": "receipt-text",
                                       "library": "lucide",
                                       "fill": "#1677FF"
@@ -10101,9 +10107,21 @@
                                       "type": "frame",
                                       "id": "ajK1X",
                                       "name": "Order combination option status",
+                                      "width": "fill_container",
                                       "gap": 4,
+                                      "justifyContent": "space_between",
                                       "alignItems": "center",
                                       "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "lQc5T",
+                                          "name": "Order combination option label",
+                                          "fill": "#262626",
+                                          "content": "Order",
+                                          "fontFamily": "Safiro",
+                                          "fontSize": 10,
+                                          "fontWeight": "600"
+                                        },
                                         {
                                           "type": "icon",
                                           "id": "C739DT",
@@ -10113,16 +10131,6 @@
                                           "icon": "circle-check",
                                           "library": "lucide",
                                           "fill": "#1677FF"
-                                        },
-                                        {
-                                          "type": "text",
-                                          "id": "lQc5T",
-                                          "name": "Order combination option label",
-                                          "fill": "#262626",
-                                          "content": "Order",
-                                          "fontFamily": "Safiro",
-                                          "fontSize": 9,
-                                          "fontWeight": "600"
                                         }
                                       ]
                                     }
@@ -10135,20 +10143,22 @@
                                   "width": "fill_container",
                                   "height": "fill_container",
                                   "fill": "#FFFFFF",
-                                  "cornerRadius": 7,
+                                  "cornerRadius": 6,
                                   "stroke": "#E8E8E8",
                                   "strokeWidth": 1,
-                                  "layout": "vertical",
-                                  "gap": 8,
-                                  "justifyContent": "center",
+                                  "gap": 7,
+                                  "padding": [
+                                    0,
+                                    10
+                                  ],
                                   "alignItems": "center",
                                   "children": [
                                     {
                                       "type": "icon",
                                       "id": "p157e",
                                       "name": "Shipping combination option icon",
-                                      "width": 22,
-                                      "height": 22,
+                                      "width": 16,
+                                      "height": 16,
                                       "icon": "truck",
                                       "library": "lucide",
                                       "fill": "#BFBFBF"
@@ -10157,9 +10167,21 @@
                                       "type": "frame",
                                       "id": "MYP1d",
                                       "name": "Shipping combination option status",
+                                      "width": "fill_container",
                                       "gap": 4,
+                                      "justifyContent": "space_between",
                                       "alignItems": "center",
                                       "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "yGHK0",
+                                          "name": "Shipping combination option label",
+                                          "fill": "#8C8C8C",
+                                          "content": "Shipping",
+                                          "fontFamily": "Safiro",
+                                          "fontSize": 10,
+                                          "fontWeight": "600"
+                                        },
                                         {
                                           "type": "icon",
                                           "id": "n6u2G",
@@ -10169,16 +10191,6 @@
                                           "icon": "circle",
                                           "library": "lucide",
                                           "fill": "#BFBFBF"
-                                        },
-                                        {
-                                          "type": "text",
-                                          "id": "yGHK0",
-                                          "name": "Shipping combination option label",
-                                          "fill": "#8C8C8C",
-                                          "content": "Shipping",
-                                          "fontFamily": "Safiro",
-                                          "fontSize": 9,
-                                          "fontWeight": "600"
                                         }
                                       ]
                                     }
@@ -13259,11 +13271,25 @@
                       ]
                     },
                     {
-                      "id": "dt2bO",
+                      "id": "wyLkB",
                       "type": "ref",
-                      "ref": "I8hu9",
-                      "name": "Amount off products distribution",
-                      "width": 800
+                      "ref": "avwDn",
+                      "name": "Amount off products channels",
+                      "width": 800,
+                      "height": 150
+                    },
+                    {
+                      "id": "AzBh7",
+                      "type": "ref",
+                      "ref": "mvjvy",
+                      "name": "Amount off products combinations",
+                      "width": 800,
+                      "height": 90,
+                      "descendants": {
+                        "zaObD": {
+                          "height": 36
+                        }
+                      }
                     },
                     {
                       "id": "K0acmz",
@@ -13272,7 +13298,7 @@
                       "name": "Amount off products availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1111,
+                      "y": 1146,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 18, 2026 at 09:00"
@@ -13580,7 +13606,7 @@
                       "name": "Amount off products discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1366
+                      "y": 1401
                     },
                     {
                       "id": "E07UZ",
@@ -13589,7 +13615,7 @@
                       "name": "Amount off products external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1561
+                      "y": 1596
                     }
                   ]
                 }
@@ -14148,41 +14174,55 @@
                       ]
                     },
                     {
-                      "id": "N5emie",
+                      "id": "ylr9G",
                       "type": "ref",
-                      "ref": "I8hu9",
-                      "name": "Buy X Get Y distribution",
+                      "ref": "avwDn",
+                      "name": "Buy X Get Y channels",
                       "width": 800,
+                      "height": 150,
                       "descendants": {
-                        "ivSB8": {
+                        "HpC2x": {
                           "content": "2 of 3 active"
                         },
-                        "Z1vwsU": {
+                        "CSYDR": {
                           "fill": "#1677FF"
                         },
-                        "N7gsp": {
+                        "TTfFT": {
                           "fill": "#262626"
                         },
-                        "qPoG7": {
-                          "fill": "#1677FF",
-                          "icon": "circle-check"
-                        },
-                        "lvx0f": {
+                        "Cqn06": {
+                          "icon": "circle-check",
+                          "fill": "#1677FF"
+                        }
+                      }
+                    },
+                    {
+                      "id": "uwLx3",
+                      "type": "ref",
+                      "ref": "mvjvy",
+                      "name": "Buy X Get Y combinations",
+                      "width": 800,
+                      "height": 90,
+                      "descendants": {
+                        "DgK3n": {
                           "content": "1 of 3 enabled"
                         },
-                        "zNAeY": {
+                        "zaObD": {
+                          "height": 36
+                        },
+                        "Ydw4q": {
                           "fill": "#FFFFFF",
                           "stroke": "#E8E8E8"
                         },
-                        "K1EfD": {
+                        "lJYmt": {
                           "fill": "#BFBFBF"
                         },
-                        "C739DT": {
-                          "fill": "#BFBFBF",
-                          "icon": "circle"
-                        },
-                        "lQc5T": {
+                        "vrzzM": {
                           "fill": "#8C8C8C"
+                        },
+                        "u8NFOx": {
+                          "icon": "circle",
+                          "fill": "#BFBFBF"
                         }
                       }
                     },
@@ -14193,7 +14233,7 @@
                       "name": "Buy X Get Y availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1171,
+                      "y": 1206,
                       "descendants": {
                         "exHTS": {
                           "content": "Aug 1, 2026 at 00:00"
@@ -14397,7 +14437,7 @@
                       "name": "Buy X Get Y discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1427,
+                      "y": 1462,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -14476,7 +14516,7 @@
                       "name": "Buy X Get Y external references empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1564,
+                      "y": 1599,
                       "descendants": {
                         "RrC1t": {
                           "content": "0"
@@ -15078,55 +15118,66 @@
                       ]
                     },
                     {
-                      "id": "L15mO",
+                      "id": "N8BUaK",
                       "type": "ref",
-                      "ref": "I8hu9",
-                      "name": "Amount off order distribution",
+                      "ref": "avwDn",
+                      "name": "Amount off order channels",
                       "width": 800,
+                      "height": 150,
                       "descendants": {
-                        "ivSB8": {
+                        "HpC2x": {
                           "content": "2 of 3 active"
                         },
-                        "tAs4D": {
+                        "QSUCM": {
                           "fill": "#1677FF"
                         },
-                        "DrOmC": {
+                        "lA2CW": {
                           "fill": "#262626"
                         },
-                        "LNdTk": {
-                          "fill": "#1677FF",
-                          "icon": "circle-check"
+                        "ZwWYb": {
+                          "icon": "circle-check",
+                          "fill": "#1677FF"
+                        }
+                      }
+                    },
+                    {
+                      "id": "Um8Gs",
+                      "type": "ref",
+                      "ref": "mvjvy",
+                      "name": "Amount off order combinations",
+                      "width": 800,
+                      "height": 90,
+                      "descendants": {
+                        "zaObD": {
+                          "height": 36
                         },
-                        "lvx0f": {
-                          "content": "2 of 3 enabled"
-                        },
-                        "Aklbn": {
+                        "F8HFt": {
                           "fill": "#FFFFFF",
                           "stroke": "#E8E8E8"
                         },
-                        "B99jyT": {
+                        "aj4tQ": {
                           "fill": "#BFBFBF"
                         },
-                        "w6Q70": {
-                          "fill": "#BFBFBF",
-                          "icon": "circle"
-                        },
-                        "q3N75T": {
+                        "Mb5Nn": {
                           "fill": "#8C8C8C"
                         },
-                        "L1ZKc": {
+                        "BVLXl": {
+                          "icon": "circle",
+                          "fill": "#BFBFBF"
+                        },
+                        "i59cl": {
                           "fill": "#E6F4FF",
                           "stroke": "#91CAFF"
                         },
-                        "p157e": {
+                        "CsO2Z": {
                           "fill": "#1677FF"
                         },
-                        "n6u2G": {
-                          "fill": "#1677FF",
-                          "icon": "circle-check"
-                        },
-                        "yGHK0": {
+                        "V8WuyP": {
                           "fill": "#262626"
+                        },
+                        "ws8YG": {
+                          "icon": "circle-check",
+                          "fill": "#1677FF"
                         }
                       }
                     },
@@ -15137,7 +15188,7 @@
                       "name": "Amount off order availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1123,
+                      "y": 1158,
                       "descendants": {
                         "exHTS": {
                           "content": "Jun 1, 2026 at 00:00"
@@ -15445,7 +15496,7 @@
                       "name": "Amount off order discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1378,
+                      "y": 1413,
                       "descendants": {
                         "EFRB1": {
                           "content": "ORDER25"
@@ -15480,7 +15531,7 @@
                       "name": "Amount off order external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1573,
+                      "y": 1608,
                       "descendants": {
                         "APFYm": {
                           "content": "Shopify Plus"
@@ -16057,11 +16108,25 @@
                       ]
                     },
                     {
-                      "id": "FO7u0",
+                      "id": "Y0P04",
                       "type": "ref",
-                      "ref": "I8hu9",
-                      "name": "Free shipping distribution",
-                      "width": 800
+                      "ref": "avwDn",
+                      "name": "Free shipping channels",
+                      "width": 800,
+                      "height": 150
+                    },
+                    {
+                      "id": "Ewwix",
+                      "type": "ref",
+                      "ref": "mvjvy",
+                      "name": "Free shipping combinations",
+                      "width": 800,
+                      "height": 90,
+                      "descendants": {
+                        "zaObD": {
+                          "height": 36
+                        }
+                      }
                     },
                     {
                       "id": "Z6Fw86",
@@ -16070,7 +16135,7 @@
                       "name": "Free shipping availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1123,
+                      "y": 1158,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 1, 2026 at 00:00"
@@ -16274,7 +16339,7 @@
                       "name": "Free shipping discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1379,
+                      "y": 1414,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -16353,7 +16418,7 @@
                       "name": "Free shipping external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1516,
+                      "y": 1551,
                       "descendants": {
                         "RrC1t": {
                           "content": "1"
@@ -16993,6 +17058,554 @@
                       "fontFamily": "Safiro",
                       "fontSize": 11,
                       "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "avwDn",
+      "x": 40,
+      "y": 238,
+      "name": "Discount block / Channels / Standalone",
+      "reusable": true,
+      "width": 800,
+      "height": 150,
+      "fill": "#FFFFFF",
+      "cornerRadius": 8,
+      "stroke": "#E8E8E8",
+      "strokeWidth": 1,
+      "layout": "vertical",
+      "gap": 8,
+      "padding": 10,
+      "children": [
+        {
+          "type": "frame",
+          "id": "ynl6o",
+          "name": "Combined channels header",
+          "width": "fill_container",
+          "gap": 7,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "boHuE",
+              "name": "Combined channels icon background",
+              "width": 26,
+              "height": 26,
+              "fill": "#FFFFFF",
+              "cornerRadius": 7,
+              "stroke": "#E8E8E8",
+              "strokeWidth": 1,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "r3rqHP",
+                  "name": "Combined channels icon",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "radio-tower",
+                  "library": "lucide",
+                  "fill": "#595959"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "KbOjF",
+              "name": "Combined channels copy",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 1,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "u5SrEX",
+                  "name": "Combined channels title",
+                  "fill": "#262626",
+                  "content": "Channels",
+                  "fontFamily": "Safiro",
+                  "fontSize": 11,
+                  "fontWeight": "650"
+                },
+                {
+                  "type": "text",
+                  "id": "HpC2x",
+                  "name": "Combined channels caption",
+                  "fill": "#8C8C8C",
+                  "content": "1 of 3 active",
+                  "fontFamily": "Safiro",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "oFkby",
+          "name": "Combined channel options",
+          "width": "fill_container",
+          "height": 86,
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "er8uF",
+              "name": "Online store channel option",
+              "width": "fill_container",
+              "height": 29,
+              "fill": "#FFFFFF",
+              "stroke": "#F0F0F0",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "gap": 8,
+              "padding": [
+                0,
+                4
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "C4k9y",
+                  "name": "Online store channel option icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "store",
+                  "library": "lucide",
+                  "fill": "#1677FF"
+                },
+                {
+                  "type": "frame",
+                  "id": "e3MtwM",
+                  "name": "Online store channel option status",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "G5B9S",
+                      "name": "Online store channel option label",
+                      "fill": "#262626",
+                      "content": "Online store",
+                      "fontFamily": "Safiro",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "fOdB9",
+                      "name": "Online store channel option status icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "circle-check",
+                      "library": "lucide",
+                      "fill": "#1677FF"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "v9sf8",
+              "name": "Mobile app channel option",
+              "width": "fill_container",
+              "height": 29,
+              "fill": "#FFFFFF",
+              "stroke": "#F0F0F0",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "gap": 8,
+              "padding": [
+                0,
+                4
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "CSYDR",
+                  "name": "Mobile app channel option icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "smartphone",
+                  "library": "lucide",
+                  "fill": "#BFBFBF"
+                },
+                {
+                  "type": "frame",
+                  "id": "sbpvY",
+                  "name": "Mobile app channel option status",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "TTfFT",
+                      "name": "Mobile app channel option label",
+                      "fill": "#8C8C8C",
+                      "content": "Mobile app",
+                      "fontFamily": "Safiro",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "Cqn06",
+                      "name": "Mobile app channel option status icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "circle",
+                      "library": "lucide",
+                      "fill": "#BFBFBF"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tWIPX",
+              "name": "POS channel option",
+              "width": "fill_container",
+              "height": 28,
+              "fill": "#FFFFFF",
+              "stroke": "#FFFFFF",
+              "gap": 8,
+              "padding": [
+                0,
+                4
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "QSUCM",
+                  "name": "POS channel option icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "credit-card",
+                  "library": "lucide",
+                  "fill": "#BFBFBF"
+                },
+                {
+                  "type": "frame",
+                  "id": "b1Y6AF",
+                  "name": "POS channel option status",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lA2CW",
+                      "name": "POS channel option label",
+                      "fill": "#8C8C8C",
+                      "content": "POS",
+                      "fontFamily": "Safiro",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "ZwWYb",
+                      "name": "POS channel option status icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "circle",
+                      "library": "lucide",
+                      "fill": "#BFBFBF"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "mvjvy",
+      "x": 920,
+      "y": 238,
+      "name": "Discount block / Combinations / Standalone",
+      "reusable": true,
+      "width": 800,
+      "height": 90,
+      "fill": "#FFFFFF",
+      "cornerRadius": 8,
+      "stroke": "#E8E8E8",
+      "strokeWidth": 1,
+      "layout": "vertical",
+      "gap": 8,
+      "padding": 10,
+      "children": [
+        {
+          "type": "frame",
+          "id": "BURNu",
+          "name": "Combined combinations header",
+          "width": "fill_container",
+          "gap": 7,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "ZpQyA",
+              "name": "Combined combinations icon background",
+              "width": 26,
+              "height": 26,
+              "fill": "#FFFFFF",
+              "cornerRadius": 7,
+              "stroke": "#E8E8E8",
+              "strokeWidth": 1,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "d7une",
+                  "name": "Combined combinations icon",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "combine",
+                  "library": "lucide",
+                  "fill": "#595959"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ONPc7",
+              "name": "Combined combinations copy",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 1,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "MYpXJ",
+                  "name": "Combined combinations title",
+                  "fill": "#262626",
+                  "content": "Combinations",
+                  "fontFamily": "Safiro",
+                  "fontSize": 11,
+                  "fontWeight": "650"
+                },
+                {
+                  "type": "text",
+                  "id": "DgK3n",
+                  "name": "Combined combinations caption",
+                  "fill": "#8C8C8C",
+                  "content": "2 of 3 enabled",
+                  "fontFamily": "Safiro",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "zaObD",
+          "name": "Combined combination options",
+          "width": "fill_container",
+          "height": 36,
+          "gap": 6,
+          "children": [
+            {
+              "type": "frame",
+              "id": "F8HFt",
+              "name": "Product combination option",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#E6F4FF",
+              "cornerRadius": 6,
+              "stroke": "#91CAFF",
+              "strokeWidth": 1,
+              "gap": 7,
+              "padding": [
+                0,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "aj4tQ",
+                  "name": "Product combination option icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "package-check",
+                  "library": "lucide",
+                  "fill": "#1677FF"
+                },
+                {
+                  "type": "frame",
+                  "id": "M6Hkbv",
+                  "name": "Product combination option status",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Mb5Nn",
+                      "name": "Product combination option label",
+                      "fill": "#262626",
+                      "content": "Product",
+                      "fontFamily": "Safiro",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "BVLXl",
+                      "name": "Product combination option status icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "circle-check",
+                      "library": "lucide",
+                      "fill": "#1677FF"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Ydw4q",
+              "name": "Order combination option",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#E6F4FF",
+              "cornerRadius": 6,
+              "stroke": "#91CAFF",
+              "strokeWidth": 1,
+              "gap": 7,
+              "padding": [
+                0,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "lJYmt",
+                  "name": "Order combination option icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "receipt-text",
+                  "library": "lucide",
+                  "fill": "#1677FF"
+                },
+                {
+                  "type": "frame",
+                  "id": "ZpoWW",
+                  "name": "Order combination option status",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "vrzzM",
+                      "name": "Order combination option label",
+                      "fill": "#262626",
+                      "content": "Order",
+                      "fontFamily": "Safiro",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "u8NFOx",
+                      "name": "Order combination option status icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "circle-check",
+                      "library": "lucide",
+                      "fill": "#1677FF"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "i59cl",
+              "name": "Shipping combination option",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 6,
+              "stroke": "#E8E8E8",
+              "strokeWidth": 1,
+              "gap": 7,
+              "padding": [
+                0,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "CsO2Z",
+                  "name": "Shipping combination option icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "truck",
+                  "library": "lucide",
+                  "fill": "#BFBFBF"
+                },
+                {
+                  "type": "frame",
+                  "id": "P8YutU",
+                  "name": "Shipping combination option status",
+                  "width": "fill_container",
+                  "gap": 4,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "V8WuyP",
+                      "name": "Shipping combination option label",
+                      "fill": "#8C8C8C",
+                      "content": "Shipping",
+                      "fontFamily": "Safiro",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "ws8YG",
+                      "name": "Shipping combination option status icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "circle",
+                      "library": "lucide",
+                      "fill": "#BFBFBF"
                     }
                   ]
                 }
