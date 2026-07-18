@@ -190,8 +190,8 @@ const auth = betterAuth({
       disableSettingJwtHeader: true,
     }),
     oauthProvider({
-      loginPage: "/sign-in",
-      consentPage: "/oauth/consent",
+      loginPage: config.oauth.ui.signInUrl,
+      consentPage: config.oauth.ui.consentUrl,
 
       validAudiences: [
         "https://admin-api.shopana.io",
@@ -217,7 +217,7 @@ const auth = betterAuth({
       clientReference,
       clientPrivileges,
       postLogin: {
-        page: "/oauth/select-organization",
+        page: config.oauth.ui.selectOrganizationUrl,
         shouldRedirect: shouldSelectAuthorizationOrganization,
         consentReferenceId: resolveConsentOrganizationId,
       },
@@ -230,6 +230,8 @@ const auth = betterAuth({
 ```
 
 Конкретные URLs и scopes должны поступать из типизированной конфигурации Shopana, а не быть разбросаны строками по сервису.
+
+`loginPage`, `consentPage` и `postLogin.page` должны быть абсолютными внешними URLs Admin frontend из validated configuration. IAM не обслуживает HTML/SPA этих страниц.
 
 JWT plugin должен использовать тот же canonical HTTPS issuer, что и OAuth Provider. Значения вроде `shopana-iam`, внутренний hostname или адрес отдельного pod не являются допустимым production issuer.
 
@@ -246,6 +248,26 @@ JWT plugin должен использовать тот же canonical HTTPS iss
 - проверить, что discovery metadata содержит внешние, а не внутренние URLs.
 
 OAuth endpoints и GraphQL могут находиться на одном Fastify instance, но их middleware chains должны быть разделены.
+
+### 5.2 OAuth UI topology
+
+Страницы login, consent и выбора organization принадлежат Admin frontend:
+
+- `config.oauth.ui.signInUrl` ведёт на страницу входа Admin frontend;
+- `config.oauth.ui.consentUrl` ведёт на страницу подтверждения scopes;
+- `config.oauth.ui.selectOrganizationUrl` ведёт на страницу выбора authorization organization и выполнения дополнительных login requirements.
+
+IAM обслуживает только Better Auth HTTP endpoints, включая authorization, token, consent/continue API, JWKS и discovery. Admin frontend обслуживает HTML, JavaScript и browser navigation для OAuth UI.
+
+Reverse proxy должен маршрутизировать запросы по внешнему hostname и path без подмены canonical issuer:
+
+- OAuth/Better Auth paths фактического auth base path направляются в IAM Fastify;
+- пути страниц из `config.oauth.ui.*` направляются в Admin frontend;
+- если IAM и Admin frontend опубликованы на разных origins, `trustedOrigins`, credentialed CORS и cookie policy должны явно разрешать только configured Admin frontend origin;
+- Admin frontend вызывает consent/continue endpoints с `credentials: "include"` и передаёт только подписанный OAuth Provider параметр `oauth_query`;
+- GraphQL authentication middleware не применяется к OAuth protocol endpoints.
+
+Допускается один внешний hostname с path-based routing или отдельные hostnames для IAM issuer и Admin frontend. В обоих вариантах discovery metadata, redirects и cookies проверяются по внешним URLs, а не по внутренним адресам сервисов.
 
 ## 6. OAuth Client как Application
 
@@ -279,14 +301,22 @@ OAuth endpoints и GraphQL могут находиться на одном Fasti
 После этого для владения приложением использовать встроенный `clientReference`:
 
 ```typescript
-clientReference: ({ session }) => {
-  return session?.activeOrganizationId as string | undefined;
+clientReference: async ({ user, session }) => {
+  const organizationId = session?.activeOrganizationId as string | undefined;
+  if (!user || !organizationId) {
+    throw new Error("Active organization is required for OAuth client management");
+  }
+
+  await assertOrganizationMembership(user.id, organizationId);
+  return organizationId;
 }
 ```
 
 `reference_id` OAuth client соответствует `organizationId` Shopana.
 
-Если OAuth client принадлежит конкретному пользователю, Better Auth использует user ownership. Если OAuth client принадлежит организации, источником владения является `reference_id`.
+Первая версия Shopana поддерживает только organization-owned OAuth clients. User-owned clients не создаются и не отображаются. Любая create/list/read/update/delete/rotate операция требует действительную session с `activeOrganizationId`, актуальный organization membership и успешную Casbin-проверку.
+
+`clientReference` обязан всегда возвращать проверенный `activeOrganizationId` или отклонять операцию. Возврат `undefined` недопустим для Shopana client management, поскольку Better Auth в этом случае может создать user-owned client через `user_id`.
 
 Не дублировать `organizationId` в отдельной таблице без необходимости.
 
@@ -945,6 +975,8 @@ Organization/store header может только выбрать context, пос
 
 - Зафиксировать canonical external issuer/baseURL и auth base path.
 - Смонтировать `auth.handler` и маршруты OAuth/JWKS/discovery с отдельной middleware chain.
+- Добавить validated absolute URLs `config.oauth.ui.signInUrl`, `consentUrl` и `selectOrganizationUrl`.
+- Настроить reverse proxy routing: Better Auth protocol paths в IAM, OAuth UI pages в Admin frontend.
 - Настроить trusted proxy, cookies, trusted origins и CORS.
 - Подключить `oauthProvider` сначала без открытия external client registration.
 - Добавить официальные OAuth Provider models в IAM Drizzle schema.
@@ -952,7 +984,7 @@ Organization/store header может только выбрать context, пос
 - Проверить hashed storage configuration.
 - Проверить discovery и JWKS routing в Fastify/Nest bootstrap.
 
-**Критерий завершения:** OAuth Provider инициализируется, schema соответствует версии `1.6.23`, а discovery/JWKS возвращают canonical external URLs.
+**Критерий завершения:** OAuth Provider инициализируется, schema соответствует версии `1.6.23`, discovery/JWKS возвращают canonical external URLs, а login/consent/organization-selection redirects открывают Admin frontend и продолжают flow через IAM endpoints.
 
 ### Этап 2 — Shopana configuration и Casbin
 
@@ -1036,6 +1068,8 @@ Organization/store header может только выбрать context, пос
 - незарегистрированный scope отклоняется;
 - high-risk scope сокращает TTL;
 - organization admin не видит clients другой организации;
+- OAuth client нельзя создать или получить без проверенного `activeOrganizationId`;
+- user-owned OAuth client через `user_id` не создаётся;
 - organization admin не изменяет trusted client;
 - Casbin запрещает неразрешённый client CRUD;
 - удалённый member не получает новый token;
@@ -1049,6 +1083,7 @@ Organization/store header может только выбрать context, пос
 - удаление/disable machine client инвалидирует его Casbin bindings/cache;
 - user token получает organization через `postLogin.consentReferenceId`, а не через client ownership;
 - OAuth discovery/JWKS доступны по canonical external issuer;
+- login, consent и organization-selection pages обслуживаются Admin frontend, а OAuth protocol endpoints — IAM;
 - revocation блокирует refresh;
 - отключённый client не получает новые tokens;
 - legacy Admin flow удаляется после migration window.
@@ -1061,7 +1096,7 @@ Organization/store header может только выбрать context, пос
 
 1. IAM использует `@better-auth/oauth-provider`, а не deprecated `oidcProvider`.
 2. В проекте нет собственной дублирующей реализации OAuth clients/tokens/consent/PKCE.
-3. OAuth clients принадлежат пользователю или организации через механизм Better Auth.
+3. OAuth clients принадлежат организации через `oauthClient.reference_id`; user-owned clients в первой версии не поддерживаются.
 4. Owner organization client и authorization organization user token разделены и проверяются независимо.
 5. CRUD OAuth clients защищён Casbin через `clientPrivileges`, IAM scripts и GraphQL authorization.
 6. Access tokens выпускаются как JWT для зарегистрированных Shopana resources с явно заданными TTL.
