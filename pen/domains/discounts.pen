@@ -2864,11 +2864,409 @@
                           "layout": "vertical",
                           "children": [
                             {
+                              "type": "frame",
                               "id": "TrnCP",
-                              "type": "ref",
-                              "ref": "cHsik",
                               "name": "Discount value section",
-                              "width": "fill_container"
+                              "context": "Main Value & requirements block for DiscountDetailsCard. Statistic with icon-led rule list.",
+                              "width": "fill_container",
+                              "fill": "#FFFFFF",
+                              "cornerRadius": [
+                                8,
+                                8,
+                                0,
+                                0
+                              ],
+                              "stroke": "#F0F0F0",
+                              "strokeWidth": {
+                                "top": 1,
+                                "right": 1,
+                                "left": 1
+                              },
+                              "layout": "vertical",
+                              "gap": 10,
+                              "padding": 12,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "mK6vH",
+                                  "name": "Discount value section header",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "myWTh",
+                                      "name": "Discount value section header row",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "SKZ1H",
+                                          "name": "Discount value section title",
+                                          "fill": "#262626",
+                                          "content": "Value & requirements",
+                                          "fontFamily": "$--font-secondary",
+                                          "fontSize": 16,
+                                          "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "J68vw",
+                                          "name": "Discount value section actions",
+                                          "width": 24,
+                                          "height": 24,
+                                          "fill": "#FFFFFF",
+                                          "cornerRadius": 4,
+                                          "stroke": "#D9D9D9",
+                                          "strokeWidth": 1,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "icon",
+                                              "id": "G3bO9R",
+                                              "name": "Discount value section actions icon",
+                                              "width": 13,
+                                              "height": 13,
+                                              "icon": "ellipsis",
+                                              "library": "lucide",
+                                              "fill": "#595959"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "rectangle",
+                                      "id": "QvW6A",
+                                      "name": "Discount value section header divider",
+                                      "fill": "#F0F0F0",
+                                      "width": "fill_container",
+                                      "height": 1
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "D2U1lz",
+                                  "name": "Value variant A content",
+                                  "width": "fill_container",
+                                  "gap": 16,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "fz0YR",
+                                      "name": "Variant A statistic panel",
+                                      "width": 208,
+                                      "height": 140,
+                                      "fill": "#FAFAFA",
+                                      "cornerRadius": 8,
+                                      "stroke": "#E8E8E8",
+                                      "strokeWidth": 1,
+                                      "layout": "vertical",
+                                      "gap": 6,
+                                      "padding": 16,
+                                      "justifyContent": "space_between",
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "ZEzoS",
+                                          "name": "Variant A statistic eyebrow",
+                                          "gap": 7,
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "frame",
+                                              "id": "Gx84x",
+                                              "name": "Variant A statistic icon background",
+                                              "width": 28,
+                                              "height": 28,
+                                              "fill": "#E6F4FF",
+                                              "cornerRadius": 999,
+                                              "justifyContent": "center",
+                                              "alignItems": "center",
+                                              "children": [
+                                                {
+                                                  "type": "icon",
+                                                  "id": "RCjEm",
+                                                  "name": "Variant A statistic icon",
+                                                  "width": 14,
+                                                  "height": 14,
+                                                  "icon": "percent",
+                                                  "library": "lucide",
+                                                  "fill": "#1677FF"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "text",
+                                              "id": "HVQWz",
+                                              "name": "Variant A statistic label",
+                                              "fill": "#595959",
+                                              "content": "Percentage off",
+                                              "fontFamily": "$--font-secondary",
+                                              "fontSize": 13,
+                                              "fontWeight": "500"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "buh46",
+                                          "name": "Variant A statistic value",
+                                          "fill": "#262626",
+                                          "content": "20%",
+                                          "lineHeight": 1.15,
+                                          "fontFamily": "$--font-secondary",
+                                          "fontSize": 34,
+                                          "fontWeight": "700"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "iixDt",
+                                          "name": "Variant A statistic caption",
+                                          "fill": "#8C8C8C",
+                                          "textGrowth": "fixed-width",
+                                          "width": "fill_container",
+                                          "content": "Applied across eligible items",
+                                          "fontFamily": "$--font-secondary",
+                                          "fontSize": 12
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "mJhUb",
+                                      "name": "Variant A rule list",
+                                      "width": "fill_container",
+                                      "layout": "vertical",
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "X9sPI",
+                                          "name": "Variant A allocation rule",
+                                          "width": "fill_container",
+                                          "gap": 10,
+                                          "padding": [
+                                            8,
+                                            0
+                                          ],
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "frame",
+                                              "id": "sINzt",
+                                              "name": "Variant A allocation icon background",
+                                              "width": 30,
+                                              "height": 30,
+                                              "fill": "#F5F5F5",
+                                              "cornerRadius": 6,
+                                              "justifyContent": "center",
+                                              "alignItems": "center",
+                                              "children": [
+                                                {
+                                                  "type": "icon",
+                                                  "id": "b2Ch1S",
+                                                  "name": "Variant A allocation icon",
+                                                  "width": 14,
+                                                  "height": 14,
+                                                  "icon": "split",
+                                                  "library": "lucide",
+                                                  "fill": "#595959"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "kPoK7",
+                                              "name": "Variant A allocation copy",
+                                              "width": "fill_container",
+                                              "layout": "vertical",
+                                              "gap": 1,
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "SFnEP",
+                                                  "name": "Variant A allocation label",
+                                                  "fill": "#8C8C8C",
+                                                  "content": "Allocation",
+                                                  "fontFamily": "$--font-secondary",
+                                                  "fontSize": 12,
+                                                  "fontWeight": "normal"
+                                                },
+                                                {
+                                                  "type": "text",
+                                                  "id": "RHSv7",
+                                                  "name": "Variant A allocation value",
+                                                  "fill": "#262626",
+                                                  "content": "Across eligible items",
+                                                  "fontFamily": "$--font-secondary",
+                                                  "fontSize": 14,
+                                                  "fontWeight": "500"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "rectangle",
+                                          "id": "DsSn0",
+                                          "name": "Variant A rule divider",
+                                          "fill": "#F0F0F0",
+                                          "width": "fill_container",
+                                          "height": 1
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "EYdtV",
+                                          "name": "Variant A maximum rule",
+                                          "width": "fill_container",
+                                          "gap": 10,
+                                          "padding": [
+                                            8,
+                                            0
+                                          ],
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "frame",
+                                              "id": "KqOmQ",
+                                              "name": "Variant A maximum icon background",
+                                              "width": 30,
+                                              "height": 30,
+                                              "fill": "#F5F5F5",
+                                              "cornerRadius": 6,
+                                              "justifyContent": "center",
+                                              "alignItems": "center",
+                                              "children": [
+                                                {
+                                                  "type": "icon",
+                                                  "id": "beOL4",
+                                                  "name": "Variant A maximum icon",
+                                                  "width": 14,
+                                                  "height": 14,
+                                                  "icon": "infinity",
+                                                  "library": "lucide",
+                                                  "fill": "#595959"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "PgfSB",
+                                              "name": "Variant A maximum copy",
+                                              "width": "fill_container",
+                                              "layout": "vertical",
+                                              "gap": 1,
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "JozWb",
+                                                  "name": "Variant A maximum label",
+                                                  "fill": "#8C8C8C",
+                                                  "content": "Maximum discount",
+                                                  "fontFamily": "$--font-secondary",
+                                                  "fontSize": 12,
+                                                  "fontWeight": "normal"
+                                                },
+                                                {
+                                                  "type": "text",
+                                                  "id": "Qec1e",
+                                                  "name": "Variant A maximum value",
+                                                  "fill": "#262626",
+                                                  "content": "No limit",
+                                                  "fontFamily": "$--font-secondary",
+                                                  "fontSize": 14,
+                                                  "fontWeight": "500"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "rectangle",
+                                          "id": "tf6Gb",
+                                          "name": "Variant A rule divider",
+                                          "fill": "#F0F0F0",
+                                          "width": "fill_container",
+                                          "height": 1
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "cAUDP",
+                                          "name": "Variant A minimum rule",
+                                          "width": "fill_container",
+                                          "gap": 10,
+                                          "padding": [
+                                            8,
+                                            0
+                                          ],
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "frame",
+                                              "id": "epNFH",
+                                              "name": "Variant A minimum icon background",
+                                              "width": 30,
+                                              "height": 30,
+                                              "fill": "#F5F5F5",
+                                              "cornerRadius": 6,
+                                              "justifyContent": "center",
+                                              "alignItems": "center",
+                                              "children": [
+                                                {
+                                                  "type": "icon",
+                                                  "id": "bEdxw",
+                                                  "name": "Variant A minimum icon",
+                                                  "width": 14,
+                                                  "height": 14,
+                                                  "icon": "shopping-cart",
+                                                  "library": "lucide",
+                                                  "fill": "#595959"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "i3Ji48",
+                                              "name": "Variant A minimum copy",
+                                              "width": "fill_container",
+                                              "layout": "vertical",
+                                              "gap": 1,
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "lZp6x",
+                                                  "name": "Variant A minimum label",
+                                                  "fill": "#8C8C8C",
+                                                  "content": "Minimum purchase",
+                                                  "fontFamily": "$--font-secondary",
+                                                  "fontSize": 12,
+                                                  "fontWeight": "normal"
+                                                },
+                                                {
+                                                  "type": "text",
+                                                  "id": "WLBZ0",
+                                                  "name": "Variant A minimum value",
+                                                  "fill": "#262626",
+                                                  "content": "Subtotal of $50.00",
+                                                  "fontFamily": "$--font-secondary",
+                                                  "fontSize": 14,
+                                                  "fontWeight": "500"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
                             },
                             {
                               "id": "g030h",
@@ -4724,626 +5122,6 @@
           "children": [
             {
               "type": "frame",
-              "id": "T50Hpc",
-              "name": "Playground stage · Value & requirements",
-              "width": 880,
-              "layout": "vertical",
-              "gap": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "note",
-                  "id": "M3Qeq",
-                  "name": "Design comment · Value & requirements",
-                  "width": 800,
-                  "height": 72,
-                  "content": "VALUE & REQUIREMENTS\nAPI: AmountOffRule uses PERCENTAGE or FIXED_AMOUNT, allocation EACH/ACROSS and optional maximumDiscountMinor.\nMinimum requirement is null, SUBTOTAL or QUANTITY. BUY_X_GET_Y and FREE_SHIPPING require their own rule layouts."
-                },
-                {
-                  "type": "frame",
-                  "id": "cHsik",
-                  "name": "Discount block / Value & requirements / Default",
-                  "context": "Main Value & requirements block for DiscountDetailsCard. Statistic with icon-led rule list.",
-                  "reusable": true,
-                  "width": 800,
-                  "fill": "#FFFFFF",
-                  "cornerRadius": [
-                    8,
-                    8,
-                    0,
-                    0
-                  ],
-                  "stroke": "#F0F0F0",
-                  "strokeWidth": {
-                    "top": 1,
-                    "right": 1,
-                    "left": 1
-                  },
-                  "layout": "vertical",
-                  "gap": 10,
-                  "padding": 12,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "DLTFY",
-                      "name": "Discount value section header",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 8,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "bzgUZ",
-                          "name": "Discount value section header row",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "zDvNg",
-                              "name": "Discount value section title",
-                              "fill": "#262626",
-                              "content": "Value & requirements",
-                              "fontFamily": "$--font-secondary",
-                              "fontSize": 16,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "CiCTn",
-                              "name": "Discount value section actions",
-                              "width": 24,
-                              "height": 24,
-                              "fill": "#FFFFFF",
-                              "cornerRadius": 4,
-                              "stroke": "#D9D9D9",
-                              "strokeWidth": 1,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "qzSzj",
-                                  "name": "Discount value section actions icon",
-                                  "width": 13,
-                                  "height": 13,
-                                  "icon": "ellipsis",
-                                  "library": "lucide",
-                                  "fill": "#595959"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "rectangle",
-                          "id": "dzkN1",
-                          "name": "Discount value section header divider",
-                          "fill": "#F0F0F0",
-                          "width": "fill_container",
-                          "height": 1
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "l0WKUE",
-                      "name": "Value variant A content",
-                      "width": "fill_container",
-                      "gap": 16,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "nrCcl",
-                          "name": "Variant A statistic panel",
-                          "width": 208,
-                          "height": 140,
-                          "fill": "#FAFAFA",
-                          "cornerRadius": 8,
-                          "stroke": "#E8E8E8",
-                          "strokeWidth": 1,
-                          "layout": "vertical",
-                          "gap": 6,
-                          "padding": 16,
-                          "justifyContent": "space_between",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "QsFU0",
-                              "name": "Variant A statistic eyebrow",
-                              "gap": 7,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "wlVIB",
-                                  "name": "Variant A statistic icon background",
-                                  "width": 28,
-                                  "height": 28,
-                                  "fill": "#E6F4FF",
-                                  "cornerRadius": 999,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "JLWSF",
-                                      "name": "Variant A statistic icon",
-                                      "width": 14,
-                                      "height": 14,
-                                      "icon": "percent",
-                                      "library": "lucide",
-                                      "fill": "#1677FF"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "m4I6L",
-                                  "name": "Variant A statistic label",
-                                  "fill": "#595959",
-                                  "content": "Percentage off",
-                                  "fontFamily": "$--font-secondary",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "Z7rmKX",
-                              "name": "Variant A statistic value",
-                              "fill": "#262626",
-                              "content": "20%",
-                              "lineHeight": 1.15,
-                              "fontFamily": "$--font-secondary",
-                              "fontSize": 34,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "U5lhaX",
-                              "name": "Variant A statistic caption",
-                              "fill": "#8C8C8C",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "Applied across eligible items",
-                              "fontFamily": "$--font-secondary",
-                              "fontSize": 12
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "AdRD2",
-                          "name": "Variant A rule list",
-                          "width": "fill_container",
-                          "layout": "vertical",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "pj1l6",
-                              "name": "Variant A allocation rule",
-                              "width": "fill_container",
-                              "gap": 10,
-                              "padding": [
-                                8,
-                                0
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "JhlJI",
-                                  "name": "Variant A allocation icon background",
-                                  "width": 30,
-                                  "height": 30,
-                                  "fill": "#F5F5F5",
-                                  "cornerRadius": 6,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "N5L5yg",
-                                      "name": "Variant A allocation icon",
-                                      "width": 14,
-                                      "height": 14,
-                                      "icon": "split",
-                                      "library": "lucide",
-                                      "fill": "#595959"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "l1dCU",
-                                  "name": "Variant A allocation copy",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 1,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "sSj6e",
-                                      "name": "Variant A allocation label",
-                                      "fill": "#8C8C8C",
-                                      "content": "Allocation",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "normal"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "fEGTJ",
-                                      "name": "Variant A allocation value",
-                                      "fill": "#262626",
-                                      "content": "Across eligible items",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 14,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "rectangle",
-                              "id": "mSVoy",
-                              "name": "Variant A rule divider",
-                              "fill": "#F0F0F0",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "frame",
-                              "id": "SO16X",
-                              "name": "Variant A maximum rule",
-                              "width": "fill_container",
-                              "gap": 10,
-                              "padding": [
-                                8,
-                                0
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "Mi1Uq",
-                                  "name": "Variant A maximum icon background",
-                                  "width": 30,
-                                  "height": 30,
-                                  "fill": "#F5F5F5",
-                                  "cornerRadius": 6,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "wxmvF",
-                                      "name": "Variant A maximum icon",
-                                      "width": 14,
-                                      "height": 14,
-                                      "icon": "infinity",
-                                      "library": "lucide",
-                                      "fill": "#595959"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "EozaA",
-                                  "name": "Variant A maximum copy",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 1,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "OWEh6",
-                                      "name": "Variant A maximum label",
-                                      "fill": "#8C8C8C",
-                                      "content": "Maximum discount",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "normal"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "j0mH8b",
-                                      "name": "Variant A maximum value",
-                                      "fill": "#262626",
-                                      "content": "No limit",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 14,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "rectangle",
-                              "id": "fNDfj",
-                              "name": "Variant A rule divider",
-                              "fill": "#F0F0F0",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "frame",
-                              "id": "MKNwI",
-                              "name": "Variant A minimum rule",
-                              "width": "fill_container",
-                              "gap": 10,
-                              "padding": [
-                                8,
-                                0
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "B5ESi",
-                                  "name": "Variant A minimum icon background",
-                                  "width": 30,
-                                  "height": 30,
-                                  "fill": "#F5F5F5",
-                                  "cornerRadius": 6,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "pILd0",
-                                      "name": "Variant A minimum icon",
-                                      "width": 14,
-                                      "height": 14,
-                                      "icon": "shopping-cart",
-                                      "library": "lucide",
-                                      "fill": "#595959"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "VIzjt",
-                                  "name": "Variant A minimum copy",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 1,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "DD7wa",
-                                      "name": "Variant A minimum label",
-                                      "fill": "#8C8C8C",
-                                      "content": "Minimum purchase",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 12,
-                                      "fontWeight": "normal"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "tN56w",
-                                      "name": "Variant A minimum value",
-                                      "fill": "#262626",
-                                      "content": "Subtotal of $50.00",
-                                      "fontFamily": "$--font-secondary",
-                                      "fontSize": 14,
-                                      "fontWeight": "500"
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "R33vu",
-              "name": "Playground stage · Value fixed amount",
-              "width": 880,
-              "layout": "vertical",
-              "gap": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "note",
-                  "id": "YS7QY",
-                  "name": "Design comment · Value fixed amount",
-                  "width": 800,
-                  "height": 72,
-                  "content": "AMOUNT OFF PRODUCTS · FIXED AMOUNT\nAPI sample: valueType FIXED_AMOUNT, amountMinor 1500, allocationMethod EACH, maximumDiscountMinor 6000.\nMinimum requirement: QUANTITY = 3."
-                },
-                {
-                  "id": "yYEkB",
-                  "type": "ref",
-                  "ref": "cHsik",
-                  "name": "Discount block / Value & requirements / Fixed amount state",
-                  "width": 800,
-                  "descendants": {
-                    "JLWSF": {
-                      "icon": "badge-dollar-sign"
-                    },
-                    "m4I6L": {
-                      "content": "Fixed amount off"
-                    },
-                    "Z7rmKX": {
-                      "content": "$15.00",
-                      "fontSize": 30
-                    },
-                    "U5lhaX": {
-                      "content": "Per eligible item"
-                    },
-                    "sSj6e": {
-                      "content": "Allocation"
-                    },
-                    "fEGTJ": {
-                      "content": "Each eligible item"
-                    },
-                    "OWEh6": {
-                      "content": "Maximum discount"
-                    },
-                    "j0mH8b": {
-                      "content": "$60.00"
-                    },
-                    "DD7wa": {
-                      "content": "Minimum purchase"
-                    },
-                    "tN56w": {
-                      "content": "3 items"
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "eZsXQ",
-              "name": "Playground stage · Value Buy X Get Y",
-              "width": 880,
-              "layout": "vertical",
-              "gap": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "note",
-                  "id": "DwkDf",
-                  "name": "Design comment · Value Buy X Get Y",
-                  "width": 800,
-                  "height": 72,
-                  "content": "BUY X GET Y\nAPI sample: requirementType QUANTITY, requiredQuantity 2, benefitQuantity 1, benefitValueType FREE, usesPerOrderLimit 2.\nA separate minimumRequirement is not allowed for this kind."
-                },
-                {
-                  "id": "sRrQg",
-                  "type": "ref",
-                  "ref": "cHsik",
-                  "name": "Discount block / Value & requirements / Buy X Get Y state",
-                  "width": 800,
-                  "descendants": {
-                    "JLWSF": {
-                      "icon": "gift"
-                    },
-                    "m4I6L": {
-                      "content": "Buy X Get Y"
-                    },
-                    "Z7rmKX": {
-                      "content": "Buy 2",
-                      "fontSize": 30
-                    },
-                    "U5lhaX": {
-                      "content": "Get 1 eligible item free"
-                    },
-                    "N5L5yg": {
-                      "icon": "shopping-basket"
-                    },
-                    "sSj6e": {
-                      "content": "Qualifier"
-                    },
-                    "fEGTJ": {
-                      "content": "2 eligible items"
-                    },
-                    "wxmvF": {
-                      "icon": "gift"
-                    },
-                    "OWEh6": {
-                      "content": "Benefit"
-                    },
-                    "j0mH8b": {
-                      "content": "1 item · Free"
-                    },
-                    "pILd0": {
-                      "icon": "repeat-2"
-                    },
-                    "DD7wa": {
-                      "content": "Uses per order"
-                    },
-                    "tN56w": {
-                      "content": "Up to 2 times"
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "EWdnI",
-              "name": "Playground stage · Value free shipping",
-              "width": 880,
-              "layout": "vertical",
-              "gap": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "note",
-                  "id": "H3NYS",
-                  "name": "Design comment · Value free shipping",
-                  "width": 800,
-                  "height": 72,
-                  "content": "FREE SHIPPING\nAPI sample: maximumShippingPriceMinor 3000, currency USD.\nSeparate minimumRequirement: SUBTOTAL = 7500. Free shipping uses its own rule subtype and has no allocation method."
-                },
-                {
-                  "id": "UPZD8",
-                  "type": "ref",
-                  "ref": "cHsik",
-                  "name": "Discount block / Value & requirements / Free shipping state",
-                  "width": 800,
-                  "descendants": {
-                    "JLWSF": {
-                      "icon": "truck"
-                    },
-                    "m4I6L": {
-                      "content": "Shipping discount"
-                    },
-                    "Z7rmKX": {
-                      "content": "Free",
-                      "fontSize": 30
-                    },
-                    "U5lhaX": {
-                      "content": "For eligible shipping rates"
-                    },
-                    "N5L5yg": {
-                      "icon": "badge-dollar-sign"
-                    },
-                    "sSj6e": {
-                      "content": "Maximum shipping price"
-                    },
-                    "fEGTJ": {
-                      "content": "$30.00"
-                    },
-                    "wxmvF": {
-                      "icon": "shopping-cart"
-                    },
-                    "OWEh6": {
-                      "content": "Minimum purchase"
-                    },
-                    "j0mH8b": {
-                      "content": "Subtotal of $75.00"
-                    },
-                    "pILd0": {
-                      "icon": "circle-dollar-sign"
-                    },
-                    "DD7wa": {
-                      "content": "Currency"
-                    },
-                    "tN56w": {
-                      "content": "USD"
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "type": "frame",
               "id": "Y8tpW8",
               "name": "Playground stage · Combined value and usage",
               "width": 880,
@@ -5989,9 +5767,9 @@
                           "name": "Consumed KPI tile",
                           "width": "fill_container",
                           "height": "fill_container",
-                          "fill": "#F0F5FF",
+                          "fill": "#FFFFFF",
                           "cornerRadius": 6,
-                          "stroke": "#ADC6FF",
+                          "stroke": "#E8E8E8",
                           "strokeWidth": 1,
                           "layout": "vertical",
                           "gap": 2,
@@ -6017,7 +5795,7 @@
                               "type": "text",
                               "id": "VbmtP",
                               "name": "Consumed KPI value",
-                              "fill": "#2F54EB",
+                              "fill": "#262626",
                               "content": "248",
                               "lineHeight": 1.15,
                               "fontFamily": "Safiro",
@@ -6095,9 +5873,9 @@
                           "name": "Remaining KPI tile",
                           "width": "fill_container",
                           "height": "fill_container",
-                          "fill": "#F6FFED",
+                          "fill": "#FFFFFF",
                           "cornerRadius": 6,
-                          "stroke": "#B7EB8F",
+                          "stroke": "#E8E8E8",
                           "strokeWidth": 1,
                           "layout": "vertical",
                           "gap": 2,
@@ -6123,7 +5901,7 @@
                               "type": "text",
                               "id": "i7lmb",
                               "name": "Remaining KPI value",
-                              "fill": "#389E0D",
+                              "fill": "#262626",
                               "content": "752",
                               "lineHeight": 1.15,
                               "fontFamily": "Safiro",
@@ -6546,54 +6324,18 @@
                   "content": "↓ ВАРИАНТ 2 — ВЕРТИКАЛЬНОЕ ПРАВИЛО — NODE ID: WcvkP ↓"
                 },
                 {
+                  "type": "frame",
                   "id": "MVENV",
-                  "type": "ref",
-                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · Products to products",
                   "width": 800,
-                  "descendants": {
-                    "KSKlm": {
-                      "height": 128,
-                      "padding": [
-                        8,
-                        0
-                      ],
-                      "strokeWidth": 0,
-                      "cornerRadius": 0,
-                      "fill": "#FFFFFF"
-                    },
-                    "cE5Eo": {
-                      "height": 112
-                    },
-                    "P3oFT": {
-                      "y": 24,
-                      "height": 40
-                    },
-                    "CYEsk": {
-                      "y": 64
-                    },
-                    "C4crc": {
-                      "height": 112
-                    },
-                    "PPJdb": {
-                      "height": 48
-                    },
-                    "y4pBdT": {
-                      "content": "Any of 2 selected products"
-                    },
-                    "s1ngF": {
-                      "content": "Classic tee · +1 more"
-                    },
-                    "Xd0xX": {
-                      "height": 48
-                    },
-                    "fsE5D": {
-                      "content": "Travel backpack"
-                    },
-                    "WCa1d": {
-                      "content": "Specific product"
-                    }
-                  }
+                  "height": "fit_content(196)",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12
                 }
               ]
             },
@@ -6615,54 +6357,18 @@
                   "content": "BUY X GET Y · CATEGORIES → PRODUCTS\nQUALIFIER targets two categories; any qualifying product inside them may satisfy the buy condition.\nBENEFIT targets one specific product."
                 },
                 {
+                  "type": "frame",
                   "id": "SEqz6",
-                  "type": "ref",
-                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · Categories to products",
                   "width": 800,
-                  "descendants": {
-                    "KSKlm": {
-                      "height": 128,
-                      "padding": [
-                        8,
-                        0
-                      ],
-                      "strokeWidth": 0,
-                      "cornerRadius": 0,
-                      "fill": "#FFFFFF"
-                    },
-                    "cE5Eo": {
-                      "height": 112
-                    },
-                    "P3oFT": {
-                      "y": 24,
-                      "height": 40
-                    },
-                    "CYEsk": {
-                      "y": 64
-                    },
-                    "C4crc": {
-                      "height": 112
-                    },
-                    "PPJdb": {
-                      "height": 48
-                    },
-                    "y4pBdT": {
-                      "content": "Any product from 2 selected categories"
-                    },
-                    "s1ngF": {
-                      "content": "Summer essentials · +1 more"
-                    },
-                    "Xd0xX": {
-                      "height": 48
-                    },
-                    "fsE5D": {
-                      "content": "Travel backpack"
-                    },
-                    "WCa1d": {
-                      "content": "Specific product"
-                    }
-                  }
+                  "height": "fit_content(196)",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12
                 }
               ]
             },
@@ -6684,54 +6390,18 @@
                   "content": "BUY X GET Y · ALL PRODUCTS → VARIANTS\nQUALIFIER uses ALL_PRODUCTS with no target IDs, so the complete catalog can satisfy the condition.\nBENEFIT targets one specific variant and exposes its SKU."
                 },
                 {
+                  "type": "frame",
                   "id": "wZr0Z",
-                  "type": "ref",
-                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · All products to variant",
                   "width": 800,
-                  "descendants": {
-                    "KSKlm": {
-                      "height": 128,
-                      "padding": [
-                        8,
-                        0
-                      ],
-                      "strokeWidth": 0,
-                      "cornerRadius": 0,
-                      "fill": "#FFFFFF"
-                    },
-                    "cE5Eo": {
-                      "height": 112
-                    },
-                    "P3oFT": {
-                      "y": 24,
-                      "height": 40
-                    },
-                    "CYEsk": {
-                      "y": 64
-                    },
-                    "C4crc": {
-                      "height": 112
-                    },
-                    "PPJdb": {
-                      "height": 48
-                    },
-                    "y4pBdT": {
-                      "content": "Any product in the catalog"
-                    },
-                    "s1ngF": {
-                      "content": "Entire catalog · New products included automatically"
-                    },
-                    "Xd0xX": {
-                      "height": 48
-                    },
-                    "fsE5D": {
-                      "content": "Travel backpack · Navy"
-                    },
-                    "WCa1d": {
-                      "content": "Variant · SKU BAG-NVY"
-                    }
-                  }
+                  "height": "fit_content(196)",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12
                 }
               ]
             },
@@ -6753,54 +6423,18 @@
                   "content": "BUY X GET Y · VARIANTS → CATEGORIES\nQUALIFIER targets exact variants and shows their SKUs. BENEFIT targets a category, allowing a reward item from that category.\nCounts describe selected targets, not the buy or reward quantity."
                 },
                 {
+                  "type": "frame",
                   "id": "HGijy",
-                  "type": "ref",
-                  "ref": "UhABC",
                   "name": "Discount block / Applies to / Connected flow · Variants to category",
                   "width": 800,
-                  "descendants": {
-                    "KSKlm": {
-                      "height": 128,
-                      "padding": [
-                        8,
-                        0
-                      ],
-                      "strokeWidth": 0,
-                      "cornerRadius": 0,
-                      "fill": "#FFFFFF"
-                    },
-                    "cE5Eo": {
-                      "height": 112
-                    },
-                    "P3oFT": {
-                      "y": 24,
-                      "height": 40
-                    },
-                    "CYEsk": {
-                      "y": 64
-                    },
-                    "C4crc": {
-                      "height": 112
-                    },
-                    "PPJdb": {
-                      "height": 48
-                    },
-                    "y4pBdT": {
-                      "content": "Any of 2 selected variants"
-                    },
-                    "s1ngF": {
-                      "content": "Classic tee · Black · +1 more"
-                    },
-                    "Xd0xX": {
-                      "height": 48
-                    },
-                    "fsE5D": {
-                      "content": "Summer essentials"
-                    },
-                    "WCa1d": {
-                      "content": "Category · 24 eligible products"
-                    }
-                  }
+                  "height": "fit_content(196)",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "stroke": "#F0F0F0",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 12
                 }
               ]
             },
@@ -14014,55 +13648,18 @@
                       }
                     },
                     {
+                      "type": "frame",
                       "id": "d4YIO4",
-                      "type": "ref",
-                      "ref": "UhABC",
                       "name": "Buy X Get Y connected category to product targets",
                       "width": 800,
-                      "descendants": {
-                        "KSKlm": {
-                          "height": 128,
-                          "padding": [
-                            8,
-                            0
-                          ],
-                          "strokeWidth": 0,
-                          "cornerRadius": 0,
-                          "fill": "#FFFFFF"
-                        },
-                        "cE5Eo": {
-                          "height": 112
-                        },
-                        "P3oFT": {
-                          "y": 24,
-                          "height": 40
-                        },
-                        "CYEsk": {
-                          "y": 64
-                        },
-                        "C4crc": {
-                          "height": 112
-                        },
-                        "PPJdb": {
-                          "height": 48
-                        },
-                        "y4pBdT": {
-                          "content": "Any product from 2 selected categories"
-                        },
-                        "s1ngF": {
-                          "content": "Summer essentials · +1 more"
-                        },
-                        "Xd0xX": {
-                          "padding": 0,
-                          "height": 48
-                        },
-                        "fsE5D": {
-                          "content": "Travel backpack"
-                        },
-                        "WCa1d": {
-                          "content": "Specific product"
-                        }
-                      }
+                      "height": "fit_content(196)",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 12
                     },
                     {
                       "id": "pTcBC",
@@ -16784,282 +16381,6 @@
     },
     {
       "type": "frame",
-      "id": "UhABC",
-      "x": 17354,
-      "y": -2177,
-      "name": "Discount block / Buy X Get Y rule / Connected flow",
-      "reusable": true,
-      "width": 800,
-      "fill": "#FFFFFF",
-      "cornerRadius": 8,
-      "stroke": "#F0F0F0",
-      "strokeWidth": 1,
-      "layout": "vertical",
-      "gap": 12,
-      "padding": 12,
-      "children": [
-        {
-          "type": "frame",
-          "id": "Eb8UM",
-          "name": "Connected flow section header",
-          "width": "fill_container",
-          "height": 32,
-          "justifyContent": "space_between",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "text",
-              "id": "AsmDK",
-              "name": "Connected flow section title",
-              "fill": "#111111",
-              "content": "Applies to",
-              "lineHeight": 1.5,
-              "fontFamily": "Safiro",
-              "fontSize": 16,
-              "fontWeight": "600"
-            },
-            {
-              "type": "frame",
-              "id": "y8tOLH",
-              "name": "Change targets action",
-              "height": 32,
-              "fill": "#FFFFFF",
-              "cornerRadius": 6,
-              "stroke": "#D9D9D9",
-              "strokeWidth": 1,
-              "gap": 6,
-              "padding": [
-                0,
-                10
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon",
-                  "id": "oFOwS",
-                  "name": "Change targets icon",
-                  "width": 13,
-                  "height": 13,
-                  "icon": "pencil",
-                  "library": "lucide",
-                  "fill": "#595959"
-                },
-                {
-                  "type": "text",
-                  "id": "szl5n",
-                  "name": "Change targets label",
-                  "fill": "#666666",
-                  "content": "Change",
-                  "lineHeight": 1.6666666667,
-                  "fontFamily": "Safiro",
-                  "fontSize": 12,
-                  "fontWeight": "500"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "KSKlm",
-          "name": "Buy X Get Y compact rule stepper",
-          "width": "fill_container",
-          "height": 128,
-          "fill": "#FFFFFF",
-          "stroke": "#E8E8E8",
-          "gap": 12,
-          "padding": [
-            8,
-            0
-          ],
-          "children": [
-            {
-              "type": "frame",
-              "id": "cE5Eo",
-              "name": "Compact rule stepper rail",
-              "width": 24,
-              "height": 112,
-              "layout": "none",
-              "children": [
-                {
-                  "type": "rectangle",
-                  "id": "P3oFT",
-                  "x": 11,
-                  "y": 24,
-                  "name": "Compact stepper connector line",
-                  "fill": "#E8E8E8",
-                  "width": 2,
-                  "height": 40
-                },
-                {
-                  "type": "frame",
-                  "id": "w6tRBk",
-                  "x": 0,
-                  "y": 0,
-                  "name": "Condition timeline icon node",
-                  "width": 24,
-                  "height": 24,
-                  "fill": "#F2F3F0",
-                  "cornerRadius": 999,
-                  "stroke": "#D9D9D9",
-                  "strokeWidth": 1,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "Kyt1P",
-                      "name": "Condition timeline shopping cart icon",
-                      "width": 12,
-                      "height": 12,
-                      "icon": "shopping-cart",
-                      "library": "lucide",
-                      "fill": "#595959"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "CYEsk",
-                  "x": 0,
-                  "y": 64,
-                  "name": "Reward timeline icon node",
-                  "width": 24,
-                  "height": 24,
-                  "fill": "#E6F4FF",
-                  "cornerRadius": 999,
-                  "stroke": "#91CAFF",
-                  "strokeWidth": 1,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "iZaho",
-                      "name": "Reward timeline gift icon",
-                      "width": 12,
-                      "height": 12,
-                      "icon": "gift",
-                      "library": "lucide",
-                      "fill": "#0958D9"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "C4crc",
-              "name": "Compact rule stepper content",
-              "width": "fill_container",
-              "height": 112,
-              "layout": "vertical",
-              "gap": 16,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "PPJdb",
-                  "name": "Compact condition step",
-                  "width": "fill_container",
-                  "height": 48,
-                  "layout": "vertical",
-                  "gap": 3,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "wz6LK",
-                      "name": "Compact condition label",
-                      "fill": "#666666",
-                      "content": "WHEN · CUSTOMER BUYS",
-                      "fontFamily": "Safiro",
-                      "fontSize": 10,
-                      "fontWeight": "600",
-                      "letterSpacing": 0.7
-                    },
-                    {
-                      "type": "text",
-                      "id": "y4pBdT",
-                      "name": "Compact condition title",
-                      "fill": "#111111",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "2 eligible items from selected categories",
-                      "lineHeight": 1.2,
-                      "fontFamily": "Safiro",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "text",
-                      "id": "s1ngF",
-                      "name": "Compact condition metadata",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Summer essentials · +1 more",
-                      "lineHeight": 1.35,
-                      "fontFamily": "Safiro",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "Xd0xX",
-                  "name": "Compact reward step",
-                  "width": "fill_container",
-                  "height": 48,
-                  "layout": "vertical",
-                  "gap": 3,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "LIQra",
-                      "name": "Compact reward label",
-                      "fill": "#1677FF",
-                      "content": "THEN · CUSTOMER GETS",
-                      "fontFamily": "Safiro",
-                      "fontSize": 10,
-                      "fontWeight": "600",
-                      "letterSpacing": 0.7
-                    },
-                    {
-                      "type": "text",
-                      "id": "fsE5D",
-                      "name": "Compact reward title",
-                      "fill": "#111111",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Travel backpack",
-                      "lineHeight": 1.2,
-                      "fontFamily": "Safiro",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "text",
-                      "id": "WCa1d",
-                      "name": "Compact reward metadata",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "1 eligible item free · Up to 2 times per order",
-                      "lineHeight": 1.35,
-                      "fontFamily": "Safiro",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "frame",
       "id": "avwDn",
       "x": 40,
       "y": 238,
@@ -17575,6 +16896,1684 @@
           "fontFamily": "$--font-secondary",
           "fontSize": 12,
           "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "yEt8h",
+      "x": 22074,
+      "y": -1877,
+      "name": "Discount details · Title only · Empty sections",
+      "clip": true,
+      "width": 1440,
+      "height": 2300,
+      "fill": "#F6F6F4",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "GulP9",
+          "x": 0,
+          "y": 0,
+          "name": "Title only modal backdrop",
+          "fill": "#10111285",
+          "width": 1440,
+          "height": 2300
+        },
+        {
+          "type": "frame",
+          "id": "Cuya1",
+          "x": 18,
+          "y": 18,
+          "name": "Title only modal surface",
+          "clip": true,
+          "width": 1404,
+          "height": 2264,
+          "fill": "#F4F4F1",
+          "cornerRadius": 14,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000045",
+            "offset": {
+              "x": 0,
+              "y": 10
+            },
+            "blur": 36,
+            "spread": -8
+          },
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "h01Jmu",
+              "name": "Title only modal header",
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#FFFFFF",
+              "stroke": "#D9D9D9",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "padding": [
+                0,
+                12,
+                0,
+                0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "J8EZZ4",
+                  "name": "Title only modal header left",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "nut3k",
+                      "name": "Title only modal back zone",
+                      "width": 112,
+                      "height": "fill_container",
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": {
+                        "right": 1
+                      },
+                      "gap": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "eURaj",
+                          "name": "Title only modal back icon",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "arrow-left",
+                          "library": "lucide",
+                          "fill": "#595959"
+                        },
+                        {
+                          "type": "text",
+                          "id": "FTomb",
+                          "name": "Title only modal back label",
+                          "fill": "#595959",
+                          "content": "Back",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "LFOo5",
+                      "name": "Title only modal title",
+                      "fill": "#262626",
+                      "content": "Discount details",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "taEqX",
+                  "name": "Title only draft badge",
+                  "fill": "#FAFAFA",
+                  "cornerRadius": 999,
+                  "stroke": "#D9D9D9",
+                  "strokeWidth": 1,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ESJFt",
+                      "name": "Title only draft badge label",
+                      "fill": "#595959",
+                      "content": "DRAFT",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lEWTy",
+              "name": "Title only modal body",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#F5F5F5",
+              "layout": "vertical",
+              "padding": [
+                24,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "HbYRH",
+                  "name": "Title only modal content",
+                  "width": 800,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "id": "G03Fkp",
+                      "type": "ref",
+                      "ref": "HnqZv",
+                      "name": "Title only discount summary",
+                      "width": "fill_container",
+                      "descendants": {
+                        "pWFdi": {
+                          "fill": "#FAFAFA",
+                          "stroke": "#D9D9D9"
+                        },
+                        "RlTgu": {
+                          "icon": "clock-3",
+                          "fill": "#8C8C8C"
+                        },
+                        "DppRh": {
+                          "content": "Draft",
+                          "fill": "#595959"
+                        },
+                        "iM9y8": {
+                          "content": "Created just now"
+                        },
+                        "q6Apm": {
+                          "content": "Summer sale"
+                        },
+                        "pb9j0": {
+                          "content": "Not set",
+                          "fill": "#8C8C8C"
+                        },
+                        "iMh3R": {
+                          "content": "Not set",
+                          "fill": "#8C8C8C"
+                        },
+                        "x0GVYn": {
+                          "content": "84D21F2A"
+                        },
+                        "CjGio": {
+                          "content": "Not set",
+                          "fill": "#8C8C8C"
+                        },
+                        "NBZeo": {
+                          "content": "0"
+                        },
+                        "xOnNv": {
+                          "content": "—",
+                          "fill": "#8C8C8C"
+                        },
+                        "Jivrt": {
+                          "content": "0"
+                        },
+                        "tgKgH": {
+                          "content": "—",
+                          "fill": "#8C8C8C"
+                        },
+                        "IlaMp": {
+                          "content": "$0"
+                        },
+                        "U647g": {
+                          "content": "—",
+                          "fill": "#8C8C8C"
+                        },
+                        "gi94g": {
+                          "content": "—"
+                        },
+                        "WMFVk": {
+                          "content": "—",
+                          "fill": "#8C8C8C"
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "U5KM0",
+                      "name": "Value & usage empty section",
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ZcqWO",
+                          "name": "Value & usage empty section header",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "ty25z",
+                              "name": "Value & usage empty section header row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "gEPXS",
+                                  "name": "Value & usage empty section title",
+                                  "fill": "#262626",
+                                  "content": "Value & usage",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "ZgcPb",
+                                  "name": "Value & usage empty section actions",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 4,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "fKlAn",
+                                      "name": "Value & usage empty section actions icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "ellipsis",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "WCRDO",
+                              "name": "Value & usage empty section divider",
+                              "fill": "#F0F0F0",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "oBh02",
+                          "name": "Value & usage empty state",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            16,
+                            20
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "nSs6j",
+                              "name": "Value & usage empty state icon background",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "JKPor",
+                                  "name": "Value & usage empty state icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "percent",
+                                  "library": "lucide",
+                                  "fill": "#1677FF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "p1tBQi",
+                              "name": "Value & usage empty state copy",
+                              "width": 360,
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "tW08O",
+                                  "name": "Value & usage empty state title",
+                                  "fill": "#595959",
+                                  "content": "Discount value not configured",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "dKifi",
+                                  "name": "Value & usage empty state description",
+                                  "fill": "#8C8C8C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 360,
+                                  "content": "Add a discount value and usage policy to calculate the benefit.",
+                                  "textAlign": "center",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "XKw35",
+                      "name": "Applies to empty section",
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Y0WFfb",
+                          "name": "Applies to empty section header",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "zYVz7",
+                              "name": "Applies to empty section header row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "axNDU",
+                                  "name": "Applies to empty section title",
+                                  "fill": "#262626",
+                                  "content": "Applies to",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "XEOYU",
+                                  "name": "Applies to empty section actions",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 4,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "WPIBJ",
+                                      "name": "Applies to empty section actions icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "ellipsis",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "q9DKq",
+                              "name": "Applies to empty section divider",
+                              "fill": "#F0F0F0",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "P4p0P",
+                          "name": "Applies to empty state",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            16,
+                            20
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Zztks",
+                              "name": "Applies to empty state icon background",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "bo2v2",
+                                  "name": "Applies to empty state icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "package-search",
+                                  "library": "lucide",
+                                  "fill": "#1677FF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Jot8K",
+                              "name": "Applies to empty state copy",
+                              "width": 360,
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "ZJgFb",
+                                  "name": "Applies to empty state title",
+                                  "fill": "#595959",
+                                  "content": "No products or collections selected",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "S3C6Os",
+                                  "name": "Applies to empty state description",
+                                  "fill": "#8C8C8C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 360,
+                                  "content": "Choose which catalog items are eligible for this discount.",
+                                  "textAlign": "center",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gpFJd",
+                      "name": "Customer eligibility empty section",
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nfzPd",
+                          "name": "Customer eligibility empty section header",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "qWZ5c",
+                              "name": "Customer eligibility empty section header row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "qdlWC",
+                                  "name": "Customer eligibility empty section title",
+                                  "fill": "#262626",
+                                  "content": "Customer eligibility",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "NBqT2",
+                                  "name": "Customer eligibility empty section actions",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 4,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "oOZtH",
+                                      "name": "Customer eligibility empty section actions icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "ellipsis",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "BmuHB",
+                              "name": "Customer eligibility empty section divider",
+                              "fill": "#F0F0F0",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "S1BY1",
+                          "name": "Customer eligibility empty state",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            16,
+                            20
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "dDtyY",
+                              "name": "Customer eligibility empty state icon background",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "kBAwS",
+                                  "name": "Customer eligibility empty state icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "users",
+                                  "library": "lucide",
+                                  "fill": "#1677FF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Yiz0P",
+                              "name": "Customer eligibility empty state copy",
+                              "width": 360,
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Q3YQtL",
+                                  "name": "Customer eligibility empty state title",
+                                  "fill": "#595959",
+                                  "content": "Customer eligibility not configured",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "HHj9V",
+                                  "name": "Customer eligibility empty state description",
+                                  "fill": "#8C8C8C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 360,
+                                  "content": "Choose all customers, specific customers, or customer segments.",
+                                  "textAlign": "center",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "jwVDs",
+                      "name": "Channels empty section",
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "SbD68",
+                          "name": "Channels empty section header",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "IqtvS",
+                              "name": "Channels empty section header row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "rXIV9",
+                                  "name": "Channels empty section title",
+                                  "fill": "#262626",
+                                  "content": "Channels",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "wVubV",
+                                  "name": "Channels empty section actions",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 4,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "xtVhZ",
+                                      "name": "Channels empty section actions icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "ellipsis",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "wKJru",
+                              "name": "Channels empty section divider",
+                              "fill": "#F0F0F0",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "KBmae",
+                          "name": "Channels empty state",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            16,
+                            20
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "CDxgU",
+                              "name": "Channels empty state icon background",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "KeH1U",
+                                  "name": "Channels empty state icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "radio-tower",
+                                  "library": "lucide",
+                                  "fill": "#1677FF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "nH2wq",
+                              "name": "Channels empty state copy",
+                              "width": 360,
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "RWiLR",
+                                  "name": "Channels empty state title",
+                                  "fill": "#595959",
+                                  "content": "No sales channels selected",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "ufo9t",
+                                  "name": "Channels empty state description",
+                                  "fill": "#8C8C8C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 360,
+                                  "content": "Choose where customers can use this discount.",
+                                  "textAlign": "center",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "KdAXW",
+                          "name": "Channels empty section footer",
+                          "fill": "#8C8C8C",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "0 of 3 active",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Q0Piml",
+                      "name": "Combinations empty section",
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "YQDFh",
+                          "name": "Combinations empty section header",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "AijaM",
+                              "name": "Combinations empty section header row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "a8OCcK",
+                                  "name": "Combinations empty section title",
+                                  "fill": "#262626",
+                                  "content": "Combinations",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "nQNPU",
+                                  "name": "Combinations empty section actions",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 4,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "vMrc1",
+                                      "name": "Combinations empty section actions icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "ellipsis",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "vVCP6",
+                              "name": "Combinations empty section divider",
+                              "fill": "#F0F0F0",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "phiVb",
+                          "name": "Combinations empty state",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            16,
+                            20
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "tvMMO",
+                              "name": "Combinations empty state icon background",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "i8cyom",
+                                  "name": "Combinations empty state icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "combine",
+                                  "library": "lucide",
+                                  "fill": "#1677FF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "U5JMs",
+                              "name": "Combinations empty state copy",
+                              "width": 360,
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "kN7CZ",
+                                  "name": "Combinations empty state title",
+                                  "fill": "#595959",
+                                  "content": "No combinations enabled",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "K1pVQY",
+                                  "name": "Combinations empty state description",
+                                  "fill": "#8C8C8C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 360,
+                                  "content": "Choose which other discount classes can be combined with this discount.",
+                                  "textAlign": "center",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "WsnFx",
+                          "name": "Combinations empty section footer",
+                          "fill": "#8C8C8C",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "0 of 3 enabled",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LxZZO",
+                      "name": "Availability & limits empty section",
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "xvqNV",
+                          "name": "Availability & limits empty section header",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "A8iuMh",
+                              "name": "Availability & limits empty section header row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "XRAR9",
+                                  "name": "Availability & limits empty section title",
+                                  "fill": "#262626",
+                                  "content": "Availability & limits",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "b4Sd8L",
+                                  "name": "Availability & limits empty section actions",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 4,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "m5CVdr",
+                                      "name": "Availability & limits empty section actions icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "ellipsis",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "UA6w8",
+                              "name": "Availability & limits empty section divider",
+                              "fill": "#F0F0F0",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ohoRS",
+                          "name": "Availability & limits empty state",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            16,
+                            20
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "l6okVV",
+                              "name": "Availability & limits empty state icon background",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "GR7Nl",
+                                  "name": "Availability & limits empty state icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "calendar-clock",
+                                  "library": "lucide",
+                                  "fill": "#1677FF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "iwfU1",
+                              "name": "Availability & limits empty state copy",
+                              "width": 360,
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Ulh8b",
+                                  "name": "Availability & limits empty state title",
+                                  "fill": "#595959",
+                                  "content": "Schedule and limits not configured",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "nXExI",
+                                  "name": "Availability & limits empty state description",
+                                  "fill": "#8C8C8C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 360,
+                                  "content": "Add availability dates, purchase modes, and usage limits.",
+                                  "textAlign": "center",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "g4U4Ps",
+                      "name": "Tags empty section",
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ii0qn",
+                          "name": "Tags empty section header",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "bfvj4",
+                              "name": "Tags empty section header row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Q1How",
+                                  "name": "Tags empty section title",
+                                  "fill": "#262626",
+                                  "content": "Tags",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Ian38",
+                                  "name": "Tags empty section actions",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 4,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "D88QC",
+                                      "name": "Tags empty section actions icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "ellipsis",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "WZlVX",
+                              "name": "Tags empty section divider",
+                              "fill": "#F0F0F0",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "r4m5nh",
+                          "name": "Tags empty state",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            16,
+                            20
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "kv6u8",
+                              "name": "Tags empty state icon background",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "dS7qZ",
+                                  "name": "Tags empty state icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "tags",
+                                  "library": "lucide",
+                                  "fill": "#1677FF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "EvG0z",
+                              "name": "Tags empty state copy",
+                              "width": 360,
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "zhWnD",
+                                  "name": "Tags empty state title",
+                                  "fill": "#595959",
+                                  "content": "No tags added",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "ecUyV",
+                                  "name": "Tags empty state description",
+                                  "fill": "#8C8C8C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 360,
+                                  "content": "Add tags to organize and find this discount.",
+                                  "textAlign": "center",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "d1Jmm",
+                      "name": "Discount codes empty section",
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "EEEhM",
+                          "name": "Discount codes empty section header",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "gYetr",
+                              "name": "Discount codes empty section header row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "CnD3b",
+                                  "name": "Discount codes empty section title",
+                                  "fill": "#262626",
+                                  "content": "Discount codes",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "iaZib",
+                                  "name": "Discount codes empty section actions",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 4,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "ZmHH1",
+                                      "name": "Discount codes empty section actions icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "ellipsis",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "IoV4Q",
+                              "name": "Discount codes empty section divider",
+                              "fill": "#F0F0F0",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fBAjP",
+                          "name": "Discount codes empty state",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            16,
+                            20
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "DsHM8",
+                              "name": "Discount codes empty state icon background",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "NQxri",
+                                  "name": "Discount codes empty state icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "ticket",
+                                  "library": "lucide",
+                                  "fill": "#1677FF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Kw9JL",
+                              "name": "Discount codes empty state copy",
+                              "width": 360,
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "uhT5M",
+                                  "name": "Discount codes empty state title",
+                                  "fill": "#595959",
+                                  "content": "No discount codes created",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "GWQFV",
+                                  "name": "Discount codes empty state description",
+                                  "fill": "#8C8C8C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 360,
+                                  "content": "Create a code after the discount method and value are configured.",
+                                  "textAlign": "center",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LQzCl",
+                      "name": "External references empty section",
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 8,
+                      "stroke": "#F0F0F0",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "i1YsuG",
+                          "name": "External references empty section header",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "xEnUu",
+                              "name": "External references empty section header row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "RYCHW",
+                                  "name": "External references empty section title",
+                                  "fill": "#262626",
+                                  "content": "External references",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Yakfh",
+                                  "name": "External references empty section actions",
+                                  "width": 24,
+                                  "height": 24,
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": 4,
+                                  "stroke": "#D9D9D9",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "m3benk",
+                                      "name": "External references empty section actions icon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "ellipsis",
+                                      "library": "lucide",
+                                      "fill": "#595959"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "kKrko",
+                              "name": "External references empty section divider",
+                              "fill": "#F0F0F0",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ETHTm",
+                          "name": "External references empty state",
+                          "width": "fill_container",
+                          "height": 128,
+                          "fill": "#FAFAFA",
+                          "cornerRadius": 8,
+                          "stroke": "#D9D9D9",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            16,
+                            20
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "ey45w",
+                              "name": "External references empty state icon background",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E6F4FF",
+                              "cornerRadius": 999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "cXYIb",
+                                  "name": "External references empty state icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "link",
+                                  "library": "lucide",
+                                  "fill": "#1677FF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "w6TXE",
+                              "name": "External references empty state copy",
+                              "width": 360,
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "R8poV",
+                                  "name": "External references empty state title",
+                                  "fill": "#595959",
+                                  "content": "No external references",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "JgVAs",
+                                  "name": "External references empty state description",
+                                  "fill": "#8C8C8C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 360,
+                                  "content": "External system identifiers will appear here when connected.",
+                                  "textAlign": "center",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
