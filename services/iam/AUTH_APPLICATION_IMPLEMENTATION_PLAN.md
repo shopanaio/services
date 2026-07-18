@@ -42,10 +42,18 @@ Shopana реализует только интеграционный слой:
 - application-specific требования к login, которых нет в OAuth Provider;
 - безопасные custom claims через callbacks Better Auth;
 - проверку JWT и scopes в gateway/subgraphs;
-- GraphQL API и Admin UI поверх server API Better Auth;
+- GraphQL API и Admin UI поверх внутренних server API Better Auth;
 - аудит security-sensitive операций.
 
-### 1.1 Условия clean cutover
+### 1.1 Внешние интерфейсы
+
+Единственный прикладной API Shopana — GraphQL на `/graphql`. Через него выполняются sign-in/sign-up/sign-out, session/organization operations и управление OAuth Applications. Отдельного публичного REST API для этих операций нет.
+
+Вне GraphQL публикуются только стандартизированные OAuth/OIDC protocol routes, которые нельзя представить GraphQL operations без потери совместимости с OAuth clients: authorization, token, UserInfo, introspection, revocation, JWKS и discovery. Better Auth UI-helper routes (`consent`, `continue`, `public-client*`) остаются внутренними IAM server API и вызываются GraphQL resolvers in-process.
+
+`auth.api.*`, Shopana lifecycle repository и любые custom Better Auth actions не публикуются через edge. В частности, прямой сетевой запрос к `<auth-base>/oauth2/continue` должен получить `404` до `auth.handler`.
+
+### 1.2 Условия clean cutover
 
 Реализация выполняется в pre-release окружении. Пользователей, accounts, sessions, access/refresh tokens, OAuth clients, grants, consents и Casbin bindings, которые требуется сохранить, нет.
 
@@ -297,52 +305,38 @@ config.oauth.basePath = /api/auth
 
 Далее `<auth-base>` означает внешний `config.oauth.basePath` (`/api/auth` в примере). Любой Provider path используется только как `<auth-base>/oauth2/...`; root aliases `/oauth2/...` не создаются.
 
-До добавления GraphQL facade IAM должен предоставить HTTP-контур Better Auth:
+IAM должен предоставить минимальный HTTP-контур OAuth Provider:
 
 - смонтировать `auth.handler` в IAM Fastify server;
-- направить в него только explicit public allowlist OAuth, session, JWKS и discovery paths согласно установленной версии и `basePath`;
+- направить в него только explicit public allowlist стандартных OAuth/OIDC, JWKS и discovery paths согласно установленной версии и `basePath`;
 - опубликовать маршруты через конкретный edge/reverse-proxy component без изменения canonical issuer;
 - удалить недоверенные client-supplied forwarded headers и выставить `host`, `proto`, client IP и request ID доверенным proxy;
 - использовать host-only cookie с `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` и предпочтительно `__Host-` prefix;
 - не задавать cookie `Domain` и не включать broad cross-subdomain cookies;
 - оставить production browser flow same-origin; dev origins разрешать только точным allowlist;
-- не применять GraphQL authentication middleware к OAuth/session/discovery endpoints;
+- не применять GraphQL authentication middleware к OAuth protocol/discovery endpoints;
 - проверить, что discovery metadata содержит внешние, а не внутренние URLs.
 
-`baseURL`, issuer и endpoint URLs формируются только из `publicOrigin` и явного `basePath`; точным canonical issuer считается значение из discovery metadata. Gateway передаёт `cookie`, `origin`, `user-agent` и request ID только в IAM subgraph для OAuth Application management, но не broadcast-ит session cookie в другие subgraphs.
+`baseURL`, issuer и endpoint URLs формируются только из `publicOrigin` и явного `basePath`; точным canonical issuer считается значение из discovery metadata. Gateway передаёт `cookie`, `origin`, `user-agent` и request ID только в IAM subgraph для GraphQL auth/session и OAuth Application management, но не broadcast-ит session cookie в другие subgraphs. Только IAM auth GraphQL operations могут вернуть `Set-Cookie`; gateway пробрасывает этот header клиенту по explicit operation/subgraph allowlist и игнорирует его от остальных subgraphs.
 
 OAuth endpoints и GraphQL имеют разные middleware chains. Separate-origin production topology в первую версию не входит: она потребовала бы отдельного BFF/cross-origin cookie design и нового security review.
 
 Public route allowlist v1 фиксируется без wildcard:
 
 ```text
-<auth-base>/sign-up/email
-<auth-base>/sign-in/email
-<auth-base>/get-session
-
 <auth-base>/oauth2/authorize
 <auth-base>/oauth2/token
-<auth-base>/oauth2/consent
-<auth-base>/oauth2/continue
 <auth-base>/oauth2/userinfo
 <auth-base>/oauth2/introspect
 <auth-base>/oauth2/revoke
-<auth-base>/oauth2/public-client
-<auth-base>/oauth2/public-client-prelogin
-
-<auth-base>/shopana/organizations
-<auth-base>/shopana/organization/bootstrap
-<auth-base>/shopana/organization/select
-<auth-base>/shopana/logout
-<auth-base>/shopana/policy/complete
 
 configured JWKS path
 issuer-specific OAuth/OIDC discovery paths
 ```
 
-Social-provider callback, email verification/reset и `end-session` paths добавляются в allowlist только одновременно с соответствующей реализованной feature; `end-session` дополнительно требует client `enableEndSession` и `id_token_hint` flow. Dynamic registration, client create/get/list/update/delete, secret rotation, admin OAuth endpoints и все неизвестные paths отклоняются до `auth.handler`. Allowlist хранится как version-pinned configuration и пересматривается при upgrade Provider.
+Каждый route из списка включается только одновременно с использующей его feature; например, introspection не нужен для локальной проверки JWT. Social-provider callback и `end-session` могут быть добавлены только как отдельные стандартизированные protocol routes вместе с соответствующей feature; `end-session` дополнительно требует client `enableEndSession` и `id_token_hint` flow. Direct email/password/session, consent/continue/public-client helpers, dynamic registration, client CRUD/rotation, admin OAuth endpoints и все неизвестные paths отклоняются до `auth.handler`. Allowlist хранится как version-pinned configuration и пересматривается при upgrade Provider.
 
-Core `/sign-out` наружу не публикуется: он обошёл бы удаление OAuth refresh grants. `<auth-base>/shopana/logout` сначала выполняет lifecycle cleanup, затем вызывает core Better Auth sign-out in-process.
+Core Better Auth sign-out наружу не публикуется: он обошёл бы удаление OAuth refresh grants. GraphQL `signOut` сначала выполняет lifecycle cleanup, затем вызывает core Better Auth sign-out in-process и возвращает очищающий session cookie через ограниченный gateway header contract.
 
 ### 5.2 OAuth UI topology
 
@@ -352,13 +346,13 @@ Core `/sign-out` наружу не публикуется: он обошёл б�
 - `config.oauth.ui.consentUrl` ведёт на страницу подтверждения scopes;
 - `config.oauth.ui.selectOrganizationUrl` ведёт на страницу выбора authorization organization и выполнения дополнительных login requirements.
 
-IAM обслуживает только Better Auth HTTP endpoints, включая authorization, token, consent/continue API, JWKS и discovery. Admin frontend обслуживает HTML, JavaScript и browser navigation для OAuth UI.
+IAM публикует только стандартные OAuth/OIDC protocol routes, JWKS и discovery. Provider consent/continue/public-client actions доступны только in-process через `auth.api.*`. Admin frontend обслуживает HTML, JavaScript и browser navigation для OAuth UI, а интерактивные действия выполняет через GraphQL.
 
 Reverse proxy должен маршрутизировать запросы по единому внешнему origin и path без подмены canonical issuer:
 
-- OAuth/Better Auth paths фактического auth base path направляются в IAM Fastify;
+- только protocol paths внешнего auth base path направляются в IAM Fastify;
 - пути страниц из `config.oauth.ui.*` направляются в Admin frontend;
-- Admin frontend вызывает consent/continue endpoints с `credentials: "include"` и передаёт только подписанный OAuth Provider параметр `oauth_query`;
+- Admin frontend вызывает GraphQL auth mutations с `credentials: "include"`; IAM resolver передаёт подписанный `oauth_query` внутреннему Better Auth server API;
 - GraphQL authentication middleware не применяется к OAuth protocol endpoints.
 
 Discovery metadata, redirects и cookies проверяются по внешним URLs, а не по внутренним адресам сервисов.
@@ -415,11 +409,11 @@ type OAuthClientOwnership =
 
 Для organization-managed client `oauthClient.reference_id` равен `ownerOrganizationId` и используется только для CRUD ownership. Platform client использует зарезервированный server-controlled reference `platform:shopana`, исключённый из tenant CRUD.
 
-Текущая IAM session не содержит `activeOrganizationId`. До подключения OAuth Provider IAM должен добавить nullable server-controlled additional session field с `input: false` и реализовать custom session HTTP endpoint `activeOrganizationSelect` внутри Better Auth/IAM auth chain. Endpoint использует только действительную session cookie, exact origin/CSRF protection и server-side membership check; bearer token на этом pre-authorization шаге ещё отсутствует. Он не должен принимать membership или organization header как доказательство доступа и очищает поле при удалении membership/organization.
+Текущая IAM session не содержит `activeOrganizationId`. До подключения OAuth Provider IAM должен добавить nullable server-controlled additional session field с `input: false` и реализовать cookie-authenticated GraphQL mutation `activeOrganizationSelect`. Mutation использует только действительную Better Auth session cookie, exact origin/CSRF protection и server-side membership check; bearer token на этом pre-authorization шаге ещё отсутствует. Она не должна принимать membership или organization header как доказательство доступа и очищает поле при удалении membership/organization.
 
-Cookie-only GET endpoint `authorizationOrganizations` возвращает минимальный список `{ id, name }` только из актуальных memberships текущей session user. Он не принимает user/organization filters, не возвращает role/policy graph и использует same-origin/no-store response. Organization-selection UI не обращается за этим списком к bearer-protected GraphQL.
+Cookie-authenticated GraphQL query `authorizationOrganizations` возвращает минимальный список `{ id, name }` только из актуальных memberships текущей session user. Она не принимает user/organization filters, не возвращает role/policy graph и помечает response `no-store` на gateway. Operation доступна до получения OAuth bearer token по отдельной operation-level auth policy.
 
-Для первого пользователя clean-slate окружения нужен отдельный pre-authorization onboarding endpoint, поскольку organization-bound token ещё нельзя получить. `organizationBootstrap` работает в той же cookie-only auth chain и:
+Для первого пользователя clean-slate окружения нужна pre-authorization GraphQL mutation, поскольку organization-bound token ещё нельзя получить. `organizationBootstrap` работает в той же cookie-authenticated GraphQL auth chain и:
 
 - доступен только действительной session пользователя без memberships;
 - использует exact origin, CSRF protection, Zod input и idempotency key;
@@ -428,7 +422,7 @@ Cookie-only GET endpoint `authorizationOrganizations` возвращает ми�
 - публикует audit event и при retry возвращает тот же результат;
 - не выдаёт token и не предоставляет site-admin privileges.
 
-После появления хотя бы одного membership обычное создание организаций выполняется целевым авторизованным API, а bootstrap endpoint для этого пользователя закрыт.
+После появления хотя бы одного membership обычное создание организаций выполняется целевым bearer-authorized GraphQL API, а bootstrap mutation для этого пользователя закрыта.
 
 После этого для владения приложением использовать встроенный `clientReference`:
 
@@ -611,7 +605,7 @@ type OAuthApplicationMutation {
 
 Список приложений всегда определяется текущим `activeOrganizationId` через `clientReference`. Произвольный `organizationId` не принимается как фильтр, чтобы не создавать второй источник tenant context.
 
-Provider errors преобразуются в стабильные Shopana `userErrors { code field message }`. Этап включает IAM schema registration/codegen, federation compose и отдельный Admin codegen. `activeOrganizationSelect` не является OAuth Application GraphQL mutation и не попадает под dual-credential boundary раздела 7.1; его отдельный cookie-only contract описан в разделе 6.1.
+Provider errors преобразуются в стабильные Shopana `userErrors { code field message }`. Этап включает IAM schema registration/codegen, federation compose и отдельный Admin codegen. `activeOrganizationSelect` является pre-authorization GraphQL auth mutation, а не OAuth Application management mutation, и поэтому не попадает под dual-credential boundary раздела 7.1; её отдельный cookie-authenticated contract описан в разделе 6.1.
 
 ### 7.3 Restricted fields
 
@@ -980,14 +974,22 @@ Policy должна проверяться в реальном flow:
 1. OAuth Provider выполняет login и передаёт только подписанный `oauth_query`;
 2. `postLogin` callbacks получают client не аргументом: они вызывают async request-local `getOAuthProviderState()`, разбирают `client_id` из `state.query` и повторно загружают client из official adapter; callbacks выполняются после Provider validation исходного authorization request;
 3. IAM загружает официальный `oauthClient` и `oauth_client_policy`, выбирает organization и создаёт короткоживущий one-time completion record, связанный с session, client, hash authorization request, organization и policy version;
-4. IAM completion endpoint работает внутри Better Auth request pipeline, принимает подписанный `oauth_query` и действительную session; Provider hook сначала проверяет подпись и заполняет `getOAuthProviderState()`, после чего endpoint повторно загружает client и сверяет hash canonical query;
-5. endpoint проверяет email verification, `lastStrongAuthenticationAt`, membership и другие реально поддержанные требования, затем отмечает record completed;
-6. `postLogin.shouldRedirect` разрешает продолжение только при совпадающем completed record; прямой `<auth-base>/oauth2/continue` без выполненной policy снова приводит к redirect/controlled reject;
+4. GraphQL mutation `oauthAuthorizationPolicyComplete(oauthQuery)` принимает действительную session cookie и делегирует проверку non-public Better Auth action через `auth.api.*`; Provider hook проверяет подпись `oauth_query` и заполняет `getOAuthProviderState()`, после чего action повторно загружает client и сверяет hash canonical query;
+5. internal action проверяет email verification, `lastStrongAuthenticationAt`, membership и другие реально поддержанные требования, затем атомарно отмечает record completed;
+6. `postLogin.shouldRedirect` разрешает продолжение только при совпадающем completed record. В `1.6.23` исходный signed query для `post_login` не содержит `ba_pl`; `/oauth2/continue` без server-side completion повторно запускает `shouldRedirect`, а подделанный `ba_pl` не проходит signature verification;
 7. `postLogin.consentReferenceId` через тот же validated client проверяет membership и для organization-bound internal client равенство `ownerOrganizationId === authorizationOrganizationId`;
-8. UI вызывает официальный `oauth2Continue({ postLogin: true, oauth_query })`; record одноразово потребляется и истекает вместе с authorization request;
+8. та же GraphQL mutation вызывает `auth.api.oauth2Continue({ postLogin: true, oauth_query })` in-process и возвращает только проверенный redirect URL; record потребляется compare-and-set и истекает вместе с authorization request. Внешний edge никогда не маршрутизирует `/oauth2/continue`;
 9. при issuance/refresh `customAccessTokenClaims` повторно проверяет актуальные membership, organization и allowed resource.
 
-Нельзя читать `client_id` или organization из неподписанных query parameters и нельзя считать UI redirect доказательством выполнения policy. Для `max_authentication_age` использовать server-controlled `session.lastStrongAuthenticationAt`, обновляемый только успешным sign-in/reauth flow.
+Нельзя читать `client_id` или organization из неподписанных query parameters, считать `postLogin: true` доказательством выполнения policy или разрешать UI прямой сетевой доступ к Provider `continue`. Для `max_authentication_age` использовать server-controlled `session.lastStrongAuthenticationAt`, обновляемый только успешным sign-in/reauth flow.
+
+Обязательные negative cases для реализации:
+
+- внешний `POST <auth-base>/oauth2/continue` получает `404` и не достигает Better Auth;
+- internal continue с действительным signed `oauth_query`, но без completed record, не выдаёт authorization code;
+- подделанный `ba_pl`, изменённый `client_id` или изменённая organization дают signature/state error;
+- повторное и два конкурентных продолжения после completion позволяют потребить record только один раз;
+- expired record, новая policy version, другая session или другой authorization-request hash не принимаются.
 
 Изменение policy требует bulk revoke связанных refresh tokens/consents через lifecycle repository и нового authorization flow. Уже выпущенные JWT не имеют server-side deny state и действуют не дольше короткого `exp`; критические операции могут проверять `policyVersion` online.
 
@@ -1066,8 +1068,8 @@ Owner organization разрешается только для существую
 
 - Официальный `<auth-base>/oauth2/revoke` использовать для client-initiated отзыва одного известного plaintext token confidential client-ом.
 - В `1.6.23` этот endpoint требует client secret и не подходит public Admin client с `token_endpoint_auth_method: none`.
-- Admin использует custom cookie/session-authenticated `adminLogout` endpoint: exact origin + CSRF, удаление всех `oauthRefreshToken` для `(clientId = shopana-admin, userId = session.userId, sessionId = session.id)` до core Better Auth sign-out в одной lifecycle operation. Plaintext token не требуется, поэтому logout отзывает и refresh tokens, потерянные браузером после reload.
-- Endpoint не выполняет bulk revoke по `clientId`; revocation JWT access token не создаёт server-side deny state.
+- Admin использует cookie/session-authenticated GraphQL `signOut`: exact origin + CSRF, удаление всех `oauthRefreshToken` для `(clientId = shopana-admin, userId = session.userId, sessionId = session.id)` до core Better Auth sign-out в одной lifecycle operation. Plaintext token не требуется, поэтому logout отзывает и refresh tokens, потерянные браузером после reload.
+- Mutation не выполняет bulk revoke по `clientId`; revocation JWT access token не создаёт server-side deny state.
 - При disable/delete client, изменении login policy или отзыве consent IAM lifecycle repository транзакционно блокирует новые grants, удаляет/помечает revoked связанные `oauthRefreshToken`, удаляет opaque token rows, consent и policy-completion records, а также очищает Casbin bindings/caches.
 - Для JWT, выпущенных новым OAuth Provider, использовать явно настроенный TTL: 15 минут для user access token и 10 минут для M2M, с меньшим TTL для high-risk scopes.
 - Уже выпущенные JWT действуют до `exp`; критические операции могут дополнительно проверять client/grant/policy version online.
@@ -1118,7 +1120,7 @@ Target baseline включает:
 
 ## 16. Подключение OAuth-аутентификации Admin
 
-Admin должен использовать только стандартный OAuth flow. GraphQL `signIn`, GraphQL `tokenRefresh` и Better Auth session token как refresh token не входят в целевую реализацию.
+Admin должен использовать стандартный OAuth flow для получения access/refresh tokens. GraphQL `signIn`, `signUp` и `signOut` сохраняются только как facade над Better Auth session operations и никогда не выдают OAuth token. GraphQL `tokenRefresh` и использование Better Auth session token как refresh token в целевую реализацию не входят; OAuth refresh выполняется только через стандартный token endpoint.
 
 ### 16.1 Создание first-party client
 
@@ -1163,13 +1165,13 @@ Flow:
 1. `/oauth/start` генерирует одноразовые `state`, `nonce`, PKCE verifier/challenge S256 и проверяет return path по allowlist.
 2. `state`, `nonce`, verifier и return path хранятся в `sessionStorage`, не в URL или `localStorage`.
 3. Admin открывает `<auth-base>/oauth2/authorize`. Если session отсутствует, Better Auth переводит на login page с подписанным `oauth_query`.
-4. Sign-in/sign-up вызывают Better Auth HTTP API с `credentials: "include"`; session cookie устанавливается браузеру напрямую, после чего продолжается исходный authorization request.
-5. Organization page получает minimal memberships через cookie-only `authorizationOrganizations` и вызывает `activeOrganizationSelect`; consent/policy pages используют только signed Provider state.
+4. Sign-in/sign-up вызывают GraphQL auth mutations с `credentials: "include"`. IAM вызывает Better Auth server API in-process, а gateway возвращает только Better Auth `Set-Cookie` из IAM auth operation; payload не содержит access/refresh/session token.
+5. Organization page получает minimal memberships через cookie-authenticated GraphQL `authorizationOrganizations` и вызывает GraphQL `activeOrganizationSelect`; consent/policy pages передают signed Provider state только в специальные GraphQL auth mutations.
 6. Callback проверяет одноразовый `state`, обменивает code с PKCE verifier и `resource=https://admin-api.shopana.io`, проверяет OIDC nonce и очищает временные значения.
 7. JWT access token и OAuth refresh token хранятся только в памяти. Они не записываются в `localStorage`, IndexedDB или обычную cookie. После reload Admin начинает новый authorize flow, который использует существующую httpOnly Better Auth session.
 8. Во время жизни вкладки refresh использует стандартный OAuth grant и каждый раз передаёт тот же `resource`. При `invalid_grant` локальные tokens очищаются и запускается новый authorize flow.
 9. Все GraphQL transports, включая upload, используют bearer access token и same-origin `credentials: "include"`; IAM связывает token с session по правилам раздела 7.1.
-10. Logout вызывает cookie/session-authenticated `adminLogout`, который удаляет все session-bound Admin refresh grants через lifecycle repository и завершает core Better Auth session. Admin v1 не использует Provider end-session и не требует `id_token_hint`; redirect допускается только из allowlist.
+10. Logout вызывает cookie/session-authenticated GraphQL `signOut`, который удаляет все session-bound Admin refresh grants через lifecycle repository и завершает core Better Auth session. Admin v1 не использует Provider end-session и не требует `id_token_hint`; redirect допускается только из allowlist.
 
 Если потребуется долговечное token storage, устойчивое к reload без повторного authorize, это отдельный BFF design. Persistent browser refresh token в scope первой версии не входит.
 
@@ -1180,8 +1182,8 @@ Cutover является атомарной заменой source code и schema
 В одном activation change:
 
 1. поднять fresh target schema и выполнить platform Admin bootstrap;
-2. включить OAuth HTTP routes, frontend PKCE flow и official resource verification;
-3. удалить GraphQL `signIn`, `signUp`, `signOut`, `tokenRefresh`, их schema/resolvers/scripts/hooks и generated documents;
+2. включить только стандартные OAuth/OIDC HTTP protocol routes, frontend PKCE flow и official resource verification;
+3. заменить GraphQL `signIn`, `signUp` и `signOut` на cookie-session facade без token payload; удалить GraphQL `tokenRefresh`, legacy issuance scripts/hooks и соответствующие generated fields/documents;
 4. удалить session-token-as-refresh, fallback приёма Better Auth session token как API bearer и legacy token-prefix logging;
 5. удалить локальный JWT parser, legacy `definePayload`, `bearer()` и старый issuer/audience contract;
 6. заменить user-only `getCurrentUser`/shared context новым verified-principal contract;
@@ -1288,18 +1290,18 @@ Organization/store header может только выбрать context, пос
 
 ### Этап 3 — IAM HTTP Provider и edge
 
-- Смонтировать Better Auth handler в IAM Fastify с отдельными OAuth/session/discovery middleware chains.
+- Смонтировать Better Auth handler в IAM Fastify с отдельной OAuth/OIDC protocol/discovery middleware chain.
 - Реализовать lifecycle repository и выполнить idempotent seed platform Admin client до `createAuth`/listener; UI и external activation пока остаются закрыты.
 - Настроить path routing, trusted proxy, host-only cookie, CSRF/origin policy и route allowlist.
 - Подключить OAuth Provider без external client registration и без публичных management endpoints.
 - Настроить hashed storage, explicit JWKS rotation, discovery и audit middleware/hooks.
-- Добавить минимальные Better Auth HTTP sign-in/sign-up/session operations, необходимые будущему UI.
+- Реализовать GraphQL sign-in/sign-up/sign-out facade над внутренними Better Auth session actions и ограниченный forwarding `cookie`/`Set-Cookie` только между client, gateway и IAM auth operations.
 
-**Критерий завершения:** discovery/JWKS публикуют canonical external URLs, Better Auth HTTP session cookie создаётся по same-origin policy, UI redirect URLs валидны. Полный consent/callback UI на этом этапе не требуется.
+**Критерий завершения:** discovery/JWKS публикуют canonical external URLs, Better Auth session cookie создаётся через GraphQL facade по same-origin policy, UI redirect URLs валидны, а прямые Better Auth sign-in/session/UI-helper routes получают `404` на edge. Полный consent/callback UI на этом этапе не требуется.
 
 ### Этап 4 — Tenant integration, claims и resource verification
 
-- Реализовать cookie-only `organizationBootstrap`, `authorizationOrganizations`, `activeOrganizationSelect`, затем `clientReference` и platform ownership rules.
+- Реализовать cookie-authenticated GraphQL `organizationBootstrap`, `authorizationOrganizations`, `activeOrganizationSelect`, затем `clientReference` и platform ownership rules.
 - Реализовать `postLogin`/`consentReferenceId` через `getOAuthProviderState()`.
 - Реализовать `clientPrivileges` через новый typed Casbin API.
 - Добавить lifecycle hooks до Admin activation: member removal очищает matching `session.activeOrganizationId`; organization deletion disable/delete все owned clients, отзывает refresh/consent/policy state и очищает sessions/caches.
@@ -1324,10 +1326,10 @@ Organization/store header может только выбрать context, пос
 ### Этап 6 — Admin OAuth UI и atomic source cutover
 
 - Активировать заранее созданный platform Admin client из cached trusted allowlist и проверить deployment drift.
-- Реализовать OAuth start/sign-in/sign-up/organization/consent/callback/error/logout routes.
+- Реализовать OAuth start/sign-in/sign-up/organization/consent/callback/error/logout UI pages и соответствующие GraphQL auth operations.
 - Реализовать PKCE, state, nonce, code exchange и in-memory refresh flow с обязательным `resource`.
 - Перевести AuthGuard, Apollo и upload transport на OAuth bearer + same-origin credentials.
-- Открыть OAuth routes и удалить полный legacy source inventory из раздела 16.3 в том же activation change.
+- Открыть только стандартные OAuth/OIDC protocol routes, оставить Provider UI-helper actions внутренними и удалить полный legacy source inventory из раздела 16.3 в том же activation change.
 - При необходимости пересоздать disposable development database; не мигрировать несуществующие auth-данные.
 - Выполнить IAM, federation и Admin builds через проектные команды.
 
@@ -1340,7 +1342,7 @@ Organization/store header может только выбрать context, пос
 - Добавить email verification/recent-auth enforcement.
 - При изменении policy выполнять bulk refresh/consent cleanup и требовать новый authorization flow.
 
-**Критерий завершения:** UI невозможно обойти прямым `oauth2Continue`, а изменение policy реально меняет login behavior.
+**Критерий завершения:** сетевой `/oauth2/continue` закрыт на edge, internal continuation без совпадающего completed record отклоняется или возвращается в policy flow, а изменение policy реально меняет login behavior.
 
 ### Этап 8 — M2M и external clients
 
@@ -1396,7 +1398,7 @@ Organization/store header может только выбрать context, пос
 - user token получает organization через `postLogin.consentReferenceId`, а не через client ownership;
 - OAuth discovery/JWKS доступны по canonical external issuer;
 - login, consent и organization-selection pages обслуживаются Admin frontend, а OAuth protocol endpoints — IAM;
-- прямой `oauth2Continue` без server-side policy-completion state отклоняется/возвращается в policy flow;
+- сетевой `/oauth2/continue` получает `404`, а in-process `oauth2Continue` без server-side policy-completion state отклоняется/возвращается в policy flow;
 - revocation блокирует refresh;
 - отключённый client не получает новые tokens;
 - fresh database поддерживает account/session → OAuth authorize → Admin callback → GraphQL request;
@@ -1422,19 +1424,19 @@ Organization/store header может только выбрать context, пос
 11. Единая целевая Casbin model, matcher и policy schema являются источником fine-grained authorization для user и machine principals.
 12. `CasbinService` принимает типизированный principal и единообразно форматирует `user:{userId}` и `oauth-client:{clientId}` без двойных префиксов.
 13. Единый `AuthorizationPrincipal` проходит end-to-end через shared context, broker и subgraph AuthProviders; user-only bypass недоступен machine principal.
-14. Первый пользователь может создать initial organization/owner membership через cookie-only onboarding до получения organization-bound token.
+14. Первый пользователь может создать initial organization/owner membership через cookie-authenticated GraphQL onboarding до получения organization-bound token.
 15. Client secrets и token values хранятся безопасным способом Better Auth.
 16. Admin использует Authorization Code + PKCE, state/nonce и стандартный Refresh Token Flow; tokens хранятся только в памяти.
 17. Admin management требует совпадения JWT `userId`/`sid`/organization с cookie session.
 18. Better Auth session cookie не используется как OAuth refresh token.
 19. M2M использует встроенный Client Credentials Flow и управляемые Casbin bindings.
-20. Application-specific login policy использует `getOAuthProviderState()` и одноразовый server-side completion state; UI continuation невозможно использовать как bypass.
+20. Application-specific login policy использует `getOAuthProviderState()` и одноразовый server-side completion state; Provider continuation доступен только in-process из GraphQL mutation, а прямой сетевой route закрыт на edge.
 21. Membership/organization deletion очищает sessions и owned client token/consent state до открытия Admin OAuth flow.
 22. Security-sensitive операции аудируются без утечки secrets/tokens.
-23. OAuth/JWKS/discovery endpoints публикуют canonical metadata через single-origin path topology; session cookie передаётся только IAM management boundary.
+23. OAuth/JWKS/discovery endpoints публикуют canonical metadata через single-origin path topology; session cookie передаётся только IAM GraphQL auth/management boundary.
 24. Platform Admin client создаётся idempotent bootstrap, а tenant API не может изменить его trusted/server-only fields.
 25. IAM/federation/Admin успешно собираются через проектные build-команды.
-26. Legacy GraphQL auth endpoints, issuance, verification, parser и session-token-as-refresh отсутствуют в source/runtime.
+26. GraphQL auth operations не возвращают tokens и работают только как Better Auth session facade; legacy issuance, verification, parser, `tokenRefresh` и session-token-as-refresh отсутствуют в source/runtime.
 27. Fresh target schema не требует legacy tables/models или data migration.
 28. План не содержит import/backfill/invalidation механики для несуществующих пользователей, sessions, tokens или Casbin bindings.
 
