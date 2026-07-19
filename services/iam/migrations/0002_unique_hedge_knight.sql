@@ -1,1 +1,0 @@
-ALTER TABLE "iam"."organization" ADD COLUMN "logo_id" text;

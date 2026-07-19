@@ -1,1 +1,0 @@
-ALTER TABLE "iam"."organization_member" ADD COLUMN "is_owner" boolean DEFAULT false NOT NULL;

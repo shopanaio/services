@@ -1,1 +1,0 @@
-DROP TABLE "iam"."application_member" CASCADE;
