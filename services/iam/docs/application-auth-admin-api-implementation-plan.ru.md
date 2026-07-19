@@ -152,10 +152,12 @@ enum ApplicationConsentMode {
   EXPLICIT
 }
 
-enum ApplicationAuthLocale {
-  EN
-  UK
-  RU
+scalar ApplicationAuthMethodId
+
+enum ApplicationAuthMethodCapability {
+  SIGN_IN
+  SIGN_UP
+  PASSWORD_RESET
 }
 
 enum ApplicationAuthPrimaryColor {
@@ -210,6 +212,25 @@ type Application implements Node @key(fields: "id") {
   status: ApplicationLifecycleStatus!
   resource: String!
   revision: Int!
+  auth: ApplicationAuthConfiguration!
+  oauthClient(clientId: String!): ApplicationOAuthClient
+  oauthClients(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationOAuthClientWhereInput
+    orderBy: [ApplicationOAuthClientOrderByInput!]
+  ): ApplicationOAuthClientConnection!
+  user(id: ID!): ApplicationUser
+  users(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationUserWhereInput
+    orderBy: [ApplicationUserOrderByInput!]
+  ): ApplicationUserConnection!
   createdAt: DateTime!
   updatedAt: DateTime!
   archivedAt: DateTime
@@ -241,6 +262,41 @@ enum ApplicationOrderField {
 input ApplicationOrderByInput {
   field: ApplicationOrderField!
   direction: SortDirection!
+}
+
+type ApplicationAuthConfiguration {
+  applicationId: ID!
+  realmEnabled: Boolean!
+  registrationMode: ApplicationRegistrationMode!
+  emailVerificationRequired: Boolean!
+  consentMode: ApplicationConsentMode!
+  accessTokenTtlSeconds: Int!
+  idTokenTtlSeconds: Int!
+  refreshTokenTtlSeconds: Int!
+  sessionTtlSeconds: Int!
+  branding: ApplicationAuthBranding!
+  defaultLocale: LocaleCode!
+  supportedLocales: [LocaleCode!]!
+  trustedOrigins: [ApplicationAuthTrustedOrigin!]!
+  protocolUrls: ApplicationAuthProtocolUrls!
+  emailDelivery: ApplicationAuthEmailDeliveryConfiguration!
+  authMethod(id: ApplicationAuthMethodId!): ApplicationAuthMethod!
+  authMethods: [ApplicationAuthMethod!]!
+  provider(name: ApplicationAuthProviderName!): ApplicationAuthProvider!
+  providers: [ApplicationAuthProvider!]!
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ApplicationAuthMethod {
+  id: ApplicationAuthMethodId!
+  availableCapabilities: [ApplicationAuthMethodCapability!]!
+  enabledCapabilities: [ApplicationAuthMethodCapability!]!
+  configured: Boolean!
+  revision: Int!
+  updatedAt: DateTime
+  updatedBy: ID
 }
 
 type ApplicationAuthBranding {
@@ -284,32 +340,6 @@ type ApplicationAuthEmailDeliveryConfiguration {
   updatedBy: ID
 }
 
-type ApplicationAuthConfiguration {
-  applicationId: ID!
-  resource: String!
-  realmEnabled: Boolean!
-  registrationMode: ApplicationRegistrationMode!
-  passwordSignUpEnabled: Boolean!
-  passwordSignInEnabled: Boolean!
-  passwordResetEnabled: Boolean!
-  emailVerificationRequired: Boolean!
-  emailOtpSignInEnabled: Boolean!
-  emailOtpSignUpEnabled: Boolean!
-  consentMode: ApplicationConsentMode!
-  accessTokenTtlSeconds: Int!
-  idTokenTtlSeconds: Int!
-  refreshTokenTtlSeconds: Int!
-  sessionTtlSeconds: Int!
-  branding: ApplicationAuthBranding!
-  defaultLocale: ApplicationAuthLocale!
-  trustedOrigins: [ApplicationAuthTrustedOrigin!]!
-  protocolUrls: ApplicationAuthProtocolUrls!
-  emailDelivery: ApplicationAuthEmailDeliveryConfiguration!
-  revision: Int!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
 type ApplicationAuthProvider {
   applicationId: ID!
   provider: ApplicationAuthProviderName!
@@ -328,6 +358,7 @@ type ApplicationAuthProviderValidation {
   provider: ApplicationAuthProviderName!
   status: ApplicationAuthProviderValidationStatus!
   reasonCode: String
+  revision: Int!
   checkedAt: DateTime!
 }
 
@@ -471,30 +502,19 @@ input ApplicationArchiveInput {
   expectedRevision: Int!
 }
 
-input ApplicationAuthBrandingInput {
-  displayName: String
-  headline: String
-  logoUrl: String
-  primaryColor: ApplicationAuthPrimaryColor
-  backgroundColor: ApplicationAuthBackgroundColor
-}
-
-input ApplicationAuthConfigurationUpdateInput {
+input ApplicationAuthUpdateInput {
   organizationId: ID!
   applicationId: ID!
   registrationMode: ApplicationRegistrationMode
-  passwordSignUpEnabled: Boolean
-  passwordSignInEnabled: Boolean
-  passwordResetEnabled: Boolean
   emailVerificationRequired: Boolean
-  emailOtpSignInEnabled: Boolean
-  emailOtpSignUpEnabled: Boolean
   accessTokenTtlSeconds: Int
   idTokenTtlSeconds: Int
   refreshTokenTtlSeconds: Int
   sessionTtlSeconds: Int
   branding: ApplicationAuthBrandingInput
-  defaultLocale: ApplicationAuthLocale
+  defaultLocale: LocaleCode
+  trustedOrigins: [String!]
+  emailDelivery: ApplicationAuthEmailDeliveryInput
   expectedRevision: Int!
 }
 
@@ -505,22 +525,28 @@ input ApplicationAuthRealmEnabledSetInput {
   expectedRevision: Int!
 }
 
-input ApplicationAuthTrustedOriginsReplaceInput {
+input ApplicationAuthMethodUpdateInput {
   organizationId: ID!
   applicationId: ID!
-  origins: [String!]!
+  methodId: ApplicationAuthMethodId!
+  enabledCapabilities: [ApplicationAuthMethodCapability!]!
   expectedRevision: Int!
 }
 
-input ApplicationAuthEmailDeliveryUpdateInput {
-  organizationId: ID!
-  applicationId: ID!
+input ApplicationAuthBrandingInput {
+  displayName: String
+  headline: String
+  logoUrl: String
+  primaryColor: ApplicationAuthPrimaryColor
+  backgroundColor: ApplicationAuthBackgroundColor
+}
+
+input ApplicationAuthEmailDeliveryInput {
   transportProfile: String!
   senderIdentity: String!
   emailVerificationTemplateId: String!
   passwordResetTemplateId: String!
   emailOtpSignInTemplateId: String!
-  expectedRevision: Int!
 }
 
 input ApplicationAuthProviderConfigureInput {
@@ -537,15 +563,8 @@ input ApplicationAuthProviderUpdateInput {
   organizationId: ID!
   applicationId: ID!
   provider: ApplicationAuthProviderName!
-  scopes: [String!]!
-  expectedRevision: Int!
-}
-
-input ApplicationAuthProviderEnabledSetInput {
-  organizationId: ID!
-  applicationId: ID!
-  provider: ApplicationAuthProviderName!
-  enabled: Boolean!
+  enabled: Boolean
+  scopes: [String!]
   expectedRevision: Int!
 }
 
@@ -662,8 +681,13 @@ type ApplicationArchivePayload {
   userErrors: [GenericUserError!]!
 }
 
-type ApplicationAuthConfigurationUpdatePayload {
+type ApplicationAuthUpdatePayload {
   configuration: ApplicationAuthConfiguration
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationAuthMethodPayload {
+  authMethod: ApplicationAuthMethod
   userErrors: [GenericUserError!]!
 }
 
@@ -712,6 +736,11 @@ type ApplicationUserAccountUnlinkPayload {
 }
 
 type ApplicationQuery {
+  application(
+    organizationId: ID!
+    id: ID!
+  ): Application
+
   applications(
     organizationId: ID!
     first: Int
@@ -721,80 +750,32 @@ type ApplicationQuery {
     where: ApplicationWhereInput
     orderBy: [ApplicationOrderByInput!]
   ): ApplicationConnection!
-
-  application(organizationId: ID!, applicationId: ID!): Application
-
-  applicationAuthConfiguration(
-    organizationId: ID!
-    applicationId: ID!
-  ): ApplicationAuthConfiguration
-
-  applicationAuthProviders(
-    organizationId: ID!
-    applicationId: ID!
-  ): [ApplicationAuthProvider!]!
-
-  applicationAuthProvider(
-    organizationId: ID!
-    applicationId: ID!
-    provider: ApplicationAuthProviderName!
-  ): ApplicationAuthProvider
-
-  applicationOAuthClients(
-    organizationId: ID!
-    applicationId: ID!
-    first: Int
-    after: String
-    last: Int
-    before: String
-    where: ApplicationOAuthClientWhereInput
-    orderBy: [ApplicationOAuthClientOrderByInput!]
-  ): ApplicationOAuthClientConnection!
-
-  applicationOAuthClient(
-    organizationId: ID!
-    applicationId: ID!
-    clientId: String!
-  ): ApplicationOAuthClient
-
-  applicationUsers(
-    organizationId: ID!
-    applicationId: ID!
-    first: Int
-    after: String
-    last: Int
-    before: String
-    where: ApplicationUserWhereInput
-    orderBy: [ApplicationUserOrderByInput!]
-  ): ApplicationUserConnection!
-
-  applicationUser(
-    organizationId: ID!
-    applicationId: ID!
-    userId: ID!
-  ): ApplicationUser
 }
 
 type ApplicationMutation {
-  applicationCreate(input: ApplicationCreateInput!): ApplicationCreatePayload!
-  applicationUpdate(input: ApplicationUpdateInput!): ApplicationUpdatePayload!
-  applicationArchive(input: ApplicationArchiveInput!): ApplicationArchivePayload!
+  applicationCreate(
+    input: ApplicationCreateInput!
+  ): ApplicationCreatePayload!
 
-  applicationAuthConfigurationUpdate(
-    input: ApplicationAuthConfigurationUpdateInput!
-  ): ApplicationAuthConfigurationUpdatePayload!
+  applicationUpdate(
+    input: ApplicationUpdateInput!
+  ): ApplicationUpdatePayload!
+
+  applicationArchive(
+    input: ApplicationArchiveInput!
+  ): ApplicationArchivePayload!
+
+  applicationAuthUpdate(
+    input: ApplicationAuthUpdateInput!
+  ): ApplicationAuthUpdatePayload!
 
   applicationAuthRealmEnabledSet(
     input: ApplicationAuthRealmEnabledSetInput!
-  ): ApplicationAuthConfigurationUpdatePayload!
+  ): ApplicationAuthUpdatePayload!
 
-  applicationAuthTrustedOriginsReplace(
-    input: ApplicationAuthTrustedOriginsReplaceInput!
-  ): ApplicationAuthConfigurationUpdatePayload!
-
-  applicationAuthEmailDeliveryUpdate(
-    input: ApplicationAuthEmailDeliveryUpdateInput!
-  ): ApplicationAuthConfigurationUpdatePayload!
+  applicationAuthMethodUpdate(
+    input: ApplicationAuthMethodUpdateInput!
+  ): ApplicationAuthMethodPayload!
 
   applicationAuthProviderConfigure(
     input: ApplicationAuthProviderConfigureInput!
@@ -802,10 +783,6 @@ type ApplicationMutation {
 
   applicationAuthProviderUpdate(
     input: ApplicationAuthProviderUpdateInput!
-  ): ApplicationAuthProviderPayload!
-
-  applicationAuthProviderEnabledSet(
-    input: ApplicationAuthProviderEnabledSetInput!
   ): ApplicationAuthProviderPayload!
 
   applicationAuthProviderCredentialsRotate(
