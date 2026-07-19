@@ -3324,7 +3324,8 @@
                                       "fill": "#8C8C8C",
                                       "content": "Product",
                                       "fontFamily": "$--font-secondary",
-                                      "fontSize": 11
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -3391,7 +3392,8 @@
                                       "fill": "#8C8C8C",
                                       "content": "Product",
                                       "fontFamily": "$--font-secondary",
-                                      "fontSize": 11
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -3458,7 +3460,8 @@
                                       "fill": "#8C8C8C",
                                       "content": "Product",
                                       "fontFamily": "$--font-secondary",
-                                      "fontSize": 11
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -6018,7 +6021,8 @@
                               "fill": "#8C8C8C",
                               "content": "No customer segments or customer IDs restrict this discount.",
                               "fontFamily": "$--font-secondary",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -7434,7 +7438,7 @@
                   "name": "Design comment · Combinations · Updated",
                   "width": 800,
                   "height": 56,
-                  "content": "COMBINATIONS\nUpdated standalone Paper section used by the discount details screens. Options are compact and the enabled count is shown below the section content."
+                  "content": "COMBINATIONS\nUpdated standalone Paper section used by the discount details screens. Each class shows Shopify-style application guidance, a compatible-discounts count, and its enabled state."
                 },
                 {
                   "id": "o8aupB",
@@ -7442,10 +7446,10 @@
                   "ref": "mvjvy",
                   "name": "Discount block / Combinations / Updated screen example",
                   "width": 800,
-                  "height": 119,
+                  "height": 284,
                   "descendants": {
                     "zaObD": {
-                      "height": 36
+                      "height": 180
                     }
                   }
                 }
@@ -8854,101 +8858,7 @@
                       "type": "ref",
                       "ref": "H99ci",
                       "name": "Amount off products customer eligibility",
-                      "width": 800,
-                      "children": [
-                        {
-                          "id": "cxqXi",
-                          "type": "ref",
-                          "ref": "cxqXi",
-                          "children": [
-                            {
-                              "id": "Chyth",
-                              "type": "ref",
-                              "ref": "Chyth",
-                              "children": [
-                                {
-                                  "id": "D7BWgW",
-                                  "type": "ref",
-                                  "ref": "D7BWgW"
-                                },
-                                {
-                                  "id": "BFVG5",
-                                  "type": "ref",
-                                  "ref": "BFVG5",
-                                  "children": [
-                                    {
-                                      "id": "HKrSg",
-                                      "type": "ref",
-                                      "ref": "HKrSg"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "id": "h7c3M",
-                              "type": "ref",
-                              "ref": "h7c3M"
-                            }
-                          ]
-                        },
-                        {
-                          "id": "hWiix",
-                          "type": "ref",
-                          "ref": "hWiix",
-                          "children": [
-                            {
-                              "id": "mTlmY",
-                              "type": "ref",
-                              "ref": "mTlmY",
-                              "children": [
-                                {
-                                  "id": "Wv9BV",
-                                  "type": "ref",
-                                  "ref": "Wv9BV"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "g1SZVo",
-                              "type": "ref",
-                              "ref": "g1SZVo",
-                              "children": [
-                                {
-                                  "id": "yOd4C",
-                                  "type": "ref",
-                                  "ref": "yOd4C",
-                                  "content": "All customers"
-                                },
-                                {
-                                  "id": "x4JVtT",
-                                  "type": "ref",
-                                  "ref": "x4JVtT",
-                                  "content": "No customer or segment restrictions"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "mt3DX",
-                              "type": "ref",
-                              "ref": "mt3DX",
-                              "children": [
-                                {
-                                  "id": "zezeL",
-                                  "type": "ref",
-                                  "ref": "zezeL"
-                                },
-                                {
-                                  "id": "VBwAa",
-                                  "type": "ref",
-                                  "ref": "VBwAa",
-                                  "content": "Eligible"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                      "width": 800
                     },
                     {
                       "id": "wyLkB",
@@ -8964,10 +8874,10 @@
                       "ref": "mvjvy",
                       "name": "Amount off products combinations",
                       "width": 800,
-                      "height": 117,
+                      "height": 284,
                       "descendants": {
                         "zaObD": {
-                          "height": 36
+                          "height": 180
                         }
                       }
                     },
@@ -8978,7 +8888,7 @@
                       "name": "Amount off products availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1190,
+                      "y": 1357,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 18, 2026 at 09:00"
@@ -9286,7 +9196,7 @@
                       "name": "Amount off products discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1445
+                      "y": 1612
                     },
                     {
                       "id": "E07UZ",
@@ -9295,7 +9205,7 @@
                       "name": "Amount off products external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1640
+                      "y": 1807
                     }
                   ]
                 }
@@ -9971,109 +9881,7 @@
                       "type": "ref",
                       "ref": "H99ci",
                       "name": "Buy X Get Y customer eligibility",
-                      "width": 800,
-                      "children": [
-                        {
-                          "id": "cxqXi",
-                          "type": "ref",
-                          "ref": "cxqXi",
-                          "children": [
-                            {
-                              "id": "Chyth",
-                              "type": "ref",
-                              "ref": "Chyth",
-                              "children": [
-                                {
-                                  "id": "D7BWgW",
-                                  "type": "ref",
-                                  "ref": "D7BWgW"
-                                },
-                                {
-                                  "id": "BFVG5",
-                                  "type": "ref",
-                                  "ref": "BFVG5",
-                                  "children": [
-                                    {
-                                      "id": "HKrSg",
-                                      "type": "ref",
-                                      "ref": "HKrSg"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "id": "h7c3M",
-                              "type": "ref",
-                              "ref": "h7c3M"
-                            }
-                          ]
-                        },
-                        {
-                          "id": "hWiix",
-                          "type": "ref",
-                          "ref": "hWiix",
-                          "children": [
-                            {
-                              "id": "mTlmY",
-                              "type": "ref",
-                              "ref": "mTlmY",
-                              "fill": "#F0F5FF",
-                              "children": [
-                                {
-                                  "id": "Wv9BV",
-                                  "type": "ref",
-                                  "ref": "Wv9BV",
-                                  "icon": "users-round",
-                                  "fill": "#1677FF"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "g1SZVo",
-                              "type": "ref",
-                              "ref": "g1SZVo",
-                              "children": [
-                                {
-                                  "id": "yOd4C",
-                                  "type": "ref",
-                                  "ref": "yOd4C",
-                                  "content": "Selected segments · 2"
-                                },
-                                {
-                                  "id": "x4JVtT",
-                                  "type": "ref",
-                                  "ref": "x4JVtT",
-                                  "content": "VIP customers · High lifetime value"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "mt3DX",
-                              "type": "ref",
-                              "ref": "mt3DX",
-                              "fill": "#F0F5FF",
-                              "stroke": "#ADC6FF",
-                              "children": [
-                                {
-                                  "id": "zezeL",
-                                  "type": "ref",
-                                  "ref": "zezeL",
-                                  "icon": "users-round",
-                                  "fill": "#1677FF"
-                                },
-                                {
-                                  "id": "VBwAa",
-                                  "type": "ref",
-                                  "ref": "VBwAa",
-                                  "content": "2 segments",
-                                  "fill": "#1677FF"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                      "width": 800
                     },
                     {
                       "id": "ylr9G",
@@ -10101,23 +9909,20 @@
                       "ref": "mvjvy",
                       "name": "Buy X Get Y combinations",
                       "width": 800,
-                      "height": 117,
+                      "height": 284,
                       "descendants": {
                         "zaObD": {
-                          "height": 36
+                          "height": 180
                         },
                         "Ydw4q": {
                           "fill": "#FFFFFF",
                           "stroke": "#E8E8E8"
                         },
-                        "lJYmt": {
-                          "fill": "#BFBFBF"
+                        "oWZB6": {
+                          "fill": "#FAFAFA",
+                          "stroke": "#E8E8E8"
                         },
-                        "vrzzM": {
-                          "fill": "#8C8C8C"
-                        },
-                        "u8NFOx": {
-                          "icon": "circle",
+                        "gvGtV": {
                           "fill": "#BFBFBF"
                         }
                       }
@@ -10129,7 +9934,7 @@
                       "name": "Buy X Get Y availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1250,
+                      "y": 1417,
                       "descendants": {
                         "exHTS": {
                           "content": "Aug 1, 2026 at 00:00"
@@ -10333,7 +10138,7 @@
                       "name": "Buy X Get Y discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1506,
+                      "y": 1673,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -10412,7 +10217,7 @@
                       "name": "Buy X Get Y external references empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1643,
+                      "y": 1810,
                       "descendants": {
                         "RrC1t": {
                           "content": "0"
@@ -10909,109 +10714,7 @@
                       "type": "ref",
                       "ref": "H99ci",
                       "name": "Amount off order customer eligibility",
-                      "width": 800,
-                      "children": [
-                        {
-                          "id": "cxqXi",
-                          "type": "ref",
-                          "ref": "cxqXi",
-                          "children": [
-                            {
-                              "id": "Chyth",
-                              "type": "ref",
-                              "ref": "Chyth",
-                              "children": [
-                                {
-                                  "id": "D7BWgW",
-                                  "type": "ref",
-                                  "ref": "D7BWgW"
-                                },
-                                {
-                                  "id": "BFVG5",
-                                  "type": "ref",
-                                  "ref": "BFVG5",
-                                  "children": [
-                                    {
-                                      "id": "HKrSg",
-                                      "type": "ref",
-                                      "ref": "HKrSg"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "id": "h7c3M",
-                              "type": "ref",
-                              "ref": "h7c3M"
-                            }
-                          ]
-                        },
-                        {
-                          "id": "hWiix",
-                          "type": "ref",
-                          "ref": "hWiix",
-                          "children": [
-                            {
-                              "id": "mTlmY",
-                              "type": "ref",
-                              "ref": "mTlmY",
-                              "fill": "#F0F5FF",
-                              "children": [
-                                {
-                                  "id": "Wv9BV",
-                                  "type": "ref",
-                                  "ref": "Wv9BV",
-                                  "icon": "contact-round",
-                                  "fill": "#1677FF"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "g1SZVo",
-                              "type": "ref",
-                              "ref": "g1SZVo",
-                              "children": [
-                                {
-                                  "id": "yOd4C",
-                                  "type": "ref",
-                                  "ref": "yOd4C",
-                                  "content": "Selected customers · 2"
-                                },
-                                {
-                                  "id": "x4JVtT",
-                                  "type": "ref",
-                                  "ref": "x4JVtT",
-                                  "content": "Mia Rodriguez · Noah Williams"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "mt3DX",
-                              "type": "ref",
-                              "ref": "mt3DX",
-                              "fill": "#F0F5FF",
-                              "stroke": "#ADC6FF",
-                              "children": [
-                                {
-                                  "id": "zezeL",
-                                  "type": "ref",
-                                  "ref": "zezeL",
-                                  "icon": "contact-round",
-                                  "fill": "#1677FF"
-                                },
-                                {
-                                  "id": "VBwAa",
-                                  "type": "ref",
-                                  "ref": "VBwAa",
-                                  "content": "2 customers",
-                                  "fill": "#1677FF"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                      "width": 800
                     },
                     {
                       "id": "N8BUaK",
@@ -11039,37 +10742,31 @@
                       "ref": "mvjvy",
                       "name": "Amount off order combinations",
                       "width": 800,
-                      "height": 117,
+                      "height": 284,
                       "descendants": {
                         "zaObD": {
-                          "height": 36
+                          "height": 180
                         },
                         "F8HFt": {
                           "fill": "#FFFFFF",
                           "stroke": "#E8E8E8"
                         },
-                        "aj4tQ": {
-                          "fill": "#BFBFBF"
+                        "Q39Yox": {
+                          "fill": "#FAFAFA",
+                          "stroke": "#E8E8E8"
                         },
-                        "Mb5Nn": {
-                          "fill": "#8C8C8C"
-                        },
-                        "BVLXl": {
-                          "icon": "circle",
+                        "bqySe": {
                           "fill": "#BFBFBF"
                         },
                         "i59cl": {
                           "fill": "#E6F4FF",
                           "stroke": "#91CAFF"
                         },
-                        "CsO2Z": {
-                          "fill": "#1677FF"
+                        "x2bFE": {
+                          "fill": "#FFFFFF",
+                          "stroke": "#91CAFF"
                         },
-                        "V8WuyP": {
-                          "fill": "#262626"
-                        },
-                        "ws8YG": {
-                          "icon": "circle-check",
+                        "cmKHU": {
                           "fill": "#1677FF"
                         }
                       }
@@ -11081,7 +10778,7 @@
                       "name": "Amount off order availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1202,
+                      "y": 1369,
                       "descendants": {
                         "exHTS": {
                           "content": "Jun 1, 2026 at 00:00"
@@ -11389,7 +11086,7 @@
                       "name": "Amount off order discount codes",
                       "width": 800,
                       "x": 0,
-                      "y": 1457,
+                      "y": 1624,
                       "descendants": {
                         "EFRB1": {
                           "content": "ORDER25"
@@ -11424,7 +11121,7 @@
                       "name": "Amount off order external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1652,
+                      "y": 1819,
                       "descendants": {
                         "APFYm": {
                           "content": "Shopify Plus"
@@ -11894,111 +11591,7 @@
                       "type": "ref",
                       "ref": "H99ci",
                       "name": "Free shipping customer eligibility",
-                      "width": 800,
-                      "children": [
-                        {
-                          "id": "cxqXi",
-                          "type": "ref",
-                          "ref": "cxqXi",
-                          "children": [
-                            {
-                              "id": "Chyth",
-                              "type": "ref",
-                              "ref": "Chyth",
-                              "children": [
-                                {
-                                  "id": "D7BWgW",
-                                  "type": "ref",
-                                  "ref": "D7BWgW"
-                                },
-                                {
-                                  "id": "BFVG5",
-                                  "type": "ref",
-                                  "ref": "BFVG5",
-                                  "children": [
-                                    {
-                                      "id": "HKrSg",
-                                      "type": "ref",
-                                      "ref": "HKrSg"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "id": "h7c3M",
-                              "type": "ref",
-                              "ref": "h7c3M"
-                            }
-                          ]
-                        },
-                        {
-                          "id": "hWiix",
-                          "type": "ref",
-                          "ref": "hWiix",
-                          "fill": "#FFFBE6",
-                          "stroke": "#FFE58F",
-                          "children": [
-                            {
-                              "id": "mTlmY",
-                              "type": "ref",
-                              "ref": "mTlmY",
-                              "fill": "#FFF1B8",
-                              "children": [
-                                {
-                                  "id": "Wv9BV",
-                                  "type": "ref",
-                                  "ref": "Wv9BV",
-                                  "icon": "user-round-x",
-                                  "fill": "#D48806"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "g1SZVo",
-                              "type": "ref",
-                              "ref": "g1SZVo",
-                              "children": [
-                                {
-                                  "id": "yOd4C",
-                                  "type": "ref",
-                                  "ref": "yOd4C",
-                                  "content": "Selected customers · 2"
-                                },
-                                {
-                                  "id": "x4JVtT",
-                                  "type": "ref",
-                                  "ref": "x4JVtT",
-                                  "content": "Mia Rodriguez · 1 unavailable"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "mt3DX",
-                              "type": "ref",
-                              "ref": "mt3DX",
-                              "fill": "#FFFBE6",
-                              "stroke": "#FFE58F",
-                              "children": [
-                                {
-                                  "id": "zezeL",
-                                  "type": "ref",
-                                  "ref": "zezeL",
-                                  "icon": "triangle-alert",
-                                  "fill": "#D48806"
-                                },
-                                {
-                                  "id": "VBwAa",
-                                  "type": "ref",
-                                  "ref": "VBwAa",
-                                  "content": "1 stale",
-                                  "fill": "#D48806"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                      "width": 800
                     },
                     {
                       "id": "Y0P04",
@@ -12014,10 +11607,10 @@
                       "ref": "mvjvy",
                       "name": "Free shipping combinations",
                       "width": 800,
-                      "height": 117,
+                      "height": 284,
                       "descendants": {
                         "zaObD": {
-                          "height": 36
+                          "height": 180
                         }
                       }
                     },
@@ -12028,7 +11621,7 @@
                       "name": "Free shipping availability and limits",
                       "width": 800,
                       "x": 0,
-                      "y": 1202,
+                      "y": 1369,
                       "descendants": {
                         "exHTS": {
                           "content": "Jul 1, 2026 at 00:00"
@@ -12232,7 +11825,7 @@
                       "name": "Free shipping discount codes empty",
                       "width": 800,
                       "x": 0,
-                      "y": 1458,
+                      "y": 1625,
                       "descendants": {
                         "z3MQ3c": {
                           "type": "frame",
@@ -12311,7 +11904,7 @@
                       "name": "Free shipping external references",
                       "width": 800,
                       "x": 0,
-                      "y": 1595,
+                      "y": 1762,
                       "descendants": {
                         "RrC1t": {
                           "content": "1"
@@ -12951,7 +12544,7 @@
       "name": "Discount block / Combinations / Standalone",
       "reusable": true,
       "width": 800,
-      "height": 117,
+      "height": 284,
       "fill": "#FFFFFF",
       "cornerRadius": 8,
       "stroke": "#E8E8E8",
@@ -12974,6 +12567,7 @@
               "name": "Combined combinations copy",
               "width": "fill_container",
               "layout": "vertical",
+              "gap": 2,
               "children": [
                 {
                   "type": "text",
@@ -12986,6 +12580,18 @@
                   "fontFamily": "$--font-secondary",
                   "fontSize": 16,
                   "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "agt8S",
+                  "name": "Combinations description",
+                  "fill": "#595959",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "This discount can be combined with the following discounts in the customer's cart:",
+                  "fontFamily": "Safiro",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -13004,7 +12610,8 @@
           "id": "zaObD",
           "name": "Combined combination options",
           "width": "fill_container",
-          "height": 36,
+          "height": 180,
+          "layout": "vertical",
           "gap": 6,
           "children": [
             {
@@ -13017,51 +12624,107 @@
               "cornerRadius": 6,
               "stroke": "#91CAFF",
               "strokeWidth": 1,
-              "gap": 7,
+              "gap": 10,
               "padding": [
                 0,
-                10
+                12
               ],
               "alignItems": "center",
               "children": [
                 {
-                  "type": "icon",
-                  "id": "aj4tQ",
-                  "name": "Product combination option icon",
-                  "width": 16,
-                  "height": 16,
-                  "icon": "package-check",
-                  "library": "lucide",
-                  "fill": "#1677FF"
+                  "type": "frame",
+                  "id": "Q39Yox",
+                  "name": "Product combination icon container",
+                  "width": 32,
+                  "height": 32,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 6,
+                  "stroke": "#91CAFF",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "bqySe",
+                      "name": "Product combination option icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "package-check",
+                      "library": "lucide",
+                      "fill": "#1677FF"
+                    }
+                  ]
                 },
                 {
                   "type": "frame",
                   "id": "M6Hkbv",
                   "name": "Product combination option status",
                   "width": "fill_container",
-                  "gap": 4,
+                  "gap": 8,
                   "justifyContent": "space_between",
                   "alignItems": "center",
                   "children": [
                     {
-                      "type": "text",
-                      "id": "Mb5Nn",
-                      "name": "Product combination option label",
-                      "fill": "#262626",
-                      "content": "Product",
-                      "fontFamily": "Safiro",
-                      "fontSize": 10,
-                      "fontWeight": "600"
+                      "type": "frame",
+                      "id": "o01Sh",
+                      "name": "Product combination copy",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Mb5Nn",
+                          "name": "Product combination option label",
+                          "fill": "#262626",
+                          "content": "Product discounts",
+                          "fontFamily": "Safiro",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "RFTpT",
+                          "name": "Product combination subtitle",
+                          "fill": "#595959",
+                          "content": "Multiple can apply per order",
+                          "fontFamily": "Safiro",
+                          "fontSize": 10,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
-                      "type": "icon",
-                      "id": "BVLXl",
-                      "name": "Product combination option status icon",
-                      "width": 12,
-                      "height": 12,
-                      "icon": "circle-check",
-                      "library": "lucide",
-                      "fill": "#1677FF"
+                      "type": "frame",
+                      "id": "NPfE5",
+                      "name": "Product combination count",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "cDbrS",
+                          "name": "Product compatible discounts count",
+                          "width": 30,
+                          "height": 22,
+                          "fill": "#F0F0F0",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "mNUR9",
+                              "name": "Product compatible discounts count value",
+                              "fill": "#8C8C8C",
+                              "content": "0",
+                              "fontFamily": "Safiro",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
@@ -13077,51 +12740,107 @@
               "cornerRadius": 6,
               "stroke": "#91CAFF",
               "strokeWidth": 1,
-              "gap": 7,
+              "gap": 10,
               "padding": [
                 0,
-                10
+                12
               ],
               "alignItems": "center",
               "children": [
                 {
-                  "type": "icon",
-                  "id": "lJYmt",
-                  "name": "Order combination option icon",
-                  "width": 16,
-                  "height": 16,
-                  "icon": "receipt-text",
-                  "library": "lucide",
-                  "fill": "#1677FF"
+                  "type": "frame",
+                  "id": "oWZB6",
+                  "name": "Order combination icon container",
+                  "width": 32,
+                  "height": 32,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 6,
+                  "stroke": "#91CAFF",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "gvGtV",
+                      "name": "Order combination option icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "receipt-text",
+                      "library": "lucide",
+                      "fill": "#1677FF"
+                    }
+                  ]
                 },
                 {
                   "type": "frame",
                   "id": "ZpoWW",
                   "name": "Order combination option status",
                   "width": "fill_container",
-                  "gap": 4,
+                  "gap": 8,
                   "justifyContent": "space_between",
                   "alignItems": "center",
                   "children": [
                     {
-                      "type": "text",
-                      "id": "vrzzM",
-                      "name": "Order combination option label",
-                      "fill": "#262626",
-                      "content": "Order",
-                      "fontFamily": "Safiro",
-                      "fontSize": 10,
-                      "fontWeight": "600"
+                      "type": "frame",
+                      "id": "iNfcD",
+                      "name": "Order combination copy",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "vrzzM",
+                          "name": "Order combination option label",
+                          "fill": "#262626",
+                          "content": "Order discounts",
+                          "fontFamily": "Safiro",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "AkiAV",
+                          "name": "Order combination subtitle",
+                          "fill": "#595959",
+                          "content": "Multiple can apply per order",
+                          "fontFamily": "Safiro",
+                          "fontSize": 10,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
-                      "type": "icon",
-                      "id": "u8NFOx",
-                      "name": "Order combination option status icon",
-                      "width": 12,
-                      "height": 12,
-                      "icon": "circle-check",
-                      "library": "lucide",
-                      "fill": "#1677FF"
+                      "type": "frame",
+                      "id": "qo6yQ",
+                      "name": "Order combination count",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Tcms5",
+                          "name": "Order compatible discounts count",
+                          "width": 30,
+                          "height": 22,
+                          "fill": "#F0F0F0",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "sUDVW",
+                              "name": "Order compatible discounts count value",
+                              "fill": "#8C8C8C",
+                              "content": "0",
+                              "fontFamily": "Safiro",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
@@ -13137,51 +12856,107 @@
               "cornerRadius": 6,
               "stroke": "#E8E8E8",
               "strokeWidth": 1,
-              "gap": 7,
+              "gap": 10,
               "padding": [
                 0,
-                10
+                12
               ],
               "alignItems": "center",
               "children": [
                 {
-                  "type": "icon",
-                  "id": "CsO2Z",
-                  "name": "Shipping combination option icon",
-                  "width": 16,
-                  "height": 16,
-                  "icon": "truck",
-                  "library": "lucide",
-                  "fill": "#BFBFBF"
+                  "type": "frame",
+                  "id": "x2bFE",
+                  "name": "Shipping combination icon container",
+                  "width": 32,
+                  "height": 32,
+                  "fill": "#FAFAFA",
+                  "cornerRadius": 6,
+                  "stroke": "#E8E8E8",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "cmKHU",
+                      "name": "Shipping combination option icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "truck",
+                      "library": "lucide",
+                      "fill": "#BFBFBF"
+                    }
+                  ]
                 },
                 {
                   "type": "frame",
                   "id": "P8YutU",
                   "name": "Shipping combination option status",
                   "width": "fill_container",
-                  "gap": 4,
+                  "gap": 8,
                   "justifyContent": "space_between",
                   "alignItems": "center",
                   "children": [
                     {
-                      "type": "text",
-                      "id": "V8WuyP",
-                      "name": "Shipping combination option label",
-                      "fill": "#8C8C8C",
-                      "content": "Shipping",
-                      "fontFamily": "Safiro",
-                      "fontSize": 10,
-                      "fontWeight": "600"
+                      "type": "frame",
+                      "id": "DjP0y",
+                      "name": "Shipping combination copy",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "V8WuyP",
+                          "name": "Shipping combination option label",
+                          "fill": "#8C8C8C",
+                          "content": "Shipping discounts",
+                          "fontFamily": "Safiro",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "sLCh9",
+                          "name": "Shipping combination subtitle",
+                          "fill": "#8C8C8C",
+                          "content": "Only one can apply per order (best value wins)",
+                          "fontFamily": "Safiro",
+                          "fontSize": 10,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
-                      "type": "icon",
-                      "id": "ws8YG",
-                      "name": "Shipping combination option status icon",
-                      "width": 12,
-                      "height": 12,
-                      "icon": "circle",
-                      "library": "lucide",
-                      "fill": "#BFBFBF"
+                      "type": "frame",
+                      "id": "IQ3fM",
+                      "name": "Shipping combination count",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "J5wwRk",
+                          "name": "Shipping compatible discounts count",
+                          "width": 30,
+                          "height": 22,
+                          "fill": "#F0F0F0",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "YJdIt",
+                              "name": "Shipping compatible discounts count value",
+                              "fill": "#8C8C8C",
+                              "content": "0",
+                              "fontFamily": "Safiro",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
