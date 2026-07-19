@@ -39,6 +39,7 @@ import {
   applicationUser,
   applicationVerification,
   jwks,
+  organization,
   session,
   user,
   verification,
@@ -212,10 +213,15 @@ function createScopedCustomAdapter(
         const activeApplicationIds = connection
           .select({ id: application.id })
           .from(application)
+          .innerJoin(
+            organization,
+            eq(organization.id, application.organizationId)
+          )
           .where(
             and(
               eq(application.id, scope.applicationId),
-              isNull(application.deletedAt)
+              isNull(application.deletedAt),
+              isNull(organization.deletedAt)
             )
           );
         const conditions = [
@@ -239,10 +245,15 @@ function createScopedCustomAdapter(
         const [activeApplication] = await connection
           .select({ id: application.id })
           .from(application)
+          .innerJoin(
+            organization,
+            eq(organization.id, application.organizationId)
+          )
           .where(
             and(
               eq(application.id, scope.applicationId),
-              isNull(application.deletedAt)
+              isNull(application.deletedAt),
+              isNull(organization.deletedAt)
             )
           )
           .limit(1);

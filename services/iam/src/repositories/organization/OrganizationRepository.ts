@@ -1,6 +1,7 @@
 import { eq, and, isNull, count } from "drizzle-orm";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import {
+  application,
   organization,
   organizationMember,
   userRole,
@@ -180,13 +181,28 @@ export class OrganizationRepository extends BaseRepository {
    */
   @Transactional()
   async delete(id: string): Promise<boolean> {
+    const now = new Date();
     const result = await this.connection
       .update(organization)
-      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .set({ deletedAt: now, updatedAt: now })
       .where(and(eq(organization.id, id), isNull(organization.deletedAt)))
       .returning({ id: organization.id });
 
-    return result.length > 0;
+    if (result.length === 0) {
+      return false;
+    }
+
+    await this.connection
+      .update(application)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(application.organizationId, id),
+          isNull(application.deletedAt)
+        )
+      );
+
+    return true;
   }
 
   // ============================================================================

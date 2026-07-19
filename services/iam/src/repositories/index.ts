@@ -7,6 +7,7 @@ export {
   type SignInResult,
   type SignUpResult,
   type GetCurrentUserResult,
+  type ValidatedAccessJwt,
 } from "./user/UserRepository.js";
 export {
   OrganizationRepository,
@@ -22,6 +23,7 @@ export {
   AuthSessionRepository,
   AuthSessionRepositoryFactory,
   type AuthSession,
+  type ValidatedAuthSession,
 } from "./auth-session/AuthSessionRepository.js";
 export {
   BetterAuthUserRepository,

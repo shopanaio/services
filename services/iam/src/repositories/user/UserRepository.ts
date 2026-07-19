@@ -6,6 +6,7 @@ import {
 } from "jose";
 import type { Auth } from "../../auth/auth.js";
 import type { Database } from "../../infrastructure/db/database.js";
+import type { AuthSessionRepositoryFactory } from "../auth-session/AuthSessionRepository.js";
 import { jwks, user } from "../models/auth.js";
 import {
   BetterAuthUserRepository,
@@ -32,6 +33,12 @@ export type SignInResult = BetterAuthSignInResult<User>;
 export type SignUpResult = BetterAuthSignUpResult<User>;
 export type GetCurrentUserResult = BetterAuthGetCurrentUserResult<User>;
 
+export interface ValidatedAccessJwt {
+  payload: JwtUserPayload;
+  sessionId: string;
+  user: User;
+}
+
 /**
  * Global IAM user repository.
  *
@@ -45,9 +52,53 @@ export class UserRepository extends BetterAuthUserRepository<User> {
 
   constructor(
     private readonly db: Database,
-    auth: Auth
+    auth: Auth,
+    private readonly authSession: AuthSessionRepositoryFactory
   ) {
     super(auth);
+  }
+
+  /** Validate an access JWT against its current session and user records. */
+  async validateAccessJwt(token: string): Promise<ValidatedAccessJwt | null> {
+    const result = await this.parseJwt(token);
+    if (!result.success || !result.payload?.sub) {
+      return null;
+    }
+
+    const sessionId = result.payload.sid;
+    if (typeof sessionId !== "string" || !sessionId) {
+      return null;
+    }
+
+    const validatedSession = await this.authSession
+      .forPlatform()
+      .validate(result.payload.sub, sessionId);
+    if (!validatedSession || validatedSession.kind !== "platform") {
+      return null;
+    }
+
+    return {
+      payload: result.payload,
+      sessionId,
+      user: this.mapDbUser(validatedSession.user),
+    };
+  }
+
+  override async getCurrentUser(token: string): Promise<GetCurrentUserResult> {
+    if (token.split(".").length !== 3) {
+      return super.getCurrentUser(token);
+    }
+
+    const validated = await this.validateAccessJwt(token);
+    if (!validated) {
+      return {
+        success: false,
+        user: null,
+        error: "Invalid, expired, or revoked access token",
+      };
+    }
+
+    return { success: true, user: validated.user };
   }
 
   async parseJwt(token: string): Promise<ParseJwtResult> {

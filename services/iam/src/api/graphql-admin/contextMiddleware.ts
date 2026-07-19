@@ -40,20 +40,16 @@ export function buildAdminContextMiddleware() {
       return;
     }
 
-    // Validate session token via Better Auth
-    const result = await kernel.repository.user.parseJwt(token);
-    if (!result.success || !result.payload?.sub) {
+    const validated = await kernel.repository.user.validateAccessJwt(token);
+    if (!validated) {
       // Don't fail request - just leave user as null
       return;
     }
 
-    // Extract session ID from JWT payload (sid claim)
-    const sessionId = (result.payload as { sid?: string }).sid ?? null;
-
     request.currentUser = {
-      id: result.payload.sub,
-      data: null,
-      sessionId,
+      id: validated.user.id,
+      data: validated.user,
+      sessionId: validated.sessionId,
     };
   };
 }

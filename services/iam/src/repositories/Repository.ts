@@ -59,12 +59,12 @@ export class Repository {
     await casbinService.initialize();
 
     // Create repositories
-    const userRepo = new UserRepository(db, auth);
+    const authSessionRepo = new AuthSessionRepositoryFactory(db, txManager);
+    const userRepo = new UserRepository(db, auth, authSessionRepo);
     const applicationUserRepo = new ApplicationUserRepositoryFactory(
       db,
       txManager
     );
-    const authSessionRepo = new AuthSessionRepositoryFactory(db, txManager);
     const organizationRepo = new OrganizationRepository(db, txManager);
 
     return new Repository(
