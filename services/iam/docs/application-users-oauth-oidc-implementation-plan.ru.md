@@ -51,6 +51,7 @@ IAM должен стать OIDC-провайдером для клиентск�
 - Собственный grant или password grant.
 - Implicit flow и Resource Owner Password Credentials flow.
 - Device Authorization Grant.
+- Client Credentials grant и любые machine-to-machine principals/tokens.
 - Dynamic Client Registration для внешних клиентов.
 - wildcard redirect URI.
 - Полноценный identity brokering между разными `iam.application`.
@@ -104,6 +105,15 @@ IAM должен стать OIDC-провайдером для клиентск�
 
 Пользователи принадлежат application, а не отдельному OAuth client. Redirect URI, client type, client secret и logout URI принадлежат OAuth client.
 
+Все OAuth clients в v1, включая confidential server-side storefront, работают только от имени `application_user` через Authorization Code flow. IAM создает каждый client с неизменяемой protocol policy:
+
+```text
+grant_types = ["authorization_code", "refresh_token"]
+response_types = ["code"]
+```
+
+`client_credentials` не входит в v1 и не может быть выбран через Admin GraphQL, client metadata или прямой HTTP endpoint. Confidential client означает только возможность безопасно аутентифицироваться на token endpoint при code exchange/refresh; это не M2M client. Если позже понадобится service principal, для него требуется отдельный actor model, scopes, claims, audience и threat model.
+
 ### 5.2. Актуальный Better Auth OAuth Provider
 
 Использовать `@better-auth/oauth-provider@1.6.23` вместе с `better-auth@1.6.23`.
@@ -137,6 +147,10 @@ IAM предоставляет собственные login, signup, OTP, provid
 ### 5.5. Административное управление
 
 Dynamic Client Registration в первой версии выключен. OAuth client создается и меняется только организационным администратором через Admin GraphQL, а серверная операция выполняется через Better Auth admin API.
+
+Публичный application realm не предоставляет Better Auth endpoint управления OAuth clients. Отключение Dynamic Client Registration само по себе недостаточно: OAuth Provider также содержит session-authenticated endpoint создания, чтения, изменения, удаления и ротации secret клиента. Fastify boundary обязан отклонять их до вызова `auth.handler`, даже если у request есть действующая `application_session`.
+
+Admin GraphQL вызывает server-side методы Better Auth (`adminCreateOAuthClient`, `adminUpdateOAuthClient`) напрямую внутри IAM process после Casbin и ownership checks. Для ротации/удаления этап 0 обязан подтвердить наличие server-only API установленной версии; если его нет, используется отдельный IAM internal management service поверх plugin-compatible repository, а не session-authenticated публичный endpoint. Platform admin credential/cookie не передается в публичный application handler, application user session не имперсонируется, а server-side операции не экспонируются как HTTP endpoint application realm.
 
 Это позволяет IAM дополнительно проверять:
 
@@ -185,16 +199,37 @@ https://iam.example.com/auth/applications/019abcde-...
 
 После подключения OAuth Provider добавить `disabledPaths: ["/token"]`, чтобы не оставлять второй неоднозначный token endpoint Better Auth.
 
+Для namespace `/oauth2/*` действует default-deny allowlist, зафиксированный для установленной версии plugin. В публичный контракт входят только protocol и hosted-flow endpoint:
+
+- `authorize`, `token`, `userinfo`, `introspect`, `revoke`, `end-session`;
+- `consent` и `continue`;
+- read-only `public-client`/`public-client-prelogin`, если они требуются hosted login/consent UI;
+- discovery/JWKS endpoint, опубликованные plugin.
+
+Публично запрещены и возвращают `404` до `auth.handler`:
+
+- Dynamic Client Registration;
+- `create-client`, `get-client`, `get-clients`, `update-client`, `delete-client`;
+- `client/rotate-secret`;
+- любые admin/client-management endpoint, добавленные текущей или будущей версией plugin;
+- неизвестный `/oauth2/*` path, отсутствующий в утвержденном allowlist.
+
+Точные имена путей извлекаются и фиксируются в compatibility ADR после установки `@better-auth/oauth-provider@1.6.23`. Upgrade plugin невозможен без повторной сверки публичного route manifest.
+
 ### 6.3. Fastify integration
 
 Добавить catch-all handler под `/auth/applications/:applicationId/*`, который:
 
 1. валидирует UUID;
 2. загружает активную application и ее активную organization;
-3. получает instance из `ApplicationAuthFactory`;
-4. преобразует Fastify request в стандартный Fetch API `Request`;
-5. передает его в `auth.handler`;
-6. корректно переносит status, headers и body в Fastify reply.
+3. нормализует относительный path без повторного decode и проверяет его по immutable public route manifest;
+4. для `/oauth2/*` применяет default-deny allowlist и возвращает `404` для client-management/unknown endpoint;
+5. получает instance из `ApplicationAuthFactory`;
+6. преобразует Fastify request в стандартный Fetch API `Request`;
+7. передает только разрешенный request в `auth.handler`;
+8. корректно переносит status, headers и body в Fastify reply.
+
+Route authorization выполняется по нормализованному pathname, а не по строковому prefix match. Encoded slash, duplicate slash, dot-segment и повторное percent-decoding не должны позволять обойти deny/default-deny policy.
 
 Handler обязан сохранять:
 
@@ -219,22 +254,23 @@ Allowed origins берутся из application configuration и сопоста�
    - точным `redirect_uri`;
    - `response_type=code`;
    - `scope=openid profile email offline_access customer-account-api:full`;
+   - `resource={STOREFRONT_RESOURCE_AUDIENCE}`;
    - `state`;
    - `nonce`;
    - `code_challenge`;
    - `code_challenge_method=S256`.
-4. IAM проверяет OAuth client и сохраняет authorization context.
+4. IAM проверяет OAuth client, требует единственный канонический Storefront resource, сверяет его с `oauthProvider.validAudiences` и разрешенными resources клиента и сохраняет authorization context.
 5. Если application-сессии нет, IAM показывает hosted login UI.
 6. Пользователь выбирает разрешенный application способ входа.
 7. Better Auth создает/проверяет `application_user`, account и session.
 8. Для доверенного first-party client consent может быть заранее разрешен серверным флагом `skipConsent`; для остальных показывается consent page.
 9. IAM возвращает одноразовый authorization code на зарегистрированный callback вместе со `state`.
-10. Клиент проверяет `state` и обменивает code + `code_verifier` на token.
+10. Клиент проверяет `state` и обменивает code + `code_verifier` на token, повторно передавая тот же `resource`; contract не допускает смену или расширение resource между authorize и token request.
 11. Клиент проверяет ID token: signature, `iss`, `aud`, `exp`, `nonce`.
-12. Access token отправляется в Storefront API как bearer token.
-13. Refresh token используется только через `/oauth2/token`; rotation/revocation контролирует plugin.
+12. Клиент проверяет, что access token имеет JWT-формат и `aud={STOREFRONT_RESOURCE_AUDIENCE}`, после чего отправляет его в Storefront API как bearer token.
+13. Refresh token используется только через `/oauth2/token` с тем же `resource`; новый access token сохраняет исходный Storefront resource/audience, а запрос другого resource отклоняется. Rotation/revocation контролирует plugin.
 
-PKCE нельзя отключать. Для browser/mobile client используется public client с `token_endpoint_auth_method=none`. Для server-side client используется confidential client, PKCE и client authentication.
+PKCE нельзя отключать. Для browser/mobile client используется public client с `token_endpoint_auth_method=none`. Для server-side client используется confidential client, PKCE и client authentication. Оба типа имеют только `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`; запрос `grant_type=client_credentials` отклоняется OAuth Provider как не разрешенный этому client.
 
 ### 7.2. Logout
 
@@ -480,12 +516,19 @@ Provider configuration включает:
 - `application_id`;
 - `client_id`;
 - `store_id` или другой resource binding;
+- `resources` — server-controlled allowlist; в v1 ровно `[STOREFRONT_RESOURCE_AUDIENCE]` для storefront client;
+- `grant_types` — server-controlled, в v1 ровно `["authorization_code", "refresh_token"]`;
+- `response_types` — server-controlled, в v1 ровно `["code"]`;
 - `environment`: `development | production`;
 - `created_by`, `updated_by`;
 - `created_at`, `updated_at`;
 - `deleted_at`/disabled state.
 
 `store_id` проверяется через внутренний Project service action: Store и application должны принадлежать одной организации. Межсервисный FK не создается.
+
+При создании/изменении клиента IAM записывает тот же allowlist в plugin field `resources`, если оно поддерживается подтвержденной схемой версии `1.6.23`, и всегда дублирует enforcement в server-side client policy. Значение `resource` нельзя задавать произвольной строкой через Admin GraphQL: администратор выбирает только зарегистрированный platform resource.
+
+Поля plugin `grantTypes` и `responseTypes` записываются IAM при создании и не принимаются из GraphQL input при create/update. Repository запрещает их изменение в обход отдельной будущей protocol-policy migration. Public client-management endpoint закрыты, поэтому application user не может зарегистрировать client с `client_credentials` самостоятельно.
 
 ## 11. Better Auth instance для application
 
@@ -495,6 +538,8 @@ Provider configuration включает:
 emailAndPassword
 socialProviders.google/facebook
 plugins: jwt, emailOTP, phoneNumber, oauthProvider
+oauthProvider.validAudiences: [STOREFRONT_RESOURCE_AUDIENCE]
+oauthProvider.disableJwtPlugin: false
 account.encryptOAuthTokens
 account.accountLinking
 trustedOrigins
@@ -584,6 +629,8 @@ GraphQL response возвращает только:
 
 ### 12.3. OAuth clients
 
+Все операции ниже доступны только через Admin GraphQL. Resolver выполняет Casbin/organization/application checks и затем вызывает подтвержденный server-only Better Auth API либо IAM internal management service; application user session никогда не авторизует эти операции через публичный HTTP handler.
+
 - list/get clients;
 - create public/confidential client;
 - update name, redirect URIs, post-logout URIs и store binding;
@@ -591,6 +638,15 @@ GraphQL response возвращает только:
 - rotate confidential client secret;
 - delete/archive client;
 - управлять `skipConsent` только для first-party clients.
+
+GraphQL input не содержит `grantTypes`/`responseTypes`. При create IAM всегда передает Better Auth:
+
+```text
+grant_types = ["authorization_code", "refresh_token"]
+response_types = ["code"]
+```
+
+Update не позволяет менять эти поля. Значения возвращаются read-only, чтобы администратор и аудит видели фактическую protocol policy клиента.
 
 Client secret показывается один раз при создании/ротации и далее хранится plugin в защищенном/hashed виде. Его нельзя получить повторно.
 
@@ -686,6 +742,8 @@ Access token:
 - `actor_type=application_user`;
 - `sid`, если нужен live session check.
 
+В v1 каждый access token имеет пользователя: `sub` обязателен, а `actor_type` всегда равен `application_user`. Userless/M2M access token от `client_credentials` является недопустимым и отклоняется Storefront validator даже при корректной подписи.
+
 Не помещать в token:
 
 - Casbin admin roles;
@@ -707,22 +765,42 @@ Access token:
 
 Начать с малого утвержденного scope registry. Администратор может выбирать только разрешенные scopes, но не создавать исполняемую claim mapping логику.
 
-### 14.3. Проверка в Storefront API
+### 14.3. Resource indicator и формат access token
+
+В v1 используется один канонический resource indicator для Storefront API:
+
+```text
+STOREFRONT_RESOURCE_AUDIENCE=<absolute HTTPS URI Storefront API>
+```
+
+Значение задается обязательной server configuration, нормализуется один раз без trailing slash и не строится из `Host` request. Оно одинаково используется как:
+
+- `resource` в authorization request;
+- элемент `oauthProvider.validAudiences`;
+- разрешенный resource OAuth client;
+- `aud` JWT access token;
+- ожидаемый audience Storefront validator.
+
+OAuth Provider работает с включенным JWT plugin (`disableJwtPlugin=false`). Storefront client обязан передавать этот `resource` и в authorization request, и в code exchange/refresh token request. Отсутствующий, неизвестный, множественный или не разрешенный клиенту resource отклоняется с protocol error `invalid_target`. Успешный code exchange и refresh должны выдавать JWT access token с точным `aud=STOREFRONT_RESOURCE_AUDIENCE`. Opaque access tokens не входят в Storefront v1 contract и отклоняются без попытки fallback-introspection.
+
+`store_id` не является resource/audience: он берется только из доверенной metadata OAuth client и добавляется через `customAccessTokenClaims`. Один общий Storefront resource может обслуживать разные Stores, а resource server одновременно проверяет `aud`, `application_id` и `store_id`.
+
+### 14.4. Проверка в Storefront API
 
 Storefront/Gateway обязан проверять:
 
 - подпись по JWKS и допустимый алгоритм;
 - точный `iss`;
-- `aud`/resource;
+- точный `aud=STOREFRONT_RESOURCE_AUDIENCE`;
 - `exp`, `nbf`, `iat` с небольшим clock skew;
 - `scope`;
 - `application_id` и `store_id` из trusted routing context;
 - `actor_type`;
 - актуальное состояние application/user/session для чувствительных операций.
 
-Для обычных запросов короткий JWT access token допускает локальную cryptographic verification. Для операций с повышенным риском и после block/revoke использовать IAM validation action или introspection с live checks. Результаты live validation кэшировать только на очень короткий срок и инвалидировать событиями.
+Storefront сначала проверяет JWT shape и никогда не принимает opaque token. Для обычных запросов короткий JWT access token проходит локальную cryptographic verification. Для операций с повышенным риском и после block/revoke использовать IAM validation action или JWT introspection с live checks. Результаты live validation кэшировать только на очень короткий срок и инвалидировать событиями.
 
-Opaque access token, если будет выбран plugin configuration, всегда проверяется через introspection. Формат token не должен определяться клиентом.
+Формат token не определяется клиентом: IAM конфигурация и обязательный resource гарантируют JWT для Storefront. Поддержка opaque access token в будущем требует отдельного versioned resource-server contract и не включается автоматически.
 
 ## 15. Связь с Customers service
 
@@ -846,17 +924,24 @@ Security/operational события без секретов:
 
 1. Добавить exact dependency `@better-auth/oauth-provider@1.6.23`.
 2. Зафиксировать generated schema и endpoint paths установленной версии.
-3. Подтвердить Fastify integration, path-prefixed issuer и multi-cookie responses.
-4. Проверить возможность application scoping всех plugin models через текущий adapter.
-5. Проверить custom claims/store binding.
-6. Выбрать безопасную стратегию phone OTP без plaintext storage.
-7. Зафиксировать public/confidential client behavior и secret one-time return.
+3. Классифицировать каждый OAuth Provider endpoint как public protocol/hosted-flow или internal management и зафиксировать default-deny public route manifest.
+4. Подтвердить, что session-authenticated client-management endpoint недоступны application users, а server-side admin API вызывается без их публичной экспозиции.
+5. Подтвердить Fastify integration, path-prefixed issuer и multi-cookie responses.
+6. Проверить возможность application scoping всех plugin models через текущий adapter.
+7. Зафиксировать `STOREFRONT_RESOURCE_AUDIENCE`, `validAudiences`, client resources и подтвердить JWT access token для authorize/code exchange/refresh.
+8. Проверить custom claims/store binding.
+9. Выбрать безопасную стратегию phone OTP без plaintext storage.
+10. Зафиксировать public/confidential client behavior, обязательные `grant_types=["authorization_code", "refresh_token"]`, `response_types=["code"]` и secret one-time return.
+11. Подтвердить, что token endpoint отклоняет `client_credentials` для каждого созданного v1 client, даже если plugin рекламирует общую поддержку grant в discovery.
 
 Результат:
 
 - короткий ADR с выбранным plugin и отклонением deprecated `oidcProvider`;
 - подтвержденная схема таблиц;
-- список точных endpoint;
+- versioned route manifest с точными public/internal endpoint;
+- негативное подтверждение, что application user не может читать, создавать, изменять, удалять client или ротировать его secret;
+- contract-подтверждение, что обязательный Storefront resource выдает JWT с ожидаемым `aud`, а отсутствующий/чужой resource отклоняется;
+- contract-подтверждение, что public и confidential v1 clients не получают token через `client_credentials`;
 - закрытый phone OTP security decision.
 
 Критерий выхода: нет неизвестных, требующих самописного OAuth server или небезопасного хранения OTP.
@@ -882,9 +967,10 @@ Security/operational события без секретов:
 1. Расширить adapter plugin models.
 2. Собирать plugins согласно application settings.
 3. Добавить account token encryption/linking policy.
-4. Добавить OAuth scopes/audiences/claims policy.
-5. Добавить revision-aware cache invalidation.
-6. Проверять active organization/application перед созданием instance.
+4. Добавить OAuth scopes, `validAudiences`, client resources и custom claims policy; JWT plugin нельзя отключать.
+5. Принудительно задавать client `grantTypes=["authorization_code", "refresh_token"]` и `responseTypes=["code"]`, запретив mutation этих полей.
+6. Добавить revision-aware cache invalidation.
+7. Проверять active organization/application перед созданием instance.
 
 Критерий выхода: два application одновременно используют разные users, clients, keys, cookies и providers без пересечения.
 
@@ -894,12 +980,13 @@ Security/operational события без секретов:
 
 1. Реализовать Fastify catch-all route.
 2. Настроить canonical public base URL/proxy handling.
-3. Экспонировать discovery/JWKS/authorize/token/userinfo/introspection/revoke/end-session.
-4. Отключить конфликтующий `/token` Better Auth path.
-5. Реализовать exact CORS/trusted origins.
-6. Добавить structured errors/request IDs без утечки данных.
+3. Добавить default-deny `/oauth2/*` route manifest и закрыть все client-management endpoint до `auth.handler`.
+4. Экспонировать discovery/JWKS/authorize/token/userinfo/introspection/revoke/end-session и необходимые hosted-flow endpoint.
+5. Отключить конфликтующий `/token` Better Auth path.
+6. Реализовать exact CORS/trusted origins.
+7. Добавить structured errors/request IDs без утечки данных.
 
-Критерий выхода: стандартный OIDC client проходит discovery и Authorization Code + PKCE flow.
+Критерий выхода: стандартный OIDC client проходит discovery и Authorization Code + PKCE flow, application user не может вызвать ни один client-management endpoint, а `client_credentials` не выдает token ни public, ни confidential v1 client.
 
 ### Этап 4. Admin GraphQL
 
@@ -908,12 +995,12 @@ Security/operational события без секретов:
 1. Application CRUD/list/read.
 2. Auth settings/origins/branding.
 3. Provider credentials/status.
-4. OAuth clients и one-time secret rotation.
+4. OAuth clients с фиксированными Authorization Code/Refresh grants и one-time secret rotation; grant policy отсутствует в mutation input и возвращается read-only.
 5. Application user security actions.
 6. Casbin permissions и audit events.
 7. Store ownership validation через internal action.
 
-Критерий выхода: organization admin может полностью настроить realm без DB/manual config, но не может прочитать secrets.
+Критерий выхода: organization admin может полностью настроить realm без DB/manual config, но не может прочитать secrets или включить `client_credentials`/изменить protocol grants.
 
 ### Этап 5. Hosted UI и password flow
 
@@ -968,13 +1055,13 @@ Security/operational события без секретов:
 
 Задачи:
 
-1. Добавить JWT/JWKS validator и live validation path.
+1. Добавить JWT-only/JWKS validator с обязательным `aud=STOREFRONT_RESOURCE_AUDIENCE` и live validation path.
 2. Ввести trusted auth context `application_user`.
 3. Проверять application/store binding и scopes.
 4. Реализовать идемпотентный Customer ensure/projection.
 5. Обработать block/revoke/config disable events.
 
-Критерий выхода: Storefront принимает только token правильного issuer/client/store, а Customer создается/связывается идемпотентно.
+Критерий выхода: Storefront принимает только JWT token правильного issuer/resource/client/store, отклоняет opaque token, а Customer создается/связывается идемпотентно.
 
 ### Этап 10. Hardening и rollout
 
@@ -1028,6 +1115,13 @@ Hosted UI следует разместить в выбранном для IAM w
 - JWKS валидирует выданный ID/access token;
 - public client + S256 PKCE проходит flow;
 - confidential client проходит flow с client authentication и PKCE;
+- public и confidential clients созданы только с `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`;
+- `grant_type=client_credentials` не выдает token ни одному v1 client;
+- Admin GraphQL не принимает и не изменяет `grantTypes`/`responseTypes`;
+- authorize с точным `resource=STOREFRONT_RESOURCE_AUDIENCE` выдает JWT access token с таким же `aud`;
+- отсутствующий, неизвестный, множественный или не разрешенный client resource отклоняется;
+- token exchange не позволяет заменить resource из authorization code;
+- refresh сохраняет исходный resource/audience и не позволяет получить token для другого resource;
 - отсутствующий/неверный verifier отклоняется;
 - повторное использование code отклоняется;
 - неверные state/nonce обнаруживаются клиентом/flow;
@@ -1035,7 +1129,11 @@ Hosted UI следует разместить в выбранном для IAM w
 - revoke прекращает refresh;
 - end-session принимает только зарегистрированный post-logout URI;
 - disabled client/application/organization отклоняются;
-- неизвестный scope/audience отклоняется.
+- неизвестный scope/audience отклоняется;
+- application user session не дает доступ к create/get/list/update/delete OAuth client;
+- application user session не позволяет ротировать client secret;
+- Dynamic Client Registration и неизвестный `/oauth2/*` path возвращают `404`;
+- разрешенные protocol/hosted-flow endpoint продолжают работать через тот же catch-all.
 
 ### 22.2. Tenant isolation
 
@@ -1078,6 +1176,9 @@ Hosted UI следует разместить в выбранном для IAM w
 - config revision предотвращает lost update;
 - factory перестраивается после config change;
 - Storefront отклоняет неверный issuer/audience/store/scope/actor;
+- Storefront отклоняет opaque access token без fallback-introspection;
+- Storefront отклоняет userless token без `sub` или с `actor_type`, отличным от `application_user`;
+- OAuth client, привязанный к Store A, не получает token с resource/store binding другого client;
 - block/revoke отражается в live validation;
 - Customer ensure идемпотентен при retry/duplicate event;
 - недоступность Customers не ломает token endpoint.
@@ -1090,6 +1191,8 @@ Hosted UI следует разместить в выбранном для IAM w
 - cookies имеют ожидаемые Secure/HttpOnly/SameSite/path attributes;
 - несколько `Set-Cookie` не схлопываются Fastify adapter;
 - CORS разрешает только точный configured origin;
+- encoded slash, duplicate slash, dot-segment и double-encoding не обходят public OAuth route allowlist;
+- route manifest проверен повторно при upgrade OAuth Provider plugin;
 - rate limit работает по application/identity/IP;
 - PII/secrets отсутствуют в logs/traces/metrics.
 
@@ -1112,8 +1215,17 @@ Hosted UI следует разместить в выбранном для IAM w
 
 - [ ] Используется актуальный `@better-auth/oauth-provider`, а не deprecated provider.
 - [ ] Authorization Code + S256 PKCE обязателен.
+- [ ] Все v1 clients имеют только `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`.
+- [ ] `client_credentials` отсутствует в Admin GraphQL input и не выдает token ни public, ни confidential client.
+- [ ] Authorize flow требует канонический `STOREFRONT_RESOURCE_AUDIENCE` и выдает JWT с точным `aud`.
+- [ ] JWT plugin включен; Storefront отклоняет opaque access tokens.
+- [ ] OAuth client resources и `oauthProvider.validAudiences` ограничены platform registry.
+- [ ] Code exchange/refresh не позволяют сменить или расширить исходный resource.
 - [ ] Implicit/password grants отсутствуют.
 - [ ] Dynamic Client Registration выключен.
+- [ ] Все OAuth client-management endpoint закрыты в публичном application realm до `auth.handler`.
+- [ ] `/oauth2/*` использует versioned default-deny route manifest; неизвестные paths возвращают `404`.
+- [ ] Admin GraphQL вызывает server-side OAuth client API только после Casbin и organization/application ownership checks.
 - [ ] Redirect/post-logout URI проверяются точным совпадением.
 - [ ] Issuer строится из server config, не request Host.
 - [ ] Все OAuth plugin модели application-scoped.
@@ -1138,7 +1250,7 @@ Hosted UI следует разместить в выбранном для IAM w
 
 1. Каждая application имеет отдельный issuer, users, sessions, providers, OAuth clients, tokens, consents и keys.
 2. Organization admin управляет настройками через Admin API с Casbin и audit trail.
-3. Public и confidential clients проходят стандартный OIDC Authorization Code + PKCE flow.
+3. Public и confidential clients проходят стандартный OIDC Authorization Code + PKCE flow с обязательным Storefront resource и получают JWT access token с точным audience; `client_credentials` для них запрещен.
 4. Password, email OTP, phone OTP, Google и Facebook можно независимо включать на application.
 5. Phone OTP не хранит открытый код; email OTP хранится hashed.
 6. Account linking не пересекает applications и не доверяет synthetic/unverified email.
@@ -1161,6 +1273,8 @@ Hosted UI следует разместить в выбранном для IAM w
 | Secret leakage в admin/logs | Encryption, one-time reveal, redaction и audit без value |
 | Open redirect/custom scheme abuse | Exact allowlist и отдельная mobile URI policy |
 | Устаревшая factory config после admin update | Revisioned cache key + invalidation event |
+| Storefront получает opaque token без audience | Обязательный `resource`, `validAudiences`, client resource allowlist, включенный JWT plugin и JWT-only Storefront validator |
+| OAuth Provider поддерживает `client_credentials` по умолчанию | Создавать v1 clients только с Authorization Code/Refresh grants, не принимать grant policy из GraphQL и проверять отказ token endpoint contract-сценарием |
 | Мгновенная ревокация JWT | Короткий access TTL + live validation/introspection для чувствительных операций |
 | Customers временно недоступен | Outbox/retry/idempotent ensure, не блокировать token endpoint |
 | Смешение Application и integration apps service | Зафиксировать IAM application как auth realm и отдельный OAuth client resource |
@@ -1172,17 +1286,17 @@ Hosted UI следует разместить в выбранном для IAM w
 1. Какой production SMS Verify provider используется и где хранится его credential?
 2. Какой email transport/template service является platform default?
 3. Нужны ли custom mobile URI schemes в первой версии или достаточно universal/app links?
-4. Какой exact resource audience будет использовать Storefront API?
-5. Какие TTL ranges организация может менять, а какие остаются platform policy?
-6. Нужен ли consent screen для всех third-party clients уже в первой версии?
-7. Где размещается hosted UI bundle и как он версионируется вместе с IAM?
-8. Достаточен ли event-driven Customer ensure или первый Customer-bound request должен делать синхронный ensure?
+4. Какие TTL ranges организация может менять, а какие остаются platform policy?
+5. Нужен ли consent screen для всех third-party clients уже в первой версии?
+6. Где размещается hosted UI bundle и как он версионируется вместе с IAM?
+7. Достаточен ли event-driven Customer ensure или первый Customer-bound request должен делать синхронный ensure?
 
-До получения ответов применяются безопасные значения этого плана: platform delivery profiles, HTTPS/universal links, фиксированный Storefront audience, короткие TTL, consent для не-first-party clients и асинхронная Customer projection с idempotent fallback.
+Exact URI `STOREFRONT_RESOURCE_AUDIENCE` является обязательной deployment configuration и фиксируется в этапе 0 до создания первого OAuth client; это больше не открытый архитектурный вопрос. До получения остальных ответов применяются безопасные значения этого плана: platform delivery profiles, HTTPS/universal links, короткие TTL, consent для не-first-party clients и асинхронная Customer projection с idempotent fallback.
 
 ## 28. Официальные источники
 
 - [Better Auth OAuth Provider](https://better-auth.com/docs/plugins/oauth-provider)
+- [RFC 8707: Resource Indicators for OAuth 2.0](https://www.rfc-editor.org/rfc/rfc8707.html)
 - [Better Auth Email OTP](https://better-auth.com/docs/plugins/email-otp)
 - [Better Auth Phone Number](https://better-auth.com/docs/plugins/phone-number)
 - [Better Auth Google](https://better-auth.com/docs/authentication/google)
