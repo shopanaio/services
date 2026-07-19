@@ -1,6 +1,9 @@
 # План реализации OAuth 2.1 / OpenID Connect для `application_users` в IAM
 
-Статус: проектный план  
+Статус: готов к декомпозиции и реализации после закрытия обязательного этапа 0
+
+Оценка полноты реализации: 95% (архитектурные и v1 product decisions зафиксированы; оставшиеся 5% — проверяемые compatibility facts установленной plugin composition, а не открытые проектные решения)
+
 Дата: 2026-07-19  
 Сервис: `services/iam`  
 Целевая область: аутентификация пользователей приложений (`application_users`)
@@ -10,6 +13,10 @@
 - [Compatibility и security spike OAuth 2.1 / OIDC для `application_users`](./application-users-oauth-oidc-compatibility-spike.ru.md);
 - [Последующий план реализации Admin API для application auth](./application-auth-admin-api-implementation-plan.ru.md);
 - [План реализации API управления OAuth clients в IAM](./application-oauth-client-management-api-plan.ru.md).
+
+### Критерий готовности настоящего плана
+
+План считается готовым к выполнению, если для каждого этапа определены: входные зависимости, точные задачи, создаваемые артефакты, негативные сценарии и бинарный критерий выхода. Неизвестное поведение Better Auth закрывается в обязательном этапе 0 executable contract-проверкой и не переносится как архитектурный выбор в последующие этапы. Если contract-проверка расходится с планом, реализация останавливается, compatibility ADR обновляется, а небезопасный permissive fallback запрещен.
 
 ## 1. Резюме решения
 
@@ -240,6 +247,8 @@ https://iam.example.com/auth/applications/019abcde-...
 
 После подключения OAuth Provider добавить `disabledPaths: ["/token"]`, чтобы не оставлять второй неоднозначный token endpoint Better Auth.
 
+Discovery/metadata являются IAM-owned response contract поверх значений plugin: `issuer`, endpoint URI, `jwks_uri`, `grant_types_supported`, `response_types_supported`, PKCE methods и `token_endpoint_auth_methods_supported` сверяются с server policy перед ответом. Для v1 metadata обязана рекламировать `token_endpoint_auth_methods_supported=["none","client_secret_basic","client_secret_post"]`, если все три метода подтверждены executable spike; неподтвержденный метод удаляется и соответствующий client type не может быть создан. IAM не включает DCR ради появления `none`. Этап 0 проверяет минимум один standards-compliant public client с `none` и один confidential client с `client_secret_basic`; конкретная Storefront library не является частью IAM runtime и не блокирует стандартный protocol contract.
+
 Для всего application Better Auth handler действует versioned default-deny allowlist по паре `(HTTP method, normalized relative pathname)`, зафиксированный для точного набора и версий Better Auth plugins. Наличие endpoint в runtime router Better Auth само по себе не делает его публичным. В базовый публичный контракт входят только:
 
 - OAuth/OIDC protocol endpoint: `authorize`, `token`, `userinfo`, `introspect`, `revoke`, `end-session`;
@@ -335,9 +344,15 @@ Handler обязан сохранять:
 - исходный HTTP method;
 - отсутствие общего CORS `*`.
 
+Для v1 HTTP bridge реализуется внутри encapsulated `applicationAuthHttpPlugin` собственными content-type parsers с `parseAs: "buffer"` и limit 64 KiB для `application/x-www-form-urlencoded`/JSON auth requests. Query берется из raw request URL как substring после первого `?`; form body остается исходным `Buffer`. Guard разбирает отдельную копию через стандартный form parser, сохраняющий повторяющиеся параметры (`getAll`), но передает в Fetch `Request` исходные bytes без сериализации. Unsupported charset/content-encoding, malformed percent encoding, NUL, body выше лимита и protocol route с неожиданным content type отклоняются `400` до Better Auth. Для token endpoint разрешен только `POST application/x-www-form-urlencoded`; JSON не является альтернативой OAuth form contract.
+
+Route matching использует один percent-decode только для безопасных unreserved characters и отклоняет encoded slash/backslash, dot-segment, NUL, invalid UTF-8, duplicate slash и любую ситуацию, в которой нормализованный path отличается по структуре от raw path. Manifest хранит уже нормализованные literal paths. Guard отклоняет duplicate `grant_type`, `client_id`, `redirect_uri`, `code`, `refresh_token` и `resource`; duplicate `scope` также не объединяется неявно. Секретные form values никогда не включаются в structured error/log.
+
 Allowed origins берутся из application configuration и сопоставляются точным origin. Redirect URI проверяет OAuth Provider plugin по точному зарегистрированному URI.
 
 `applicationAuthHttpPlugin` и `adminGraphqlPlugin` используют один порт, но имеют независимые transport/auth boundaries. Network exposure на reverse proxy настраивается по path: публичные OAuth/OIDC routes доступны OAuth clients, а `/graphql` не становится публичным только из-за общего listener.
+
+Fastify создается с явным `trustProxy` allowlist из server configuration. `X-Forwarded-*` игнорируются, если непосредственный peer не входит в allowlist. Issuer и callback URL всегда строятся из `IAM_PUBLIC_BASE_URL`; forwarded headers используются только для trusted client-IP/rate-limit attribution. Production startup отклоняет HTTP public base URL и пустой proxy allowlist, если listener находится за reverse proxy.
 
 ## 7. Целевой пользовательский flow
 
@@ -488,6 +503,7 @@ Facebook без доступного email нельзя связать в v1, п
 | --- | --- |
 | `application_id` | PK/FK на `iam.application` |
 | `revision` | монотонная версия для cache invalidation |
+| `realm_enabled` | операционный выключатель публичной аутентификации без удаления application/users |
 | `resource` | единственный канонический OAuth resource/audience application |
 | `registration_mode` | `open`, `disabled` |
 | `password_sign_up_enabled` | регистрация password |
@@ -503,6 +519,7 @@ Facebook без доступного email нельзя связать в v1, п
 | `id_token_ttl_seconds` | TTL ID token |
 | `refresh_token_ttl_seconds` | TTL refresh token |
 | `session_ttl_seconds` | TTL application session |
+| `secret_key_version` | версия IAM root key для HKDF realm secret |
 | `branding_json` | валидированный branding contract |
 | `default_locale` | локаль hosted UI |
 | `created_at`, `updated_at` | аудит времени |
@@ -530,6 +547,8 @@ socialSignUpAllowed(provider) = registration_mode == "open" && provider.enabled
 ```
 
 `registration_mode=disabled` запрещает создание `application_user` через **все** способы: password signup, первый email OTP flow и первый Google/Facebook login. Он не выключает вход существующих пользователей через разрешенные методы и не меняет их method flags. Factory устанавливает `disableSignUp=true` для password, email OTP и каждого social provider независимо от UI; direct HTTP request не может обойти этот gate.
+
+`realm_enabled=false` является отдельным emergency/operational gate. Он возвращает безопасный `404` для публичных discovery/auth routes до `auth.handler`, запрещает authorize, signin и refresh, делает live validation неактивной, но не удаляет users, accounts, sessions, consents или keys. `registration_mode` не используется как замена realm disable. Active realm в этом документе означает одновременно: `application.deleted_at IS NULL`, `organization.deleted_at IS NULL` и `application_auth_configuration.realm_enabled=true`.
 
 Конфигурационный инвариант `email_otp_sign_up_enabled => email_otp_sign_in_enabled` обязателен, потому что stock Better Auth создает пользователя внутри того же `/sign-in/email-otp` flow. Repository/Zod schema отклоняет комбинацию `email_otp_sign_up_enabled=true`, `email_otp_sign_in_enabled=false`, а не исправляет ее неявно.
 
@@ -560,7 +579,11 @@ socialSignUpAllowed(provider) = registration_mode == "open" && provider.enabled
 - `created_at`, `updated_at`, `updated_by`;
 - unique `(application_id, provider)`.
 
-Секреты шифруются envelope encryption/KMS abstraction либо AES-256-GCM с versioned IAM master key. AAD включает `applicationId`, provider и field name. Значения не попадают в Pino context, exception, GraphQL response или audit payload.
+Секреты шифруются AES-256-GCM через `ApplicationAuthKeyring` с versioned IAM root key. Конкретный secrets backend может использовать KMS/envelope encryption для хранения самого root key, но формат application ciphertext и adapter contract от этого не меняются. AAD включает `applicationId`, provider и field name. Значения не попадают в Pino context, exception, GraphQL response или audit payload.
+
+Для v1 фиксируется один `ApplicationAuthKeyring` port. Production adapter получает versioned root keys только из platform secrets backend; development adapter — из явно названных IAM environment secrets. Ciphertext хранится как `keyVersion + iv + authTag + ciphertext`, алгоритм — AES-256-GCM, новый random 96-bit IV на каждую запись. Отсутствующий key version является fail-closed configuration error и не приводит к запуску provider.
+
+Тот же keyring защищает `application_jwks.private_key`: scoped adapter шифрует поле перед create/update и расшифровывает только при чтении Better Auth JWT plugin. AAD содержит `applicationId`, model=`jwks`, row id и field=`privateKey`. Public key остается открытым. Plaintext private key запрещен в database snapshots, logs и audit. Backfill существующих plaintext keys выполняется отдельной идемпотентной migration task до включения публичного OAuth listener; смешанный формат после cutover не поддерживается.
 
 ### 10.4. Email delivery integration configuration
 
@@ -614,6 +637,20 @@ socialSignUpAllowed(provider) = registration_mode == "open" && provider.enabled
 
 Поля plugin `grantTypes` и `responseTypes` записываются IAM при создании и не принимаются из GraphQL input при create/update. Repository запрещает их изменение в обход отдельной будущей protocol-policy migration. Это client-level ограничение дополняет глобальное `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`; ни один client record не может расширить grant set OAuth Provider instance. Public client-management endpoint закрыты, поэтому application user не может зарегистрировать client с `client_credentials` самостоятельно.
 
+### 10.7. `application_authorization_context`
+
+Server-side hosted-flow context:
+
+- `id` — random 256-bit opaque identifier, хранится как hash;
+- `application_id`, `client_id`;
+- hash точного `redirect_uri` и `post_login_return_path` только из internal allowlist;
+- `state`, `nonce`, `code_challenge`, `code_challenge_method`;
+- `scopes`, единственный `resource`, `current_step`;
+- nullable `session_id` после login;
+- `expires_at`, `consumed_at`, `created_at`, `updated_at`.
+
+TTL неизменяемые 10 минут. Context принадлежит одной application/client, читается только по hash id + application predicate и потребляется атомарным `UPDATE ... WHERE consumed_at IS NULL AND expires_at > now()`. Cleanup удаляет expired/consumed contexts старше 24 часов. Поля не содержат password, OTP, authorization code, code verifier, access/refresh token или provider token. Cookie содержит только raw opaque id и отдельную Better Auth/IAM signature; database snapshot не позволяет восстановить browser cookie.
+
 ## 11. Better Auth instance для application
 
 `createApplicationAuth` должен собирать instance только из валидированной конфигурации и включать:
@@ -655,7 +692,9 @@ Factory не исправляет противоречивую конфигур�
 shopana:iam:application-auth:{applicationId}:{keyVersion}
 ```
 
-Ротация требует периода одновременной проверки текущим и предыдущим ключом либо контролируемого отзыва всех realm sessions. Схему ротации утвердить до production.
+В v1 выбирается однозначная fail-safe ротация без dual-secret verification Better Auth: изменение `secret_key_version` атомарно увеличивает `revision`, отзывает все application sessions, authorization contexts и незавершенные verification records, инвалидирует factory cache во всех process и только затем включает instance на новом derived secret. OAuth refresh-token families также отзываются, если установленная plugin composition использует Better Auth secret для их проверки или если это нельзя отрицательно подтвердить contract-проверкой. Уже выданные короткоживущие JWT проверяются signing keys до истечения, но live validation после realm-secret rotation возвращает inactive для отозванной session/token family. Dual-key grace period не входит в v1.
+
+Root key material никогда не хранится в application database. Startup валидирует наличие текущей и всех еще используемых encryption key versions до открытия listener. Ротация root encryption key выполняется re-encryption job с optimistic locking; после нулевого count старого `key_version` он удаляется из active keyring отдельной операционной процедурой.
 
 ### 11.2. Cache invalidation
 
@@ -674,6 +713,8 @@ applicationId + configurationRevision + secretKeyVersion
 
 Нельзя оставлять старые provider credentials активными до process restart.
 
+Invalidation event содержит только `applicationId`, новую `revision` и тип изменения, не содержит configuration/secrets. Каждый process при получении события сравнивает revision с локальной; потеря события безопасно компенсируется чтением revision из database не реже одного раза в 30 секунд и перед security-sensitive refresh/provider callback. Cache entry имеет hard TTL 5 минут. До подтверждения новой валидной configuration instance не заменяется permissive/default configuration: request завершается fail closed.
+
 ### 11.3. Adapter contract
 
 Расширить `scopedDrizzleAdapter` всеми моделями OAuth Provider plugin и написать отдельные contract-сценарии для каждой операции adapter. Особое внимание:
@@ -688,6 +729,10 @@ applicationId + configurationRevision + secretKeyVersion
 - blocked user и revoked session.
 
 ## 12. Hosted UI
+
+В v1 hosted UI размещается внутри `services/iam` в `src/api/http/application-auth/ui` и выпускается одним артефактом/версией с IAM. Используется server-rendered HTML с минимальным локальным CSS и progressive enhancement; отдельный SPA, Node listener, CDN origin и client-side token storage не создаются. Все page GET и form POST routes входят в тот же versioned route manifest и application issuer boundary. Static assets имеют content hash, immutable cache headers и обслуживаются только с IAM public base URL.
+
+OAuth authorization context хранится server-side в application-scoped таблице `application_authorization_context`: random 256-bit id, `application_id`, `client_id`, hash точного `redirect_uri`, `state`, `nonce`, PKCE metadata, requested scopes/resource, current step, `expires_at`, `consumed_at`. Browser получает только opaque signed HttpOnly context cookie. TTL — 10 минут; context одноразовый, ротация cookie id выполняется после login и перед consent для защиты от session fixation. В URL, HTML и browser storage не помещаются password, OTP, code verifier, access/refresh token или provider token.
 
 Минимальный набор страниц:
 
@@ -714,6 +759,15 @@ applicationId + configurationRevision + secretKeyVersion
 - CSRF protection на state-changing form;
 - generic ошибки против account enumeration;
 - provider button виден только при configured + enabled provider.
+
+Web security defaults v1:
+
+- CSP: `default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' https: data:; style-src 'self'`; inline script запрещен;
+- auth/session/context cookies: `Secure`, `HttpOnly`, host-only, path текущего application realm; SameSite выбирается из contract-проверенного Better Auth flow и фиксируется в manifest ADR;
+- каждый state-changing form имеет одноразовый CSRF token, связанный с authorization context и application session;
+- response headers включают `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store` для HTML/form responses;
+- branding schema допускает только заранее перечисленные color tokens, plain text и HTTPS logo URL; итоговый HTML всегда экранируется;
+- v1 locales: application `default_locale` из allowlist и обязательный fallback `en`; неизвестная локаль не загружает внешний bundle.
 
 Hosted UI не должен сохранять password или OTP в localStorage, URL, analytics event или error tracker.
 
@@ -787,6 +841,19 @@ Multi-resource grants, несколько audiences в одном token и resou
 
 IAM предоставляет introspection/validation contract, который помимо криптографической проверки token учитывает актуальное состояние application, OAuth client, user, session и token family. Контракт не принимает external domain context и не выполняет authorization за другие сервисы.
 
+В v1 владельцем проверки является `ApplicationTokenValidationService`. Стандартный `/oauth2/introspect` остается protocol transport OAuth Provider и требует client authentication; он вызывает тот же domain validation после protocol-level token parsing. Для внутренних resource-server adapters IAM экспортирует typed domain contract, а выбор межсервисного HTTP/gRPC transport относится к integration plan и не меняет semantics:
+
+```text
+validate({ token, expectedApplicationId, expectedAudience }) ->
+  { active: true, applicationId, userId, clientId, sessionId, scopes,
+    issuedAt, expiresAt, actorType: "application_user", cacheUntil }
+| { active: false, reasonCategory, cacheUntil }
+```
+
+`reasonCategory` является закрытым enum: `malformed | signature_invalid | expired | issuer_mismatch | audience_mismatch | application_inactive | client_inactive | user_inactive | session_inactive | token_family_revoked`. Внешний OAuth introspection response не раскрывает внутреннюю reason category; она используется только в безопасном operational event.
+
+Порядок проверки фиксирован: signature/alg/kid → `iss` → exact `aud` → `application_id` route binding → `actor_type/sub/client_id/sid` → active realm → client → user → session → token family/revocation. Неизвестный `kid`, отсутствие обязательного claim, database/cache error или timeout дают inactive/fail closed. Positive cache TTL — не более 30 секунд и не позже `exp`; negative cache TTL — 5 секунд. Block/revoke/realm-disable публикуют invalidation event и удаляют соответствующие cache entries. Целевой propagation SLA — не более 5 секунд при доступной event infrastructure и не более 30 секунд при потере события.
+
 Формат token не определяется клиентом: IAM configuration и обязательный resource гарантируют JWT access token в v1. Поддержка opaque access token в будущем требует отдельного versioned protocol contract.
 
 ## 14. Multi-tenancy и изоляция
@@ -807,6 +874,22 @@ Cross-application атаки должны входить в обязательн
 
 ## 15. Интеграция с email delivery service
 
+IAM зависит только от обязательного порта `ApplicationAuthEmailDeliveryPort`; конкретный platform transport не блокирует реализацию IAM. Production composition не открывает password/OTP/email-verification routes, пока adapter и все три purpose templates не прошли startup validation. Development использует явный local capture adapter, который доступен только в development environment и не логирует payload.
+
+```text
+enqueue({
+  idempotencyKey,
+  applicationId,
+  deliveryProfileId,
+  purpose: "email_verification_link" | "password_reset_link" | "email_otp_sign_in",
+  recipient,
+  templateId,
+  payload: { url } | { otp }
+}) -> { accepted: true, messageId } | { accepted: false, retryable }
+```
+
+Timeout handoff — 3 секунды. Один IAM request не выполняет inline retry, чтобы не дублировать письмо; durable retries являются ответственностью delivery service. `idempotencyKey` детерминирован из application, Better Auth verification/context id и purpose, но не содержит email/OTP/token. `accepted=false`, timeout и malformed adapter response дают одинаковую generic временную ошибку. Startup validation проверяет distinct template id для трех purposes и запрещает включение соответствующего auth flow при отсутствующем template.
+
 IAM подключает три отдельные Better Auth callback к одному typed delivery adapter:
 
 | Better Auth callback | IAM purpose | Payload v1 |
@@ -824,7 +907,7 @@ IAM подключает три отдельные Better Auth callback к од�
 - загружает разрешенный application delivery profile;
 - выбирает template только по server-controlled IAM purpose;
 - формирует typed request внешнему platform email delivery service с `applicationId`, нормализованным recipient, точным purpose, template id и соответствующим OTP/URL;
-- передает idempotency key, если его поддерживает внешний contract;
+- всегда передает обязательный idempotency key по `ApplicationAuthEmailDeliveryPort` contract;
 - ожидает только подтверждение приема задания внешним service, а не фактическую отправку письма;
 - маскирует recipient в логах и не логирует OTP, URL или link token;
 - не сохраняет plaintext OTP/URL в IAM database, cache, outbox или audit;
@@ -838,16 +921,16 @@ User-facing response не ждет фактической отправки и н
 
 Минимальные отдельные policies:
 
-| Операция | Ключи ограничения |
-| --- | --- |
-| Password signin | application + normalized email hash + IP |
-| Email OTP request | application + email hash + IP/device |
-| Email OTP verify | application + verification id + IP |
-| OAuth authorize | application + client + IP |
-| Token endpoint | application + client + IP |
-| Password reset | application + email hash + IP |
+| Операция | Ключи ограничения | Baseline v1 |
+| --- | --- | --- |
+| Password signin | application + normalized email HMAC + IP | 5/мин identity, 30/15 мин IP |
+| Email OTP request | application + email HMAC + IP/device | 3/15 мин identity, resend cooldown 60 сек, 20/сутки identity, 100/сутки IP |
+| Email OTP verify | application + verification id + IP | максимум 3 попытки на OTP, 10/15 мин IP |
+| OAuth authorize | application + client + IP | 60/мин client+IP |
+| Token endpoint | application + client + IP | 30/мин client+IP, burst 10/10 сек |
+| Password reset | application + email HMAC + IP | 3/час identity, 20/час IP, 10/сутки identity |
 
-Точные числа определить нагрузочным/security review, но обязателен layered limit: короткое окно и суточный delivery budget.
+Baseline числа являются обязательным safe default. Load/security review может только уменьшить их либо увеличить через versioned platform policy с зафиксированным обоснованием; произвольная per-application настройка выше platform maximum запрещена. Identity key вычисляется HMAC отдельным rate-limit key, а не простым hash email. Counter backend обязан быть общим для всех IAM replicas; недоступность backend для OTP/password reset — fail closed, для authorize/token применяется локальный аварийный tighter limit и operational alert.
 
 После лимита возвращать стандартную/generic ошибку и `Retry-After`, не подтверждая существование account. CAPTCHA/risk challenge оставить расширением после появления telemetry.
 
@@ -888,7 +971,27 @@ Security/operational события без секретов:
 
 Не использовать raw user ID, email, token, code, client secret или provider response как metric label.
 
+Audit event contract v1 имеет поля `eventId`, `schemaVersion`, `occurredAt`, `category`, `action`, `outcome`, `reasonCategory`, `actorType`, optional opaque/hashed `actorId`, `organizationId`, `applicationId`, optional `clientId`, `requestId` и allowlisted `safeDiff`. Event payload проходит централизованный redaction до записи. Запрещены email, password, OTP, URL с token/query, authorization code, session/token/client/provider secrets и provider response.
+
+Security audit является append-only; минимальный retention — 180 дней, operational logs — 30 дней, metrics — согласно platform observability policy. Ошибка записи административного audit event отклоняет соответствующую admin operation; ошибка отправки operational auth event не ломает protocol flow, но увеличивает durable error counter и alert. High-severity alerts: cross-tenant adapter rejection, массовый `invalid_target`, signing/encryption key failure, cache invalidation lag >30 секунд, delivery failure rate >10% за 5 минут и рост token replay/reuse.
+
 ## 18. Этапы реализации
+
+Оценка ниже означает готовность описания к выполнению, а не процент уже написанного кода:
+
+| Этап | Готовность к выполнению | Обязательный вход | Бинарный выходной артефакт |
+| --- | ---: | --- | --- |
+| 0. Compatibility/security spike | 98% | установленная exact dependency во временной/проектной composition | ADR + generated schema snapshot + полный route manifest + executable compatibility report |
+| 1. Schema/config/secrets | 96% | закрыт этап 0 schema contract | migration, models, repositories, keyring, backfill и DB invariant report |
+| 2. Better Auth factory | 96% | этап 1 | production composition, scoped adapter contract report, cache/invalidation report |
+| 3. Public HTTP OAuth/OIDC | 95% | этап 2 | Fastify plugins, raw bridge, guard и полный protocol contract report |
+| 4. Hosted UI/password | 94% | этап 3 + delivery port adapter | IAM UI bundle/pages и Playwright flow report |
+| 5. Email OTP | 95% | этап 4 + delivery templates | OTP flow и abuse/anti-enumeration report |
+| 6. Social/linking | 94% | этап 4 + provider credentials | provider/linking contract and audit report |
+| 7. Live validation/lifecycle | 95% | этапы 3, 5, 6 | typed validation service, cache/invalidation and revocation report |
+| 8. Hardening/release | 93% | этапы 0–7 | threat model, load report, dashboards, alerts, runbooks и release checklist |
+
+Этапы выполняются по dependency gates таблицы. Разрешена параллельная работа только над независимыми артефактами внутри уже открытого этапа; downstream код не может подменять незакрытый upstream contract предположением или permissive fallback.
 
 ### Этап 0. Compatibility и security spike
 
@@ -917,23 +1020,25 @@ Security/operational события без секретов:
 - contract-подтверждение guard contract: обязательный единственный resource конкретной application выдает JWT с ожидаемым `aud`, а отсутствующий, повторяющийся или resource другой application отклоняется до `auth.handler`;
 - contract-подтверждение, что `client_credentials` отсутствует в discovery и public/confidential v1 clients не получают token через этот grant;
 
-Критерий выхода: нет неизвестных, требующих самописного OAuth server или небезопасного хранения OTP.
+Критерий выхода: все перечисленные результаты существуют в repository; полный manifest покрывает 100% routes итоговой composition и не содержит unclassified route; public/confidential flows, discovery metadata, `client_credentials` denial, resource guard и cross-tenant OAuth model operations подтверждены executable contract-сценариями. Любое расхождение зафиксировано обновленным ADR и отражено в плане; нет неизвестных, требующих самописного OAuth server, permissive token fallback или небезопасного хранения OTP.
 
 ### Этап 1. Схема, конфигурация и secrets
 
 Задачи:
 
-1. Создать миграции application auth config, включая обязательный immutable `resource`, независимые password/OTP flags, `registration_mode`, origins/providers и purpose-specific delivery metadata.
+1. Создать миграции application auth config и authorization context, включая обязательный immutable `resource`, `realm_enabled`, независимые password/OTP flags, `registration_mode`, origins/providers и purpose-specific delivery metadata.
 2. Добавить OAuth Provider plugin tables с `application_id`.
 3. Добавить индексы, tenant constraints и cleanup behavior.
 4. Реализовать encryption service для provider credentials.
-5. Реализовать HKDF realm secret derivation/versioning.
+5. Реализовать `ApplicationAuthKeyring`, encryption/decryption `application_jwks.private_key`, HKDF realm secret derivation и fail-safe rotation/versioning из разделов 10.3 и 11.1.
 6. Добавить repository и Zod schemas для configuration, включая `email_otp_sign_up_enabled => email_otp_sign_in_enabled`.
 7. Добавить IAM effective auth policy calculator, который применяет `registration_mode=disabled` как глобальный запрет создания user поверх method/provider flags.
 8. Добавить IAM domain service, который атомарно создает application auth configuration и `urn:shopana:application:{applicationId}` без приема resource из input.
 9. Идемпотентно backfill создать auth configuration и resource для существующих `iam.application`.
+10. Добавить `realm_enabled`, emergency disable repository operation и active realm predicate.
+11. Добавить DB CHECK/unique/composite FK constraints и документированный cutover/rollback для encrypted signing keys.
 
-Критерий выхода: конфигурация и secrets изолированы по application, secret не читается обратно через публичный API, а каждая `iam.application` имеет уникальный immutable resource и auth configuration.
+Критерий выхода: migration и повторный backfill идемпотентны; 100% applications имеют одну configuration и уникальный immutable resource; PostgreSQL constraints отклоняют cross-application relations и invalid enum/TTL states; `realm_enabled=false` отключает runtime без удаления данных; provider/signing private keys существуют в database только как versioned ciphertext; root key absence fail-closed; secret не читается через публичный API; migration rollback/cutover procedure документирована.
 
 ### Этап 2. Application-scoped Better Auth factory
 
@@ -949,7 +1054,7 @@ Security/operational события без секретов:
 8. Проверять active organization/application перед созданием instance.
 9. Подключать `emailVerification.sendVerificationEmail`, `emailAndPassword.sendResetPassword` и `emailOTP.sendVerificationOTP` только для разрешенных flows и purpose.
 
-Критерий выхода: два application одновременно используют разные users, clients, keys, cookies, providers и единственные собственные resources без пересечения.
+Критерий выхода: два application одновременно используют разные users, clients, keys, cookies, providers и resources без пересечения; contract report покрывает create/find/update/delete/count/transaction для каждой plugin model, nested where и чужой application input; factory rebuild происходит по revision/key version и во всех replicas не позднее 30 секунд; invalid configuration/secret никогда не создает default instance.
 
 ### Этап 3. Публичный HTTP OAuth/OIDC слой
 
@@ -966,8 +1071,11 @@ Security/operational события без секретов:
 9. Отключить конфликтующий `/token` Better Auth path.
 10. Реализовать exact CORS/trusted origins.
 11. Добавить structured errors/request IDs без утечки данных.
+12. Реализовать scoped raw-buffer content-type parsers, 64 KiB limit и Fetch Request/Response bridge без повторной сериализации form/query.
+13. Зафиксировать `iam_http` как имя общего listener port configuration; старое `admin_graphql` поддержать только как временный deprecated alias с startup warning на один migration cycle.
+14. Добавить production startup validation `IAM_PUBLIC_BASE_URL`, trusted proxy allowlist и external reverse-proxy path manifest.
 
-Критерий выхода: один IAM Fastify listener обслуживает изолированные sibling scopes application auth и Admin GraphQL; публичный auth request не проходит через admin GraphQL middleware, `/graphql` не публикуется public reverse proxy, issuer-relative OIDC discovery и root OAuth Authorization Server Metadata RFC 8414 возвращают согласованный issuer/endpoints текущей application, стандартный OIDC client проходит Authorization Code + PKCE flow только с exact application resource, guard отклоняет missing/duplicate/foreign resource до Better Auth и не допускает opaque fallback, application user не может вызвать ни один client-management endpoint, неизвестные и выключенные OAuth/password/OTP/social endpoint возвращают `404` до Better Auth, а `client_credentials` отсутствует в discovery и не выдает token ни public, ни confidential v1 client.
+Критерий выхода: один IAM Fastify listener обслуживает изолированные sibling scopes application auth и Admin GraphQL; публичный auth request не проходит через admin middleware, `/graphql` отсутствует во внешнем proxy allowlist; raw query/form bytes и multiple `Set-Cookie` сохраняются; malformed/duplicate/oversize request отклоняется до Better Auth; issuer-relative OIDC discovery и root RFC 8414 metadata согласованы; public и confidential reference clients проходят Authorization Code + S256 PKCE только с exact application resource; guard покрыт positive/negative matrix и не допускает opaque fallback; 100% неизвестных, management и выключенных routes дают `404` до `auth.handler`; `client_credentials` отсутствует в metadata и не выдает token; untrusted Host/proxy headers не меняют URL/IP policy.
 
 ### Этап 4. Hosted UI и password flow
 
@@ -980,8 +1088,9 @@ Security/operational события без секретов:
 5. Подключить anti-enumeration, CSRF и rate limits.
 6. Подключить отдельные `emailVerification.sendVerificationEmail` и `emailAndPassword.sendResetPassword` callbacks к typed delivery adapter.
 7. Реализовать server-side password policies: независимые signin/signup/reset flags и глобальный `registration_mode` без влияния на вход существующего пользователя.
+8. Реализовать server-rendered UI/CSP/static asset pipeline внутри IAM и одноразовую `application_authorization_context` model.
 
-Критерий выхода: public и confidential clients проходят разрешенные signup/signin/reset/verification/logout flows, выключенные endpoint закрыты до Better Auth, `registration_mode=disabled` запрещает password signup, но не password signin существующего пользователя, а redirect/state/nonce/PKCE проверяются.
+Критерий выхода: public и confidential clients проходят разрешенные signup/signin/reset/verification/consent/logout flows через server-rendered UI; authorization context одноразовый, истекает за 10 минут и защищен от fixation/CSRF; CSP/cookie/cache headers соответствуют разделу 12; WCAG keyboard/focus и locale fallback подтверждены Playwright; выключенные endpoint закрыты до Better Auth; `registration_mode=disabled` запрещает password signup, но не signin/reset существующего пользователя; delivery callbacks используют только свои typed purposes; redirect/state/nonce/PKCE negative matrix проходит.
 
 ### Этап 5. Email OTP
 
@@ -993,7 +1102,7 @@ Security/operational события без секретов:
 4. Реализовать generic responses, resend cooldown и attempt limits.
 5. Реализовать независимые `email_otp_sign_in_enabled`/`email_otp_sign_up_enabled`, validation invariant signup → signin и effective `disableSignUp` с учетом `registration_mode`.
 
-Критерий выхода: email passwordless работает на стандартном Better Auth `storeOTP: "hashed"` без plaintext OTP, enumeration и повторного использования; существующий пользователь может войти при закрытой регистрации, новый не создается; OTP reset/change-email routes и delivery purposes недоступны; custom hashing не является условием выпуска v1.
+Критерий выхода: email passwordless работает на стандартном Better Auth `storeOTP: "hashed"`; database/log/audit snapshot не содержит plaintext OTP; resend cooldown, три попытки, rotation, expiry, one-time use и baseline distributed limits подтверждены; ответы существующего/несуществующего email эквивалентны по status/schema, а разница median latency после 100 warm requests не превышает 50 мс и 20% более медленного варианта; при закрытой регистрации существующий пользователь входит, новый не создается; reset/change-email routes и purposes недоступны; delivery timeout/failure дает generic fail-closed response.
 
 ### Этап 6. Google/Facebook и account linking
 
@@ -1006,7 +1115,7 @@ Security/operational события без секретов:
 5. Добавить application-user link/unlink runtime contract и аудит security events; административные operations будут добавлены последующим Admin API plan.
 6. Применить `disableSignUp=true` ко всем providers при `registration_mode=disabled` и проверить отдельно существующий linked account и первый social login.
 
-Критерий выхода: обычный social sign-in никогда не выполняет implicit linking; при закрытой регистрации существующий linked account входит, а первый social login не создает user/account/session; стандартный authenticated `linkSocial()` связывает Google/Facebook account только внутри текущей application и отклоняет отсутствующий/отличающийся email либо account, уже принадлежащий другому user.
+Критерий выхода: обычный social sign-in никогда не выполняет implicit linking; при закрытой регистрации existing linked account входит, а first login не создает user/account/session; authenticated `linkSocial()` требует свежую session не старше 10 минут, связывает account только внутри application и отклоняет absent/different email или account другого user; unlink последнего login method отклоняется server-side; provider callback/application mismatch и replay отклоняются; encrypted provider credentials/upstream tokens отсутствуют в response/log/audit snapshots.
 
 ### Этап 7. IAM live validation и token lifecycle
 
@@ -1016,8 +1125,9 @@ Security/operational события без секретов:
 2. Реализовать IAM introspection/live validation с проверкой application, OAuth client, user, session и token family.
 3. Обработать block/revoke/application disable в refresh и live-validation lifecycle.
 4. Добавить короткий cache contract и invalidation для live state.
+5. Реализовать `ApplicationTokenValidationService` и привязать к нему OAuth introspection без раскрытия internal reason category.
 
-Критерий выхода: IAM выдает только JWT access tokens с ожидаемым issuer/resource/client/user contract, а block/revoke/disable отражаются в refresh и live validation.
+Критерий выхода: IAM выдает только JWT access tokens с обязательными claims; `ApplicationTokenValidationService` реализует закрытый result/reason contract раздела 13.4; standard introspection не раскрывает internal reason; block/revoke/realm-disable отражаются в refresh и validation не позднее 5 секунд при event delivery и 30 секунд при fallback revision read; database/cache failure дает inactive; positive/negative TTL не превышают contract; cross-application issuer/audience/session/token-family checks покрыты executable matrix.
 
 ### Этап 8. Hardening
 
@@ -1030,11 +1140,11 @@ Security/operational события без секретов:
 5. Dashboards/alerts/audit retention.
 6. Документация IAM OAuth/OIDC client contract.
 
-Критерий выхода: выполнен Definition of Done и есть emergency disable процедура без удаления users.
+Критерий выхода: выполнен Definition of Done; threat model подписан владельцами IAM/security; обязательные contract/Playwright сценарии проходят через `shopana-cli`; build успешен; при baseline 50 concurrent clients, 100 token RPS и 25 authorize RPS в течение 15 минут без внешнего provider p95 не выше 300 мс, p99 не выше 750 мс и error rate ниже 1%; rate-limit behavior проверен под конкурентной нагрузкой; dashboards/alerts и 180-day audit retention включены; signing/provider/root-secret rotation и delivery outage runbooks отрепетированы; emergency realm disable прекращает новый signin/refresh и делает live validation inactive в пределах 30 секунд без удаления users.
 
 ## 19. Предполагаемые изменения файлов
 
-Точная структура уточняется после compatibility spike, но ожидаются:
+Базовая структура реализации фиксируется так; этап 0 может изменить только plugin-generated model/route filenames через обновленный ADR:
 
 ```text
 services/iam/package.json
@@ -1045,19 +1155,27 @@ services/iam/src/auth/applicationAuthConfiguration.ts
 services/iam/src/auth/applicationOAuthClaims.ts
 services/iam/src/api/graphql-admin/server.ts
 services/iam/src/api/http/application-auth/ApplicationOAuthResourcePolicyGuard.ts
+services/iam/src/api/http/application-auth/applicationAuthHttpPlugin.ts
+services/iam/src/api/http/application-auth/rawRequestBridge.ts
+services/iam/src/api/http/application-auth/routeManifest.ts
+services/iam/src/api/http/application-auth/ui/*
 services/iam/src/api/http/application-auth/*
 services/iam/src/repositories/models/application-auth.ts
 services/iam/src/repositories/models/authorization.ts
 services/iam/src/repositories/ApplicationAuthConfigurationRepository.ts
 services/iam/src/repositories/ApplicationOAuthClientRepository.ts
+services/iam/src/repositories/ApplicationAuthorizationContextRepository.ts
+services/iam/src/services/ApplicationAuthKeyring.ts
 services/iam/src/services/ApplicationAuthSecretService.ts
+services/iam/src/services/ApplicationAuthEmailDeliveryPort.ts
+services/iam/src/services/ApplicationTokenValidationService.ts
 services/iam/src/services/ApplicationAuthAuditService.ts
 services/iam/src/events/application-auth/*
 services/iam/migrations/*
 services/iam/docs/application-users-oauth-oidc-integration.md
 ```
 
-Hosted UI следует разместить в выбранном для IAM web assets модуле либо отдельном frontend package, но его HTTP origin и release lifecycle должны быть частью IAM auth boundary.
+Hosted UI размещается в `services/iam/src/api/http/application-auth/ui`, собирается и версионируется вместе с IAM согласно разделу 12.
 
 ## 20. Обязательные сценарии проверки
 
@@ -1084,6 +1202,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - успешный refresh с exact resource сохраняет исходный resource/audience;
 - resource guard одинаково определяет confidential `client_id` из HTTP Basic и public `client_id` из form body, а конфликт источников отклоняется;
 - resource guard сохраняет исходный raw query/form body для OAuth Provider без повторного decode или изменения encoding;
+- malformed form, duplicate security parameter, unsupported content type/encoding и body >64 KiB отклоняются до OAuth Provider;
 - отсутствующий/неверный verifier отклоняется;
 - повторное использование code отклоняется;
 - неверные state/nonce обнаруживаются клиентом/flow;
@@ -1107,6 +1226,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - Google/Facebook account A не связывается в B;
 - OTP A не проверяется в B;
 - signing key A не используется issuer B;
+- private signing key A/B хранится только как ciphertext и не расшифровывается adapter другого application;
 - application A и B имеют разные canonical resources, и resource A отклоняется issuer/client application B;
 - IAM формирует resource A/B только как `urn:shopana:application:{applicationId}` и отклоняет попытку передать resource через application create/update input;
 - backfill повторно возвращает тот же application resource и не создает вторую auth configuration;
@@ -1146,12 +1266,15 @@ Hosted UI следует разместить в выбранном для IAM w
 ### 20.5. IAM runtime и token lifecycle
 
 - factory перестраивается после config change;
+- потерянный invalidation event компенсируется revision read не позднее 30 секунд;
 - IAM выдает JWT access token только с ожидаемым issuer/audience/scope/actor;
 - IAM не выдает opaque access token в v1;
 - IAM не выдает userless token без `sub` или с `actor_type`, отличным от `application_user`;
 - OAuth client application A не получает token с resource или claims application B;
 - block/revoke отражается в live validation;
 - disabled application/client/user отклоняется live validation и не может обновить token.
+- `realm_enabled=false` не удаляет auth rows, но прекращает authorize/signin/refresh и делает validation inactive;
+- неизвестный encryption/signing key version дает fail-closed result;
 
 ### 20.6. Web security
 
@@ -1159,6 +1282,8 @@ Hosted UI следует разместить в выбранном для IAM w
 - untrusted Host не меняет issuer, callback, root OAuth Authorization Server Metadata URL и его response;
 - CSRF form request отклоняется;
 - cookies имеют ожидаемые Secure/HttpOnly/SameSite/path attributes;
+- authorization context одноразовый, истекает через 10 минут и ротируется после login/перед consent;
+- CSP, no-store, no-referrer, nosniff и CSRF работают на всех hosted UI forms;
 - несколько `Set-Cookie` не схлопываются Fastify adapter;
 - CORS разрешает только точный configured origin;
 - application auth routes и Admin GraphQL работают на одном Fastify listener, но в sibling encapsulated plugin scopes;
@@ -1197,6 +1322,9 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] Все OAuth plugin модели application-scoped.
 - [ ] Organization/application/client/user/session live state проверяется.
 - [ ] Provider credentials зашифрованы с versioned key/AAD.
+- [ ] `application_jwks.private_key` зашифрован на adapter boundary; plaintext отсутствует в database snapshot.
+- [ ] Отсутствующий/неизвестный key version приводит к fail-closed startup/request, а не к default secret.
+- [ ] Realm-secret rotation отзывает sessions/contexts/verification/token families и перестраивает factory во всех replicas.
 - [ ] Upstream OAuth tokens зашифрованы.
 - [ ] `registration_mode=disabled` запрещает создание `application_user` через password, email OTP и первый social login, не запрещая вход существующих пользователей через включенные методы.
 - [ ] Password signin/signup/reset имеют независимые flags; выключенный flow отсутствует в UI и effective route manifest.
@@ -1209,6 +1337,10 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] State, nonce, CSRF, cookie policies проверены.
 - [ ] Generic responses защищают от enumeration.
 - [ ] Rate limits и email delivery limits включены.
+- [ ] Distributed rate-limit backend и аварийное fail-closed/tighter-limit поведение проверены.
+- [ ] `realm_enabled=false` прекращает signin/authorize/refresh и делает live validation inactive без удаления данных.
+- [ ] Hosted UI CSP, CSRF, context one-time use, fixation protection и security headers проверены.
+- [ ] Live validation соблюдает 5/30-second invalidation SLA и fail-closed при database/cache error.
 - [ ] Логи/трейсы/метрики не содержат PII/secrets/tokens/codes.
 - [ ] Signing/provider secret rotation runtime contract описан и проверен.
 
@@ -1227,6 +1359,10 @@ Hosted UI следует разместить в выбранном для IAM w
 9. Есть документация IAM OAuth/OIDC client contract и operations.
 10. Есть runbooks для signing keys, provider secrets, delivery outage и emergency realm disable.
 11. Runtime готов предоставить безопасные domain services/repositories и configuration invariants последующему Admin API plan.
+12. Signing/provider/root secrets и private JWKS keys имеют versioned encryption/rotation contract; plaintext отсутствует в persistence и observability.
+13. `realm_enabled=false` реализует emergency disable в пределах 30 секунд без удаления auth data.
+14. Hosted UI выпускается вместе с IAM и проходит CSP/CSRF/cookie/WCAG/locale verification.
+15. Load, observability, audit retention и incident runbooks соответствуют критериям этапа 8.
 
 ## 23. Риски и решения
 
@@ -1240,25 +1376,34 @@ Hosted UI следует разместить в выбранном для IAM w
 | Закрытая регистрация обходится через email OTP или первый social login | Единый effective signup gate из `registration_mode`; `disableSignUp=true` в password/emailOTP/social provider options, default-deny route policy и негативные сценарии для каждого метода |
 | Email verification, password reset и OTP отправляются через неверный callback/template | Три явных Better Auth callbacks, typed purpose union, server-controlled purpose → template mapping и отказ для неподдерживаемых OTP types |
 | Secret leakage в runtime/logs | Encryption и redaction; административный one-time reveal относится к последующему Admin API plan |
+| Signing private key попадает в database snapshot | Versioned AES-256-GCM encryption/decryption на scoped adapter boundary с application/model/row/field AAD |
+| Потеря root encryption key либо неизвестная версия | Startup/request fail closed, startup key-version inventory и re-encryption runbook до удаления старой версии |
+| Realm secret rotation оставляет старые sessions/token families активными | V1 revoke-and-rebuild: atomic revision/key version update, session/context/verification/token-family revoke и distributed invalidation |
 | Open redirect/custom scheme abuse | Exact allowlist и отдельная mobile URI policy |
 | Устаревшая factory config после изменения конфигурации | Revisioned cache key + invalidation event |
+| Потеря cache invalidation event | Database revision fallback не реже 30 секунд, hard cache TTL и security-sensitive refresh/callback recheck |
 | Client или admin подставляет чужой/произвольный resource либо изменение audience нарушает уже выданный grant | IAM генерирует resource только как `urn:shopana:application:{applicationId}` при создании application; поле immutable, отсутствует во входных DTO и защищено repository invariant |
 | OAuth Provider выдает opaque token без audience или client меняет resource между authorize/exchange/refresh | `ApplicationOAuthResourcePolicyGuard` до `auth.handler` требует ровно один exact `application.resource` на каждом шаге и возвращает `invalid_target`; `validAudiences`, client binding и включенный JWT plugin дают дополнительные независимые слои |
 | OAuth Provider поддерживает `client_credentials` по умолчанию | Глобально задать `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`, дублировать ограничение в каждом v1 client, не принимать grant policy из изменяемой конфигурации и проверять discovery/отказ token endpoint contract-сценариями |
 | Мгновенная ревокация JWT | Короткий access TTL + live validation/introspection для чувствительных операций |
+| Email delivery adapter недоступен или не настроен | Startup закрывает зависимые routes; runtime handoff timeout 3 секунды, generic fail-closed response и alert |
+| Distributed rate-limit backend недоступен | OTP/reset fail closed; authorize/token переходят на локальный tighter emergency limit |
 | Смешение Application и integration apps service | Зафиксировать IAM application как auth realm и отдельный OAuth client resource |
 
-## 24. Вопросы, которые нужно закрыть в этапе 0
+## 24. Зафиксированные v1 решения вместо открытых вопросов
 
-Эти решения не меняют основную архитектуру, но должны быть зафиксированы до реализации соответствующего этапа:
+1. **Email transport:** IAM реализует обязательный `ApplicationAuthEmailDeliveryPort`. Конкретный production transport выбирается platform composition; отсутствие adapter/templates закрывает email-dependent routes при startup validation и не требует изменения IAM domain/runtime design.
+2. **Mobile redirect URI:** v1 production принимает только HTTPS universal/app links. Custom schemes разрешены только client с `environment=development`, по exact URI allowlist, без wildcard; production support требует отдельного threat model и protocol-policy version.
+3. **TTL policy:** defaults зафиксированы разделом 10.1. Platform ranges: access token 5–30 минут, ID token 5–60 минут, authorization code неизменяемые 5 минут, refresh token 1–30 дней, session 1–30 дней, authorization context неизменяемые 10 минут. Admin configuration может выбирать только целое значение внутри range; увеличение maximum требует versioned platform policy.
+4. **Consent:** `skipConsent=true` разрешен только IAM-controlled first-party client. Все остальные clients всегда показывают consent; application default не может отключить его. Изменение trust class клиента является audited admin operation последующего Admin API plan.
+5. **Hosted UI:** server-rendered UI находится в `services/iam/src/api/http/application-auth/ui`, собирается и версионируется одним артефактом IAM, обслуживается с IAM origin и не создает отдельный listener/CDN/session boundary.
+6. **Realm disable:** `application_auth_configuration.realm_enabled` является единственным операционным выключателем runtime; `deleted_at` сохраняет lifecycle semantics, а `registration_mode` управляет только созданием users.
+7. **Signing keys:** private JWKS key шифруется через `ApplicationAuthKeyring` на границе scoped adapter; plaintext storage не допускается после migration cutover.
+8. **Realm secret rotation:** v1 использует controlled revoke-and-rebuild без dual-secret grace period согласно разделу 11.1.
+9. **Public client discovery:** metadata рекламирует `none` только после executable contract-подтверждения; конкретная Storefront library не меняет standards-based IAM contract.
+10. **Live validation:** единая semantics принадлежит `ApplicationTokenValidationService`; OAuth introspection и будущий межсервисный adapter являются transport bindings одного domain contract.
 
-1. Какой email transport/template service является platform default?
-2. Нужны ли custom mobile URI schemes в первой версии или достаточно universal/app links?
-3. Какие TTL ranges организация может менять, а какие остаются platform policy?
-4. Нужен ли consent screen для всех third-party clients уже в первой версии?
-5. Где размещается hosted UI bundle и как он версионируется вместе с IAM?
-
-Resource больше не является открытым вопросом этапа 0: IAM создает его вместе с application по шаблону `urn:shopana:application:{applicationId}`. Для application разрешено ровно одно immutable значение; admin и OAuth clients им не управляют. До получения остальных ответов применяются безопасные значения этого плана: platform delivery profiles, HTTPS/universal links, короткие TTL и consent для не-first-party clients.
+Таким образом, в этапе 0 остаются только проверяемые факты совместимости конкретной версии Better Auth/plugin. Ни один product/security/placement выбор не остается открытым для исполнителя.
 
 ## 25. Официальные источники
 
