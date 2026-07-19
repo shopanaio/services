@@ -62,6 +62,10 @@ import {
   createApplicationOAuthClientPolicyMetadata,
   hasExactStringValues,
 } from "./applicationOAuthPolicy.js";
+import {
+  createApplicationAuthLiveStateInvalidationEvent,
+  type ApplicationAuthLiveStateInvalidationBus,
+} from "../events/application-auth/index.js";
 
 type DrizzleConnection = any;
 
@@ -122,7 +126,10 @@ const IMMUTABLE_OAUTH_CLIENT_FIELDS = new Set([
 export function createScopedDrizzleAdapter(
   db: Database,
   scope: AuthAdapterScope,
-  security?: { keyring: ApplicationAuthKeyring }
+  security?: {
+    keyring: ApplicationAuthKeyring;
+    liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus;
+  }
 ): DBAdapterInstance<BetterAuthOptions> {
   if (scope.kind === "application") {
     assertApplicationId(scope.applicationId);
@@ -148,7 +155,11 @@ export function createScopedDrizzleAdapter(
     },
   };
 
-  const createCustomAdapter = createScopedCustomAdapter(scope, security?.keyring);
+  const createCustomAdapter = createScopedCustomAdapter(
+    scope,
+    security?.keyring,
+    security?.liveStateInvalidation
+  );
   const adapterFactory = createAdapterFactory<CoreBetterAuthOptions>({
     config: {
       ...baseConfig,
@@ -188,7 +199,8 @@ export function createScopedDrizzleAdapter(
 
 function createScopedCustomAdapter(
   scope: AuthAdapterScope,
-  keyring?: ApplicationAuthKeyring
+  keyring?: ApplicationAuthKeyring,
+  liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus
 ): (connection: DrizzleConnection) => AdapterFactoryCustomizeAdapterCreator {
   return (connection) =>
     ({ getDefaultModelName, getFieldName }): CustomAdapter => {
@@ -771,6 +783,82 @@ function createScopedCustomAdapter(
         }
       };
 
+      const prepareApplicationSessionDeletion = async (
+        model: string,
+        where: CleanedWhere[] | undefined
+      ): Promise<Array<{ id: string; userId: string }>> => {
+        if (
+          scope.kind !== "application" ||
+          getDefaultModelName(model) !== "session"
+        ) {
+          return [];
+        }
+        const sessionModel = getSchemaModel(model);
+        const sessions = await connection
+          .select({ id: sessionModel.id, userId: sessionModel.userId })
+          .from(sessionModel)
+          .where(...convertWhere(model, where));
+        if (!sessions.length) return [];
+        const targetSessionIds = connection
+          .select({ id: sessionModel.id })
+          .from(sessionModel)
+          .where(...convertWhere(model, where));
+        await connection
+          .delete(applicationOauthAccessToken)
+          .where(
+            and(
+              eq(
+                applicationOauthAccessToken.applicationId,
+                scope.applicationId
+              ),
+              inArray(
+                applicationOauthAccessToken.sessionId,
+                targetSessionIds
+              )
+            )
+          );
+        await connection
+          .update(applicationOauthRefreshToken)
+          .set({ revoked: new Date(), sessionId: null })
+          .where(
+            and(
+              eq(
+                applicationOauthRefreshToken.applicationId,
+                scope.applicationId
+              ),
+              inArray(
+                applicationOauthRefreshToken.sessionId,
+                targetSessionIds
+              )
+            )
+          );
+        return sessions;
+      };
+
+      const publishSessionInvalidations = async (
+        sessions: Array<{ id: string; userId: string }>
+      ): Promise<void> => {
+        if (
+          scope.kind !== "application" ||
+          !liveStateInvalidation ||
+          sessions.length === 0
+        ) {
+          return;
+        }
+        await Promise.all(
+          sessions.map((session) =>
+            liveStateInvalidation.publish(
+              createApplicationAuthLiveStateInvalidationEvent({
+                kind: "session",
+                applicationId: scope.applicationId,
+                userId: session.userId,
+                sessionId: session.id,
+              })
+            )
+          )
+        );
+      };
+
       const adapter: CustomAdapter = {
         async create({ model, data }) {
           const schemaModel = getSchemaModel(model);
@@ -874,24 +962,29 @@ function createScopedCustomAdapter(
 
         async delete({ model, where }) {
           const schemaModel = getSchemaModel(model);
+          const sessions = await prepareApplicationSessionDeletion(model, where);
           await connection
             .delete(schemaModel)
             .where(...convertWhere(model, where));
+          await publishSessionInvalidations(sessions);
         },
 
         async deleteMany({ model, where }) {
           const schemaModel = getSchemaModel(model);
           const idColumn = getColumn(schemaModel, model, "id");
+          const sessions = await prepareApplicationSessionDeletion(model, where);
           const rows = await connection
             .delete(schemaModel)
             .where(...convertWhere(model, where))
             .returning({ id: idColumn });
+          await publishSessionInvalidations(sessions);
           return rows.length;
         },
 
         async consumeOne({ model, where }) {
           const schemaModel = getSchemaModel(model);
           const idColumn = getColumn(schemaModel, model, "id");
+          const sessions = await prepareApplicationSessionDeletion(model, where);
           const target = connection
             .select({ id: idColumn })
             .from(schemaModel)
@@ -901,6 +994,7 @@ function createScopedCustomAdapter(
             .delete(schemaModel)
             .where(inArray(idColumn, target))
             .returning();
+          await publishSessionInvalidations(sessions);
           return decryptJwksPrivateKey(model, rows[0] ?? null);
         },
 

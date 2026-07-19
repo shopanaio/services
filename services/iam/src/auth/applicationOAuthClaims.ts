@@ -21,7 +21,7 @@ export function createApplicationOAuthClaimsPolicy(input: {
   };
 
   return {
-    customAccessTokenClaims: ({ user, resource, metadata }) => {
+    customAccessTokenClaims: ({ user, resource, metadata, referenceId }) => {
       assertUserScope(user);
       if (resource !== undefined && resource !== input.resource) {
         throw new Error("OAuth token resource is outside the application realm");
@@ -30,10 +30,14 @@ export function createApplicationOAuthClaimsPolicy(input: {
         applicationId: input.applicationId,
         resource: input.resource,
       });
+      if (typeof referenceId !== "string" || !referenceId) {
+        throw new Error("OAuth token family reference is missing");
+      }
       return {
         application_id: input.applicationId,
         actor_type: "application_user",
         client_id: clientPolicy.clientId,
+        token_family_id: referenceId,
       };
     },
     customIdTokenClaims: ({ user, metadata }) => {

@@ -3,9 +3,15 @@ import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq } from "drizzle-orm";
 import { assertApplicationId } from "../../auth/AuthScope.js";
 import type { Database } from "../../infrastructure/db/database.js";
+import {
+  createApplicationAuthLiveStateInvalidationEvent,
+  type ApplicationAuthLiveStateInvalidationBus,
+} from "../../events/application-auth/index.js";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   applicationSession,
+  applicationOauthAccessToken,
+  applicationOauthRefreshToken,
   applicationUser,
   type ApplicationUser,
   type ApplicationUserStatus,
@@ -15,7 +21,8 @@ import {
 export class ApplicationUserRepositoryFactory {
   constructor(
     private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>
+    private readonly txManager: TransactionManager<Database>,
+    private readonly invalidation: ApplicationAuthLiveStateInvalidationBus
   ) {}
 
   forApplication(applicationId: string): ApplicationUserRepository {
@@ -23,7 +30,8 @@ export class ApplicationUserRepositoryFactory {
     return new ApplicationUserRepository(
       this.db,
       this.txManager,
-      applicationId
+      applicationId,
+      this.invalidation
     );
   }
 }
@@ -33,7 +41,8 @@ export class ApplicationUserRepository extends BaseRepository {
   constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    private readonly applicationId: string
+    private readonly applicationId: string,
+    private readonly invalidation: ApplicationAuthLiveStateInvalidationBus
   ) {
     super(db, txManager);
     assertApplicationId(applicationId);
@@ -127,33 +136,67 @@ export class ApplicationUserRepository extends BaseRepository {
   }
 
   /** Blocking an identity immediately revokes every session in this realm. */
-  @Transactional()
   async setStatus(
     userId: string,
     status: ApplicationUserStatus
   ): Promise<ApplicationUser | null> {
-    const [result] = await this.connection
-      .update(applicationUser)
-      .set({ status, updatedAt: new Date() })
-      .where(
-        and(
-          eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.id, userId)
-        )
-      )
-      .returning();
-
-    if (result && status === "blocked") {
-      await this.connection
-        .delete(applicationSession)
+    const result = await this.txManager.run(async () => {
+      const [updated] = await this.connection
+        .update(applicationUser)
+        .set({ status, updatedAt: new Date() })
         .where(
           and(
-            eq(applicationSession.applicationId, this.applicationId),
-            eq(applicationSession.userId, userId)
+            eq(applicationUser.applicationId, this.applicationId),
+            eq(applicationUser.id, userId)
           )
-        );
-    }
+        )
+        .returning();
 
+      if (updated && status === "blocked") {
+        const revokedAt = new Date();
+        await this.connection
+          .delete(applicationOauthAccessToken)
+          .where(
+            and(
+              eq(
+                applicationOauthAccessToken.applicationId,
+                this.applicationId
+              ),
+              eq(applicationOauthAccessToken.userId, userId)
+            )
+          );
+        await this.connection
+          .update(applicationOauthRefreshToken)
+          .set({ revoked: revokedAt, sessionId: null })
+          .where(
+            and(
+              eq(
+                applicationOauthRefreshToken.applicationId,
+                this.applicationId
+              ),
+              eq(applicationOauthRefreshToken.userId, userId)
+            )
+          );
+        await this.connection
+          .delete(applicationSession)
+          .where(
+            and(
+              eq(applicationSession.applicationId, this.applicationId),
+              eq(applicationSession.userId, userId)
+            )
+          );
+      }
+      return updated ?? null;
+    });
+    if (result) {
+      await this.invalidation.publish(
+        createApplicationAuthLiveStateInvalidationEvent({
+          kind: "user",
+          applicationId: this.applicationId,
+          userId,
+        })
+      );
+    }
     return result ?? null;
   }
 

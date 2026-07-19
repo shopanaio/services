@@ -4,8 +4,10 @@ import {
   type BetterAuthOptions,
 } from "better-auth";
 import { bearer, emailOTP, jwt } from "better-auth/plugins";
+import { signJWT } from "better-auth/plugins/jwt";
+import { getCurrentAuthContext } from "@better-auth/core/context";
 import { oauthProvider } from "@better-auth/oauth-provider";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { getDatabase } from "../infrastructure/db/database.js";
 import type {
   ApplicationAuthDeliveryProfile,
@@ -19,6 +21,7 @@ import {
   type ApplicationAuthEmailDeliveryPort,
 } from "../services/ApplicationAuthEmailDeliveryPort.js";
 import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
+import type { ApplicationAuthLiveStateInvalidationBus } from "../events/application-auth/index.js";
 import { assertApplicationId, type AuthAdapterScope } from "./AuthScope.js";
 import type { EffectiveApplicationAuthPolicy } from "./applicationAuthConfiguration.js";
 import type {
@@ -113,6 +116,7 @@ export function createApplicationAuth(
     keyring: ApplicationAuthKeyring;
     secrets: ApplicationAuthSecretService;
     emailDelivery?: ApplicationAuthEmailDeliveryPort;
+    liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus;
   }
 ) {
   const db = getDatabase();
@@ -173,6 +177,21 @@ export function createApplicationAuth(
       loginPage: `${basePath}/login`,
       consentPage: `${basePath}/consent`,
       signup: { page: `${basePath}/signup` },
+      postLogin: {
+        page: `${basePath}/consent`,
+        shouldRedirect: () => false,
+        consentReferenceId: ({ user, session }) => {
+          if (
+            user.applicationId !== applicationId ||
+            session.applicationId !== applicationId
+          ) {
+            throw new Error(
+              "OAuth token family is outside the application realm"
+            );
+          }
+          return randomUUID();
+        },
+      },
       scopes: [...APPLICATION_OAUTH_SCOPES],
       validAudiences: [config.resource],
       grantTypes: [...APPLICATION_OAUTH_GRANT_TYPES],
@@ -196,7 +215,10 @@ export function createApplicationAuth(
     database: createScopedDrizzleAdapter(
       db,
       { kind: "application", applicationId },
-      security
+      {
+        keyring: security.keyring,
+        liveStateInvalidation: security.liveStateInvalidation,
+      }
     ),
     secret: security.secrets.deriveRealmSecret(
       applicationId,
@@ -347,7 +369,7 @@ function createJwtPlugin(
       ? scope.audience
       : process.env.JWT_AUDIENCE || "shopana-api";
 
-  return jwt({
+  const pluginOptions = {
     jwt: {
       expirationTime: "15m",
       issuer,
@@ -384,7 +406,36 @@ function createJwtPlugin(
       rotationInterval: 60 * 60 * 24 * 30,
       gracePeriod: 60 * 60 * 24 * 7,
     },
-  });
+  } satisfies Parameters<typeof jwt>[0];
+  const plugin = jwt(pluginOptions);
+  if (scope.kind === "platform") return plugin;
+
+  /*
+   * OAuth Provider 1.6.23 adds the UserInfo endpoint as a second access-token
+   * audience whenever `openid` is requested. IAM v1 deliberately has exactly
+   * one resource audience. Reuse Better Auth's signer/JWKS lifecycle while
+   * normalizing only OAuth access-token payloads (identified by `azp`). ID
+   * tokens keep their OAuth client audience.
+   */
+  return {
+    ...plugin,
+    options: {
+      ...plugin.options,
+      jwt: {
+        ...plugin.options?.jwt,
+        sign: async (payload: Record<string, unknown>) => {
+          const context = await getCurrentAuthContext();
+          return signJWT(context as Parameters<typeof signJWT>[0], {
+            options: pluginOptions,
+            payload:
+              typeof payload.azp === "string"
+                ? { ...payload, aud: audience }
+                : payload,
+          });
+        },
+      },
+    },
+  } as ReturnType<typeof jwt>;
 }
 
 function createSocialProviders(

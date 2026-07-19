@@ -7,6 +7,7 @@ import type { ApplicationAuthProviderCredentials } from "../repositories/Applica
 import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
 import type { ApplicationAuthEmailDeliveryPort } from "../services/ApplicationAuthEmailDeliveryPort.js";
 import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
+import type { ApplicationAuthLiveStateInvalidationBus } from "../events/application-auth/index.js";
 import {
   type ApplicationAuthMutableConfiguration,
   type ApplicationAuthUiLocale,
@@ -67,6 +68,7 @@ export interface ApplicationAuthFactoryRuntime {
 
 export interface ApplicationAuthFactoryOptions {
   emailDelivery?: ApplicationAuthEmailDeliveryPort;
+  liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus;
   publicBaseUrl?: string | (() => string | undefined);
   revisionCheckIntervalMs?: number;
   hardTtlMs?: number;
@@ -230,6 +232,7 @@ export class ApplicationAuthFactory {
       keyring: this.keyring,
       secrets: this.secrets,
       emailDelivery: this.options.emailDelivery,
+      liveStateInvalidation: this.options.liveStateInvalidation,
     });
     const enabledSocialProviders = (
       ["google", "facebook"] as const

@@ -9,6 +9,8 @@ import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   applicationSession,
+  applicationOauthAccessToken,
+  applicationOauthRefreshToken,
   applicationAuthConfiguration,
   applicationUser,
   type ApplicationSession,
@@ -170,6 +172,32 @@ export class AuthSessionRepository extends BaseRepository {
   @Transactional()
   async revokeSession(userId: string, sessionId: string): Promise<boolean> {
     if (this.scope.kind === "application") {
+      const revokedAt = new Date();
+      await this.connection
+        .delete(applicationOauthAccessToken)
+        .where(
+          and(
+            eq(
+              applicationOauthAccessToken.applicationId,
+              this.scope.applicationId
+            ),
+            eq(applicationOauthAccessToken.userId, userId),
+            eq(applicationOauthAccessToken.sessionId, sessionId)
+          )
+        );
+      await this.connection
+        .update(applicationOauthRefreshToken)
+        .set({ revoked: revokedAt, sessionId: null })
+        .where(
+          and(
+            eq(
+              applicationOauthRefreshToken.applicationId,
+              this.scope.applicationId
+            ),
+            eq(applicationOauthRefreshToken.userId, userId),
+            eq(applicationOauthRefreshToken.sessionId, sessionId)
+          )
+        );
       const rows = await this.connection
         .delete(applicationSession)
         .where(
@@ -197,6 +225,30 @@ export class AuthSessionRepository extends BaseRepository {
   @Transactional()
   async revokeAllSessions(userId: string): Promise<number> {
     if (this.scope.kind === "application") {
+      const revokedAt = new Date();
+      await this.connection
+        .delete(applicationOauthAccessToken)
+        .where(
+          and(
+            eq(
+              applicationOauthAccessToken.applicationId,
+              this.scope.applicationId
+            ),
+            eq(applicationOauthAccessToken.userId, userId)
+          )
+        );
+      await this.connection
+        .update(applicationOauthRefreshToken)
+        .set({ revoked: revokedAt, sessionId: null })
+        .where(
+          and(
+            eq(
+              applicationOauthRefreshToken.applicationId,
+              this.scope.applicationId
+            ),
+            eq(applicationOauthRefreshToken.userId, userId)
+          )
+        );
       const rows = await this.connection
         .delete(applicationSession)
         .where(
@@ -224,6 +276,32 @@ export class AuthSessionRepository extends BaseRepository {
     currentSessionId: string
   ): Promise<number> {
     if (this.scope.kind === "application") {
+      const revokedAt = new Date();
+      await this.connection
+        .delete(applicationOauthAccessToken)
+        .where(
+          and(
+            eq(
+              applicationOauthAccessToken.applicationId,
+              this.scope.applicationId
+            ),
+            eq(applicationOauthAccessToken.userId, userId),
+            ne(applicationOauthAccessToken.sessionId, currentSessionId)
+          )
+        );
+      await this.connection
+        .update(applicationOauthRefreshToken)
+        .set({ revoked: revokedAt, sessionId: null })
+        .where(
+          and(
+            eq(
+              applicationOauthRefreshToken.applicationId,
+              this.scope.applicationId
+            ),
+            eq(applicationOauthRefreshToken.userId, userId),
+            ne(applicationOauthRefreshToken.sessionId, currentSessionId)
+          )
+        );
       const rows = await this.connection
         .delete(applicationSession)
         .where(

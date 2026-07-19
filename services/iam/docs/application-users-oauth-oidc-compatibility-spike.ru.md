@@ -371,6 +371,22 @@ Client binding хранится в IAM-controlled metadata/table:
 
 Metadata должна записываться только internal management service после ownership checks. Произвольная client metadata из Admin GraphQL не должна напрямую попадать в signed claims. В OAuth/OIDC v1 IAM создает только пользователей с реальным email; synthetic email не используется.
 
+### 8.4. Уточнение Phase 7: audience при `openid`
+
+Повторная сверка установленного `@better-auth/oauth-provider@1.6.23` в Phase 7
+обнаружила дополнительное поведение `createJwtAccessToken`: при наличии scope
+`openid` plugin добавляет `${issuer}/oauth2/userinfo` вторым элементом `aud`.
+Без compatibility shim это расходится с зафиксированным v1 контрактом одного
+resource audience `aud=application.resource`.
+
+IAM не ослабляет audience validation и не принимает второй resource. Application
+JWT plugin использует публичный Better Auth `signJWT` и тот же scoped JWKS
+adapter/key lifecycle, но перед подписью нормализует `aud` только для OAuth access
+token payload с `azp`. ID token не содержит `azp` и сохраняет стандартный
+`aud=client_id`. Upgrade OAuth Provider/JWT plugin требует повторной проверки
+этого shim; после появления upstream-настройки single resource audience shim
+должен быть удален.
+
 ## 9. Public/confidential clients и grant policy
 
 ### 9.1. Public client

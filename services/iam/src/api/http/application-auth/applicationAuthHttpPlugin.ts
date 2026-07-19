@@ -258,6 +258,14 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         rawBody: raw.body,
         authorizationHeader: request.headers.authorization,
       });
+      if (normalizedPath === "/oauth2/token") {
+        await assertRefreshGrantLiveState({
+          kernel: options.kernel,
+          runtime,
+          raw,
+          authorizationHeader: request.headers.authorization,
+        });
+      }
 
       const fetchRequest = createApplicationAuthFetchRequest({
         request,
@@ -301,6 +309,23 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         response,
         emailOtpStartedAt
       );
+      if (normalizedPath === "/oauth2/introspect") {
+        response = await applyApplicationTokenIntrospection({
+          kernel: options.kernel,
+          runtime,
+          raw,
+          authorizationHeader: request.headers.authorization,
+          response,
+        });
+      }
+      if (normalizedPath === "/oauth2/revoke" && response.ok) {
+        await recordApplicationTokenRevocation({
+          kernel: options.kernel,
+          runtime,
+          raw,
+          authorizationHeader: request.headers.authorization,
+        });
+      }
       if (
         normalizedPath === "/callback/google" ||
         normalizedPath === "/callback/facebook"
@@ -865,6 +890,138 @@ async function normalizeSensitiveApplicationAuthResponse(
     });
   }
   return response;
+}
+
+async function assertRefreshGrantLiveState(input: {
+  kernel: Kernel;
+  runtime: ApplicationAuthFactoryRuntime;
+  raw: RawApplicationAuthRequest;
+  authorizationHeader: string | undefined;
+}): Promise<void> {
+  const form = requireOAuthProtocolForm(input.raw);
+  if (optionalSingleParameter(form, "grant_type", 64) !== "refresh_token") {
+    return;
+  }
+  const clientId = requireProtocolClientId(form, input.authorizationHeader);
+  const token = requireSingleParameter(form, "refresh_token", 16 * 1024);
+  const result = await input.kernel.applicationTokenValidation.validateRefreshGrant(
+    {
+      token,
+      expectedApplicationId: input.runtime.applicationId,
+      expectedAudience: input.runtime.resource,
+      expectedClientId: clientId,
+    }
+  );
+  if (
+    !result.active &&
+    result.reasonCategory !== "token_family_revoked"
+  ) {
+    throw new ApplicationAuthBoundaryError(
+      400,
+      "invalid_grant",
+      "Refresh token is invalid or inactive"
+    );
+  }
+}
+
+async function applyApplicationTokenIntrospection(input: {
+  kernel: Kernel;
+  runtime: ApplicationAuthFactoryRuntime;
+  raw: RawApplicationAuthRequest;
+  authorizationHeader: string | undefined;
+  response: Response;
+}): Promise<Response> {
+  if (!input.response.ok) return input.response;
+  let pluginResult: unknown;
+  try {
+    pluginResult = await input.response.clone().json();
+  } catch {
+    return replaceJsonResponse(input.response, 200, { active: false });
+  }
+  if (
+    !pluginResult ||
+    typeof pluginResult !== "object" ||
+    (pluginResult as { active?: unknown }).active !== true
+  ) {
+    return replaceJsonResponse(input.response, 200, { active: false });
+  }
+  const form = requireOAuthProtocolForm(input.raw);
+  const clientId = requireProtocolClientId(form, input.authorizationHeader);
+  const token = requireSingleParameter(form, "token", 16 * 1024);
+  const result = await input.kernel.applicationTokenValidation.validate({
+    token,
+    expectedApplicationId: input.runtime.applicationId,
+    expectedAudience: input.runtime.resource,
+  });
+  if (!result.active || result.clientId !== clientId) {
+    return replaceJsonResponse(input.response, 200, { active: false });
+  }
+  return replaceJsonResponse(input.response, 200, {
+    active: true,
+    client_id: result.clientId,
+    sub: result.userId,
+    sid: result.sessionId,
+    scope: result.scopes.join(" "),
+    exp: Math.floor(result.expiresAt.getTime() / 1_000),
+    iat: Math.floor(result.issuedAt.getTime() / 1_000),
+    iss: result.issuer,
+    aud: result.audience,
+    application_id: result.applicationId,
+    actor_type: result.actorType,
+  });
+}
+
+async function recordApplicationTokenRevocation(input: {
+  kernel: Kernel;
+  runtime: ApplicationAuthFactoryRuntime;
+  raw: RawApplicationAuthRequest;
+  authorizationHeader: string | undefined;
+}): Promise<void> {
+  const form = requireOAuthProtocolForm(input.raw);
+  const clientId = requireProtocolClientId(form, input.authorizationHeader);
+  const token = requireSingleParameter(form, "token", 16 * 1024);
+  const tokenTypeHint = optionalSingleParameter(form, "token_type_hint", 64);
+  if (
+    tokenTypeHint !== null &&
+    tokenTypeHint !== "access_token" &&
+    tokenTypeHint !== "refresh_token"
+  ) {
+    return;
+  }
+  await input.kernel.applicationTokenValidation.recordProtocolRevocation({
+    token,
+    expectedApplicationId: input.runtime.applicationId,
+    expectedAudience: input.runtime.resource,
+    expectedClientId: clientId,
+    ...(tokenTypeHint ? { tokenTypeHint } : {}),
+  });
+}
+
+function requireOAuthProtocolForm(
+  raw: RawApplicationAuthRequest
+): URLSearchParams {
+  if (!raw.body) {
+    throw new ApplicationAuthRequestError("OAuth protocol body is required");
+  }
+  return parseRawSearchParams(raw.body.toString("utf8"));
+}
+
+function requireProtocolClientId(
+  form: URLSearchParams,
+  authorizationHeader: string | undefined
+): string {
+  const formClientId = optionalSingleParameter(form, "client_id", 512);
+  const basicClientId = readBasicClientId(authorizationHeader);
+  if (formClientId && basicClientId && formClientId !== basicClientId) {
+    throw new ApplicationAuthRequestError(
+      "Conflicting OAuth client identifiers"
+    );
+  }
+  const clientId = formClientId ?? basicClientId;
+  if (!clientId) {
+    throw new ApplicationAuthRequestError("OAuth client is required");
+  }
+  return clientId;
 }
 
 function replaceJsonResponse(

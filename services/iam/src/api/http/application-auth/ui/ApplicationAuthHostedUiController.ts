@@ -13,6 +13,7 @@ import type { Kernel } from "../../../../kernel/Kernel.js";
 import type { ApplicationAuthAuditReasonCategory } from "../../../../services/ApplicationAuthAuditService.js";
 import { normalizeApplicationAuthEmailRecipient } from "../../../../services/ApplicationAuthEmailDeliveryPort.js";
 import { ApplicationAuthRateLimitError } from "../../../../services/ApplicationAuthRateLimiter.js";
+import { createApplicationAuthLiveStateInvalidationEvent } from "../../../../events/application-auth/index.js";
 import {
   ApplicationAuthRequestError,
   parseRawSearchParams,
@@ -1457,6 +1458,14 @@ export class ApplicationAuthHostedUiController {
       throw new ApplicationAuthRequestError("Logout state is already consumed");
     }
     await sessionRepository.revokeSession(state.userId, state.sessionId);
+    await this.kernel.applicationAuthLiveStateInvalidation.publish(
+      createApplicationAuthLiveStateInvalidationEvent({
+        kind: "session",
+        applicationId: input.runtime.applicationId,
+        userId: state.userId,
+        sessionId: state.sessionId,
+      })
+    );
 
     const cookies = this.clearLogoutCookies(input.runtime);
     const redirectUri = state.postLogoutRedirectUriHash

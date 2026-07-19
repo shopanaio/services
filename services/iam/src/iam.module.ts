@@ -35,3 +35,14 @@ export {
   type ApplicationAuthAuditPort,
   type ApplicationAuthAuditEvent,
 } from "./services/ApplicationAuthAuditService.js";
+export {
+  ApplicationTokenValidationService,
+  type ApplicationTokenValidationResult,
+  type ApplicationTokenValidationReasonCategory,
+  type ValidateApplicationTokenInput,
+} from "./services/ApplicationTokenValidationService.js";
+export {
+  APPLICATION_AUTH_LIVE_STATE_INVALIDATION_PORT,
+  type ApplicationAuthLiveStateInvalidationPort,
+  type ApplicationAuthLiveStateInvalidationEvent,
+} from "./events/application-auth/index.js";

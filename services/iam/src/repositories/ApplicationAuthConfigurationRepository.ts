@@ -18,6 +18,10 @@ import {
 } from "../auth/applicationAuthConfiguration.js";
 import { assertApplicationId } from "../auth/AuthScope.js";
 import { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
+import {
+  createApplicationAuthLiveStateInvalidationEvent,
+  type ApplicationAuthLiveStateInvalidationBus,
+} from "../events/application-auth/index.js";
 import { BaseRepository } from "./BaseRepository.js";
 import {
   application,
@@ -88,7 +92,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    private readonly keyring: ApplicationAuthKeyring
+    private readonly keyring: ApplicationAuthKeyring,
+    private readonly invalidation: ApplicationAuthLiveStateInvalidationBus
   ) {
     super(db, txManager);
   }
@@ -338,23 +343,31 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
     return updated;
   }
 
-  @Transactional()
   async emergencyDisable(
     applicationId: string
   ): Promise<ApplicationAuthConfigurationRecord> {
     assertApplicationId(applicationId);
-    const [updated] = await this.connection
-      .update(applicationAuthConfiguration)
-      .set({
-        realmEnabled: false,
-        revision: sql`${applicationAuthConfiguration.revision} + 1`,
-        updatedAt: new Date(),
-      })
-      .where(eq(applicationAuthConfiguration.applicationId, applicationId))
-      .returning();
+    const updated = await this.txManager.run(async () => {
+      const [record] = await this.connection
+        .update(applicationAuthConfiguration)
+        .set({
+          realmEnabled: false,
+          revision: sql`${applicationAuthConfiguration.revision} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(applicationAuthConfiguration.applicationId, applicationId))
+        .returning();
+      return record ?? null;
+    });
     if (!updated) {
       throw new Error("Application auth configuration does not exist");
     }
+    await this.invalidation.publish(
+      createApplicationAuthLiveStateInvalidationEvent({
+        kind: "application",
+        applicationId,
+      })
+    );
     return updated;
   }
 
@@ -385,9 +398,6 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
     }
 
     await this.connection
-      .delete(applicationSession)
-      .where(eq(applicationSession.applicationId, applicationId));
-    await this.connection
       .delete(applicationAuthorizationContext)
       .where(eq(applicationAuthorizationContext.applicationId, applicationId));
     await this.connection
@@ -395,7 +405,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(eq(applicationVerification.applicationId, applicationId));
     await this.connection
       .update(applicationOauthRefreshToken)
-      .set({ revoked: now })
+      .set({ revoked: now, sessionId: null })
       .where(
         and(
           eq(applicationOauthRefreshToken.applicationId, applicationId),
@@ -405,6 +415,9 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
     await this.connection
       .delete(applicationOauthAccessToken)
       .where(eq(applicationOauthAccessToken.applicationId, applicationId));
+    await this.connection
+      .delete(applicationSession)
+      .where(eq(applicationSession.applicationId, applicationId));
     return updated;
   }
 

@@ -27,6 +27,12 @@ import {
   ApplicationAuthAuditService,
   type ApplicationAuthAuditPort,
 } from "../services/ApplicationAuthAuditService.js";
+import { ApplicationTokenValidationService } from "../services/ApplicationTokenValidationService.js";
+import {
+  ApplicationAuthLiveStateInvalidationBus,
+  createApplicationAuthLiveStateInvalidationEvent,
+  type ApplicationAuthLiveStateInvalidationPort,
+} from "../events/application-auth/index.js";
 
 /**
  * Extended kernel for IAM microservice (singleton)
@@ -48,6 +54,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public applicationAuthSecretRotation!: ApplicationAuthSecretRotationService;
   public applicationAuthRateLimiter!: ApplicationAuthRateLimiter;
   public applicationAuthAudit!: ApplicationAuthAuditService;
+  public applicationTokenValidation!: ApplicationTokenValidationService;
+  public applicationAuthLiveStateInvalidation!: ApplicationAuthLiveStateInvalidationBus;
 
   private constructor(
     broker: ServiceBroker,
@@ -65,7 +73,9 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     applicationAuthProvisioning: ApplicationAuthProvisioningService,
     applicationAuthSecretRotation: ApplicationAuthSecretRotationService,
     applicationAuthRateLimiter: ApplicationAuthRateLimiter,
-    applicationAuthAudit: ApplicationAuthAuditService
+    applicationAuthAudit: ApplicationAuthAuditService,
+    applicationTokenValidation: ApplicationTokenValidationService,
+    applicationAuthLiveStateInvalidation: ApplicationAuthLiveStateInvalidationBus
   ) {
     super(broker, logger, { repository, cache, authCache, nameResolver, workflow });
     this.repository = repository;
@@ -82,6 +92,9 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     this.applicationAuthSecretRotation = applicationAuthSecretRotation;
     this.applicationAuthRateLimiter = applicationAuthRateLimiter;
     this.applicationAuthAudit = applicationAuthAudit;
+    this.applicationTokenValidation = applicationTokenValidation;
+    this.applicationAuthLiveStateInvalidation =
+      applicationAuthLiveStateInvalidation;
   }
 
   static async create(
@@ -93,6 +106,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationAuthEmailDelivery?: ApplicationAuthEmailDeliveryPort;
       applicationAuthRateLimit?: ApplicationAuthRateLimitPort;
       applicationAuthAudit?: ApplicationAuthAuditPort;
+      applicationAuthLiveStateInvalidation?: ApplicationAuthLiveStateInvalidationPort;
       applicationAuthPublicBaseUrl?: string;
     } = {}
   ): Promise<Kernel> {
@@ -116,20 +130,43 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     const applicationAuthSecrets = new ApplicationAuthSecretService(
       applicationAuthKeyring
     );
+    const applicationAuthPublicBaseUrl =
+      options.applicationAuthPublicBaseUrl ?? process.env.IAM_PUBLIC_BASE_URL;
+    if (!applicationAuthPublicBaseUrl) {
+      throw new Error("IAM public base URL is required for token validation");
+    }
+    const applicationAuthLiveStateInvalidation =
+      new ApplicationAuthLiveStateInvalidationBus(
+        options.applicationAuthLiveStateInvalidation,
+        () =>
+          consoleLogger.error(
+            {},
+            "Application auth live-state invalidation transport failed"
+          )
+      );
+    await applicationAuthLiveStateInvalidation.start();
     const repository = await Repository.create({
       db,
       auth,
       databaseUrl,
       applicationAuthKeyring,
+      applicationAuthLiveStateInvalidation,
     });
     await repository.applicationAuthConfiguration.assertKeyringReady();
+    const applicationTokenValidation = new ApplicationTokenValidationService(
+      repository.applicationTokenValidation,
+      applicationAuthLiveStateInvalidation,
+      applicationAuthPublicBaseUrl,
+      consoleLogger
+    );
     const applicationAuth = new ApplicationAuthFactory(
       applicationAuthKeyring,
       applicationAuthSecrets,
       repository.applicationAuthConfiguration,
       {
         emailDelivery: options.applicationAuthEmailDelivery,
-        publicBaseUrl: options.applicationAuthPublicBaseUrl,
+        liveStateInvalidation: applicationAuthLiveStateInvalidation,
+        publicBaseUrl: applicationAuthPublicBaseUrl,
       }
     );
     const applicationAuthProvisioning = new ApplicationAuthProvisioningService(
@@ -138,7 +175,17 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     const applicationAuthSecretRotation =
       new ApplicationAuthSecretRotationService(
         repository.applicationAuthConfiguration,
-        applicationAuth
+        {
+          invalidate(applicationId) {
+            applicationAuth.invalidate(applicationId);
+            void applicationAuthLiveStateInvalidation.publish(
+              createApplicationAuthLiveStateInvalidationEvent({
+                kind: "application",
+                applicationId,
+              })
+            );
+          },
+        }
       );
     const applicationAuthRateLimiter = new ApplicationAuthRateLimiter(
       options.applicationAuthRateLimit
@@ -172,7 +219,9 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationAuthProvisioning,
       applicationAuthSecretRotation,
       applicationAuthRateLimiter,
-      applicationAuthAudit
+      applicationAuthAudit,
+      applicationTokenValidation,
+      applicationAuthLiveStateInvalidation
     );
     return this.instance;
   }
@@ -192,6 +241,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
 
   async close(): Promise<void> {
     this.applicationAuth.clear();
+    this.applicationTokenValidation.close();
+    await this.applicationAuthLiveStateInvalidation.close();
     Kernel.instance = null;
   }
 

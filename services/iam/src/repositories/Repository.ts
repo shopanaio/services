@@ -6,11 +6,13 @@ import { AuthSessionRepositoryFactory } from "./auth-session/AuthSessionReposito
 import { ApplicationAuthConfigurationRepository } from "./ApplicationAuthConfigurationRepository.js";
 import { ApplicationAuthorizationContextRepository } from "./ApplicationAuthorizationContextRepository.js";
 import { ApplicationOAuthClientRepository } from "./ApplicationOAuthClientRepository.js";
+import { ApplicationTokenValidationRepository } from "./ApplicationTokenValidationRepository.js";
 
 import { CasbinService } from "../casbin/CasbinService.js";
 import type { Database } from "../infrastructure//db/database.js";
 import type { Auth } from "../auth/auth.js";
 import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
+import type { ApplicationAuthLiveStateInvalidationBus } from "../events/application-auth/index.js";
 
 // Re-export User type
 export type { User };
@@ -20,6 +22,7 @@ export interface RepositoryConfig {
   auth: Auth;
   databaseUrl: string;
   applicationAuthKeyring: ApplicationAuthKeyring;
+  applicationAuthLiveStateInvalidation: ApplicationAuthLiveStateInvalidationBus;
 }
 
 /**
@@ -34,6 +37,7 @@ export class Repository {
   public readonly applicationAuthConfiguration: ApplicationAuthConfigurationRepository;
   public readonly applicationAuthorizationContext: ApplicationAuthorizationContextRepository;
   public readonly applicationOAuthClient: ApplicationOAuthClientRepository;
+  public readonly applicationTokenValidation: ApplicationTokenValidationRepository;
   public readonly casbin: CasbinService;
   public readonly txManager: TransactionManager<Database>;
 
@@ -45,6 +49,7 @@ export class Repository {
     applicationAuthConfiguration: ApplicationAuthConfigurationRepository,
     applicationAuthorizationContext: ApplicationAuthorizationContextRepository,
     applicationOAuthClient: ApplicationOAuthClientRepository,
+    applicationTokenValidation: ApplicationTokenValidationRepository,
     casbin: CasbinService,
     txManager: TransactionManager<Database>
   ) {
@@ -55,6 +60,7 @@ export class Repository {
     this.applicationAuthConfiguration = applicationAuthConfiguration;
     this.applicationAuthorizationContext = applicationAuthorizationContext;
     this.applicationOAuthClient = applicationOAuthClient;
+    this.applicationTokenValidation = applicationTokenValidation;
     this.casbin = casbin;
     this.txManager = txManager;
   }
@@ -63,7 +69,12 @@ export class Repository {
    * Create Repository with database and auth instances
    */
   static async create(config: RepositoryConfig): Promise<Repository> {
-    const { db, auth, applicationAuthKeyring } = config;
+    const {
+      db,
+      auth,
+      applicationAuthKeyring,
+      applicationAuthLiveStateInvalidation,
+    } = config;
 
     // Create transaction manager
     const txManager = new TransactionManager(db);
@@ -77,14 +88,16 @@ export class Repository {
     const userRepo = new UserRepository(db, auth, authSessionRepo);
     const applicationUserRepo = new ApplicationUserRepositoryFactory(
       db,
-      txManager
+      txManager,
+      applicationAuthLiveStateInvalidation
     );
     const organizationRepo = new OrganizationRepository(db, txManager);
     const applicationAuthConfigurationRepo =
       new ApplicationAuthConfigurationRepository(
         db,
         txManager,
-        applicationAuthKeyring
+        applicationAuthKeyring,
+        applicationAuthLiveStateInvalidation
       );
     const applicationAuthorizationContextRepo =
       new ApplicationAuthorizationContextRepository(db, txManager);
@@ -92,6 +105,8 @@ export class Repository {
       db,
       txManager
     );
+    const applicationTokenValidationRepo =
+      new ApplicationTokenValidationRepository(db, txManager);
 
     return new Repository(
       userRepo,
@@ -101,6 +116,7 @@ export class Repository {
       applicationAuthConfigurationRepo,
       applicationAuthorizationContextRepo,
       applicationOAuthClientRepo,
+      applicationTokenValidationRepo,
       casbinService,
       txManager
     );

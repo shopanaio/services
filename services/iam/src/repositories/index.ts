@@ -42,6 +42,11 @@ export {
   type ActiveApplicationOAuthClientPolicy,
 } from "./ApplicationOAuthClientRepository.js";
 export {
+  ApplicationTokenValidationRepository,
+  type ApplicationTokenLiveStateRecord,
+  type ApplicationRefreshTokenRecord,
+} from "./ApplicationTokenValidationRepository.js";
+export {
   BetterAuthUserRepository,
   type AuthUser,
   type JwtUserPayload,

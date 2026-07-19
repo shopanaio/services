@@ -125,15 +125,81 @@ require_pkce = true
 
 ## 6. Permissions и audit
 
-Минимальный permission registry:
+### 6.1. RBAC contract
 
-- `iam.application.read/write/archive`;
-- `iam.application.auth.read/write`;
-- `iam.application.provider.read/write`;
-- `iam.application.oauth-client.read/write/rotate-secret`;
-- `iam.application.user.read/block/revoke-session/unlink-account`.
+Permissions следуют текущей модели `@shopana/rbac`: permission — это пара `resource + action`, а не составная строка с произвольным action. Для organization domain используются только actions `read | write | admin` с действующей Casbin-иерархией:
 
-Чтение status и ротация secret разделяются. Все write и secret operations создают audit event с actor, organization, application, operation, request ID, timestamp, безопасным diff и outcome category. Audit/logs/traces/metrics не содержат secret, credential, token, code, OTP или PII, не нужные для диагностики.
+```text
+admin -> write -> read
+```
+
+Новые organization resources:
+
+- `org.applications` — metadata и lifecycle application;
+- `org.application-auth` — realm/auth configuration, origins, branding и localization;
+- `org.application-auth-providers` — social provider configuration и credentials;
+- `org.application-oauth-clients` — OAuth clients, их lifecycle и secrets;
+- `org.application-users` — application-user security administration.
+
+Матрица GraphQL operation -> Casbin permission:
+
+| Operations | Domain | Resource | Action |
+| --- | --- | --- | --- |
+| list/get application | `org` | `org.applications` | `read` |
+| create/update application | `org` | `org.applications` | `write` |
+| archive application | `org` | `org.applications` | `admin` |
+| get auth configuration, resource и protocol URLs | `org` | `org.application-auth` | `read` |
+| update auth methods/policy, origins, branding/localization | `org` | `org.application-auth` | `write` |
+| enable/disable realm и security-sensitive realm lifecycle operations | `org` | `org.application-auth` | `admin` |
+| get provider status | `org` | `org.application-auth-providers` | `read` |
+| enable/disable provider, update non-secret provider settings | `org` | `org.application-auth-providers` | `write` |
+| configure, rotate, validate или delete provider credentials | `org` | `org.application-auth-providers` | `admin` |
+| list/get OAuth client | `org` | `org.application-oauth-clients` | `read` |
+| create/update/enable/disable OAuth client | `org` | `org.application-oauth-clients` | `write` |
+| rotate client secret, change `skipConsent`, archive/hard-delete client | `org` | `org.application-oauth-clients` | `admin` |
+| list/get application user и linked-account status | `org` | `org.application-users` | `read` |
+| block/unblock application user | `org` | `org.application-users` | `write` |
+| revoke all sessions и unlink account | `org` | `org.application-users` | `admin` |
+
+`organizationId` всегда передается в `AuthProvider.authorize` от trusted management boundary после загрузки organization/application. Domain равен `org`; application ID не кодируется в Casbin domain или resource. Tenant isolation обеспечивается organization-filtered enforcer и обязательным application ownership predicate.
+
+Для подключения permissions нужно:
+
+1. Добавить resources в `packages/rbac/src/definitions.ts`.
+2. Выдать `admin` для всех пяти resources стандартной organization-роли `admin`; роль `member` не получает их по умолчанию.
+3. Обновить resource registry и существующие standard-role policies через штатную idempotent RBAC initialization/migration.
+4. Инвалидировать Casbin enforcer cache после изменения policies.
+5. Проверить матрицу для owner, organization `admin`, custom role с `read`/`write`/`admin`, organization `member`, unauthenticated actor и actor другой organization.
+
+Site admin и organization owner сохраняют текущий project-wide bypass только после успешной валидации `domain/resource/action` через `@shopana/rbac`. Resolver/service не должен вводить локальный bypass.
+
+### 6.2. Audit
+
+Чтение status и secret/security operations разделяются через actions `read` и `admin` одного resource.
+
+Текущий `ApplicationAuthAuditService` не является administrative audit boundary. Он сохраняет текущую best-effort семантику для operational events публичного application-auth runtime (`provider_callback`, `account_link`, `account_unlink`): optional `ApplicationAuthAuditPort`, redacted fallback logging и отсутствие влияния delivery failure на protocol flow. Admin GraphQL не расширяет этот сервис administrative actions и не использует его для аудита mutations.
+
+Administrative audit проходит через отдельный `ApplicationAuthAdminAuditPort`, который явно вызывается management service. Автоматический Better Auth Infrastructure `dash()` не считается покрытием Admin API: platform Better Auth здесь только валидирует admin session, а application settings, providers, OAuth clients и user security actions изменяются Shopana services/repositories вне Better Auth handler hooks.
+
+До выбора storage adapter обязателен compatibility/contract spike Better Auth Infrastructure Enterprise. Spike должен подтвердить на exact версии и enterprise contract:
+
+1. Наличие supported server-side custom audit-record ingestion, а не только automatic tracked auth events.
+2. Возможность передать closed Shopana schema: action, outcome/reason category, platform actor, organization, application, optional target, request ID, timestamp и allowlisted safe diff.
+3. Durable acknowledgement, idempotency по `recordId`, ordering requirements и documented failure behavior.
+4. Retention не менее 180 дней, organization isolation, access control, log drain/export, data residency и deletion/legal-hold contract.
+5. Совместимость с fail-closed требованием: security-sensitive admin mutation не считается успешной, если durable audit record не гарантирован.
+6. Отсутствие secret values в SDK diagnostics, retries, transport errors, provider dashboard и log drain payload.
+
+По результату spike фиксируется один из двух adapters:
+
+- `BetterAuthInfrastructureAdminAuditAdapter`, если supported custom ingestion и все гарантии подтверждены executable spike и enterprise contract;
+- local transactional append-only adapter + durable export/outbox, если Better Auth не поддерживает custom records, нужную retention или fail-closed/atomic delivery contract.
+
+Нельзя подменять durable administrative audit записью в Pino/logger. Если выбранный remote adapter не может атомарно связать durable acknowledgement с IAM transaction, используется local transaction/outbox; успешный remote append до откативающейся DB mutation не должен оставлять ложный success record.
+
+Admin audit record имеет closed versioned schema с `recordId`, `schemaVersion`, `occurredAt`, `category=application_auth_admin`, closed `action`, `outcome`, closed `reasonCategory`, `actorType=platform_admin`, stable platform `actorId`, `organizationId`, `applicationId`, optional `targetType/targetId`, `requestId` и action-specific `safeDiff`. Platform actor не хешируется application realm secret: его identity должна оставаться стабильной между applications и после realm secret rotation.
+
+Все write, admin и secret operations записывают success/failure admin audit record. `safeDiff` формируется только из allowlist конкретного action; GraphQL input/variables, exception context, full URI/query, email, secret, credential, token, code, OTP, provider response и ненужные PII не сериализуются в audit/logs/traces/metrics.
 
 ## 7. Validation и ошибки
 
@@ -149,12 +215,13 @@ require_pkce = true
 ### Этап 0. Зафиксировать GraphQL и authorization contract
 
 1. Утвердить queries, mutations, payloads и `userErrors`.
-2. Сопоставить каждую операцию с Casbin permission.
+2. Утвердить матрицу `GraphQL operation -> org resource -> read|write|admin` и добавить resources/standard-role policies в `@shopana/rbac`.
 3. Зафиксировать trusted actor/organization context и ownership semantics.
 4. Зафиксировать one-time secret response и redaction contract.
 5. Утвердить internal Project action для Store ownership.
+6. Выполнить Better Auth Infrastructure Enterprise administrative-audit spike и зафиксировать `ApplicationAuthAdminAuditPort`, adapter, schema, retention и fail-closed/transaction contract.
 
-Критерий выхода: ни один client-controlled input не задает tenant, protocol grant, resource audience, signed claim или secret storage policy.
+Критерий выхода: ни один client-controlled input не задает tenant, protocol grant, resource audience, signed claim или secret storage policy; administrative audit имеет проверенный durable adapter и не полагается на automatic Better Auth tracked events.
 
 ### Этап 1. Applications и auth settings
 
@@ -162,7 +229,7 @@ require_pkce = true
 2. Добавить revisioned auth settings mutations.
 3. Добавить read-only canonical resource и запрет его передачи/изменения через GraphQL DTO и repository.
 4. Добавить origins, branding/localization и вычисляемые protocol URLs.
-5. Добавить permissions и audit events.
+5. Добавить permissions и durable admin audit records через `ApplicationAuthAdminAuditPort`.
 
 Критерий выхода: organization admin настраивает application realm и не может изменить application другой organization.
 
@@ -171,13 +238,13 @@ require_pkce = true
 1. Добавить provider status/configuration mutations.
 2. Реализовать enable/disable и credential rotation.
 3. Добавить безопасную validation operation без раскрытия credentials/tokens.
-4. Подключить cache invalidation и audit.
+4. Подключить cache invalidation и durable admin audit records через `ApplicationAuthAdminAuditPort`.
 
 Критерий выхода: provider можно безопасно настроить без ручной БД, а secret невозможно прочитать обратно.
 
 ### Этап 3. OAuth clients
 
-Выполнить этапы детализированного [плана API управления OAuth clients](./application-oauth-client-management-api-plan.ru.md), включая repository/service integration, GraphQL operations, Store ownership, one-time secret rotation и protocol-policy enforcement.
+Выполнить этапы детализированного [плана API управления OAuth clients](./application-oauth-client-management-api-plan.ru.md), включая repository/service integration, GraphQL operations, Store ownership, one-time secret rotation, protocol-policy enforcement и explicit durable audit через `ApplicationAuthAdminAuditPort` по contract раздела 6.2 настоящего плана.
 
 Критерий выхода: organization admin управляет clients своего application, но не может включить `client_credentials`, изменить grants/resource или получить сохраненный secret.
 
@@ -186,7 +253,7 @@ require_pkce = true
 1. Добавить list/get application users.
 2. Добавить block/unblock и revoke-all-sessions.
 3. Добавить безопасные account list/unlink operations.
-4. Подключить permissions, tenant isolation и audit.
+4. Подключить permissions, tenant isolation и durable admin audit records через `ApplicationAuthAdminAuditPort`.
 
 Критерий выхода: security actions немедленно отражаются в live validation/refresh lifecycle и не раскрывают credentials или данные другого realm.
 
@@ -217,7 +284,11 @@ require_pkce = true
 - application user session не авторизует management operation;
 - `buildAdminContextMiddleware` вызывается для `/graphql` и не вызывается для public auth routes;
 - public reverse proxy не публикует `/graphql`;
-- audit покрывает все write/security mutations без secret values.
+- automatic Better Auth `dash()` events не считаются administrative audit без явной записи через `ApplicationAuthAdminAuditPort`;
+- administrative audit покрывает success/failure всех write/security mutations без secret values;
+- ошибка durable admin audit отклоняет/откатывает mutation без ложного success record;
+- ошибка operational `ApplicationAuthAuditPort` не ломает public auth protocol flow и увеличивает durable failure counter;
+- audit retention, organization access control и log drain/export соответствуют зафиксированному enterprise/local adapter contract.
 
 ## 10. Предполагаемые изменения файлов
 
@@ -228,13 +299,18 @@ services/iam/src/api/graphql-admin/application-provider/*
 services/iam/src/api/graphql-admin/application-oauth-client/*
 services/iam/src/api/graphql-admin/application-user/*
 services/iam/src/services/ApplicationOAuthClientManagementService.ts
-services/iam/src/services/ApplicationAuthAuditService.ts
+services/iam/src/services/ApplicationAuthAdminAuditPort.ts
+services/iam/src/infrastructure/audit/BetterAuthInfrastructureAdminAuditAdapter.ts
+services/iam/src/infrastructure/audit/LocalApplicationAuthAdminAuditAdapter.ts
+services/iam/src/repositories/ApplicationAuthAdminAuditRepository.ts
+services/iam/src/repositories/models/application-auth-admin-audit.ts
 services/iam/src/casbin/*
-services/iam/src/events/application-auth/*
-services/e2e/.../iam/application-auth-admin/*
+services/iam/migrations/*
+packages/rbac/src/definitions.ts
+e2e/tests/iam-api/application-auth-admin/*
 ```
 
-Точные пути resolver и action должны соответствовать существующей структуре IAM и проектному resolver pattern на момент реализации.
+Реализуется только один infrastructure adapter, выбранный по результату этапа 0. Local repository/model/migration нужны только если Better Auth Enterprise не подтвердит custom ingestion и требуемые delivery/atomicity guarantees. Текущий `ApplicationAuthAuditService` в рамках этого плана не изменяется. Точные пути resolver и action должны соответствовать существующей структуре IAM и проектному resolver pattern на момент реализации.
 
 ## 11. Definition of Done
 
@@ -246,5 +322,6 @@ services/e2e/.../iam/application-auth-admin/*
 6. Provider/client secrets защищены, возвращаются только там, где предусмотрен one-time response, и отсутствуют в observability/audit.
 7. Store ownership и tenant isolation подтверждены negative scenarios.
 8. Revisioned mutations предотвращают lost update и корректно инвалидируют runtime cache.
-9. Все security-sensitive writes аудируются.
-10. Organization admin может полностью настроить realm без прямой работы с БД или конфигурационными файлами.
+9. Все security-sensitive writes явно аудируются через `ApplicationAuthAdminAuditPort`; durable audit failure отклоняет/откатывает mutation, а operational `ApplicationAuthAuditService` сохраняет best-effort protocol semantics.
+10. Все operations используют зарегистрированную пару `org.* resource + read|write|admin`; unknown resource/action дает deny, standard organization `admin` и custom roles получают ожидаемые permissions после Casbin cache invalidation.
+11. Organization admin может полностью настроить realm без прямой работы с БД или конфигурационными файлами.
