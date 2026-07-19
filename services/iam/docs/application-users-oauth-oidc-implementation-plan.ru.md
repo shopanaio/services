@@ -5,6 +5,11 @@
 Сервис: `services/iam`  
 Целевая область: аутентификация покупателей приложений (`application_users`)
 
+Связанные документы:
+
+- [Compatibility и security spike OAuth 2.1 / OIDC для `application_users`](./application-users-oauth-oidc-compatibility-spike.ru.md);
+- [План реализации API управления OAuth clients в IAM](./application-oauth-client-management-api-plan.ru.md).
+
 ## 1. Резюме решения
 
 IAM должен стать OIDC-провайдером для клиентских приложений организаций. Каждая сущность `iam.application` образует изолированный realm со своими:
