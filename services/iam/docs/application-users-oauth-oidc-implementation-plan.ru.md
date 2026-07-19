@@ -138,6 +138,8 @@ OAuth/OIDC endpoint монтируются напрямую в существу�
 ```text
 IAM Fastify instance / один listener
 ├── applicationAuthHttpPlugin
+│   ├── versioned route manifest / default deny
+│   ├── ApplicationOAuthResourcePolicyGuard
 │   ├── /auth/applications/:applicationId/*
 │   └── необходимые /.well-known/* routes
 └── adminGraphqlPlugin
@@ -252,7 +254,30 @@ Endpoint выключенного application method/provider возвращае
 
 Точные имена и HTTP methods путей извлекаются из runtime manifest полного Better Auth instance и фиксируются в compatibility ADR после установки `@better-auth/oauth-provider@1.6.23` и подключения password/emailOTP/social plugins. Upgrade Better Auth, OAuth Provider, emailOTP либо изменение plugin composition невозможно без повторной сверки и явного обновления публичного route manifest.
 
-### 6.3. Fastify integration
+### 6.3. Mandatory resource enforcement
+
+`oauthProvider.validAudiences` является defense-in-depth allowlist, но не владельцем mandatory-resource contract. Версия `@better-auth/oauth-provider@1.6.23` не связывает `resource` authorization request с authorization code и refresh-token family, а token request без `resource` может получить opaque access token. Поэтому обязательность и неизменность единственного application resource обеспечивает отдельный `ApplicationOAuthResourcePolicyGuard` внутри `applicationAuthHttpPlugin` до вызова `auth.handler`.
+
+Guard применяется только к точным protocol routes из versioned manifest:
+
+- `GET /oauth2/authorize` — читает `resource` из raw query;
+- `POST /oauth2/token` с `grant_type=authorization_code` — читает `resource` из исходного `application/x-www-form-urlencoded` body;
+- `POST /oauth2/token` с `grant_type=refresh_token` — выполняет ту же проверку для каждого refresh.
+
+Для каждого из этих requests guard обязан:
+
+1. принимать ровно одно непустое значение `resource`; отсутствие, два одинаковых значения и несколько разных значений одинаково отклоняются;
+2. сравнивать request value как exact string с уже нормализованным `application.resource`, не нормализуя и не переписывая входной URI повторно;
+3. загружать OAuth client в scope application и проверять его IAM-controlled resource binding; `client_id` берется из form body либо username HTTP Basic authentication, конфликт двух источников отклоняется;
+4. не проверять client secret, authorization code или refresh token самостоятельно — их аутентификацию, одноразовость и rotation продолжает выполнять OAuth Provider;
+5. возвращать protocol error `invalid_target` до выпуска token. Authorization endpoint может перенаправлять ошибку только после отдельной точной проверки client и `redirect_uri`; иначе используется прямой безопасный `400` response;
+6. передавать в `auth.handler` исходные query/body bytes и HTTP method без потери повторяющихся параметров, повторного percent-decoding или изменения form encoding.
+
+В v1 у application существует ровно один resource. Поэтому exact-проверка одного и того же значения на authorize, code exchange и каждом refresh эквивалентна запрету смены/расширения audience, несмотря на то что plugin не хранит resource в code/refresh-token row. Добавление второго resource в будущем запрещено обычной configuration mutation и потребует новой protocol-policy version, хранения granted resources с authorization code/refresh family и отдельной migration.
+
+`ApplicationOAuthResourcePolicyGuard` не является OAuth server и не выпускает token: он закрывает только подтвержденный compatibility spike gap перед передачей request готовому OAuth Provider.
+
+### 6.4. Fastify integration
 
 Не создавать второй `fastify()` instance. В существующем IAM HTTP server зарегистрировать `applicationAuthHttpPlugin` рядом, а не внутри encapsulated scope Admin GraphQL. Рекомендуемый порядок сборки:
 
@@ -275,12 +300,13 @@ Hooks дочернего `adminGraphqlPlugin` не должны применят
 4. нормализует относительный path без повторного decode;
 5. проверяет `(HTTP method, normalized pathname)` по versioned manifest и пересекает его с включенными application methods/providers/feature flags;
 6. возвращает `404` для любого неизвестного, management или выключенного endpoint до вызова Better Auth;
-7. получает instance из `ApplicationAuthFactory`;
-8. преобразует Fastify request в стандартный Fetch API `Request`;
-9. передает только разрешенный request в `auth.handler`;
-10. корректно переносит status, headers и body в Fastify reply.
+7. для точных authorize/token routes выполняет `ApplicationOAuthResourcePolicyGuard` из раздела 6.3 и при нарушении возвращает `invalid_target` до вызова Better Auth;
+8. получает instance из `ApplicationAuthFactory`;
+9. преобразует Fastify request в стандартный Fetch API `Request`;
+10. передает только разрешенный и прошедший resource policy request в `auth.handler`;
+11. корректно переносит status, headers и body в Fastify reply.
 
-Route authorization выполняется по HTTP method и нормализованному pathname, а не по строковому prefix match. Query/body не участвуют в выборе route. Encoded slash, duplicate slash, dot-segment и повторное percent-decoding не должны позволять обойти deny/default-deny policy. Для social callback provider берется из уже сопоставленного точного pathname manifest, а не из непроверенного wildcard segment.
+Route authorization выполняется по HTTP method и нормализованному pathname, а не по строковому prefix match. Query/body не участвуют в выборе route; после точного выбора authorize/token route они используются только соответствующей protocol policy, включая `ApplicationOAuthResourcePolicyGuard`. Encoded slash, duplicate slash, dot-segment и повторное percent-decoding не должны позволять обойти deny/default-deny policy. Для social callback provider берется из уже сопоставленного точного pathname manifest, а не из непроверенного wildcard segment.
 
 Handler обязан сохранять:
 
@@ -312,16 +338,16 @@ Allowed origins берутся из application configuration и сопоста�
    - `nonce`;
    - `code_challenge`;
    - `code_challenge_method=S256`.
-4. IAM загружает единственный настроенный для application resource, проверяет OAuth client, требует точного совпадения входного `resource` с `application.resource`, сверяет его с `oauthProvider.validAudiences` и resource клиента и сохраняет authorization context.
+4. `ApplicationOAuthResourcePolicyGuard` загружает единственный настроенный для application resource и OAuth client, требует ровно один `resource`, его точное совпадение с `application.resource` и IAM-controlled binding клиента; затем OAuth Provider сохраняет authorization context.
 5. Если application-сессии нет, IAM показывает hosted login UI.
 6. Пользователь выбирает разрешенный application способ входа.
 7. Better Auth создает/проверяет `application_user`, account и session.
 8. Для доверенного first-party client consent может быть заранее разрешен серверным флагом `skipConsent`; для остальных показывается consent page.
 9. IAM возвращает одноразовый authorization code на зарегистрированный callback вместе со `state`.
-10. Клиент проверяет `state` и обменивает code + `code_verifier` на token, повторно передавая тот же `resource`; contract не допускает смену или расширение resource между authorize и token request.
+10. Клиент проверяет `state` и обменивает code + `code_verifier` на token, повторно передавая тот же `resource`; guard до OAuth Provider отклоняет отсутствующий, повторяющийся или отличающийся resource и не допускает смену/расширение audience.
 11. Клиент проверяет ID token: signature, `iss`, `aud`, `exp`, `nonce`.
 12. Клиент проверяет, что access token имеет JWT-формат и `aud={application.resource}`, после чего отправляет его в Storefront API как bearer token.
-13. Refresh token используется только через `/oauth2/token` с тем же `resource`; новый access token сохраняет исходный application resource/audience, а запрос другого resource отклоняется. Rotation/revocation контролирует plugin.
+13. Refresh token используется только через `/oauth2/token` с тем же единственным `resource`; guard повторяет exact-проверку на каждом refresh, после чего новый access token сохраняет application resource/audience. Rotation/revocation контролирует plugin.
 
 PKCE нельзя отключать. Для browser/mobile client используется public client с `token_endpoint_auth_method=none`. Для server-side client используется confidential client, PKCE и client authentication. Оба типа имеют только `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`; запрос `grant_type=client_credentials` отклоняется глобальной policy OAuth Provider до выдачи token и дополнительно не разрешен policy конкретного client.
 
@@ -786,6 +812,8 @@ application.resource=<absolute HTTPS URI Storefront API для этой applicat
 
 OAuth Provider работает с включенным JWT plugin (`disableJwtPlugin=false`). Storefront client обязан передавать `application.resource` и в authorization request, и в code exchange/refresh token request. Отсутствующий, неизвестный, множественный, принадлежащий другой application или не совпадающий с настроенным resource отклоняется с protocol error `invalid_target`. Успешный code exchange и refresh должны выдавать JWT access token с точным `aud=application.resource`. Opaque access tokens не входят в Storefront v1 contract и отклоняются без попытки fallback-introspection.
 
+Enforcement принадлежит `ApplicationOAuthResourcePolicyGuard` из раздела 6.3, а не одному `oauthProvider.validAudiences`. Guard требует exact application resource до передачи authorize/code-exchange/refresh request в OAuth Provider; `validAudiences`, client metadata и JWT-only Storefront validation остаются независимыми дополнительными слоями. Ни application configuration, ни OAuth client input не могут выключить guard feature flag или выбрать permissive fallback.
+
 `store_id` не является resource/audience: он берется только из доверенной metadata OAuth client и добавляется через `customAccessTokenClaims`. Все clients одной application используют ее единственный resource, а resource server одновременно проверяет `aud`, `application_id` и `store_id`.
 
 ### 14.4. Проверка в Storefront API
@@ -930,7 +958,7 @@ Security/operational события без секретов:
 4. Подтвердить, что session-authenticated client-management endpoint недоступны application users, а server-side admin API вызывается без их публичной экспозиции.
 5. Подтвердить Fastify integration, path-prefixed issuer и multi-cookie responses.
 6. Проверить возможность application scoping всех plugin models через текущий adapter.
-7. Подтвердить application-scoped `resource`, `validAudiences: [application.resource]`, наследование единственного resource OAuth clients и JWT access token для authorize/code exchange/refresh.
+7. Подтвердить application-scoped `resource`, поведение `validAudiences: [application.resource]`, отсутствие resource binding в plugin и необходимость `ApplicationOAuthResourcePolicyGuard` для authorize/code exchange/refresh.
 8. Проверить custom claims/store binding.
 9. Зафиксировать глобальный `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`, public/confidential client behavior, обязательные client-level `grant_types=["authorization_code", "refresh_token"]`, `response_types=["code"]` и secret one-time return.
 10. Подтвердить, что discovery не рекламирует `client_credentials`, а token endpoint отклоняет этот grant для каждого public/confidential v1 client.
@@ -941,7 +969,7 @@ Security/operational события без секретов:
 - подтвержденная схема таблиц;
 - versioned route manifest с точными HTTP methods и public/internal endpoint всего Better Auth handler;
 - негативное подтверждение, что application user не может читать, создавать, изменять, удалять client или ротировать его secret;
-- contract-подтверждение, что обязательный resource конкретной application выдает JWT с ожидаемым `aud`, а отсутствующий/resource другой application отклоняется;
+- contract-подтверждение guard contract: обязательный единственный resource конкретной application выдает JWT с ожидаемым `aud`, а отсутствующий, повторяющийся или resource другой application отклоняется до `auth.handler`;
 - contract-подтверждение, что `client_credentials` отсутствует в discovery и public/confidential v1 clients не получают token через этот grant;
 
 Критерий выхода: нет неизвестных, требующих самописного OAuth server или небезопасного хранения OTP.
@@ -984,11 +1012,12 @@ Security/operational события без секретов:
 4. Настроить canonical public base URL/proxy handling и path-based reverse-proxy exposure без публикации `/graphql` наружу.
 5. Добавить versioned default-deny manifest для всего application Better Auth handler и закрыть management, неизвестные и выключенные application endpoint до `auth.handler`.
 6. Экспонировать только утвержденные discovery/JWKS/authorize/token/userinfo/introspection/revoke/end-session, hosted-flow, password, emailOTP и social callback endpoint с точными HTTP methods.
-7. Отключить конфликтующий `/token` Better Auth path.
-8. Реализовать exact CORS/trusted origins.
-9. Добавить structured errors/request IDs без утечки данных.
+7. Реализовать `ApplicationOAuthResourcePolicyGuard` до `auth.handler`: exact single resource для authorize, authorization-code exchange и каждого refresh, client/application binding, безопасный `invalid_target` и сохранение исходных query/form bytes.
+8. Отключить конфликтующий `/token` Better Auth path.
+9. Реализовать exact CORS/trusted origins.
+10. Добавить structured errors/request IDs без утечки данных.
 
-Критерий выхода: один IAM Fastify listener обслуживает изолированные sibling scopes application auth и Admin GraphQL; публичный auth request не проходит через admin GraphQL middleware, `/graphql` не публикуется public reverse proxy, стандартный OIDC client проходит discovery и Authorization Code + PKCE flow, application user не может вызвать ни один client-management endpoint, неизвестные и выключенные OAuth/password/OTP/social endpoint возвращают `404` до Better Auth, а `client_credentials` отсутствует в discovery и не выдает token ни public, ни confidential v1 client.
+Критерий выхода: один IAM Fastify listener обслуживает изолированные sibling scopes application auth и Admin GraphQL; публичный auth request не проходит через admin GraphQL middleware, `/graphql` не публикуется public reverse proxy, стандартный OIDC client проходит discovery и Authorization Code + PKCE flow только с exact application resource, guard отклоняет missing/duplicate/foreign resource до Better Auth и не допускает opaque fallback, application user не может вызвать ни один client-management endpoint, неизвестные и выключенные OAuth/password/OTP/social endpoint возвращают `404` до Better Auth, а `client_credentials` отсутствует в discovery и не выдает token ни public, ни confidential v1 client.
 
 ### Этап 4. Admin GraphQL
 
@@ -1078,6 +1107,7 @@ services/iam/src/auth/scopedDrizzleAdapter.ts
 services/iam/src/auth/applicationAuthConfiguration.ts
 services/iam/src/auth/applicationOAuthClaims.ts
 services/iam/src/api/graphql-admin/server.ts
+services/iam/src/api/http/application-auth/ApplicationOAuthResourcePolicyGuard.ts
 services/iam/src/api/http/application-auth/*
 services/iam/src/api/graphql-admin/application/*
 services/iam/src/repositories/models/application-auth.ts
@@ -1111,9 +1141,14 @@ Hosted UI следует разместить в выбранном для IAM w
 - `grant_type=client_credentials` не выдает token ни одному v1 client;
 - Admin GraphQL не принимает и не изменяет `grantTypes`/`responseTypes`;
 - authorize с точным `resource=application.resource` выдает JWT access token с таким же `aud`;
-- отсутствующий, неизвестный, множественный, resource другой application или не совпадающий с application resource отклоняется;
-- token exchange не позволяет заменить resource из authorization code;
-- refresh сохраняет исходный resource/audience и не позволяет получить token для другого resource;
+- отсутствующий, пустой, неизвестный, повторенный дважды даже с одинаковым значением, resource другой application или не совпадающий с application resource отклоняется как `invalid_target` до `auth.handler`;
+- authorization error не перенаправляется на непроверенный `redirect_uri`;
+- code exchange без resource не создает opaque access token и не достигает OAuth Provider;
+- token exchange не позволяет заменить resource из authorization request;
+- refresh без resource или с другим resource отклоняется до OAuth Provider, не ротирует refresh family и не выдает opaque token;
+- успешный refresh с exact resource сохраняет исходный resource/audience;
+- resource guard одинаково определяет confidential `client_id` из HTTP Basic и public `client_id` из form body, а конфликт источников отклоняется;
+- resource guard сохраняет исходный raw query/form body для OAuth Provider без повторного decode или изменения encoding;
 - отсутствующий/неверный verifier отклоняется;
 - повторное использование code отклоняется;
 - неверные state/nonce обнаруживаются клиентом/flow;
@@ -1216,6 +1251,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] Все v1 clients имеют только `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`.
 - [ ] `client_credentials` отсутствует в Admin GraphQL input и не выдает token ни public, ни confidential client.
 - [ ] Authorize flow требует единственный канонический `application.resource` и выдает JWT с точным `aud`.
+- [ ] `ApplicationOAuthResourcePolicyGuard` до `auth.handler` требует ровно один exact resource на authorize, code exchange и каждом refresh; missing/duplicate/foreign resource возвращает `invalid_target` без opaque fallback.
 - [ ] JWT plugin включен; Storefront отклоняет opaque access tokens.
 - [ ] Каждая application имеет ровно один администраторский resource; OAuth clients наследуют только его, а `oauthProvider.validAudiences` равно `[application.resource]`.
 - [ ] Code exchange/refresh не позволяют сменить или расширить исходный resource.
@@ -1249,7 +1285,7 @@ Hosted UI следует разместить в выбранном для IAM w
 
 1. Каждая application имеет отдельный issuer, users, sessions, providers, OAuth clients, tokens, consents и keys.
 2. Organization admin управляет настройками через Admin API с Casbin и audit trail.
-3. Каждая application имеет ровно один заданный ее администратором Storefront resource; public и confidential clients наследуют его, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; OAuth Provider глобально поддерживает только `authorization_code`/`refresh_token`, а `client_credentials` отсутствует в discovery и запрещен также на уровне каждого client.
+3. Каждая application имеет ровно один заданный ее администратором Storefront resource; `ApplicationOAuthResourcePolicyGuard` требует его exact single value до Better Auth на authorize/code exchange/каждом refresh и исключает opaque fallback; public и confidential clients наследуют resource, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; OAuth Provider глобально поддерживает только `authorization_code`/`refresh_token`, а `client_credentials` отсутствует в discovery и запрещен также на уровне каждого client.
 4. Password, email OTP, Google и Facebook можно независимо включать на application.
 5. Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`.
 6. Account linking не пересекает applications и не доверяет unverified email.
@@ -1272,7 +1308,7 @@ Hosted UI следует разместить в выбранном для IAM w
 | Secret leakage в admin/logs | Encryption, one-time reveal, redaction и audit без value |
 | Open redirect/custom scheme abuse | Exact allowlist и отдельная mobile URI policy |
 | Устаревшая factory config после admin update | Revisioned cache key + invalidation event |
-| Storefront получает opaque token без audience | Обязательный единственный application-scoped `resource`, `validAudiences: [application.resource]`, автоматическое наследование resource clients, включенный JWT plugin и JWT-only Storefront validator |
+| Storefront получает opaque token без audience или client меняет resource между authorize/exchange/refresh | `ApplicationOAuthResourcePolicyGuard` до `auth.handler` требует ровно один exact `application.resource` на каждом шаге и возвращает `invalid_target`; `validAudiences`, client binding, включенный JWT plugin и JWT-only Storefront validator дают дополнительные независимые слои |
 | OAuth Provider поддерживает `client_credentials` по умолчанию | Глобально задать `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`, дублировать ограничение в каждом v1 client, не принимать grant policy из GraphQL и проверять discovery/отказ token endpoint contract-сценариями |
 | Мгновенная ревокация JWT | Короткий access TTL + live validation/introspection для чувствительных операций |
 | Customers временно недоступен | Outbox/retry/idempotent ensure, не блокировать token endpoint |
