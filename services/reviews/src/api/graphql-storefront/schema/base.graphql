@@ -1,0 +1,7 @@
+type Query {
+  _reviews: Boolean
+}
+
+type Mutation {
+  _reviews: Boolean
+}

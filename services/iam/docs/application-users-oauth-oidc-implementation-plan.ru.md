@@ -108,14 +108,20 @@ IAM должен стать OIDC-провайдером для клиентск�
 
 Пользователи принадлежат application, а не отдельному OAuth client. Redirect URI, client type, client secret и logout URI принадлежат OAuth client.
 
-Все OAuth clients в v1, включая confidential server-side storefront, работают только от имени `application_user` через Authorization Code flow. IAM создает каждый client с неизменяемой protocol policy:
+Все OAuth clients в v1, включая confidential server-side storefront, работают только от имени `application_user` через Authorization Code flow. Запрет M2M применяется двумя независимыми слоями. OAuth Provider instance для каждой application глобально ограничивает token endpoint:
+
+```text
+oauthProvider.grantTypes = ["authorization_code", "refresh_token"]
+```
+
+Дополнительно IAM создает каждый client с неизменяемой protocol policy:
 
 ```text
 grant_types = ["authorization_code", "refresh_token"]
 response_types = ["code"]
 ```
 
-`client_credentials` не входит в v1 и не может быть выбран через Admin GraphQL, client metadata или прямой HTTP endpoint. Confidential client означает только возможность безопасно аутентифицироваться на token endpoint при code exchange/refresh; это не M2M client. Если позже понадобится service principal, для него требуется отдельный actor model, scopes, claims, audience и threat model.
+`client_credentials` не входит в v1 и не может быть выбран через Admin GraphQL, client metadata или прямой HTTP endpoint. Глобальная provider policy не поддерживает и не рекламирует этот grant в discovery, а client-level policy не позволяет включить его для отдельного клиента даже при ошибке в management flow. Confidential client означает только возможность безопасно аутентифицироваться на token endpoint при code exchange/refresh; это не M2M client. Если позже понадобится service principal, для него требуется отдельный actor model, scopes, claims, audience, threat model и отдельная versioned protocol-policy migration.
 
 ### 5.2. Актуальный Better Auth OAuth Provider
 
@@ -273,7 +279,7 @@ Allowed origins берутся из application configuration и сопоста�
 12. Клиент проверяет, что access token имеет JWT-формат и `aud={application.resource}`, после чего отправляет его в Storefront API как bearer token.
 13. Refresh token используется только через `/oauth2/token` с тем же `resource`; новый access token сохраняет исходный application resource/audience, а запрос другого resource отклоняется. Rotation/revocation контролирует plugin.
 
-PKCE нельзя отключать. Для browser/mobile client используется public client с `token_endpoint_auth_method=none`. Для server-side client используется confidential client, PKCE и client authentication. Оба типа имеют только `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`; запрос `grant_type=client_credentials` отклоняется OAuth Provider как не разрешенный этому client.
+PKCE нельзя отключать. Для browser/mobile client используется public client с `token_endpoint_auth_method=none`. Для server-side client используется confidential client, PKCE и client authentication. Оба типа имеют только `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`; запрос `grant_type=client_credentials` отклоняется глобальной policy OAuth Provider до выдачи token и дополнительно не разрешен policy конкретного client.
 
 ### 7.2. Logout
 
@@ -481,7 +487,7 @@ Provider configuration включает:
 
 При создании/изменении клиента IAM записывает `[application.resource]` в plugin field `resources`, если оно поддерживается подтвержденной схемой версии `1.6.23`, и всегда дублирует enforcement в server-side client policy. OAuth client не может иметь ноль, два или иной resource. GraphQL input OAuth client не содержит `resource`/`resources`: значение наследуется из auth configuration application и меняется только application-level mutation.
 
-Поля plugin `grantTypes` и `responseTypes` записываются IAM при создании и не принимаются из GraphQL input при create/update. Repository запрещает их изменение в обход отдельной будущей protocol-policy migration. Public client-management endpoint закрыты, поэтому application user не может зарегистрировать client с `client_credentials` самостоятельно.
+Поля plugin `grantTypes` и `responseTypes` записываются IAM при создании и не принимаются из GraphQL input при create/update. Repository запрещает их изменение в обход отдельной будущей protocol-policy migration. Это client-level ограничение дополняет глобальное `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`; ни один client record не может расширить grant set OAuth Provider instance. Public client-management endpoint закрыты, поэтому application user не может зарегистрировать client с `client_credentials` самостоятельно.
 
 ## 11. Better Auth instance для application
 
@@ -492,6 +498,7 @@ emailAndPassword
 socialProviders.google/facebook
 plugins: jwt, emailOTP, oauthProvider
 oauthProvider.validAudiences: [application.resource]
+oauthProvider.grantTypes: ["authorization_code", "refresh_token"]
 oauthProvider.disableJwtPlugin: false
 account.encryptOAuthTokens
 account.accountLinking
@@ -881,8 +888,8 @@ Security/operational события без секретов:
 6. Проверить возможность application scoping всех plugin models через текущий adapter.
 7. Подтвердить application-scoped `resource`, `validAudiences: [application.resource]`, наследование единственного resource OAuth clients и JWT access token для authorize/code exchange/refresh.
 8. Проверить custom claims/store binding.
-9. Зафиксировать public/confidential client behavior, обязательные `grant_types=["authorization_code", "refresh_token"]`, `response_types=["code"]` и secret one-time return.
-10. Подтвердить, что token endpoint отклоняет `client_credentials` для каждого созданного v1 client, даже если plugin рекламирует общую поддержку grant в discovery.
+9. Зафиксировать глобальный `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`, public/confidential client behavior, обязательные client-level `grant_types=["authorization_code", "refresh_token"]`, `response_types=["code"]` и secret one-time return.
+10. Подтвердить, что discovery не рекламирует `client_credentials`, а token endpoint отклоняет этот grant для каждого public/confidential v1 client.
 
 Результат:
 
@@ -891,7 +898,7 @@ Security/operational события без секретов:
 - versioned route manifest с точными public/internal endpoint;
 - негативное подтверждение, что application user не может читать, создавать, изменять, удалять client или ротировать его secret;
 - contract-подтверждение, что обязательный resource конкретной application выдает JWT с ожидаемым `aud`, а отсутствующий/resource другой application отклоняется;
-- contract-подтверждение, что public и confidential v1 clients не получают token через `client_credentials`;
+- contract-подтверждение, что `client_credentials` отсутствует в discovery и public/confidential v1 clients не получают token через этот grant;
 
 Критерий выхода: нет неизвестных, требующих самописного OAuth server или небезопасного хранения OTP.
 
@@ -916,9 +923,10 @@ Security/operational события без секретов:
 2. Собирать plugins согласно application settings.
 3. Добавить account token encryption/linking policy.
 4. Добавить OAuth scopes, `validAudiences: [application.resource]`, автоматическое наследование единственного resource clients и custom claims policy; JWT plugin нельзя отключать.
-5. Принудительно задавать client `grantTypes=["authorization_code", "refresh_token"]` и `responseTypes=["code"]`, запретив mutation этих полей.
-6. Добавить revision-aware cache invalidation.
-7. Проверять active organization/application перед созданием instance.
+5. Глобально задать `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`, чтобы token endpoint не поддерживал и discovery не рекламировал `client_credentials`.
+6. Принудительно задавать client `grantTypes=["authorization_code", "refresh_token"]` и `responseTypes=["code"]`, запретив mutation этих полей.
+7. Добавить revision-aware cache invalidation.
+8. Проверять active organization/application перед созданием instance.
 
 Критерий выхода: два application одновременно используют разные users, clients, keys, cookies, providers и единственные собственные resources без пересечения.
 
@@ -934,7 +942,7 @@ Security/operational события без секретов:
 6. Реализовать exact CORS/trusted origins.
 7. Добавить structured errors/request IDs без утечки данных.
 
-Критерий выхода: стандартный OIDC client проходит discovery и Authorization Code + PKCE flow, application user не может вызвать ни один client-management endpoint, а `client_credentials` не выдает token ни public, ни confidential v1 client.
+Критерий выхода: стандартный OIDC client проходит discovery и Authorization Code + PKCE flow, application user не может вызвать ни один client-management endpoint, `client_credentials` отсутствует в discovery и не выдает token ни public, ни confidential v1 client.
 
 ### Этап 4. Admin GraphQL
 
@@ -1050,6 +1058,8 @@ Hosted UI следует разместить в выбранном для IAM w
 - JWKS валидирует выданный ID/access token;
 - public client + S256 PKCE проходит flow;
 - confidential client проходит flow с client authentication и PKCE;
+- discovery `grant_types_supported` не содержит `client_credentials`;
+- OAuth Provider instance настроен с глобальным `grantTypes=["authorization_code", "refresh_token"]`;
 - public и confidential clients созданы только с `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`;
 - `grant_type=client_credentials` не выдает token ни одному v1 client;
 - Admin GraphQL не принимает и не изменяет `grantTypes`/`responseTypes`;
@@ -1149,6 +1159,7 @@ Hosted UI следует разместить в выбранном для IAM w
 
 - [ ] Используется актуальный `@better-auth/oauth-provider`, а не deprecated provider.
 - [ ] Authorization Code + S256 PKCE обязателен.
+- [ ] OAuth Provider глобально настроен с `grantTypes=["authorization_code", "refresh_token"]`; discovery не рекламирует `client_credentials`.
 - [ ] Все v1 clients имеют только `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`.
 - [ ] `client_credentials` отсутствует в Admin GraphQL input и не выдает token ни public, ни confidential client.
 - [ ] Authorize flow требует единственный канонический `application.resource` и выдает JWT с точным `aud`.
@@ -1182,7 +1193,7 @@ Hosted UI следует разместить в выбранном для IAM w
 
 1. Каждая application имеет отдельный issuer, users, sessions, providers, OAuth clients, tokens, consents и keys.
 2. Organization admin управляет настройками через Admin API с Casbin и audit trail.
-3. Каждая application имеет ровно один заданный ее администратором Storefront resource; public и confidential clients наследуют его, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; `client_credentials` для них запрещен.
+3. Каждая application имеет ровно один заданный ее администратором Storefront resource; public и confidential clients наследуют его, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; OAuth Provider глобально поддерживает только `authorization_code`/`refresh_token`, а `client_credentials` отсутствует в discovery и запрещен также на уровне каждого client.
 4. Password, email OTP, Google и Facebook можно независимо включать на application.
 5. Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`.
 6. Account linking не пересекает applications и не доверяет unverified email.
@@ -1204,7 +1215,7 @@ Hosted UI следует разместить в выбранном для IAM w
 | Open redirect/custom scheme abuse | Exact allowlist и отдельная mobile URI policy |
 | Устаревшая factory config после admin update | Revisioned cache key + invalidation event |
 | Storefront получает opaque token без audience | Обязательный единственный application-scoped `resource`, `validAudiences: [application.resource]`, автоматическое наследование resource clients, включенный JWT plugin и JWT-only Storefront validator |
-| OAuth Provider поддерживает `client_credentials` по умолчанию | Создавать v1 clients только с Authorization Code/Refresh grants, не принимать grant policy из GraphQL и проверять отказ token endpoint contract-сценарием |
+| OAuth Provider поддерживает `client_credentials` по умолчанию | Глобально задать `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`, дублировать ограничение в каждом v1 client, не принимать grant policy из GraphQL и проверять discovery/отказ token endpoint contract-сценариями |
 | Мгновенная ревокация JWT | Короткий access TTL + live validation/introspection для чувствительных операций |
 | Customers временно недоступен | Outbox/retry/idempotent ensure, не блокировать token endpoint |
 | Смешение Application и integration apps service | Зафиксировать IAM application как auth realm и отдельный OAuth client resource |

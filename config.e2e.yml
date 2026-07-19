@@ -48,6 +48,7 @@ services:
   catalog:
     ports:
       admin_graphql: 11011
+      storefront_graphql: 11016
       metrics: 13038
     db:
       <<: *db_default
@@ -59,6 +60,7 @@ services:
   listing:
     ports:
       admin_graphql: 11012
+      storefront_graphql: 11017
       metrics: 13039
     db:
       <<: *db_default
@@ -75,6 +77,7 @@ services:
   reviews:
     ports:
       admin_graphql: 11014
+      storefront_graphql: 11018
       metrics: 13041
     db:
       <<: *db_default
@@ -83,6 +86,7 @@ services:
   media:
     ports:
       admin_graphql: 11007
+      storefront_graphql: 11020
       metrics: 13035
     db:
       <<: *db_default
@@ -101,6 +105,7 @@ services:
   project:
     ports:
       admin_graphql: 11009
+      storefront_graphql: 11019
       metrics: 13036
     db:
       <<: *db_default

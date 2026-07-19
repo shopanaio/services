@@ -5,12 +5,19 @@
     "admin": [
       "src/api/graphql-admin/**/*.graphql",
       "../../packages/shared-references/graphql/**/*.graphql"
+    ],
+    "storefront": [
+      "src/api/graphql-storefront/schema/**/*.graphql"
     ]
   },
   "assets": [
     {
       "include": "src/api/graphql-admin/**/*.graphql",
       "outDir": "dist"
+    },
+    {
+      "include": "src/api/graphql-storefront/schema/**/*.graphql",
+      "outDir": "dist/schema/storefront"
     },
     {
       "include": "../../packages/shared-references/graphql/**/*.graphql",
