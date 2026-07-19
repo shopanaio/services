@@ -1,7 +1,7 @@
 import { TransactionManager } from "@shopana/shared-kernel";
 import { UserRepository, type User } from "./user/UserRepository.js";
 import { OrganizationRepository } from "./organization/OrganizationRepository.js";
-import { ApplicationMemberRepositoryFactory } from "./application-member/ApplicationMemberRepository.js";
+import { ApplicationUserRepositoryFactory } from "./application-user/ApplicationUserRepository.js";
 import { AuthSessionRepositoryFactory } from "./auth-session/AuthSessionRepository.js";
 
 import { CasbinService } from "../casbin/CasbinService.js";
@@ -23,7 +23,7 @@ export interface RepositoryConfig {
  */
 export class Repository {
   public readonly user: UserRepository;
-  public readonly applicationMember: ApplicationMemberRepositoryFactory;
+  public readonly applicationUser: ApplicationUserRepositoryFactory;
   public readonly authSession: AuthSessionRepositoryFactory;
   public readonly organization: OrganizationRepository;
   public readonly casbin: CasbinService;
@@ -31,14 +31,14 @@ export class Repository {
 
   private constructor(
     user: UserRepository,
-    applicationMember: ApplicationMemberRepositoryFactory,
+    applicationUser: ApplicationUserRepositoryFactory,
     authSession: AuthSessionRepositoryFactory,
     organization: OrganizationRepository,
     casbin: CasbinService,
     txManager: TransactionManager<Database>
   ) {
     this.user = user;
-    this.applicationMember = applicationMember;
+    this.applicationUser = applicationUser;
     this.authSession = authSession;
     this.organization = organization;
     this.casbin = casbin;
@@ -60,7 +60,7 @@ export class Repository {
 
     // Create repositories
     const userRepo = new UserRepository(db, auth);
-    const applicationMemberRepo = new ApplicationMemberRepositoryFactory(
+    const applicationUserRepo = new ApplicationUserRepositoryFactory(
       db,
       txManager
     );
@@ -69,7 +69,7 @@ export class Repository {
 
     return new Repository(
       userRepo,
-      applicationMemberRepo,
+      applicationUserRepo,
       authSessionRepo,
       organizationRepo,
       casbinService,

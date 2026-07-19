@@ -5,6 +5,7 @@ import {
 } from "better-auth";
 import { bearer, jwt } from "better-auth/plugins";
 import { getDatabase } from "../infrastructure/db/database.js";
+import { assertApplicationId, type AuthAdapterScope } from "./AuthScope.js";
 import { createScopedDrizzleAdapter } from "./scopedDrizzleAdapter.js";
 
 interface IamAuthOptions extends BetterAuthOptions {
@@ -38,7 +39,7 @@ export function createAuth(): BetterAuthInstance<IamAuthOptions> {
   return betterAuth<IamAuthOptions>({
     ...createCommonOptions(),
     database: createScopedDrizzleAdapter(db, { kind: "platform" }),
-    session: createSessionOptions(),
+    session: createSessionOptions({ kind: "platform" }),
     plugins: createJwtPlugins({ kind: "platform" }),
   });
 }
@@ -46,8 +47,8 @@ export function createAuth(): BetterAuthInstance<IamAuthOptions> {
 /**
  * Create an application-scoped Better Auth instance.
  *
- * User profiles are global. The adapter guarantees that credentials, OAuth
- * accounts, sessions, and verification flows are restricted to this application.
+ * Users, credentials, OAuth accounts, sessions, verification flows, and JWT
+ * keys are stored in application tables and isolated by application ID.
  */
 export function createApplicationAuth(
   config: ApplicationAuthConfiguration
@@ -55,9 +56,7 @@ export function createApplicationAuth(
   const db = getDatabase();
   const { applicationId } = config;
 
-  if (!applicationId) {
-    throw new Error("Application ID is required for application auth");
-  }
+  assertApplicationId(applicationId);
 
   return betterAuth<IamAuthOptions>({
     ...createCommonOptions(),
@@ -66,8 +65,7 @@ export function createApplicationAuth(
       applicationId,
     }),
     baseURL: config.baseURL,
-    basePath:
-      config.basePath ?? `/auth/applications/${applicationId}`,
+    basePath: config.basePath ?? `/auth/applications/${applicationId}`,
     trustedOrigins: config.trustedOrigins,
     advanced: {
       cookiePrefix:
@@ -80,7 +78,10 @@ export function createApplicationAuth(
       maxPasswordLength: 128,
     },
     socialProviders: config.socialProviders,
-    session: createSessionOptions(config.session),
+    session: createSessionOptions(
+      { kind: "application", applicationId },
+      config.session
+    ),
     plugins: createJwtPlugins({
       kind: "application",
       applicationId,
@@ -93,8 +94,6 @@ export function createApplicationAuth(
 function createCommonOptions(): Pick<
   BetterAuthOptions,
   | "user"
-  | "account"
-  | "verification"
   | "emailAndPassword"
   | "rateLimit"
   | "experimental"
@@ -111,12 +110,6 @@ function createCommonOptions(): Pick<
           required: false,
         },
       },
-    },
-    account: {
-      additionalFields: createAuthScopeFields(),
-    },
-    verification: {
-      additionalFields: createAuthScopeFields(),
     },
     emailAndPassword: {
       enabled: true,
@@ -136,24 +129,26 @@ function createCommonOptions(): Pick<
 }
 
 function createSessionOptions(
+  scope: AuthAdapterScope,
   overrides?: BetterAuthOptions["session"]
 ): NonNullable<BetterAuthOptions["session"]> {
+  const additionalFields = {
+    ...overrides?.additionalFields,
+    ...(scope.kind === "application"
+      ? {
+          applicationId: {
+            type: "string" as const,
+            required: false,
+            input: false,
+          },
+        }
+      : {}),
+  };
+
   return {
     ...DEFAULT_SESSION,
     ...overrides,
-    additionalFields: {
-      ...overrides?.additionalFields,
-      authScope: {
-        type: "string",
-        required: false,
-        input: false,
-      },
-      applicationId: {
-        type: "string",
-        required: false,
-        input: false,
-      },
-    },
+    ...(Object.keys(additionalFields).length ? { additionalFields } : {}),
   };
 }
 
@@ -195,10 +190,7 @@ function createJwtPlugins(
             return payload;
           }
 
-          if (
-            session.authScope !== "application" ||
-            session.applicationId !== scope.applicationId
-          ) {
+          if (session.applicationId !== scope.applicationId) {
             throw new Error("Session application scope mismatch");
           }
 
@@ -217,21 +209,6 @@ function createJwtPlugins(
       },
     }),
   ];
-}
-
-function createAuthScopeFields() {
-  return {
-    authScope: {
-      type: "string" as const,
-      required: false,
-      input: false,
-    },
-    applicationId: {
-      type: "string" as const,
-      required: false,
-      input: false,
-    },
-  };
 }
 
 export type Auth = ReturnType<typeof createAuth>;

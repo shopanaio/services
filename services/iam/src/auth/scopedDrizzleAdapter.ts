@@ -32,6 +32,12 @@ import {
 import type { Database } from "../infrastructure/db/database.js";
 import {
   account,
+  application,
+  applicationAccount,
+  applicationJwks,
+  applicationSession,
+  applicationUser,
+  applicationVerification,
   jwks,
   session,
   user,
@@ -43,9 +49,9 @@ import {
 } from "./AuthScope.js";
 
 type DrizzleConnection = any;
-type AuthModelName = keyof typeof authSchema;
+type AuthModelName = keyof typeof platformAuthSchema;
 
-const authSchema = {
+const platformAuthSchema = {
   user,
   session,
   account,
@@ -53,10 +59,20 @@ const authSchema = {
   jwks,
 };
 
-const SCOPED_MODELS = new Set<AuthModelName>([
+const applicationAuthSchema: Record<AuthModelName, unknown> = {
+  user: applicationUser,
+  session: applicationSession,
+  account: applicationAccount,
+  verification: applicationVerification,
+  jwks: applicationJwks,
+};
+
+const APPLICATION_SCOPED_MODELS = new Set<AuthModelName>([
+  "user",
   "account",
   "session",
   "verification",
+  "jwks",
 ]);
 
 /**
@@ -132,9 +148,14 @@ function createScopedCustomAdapter(
 ): (connection: DrizzleConnection) => AdapterFactoryCustomizeAdapterCreator {
   return (connection) =>
     ({ getDefaultModelName, getFieldName }): CustomAdapter => {
+      const schema =
+        scope.kind === "application"
+          ? applicationAuthSchema
+          : platformAuthSchema;
+
       const getSchemaModel = (model: string): Record<string, any> => {
         const defaultModel = getDefaultModelName(model) as AuthModelName;
-        const schemaModel = authSchema[defaultModel];
+        const schemaModel = schema[defaultModel];
         if (!schemaModel) {
           throw new BetterAuthError(
             `The model "${model}" was not found in the IAM auth schema`
@@ -144,19 +165,14 @@ function createScopedCustomAdapter(
       };
 
       const isScopedModel = (model: string): boolean =>
-        SCOPED_MODELS.has(getDefaultModelName(model) as AuthModelName);
+        scope.kind === "application" &&
+        APPLICATION_SCOPED_MODELS.has(
+          getDefaultModelName(model) as AuthModelName
+        );
 
       const isApplicationUserModel = (model: string): boolean =>
         scope.kind === "application" &&
         getDefaultModelName(model) === "user";
-
-      const getScopeFields = (model: string) => ({
-        authScopeField: getFieldName({ model, field: "authScope" }),
-        applicationIdField: getFieldName({ model, field: "applicationId" }),
-        authScopeValue: scope.kind,
-        applicationIdValue:
-          scope.kind === "application" ? scope.applicationId : null,
-      });
 
       const scopeData = (
         model: string,
@@ -165,38 +181,11 @@ function createScopedCustomAdapter(
         const record = data as Record<string, any>;
         if (!isScopedModel(model)) return record;
 
-        const fields = getScopeFields(model);
         return {
           ...record,
-          [fields.authScopeField]: fields.authScopeValue,
-          [fields.applicationIdField]: fields.applicationIdValue,
+          applicationId:
+            scope.kind === "application" ? scope.applicationId : null,
         };
-      };
-
-      const scopeWhere = (
-        model: string,
-        where: CleanedWhere[] | undefined
-      ): CleanedWhere[] | undefined => {
-        if (!isScopedModel(model)) return where;
-
-        const fields = getScopeFields(model);
-        return [
-          ...(where ?? []),
-          {
-            field: fields.authScopeField,
-            value: fields.authScopeValue,
-            operator: "eq",
-            connector: "AND",
-            mode: "sensitive",
-          },
-          {
-            field: fields.applicationIdField,
-            value: fields.applicationIdValue,
-            operator: "eq",
-            connector: "AND",
-            mode: "sensitive",
-          },
-        ];
       };
 
       const getColumn = (
@@ -214,75 +203,75 @@ function createScopedCustomAdapter(
         return column;
       };
 
-      /**
-       * A global user belongs to an application auth realm only after that
-       * realm has linked at least one account to the user. This makes Better
-       * Auth's duplicate-email lookup application-local while the user profile
-       * remains global.
-       */
-      const getApplicationUserCondition = (model: string) => {
-        if (!isApplicationUserModel(model) || scope.kind !== "application") {
-          return undefined;
-        }
+      const getApplicationConditions = (
+        model: string,
+        schemaModel: Record<string, any>
+      ) => {
+        if (!isScopedModel(model) || scope.kind !== "application") return [];
 
-        const scopedUserIds = connection
-          .select({ userId: account.userId })
-          .from(account)
+        const activeApplicationIds = connection
+          .select({ id: application.id })
+          .from(application)
           .where(
             and(
-              eq(account.authScope, "application"),
-              eq(account.applicationId, scope.applicationId)
+              eq(application.id, scope.applicationId),
+              isNull(application.deletedAt)
             )
           );
+        const conditions = [
+          eq(schemaModel.applicationId, scope.applicationId),
+          inArray(schemaModel.applicationId, activeApplicationIds),
+        ];
 
-        return inArray(user.id, scopedUserIds);
+        if (isApplicationUserModel(model)) {
+          conditions.push(eq(schemaModel.status, "active"));
+        }
+
+        return conditions;
       };
 
-      /**
-       * Application sign-up may encounter a global user created by another
-       * auth realm. Reuse that identity without mutating its global profile;
-       * Better Auth will create the application-scoped account afterwards.
-       */
-      const createOrReuseApplicationUser = async (
+      const assertApplicationWriteAllowed = async (
         model: string,
-        schemaModel: Record<string, any>,
         values: Record<string, any>
-      ) => {
-        const emailField = getFieldName({ model, field: "email" });
-        const emailColumn = getColumn(schemaModel, model, "email");
-        const emailValue = values[emailField];
+      ): Promise<void> => {
+        if (!isScopedModel(model) || scope.kind !== "application") return;
 
-        if (typeof emailValue !== "string" || !emailValue.trim()) {
-          throw new BetterAuthError(
-            "An email is required to create an application user"
-          );
-        }
-
-        const normalizedEmail = emailValue.trim().toLowerCase();
-        const rows = await connection
-          .insert(schemaModel)
-          .values({
-            ...values,
-            [emailField]: normalizedEmail,
-          })
-          .onConflictDoNothing({ target: emailColumn })
-          .returning();
-
-        if (rows[0]) return rows[0];
-
-        const existingRows = await connection
-          .select()
-          .from(schemaModel)
-          .where(eq(emailColumn, normalizedEmail))
+        const [activeApplication] = await connection
+          .select({ id: application.id })
+          .from(application)
+          .where(
+            and(
+              eq(application.id, scope.applicationId),
+              isNull(application.deletedAt)
+            )
+          )
           .limit(1);
-        const existing = existingRows[0];
-        if (!existing) {
-          throw new BetterAuthError(
-            "Failed to create or reuse the global application user"
-          );
+        if (!activeApplication) {
+          throw new BetterAuthError("Application auth realm is not active");
         }
 
-        return existing;
+        const defaultModel = getDefaultModelName(model) as AuthModelName;
+        if (
+          (defaultModel === "account" || defaultModel === "session") &&
+          typeof values.userId === "string"
+        ) {
+          const [activeUser] = await connection
+            .select({ id: applicationUser.id })
+            .from(applicationUser)
+            .where(
+              and(
+                eq(applicationUser.applicationId, scope.applicationId),
+                eq(applicationUser.id, values.userId),
+                eq(applicationUser.status, "active")
+              )
+            )
+            .limit(1);
+          if (!activeUser) {
+            throw new BetterAuthError(
+              "Application account or session requires an active user"
+            );
+          }
+        }
       };
 
       const convertCondition = (
@@ -364,11 +353,11 @@ function createScopedCustomAdapter(
         where: CleanedWhere[] | undefined
       ) => {
         const schemaModel = getSchemaModel(model);
-        const scopedWhere = scopeWhere(model, where) ?? [];
-        const applicationUserCondition = getApplicationUserCondition(model);
-        if (scopedWhere.length === 0) {
-          return applicationUserCondition ? [applicationUserCondition] : [];
-        }
+        const scopedWhere = where ?? [];
+        const applicationConditions = getApplicationConditions(
+          model,
+          schemaModel
+        );
 
         const andConditions = scopedWhere
           .filter((item) => item.connector !== "OR")
@@ -384,11 +373,14 @@ function createScopedCustomAdapter(
             ? and(andClause, orClause)
             : andClause ?? orClause;
 
-        if (whereClause && applicationUserCondition) {
-          return [and(whereClause, applicationUserCondition)];
+        if (whereClause && applicationConditions.length) {
+          return [and(whereClause, ...applicationConditions)];
         }
         if (whereClause) return [whereClause];
-        return applicationUserCondition ? [applicationUserCondition] : [];
+        if (applicationConditions.length) {
+          return [and(...applicationConditions)];
+        }
+        return [];
       };
 
       const createSelection = (
@@ -416,9 +408,7 @@ function createScopedCustomAdapter(
         async create({ model, data }) {
           const schemaModel = getSchemaModel(model);
           const values = scopeData(model, data);
-          if (isApplicationUserModel(model)) {
-            return createOrReuseApplicationUser(model, schemaModel, values);
-          }
+          await assertApplicationWriteAllowed(model, values);
           const rows = await connection
             .insert(schemaModel)
             .values(values)

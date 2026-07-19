@@ -57,6 +57,20 @@
       "when": 1784407235669,
       "tag": "0007_chilly_risque",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784436877753,
+      "tag": "0008_silent_scourge",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784436890164,
+      "tag": "0009_black_zarda",
+      "breakpoints": true
     }
   ]
 }
