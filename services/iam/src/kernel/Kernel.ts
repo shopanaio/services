@@ -18,6 +18,7 @@ import {
 import { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
 import { ApplicationAuthProvisioningService } from "../services/ApplicationAuthProvisioningService.js";
 import { ApplicationAuthSecretRotationService } from "../services/ApplicationAuthSecretRotationService.js";
+import type { ApplicationAuthEmailDeliveryPort } from "../services/ApplicationAuthEmailDeliveryPort.js";
 
 /**
  * Extended kernel for IAM microservice (singleton)
@@ -73,7 +74,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
     dbClient: DatabaseClient,
-    applicationAuthRootKeys?: ApplicationAuthRootKeyProvider
+    applicationAuthRootKeys?: ApplicationAuthRootKeyProvider,
+    applicationAuthEmailDelivery?: ApplicationAuthEmailDeliveryPort
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
@@ -95,10 +97,6 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     const applicationAuthSecrets = new ApplicationAuthSecretService(
       applicationAuthKeyring
     );
-    const applicationAuth = new ApplicationAuthFactory(
-      applicationAuthKeyring,
-      applicationAuthSecrets
-    );
     const repository = await Repository.create({
       db,
       auth,
@@ -106,6 +104,12 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationAuthKeyring,
     });
     await repository.applicationAuthConfiguration.assertKeyringReady();
+    const applicationAuth = new ApplicationAuthFactory(
+      applicationAuthKeyring,
+      applicationAuthSecrets,
+      repository.applicationAuthConfiguration,
+      { emailDelivery: applicationAuthEmailDelivery }
+    );
     const applicationAuthProvisioning = new ApplicationAuthProvisioningService(
       repository.applicationAuthConfiguration
     );

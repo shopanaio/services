@@ -36,6 +36,10 @@ import {
   applicationAccount,
   applicationAuthConfiguration,
   applicationJwks,
+  applicationOauthAccessToken,
+  applicationOauthClient,
+  applicationOauthConsent,
+  applicationOauthRefreshToken,
   applicationSession,
   applicationUser,
   applicationVerification,
@@ -50,9 +54,16 @@ import {
   type AuthAdapterScope,
 } from "./AuthScope.js";
 import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
+import { createApplicationResource } from "./applicationAuthConfiguration.js";
+import {
+  APPLICATION_OAUTH_GRANT_TYPES,
+  APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION,
+  APPLICATION_OAUTH_RESPONSE_TYPES,
+  createApplicationOAuthClientPolicyMetadata,
+  hasExactStringValues,
+} from "./applicationOAuthPolicy.js";
 
 type DrizzleConnection = any;
-type AuthModelName = keyof typeof platformAuthSchema;
 
 const platformAuthSchema = {
   user,
@@ -62,13 +73,21 @@ const platformAuthSchema = {
   jwks,
 };
 
-const applicationAuthSchema: Record<AuthModelName, unknown> = {
+const applicationAuthSchema = {
   user: applicationUser,
   session: applicationSession,
   account: applicationAccount,
   verification: applicationVerification,
   jwks: applicationJwks,
+  oauthClient: applicationOauthClient,
+  oauthRefreshToken: applicationOauthRefreshToken,
+  oauthAccessToken: applicationOauthAccessToken,
+  oauthConsent: applicationOauthConsent,
 };
+
+type AuthModelName =
+  | keyof typeof platformAuthSchema
+  | keyof typeof applicationAuthSchema;
 
 const APPLICATION_SCOPED_MODELS = new Set<AuthModelName>([
   "user",
@@ -76,6 +95,21 @@ const APPLICATION_SCOPED_MODELS = new Set<AuthModelName>([
   "session",
   "verification",
   "jwks",
+  "oauthClient",
+  "oauthRefreshToken",
+  "oauthAccessToken",
+  "oauthConsent",
+]);
+
+const IMMUTABLE_OAUTH_CLIENT_FIELDS = new Set([
+  "applicationId",
+  "clientId",
+  "grantTypes",
+  "responseTypes",
+  "requirePKCE",
+  "resourceAudience",
+  "protocolPolicyVersion",
+  "metadata",
 ]);
 
 /**
@@ -158,7 +192,7 @@ function createScopedCustomAdapter(
 ): (connection: DrizzleConnection) => AdapterFactoryCustomizeAdapterCreator {
   return (connection) =>
     ({ getDefaultModelName, getFieldName }): CustomAdapter => {
-      const schema =
+      const schema: Partial<Record<AuthModelName, unknown>> =
         scope.kind === "application"
           ? applicationAuthSchema
           : platformAuthSchema;
@@ -188,17 +222,108 @@ function createScopedCustomAdapter(
         scope.kind === "application" &&
         getDefaultModelName(model) === "jwks";
 
+      const isApplicationOauthClientModel = (model: string): boolean =>
+        scope.kind === "application" &&
+        getDefaultModelName(model) === "oauthClient";
+
       const scopeData = (
         model: string,
-        data: unknown
+        data: unknown,
+        operation: "create" | "update"
       ): Record<string, any> => {
         const record = data as Record<string, any>;
         if (!isScopedModel(model)) return record;
+        if (scope.kind !== "application") return record;
+
+        if (
+          record.applicationId !== undefined &&
+          record.applicationId !== scope.applicationId
+        ) {
+          throw new BetterAuthError(
+            "Cross-application auth model input is forbidden"
+          );
+        }
+
+        if (operation === "update") {
+          if (
+            isApplicationOauthClientModel(model) &&
+            Object.keys(record).some((field) =>
+              IMMUTABLE_OAUTH_CLIENT_FIELDS.has(field)
+            )
+          ) {
+            throw new BetterAuthError(
+              "OAuth client protocol policy fields are immutable"
+            );
+          }
+          const { applicationId: _applicationId, ...update } = record;
+          return update;
+        }
+
+        if (!isApplicationOauthClientModel(model)) {
+          return {
+            ...record,
+            applicationId: scope.applicationId,
+          };
+        }
+
+        const resource = createApplicationResource(scope.applicationId);
+        if (
+          record.resourceAudience !== undefined &&
+          record.resourceAudience !== resource
+        ) {
+          throw new BetterAuthError(
+            "OAuth client resource is owned by the application realm"
+          );
+        }
+        if (
+          record.grantTypes !== undefined &&
+          !hasExactStringValues(record.grantTypes, APPLICATION_OAUTH_GRANT_TYPES)
+        ) {
+          throw new BetterAuthError(
+            "OAuth client grant types violate protocol policy v1"
+          );
+        }
+        if (
+          record.responseTypes !== undefined &&
+          !hasExactStringValues(
+            record.responseTypes,
+            APPLICATION_OAUTH_RESPONSE_TYPES
+          )
+        ) {
+          throw new BetterAuthError(
+            "OAuth client response types violate protocol policy v1"
+          );
+        }
+        if (record.requirePKCE !== undefined && record.requirePKCE !== true) {
+          throw new BetterAuthError("OAuth clients must require PKCE");
+        }
+        if (
+          record.protocolPolicyVersion !== undefined &&
+          record.protocolPolicyVersion !==
+            APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION
+        ) {
+          throw new BetterAuthError(
+            "OAuth client protocol policy version is invalid"
+          );
+        }
+        if (typeof record.clientId !== "string" || !record.clientId) {
+          throw new BetterAuthError("OAuth client id is required");
+        }
 
         return {
           ...record,
-          applicationId:
-            scope.kind === "application" ? scope.applicationId : null,
+          applicationId: scope.applicationId,
+          resourceAudience: resource,
+          grantTypes: [...APPLICATION_OAUTH_GRANT_TYPES],
+          responseTypes: [...APPLICATION_OAUTH_RESPONSE_TYPES],
+          requirePKCE: true,
+          protocolPolicyVersion: APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION,
+          metadata: createApplicationOAuthClientPolicyMetadata({
+            applicationId: scope.applicationId,
+            clientId: record.clientId,
+            resource,
+            metadata: record.metadata,
+          }),
         };
       };
 
@@ -323,18 +448,28 @@ function createScopedCustomAdapter(
         if (isApplicationUserModel(model)) {
           conditions.push(eq(schemaModel.status, "active"));
         }
+        if (isApplicationOauthClientModel(model)) {
+          conditions.push(
+            eq(schemaModel.disabled, false),
+            isNull(schemaModel.deletedAt)
+          );
+        }
 
         return conditions;
       };
 
       const assertApplicationWriteAllowed = async (
         model: string,
-        values: Record<string, any>
+        values: Record<string, any>,
+        operation: "create" | "update"
       ): Promise<void> => {
         if (!isScopedModel(model) || scope.kind !== "application") return;
 
         const [activeApplication] = await connection
-          .select({ id: application.id })
+          .select({
+            id: application.id,
+            resource: applicationAuthConfiguration.resource,
+          })
           .from(application)
           .innerJoin(
             organization,
@@ -362,25 +497,139 @@ function createScopedCustomAdapter(
 
         const defaultModel = getDefaultModelName(model) as AuthModelName;
         if (
-          (defaultModel === "account" || defaultModel === "session") &&
-          typeof values.userId === "string"
+          operation === "create" &&
+          ["oauthRefreshToken", "oauthAccessToken", "oauthConsent"].includes(
+            defaultModel
+          ) &&
+          typeof values.userId !== "string"
         ) {
+          throw new BetterAuthError(
+            "Application OAuth v1 models require an application user"
+          );
+        }
+        const assertActiveUser = async (userId: string): Promise<void> => {
           const [activeUser] = await connection
             .select({ id: applicationUser.id })
             .from(applicationUser)
             .where(
               and(
                 eq(applicationUser.applicationId, scope.applicationId),
-                eq(applicationUser.id, values.userId),
+                eq(applicationUser.id, userId),
                 eq(applicationUser.status, "active")
               )
             )
             .limit(1);
           if (!activeUser) {
             throw new BetterAuthError(
-              "Application account or session requires an active user"
+              "Application auth model requires an active scoped user"
             );
           }
+        };
+        const assertActiveClient = async (clientId: string): Promise<void> => {
+          const [activeClient] = await connection
+            .select({ id: applicationOauthClient.id })
+            .from(applicationOauthClient)
+            .where(
+              and(
+                eq(applicationOauthClient.applicationId, scope.applicationId),
+                eq(applicationOauthClient.clientId, clientId),
+                eq(applicationOauthClient.disabled, false),
+                isNull(applicationOauthClient.deletedAt)
+              )
+            )
+            .limit(1);
+          if (!activeClient) {
+            throw new BetterAuthError(
+              "Application OAuth model requires an active scoped client"
+            );
+          }
+        };
+        const assertSession = async (sessionId: string): Promise<void> => {
+          const [applicationSessionRecord] = await connection
+            .select({ id: applicationSession.id })
+            .from(applicationSession)
+            .where(
+              and(
+                eq(applicationSession.applicationId, scope.applicationId),
+                eq(applicationSession.id, sessionId)
+              )
+            )
+            .limit(1);
+          if (!applicationSessionRecord) {
+            throw new BetterAuthError(
+              "Application OAuth model requires a scoped session"
+            );
+          }
+        };
+        const assertRefreshToken = async (
+          refreshTokenId: string
+        ): Promise<void> => {
+          const [refreshToken] = await connection
+            .select({ id: applicationOauthRefreshToken.id })
+            .from(applicationOauthRefreshToken)
+            .where(
+              and(
+                eq(
+                  applicationOauthRefreshToken.applicationId,
+                  scope.applicationId
+                ),
+                eq(applicationOauthRefreshToken.id, refreshTokenId)
+              )
+            )
+            .limit(1);
+          if (!refreshToken) {
+            throw new BetterAuthError(
+              "Application OAuth access token requires a scoped refresh token"
+            );
+          }
+        };
+
+        if (
+          [
+            "account",
+            "session",
+            "oauthClient",
+            "oauthRefreshToken",
+            "oauthAccessToken",
+            "oauthConsent",
+          ].includes(defaultModel) &&
+          typeof values.userId === "string"
+        ) {
+          await assertActiveUser(values.userId);
+        }
+
+        if (defaultModel === "oauthClient") {
+          if (
+            operation === "create" &&
+            values.resourceAudience !== activeApplication.resource
+          ) {
+            throw new BetterAuthError(
+              "OAuth client resource does not match its application realm"
+            );
+          }
+          return;
+        }
+
+        if (
+          ["oauthRefreshToken", "oauthAccessToken", "oauthConsent"].includes(
+            defaultModel
+          ) &&
+          typeof values.clientId === "string"
+        ) {
+          await assertActiveClient(values.clientId);
+        }
+        if (
+          (defaultModel === "oauthRefreshToken" ||
+            defaultModel === "oauthAccessToken") &&
+          typeof values.sessionId === "string"
+        ) {
+          await assertSession(values.sessionId);
+        }
+        if (
+          defaultModel === "oauthAccessToken" &&
+          typeof values.refreshId === "string"
+        ) {
+          await assertRefreshToken(values.refreshId);
         }
       };
 
@@ -527,9 +776,9 @@ function createScopedCustomAdapter(
           const schemaModel = getSchemaModel(model);
           const values = encryptJwksPrivateKey(
             model,
-            scopeData(model, data)
+            scopeData(model, data, "create")
           );
-          await assertApplicationWriteAllowed(model, values);
+          await assertApplicationWriteAllowed(model, values, "create");
           const rows = await connection
             .insert(schemaModel)
             .values(values)
@@ -593,9 +842,10 @@ function createScopedCustomAdapter(
           )?.value as string | undefined;
           const values = encryptJwksPrivateKey(
             model,
-            scopeData(model, update),
+            scopeData(model, update, "update"),
             id
           );
+          await assertApplicationWriteAllowed(model, values, "update");
           const rows = await connection
             .update(schemaModel)
             .set(values)
@@ -612,9 +862,11 @@ function createScopedCustomAdapter(
             );
           }
           const idColumn = getColumn(schemaModel, model, "id");
+          const values = scopeData(model, update, "update");
+          await assertApplicationWriteAllowed(model, values, "update");
           const rows = await connection
             .update(schemaModel)
-            .set(scopeData(model, update))
+            .set(values)
             .where(...convertWhere(model, where))
             .returning({ id: idColumn });
           return rows.length;
@@ -663,7 +915,8 @@ function createScopedCustomAdapter(
             assignments[fieldName] = sql`${column} + ${delta}`;
           }
 
-          const scopedSet = scopeData(model, set ?? {});
+          const scopedSet = scopeData(model, set ?? {}, "update");
+          await assertApplicationWriteAllowed(model, scopedSet, "update");
           Object.assign(assignments, scopedSet);
 
           const target = connection

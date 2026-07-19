@@ -564,6 +564,19 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async findDeliveryProfile(
+    applicationId: string
+  ): Promise<ApplicationAuthDeliveryProfile | null> {
+    assertApplicationId(applicationId);
+    const [record] = await this.connection
+      .select()
+      .from(applicationAuthDeliveryProfile)
+      .where(eq(applicationAuthDeliveryProfile.applicationId, applicationId))
+      .limit(1);
+    return record ?? null;
+  }
+
+  @ReadOnly()
   async listUsedKeyVersions(applicationId?: string): Promise<number[]> {
     const configurationRows = await this.connection
       .select({ version: applicationAuthConfiguration.secretKeyVersion })

@@ -1,0 +1,122 @@
+import type { ApplicationAuthProviderName } from "../repositories/models/application-auth.js";
+import type { EffectiveApplicationAuthPolicy } from "./applicationAuthConfiguration.js";
+
+export type ApplicationAuthHttpMethod = "GET" | "POST";
+
+export interface ApplicationAuthRouteManifestEntry {
+  method: ApplicationAuthHttpMethod;
+  path: string;
+  pathKind: "exact" | "reset-token" | "social-callback";
+}
+
+export interface EffectiveApplicationAuthRouteManifest {
+  version: "better-auth-1.6.23+oauth-provider-1.6.23";
+  allowedRoutes: readonly ApplicationAuthRouteManifestEntry[];
+  allowedSocialProviders: readonly ApplicationAuthProviderName[];
+}
+
+const OAUTH_PROTOCOL_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
+  exact("GET", "/.well-known/oauth-authorization-server"),
+  exact("GET", "/.well-known/openid-configuration"),
+  exact("GET", "/oauth2/authorize"),
+  exact("POST", "/oauth2/consent"),
+  exact("POST", "/oauth2/continue"),
+  exact("POST", "/oauth2/token"),
+  exact("POST", "/oauth2/introspect"),
+  exact("POST", "/oauth2/revoke"),
+  exact("GET", "/oauth2/userinfo"),
+  exact("POST", "/oauth2/userinfo"),
+  exact("GET", "/oauth2/end-session"),
+  exact("GET", "/jwks"),
+];
+
+/** Paths which must remain denied even though the installed plugins own them. */
+export const APPLICATION_AUTH_FORBIDDEN_ROUTES: readonly ApplicationAuthRouteManifestEntry[] =
+  [
+    exact("GET", "/oauth2/public-client"),
+    exact("POST", "/oauth2/public-client-prelogin"),
+    exact("POST", "/oauth2/register"),
+    exact("POST", "/oauth2/create-client"),
+    exact("GET", "/oauth2/get-client"),
+    exact("GET", "/oauth2/get-clients"),
+    exact("POST", "/oauth2/update-client"),
+    exact("POST", "/oauth2/client/rotate-secret"),
+    exact("POST", "/oauth2/delete-client"),
+    exact("GET", "/oauth2/get-consent"),
+    exact("GET", "/oauth2/get-consents"),
+    exact("POST", "/oauth2/update-consent"),
+    exact("POST", "/oauth2/delete-consent"),
+    exact("GET", "/token"),
+  ];
+
+export function createEffectiveApplicationAuthRouteManifest(input: {
+  policy: EffectiveApplicationAuthPolicy;
+  emailVerificationEnabled: boolean;
+  enabledSocialProviders: readonly ApplicationAuthProviderName[];
+}): EffectiveApplicationAuthRouteManifest {
+  const allowedRoutes = [...OAUTH_PROTOCOL_ROUTES];
+
+  if (input.policy.passwordSignInAllowed) {
+    allowedRoutes.push(exact("POST", "/sign-in/email"));
+  }
+  if (input.policy.passwordSignUpAllowed) {
+    allowedRoutes.push(exact("POST", "/sign-up/email"));
+  }
+  if (input.policy.passwordResetAllowed) {
+    allowedRoutes.push(
+      exact("POST", "/request-password-reset"),
+      {
+        method: "GET",
+        path: "/reset-password/:token",
+        pathKind: "reset-token",
+      },
+      exact("POST", "/reset-password")
+    );
+  }
+  if (input.emailVerificationEnabled) {
+    allowedRoutes.push(
+      exact("POST", "/send-verification-email"),
+      exact("GET", "/verify-email")
+    );
+  }
+  if (input.policy.emailOtpSignInAllowed) {
+    allowedRoutes.push(
+      exact("POST", "/email-otp/send-verification-otp"),
+      exact("POST", "/sign-in/email-otp")
+    );
+  }
+  if (input.enabledSocialProviders.length > 0) {
+    allowedRoutes.push(exact("POST", "/sign-in/social"));
+    for (const provider of input.enabledSocialProviders) {
+      allowedRoutes.push(
+        {
+          method: "GET",
+          path: `/callback/${provider}`,
+          pathKind: "social-callback",
+        },
+        {
+          method: "POST",
+          path: `/callback/${provider}`,
+          pathKind: "social-callback",
+        }
+      );
+    }
+  }
+
+  return Object.freeze({
+    version: "better-auth-1.6.23+oauth-provider-1.6.23",
+    allowedRoutes: Object.freeze(
+      allowedRoutes.map((route) => Object.freeze({ ...route }))
+    ),
+    allowedSocialProviders: Object.freeze([
+      ...input.enabledSocialProviders,
+    ]),
+  });
+}
+
+function exact(
+  method: ApplicationAuthHttpMethod,
+  path: string
+): ApplicationAuthRouteManifestEntry {
+  return { method, path, pathKind: "exact" };
+}
