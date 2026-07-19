@@ -20,7 +20,7 @@
 ## 2. Цели
 
 1. Дать organization admin полный Admin GraphQL API для application realms.
-2. Использовать существующую platform Better Auth session и trusted organization context.
+2. Использовать существующую platform Better Auth session и текущий IAM contract, в котором `organizationId` приходит в Admin GraphQL input/arguments.
 3. Проверять каждую операцию через Casbin и повторную organization/application ownership validation.
 4. Не передавать platform admin credential в application Better Auth handler и не имперсонировать `application_user`.
 5. Не раскрывать provider credentials, client secret hashes, password/OTP/session/token/code values.
@@ -43,7 +43,7 @@
 Admin client
   -> IAM Admin GraphQL
   -> platform Better Auth session
-  -> trusted admin actor + organization context
+  -> trusted admin actor + client-provided organizationId
   -> Casbin permission
   -> organization/application ownership check
   -> application auth management service
@@ -52,7 +52,7 @@ Admin client
 
 Admin GraphQL и `applicationAuthHttpPlugin` остаются sibling encapsulated Fastify plugins одного IAM instance/listener. `buildAdminContextMiddleware` и GraphQL hooks действуют только внутри `adminGraphqlPlugin`; `/graphql` не публикуется через public reverse proxy.
 
-Application всегда повторно загружается по `applicationId`. `organizationId` берется из trusted admin context, а не из GraphQL input или произвольного claim. Application user session не авторизует ни одну административную операцию.
+`organizationId` приходит в Admin GraphQL input/arguments согласно существующему IAM contract; этот способ выбора organization не меняется в рамках настоящего плана. Значение `organizationId` является client-provided tenant selector, а не trusted context: trusted actor берется только из валидированной platform session. Application всегда повторно загружается по `applicationId + organizationId`, после чего выполняются Casbin permission и ownership checks. Application user session не авторизует ни одну административную операцию.
 
 GraphQL resolvers следуют существующему IAM namespace и проектному resolver pattern. Resolver отвечает за GraphQL boundary, validation и authorization orchestration; изменения выполняются domain service через application-scoped repository, а не прямой записью из resolver.
 
@@ -161,7 +161,7 @@ admin -> write -> read
 | block/unblock application user | `org` | `org.application-users` | `write` |
 | revoke all sessions и unlink account | `org` | `org.application-users` | `admin` |
 
-`organizationId` всегда передается в `AuthProvider.authorize` от trusted management boundary после загрузки organization/application. Domain равен `org`; application ID не кодируется в Casbin domain или resource. Tenant isolation обеспечивается organization-filtered enforcer и обязательным application ownership predicate.
+`organizationId` приходит из Admin GraphQL input/arguments, валидируется как tenant selector и передается в `AuthProvider.authorize` вместе с trusted platform actor. Domain равен `org`; application ID не кодируется в Casbin domain или resource. Tenant isolation обеспечивается organization-filtered enforcer и обязательным application ownership predicate по `applicationId + organizationId`; само наличие `organizationId` в input не доказывает доступ actor к organization.
 
 Для подключения permissions нужно:
 
@@ -216,12 +216,12 @@ Admin audit record имеет closed versioned schema с `recordId`, `schemaVers
 
 1. Утвердить queries, mutations, payloads и `userErrors`.
 2. Утвердить матрицу `GraphQL operation -> org resource -> read|write|admin` и добавить resources/standard-role policies в `@shopana/rbac`.
-3. Зафиксировать trusted actor/organization context и ownership semantics.
+3. Зафиксировать trusted actor из platform session, существующую передачу `organizationId` через Admin GraphQL input/arguments и ownership semantics.
 4. Зафиксировать one-time secret response и redaction contract.
 5. Утвердить internal Project action для Store ownership.
 6. Выполнить Better Auth Infrastructure Enterprise administrative-audit spike и зафиксировать `ApplicationAuthAdminAuditPort`, adapter, schema, retention и fail-closed/transaction contract.
 
-Критерий выхода: ни один client-controlled input не задает tenant, protocol grant, resource audience, signed claim или secret storage policy; administrative audit имеет проверенный durable adapter и не полагается на automatic Better Auth tracked events.
+Критерий выхода: client-controlled `organizationId` используется только как tenant selector и не дает доступа без Casbin и ownership checks; ни один client-controlled input не задает protocol grant, resource audience, signed claim или secret storage policy; administrative audit имеет проверенный durable adapter и не полагается на automatic Better Auth tracked events.
 
 ### Этап 1. Applications и auth settings
 
@@ -316,7 +316,7 @@ e2e/tests/iam-api/application-auth-admin/*
 
 1. Admin API реализован только после готовности предыдущего OAuth/OIDC runtime plan.
 2. Organization admin управляет application settings, providers, OAuth clients и application user security actions через Admin GraphQL.
-3. Каждая операция использует platform session, trusted organization context, Casbin и ownership checks.
+3. Каждая операция использует trusted actor из platform session, `organizationId` из Admin GraphQL input/arguments, Casbin и ownership checks.
 4. Application user session и public application handler не дают административного доступа.
 5. Protocol grants, PKCE и resource policy нельзя ослабить через GraphQL.
 6. Provider/client secrets защищены, возвращаются только там, где предусмотрен one-time response, и отсутствуют в observability/audit.
