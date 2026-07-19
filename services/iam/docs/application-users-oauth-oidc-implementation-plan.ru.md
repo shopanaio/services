@@ -133,7 +133,21 @@ response_types = ["code"]
 
 ### 5.3. Канонический протокол — HTTP
 
-OAuth/OIDC endpoint монтируются напрямую в Fastify. GraphQL используется только для административного управления настройками, пользователями и OAuth clients.
+OAuth/OIDC endpoint монтируются напрямую в существующий IAM Fastify instance. Отдельный Fastify application/process/listener для них не создается. Public application auth и Admin GraphQL регистрируются как два sibling encapsulated Fastify plugin scope на одном server instance:
+
+```text
+IAM Fastify instance / один listener
+├── applicationAuthHttpPlugin
+│   ├── /auth/applications/:applicationId/*
+│   └── необходимые /.well-known/* routes
+└── adminGraphqlPlugin
+    ├── buildAdminContextMiddleware
+    └── /graphql
+```
+
+`buildAdminContextMiddleware` и другие GraphQL-specific hooks добавляются только внутри `adminGraphqlPlugin` и не наследуются `applicationAuthHttpPlugin`. Публичный auth plugin имеет собственные hooks для default-deny route manifest, application/organization state, trusted proxy/IP, rate limits, request ID и безопасного логирования. GraphQL используется только для административного управления настройками, пользователями и OAuth clients.
+
+Оба plugin используют общий IAM lifecycle, logger, `Kernel`, database pool и shutdown через один Fastify instance. Текущее имя конфигурационного порта `admin_graphql` после добавления публичных HTTP routes должно быть переименовано в общий IAM HTTP port либо явно задокументировано как общий listener. Reverse proxy публикует наружу только `/auth/applications/*` и утвержденные `/.well-known/*`; `/graphql` может оставаться доступным только внутреннему gateway/admin network.
 
 Запрещается:
 
@@ -204,16 +218,27 @@ https://iam.example.com/auth/applications/019abcde-...
 | Token revocation | `/oauth2/revoke` |
 | End session | `/oauth2/end-session` |
 | JWKS | путь из discovery `jwks_uri` |
-| Better Auth methods/callback | endpoint под application `basePath` |
+| Better Auth methods/callback | только явно разрешенные endpoint под application `basePath` |
 
 После подключения OAuth Provider добавить `disabledPaths: ["/token"]`, чтобы не оставлять второй неоднозначный token endpoint Better Auth.
 
-Для namespace `/oauth2/*` действует default-deny allowlist, зафиксированный для установленной версии plugin. В публичный контракт входят только protocol и hosted-flow endpoint:
+Для всего application Better Auth handler действует versioned default-deny allowlist по паре `(HTTP method, normalized relative pathname)`, зафиксированный для точного набора и версий Better Auth plugins. Наличие endpoint в runtime router Better Auth само по себе не делает его публичным. В базовый публичный контракт входят только:
 
-- `authorize`, `token`, `userinfo`, `introspect`, `revoke`, `end-session`;
-- `consent` и `continue`;
-- read-only `public-client`/`public-client-prelogin`, если они требуются hosted login/consent UI;
-- discovery/JWKS endpoint, опубликованные plugin.
+- OAuth/OIDC protocol endpoint: `authorize`, `token`, `userinfo`, `introspect`, `revoke`, `end-session`;
+- hosted OAuth flow: `consent` и `continue`;
+- read-only `public-client`/`public-client-prelogin`, только если они требуются hosted login/consent UI;
+- discovery/JWKS endpoint, опубликованные plugin;
+- точные Better Auth endpoint для включенных password signup/signin, email verification и password reset flows;
+- точные endpoint `emailOTP`, необходимые для включенных OTP flows;
+- точные social sign-in и callback endpoint только для разрешенных provider IDs `google`/`facebook`.
+
+Manifest не содержит широких prefix/wildcard правил для `/sign-in/*`, `/sign-up/*`, `/callback/*`, `/email-otp/*` или иных plugin namespaces. Каждый callback provider и каждый HTTP method перечисляются явно. Effective allowlist request определяется пересечением:
+
+1. versioned route manifest установленной сборки;
+2. включенных для application auth methods/provider configuration;
+3. phase/feature flags rollout.
+
+Endpoint выключенного application method/provider возвращает `404` до `auth.handler`, даже если этот endpoint зарегистрирован plugin и разрешен общим versioned manifest.
 
 Публично запрещены и возвращают `404` до `auth.handler`:
 
@@ -221,24 +246,41 @@ https://iam.example.com/auth/applications/019abcde-...
 - `create-client`, `get-client`, `get-clients`, `update-client`, `delete-client`;
 - `client/rotate-secret`;
 - любые admin/client-management endpoint, добавленные текущей или будущей версией plugin;
-- неизвестный `/oauth2/*` path, отсутствующий в утвержденном allowlist.
+- account/consent management endpoint, не требуемые hosted flow;
+- endpoint выключенного password/OTP/social method или provider;
+- любой неизвестный path под application `basePath`, отсутствующий в effective allowlist, включая неизвестные не-`/oauth2/*` Better Auth/plugin endpoint.
 
-Точные имена путей извлекаются и фиксируются в compatibility ADR после установки `@better-auth/oauth-provider@1.6.23`. Upgrade plugin невозможен без повторной сверки публичного route manifest.
+Точные имена и HTTP methods путей извлекаются из runtime manifest полного Better Auth instance и фиксируются в compatibility ADR после установки `@better-auth/oauth-provider@1.6.23` и подключения password/emailOTP/social plugins. Upgrade Better Auth, OAuth Provider, emailOTP либо изменение plugin composition невозможно без повторной сверки и явного обновления публичного route manifest.
 
 ### 6.3. Fastify integration
 
-Добавить catch-all handler под `/auth/applications/:applicationId/*`, который:
+Не создавать второй `fastify()` instance. В существующем IAM HTTP server зарегистрировать `applicationAuthHttpPlugin` рядом, а не внутри encapsulated scope Admin GraphQL. Рекомендуемый порядок сборки:
+
+```text
+create Fastify instance
+register shared process-level infrastructure
+register applicationAuthHttpPlugin
+register adminGraphqlPlugin with buildAdminContextMiddleware
+register health routes
+listen once
+```
+
+Hooks дочернего `adminGraphqlPlugin` не должны применяться к sibling `applicationAuthHttpPlugin`. Auth plugin не создает фиктивный platform admin context и не принимает platform session как основание для application authorization. Общие hooks разрешены только если они безопасны для обоих transport: request ID, базовое structured logging и утвержденная trusted-proxy policy.
+
+Внутри `applicationAuthHttpPlugin` добавить catch-all handler под `/auth/applications/:applicationId/*`, который:
 
 1. валидирует UUID;
 2. загружает активную application и ее активную organization;
-3. нормализует относительный path без повторного decode и проверяет его по immutable public route manifest;
-4. для `/oauth2/*` применяет default-deny allowlist и возвращает `404` для client-management/unknown endpoint;
-5. получает instance из `ApplicationAuthFactory`;
-6. преобразует Fastify request в стандартный Fetch API `Request`;
-7. передает только разрешенный request в `auth.handler`;
-8. корректно переносит status, headers и body в Fastify reply.
+3. загружает auth configuration и rollout flags application;
+4. нормализует относительный path без повторного decode;
+5. проверяет `(HTTP method, normalized pathname)` по versioned manifest и пересекает его с включенными application methods/providers/feature flags;
+6. возвращает `404` для любого неизвестного, management или выключенного endpoint до вызова Better Auth;
+7. получает instance из `ApplicationAuthFactory`;
+8. преобразует Fastify request в стандартный Fetch API `Request`;
+9. передает только разрешенный request в `auth.handler`;
+10. корректно переносит status, headers и body в Fastify reply.
 
-Route authorization выполняется по нормализованному pathname, а не по строковому prefix match. Encoded slash, duplicate slash, dot-segment и повторное percent-decoding не должны позволять обойти deny/default-deny policy.
+Route authorization выполняется по HTTP method и нормализованному pathname, а не по строковому prefix match. Query/body не участвуют в выборе route. Encoded slash, duplicate slash, dot-segment и повторное percent-decoding не должны позволять обойти deny/default-deny policy. Для social callback provider берется из уже сопоставленного точного pathname manifest, а не из непроверенного wildcard segment.
 
 Handler обязан сохранять:
 
@@ -251,6 +293,8 @@ Handler обязан сохранять:
 - отсутствие общего CORS `*`.
 
 Allowed origins берутся из application configuration и сопоставляются точным origin. Redirect URI проверяет OAuth Provider plugin по точному зарегистрированному URI.
+
+`applicationAuthHttpPlugin` и `adminGraphqlPlugin` используют один порт, но имеют независимые transport/auth boundaries. Network exposure на reverse proxy настраивается по path: публичные OAuth/OIDC routes доступны storefront clients, а `/graphql` не становится публичным только из-за общего listener.
 
 ## 7. Целевой пользовательский flow
 
@@ -882,7 +926,7 @@ Security/operational события без секретов:
 
 1. Добавить exact dependency `@better-auth/oauth-provider@1.6.23`.
 2. Зафиксировать generated schema и endpoint paths установленной версии.
-3. Классифицировать каждый OAuth Provider endpoint как public protocol/hosted-flow или internal management и зафиксировать default-deny public route manifest.
+3. Классифицировать каждый endpoint полного Better Auth instance, включая OAuth Provider, password, emailOTP и social plugins, как public protocol/hosted-flow или internal/forbidden и зафиксировать default-deny manifest по method + normalized pathname.
 4. Подтвердить, что session-authenticated client-management endpoint недоступны application users, а server-side admin API вызывается без их публичной экспозиции.
 5. Подтвердить Fastify integration, path-prefixed issuer и multi-cookie responses.
 6. Проверить возможность application scoping всех plugin models через текущий adapter.
@@ -895,7 +939,7 @@ Security/operational события без секретов:
 
 - короткий ADR с выбранным plugin и отклонением deprecated `oidcProvider`;
 - подтвержденная схема таблиц;
-- versioned route manifest с точными public/internal endpoint;
+- versioned route manifest с точными HTTP methods и public/internal endpoint всего Better Auth handler;
 - негативное подтверждение, что application user не может читать, создавать, изменять, удалять client или ротировать его secret;
 - contract-подтверждение, что обязательный resource конкретной application выдает JWT с ожидаемым `aud`, а отсутствующий/resource другой application отклоняется;
 - contract-подтверждение, что `client_credentials` отсутствует в discovery и public/confidential v1 clients не получают token через этот grant;
@@ -935,14 +979,16 @@ Security/operational события без секретов:
 Задачи:
 
 1. Реализовать Fastify catch-all route.
-2. Настроить canonical public base URL/proxy handling.
-3. Добавить default-deny `/oauth2/*` route manifest и закрыть все client-management endpoint до `auth.handler`.
-4. Экспонировать discovery/JWKS/authorize/token/userinfo/introspection/revoke/end-session и необходимые hosted-flow endpoint.
-5. Отключить конфликтующий `/token` Better Auth path.
-6. Реализовать exact CORS/trusted origins.
-7. Добавить structured errors/request IDs без утечки данных.
+2. Выделить `applicationAuthHttpPlugin` и `adminGraphqlPlugin` как sibling scopes одного IAM Fastify instance; admin context middleware остается только в GraphQL scope.
+3. Сохранить один listener/shutdown lifecycle и определить общий IAM HTTP port вместо неявно GraphQL-only port contract.
+4. Настроить canonical public base URL/proxy handling и path-based reverse-proxy exposure без публикации `/graphql` наружу.
+5. Добавить versioned default-deny manifest для всего application Better Auth handler и закрыть management, неизвестные и выключенные application endpoint до `auth.handler`.
+6. Экспонировать только утвержденные discovery/JWKS/authorize/token/userinfo/introspection/revoke/end-session, hosted-flow, password, emailOTP и social callback endpoint с точными HTTP methods.
+7. Отключить конфликтующий `/token` Better Auth path.
+8. Реализовать exact CORS/trusted origins.
+9. Добавить structured errors/request IDs без утечки данных.
 
-Критерий выхода: стандартный OIDC client проходит discovery и Authorization Code + PKCE flow, application user не может вызвать ни один client-management endpoint, `client_credentials` отсутствует в discovery и не выдает token ни public, ни confidential v1 client.
+Критерий выхода: один IAM Fastify listener обслуживает изолированные sibling scopes application auth и Admin GraphQL; публичный auth request не проходит через admin GraphQL middleware, `/graphql` не публикуется public reverse proxy, стандартный OIDC client проходит discovery и Authorization Code + PKCE flow, application user не может вызвать ни один client-management endpoint, неизвестные и выключенные OAuth/password/OTP/social endpoint возвращают `404` до Better Auth, а `client_credentials` отсутствует в discovery и не выдает token ни public, ни confidential v1 client.
 
 ### Этап 4. Admin GraphQL
 
@@ -1031,6 +1077,7 @@ services/iam/src/auth/ApplicationAuthFactory.ts
 services/iam/src/auth/scopedDrizzleAdapter.ts
 services/iam/src/auth/applicationAuthConfiguration.ts
 services/iam/src/auth/applicationOAuthClaims.ts
+services/iam/src/api/graphql-admin/server.ts
 services/iam/src/api/http/application-auth/*
 services/iam/src/api/graphql-admin/application/*
 services/iam/src/repositories/models/application-auth.ts
@@ -1077,7 +1124,9 @@ Hosted UI следует разместить в выбранном для IAM w
 - неизвестный scope/audience отклоняется;
 - application user session не дает доступ к create/get/list/update/delete OAuth client;
 - application user session не позволяет ротировать client secret;
-- Dynamic Client Registration и неизвестный `/oauth2/*` path возвращают `404`;
+- Dynamic Client Registration и любой неизвестный path под application Better Auth `basePath`, включая не-`/oauth2/*`, возвращают `404` до `auth.handler`;
+- endpoint, разрешенный build-time manifest, но выключенный application method/provider/feature flag, возвращает `404` до `auth.handler`;
+- route с верным pathname, но неразрешенным HTTP method возвращает `404` и не достигает Better Auth;
 - разрешенные protocol/hosted-flow endpoint продолжают работать через тот же catch-all.
 
 ### 22.2. Tenant isolation
@@ -1136,8 +1185,12 @@ Hosted UI следует разместить в выбранном для IAM w
 - cookies имеют ожидаемые Secure/HttpOnly/SameSite/path attributes;
 - несколько `Set-Cookie` не схлопываются Fastify adapter;
 - CORS разрешает только точный configured origin;
-- encoded slash, duplicate slash, dot-segment и double-encoding не обходят public OAuth route allowlist;
-- route manifest проверен повторно при upgrade OAuth Provider plugin;
+- application auth routes и Admin GraphQL работают на одном Fastify listener, но в sibling encapsulated plugin scopes;
+- `buildAdminContextMiddleware` вызывается для `/graphql` и не вызывается для application auth/metadata routes;
+- public reverse-proxy routing не делает `/graphql` доступным извне;
+- encoded slash, duplicate slash, dot-segment и double-encoding не обходят default-deny manifest всего Better Auth handler;
+- wildcard callback не позволяет выбрать неразрешенный social provider;
+- route manifest проверен повторно при upgrade Better Auth/OAuth Provider/emailOTP plugins или изменении plugin composition;
 - rate limit работает по application/identity/IP;
 - PII/secrets отсутствуют в logs/traces/metrics.
 
@@ -1169,7 +1222,10 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] Implicit/password grants отсутствуют.
 - [ ] Dynamic Client Registration выключен.
 - [ ] Все OAuth client-management endpoint закрыты в публичном application realm до `auth.handler`.
-- [ ] `/oauth2/*` использует versioned default-deny route manifest; неизвестные paths возвращают `404`.
+- [ ] Весь application Better Auth handler использует versioned default-deny manifest по `(HTTP method, normalized pathname)` без широких plugin-prefix/wildcard правил.
+- [ ] Неизвестные и выключенные OAuth/password/OTP/social endpoint возвращают `404` до `auth.handler`.
+- [ ] Application auth и Admin GraphQL зарегистрированы как sibling plugins одного Fastify instance/listener; GraphQL admin middleware не применяется к auth routes.
+- [ ] Reverse proxy публикует только утвержденные auth/metadata paths и не публикует IAM `/graphql` во внешний network boundary.
 - [ ] Admin GraphQL вызывает server-side OAuth client API только после Casbin и organization/application ownership checks.
 - [ ] Redirect/post-logout URI проверяются точным совпадением.
 - [ ] Issuer строится из server config, не request Host.
@@ -1209,6 +1265,8 @@ Hosted UI следует разместить в выбранном для IAM w
 | Риск | Решение |
 | --- | --- |
 | Deprecated встроенный OIDC provider | Использовать отдельный актуальный `@better-auth/oauth-provider` |
+| Новый или неиспользуемый Better Auth/plugin endpoint становится публичным через catch-all | Versioned default-deny manifest всего handler по method + normalized pathname, effective allowlist по application config/feature flags и обязательная повторная сверка при изменении plugin composition |
+| Public OAuth routes случайно наследуют Admin GraphQL middleware или публикация общего порта раскрывает `/graphql` | Sibling encapsulated Fastify plugins на одном instance, GraphQL hooks только внутри admin scope и path-based reverse-proxy allowlist для public network |
 | Plugin model leakage между applications | Явно расширить adapter и schema application scope, негативные contract-сценарии |
 | Небезопасное auto-linking | Только реальный verified same-email или explicit authenticated linking |
 | Secret leakage в admin/logs | Encryption, one-time reveal, redaction и audit без value |
