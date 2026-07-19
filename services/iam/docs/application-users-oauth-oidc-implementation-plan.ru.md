@@ -65,7 +65,7 @@ IAM должен стать OIDC-провайдером для клиентск�
 - Passkeys/WebAuthn, TOTP MFA и recovery codes. Архитектура не должна мешать их добавлению позже.
 - Phone OTP/passwordless, SMS delivery, phone-only users и synthetic email. Они выносятся в отдельный будущий план после выбора production Verify provider и security contract; текущий план не добавляет `phoneNumber` plugin, phone endpoints, phone-поля или SMS-конфигурацию.
 - Кастомный keyed hasher/HMAC для email OTP, отдельный lifecycle ключей и миграция формата OTP hash. В v1 используется стандартный Better Auth `emailOTP({ storeOTP: "hashed" })`; дополнительный hardening выносится в отдельный будущий план после стабилизации email OTP flow.
-- Реализация собственного email delivery worker, durable outbox, retry/dead-letter механизма и transport infrastructure. IAM интегрирует Better Auth `sendVerificationOTP` с утвержденным внешним platform email delivery service; надежность его очереди и хранение delivery payload определяются отдельным контрактом вне этого плана.
+- Реализация собственного email delivery worker, durable outbox, retry/dead-letter механизма и transport infrastructure. IAM интегрирует Better Auth `emailVerification.sendVerificationEmail`, `emailAndPassword.sendResetPassword` и `emailOTP.sendVerificationOTP` с утвержденным внешним platform email delivery service; надежность его очереди и хранение delivery payload определяются отдельным контрактом вне этого плана.
 - Provisioning или binding `iam.application` из внешних domain services.
 - Хранение external tenant/resource metadata в IAM OAuth clients, claims и auth configuration.
 - Изменения resource-server сервисов. Их binding с `applicationId`, проверка IAM token и бизнес-проекции определяются отдельными integration plans.
@@ -88,7 +88,7 @@ IAM должен стать OIDC-провайдером для клиентск�
 - issuer/discovery/authorize/token/userinfo/revoke/introspect/logout;
 - административных моделей и GraphQL API для auth settings, providers и OAuth clients;
 - hosted login/consent UI;
-- интеграции `sendVerificationOTP` с внешним platform email delivery service;
+- интеграции `emailVerification.sendVerificationEmail`, `emailAndPassword.sendResetPassword` и `emailOTP.sendVerificationOTP` с внешним platform email delivery service;
 - безопасного хранения Google/Facebook secrets;
 - IAM-owned live validation для application, user, session и token state;
 - security limits, аудит-логов и наблюдаемости.
@@ -386,9 +386,11 @@ PKCE нельзя отключать. Для browser/mobile client исполь�
 - email нормализуется, но исходное значение не используется как tenant key;
 - уникальность email — внутри application;
 - минимальная длина пароля по умолчанию 10 символов, максимальная — ограничение Better Auth;
-- signup может быть выключен независимо от signin;
+- signup может быть выключен независимо от signin через `emailAndPassword.disableSignUp` и route policy;
 - email verification может быть обязательным до выдачи полноценной сессии;
 - forgot/reset password использует подписанные одноразовые ссылки Better Auth;
+- email verification отправляется через `emailVerification.sendVerificationEmail`;
+- password reset отправляется через `emailAndPassword.sendResetPassword`;
 - password hash и account lifecycle не реализуются вручную.
 
 Конфигурационная модель содержит политики, которые сможет изменять последующий Admin API:
@@ -398,6 +400,10 @@ PKCE нельзя отключать. Для browser/mobile client исполь�
 - `emailVerificationRequired`;
 - `passwordResetEnabled`;
 - `registrationMode`: `open | disabled`.
+
+`registrationMode` — глобальный server-side gate создания нового `application_user`, а не выключатель входа. При `registrationMode=disabled` password signup отклоняется даже при `passwordSignUpEnabled=true`, но password signin и reset для уже существующего user продолжают работать, если соответствующие method flags включены.
+
+В отличие от email OTP, password signup и signin имеют разные Better Auth endpoints, поэтому инвариант signup → signin для них не нужен. Допустимы все четыре комбинации flags. Если `passwordSignUpEnabled=true`, а `passwordSignInEnabled=false`, signup может создать пользователя, но `emailAndPassword.autoSignIn=false`: signup response не содержит session, а password signin endpoint остается закрытым. При обратной комбинации существующие password users могут входить, но новые не создаются.
 
 ### 8.2. Email OTP/passwordless
 
@@ -409,12 +415,14 @@ PKCE нельзя отключать. Для browser/mobile client исполь�
 - новый запрос ротирует предыдущий код;
 - хранение OTP — `hashed`;
 - ответ отправки всегда обобщенный, независимо от существования пользователя;
-- `sendVerificationOTP` передает исходный код утвержденному внешнему platform email delivery service и ожидает только подтверждение приема задания, а не фактическую отправку письма;
+- `emailOTP.sendVerificationOTP` передает исходный код утвержденному внешнему platform email delivery service и ожидает только подтверждение приема задания, а не фактическую отправку письма;
 - используется стандартная конфигурация Better Auth `storeOTP: "hashed"` как осознанный baseline v1;
 - custom `storeOTP` hasher/HMAC, отдельный ключ на realm, dual-format verification и миграция hash-формата не входят в этот план;
 - baseline дополнительно ограничивается TTL, числом попыток, ротацией кода, rate limits и контролем доступа к verification storage.
 
-Конфигурация может включать email OTP signin/signup и выбирать утвержденный email delivery profile, но не произвольный executable template. Пользовательское управление этой конфигурацией относится к последующему Admin API plan.
+Конфигурация разделяет `emailOtpSignInEnabled` и `emailOtpSignUpEnabled`. Stock `emailOTP` использует один `/sign-in/email-otp` flow для входа и автоматического создания user, поэтому инвариант `emailOtpSignUpEnabled => emailOtpSignInEnabled` обязателен. Effective `emailOTP.disableSignUp=true`, если `registrationMode=disabled` или `emailOtpSignUpEnabled=false`. При этом OTP signin существующего user остается доступен, если `emailOtpSignInEnabled=true`.
+
+В v1 email OTP использует только Better Auth purpose `type="sign-in"`. OTP-based `forget-password`, `change-email` и `overrideDefaultEmailVerification` не входят в v1, а их routes отсутствуют в effective public manifest. Конфигурация может выбирать утвержденный email delivery profile, но не произвольный executable template. Пользовательское управление этой конфигурацией относится к последующему Admin API plan.
 
 ### 8.3. Google и Facebook
 
@@ -433,6 +441,7 @@ Provider configuration включает:
 - upstream access/refresh token шифруются через `account.encryptOAuthTokens: true`;
 - `clientSecret` никогда не возвращается из runtime API;
 - callback URL нельзя переопределить произвольным запросом;
+- при `registrationMode=disabled` каждый configured social provider собирается с `disableSignUp=true`: существующий linked account может войти, но первый social login не создает user/account/session;
 - provider errors показываются пользователю без токенов и внутренних деталей;
 - Facebook login без доступного email в v1 завершается понятным безопасным сообщением, а не созданием неоднозначного пользователя;
 - provider account связывается только внутри текущей application.
@@ -483,8 +492,10 @@ Facebook без доступного email нельзя связать в v1, п
 | `registration_mode` | `open`, `disabled` |
 | `password_sign_up_enabled` | регистрация password |
 | `password_sign_in_enabled` | вход password |
+| `password_reset_enabled` | запрос и завершение password reset для существующего пользователя |
 | `email_verification_required` | обязательная проверка email |
-| `email_otp_enabled` | email passwordless |
+| `email_otp_sign_in_enabled` | passwordless-вход существующего пользователя по email OTP |
+| `email_otp_sign_up_enabled` | создание пользователя при первом успешном email OTP flow |
 | `google_enabled` | Google UI/provider switch |
 | `facebook_enabled` | Facebook UI/provider switch |
 | `consent_mode` | политика consent по умолчанию |
@@ -505,6 +516,24 @@ Facebook без доступного email нельзя связать в v1, п
 - session: 30 дней с серверной ревокацией.
 
 Изменяемые значения ограничиваются заранее заданными безопасными диапазонами. Конфигурация не должна позволять отключить PKCE, state/nonce validation, redirect validation или token signature.
+
+Effective policy вычисляется IAM на сервере и не принимается из HTTP request:
+
+```text
+passwordSignInAllowed = password_sign_in_enabled
+passwordSignUpAllowed = registration_mode == "open" && password_sign_up_enabled
+passwordResetAllowed = password_reset_enabled
+emailOtpSignInAllowed = email_otp_sign_in_enabled
+emailOtpSignUpAllowed = registration_mode == "open" && email_otp_sign_up_enabled
+socialSignInAllowed(provider) = provider.enabled
+socialSignUpAllowed(provider) = registration_mode == "open" && provider.enabled
+```
+
+`registration_mode=disabled` запрещает создание `application_user` через **все** способы: password signup, первый email OTP flow и первый Google/Facebook login. Он не выключает вход существующих пользователей через разрешенные методы и не меняет их method flags. Factory устанавливает `disableSignUp=true` для password, email OTP и каждого social provider независимо от UI; direct HTTP request не может обойти этот gate.
+
+Конфигурационный инвариант `email_otp_sign_up_enabled => email_otp_sign_in_enabled` обязателен, потому что stock Better Auth создает пользователя внутри того же `/sign-in/email-otp` flow. Repository/Zod schema отклоняет комбинацию `email_otp_sign_up_enabled=true`, `email_otp_sign_in_enabled=false`, а не исправляет ее неявно.
+
+Таким образом, допустимы только три OTP-состояния: `signin=false, signup=false`; `signin=true, signup=false`; `signin=true, signup=true`. Состояние `signin=false, signup=true` недопустимо.
 
 `resource` создается IAM одновременно с application и auth configuration по неизменяемому шаблону `urn:shopana:application:{applicationId}`. URN является absolute URI, не зависит от DNS, request `Host` или deployment URL и уникален благодаря `applicationId`. Поле обязательно и immutable: оно отсутствует во всех public/admin create/update inputs, repository запрещает его update, а OAuth client нельзя создать для application без корректно provisioned resource. Исправление ошибочного resource выполняется только пересозданием application до появления production data либо отдельной versioned protocol migration с отзывом всех token families; обычной configuration mutation не существует.
 
@@ -537,13 +566,14 @@ Facebook без доступного email нельзя связать в v1, п
 
 Не хранить произвольные SMTP secrets в обычном JSON. Ввести:
 
-- `application_auth_delivery_profile` — ссылка на разрешенный email transport, sender identity и template id;
+- `application_auth_delivery_profile` — ссылка на разрешенный email transport, sender identity и server-controlled mapping purpose → template id;
 - секреты transport — только в secrets backend;
 - шаблоны — versioned/validated, без executable code;
-- IAM передает delivery profile, recipient, purpose и исходный OTP/ссылку только через typed interface утвержденного platform email delivery service;
+- профиль обязан иметь отдельные утвержденные templates для `email_verification_link`, `password_reset_link` и `email_otp_sign_in`; один template id нельзя неявно переиспользовать для другого purpose;
+- IAM передает delivery profile, recipient, точный purpose и исходный OTP/URL только через typed interface утвержденного platform email delivery service;
 - IAM не сохраняет plaintext OTP/ссылку в собственной очереди, outbox или audit; защита durable payload, retries и dead-letter lifecycle являются ответственностью внешнего delivery service и его отдельного security contract.
 
-Если platform-wide transport достаточен для v1, application хранит только sender/template selection из allowlist.
+Если platform-wide transport достаточен для v1, application хранит только sender/template selection из allowlist. Произвольный template/purpose из request не принимается; OTP purposes `forget-password` и `change-email` отсутствуют в v1 delivery mapping.
 
 ### 10.5. OAuth Provider plugin models
 
@@ -602,6 +632,20 @@ session settings
 advanced.cookiePrefix/basePath
 disabledPaths: /token
 ```
+
+Factory явно преобразует независимые configuration flags в Better Auth options и effective route manifest:
+
+- `emailAndPassword.enabled=true`, если включен хотя бы один password flow; конкретные signin/signup/reset endpoint независимо закрываются effective manifest;
+- `emailAndPassword.disableSignUp = !passwordSignUpAllowed`;
+- `emailAndPassword.autoSignIn = passwordSignInAllowed`, чтобы signup при выключенном password signin не создавал session;
+- `emailAndPassword.requireEmailVerification = email_verification_required`;
+- `emailAndPassword.sendResetPassword` подключается только при `passwordResetAllowed=true`;
+- `emailVerification.sendVerificationEmail` подключается для verification flow;
+- plugin `emailOTP` подключается, если включен OTP signin или signup, с `emailOTP.disableSignUp = !emailOtpSignUpAllowed`;
+- каждый enabled Google/Facebook provider получает `disableSignUp = !socialSignUpAllowed(provider)`;
+- effective manifest независимо разрешает только включенные signin/signup/reset/verification/OTP/provider routes и возвращает `404` до `auth.handler` для остальных.
+
+Factory не исправляет противоречивую конфигурацию. В частности, `email_otp_sign_up_enabled=true` при `email_otp_sign_in_enabled=false` является validation error. UI строится по тому же effective policy, но не считается security boundary.
 
 ### 11.1. Секрет application instance
 
@@ -763,14 +807,27 @@ Cross-application атаки должны входить в обязательн
 
 ## 15. Интеграция с email delivery service
 
-Better Auth вызывает настроенный IAM callback `sendVerificationOTP`. Callback:
+IAM подключает три отдельные Better Auth callback к одному typed delivery adapter:
+
+| Better Auth callback | IAM purpose | Payload v1 |
+| --- | --- | --- |
+| `emailVerification.sendVerificationEmail` | `email_verification_link` | recipient + подписанный verification URL |
+| `emailAndPassword.sendResetPassword` | `password_reset_link` | recipient + подписанный reset URL |
+| `emailOTP.sendVerificationOTP` с `type="sign-in"` | `email_otp_sign_in` | recipient + исходный OTP |
+
+Фактические callback inputs установленной версии Better Auth фиксируются в typed adapter без общего `unknown` payload: `{ user, url, token }` для verification/reset link callbacks и `{ email, otp, type }` для email OTP. Для link delivery IAM передает утвержденный URL; отдельный raw token не дублируется в delivery request или logs.
+
+`emailOTP.sendVerificationOTP` с `type="forget-password"`, `type="change-email"` или иным purpose не передается в delivery service в v1: соответствующие routes не входят в effective manifest, а adapter дополнительно отклоняет неподдерживаемый type. Email verification и password reset используют отдельные link callbacks, а не OTP callback.
+
+Каждый callback:
 
 - загружает разрешенный application delivery profile;
-- формирует typed request внешнему platform email delivery service с `applicationId`, нормализованным recipient, purpose, template id и исходным OTP/ссылкой;
+- выбирает template только по server-controlled IAM purpose;
+- формирует typed request внешнему platform email delivery service с `applicationId`, нормализованным recipient, точным purpose, template id и соответствующим OTP/URL;
 - передает idempotency key, если его поддерживает внешний contract;
 - ожидает только подтверждение приема задания внешним service, а не фактическую отправку письма;
-- маскирует recipient в логах и не логирует OTP/link token;
-- не сохраняет plaintext OTP/ссылку в IAM database, cache, outbox или audit;
+- маскирует recipient в логах и не логирует OTP, URL или link token;
+- не сохраняет plaintext OTP/URL в IAM database, cache, outbox или audit;
 - публикует только метрики результата handoff без high-cardinality PII labels.
 
 Email worker, durable queue/outbox, retries, dead-letter state, шифрование и retention delivery payload реализуются внешним platform email delivery service и находятся вне scope этого плана. IAM должен документировать требования к этому контракту, но не реализует собственную delivery infrastructure.
@@ -866,14 +923,15 @@ Security/operational события без секретов:
 
 Задачи:
 
-1. Создать миграции application auth config, включая обязательный immutable `resource`, origins/providers/delivery metadata.
+1. Создать миграции application auth config, включая обязательный immutable `resource`, независимые password/OTP flags, `registration_mode`, origins/providers и purpose-specific delivery metadata.
 2. Добавить OAuth Provider plugin tables с `application_id`.
 3. Добавить индексы, tenant constraints и cleanup behavior.
 4. Реализовать encryption service для provider credentials.
 5. Реализовать HKDF realm secret derivation/versioning.
-6. Добавить repository и Zod schemas для configuration.
-7. Добавить IAM domain service, который атомарно создает application auth configuration и `urn:shopana:application:{applicationId}` без приема resource из input.
-8. Идемпотентно backfill создать auth configuration и resource для существующих `iam.application`.
+6. Добавить repository и Zod schemas для configuration, включая `email_otp_sign_up_enabled => email_otp_sign_in_enabled`.
+7. Добавить IAM effective auth policy calculator, который применяет `registration_mode=disabled` как глобальный запрет создания user поверх method/provider flags.
+8. Добавить IAM domain service, который атомарно создает application auth configuration и `urn:shopana:application:{applicationId}` без приема resource из input.
+9. Идемпотентно backfill создать auth configuration и resource для существующих `iam.application`.
 
 Критерий выхода: конфигурация и secrets изолированы по application, secret не читается обратно через публичный API, а каждая `iam.application` имеет уникальный immutable resource и auth configuration.
 
@@ -882,13 +940,14 @@ Security/operational события без секретов:
 Задачи:
 
 1. Расширить adapter plugin models.
-2. Собирать plugins согласно application settings.
+2. Собирать plugins и effective route manifest согласно независимым application settings; явно преобразовать password/OTP/social signup policy в Better Auth `disableSignUp`.
 3. Добавить account token encryption/linking policy.
 4. Добавить OAuth scopes, `validAudiences: [application.resource]`, автоматическое наследование единственного resource clients и custom claims policy; JWT plugin нельзя отключать.
 5. Глобально задать `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`, чтобы token endpoint не поддерживал и discovery не рекламировал `client_credentials`.
 6. Принудительно задавать client `grantTypes=["authorization_code", "refresh_token"]` и `responseTypes=["code"]`, сделав эти поля неизменяемыми для обычного configuration flow.
 7. Добавить revision-aware cache invalidation.
 8. Проверять active organization/application перед созданием instance.
+9. Подключать `emailVerification.sendVerificationEmail`, `emailAndPassword.sendResetPassword` и `emailOTP.sendVerificationOTP` только для разрешенных flows и purpose.
 
 Критерий выхода: два application одновременно используют разные users, clients, keys, cookies, providers и единственные собственные resources без пересечения.
 
@@ -919,19 +978,22 @@ Security/operational события без секретов:
 3. Реализовать consent и end-session pages.
 4. Добавить localization/branding schema.
 5. Подключить anti-enumeration, CSRF и rate limits.
+6. Подключить отдельные `emailVerification.sendVerificationEmail` и `emailAndPassword.sendResetPassword` callbacks к typed delivery adapter.
+7. Реализовать server-side password policies: независимые signin/signup/reset flags и глобальный `registration_mode` без влияния на вход существующего пользователя.
 
-Критерий выхода: public и confidential clients проходят signup/signin/logout, а redirect/state/nonce/PKCE проверяются.
+Критерий выхода: public и confidential clients проходят разрешенные signup/signin/reset/verification/logout flows, выключенные endpoint закрыты до Better Auth, `registration_mode=disabled` запрещает password signup, но не password signin существующего пользователя, а redirect/state/nonce/PKCE проверяются.
 
 ### Этап 5. Email OTP
 
 Задачи:
 
 1. Подключить `emailOTP` со стандартным `storeOTP: "hashed"`, не вводя custom hasher/HMAC и отдельный lifecycle ключей.
-2. Интегрировать Better Auth `sendVerificationOTP` с утвержденным внешним platform email delivery service без собственного IAM worker/outbox.
+2. Интегрировать Better Auth `emailOTP.sendVerificationOTP` только для `type="sign-in"` с утвержденным внешним platform email delivery service без собственного IAM worker/outbox.
 3. Добавить request/verify UI.
 4. Реализовать generic responses, resend cooldown и attempt limits.
+5. Реализовать независимые `email_otp_sign_in_enabled`/`email_otp_sign_up_enabled`, validation invariant signup → signin и effective `disableSignUp` с учетом `registration_mode`.
 
-Критерий выхода: email passwordless работает на стандартном Better Auth `storeOTP: "hashed"` без plaintext OTP, enumeration и повторного использования; custom hashing не является условием выпуска v1.
+Критерий выхода: email passwordless работает на стандартном Better Auth `storeOTP: "hashed"` без plaintext OTP, enumeration и повторного использования; существующий пользователь может войти при закрытой регистрации, новый не создается; OTP reset/change-email routes и delivery purposes недоступны; custom hashing не является условием выпуска v1.
 
 ### Этап 6. Google/Facebook и account linking
 
@@ -942,8 +1004,9 @@ Security/operational события без секретов:
 3. Настроить стандартный Better Auth `linkSocial()` с `disableImplicitLinking=true`, `allowDifferentEmails=false` и `trustedProviders=["facebook"]`; собственный OAuth linking flow не реализовывать.
 4. Обработать provider без email и конфликт account.
 5. Добавить application-user link/unlink runtime contract и аудит security events; административные operations будут добавлены последующим Admin API plan.
+6. Применить `disableSignUp=true` ко всем providers при `registration_mode=disabled` и проверить отдельно существующий linked account и первый social login.
 
-Критерий выхода: обычный social sign-in никогда не выполняет implicit linking; стандартный authenticated `linkSocial()` связывает Google/Facebook account только внутри текущей application и отклоняет отсутствующий/отличающийся email либо account, уже принадлежащий другому user.
+Критерий выхода: обычный social sign-in никогда не выполняет implicit linking; при закрытой регистрации существующий linked account входит, а первый social login не создает user/account/session; стандартный authenticated `linkSocial()` связывает Google/Facebook account только внутри текущей application и отклоняет отсутствующий/отличающийся email либо account, уже принадлежащий другому user.
 
 ### Этап 7. IAM live validation и token lifecycle
 
@@ -1052,7 +1115,16 @@ Hosted UI следует разместить в выбранном для IAM w
 
 - разрешенные signup/signin работают;
 - выключенный method недоступен и в UI, и прямым HTTP вызовом;
-- registration disabled enforced server-side;
+- при `password_sign_up_enabled=true`, `password_sign_in_enabled=false` signup создает пользователя без session (`autoSignIn=false`), а прямой password signin закрыт;
+- при `password_sign_up_enabled=false`, `password_sign_in_enabled=true` существующий password user входит, а новый не создается;
+- `password_reset_enabled=false` скрывает reset UI и возвращает `404` для прямых reset request/complete endpoint до Better Auth;
+- при `password_reset_enabled=true` reset существующего пользователя вызывает `emailAndPassword.sendResetPassword` с purpose `password_reset_link` и подписанным URL;
+- email verification вызывает отдельный `emailVerification.sendVerificationEmail` с purpose `email_verification_link`, а не OTP callback;
+- `email_otp_sign_up_enabled=true` при `email_otp_sign_in_enabled=false` отклоняется validation слоем;
+- при `email_otp_sign_in_enabled=true`, `email_otp_sign_up_enabled=false` существующий пользователь входит по OTP, а отсутствующий не создается;
+- email OTP delivery вызывает `emailOTP.sendVerificationOTP` только с `type="sign-in"` и purpose `email_otp_sign_in`;
+- OTP `forget-password`, `change-email` и прочие неподдерживаемые purposes не достигают delivery adapter;
+- `registration_mode=disabled` server-side запрещает создание пользователя через password signup и первый email OTP flow независимо от method flags/UI, но разрешенные signin/reset существующего пользователя продолжают работать;
 - generic response одинаков для существующего/несуществующего email;
 - OTP истекает, ротируется, имеет limit и одноразовый;
 - email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`;
@@ -1062,6 +1134,7 @@ Hosted UI следует разместить в выбранном для IAM w
 
 - Google/Facebook callback привязан к правильной application;
 - disabled/misconfigured provider закрыт безопасно;
+- при `registration_mode=disabled` существующий пользователь с linked Google/Facebook account входит, но первый social login не создает user, account или session;
 - provider secrets/tokens отсутствуют в runtime responses/logs/errors;
 - обычный Google/Facebook sign-in при совпадающем email возвращает account-not-linked и не выполняет implicit linking;
 - authenticated `linkSocial()` связывает Google и Facebook account со свежей session текущего application user;
@@ -1125,6 +1198,12 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] Organization/application/client/user/session live state проверяется.
 - [ ] Provider credentials зашифрованы с versioned key/AAD.
 - [ ] Upstream OAuth tokens зашифрованы.
+- [ ] `registration_mode=disabled` запрещает создание `application_user` через password, email OTP и первый social login, не запрещая вход существующих пользователей через включенные методы.
+- [ ] Password signin/signup/reset имеют независимые flags; выключенный flow отсутствует в UI и effective route manifest.
+- [ ] Password signup при выключенном password signin использует `autoSignIn=false`, создает пользователя без session и не обходит выключенный signin.
+- [ ] `email_otp_sign_up_enabled => email_otp_sign_in_enabled` проверяется configuration validation, а `emailOTP.disableSignUp` учитывает и OTP signup flag, и `registration_mode`.
+- [ ] Email verification, password reset и email OTP подключены через отдельные Better Auth callbacks и разные server-controlled delivery purposes/templates.
+- [ ] OTP delivery принимает в v1 только `type="sign-in"`; OTP reset/change-email routes и purposes закрыты.
 - [ ] Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`.
 - [ ] Custom email OTP hasher/HMAC, его ключи и миграция hash-формата не входят в release scope v1.
 - [ ] State, nonce, CSRF, cookie policies проверены.
@@ -1139,8 +1218,8 @@ Hosted UI следует разместить в выбранном для IAM w
 
 1. Каждая application имеет отдельный issuer, users, sessions, providers, OAuth clients, tokens, consents и keys.
 2. Каждая application получает при создании ровно один immutable resource `urn:shopana:application:{applicationId}`; ни OAuth client, ни администратор не передают и не изменяют его. `ApplicationOAuthResourcePolicyGuard` требует exact single value до Better Auth на authorize/code exchange/каждом refresh и исключает opaque fallback; public и confidential clients наследуют resource, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; OAuth Provider глобально поддерживает только `authorization_code`/`refresh_token`, а `client_credentials` отсутствует в discovery и запрещен также на уровне каждого client.
-3. Password, email OTP, Google и Facebook можно независимо включать в application configuration.
-4. Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`; custom hasher/HMAC и lifecycle его ключей не требуются для v1.
+3. Password signin/signup/reset и email OTP signin/signup управляются явными flags; OTP signup требует OTP signin. `registration_mode=disabled` единообразно запрещает создание пользователя через password, email OTP и первый social login, но не мешает существующим пользователям входить через включенные методы.
+4. Email verification, password reset и email OTP используют отдельные Better Auth callbacks и server-controlled delivery purposes/templates; email OTP принимает только `type="sign-in"` и хранится стандартным Better Auth способом `storeOTP: "hashed"`; custom hasher/HMAC и lifecycle его ключей не требуются для v1.
 5. Account linking не пересекает applications и не доверяет unverified email.
 6. IAM live validation проверяет application, OAuth client, user, session и token family state.
 7. Block/revoke/disable действуют на live validation и refresh lifecycle.
@@ -1158,6 +1237,8 @@ Hosted UI следует разместить в выбранном для IAM w
 | Public OAuth routes случайно наследуют Admin GraphQL middleware или публикация общего порта раскрывает `/graphql` | Sibling encapsulated Fastify plugins на одном instance, GraphQL hooks только внутри admin scope и path-based reverse-proxy allowlist для public network |
 | Plugin model leakage между applications | Явно расширить adapter и schema application scope, негативные contract-сценарии |
 | Небезопасное auto-linking | `disableImplicitLinking=true` для всех providers; только стандартный authenticated `linkSocial()`, а `trustedProviders=["facebook"]` применяется исключительно при отключенном implicit linking |
+| Закрытая регистрация обходится через email OTP или первый social login | Единый effective signup gate из `registration_mode`; `disableSignUp=true` в password/emailOTP/social provider options, default-deny route policy и негативные сценарии для каждого метода |
+| Email verification, password reset и OTP отправляются через неверный callback/template | Три явных Better Auth callbacks, typed purpose union, server-controlled purpose → template mapping и отказ для неподдерживаемых OTP types |
 | Secret leakage в runtime/logs | Encryption и redaction; административный one-time reveal относится к последующему Admin API plan |
 | Open redirect/custom scheme abuse | Exact allowlist и отдельная mobile URI policy |
 | Устаревшая factory config после изменения конфигурации | Revisioned cache key + invalidation event |
