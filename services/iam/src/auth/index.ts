@@ -3,6 +3,7 @@ export * from "./AuthScope.js";
 export * from "./ApplicationAuthFactory.js";
 export * from "./applicationAuthConfiguration.js";
 export * from "./applicationAuthRouteManifest.js";
+export * from "./applicationSocialProviders.js";
 export * from "./applicationOAuthClaims.js";
 export * from "./applicationOAuthPolicy.js";
 export * from "./scopedDrizzleAdapter.js";

@@ -3,6 +3,11 @@ import type {
   ApplicationAuthRouteManifestEntry,
   EffectiveApplicationAuthRouteManifest,
 } from "../../../auth/applicationAuthRouteManifest.js";
+import {
+  APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH,
+  APPLICATION_AUTH_PROVIDER_ID_PATTERN,
+  type ApplicationAuthProviderName,
+} from "../../../auth/applicationSocialProviders.js";
 
 const UNRESERVED = /^[A-Za-z0-9\-._~]$/;
 const HEX_BYTE = /^[0-9A-Fa-f]{2}$/;
@@ -105,11 +110,34 @@ export function assertApplicationAuthPreflightMethod(
 export function routeRequiresForcedRevisionCheck(
   normalizedPath: string
 ): boolean {
+  if (normalizedPath === "/oauth2/token") return true;
+  const callback = /^\/callback\/([^/]+)$/u.exec(normalizedPath);
+  if (!callback) return false;
+  const provider = callback[1]!;
   return (
-    normalizedPath === "/oauth2/token" ||
-    normalizedPath === "/callback/google" ||
-    normalizedPath === "/callback/facebook"
+    provider.length <= APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH &&
+    APPLICATION_AUTH_PROVIDER_ID_PATTERN.test(provider)
   );
+}
+
+export function resolveAllowedSocialCallbackProvider(input: {
+  method: string;
+  normalizedPath: string;
+  manifest: EffectiveApplicationAuthRouteManifest;
+}): ApplicationAuthProviderName | null {
+  if (input.method !== "GET" && input.method !== "POST") return null;
+  for (const provider of input.manifest.allowedSocialProviders) {
+    const callbackPath = `/callback/${provider}`;
+    if (input.normalizedPath !== callbackPath) continue;
+    const exactEntry = input.manifest.allowedRoutes.some(
+      (entry) =>
+        entry.method === input.method &&
+        entry.pathKind === "social-callback" &&
+        entry.path === callbackPath
+    );
+    return exactEntry ? provider : null;
+  }
+  return null;
 }
 
 function routeEntryMatches(

@@ -1,6 +1,6 @@
 import { createHmac, randomUUID } from "node:crypto";
 import type { Logger } from "@shopana/shared-kernel";
-import type { ApplicationAuthProviderName } from "../repositories/models/application-auth.js";
+import type { ApplicationAuthProviderName } from "../auth/applicationSocialProviders.js";
 import type { ApplicationAuthSecretService } from "./ApplicationAuthSecretService.js";
 
 export const APPLICATION_AUTH_AUDIT_PORT = Symbol.for(

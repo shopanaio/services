@@ -1,8 +1,12 @@
 import { z } from "zod";
-import type {
-  ApplicationAuthConfigurationRecord,
-  ApplicationAuthProviderName,
-} from "../repositories/models/application-auth.js";
+import type { ApplicationAuthConfigurationRecord } from "../repositories/models/application-auth.js";
+import {
+  APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH,
+  assertApplicationSocialProviderScopes,
+  isApplicationAuthProviderName,
+  parseApplicationAuthProviderName,
+  type ApplicationAuthProviderName,
+} from "./applicationSocialProviders.js";
 
 export const APPLICATION_AUTH_TTL = {
   accessToken: { min: 5 * 60, max: 30 * 60, default: 15 * 60 },
@@ -74,8 +78,6 @@ export const applicationAuthMutableConfigurationSchema = z
     emailVerificationRequired: z.boolean(),
     emailOtpSignInEnabled: z.boolean(),
     emailOtpSignUpEnabled: z.boolean(),
-    googleEnabled: z.boolean(),
-    facebookEnabled: z.boolean(),
     consentMode: z.literal("explicit"),
     accessTokenTtlSeconds: z
       .number()
@@ -115,13 +117,33 @@ export const applicationAuthMutableConfigurationSchema = z
 export const applicationAuthConfigurationPatchSchema =
   applicationAuthMutableConfigurationSchema._def.schema.partial().strict();
 
+export const applicationAuthProviderScopesSchema = z
+  .array(z.string().trim().min(1).max(256))
+  .max(32);
+
+export const applicationAuthProviderNameSchema = z
+  .string()
+  .max(APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH)
+  .refine(isApplicationAuthProviderName, {
+    message: "Application social provider is unsupported",
+  })
+  .transform(parseApplicationAuthProviderName);
+
+export const applicationAuthProviderStateSchema = z
+  .object({
+    provider: applicationAuthProviderNameSchema,
+    enabled: z.boolean(),
+    updatedBy: z.string().trim().min(1).max(256),
+  })
+  .strict();
+
 export const applicationAuthProviderCredentialsSchema = z
   .object({
-    provider: z.enum(["google", "facebook"]),
+    provider: applicationAuthProviderNameSchema,
     enabled: z.boolean(),
     clientId: z.string().trim().min(1).max(2048),
     clientSecret: z.string().min(1).max(8192),
-    scopes: z.array(z.string().trim().min(1).max(256)).max(32),
+    scopes: applicationAuthProviderScopesSchema,
     updatedBy: z.string().trim().min(1).max(256),
   })
   .strict()
@@ -131,6 +153,15 @@ export const applicationAuthProviderCredentialsSchema = z
         code: z.ZodIssueCode.custom,
         path: ["scopes"],
         message: "Provider scopes must be unique",
+      });
+    }
+    try {
+      assertApplicationSocialProviderScopes(value.provider, value.scopes);
+    } catch {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["scopes"],
+        message: "Provider contains an unapproved scope",
       });
     }
   });
@@ -169,6 +200,9 @@ export type ApplicationAuthConfigurationPatch = z.infer<
 export type ApplicationAuthProviderCredentialsInput = z.infer<
   typeof applicationAuthProviderCredentialsSchema
 >;
+export type ApplicationAuthProviderStateInput = z.infer<
+  typeof applicationAuthProviderStateSchema
+>;
 export type ApplicationAuthDeliveryProfileInput = z.infer<
   typeof applicationAuthDeliveryProfileSchema
 >;
@@ -182,8 +216,6 @@ export const DEFAULT_APPLICATION_AUTH_CONFIGURATION: ApplicationAuthMutableConfi
     emailVerificationRequired: true,
     emailOtpSignInEnabled: false,
     emailOtpSignUpEnabled: false,
-    googleEnabled: false,
-    facebookEnabled: false,
     consentMode: "explicit",
     accessTokenTtlSeconds: APPLICATION_AUTH_TTL.accessToken.default,
     idTokenTtlSeconds: APPLICATION_AUTH_TTL.idToken.default,
@@ -200,8 +232,15 @@ export interface EffectiveApplicationAuthPolicy {
   passwordResetAllowed: boolean;
   emailOtpSignInAllowed: boolean;
   emailOtpSignUpAllowed: boolean;
-  socialSignInAllowed: Record<ApplicationAuthProviderName, boolean>;
-  socialSignUpAllowed: Record<ApplicationAuthProviderName, boolean>;
+  socialProviders: readonly EffectiveApplicationSocialProviderPolicy[];
+}
+
+export interface EffectiveApplicationSocialProviderPolicy {
+  provider: ApplicationAuthProviderName;
+  configured: true;
+  enabled: boolean;
+  signInAllowed: boolean;
+  signUpAllowed: boolean;
 }
 
 export function calculateEffectiveApplicationAuthPolicy(
@@ -214,28 +253,44 @@ export function calculateEffectiveApplicationAuthPolicy(
     | "passwordResetEnabled"
     | "emailOtpSignInEnabled"
     | "emailOtpSignUpEnabled"
-    | "googleEnabled"
-    | "facebookEnabled"
-  >
+  >,
+  providers: readonly {
+    provider: ApplicationAuthProviderName;
+    enabled: boolean;
+  }[]
 ): EffectiveApplicationAuthPolicy {
-  const signUpAllowed = configuration.registrationMode === "open";
+  const realmEnabled = configuration.realmEnabled;
+  const signUpAllowed =
+    realmEnabled && configuration.registrationMode === "open";
+  if (
+    new Set(providers.map(({ provider }) => provider)).size !==
+    providers.length
+  ) {
+    throw new Error("Application social provider configuration is duplicated");
+  }
   return {
-    realmEnabled: configuration.realmEnabled,
-    passwordSignInAllowed: configuration.passwordSignInEnabled,
+    realmEnabled,
+    passwordSignInAllowed:
+      realmEnabled && configuration.passwordSignInEnabled,
     passwordSignUpAllowed:
       signUpAllowed && configuration.passwordSignUpEnabled,
-    passwordResetAllowed: configuration.passwordResetEnabled,
-    emailOtpSignInAllowed: configuration.emailOtpSignInEnabled,
+    passwordResetAllowed:
+      realmEnabled && configuration.passwordResetEnabled,
+    emailOtpSignInAllowed:
+      realmEnabled && configuration.emailOtpSignInEnabled,
     emailOtpSignUpAllowed:
       signUpAllowed && configuration.emailOtpSignUpEnabled,
-    socialSignInAllowed: {
-      google: configuration.googleEnabled,
-      facebook: configuration.facebookEnabled,
-    },
-    socialSignUpAllowed: {
-      google: signUpAllowed && configuration.googleEnabled,
-      facebook: signUpAllowed && configuration.facebookEnabled,
-    },
+    socialProviders: Object.freeze(
+      providers.map(({ provider, enabled }) =>
+        Object.freeze({
+          provider,
+          configured: true as const,
+          enabled,
+          signInAllowed: realmEnabled && enabled,
+          signUpAllowed: signUpAllowed && enabled,
+        })
+      )
+    ),
   };
 }
 

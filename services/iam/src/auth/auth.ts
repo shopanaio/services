@@ -11,7 +11,6 @@ import { createHash, randomUUID } from "node:crypto";
 import { getDatabase } from "../infrastructure/db/database.js";
 import type {
   ApplicationAuthDeliveryProfile,
-  ApplicationAuthProviderName,
 } from "../repositories/models/application-auth.js";
 import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
 import {
@@ -29,6 +28,12 @@ import type {
   ApplicationAuthUiLocale,
 } from "./applicationAuthConfiguration.js";
 import { createApplicationResource } from "./applicationAuthConfiguration.js";
+import {
+  assertApplicationSocialProviderScopes,
+  createApplicationSocialProviderOptions,
+  getApplicationSocialProviderDefinition,
+  type ApplicationAuthProviderName,
+} from "./applicationSocialProviders.js";
 import { createApplicationOAuthClaimsPolicy } from "./applicationOAuthClaims.js";
 import {
   APPLICATION_OAUTH_GRANT_TYPES,
@@ -44,7 +49,8 @@ export interface ApplicationAuthProviderRuntimeConfiguration {
   provider: ApplicationAuthProviderName;
   clientId: string;
   clientSecret: string;
-  scopes: string[];
+  scopes: readonly string[];
+  disableSignUp: boolean;
 }
 
 export interface ApplicationAuthRuntimeConfiguration {
@@ -63,26 +69,13 @@ export interface ApplicationAuthRuntimeConfiguration {
   idTokenTtlSeconds: number;
   refreshTokenTtlSeconds: number;
   sessionTtlSeconds: number;
-  providers: Partial<
-    Record<
-      ApplicationAuthProviderName,
-      ApplicationAuthProviderRuntimeConfiguration
-    >
-  >;
+  providers: readonly ApplicationAuthProviderRuntimeConfiguration[];
   deliveryProfile: ApplicationAuthDeliveryProfile | null;
 }
 
 const DEFAULT_SESSION = {
   expiresIn: 60 * 60 * 24 * 7,
   updateAge: 60 * 60 * 24,
-};
-
-const APPROVED_SOCIAL_SCOPES: Record<
-  ApplicationAuthProviderName,
-  ReadonlySet<string>
-> = {
-  google: new Set(["openid", "profile", "email"]),
-  facebook: new Set(["email", "public_profile"]),
 };
 
 /** Create the platform/admin Better Auth instance. */
@@ -144,6 +137,21 @@ export function createApplicationAuth(
     }
   );
   const socialProviders = createSocialProviders(config);
+  const trustedProviders = config.providers
+    .filter(({ provider }) =>
+      getApplicationSocialProviderDefinition(provider)
+        .trustedForExplicitLinking
+    )
+    .map(({ provider }) => provider);
+  const accountLinking = {
+    enabled: true,
+    disableImplicitLinking: true,
+    trustedProviders,
+    allowDifferentEmails: false,
+    allowUnlinkingAll: false,
+    updateUserInfoOnLink: false,
+  } as const;
+  assertApplicationAccountLinkingPolicy(accountLinking);
   const claims = createApplicationOAuthClaimsPolicy({
     applicationId,
     resource: config.resource,
@@ -265,14 +273,7 @@ export function createApplicationAuth(
     socialProviders,
     account: {
       encryptOAuthTokens: true,
-      accountLinking: {
-        enabled: true,
-        disableImplicitLinking: true,
-        trustedProviders: ["facebook"],
-        allowDifferentEmails: false,
-        allowUnlinkingAll: false,
-        updateUserInfoOnLink: false,
-      },
+      accountLinking,
     },
     session: createSessionOptions(
       { kind: "application", applicationId },
@@ -442,26 +443,34 @@ function createSocialProviders(
   config: ApplicationAuthRuntimeConfiguration
 ): NonNullable<BetterAuthOptions["socialProviders"]> {
   const providers: NonNullable<BetterAuthOptions["socialProviders"]> = {};
-  for (const provider of ["google", "facebook"] as const) {
-    if (!config.policy.socialSignInAllowed[provider]) continue;
-    const runtime = config.providers[provider];
-    if (!runtime) {
-      throw new Error(
-        `Enabled ${provider} provider credentials are unavailable`
-      );
-    }
-    const approvedScopes = APPROVED_SOCIAL_SCOPES[provider];
-    if (runtime.scopes.some((scope) => !approvedScopes.has(scope))) {
-      throw new Error(`${provider} provider contains an unapproved scope`);
-    }
-    providers[provider] = {
-      clientId: runtime.clientId,
-      clientSecret: runtime.clientSecret,
-      scope: [...runtime.scopes],
-      disableSignUp: !config.policy.socialSignUpAllowed[provider],
-    };
+  for (const runtime of config.providers) {
+    assertApplicationSocialProviderScopes(runtime.provider, runtime.scopes);
+    Object.assign(
+      providers,
+      createApplicationSocialProviderOptions({
+        provider: runtime.provider,
+        clientId: runtime.clientId,
+        clientSecret: runtime.clientSecret,
+        scopes: runtime.scopes,
+        disableSignUp: runtime.disableSignUp,
+      })
+    );
   }
   return providers;
+}
+
+function assertApplicationAccountLinkingPolicy(policy: {
+  disableImplicitLinking: boolean;
+  trustedProviders: readonly ApplicationAuthProviderName[];
+}): void {
+  if (
+    policy.trustedProviders.length > 0 &&
+    !policy.disableImplicitLinking
+  ) {
+    throw new Error(
+      "Trusted social providers require implicit account linking to remain disabled"
+    );
+  }
 }
 
 function createEmailDeliveryCallbacks(

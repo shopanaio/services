@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { makeSignature } from "better-auth/crypto";
 import type { FastifyRequest } from "fastify";
 import type { ApplicationAuthFactoryRuntime } from "../../../../auth/ApplicationAuthFactory.js";
+import type { ApplicationAuthProviderName } from "../../../../auth/applicationSocialProviders.js";
 import type { ApplicationAuthSecretService } from "../../../../services/ApplicationAuthSecretService.js";
 import type { ApplicationAuthorizationContextRepository } from "../../../../repositories/ApplicationAuthorizationContextRepository.js";
 import type { ApplicationOAuthClientRepository } from "../../../../repositories/ApplicationOAuthClientRepository.js";
@@ -34,8 +35,7 @@ export type ApplicationAuthorizationContextAction =
   | "verification-resend"
   | "email-otp-request"
   | "email-otp-verify"
-  | "social-signin:google"
-  | "social-signin:facebook"
+  | `social-signin:${ApplicationAuthProviderName}`
   | "consent";
 
 export interface ActiveApplicationAuthorizationContext {

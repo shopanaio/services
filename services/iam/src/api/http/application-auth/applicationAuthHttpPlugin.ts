@@ -5,6 +5,10 @@ import type {
 } from "fastify";
 import { z } from "zod";
 import type { ApplicationAuthFactoryRuntime } from "../../../auth/ApplicationAuthFactory.js";
+import {
+  parseApplicationAuthProviderName,
+  type ApplicationAuthProviderName,
+} from "../../../auth/applicationSocialProviders.js";
 import type { Kernel } from "../../../kernel/Kernel.js";
 import type { ApplicationAuthAuditReasonCategory } from "../../../services/ApplicationAuthAuditService.js";
 import { ApplicationAuthRateLimitError } from "../../../services/ApplicationAuthRateLimiter.js";
@@ -29,6 +33,7 @@ import {
   assertApplicationAuthPreflightMethod,
   isApplicationAuthRouteAllowed,
   normalizeApplicationAuthRelativePath,
+  resolveAllowedSocialCallbackProvider,
   routeRequiresForcedRevisionCheck,
 } from "./routeManifest.js";
 import { ApplicationAuthHostedUiController } from "./ui/ApplicationAuthHostedUiController.js";
@@ -173,6 +178,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         validateApplicationAuthRequestBody({
           method: "GET",
           normalizedPath,
+          socialCallback: false,
           raw,
           contentEncoding: request.headers["content-encoding"],
         });
@@ -194,18 +200,25 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
       ) {
         throw notFound();
       }
+      const socialCallbackProvider =
+        resolveAllowedSocialCallbackProvider({
+          method: request.method,
+          normalizedPath,
+          manifest: runtime.routeManifest,
+        });
 
       const allowedOrigin = assertAllowedOrigin(
         request,
         runtime,
         options.publicBaseUrl,
-        normalizedPath.startsWith("/callback/")
+        socialCallbackProvider !== null
       );
       applyCorsResponseHeaders(reply, allowedOrigin);
       reply.header("x-request-id", String(request.id));
       validateApplicationAuthRequestBody({
         method: request.method,
         normalizedPath,
+        socialCallback: socialCallbackProvider !== null,
         raw,
         contentEncoding: request.headers["content-encoding"],
       });
@@ -280,10 +293,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
       try {
         response = await runtime.auth.handler(fetchRequest);
       } catch (error) {
-        if (
-          normalizedPath === "/callback/google" ||
-          normalizedPath === "/callback/facebook"
-        ) {
+        if (socialCallbackProvider) {
           await options.kernel.applicationAuthAudit.record({
             action: "provider_callback",
             outcome: "failure",
@@ -293,9 +303,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
             applicationId: runtime.applicationId,
             secretKeyVersion: runtime.secretKeyVersion,
             requestId: String(request.id),
-            provider: normalizedPath.endsWith("/google")
-              ? "google"
-              : "facebook",
+            provider: socialCallbackProvider,
           });
         }
         if (emailOtpStartedAt !== undefined) {
@@ -326,16 +334,11 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
           authorizationHeader: request.headers.authorization,
         });
       }
-      if (
-        normalizedPath === "/callback/google" ||
-        normalizedPath === "/callback/facebook"
-      ) {
+      if (socialCallbackProvider) {
         await auditSocialProviderCallback({
           kernel: options.kernel,
           runtime,
-          provider: normalizedPath.endsWith("/google")
-            ? "google"
-            : "facebook",
+          provider: socialCallbackProvider,
           requestId: String(request.id),
           response,
         });
@@ -369,6 +372,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
       validateApplicationAuthRequestBody({
         method: request.method,
         normalizedPath: "/.well-known/oauth-authorization-server",
+        socialCallback: false,
         raw,
         contentEncoding: request.headers["content-encoding"],
       });
@@ -551,13 +555,13 @@ function assertEffectiveRequestPolicy(
         "Social sign-in request is invalid"
       );
     }
-    const provider = body.provider;
-    if (
-      typeof provider !== "string" ||
-      !runtime.routeManifest.allowedSocialProviders.includes(
-        provider as "google" | "facebook"
-      )
-    ) {
+    let provider: ApplicationAuthProviderName;
+    try {
+      provider = parseApplicationAuthProviderName(body.provider);
+    } catch {
+      throw notFound();
+    }
+    if (!runtime.routeManifest.allowedSocialProviders.includes(provider)) {
       throw notFound();
     }
   }
@@ -580,7 +584,7 @@ function assertEffectiveRequestPolicy(
 async function auditSocialProviderCallback(input: {
   kernel: Kernel;
   runtime: ApplicationAuthFactoryRuntime;
-  provider: "google" | "facebook";
+  provider: ApplicationAuthProviderName;
   requestId: string;
   response: Response;
 }): Promise<void> {

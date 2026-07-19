@@ -1,4 +1,7 @@
-import type { ApplicationAuthProviderName } from "../repositories/models/application-auth.js";
+import {
+  parseApplicationAuthProviderName,
+  type ApplicationAuthProviderName,
+} from "./applicationSocialProviders.js";
 import type { EffectiveApplicationAuthPolicy } from "./applicationAuthConfiguration.js";
 import { APPLICATION_AUTH_UI_STYLE_PATH } from "../api/http/application-auth/ui/assets.js";
 
@@ -81,6 +84,14 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
   emailVerificationEnabled: boolean;
   enabledSocialProviders: readonly ApplicationAuthProviderName[];
 }): EffectiveApplicationAuthRouteManifest {
+  const enabledSocialProviders = input.enabledSocialProviders.map(
+    parseApplicationAuthProviderName
+  );
+  if (
+    new Set(enabledSocialProviders).size !== enabledSocialProviders.length
+  ) {
+    throw new Error("Enabled application social providers are duplicated");
+  }
   const allowedRoutes = [...OAUTH_PROTOCOL_ROUTES, ...HOSTED_UI_BASE_ROUTES];
 
   if (input.policy.passwordSignInAllowed) {
@@ -128,10 +139,10 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
       exact("POST", "/sign-in/email-otp")
     );
   }
-  if (input.enabledSocialProviders.length > 0) {
+  if (enabledSocialProviders.length > 0) {
     allowedRoutes.push(exact("POST", "/sign-in/social"));
     allowedRoutes.push(exact("POST", "/login/social"));
-    for (const provider of input.enabledSocialProviders) {
+    for (const provider of enabledSocialProviders) {
       allowedRoutes.push(
         {
           method: "GET",
@@ -153,7 +164,7 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
       allowedRoutes.map((route) => Object.freeze({ ...route }))
     ),
     allowedSocialProviders: Object.freeze([
-      ...input.enabledSocialProviders,
+      ...enabledSocialProviders,
     ]),
   });
 }

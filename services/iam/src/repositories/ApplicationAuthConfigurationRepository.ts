@@ -9,13 +9,22 @@ import {
   applicationAuthDeliveryProfileSchema,
   applicationAuthMutableConfigurationSchema,
   applicationAuthProviderCredentialsSchema,
+  applicationAuthProviderScopesSchema,
+  applicationAuthProviderStateSchema,
   createApplicationResource,
   normalizeApplicationAuthOrigin,
   type ApplicationAuthConfigurationPatch,
   type ApplicationAuthDeliveryProfileInput,
   type ApplicationAuthMutableConfiguration,
   type ApplicationAuthProviderCredentialsInput,
+  type ApplicationAuthProviderStateInput,
 } from "../auth/applicationAuthConfiguration.js";
+import {
+  APPLICATION_AUTH_PROVIDER_NAMES,
+  assertApplicationSocialProviderScopes,
+  parseApplicationAuthProviderName,
+  type ApplicationAuthProviderName,
+} from "../auth/applicationSocialProviders.js";
 import { assertApplicationId } from "../auth/AuthScope.js";
 import { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
 import {
@@ -40,7 +49,6 @@ import {
   type ApplicationAuthConfigurationRecord,
   type ApplicationAuthDeliveryProfile,
   type ApplicationAuthOrigin,
-  type ApplicationAuthProviderName,
 } from "./models/index.js";
 
 export interface ProvisionApplicationInput {
@@ -84,9 +92,18 @@ export interface ApplicationAuthProviderSummary {
 
 export interface ApplicationAuthProviderCredentials
   extends ApplicationAuthProviderSummary {
+  enabled: true;
   clientId: string;
   clientSecret: string;
 }
+
+export type ApplicationAuthConfiguredProvider =
+  | ApplicationAuthProviderCredentials
+  | (ApplicationAuthProviderSummary & {
+      enabled: false;
+      clientId?: never;
+      clientSecret?: never;
+    });
 
 export class ApplicationAuthConfigurationRepository extends BaseRepository {
   constructor(
@@ -175,8 +192,6 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         email_verification_required,
         email_otp_sign_in_enabled,
         email_otp_sign_up_enabled,
-        google_enabled,
-        facebook_enabled,
         consent_mode,
         access_token_ttl_seconds,
         id_token_ttl_seconds,
@@ -196,8 +211,6 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         false,
         false,
         true,
-        false,
-        false,
         false,
         false,
         'explicit',
@@ -279,8 +292,6 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       emailVerificationRequired: current.emailVerificationRequired,
       emailOtpSignInEnabled: current.emailOtpSignInEnabled,
       emailOtpSignUpEnabled: current.emailOtpSignUpEnabled,
-      googleEnabled: current.googleEnabled,
-      facebookEnabled: current.facebookEnabled,
       consentMode: current.consentMode,
       accessTokenTtlSeconds: current.accessTokenTtlSeconds,
       idTokenTtlSeconds: current.idTokenTtlSeconds,
@@ -520,45 +531,167 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async readProviderCredentials(
+  async listConfiguredProviders(
+    applicationId: string
+  ): Promise<ApplicationAuthConfiguredProvider[]> {
+    assertApplicationId(applicationId);
+    const records = await this.connection
+      .select()
+      .from(applicationAuthProvider)
+      .where(
+        eq(applicationAuthProvider.applicationId, applicationId)
+      );
+    return records
+      .map((record) => {
+        if (record.applicationId !== applicationId) {
+          throw new Error("Application auth provider scope mismatch");
+        }
+        const summary = providerSummary(record);
+        this.keyring.assertVersionsAvailable([record.secretKeyVersion]);
+        if (
+          this.keyring.getEnvelopeKeyVersion(record.encryptedClientId) !==
+            record.secretKeyVersion ||
+          this.keyring.getEnvelopeKeyVersion(record.encryptedClientSecret) !==
+            record.secretKeyVersion
+        ) {
+          throw new Error("Application auth provider key version mismatch");
+        }
+        if (!summary.enabled) {
+          return { ...summary, enabled: false as const };
+        }
+
+        const clientId = this.keyring.decrypt(record.encryptedClientId, {
+          applicationId,
+          model: "provider",
+          provider: summary.provider,
+          field: "clientId",
+        });
+        const clientSecret = this.keyring.decrypt(
+          record.encryptedClientSecret,
+          {
+            applicationId,
+            model: "provider",
+            provider: summary.provider,
+            field: "clientSecret",
+          }
+        );
+        const validated = applicationAuthProviderCredentialsSchema.parse({
+          provider: summary.provider,
+          enabled: true,
+          clientId,
+          clientSecret,
+          scopes: summary.scopes,
+          updatedBy: summary.updatedBy,
+        });
+        return {
+          ...summary,
+          enabled: true as const,
+          clientId: validated.clientId,
+          clientSecret: validated.clientSecret,
+          scopes: validated.scopes,
+        };
+      })
+      .sort(
+        (left, right) =>
+          APPLICATION_AUTH_PROVIDER_NAMES.indexOf(left.provider) -
+          APPLICATION_AUTH_PROVIDER_NAMES.indexOf(right.provider)
+      );
+  }
+
+  @Transactional()
+  async removeProvider(
     applicationId: string,
     provider: ApplicationAuthProviderName
-  ): Promise<ApplicationAuthProviderCredentials | null> {
+  ): Promise<boolean> {
     assertApplicationId(applicationId);
-    const [record] = await this.connection
+    const validProvider = parseApplicationAuthProviderName(provider);
+    const rows = await this.connection
+      .delete(applicationAuthProvider)
+      .where(
+        and(
+          eq(applicationAuthProvider.applicationId, applicationId),
+          eq(applicationAuthProvider.provider, validProvider),
+          eq(applicationAuthProvider.enabled, false)
+        )
+      )
+      .returning({ id: applicationAuthProvider.id });
+    if (rows.length === 1) await this.bumpRevision(applicationId);
+    return rows.length === 1;
+  }
+
+  @Transactional()
+  async setProviderEnabled(
+    applicationId: string,
+    input: ApplicationAuthProviderStateInput
+  ): Promise<ApplicationAuthProviderSummary> {
+    assertApplicationId(applicationId);
+    const value = applicationAuthProviderStateSchema.parse(input);
+    const [current] = await this.connection
       .select()
       .from(applicationAuthProvider)
       .where(
         and(
           eq(applicationAuthProvider.applicationId, applicationId),
-          eq(applicationAuthProvider.provider, provider)
+          eq(applicationAuthProvider.provider, value.provider)
         )
       )
       .limit(1);
-    if (!record) return null;
+    if (!current) {
+      throw new Error("Application auth provider is not configured");
+    }
+    const summary = providerSummary(current);
+    this.keyring.assertVersionsAvailable([current.secretKeyVersion]);
     if (
-      this.keyring.getEnvelopeKeyVersion(record.encryptedClientId) !==
-        record.secretKeyVersion ||
-      this.keyring.getEnvelopeKeyVersion(record.encryptedClientSecret) !==
-        record.secretKeyVersion
+      this.keyring.getEnvelopeKeyVersion(current.encryptedClientId) !==
+        current.secretKeyVersion ||
+      this.keyring.getEnvelopeKeyVersion(current.encryptedClientSecret) !==
+        current.secretKeyVersion
     ) {
       throw new Error("Application auth provider key version mismatch");
     }
-    return {
-      ...providerSummary(record),
-      clientId: this.keyring.decrypt(record.encryptedClientId, {
-        applicationId,
-        model: "provider",
-        provider,
-        field: "clientId",
-      }),
-      clientSecret: this.keyring.decrypt(record.encryptedClientSecret, {
-        applicationId,
-        model: "provider",
-        provider,
-        field: "clientSecret",
-      }),
-    };
+    if (value.enabled) {
+      applicationAuthProviderCredentialsSchema.parse({
+        provider: summary.provider,
+        enabled: true,
+        clientId: this.keyring.decrypt(current.encryptedClientId, {
+          applicationId,
+          model: "provider",
+          provider: summary.provider,
+          field: "clientId",
+        }),
+        clientSecret: this.keyring.decrypt(
+          current.encryptedClientSecret,
+          {
+            applicationId,
+            model: "provider",
+            provider: summary.provider,
+            field: "clientSecret",
+          }
+        ),
+        scopes: summary.scopes,
+        updatedBy: value.updatedBy,
+      });
+    }
+    const [updated] = await this.connection
+      .update(applicationAuthProvider)
+      .set({
+        enabled: value.enabled,
+        updatedAt: new Date(),
+        updatedBy: value.updatedBy,
+      })
+      .where(
+        and(
+          eq(applicationAuthProvider.id, current.id),
+          eq(applicationAuthProvider.applicationId, applicationId),
+          eq(applicationAuthProvider.provider, value.provider)
+        )
+      )
+      .returning();
+    if (!updated) {
+      throw new Error("Application auth provider could not be updated");
+    }
+    await this.bumpRevision(applicationId);
+    return providerSummary(updated);
   }
 
   @Transactional()
@@ -654,16 +787,17 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .limit(batchSize);
     let providerCount = 0;
     for (const provider of providers) {
+      const providerName = providerSummary(provider).provider;
       const clientIdContext = {
         applicationId: provider.applicationId,
         model: "provider" as const,
-        provider: provider.provider,
+        provider: providerName,
         field: "clientId" as const,
       };
       const clientSecretContext = {
         applicationId: provider.applicationId,
         model: "provider" as const,
-        provider: provider.provider,
+        provider: providerName,
         field: "clientSecret" as const,
       };
       const encryptedClientId = this.keyring.reencrypt(
@@ -793,12 +927,18 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
 function providerSummary(
   record: typeof applicationAuthProvider.$inferSelect
 ): ApplicationAuthProviderSummary {
+  const provider = parseApplicationAuthProviderName(record.provider);
+  const scopes = applicationAuthProviderScopesSchema.parse(record.scopesJson);
+  if (new Set(scopes).size !== scopes.length) {
+    throw new Error("Application auth provider scopes are duplicated");
+  }
+  assertApplicationSocialProviderScopes(provider, scopes);
   return {
     id: record.id,
     applicationId: record.applicationId,
-    provider: record.provider,
+    provider,
     enabled: record.enabled,
-    scopes: record.scopesJson,
+    scopes,
     secretKeyVersion: record.secretKeyVersion,
     updatedAt: record.updatedAt,
     updatedBy: record.updatedBy,

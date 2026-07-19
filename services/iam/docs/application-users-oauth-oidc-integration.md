@@ -81,20 +81,35 @@ verification identifiers must not be used as backend keys, metrics labels or
 log fields. Send responses are generic for existing and absent users and use a
 minimum response floor to reduce account-enumeration timing differences.
 
-## Google/Facebook and account linking
+## Application social providers and account linking
 
-Google and Facebook credentials are loaded per application from encrypted
-`application_auth_provider` rows. The factory accepts only the approved scope
-allowlists and configures Better Auth with `account.encryptOAuthTokens=true`.
+Supported provider IDs, approved scopes, UI localization keys, email contracts,
+explicit-link trust metadata and typed Better Auth option builders live only in
+`src/auth/applicationSocialProviders.ts`. Google and Facebook are the current
+catalog entries; a syntactically valid database value is not supported unless
+it is present in this code-owned catalog.
+
+Credentials are loaded per application from encrypted
+`application_auth_provider` rows. `application_auth_provider.enabled` is the
+only persisted social enable switch; application auth configuration has no
+provider-specific flags. The repository reads the application-scoped provider
+collection in one query, rejects unknown IDs and unapproved scopes regardless
+of enabled state, validates envelope/key versions and decrypts credentials only
+for enabled providers. The factory configures Better Auth with
+`account.encryptOAuthTokens=true`.
 Provider credentials, provider responses and upstream access/refresh tokens
 must not be included in responses, operational logs or audit payloads.
 
 The hosted login page starts social sign-in with the same signed, one-time OAuth
 authorization context used by password and OTP flows. The public
-`/sign-in/social` boundary accepts only an enabled `google`/`facebook` provider
-and the signed `oauth_query`; caller-selected callback URLs, ID tokens, scopes,
-additional data and signup overrides are rejected. Provider callbacks remain
-exact per-provider manifest entries and force a configuration revision read.
+`/sign-in/social` boundary parses the provider through the catalog and accepts
+it only when it is also present in the effective manifest, together with the
+signed `oauth_query`; caller-selected callback URLs, ID tokens, scopes,
+additional data and signup overrides are rejected. Every enabled provider gets
+only exact `GET` and `POST /callback/{provider}` entries. The typed exact
+manifest matcher is shared by success/failure audit; callback wildcard and
+Better Auth fallback are forbidden. Provider callbacks force a configuration
+revision read.
 
 Application users manage links at:
 
@@ -112,6 +127,12 @@ override the IAM-calculated return URL or submit the ID-token linking branch.
 Link and unlink require a session created less than ten minutes ago. Better
 Auth also enforces `allowUnlinkingAll=false`, so the last stored login account
 cannot be removed.
+
+Connections UI is generated from catalog metadata plus the user's linked
+accounts. Credential accounts are not treated as social. A disabled but linked
+catalog provider remains visible for safe unlink, while an unknown linked
+provider fails closed as a data-integrity error and never receives a link
+action.
 
 Linking policy is fixed to `disableImplicitLinking=true`,
 `allowDifferentEmails=false`, `allowUnlinkingAll=false`,
@@ -168,6 +189,9 @@ therefore uses the following fail-closed cutover:
 3. Preflight `iam.application_jwks`. It must contain zero rows. The migration
    deliberately aborts if legacy plaintext application signing keys exist.
 4. Apply IAM migrations through `shopana-cli`.
+   Migration `0002` removes legacy `google_enabled`/`facebook_enabled`, widens
+   provider IDs to 64 characters and replaces the semantic DB enum CHECK with a
+   syntactic stable-ID CHECK; the code catalog remains the semantic allowlist.
 5. Verify every `iam.application` has exactly one
    `application_auth_configuration`; all backfilled realms must have
    `realm_enabled=false` and resource

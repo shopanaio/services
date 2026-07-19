@@ -8,6 +8,7 @@
 Связанные документы:
 
 - [План OAuth 2.1 / OpenID Connect для `application_users`](./application-users-oauth-oidc-implementation-plan.ru.md) — обязательная предыдущая работа;
+- [Рефакторинг application social providers](./application-social-providers-refactoring-plan.ru.md) — обязательный catalog-driven provider contract;
 - [План API управления OAuth clients](./application-oauth-client-management-api-plan.ru.md) — детализированный подплан OAuth client management;
 - [Compatibility и security spike OAuth Provider 1.6.23](./application-users-oauth-oidc-compatibility-spike.ru.md).
 
@@ -72,20 +73,31 @@ GraphQL resolvers следуют существующему IAM namespace и п�
 
 Update принимает ожидаемую `revision` для optimistic concurrency.
 
+Auth configuration не содержит `googleEnabled`, `facebookEnabled` или будущих
+provider-specific enable fields. Состояние social provider читается и изменяется
+только через отдельный generic provider contract; persisted source of truth —
+`application_auth_provider.enabled`.
+
 Для Storefront application создается доверенным IAM provisioning action из `StoreCreateSaga`. IAM генерирует `applicationId` и immutable `resource=urn:shopana:application:{applicationId}`; Store передает только trusted owner binding и idempotency context. `resource` возвращается Admin GraphQL только read-only и отсутствует во всех application/OAuth client mutation inputs. Обычной операции изменения resource нет; изменение namespace или audience является отдельной versioned protocol migration, а не административной настройкой.
 
 ### 5.2. Social providers
 
 Нужны операции:
 
-- configure Google/Facebook provider;
+- получить закрытый enum поддерживаемых provider IDs из code-owned catalog;
+- configure provider по этому enum без произвольных OAuth endpoints/options;
 - enable/disable provider;
 - rotate credentials;
 - удалить credentials только после disable;
 - получить status без secret;
 - опционально выполнить безопасную configuration validation.
 
-GraphQL response возвращает только `configured`, `enabled`, допустимую masked client-id форму, scopes, callback URL, `updatedAt` и `updatedBy`. Provider secret и upstream tokens никогда не возвращаются.
+GraphQL response возвращает только `provider`, `supported`, `configured`,
+`enabled`, допустимую masked client-id форму, scopes, exact callback URL,
+`updatedAt` и `updatedBy`. Provider secret и upstream tokens никогда не
+возвращаются. Unknown provider отклоняется на GraphQL/domain boundary через
+тот же code-owned catalog; Admin API не принимает authorization/token/profile
+endpoints или произвольные Better Auth options.
 
 ### 5.3. OAuth clients
 
@@ -122,6 +134,741 @@ require_pkce = true
 - получить security metadata без PII из других applications.
 
 Администратор не может получить password hash, OTP, provider token, session token, authorization code или refresh token. Unlink не может удалить последний доступный login method.
+
+### 5.5. Полный GraphQL SDL
+
+```graphql
+enum ApplicationLifecycleStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ApplicationRegistrationMode {
+  OPEN
+  DISABLED
+}
+
+enum ApplicationConsentMode {
+  EXPLICIT
+}
+
+enum ApplicationAuthLocale {
+  EN
+  UK
+  RU
+}
+
+enum ApplicationAuthPrimaryColor {
+  BLUE
+  INDIGO
+  VIOLET
+  EMERALD
+}
+
+enum ApplicationAuthBackgroundColor {
+  WHITE
+  SLATE
+}
+
+enum ApplicationAuthProviderName {
+  GOOGLE
+  FACEBOOK
+}
+
+enum ApplicationAuthProviderValidationStatus {
+  VALID
+  INVALID
+  UNAVAILABLE
+}
+
+enum ApplicationOAuthClientType {
+  PUBLIC
+  CONFIDENTIAL
+}
+
+enum ApplicationOAuthClientEnvironment {
+  DEVELOPMENT
+  PRODUCTION
+}
+
+enum ApplicationOAuthTokenEndpointAuthMethod {
+  NONE
+  CLIENT_SECRET_BASIC
+}
+
+enum ApplicationUserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+type Application implements Node @key(fields: "id") {
+  id: ID!
+  organizationId: ID!
+  name: String!
+  displayName: String!
+  description: String
+  status: ApplicationLifecycleStatus!
+  resource: String!
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  archivedAt: DateTime
+}
+
+type ApplicationConnection {
+  edges: [ApplicationEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ApplicationEdge {
+  node: Application!
+  cursor: String!
+}
+
+input ApplicationWhereInput {
+  search: String
+  status: [ApplicationLifecycleStatus!]
+}
+
+enum ApplicationOrderField {
+  NAME
+  DISPLAY_NAME
+  CREATED_AT
+  UPDATED_AT
+}
+
+input ApplicationOrderByInput {
+  field: ApplicationOrderField!
+  direction: SortDirection!
+}
+
+type ApplicationAuthBranding {
+  displayName: String
+  headline: String
+  logoUrl: String
+  primaryColor: ApplicationAuthPrimaryColor
+  backgroundColor: ApplicationAuthBackgroundColor
+}
+
+type ApplicationAuthTrustedOrigin {
+  origin: String!
+  createdAt: DateTime!
+}
+
+type ApplicationAuthProviderCallbackUrl {
+  provider: ApplicationAuthProviderName!
+  url: String!
+}
+
+type ApplicationAuthProtocolUrls {
+  issuer: String!
+  oidcDiscoveryUrl: String!
+  oauthAuthorizationServerMetadataUrl: String!
+  authorizationUrl: String!
+  tokenUrl: String!
+  jwksUrl: String!
+  revocationUrl: String!
+  endSessionUrl: String!
+  providerCallbackUrls: [ApplicationAuthProviderCallbackUrl!]!
+}
+
+type ApplicationAuthEmailDeliveryConfiguration {
+  configured: Boolean!
+  transportProfile: String
+  senderIdentity: String
+  emailVerificationTemplateId: String
+  passwordResetTemplateId: String
+  emailOtpSignInTemplateId: String
+  updatedAt: DateTime
+  updatedBy: ID
+}
+
+type ApplicationAuthConfiguration {
+  applicationId: ID!
+  resource: String!
+  realmEnabled: Boolean!
+  registrationMode: ApplicationRegistrationMode!
+  passwordSignUpEnabled: Boolean!
+  passwordSignInEnabled: Boolean!
+  passwordResetEnabled: Boolean!
+  emailVerificationRequired: Boolean!
+  emailOtpSignInEnabled: Boolean!
+  emailOtpSignUpEnabled: Boolean!
+  consentMode: ApplicationConsentMode!
+  accessTokenTtlSeconds: Int!
+  idTokenTtlSeconds: Int!
+  refreshTokenTtlSeconds: Int!
+  sessionTtlSeconds: Int!
+  branding: ApplicationAuthBranding!
+  defaultLocale: ApplicationAuthLocale!
+  trustedOrigins: [ApplicationAuthTrustedOrigin!]!
+  protocolUrls: ApplicationAuthProtocolUrls!
+  emailDelivery: ApplicationAuthEmailDeliveryConfiguration!
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ApplicationAuthProvider {
+  applicationId: ID!
+  provider: ApplicationAuthProviderName!
+  supported: Boolean!
+  configured: Boolean!
+  enabled: Boolean!
+  maskedClientId: String
+  scopes: [String!]!
+  callbackUrl: String!
+  revision: Int!
+  updatedAt: DateTime
+  updatedBy: ID
+}
+
+type ApplicationAuthProviderValidation {
+  provider: ApplicationAuthProviderName!
+  status: ApplicationAuthProviderValidationStatus!
+  reasonCode: String
+  checkedAt: DateTime!
+}
+
+type ApplicationOAuthClient implements Node {
+  id: ID!
+  organizationId: ID!
+  applicationId: ID!
+  clientId: String!
+  name: String!
+  clientType: ApplicationOAuthClientType!
+  environment: ApplicationOAuthClientEnvironment!
+  redirectUris: [String!]!
+  postLogoutRedirectUris: [String!]!
+  storeId: ID!
+  resources: [String!]!
+  grantTypes: [String!]!
+  responseTypes: [String!]!
+  tokenEndpointAuthMethod: ApplicationOAuthTokenEndpointAuthMethod!
+  requirePkce: Boolean!
+  protocolPolicyVersion: Int!
+  skipConsent: Boolean!
+  enableEndSession: Boolean!
+  disabled: Boolean!
+  archived: Boolean!
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  archivedAt: DateTime
+  createdBy: ID!
+  updatedBy: ID!
+}
+
+type ApplicationOAuthClientConnection {
+  edges: [ApplicationOAuthClientEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ApplicationOAuthClientEdge {
+  node: ApplicationOAuthClient!
+  cursor: String!
+}
+
+input ApplicationOAuthClientWhereInput {
+  search: String
+  clientType: [ApplicationOAuthClientType!]
+  environment: [ApplicationOAuthClientEnvironment!]
+  disabled: Boolean
+  archived: Boolean
+}
+
+enum ApplicationOAuthClientOrderField {
+  NAME
+  CREATED_AT
+  UPDATED_AT
+}
+
+input ApplicationOAuthClientOrderByInput {
+  field: ApplicationOAuthClientOrderField!
+  direction: SortDirection!
+}
+
+type ApplicationUser implements Node {
+  id: ID!
+  applicationId: ID!
+  name: String!
+  firstName: String
+  lastName: String
+  email: Email!
+  emailVerified: Boolean!
+  imageUrl: String
+  status: ApplicationUserStatus!
+  security: ApplicationUserSecurityMetadata!
+  linkedAccounts: [ApplicationUserLinkedAccount!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ApplicationUserSecurityMetadata {
+  activeSessionCount: Int!
+  linkedAccountCount: Int!
+  hasPasswordLogin: Boolean!
+}
+
+type ApplicationUserLinkedAccount implements Node {
+  id: ID!
+  provider: String!
+  isOnlyLoginMethod: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ApplicationUserConnection {
+  edges: [ApplicationUserEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ApplicationUserEdge {
+  node: ApplicationUser!
+  cursor: String!
+}
+
+input ApplicationUserWhereInput {
+  search: String
+  status: [ApplicationUserStatus!]
+  emailVerified: Boolean
+}
+
+enum ApplicationUserOrderField {
+  NAME
+  EMAIL
+  CREATED_AT
+  UPDATED_AT
+}
+
+input ApplicationUserOrderByInput {
+  field: ApplicationUserOrderField!
+  direction: SortDirection!
+}
+
+input ApplicationCreateInput {
+  organizationId: ID!
+  name: String!
+  displayName: String!
+  description: String
+}
+
+input ApplicationUpdateInput {
+  organizationId: ID!
+  applicationId: ID!
+  name: String
+  displayName: String
+  description: String
+  expectedRevision: Int!
+}
+
+input ApplicationArchiveInput {
+  organizationId: ID!
+  applicationId: ID!
+  expectedRevision: Int!
+}
+
+input ApplicationAuthBrandingInput {
+  displayName: String
+  headline: String
+  logoUrl: String
+  primaryColor: ApplicationAuthPrimaryColor
+  backgroundColor: ApplicationAuthBackgroundColor
+}
+
+input ApplicationAuthConfigurationUpdateInput {
+  organizationId: ID!
+  applicationId: ID!
+  registrationMode: ApplicationRegistrationMode
+  passwordSignUpEnabled: Boolean
+  passwordSignInEnabled: Boolean
+  passwordResetEnabled: Boolean
+  emailVerificationRequired: Boolean
+  emailOtpSignInEnabled: Boolean
+  emailOtpSignUpEnabled: Boolean
+  accessTokenTtlSeconds: Int
+  idTokenTtlSeconds: Int
+  refreshTokenTtlSeconds: Int
+  sessionTtlSeconds: Int
+  branding: ApplicationAuthBrandingInput
+  defaultLocale: ApplicationAuthLocale
+  expectedRevision: Int!
+}
+
+input ApplicationAuthRealmEnabledSetInput {
+  organizationId: ID!
+  applicationId: ID!
+  enabled: Boolean!
+  expectedRevision: Int!
+}
+
+input ApplicationAuthTrustedOriginsReplaceInput {
+  organizationId: ID!
+  applicationId: ID!
+  origins: [String!]!
+  expectedRevision: Int!
+}
+
+input ApplicationAuthEmailDeliveryUpdateInput {
+  organizationId: ID!
+  applicationId: ID!
+  transportProfile: String!
+  senderIdentity: String!
+  emailVerificationTemplateId: String!
+  passwordResetTemplateId: String!
+  emailOtpSignInTemplateId: String!
+  expectedRevision: Int!
+}
+
+input ApplicationAuthProviderConfigureInput {
+  organizationId: ID!
+  applicationId: ID!
+  provider: ApplicationAuthProviderName!
+  clientId: String!
+  clientSecret: String!
+  scopes: [String!]!
+  expectedRevision: Int!
+}
+
+input ApplicationAuthProviderUpdateInput {
+  organizationId: ID!
+  applicationId: ID!
+  provider: ApplicationAuthProviderName!
+  scopes: [String!]!
+  expectedRevision: Int!
+}
+
+input ApplicationAuthProviderEnabledSetInput {
+  organizationId: ID!
+  applicationId: ID!
+  provider: ApplicationAuthProviderName!
+  enabled: Boolean!
+  expectedRevision: Int!
+}
+
+input ApplicationAuthProviderCredentialsRotateInput {
+  organizationId: ID!
+  applicationId: ID!
+  provider: ApplicationAuthProviderName!
+  clientId: String!
+  clientSecret: String!
+  expectedRevision: Int!
+}
+
+input ApplicationAuthProviderCredentialsDeleteInput {
+  organizationId: ID!
+  applicationId: ID!
+  provider: ApplicationAuthProviderName!
+  expectedRevision: Int!
+}
+
+input ApplicationAuthProviderValidateInput {
+  organizationId: ID!
+  applicationId: ID!
+  provider: ApplicationAuthProviderName!
+  expectedRevision: Int!
+}
+
+input ApplicationOAuthClientCreateInput {
+  organizationId: ID!
+  applicationId: ID!
+  name: String!
+  clientType: ApplicationOAuthClientType!
+  environment: ApplicationOAuthClientEnvironment!
+  redirectUris: [String!]!
+  postLogoutRedirectUris: [String!]
+  storeId: ID!
+  skipConsent: Boolean
+  enableEndSession: Boolean
+}
+
+input ApplicationOAuthClientUpdateInput {
+  organizationId: ID!
+  applicationId: ID!
+  clientId: String!
+  name: String
+  environment: ApplicationOAuthClientEnvironment
+  redirectUris: [String!]
+  postLogoutRedirectUris: [String!]
+  storeId: ID
+  enableEndSession: Boolean
+  expectedRevision: Int!
+}
+
+input ApplicationOAuthClientEnabledSetInput {
+  organizationId: ID!
+  applicationId: ID!
+  clientId: String!
+  enabled: Boolean!
+  expectedRevision: Int!
+}
+
+input ApplicationOAuthClientSkipConsentSetInput {
+  organizationId: ID!
+  applicationId: ID!
+  clientId: String!
+  skipConsent: Boolean!
+  expectedRevision: Int!
+}
+
+input ApplicationOAuthClientSecretRotateInput {
+  organizationId: ID!
+  applicationId: ID!
+  clientId: String!
+  expectedRevision: Int!
+}
+
+input ApplicationOAuthClientArchiveInput {
+  organizationId: ID!
+  applicationId: ID!
+  clientId: String!
+  expectedRevision: Int!
+}
+
+input ApplicationUserStatusSetInput {
+  organizationId: ID!
+  applicationId: ID!
+  userId: ID!
+}
+
+input ApplicationUserSessionsRevokeAllInput {
+  organizationId: ID!
+  applicationId: ID!
+  userId: ID!
+}
+
+input ApplicationUserAccountUnlinkInput {
+  organizationId: ID!
+  applicationId: ID!
+  userId: ID!
+  accountId: ID!
+}
+
+type ApplicationCreatePayload {
+  application: Application
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationUpdatePayload {
+  application: Application
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationArchivePayload {
+  application: Application
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationAuthConfigurationUpdatePayload {
+  configuration: ApplicationAuthConfiguration
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationAuthProviderPayload {
+  provider: ApplicationAuthProvider
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationAuthProviderValidationPayload {
+  validation: ApplicationAuthProviderValidation
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationOAuthClientPayload {
+  client: ApplicationOAuthClient
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationOAuthClientCreatePayload {
+  client: ApplicationOAuthClient
+  clientSecret: String
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationOAuthClientSecretRotatePayload {
+  client: ApplicationOAuthClient
+  clientSecret: String
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationUserPayload {
+  user: ApplicationUser
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationUserSessionsRevokeAllPayload {
+  user: ApplicationUser
+  revokedCount: Int!
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationUserAccountUnlinkPayload {
+  user: ApplicationUser
+  unlinkedAccountId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type ApplicationQuery {
+  applications(
+    organizationId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationWhereInput
+    orderBy: [ApplicationOrderByInput!]
+  ): ApplicationConnection!
+
+  application(organizationId: ID!, applicationId: ID!): Application
+
+  applicationAuthConfiguration(
+    organizationId: ID!
+    applicationId: ID!
+  ): ApplicationAuthConfiguration
+
+  applicationAuthProviders(
+    organizationId: ID!
+    applicationId: ID!
+  ): [ApplicationAuthProvider!]!
+
+  applicationAuthProvider(
+    organizationId: ID!
+    applicationId: ID!
+    provider: ApplicationAuthProviderName!
+  ): ApplicationAuthProvider
+
+  applicationOAuthClients(
+    organizationId: ID!
+    applicationId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationOAuthClientWhereInput
+    orderBy: [ApplicationOAuthClientOrderByInput!]
+  ): ApplicationOAuthClientConnection!
+
+  applicationOAuthClient(
+    organizationId: ID!
+    applicationId: ID!
+    clientId: String!
+  ): ApplicationOAuthClient
+
+  applicationUsers(
+    organizationId: ID!
+    applicationId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationUserWhereInput
+    orderBy: [ApplicationUserOrderByInput!]
+  ): ApplicationUserConnection!
+
+  applicationUser(
+    organizationId: ID!
+    applicationId: ID!
+    userId: ID!
+  ): ApplicationUser
+}
+
+type ApplicationMutation {
+  applicationCreate(input: ApplicationCreateInput!): ApplicationCreatePayload!
+  applicationUpdate(input: ApplicationUpdateInput!): ApplicationUpdatePayload!
+  applicationArchive(input: ApplicationArchiveInput!): ApplicationArchivePayload!
+
+  applicationAuthConfigurationUpdate(
+    input: ApplicationAuthConfigurationUpdateInput!
+  ): ApplicationAuthConfigurationUpdatePayload!
+
+  applicationAuthRealmEnabledSet(
+    input: ApplicationAuthRealmEnabledSetInput!
+  ): ApplicationAuthConfigurationUpdatePayload!
+
+  applicationAuthTrustedOriginsReplace(
+    input: ApplicationAuthTrustedOriginsReplaceInput!
+  ): ApplicationAuthConfigurationUpdatePayload!
+
+  applicationAuthEmailDeliveryUpdate(
+    input: ApplicationAuthEmailDeliveryUpdateInput!
+  ): ApplicationAuthConfigurationUpdatePayload!
+
+  applicationAuthProviderConfigure(
+    input: ApplicationAuthProviderConfigureInput!
+  ): ApplicationAuthProviderPayload!
+
+  applicationAuthProviderUpdate(
+    input: ApplicationAuthProviderUpdateInput!
+  ): ApplicationAuthProviderPayload!
+
+  applicationAuthProviderEnabledSet(
+    input: ApplicationAuthProviderEnabledSetInput!
+  ): ApplicationAuthProviderPayload!
+
+  applicationAuthProviderCredentialsRotate(
+    input: ApplicationAuthProviderCredentialsRotateInput!
+  ): ApplicationAuthProviderPayload!
+
+  applicationAuthProviderCredentialsDelete(
+    input: ApplicationAuthProviderCredentialsDeleteInput!
+  ): ApplicationAuthProviderPayload!
+
+  applicationAuthProviderValidate(
+    input: ApplicationAuthProviderValidateInput!
+  ): ApplicationAuthProviderValidationPayload!
+
+  applicationOAuthClientCreate(
+    input: ApplicationOAuthClientCreateInput!
+  ): ApplicationOAuthClientCreatePayload!
+
+  applicationOAuthClientUpdate(
+    input: ApplicationOAuthClientUpdateInput!
+  ): ApplicationOAuthClientPayload!
+
+  applicationOAuthClientEnabledSet(
+    input: ApplicationOAuthClientEnabledSetInput!
+  ): ApplicationOAuthClientPayload!
+
+  applicationOAuthClientSkipConsentSet(
+    input: ApplicationOAuthClientSkipConsentSetInput!
+  ): ApplicationOAuthClientPayload!
+
+  applicationOAuthClientSecretRotate(
+    input: ApplicationOAuthClientSecretRotateInput!
+  ): ApplicationOAuthClientSecretRotatePayload!
+
+  applicationOAuthClientArchive(
+    input: ApplicationOAuthClientArchiveInput!
+  ): ApplicationOAuthClientPayload!
+
+  applicationUserBlock(
+    input: ApplicationUserStatusSetInput!
+  ): ApplicationUserPayload!
+
+  applicationUserUnblock(
+    input: ApplicationUserStatusSetInput!
+  ): ApplicationUserPayload!
+
+  applicationUserSessionsRevokeAll(
+    input: ApplicationUserSessionsRevokeAllInput!
+  ): ApplicationUserSessionsRevokeAllPayload!
+
+  applicationUserAccountUnlink(
+    input: ApplicationUserAccountUnlinkInput!
+  ): ApplicationUserAccountUnlinkPayload!
+}
+
+extend type Query {
+  applicationQuery: ApplicationQuery!
+}
+
+extend type Mutation {
+  applicationMutation: ApplicationMutation!
+}
+```
 
 ## 6. Permissions и audit
 
@@ -233,7 +980,8 @@ Admin audit record имеет closed versioned schema с `recordId`, `schemaVers
 
 ### Этап 2. Providers
 
-1. Добавить provider status/configuration mutations.
+1. Добавить generic provider status/configuration mutations с закрытым enum,
+   синхронизированным с code-owned catalog.
 2. Реализовать enable/disable и credential rotation.
 3. Добавить безопасную validation operation без раскрытия credentials/tokens.
 4. Подключить cache invalidation и durable admin audit records через `ApplicationAuthAdminAuditPort`.
@@ -271,6 +1019,9 @@ Admin audit record имеет closed versioned schema с `recordId`, `schemaVers
 - GraphQL возвращает ровно один application resource read-only и не принимает его через application/OAuth client input;
 - Store provisioning input не принимает resource, а IAM формирует его как `urn:shopana:application:{applicationId}`;
 - provider secrets/tokens отсутствуют в GraphQL/logs/errors/audit;
+- unknown provider enum/value отклоняется до repository mutation;
+- provider нельзя enable без сохраненных credentials, catalog-approved scopes и
+  provider-specific security validation;
 - config revision предотвращает lost update;
 - confidential client secret показывается только при create/rotate;
 - rotation инвалидирует старый secret;
@@ -323,3 +1074,5 @@ e2e/tests/iam-api/application-auth-admin/*
 9. Все security-sensitive writes явно аудируются через `ApplicationAuthAdminAuditPort`; durable audit failure отклоняет/откатывает mutation, а operational `ApplicationAuthAuditService` сохраняет best-effort protocol semantics.
 10. Все operations используют зарегистрированную пару `org.* resource + read|write|admin`; standard organization `admin` и custom roles получают ожидаемые permissions после Casbin cache invalidation.
 11. Organization admin может полностью настроить realm без прямой работы с БД или конфигурационными файлами.
+12. Добавление catalog-approved provider не создает отдельный GraphQL field,
+    application configuration column или provider-specific mutation.

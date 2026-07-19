@@ -1,9 +1,8 @@
 import type {
   ApplicationAuthConfigurationRecord,
   ApplicationAuthDeliveryProfile,
-  ApplicationAuthProviderName,
 } from "../repositories/models/application-auth.js";
-import type { ApplicationAuthProviderCredentials } from "../repositories/ApplicationAuthConfigurationRepository.js";
+import type { ApplicationAuthConfiguredProvider } from "../repositories/ApplicationAuthConfigurationRepository.js";
 import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
 import type { ApplicationAuthEmailDeliveryPort } from "../services/ApplicationAuthEmailDeliveryPort.js";
 import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
@@ -14,9 +13,14 @@ import {
   applicationAuthDeliveryProfileSchema,
   applicationAuthMutableConfigurationSchema,
   applicationAuthProviderCredentialsSchema,
+  applicationAuthProviderScopesSchema,
   calculateEffectiveApplicationAuthPolicy,
   normalizeApplicationAuthOrigin,
 } from "./applicationAuthConfiguration.js";
+import {
+  assertApplicationSocialProviderScopes,
+  parseApplicationAuthProviderName,
+} from "./applicationSocialProviders.js";
 import {
   createApplicationAuth,
   type ApplicationAuth,
@@ -35,10 +39,9 @@ export interface ApplicationAuthConfigurationSource {
     (ApplicationAuthConfigurationRecord & { organizationId: string }) | null
   >;
   listOrigins(applicationId: string): Promise<Array<{ origin: string }>>;
-  readProviderCredentials(
-    applicationId: string,
-    provider: ApplicationAuthProviderName
-  ): Promise<ApplicationAuthProviderCredentials | null>;
+  listConfiguredProviders(
+    applicationId: string
+  ): Promise<ApplicationAuthConfiguredProvider[]>;
   findDeliveryProfile(
     applicationId: string
   ): Promise<ApplicationAuthDeliveryProfile | null>;
@@ -234,9 +237,9 @@ export class ApplicationAuthFactory {
       emailDelivery: this.options.emailDelivery,
       liveStateInvalidation: this.options.liveStateInvalidation,
     });
-    const enabledSocialProviders = (
-      ["google", "facebook"] as const
-    ).filter((provider) => configuration.providers[provider] !== undefined);
+    const enabledSocialProviders = configuration.providers.map(
+      ({ provider }) => provider
+    );
     const routeManifest = createEffectiveApplicationAuthRouteManifest({
       policy: configuration.policy,
       emailVerificationEnabled:
@@ -255,12 +258,11 @@ export class ApplicationAuthFactory {
       issuer: `${configuration.publicBaseUrl}/auth/applications/${applicationId}`,
       policy: Object.freeze({
         ...configuration.policy,
-        socialSignInAllowed: Object.freeze({
-          ...configuration.policy.socialSignInAllowed,
-        }),
-        socialSignUpAllowed: Object.freeze({
-          ...configuration.policy.socialSignUpAllowed,
-        }),
+        socialProviders: Object.freeze(
+          configuration.policy.socialProviders.map((provider) =>
+            Object.freeze({ ...provider })
+          )
+        ),
       }),
       branding: Object.freeze({ ...configuration.branding }),
       defaultLocale: configuration.defaultLocale,
@@ -297,8 +299,6 @@ export class ApplicationAuthFactory {
         emailVerificationRequired: initial.emailVerificationRequired,
         emailOtpSignInEnabled: initial.emailOtpSignInEnabled,
         emailOtpSignUpEnabled: initial.emailOtpSignUpEnabled,
-        googleEnabled: initial.googleEnabled,
-        facebookEnabled: initial.facebookEnabled,
         consentMode: initial.consentMode,
         accessTokenTtlSeconds: initial.accessTokenTtlSeconds,
         idTokenTtlSeconds: initial.idTokenTtlSeconds,
@@ -307,37 +307,55 @@ export class ApplicationAuthFactory {
         brandingJson: initial.brandingJson,
         defaultLocale: initial.defaultLocale,
       });
-      const policy = calculateEffectiveApplicationAuthPolicy(initial);
-      const providerNames = (["google", "facebook"] as const).filter(
-        (provider) => policy.socialSignInAllowed[provider]
-      );
-      const [origins, deliveryProfile, providerEntries] = await Promise.all([
+      const [origins, deliveryProfile, configuredProviders] = await Promise.all([
         this.configurations.listOrigins(applicationId),
         this.configurations.findDeliveryProfile(applicationId),
-        Promise.all(
-          providerNames.map(async (provider) => {
-            const credentials =
-              await this.configurations.readProviderCredentials(
-                applicationId,
-                provider
-              );
-            if (!credentials?.enabled) {
-              throw new Error(
-                `Enabled ${provider} provider configuration is unavailable`
-              );
-            }
-            applicationAuthProviderCredentialsSchema.parse({
-              provider,
-              enabled: credentials.enabled,
-              clientId: credentials.clientId,
-              clientSecret: credentials.clientSecret,
-              scopes: credentials.scopes,
-              updatedBy: credentials.updatedBy,
-            });
-            return [provider, credentials] as const;
-          })
-        ),
+        this.configurations.listConfiguredProviders(applicationId),
       ]);
+      this.keyring.assertVersionsAvailable(
+        configuredProviders.map(({ secretKeyVersion }) => secretKeyVersion)
+      );
+      const providerEntries = configuredProviders.map((configuration) => {
+        if (configuration.applicationId !== applicationId) {
+          throw new Error("Application auth provider scope mismatch");
+        }
+        const provider = parseApplicationAuthProviderName(
+          configuration.provider
+        );
+        const scopes = applicationAuthProviderScopesSchema.parse(
+          configuration.scopes
+        );
+        if (new Set(scopes).size !== scopes.length) {
+          throw new Error("Application auth provider scopes are duplicated");
+        }
+        assertApplicationSocialProviderScopes(provider, scopes);
+        if (!configuration.enabled) {
+          return Object.freeze({
+            provider,
+            enabled: false as const,
+            scopes: Object.freeze([...scopes]),
+          });
+        }
+        const validated = applicationAuthProviderCredentialsSchema.parse({
+          provider,
+          enabled: true,
+          clientId: configuration.clientId,
+          clientSecret: configuration.clientSecret,
+          scopes,
+          updatedBy: configuration.updatedBy,
+        });
+        return Object.freeze({
+          provider,
+          enabled: true as const,
+          clientId: validated.clientId,
+          clientSecret: validated.clientSecret,
+          scopes: Object.freeze([...validated.scopes]),
+        });
+      });
+      const policy = calculateEffectiveApplicationAuthPolicy(
+        initial,
+        providerEntries
+      );
       const trustedOrigins = origins.map(({ origin }) => {
         const normalized = normalizeApplicationAuthOrigin(origin, {
           allowInsecureLocalhost: process.env.NODE_ENV !== "production",
@@ -370,17 +388,24 @@ export class ApplicationAuthFactory {
         );
       }
 
-      const providers = Object.fromEntries(
-        providerEntries.map(([provider, credentials]) => [
-          provider,
-          {
-            provider,
-            clientId: credentials.clientId,
-            clientSecret: credentials.clientSecret,
-            scopes: credentials.scopes,
-          },
-        ])
-      ) as ApplicationAuthRuntimeConfiguration["providers"];
+      const providers = Object.freeze(
+        providerEntries.flatMap((provider) => {
+          if (!provider.enabled) return [];
+          const providerPolicy = policy.socialProviders.find(
+            (candidate) => candidate.provider === provider.provider
+          );
+          if (!providerPolicy?.signInAllowed) return [];
+          return [
+            Object.freeze({
+              provider: provider.provider,
+              clientId: provider.clientId,
+              clientSecret: provider.clientSecret,
+              scopes: provider.scopes,
+              disableSignUp: !providerPolicy.signUpAllowed,
+            }),
+          ];
+        })
+      );
 
       return {
         applicationId,

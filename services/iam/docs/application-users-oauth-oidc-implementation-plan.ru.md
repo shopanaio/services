@@ -11,8 +11,14 @@
 Связанные документы:
 
 - [Compatibility и security spike OAuth 2.1 / OIDC для `application_users`](./application-users-oauth-oidc-compatibility-spike.ru.md);
+- [Catalog-driven рефакторинг application social providers](./application-social-providers-refactoring-plan.ru.md);
 - [Последующий план реализации Admin API для application auth](./application-auth-admin-api-implementation-plan.ru.md);
 - [План реализации API управления OAuth clients в IAM](./application-oauth-client-management-api-plan.ru.md).
+
+Исторические Google/Facebook v1 acceptance statements ниже фиксируют исходный
+functional/security baseline. Актуальная структура реализации, persisted
+enable state и процесс подключения будущего provider определяются отдельным
+catalog-driven refactoring decision; он не ослабляет эти v1-инварианты.
 
 ### Критерий готовности настоящего плана
 

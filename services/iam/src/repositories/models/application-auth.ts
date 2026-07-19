@@ -19,7 +19,6 @@ import { iamSchema } from "./schema.js";
 export type ApplicationUserStatus = "active" | "blocked";
 export type ApplicationRegistrationMode = "open" | "disabled";
 export type ApplicationConsentMode = "explicit";
-export type ApplicationAuthProviderName = "google" | "facebook";
 export type ApplicationOAuthClientEnvironment = "development" | "production";
 export type ApplicationAuthorizationStep = "login" | "consent";
 
@@ -290,8 +289,6 @@ export const applicationAuthConfiguration = iamSchema.table(
     emailOtpSignUpEnabled: boolean("email_otp_sign_up_enabled")
       .notNull()
       .default(false),
-    googleEnabled: boolean("google_enabled").notNull().default(false),
-    facebookEnabled: boolean("facebook_enabled").notNull().default(false),
     consentMode: varchar("consent_mode", { length: 16 })
       .$type<ApplicationConsentMode>()
       .notNull()
@@ -423,9 +420,7 @@ export const applicationAuthProvider = iamSchema.table(
     applicationId: uuid("application_id")
       .notNull()
       .references(() => application.id, { onDelete: "cascade" }),
-    provider: varchar("provider", { length: 16 })
-      .$type<ApplicationAuthProviderName>()
-      .notNull(),
+    provider: varchar("provider", { length: 64 }).notNull(),
     enabled: boolean("enabled").notNull().default(false),
     encryptedClientId: text("encrypted_client_id").notNull(),
     encryptedClientSecret: text("encrypted_client_secret").notNull(),
@@ -453,7 +448,7 @@ export const applicationAuthProvider = iamSchema.table(
     ),
     check(
       "application_auth_provider_name_check",
-      sql`${table.provider} IN ('google', 'facebook')`
+      sql`${table.provider} ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'`
     ),
     check(
       "application_auth_provider_ciphertext_check",

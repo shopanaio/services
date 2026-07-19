@@ -9,6 +9,13 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { createLocalJWKSet, decodeJwt, jwtVerify, type JSONWebKeySet } from "jose";
 import { z } from "zod";
 import type { ApplicationAuthFactoryRuntime } from "../../../../auth/ApplicationAuthFactory.js";
+import {
+  APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH,
+  APPLICATION_AUTH_PROVIDER_NAMES,
+  getApplicationSocialProviderDefinition,
+  parseApplicationAuthProviderName,
+  type ApplicationAuthProviderName,
+} from "../../../../auth/applicationSocialProviders.js";
 import type { Kernel } from "../../../../kernel/Kernel.js";
 import type { ApplicationAuthAuditReasonCategory } from "../../../../services/ApplicationAuthAuditService.js";
 import { normalizeApplicationAuthEmailRecipient } from "../../../../services/ApplicationAuthEmailDeliveryPort.js";
@@ -298,9 +305,10 @@ export class ApplicationAuthHostedUiController {
             ${hiddenInput("csrf", await socialCsrf)}
             ${hiddenInput("provider", provider)}
             <button class="button-secondary" type="submit">${escapeHtml(
-              provider === "google"
-                ? t("continueWithGoogle")
-                : t("continueWithFacebook")
+              t(
+                getApplicationSocialProviderDefinition(provider)
+                  .continueLabelKey
+              )
             )}</button>
           </form>`
         )
@@ -328,7 +336,12 @@ export class ApplicationAuthHostedUiController {
   private async postSocialSignIn(input: HandlerInput): Promise<void> {
     const form = parseForm(input.raw);
     const provider = parseSocialProvider(
-      singleFormValue(form, "provider", 6, 8)
+      singleFormValue(
+        form,
+        "provider",
+        1,
+        APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH
+      )
     );
     if (!input.runtime.routeManifest.allowedSocialProviders.includes(provider)) {
       throw uiNotFound();
@@ -911,15 +924,31 @@ export class ApplicationAuthHostedUiController {
     const query = parseRawSearchParams(input.raw.rawQuery);
     const hasError = query.getAll("error").length > 0;
     const updated = query.getAll("updated").length === 1;
-    const providers = (["google", "facebook"] as const)
+    const socialAccounts = accounts.flatMap((account) => {
+      if (account.providerId === "credential") return [];
+      try {
+        return [
+          {
+            ...account,
+            provider: parseApplicationAuthProviderName(account.providerId),
+          },
+        ];
+      } catch {
+        throw new ApplicationAuthRequestError(
+          "Application accounts are unavailable"
+        );
+      }
+    });
+    const providers = APPLICATION_AUTH_PROVIDER_NAMES
       .map((provider) => {
-        const matches = accounts.filter(
-          (account) => account.providerId === provider
+        const matches = socialAccounts.filter(
+          (account) => account.provider === provider
         );
         const enabled =
           input.runtime.routeManifest.allowedSocialProviders.includes(provider);
-        const label =
-          provider === "google" ? t("googleProvider") : t("facebookProvider");
+        const label = t(
+          getApplicationSocialProviderDefinition(provider).providerLabelKey
+        );
         if (matches.length === 0 && !enabled) return "";
         if (matches.length === 1) {
           const unlink = fresh
@@ -994,7 +1023,12 @@ export class ApplicationAuthHostedUiController {
   private async postAccountConnectionLink(input: HandlerInput): Promise<void> {
     const form = parseForm(input.raw);
     const provider = parseSocialProvider(
-      singleFormValue(form, "provider", 6, 8)
+      singleFormValue(
+        form,
+        "provider",
+        1,
+        APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH
+      )
     );
     let session: ApplicationAuthCurrentSession;
     try {
@@ -1093,7 +1127,12 @@ export class ApplicationAuthHostedUiController {
   private async postAccountConnectionUnlink(input: HandlerInput): Promise<void> {
     const form = parseForm(input.raw);
     const provider = parseSocialProvider(
-      singleFormValue(form, "provider", 6, 8)
+      singleFormValue(
+        form,
+        "provider",
+        1,
+        APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH
+      )
     );
     let session: ApplicationAuthCurrentSession;
     try {
@@ -1216,7 +1255,7 @@ export class ApplicationAuthHostedUiController {
       action: "account_link" | "account_unlink";
       outcome: "success" | "failure";
       reasonCategory: ApplicationAuthAuditReasonCategory;
-      provider: "google" | "facebook";
+      provider: ApplicationAuthProviderName;
       actorId?: string;
     }
   ): Promise<void> {
@@ -1796,11 +1835,12 @@ function parseForm(raw: RawApplicationAuthRequest): URLSearchParams {
   return parseRawSearchParams(raw.body.toString("utf8"));
 }
 
-function parseSocialProvider(value: string): "google" | "facebook" {
-  if (value !== "google" && value !== "facebook") {
+function parseSocialProvider(value: string): ApplicationAuthProviderName {
+  try {
+    return parseApplicationAuthProviderName(value);
+  } catch {
     throw new ApplicationAuthRequestError("Social provider is invalid");
   }
-  return value;
 }
 
 function isFreshApplicationSession(createdAt: Date): boolean {

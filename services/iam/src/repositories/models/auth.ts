@@ -75,7 +75,7 @@ export const account = iamSchema.table(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     accountId: text("account_id").notNull(),
-    providerId: text("provider_id").notNull(), // "credential", "google", "github", etc.
+    providerId: text("provider_id").notNull(), // "credential" or a catalog-owned social provider ID.
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
     accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),

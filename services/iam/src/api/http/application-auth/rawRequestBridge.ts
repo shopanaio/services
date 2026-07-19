@@ -76,6 +76,7 @@ export function readRawApplicationAuthRequest(
 export function validateApplicationAuthRequestBody(input: {
   method: string;
   normalizedPath: string;
+  socialCallback: boolean;
   raw: RawApplicationAuthRequest;
   contentEncoding: string | string[] | undefined;
 }): void {
@@ -94,7 +95,10 @@ export function validateApplicationAuthRequestBody(input: {
     return;
   }
 
-  const policy = contentPolicyFor(input.normalizedPath);
+  const policy = contentPolicyFor(
+    input.normalizedPath,
+    input.socialCallback
+  );
   const body = input.raw.body;
   if (policy === "none") {
     if (body && body.length > 0) {
@@ -227,7 +231,8 @@ export async function sendApplicationAuthFetchResponse(
 }
 
 function contentPolicyFor(
-  normalizedPath: string
+  normalizedPath: string,
+  socialCallback: boolean
 ): "none" | "form" | "json" | "form-or-json" {
   if (
     normalizedPath === "/oauth2/token" ||
@@ -237,7 +242,7 @@ function contentPolicyFor(
     return "form";
   }
   if (normalizedPath === "/oauth2/userinfo") return "none";
-  if (normalizedPath.startsWith("/callback/")) return "form-or-json";
+  if (socialCallback) return "form-or-json";
   if (
     normalizedPath === "/login/password" ||
     normalizedPath === "/signup/password" ||

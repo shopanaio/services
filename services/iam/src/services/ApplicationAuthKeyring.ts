@@ -4,6 +4,7 @@ import {
   randomBytes,
   timingSafeEqual,
 } from "node:crypto";
+import type { ApplicationAuthProviderName } from "../auth/applicationSocialProviders.js";
 
 const ENVELOPE_PREFIX = "iam-auth-keyring.v1";
 const KEY_BYTES = 32;
@@ -14,7 +15,7 @@ export type ApplicationAuthEncryptionContext =
   | {
       applicationId: string;
       model: "provider";
-      provider: "google" | "facebook";
+      provider: ApplicationAuthProviderName;
       field: "clientId" | "clientSecret";
     }
   | {
