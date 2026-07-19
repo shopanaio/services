@@ -172,11 +172,11 @@ IAM предоставляет собственные login, signup, OTP, provid
 
 ### 5.5. Административное управление
 
-Dynamic Client Registration в первой версии выключен. OAuth client создается и меняется только организационным администратором через Admin GraphQL, а серверная операция выполняется через Better Auth admin API.
+Dynamic Client Registration в первой версии выключен. OAuth client создается и меняется только организационным администратором через Admin GraphQL. Единственный серверный путь v1: `ApplicationOAuthClientManagementService` → application-scoped repository поверх plugin-compatible таблиц.
 
 Публичный application realm не предоставляет Better Auth endpoint управления OAuth clients. Отключение Dynamic Client Registration само по себе недостаточно: OAuth Provider также содержит session-authenticated endpoint создания, чтения, изменения, удаления и ротации secret клиента. Fastify boundary обязан отклонять их до вызова `auth.handler`, даже если у request есть действующая `application_session`.
 
-Admin GraphQL вызывает server-side методы Better Auth (`adminCreateOAuthClient`, `adminUpdateOAuthClient`) напрямую внутри IAM process после Casbin и ownership checks. Для ротации/удаления этап 0 обязан подтвердить наличие server-only API установленной версии; если его нет, используется отдельный IAM internal management service поверх plugin-compatible repository, а не session-authenticated публичный endpoint. Platform admin credential/cookie не передается в публичный application handler, application user session не имперсонируется, а server-side операции не экспонируются как HTTP endpoint application realm.
+Admin GraphQL после Casbin и organization/application ownership checks вызывает `ApplicationOAuthClientManagementService`. Service выполняет create/update/delete/rotate через application-scoped repository в IAM transaction и сохраняет plugin-compatible формат данных. `adminCreateOAuthClient`, `adminUpdateOAuthClient` и session-authenticated public client-management endpoints в v1 не используются. Platform admin credential/cookie не передается в публичный application handler, application user session не имперсонируется, а internal management service не экспонируется как HTTP endpoint application realm.
 
 Это позволяет IAM дополнительно проверять:
 
@@ -381,7 +381,7 @@ PKCE нельзя отключать. Для browser/mobile client исполь�
 - `passwordSignInEnabled`;
 - `emailVerificationRequired`;
 - `passwordResetEnabled`;
-- `registrationMode`: `open | invite_only | disabled`.
+- `registrationMode`: `open | disabled`.
 
 ### 8.2. Email OTP/passwordless
 
@@ -456,7 +456,7 @@ Provider configuration включает:
 | `application_id` | PK/FK на `iam.application` |
 | `revision` | монотонная версия для cache invalidation |
 | `resource` | единственный канонический OAuth resource/audience application |
-| `registration_mode` | `open`, `invite_only`, `disabled` |
+| `registration_mode` | `open`, `disabled` |
 | `password_sign_up_enabled` | регистрация password |
 | `password_sign_in_enabled` | вход password |
 | `email_verification_required` | обязательная проверка email |
@@ -665,7 +665,7 @@ GraphQL response возвращает только:
 
 ### 12.3. OAuth clients
 
-Все операции ниже доступны только через Admin GraphQL. Resolver выполняет Casbin/organization/application checks и затем вызывает подтвержденный server-only Better Auth API либо IAM internal management service; application user session никогда не авторизует эти операции через публичный HTTP handler.
+Все операции ниже доступны только через Admin GraphQL. Resolver выполняет Casbin/organization/application checks и затем вызывает `ApplicationOAuthClientManagementService`, который работает только через application-scoped repository. Application user session никогда не авторизует эти операции через публичный HTTP handler.
 
 - list/get clients;
 - create public/confidential client;
@@ -958,7 +958,7 @@ Security/operational события без секретов:
 1. Добавить exact dependency `@better-auth/oauth-provider@1.6.23`.
 2. Зафиксировать generated schema и endpoint paths установленной версии.
 3. Классифицировать каждый endpoint полного Better Auth instance, включая OAuth Provider, password, emailOTP и social plugins, как public protocol/hosted-flow или internal/forbidden и зафиксировать default-deny manifest по method + normalized pathname.
-4. Подтвердить, что session-authenticated client-management endpoint недоступны application users, а server-side admin API вызывается без их публичной экспозиции.
+4. Подтвердить, что session-authenticated client-management endpoint недоступны application users, а все admin operations выполняются только через `ApplicationOAuthClientManagementService` и application-scoped repository без публичной HTTP-экспозиции.
 5. Подтвердить Fastify integration, path-prefixed issuer и multi-cookie responses.
 6. Проверить возможность application scoping всех plugin models через текущий adapter.
 7. Подтвердить application-scoped `resource`, поведение `validAudiences: [application.resource]`, отсутствие resource binding в plugin и необходимость `ApplicationOAuthResourcePolicyGuard` для authorize/code exchange/refresh.
@@ -1183,7 +1183,7 @@ Hosted UI следует разместить в выбранном для IAM w
 
 - разрешенные signup/signin работают;
 - выключенный method недоступен и в UI, и прямым HTTP вызовом;
-- registration disabled/invite-only enforced server-side;
+- registration disabled enforced server-side;
 - generic response одинаков для существующего/несуществующего email;
 - OTP истекает, ротируется, имеет limit и одноразовый;
 - email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`;
@@ -1265,7 +1265,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] Неизвестные и выключенные OAuth/password/OTP/social endpoint возвращают `404` до `auth.handler`.
 - [ ] Application auth и Admin GraphQL зарегистрированы как sibling plugins одного Fastify instance/listener; GraphQL admin middleware не применяется к auth routes.
 - [ ] Reverse proxy публикует только утвержденные auth/metadata paths и не публикует IAM `/graphql` во внешний network boundary.
-- [ ] Admin GraphQL вызывает server-side OAuth client API только после Casbin и organization/application ownership checks.
+- [ ] Admin GraphQL после Casbin и organization/application ownership checks вызывает только `ApplicationOAuthClientManagementService`, работающий через application-scoped repository.
 - [ ] Redirect/post-logout URI проверяются точным совпадением.
 - [ ] Issuer строится из server config, не request Host.
 - [ ] Все OAuth plugin модели application-scoped.
