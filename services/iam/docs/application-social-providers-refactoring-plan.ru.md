@@ -101,7 +101,6 @@ Shopana IAM остается владельцем:
 ### 4.4. Secrets и audit
 
 - Client secret и upstream provider tokens не возвращаются из runtime/Admin API и не попадают в logs, audit, traces или errors.
-- Рефакторинг не меняет envelope format и не требует пере-шифрования существующих Google/Facebook credentials.
 - Audit принимает typed provider ID из уже сопоставленного manifest route, а не извлекает provider через небезопасный wildcard.
 - Provider error остается безопасным и не раскрывает upstream response/token/internal exception.
 
@@ -267,9 +266,7 @@ type ApplicationAuthorizationContextAction =
 - Enable/disable, credential rotation, scope update и delete provider invalidируют runtime во всех replicas через существующий revision/invalidation contract.
 - Cached runtime не может пережить disable provider дольше установленного revision window; callback и refresh-sensitive routes продолжают использовать принудительную revision check там, где это уже требуется.
 
-## 7. Миграция данных
-
-### 7.1. Целевой schema contract
+## 7. Целевой schema contract
 
 1. Удалить `google_enabled` и `facebook_enabled` из `application_auth_configuration`.
 2. Увеличить допустимую длину `application_auth_provider.provider` до заранее утвержденного generic лимита, например 64 символов.
@@ -278,29 +275,6 @@ type ApplicationAuthorizationContextAction =
 5. Сохранить unique `(application_id, provider)`, application FK, encrypted envelope и scope constraints.
 
 DB не должен автоматически считать любую синтаксически допустимую строку поддерживаемым provider. Любой unknown row приводит к fail-closed через repository/factory validation; retired provider поэтому остается известным definition до завершения lifecycle cleanup.
-
-### 7.2. Preflight reconciliation
-
-До удаления старых flags migration обязана обнаружить состояния, которые текущий runtime уже считает неконсистентными:
-
-- `google_enabled=true`, но Google row отсутствует;
-- `facebook_enabled=true`, но Facebook row отсутствует;
-- configuration flag равен `true`, но соответствующий provider row имеет `enabled=false`;
-- enabled row содержит неизвестный provider, неразрешенные scopes или недоступный key version.
-
-Такая migration не должна молча превращать broken enabled provider в disabled. Preflight завершается ошибкой до schema contraction, а данные исправляются отдельной контролируемой operation.
-
-После успешного preflight:
-
-- для Google/Facebook `application_auth_provider.enabled` приводится к фактически действовавшему состоянию старого runtime;
-- factory переключается на provider table как единственный источник истины;
-- только после build и contract verification старые columns удаляются.
-
-Проект пока не имеет stage/production data или users, поэтому допускается один maintenance cutover. Если до реализации появится rolling deployment или реальные данные, migration разбивается на expand/switch/contract releases. Временный dual-read/dual-write разрешен только как migration adapter и удаляется в contract release.
-
-### 7.3. Crypto compatibility
-
-Provider ID остается частью AAD. Для существующих Google/Facebook rows строка provider не меняется, поэтому ciphertext не пере-шифровывается. Изменяется только TypeScript type encryption context. Contract-проверка обязана расшифровать credentials, созданные до рефакторинга, и подтвердить невозможность расшифровки под другим `applicationId`, provider или field.
 
 ## 8. Этапы реализации
 
@@ -317,17 +291,16 @@ Provider ID остается частью AAD. Для существующих G
 Задачи:
 
 1. Зафиксировать текущие Google/Facebook options, scopes, callback methods, signup gates, linking policy и UI/audit behavior.
-2. Составить полный inventory hardcoded provider IDs через `rg` по `services/iam/src`, schema/migrations и IAM docs.
+2. Составить полный inventory hardcoded provider IDs через `rg` по `services/iam/src`, schema definitions и IAM docs.
 3. Утвердить точный `ApplicationSocialProviderDefinition`.
 4. Утвердить политику unknown и retired provider IDs.
 5. Утвердить single source of truth: `application_auth_provider.enabled`.
-6. Зафиксировать migration preflight и отсутствие ciphertext re-encryption.
 
 Артефакты:
 
 - baseline contract matrix Google/Facebook;
 - утвержденный provider definition type;
-- список разрешенных мест, где provider-specific IDs могут оставаться: каталог, migrations, provider-specific compatibility fixtures и documentation.
+- список разрешенных мест, где provider-specific IDs могут оставаться: каталог, schema definitions, provider-specific compatibility fixtures и documentation.
 
 Негативные сценарии:
 
@@ -338,7 +311,7 @@ Provider ID остается частью AAD. Для существующих G
 - provider row другой application;
 - callback provider отсутствует в effective manifest.
 
-Критерий выхода: все поля definition и migration semantics определены без открытых решений; Google/Facebook baseline имеет проверяемый snapshot/contract.
+Критерий выхода: все поля definition определены без открытых решений; Google/Facebook baseline имеет проверяемый snapshot/contract.
 
 ### Этап 1. Ввести единый code-owned каталог без изменения поведения
 
@@ -371,29 +344,26 @@ Provider ID остается частью AAD. Для существующих G
 
 Задачи:
 
-1. Добавить migration preflight неконсистентных legacy flags/rows.
-2. Переключить domain configuration schema с `googleEnabled/facebookEnabled` на generic provider state.
-3. Добавить repository operation для application-scoped list configured/enabled providers.
-4. Валидировать provider IDs и scopes через каталог на write/read boundaries.
-5. Переключить `calculateEffectiveApplicationAuthPolicy()` на generic provider list/map.
-6. Удалить `google_enabled` и `facebook_enabled` из Drizzle model и БД после switch verification.
-7. Заменить enumerating DB CHECK синтаксическим provider ID constraint.
-8. Сохранить bump revision для всех provider mutations.
+1. Переключить domain configuration schema с `googleEnabled/facebookEnabled` на generic provider state.
+2. Добавить repository operation для application-scoped list configured/enabled providers.
+3. Валидировать provider IDs и scopes через каталог на write/read boundaries.
+4. Переключить `calculateEffectiveApplicationAuthPolicy()` на generic provider list/map.
+5. Удалить `google_enabled` и `facebook_enabled` из Drizzle model и БД.
+6. Заменить enumerating DB CHECK синтаксическим provider ID constraint.
+7. Сохранить bump revision для всех provider mutations.
 
 Артефакты:
 
-- schema migration;
+- обновленная схема БД;
 - generic repository contract;
-- обновленные Zod/domain schemas;
-- migration reconciliation report.
+- обновленные Zod/domain schemas.
 
 Негативные сценарии:
 
 - provider configuration другой application не читается;
 - unknown provider row закрывает runtime;
 - missing/corrupt credentials закрывают enabled provider;
-- disabled row не попадает в Better Auth composition или route manifest;
-- migration прекращается при legacy inconsistency.
+- disabled row не попадает в Better Auth composition или route manifest.
 
 Критерий выхода: persisted enable state существует только в `application_auth_provider.enabled`; provider-specific columns отсутствуют; tenant isolation и revision bump подтверждены.
 
@@ -516,18 +486,17 @@ Provider ID остается частью AAD. Для существующих G
 2. Проверить Facebook absent/unverified email, explicit linking trust boundary и safe failure.
 3. Проверить cross-application credentials/account/callback isolation.
 4. Проверить unknown, disabled, unconfigured и unapproved-scope providers.
-5. Проверить pre-refactor ciphertext compatibility.
-6. Проверить exact route manifest snapshot.
-7. Выполнить IAM build через `shopana-cli`.
-8. Выполнить статический поиск запрещенных hardcoded provider lists.
-9. Создать contract report рефакторинга.
-10. Сгенерировать changeset штатным механизмом, если он требуется; changeset вручную не редактировать.
+5. Проверить exact route manifest snapshot.
+6. Выполнить IAM build через `shopana-cli`.
+7. Выполнить статический поиск запрещенных hardcoded provider lists.
+8. Создать contract report рефакторинга.
+9. Сгенерировать changeset штатным механизмом, если он требуется; changeset вручную не редактировать.
 
 Разрешенные остаточные упоминания `google`/`facebook` после cleanup:
 
 - provider catalog definitions;
 - provider-specific compatibility contracts/fixtures;
-- migrations, которые переносят legacy columns;
+- historical schema files и snapshots;
 - localization values;
 - историческая и security документация.
 
@@ -561,7 +530,6 @@ Provider ID остается частью AAD. Для существующих G
 | Link с stale session | Отклонен |
 | Unlink последнего login method | Отклонен |
 | Provider disable/reconfigure | Revision увеличен, cached runtime инвалидирован |
-| Legacy Google/Facebook ciphertext | Расшифровывается только с исходным application/provider/field AAD |
 | Error/audit snapshot | Не содержит client secret, upstream token, code, state или raw provider response |
 
 ## 10. Acceptance criteria
@@ -578,10 +546,9 @@ Provider ID остается частью AAD. Для существующих G
 8. Provider-specific scopes и security metadata находятся только в catalog definition.
 9. Google/Facebook functional и security behavior совпадает с baseline.
 10. Cross-application isolation подтверждена на repository, factory, callback и account boundaries.
-11. Existing encrypted credentials совместимы без re-encryption.
-12. Admin API plan использует generic provider contract и не вводит provider-specific fields.
-13. Для подключения нового встроенного Better Auth provider не требуется редактировать core factory, HTTP callback branching, Hosted UI branching или добавлять provider-specific DB column.
-14. IAM build проходит; contract report создан; secrets отсутствуют в output snapshots.
+11. Admin API plan использует generic provider contract и не вводит provider-specific fields.
+12. Для подключения нового встроенного Better Auth provider не требуется редактировать core factory, HTTP callback branching, Hosted UI branching или добавлять provider-specific DB column.
+13. IAM build проходит; contract report создан; secrets отсутствуют в output snapshots.
 
 ## 11. Риски и меры контроля
 
@@ -589,25 +556,14 @@ Provider ID остается частью AAD. Для существующих G
 | --- | --- |
 | Generic registry случайно превращается в permissive arbitrary OAuth | Только compile-time definitions; Admin API не принимает endpoints/options |
 | Удаление DB enum CHECK позволяет unknown row | Semantic catalog validation на write/read; runtime fail-closed; syntactic DB CHECK |
-| Миграция меняет effective enable state | Preflight reconciliation; switch до drop columns; отсутствие silent repair |
 | Provider-specific Better Auth options имеют разные типы | Отдельный typed builder на definition; без broad `any` |
 | Новый provider не возвращает verified email | Обязательный compatibility/security contract до catalog activation |
 | Trusted provider расширяет implicit linking | `disableImplicitLinking=true` фиксирован; trust default false; отдельный invariant assertion |
 | Retired provider ломает existing accounts | Definition не удаляется до lifecycle review; retired state сохраняет безопасный unlink/display contract |
 | Callback matcher становится wildcard | Exact manifest entry остается источником provider resolution |
 | Runtime использует stale provider после disable | Revision bump, invalidation и force revision check на sensitive routes |
-| Изменение type ломает encrypted credentials | Provider string/AAD не меняются; legacy decrypt contract обязателен |
 
-## 12. Rollout и rollback
-
-1. До schema contraction код каталога должен поддерживать текущие Google/Facebook данные.
-2. Preflight выполняется до удаления legacy columns.
-3. Factory switch и build/contract verification выполняются до contract migration.
-4. До удаления columns rollback означает возврат к предыдущему factory read path без изменения ciphertext.
-5. После удаления columns rollback требует обратной migration, восстанавливающей flags из `application_auth_provider.enabled`; поэтому contract migration выполняется только после полного критерия выхода предыдущих этапов.
-6. При появлении реальных сред до реализации используется expand/switch/contract rollout без смешивания несовместимых application versions.
-
-## 13. Checklist подключения будущего provider
+## 12. Checklist подключения будущего provider
 
 После завершения рефакторинга каждый новый provider проходит одинаковый процесс:
 
