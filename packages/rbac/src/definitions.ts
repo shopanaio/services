@@ -41,6 +41,11 @@ export const Resources = {
       displayName: "Access",
       description: "Member access to stores",
     },
+    "org.application-oauth-clients": {
+      actions: Actions,
+      displayName: "Application OAuth clients",
+      description: "Application OAuth client lifecycle and secrets",
+    },
   },
   store: {
     "store.profile": {
@@ -119,6 +124,7 @@ export const Roles = {
       { resource: "org.roles", action: "admin" },
       { resource: "org.stores", action: "admin" },
       { resource: "org.access", action: "admin" },
+      { resource: "org.application-oauth-clients", action: "admin" },
       { resource: "store.profile", action: "admin" },
       { resource: "store.members", action: "admin" },
       { resource: "store.roles", action: "admin" },

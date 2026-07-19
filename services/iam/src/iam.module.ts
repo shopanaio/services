@@ -36,6 +36,33 @@ export {
   type ApplicationAuthAuditEvent,
 } from "./services/ApplicationAuthAuditService.js";
 export {
+  APPLICATION_AUTH_ADMIN_AUDIT_PORT,
+  type ApplicationAuthAdminAuditPort,
+  type ApplicationAuthAdminAuditRecord,
+  type ApplicationAuthAdminAuditAction,
+} from "./services/ApplicationAuthAdminAuditPort.js";
+export {
+  ApplicationOAuthClientManagementService,
+  ApplicationOAuthClientManagementError,
+  type ApplicationOAuthClient,
+  type ApplicationOAuthClientAdminActor,
+  type ApplicationOAuthClientCacheInvalidator,
+  type ApplicationOAuthClientFirstPartyPolicy,
+  type ApplicationOAuthClientTransactionRunner,
+  type ListOAuthClientsInput,
+  type GetOAuthClientInput,
+  type CreateOAuthClientInput,
+  type CreateOAuthClientResult,
+  type UpdateOAuthClientInput,
+  type SetOAuthClientEnabledInput,
+  type SetOAuthClientSkipConsentInput,
+  type RotateOAuthClientSecretInput,
+  type RotateSecretResult,
+  type ArchiveOAuthClientInput,
+  type OAuthClientPage,
+} from "./services/ApplicationOAuthClientManagementService.js";
+export { OAuthClientSecretCodec } from "./services/OAuthClientSecretCodec.js";
+export {
   ApplicationTokenValidationService,
   type ApplicationTokenValidationResult,
   type ApplicationTokenValidationReasonCategory,

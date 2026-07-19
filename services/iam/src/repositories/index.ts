@@ -40,6 +40,11 @@ export {
 export {
   ApplicationOAuthClientRepository,
   type ActiveApplicationOAuthClientPolicy,
+  type ApplicationOAuthClientManagementScope,
+  type ManagedApplicationOAuthClient,
+  type ManagedApplicationOAuthClientPage,
+  type ManagedApplicationOAuthClientType,
+  type ManagedApplicationOAuthClientEnvironment,
 } from "./ApplicationOAuthClientRepository.js";
 export {
   ApplicationTokenValidationRepository,
