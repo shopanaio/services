@@ -259,12 +259,12 @@ Allowed origins берутся из application configuration и сопоста�
    - точным `redirect_uri`;
    - `response_type=code`;
    - `scope=openid profile email offline_access customer-account-api:full`;
-   - `resource={STOREFRONT_RESOURCE_AUDIENCE}`;
+   - `resource={application.resource}`;
    - `state`;
    - `nonce`;
    - `code_challenge`;
    - `code_challenge_method=S256`.
-4. IAM проверяет OAuth client, требует единственный канонический Storefront resource, сверяет его с `oauthProvider.validAudiences` и разрешенными resources клиента и сохраняет authorization context.
+4. IAM загружает единственный настроенный для application resource, проверяет OAuth client, требует точного совпадения входного `resource` с `application.resource`, сверяет его с `oauthProvider.validAudiences` и resource клиента и сохраняет authorization context.
 5. Если application-сессии нет, IAM показывает hosted login UI.
 6. Пользователь выбирает разрешенный application способ входа.
 7. Better Auth создает/проверяет `application_user`, account и session.
@@ -272,8 +272,8 @@ Allowed origins берутся из application configuration и сопоста�
 9. IAM возвращает одноразовый authorization code на зарегистрированный callback вместе со `state`.
 10. Клиент проверяет `state` и обменивает code + `code_verifier` на token, повторно передавая тот же `resource`; contract не допускает смену или расширение resource между authorize и token request.
 11. Клиент проверяет ID token: signature, `iss`, `aud`, `exp`, `nonce`.
-12. Клиент проверяет, что access token имеет JWT-формат и `aud={STOREFRONT_RESOURCE_AUDIENCE}`, после чего отправляет его в Storefront API как bearer token.
-13. Refresh token используется только через `/oauth2/token` с тем же `resource`; новый access token сохраняет исходный Storefront resource/audience, а запрос другого resource отклоняется. Rotation/revocation контролирует plugin.
+12. Клиент проверяет, что access token имеет JWT-формат и `aud={application.resource}`, после чего отправляет его в Storefront API как bearer token.
+13. Refresh token используется только через `/oauth2/token` с тем же `resource`; новый access token сохраняет исходный application resource/audience, а запрос другого resource отклоняется. Rotation/revocation контролирует plugin.
 
 PKCE нельзя отключать. Для browser/mobile client используется public client с `token_endpoint_auth_method=none`. Для server-side client используется confidential client, PKCE и client authentication. Оба типа имеют только `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`; запрос `grant_type=client_credentials` отклоняется OAuth Provider как не разрешенный этому client.
 
@@ -470,6 +470,7 @@ Provider configuration включает:
 | --- | --- |
 | `application_id` | PK/FK на `iam.application` |
 | `revision` | монотонная версия для cache invalidation |
+| `resource` | единственный канонический OAuth resource/audience application |
 | `registration_mode` | `open`, `invite_only`, `disabled` |
 | `password_sign_up_enabled` | регистрация password |
 | `password_sign_in_enabled` | вход password |
@@ -496,6 +497,8 @@ Provider configuration включает:
 - session: 30 дней с серверной ревокацией.
 
 Администратор может менять значения только в заранее заданных безопасных диапазонах. Конфигурация не должна позволять отключить PKCE, state/nonce validation, redirect validation или token signature.
+
+`resource` обязателен до создания первого OAuth client и задается администратором application через Admin GraphQL. Для одной application разрешено ровно одно значение: массив или несколько resource не поддерживаются. Значение должно быть абсолютным HTTPS URI, нормализуется один раз без trailing slash, не строится из request `Host` и должно быть уникальным среди активных applications. Изменение resource является security-sensitive mutation: IAM атомарно обновляет resource всех OAuth clients application, увеличивает `revision`, инвалидирует `ApplicationAuthFactory` cache и отзывает ранее выданные access/refresh tokens, чтобы старый audience не продолжал использоваться.
 
 ### 10.2. `application_auth_origin`
 
@@ -582,8 +585,8 @@ Constraints:
 
 - `application_id`;
 - `client_id`;
-- `store_id` или другой resource binding;
-- `resources` — server-controlled allowlist; в v1 ровно `[STOREFRONT_RESOURCE_AUDIENCE]` для storefront client;
+- `store_id` — trusted Store binding, отдельный от OAuth resource;
+- `resources` — server-controlled значение; в v1 ровно `[application.resource]` для каждого client этой application;
 - `grant_types` — server-controlled, в v1 ровно `["authorization_code", "refresh_token"]`;
 - `response_types` — server-controlled, в v1 ровно `["code"]`;
 - `environment`: `development | production`;
@@ -593,7 +596,7 @@ Constraints:
 
 `store_id` проверяется через внутренний Project service action: Store и application должны принадлежать одной организации. Межсервисный FK не создается.
 
-При создании/изменении клиента IAM записывает тот же allowlist в plugin field `resources`, если оно поддерживается подтвержденной схемой версии `1.6.23`, и всегда дублирует enforcement в server-side client policy. Значение `resource` нельзя задавать произвольной строкой через Admin GraphQL: администратор выбирает только зарегистрированный platform resource.
+При создании/изменении клиента IAM записывает `[application.resource]` в plugin field `resources`, если оно поддерживается подтвержденной схемой версии `1.6.23`, и всегда дублирует enforcement в server-side client policy. OAuth client не может иметь ноль, два или иной resource. GraphQL input OAuth client не содержит `resource`/`resources`: значение наследуется из auth configuration application и меняется только application-level mutation.
 
 Поля plugin `grantTypes` и `responseTypes` записываются IAM при создании и не принимаются из GraphQL input при create/update. Repository запрещает их изменение в обход отдельной будущей protocol-policy migration. Public client-management endpoint закрыты, поэтому application user не может зарегистрировать client с `client_credentials` самостоятельно.
 
@@ -606,7 +609,7 @@ emailAndPassword
 socialProviders.google/facebook
 plugins: jwt, emailOTP, phoneNumber, oauthProvider
 phoneNumber.signUpOnVerification: syntheticEmailV1/getTempName
-oauthProvider.validAudiences: [STOREFRONT_RESOURCE_AUDIENCE]
+oauthProvider.validAudiences: [application.resource]
 oauthProvider.disableJwtPlugin: false
 account.encryptOAuthTokens
 account.accountLinking
@@ -669,12 +672,15 @@ applicationId + configurationRevision + secretKeyVersion + phoneIdentityHmacActi
 - изменить display metadata;
 - архивировать application;
 - получить auth configuration;
+- задать/изменить единственный canonical resource application;
 - обновить разрешенные auth methods и policy;
 - получить issuer, discovery URL и рассчитанные provider callback URLs;
 - управлять trusted origins;
 - обновить branding/localization.
 
 Mutation обновления принимает ожидаемую `revision` для optimistic concurrency.
+
+Application-level resource mutation принимает одно поле `resource`, а не список. Она валидирует absolute HTTPS URI, выполняет каноническую нормализацию и проверяет уникальность среди активных applications. Resource нельзя задавать в OAuth client mutation. При изменении IAM применяет описанную в разделе 10.1 атомарную синхронизацию clients, cache invalidation и token revocation. Операция требует `iam.application.auth.write` и записывается в audit log без authorization context/token values.
 
 ### 12.2. Social providers
 
@@ -835,23 +841,23 @@ Access token:
 
 ### 14.3. Resource indicator и формат access token
 
-В v1 используется один канонический resource indicator для Storefront API:
+В v1 каждая `iam.application` имеет ровно один собственный канонический resource indicator для Storefront API:
 
 ```text
-STOREFRONT_RESOURCE_AUDIENCE=<absolute HTTPS URI Storefront API>
+application.resource=<absolute HTTPS URI Storefront API для этой application>
 ```
 
-Значение задается обязательной server configuration, нормализуется один раз без trailing slash и не строится из `Host` request. Оно одинаково используется как:
+Значение задается администратором application через Admin GraphQL, хранится в `application_auth_configuration`, нормализуется один раз без trailing slash и не строится из `Host` request. Множественные resources для одной application не поддерживаются. Нормализованное значение уникально среди активных applications и одинаково используется как:
 
 - `resource` в authorization request;
 - элемент `oauthProvider.validAudiences`;
-- разрешенный resource OAuth client;
+- единственный разрешенный resource каждого OAuth client application;
 - `aud` JWT access token;
 - ожидаемый audience Storefront validator.
 
-OAuth Provider работает с включенным JWT plugin (`disableJwtPlugin=false`). Storefront client обязан передавать этот `resource` и в authorization request, и в code exchange/refresh token request. Отсутствующий, неизвестный, множественный или не разрешенный клиенту resource отклоняется с protocol error `invalid_target`. Успешный code exchange и refresh должны выдавать JWT access token с точным `aud=STOREFRONT_RESOURCE_AUDIENCE`. Opaque access tokens не входят в Storefront v1 contract и отклоняются без попытки fallback-introspection.
+OAuth Provider работает с включенным JWT plugin (`disableJwtPlugin=false`). Storefront client обязан передавать `application.resource` и в authorization request, и в code exchange/refresh token request. Отсутствующий, неизвестный, множественный, принадлежащий другой application или не совпадающий с настроенным resource отклоняется с protocol error `invalid_target`. Успешный code exchange и refresh должны выдавать JWT access token с точным `aud=application.resource`. Opaque access tokens не входят в Storefront v1 contract и отклоняются без попытки fallback-introspection.
 
-`store_id` не является resource/audience: он берется только из доверенной metadata OAuth client и добавляется через `customAccessTokenClaims`. Один общий Storefront resource может обслуживать разные Stores, а resource server одновременно проверяет `aud`, `application_id` и `store_id`.
+`store_id` не является resource/audience: он берется только из доверенной metadata OAuth client и добавляется через `customAccessTokenClaims`. Все clients одной application используют ее единственный resource, а resource server одновременно проверяет `aud`, `application_id` и `store_id`.
 
 ### 14.4. Проверка в Storefront API
 
@@ -859,7 +865,7 @@ Storefront/Gateway обязан проверять:
 
 - подпись по JWKS и допустимый алгоритм;
 - точный `iss`;
-- точный `aud=STOREFRONT_RESOURCE_AUDIENCE`;
+- точный `aud`, равный resource application из trusted routing/configuration context;
 - `exp`, `nbf`, `iat` с небольшим clock skew;
 - `scope`;
 - `application_id` и `store_id` из trusted routing context;
@@ -998,7 +1004,7 @@ Security/operational события без секретов:
 4. Подтвердить, что session-authenticated client-management endpoint недоступны application users, а server-side admin API вызывается без их публичной экспозиции.
 5. Подтвердить Fastify integration, path-prefixed issuer и multi-cookie responses.
 6. Проверить возможность application scoping всех plugin models через текущий adapter.
-7. Зафиксировать `STOREFRONT_RESOURCE_AUDIENCE`, `validAudiences`, client resources и подтвердить JWT access token для authorize/code exchange/refresh.
+7. Подтвердить application-scoped `resource`, `validAudiences: [application.resource]`, наследование единственного resource OAuth clients и JWT access token для authorize/code exchange/refresh.
 8. Проверить custom claims/store binding.
 9. Выбрать безопасную стратегию phone OTP без plaintext storage и зафиксировать synthetic email v1 test vectors для E.164/HKDF/HMAC/Base32.
 10. Зафиксировать public/confidential client behavior, обязательные `grant_types=["authorization_code", "refresh_token"]`, `response_types=["code"]` и secret one-time return.
@@ -1010,7 +1016,7 @@ Security/operational события без секретов:
 - подтвержденная схема таблиц;
 - versioned route manifest с точными public/internal endpoint;
 - негативное подтверждение, что application user не может читать, создавать, изменять, удалять client или ротировать его secret;
-- contract-подтверждение, что обязательный Storefront resource выдает JWT с ожидаемым `aud`, а отсутствующий/чужой resource отклоняется;
+- contract-подтверждение, что обязательный resource конкретной application выдает JWT с ожидаемым `aud`, а отсутствующий/resource другой application отклоняется;
 - contract-подтверждение, что public и confidential v1 clients не получают token через `client_credentials`;
 - утвержденный synthetic email v1 test vector с non-production key/applicationId/phone и ожидаемым адресом;
 - закрытый phone OTP security decision.
@@ -1021,7 +1027,7 @@ Security/operational события без секретов:
 
 Задачи:
 
-1. Создать миграции application auth config/origins/providers/delivery metadata.
+1. Создать миграции application auth config, включая единственный `resource`, origins/providers/delivery metadata.
 2. Расширить `application_user` phone/synthetic fields, включая `synthetic_email_key_version`.
 3. Добавить OAuth Provider plugin tables с `application_id`.
 4. Добавить индексы, tenant constraints и cleanup behavior.
@@ -1039,12 +1045,12 @@ Security/operational события без секретов:
 1. Расширить adapter plugin models.
 2. Собирать plugins согласно application settings.
 3. Добавить account token encryption/linking policy.
-4. Добавить OAuth scopes, `validAudiences`, client resources и custom claims policy; JWT plugin нельзя отключать.
+4. Добавить OAuth scopes, `validAudiences: [application.resource]`, автоматическое наследование единственного resource clients и custom claims policy; JWT plugin нельзя отключать.
 5. Принудительно задавать client `grantTypes=["authorization_code", "refresh_token"]` и `responseTypes=["code"]`, запретив mutation этих полей.
 6. Добавить revision-aware cache invalidation.
 7. Проверять active organization/application перед созданием instance.
 
-Критерий выхода: два application одновременно используют разные users, clients, keys, cookies и providers без пересечения.
+Критерий выхода: два application одновременно используют разные users, clients, keys, cookies, providers и единственные собственные resources без пересечения.
 
 ### Этап 3. Публичный HTTP OAuth/OIDC слой
 
@@ -1065,9 +1071,9 @@ Security/operational события без секретов:
 Задачи:
 
 1. Application CRUD/list/read.
-2. Auth settings/origins/branding.
+2. Auth settings, включая единственный application resource, origins/branding и revisioned update.
 3. Provider credentials/status.
-4. OAuth clients с фиксированными Authorization Code/Refresh grants и one-time secret rotation; grant policy отсутствует в mutation input и возвращается read-only.
+4. OAuth clients с автоматически унаследованным application resource, фиксированными Authorization Code/Refresh grants и one-time secret rotation; resource/grant policy отсутствуют в client mutation input и возвращаются read-only.
 5. Application user security actions.
 6. Casbin permissions и audit events.
 7. Store ownership validation через internal action.
@@ -1129,7 +1135,7 @@ Security/operational события без секретов:
 
 Задачи:
 
-1. Добавить JWT-only/JWKS validator с обязательным `aud=STOREFRONT_RESOURCE_AUDIENCE` и live validation path.
+1. Добавить JWT-only/JWKS validator с обязательным `aud=application.resource` из trusted application context и live validation path.
 2. Ввести trusted auth context `application_user`.
 3. Проверять application/store binding и scopes.
 4. Реализовать идемпотентный Customer ensure/projection.
@@ -1192,8 +1198,8 @@ Hosted UI следует разместить в выбранном для IAM w
 - public и confidential clients созданы только с `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`;
 - `grant_type=client_credentials` не выдает token ни одному v1 client;
 - Admin GraphQL не принимает и не изменяет `grantTypes`/`responseTypes`;
-- authorize с точным `resource=STOREFRONT_RESOURCE_AUDIENCE` выдает JWT access token с таким же `aud`;
-- отсутствующий, неизвестный, множественный или не разрешенный client resource отклоняется;
+- authorize с точным `resource=application.resource` выдает JWT access token с таким же `aud`;
+- отсутствующий, неизвестный, множественный, resource другой application или не совпадающий с application resource отклоняется;
 - token exchange не позволяет заменить resource из authorization code;
 - refresh сохраняет исходный resource/audience и не позволяет получить token для другого resource;
 - отсутствующий/неверный verifier отклоняется;
@@ -1219,6 +1225,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - signing key A не используется issuer B;
 - admin organization A не меняет application B;
 - Store организации A нельзя привязать к OAuth client organization B.
+- application A и B имеют разные canonical resources, и resource A отклоняется issuer/client application B;
 
 ### 22.3. Password/email OTP/phone OTP
 
@@ -1256,6 +1263,8 @@ Hosted UI следует разместить в выбранном для IAM w
 - rotation инвалидирует старый secret;
 - config revision предотвращает lost update;
 - factory перестраивается после config change;
+- Admin GraphQL принимает ровно один application resource, не принимает массив и не позволяет задать его через OAuth client input;
+- изменение application resource синхронизирует clients, отзывает старые tokens и не позволяет refresh сохранить старый audience;
 - Storefront отклоняет неверный issuer/audience/store/scope/actor;
 - Storefront отклоняет opaque access token без fallback-introspection;
 - Storefront отклоняет userless token без `sub` или с `actor_type`, отличным от `application_user`;
@@ -1298,9 +1307,9 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] Authorization Code + S256 PKCE обязателен.
 - [ ] Все v1 clients имеют только `grant_types=["authorization_code", "refresh_token"]` и `response_types=["code"]`.
 - [ ] `client_credentials` отсутствует в Admin GraphQL input и не выдает token ни public, ни confidential client.
-- [ ] Authorize flow требует канонический `STOREFRONT_RESOURCE_AUDIENCE` и выдает JWT с точным `aud`.
+- [ ] Authorize flow требует единственный канонический `application.resource` и выдает JWT с точным `aud`.
 - [ ] JWT plugin включен; Storefront отклоняет opaque access tokens.
-- [ ] OAuth client resources и `oauthProvider.validAudiences` ограничены platform registry.
+- [ ] Каждая application имеет ровно один администраторский resource; OAuth clients наследуют только его, а `oauthProvider.validAudiences` равно `[application.resource]`.
 - [ ] Code exchange/refresh не позволяют сменить или расширить исходный resource.
 - [ ] Implicit/password grants отсутствуют.
 - [ ] Dynamic Client Registration выключен.
@@ -1334,7 +1343,7 @@ Hosted UI следует разместить в выбранном для IAM w
 
 1. Каждая application имеет отдельный issuer, users, sessions, providers, OAuth clients, tokens, consents и keys.
 2. Organization admin управляет настройками через Admin API с Casbin и audit trail.
-3. Public и confidential clients проходят стандартный OIDC Authorization Code + PKCE flow с обязательным Storefront resource и получают JWT access token с точным audience; `client_credentials` для них запрещен.
+3. Каждая application имеет ровно один заданный ее администратором Storefront resource; public и confidential clients наследуют его, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; `client_credentials` для них запрещен.
 4. Password, email OTP, phone OTP, Google и Facebook можно независимо включать на application.
 5. Phone OTP не хранит открытый код; email OTP хранится hashed; synthetic email реализован по versioned deterministic contract и стабилен при key rotation.
 6. Account linking не пересекает applications и не доверяет synthetic/unverified email.
@@ -1357,7 +1366,7 @@ Hosted UI следует разместить в выбранном для IAM w
 | Secret leakage в admin/logs | Encryption, one-time reveal, redaction и audit без value |
 | Open redirect/custom scheme abuse | Exact allowlist и отдельная mobile URI policy |
 | Устаревшая factory config после admin update | Revisioned cache key + invalidation event |
-| Storefront получает opaque token без audience | Обязательный `resource`, `validAudiences`, client resource allowlist, включенный JWT plugin и JWT-only Storefront validator |
+| Storefront получает opaque token без audience | Обязательный единственный application-scoped `resource`, `validAudiences: [application.resource]`, автоматическое наследование resource clients, включенный JWT plugin и JWT-only Storefront validator |
 | OAuth Provider поддерживает `client_credentials` по умолчанию | Создавать v1 clients только с Authorization Code/Refresh grants, не принимать grant policy из GraphQL и проверять отказ token endpoint contract-сценарием |
 | Мгновенная ревокация JWT | Короткий access TTL + live validation/introspection для чувствительных операций |
 | Customers временно недоступен | Outbox/retry/idempotent ensure, не блокировать token endpoint |
@@ -1375,7 +1384,7 @@ Hosted UI следует разместить в выбранном для IAM w
 6. Где размещается hosted UI bundle и как он версионируется вместе с IAM?
 7. Достаточен ли event-driven Customer ensure или первый Customer-bound request должен делать синхронный ensure?
 
-Exact URI `STOREFRONT_RESOURCE_AUDIENCE` является обязательной deployment configuration и фиксируется в этапе 0 до создания первого OAuth client; это больше не открытый архитектурный вопрос. До получения остальных ответов применяются безопасные значения этого плана: platform delivery profiles, HTTPS/universal links, короткие TTL, consent для не-first-party clients и асинхронная Customer projection с idempotent fallback.
+Exact URI resource задается администратором отдельно для каждой application и становится обязательным до создания ее первого OAuth client. Для application разрешено ровно одно нормализованное значение; OAuth clients не управляют им самостоятельно. До получения остальных ответов применяются безопасные значения этого плана: platform delivery profiles, HTTPS/universal links, короткие TTL, consent для не-first-party clients и асинхронная Customer projection с idempotent fallback.
 
 ## 28. Официальные источники
 
