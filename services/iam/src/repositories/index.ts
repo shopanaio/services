@@ -38,6 +38,10 @@ export {
   type CreatedApplicationAuthorizationContext,
 } from "./ApplicationAuthorizationContextRepository.js";
 export {
+  ApplicationOAuthClientRepository,
+  type ActiveApplicationOAuthClientPolicy,
+} from "./ApplicationOAuthClientRepository.js";
+export {
   BetterAuthUserRepository,
   type AuthUser,
   type JwtUserPayload,

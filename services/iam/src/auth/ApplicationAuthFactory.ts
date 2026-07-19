@@ -50,6 +50,7 @@ export interface ApplicationAuthFactoryRuntime {
   applicationId: string;
   configurationRevision: number;
   resource: string;
+  trustedOrigins: readonly string[];
   routeManifest: EffectiveApplicationAuthRouteManifest;
 }
 
@@ -235,6 +236,7 @@ export class ApplicationAuthFactory {
       applicationId,
       configurationRevision: configuration.revision,
       resource: configuration.resource,
+      trustedOrigins: Object.freeze([...configuration.trustedOrigins]),
       routeManifest,
     });
     const entry: CacheEntry = {

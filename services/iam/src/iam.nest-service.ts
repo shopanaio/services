@@ -14,16 +14,17 @@ import {
 } from "@shopana/shared-kernel";
 import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
 import { Kernel } from "./kernel/Kernel.js";
-import { startServer } from "@src/api/graphql-admin/server.js";
 import { getServiceConfig } from "@shopana/shared-service-config";
+import { startIamHttpServer } from "./api/http/server.js";
+import { resolveIamHttpRuntimeConfiguration } from "./api/http/iamHttpConfiguration.js";
 
-const { service } = getServiceConfig("iam");
+const { service, global } = getServiceConfig("iam");
 
 @Injectable()
 export class IamNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(IamNestService.name);
   private kernel!: Kernel;
-  private graphqlServer: FastifyInstance | null = null;
+  private httpServer: FastifyInstance | null = null;
 
   constructor(
     @InjectBroker("iam") private readonly broker: ServiceBroker,
@@ -34,18 +35,28 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     this.logger.debug("IAM onModuleInit started");
 
-    this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
+    const http = resolveIamHttpRuntimeConfiguration({ service, global });
+    if (http.deprecatedAdminGraphqlPortAliasUsed) {
+      this.logger.warn(
+        "IAM ports.admin_graphql is deprecated; use ports.iam_http for the shared listener"
+      );
+    }
+    this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient, {
+      applicationAuthPublicBaseUrl: http.publicBaseUrl,
+    });
     this.logger.debug("Kernel created");
 
-    this.graphqlServer = await startServer({
-      port: service.ports?.admin_graphql ?? 0,
+    this.httpServer = await startIamHttpServer({
+      kernel: this.kernel,
+      global,
+      http,
     });
-    this.logger.debug("GraphQL server started");
+    this.logger.debug("IAM HTTP server started");
   }
 
   async onModuleDestroy() {
-    if (this.graphqlServer) {
-      await this.graphqlServer.close();
+    if (this.httpServer) {
+      await this.httpServer.close();
     }
 
     if (this.kernel) {

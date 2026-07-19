@@ -19,6 +19,7 @@ type MeshType = "admin" | "storefront";
 interface ServiceConfig {
   ports?: {
     admin_graphql?: number;
+    iam_http?: number;
     storefront_graphql?: number;
   };
 }
@@ -85,7 +86,9 @@ function discoverSubgraphs(meshType: MeshType): Subgraph[] {
     }
 
     const serviceConfig = globalConfig.services?.[serviceName];
-    const port = serviceConfig?.ports?.[portKey];
+    const port =
+      serviceConfig?.ports?.[portKey] ??
+      (meshType === "admin" ? serviceConfig?.ports?.iam_http : undefined);
 
     if (port) {
       subgraphs.push({

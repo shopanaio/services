@@ -74,8 +74,11 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
     dbClient: DatabaseClient,
-    applicationAuthRootKeys?: ApplicationAuthRootKeyProvider,
-    applicationAuthEmailDelivery?: ApplicationAuthEmailDeliveryPort
+    options: {
+      applicationAuthRootKeys?: ApplicationAuthRootKeyProvider;
+      applicationAuthEmailDelivery?: ApplicationAuthEmailDeliveryPort;
+      applicationAuthPublicBaseUrl?: string;
+    } = {}
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
@@ -91,7 +94,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     const db = createDatabase(dbClient);
     const auth = createAuth();
     const applicationAuthKeyring = new ApplicationAuthKeyring(
-      applicationAuthRootKeys ??
+      options.applicationAuthRootKeys ??
         EnvironmentApplicationAuthRootKeyProvider.fromEnvironment(process.env)
     );
     const applicationAuthSecrets = new ApplicationAuthSecretService(
@@ -108,7 +111,10 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationAuthKeyring,
       applicationAuthSecrets,
       repository.applicationAuthConfiguration,
-      { emailDelivery: applicationAuthEmailDelivery }
+      {
+        emailDelivery: options.applicationAuthEmailDelivery,
+        publicBaseUrl: options.applicationAuthPublicBaseUrl,
+      }
     );
     const applicationAuthProvisioning = new ApplicationAuthProvisioningService(
       repository.applicationAuthConfiguration

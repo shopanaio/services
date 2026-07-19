@@ -112,10 +112,17 @@ services:
 
   iam:
     ports:
-      admin_graphql: 11010
+      iam_http: 11010
       metrics: 13037
     db:
       <<: *db_default
+    application_auth_http:
+      public_base_url: http://localhost:11010
+      behind_reverse_proxy: false
+      trusted_proxy_cidrs: []
+      external_paths:
+        - /auth/applications/:applicationId/*
+        - /.well-known/oauth-authorization-server/auth/applications/:applicationId
     super_admin_domains: "shopana.io"
 
   delivery: {}

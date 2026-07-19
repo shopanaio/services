@@ -120,10 +120,18 @@ services:
 
   iam:
     ports:
-      admin_graphql: 10010
+      iam_http: 10010
       metrics: 3037
     db:
       <<: *db_default
+    application_auth_http:
+      public_base_url: http://localhost:10010
+      behind_reverse_proxy: false
+      trusted_proxy_cidrs: []
+      # Public reverse proxy must expose only these paths, never /graphql.
+      external_paths:
+        - /auth/applications/:applicationId/*
+        - /.well-known/oauth-authorization-server/auth/applications/:applicationId
     # Email domains that automatically get super_admin role (comma-separated)
     super_admin_domains: "shopana.io"
 

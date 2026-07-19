@@ -1,7 +1,37 @@
 # Application auth OAuth/OIDC — Phase 1 operations
 
 This runbook covers only the schema, configuration, and secret lifecycle added
-in Phase 1. Public OAuth/OIDC routes remain disabled until later phases.
+in Phase 1 plus the public HTTP listener configuration added in Phase 3.
+
+## Public IAM HTTP listener
+
+IAM uses one `ports.iam_http` listener for the public application OAuth/OIDC
+routes, internal Admin GraphQL and health endpoints. `ports.admin_graphql` is a
+deprecated one-cycle alias; do not configure both keys with different values.
+
+The `application_auth_http` configuration contains:
+
+- `public_base_url` for local/non-secret defaults; `IAM_PUBLIC_BASE_URL`
+  overrides it at startup;
+- `behind_reverse_proxy`;
+- `trusted_proxy_cidrs`, used directly as Fastify's explicit `trustProxy`
+  allowlist;
+- `external_paths`, which must equal the approved public path manifest.
+
+Production requires `IAM_PUBLIC_BASE_URL` explicitly and requires HTTPS. If
+`behind_reverse_proxy=true`, production also
+requires a non-empty trusted proxy allowlist. The external proxy must publish
+only:
+
+```text
+/auth/applications/:applicationId/*
+/.well-known/oauth-authorization-server/auth/applications/:applicationId
+```
+
+Never publish `/graphql` or a broad `/.well-known/*` prefix. The IAM listener
+builds issuer, callbacks and Fetch bridge URLs from `IAM_PUBLIC_BASE_URL`; it
+does not trust `Host`, `X-Forwarded-Host` or `X-Forwarded-Proto` for canonical
+URL construction.
 
 ## Root-key contract
 

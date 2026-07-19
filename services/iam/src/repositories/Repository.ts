@@ -5,6 +5,7 @@ import { ApplicationUserRepositoryFactory } from "./application-user/Application
 import { AuthSessionRepositoryFactory } from "./auth-session/AuthSessionRepository.js";
 import { ApplicationAuthConfigurationRepository } from "./ApplicationAuthConfigurationRepository.js";
 import { ApplicationAuthorizationContextRepository } from "./ApplicationAuthorizationContextRepository.js";
+import { ApplicationOAuthClientRepository } from "./ApplicationOAuthClientRepository.js";
 
 import { CasbinService } from "../casbin/CasbinService.js";
 import type { Database } from "../infrastructure//db/database.js";
@@ -32,6 +33,7 @@ export class Repository {
   public readonly organization: OrganizationRepository;
   public readonly applicationAuthConfiguration: ApplicationAuthConfigurationRepository;
   public readonly applicationAuthorizationContext: ApplicationAuthorizationContextRepository;
+  public readonly applicationOAuthClient: ApplicationOAuthClientRepository;
   public readonly casbin: CasbinService;
   public readonly txManager: TransactionManager<Database>;
 
@@ -42,6 +44,7 @@ export class Repository {
     organization: OrganizationRepository,
     applicationAuthConfiguration: ApplicationAuthConfigurationRepository,
     applicationAuthorizationContext: ApplicationAuthorizationContextRepository,
+    applicationOAuthClient: ApplicationOAuthClientRepository,
     casbin: CasbinService,
     txManager: TransactionManager<Database>
   ) {
@@ -51,6 +54,7 @@ export class Repository {
     this.organization = organization;
     this.applicationAuthConfiguration = applicationAuthConfiguration;
     this.applicationAuthorizationContext = applicationAuthorizationContext;
+    this.applicationOAuthClient = applicationOAuthClient;
     this.casbin = casbin;
     this.txManager = txManager;
   }
@@ -84,6 +88,10 @@ export class Repository {
       );
     const applicationAuthorizationContextRepo =
       new ApplicationAuthorizationContextRepository(db, txManager);
+    const applicationOAuthClientRepo = new ApplicationOAuthClientRepository(
+      db,
+      txManager
+    );
 
     return new Repository(
       userRepo,
@@ -92,6 +100,7 @@ export class Repository {
       organizationRepo,
       applicationAuthConfigurationRepo,
       applicationAuthorizationContextRepo,
+      applicationOAuthClientRepo,
       casbinService,
       txManager
     );

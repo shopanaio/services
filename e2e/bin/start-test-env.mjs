@@ -54,6 +54,9 @@ function servicePorts(config) {
     if (service?.ports?.admin_graphql) {
       ports.push(service.ports.admin_graphql);
     }
+    if (service?.ports?.iam_http) {
+      ports.push(service.ports.iam_http);
+    }
     if (service?.ports?.storefront_graphql) {
       ports.push(service.ports.storefront_graphql);
     }
