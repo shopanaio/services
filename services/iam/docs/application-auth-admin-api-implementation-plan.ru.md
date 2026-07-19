@@ -206,6 +206,7 @@ enum ApplicationUserStatus {
 type Application implements Node @key(fields: "id") {
   id: ID!
   organizationId: ID!
+  organization: Organization!
   name: String!
   displayName: String!
   description: String
@@ -234,6 +235,17 @@ type Application implements Node @key(fields: "id") {
   createdAt: DateTime!
   updatedAt: DateTime!
   archivedAt: DateTime
+}
+
+extend type Organization {
+  applications(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationWhereInput
+    orderBy: [ApplicationOrderByInput!]
+  ): ApplicationConnection!
 }
 
 type ApplicationConnection {
