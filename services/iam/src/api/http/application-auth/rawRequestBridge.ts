@@ -238,6 +238,17 @@ function contentPolicyFor(
   }
   if (normalizedPath === "/oauth2/userinfo") return "none";
   if (normalizedPath.startsWith("/callback/")) return "form-or-json";
+  if (
+    normalizedPath === "/login/password" ||
+    normalizedPath === "/signup/password" ||
+    normalizedPath === "/password/forgot" ||
+    normalizedPath === "/password/reset" ||
+    normalizedPath === "/verification/resend" ||
+    normalizedPath === "/consent" ||
+    normalizedPath === "/logout"
+  ) {
+    return "form";
+  }
   return "json";
 }
 

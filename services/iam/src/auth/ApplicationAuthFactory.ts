@@ -8,6 +8,8 @@ import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.
 import type { ApplicationAuthEmailDeliveryPort } from "../services/ApplicationAuthEmailDeliveryPort.js";
 import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
 import {
+  type ApplicationAuthMutableConfiguration,
+  type ApplicationAuthUiLocale,
   applicationAuthDeliveryProfileSchema,
   applicationAuthMutableConfigurationSchema,
   applicationAuthProviderCredentialsSchema,
@@ -49,7 +51,13 @@ export interface ApplicationAuthFactoryRuntime {
   auth: ApplicationAuth;
   applicationId: string;
   configurationRevision: number;
+  secretKeyVersion: number;
   resource: string;
+  issuer: string;
+  policy: Readonly<ApplicationAuthRuntimeConfiguration["policy"]>;
+  branding: Readonly<ApplicationAuthMutableConfiguration["brandingJson"]>;
+  defaultLocale: ApplicationAuthUiLocale;
+  emailVerificationRequired: boolean;
   trustedOrigins: readonly string[];
   routeManifest: EffectiveApplicationAuthRouteManifest;
 }
@@ -235,7 +243,21 @@ export class ApplicationAuthFactory {
       auth,
       applicationId,
       configurationRevision: configuration.revision,
+      secretKeyVersion: configuration.secretKeyVersion,
       resource: configuration.resource,
+      issuer: `${configuration.publicBaseUrl}/auth/applications/${applicationId}`,
+      policy: Object.freeze({
+        ...configuration.policy,
+        socialSignInAllowed: Object.freeze({
+          ...configuration.policy.socialSignInAllowed,
+        }),
+        socialSignUpAllowed: Object.freeze({
+          ...configuration.policy.socialSignUpAllowed,
+        }),
+      }),
+      branding: Object.freeze({ ...configuration.branding }),
+      defaultLocale: configuration.defaultLocale,
+      emailVerificationRequired: configuration.emailVerificationRequired,
       trustedOrigins: Object.freeze([...configuration.trustedOrigins]),
       routeManifest,
     });
@@ -260,7 +282,7 @@ export class ApplicationAuthFactory {
       if (!initial) {
         throw new Error("Application auth realm is not active");
       }
-      applicationAuthMutableConfigurationSchema.parse({
+      const mutableConfiguration = applicationAuthMutableConfigurationSchema.parse({
         registrationMode: initial.registrationMode,
         passwordSignUpEnabled: initial.passwordSignUpEnabled,
         passwordSignInEnabled: initial.passwordSignInEnabled,
@@ -361,6 +383,8 @@ export class ApplicationAuthFactory {
         resource: initial.resource,
         trustedOrigins,
         policy,
+        branding: { ...mutableConfiguration.brandingJson },
+        defaultLocale: mutableConfiguration.defaultLocale,
         emailVerificationRequired: initial.emailVerificationRequired,
         accessTokenTtlSeconds: initial.accessTokenTtlSeconds,
         idTokenTtlSeconds: initial.idTokenTtlSeconds,

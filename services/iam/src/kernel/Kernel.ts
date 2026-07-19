@@ -19,6 +19,10 @@ import { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretS
 import { ApplicationAuthProvisioningService } from "../services/ApplicationAuthProvisioningService.js";
 import { ApplicationAuthSecretRotationService } from "../services/ApplicationAuthSecretRotationService.js";
 import type { ApplicationAuthEmailDeliveryPort } from "../services/ApplicationAuthEmailDeliveryPort.js";
+import {
+  ApplicationAuthRateLimiter,
+  type ApplicationAuthRateLimitPort,
+} from "../services/ApplicationAuthRateLimiter.js";
 
 /**
  * Extended kernel for IAM microservice (singleton)
@@ -38,6 +42,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public applicationAuthSecrets!: ApplicationAuthSecretService;
   public applicationAuthProvisioning!: ApplicationAuthProvisioningService;
   public applicationAuthSecretRotation!: ApplicationAuthSecretRotationService;
+  public applicationAuthRateLimiter!: ApplicationAuthRateLimiter;
 
   private constructor(
     broker: ServiceBroker,
@@ -53,7 +58,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     applicationAuthKeyring: ApplicationAuthKeyring,
     applicationAuthSecrets: ApplicationAuthSecretService,
     applicationAuthProvisioning: ApplicationAuthProvisioningService,
-    applicationAuthSecretRotation: ApplicationAuthSecretRotationService
+    applicationAuthSecretRotation: ApplicationAuthSecretRotationService,
+    applicationAuthRateLimiter: ApplicationAuthRateLimiter
   ) {
     super(broker, logger, { repository, cache, authCache, nameResolver, workflow });
     this.repository = repository;
@@ -68,6 +74,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     this.applicationAuthSecrets = applicationAuthSecrets;
     this.applicationAuthProvisioning = applicationAuthProvisioning;
     this.applicationAuthSecretRotation = applicationAuthSecretRotation;
+    this.applicationAuthRateLimiter = applicationAuthRateLimiter;
   }
 
   static async create(
@@ -77,6 +84,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     options: {
       applicationAuthRootKeys?: ApplicationAuthRootKeyProvider;
       applicationAuthEmailDelivery?: ApplicationAuthEmailDeliveryPort;
+      applicationAuthRateLimit?: ApplicationAuthRateLimitPort;
       applicationAuthPublicBaseUrl?: string;
     } = {}
   ): Promise<Kernel> {
@@ -124,6 +132,9 @@ export class Kernel extends BaseKernel<IamKernelServices> {
         repository.applicationAuthConfiguration,
         applicationAuth
       );
+    const applicationAuthRateLimiter = new ApplicationAuthRateLimiter(
+      options.applicationAuthRateLimit
+    );
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
@@ -146,7 +157,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationAuthKeyring,
       applicationAuthSecrets,
       applicationAuthProvisioning,
-      applicationAuthSecretRotation
+      applicationAuthSecretRotation,
+      applicationAuthRateLimiter
     );
     return this.instance;
   }

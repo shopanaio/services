@@ -21,6 +21,10 @@ import {
 import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
 import { assertApplicationId, type AuthAdapterScope } from "./AuthScope.js";
 import type { EffectiveApplicationAuthPolicy } from "./applicationAuthConfiguration.js";
+import type {
+  ApplicationAuthMutableConfiguration,
+  ApplicationAuthUiLocale,
+} from "./applicationAuthConfiguration.js";
 import { createApplicationResource } from "./applicationAuthConfiguration.js";
 import { createApplicationOAuthClaimsPolicy } from "./applicationOAuthClaims.js";
 import {
@@ -48,6 +52,8 @@ export interface ApplicationAuthRuntimeConfiguration {
   resource: string;
   trustedOrigins: string[];
   policy: EffectiveApplicationAuthPolicy;
+  branding: ApplicationAuthMutableConfiguration["brandingJson"];
+  defaultLocale: ApplicationAuthUiLocale;
   emailVerificationRequired: boolean;
   accessTokenTtlSeconds: number;
   idTokenTtlSeconds: number;
@@ -165,6 +171,7 @@ export function createApplicationAuth(
     oauthProvider({
       loginPage: `${basePath}/login`,
       consentPage: `${basePath}/consent`,
+      signup: { page: `${basePath}/signup` },
       scopes: [...APPLICATION_OAUTH_SCOPES],
       validAudiences: [config.resource],
       grantTypes: [...APPLICATION_OAUTH_GRANT_TYPES],
@@ -199,6 +206,16 @@ export function createApplicationAuth(
     trustedOrigins: config.trustedOrigins,
     advanced: {
       cookiePrefix: `shopana_application_${applicationId}`,
+      useSecureCookies: config.publicBaseUrl.startsWith("https://"),
+      defaultCookieAttributes: {
+        httpOnly: true,
+        secure: config.publicBaseUrl.startsWith("https://"),
+        sameSite: "lax",
+        path: basePath,
+      },
+    },
+    onAPIError: {
+      errorURL: `${basePath}/error`,
     },
     disabledPaths: ["/token"],
     emailAndPassword: {
@@ -247,8 +264,12 @@ export function createApplicationAuth(
 
 function createCommonOptions(
   scope: AuthAdapterScope
-): Pick<BetterAuthOptions, "user" | "rateLimit" | "experimental"> {
+): Pick<
+  BetterAuthOptions,
+  "user" | "rateLimit" | "experimental" | "logger"
+> {
   return {
+    ...(scope.kind === "application" ? { logger: { disabled: true } } : {}),
     user: {
       additionalFields: {
         firstName: {

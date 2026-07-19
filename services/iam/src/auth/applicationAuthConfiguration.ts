@@ -21,9 +21,25 @@ export const APPLICATION_AUTH_TTL = {
   authorizationContext: 10 * 60,
 } as const;
 
+export const APPLICATION_AUTH_UI_LOCALES = ["en", "uk", "ru"] as const;
+export type ApplicationAuthUiLocale =
+  (typeof APPLICATION_AUTH_UI_LOCALES)[number];
+
+export const APPLICATION_AUTH_PRIMARY_COLOR_TOKENS = [
+  "blue",
+  "indigo",
+  "violet",
+  "emerald",
+] as const;
+export const APPLICATION_AUTH_BACKGROUND_COLOR_TOKENS = [
+  "white",
+  "slate",
+] as const;
+
 export const applicationAuthBrandingSchema = z
   .object({
     displayName: z.string().trim().min(1).max(80).optional(),
+    headline: z.string().trim().min(1).max(160).optional(),
     logoUrl: z
       .string()
       .url()
@@ -33,22 +49,17 @@ export const applicationAuthBrandingSchema = z
       })
       .optional(),
     primaryColor: z
-      .string()
-      .regex(/^#[0-9a-fA-F]{6}$/)
+      .enum(APPLICATION_AUTH_PRIMARY_COLOR_TOKENS)
       .optional(),
     backgroundColor: z
-      .string()
-      .regex(/^#[0-9a-fA-F]{6}$/)
+      .enum(APPLICATION_AUTH_BACKGROUND_COLOR_TOKENS)
       .optional(),
   })
   .strict();
 
-const localeSchema = z
-  .string()
-  .trim()
-  .min(2)
-  .max(35)
-  .regex(/^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/);
+export const applicationAuthLocaleSchema = z.enum(
+  APPLICATION_AUTH_UI_LOCALES
+);
 
 /**
  * Complete mutable configuration contract. The canonical resource, revision,
@@ -87,7 +98,7 @@ export const applicationAuthMutableConfigurationSchema = z
       .min(APPLICATION_AUTH_TTL.session.min)
       .max(APPLICATION_AUTH_TTL.session.max),
     brandingJson: applicationAuthBrandingSchema,
-    defaultLocale: localeSchema,
+    defaultLocale: applicationAuthLocaleSchema,
   })
   .strict()
   .superRefine((value, context) => {
@@ -262,4 +273,3 @@ export function normalizeApplicationAuthOrigin(
 
   return url.origin;
 }
-

@@ -6,6 +6,7 @@ import type {
 import { z } from "zod";
 import type { ApplicationAuthFactoryRuntime } from "../../../auth/ApplicationAuthFactory.js";
 import type { Kernel } from "../../../kernel/Kernel.js";
+import { ApplicationAuthRateLimitError } from "../../../services/ApplicationAuthRateLimiter.js";
 import {
   ApplicationOAuthResourcePolicyError,
   ApplicationOAuthResourcePolicyGuard,
@@ -16,6 +17,7 @@ import {
   ApplicationAuthRequestError,
   createApplicationAuthFetchRequest,
   parseJsonBody,
+  parseRawSearchParams,
   readRawApplicationAuthRequest,
   sendApplicationAuthFetchResponse,
   validateApplicationAuthRequestBody,
@@ -28,6 +30,7 @@ import {
   normalizeApplicationAuthRelativePath,
   routeRequiresForcedRevisionCheck,
 } from "./routeManifest.js";
+import { ApplicationAuthHostedUiController } from "./ui/ApplicationAuthHostedUiController.js";
 
 interface ApplicationAuthHttpPluginOptions {
   kernel: Kernel;
@@ -62,6 +65,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
   const resourceGuard = new ApplicationOAuthResourcePolicyGuard(
     options.kernel.repository.applicationOAuthClient
   );
+  const hostedUi = new ApplicationAuthHostedUiController(options.kernel);
 
   instance.removeContentTypeParser("application/json");
   const rawParser = (
@@ -100,12 +104,36 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
     } else {
       request.log.warn(logContext, "Application auth request rejected");
     }
+    if (acceptsHostedUiHtml(request)) {
+      reply
+        .code(known.statusCode)
+        .header("cache-control", "no-store")
+        .header("pragma", "no-cache")
+        .header(
+          "content-security-policy",
+          "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+        )
+        .header("x-content-type-options", "nosniff")
+        .header("referrer-policy", "no-referrer")
+        .header("x-request-id", requestId)
+        .type("text/html; charset=utf-8");
+      if (known.retryAfterSeconds !== undefined) {
+        reply.header("retry-after", String(known.retryAfterSeconds));
+      }
+      await reply.send(
+        '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Authentication unavailable</title></head><body><main><h1>Authentication unavailable</h1><p>This authentication request is unavailable or has expired.</p></main></body></html>'
+      );
+      return;
+    }
     reply
       .code(known.statusCode)
       .header("cache-control", "no-store")
       .header("pragma", "no-cache")
       .header("x-request-id", requestId)
       .type("application/json; charset=utf-8");
+    if (known.retryAfterSeconds !== undefined) {
+      reply.header("retry-after", String(known.retryAfterSeconds));
+    }
     await reply.send({
       error: known.oauthError,
       error_description: known.publicMessage,
@@ -179,7 +207,46 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         raw,
         contentEncoding: request.headers["content-encoding"],
       });
+      if (hostedUi.isRoute(request.method, normalizedPath)) {
+        try {
+          if (
+            await hostedUi.handle({
+              request,
+              reply,
+              raw,
+              normalizedPath,
+              runtime,
+              publicBaseUrl: options.publicBaseUrl,
+            })
+          ) {
+            return;
+          }
+        } catch (error) {
+          request.log.warn(
+            {
+              requestId: String(request.id),
+              method: request.method,
+              path: normalizedPath,
+              reason: error instanceof Error ? error.name : "Error",
+            },
+            "Hosted application authentication request rejected"
+          );
+          await hostedUi.handleError({
+            reply,
+            runtime,
+            error: error instanceof Error ? error : new Error("Unknown error"),
+          });
+          return;
+        }
+      }
       assertEffectiveRequestPolicy(runtime, normalizedPath, raw);
+      await assertApplicationAuthRateLimit({
+        kernel: options.kernel,
+        request,
+        runtime,
+        normalizedPath,
+        raw,
+      });
       await resourceGuard.assertRequest({
         applicationId,
         resource: runtime.resource,
@@ -196,6 +263,10 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         publicBaseUrl: options.publicBaseUrl,
       });
       let response = await runtime.auth.handler(fetchRequest);
+      response = await normalizeSensitiveApplicationAuthResponse(
+        normalizedPath,
+        response
+      );
       if (
         normalizedPath === "/.well-known/openid-configuration" ||
         normalizedPath === "/.well-known/oauth-authorization-server"
@@ -270,6 +341,15 @@ async function loadActiveRuntime(
   return kernel.applicationAuth.forApplication(applicationId, {
     forceRevisionCheck,
   });
+}
+
+function acceptsHostedUiHtml(request: FastifyRequest): boolean {
+  const accept = request.headers.accept;
+  if (typeof accept !== "string" || !accept.includes("text/html")) return false;
+  const rawPath = request.raw.url?.split("?", 1)[0] ?? "";
+  return /\/auth\/applications\/[^/]+\/(?:login|signup|consent|logout|error|password\/|verification-|verified|account-created)/u.test(
+    rawPath
+  );
 }
 
 async function handlePreflight(
@@ -421,17 +501,22 @@ function classifyBoundaryError(error: Error): {
   oauthError: string;
   publicMessage: string;
   reason: string;
+  retryAfterSeconds?: number;
 } {
   if (
     error instanceof ApplicationAuthBoundaryError ||
     error instanceof ApplicationAuthRequestError ||
-    error instanceof ApplicationOAuthResourcePolicyError
+    error instanceof ApplicationOAuthResourcePolicyError ||
+    error instanceof ApplicationAuthRateLimitError
   ) {
     return {
       statusCode: error.statusCode,
       oauthError: error.oauthError,
       publicMessage: error.message,
       reason: error.name,
+      ...(error instanceof ApplicationAuthRateLimitError
+        ? { retryAfterSeconds: error.retryAfterSeconds }
+        : {}),
     };
   }
   if (error instanceof ApplicationAuthPathError) {
@@ -472,4 +557,167 @@ function classifyBoundaryError(error: Error): {
     publicMessage: "Application auth request could not be completed",
     reason: error.name || "Error",
   };
+}
+
+async function assertApplicationAuthRateLimit(input: {
+  kernel: Kernel;
+  request: FastifyRequest;
+  runtime: ApplicationAuthFactoryRuntime;
+  normalizedPath: string;
+  raw: RawApplicationAuthRequest;
+}): Promise<void> {
+  const secret = input.kernel.applicationAuthSecrets.derivePurposeSecret(
+    input.runtime.applicationId,
+    input.runtime.secretKeyVersion,
+    "rate-limit"
+  );
+  if (input.normalizedPath === "/oauth2/authorize") {
+    const clientId = requireSingleParameter(
+      parseRawSearchParams(input.raw.rawQuery),
+      "client_id",
+      512
+    );
+    await input.kernel.applicationAuthRateLimiter.assertAuthorize({
+      applicationId: input.runtime.applicationId,
+      clientId,
+      ip: input.request.ip,
+      secret,
+    });
+    return;
+  }
+  if (input.normalizedPath === "/oauth2/token") {
+    if (!input.raw.body) throw new ApplicationAuthRequestError("Token body is required");
+    const form = parseRawSearchParams(input.raw.body.toString("utf8"));
+    const formClientId = optionalSingleParameter(form, "client_id", 512);
+    const basicClientId = readBasicClientId(input.request.headers.authorization);
+    if (formClientId && basicClientId && formClientId !== basicClientId) {
+      throw new ApplicationAuthRequestError("Conflicting OAuth client identifiers");
+    }
+    const clientId = formClientId ?? basicClientId;
+    if (!clientId) throw new ApplicationAuthRequestError("OAuth client is required");
+    await input.kernel.applicationAuthRateLimiter.assertToken({
+      applicationId: input.runtime.applicationId,
+      clientId,
+      ip: input.request.ip,
+      secret,
+    });
+    return;
+  }
+  if (
+    input.normalizedPath === "/sign-in/email" ||
+    input.normalizedPath === "/sign-up/email"
+  ) {
+    if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    const email = parseJsonBody(input.raw.body).email;
+    if (typeof email !== "string" || email.length > 320) {
+      throw new ApplicationAuthRequestError("Email is invalid");
+    }
+    await input.kernel.applicationAuthRateLimiter.assertPasswordSignIn({
+      applicationId: input.runtime.applicationId,
+      normalizedEmail: email.trim().toLowerCase(),
+      ip: input.request.ip,
+      secret,
+    });
+    return;
+  }
+  if (
+    input.normalizedPath === "/request-password-reset" ||
+    input.normalizedPath === "/send-verification-email"
+  ) {
+    if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    const email = parseJsonBody(input.raw.body).email;
+    if (typeof email !== "string" || email.length > 320) {
+      throw new ApplicationAuthRequestError("Email is invalid");
+    }
+    await input.kernel.applicationAuthRateLimiter.assertPasswordReset({
+      applicationId: input.runtime.applicationId,
+      normalizedEmail: email.trim().toLowerCase(),
+      ip: input.request.ip,
+      secret,
+    });
+  }
+}
+
+async function normalizeSensitiveApplicationAuthResponse(
+  normalizedPath: string,
+  response: Response
+): Promise<Response> {
+  if (normalizedPath === "/sign-in/email" && !response.ok) {
+    return replaceJsonResponse(response, 401, {
+      error: "invalid_credentials",
+      error_description: "Email or password is invalid",
+    });
+  }
+  if (normalizedPath === "/sign-up/email" && !response.ok) {
+    return replaceJsonResponse(response, 400, {
+      error: "invalid_signup",
+      error_description: "Account could not be created",
+    });
+  }
+  if (
+    normalizedPath === "/request-password-reset" ||
+    normalizedPath === "/send-verification-email"
+  ) {
+    return replaceJsonResponse(response, 202, {
+      status: true,
+      message: "If the account exists, an authentication message will be sent",
+    });
+  }
+  return response;
+}
+
+function replaceJsonResponse(
+  response: Response,
+  status: number,
+  body: Record<string, unknown>
+): Response {
+  const headers = new Headers(response.headers);
+  headers.set("content-type", "application/json; charset=utf-8");
+  headers.set("cache-control", "no-store");
+  headers.delete("content-length");
+  return new Response(JSON.stringify(body), { status, headers });
+}
+
+function requireSingleParameter(
+  params: URLSearchParams,
+  name: string,
+  maxLength: number
+): string {
+  const value = optionalSingleParameter(params, name, maxLength);
+  if (!value) throw new ApplicationAuthRequestError(`${name} is required`);
+  return value;
+}
+
+function optionalSingleParameter(
+  params: URLSearchParams,
+  name: string,
+  maxLength: number
+): string | null {
+  const values = params.getAll(name);
+  if (values.length === 0) return null;
+  if (values.length !== 1 || !values[0] || values[0].length > maxLength) {
+    throw new ApplicationAuthRequestError(`${name} is invalid`);
+  }
+  return values[0];
+}
+
+function readBasicClientId(header: string | undefined): string | null {
+  if (!header) return null;
+  const match = /^Basic ([A-Za-z0-9+/]+=*)$/u.exec(header);
+  if (!match) return null;
+  let decoded: string;
+  try {
+    decoded = Buffer.from(match[1]!, "base64").toString("utf8");
+  } catch {
+    throw new ApplicationAuthRequestError("OAuth client authentication is invalid");
+  }
+  const separator = decoded.indexOf(":");
+  if (separator < 1) {
+    throw new ApplicationAuthRequestError("OAuth client authentication is invalid");
+  }
+  const clientId = decoded.slice(0, separator);
+  if (clientId.length > 512 || clientId.includes("\0")) {
+    throw new ApplicationAuthRequestError("OAuth client authentication is invalid");
+  }
+  return clientId;
 }

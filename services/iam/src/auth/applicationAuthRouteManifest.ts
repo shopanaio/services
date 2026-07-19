@@ -1,5 +1,6 @@
 import type { ApplicationAuthProviderName } from "../repositories/models/application-auth.js";
 import type { EffectiveApplicationAuthPolicy } from "./applicationAuthConfiguration.js";
+import { APPLICATION_AUTH_UI_STYLE_PATH } from "../api/http/application-auth/ui/assets.js";
 
 export type ApplicationAuthHttpMethod = "GET" | "POST";
 
@@ -30,6 +31,19 @@ const OAUTH_PROTOCOL_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
   exact("GET", "/jwks"),
 ];
 
+const HOSTED_UI_BASE_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
+  exact("GET", "/login"),
+  exact("GET", "/consent"),
+  exact("POST", "/consent"),
+  exact("GET", "/logout"),
+  exact("POST", "/logout"),
+  exact("GET", "/error"),
+  exact("GET", "/verification-pending"),
+  exact("GET", "/verified"),
+  exact("GET", "/account-created"),
+  exact("GET", APPLICATION_AUTH_UI_STYLE_PATH),
+];
+
 /** Paths which must remain denied even though the installed plugins own them. */
 export const APPLICATION_AUTH_FORBIDDEN_ROUTES: readonly ApplicationAuthRouteManifestEntry[] =
   [
@@ -54,16 +68,27 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
   emailVerificationEnabled: boolean;
   enabledSocialProviders: readonly ApplicationAuthProviderName[];
 }): EffectiveApplicationAuthRouteManifest {
-  const allowedRoutes = [...OAUTH_PROTOCOL_ROUTES];
+  const allowedRoutes = [...OAUTH_PROTOCOL_ROUTES, ...HOSTED_UI_BASE_ROUTES];
 
   if (input.policy.passwordSignInAllowed) {
-    allowedRoutes.push(exact("POST", "/sign-in/email"));
+    allowedRoutes.push(
+      exact("POST", "/sign-in/email"),
+      exact("POST", "/login/password")
+    );
   }
   if (input.policy.passwordSignUpAllowed) {
-    allowedRoutes.push(exact("POST", "/sign-up/email"));
+    allowedRoutes.push(
+      exact("GET", "/signup"),
+      exact("POST", "/sign-up/email"),
+      exact("POST", "/signup/password")
+    );
   }
   if (input.policy.passwordResetAllowed) {
     allowedRoutes.push(
+      exact("GET", "/password/forgot"),
+      exact("POST", "/password/forgot"),
+      exact("GET", "/password/reset"),
+      exact("POST", "/password/reset"),
       exact("POST", "/request-password-reset"),
       {
         method: "GET",
@@ -75,6 +100,7 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
   }
   if (input.emailVerificationEnabled) {
     allowedRoutes.push(
+      exact("POST", "/verification/resend"),
       exact("POST", "/send-verification-email"),
       exact("GET", "/verify-email")
     );

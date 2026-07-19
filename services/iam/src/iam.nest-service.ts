@@ -4,6 +4,7 @@ import {
   Logger,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from "@nestjs/common";
 import type { FastifyInstance } from "fastify";
 import {
@@ -17,6 +18,14 @@ import { Kernel } from "./kernel/Kernel.js";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { startIamHttpServer } from "./api/http/server.js";
 import { resolveIamHttpRuntimeConfiguration } from "./api/http/iamHttpConfiguration.js";
+import {
+  APPLICATION_AUTH_EMAIL_DELIVERY_PORT,
+  type ApplicationAuthEmailDeliveryPort,
+} from "./services/ApplicationAuthEmailDeliveryPort.js";
+import {
+  APPLICATION_AUTH_RATE_LIMIT_PORT,
+  type ApplicationAuthRateLimitPort,
+} from "./services/ApplicationAuthRateLimiter.js";
 
 const { service, global } = getServiceConfig("iam");
 
@@ -29,7 +38,13 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectBroker("iam") private readonly broker: ServiceBroker,
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
-    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient,
+    @Optional()
+    @Inject(APPLICATION_AUTH_EMAIL_DELIVERY_PORT)
+    private readonly applicationAuthEmailDelivery?: ApplicationAuthEmailDeliveryPort,
+    @Optional()
+    @Inject(APPLICATION_AUTH_RATE_LIMIT_PORT)
+    private readonly applicationAuthRateLimit?: ApplicationAuthRateLimitPort
   ) {}
 
   async onModuleInit() {
@@ -43,6 +58,8 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     }
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient, {
       applicationAuthPublicBaseUrl: http.publicBaseUrl,
+      applicationAuthEmailDelivery: this.applicationAuthEmailDelivery,
+      applicationAuthRateLimit: this.applicationAuthRateLimit,
     });
     this.logger.debug("Kernel created");
 

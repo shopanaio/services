@@ -29,6 +29,16 @@ export interface ActiveApplicationOAuthClientPolicy {
   public: boolean;
 }
 
+export interface ActiveApplicationOAuthHostedUiClient
+  extends ActiveApplicationOAuthClientPolicy {
+  name: string | null;
+  icon: string | null;
+  redirectUris: readonly string[];
+  postLogoutRedirectUris: readonly string[];
+  enableEndSession: boolean;
+  scopes: readonly string[];
+}
+
 /**
  * Minimal read boundary used by the public OAuth resource guard.
  *
@@ -131,6 +141,47 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
       resource: record.configuredResource,
       tokenEndpointAuthMethod: record.tokenEndpointAuthMethod,
       public: record.public,
+    };
+  }
+
+  @ReadOnly()
+  async findActiveHostedUiClient(
+    applicationId: string,
+    clientId: string
+  ): Promise<ActiveApplicationOAuthHostedUiClient | null> {
+    const policy = await this.findActivePolicy(applicationId, clientId);
+    if (!policy) return null;
+    const [client] = await this.connection
+      .select({
+        name: applicationOauthClient.name,
+        icon: applicationOauthClient.icon,
+        redirectUris: applicationOauthClient.redirectUris,
+        postLogoutRedirectUris:
+          applicationOauthClient.postLogoutRedirectUris,
+        enableEndSession: applicationOauthClient.enableEndSession,
+        scopes: applicationOauthClient.scopes,
+      })
+      .from(applicationOauthClient)
+      .where(
+        and(
+          eq(applicationOauthClient.applicationId, applicationId),
+          eq(applicationOauthClient.clientId, clientId),
+          eq(applicationOauthClient.disabled, false),
+          isNull(applicationOauthClient.deletedAt)
+        )
+      )
+      .limit(1);
+    if (!client) return null;
+    return {
+      ...policy,
+      name: client.name,
+      icon: client.icon,
+      redirectUris: Object.freeze([...client.redirectUris]),
+      postLogoutRedirectUris: Object.freeze([
+        ...(client.postLogoutRedirectUris ?? []),
+      ]),
+      enableEndSession: client.enableEndSession,
+      scopes: Object.freeze([...(client.scopes ?? [])]),
     };
   }
 }

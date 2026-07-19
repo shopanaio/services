@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
 
+export const APPLICATION_AUTH_EMAIL_DELIVERY_PORT = Symbol.for(
+  "shopana.iam.application-auth-email-delivery-port"
+);
+
 export type ApplicationAuthEmailDeliveryPurpose =
   | "email_verification_link"
   | "password_reset_link"

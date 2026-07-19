@@ -21,3 +21,12 @@ import {
   ],
 })
 export class IamModule {}
+
+export {
+  APPLICATION_AUTH_EMAIL_DELIVERY_PORT,
+  type ApplicationAuthEmailDeliveryPort,
+} from "./services/ApplicationAuthEmailDeliveryPort.js";
+export {
+  APPLICATION_AUTH_RATE_LIMIT_PORT,
+  type ApplicationAuthRateLimitPort,
+} from "./services/ApplicationAuthRateLimiter.js";
