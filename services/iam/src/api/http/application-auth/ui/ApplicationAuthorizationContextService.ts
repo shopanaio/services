@@ -34,6 +34,8 @@ export type ApplicationAuthorizationContextAction =
   | "verification-resend"
   | "email-otp-request"
   | "email-otp-verify"
+  | "social-signin:google"
+  | "social-signin:facebook"
   | "consent";
 
 export interface ActiveApplicationAuthorizationContext {

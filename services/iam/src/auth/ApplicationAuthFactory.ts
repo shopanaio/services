@@ -30,7 +30,9 @@ import { assertApplicationId } from "./AuthScope.js";
 export interface ApplicationAuthConfigurationSource {
   findActive(
     applicationId: string
-  ): Promise<ApplicationAuthConfigurationRecord | null>;
+  ): Promise<
+    (ApplicationAuthConfigurationRecord & { organizationId: string }) | null
+  >;
   listOrigins(applicationId: string): Promise<Array<{ origin: string }>>;
   readProviderCredentials(
     applicationId: string,
@@ -50,6 +52,7 @@ export interface ApplicationAuthInvalidationEvent {
 export interface ApplicationAuthFactoryRuntime {
   auth: ApplicationAuth;
   applicationId: string;
+  organizationId: string;
   configurationRevision: number;
   secretKeyVersion: number;
   resource: string;
@@ -242,6 +245,7 @@ export class ApplicationAuthFactory {
     const runtime: ApplicationAuthFactoryRuntime = Object.freeze({
       auth,
       applicationId,
+      organizationId: configuration.organizationId,
       configurationRevision: configuration.revision,
       secretKeyVersion: configuration.secretKeyVersion,
       resource: configuration.resource,
@@ -377,6 +381,7 @@ export class ApplicationAuthFactory {
 
       return {
         applicationId,
+        organizationId: initial.organizationId,
         revision: initial.revision,
         secretKeyVersion: initial.secretKeyVersion,
         publicBaseUrl: this.resolvePublicBaseUrl(),

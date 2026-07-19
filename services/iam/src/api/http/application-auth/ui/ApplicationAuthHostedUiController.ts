@@ -1,10 +1,16 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 import { makeSignature } from "better-auth/crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createLocalJWKSet, decodeJwt, jwtVerify, type JSONWebKeySet } from "jose";
 import { z } from "zod";
 import type { ApplicationAuthFactoryRuntime } from "../../../../auth/ApplicationAuthFactory.js";
 import type { Kernel } from "../../../../kernel/Kernel.js";
+import type { ApplicationAuthAuditReasonCategory } from "../../../../services/ApplicationAuthAuditService.js";
 import { normalizeApplicationAuthEmailRecipient } from "../../../../services/ApplicationAuthEmailDeliveryPort.js";
 import { ApplicationAuthRateLimitError } from "../../../../services/ApplicationAuthRateLimiter.js";
 import {
@@ -38,6 +44,9 @@ const UI_FORM_PATHS = new Set([
   "/verification/resend",
   "/consent",
   "/logout",
+  "/login/social",
+  "/account/connections/link",
+  "/account/connections/unlink",
 ]);
 
 const UI_GET_PATHS = new Set([
@@ -53,6 +62,7 @@ const UI_GET_PATHS = new Set([
   "/consent",
   "/logout",
   "/error",
+  "/account/connections",
 ]);
 
 interface LogoutState {
@@ -119,6 +129,9 @@ export class ApplicationAuthHostedUiController {
       case "POST /login/password":
         await this.postPasswordSignIn(input);
         break;
+      case "POST /login/social":
+        await this.postSocialSignIn(input);
+        break;
       case "GET /signup":
         await this.getSignup(input);
         break;
@@ -160,6 +173,15 @@ export class ApplicationAuthHostedUiController {
         break;
       case "GET /account-created":
         await this.getAccountCreated(input);
+        break;
+      case "GET /account/connections":
+        await this.getAccountConnections(input);
+        break;
+      case "POST /account/connections/link":
+        await this.postAccountConnectionLink(input);
+        break;
+      case "POST /account/connections/unlink":
+        await this.postAccountConnectionUnlink(input);
         break;
       case "GET /consent":
         await this.getConsent(input);
@@ -259,6 +281,30 @@ export class ApplicationAuthHostedUiController {
           <button type="submit">${escapeHtml(t("signIn"))}</button>
         </form>`
       : "";
+    const socialForms = runtime.routeManifest.allowedSocialProviders
+      .map((provider) => {
+        const socialCsrf = this.authorizationContexts.createCsrfToken(
+          runtime,
+          active.opaqueId,
+          `social-signin:${provider}`
+        );
+        return { provider, socialCsrf };
+      });
+    const socialButtons = (
+      await Promise.all(
+        socialForms.map(async ({ provider, socialCsrf }) =>
+          `<form method="post" action="./login/social">
+            ${hiddenInput("csrf", await socialCsrf)}
+            ${hiddenInput("provider", provider)}
+            <button class="button-secondary" type="submit">${escapeHtml(
+              provider === "google"
+                ? t("continueWithGoogle")
+                : t("continueWithFacebook")
+            )}</button>
+          </form>`
+        )
+      )
+    ).join("");
     const links = [
       runtime.policy.passwordSignUpAllowed
         ? `<a href="./signup">${escapeHtml(t("signUp"))}</a>`
@@ -274,8 +320,58 @@ export class ApplicationAuthHostedUiController {
       .join("");
     const body = `<h1>${escapeHtml(t("signInTitle"))}</h1><p class="muted">${escapeHtml(t("signInHint"))}</p>${
       error ? renderMessage(runtime, "error", "genericAuthError") : ""
-    }${signInForm}${links ? `<nav class="links">${links}</nav>` : ""}`;
+    }${socialButtons ? `<div class="social-actions">${socialButtons}</div>${signInForm ? '<div class="divider"></div>' : ""}` : ""}${signInForm}${links ? `<nav class="links">${links}</nav>` : ""}`;
     await sendHtml(input.reply, runtime, t("signInTitle"), body);
+  }
+
+  private async postSocialSignIn(input: HandlerInput): Promise<void> {
+    const form = parseForm(input.raw);
+    const provider = parseSocialProvider(
+      singleFormValue(form, "provider", 6, 8)
+    );
+    if (!input.runtime.routeManifest.allowedSocialProviders.includes(provider)) {
+      throw uiNotFound();
+    }
+    const active = await this.requireContext(input, "login");
+    await this.authorizationContexts.assertCsrfToken(
+      input.runtime,
+      active,
+      `social-signin:${provider}`,
+      singleFormValue(form, "csrf", 16, 1024)
+    );
+    const rotated = await this.authorizationContexts.rotate(
+      input.runtime,
+      active,
+      { currentStep: "login" }
+    );
+    const response = await this.callBetterAuth(input, "/sign-in/social", {
+      provider,
+      oauth_query: await this.authorizationContexts.buildSignedOAuthQuery(
+        input.runtime,
+        rotated
+      ),
+    });
+    if (!response.ok || !response.headers.has("location")) {
+      input.reply.header(
+        "set-cookie",
+        await this.authorizationContexts.serializeCookie(
+          input.runtime,
+          rotated.opaqueId
+        )
+      );
+      await this.renderLogin(input, rotated, true);
+      return;
+    }
+    await this.authorizationContexts.consume(input.runtime, rotated);
+    await sendApplicationAuthFetchResponse(
+      asBrowserRedirect(
+        appendSetCookie(
+          response,
+          this.authorizationContexts.clearCookie(input.runtime)
+        )
+      ),
+      input.reply
+    );
   }
 
   private async postPasswordSignIn(input: HandlerInput): Promise<void> {
@@ -806,6 +902,333 @@ export class ApplicationAuthHostedUiController {
     );
   }
 
+  private async getAccountConnections(input: HandlerInput): Promise<void> {
+    const session = await this.readCurrentSession(input);
+    const accounts = await this.readCurrentAccounts(input);
+    const fresh = isFreshApplicationSession(session.session.createdAt);
+    const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
+    const query = parseRawSearchParams(input.raw.rawQuery);
+    const hasError = query.getAll("error").length > 0;
+    const updated = query.getAll("updated").length === 1;
+    const providers = (["google", "facebook"] as const)
+      .map((provider) => {
+        const matches = accounts.filter(
+          (account) => account.providerId === provider
+        );
+        const enabled =
+          input.runtime.routeManifest.allowedSocialProviders.includes(provider);
+        const label =
+          provider === "google" ? t("googleProvider") : t("facebookProvider");
+        if (matches.length === 0 && !enabled) return "";
+        if (matches.length === 1) {
+          const unlink = fresh
+            ? `<form method="post" action="./connections/unlink">
+                ${hiddenInput("provider", provider)}
+                ${hiddenInput(
+                  "csrf",
+                  createAccountConnectionCsrf(
+                    this.kernel,
+                    input.runtime,
+                    session.session.id,
+                    `unlink:${provider}`
+                  )
+                )}
+                <button class="button-secondary" type="submit">${escapeHtml(
+                  t("disconnectProvider")
+                )}</button>
+              </form>`
+            : `<p class="muted">${escapeHtml(t("freshSessionRequired"))}</p>`;
+          return `<section class="connection"><div><strong>${escapeHtml(
+            label
+          )}</strong><p class="muted">${escapeHtml(
+            t("providerConnected")
+          )}</p></div>${unlink}</section>`;
+        }
+        if (matches.length > 1) {
+          return `<section class="connection"><div><strong>${escapeHtml(
+            label
+          )}</strong><p class="muted">${escapeHtml(
+            t("providerConflict")
+          )}</p></div></section>`;
+        }
+        const link = fresh
+          ? `<form method="post" action="./connections/link">
+              ${hiddenInput("provider", provider)}
+              ${hiddenInput(
+                "csrf",
+                createAccountConnectionCsrf(
+                  this.kernel,
+                  input.runtime,
+                  session.session.id,
+                  `link:${provider}`
+                )
+              )}
+              <button type="submit">${escapeHtml(t("connectProvider"))}</button>
+            </form>`
+          : `<p class="muted">${escapeHtml(t("freshSessionRequired"))}</p>`;
+        return `<section class="connection"><div><strong>${escapeHtml(
+          label
+        )}</strong><p class="muted">${escapeHtml(
+          t("providerNotConnected")
+        )}</p></div>${link}</section>`;
+      })
+      .filter(Boolean)
+      .join("");
+    const status = hasError
+      ? renderMessage(input.runtime, "error", "connectionFailed")
+      : updated
+        ? renderMessage(input.runtime, "success", "connectionsUpdated")
+        : "";
+    const body = `<h1>${escapeHtml(t("connectionsTitle"))}</h1><p class="muted">${escapeHtml(
+      t("connectionsHint")
+    )}</p>${status}${providers || `<p>${escapeHtml(t("noSocialProviders"))}</p>`}`;
+    await sendHtml(
+      input.reply,
+      input.runtime,
+      t("connectionsTitle"),
+      body
+    );
+  }
+
+  private async postAccountConnectionLink(input: HandlerInput): Promise<void> {
+    const form = parseForm(input.raw);
+    const provider = parseSocialProvider(
+      singleFormValue(form, "provider", 6, 8)
+    );
+    let session: ApplicationAuthCurrentSession;
+    try {
+      session = await this.readCurrentSession(input);
+    } catch (error) {
+      await this.recordAccountAudit(input, {
+        action: "account_link",
+        outcome: "failure",
+        reasonCategory: "session_missing",
+        provider,
+      });
+      throw error;
+    }
+    if (!input.runtime.routeManifest.allowedSocialProviders.includes(provider)) {
+      await this.recordAccountAudit(input, {
+        action: "account_link",
+        outcome: "failure",
+        reasonCategory: "provider_disabled",
+        provider,
+        actorId: session.user.id,
+      });
+      throw uiNotFound();
+    }
+    if (!isFreshApplicationSession(session.session.createdAt)) {
+      await this.recordAccountAudit(input, {
+        action: "account_link",
+        outcome: "failure",
+        reasonCategory: "session_not_fresh",
+        provider,
+        actorId: session.user.id,
+      });
+      throw new ApplicationAuthRequestError(
+        "A recent application session is required",
+        403,
+        "access_denied"
+      );
+    }
+    try {
+      assertAccountConnectionCsrf(
+        this.kernel,
+        input.runtime,
+        session.session.id,
+        `link:${provider}`,
+        singleFormValue(form, "csrf", 16, 1024)
+      );
+    } catch (error) {
+      await this.recordAccountAudit(input, {
+        action: "account_link",
+        outcome: "failure",
+        reasonCategory: "invalid_request",
+        provider,
+        actorId: session.user.id,
+      });
+      throw error;
+    }
+    const connectionsUrl = `${input.runtime.issuer}/account/connections`;
+    let response: Response;
+    try {
+      response = await this.callBetterAuth(input, "/link-social", {
+        provider,
+        callbackURL: connectionsUrl,
+        errorCallbackURL: connectionsUrl,
+      });
+    } catch (error) {
+      await this.recordAccountAudit(input, {
+        action: "account_link",
+        outcome: "failure",
+        reasonCategory: "linking_failed",
+        provider,
+        actorId: session.user.id,
+      });
+      throw error;
+    }
+    if (!response.ok || !response.headers.has("location")) {
+      await this.recordAccountAudit(input, {
+        action: "account_link",
+        outcome: "failure",
+        reasonCategory: mapBetterAuthAccountError(
+          await readBetterAuthErrorCode(response)
+        ),
+        provider,
+        actorId: session.user.id,
+      });
+      throw new ApplicationAuthRequestError(
+        "Account connection could not be started",
+        response.status === 403 ? 403 : 400,
+        "access_denied"
+      );
+    }
+    await sendApplicationAuthFetchResponse(
+      asBrowserRedirect(response),
+      input.reply
+    );
+  }
+
+  private async postAccountConnectionUnlink(input: HandlerInput): Promise<void> {
+    const form = parseForm(input.raw);
+    const provider = parseSocialProvider(
+      singleFormValue(form, "provider", 6, 8)
+    );
+    let session: ApplicationAuthCurrentSession;
+    try {
+      session = await this.readCurrentSession(input);
+    } catch (error) {
+      await this.recordAccountAudit(input, {
+        action: "account_unlink",
+        outcome: "failure",
+        reasonCategory: "session_missing",
+        provider,
+      });
+      throw error;
+    }
+    if (!isFreshApplicationSession(session.session.createdAt)) {
+      await this.recordAccountAudit(input, {
+        action: "account_unlink",
+        outcome: "failure",
+        reasonCategory: "session_not_fresh",
+        provider,
+        actorId: session.user.id,
+      });
+      throw new ApplicationAuthRequestError(
+        "A recent application session is required",
+        403,
+        "access_denied"
+      );
+    }
+    try {
+      assertAccountConnectionCsrf(
+        this.kernel,
+        input.runtime,
+        session.session.id,
+        `unlink:${provider}`,
+        singleFormValue(form, "csrf", 16, 1024)
+      );
+    } catch (error) {
+      await this.recordAccountAudit(input, {
+        action: "account_unlink",
+        outcome: "failure",
+        reasonCategory: "invalid_request",
+        provider,
+        actorId: session.user.id,
+      });
+      throw error;
+    }
+    let matchingAccounts: ApplicationAuthAccount[];
+    try {
+      matchingAccounts = (await this.readCurrentAccounts(input)).filter(
+        (account) => account.providerId === provider
+      );
+    } catch (error) {
+      await this.recordAccountAudit(input, {
+        action: "account_unlink",
+        outcome: "failure",
+        reasonCategory: "unknown",
+        provider,
+        actorId: session.user.id,
+      });
+      throw error;
+    }
+    if (matchingAccounts.length !== 1) {
+      await this.recordAccountAudit(input, {
+        action: "account_unlink",
+        outcome: "failure",
+        reasonCategory:
+          matchingAccounts.length === 0 ? "invalid_request" : "account_conflict",
+        provider,
+        actorId: session.user.id,
+      });
+      throw new ApplicationAuthRequestError(
+        "Account connection could not be removed",
+        400,
+        "invalid_request"
+      );
+    }
+    let response: Response;
+    try {
+      response = await this.callBetterAuth(input, "/unlink-account", {
+        providerId: provider,
+      });
+    } catch (error) {
+      await this.recordAccountAudit(input, {
+        action: "account_unlink",
+        outcome: "failure",
+        reasonCategory: "unknown",
+        provider,
+        actorId: session.user.id,
+      });
+      throw error;
+    }
+    if (!response.ok) {
+      await this.recordAccountAudit(input, {
+        action: "account_unlink",
+        outcome: "failure",
+        reasonCategory: mapBetterAuthAccountError(
+          await readBetterAuthErrorCode(response)
+        ),
+        provider,
+        actorId: session.user.id,
+      });
+      throw new ApplicationAuthRequestError(
+        "Account connection could not be removed",
+        response.status === 403 ? 403 : 400,
+        "access_denied"
+      );
+    }
+    await this.recordAccountAudit(input, {
+      action: "account_unlink",
+      outcome: "success",
+      reasonCategory: "success",
+      provider,
+      actorId: session.user.id,
+    });
+    await redirectToUi(input, "/account/connections?updated=1", []);
+  }
+
+  private async recordAccountAudit(
+    input: HandlerInput,
+    event: {
+      action: "account_link" | "account_unlink";
+      outcome: "success" | "failure";
+      reasonCategory: ApplicationAuthAuditReasonCategory;
+      provider: "google" | "facebook";
+      actorId?: string;
+    }
+  ): Promise<void> {
+    await this.kernel.applicationAuthAudit.record({
+      ...event,
+      actorType: event.actorId ? "application_user" : "anonymous",
+      organizationId: input.runtime.organizationId,
+      applicationId: input.runtime.applicationId,
+      secretKeyVersion: input.runtime.secretKeyVersion,
+      requestId: String(input.request.id),
+    });
+  }
+
   private async getConsent(input: HandlerInput): Promise<void> {
     if (input.raw.rawQuery) {
       const previous = await this.authorizationContexts.readFromRequest(
@@ -1117,6 +1540,12 @@ export class ApplicationAuthHostedUiController {
   }
 
   private async readCurrentSessionId(input: HandlerInput): Promise<string> {
+    return (await this.readCurrentSession(input)).session.id;
+  }
+
+  private async readCurrentSession(
+    input: HandlerInput
+  ): Promise<ApplicationAuthCurrentSession> {
     const headers = new Headers({
       accept: "application/json",
       host: new URL(input.publicBaseUrl).host,
@@ -1134,11 +1563,68 @@ export class ApplicationAuthHostedUiController {
     if (!response.ok) {
       throw new ApplicationAuthRequestError("Application session is unavailable");
     }
-    const value = (await response.json()) as { session?: { id?: unknown } };
-    if (typeof value.session?.id !== "string") {
+    const value = (await response.json()) as {
+      session?: { id?: unknown; createdAt?: unknown };
+      user?: { id?: unknown };
+    };
+    if (
+      typeof value.session?.id !== "string" ||
+      (typeof value.session.createdAt !== "string" &&
+        !(value.session.createdAt instanceof Date)) ||
+      typeof value.user?.id !== "string"
+    ) {
       throw new ApplicationAuthRequestError("Application session is unavailable");
     }
-    return value.session.id;
+    const createdAt = new Date(value.session.createdAt);
+    if (!Number.isFinite(createdAt.getTime())) {
+      throw new ApplicationAuthRequestError("Application session is unavailable");
+    }
+    return {
+      session: { id: value.session.id, createdAt },
+      user: { id: value.user.id },
+    };
+  }
+
+  private async readCurrentAccounts(
+    input: HandlerInput
+  ): Promise<ApplicationAuthAccount[]> {
+    const headers = new Headers({
+      accept: "application/json",
+      host: new URL(input.publicBaseUrl).host,
+      origin: input.publicBaseUrl,
+      "x-forwarded-for": input.request.ip,
+      "x-request-id": String(input.request.id),
+    });
+    if (input.request.headers.cookie) {
+      headers.set("cookie", input.request.headers.cookie);
+    }
+    const response = await input.runtime.auth.handler(
+      new Request(`${input.runtime.issuer}/list-accounts`, {
+        method: "GET",
+        headers,
+      })
+    );
+    if (!response.ok) {
+      throw new ApplicationAuthRequestError("Application accounts are unavailable");
+    }
+    const value: unknown = await response.json();
+    if (!Array.isArray(value)) {
+      throw new ApplicationAuthRequestError("Application accounts are unavailable");
+    }
+    return value.map((account) => {
+      if (
+        !account ||
+        typeof account !== "object" ||
+        typeof (account as { providerId?: unknown }).providerId !== "string"
+      ) {
+        throw new ApplicationAuthRequestError(
+          "Application accounts are unavailable"
+        );
+      }
+      return {
+        providerId: (account as { providerId: string }).providerId,
+      };
+    });
   }
 
   private rateLimitSecret(runtime: ApplicationAuthFactoryRuntime): string {
@@ -1267,6 +1753,15 @@ export class ApplicationAuthHostedUiController {
 
 type HandlerInput = Parameters<ApplicationAuthHostedUiController["handle"]>[0];
 
+interface ApplicationAuthCurrentSession {
+  session: { id: string; createdAt: Date };
+  user: { id: string };
+}
+
+interface ApplicationAuthAccount {
+  providerId: string;
+}
+
 const logoutStateSchema = z
   .object({
     applicationId: z.string().uuid(),
@@ -1290,6 +1785,89 @@ function parseForm(raw: RawApplicationAuthRequest): URLSearchParams {
     throw new ApplicationAuthRequestError("Hosted authentication form is empty");
   }
   return parseRawSearchParams(raw.body.toString("utf8"));
+}
+
+function parseSocialProvider(value: string): "google" | "facebook" {
+  if (value !== "google" && value !== "facebook") {
+    throw new ApplicationAuthRequestError("Social provider is invalid");
+  }
+  return value;
+}
+
+function isFreshApplicationSession(createdAt: Date): boolean {
+  const age = Date.now() - createdAt.getTime();
+  return age >= -60_000 && age < 10 * 60 * 1_000;
+}
+
+function createAccountConnectionCsrf(
+  kernel: Kernel,
+  runtime: ApplicationAuthFactoryRuntime,
+  sessionId: string,
+  action: string
+): string {
+  const secret = kernel.applicationAuthSecrets.derivePurposeSecret(
+    runtime.applicationId,
+    runtime.secretKeyVersion,
+    "account-connections"
+  );
+  return createHmac("sha256", secret)
+    .update(
+      `shopana:iam:application-auth-account-connections:v1\0${runtime.applicationId}\0${sessionId}\0${action}`,
+      "utf8"
+    )
+    .digest("base64url");
+}
+
+function assertAccountConnectionCsrf(
+  kernel: Kernel,
+  runtime: ApplicationAuthFactoryRuntime,
+  sessionId: string,
+  action: string,
+  actual: string
+): void {
+  const expected = createAccountConnectionCsrf(
+    kernel,
+    runtime,
+    sessionId,
+    action
+  );
+  if (!constantTimeEqual(actual, expected)) {
+    throw new ApplicationAuthRequestError("CSRF token is invalid");
+  }
+}
+
+async function readBetterAuthErrorCode(
+  response: Response
+): Promise<string | null> {
+  try {
+    const value = (await response.clone().json()) as {
+      code?: unknown;
+      error?: { code?: unknown };
+    };
+    if (typeof value.code === "string") return value.code;
+    return typeof value.error?.code === "string" ? value.error.code : null;
+  } catch {
+    return null;
+  }
+}
+
+function mapBetterAuthAccountError(
+  code: string | null
+): ApplicationAuthAuditReasonCategory {
+  switch (code?.toUpperCase()) {
+    case "SESSION_NOT_FRESH":
+      return "session_not_fresh";
+    case "FAILED_TO_UNLINK_LAST_ACCOUNT":
+      return "last_login_method";
+    case "ACCOUNT_NOT_FOUND":
+      return "invalid_request";
+    case "LINKING_DIFFERENT_EMAILS_NOT_ALLOWED":
+      return "email_mismatch";
+    case "LINKING_FAILED":
+      return "linking_failed";
+    default:
+      return "unknown";
+  }
 }
 
 function singleFormValue(
@@ -1425,6 +2003,18 @@ function appendSetCookie(response: Response, cookie: string): Response {
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
+    headers,
+  });
+}
+
+function asBrowserRedirect(response: Response): Response {
+  const location = response.headers.get("location");
+  if (!location) return response;
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  headers.delete("content-type");
+  return new Response(null, {
+    status: 303,
     headers,
   });
 }

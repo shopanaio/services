@@ -1,8 +1,8 @@
 # Application auth OAuth/OIDC — operations
 
 This runbook covers the schema, configuration and secret lifecycle plus the
-public HTTP, hosted UI, password and email OTP runtime delivered through Phase
-5.
+public HTTP, hosted UI, password, email OTP and social account runtime delivered
+through Phase 6.
 
 ## Public IAM HTTP listener
 
@@ -80,6 +80,55 @@ Rate-limit keys are realm-specific HMAC values. Email addresses, OTPs and raw
 verification identifiers must not be used as backend keys, metrics labels or
 log fields. Send responses are generic for existing and absent users and use a
 minimum response floor to reduce account-enumeration timing differences.
+
+## Google/Facebook and account linking
+
+Google and Facebook credentials are loaded per application from encrypted
+`application_auth_provider` rows. The factory accepts only the approved scope
+allowlists and configures Better Auth with `account.encryptOAuthTokens=true`.
+Provider credentials, provider responses and upstream access/refresh tokens
+must not be included in responses, operational logs or audit payloads.
+
+The hosted login page starts social sign-in with the same signed, one-time OAuth
+authorization context used by password and OTP flows. The public
+`/sign-in/social` boundary accepts only an enabled `google`/`facebook` provider
+and the signed `oauth_query`; caller-selected callback URLs, ID tokens, scopes,
+additional data and signup overrides are rejected. Provider callbacks remain
+exact per-provider manifest entries and force a configuration revision read.
+
+Application users manage links at:
+
+```text
+GET  /auth/applications/:applicationId/account/connections
+POST /auth/applications/:applicationId/account/connections/link
+POST /auth/applications/:applicationId/account/connections/unlink
+```
+
+These are same-origin, server-rendered, session-bound and CSRF-protected hosted
+routes. They invoke Better Auth's standard `linkSocial()`, `listAccounts()` and
+`unlinkAccount()` endpoints internally. The raw Better Auth account-management
+paths remain forbidden by the public default-deny manifest, so a caller cannot
+override the IAM-calculated return URL or submit the ID-token linking branch.
+Link and unlink require a session created less than ten minutes ago. Better
+Auth also enforces `allowUnlinkingAll=false`, so the last stored login account
+cannot be removed.
+
+Linking policy is fixed to `disableImplicitLinking=true`,
+`allowDifferentEmails=false`, `allowUnlinkingAll=false`,
+`updateUserInfoOnLink=false` and `trustedProviders=["facebook"]`. Facebook is
+trusted only as proof of the explicitly linked Facebook account; it does not
+enable email-based implicit linking. A missing/different email, an account
+owned by another application user, callback/application mismatch or replayed
+state is rejected by the scoped Better Auth flow and shown as a generic hosted
+error. When `registration_mode=disabled`, an existing linked account can sign
+in, while the first social login cannot create a user, account or session.
+
+Production composition should provide `ApplicationAuthAuditPort` backed by an
+append-only sink. Events use the v1 redacted schema and cover provider callback,
+link and unlink outcomes. Application-user actor IDs are realm-HMAC values;
+only the provider name is permitted in `safeDiff`. Audit delivery failure does
+not alter the OAuth response, but the port should persist its failure counter
+and alert according to the observability policy.
 
 ## Root-key contract
 

@@ -23,7 +23,12 @@ export class ApplicationAuthSecretService {
   derivePurposeSecret(
     applicationId: string,
     keyVersion: number,
-    purpose: "authorization-context" | "rate-limit" | "hosted-ui-logout"
+    purpose:
+      | "authorization-context"
+      | "rate-limit"
+      | "hosted-ui-logout"
+      | "account-connections"
+      | "security-audit"
   ): string {
     const context =
       `shopana:iam:application-auth:${purpose}:${applicationId}:${keyVersion}`;

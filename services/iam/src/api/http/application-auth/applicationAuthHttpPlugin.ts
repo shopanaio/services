@@ -6,6 +6,7 @@ import type {
 import { z } from "zod";
 import type { ApplicationAuthFactoryRuntime } from "../../../auth/ApplicationAuthFactory.js";
 import type { Kernel } from "../../../kernel/Kernel.js";
+import type { ApplicationAuthAuditReasonCategory } from "../../../services/ApplicationAuthAuditService.js";
 import { ApplicationAuthRateLimitError } from "../../../services/ApplicationAuthRateLimiter.js";
 import {
   ApplicationOAuthResourcePolicyError,
@@ -271,6 +272,24 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
       try {
         response = await runtime.auth.handler(fetchRequest);
       } catch (error) {
+        if (
+          normalizedPath === "/callback/google" ||
+          normalizedPath === "/callback/facebook"
+        ) {
+          await options.kernel.applicationAuthAudit.record({
+            action: "provider_callback",
+            outcome: "failure",
+            reasonCategory: "provider_error",
+            actorType: "anonymous",
+            organizationId: runtime.organizationId,
+            applicationId: runtime.applicationId,
+            secretKeyVersion: runtime.secretKeyVersion,
+            requestId: String(request.id),
+            provider: normalizedPath.endsWith("/google")
+              ? "google"
+              : "facebook",
+          });
+        }
         if (emailOtpStartedAt !== undefined) {
           await waitForEmailOtpGenericResponseFloor(emailOtpStartedAt);
           throw emailOtpDeliveryUnavailable();
@@ -282,6 +301,20 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         response,
         emailOtpStartedAt
       );
+      if (
+        normalizedPath === "/callback/google" ||
+        normalizedPath === "/callback/facebook"
+      ) {
+        await auditSocialProviderCallback({
+          kernel: options.kernel,
+          runtime,
+          provider: normalizedPath.endsWith("/google")
+            ? "google"
+            : "facebook",
+          requestId: String(request.id),
+          response,
+        });
+      }
       if (
         normalizedPath === "/.well-known/openid-configuration" ||
         normalizedPath === "/.well-known/oauth-authorization-server"
@@ -362,7 +395,7 @@ function acceptsHostedUiHtml(request: FastifyRequest): boolean {
   const accept = request.headers.accept;
   if (typeof accept !== "string" || !accept.includes("text/html")) return false;
   const rawPath = request.raw.url?.split("?", 1)[0] ?? "";
-  return /\/auth\/applications\/[^/]+\/(?:login|signup|email-otp|consent|logout|error|password\/|verification-|verified|account-created)/u.test(
+  return /\/auth\/applications\/[^/]+\/(?:login|signup|email-otp|consent|logout|error|password\/|verification-|verified|account-created|account\/)/u.test(
     rawPath
   );
 }
@@ -479,7 +512,21 @@ function assertEffectiveRequestPolicy(
 ): void {
   if (normalizedPath === "/sign-in/social") {
     if (!raw.body) throw new ApplicationAuthRequestError("JSON body is required");
-    const provider = parseJsonBody(raw.body).provider;
+    const body = parseJsonBody(raw.body);
+    const keys = Object.keys(body).sort();
+    if (
+      keys.length !== 2 ||
+      keys[0] !== "oauth_query" ||
+      keys[1] !== "provider" ||
+      typeof body.oauth_query !== "string" ||
+      body.oauth_query.length < 32 ||
+      body.oauth_query.length > 16_384
+    ) {
+      throw new ApplicationAuthRequestError(
+        "Social sign-in request is invalid"
+      );
+    }
+    const provider = body.provider;
     if (
       typeof provider !== "string" ||
       !runtime.routeManifest.allowedSocialProviders.includes(
@@ -502,6 +549,82 @@ function assertEffectiveRequestPolicy(
     if (typeof body.otp !== "string" || !/^\d{6}$/u.test(body.otp)) {
       throw new ApplicationAuthRequestError("Email OTP is invalid");
     }
+  }
+}
+
+async function auditSocialProviderCallback(input: {
+  kernel: Kernel;
+  runtime: ApplicationAuthFactoryRuntime;
+  provider: "google" | "facebook";
+  requestId: string;
+  response: Response;
+}): Promise<void> {
+  const location = input.response.headers.get("location");
+  let target: URL | null = null;
+  try {
+    target = location ? new URL(location, input.runtime.issuer) : null;
+  } catch {
+    target = null;
+  }
+  const errorCode = target?.searchParams.get("error") ?? null;
+  const callbackSucceeded =
+    input.response.status >= 300 &&
+    input.response.status < 400 &&
+    target !== null &&
+    errorCode === null;
+  const reasonCategory = callbackSucceeded
+    ? "success"
+    : mapSocialCallbackAuditReason(errorCode);
+  await input.kernel.applicationAuthAudit.record({
+    action: "provider_callback",
+    outcome: callbackSucceeded ? "success" : "failure",
+    reasonCategory,
+    actorType: "anonymous",
+    organizationId: input.runtime.organizationId,
+    applicationId: input.runtime.applicationId,
+    secretKeyVersion: input.runtime.secretKeyVersion,
+    requestId: input.requestId,
+    provider: input.provider,
+  });
+
+  const connectionsPath = `/auth/applications/${input.runtime.applicationId}/account/connections`;
+  if (target?.origin !== new URL(input.runtime.issuer).origin) return;
+  if (target.pathname !== connectionsPath) return;
+  await input.kernel.applicationAuthAudit.record({
+    action: "account_link",
+    outcome: callbackSucceeded ? "success" : "failure",
+    reasonCategory,
+    actorType: "application_user",
+    organizationId: input.runtime.organizationId,
+    applicationId: input.runtime.applicationId,
+    secretKeyVersion: input.runtime.secretKeyVersion,
+    requestId: input.requestId,
+    provider: input.provider,
+  });
+}
+
+function mapSocialCallbackAuditReason(
+  errorCode: string | null
+): ApplicationAuthAuditReasonCategory {
+  switch (errorCode) {
+    case "email_not_found":
+      return "provider_email_missing";
+    case "signup_disabled":
+      return "registration_disabled";
+    case "account_not_linked":
+      return "implicit_linking_blocked";
+    case "email_doesn't_match":
+      return "email_mismatch";
+    case "account_already_linked_to_different_user":
+      return "account_conflict";
+    case "unable_to_link_account":
+      return "linking_failed";
+    case "state_mismatch":
+    case "state_not_found":
+    case "state_invalid":
+      return "callback_state_invalid";
+    default:
+      return errorCode ? "provider_error" : "unknown";
   }
 }
 

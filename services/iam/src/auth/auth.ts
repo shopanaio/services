@@ -46,6 +46,7 @@ export interface ApplicationAuthProviderRuntimeConfiguration {
 
 export interface ApplicationAuthRuntimeConfiguration {
   applicationId: string;
+  organizationId: string;
   revision: number;
   secretKeyVersion: number;
   publicBaseUrl: string;
@@ -256,6 +257,7 @@ export function createApplicationAuth(
       {
         expiresIn: config.sessionTtlSeconds,
         updateAge: Math.min(24 * 60 * 60, config.sessionTtlSeconds),
+        freshAge: 10 * 60,
       }
     ),
     plugins,

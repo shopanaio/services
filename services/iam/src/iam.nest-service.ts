@@ -26,6 +26,10 @@ import {
   APPLICATION_AUTH_RATE_LIMIT_PORT,
   type ApplicationAuthRateLimitPort,
 } from "./services/ApplicationAuthRateLimiter.js";
+import {
+  APPLICATION_AUTH_AUDIT_PORT,
+  type ApplicationAuthAuditPort,
+} from "./services/ApplicationAuthAuditService.js";
 
 const { service, global } = getServiceConfig("iam");
 
@@ -44,7 +48,10 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     private readonly applicationAuthEmailDelivery?: ApplicationAuthEmailDeliveryPort,
     @Optional()
     @Inject(APPLICATION_AUTH_RATE_LIMIT_PORT)
-    private readonly applicationAuthRateLimit?: ApplicationAuthRateLimitPort
+    private readonly applicationAuthRateLimit?: ApplicationAuthRateLimitPort,
+    @Optional()
+    @Inject(APPLICATION_AUTH_AUDIT_PORT)
+    private readonly applicationAuthAudit?: ApplicationAuthAuditPort
   ) {}
 
   async onModuleInit() {
@@ -60,6 +67,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       applicationAuthPublicBaseUrl: http.publicBaseUrl,
       applicationAuthEmailDelivery: this.applicationAuthEmailDelivery,
       applicationAuthRateLimit: this.applicationAuthRateLimit,
+      applicationAuthAudit: this.applicationAuthAudit,
     });
     this.logger.debug("Kernel created");
 

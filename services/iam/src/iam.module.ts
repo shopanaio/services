@@ -30,3 +30,8 @@ export {
   APPLICATION_AUTH_RATE_LIMIT_PORT,
   type ApplicationAuthRateLimitPort,
 } from "./services/ApplicationAuthRateLimiter.js";
+export {
+  APPLICATION_AUTH_AUDIT_PORT,
+  type ApplicationAuthAuditPort,
+  type ApplicationAuthAuditEvent,
+} from "./services/ApplicationAuthAuditService.js";

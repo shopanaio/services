@@ -247,7 +247,10 @@ function contentPolicyFor(
     normalizedPath === "/email-otp/request" ||
     normalizedPath === "/email-otp/verify" ||
     normalizedPath === "/consent" ||
-    normalizedPath === "/logout"
+    normalizedPath === "/logout" ||
+    normalizedPath === "/login/social" ||
+    normalizedPath === "/account/connections/link" ||
+    normalizedPath === "/account/connections/unlink"
   ) {
     return "form";
   }

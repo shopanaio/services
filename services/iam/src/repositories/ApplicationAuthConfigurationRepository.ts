@@ -226,10 +226,15 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   @ReadOnly()
   async findActive(
     applicationId: string
-  ): Promise<ApplicationAuthConfigurationRecord | null> {
+  ): Promise<
+    (ApplicationAuthConfigurationRecord & { organizationId: string }) | null
+  > {
     assertApplicationId(applicationId);
     const [record] = await this.connection
-      .select({ configuration: applicationAuthConfiguration })
+      .select({
+        configuration: applicationAuthConfiguration,
+        organizationId: application.organizationId,
+      })
       .from(applicationAuthConfiguration)
       .innerJoin(
         application,
@@ -245,7 +250,9 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         )
       )
       .limit(1);
-    return record?.configuration ?? null;
+    return record
+      ? { ...record.configuration, organizationId: record.organizationId }
+      : null;
   }
 
   @Transactional()

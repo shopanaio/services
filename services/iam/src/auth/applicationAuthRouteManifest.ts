@@ -41,6 +41,9 @@ const HOSTED_UI_BASE_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
   exact("GET", "/verification-pending"),
   exact("GET", "/verified"),
   exact("GET", "/account-created"),
+  exact("GET", "/account/connections"),
+  exact("POST", "/account/connections/link"),
+  exact("POST", "/account/connections/unlink"),
   exact("GET", APPLICATION_AUTH_UI_STYLE_PATH),
 ];
 
@@ -67,6 +70,9 @@ export const APPLICATION_AUTH_FORBIDDEN_ROUTES: readonly ApplicationAuthRouteMan
     exact("POST", "/forget-password/email-otp"),
     exact("POST", "/email-otp/request-email-change"),
     exact("POST", "/email-otp/change-email"),
+    exact("POST", "/link-social"),
+    exact("GET", "/list-accounts"),
+    exact("POST", "/unlink-account"),
     exact("GET", "/token"),
   ];
 
@@ -124,6 +130,7 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
   }
   if (input.enabledSocialProviders.length > 0) {
     allowedRoutes.push(exact("POST", "/sign-in/social"));
+    allowedRoutes.push(exact("POST", "/login/social"));
     for (const provider of input.enabledSocialProviders) {
       allowedRoutes.push(
         {
