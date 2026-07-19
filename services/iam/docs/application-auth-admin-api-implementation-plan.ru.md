@@ -171,8 +171,6 @@ admin -> write -> read
 4. Инвалидировать Casbin enforcer cache после изменения policies.
 5. Проверить матрицу для owner, organization `admin`, custom role с `read`/`write`/`admin`, organization `member`, unauthenticated actor и actor другой organization.
 
-Site admin и organization owner сохраняют текущий project-wide bypass только после успешной валидации `domain/resource/action` через `@shopana/rbac`. Resolver/service не должен вводить локальный bypass.
-
 ### 6.2. Audit
 
 Чтение status и secret/security operations разделяются через actions `read` и `admin` одного resource.
@@ -323,5 +321,5 @@ e2e/tests/iam-api/application-auth-admin/*
 7. Store ownership и tenant isolation подтверждены negative scenarios.
 8. Revisioned mutations предотвращают lost update и корректно инвалидируют runtime cache.
 9. Все security-sensitive writes явно аудируются через `ApplicationAuthAdminAuditPort`; durable audit failure отклоняет/откатывает mutation, а operational `ApplicationAuthAuditService` сохраняет best-effort protocol semantics.
-10. Все operations используют зарегистрированную пару `org.* resource + read|write|admin`; unknown resource/action дает deny, standard organization `admin` и custom roles получают ожидаемые permissions после Casbin cache invalidation.
+10. Все operations используют зарегистрированную пару `org.* resource + read|write|admin`; standard organization `admin` и custom roles получают ожидаемые permissions после Casbin cache invalidation.
 11. Organization admin может полностью настроить realm без прямой работы с БД или конфигурационными файлами.

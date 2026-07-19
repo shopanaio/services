@@ -15,7 +15,8 @@
 
 ## 1. Резюме решения
 
-Текущая реализация корректно выполняет v1-требование исходного плана: публично доступны только явно разрешенные Google/Facebook routes, credentials изолированы по application, а social OAuth и linking выполняет Better Auth. Однако множество слоев независимо перечисляют `google | facebook`. Добавление нового встроенного Better Auth provider сейчас требует синхронных изменений в модели БД, Zod-схемах, factory, HTTP boundary, audit, CSRF types, Hosted UI и localization.
+
+Текущая реализация уже создана но не задеплоена изза блокеров. Перед реализацией api требуется выполнить рефакторинг. Текущая реализация корректно выполняет v1-требование исходного плана: публично доступны только явно разрешенные Google/Facebook routes, credentials изолированы по application, а social OAuth и linking выполняет Better Auth. Однако множество слоев независимо перечисляют `google | facebook`. Добавление нового встроенного Better Auth provider сейчас требует синхронных изменений в модели БД, Zod-схемах, factory, HTTP boundary, audit, CSRF types, Hosted UI и localization.
 
 Рефакторинг должен заменить эти повторения двумя явными сущностями:
 
@@ -87,7 +88,7 @@ Shopana IAM остается владельцем:
 - Для каждого enabled provider manifest генерирует только точные `GET` и `POST /callback/{provider}`.
 - `/callback/*`, prefix matching и fallback к произвольному Better Auth provider запрещены.
 - Provider из `/sign-in/social` сверяется с `runtime.routeManifest.allowedSocialProviders` до `auth.handler`.
-- Неизвестный persisted provider является configuration corruption и приводит к fail-closed runtime build. Для retirement provider definition сохраняется в каталоге, но помечается недоступным для новых configurations.
+- Неизвестный persisted provider является configuration corruption и приводит к fail-closed runtime build.
 
 ### 4.3. Registration и linking
 
@@ -169,8 +170,7 @@ export const APPLICATION_AUTH_PROVIDER_NAMES =
 - provider-specific Better Auth options builder;
 - localization keys;
 - email capability/verification contract;
-- explicit-linking trust flag, default `false`;
-- lifecycle status `active | retired`, если потребуется вывод provider из эксплуатации.
+- explicit-linking trust flag, default `false`.
 
 Каталог не содержит credentials, application IDs, secrets или mutable application policy.
 
@@ -255,8 +255,8 @@ type ApplicationAuthorizationContextAction =
 При отображении linked accounts:
 
 - credential account не считается social provider;
-- active provider показывает link/unlink actions по текущей policy;
-- disabled или retired, но ранее linked provider может быть показан для безопасного unlink;
+- enabled provider показывает link/unlink actions по текущей policy;
+- disabled, но ранее linked provider может быть показан для безопасного unlink;
 - неизвестный provider ID не получает link action и обрабатывается как configuration/data integrity error без раскрытия tokens.
 
 ### 6.6. Factory cache и invalidation
@@ -274,7 +274,7 @@ type ApplicationAuthorizationContextAction =
 4. Semantic allowlist остается в code-owned каталоге и проверяется на write и runtime read boundaries.
 5. Сохранить unique `(application_id, provider)`, application FK, encrypted envelope и scope constraints.
 
-DB не должен автоматически считать любую синтаксически допустимую строку поддерживаемым provider. Любой unknown row приводит к fail-closed через repository/factory validation; retired provider поэтому остается известным definition до завершения lifecycle cleanup.
+DB не должен автоматически считать любую синтаксически допустимую строку поддерживаемым provider. Любой unknown row приводит к fail-closed через repository/factory validation.
 
 ## 8. Этапы реализации
 
@@ -293,7 +293,7 @@ DB не должен автоматически считать любую син
 1. Зафиксировать текущие Google/Facebook options, scopes, callback methods, signup gates, linking policy и UI/audit behavior.
 2. Составить полный inventory hardcoded provider IDs через `rg` по `services/iam/src`, schema definitions и IAM docs.
 3. Утвердить точный `ApplicationSocialProviderDefinition`.
-4. Утвердить политику unknown и retired provider IDs.
+4. Утвердить политику unknown provider IDs.
 5. Утвердить single source of truth: `application_auth_provider.enabled`.
 
 Артефакты:
@@ -433,7 +433,7 @@ DB не должен автоматически считать любую син
 3. Обобщить `ApplicationAuthorizationContextAction` через template literal provider type.
 4. Заменить ручной список providers на catalog/effective runtime в connections page.
 5. Сохранить fresh-session requirement для link/unlink.
-6. Определить отображение disabled/retired linked accounts.
+6. Определить отображение disabled linked accounts.
 7. Обеспечить escaping provider labels и отсутствие credentials/tokens в HTML/query.
 
 Артефакты:
@@ -460,7 +460,7 @@ DB не должен автоматически считать любую син
 2. Удалить provider-specific enable flags из будущего auth configuration GraphQL contract.
 3. Оставить secret mutations и RBAC `org.application-auth-providers` без изменения уровня доступа.
 4. Зафиксировать provider status: `supported`, `configured`, `enabled`, masked client ID, scopes, callback URL, timestamps — без secret.
-5. Добавить runbook подключения/retirement provider.
+5. Добавить runbook подключения provider.
 6. Обновить основной OAuth/OIDC документ ссылкой на этот refactoring decision, не переписывая исторические v1 acceptance statements.
 
 Артефакты:
@@ -474,7 +474,7 @@ DB не должен автоматически считать любую син
 - Admin input передает неизвестный provider;
 - Admin response раскрывает client secret;
 - provider enable обходится без credentials/security validation;
-- provider удаляется при существующих linked accounts без retirement policy.
+- provider configuration удаляется при существующих linked accounts без определенного поведения connections UI.
 
 Критерий выхода: будущий Admin API не требует отдельного GraphQL field/column на provider и не может включить provider вне code-owned каталога.
 
@@ -559,7 +559,6 @@ DB не должен автоматически считать любую син
 | Provider-specific Better Auth options имеют разные типы | Отдельный typed builder на definition; без broad `any` |
 | Новый provider не возвращает verified email | Обязательный compatibility/security contract до catalog activation |
 | Trusted provider расширяет implicit linking | `disableImplicitLinking=true` фиксирован; trust default false; отдельный invariant assertion |
-| Retired provider ломает existing accounts | Definition не удаляется до lifecycle review; retired state сохраняет безопасный unlink/display contract |
 | Callback matcher становится wildcard | Exact manifest entry остается источником provider resolution |
 | Runtime использует stale provider после disable | Revision bump, invalidation и force revision check на sensitive routes |
 
