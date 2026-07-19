@@ -243,7 +243,6 @@ Manifest не содержит широких prefix/wildcard правил дл�
 
 1. versioned route manifest установленной сборки;
 2. включенных для application auth methods/provider configuration;
-3. phase/feature flags rollout.
 
 Endpoint выключенного application method/provider возвращает `404` до `auth.handler`, даже если этот endpoint зарегистрирован plugin и разрешен общим versioned manifest.
 
@@ -301,9 +300,9 @@ Hooks дочернего `adminGraphqlPlugin` не должны применят
 
 1. валидирует UUID;
 2. загружает активную application и ее активную organization;
-3. загружает auth configuration и rollout flags application;
+3. загружает auth configuration application;
 4. нормализует относительный path без повторного decode;
-5. проверяет `(HTTP method, normalized pathname)` по versioned manifest и пересекает его с включенными application methods/providers/feature flags;
+5. проверяет `(HTTP method, normalized pathname)` по versioned manifest и пересекает его с включенными application methods/providers;
 6. возвращает `404` для любого неизвестного, management или выключенного endpoint до вызова Better Auth;
 7. для точных authorize/token routes выполняет `ApplicationOAuthResourcePolicyGuard` из раздела 6.3 и при нарушении возвращает `invalid_target` до вызова Better Auth;
 8. получает instance из `ApplicationAuthFactory`;
@@ -349,7 +348,7 @@ Allowed origins берутся из application configuration и сопоста�
 5. Если application-сессии нет, IAM показывает hosted login UI.
 6. Пользователь выбирает разрешенный application способ входа.
 7. Better Auth создает/проверяет `application_user`, account и session.
-8. Для доверенного first-party client consent может быть заранее разрешен серверным флагом `skipConsent`; для остальных показывается consent page.
+8. Для доверенного first-party client consent может быть заранее разрешен server-controlled настройкой client `skipConsent`; для остальных показывается consent page.
 9. IAM возвращает одноразовый authorization code на зарегистрированный callback вместе со `state`.
 10. Клиент проверяет `state` и обменивает code + `code_verifier` на token, повторно передавая тот же `resource`; guard до OAuth Provider отклоняет отсутствующий, повторяющийся или отличающийся resource и не допускает смену/расширение audience.
 11. Клиент проверяет ID token: signature, `iss`, `aud`, `exp`, `nonce`.
@@ -822,7 +821,7 @@ application.resource=<absolute HTTPS URI Storefront API для этой applicat
 
 OAuth Provider работает с включенным JWT plugin (`disableJwtPlugin=false`). Storefront client обязан передавать `application.resource` и в authorization request, и в code exchange/refresh token request. Отсутствующий, неизвестный, множественный, принадлежащий другой application или не совпадающий с настроенным resource отклоняется с protocol error `invalid_target`. Успешный code exchange и refresh должны выдавать JWT access token с точным `aud=application.resource`. Opaque access tokens не входят в Storefront v1 contract и отклоняются без попытки fallback-introspection.
 
-Enforcement принадлежит `ApplicationOAuthResourcePolicyGuard` из раздела 6.3, а не одному `oauthProvider.validAudiences`. Guard требует exact application resource до передачи authorize/code-exchange/refresh request в OAuth Provider; `validAudiences`, client metadata и JWT-only Storefront validation остаются независимыми дополнительными слоями. Ни application configuration, ни OAuth client input не могут выключить guard feature flag или выбрать permissive fallback.
+Enforcement принадлежит `ApplicationOAuthResourcePolicyGuard` из раздела 6.3, а не одному `oauthProvider.validAudiences`. Guard требует exact application resource до передачи authorize/code-exchange/refresh request в OAuth Provider; `validAudiences`, client metadata и JWT-only Storefront validation остаются независимыми дополнительными слоями. Ни application configuration, ни OAuth client input не могут отключить guard или выбрать permissive fallback.
 
 `store_id` не является resource/audience: он берется только из доверенной metadata OAuth client и добавляется через `customAccessTokenClaims`. Все clients одной application используют ее единственный resource, а resource server одновременно проверяет `aud`, `application_id` и `store_id`.
 
@@ -1086,7 +1085,7 @@ Security/operational события без секретов:
 
 Критерий выхода: Storefront принимает только JWT token правильного issuer/resource/client/store, отклоняет opaque token, а Customer создается/связывается идемпотентно.
 
-### Этап 9. Hardening и rollout
+### Этап 9. Hardening
 
 Задачи:
 
@@ -1095,10 +1094,9 @@ Security/operational события без секретов:
 3. Нагрузочная проверка authorize/token/OTP limits.
 4. Signing/provider/client secret rotation runbooks.
 5. Dashboards/alerts/audit retention.
-6. Feature flags per application/method.
-7. Документация интеграции storefront SDK/client.
+6. Документация интеграции storefront SDK/client.
 
-Критерий выхода: выполнен Definition of Done и есть rollback/disable процедура без удаления users.
+Критерий выхода: выполнен Definition of Done и есть emergency disable процедура без удаления users.
 
 ## 21. Предполагаемые изменения файлов
 
@@ -1166,7 +1164,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - application user session не дает доступ к create/get/list/update/delete OAuth client;
 - application user session не позволяет ротировать client secret;
 - Dynamic Client Registration и любой неизвестный path под application Better Auth `basePath`, включая не-`/oauth2/*`, возвращают `404` до `auth.handler`;
-- endpoint, разрешенный build-time manifest, но выключенный application method/provider/feature flag, возвращает `404` до `auth.handler`;
+- endpoint, разрешенный build-time manifest, но выключенный в application method/provider configuration, возвращает `404` до `auth.handler`;
 - route с верным pathname, но неразрешенным HTTP method возвращает `404` и не достигает Better Auth;
 - разрешенные protocol/hosted-flow endpoint продолжают работать через тот же catch-all.
 
@@ -1236,21 +1234,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - rate limit работает по application/identity/IP;
 - PII/secrets отсутствуют в logs/traces/metrics.
 
-## 23. Rollout
-
-Так как проект не имеет production users/data, допустимо ввести чистую целевую схему без миграции legacy application OAuth tokens. При этом rollout должен быть обратимым на уровне feature flags:
-
-1. развернуть таблицы и код с methods выключенными;
-2. создать internal development application и OAuth client;
-3. включить password flow;
-4. включить email OTP после delivery readiness;
-5. включить Google/Facebook по одному provider;
-6. подключить Storefront validator и Customer projection;
-7. включать production-configured applications индивидуально.
-
-Откат method означает disable method/client/provider и отзыв активных сессий/tokens при необходимости, а не удаление пользователей или credentials без отдельной операции.
-
-## 24. Security checklist перед релизом
+## 23. Security checklist перед релизом
 
 - [ ] Используется актуальный `@better-auth/oauth-provider`, а не deprecated provider.
 - [ ] Authorization Code + S256 PKCE обязателен.
@@ -1288,7 +1272,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] Customer projection идемпотентна.
 - [ ] Audit log покрывает все admin/security mutations.
 
-## 25. Definition of Done
+## 24. Definition of Done
 
 Решение считается готовым, когда:
 
@@ -1305,12 +1289,12 @@ Hosted UI следует разместить в выбранном для IAM w
 11. Есть документация для storefront client, organization admin и operations.
 12. Есть runbooks для signing keys, provider/client secrets, delivery outage и emergency realm disable.
 
-## 26. Риски и решения
+## 25. Риски и решения
 
 | Риск | Решение |
 | --- | --- |
 | Deprecated встроенный OIDC provider | Использовать отдельный актуальный `@better-auth/oauth-provider` |
-| Новый или неиспользуемый Better Auth/plugin endpoint становится публичным через catch-all | Versioned default-deny manifest всего handler по method + normalized pathname, effective allowlist по application config/feature flags и обязательная повторная сверка при изменении plugin composition |
+| Новый или неиспользуемый Better Auth/plugin endpoint становится публичным через catch-all | Versioned default-deny manifest всего handler по method + normalized pathname, effective allowlist по application configuration и обязательная повторная сверка при изменении plugin composition |
 | Public OAuth routes случайно наследуют Admin GraphQL middleware или публикация общего порта раскрывает `/graphql` | Sibling encapsulated Fastify plugins на одном instance, GraphQL hooks только внутри admin scope и path-based reverse-proxy allowlist для public network |
 | Plugin model leakage между applications | Явно расширить adapter и schema application scope, негативные contract-сценарии |
 | Небезопасное auto-linking | Только реальный verified same-email или explicit authenticated linking |
@@ -1323,7 +1307,7 @@ Hosted UI следует разместить в выбранном для IAM w
 | Customers временно недоступен | Outbox/retry/idempotent ensure, не блокировать token endpoint |
 | Смешение Application и integration apps service | Зафиксировать IAM application как auth realm и отдельный OAuth client resource |
 
-## 27. Вопросы, которые нужно закрыть в этапе 0
+## 26. Вопросы, которые нужно закрыть в этапе 0
 
 Эти решения не меняют основную архитектуру, но должны быть зафиксированы до реализации соответствующего этапа:
 
@@ -1336,7 +1320,7 @@ Hosted UI следует разместить в выбранном для IAM w
 
 Exact URI resource задается администратором отдельно для каждой application и становится обязательным до создания ее первого OAuth client. Для application разрешено ровно одно нормализованное значение; OAuth clients не управляют им самостоятельно. До получения остальных ответов применяются безопасные значения этого плана: platform delivery profiles, HTTPS/universal links, короткие TTL, consent для не-first-party clients и асинхронная Customer projection с idempotent fallback.
 
-## 28. Официальные источники
+## 27. Официальные источники
 
 - [Better Auth OAuth Provider](https://better-auth.com/docs/plugins/oauth-provider)
 - [RFC 8707: Resource Indicators for OAuth 2.0](https://www.rfc-editor.org/rfc/rfc8707.html)
