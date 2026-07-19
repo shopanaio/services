@@ -1,6 +1,7 @@
 # Compatibility и security spike OAuth 2.1 / OIDC для `application_users`
 
-Статус: завершен; решения синхронизированы с основным планом
+Статус: исследовательская часть завершена; exit gates этапа 0 еще не закрыты
+
 Дата: 2026-07-19  
 Сервис: `services/iam`  
 Связанный план: [OAuth 2.1 / OpenID Connect для `application_users`](./application-users-oauth-oidc-implementation-plan.ru.md)
@@ -22,6 +23,8 @@ Spike выявил три compatibility gap, относящихся к OAuth/OID
 - `ApplicationOAuthResourcePolicyGuard` до `auth.handler` требует exact single resource на authorize, code exchange и каждом refresh и исключает opaque-token fallback.
 
 Дополнительно spike исследовал phone OTP и synthetic email. Они не являются блокерами OAuth/OIDC v1: основной план полностью исключает phone OTP, phone fields/routes, SMS delivery и synthetic email из первой версии. Результаты сохранены ниже только как исторический материал для отдельного будущего плана.
+
+Статус «исследовательская часть завершена» не означает, что этап 0 закрыт. Spike зафиксировал выбор технологии и ключевые ограничения, но ряд contract-проверок на реальной IAM composition еще не выполнен. Открытые пункты явно перечислены в разделах 3.1 и 15.
 
 ## 2. Среда и методика проверки
 
@@ -64,7 +67,7 @@ Exact-версии стенда:
 | Exact dependency compatibility | Подтверждено | Версии Better Auth и OAuth Provider совместимы по runtime и peer dependencies |
 | Добавление direct dependencies в IAM | Не выполнено | Пакеты устанавливались только во временный стенд; direct dependencies нужно добавить при реализации |
 | Schema и endpoint paths | Подтверждено | Manifest и четыре plugin model зафиксированы ниже |
-| Public/internal route classification | Подтверждено | Составлен default-deny manifest |
+| Public/internal route classification | Частично выполнено | OAuth Provider/JWKS routes зафиксированы; signin/signup, email OTP и social callback routes нужно снять с итоговой plugin composition |
 | Sessionless server-side client API | Ограничение подтверждено, решение зафиксировано | Используется IAM internal management service/repository без application-user session |
 | Fastify integration | Подтверждено с условиями | Нужны form parser, отдельный root metadata route и trusted proxy policy |
 | Scoping через текущий adapter | Требует изменений | Текущий adapter знает только `user`, `account`, `session`, `verification`, `jwks` |
@@ -75,7 +78,19 @@ Exact-версии стенда:
 | Email OTP storage baseline | Решение v1 зафиксировано | Стандартный `emailOTP({ storeOTP: "hashed" })`; custom hasher/HMAC, lifecycle ключей и миграция hash-формата вне scope |
 | Public/confidential clients | Подтверждено | Secret и PKCE behavior соответствуют ожиданиям |
 | Отказ `client_credentials` | Подтверждено | Отказ получен для public и confidential v1 clients |
-| Application resource policy | Контракт зафиксирован | Exact HTTPS URI хранится per application и обязателен до создания первого OAuth client |
+| Application resource policy | Контракт зафиксирован, проверка не выполнена | Exact HTTPS URI хранится per application; guard нужно contract-подтвердить на authorize/code exchange/refresh |
+| Public client discovery | Не выполнено | Не выбрана Storefront OIDC library и не принято решение об IAM-owned metadata с `none` |
+
+### 3.1. Незавершенные пункты этапа 0
+
+1. Добавить exact direct dependency `@better-auth/oauth-provider@1.6.23` в IAM package и lockfile. Временный стенд подтвердил совместимость, но зависимость еще не включена в проект.
+2. Собрать итоговую Better Auth composition с password, `emailOTP`, Google, Facebook, OAuth Provider и JWT, затем снять runtime route manifest по method + normalized pathname. Текущий manifest покрывает только OAuth Provider и JWKS.
+3. Зафиксировать default-deny allowlist для signin/signup, email OTP и social callback routes и подтвердить, что management/DCR endpoints остаются запрещены после сборки всех plugins.
+4. Выбрать фактическую Storefront OIDC library и проверить public client flow, если discovery document не включает `none` в `token_endpoint_auth_methods_supported`. Если library требует `none`, зафиксировать IAM-owned metadata override без включения unauthenticated DCR.
+5. Реализовать и contract-подтвердить `ApplicationOAuthResourcePolicyGuard`: exact single resource обязателен на authorize, code exchange и каждом refresh; mismatch/missing/multiple resources отклоняются до `auth.handler`; opaque-token fallback недоступен.
+6. Добавить четыре OAuth Drizzle models в application schema/scoped model set и contract-подтвердить tenant predicates, application-scoped relations, composite foreign keys и cross-application create/read/update/delete denial.
+
+До закрытия этих пунктов spike следует трактовать как завершенное исследование с открытыми implementation/contract gates, а не как полностью закрытый этап 0.
 
 ## 4. ADR: выбор OAuth Provider
 
@@ -565,16 +580,17 @@ syntheticEmail = kit7rn5d3rypo4ip6lil7edjpmwnr4ef3ruiajeeapbcoy6vwf3a@phone.inva
 
 ## 15. Exit criterion
 
-Этап 0 можно считать закрытым после фиксации и contract-подтверждения следующих условий:
+Этап 0 пока не закрыт. Текущий статус exit gates:
 
-- утверждены application-level resource schema/Admin contract и запрет client-level override;
-- утвержден IAM internal client management contract;
-- утвержден `ApplicationOAuthResourcePolicyGuard` contract для authorize/code exchange/refresh без opaque fallback;
-- зафиксирован public route manifest, включая Better Auth signin/OTP/social paths;
-- зафиксирован стандартный `emailOTP({ storeOTP: "hashed" })` baseline без требования custom hash contract для этапа 0 или релиза v1;
-- подтвержден discovery contract public client;
-- adapter schema и tenant constraints спроектированы для всех plugin models;
-- подтверждено, что phone plugin/routes и synthetic email отсутствуют в v1 composition/schema.
+- [x] Утверждены application-level resource schema/Admin contract и запрет client-level override.
+- [x] Утвержден IAM internal client management contract.
+- [ ] Exact direct dependency `@better-auth/oauth-provider@1.6.23` добавлена в IAM package и lockfile.
+- [ ] `ApplicationOAuthResourcePolicyGuard` contract подтвержден на итоговой composition для authorize/code exchange/refresh без opaque fallback.
+- [ ] Зафиксирован public route manifest итоговой composition, включая Better Auth signin/signup, email OTP и social callback paths.
+- [x] Зафиксирован стандартный `emailOTP({ storeOTP: "hashed" })` baseline без требования custom hash contract для этапа 0 или релиза v1.
+- [ ] Выбрана Storefront OIDC library и подтвержден discovery contract public client без включения unauthenticated DCR.
+- [ ] OAuth plugin models добавлены в Drizzle/application-scoped adapter, а tenant constraints и cross-application denial contract-подтверждены.
+- [ ] На итоговой v1 composition/schema подтверждено отсутствие phone plugin/routes и synthetic email.
 
 После этих решений неизвестных, требующих самописного OAuth server, не остается. Необходимая v1 кастомизация ограничивается IAM authorization/resource boundary, tenant-aware persistence и internal client management.
 

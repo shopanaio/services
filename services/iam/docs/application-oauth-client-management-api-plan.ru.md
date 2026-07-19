@@ -8,7 +8,10 @@
 Связанные документы:
 
 - [План OAuth 2.1 / OpenID Connect для `application_users`](./application-users-oauth-oidc-implementation-plan.ru.md);
+- [Последующий общий план Admin API для application auth](./application-auth-admin-api-implementation-plan.ru.md);
 - [Compatibility и security spike OAuth Provider 1.6.23](./application-users-oauth-oidc-compatibility-spike.ru.md).
+
+Этот документ является детализированным подпланом OAuth client management внутри общего Admin API plan. Он выполняется после завершения OAuth/OIDC runtime plan, а не как его фаза.
 
 ## 1. Цель
 
