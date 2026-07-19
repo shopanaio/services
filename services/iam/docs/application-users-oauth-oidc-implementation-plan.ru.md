@@ -62,6 +62,7 @@ IAM должен стать OIDC-провайдером для клиентск�
 - Custom domains для issuer. Их можно добавить отдельным этапом после стабилизации канонических issuer.
 - Passkeys/WebAuthn, TOTP MFA и recovery codes. Архитектура не должна мешать их добавлению позже.
 - Phone OTP/passwordless, SMS delivery, phone-only users и synthetic email. Они выносятся в отдельный будущий план после выбора production Verify provider и security contract; текущий план не добавляет `phoneNumber` plugin, phone endpoints, phone-поля или SMS-конфигурацию.
+- Кастомный keyed hasher/HMAC для email OTP, отдельный lifecycle ключей и миграция формата OTP hash. В v1 используется стандартный Better Auth `emailOTP({ storeOTP: "hashed" })`; дополнительный hardening выносится в отдельный будущий план после стабилизации email OTP flow.
 - Перенос бизнес-профиля, адресов, заказов или согласий маркетинга из Customers в IAM.
 
 ## 4. Текущее состояние и разрыв
@@ -393,7 +394,9 @@ PKCE нельзя отключать. Для browser/mobile client исполь�
 - хранение OTP — `hashed`;
 - ответ отправки всегда обобщенный, независимо от существования пользователя;
 - отправка выполняется асинхронно после безопасной постановки в delivery outbox;
-- используется стандартная конфигурация Better Auth `storeOTP: "hashed"` без отдельного custom hash/HMAC contract в рамках этого плана.
+- используется стандартная конфигурация Better Auth `storeOTP: "hashed"` как осознанный baseline v1;
+- custom `storeOTP` hasher/HMAC, отдельный ключ на realm, dual-format verification и миграция hash-формата не входят в этот план;
+- baseline дополнительно ограничивается TTL, числом попыток, ротацией кода, rate limits и контролем доступа к verification storage.
 
 Администратор может включать email OTP signin/signup и настраивать утвержденный email delivery profile, но не произвольный executable template.
 
@@ -1049,12 +1052,12 @@ Security/operational события без секретов:
 
 Задачи:
 
-1. Подключить `emailOTP` со стандартным `storeOTP: "hashed"`.
+1. Подключить `emailOTP` со стандартным `storeOTP: "hashed"`, не вводя custom hasher/HMAC и отдельный lifecycle ключей.
 2. Создать delivery outbox/transport abstraction.
 3. Добавить request/verify UI.
 4. Реализовать generic responses, resend cooldown и attempt limits.
 
-Критерий выхода: email passwordless работает без plaintext OTP, enumeration и повторного использования.
+Критерий выхода: email passwordless работает на стандартном Better Auth `storeOTP: "hashed"` без plaintext OTP, enumeration и повторного использования; custom hashing не является условием выпуска v1.
 
 ### Этап 7. Google/Facebook и account linking
 
@@ -1271,6 +1274,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] Upstream OAuth tokens зашифрованы.
 - [ ] OAuth client secret нельзя прочитать повторно.
 - [ ] Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`.
+- [ ] Custom email OTP hasher/HMAC, его ключи и миграция hash-формата не входят в release scope v1.
 - [ ] State, nonce, CSRF, cookie policies проверены.
 - [ ] Generic responses защищают от enumeration.
 - [ ] Rate limits и email delivery limits включены.
@@ -1287,7 +1291,7 @@ Hosted UI следует разместить в выбранном для IAM w
 2. Organization admin управляет настройками через Admin API с Casbin и audit trail.
 3. Каждая application имеет ровно один заданный ее администратором Storefront resource; `ApplicationOAuthResourcePolicyGuard` требует его exact single value до Better Auth на authorize/code exchange/каждом refresh и исключает opaque fallback; public и confidential clients наследуют resource, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; OAuth Provider глобально поддерживает только `authorization_code`/`refresh_token`, а `client_credentials` отсутствует в discovery и запрещен также на уровне каждого client.
 4. Password, email OTP, Google и Facebook можно независимо включать на application.
-5. Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`.
+5. Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`; custom hasher/HMAC и lifecycle его ключей не требуются для v1.
 6. Account linking не пересекает applications и не доверяет unverified email.
 7. Storefront проверяет token и trusted store binding.
 8. Customers получает идемпотентную проекцию identity без credentials.

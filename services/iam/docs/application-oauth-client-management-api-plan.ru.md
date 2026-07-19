@@ -89,7 +89,7 @@ type ApplicationOAuthClient {
   redirectUris: [String!]!
   postLogoutRedirectUris: [String!]!
   storeId: ID!
-  resourceAudience: String!
+  resources: [String!]!
   grantTypes: [String!]!
   responseTypes: [String!]!
   requirePkce: Boolean!
@@ -172,7 +172,7 @@ Update запрещает менять:
 - `grantTypes`;
 - `responseTypes`;
 - `requirePkce`;
-- `resourceAudience` и protocol policy version через обычную mutation.
+- `resources` и protocol policy version через обычную mutation.
 
 ### 4.4. Дополнительные mutations
 
@@ -185,25 +185,27 @@ Secret rotation возвращает новый plaintext secret один раз
 
 ## 5. Неизменяемая protocol policy v1
 
-GraphQL input не принимает protocol grants. Management service всегда устанавливает:
+GraphQL input не принимает protocol grants или resource. Management service загружает active `application_auth_configuration` и всегда устанавливает:
 
 ```text
 grant_types = ["authorization_code", "refresh_token"]
 response_types = ["code"]
 require_pkce = true
-resource_audience = STOREFRONT_RESOURCE_AUDIENCE
+resource_audience = application.resource
 protocol_policy_version = 1
 ```
 
-Глобальная конфигурация OAuth Provider также ограничивает grants:
+Application-scoped OAuth Provider instance также ограничивает grants и audience:
 
 ```text
 oauthProvider.grantTypes = ["authorization_code", "refresh_token"]
-oauthProvider.validAudiences = [STOREFRONT_RESOURCE_AUDIENCE]
+oauthProvider.validAudiences = [application.resource]
 oauthProvider.disableJwtPlugin = false
 ```
 
-`client_credentials`, implicit и password grants не поддерживаются. Поля `grantTypes` и `responseTypes` возвращаются read-only для прозрачности и аудита.
+`application.resource` обязателен до создания первого OAuth client, задается только application-level Admin GraphQL mutation и является единственным resource всех clients этой application. Client create/update input не содержит `resource`/`resources`; management service копирует текущее exact значение в IAM-controlled metadata. GraphQL client type возвращает read-only `resources`, которое в v1 всегда равно `[application.resource]`. Изменение application resource выполняется отдельной security-sensitive операцией основного плана с синхронизацией clients, отзывом старых tokens и cache invalidation.
+
+`client_credentials`, implicit и password grants не поддерживаются. Поля `grantTypes`, `responseTypes` и `resources` возвращаются read-only для прозрачности и аудита.
 
 Public client:
 
@@ -247,12 +249,13 @@ interface ApplicationOAuthClientManagementService {
 2. Casbin authorization для конкретного действия.
 3. Загрузку application с predicate по organization текущего actor.
 4. Проверку active/non-deleted organization и application.
-5. Проверку Store ownership через внутренний Project service action.
-6. Нормализацию и валидацию URI.
-7. Принудительное применение protocol policy v1.
-8. Application-scoped транзакцию.
-9. Запись безопасного audit event без secrets.
-10. Revision increment и invalidation `ApplicationAuthFactory` cache.
+5. Загрузку active auth configuration и проверку наличия единственного `application.resource`.
+6. Проверку Store ownership через внутренний Project service action.
+7. Нормализацию и валидацию URI.
+8. Принудительное применение protocol policy v1 и наследование exact `application.resource`.
+9. Application-scoped транзакцию.
+10. Запись безопасного audit event без secrets.
+11. Revision increment и invalidation `ApplicationAuthFactory` cache.
 
 ## 7. Repository и схема хранения
 
@@ -280,6 +283,8 @@ IAM-controlled metadata хранит:
 - `created_by`, `updated_by`;
 - `revision`;
 - `deleted_at`/archive state.
+
+Физическое поле `resource_audience` всегда равно текущему `application.resource`; GraphQL проецирует его как `resources: [resource_audience]`. Это IAM-owned compatibility field, потому что plugin schema `1.6.23` не содержит `resources`; он не является независимой настройкой OAuth client. Repository отклоняет создание client без настроенного application resource и любое обычное update, пытающееся изменить `resource_audience` отдельно от application-level resource migration.
 
 Обязательны:
 
@@ -319,7 +324,7 @@ Better Auth документирует hashed storage по умолчанию в
 
 Post-logout URI валидируются отдельно по тем же базовым правилам. Trusted origins являются application configuration и не выводятся автоматически из redirect URI без отдельного решения.
 
-`storeId`, `resourceAudience`, actor claims и signed-token metadata формируются только из trusted server-side данных. Произвольный JSON из GraphQL не переносится в plugin metadata или JWT claims.
+`storeId`, `resources`, actor claims и signed-token metadata формируются только из trusted server-side данных. `resources` проецируется как `[application.resource]`, а не принимается из client input. Произвольный JSON из GraphQL не переносится в plugin metadata или JWT claims.
 
 ## 10. Permissions и аудит
 
@@ -378,12 +383,14 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 
 Проверка выполняется versioned allowlist по HTTP method и нормализованному pathname. Application user session не дает административного доступа к OAuth clients.
 
+Для разрешенных `/oauth2/authorize` и `/oauth2/token` основной implementation plan дополнительно требует `ApplicationOAuthResourcePolicyGuard` до `auth.handler`. Guard принимает ровно один exact `application.resource` на authorize, authorization-code exchange и каждом refresh, сверяет IAM-controlled client binding и возвращает `invalid_target` для missing/duplicate/foreign resource без opaque-token fallback. `oauthProvider.validAudiences` остается дополнительным, а не единственным enforcement layer.
+
 ## 13. Этапы реализации
 
 ### Этап 0. Зафиксировать контракт
 
 1. Утвердить GraphQL schema и error model.
-2. Утвердить `STOREFRONT_RESOURCE_AUDIENCE`.
+2. Утвердить application-level `resource` contract: absolute HTTPS URI, нормализация, уникальность среди active applications и запрет client-level override.
 3. Утвердить secret prefix/length/hash compatibility vector.
 4. Зафиксировать поля `oauthClient` версии `1.6.23` и protocol policy v1.
 5. Зафиксировать internal Project action для Store ownership.
@@ -423,7 +430,7 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 
 1. Подключить created client к application-scoped OAuth Provider instance.
 2. Проверить public/confidential Authorization Code + PKCE.
-3. Проверить JWT audience/resource enforcement.
+3. Проверить наследование `application.resource`, `validAudiences: [application.resource]` и `ApplicationOAuthResourcePolicyGuard` на authorize/code exchange/refresh.
 4. Проверить disable, rotation, archive и revocation behavior.
 5. Закрыть все публичные management routes versioned Fastify manifest.
 
@@ -443,6 +450,8 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 - rotate возвращает новый secret один раз и инвалидирует старый;
 - public client secret rotation отклоняется;
 - client type, grants, response types, PKCE и audience нельзя изменить через GraphQL;
+- client нельзя создать до настройки `application.resource`, а созданный client получает exact application resource read-only;
+- client create/update input не принимает `resource`/`resources`, read-only response всегда возвращает `[application.resource]` и не позволяет заменить application audience;
 - `client_credentials` отклоняется для public/confidential clients;
 - wildcard, fragment, userinfo и production HTTP redirect отклоняются;
 - localhost HTTP разрешается только development policy;
@@ -450,6 +459,7 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 - optimistic concurrency предотвращает lost update;
 - application user session не вызывает client-management endpoints;
 - Dynamic Client Registration и неизвестные management paths возвращают `404`;
+- authorize/code exchange/refresh с missing, duplicate или foreign resource отклоняются `ApplicationOAuthResourcePolicyGuard` до `auth.handler` без opaque-token fallback;
 - secret отсутствует в Pino, audit, traces, metrics и errors;
 - OAuth Provider `1.6.23` принимает сохраненный hash при token endpoint client authentication.
 
@@ -478,7 +488,7 @@ services/e2e/.../iam/application-oauth-client/*
 - OAuth client создается без `application_user` session и impersonation.
 - Все данные client application-scoped.
 - Store принадлежит organization application.
-- Protocol grants, response type, PKCE и audience задаются сервером.
+- Protocol grants, response type и PKCE задаются сервером; audience наследуется только из единственного `application.resource` и не управляется OAuth client mutation.
 - Confidential secret хранится hashed и показывается один раз.
 - Public management endpoints закрыты до `auth.handler`.
 - Audit и observability не содержат secrets.

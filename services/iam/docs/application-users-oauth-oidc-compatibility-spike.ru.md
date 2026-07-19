@@ -1,6 +1,6 @@
 # Compatibility и security spike OAuth 2.1 / OIDC для `application_users`
 
-Статус: завершен с блокирующими замечаниями  
+Статус: завершен; решения синхронизированы с основным планом
 Дата: 2026-07-19  
 Сервис: `services/iam`  
 Связанный план: [OAuth 2.1 / OpenID Connect для `application_users`](./application-users-oauth-oidc-implementation-plan.ru.md)
@@ -9,14 +9,19 @@
 
 `@better-auth/oauth-provider@1.6.23` совместим с `better-auth@1.6.23` и подходит как основа OAuth 2.1 / OIDC provider. Переход на самописный OAuth server не требуется.
 
-При этом критерий выхода этапа 0 пока не выполнен. Spike выявил четыре блокирующих расхождения между планом и фактическим поведением установленной версии:
+Spike выявил три compatibility gap, относящихся к OAuth/OIDC v1:
 
 1. `adminCreateOAuthClient` и `adminUpdateOAuthClient` помечены как server-only, но фактически требуют Better Auth user session и без нее возвращают `401 UNAUTHORIZED`.
 2. OAuth Provider не хранит разрешенные resources на client и не связывает `resource` authorization request, code exchange и refresh-token family.
 3. Если `/oauth2/token` вызывается без `resource`, plugin выдает opaque access token вместо обязательного Storefront JWT.
-4. Стандартный `phoneNumber` plugin сохраняет OTP в `verification.value` открытым текстом и не позволяет заменить этот механизм внешним Verify provider только настройкой `sendOTP`.
 
-Общая оценка плана: **7.5/10**. Архитектурное направление, tenant model, HTTP boundary и threat model выбраны правильно, но административное управление clients, resource contract и phone OTP strategy нужно скорректировать до начала реализации этапа 1.
+Основной план закрывает их явными решениями:
+
+- OAuth clients управляются `ApplicationOAuthClientManagementService` через application-scoped repository без application-user session;
+- каждая application имеет ровно один собственный `application.resource`, наследуемый всеми ее clients;
+- `ApplicationOAuthResourcePolicyGuard` до `auth.handler` требует exact single resource на authorize, code exchange и каждом refresh и исключает opaque-token fallback.
+
+Дополнительно spike исследовал phone OTP и synthetic email. Они не являются блокерами OAuth/OIDC v1: основной план полностью исключает phone OTP, phone fields/routes, SMS delivery и synthetic email из первой версии. Результаты сохранены ниже только как исторический материал для отдельного будущего плана.
 
 ## 2. Среда и методика проверки
 
@@ -60,16 +65,17 @@ Exact-версии стенда:
 | Добавление direct dependencies в IAM | Не выполнено | Пакеты устанавливались только во временный стенд; direct dependencies нужно добавить при реализации |
 | Schema и endpoint paths | Подтверждено | Manifest и четыре plugin model зафиксированы ниже |
 | Public/internal route classification | Подтверждено | Составлен default-deny manifest |
-| Sessionless server-side client API | Не подтверждено | Create/update требуют Better Auth session; delete/rotate server-only API отсутствуют |
+| Sessionless server-side client API | Ограничение подтверждено, решение зафиксировано | Используется IAM internal management service/repository без application-user session |
 | Fastify integration | Подтверждено с условиями | Нужны form parser, отдельный root metadata route и trusted proxy policy |
 | Scoping через текущий adapter | Требует изменений | Текущий adapter знает только `user`, `account`, `session`, `verification`, `jwks` |
-| Storefront resource contract | Не подтверждено | Нет client resources; resource не связан с refresh-token family; отсутствие resource дает opaque token |
+| Storefront resource contract | Ограничение подтверждено, решение зафиксировано | Единственный `application.resource` и `ApplicationOAuthResourcePolicyGuard` закрывают отсутствие plugin binding и opaque fallback |
 | Custom claims/store binding | Подтверждено | Claims callbacks получают trusted client metadata и текущий resource |
-| Phone OTP без plaintext | Не подтверждено stock plugin | Требуется собственный Better Auth-compatible verification plugin/route layer |
-| Synthetic email vector | Подтверждено | Все значения совпали побайтно |
+| Phone OTP | Вне OAuth/OIDC v1 | Phone plugin/routes/fields, SMS и synthetic email не добавляются основным планом |
+| Synthetic email vector | Историческая проверка вне v1 | Не является контрактом текущей реализации |
+| Email OTP storage baseline | Решение v1 зафиксировано | Стандартный `emailOTP({ storeOTP: "hashed" })`; custom hasher/HMAC, lifecycle ключей и миграция hash-формата вне scope |
 | Public/confidential clients | Подтверждено | Secret и PKCE behavior соответствуют ожиданиям |
 | Отказ `client_credentials` | Подтверждено | Отказ получен для public и confidential v1 clients |
-| Production `STOREFRONT_RESOURCE_AUDIENCE` | Не выполнено | Значение отсутствует в конфигурации проекта |
+| Application resource policy | Контракт зафиксирован | Exact HTTPS URI хранится per application и обязателен до создания первого OAuth client |
 
 ## 4. ADR: выбор OAuth Provider
 
@@ -95,7 +101,7 @@ Exact-версии стенда:
 - public и confidential OAuth clients;
 - hashed client secrets при включенном JWT plugin.
 
-Выявленные gaps можно закрыть IAM boundary, tenant-aware repository и custom phone verification layer. Они не требуют реализации OAuth protocol с нуля.
+Выявленные OAuth/OIDC v1 gaps закрываются IAM HTTP boundary, `ApplicationOAuthResourcePolicyGuard`, tenant-aware repository и internal client management service. Они не требуют реализации OAuth protocol с нуля.
 
 ## 5. Versioned route manifest
 
@@ -310,27 +316,31 @@ IAM должен дополнительно гарантировать one-time 
 
 ### 8.2. Решение для v1
 
-До первого OAuth client нужно зафиксировать exact production URI:
+До первого OAuth client администратор application задает единственный exact resource через application-level Admin GraphQL mutation:
 
 ```text
-STOREFRONT_RESOURCE_AUDIENCE=<deployment-specific exact URI>
+application.resource=<absolute HTTPS URI Storefront API для этой application>
 ```
 
-Для v1 разрешается ровно один Storefront resource на realm/client. IAM boundary обязан требовать побайтно равное значение:
+Значение хранится в `application_auth_configuration`, нормализуется один раз без trailing slash, уникально среди active applications и не принимается OAuth client create/update input. Все clients application наследуют exact `application.resource` в IAM-controlled metadata.
+
+Для v1 разрешается ровно один Storefront resource на application realm. `ApplicationOAuthResourcePolicyGuard` внутри `applicationAuthHttpPlugin` до `auth.handler` обязан требовать ровно одно побайтно равное значение:
 
 - в `/oauth2/authorize`;
 - в authorization-code `/oauth2/token` request;
 - в refresh-token `/oauth2/token` request.
 
-Отсутствующий, чужой, второй или повторяющийся resource отклоняется до выпуска token. `validAudiences` содержит ровно этот URI.
+Отсутствующий, пустой, чужой, второй или повторяющийся resource отклоняется с `invalid_target` до OAuth Provider и выпуска token. `validAudiences` application-scoped provider instance содержит ровно `[application.resource]` как дополнительный enforcement layer, но не заменяет guard.
 
 Client binding хранится в IAM-controlled metadata/table:
 
 - `store_id`;
-- `resource_audience`;
+- физическое `resource_audience = application.resource`, проецируемое в Admin GraphQL как read-only `resources: [application.resource]`;
 - protocol policy version.
 
 Нельзя полагаться на plugin field `resources`: такого поля в `1.6.23` нет.
+
+Так как v1 допускает только один resource на application, повторная exact-проверка на authorize, code exchange и каждом refresh запрещает смену/расширение audience даже без resource column в authorization-code/refresh-token plugin rows. Несколько resources потребуют отдельной protocol-policy version и хранения granted resources с code/refresh family.
 
 ### 8.3. Custom claims
 
@@ -344,9 +354,7 @@ Client binding хранится в IAM-controlled metadata/table:
 
 `customIdTokenClaims` получает user, scopes и client metadata. Этого достаточно, чтобы добавить проверенные `application_id`, `store_id`, actor type и другие IAM-owned claims.
 
-Metadata должна записываться только internal management service после ownership checks. Произвольная client metadata из Admin GraphQL не должна напрямую попадать в signed claims.
-
-Для synthetic-email user необходимо явно подавлять `email` и `email_verified` в ID Token и UserInfo, даже если был запрошен scope `email`.
+Metadata должна записываться только internal management service после ownership checks. Произвольная client metadata из Admin GraphQL не должна напрямую попадать в signed claims. В OAuth/OIDC v1 IAM создает только пользователей с реальным email; synthetic email не используется.
 
 ## 9. Public/confidential clients и grant policy
 
@@ -465,7 +473,9 @@ Fastify `4.28.1` без дополнительного parser отклонил f
 9. Сохранить криптографически случайные глобально уникальные `clientId` и token values, несмотря на tenant predicates.
 10. Добавить adapter contract checks на cross-application create/read/update/delete.
 
-## 12. Phone OTP security decision
+## 12. Историческая проверка Phone OTP вне v1
+
+Phone OTP, phone-only users, phone fields/routes, SMS delivery и synthetic email не входят в OAuth/OIDC v1 основного плана. Этот раздел фиксирует найденное ограничение Better Auth только для отдельного будущего phone-auth design и не является задачей или exit criterion текущей реализации.
 
 ### 12.1. Подтвержденная проблема
 
@@ -485,9 +495,9 @@ verification.value = "${otp}:${attempts + 1}"
 
 ### 12.2. Решение
 
-Production phone OTP не должен использовать стандартные Better Auth phone OTP routes.
+Решение OAuth/OIDC v1: не подключать `phoneNumber` plugin, не публиковать его routes и не добавлять phone configuration/schema. Отсутствие SMS Verify provider не блокирует этап 0 или реализацию email/password, email OTP, Google и Facebook.
 
-Нужно реализовать Better Auth-compatible IAM plugin/route layer с интерфейсом внешнего Verify provider:
+Если phone OTP будет добавляться отдельным будущим планом, stock routes нельзя включать без нового security review. Предпочтительный будущий контракт — Better Auth-compatible IAM plugin/route layer с внешним Verify provider:
 
 ```text
 startVerification(applicationId, canonicalE164) -> opaqueChallengeId
@@ -503,11 +513,13 @@ IAM хранит только:
 - attempt/status metadata, если это требуется контрактом provider;
 - timestamps и audit actor без phone/code.
 
-Provider credential хранится только в secrets backend. До выбора конкретного production provider и проверки его API `phoneOtpEnabled=false` является обязательным fail-closed default.
+Provider credential должен храниться только в secrets backend. До утверждения отдельного phone-auth плана phone endpoints отсутствуют полностью; отдельный `phoneOtpEnabled` flag в текущей v1 schema не вводится.
 
 Better Auth user/session lifecycle можно повторно использовать после успешного provider verification, но нельзя вызывать stock verify route с plaintext OTP storage.
 
-## 13. Synthetic email v1 test vector
+## 13. Исторический synthetic email test vector вне v1
+
+Synthetic email не используется OAuth/OIDC v1 и не должен попадать в `application_user`, ID Token или UserInfo. Вектор ниже сохранен только как результат выполненного эксперимента для возможного будущего phone-only identity design.
 
 Проверка выполнена с `libphonenumber-js@1.12.17`, Node Crypto HKDF-SHA-256, HMAC-SHA-256 и RFC 4648 Base32 без padding.
 
@@ -532,39 +544,39 @@ digest.hex = 5227f8b7a3dc70f7710ff2d0bf90697b2cd8f085dc6880248403c22763d5b176
 syntheticEmail = kit7rn5d3rypo4ip6lil7edjpmwnr4ef3ruiajeeapbcoy6vwf3a@phone.invalid
 ```
 
-Vector совпал с планом побайтно. Криптографический контракт synthetic email v1 совместим.
+Вектор совпал с исследуемым алгоритмом побайтно, но не является контрактом текущего основного плана.
 
-## 14. Необходимые изменения основного плана
+## 14. Решения, перенесенные в основной план
 
-До перехода к этапу 1 нужно зафиксировать следующие поправки:
+По результатам spike основной план и client-management plan должны использовать следующие согласованные решения:
 
 1. Использовать IAM internal repository/service для всего OAuth client CRUD, а не `adminCreateOAuthClient`/`adminUpdateOAuthClient` без session.
-2. Зафиксировать production `STOREFRONT_RESOURCE_AUDIENCE`.
-3. Требовать exact Storefront resource на authorize, code exchange и refresh.
-4. Хранить client resource/store binding в IAM metadata/table; plugin field `resources` отсутствует.
+2. Хранить единственный exact `application.resource` в `application_auth_configuration`; resource обязателен до первого client и не принимается client mutation.
+3. Использовать `ApplicationOAuthResourcePolicyGuard` до `auth.handler` и требовать exact single `application.resource` на authorize, code exchange и каждом refresh.
+4. Хранить `resource_audience = application.resource` и Store binding в IAM-controlled client metadata/table; plugin field `resources` отсутствует.
 5. Глобально исключить `client_credentials` через `oauthProvider.grantTypes`.
 6. Добавить versioned Fastify route manifest по method + normalized pathname.
 7. Добавить root OAuth Authorization Server metadata route.
 8. Добавить form-urlencoded parser и explicit trusted proxy policy.
 9. Расширить scoped adapter четырьмя plugin models и cross-tenant relation checks.
-10. Заменить stock phone OTP routes на external-provider-compatible IAM verification layer.
-11. Явно подавлять synthetic email в ID Token и UserInfo.
-12. Проверить discovery contract public clients с выбранной Storefront OIDC library.
+10. Не включать phone OTP, phone fields/routes, SMS delivery или synthetic email в OAuth/OIDC v1.
+11. Использовать стандартный `emailOTP({ storeOTP: "hashed" })` как baseline v1; custom keyed hasher/HMAC, lifecycle ключей, dual-format verification и миграция hash-формата остаются вне scope.
+12. Проверить discovery contract public clients с выбранной Storefront OIDC library, не включая unauthenticated DCR только ради `token_endpoint_auth_methods_supported=none`.
 
 ## 15. Exit criterion
 
-Этап 0 нельзя считать закрытым, пока не выполнены все условия:
+Этап 0 можно считать закрытым после фиксации и contract-подтверждения следующих условий:
 
-- production `STOREFRONT_RESOURCE_AUDIENCE` задан exact URI;
-- выбран SMS Verify provider и утверждено хранение его credentials;
+- утверждены application-level resource schema/Admin contract и запрет client-level override;
 - утвержден IAM internal client management contract;
-- утвержден mandatory-resource enforcement contract;
+- утвержден `ApplicationOAuthResourcePolicyGuard` contract для authorize/code exchange/refresh без opaque fallback;
 - зафиксирован public route manifest, включая Better Auth signin/OTP/social paths;
+- зафиксирован стандартный `emailOTP({ storeOTP: "hashed" })` baseline без требования custom hash contract для этапа 0 или релиза v1;
 - подтвержден discovery contract public client;
 - adapter schema и tenant constraints спроектированы для всех plugin models;
-- phone OTP не сохраняет plaintext code в БД или логах.
+- подтверждено, что phone plugin/routes и synthetic email отсутствуют в v1 composition/schema.
 
-После этих решений неизвестных, требующих самописного OAuth server, не остается. Необходимая кастомизация ограничивается IAM authorization boundary, tenant-aware persistence, client management и безопасным phone verification layer.
+После этих решений неизвестных, требующих самописного OAuth server, не остается. Необходимая v1 кастомизация ограничивается IAM authorization/resource boundary, tenant-aware persistence и internal client management.
 
 ## 16. Источники
 
