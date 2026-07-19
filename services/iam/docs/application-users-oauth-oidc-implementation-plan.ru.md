@@ -442,21 +442,27 @@ Provider configuration включает:
 
 Базовая политика Better Auth:
 
-- `accountLinking.enabled=true`;
-- `allowDifferentEmails=false`;
-- `allowUnlinkingAll=false`;
-- `updateUserInfoOnLink=false`;
-- не включать небезопасный глобальный trusted provider список;
+- `account.accountLinking.enabled=true`;
+- `account.accountLinking.disableImplicitLinking=true` — v1 не выполняет silent merge при обычном social sign-in;
+- `account.accountLinking.allowDifferentEmails=false`;
+- `account.accountLinking.allowUnlinkingAll=false`;
+- `account.accountLinking.updateUserInfoOnLink=false`;
+- `account.accountLinking.trustedProviders=["facebook"]` разрешен только вместе с `disableImplicitLinking=true`: он позволяет стандартному authenticated `linkSocial()` принять Facebook account с `emailVerified=false`, но не разрешает автоматическое связывание по Facebook email;
+- остальные provider IDs не добавляются в `trustedProviders` без отдельного security review.
 
-Автоматическое связывание допускается только когда Better Auth получил и подтвердил один и тот же реальный email по безопасному provider flow. Facebook без достоверного verified email не должен автоматически связываться.
+В v1 автоматическое связывание отключено для всех social providers. Обычный Google/Facebook sign-in не связывает новый provider account с существующим `application_user` только по совпавшему email. Facebook email считается неподтвержденным независимо от совпадения строки; `trustedProviders=["facebook"]` означает доверие Facebook OAuth как доказательству владения конкретным Facebook account только внутри явного authenticated linking flow, а не доверие Facebook email как основанию для поиска или merge пользователя. Factory валидирует сочетание настроек как единый инвариант и не позволяет включить Facebook в `trustedProviders`, если `disableImplicitLinking` не равен `true`.
 
-Для неоднозначных случаев предоставить отдельный authenticated link-account flow:
+Для связывания использовать стандартный Better Auth authenticated `linkSocial()` flow, а не собственную реализацию OAuth linking:
 
 1. пользователь уже имеет свежую application session;
-2. подтверждает новый provider/passwordless method;
-3. IAM проверяет application scope и отсутствие account у другого пользователя;
-4. связь создается атомарно;
-5. операция записывается в audit log.
+2. запускает `linkSocial()` для разрешенного в этой application provider;
+3. Better Auth завершает provider OAuth callback и связывает account только с пользователем из исходной authenticated link session;
+4. linking разрешен только внутри того же Better Auth instance/application;
+5. `allowDifferentEmails=false` требует совпадения email, но совпадение не используется как самостоятельное доказательство владения локальным пользователем;
+6. provider account не должен принадлежать другому user;
+7. при конфликте возвращается generic conflict и пишется security audit event.
+
+Facebook без доступного email нельзя связать в v1, поскольку стандартный `linkSocial()` flow при `allowDifferentEmails=false` должен сопоставить provider email с email текущего пользователя. Если в будущем потребуется связывать Facebook account без email или сохранить implicit linking только для отдельных providers, это отдельное security design change, а не часть v1.
 
 Разрыв последнего способа входа запрещен. Объединение двух существующих пользователей — отдельная административная операция и не входит в первую версию.
 
@@ -972,11 +978,11 @@ Security/operational события без секретов:
 
 1. Подключить per-application socialProviders.
 2. Включить upstream OAuth token encryption.
-3. Реализовать строгую linking policy.
+3. Настроить стандартный Better Auth `linkSocial()` с `disableImplicitLinking=true`, `allowDifferentEmails=false` и `trustedProviders=["facebook"]`; собственный OAuth linking flow не реализовывать.
 4. Обработать provider без email и конфликт account.
 5. Добавить application-user link/unlink runtime contract и аудит security events; административные operations будут добавлены последующим Admin API plan.
 
-Критерий выхода: providers не могут связать account между applications или по неподтвержденному email.
+Критерий выхода: обычный social sign-in никогда не выполняет implicit linking; стандартный authenticated `linkSocial()` связывает Google/Facebook account только внутри текущей application и отклоняет отсутствующий/отличающийся email либо account, уже принадлежащий другому user.
 
 ### Этап 7. Storefront API и Customers integration
 
@@ -1102,8 +1108,10 @@ Hosted UI следует разместить в выбранном для IAM w
 - Google/Facebook callback привязан к правильной application;
 - disabled/misconfigured provider закрыт безопасно;
 - provider secrets/tokens отсутствуют в runtime responses/logs/errors;
-- verified same-email linking следует policy;
-- unverified/different email не auto-links;
+- обычный Google/Facebook sign-in при совпадающем email возвращает account-not-linked и не выполняет implicit linking;
+- authenticated `linkSocial()` связывает Google и Facebook account со свежей session текущего application user;
+- Facebook `emailVerified=false` не блокирует explicit `linkSocial()`, поскольку Facebook является trusted provider только при глобально отключенном implicit linking;
+- отсутствующий/отличающийся email не связывается;
 - нельзя unlink последний login method;
 - provider account уже другого user вызывает конфликт, а не merge.
 
@@ -1197,7 +1205,7 @@ Hosted UI следует разместить в выбранном для IAM w
 | Новый или неиспользуемый Better Auth/plugin endpoint становится публичным через catch-all | Versioned default-deny manifest всего handler по method + normalized pathname, effective allowlist по application configuration и обязательная повторная сверка при изменении plugin composition |
 | Public OAuth routes случайно наследуют Admin GraphQL middleware или публикация общего порта раскрывает `/graphql` | Sibling encapsulated Fastify plugins на одном instance, GraphQL hooks только внутри admin scope и path-based reverse-proxy allowlist для public network |
 | Plugin model leakage между applications | Явно расширить adapter и schema application scope, негативные contract-сценарии |
-| Небезопасное auto-linking | Только реальный verified same-email или explicit authenticated linking |
+| Небезопасное auto-linking | `disableImplicitLinking=true` для всех providers; только стандартный authenticated `linkSocial()`, а `trustedProviders=["facebook"]` применяется исключительно при отключенном implicit linking |
 | Secret leakage в runtime/logs | Encryption и redaction; административный one-time reveal относится к последующему Admin API plan |
 | Open redirect/custom scheme abuse | Exact allowlist и отдельная mobile URI policy |
 | Устаревшая factory config после изменения конфигурации | Revisioned cache key + invalidation event |
