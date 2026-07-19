@@ -63,6 +63,7 @@ IAM должен стать OIDC-провайдером для клиентск�
 - Passkeys/WebAuthn, TOTP MFA и recovery codes. Архитектура не должна мешать их добавлению позже.
 - Phone OTP/passwordless, SMS delivery, phone-only users и synthetic email. Они выносятся в отдельный будущий план после выбора production Verify provider и security contract; текущий план не добавляет `phoneNumber` plugin, phone endpoints, phone-поля или SMS-конфигурацию.
 - Кастомный keyed hasher/HMAC для email OTP, отдельный lifecycle ключей и миграция формата OTP hash. В v1 используется стандартный Better Auth `emailOTP({ storeOTP: "hashed" })`; дополнительный hardening выносится в отдельный будущий план после стабилизации email OTP flow.
+- Реализация собственного email delivery worker, durable outbox, retry/dead-letter механизма и transport infrastructure. IAM интегрирует Better Auth `sendVerificationOTP` с утвержденным внешним platform email delivery service; надежность его очереди и хранение delivery payload определяются отдельным контрактом вне этого плана.
 - Перенос бизнес-профиля, адресов, заказов или согласий маркетинга из Customers в IAM.
 
 ## 4. Текущее состояние и разрыв
@@ -83,7 +84,7 @@ IAM должен стать OIDC-провайдером для клиентск�
 - issuer/discovery/authorize/token/userinfo/revoke/introspect/logout;
 - административных моделей и GraphQL API для auth settings, providers и OAuth clients;
 - hosted login/consent UI;
-- механизма доставки email OTP;
+- интеграции `sendVerificationOTP` с внешним platform email delivery service;
 - безопасного хранения Google/Facebook secrets;
 - договоренности между OAuth identity и Customer profile;
 - проверки access token на стороне Storefront API;
@@ -393,7 +394,7 @@ PKCE нельзя отключать. Для browser/mobile client исполь�
 - новый запрос ротирует предыдущий код;
 - хранение OTP — `hashed`;
 - ответ отправки всегда обобщенный, независимо от существования пользователя;
-- отправка выполняется асинхронно после безопасной постановки в delivery outbox;
+- `sendVerificationOTP` передает исходный код утвержденному внешнему platform email delivery service и ожидает только подтверждение приема задания, а не фактическую отправку письма;
 - используется стандартная конфигурация Better Auth `storeOTP: "hashed"` как осознанный baseline v1;
 - custom `storeOTP` hasher/HMAC, отдельный ключ на realm, dual-format verification и миграция hash-формата не входят в этот план;
 - baseline дополнительно ограничивается TTL, числом попыток, ротацией кода, rate limits и контролем доступа к verification storage.
@@ -509,14 +510,15 @@ Provider configuration включает:
 
 Секреты шифруются envelope encryption/KMS abstraction либо AES-256-GCM с versioned IAM master key. AAD включает `applicationId`, provider и field name. Значения не попадают в Pino context, exception, GraphQL response или audit payload.
 
-### 10.4. OTP delivery configuration
+### 10.4. Email delivery integration configuration
 
 Не хранить произвольные SMTP secrets в обычном JSON. Ввести:
 
 - `application_auth_delivery_profile` — ссылка на разрешенный email transport, sender identity и template id;
 - секреты transport — только в secrets backend;
 - шаблоны — versioned/validated, без executable code;
-- outbox/event для доставки с idempotency key.
+- IAM передает delivery profile, recipient, purpose и исходный OTP/ссылку только через typed interface утвержденного platform email delivery service;
+- IAM не сохраняет plaintext OTP/ссылку в собственной очереди, outbox или audit; защита durable payload, retries и dead-letter lifecycle являются ответственностью внешнего delivery service и его отдельного security contract.
 
 Если platform-wide transport достаточен для v1, application хранит только sender/template selection из allowlist.
 
@@ -869,27 +871,21 @@ IAM владеет identity/security данными. Customers владеет bu
 
 Cross-application атаки должны входить в обязательные негативные сценарии для каждого repository/adapter endpoint.
 
-## 17. Доставка OTP и operational flow
+## 17. Интеграция с email delivery service
 
-Ввести единый `ApplicationAuthDeliveryService`:
+Better Auth вызывает настроенный IAM callback `sendVerificationOTP`. Callback:
 
-```text
-enqueueEmailOtp(applicationId, normalizedRecipient, purpose, otp/reference)
-enqueuePasswordReset(...)
-enqueueEmailVerification(...)
-```
+- загружает разрешенный application delivery profile;
+- формирует typed request внешнему platform email delivery service с `applicationId`, нормализованным recipient, purpose, template id и исходным OTP/ссылкой;
+- передает idempotency key, если его поддерживает внешний contract;
+- ожидает только подтверждение приема задания внешним service, а не фактическую отправку письма;
+- маскирует recipient в логах и не логирует OTP/link token;
+- не сохраняет plaintext OTP/ссылку в IAM database, cache, outbox или audit;
+- публикует только метрики результата handoff без high-cardinality PII labels.
 
-Сервис:
+Email worker, durable queue/outbox, retries, dead-letter state, шифрование и retention delivery payload реализуются внешним platform email delivery service и находятся вне scope этого плана. IAM должен документировать требования к этому контракту, но не реализует собственную delivery infrastructure.
 
-- загружает разрешенный delivery profile;
-- создает idempotency key;
-- записывает outbox в той же транзакции, где это возможно;
-- маскирует recipient в логах;
-- не логирует OTP/link token;
-- ограничивает retry и отправляет exhausted delivery в operational dead-letter state;
-- публикует метрики без high-cardinality PII labels.
-
-User-facing response не ждет фактической отправки и не различает `user_not_found`, `provider_failed` и `sent`.
+User-facing response не ждет фактической отправки и не различает `user_not_found`, `provider_failed` и `accepted`. Ошибка handoff отображается как generic временная недоступность без раскрытия существования account.
 
 ## 18. Rate limits и защита от злоупотреблений
 
@@ -938,12 +934,11 @@ Security/operational события без секретов:
 
 - latency/error rate по endpoint и method;
 - active realms/factory cache hit/miss/rebuild;
-- OTP delivery latency/failure;
+- OTP delivery handoff latency/failure;
 - token refresh/revoke;
 - rate-limit count;
 - provider callback failure;
 - adapter cross-scope rejection;
-- outbox lag.
 
 Не использовать raw user ID, email, token, code, client secret или provider response как metric label.
 
@@ -1053,7 +1048,7 @@ Security/operational события без секретов:
 Задачи:
 
 1. Подключить `emailOTP` со стандартным `storeOTP: "hashed"`, не вводя custom hasher/HMAC и отдельный lifecycle ключей.
-2. Создать delivery outbox/transport abstraction.
+2. Интегрировать Better Auth `sendVerificationOTP` с утвержденным внешним platform email delivery service без собственного IAM worker/outbox.
 3. Добавить request/verify UI.
 4. Реализовать generic responses, resend cooldown и attempt limits.
 
@@ -1117,7 +1112,6 @@ services/iam/src/repositories/models/application-auth.ts
 services/iam/src/repositories/models/authorization.ts
 services/iam/src/repositories/ApplicationAuthConfigurationRepository.ts
 services/iam/src/repositories/ApplicationOAuthClientRepository.ts
-services/iam/src/services/ApplicationAuthDeliveryService.ts
 services/iam/src/services/ApplicationAuthSecretService.ts
 services/iam/src/services/ApplicationAuthAuditService.ts
 services/iam/src/events/application-auth/*
