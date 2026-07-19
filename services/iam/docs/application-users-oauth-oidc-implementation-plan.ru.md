@@ -983,6 +983,8 @@ Security/operational события без секретов:
 
 ### Этап 0. Compatibility и security spike
 
+Подробный результат выполненного spike: [Compatibility и security spike OAuth 2.1 / OIDC для `application_users`](./application-users-oauth-oidc-compatibility-spike.ru.md).
+
 Задачи:
 
 1. Добавить exact dependencies `@better-auth/oauth-provider@1.6.23` и `libphonenumber-js@1.12.17`.
