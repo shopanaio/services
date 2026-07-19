@@ -112,6 +112,14 @@ IAM должен стать OIDC-провайдером для клиентск�
 
 Пользователи принадлежат application, а не отдельному OAuth client. Redirect URI, client type, client secret и logout URI принадлежат OAuth client.
 
+Для Storefront realm создается как часть `StoreCreateSaga`: Project service передает в доверенный internal IAM action только `organizationId`, `storeId` и idempotency context, но не строку OAuth resource. IAM создает `applicationId`, атомарно создает application auth configuration и детерминированно формирует неизменяемый канонический resource:
+
+```text
+urn:shopana:application:{applicationId}
+```
+
+IAM возвращает `applicationId` и `resource`, после чего Project сохраняет `applicationId` как immutable external reference Store без межсервисного FK. IAM одновременно хранит owner binding `(ownerType="store", ownerId=storeId)` с уникальностью, поэтому повторный вызов можно идемпотентно разрешить по Store. Для v1 cardinality равна `Store 1:1 IAM Application`, а `IAM Application 1:N OAuth Client`. `StoreCreateSaga` использует retry и compensation, чтобы не оставлять Store без application либо orphan application после неуспешного создания Store. `resource` является публичным идентификатором resource server/audience, а не token или secret.
+
 Все OAuth clients в v1, включая confidential server-side storefront, работают только от имени `application_user` через Authorization Code flow. Запрет M2M применяется двумя независимыми слоями. OAuth Provider instance для каждой application глобально ограничивает token endpoint:
 
 ```text
@@ -456,6 +464,8 @@ Provider configuration включает:
 
 Все новые таблицы размещаются в схеме `iam`. Названия окончательно сверить с `@better-auth/oauth-provider` schema generation, не переименовывая поля, которые plugin ожидает напрямую.
 
+Для Store provisioning расширить `iam.application` доверенной owner metadata (`owner_type`, `owner_id`) с уникальностью активного `(owner_type, owner_id)` и запретом изменения owner после создания. В v1 разрешен только `owner_type=store`; `owner_id` равен проверенному `storeId`. Project service хранит возвращенный `applicationId` в Store как immutable external reference без database FK на IAM. Оба значения создаются/связываются только через `StoreCreateSaga`, а не из GraphQL Store input.
+
 ### 10.1. `application_auth_configuration`
 
 Одна строка на application:
@@ -491,7 +501,7 @@ Provider configuration включает:
 
 Изменяемые значения ограничиваются заранее заданными безопасными диапазонами. Конфигурация не должна позволять отключить PKCE, state/nonce validation, redirect validation или token signature.
 
-`resource` обязателен до создания первого OAuth client. В рамках этого плана он задается доверенным internal setup/fixture; пользовательскую mutation добавит последующий Admin API plan. Для одной application разрешено ровно одно значение: массив или несколько resource не поддерживаются. Значение должно быть абсолютным HTTPS URI, нормализуется один раз без trailing slash, не строится из request `Host` и должно быть уникальным среди активных applications. Любой будущий способ изменения resource обязан атомарно синхронизировать resource всех OAuth clients application, увеличить `revision`, инвалидировать `ApplicationAuthFactory` cache и отозвать ранее выданные access/refresh tokens, чтобы старый audience не продолжал использоваться.
+`resource` создается IAM одновременно с application и auth configuration по неизменяемому шаблону `urn:shopana:application:{applicationId}`. URN является absolute URI, не зависит от DNS, storefront domain, request `Host` или deployment URL и уникален благодаря `applicationId`. Поле обязательно и immutable: оно отсутствует во всех public/admin create/update inputs, repository запрещает его update, а OAuth client нельзя создать для application без корректно provisioned resource. Исправление ошибочного resource выполняется только пересозданием application до появления production data либо отдельной versioned protocol migration с отзывом всех token families; обычной configuration mutation не существует.
 
 ### 10.2. `application_auth_origin`
 
@@ -568,7 +578,7 @@ Provider configuration включает:
 
 `store_id` проверяется через внутренний Project service action: Store и application должны принадлежать одной организации. Межсервисный FK не создается.
 
-При создании/изменении клиента IAM записывает `[application.resource]` в plugin field `resources`, если оно поддерживается подтвержденной схемой версии `1.6.23`, и всегда дублирует enforcement в server-side client policy. OAuth client не может иметь ноль, два или иной resource. GraphQL input OAuth client не содержит `resource`/`resources`: значение наследуется из auth configuration application и меняется только application-level mutation.
+При создании/изменении клиента IAM записывает `[application.resource]` в plugin field `resources`, если оно поддерживается подтвержденной схемой версии `1.6.23`, и всегда дублирует enforcement в server-side client policy. OAuth client не может иметь ноль, два или иной resource. GraphQL input OAuth client не содержит `resource`/`resources`: значение наследуется из immutable auth configuration application и не меняется обычными application/client mutations.
 
 Поля plugin `grantTypes` и `responseTypes` записываются IAM при создании и не принимаются из GraphQL input при create/update. Repository запрещает их изменение в обход отдельной будущей protocol-policy migration. Это client-level ограничение дополняет глобальное `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`; ни один client record не может расширить grant set OAuth Provider instance. Public client-management endpoint закрыты, поэтому application user не может зарегистрировать client с `client_credentials` самостоятельно.
 
@@ -714,10 +724,10 @@ Access token:
 В v1 каждая `iam.application` имеет ровно один собственный канонический resource indicator для Storefront API:
 
 ```text
-application.resource=<absolute HTTPS URI Storefront API для этой application>
+application.resource=urn:shopana:application:{applicationId}
 ```
 
-Значение хранится в `application_auth_configuration`, нормализуется один раз без trailing slash и не строится из `Host` request. В этом плане оно подготавливается доверенным internal setup; пользовательское управление добавляет последующий Admin API plan. Множественные resources для одной application не поддерживаются. Нормализованное значение уникально среди активных applications и одинаково используется как:
+IAM детерминированно создает значение из уже сгенерированного `applicationId` в одной транзакции с application auth configuration. Store, storefront domain и OAuth client не задают resource: `www.merchantA.com`/`www.merchantB.com` относятся к trusted origins и redirect URI. Значение immutable, не строится из `Host` request и одинаково используется как:
 
 - `resource` в authorization request;
 - элемент `oauthProvider.validAudiences`;
@@ -730,6 +740,8 @@ OAuth Provider работает с включенным JWT plugin (`disableJwtP
 Enforcement принадлежит `ApplicationOAuthResourcePolicyGuard` из раздела 6.3, а не одному `oauthProvider.validAudiences`. Guard требует exact application resource до передачи authorize/code-exchange/refresh request в OAuth Provider; `validAudiences`, client metadata и JWT-only Storefront validation остаются независимыми дополнительными слоями. Ни application configuration, ни OAuth client input не могут отключить guard или выбрать permissive fallback.
 
 `store_id` не является resource/audience: он берется только из доверенной metadata OAuth client и добавляется через `customAccessTokenClaims`. Все clients одной application используют ее единственный resource, а resource server одновременно проверяет `aud`, `application_id` и `store_id`.
+
+Если в будущем Catalog, Media или другой сервис станет самостоятельным публичным resource server, он получает отдельный зарегистрированный resource namespace и отдельную audience/token policy. Сервис не передает в IAM произвольную строку resource: IAM формирует URI по versioned registry разрешенных resource kinds. Multi-resource grants, несколько audiences в одном token и повторное использование Storefront token внутренними микросервисами не входят в v1 и требуют отдельной protocol migration и threat model.
 
 ### 13.4. Проверка в Storefront API
 
@@ -887,14 +899,16 @@ Security/operational события без секретов:
 
 Задачи:
 
-1. Создать миграции application auth config, включая единственный `resource`, origins/providers/delivery metadata.
+1. Создать миграции application auth config, включая обязательный immutable `resource`, origins/providers/delivery metadata.
 2. Добавить OAuth Provider plugin tables с `application_id`.
 3. Добавить индексы, tenant constraints и cleanup behavior.
 4. Реализовать encryption service для provider credentials.
 5. Реализовать HKDF realm secret derivation/versioning.
 6. Добавить repository и Zod schemas для configuration.
+7. Добавить доверенный идемпотентный IAM provisioning action для `StoreCreateSaga`: IAM генерирует `applicationId`, формирует `urn:shopana:application:{applicationId}`, атомарно создает application/configuration и возвращает binding без приема resource из input.
+8. Расширить Store create workflow сохранением Store/Application binding, retry и compensation для межсервисного шага.
 
-Критерий выхода: конфигурация и secrets изолированы по application, а secret не читается обратно через публичный API.
+Критерий выхода: конфигурация и secrets изолированы по application, secret не читается обратно через публичный API, а каждый созданный Store имеет идемпотентно provisioned application с уникальным immutable resource.
 
 ### Этап 2. Application-scoped Better Auth factory
 
@@ -1012,6 +1026,10 @@ services/iam/src/services/ApplicationAuthAuditService.ts
 services/iam/src/events/application-auth/*
 services/iam/migrations/*
 services/iam/docs/application-users-oauth-oidc-integration.md
+services/project/src/sagas/StoreCreateSaga.ts
+services/project/src/repositories/models/store.ts
+services/project/migrations/*
+packages/broker-types/src/actions/iam.ts
 services/e2e/.../iam/application-auth/*
 ```
 
@@ -1066,6 +1084,8 @@ Hosted UI следует разместить в выбранном для IAM w
 - OTP A не проверяется в B;
 - signing key A не используется issuer B;
 - application A и B имеют разные canonical resources, и resource A отклоняется issuer/client application B;
+- IAM формирует resource A/B только как `urn:shopana:application:{applicationId}` и отклоняет попытку передать resource через Store/application provisioning input;
+- повторный provisioning request с тем же `storeId` возвращает тот же application binding и не создает второй realm/resource;
 
 ### 21.3. Password/email OTP
 
@@ -1127,6 +1147,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] `ApplicationOAuthResourcePolicyGuard` до `auth.handler` требует ровно один exact resource на authorize, code exchange и каждом refresh; missing/duplicate/foreign resource возвращает `invalid_target` без opaque fallback.
 - [ ] JWT plugin включен; Storefront отклоняет opaque access tokens.
 - [ ] Каждая application имеет ровно один provisioned resource; OAuth clients наследуют только его, а `oauthProvider.validAudiences` равно `[application.resource]`.
+- [ ] Resource формируется IAM как `urn:shopana:application:{applicationId}`, создается вместе с application, immutable и отсутствует во всех Store/application/client mutation inputs.
 - [ ] Code exchange/refresh не позволяют сменить или расширить исходный resource.
 - [ ] Implicit/password grants отсутствуют.
 - [ ] Dynamic Client Registration выключен.
@@ -1156,7 +1177,7 @@ Hosted UI следует разместить в выбранном для IAM w
 Решение считается готовым, когда:
 
 1. Каждая application имеет отдельный issuer, users, sessions, providers, OAuth clients, tokens, consents и keys.
-2. Каждая application имеет ровно один заранее подготовленный Storefront resource; `ApplicationOAuthResourcePolicyGuard` требует его exact single value до Better Auth на authorize/code exchange/каждом refresh и исключает opaque fallback; public и confidential clients наследуют resource, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; OAuth Provider глобально поддерживает только `authorization_code`/`refresh_token`, а `client_credentials` отсутствует в discovery и запрещен также на уровне каждого client.
+2. Каждая application получает при создании ровно один immutable Storefront resource `urn:shopana:application:{applicationId}`; Store и администратор не передают и не изменяют его. `ApplicationOAuthResourcePolicyGuard` требует exact single value до Better Auth на authorize/code exchange/каждом refresh и исключает opaque fallback; public и confidential clients наследуют resource, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; OAuth Provider глобально поддерживает только `authorization_code`/`refresh_token`, а `client_credentials` отсутствует в discovery и запрещен также на уровне каждого client.
 3. Password, email OTP, Google и Facebook можно независимо включать в application configuration.
 4. Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`; custom hasher/HMAC и lifecycle его ключей не требуются для v1.
 5. Account linking не пересекает applications и не доверяет unverified email.
@@ -1180,6 +1201,7 @@ Hosted UI следует разместить в выбранном для IAM w
 | Secret leakage в runtime/logs | Encryption и redaction; административный one-time reveal относится к последующему Admin API plan |
 | Open redirect/custom scheme abuse | Exact allowlist и отдельная mobile URI policy |
 | Устаревшая factory config после изменения конфигурации | Revisioned cache key + invalidation event |
+| Store или admin подставляет чужой/произвольный resource либо изменение audience нарушает уже выданный grant | IAM генерирует resource только как `urn:shopana:application:{applicationId}` при создании application; поле immutable, отсутствует во входных DTO и защищено repository invariant |
 | Storefront получает opaque token без audience или client меняет resource между authorize/exchange/refresh | `ApplicationOAuthResourcePolicyGuard` до `auth.handler` требует ровно один exact `application.resource` на каждом шаге и возвращает `invalid_target`; `validAudiences`, client binding, включенный JWT plugin и JWT-only Storefront validator дают дополнительные независимые слои |
 | OAuth Provider поддерживает `client_credentials` по умолчанию | Глобально задать `oauthProvider.grantTypes=["authorization_code", "refresh_token"]`, дублировать ограничение в каждом v1 client, не принимать grant policy из изменяемой конфигурации и проверять discovery/отказ token endpoint contract-сценариями |
 | Мгновенная ревокация JWT | Короткий access TTL + live validation/introspection для чувствительных операций |
@@ -1197,7 +1219,7 @@ Hosted UI следует разместить в выбранном для IAM w
 5. Где размещается hosted UI bundle и как он версионируется вместе с IAM?
 6. Достаточен ли event-driven Customer ensure или первый Customer-bound request должен делать синхронный ensure?
 
-Exact URI resource подготавливается отдельно для каждой application и становится обязательным до создания ее первого OAuth client. Для application разрешено ровно одно нормализованное значение; OAuth clients не управляют им самостоятельно. Пользовательское управление resource добавляется только последующим Admin API plan. До получения остальных ответов применяются безопасные значения этого плана: platform delivery profiles, HTTPS/universal links, короткие TTL, consent для не-first-party clients и асинхронная Customer projection с idempotent fallback.
+Resource больше не является открытым вопросом этапа 0: IAM создает его вместе с application по шаблону `urn:shopana:application:{applicationId}`. Для application разрешено ровно одно immutable значение; Store, admin и OAuth clients им не управляют. До получения остальных ответов применяются безопасные значения этого плана: platform delivery profiles, HTTPS/universal links, короткие TTL, consent для не-first-party clients и асинхронная Customer projection с idempotent fallback.
 
 ## 26. Официальные источники
 

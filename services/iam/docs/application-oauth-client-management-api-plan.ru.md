@@ -206,7 +206,7 @@ oauthProvider.validAudiences = [application.resource]
 oauthProvider.disableJwtPlugin = false
 ```
 
-`application.resource` обязателен до создания первого OAuth client, задается только application-level Admin GraphQL mutation и является единственным resource всех clients этой application. Client create/update input не содержит `resource`/`resources`; management service копирует текущее exact значение в IAM-controlled metadata. GraphQL client type возвращает read-only `resources`, которое в v1 всегда равно `[application.resource]`. Изменение application resource выполняется отдельной security-sensitive операцией основного плана с синхронизацией clients, отзывом старых tokens и cache invalidation.
+`application.resource` создается IAM вместе с application как immutable `urn:shopana:application:{applicationId}` и является единственным resource всех clients этой application. Он отсутствует в application/client create/update inputs; management service копирует exact значение в IAM-controlled metadata. GraphQL client type возвращает read-only `resources`, которое в v1 всегда равно `[application.resource]`. Обычной application-level операции изменения resource нет; смена namespace/audience требует отдельной versioned protocol migration.
 
 `client_credentials`, implicit и password grants не поддерживаются. Поля `grantTypes`, `responseTypes` и `resources` возвращаются read-only для прозрачности и аудита.
 
@@ -393,7 +393,7 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 ### Этап 0. Зафиксировать контракт
 
 1. Утвердить GraphQL schema и error model.
-2. Утвердить application-level `resource` contract: absolute HTTPS URI, нормализация, уникальность среди active applications и запрет client-level override.
+2. Утвердить application-level `resource` contract: IAM-generated immutable `urn:shopana:application:{applicationId}`, уникальность и запрет application/client-level override.
 3. Утвердить secret prefix/length/hash compatibility vector.
 4. Зафиксировать поля `oauthClient` версии `1.6.23` и protocol policy v1.
 5. Зафиксировать internal Project action для Store ownership.
@@ -453,7 +453,7 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 - rotate возвращает новый secret один раз и инвалидирует старый;
 - public client secret rotation отклоняется;
 - client type, grants, response types, PKCE и audience нельзя изменить через GraphQL;
-- client нельзя создать до настройки `application.resource`, а созданный client получает exact application resource read-only;
+- client нельзя создать без provisioned `application.resource`, а созданный client получает exact application resource read-only;
 - client create/update input не принимает `resource`/`resources`, read-only response всегда возвращает `[application.resource]` и не позволяет заменить application audience;
 - `client_credentials` отклоняется для public/confidential clients;
 - wildcard, fragment, userinfo и production HTTP redirect отклоняются;

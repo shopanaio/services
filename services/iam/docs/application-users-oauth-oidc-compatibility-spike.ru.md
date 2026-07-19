@@ -78,7 +78,7 @@ Exact-версии стенда:
 | Email OTP storage baseline | Решение v1 зафиксировано | Стандартный `emailOTP({ storeOTP: "hashed" })`; custom hasher/HMAC, lifecycle ключей и миграция hash-формата вне scope |
 | Public/confidential clients | Подтверждено | Secret и PKCE behavior соответствуют ожиданиям |
 | Отказ `client_credentials` | Подтверждено | Отказ получен для public и confidential v1 clients |
-| Application resource policy | Контракт зафиксирован, проверка не выполнена | Exact HTTPS URI хранится per application; guard нужно contract-подтвердить на authorize/code exchange/refresh |
+| Application resource policy | Контракт зафиксирован, проверка не выполнена | IAM-generated immutable URN хранится per application; guard нужно contract-подтвердить на authorize/code exchange/refresh |
 | Public client discovery | Не выполнено | Не выбрана Storefront OIDC library и не принято решение об IAM-owned metadata с `none` |
 
 ### 3.1. Незавершенные пункты этапа 0
@@ -331,13 +331,13 @@ IAM должен дополнительно гарантировать one-time 
 
 ### 8.2. Решение для v1
 
-До первого OAuth client администратор application задает единственный exact resource через application-level Admin GraphQL mutation:
+При создании application IAM формирует единственный exact resource, не принимая его из Store, Admin GraphQL или OAuth client input:
 
 ```text
-application.resource=<absolute HTTPS URI Storefront API для этой application>
+application.resource=urn:shopana:application:{applicationId}
 ```
 
-Значение хранится в `application_auth_configuration`, нормализуется один раз без trailing slash, уникально среди active applications и не принимается OAuth client create/update input. Все clients application наследуют exact `application.resource` в IAM-controlled metadata.
+Значение хранится в `application_auth_configuration`, уникально благодаря `applicationId` и immutable. Все clients application наследуют exact `application.resource` в IAM-controlled metadata. Для Store-backed realm доверенный provisioning action вызывается из `StoreCreateSaga`, принимает только owner binding/idempotency context и возвращает созданные `applicationId`/`resource`.
 
 Для v1 разрешается ровно один Storefront resource на application realm. `ApplicationOAuthResourcePolicyGuard` внутри `applicationAuthHttpPlugin` до `auth.handler` обязан требовать ровно одно побайтно равное значение:
 
@@ -566,7 +566,7 @@ syntheticEmail = kit7rn5d3rypo4ip6lil7edjpmwnr4ef3ruiajeeapbcoy6vwf3a@phone.inva
 По результатам spike основной план и client-management plan должны использовать следующие согласованные решения:
 
 1. Использовать IAM internal repository/service для всего OAuth client CRUD, а не `adminCreateOAuthClient`/`adminUpdateOAuthClient` без session.
-2. Хранить единственный exact `application.resource` в `application_auth_configuration`; resource обязателен до первого client и не принимается client mutation.
+2. Генерировать и хранить единственный exact immutable `application.resource=urn:shopana:application:{applicationId}` при создании application; resource не принимается Store/application/client mutation.
 3. Использовать `ApplicationOAuthResourcePolicyGuard` до `auth.handler` и требовать exact single `application.resource` на authorize, code exchange и каждом refresh.
 4. Хранить `resource_audience = application.resource` и Store binding в IAM-controlled client metadata/table; plugin field `resources` отсутствует.
 5. Глобально исключить `client_credentials` через `oauthProvider.grantTypes`.

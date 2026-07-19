@@ -64,7 +64,7 @@ GraphQL resolvers следуют существующему IAM namespace и п�
 
 - create/list/get/update/archive application;
 - получить auth configuration;
-- задать или изменить единственный canonical `application.resource`;
+- получить read-only canonical `application.resource`;
 - обновить разрешенные auth methods и безопасные policy values;
 - получить issuer, OIDC discovery URL, OAuth Authorization Server Metadata URL и рассчитанные callback URLs;
 - управлять trusted origins;
@@ -72,7 +72,7 @@ GraphQL resolvers следуют существующему IAM namespace и п�
 
 Update принимает ожидаемую `revision` для optimistic concurrency.
 
-Resource mutation принимает одно поле `resource`, а не список. Она проверяет absolute HTTPS URI, каноническую нормализацию и уникальность среди active applications. Resource отсутствует в OAuth client mutation input. Изменение resource атомарно синхронизирует clients, увеличивает revision, инвалидирует `ApplicationAuthFactory` cache и отзывает ранее выданные access/refresh tokens.
+Для Storefront application создается доверенным IAM provisioning action из `StoreCreateSaga`. IAM генерирует `applicationId` и immutable `resource=urn:shopana:application:{applicationId}`; Store передает только trusted owner binding и idempotency context. `resource` возвращается Admin GraphQL только read-only и отсутствует во всех application/OAuth client mutation inputs. Обычной операции изменения resource нет; изменение namespace или audience является отдельной versioned protocol migration, а не административной настройкой.
 
 ### 5.2. Social providers
 
@@ -160,7 +160,7 @@ require_pkce = true
 
 1. Добавить application CRUD/list/read/archive.
 2. Добавить revisioned auth settings mutations.
-3. Реализовать canonical resource mutation с client synchronization, token revocation и cache invalidation.
+3. Добавить read-only canonical resource и запрет его передачи/изменения через GraphQL DTO и repository.
 4. Добавить origins, branding/localization и вычисляемые protocol URLs.
 5. Добавить permissions и audit events.
 
@@ -203,8 +203,8 @@ require_pkce = true
 
 - platform admin session обязательна для Admin GraphQL operations;
 - admin organization A не читает и не меняет application B;
-- GraphQL принимает ровно один application resource и не принимает его через OAuth client input;
-- resource change синхронизирует clients, отзывает старые tokens и инвалидирует factory cache;
+- GraphQL возвращает ровно один application resource read-only и не принимает его через application/OAuth client input;
+- Store provisioning input не принимает resource, а IAM формирует его как `urn:shopana:application:{applicationId}`;
 - provider secrets/tokens отсутствуют в GraphQL/logs/errors/audit;
 - config revision предотвращает lost update;
 - confidential client secret показывается только при create/rotate;
