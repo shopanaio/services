@@ -27,7 +27,6 @@ IAM должен стать OIDC-провайдером для клиентск�
 - OAuth 2.1 / OIDC provider — `@better-auth/oauth-provider` той же версии, что `better-auth`;
 - password signup/signin — встроенный `emailAndPassword`;
 - email OTP — `emailOTP`;
-- phone OTP/passwordless — `phoneNumber` с безопасным провайдером проверки OTP;
 - Google/Facebook — встроенные `socialProviders`;
 - JWT/JWKS, discovery, authorization code, PKCE, refresh token, userinfo, introspection, revocation и logout — возможности Better Auth и OAuth Provider plugin.
 
@@ -40,7 +39,6 @@ IAM должен стать OIDC-провайдером для клиентск�
 3. Поддержать:
    - регистрацию и вход по email/password;
    - passwordless-вход по одноразовому коду из email;
-   - passwordless-вход по одноразовому коду из SMS;
    - Google;
    - Facebook;
    - связывание нескольких способов входа с одним `application_user` по безопасной политике.
@@ -63,6 +61,7 @@ IAM должен стать OIDC-провайдером для клиентск�
 - Автоматическое объединение пользователей разных applications.
 - Custom domains для issuer. Их можно добавить отдельным этапом после стабилизации канонических issuer.
 - Passkeys/WebAuthn, TOTP MFA и recovery codes. Архитектура не должна мешать их добавлению позже.
+- Phone OTP/passwordless, SMS delivery, phone-only users и synthetic email. Они выносятся в отдельный будущий план после выбора production Verify provider и security contract; текущий план не добавляет `phoneNumber` plugin, phone endpoints, phone-поля или SMS-конфигурацию.
 - Перенос бизнес-профиля, адресов, заказов или согласий маркетинга из Customers в IAM.
 
 ## 4. Текущее состояние и разрыв
@@ -83,8 +82,7 @@ IAM должен стать OIDC-провайдером для клиентск�
 - issuer/discovery/authorize/token/userinfo/revoke/introspect/logout;
 - административных моделей и GraphQL API для auth settings, providers и OAuth clients;
 - hosted login/consent UI;
-- phone-полей и надежного phone OTP;
-- механизма доставки email/SMS OTP;
+- механизма доставки email OTP;
 - безопасного хранения Google/Facebook secrets;
 - договоренности между OAuth identity и Customer profile;
 - проверки access token на стороне Storefront API;
@@ -319,102 +317,11 @@ PKCE нельзя отключать. Для browser/mobile client исполь�
 - хранение OTP — `hashed`;
 - ответ отправки всегда обобщенный, независимо от существования пользователя;
 - отправка выполняется асинхронно после безопасной постановки в delivery outbox;
-- email OTP нельзя отправлять на synthetic email phone-only пользователя.
+- используется стандартная конфигурация Better Auth `storeOTP: "hashed"` без отдельного custom hash/HMAC contract в рамках этого плана.
 
 Администратор может включать email OTP signin/signup и настраивать утвержденный email delivery profile, но не произвольный executable template.
 
-### 8.3. Phone OTP/passwordless
-
-Использовать `phoneNumber` plugin для endpoint, user lifecycle и session integration. Номер хранится только в каноническом E.164 после проверки.
-
-Критическая оговорка: стандартная локальная реализация phone plugin сохраняет код в verification value в форме, неприемлемой для production plaintext storage. Перед production rollout обязателен security spike и один из вариантов:
-
-1. рекомендуемый — внешний Verify-провайдер, который генерирует и проверяет код, а IAM хранит только opaque verification reference;
-2. допустимый резервный — собственная Better Auth-compatible verification реализация с шифрованием/хешированием OTP и атомарным счетчиком попыток.
-
-Нельзя выпускать production phone OTP, пока в БД или логах может появиться открытый код.
-
-Параметры:
-
-- TTL 5 минут;
-- не более 3 попыток;
-- resend cooldown 60 секунд;
-- rate limits по application + normalized phone hash + IP;
-- generic response;
-- блокировка повторного использования;
-- подтвержденный delivery status не означает подтверждение номера — подтверждается только правильный OTP.
-
-Better Auth требует email в user model. Для phone-only пользователя `phoneNumber.signUpOnVerification` использует `getTempEmail` и `getTempName`. Synthetic email является только внутренним placeholder, а не credential или способом найти пользователя при signin.
-
-#### Криптографический контракт synthetic email v1
-
-В secrets backend хранится отдельный key ring `IAM_PHONE_IDENTITY_HMAC_KEYS`, где каждый key имеет положительный integer `keyVersion` и base64url-no-padding value, декодирующийся ровно в 32 случайных байта. Активная версия задается `IAM_PHONE_IDENTITY_HMAC_ACTIVE_VERSION`. Startup завершается ошибкой при дубликате version, отсутствии active key или неверной длине/кодировке. Этот key ring не совпадает с Better Auth realm secret, JWT signing key или provider encryption key и не ротируется вместе с ними.
-
-Алгоритм генерации фиксируется без неявных преобразований:
-
-```text
-e164 = requireCanonicalE164(input)
-rootKey = IAM_PHONE_IDENTITY_HMAC_KEYS[activeKeyVersion]
-applicationKey = HKDF-SHA-256(
-  ikm = rootKey,
-  salt = UUID_BYTES(applicationId),
-  info = UTF8("shopana:iam:phone-synthetic-email:v1"),
-  length = 32
-)
-digest = HMAC-SHA-256(
-  key = applicationKey,
-  message = UTF8("phone\0" + e164)
-)
-localPart = lowercase(BASE32_RFC4648_NO_PADDING(digest))
-syntheticEmail = localPart + "@phone.invalid"
-```
-
-`UUID_BYTES` — 16 байт UUID RFC 4122 в network byte order после строгой проверки canonical lowercase UUID string. `phone\0` содержит пять ASCII-символов `phone` и один byte `0x00`. Base32 — алфавит RFC 4648 `A-Z2-7`, без padding, после чего результат переводится в ASCII lowercase.
-
-Используется полный 256-bit digest: Base32 local part имеет 52 символа и помещается в email local-part limit. Входом является только строгий канонический E.164 с ведущим `+`. `requireCanonicalE164` сначала требует ASCII regex `^\+[1-9][0-9]{1,14}$`, затем проверяет номер через direct exact dependency `libphonenumber-js@1.12.17`, требует `isValid()=true` и побайтовое равенство `parsed.number === input`. Unicode digits, whitespace, extensions и неканонические варианты отклоняются до HMAC, а не исправляются неявно. При одинаковых application, canonical phone и key version результат побайтно одинаков; другая application получает криптографически разделенное значение.
-
-Обязательный non-production test vector:
-
-```text
-keyVersion = 1
-rootKey.base64url = AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8
-applicationId = 00000000-0000-4000-8000-000000000001
-e164 = +12025550123
-applicationKey.hex = fc4734a7951e9b6702a0934e427d2c1318cbcd90665cd76656194c0733244140
-digest.hex = 5227f8b7a3dc70f7710ff2d0bf90697b2cd8f085dc6880248403c22763d5b176
-syntheticEmail = kit7rn5d3rypo4ip6lil7edjpmwnr4ef3ruiajeeapbcoy6vwf3a@phone.invalid
-```
-
-Реализация считается несовместимой и не запускается в production, если этот vector не совпадает побайтно.
-
-Интеграция с Better Auth:
-
-- `getTempEmail(phoneNumber)` выполняется closure конкретного `ApplicationAuth` и использует доверенные `applicationId`, active key version и приведенный выше алгоритм;
-- `getTempName()` возвращает неперсональное значение `Customer`, никогда номер, email, digest или его часть;
-- перед созданием IAM ищет существующего пользователя по `(applicationId, phoneNumber)`, а synthetic email генерирует только если пользователь отсутствует;
-- create выполняется транзакционно, а partial unique `(application_id, phone_number)` является последней защитой от concurrent duplicate signup;
-- проигравшая unique race операция повторно читает существующего пользователя по `(applicationId, phoneNumber)`, а не создает второй placeholder.
-
-Lifecycle и ротация:
-
-- при создании сохраняются `emailSynthetic=true` и `syntheticEmailKeyVersion=activeKeyVersion`;
-- существующий synthetic email является immutable и никогда не пересчитывается при смене active key;
-- после ротации только новые phone-only users создаются новой версией; signin существующих users выполняется по canonical phone, поэтому старый HMAC key для signin не нужен;
-- rollout новой active version выполняется через versioned configuration/cache invalidation; одновременно активной для создания считается ровно одна версия;
-- при несовпадении active version между узлами unique phone constraint и transactional reread предотвращают создание двух users;
-- замена на реальный email выполняется одной транзакцией только после email verification: записывается normalized real email, `emailSynthetic=false`, `syntheticEmailKeyVersion=null`;
-- удаление старого root key разрешено только после завершения rollout и сохранения утвержденного non-production test vector; существующие placeholder не требуют обратного вычисления или повторной проверки.
-
-Security-инварианты:
-
-- synthetic email не содержит исходный номер и без root key не допускает практического offline enumeration телефонной базы;
-- `phone.invalid`, local part, digest и key version не логируются и не используются как metric labels;
-- synthetic email не возвращается в OIDC `email` claim, UserInfo, Customer projection или Admin API как обычный email;
-- на него нельзя отправлять email OTP, verification или reset password;
-- он не используется для автоматического account linking, поиска по email или восстановления доступа;
-- любая операция, принимающая email recipient, обязана явно отклонять `emailSynthetic=true`, а не полагаться только на suffix `@phone.invalid`.
-
-### 8.4. Google и Facebook
+### 8.3. Google и Facebook
 
 Использовать встроенные Better Auth `socialProviders.google` и `socialProviders.facebook` с отдельными credentials для каждой application.
 
@@ -444,7 +351,6 @@ Provider configuration включает:
 - `allowUnlinkingAll=false`;
 - `updateUserInfoOnLink=false`;
 - не включать небезопасный глобальный trusted provider список;
-- synthetic email никогда не участвует в email-based linking.
 
 Автоматическое связывание допускается только когда Better Auth получил и подтвердил один и тот же реальный email по безопасному provider flow. Facebook без достоверного verified email не должен автоматически связываться.
 
@@ -476,7 +382,6 @@ Provider configuration включает:
 | `password_sign_in_enabled` | вход password |
 | `email_verification_required` | обязательная проверка email |
 | `email_otp_enabled` | email passwordless |
-| `phone_otp_enabled` | phone passwordless |
 | `google_enabled` | Google UI/provider switch |
 | `facebook_enabled` | Facebook UI/provider switch |
 | `consent_mode` | политика consent по умолчанию |
@@ -527,38 +432,16 @@ Provider configuration включает:
 
 ### 10.4. OTP delivery configuration
 
-Не хранить произвольные SMTP/SMS secrets в обычном JSON. Ввести:
+Не хранить произвольные SMTP secrets в обычном JSON. Ввести:
 
-- `application_auth_delivery_profile` — ссылка на разрешенный email/SMS transport, sender identity и template id;
+- `application_auth_delivery_profile` — ссылка на разрешенный email transport, sender identity и template id;
 - секреты transport — только в secrets backend;
 - шаблоны — versioned/validated, без executable code;
 - outbox/event для доставки с idempotency key.
 
 Если platform-wide transport достаточен для v1, application хранит только sender/template selection из allowlist.
 
-### 10.5. Расширение `application_user`
-
-Добавить Better Auth-compatible поля:
-
-- `phone_number` nullable;
-- `phone_number_verified` boolean;
-- `email_synthetic` boolean;
-- `synthetic_email_key_version` nullable integer, устанавливается только для synthetic email;
-- при необходимости `last_authenticated_at` как IAM-owned operational field.
-
-Индексы:
-
-- unique real/synthetic email внутри application согласно Better Auth normalization;
-- partial unique `(application_id, phone_number)` where phone number is not null;
-- все lookup индексы начинаются с `application_id`.
-
-Constraints:
-
-- `email_synthetic=false` требует `synthetic_email_key_version IS NULL`;
-- `email_synthetic=true` требует `synthetic_email_key_version IS NOT NULL`, `phone_number IS NOT NULL` и `email LIKE '%@phone.invalid'`;
-- переход synthetic → real email обновляет email/flags/key version одной транзакцией, чтобы constraint никогда не наблюдал промежуточное состояние.
-
-### 10.6. OAuth Provider plugin models
+### 10.5. OAuth Provider plugin models
 
 Добавить application-scoped варианты моделей plugin:
 
@@ -579,7 +462,7 @@ Constraints:
 
 Если Better Auth ожидает глобально уникальный `clientId`, генерировать его с криптографической энтропией и все равно сохранять tenant predicates. Внешний subject `sub` остается application user id.
 
-### 10.7. OAuth client metadata
+### 10.6. OAuth client metadata
 
 Помимо plugin fields хранить контролируемую IAM metadata:
 
@@ -607,8 +490,7 @@ Constraints:
 ```text
 emailAndPassword
 socialProviders.google/facebook
-plugins: jwt, emailOTP, phoneNumber, oauthProvider
-phoneNumber.signUpOnVerification: syntheticEmailV1/getTempName
+plugins: jwt, emailOTP, oauthProvider
 oauthProvider.validAudiences: [application.resource]
 oauthProvider.disableJwtPlugin: false
 account.encryptOAuthTokens
@@ -634,7 +516,7 @@ shopana:iam:application-auth:{applicationId}:{keyVersion}
 Ключ `ApplicationAuthFactory`:
 
 ```text
-applicationId + configurationRevision + secretKeyVersion + phoneIdentityHmacActiveVersion
+applicationId + configurationRevision + secretKeyVersion
 ```
 
 После admin mutation:
@@ -765,7 +647,6 @@ Client secret показывается один раз при создании/�
 - email/password signin;
 - password signup;
 - email OTP request/verify;
-- phone OTP request/verify;
 - email verification pending;
 - forgot/reset password;
 - consent;
@@ -801,7 +682,6 @@ ID token:
 - `nonce` при authorization request;
 - `sid`, если поддерживается plugin/session binding;
 - `email`/`email_verified` только для реального email и запрошенного scope;
-- `phone_number`/`phone_number_verified` только при отдельном scope и policy.
 
 Access token:
 
@@ -822,7 +702,6 @@ Access token:
 
 - Casbin admin roles;
 - password/account/provider tokens;
-- synthetic email;
 - Customer profile snapshot;
 - произвольные admin-configured claims.
 
@@ -833,7 +712,6 @@ Access token:
 - `openid`;
 - `profile`;
 - `email`;
-- `phone` при явной необходимости;
 - `offline_access`;
 - `customer-account-api:full` как resource scope.
 
@@ -886,7 +764,7 @@ IAM владеет identity/security данными. Customers владеет bu
 2. Публикуется versioned event либо вызывается внутренняя idempotent action `ensureCustomerForApplicationUser`.
 3. Customers создает или находит Customer по `(storeId, iamPrincipalId)`.
 4. `customer.iam_principal_id` указывает на application user id как внешний reference.
-5. Проверенные email/phone проецируются в Customers только событием, без передачи credentials.
+5. Проверенный email проецируется в Customers только событием, без передачи credentials.
 
 Обязательная уникальность Customers: один IAM principal на один Store. Один application user может иметь разные Customer profiles в разных Stores, если несколько OAuth clients application привязаны к разным Stores.
 
@@ -915,7 +793,6 @@ Cross-application атаки должны входить в обязательн
 
 ```text
 enqueueEmailOtp(applicationId, normalizedRecipient, purpose, otp/reference)
-enqueuePhoneOtp(applicationId, normalizedRecipient, purpose, verificationReference)
 enqueuePasswordReset(...)
 enqueueEmailVerification(...)
 ```
@@ -941,13 +818,11 @@ User-facing response не ждет фактической отправки и н
 | Password signin | application + normalized email hash + IP |
 | Email OTP request | application + email hash + IP/device |
 | Email OTP verify | application + verification id + IP |
-| Phone OTP request | application + phone hash + IP/device |
-| Phone OTP verify | application + verification id + IP |
 | OAuth authorize | application + client + IP |
 | Token endpoint | application + client + IP |
 | Password reset | application + email hash + IP |
 
-Точные числа определить нагрузочным/security review, но обязателен layered limit: короткое окно, суточный budget и provider cost budget для SMS.
+Точные числа определить нагрузочным/security review, но обязателен layered limit: короткое окно и суточный delivery budget.
 
 После лимита возвращать стандартную/generic ошибку и `Retry-After`, не подтверждая существование account. CAPTCHA/risk challenge оставить расширением после появления telemetry.
 
@@ -988,7 +863,7 @@ Security/operational события без секретов:
 - adapter cross-scope rejection;
 - outbox lag.
 
-Не использовать raw user ID, email, phone, token, code, client secret или provider response как metric label.
+Не использовать raw user ID, email, token, code, client secret или provider response как metric label.
 
 ## 20. Этапы реализации
 
@@ -998,7 +873,7 @@ Security/operational события без секретов:
 
 Задачи:
 
-1. Добавить exact dependencies `@better-auth/oauth-provider@1.6.23` и `libphonenumber-js@1.12.17`.
+1. Добавить exact dependency `@better-auth/oauth-provider@1.6.23`.
 2. Зафиксировать generated schema и endpoint paths установленной версии.
 3. Классифицировать каждый OAuth Provider endpoint как public protocol/hosted-flow или internal management и зафиксировать default-deny public route manifest.
 4. Подтвердить, что session-authenticated client-management endpoint недоступны application users, а server-side admin API вызывается без их публичной экспозиции.
@@ -1006,9 +881,8 @@ Security/operational события без секретов:
 6. Проверить возможность application scoping всех plugin models через текущий adapter.
 7. Подтвердить application-scoped `resource`, `validAudiences: [application.resource]`, наследование единственного resource OAuth clients и JWT access token для authorize/code exchange/refresh.
 8. Проверить custom claims/store binding.
-9. Выбрать безопасную стратегию phone OTP без plaintext storage и зафиксировать synthetic email v1 test vectors для E.164/HKDF/HMAC/Base32.
-10. Зафиксировать public/confidential client behavior, обязательные `grant_types=["authorization_code", "refresh_token"]`, `response_types=["code"]` и secret one-time return.
-11. Подтвердить, что token endpoint отклоняет `client_credentials` для каждого созданного v1 client, даже если plugin рекламирует общую поддержку grant в discovery.
+9. Зафиксировать public/confidential client behavior, обязательные `grant_types=["authorization_code", "refresh_token"]`, `response_types=["code"]` и secret one-time return.
+10. Подтвердить, что token endpoint отклоняет `client_credentials` для каждого созданного v1 client, даже если plugin рекламирует общую поддержку grant в discovery.
 
 Результат:
 
@@ -1018,8 +892,6 @@ Security/operational события без секретов:
 - негативное подтверждение, что application user не может читать, создавать, изменять, удалять client или ротировать его secret;
 - contract-подтверждение, что обязательный resource конкретной application выдает JWT с ожидаемым `aud`, а отсутствующий/resource другой application отклоняется;
 - contract-подтверждение, что public и confidential v1 clients не получают token через `client_credentials`;
-- утвержденный synthetic email v1 test vector с non-production key/applicationId/phone и ожидаемым адресом;
-- закрытый phone OTP security decision.
 
 Критерий выхода: нет неизвестных, требующих самописного OAuth server или небезопасного хранения OTP.
 
@@ -1028,13 +900,11 @@ Security/operational события без секретов:
 Задачи:
 
 1. Создать миграции application auth config, включая единственный `resource`, origins/providers/delivery metadata.
-2. Расширить `application_user` phone/synthetic fields, включая `synthetic_email_key_version`.
-3. Добавить OAuth Provider plugin tables с `application_id`.
-4. Добавить индексы, tenant constraints и cleanup behavior.
-5. Реализовать encryption service для provider credentials.
-6. Реализовать HKDF realm secret derivation/versioning.
-7. Добавить отдельный `IAM_PHONE_IDENTITY_HMAC_KEYS` key ring, active version validation и startup failure при отсутствии configured key.
-8. Добавить repository и Zod schemas для configuration.
+2. Добавить OAuth Provider plugin tables с `application_id`.
+3. Добавить индексы, tenant constraints и cleanup behavior.
+4. Реализовать encryption service для provider credentials.
+5. Реализовать HKDF realm secret derivation/versioning.
+6. Добавить repository и Zod schemas для configuration.
 
 Критерий выхода: конфигурация и secrets изолированы по application, а secret не читается обратно через публичный API.
 
@@ -1096,29 +966,14 @@ Security/operational события без секретов:
 
 Задачи:
 
-1. Подключить `emailOTP` с hashed OTP.
+1. Подключить `emailOTP` со стандартным `storeOTP: "hashed"`.
 2. Создать delivery outbox/transport abstraction.
 3. Добавить request/verify UI.
 4. Реализовать generic responses, resend cooldown и attempt limits.
-5. Запретить synthetic recipient.
 
 Критерий выхода: email passwordless работает без plaintext OTP, enumeration и повторного использования.
 
-### Этап 7. Phone OTP
-
-Задачи:
-
-1. Подключить `phoneNumber` plugin.
-2. Реализовать выбранный secure verify provider/custom verification.
-3. Реализовать строгую канонизацию E.164 до отправки, lookup и HMAC.
-4. Реализовать synthetic email v1 ровно по HKDF/HMAC/Base32 contract через `getTempEmail`.
-5. Реализовать неперсональный `getTempName`, immutable placeholder lifecycle, key versioning/rotation и transactional real-email replacement.
-6. Обработать concurrent signup через unique phone constraint и transactional reread.
-7. Добавить SMS budget/rate limits и delivery telemetry.
-
-Критерий выхода: phone-only signup/signin работает, открытый OTP нигде не сохраняется и не логируется, synthetic email совпадает с test vector, не раскрывает phone и остается стабильным при ротации active key.
-
-### Этап 8. Google/Facebook и account linking
+### Этап 7. Google/Facebook и account linking
 
 Задачи:
 
@@ -1129,9 +984,9 @@ Security/operational события без секретов:
 5. Обработать provider без email и конфликт account.
 6. Добавить link/unlink UI/API и аудит.
 
-Критерий выхода: providers не могут связать account между applications или по неподтвержденному/synthetic email.
+Критерий выхода: providers не могут связать account между applications или по неподтвержденному email.
 
-### Этап 9. Storefront API и Customers integration
+### Этап 8. Storefront API и Customers integration
 
 Задачи:
 
@@ -1143,7 +998,7 @@ Security/operational события без секретов:
 
 Критерий выхода: Storefront принимает только JWT token правильного issuer/resource/client/store, отклоняет opaque token, а Customer создается/связывается идемпотентно.
 
-### Этап 10. Hardening и rollout
+### Этап 9. Hardening и rollout
 
 Задачи:
 
@@ -1227,25 +1082,15 @@ Hosted UI следует разместить в выбранном для IAM w
 - Store организации A нельзя привязать к OAuth client organization B.
 - application A и B имеют разные canonical resources, и resource A отклоняется issuer/client application B;
 
-### 22.3. Password/email OTP/phone OTP
+### 22.3. Password/email OTP
 
 - разрешенные signup/signin работают;
 - выключенный method недоступен и в UI, и прямым HTTP вызовом;
 - registration disabled/invite-only enforced server-side;
-- generic response одинаков для существующего/несуществующего email/phone;
+- generic response одинаков для существующего/несуществующего email;
 - OTP истекает, ротируется, имеет limit и одноразовый;
-- email OTP хранится hashed;
-- phone OTP не хранится plaintext;
-- synthetic email не возвращается в claim и не получает email;
-- synthetic email соответствует утвержденному E.164/HKDF/HMAC/Base32 test vector;
-- одинаковые application, canonical phone и key version дают побайтно одинаковый placeholder, а другая application — другой;
-- принимается только canonical E.164; whitespace, Unicode digits, extensions и другие неканонические варианты отклоняются до HMAC;
-- rotation active HMAC key не меняет synthetic email существующего пользователя, а новый user получает новую `syntheticEmailKeyVersion`;
-- одновременный phone signup на узлах с разной cached key version создает только одного user благодаря unique phone и transactional reread;
-- `getTempName` и observability не содержат phone, synthetic email или digest;
-- подтвержденный real email атомарно заменяет placeholder и очищает synthetic flags/key version;
+- email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`;
 - блокировка user отзывает sessions и запрещает новый signin;
-- password reset не работает через synthetic email.
 
 ### 22.4. Social/linking
 
@@ -1253,7 +1098,7 @@ Hosted UI следует разместить в выбранном для IAM w
 - disabled/misconfigured provider закрыт безопасно;
 - provider secrets/tokens отсутствуют в GraphQL/logs/errors;
 - verified same-email linking следует policy;
-- unverified/different/synthetic email не auto-links;
+- unverified/different email не auto-links;
 - нельзя unlink последний login method;
 - provider account уже другого user вызывает конфликт, а не merge.
 
@@ -1295,9 +1140,8 @@ Hosted UI следует разместить в выбранном для IAM w
 3. включить password flow;
 4. включить email OTP после delivery readiness;
 5. включить Google/Facebook по одному provider;
-6. включить phone OTP только после security gate;
-7. подключить Storefront validator и Customer projection;
-8. включать production-configured applications индивидуально.
+6. подключить Storefront validator и Customer projection;
+7. включать production-configured applications индивидуально.
 
 Откат method означает disable method/client/provider и отзыв активных сессий/tokens при необходимости, а не удаление пользователей или credentials без отдельной операции.
 
@@ -1323,15 +1167,10 @@ Hosted UI следует разместить в выбранном для IAM w
 - [ ] Provider credentials зашифрованы с versioned key/AAD.
 - [ ] Upstream OAuth tokens зашифрованы.
 - [ ] OAuth client secret нельзя прочитать повторно.
-- [ ] Email OTP хранится hashed.
-- [ ] Phone OTP не хранится plaintext.
-- [ ] Synthetic email не раскрывается и не участвует в linking.
-- [ ] Synthetic email использует отдельный versioned HMAC key ring и точный v1 HKDF/HMAC/Base32 contract.
-- [ ] Existing placeholders не пересчитываются при rotation; active key version едина для создания на всех узлах.
-- [ ] `getTempName`, logs, traces и metrics не содержат phone/synthetic digest.
+- [ ] Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`.
 - [ ] State, nonce, CSRF, cookie policies проверены.
 - [ ] Generic responses защищают от enumeration.
-- [ ] Rate limits и SMS cost limits включены.
+- [ ] Rate limits и email delivery limits включены.
 - [ ] Логи/трейсы/метрики не содержат PII/secrets/tokens/codes.
 - [ ] Signing/client/provider secret rotation описана и проверена.
 - [ ] Customer projection идемпотентна.
@@ -1344,9 +1183,9 @@ Hosted UI следует разместить в выбранном для IAM w
 1. Каждая application имеет отдельный issuer, users, sessions, providers, OAuth clients, tokens, consents и keys.
 2. Organization admin управляет настройками через Admin API с Casbin и audit trail.
 3. Каждая application имеет ровно один заданный ее администратором Storefront resource; public и confidential clients наследуют его, проходят стандартный OIDC Authorization Code + PKCE flow и получают JWT access token с точным audience; `client_credentials` для них запрещен.
-4. Password, email OTP, phone OTP, Google и Facebook можно независимо включать на application.
-5. Phone OTP не хранит открытый код; email OTP хранится hashed; synthetic email реализован по versioned deterministic contract и стабилен при key rotation.
-6. Account linking не пересекает applications и не доверяет synthetic/unverified email.
+4. Password, email OTP, Google и Facebook можно независимо включать на application.
+5. Email OTP хранится стандартным Better Auth способом `storeOTP: "hashed"`.
+6. Account linking не пересекает applications и не доверяет unverified email.
 7. Storefront проверяет token и trusted store binding.
 8. Customers получает идемпотентную проекцию identity без credentials.
 9. Block/revoke/disable действуют на live validation и refresh lifecycle.
@@ -1360,8 +1199,6 @@ Hosted UI следует разместить в выбранном для IAM w
 | --- | --- |
 | Deprecated встроенный OIDC provider | Использовать отдельный актуальный `@better-auth/oauth-provider` |
 | Plugin model leakage между applications | Явно расширить adapter и schema application scope, негативные contract-сценарии |
-| Plaintext phone OTP | External Verify/custom secure verification как обязательный release gate |
-| Better Auth требует email для phone-only user | Версионированный E.164/HKDF/HMAC/Base32 synthetic email contract, отдельный key ring, immutable stored placeholder и non-PII `getTempName` |
 | Небезопасное auto-linking | Только реальный verified same-email или explicit authenticated linking |
 | Secret leakage в admin/logs | Encryption, one-time reveal, redaction и audit без value |
 | Open redirect/custom scheme abuse | Exact allowlist и отдельная mobile URI policy |
@@ -1376,13 +1213,12 @@ Hosted UI следует разместить в выбранном для IAM w
 
 Эти решения не меняют основную архитектуру, но должны быть зафиксированы до реализации соответствующего этапа:
 
-1. Какой production SMS Verify provider используется и где хранится его credential?
-2. Какой email transport/template service является platform default?
-3. Нужны ли custom mobile URI schemes в первой версии или достаточно universal/app links?
-4. Какие TTL ranges организация может менять, а какие остаются platform policy?
-5. Нужен ли consent screen для всех third-party clients уже в первой версии?
-6. Где размещается hosted UI bundle и как он версионируется вместе с IAM?
-7. Достаточен ли event-driven Customer ensure или первый Customer-bound request должен делать синхронный ensure?
+1. Какой email transport/template service является platform default?
+2. Нужны ли custom mobile URI schemes в первой версии или достаточно universal/app links?
+3. Какие TTL ranges организация может менять, а какие остаются platform policy?
+4. Нужен ли consent screen для всех third-party clients уже в первой версии?
+5. Где размещается hosted UI bundle и как он версионируется вместе с IAM?
+6. Достаточен ли event-driven Customer ensure или первый Customer-bound request должен делать синхронный ensure?
 
 Exact URI resource задается администратором отдельно для каждой application и становится обязательным до создания ее первого OAuth client. Для application разрешено ровно одно нормализованное значение; OAuth clients не управляют им самостоятельно. До получения остальных ответов применяются безопасные значения этого плана: platform delivery profiles, HTTPS/universal links, короткие TTL, consent для не-first-party clients и асинхронная Customer projection с idempotent fallback.
 
@@ -1391,7 +1227,6 @@ Exact URI resource задается администратором отдель�
 - [Better Auth OAuth Provider](https://better-auth.com/docs/plugins/oauth-provider)
 - [RFC 8707: Resource Indicators for OAuth 2.0](https://www.rfc-editor.org/rfc/rfc8707.html)
 - [Better Auth Email OTP](https://better-auth.com/docs/plugins/email-otp)
-- [Better Auth Phone Number](https://better-auth.com/docs/plugins/phone-number)
 - [Better Auth Google](https://better-auth.com/docs/authentication/google)
 - [Better Auth OAuth concepts](https://better-auth.com/docs/concepts/oauth)
 - [Better Auth Users & Accounts](https://better-auth.com/docs/concepts/users-accounts)
