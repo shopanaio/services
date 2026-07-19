@@ -54,7 +54,7 @@ API предоставляется через Admin GraphQL. Внутри IAM е
 Admin client
   -> Admin GraphQL
   -> platform Better Auth session validation
-  -> trusted admin actor and organization context
+  -> trusted admin actor + client-provided organizationId
   -> Casbin permission check
   -> application/organization ownership check
   -> ApplicationOAuthClientManagementService
@@ -63,6 +63,8 @@ Admin client
 ```
 
 Platform session не передается в `applicationAuth.api.adminCreateOAuthClient`, потому что application Better Auth instance ищет сессию в `application_session` и связывает ее с `application_user`.
+
+`organizationId` приходит в Admin GraphQL input/arguments согласно существующему IAM contract; этот контракт не меняется в рамках плана. `organizationId` является client-provided tenant selector, а не trusted context. Trusted actor берется только из валидированной platform session; доступ проверяется через Casbin и ownership predicate по `applicationId + organizationId`.
 
 ### 3.2. Почему не используются альтернативы
 
@@ -84,6 +86,7 @@ Dynamic Client Registration остается выключен. Документ�
 ```graphql
 type ApplicationOAuthClient {
   id: ID!
+  organizationId: ID!
   applicationId: ID!
   clientId: String!
   name: String!
@@ -119,8 +122,8 @@ enum ApplicationOAuthClientEnvironment {
 
 Нужны queries:
 
-- получить client по `applicationId + clientId`;
-- получить список clients application с pagination и фильтром disabled/environment/type.
+- получить client по `organizationId + applicationId + clientId`;
+- получить список clients по `organizationId + applicationId` с pagination и фильтром disabled/environment/type.
 
 Ответы никогда не содержат `clientSecret`, secret hash, registration access token, authorization code или OAuth tokens.
 
@@ -128,6 +131,7 @@ enum ApplicationOAuthClientEnvironment {
 
 ```graphql
 input ApplicationOAuthClientCreateInput {
+  organizationId: ID!
   applicationId: ID!
   name: String!
   clientType: ApplicationOAuthClientType!
@@ -168,6 +172,7 @@ Update разрешает менять только:
 
 Update запрещает менять:
 
+- `organizationId`;
 - `applicationId`;
 - `clientId`;
 - public/confidential type;
@@ -185,6 +190,8 @@ Update запрещает менять:
 - при необходимости отдельное hard-delete только для отсутствующих tokens/consents и до production rollout.
 
 Secret rotation возвращает новый plaintext secret один раз и сразу инвалидирует старый, как определено в [Better Auth Rotate Client Secret](https://www.better-auth.com/docs/plugins/oauth-provider#rotate-client-secret).
+
+Все OAuth client mutations принимают `organizationId` и `applicationId`. Оба значения считаются client-provided selectors; management boundary обязана повторно загрузить application по обоим значениям и не раскрывать существование client другой organization.
 
 ## 5. Неизменяемая protocol policy v1
 
@@ -249,16 +256,19 @@ interface ApplicationOAuthClientManagementService {
 Каждая write-операция выполняет:
 
 1. Проверку platform actor из trusted request context.
-2. Casbin authorization для конкретного действия.
-3. Загрузку application с predicate по organization текущего actor.
-4. Проверку active/non-deleted organization и application.
-5. Загрузку active auth configuration и проверку наличия единственного `application.resource`.
-6. Проверку Store ownership через внутренний Project service action.
-7. Нормализацию и валидацию URI.
-8. Принудительное применение protocol policy v1 и наследование exact `application.resource`.
-9. Application-scoped транзакцию.
-10. Запись безопасного audit event без secrets.
-11. Revision increment и invalidation `ApplicationAuthFactory` cache.
+2. Прием и валидацию `organizationId` из Admin GraphQL input как tenant selector.
+3. Casbin authorization в domain `org` для resource `org.application-oauth-clients` и action, определенного матрицей раздела 10.
+4. Загрузку application с predicate по `applicationId + organizationId`.
+5. Проверку active/non-deleted organization и application.
+6. Загрузку active auth configuration и проверку наличия единственного `application.resource`.
+7. Проверку Store ownership через внутренний Project service action.
+8. Нормализацию и валидацию URI.
+9. Принудительное применение protocol policy v1 и наследование exact `application.resource`.
+10. Application-scoped транзакцию.
+11. Запись безопасного audit event без secrets.
+12. Revision increment и invalidation `ApplicationAuthFactory` cache.
+
+Queries выполняют ту же последовательность platform actor -> client-provided `organizationId` -> Casbin `read` -> ownership predicate `applicationId + organizationId` до чтения OAuth client. List repository всегда фильтрует clients по trusted application scope, полученному после ownership check.
 
 ## 7. Repository и схема хранения
 
@@ -331,14 +341,36 @@ Post-logout URI валидируются отдельно по тем же ба�
 
 ## 10. Permissions и аудит
 
-Casbin permissions:
+Permissions следуют текущей модели `@shopana/rbac`: permission — это пара `resource + action`, domain передается отдельно. Произвольные составные permissions и custom actions не используются.
 
-- `iam.application.oauth-client.read`;
-- `iam.application.oauth-client.write`;
-- `iam.application.oauth-client.rotate-secret`;
-- опционально отдельное `iam.application.oauth-client.archive`.
+Единый RBAC resource:
 
-Ротация secret отделяется от обычного write permission.
+```text
+domain = "org"
+resource = "org.application-oauth-clients"
+actions = "read" | "write" | "admin"
+```
+
+Матрица операций:
+
+| Operations | Domain | Resource | Action |
+| --- | --- | --- | --- |
+| list/get OAuth client | `org` | `org.application-oauth-clients` | `read` |
+| create/update/enable/disable OAuth client | `org` | `org.application-oauth-clients` | `write` |
+| rotate client secret | `org` | `org.application-oauth-clients` | `admin` |
+| change `skipConsent` | `org` | `org.application-oauth-clients` | `admin` |
+| archive/hard-delete OAuth client | `org` | `org.application-oauth-clients` | `admin` |
+
+Если update одновременно изменяет обычные поля и `skipConsent`, вся operation требует action `admin`; понижать ее до `write` нельзя. Действующая Casbin-иерархия сохраняется: `admin -> write -> read`.
+
+Для подключения resource нужно:
+
+1. Добавить `org.application-oauth-clients` в `packages/rbac/src/definitions.ts` с actions `read | write | admin`.
+2. Выдать action `admin` для этого resource стандартной organization-роли `admin`; organization-роль `member` не получает permission по умолчанию.
+3. Идемпотентно добавить policy в существующие standard organization roles и инвалидировать Casbin enforcer cache для затронутых organizations.
+4. Проверить owner, standard organization `admin`, custom role с `read`/`write`/`admin`, organization `member`, unauthenticated actor и actor другой organization.
+
+Site admin и organization owner сохраняют текущий project-wide bypass только после успешной валидации `domain/resource/action` через `@shopana/rbac`. Локальный bypass в resolver/service не добавляется.
 
 Audit event содержит:
 
@@ -393,11 +425,12 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 ### Этап 0. Зафиксировать контракт
 
 1. Утвердить GraphQL schema и error model.
-2. Утвердить application-level `resource` contract: IAM-generated immutable `urn:shopana:application:{applicationId}`, уникальность и запрет application/client-level override.
-3. Утвердить secret prefix/length/hash compatibility vector.
-4. Зафиксировать поля `oauthClient` версии `1.6.23` и protocol policy v1.
-5. Зафиксировать internal Project action для Store ownership.
-6. Решить archive versus hard-delete semantics.
+2. Утвердить RBAC contract `org.application-oauth-clients + read|write|admin`, standard-role policies и передачу `organizationId` через Admin GraphQL input/arguments.
+3. Утвердить application-level `resource` contract: IAM-generated immutable `urn:shopana:application:{applicationId}`, уникальность и запрет application/client-level override.
+4. Утвердить secret prefix/length/hash compatibility vector.
+5. Зафиксировать поля `oauthClient` версии `1.6.23` и protocol policy v1.
+6. Зафиксировать internal Project action для Store ownership.
+7. Решить archive versus hard-delete semantics.
 
 Критерий выхода: нет client-controlled полей, способных включить новый grant, audience или signed claim.
 
@@ -423,7 +456,7 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 ### Этап 3. Admin GraphQL
 
 1. Добавить queries/mutations/payloads/user errors.
-2. Подключить platform Better Auth actor context и Casbin permissions.
+2. Подключить trusted platform actor, `organizationId` из GraphQL input/arguments и Casbin matrix `org.application-oauth-clients + read|write|admin`.
 3. Обеспечить one-time secret response без попадания в логирование.
 4. Возвращать grants/audience/policy только read-only.
 
@@ -445,6 +478,12 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 
 - platform admin session авторизует create через Admin GraphQL;
 - отсутствие/просроченная platform session отклоняется;
+- list/get требуют `org.application-oauth-clients + read`;
+- create/update/enable/disable требуют `org.application-oauth-clients + write`;
+- rotate secret, change `skipConsent`, archive/hard-delete требуют `org.application-oauth-clients + admin`;
+- custom role с `write` не может rotate secret, изменить `skipConsent` или archive client;
+- organization `member` без явной custom policy не читает и не изменяет OAuth clients;
+- unknown resource/action отклоняется до owner/site-admin bypass;
 - admin organization A не создает client для application B;
 - Store другой organization не привязывается;
 - public client создается без secret;
@@ -480,6 +519,7 @@ services/iam/src/api/http/application-auth/*
 services/iam/src/casbin/*
 services/iam/src/events/application-auth/*
 services/iam/migrations/*
+packages/rbac/src/definitions.ts
 services/e2e/.../iam/application-oauth-client/*
 ```
 
@@ -488,6 +528,8 @@ services/e2e/.../iam/application-oauth-client/*
 ## 16. Definition of Done
 
 - Admin GraphQL использует platform Better Auth session и Casbin.
+- Все operations используют domain `org`, resource `org.application-oauth-clients` и только actions `read | write | admin` по зафиксированной матрице.
+- `organizationId` приходит из Admin GraphQL input/arguments, не считается trusted и проверяется через Casbin и ownership predicate.
 - OAuth client создается без `application_user` session и impersonation.
 - Все данные client application-scoped.
 - Store принадлежит organization application.
