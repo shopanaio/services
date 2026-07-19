@@ -43,7 +43,7 @@ interface LocalEntry {
 }
 
 /**
- * Enforces the phase-4 baseline policies. A shared port is used when present;
+ * Enforces the application-auth baseline policies. A shared port is used when present;
  * local buckets are only the documented tighter emergency mode.
  */
 export class ApplicationAuthRateLimiter {
@@ -84,6 +84,79 @@ export class ApplicationAuthRateLimiter {
         bucket(input, "password-reset:identity-hour", `${identity}:${ip}`, 3, 60 * 60),
         bucket(input, "password-reset:ip-hour", ip, 20, 60 * 60),
         bucket(input, "password-reset:identity-day", `${identity}:${ip}`, 10, 24 * 60 * 60),
+      ],
+      "required"
+    );
+  }
+
+  async assertEmailOtpRequest(input: {
+    applicationId: string;
+    normalizedEmail: string;
+    ip: string;
+    secret: string;
+  }): Promise<void> {
+    const identity = digest(input.secret, input.normalizedEmail);
+    const ip = digest(input.secret, input.ip);
+    const identityAndRequester = `${identity}:${ip}`;
+    await this.consume(
+      [
+        bucket(
+          input,
+          "email-otp-request:cooldown",
+          identityAndRequester,
+          1,
+          60
+        ),
+        bucket(
+          input,
+          "email-otp-request:identity-window",
+          identity,
+          3,
+          15 * 60
+        ),
+        bucket(
+          input,
+          "email-otp-request:identity-day",
+          identity,
+          20,
+          24 * 60 * 60
+        ),
+        bucket(
+          input,
+          "email-otp-request:ip-day",
+          ip,
+          100,
+          24 * 60 * 60
+        ),
+      ],
+      "required"
+    );
+  }
+
+  async assertEmailOtpVerify(input: {
+    applicationId: string;
+    verificationId: string;
+    ip: string;
+    secret: string;
+  }): Promise<void> {
+    const verification = digest(input.secret, input.verificationId);
+    const ip = digest(input.secret, input.ip);
+    await this.consume(
+      [
+        bucket(
+          input,
+          "email-otp-verify:challenge",
+          verification,
+          3,
+          5 * 60
+        ),
+        bucket(
+          input,
+          "email-otp-verify:ip-window",
+          ip,
+          10,
+          15 * 60
+        ),
       ],
       "required"
     );

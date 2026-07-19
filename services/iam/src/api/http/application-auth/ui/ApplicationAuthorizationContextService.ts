@@ -32,6 +32,8 @@ export type ApplicationAuthorizationContextAction =
   | "password-signup"
   | "password-reset-request"
   | "verification-resend"
+  | "email-otp-request"
+  | "email-otp-verify"
   | "consent";
 
 export interface ActiveApplicationAuthorizationContext {

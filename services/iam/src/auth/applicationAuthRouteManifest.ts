@@ -60,6 +60,13 @@ export const APPLICATION_AUTH_FORBIDDEN_ROUTES: readonly ApplicationAuthRouteMan
     exact("GET", "/oauth2/get-consents"),
     exact("POST", "/oauth2/update-consent"),
     exact("POST", "/oauth2/delete-consent"),
+    exact("POST", "/email-otp/check-verification-otp"),
+    exact("POST", "/email-otp/verify-email"),
+    exact("POST", "/email-otp/request-password-reset"),
+    exact("POST", "/email-otp/reset-password"),
+    exact("POST", "/forget-password/email-otp"),
+    exact("POST", "/email-otp/request-email-change"),
+    exact("POST", "/email-otp/change-email"),
     exact("GET", "/token"),
   ];
 
@@ -107,6 +114,10 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
   }
   if (input.policy.emailOtpSignInAllowed) {
     allowedRoutes.push(
+      exact("GET", "/email-otp"),
+      exact("POST", "/email-otp/request"),
+      exact("GET", "/email-otp/verify"),
+      exact("POST", "/email-otp/verify"),
       exact("POST", "/email-otp/send-verification-otp"),
       exact("POST", "/sign-in/email-otp")
     );

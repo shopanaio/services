@@ -1,7 +1,8 @@
-# Application auth OAuth/OIDC — Phase 1 operations
+# Application auth OAuth/OIDC — operations
 
-This runbook covers only the schema, configuration, and secret lifecycle added
-in Phase 1 plus the public HTTP listener configuration added in Phase 3.
+This runbook covers the schema, configuration and secret lifecycle plus the
+public HTTP, hosted UI, password and email OTP runtime delivered through Phase
+5.
 
 ## Public IAM HTTP listener
 
@@ -32,6 +33,53 @@ Never publish `/graphql` or a broad `/.well-known/*` prefix. The IAM listener
 builds issuer, callbacks and Fetch bridge URLs from `IAM_PUBLIC_BASE_URL`; it
 does not trust `Host`, `X-Forwarded-Host` or `X-Forwarded-Proto` for canonical
 URL construction.
+
+## Email OTP runtime
+
+Email OTP is present in a realm only when `email_otp_sign_in_enabled=true`.
+`email_otp_sign_up_enabled=true` additionally requires signin to be enabled,
+and the factory fails closed on the inverse combination. New-user creation also
+requires `registration_mode=open`; disabling registration does not prevent an
+existing application user from signing in with a valid code.
+
+The public manifest exposes only the following OTP endpoints:
+
+```text
+GET  /auth/applications/:applicationId/email-otp
+POST /auth/applications/:applicationId/email-otp/request
+GET  /auth/applications/:applicationId/email-otp/verify
+POST /auth/applications/:applicationId/email-otp/verify
+POST /auth/applications/:applicationId/email-otp/send-verification-otp
+POST /auth/applications/:applicationId/sign-in/email-otp
+```
+
+The send endpoint accepts only `type="sign-in"`. OTP password reset, email
+verification and email-change endpoints remain outside the default-deny
+manifest. Hosted forms are same-origin, CSRF-bound to the one-time OAuth
+authorization context and never put the email or OTP in a URL or browser
+storage.
+
+Better Auth is configured with six digits, a five-minute expiry, three
+attempts, rotation on resend and `storeOTP="hashed"`. IAM has no OTP worker or
+outbox. The callback enqueues only purpose `email_otp_sign_in` through
+`ApplicationAuthEmailDeliveryPort`, using the realm's server-selected delivery
+profile and template. A missing port/profile prevents the realm instance from
+being built; timeout, rejection and malformed handoff responses fail closed.
+
+Production composition must provide an atomic shared
+`ApplicationAuthRateLimitPort`. OTP and password-reset operations fail closed
+when that backend is unavailable. The OTP baseline is:
+
+- one send per normalized identity and IP every 60 seconds;
+- three sends per identity per 15 minutes;
+- twenty sends per identity and one hundred per IP per day;
+- three verification attempts per sign-in challenge and ten attempts per IP
+  per 15 minutes.
+
+Rate-limit keys are realm-specific HMAC values. Email addresses, OTPs and raw
+verification identifiers must not be used as backend keys, metrics labels or
+log fields. Send responses are generic for existing and absent users and use a
+minimum response floor to reduce account-enumeration timing differences.
 
 ## Root-key contract
 

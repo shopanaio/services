@@ -26,9 +26,13 @@ import {
   renderMessage,
 } from "./render.js";
 
+const EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS = 250;
+
 const UI_FORM_PATHS = new Set([
   "/login/password",
   "/signup/password",
+  "/email-otp/request",
+  "/email-otp/verify",
   "/password/forgot",
   "/password/reset",
   "/verification/resend",
@@ -39,6 +43,8 @@ const UI_FORM_PATHS = new Set([
 const UI_GET_PATHS = new Set([
   "/login",
   "/signup",
+  "/email-otp",
+  "/email-otp/verify",
   "/password/forgot",
   "/password/reset",
   "/verification-pending",
@@ -118,6 +124,18 @@ export class ApplicationAuthHostedUiController {
         break;
       case "POST /signup/password":
         await this.postPasswordSignup(input);
+        break;
+      case "GET /email-otp":
+        await this.getEmailOtpRequest(input);
+        break;
+      case "POST /email-otp/request":
+        await this.postEmailOtpRequest(input);
+        break;
+      case "GET /email-otp/verify":
+        await this.getEmailOtpVerify(input);
+        break;
+      case "POST /email-otp/verify":
+        await this.postEmailOtpVerify(input);
         break;
       case "GET /password/forgot":
         await this.getForgotPassword(input);
@@ -247,6 +265,9 @@ export class ApplicationAuthHostedUiController {
         : "",
       runtime.policy.passwordResetAllowed
         ? `<a href="./password/forgot">${escapeHtml(t("forgotPassword"))}</a>`
+        : "",
+      runtime.policy.emailOtpSignInAllowed
+        ? `<a href="./email-otp">${escapeHtml(t("emailOtpTitle"))}</a>`
         : "",
     ]
       .filter(Boolean)
@@ -401,6 +422,190 @@ export class ApplicationAuthHostedUiController {
     }
     input.reply.header("set-cookie", contextCookie);
     await this.renderSignup(input, rotated, true);
+  }
+
+  private async getEmailOtpRequest(input: HandlerInput): Promise<void> {
+    if (!input.runtime.policy.emailOtpSignInAllowed) throw uiNotFound();
+    const active = await this.requireContext(input, "login");
+    const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
+    const csrf = await this.authorizationContexts.createCsrfToken(
+      input.runtime,
+      active.opaqueId,
+      "email-otp-request"
+    );
+    const body = `<h1>${escapeHtml(t("emailOtpTitle"))}</h1><p class="muted">${escapeHtml(
+      t("emailOtpRequestHint")
+    )}</p><form method="post" action="./email-otp/request">
+      ${hiddenInput("csrf", csrf)}
+      <div class="field"><label for="email">${escapeHtml(t("email"))}</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="320"></div>
+      <button type="submit">${escapeHtml(t("sendEmailOtp"))}</button>
+    </form><nav class="links"><a href="./login">${escapeHtml(
+      t("backToSignIn")
+    )}</a></nav>`;
+    await sendHtml(input.reply, input.runtime, t("emailOtpTitle"), body);
+  }
+
+  private async postEmailOtpRequest(input: HandlerInput): Promise<void> {
+    if (!input.runtime.policy.emailOtpSignInAllowed) throw uiNotFound();
+    const startedAt = Date.now();
+    const form = parseForm(input.raw);
+    const email = parseEmail(singleFormValue(form, "email", 3, 320));
+    const active = await this.requireContext(input, "login");
+    await this.authorizationContexts.assertCsrfToken(
+      input.runtime,
+      active,
+      "email-otp-request",
+      singleFormValue(form, "csrf", 16, 1024)
+    );
+    await this.kernel.applicationAuthRateLimiter.assertEmailOtpRequest({
+      applicationId: input.runtime.applicationId,
+      normalizedEmail: email,
+      ip: input.request.ip,
+      secret: this.rateLimitSecret(input.runtime),
+    });
+
+    let response: Response;
+    try {
+      response = await this.callBetterAuth(
+        input,
+        "/email-otp/send-verification-otp",
+        { email, type: "sign-in" }
+      );
+    } catch {
+      await waitForEmailOtpGenericResponseFloor(startedAt);
+      throw emailOtpDeliveryUnavailable();
+    }
+    await waitForEmailOtpGenericResponseFloor(startedAt);
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new ApplicationAuthRateLimitError(
+          429,
+          readRetryAfterSeconds(response.headers.get("retry-after")),
+          "slow_down"
+        );
+      }
+      throw emailOtpDeliveryUnavailable();
+    }
+
+    const rotated = await this.authorizationContexts.rotate(
+      input.runtime,
+      active,
+      { currentStep: "login" }
+    );
+    await redirectToUi(input, "/email-otp/verify", [
+      await this.authorizationContexts.serializeCookie(
+        input.runtime,
+        rotated.opaqueId
+      ),
+    ]);
+  }
+
+  private async getEmailOtpVerify(input: HandlerInput): Promise<void> {
+    if (!input.runtime.policy.emailOtpSignInAllowed) throw uiNotFound();
+    const active = await this.requireContext(input, "login");
+    await this.renderEmailOtpVerify(input, active);
+  }
+
+  private async renderEmailOtpVerify(
+    input: HandlerInput,
+    active: ActiveApplicationAuthorizationContext,
+    error = false
+  ): Promise<void> {
+    const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
+    const csrf = await this.authorizationContexts.createCsrfToken(
+      input.runtime,
+      active.opaqueId,
+      "email-otp-verify"
+    );
+    const body = `<h1>${escapeHtml(t("emailOtpVerifyTitle"))}</h1>${renderMessage(
+      input.runtime,
+      "success",
+      "emailOtpAccepted"
+    )}<p class="muted">${escapeHtml(t("emailOtpVerifyHint"))}</p>${
+      error ? renderMessage(input.runtime, "error", "genericAuthError") : ""
+    }<form method="post" action="./verify">
+      ${hiddenInput("csrf", csrf)}
+      <div class="field"><label for="email">${escapeHtml(t("email"))}</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="320"></div>
+      <div class="field"><label for="otp">${escapeHtml(t("emailOtpCode"))}</label><input id="otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" required minlength="6" maxlength="6" pattern="[0-9]{6}"></div>
+      <button type="submit">${escapeHtml(t("verifyEmailOtp"))}</button>
+    </form><nav class="links"><a href="../email-otp">${escapeHtml(
+      t("resendEmailOtp")
+    )}</a><a href="../login">${escapeHtml(t("backToSignIn"))}</a></nav>`;
+    input.reply.header(
+      "set-cookie",
+      await this.authorizationContexts.serializeCookie(
+        input.runtime,
+        active.opaqueId
+      )
+    );
+    await sendHtml(
+      input.reply,
+      input.runtime,
+      t("emailOtpVerifyTitle"),
+      body
+    );
+  }
+
+  private async postEmailOtpVerify(input: HandlerInput): Promise<void> {
+    if (!input.runtime.policy.emailOtpSignInAllowed) throw uiNotFound();
+    const form = parseForm(input.raw);
+    const email = parseEmail(singleFormValue(form, "email", 3, 320));
+    const otp = parseEmailOtp(singleFormValue(form, "otp", 6, 6));
+    const active = await this.requireContext(input, "login");
+    await this.authorizationContexts.assertCsrfToken(
+      input.runtime,
+      active,
+      "email-otp-verify",
+      singleFormValue(form, "csrf", 16, 1024)
+    );
+    await this.kernel.applicationAuthRateLimiter.assertEmailOtpVerify({
+      applicationId: input.runtime.applicationId,
+      verificationId: emailOtpVerificationId(email),
+      ip: input.request.ip,
+      secret: this.rateLimitSecret(input.runtime),
+    });
+    const rotated = await this.authorizationContexts.rotate(
+      input.runtime,
+      active,
+      { currentStep: "login" }
+    );
+    let response: Response;
+    try {
+      response = await this.callBetterAuth(input, "/sign-in/email-otp", {
+        email,
+        otp,
+        oauth_query:
+          await this.authorizationContexts.buildSignedOAuthQuery(
+            input.runtime,
+            rotated
+          ),
+      });
+    } catch {
+      input.reply.header(
+        "set-cookie",
+        await this.authorizationContexts.serializeCookie(
+          input.runtime,
+          rotated.opaqueId
+        )
+      );
+      throw new ApplicationAuthRequestError(
+        "Email OTP sign-in could not be completed",
+        503,
+        "temporarily_unavailable"
+      );
+    }
+    if (response.ok && response.headers.has("location")) {
+      await this.authorizationContexts.consume(input.runtime, rotated);
+      await sendApplicationAuthFetchResponse(
+        appendSetCookie(
+          response,
+          this.authorizationContexts.clearCookie(input.runtime)
+        ),
+        input.reply
+      );
+      return;
+    }
+    await this.renderEmailOtpVerify(input, rotated, true);
   }
 
   private async getForgotPassword(input: HandlerInput): Promise<void> {
@@ -1130,6 +1335,40 @@ function parseEmail(value: string): string {
   const result = z.string().email().max(320).safeParse(value);
   if (!result.success) throw new ApplicationAuthRequestError("Email is invalid");
   return normalizeApplicationAuthEmailRecipient(result.data);
+}
+
+function parseEmailOtp(value: string): string {
+  if (!/^\d{6}$/u.test(value)) {
+    throw new ApplicationAuthRequestError("Email OTP is invalid");
+  }
+  return value;
+}
+
+function emailOtpVerificationId(normalizedEmail: string): string {
+  return `sign-in-otp-${normalizedEmail}`;
+}
+
+async function waitForEmailOtpGenericResponseFloor(
+  startedAt: number
+): Promise<void> {
+  const remaining =
+    EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
+  if (remaining <= 0) return;
+  await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+}
+
+function emailOtpDeliveryUnavailable(): ApplicationAuthRequestError {
+  return new ApplicationAuthRequestError(
+    "Authentication message could not be accepted",
+    503,
+    "temporarily_unavailable"
+  );
+}
+
+function readRetryAfterSeconds(value: string | null): number {
+  if (!value || !/^\d{1,6}$/u.test(value)) return 60;
+  const seconds = Number(value);
+  return Number.isSafeInteger(seconds) && seconds > 0 ? seconds : 60;
 }
 
 function assertSameOriginForm(request: FastifyRequest, publicBaseUrl: string): void {

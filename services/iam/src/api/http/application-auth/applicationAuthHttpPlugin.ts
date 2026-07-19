@@ -47,6 +47,7 @@ const ALLOWED_CORS_REQUEST_HEADERS = new Set([
   "content-type",
   "x-request-id",
 ]);
+const EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS = 250;
 
 class ApplicationAuthBoundaryError extends Error {
   constructor(
@@ -262,10 +263,24 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         raw,
         publicBaseUrl: options.publicBaseUrl,
       });
-      let response = await runtime.auth.handler(fetchRequest);
+      const emailOtpStartedAt =
+        normalizedPath === "/email-otp/send-verification-otp"
+          ? Date.now()
+          : undefined;
+      let response: Response;
+      try {
+        response = await runtime.auth.handler(fetchRequest);
+      } catch (error) {
+        if (emailOtpStartedAt !== undefined) {
+          await waitForEmailOtpGenericResponseFloor(emailOtpStartedAt);
+          throw emailOtpDeliveryUnavailable();
+        }
+        throw error;
+      }
       response = await normalizeSensitiveApplicationAuthResponse(
         normalizedPath,
-        response
+        response,
+        emailOtpStartedAt
       );
       if (
         normalizedPath === "/.well-known/openid-configuration" ||
@@ -347,7 +362,7 @@ function acceptsHostedUiHtml(request: FastifyRequest): boolean {
   const accept = request.headers.accept;
   if (typeof accept !== "string" || !accept.includes("text/html")) return false;
   const rawPath = request.raw.url?.split("?", 1)[0] ?? "";
-  return /\/auth\/applications\/[^/]+\/(?:login|signup|consent|logout|error|password\/|verification-|verified|account-created)/u.test(
+  return /\/auth\/applications\/[^/]+\/(?:login|signup|email-otp|consent|logout|error|password\/|verification-|verified|account-created)/u.test(
     rawPath
   );
 }
@@ -476,7 +491,17 @@ function assertEffectiveRequestPolicy(
   }
   if (normalizedPath === "/email-otp/send-verification-otp") {
     if (!raw.body) throw new ApplicationAuthRequestError("JSON body is required");
-    if (parseJsonBody(raw.body).type !== "sign-in") throw notFound();
+    const body = parseJsonBody(raw.body);
+    if (body.type !== "sign-in") throw notFound();
+    parseApplicationAuthEmail(body.email);
+  }
+  if (normalizedPath === "/sign-in/email-otp") {
+    if (!raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    const body = parseJsonBody(raw.body);
+    parseApplicationAuthEmail(body.email);
+    if (typeof body.otp !== "string" || !/^\d{6}$/u.test(body.otp)) {
+      throw new ApplicationAuthRequestError("Email OTP is invalid");
+    }
   }
 }
 
@@ -585,6 +610,32 @@ async function assertApplicationAuthRateLimit(input: {
     });
     return;
   }
+  if (input.normalizedPath === "/email-otp/send-verification-otp") {
+    if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    const email = parseApplicationAuthEmail(
+      parseJsonBody(input.raw.body).email
+    );
+    await input.kernel.applicationAuthRateLimiter.assertEmailOtpRequest({
+      applicationId: input.runtime.applicationId,
+      normalizedEmail: email,
+      ip: input.request.ip,
+      secret,
+    });
+    return;
+  }
+  if (input.normalizedPath === "/sign-in/email-otp") {
+    if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    const email = parseApplicationAuthEmail(
+      parseJsonBody(input.raw.body).email
+    );
+    await input.kernel.applicationAuthRateLimiter.assertEmailOtpVerify({
+      applicationId: input.runtime.applicationId,
+      verificationId: `sign-in-otp-${email}`,
+      ip: input.request.ip,
+      secret,
+    });
+    return;
+  }
   if (input.normalizedPath === "/oauth2/token") {
     if (!input.raw.body) throw new ApplicationAuthRequestError("Token body is required");
     const form = parseRawSearchParams(input.raw.body.toString("utf8"));
@@ -640,7 +691,8 @@ async function assertApplicationAuthRateLimit(input: {
 
 async function normalizeSensitiveApplicationAuthResponse(
   normalizedPath: string,
-  response: Response
+  response: Response,
+  emailOtpStartedAt?: number
 ): Promise<Response> {
   if (normalizedPath === "/sign-in/email" && !response.ok) {
     return replaceJsonResponse(response, 401, {
@@ -661,6 +713,32 @@ async function normalizeSensitiveApplicationAuthResponse(
     return replaceJsonResponse(response, 202, {
       status: true,
       message: "If the account exists, an authentication message will be sent",
+    });
+  }
+  if (normalizedPath === "/email-otp/send-verification-otp") {
+    if (emailOtpStartedAt !== undefined) {
+      await waitForEmailOtpGenericResponseFloor(emailOtpStartedAt);
+    }
+    return response.ok
+      ? replaceJsonResponse(response, 202, {
+          status: true,
+          message:
+            "If the email can sign in, an authentication code will be sent",
+        })
+      : response.status === 429
+        ? replaceJsonResponse(response, 429, {
+            error: "slow_down",
+            error_description: "Authentication request rate limit exceeded",
+          })
+        : replaceJsonResponse(response, 503, {
+            error: "temporarily_unavailable",
+            error_description: "Authentication message could not be accepted",
+          });
+  }
+  if (normalizedPath === "/sign-in/email-otp" && !response.ok) {
+    return replaceJsonResponse(response, 401, {
+      error: "invalid_code",
+      error_description: "Email or code is invalid",
     });
   }
   return response;
@@ -720,4 +798,29 @@ function readBasicClientId(header: string | undefined): string | null {
     throw new ApplicationAuthRequestError("OAuth client authentication is invalid");
   }
   return clientId;
+}
+
+function parseApplicationAuthEmail(value: unknown): string {
+  const parsed = z.string().email().max(320).safeParse(value);
+  if (!parsed.success) {
+    throw new ApplicationAuthRequestError("Email is invalid");
+  }
+  return parsed.data.toLowerCase();
+}
+
+async function waitForEmailOtpGenericResponseFloor(
+  startedAt: number
+): Promise<void> {
+  const remaining =
+    EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
+  if (remaining <= 0) return;
+  await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+}
+
+function emailOtpDeliveryUnavailable(): ApplicationAuthBoundaryError {
+  return new ApplicationAuthBoundaryError(
+    503,
+    "temporarily_unavailable",
+    "Authentication message could not be accepted"
+  );
 }

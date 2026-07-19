@@ -244,6 +244,8 @@ function contentPolicyFor(
     normalizedPath === "/password/forgot" ||
     normalizedPath === "/password/reset" ||
     normalizedPath === "/verification/resend" ||
+    normalizedPath === "/email-otp/request" ||
+    normalizedPath === "/email-otp/verify" ||
     normalizedPath === "/consent" ||
     normalizedPath === "/logout"
   ) {
