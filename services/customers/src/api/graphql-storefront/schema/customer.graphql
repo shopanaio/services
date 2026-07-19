@@ -1,0 +1,48 @@
+"""The customer associated with the authenticated storefront session."""
+type Customer @key(fields: "id") {
+  """Globally unique customer ID."""
+  id: ID!
+  """Customer's first name, if the profile has been completed."""
+  firstName: String
+  """Customer's last name, if the profile has been completed."""
+  lastName: String
+  """Display name derived from available profile and contact information."""
+  displayName: String!
+  """Authenticated customer's email address and its marketing consent."""
+  emailAddress: CustomerEmailAddress
+  """Authenticated customer's phone number."""
+  phoneNumber: CustomerPhoneNumber
+  """The customer's default mailing address, when one has been selected."""
+  defaultAddress: CustomerAddress
+  """Mailing addresses owned by the customer."""
+  addresses: [CustomerAddress!]!
+}
+
+"""
+Minimal personal profile input for the initial storefront contract.
+Additional customer-editable fields can be added when their behavior is defined.
+"""
+input CustomerUpdateInput {
+  """New first name. Omit to leave it unchanged."""
+  firstName: String
+  """New last name. Omit to leave it unchanged."""
+  lastName: String
+}
+
+"""Result of updating the authenticated customer's profile."""
+type CustomerUpdatePayload {
+  """The updated customer, or null when the update could not be applied."""
+  customer: Customer
+  """User-facing validation or business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}
+
+"""A customer-facing mutation error."""
+type CustomerUserError {
+  """Path to the input field associated with the error, when available."""
+  field: [String!]
+  """Human-readable error message safe to show to the customer."""
+  message: String!
+  """Stable machine-readable error code, when available."""
+  code: String
+}

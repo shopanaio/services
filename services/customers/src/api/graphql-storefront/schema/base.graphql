@@ -1,0 +1,65 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: ["@key"]
+  )
+
+type Query {
+  """
+  Returns the customer associated with the authenticated storefront session.
+  The customer identity is resolved from trusted request context rather than
+  from a customer ID or access token supplied as a GraphQL argument.
+  """
+  customer: Customer!
+}
+
+type Mutation {
+  """
+  Updates personal profile fields for the authenticated customer.
+  Authentication and customer ownership are resolved from storefront context.
+  """
+  customerUpdate(input: CustomerUpdateInput!): CustomerUpdatePayload!
+
+  """
+  Creates a mailing address owned by the authenticated customer.
+  The new address can optionally become the customer's default address.
+  """
+  customerAddressCreate(
+    """Address values to store."""
+    address: CustomerAddressInput!
+    """Whether the new address should become the default address."""
+    defaultAddress: Boolean = false
+  ): CustomerAddressCreatePayload!
+
+  """
+  Updates a mailing address owned by the authenticated customer.
+  The operation must reject addresses belonging to another customer.
+  """
+  customerAddressUpdate(
+    """Global ID of the customer address to update."""
+    addressId: ID!
+    """Address fields to replace or update."""
+    address: CustomerAddressInput
+    """Whether the address should become the default address."""
+    defaultAddress: Boolean
+  ): CustomerAddressUpdatePayload!
+
+  """
+  Deletes a mailing address owned by the authenticated customer.
+  The operation must reject addresses belonging to another customer.
+  """
+  customerAddressDelete(
+    """Global ID of the customer address to delete."""
+    addressId: ID!
+  ): CustomerAddressDeletePayload!
+
+  """
+  Subscribes the authenticated customer's verified email address to marketing.
+  """
+  customerEmailMarketingSubscribe: CustomerEmailMarketingSubscribePayload!
+
+  """
+  Unsubscribes the authenticated customer's email address from marketing.
+  """
+  customerEmailMarketingUnsubscribe: CustomerEmailMarketingUnsubscribePayload!
+}

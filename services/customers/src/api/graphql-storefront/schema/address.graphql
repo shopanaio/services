@@ -1,0 +1,72 @@
+"""A mailing address owned by the current customer."""
+type CustomerAddress {
+  """Globally unique customer address ID."""
+  id: ID!
+  """Recipient's first name."""
+  firstName: String
+  """Recipient's last name."""
+  lastName: String
+  """Primary street address or post office box."""
+  address1: String
+  """Apartment, suite, unit, or other secondary address information."""
+  address2: String
+  """City, town, village, or locality."""
+  city: String
+  """Region, state, or province code."""
+  zoneCode: String
+  """ISO 3166 territory or country code."""
+  territoryCode: String
+  """Postal or ZIP code."""
+  zip: String
+  """Recipient phone number, preferably in E.164 format."""
+  phoneNumber: String
+}
+
+"""
+Minimal mailing address input shared by create and update operations.
+Field requirements and normalization rules will be refined with the address flow.
+"""
+input CustomerAddressInput {
+  """Recipient's first name."""
+  firstName: String
+  """Recipient's last name."""
+  lastName: String
+  """Primary street address or post office box."""
+  address1: String
+  """Apartment, suite, unit, or other secondary address information."""
+  address2: String
+  """City, town, village, or locality."""
+  city: String
+  """Region, state, or province code."""
+  zoneCode: String
+  """ISO 3166 territory or country code."""
+  territoryCode: String
+  """Postal or ZIP code."""
+  zip: String
+  """Recipient phone number, preferably in E.164 format."""
+  phoneNumber: String
+}
+
+"""Result of creating a customer address."""
+type CustomerAddressCreatePayload {
+  """The created address, or null when creation failed."""
+  customerAddress: CustomerAddress
+  """User-facing validation or business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}
+
+"""Result of updating a customer address."""
+type CustomerAddressUpdatePayload {
+  """The updated address, or null when the update failed."""
+  customerAddress: CustomerAddress
+  """User-facing validation or business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}
+
+"""Result of deleting a customer address."""
+type CustomerAddressDeletePayload {
+  """ID of the deleted address, or null when no address was deleted."""
+  deletedAddressId: ID
+  """User-facing validation or business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}

@@ -1,0 +1,45 @@
+"""Customer-selectable marketing consent states."""
+enum CustomerMarketingConsentState {
+  """Consent has been initiated but is awaiting confirmation."""
+  PENDING
+  """The customer has consented to receive marketing messages."""
+  SUBSCRIBED
+  """The customer has withdrawn or declined marketing consent."""
+  UNSUBSCRIBED
+}
+
+"""Current consent state for one customer marketing channel."""
+type CustomerMarketingConsent {
+  """Current customer-selectable consent state."""
+  state: CustomerMarketingConsentState!
+}
+
+"""The authenticated customer's email contact point."""
+type CustomerEmailAddress {
+  """Customer email address."""
+  emailAddress: String!
+  """Current email marketing consent, when available."""
+  marketingConsent: CustomerMarketingConsent
+}
+
+"""The authenticated customer's phone contact point."""
+type CustomerPhoneNumber {
+  """Customer phone number, preferably in E.164 format."""
+  phoneNumber: String!
+}
+
+"""Result of subscribing the customer's email address to marketing."""
+type CustomerEmailMarketingSubscribePayload {
+  """Email contact point with its updated consent state."""
+  emailAddress: CustomerEmailAddress
+  """User-facing validation or business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}
+
+"""Result of unsubscribing the customer's email address from marketing."""
+type CustomerEmailMarketingUnsubscribePayload {
+  """Email contact point with its updated consent state."""
+  emailAddress: CustomerEmailAddress
+  """User-facing validation or business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}
