@@ -1,95 +1,153 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
+import type { ApplicationUser } from "../../repositories/models/application-auth.js";
+import type {
+  ApplicationUserLinkedAccountView,
+  ApplicationUserSecurityView,
+} from "../../repositories/application-user/ApplicationUserRepository.js";
 import { IAMType } from "./IAMType.js";
 
+export interface ApplicationUserResolverInput {
+  organizationId: string;
+  applicationId: string;
+  userId: string;
+  applicationUsersReadAuthorized?: boolean;
+}
+
 /** Application-scoped user resolver. */
-export class ApplicationUserResolver extends IAMType<unknown> {
+export class ApplicationUserResolver extends IAMType<
+  ApplicationUserResolverInput,
+  ApplicationUser
+> {
+  async $preload() {
+    const user = await this.$ctx.loaders.applicationUser.load(this.$props);
+    if (!user) {
+      throw new PreloadNotFoundError("Application user not found");
+    }
+    if (!this.$props.applicationUsersReadAuthorized) {
+      const authorized = await this.authProvider.authorize({
+        organizationId: this.$props.organizationId,
+        domain: "org",
+        resource: "org.application-users",
+        action: "read",
+      });
+      if (!authorized) {
+        throw new PreloadNotFoundError("Application user not found");
+      }
+    }
+    return user;
+  }
+
   id() {
-    // TODO: Resolve the application user global ID.
+    return encodeGlobalIdByType(
+      this.$props.userId,
+      GlobalIdEntity.ApplicationUser
+    );
   }
 
   applicationId() {
-    // TODO: Resolve the owning application ID.
+    return encodeGlobalIdByType(
+      this.$props.applicationId,
+      GlobalIdEntity.Application
+    );
   }
 
-  name() {
-    // TODO: Resolve the application user name.
+  async name() {
+    return this.$get("name");
   }
 
-  firstName() {
-    // TODO: Resolve the application user first name.
+  async firstName() {
+    return this.$get("firstName");
   }
 
-  lastName() {
-    // TODO: Resolve the application user last name.
+  async lastName() {
+    return this.$get("lastName");
   }
 
-  email() {
-    // TODO: Resolve the application user email.
+  async email() {
+    return this.$get("email");
   }
 
-  emailVerified() {
-    // TODO: Resolve the application user email verification state.
+  async emailVerified() {
+    return this.$get("emailVerified");
   }
 
-  imageUrl() {
-    // TODO: Resolve the application user image URL.
+  async imageUrl() {
+    return this.$get("image");
   }
 
-  status() {
-    // TODO: Resolve the application user status.
+  async status() {
+    return (await this.$get("status")).toUpperCase();
   }
 
-  security() {
-    // TODO: Resolve safe application user security metadata.
+  async security() {
+    await this.$get("id");
+    const security = await this.$ctx.loaders.applicationUserSecurity.load(
+      this.$props
+    );
+    return new ApplicationUserSecurityMetadataResolver(security, this.$ctx);
   }
 
-  linkedAccounts() {
-    // TODO: Resolve safe linked account metadata.
+  async linkedAccounts() {
+    await this.$get("id");
+    const security = await this.$ctx.loaders.applicationUserSecurity.load(
+      this.$props
+    );
+    return security.linkedAccounts.map(
+      (account) => new ApplicationUserLinkedAccountResolver(account, this.$ctx)
+    );
   }
 
-  createdAt() {
-    // TODO: Resolve the application user creation timestamp.
+  async createdAt() {
+    return this.$get("createdAt");
   }
 
-  updatedAt() {
-    // TODO: Resolve the application user update timestamp.
+  async updatedAt() {
+    return this.$get("updatedAt");
   }
 }
 
 /** Safe application user security metadata resolver. */
-export class ApplicationUserSecurityMetadataResolver extends IAMType<unknown> {
+export class ApplicationUserSecurityMetadataResolver extends IAMType<ApplicationUserSecurityView> {
   activeSessionCount() {
-    // TODO: Resolve the active session count.
+    return this.$props.activeSessionCount;
   }
 
   linkedAccountCount() {
-    // TODO: Resolve the linked account count.
+    return this.$props.linkedAccountCount;
   }
 
   hasPasswordLogin() {
-    // TODO: Resolve whether password login is available.
+    return this.$props.hasPasswordLogin;
   }
 }
 
 /** Application user linked account resolver. */
-export class ApplicationUserLinkedAccountResolver extends IAMType<unknown> {
+export class ApplicationUserLinkedAccountResolver extends IAMType<ApplicationUserLinkedAccountView> {
   id() {
-    // TODO: Resolve the linked account global ID.
+    return encodeGlobalIdByType(
+      this.$props.id,
+      GlobalIdEntity.ApplicationUserLinkedAccount
+    );
   }
 
   provider() {
-    // TODO: Resolve the linked account provider.
+    return this.$props.provider;
   }
 
   isOnlyLoginMethod() {
-    // TODO: Resolve whether this is the only login method.
+    return this.$props.isOnlyLoginMethod;
   }
 
   createdAt() {
-    // TODO: Resolve the linked account creation timestamp.
+    return this.$props.createdAt;
   }
 
   updatedAt() {
-    // TODO: Resolve the linked account update timestamp.
+    return this.$props.updatedAt;
   }
 }
 

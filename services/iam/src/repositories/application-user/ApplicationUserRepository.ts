@@ -1,6 +1,12 @@
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
+import { and, eq, gt, inArray } from "drizzle-orm";
 import { assertApplicationId } from "../../auth/AuthScope.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import {
@@ -10,12 +16,47 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 import {
   applicationSession,
+  applicationAccount,
   applicationOauthAccessToken,
   applicationOauthRefreshToken,
   applicationUser,
   type ApplicationUser,
   type ApplicationUserStatus,
 } from "../models/application-auth.js";
+
+export const applicationUserRelayQuery = createRelayQuery(
+  createQuery(applicationUser)
+    .include(["id"])
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "applicationUser", tieBreaker: "id" }
+);
+
+export type ApplicationUserRelayInput = InferRelayInput<
+  typeof applicationUserRelayQuery
+>;
+
+export interface ApplicationUserConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+export interface ApplicationUserLinkedAccountView {
+  id: string;
+  provider: string;
+  isOnlyLoginMethod: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ApplicationUserSecurityView {
+  userId: string;
+  activeSessionCount: number;
+  linkedAccountCount: number;
+  hasPasswordLogin: boolean;
+  linkedAccounts: readonly ApplicationUserLinkedAccountView[];
+}
 
 /** Creates application-user repositories bound to one mandatory application. */
 export class ApplicationUserRepositoryFactory {
@@ -104,6 +145,115 @@ export class ApplicationUserRepository extends BaseRepository {
       .select()
       .from(applicationUser)
       .where(eq(applicationUser.applicationId, this.applicationId));
+  }
+
+  @ReadOnly()
+  async getByIds(userIds: readonly string[]): Promise<ApplicationUser[]> {
+    if (userIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(applicationUser)
+      .where(
+        and(
+          eq(applicationUser.applicationId, this.applicationId),
+          inArray(applicationUser.id, [...new Set(userIds)])
+        )
+      );
+  }
+
+  @ReadOnly()
+  async getConnection(
+    input: ApplicationUserRelayInput
+  ): Promise<ApplicationUserConnectionResult> {
+    const { where, orderBy, ...pagination } = input;
+    const mergedWhere: ApplicationUserRelayInput["where"] = {
+      _and: [
+        { applicationId: { _eq: this.applicationId } },
+        ...(where ? [where] : []),
+      ],
+    };
+    const executeInput: ApplicationUserRelayInput = {
+      ...pagination,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "asc" },
+      ],
+    };
+    const [result, totalCount] = await Promise.all([
+      applicationUserRelayQuery.execute(this.connection, executeInput),
+      applicationUserRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
+  @ReadOnly()
+  async getSecurityViews(
+    userIds: readonly string[]
+  ): Promise<ApplicationUserSecurityView[]> {
+    if (userIds.length === 0) return [];
+    const uniqueUserIds = [...new Set(userIds)];
+    const [sessions, accounts] = await Promise.all([
+      this.connection
+        .select({ userId: applicationSession.userId })
+        .from(applicationSession)
+        .where(
+          and(
+            eq(applicationSession.applicationId, this.applicationId),
+            inArray(applicationSession.userId, uniqueUserIds),
+            gt(applicationSession.expiresAt, new Date())
+          )
+        ),
+      this.connection
+        .select({
+          id: applicationAccount.id,
+          userId: applicationAccount.userId,
+          provider: applicationAccount.providerId,
+          createdAt: applicationAccount.createdAt,
+          updatedAt: applicationAccount.updatedAt,
+        })
+        .from(applicationAccount)
+        .where(
+          and(
+            eq(applicationAccount.applicationId, this.applicationId),
+            inArray(applicationAccount.userId, uniqueUserIds)
+          )
+        )
+        .orderBy(applicationAccount.providerId, applicationAccount.id),
+    ]);
+
+    const sessionCounts = countBy(sessions, ({ userId }) => userId);
+    const accountsByUser = groupBy(accounts, ({ userId }) => userId);
+    return uniqueUserIds.map((userId) => {
+      const userAccounts = accountsByUser.get(userId) ?? [];
+      const linkedAccounts = userAccounts.filter(
+        ({ provider }) => provider !== "credential"
+      );
+      return {
+        userId,
+        activeSessionCount: sessionCounts.get(userId) ?? 0,
+        linkedAccountCount: linkedAccounts.length,
+        hasPasswordLogin: userAccounts.some(
+          ({ provider }) => provider === "credential"
+        ),
+        linkedAccounts: Object.freeze(
+          linkedAccounts.map((account) => ({
+            id: account.id,
+            provider: account.provider,
+            isOnlyLoginMethod: userAccounts.length === 1,
+            createdAt: account.createdAt,
+            updatedAt: account.updatedAt,
+          }))
+        ),
+      };
+    });
   }
 
   @ReadOnly()
@@ -218,4 +368,30 @@ export class ApplicationUserRepository extends BaseRepository {
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+function groupBy<T>(
+  values: readonly T[],
+  key: (value: T) => string
+): Map<string, T[]> {
+  const result = new Map<string, T[]>();
+  for (const value of values) {
+    const groupKey = key(value);
+    const group = result.get(groupKey);
+    if (group) group.push(value);
+    else result.set(groupKey, [value]);
+  }
+  return result;
+}
+
+function countBy<T>(
+  values: readonly T[],
+  key: (value: T) => string
+): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const value of values) {
+    const groupKey = key(value);
+    result.set(groupKey, (result.get(groupKey) ?? 0) + 1);
+  }
+  return result;
 }

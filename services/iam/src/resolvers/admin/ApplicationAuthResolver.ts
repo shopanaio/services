@@ -1,244 +1,549 @@
+import {
+  PreloadNotFoundError,
+  TypeAuthorizationError,
+  TypePolicy,
+} from "@shopana/type-resolver";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
+import {
+  APPLICATION_AUTH_UI_LOCALES,
+} from "../../auth/applicationAuthConfiguration.js";
+import {
+  APPLICATION_AUTH_PROVIDER_NAMES,
+  parseApplicationAuthProviderName,
+  type ApplicationAuthProviderName,
+} from "../../auth/applicationSocialProviders.js";
+import type { ApplicationAuthAdminView } from "../../repositories/ApplicationAuthAdminQueryRepository.js";
+import type {
+  ApplicationAuthBranding,
+  ApplicationAuthDeliveryProfile,
+  ApplicationAuthOrigin,
+} from "../../repositories/models/application-auth.js";
 import { IAMType } from "./IAMType.js";
+import {
+  ApplicationAuthProviderResolver,
+  type ApplicationAuthProviderResolverInput,
+} from "./ApplicationProviderResolver.js";
+
+export interface ApplicationAuthConfigurationResolverInput {
+  organizationId: string;
+  applicationId: string;
+}
+
+type ApplicationAuthMethodId = "password" | "email_otp";
+type ApplicationAuthMethodCapability =
+  | "SIGN_IN"
+  | "SIGN_UP"
+  | "PASSWORD_RESET";
+
+interface ApplicationAuthMethodView {
+  id: ApplicationAuthMethodId;
+  availableCapabilities: readonly ApplicationAuthMethodCapability[];
+  enabledCapabilities: readonly ApplicationAuthMethodCapability[];
+  configured: boolean;
+  revision: number;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+}
+
+interface ApplicationAuthProviderCallbackUrl {
+  provider: ApplicationAuthProviderName;
+  url: string;
+}
+
+interface ApplicationAuthProtocolUrls {
+  issuer: string;
+  oidcDiscoveryUrl: string;
+  oauthAuthorizationServerMetadataUrl: string;
+  authorizationUrl: string;
+  tokenUrl: string;
+  jwksUrl: string;
+  revocationUrl: string;
+  endSessionUrl: string;
+  providerCallbackUrls: readonly ApplicationAuthProviderCallbackUrl[];
+}
+
+interface ApplicationAuthEmailDeliveryView {
+  configured: boolean;
+  transportProfile: string | null;
+  senderIdentity: string | null;
+  emailVerificationTemplateId: string | null;
+  passwordResetTemplateId: string | null;
+  emailOtpSignInTemplateId: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+}
 
 /** Application authentication configuration resolver. */
-export class ApplicationAuthConfigurationResolver extends IAMType<unknown> {
+@TypePolicy<ApplicationAuthConfigurationResolver>({
+  organizationId: (resolver) => resolver.$props.organizationId,
+  domain: "org",
+  resource: "org.application-auth",
+  action: "read",
+})
+export class ApplicationAuthConfigurationResolver extends IAMType<
+  ApplicationAuthConfigurationResolverInput,
+  ApplicationAuthAdminView
+> {
+  private providerReadAuthorization?: Promise<void>;
+
+  async $preload() {
+    const view = await this.$ctx.loaders.applicationAuthAdmin.load({
+      id: this.$props.applicationId,
+      organizationId: this.$props.organizationId,
+    });
+    if (!view) {
+      throw new PreloadNotFoundError("Application auth configuration not found");
+    }
+    return view;
+  }
+
   applicationId() {
-    // TODO: Resolve the application ID.
+    return encodeGlobalIdByType(
+      this.$props.applicationId,
+      GlobalIdEntity.Application
+    );
   }
 
-  realmEnabled() {
-    // TODO: Resolve whether the realm is enabled.
+  async realmEnabled() {
+    return (await this.$get("configuration")).realmEnabled;
   }
 
-  registrationMode() {
-    // TODO: Resolve the registration mode.
+  async registrationMode() {
+    return (await this.$get("configuration")).registrationMode.toUpperCase();
   }
 
-  emailVerificationRequired() {
-    // TODO: Resolve the email verification policy.
+  async emailVerificationRequired() {
+    return (await this.$get("configuration")).emailVerificationRequired;
   }
 
-  consentMode() {
-    // TODO: Resolve the consent mode.
+  async consentMode() {
+    return (await this.$get("configuration")).consentMode.toUpperCase();
   }
 
-  accessTokenTtlSeconds() {
-    // TODO: Resolve the access token lifetime.
+  async accessTokenTtlSeconds() {
+    return (await this.$get("configuration")).accessTokenTtlSeconds;
   }
 
-  idTokenTtlSeconds() {
-    // TODO: Resolve the ID token lifetime.
+  async idTokenTtlSeconds() {
+    return (await this.$get("configuration")).idTokenTtlSeconds;
   }
 
-  refreshTokenTtlSeconds() {
-    // TODO: Resolve the refresh token lifetime.
+  async refreshTokenTtlSeconds() {
+    return (await this.$get("configuration")).refreshTokenTtlSeconds;
   }
 
-  sessionTtlSeconds() {
-    // TODO: Resolve the session lifetime.
+  async sessionTtlSeconds() {
+    return (await this.$get("configuration")).sessionTtlSeconds;
   }
 
-  branding() {
-    // TODO: Resolve the auth branding.
+  async branding() {
+    return new ApplicationAuthBrandingResolver(
+      (await this.$get("configuration")).brandingJson,
+      this.$ctx
+    );
   }
 
-  defaultLocale() {
-    // TODO: Resolve the default locale.
+  async defaultLocale() {
+    return (await this.$get("configuration")).defaultLocale;
   }
 
   supportedLocales() {
-    // TODO: Resolve the supported locales.
+    return APPLICATION_AUTH_UI_LOCALES;
   }
 
-  trustedOrigins() {
-    // TODO: Resolve the trusted origins.
+  async trustedOrigins() {
+    return (await this.$get("origins")).map(
+      (origin) => new ApplicationAuthTrustedOriginResolver(origin, this.$ctx)
+    );
   }
 
   protocolUrls() {
-    // TODO: Resolve the protocol URLs.
+    return new ApplicationAuthProtocolUrlsResolver(
+      createProtocolUrls(
+        this.$ctx.kernel.applicationAuthPublicBaseUrl,
+        this.$props.applicationId
+      ),
+      this.$ctx
+    );
   }
 
-  emailDelivery() {
-    // TODO: Resolve the email delivery configuration.
+  async emailDelivery() {
+    return new ApplicationAuthEmailDeliveryConfigurationResolver(
+      createEmailDeliveryView(await this.$get("deliveryProfile")),
+      this.$ctx
+    );
   }
 
-  authMethod(_args: { id: string }) {
-    // TODO: Resolve an auth method from the catalog.
+  async authMethod(args: { id: string }) {
+    const method = (await this.authMethodViews()).find(
+      ({ id }) => id === args.id
+    );
+    if (!method) {
+      throw new Error("Application auth method is unsupported");
+    }
+    return new ApplicationAuthMethodResolver(method, this.$ctx);
   }
 
-  authMethods() {
-    // TODO: Resolve all auth methods from the catalog.
+  async authMethods() {
+    return (await this.authMethodViews()).map(
+      (method) => new ApplicationAuthMethodResolver(method, this.$ctx)
+    );
   }
 
-  provider(_args: { name: string }) {
-    // TODO: Resolve an auth provider from the catalog.
+  async provider(args: { name: string }) {
+    await this.assertProviderReadAuthorized();
+    const provider = parseApplicationAuthProviderName(args.name.toLowerCase());
+    return new ApplicationAuthProviderResolver(
+      await this.providerView(provider),
+      this.$ctx
+    );
   }
 
-  providers() {
-    // TODO: Resolve all auth providers from the catalog.
+  async providers() {
+    await this.assertProviderReadAuthorized();
+    return Promise.all(
+      APPLICATION_AUTH_PROVIDER_NAMES.map(async (provider) =>
+        new ApplicationAuthProviderResolver(
+          await this.providerView(provider),
+          this.$ctx
+        )
+      )
+    );
   }
 
-  revision() {
-    // TODO: Resolve the auth configuration revision.
+  async revision() {
+    return (await this.$get("configuration")).revision;
   }
 
-  createdAt() {
-    // TODO: Resolve the auth configuration creation timestamp.
+  async createdAt() {
+    return (await this.$get("configuration")).createdAt;
   }
 
-  updatedAt() {
-    // TODO: Resolve the auth configuration update timestamp.
+  async updatedAt() {
+    return (await this.$get("configuration")).updatedAt;
+  }
+
+  private async authMethodViews(): Promise<ApplicationAuthMethodView[]> {
+    const [configuration, deliveryProfile] = await Promise.all([
+      this.$get("configuration"),
+      this.$get("deliveryProfile"),
+    ]);
+    const passwordCapabilities: ApplicationAuthMethodCapability[] = [];
+    if (configuration.passwordSignInEnabled) {
+      passwordCapabilities.push("SIGN_IN");
+    }
+    if (configuration.passwordSignUpEnabled) {
+      passwordCapabilities.push("SIGN_UP");
+    }
+    if (configuration.passwordResetEnabled) {
+      passwordCapabilities.push("PASSWORD_RESET");
+    }
+    const emailOtpCapabilities: ApplicationAuthMethodCapability[] = [];
+    if (configuration.emailOtpSignInEnabled) {
+      emailOtpCapabilities.push("SIGN_IN");
+    }
+    if (configuration.emailOtpSignUpEnabled) {
+      emailOtpCapabilities.push("SIGN_UP");
+    }
+    const passwordNeedsDelivery =
+      configuration.passwordResetEnabled ||
+      (configuration.passwordSignUpEnabled &&
+        configuration.emailVerificationRequired);
+
+    return [
+      {
+        id: "password",
+        availableCapabilities: ["SIGN_IN", "SIGN_UP", "PASSWORD_RESET"],
+        enabledCapabilities: passwordCapabilities,
+        configured: !passwordNeedsDelivery || deliveryProfile !== null,
+        revision: configuration.revision,
+        updatedAt: configuration.updatedAt,
+        updatedBy: null,
+      },
+      {
+        id: "email_otp",
+        availableCapabilities: ["SIGN_IN", "SIGN_UP"],
+        enabledCapabilities: emailOtpCapabilities,
+        configured: deliveryProfile !== null,
+        revision: configuration.revision,
+        updatedAt: configuration.updatedAt,
+        updatedBy: null,
+      },
+    ];
+  }
+
+  private async providerView(
+    provider: ApplicationAuthProviderName
+  ): Promise<ApplicationAuthProviderResolverInput> {
+    const [providers, configuration] = await Promise.all([
+      this.$get("providers"),
+      this.$get("configuration"),
+    ]);
+    const configured = providers.find((entry) => entry.provider === provider);
+    const callbackUrl = createProviderCallbackUrl(
+      this.$ctx.kernel.applicationAuthPublicBaseUrl,
+      this.$props.applicationId,
+      provider
+    );
+    return configured
+      ? {
+          ...configured,
+          supported: true,
+          callbackUrl,
+        }
+      : {
+          applicationId: this.$props.applicationId,
+          provider,
+          supported: true,
+          configured: false,
+          enabled: false,
+          maskedClientId: null,
+          scopes: [],
+          callbackUrl,
+          revision: configuration.revision,
+          updatedAt: null,
+          updatedBy: null,
+        };
+  }
+
+  private assertProviderReadAuthorized(): Promise<void> {
+    this.providerReadAuthorization ??= this.authProvider
+      .authorize({
+        organizationId: this.$props.organizationId,
+        domain: "org",
+        resource: "org.application-auth-providers",
+        action: "read",
+      })
+      .then((authorized) => {
+        if (!authorized) {
+          throw new TypeAuthorizationError(
+            "org.application-auth-providers",
+            "read"
+          );
+        }
+      });
+    return this.providerReadAuthorization;
   }
 }
 
 /** Catalog-owned authentication method resolver. */
-export class ApplicationAuthMethodResolver extends IAMType<unknown> {
+export class ApplicationAuthMethodResolver extends IAMType<ApplicationAuthMethodView> {
   id() {
-    // TODO: Resolve the auth method ID.
+    return this.$props.id;
   }
 
   availableCapabilities() {
-    // TODO: Resolve available auth method capabilities.
+    return this.$props.availableCapabilities;
   }
 
   enabledCapabilities() {
-    // TODO: Resolve enabled auth method capabilities.
+    return this.$props.enabledCapabilities;
   }
 
   configured() {
-    // TODO: Resolve whether the auth method is configured.
+    return this.$props.configured;
   }
 
   revision() {
-    // TODO: Resolve the auth method revision.
+    return this.$props.revision;
   }
 
   updatedAt() {
-    // TODO: Resolve the auth method update timestamp.
+    return this.$props.updatedAt;
   }
 
   updatedBy() {
-    // TODO: Resolve the actor that updated the auth method.
+    return this.$props.updatedBy
+      ? encodeGlobalIdByType(this.$props.updatedBy, GlobalIdEntity.User)
+      : null;
   }
 }
 
 /** Hosted authentication UI branding resolver. */
-export class ApplicationAuthBrandingResolver extends IAMType<unknown> {
+export class ApplicationAuthBrandingResolver extends IAMType<ApplicationAuthBranding> {
   displayName() {
-    // TODO: Resolve the branding display name.
+    return this.$props.displayName ?? null;
   }
 
   headline() {
-    // TODO: Resolve the branding headline.
+    return this.$props.headline ?? null;
   }
 
   logoUrl() {
-    // TODO: Resolve the branding logo URL.
+    return this.$props.logoUrl ?? null;
   }
 
   primaryColor() {
-    // TODO: Resolve the branding primary color.
+    return this.$props.primaryColor?.toUpperCase() ?? null;
   }
 
   backgroundColor() {
-    // TODO: Resolve the branding background color.
+    return this.$props.backgroundColor?.toUpperCase() ?? null;
   }
 }
 
 /** Trusted origin resolver. */
-export class ApplicationAuthTrustedOriginResolver extends IAMType<unknown> {
+export class ApplicationAuthTrustedOriginResolver extends IAMType<ApplicationAuthOrigin> {
   origin() {
-    // TODO: Resolve the trusted origin.
+    return this.$props.origin;
   }
 
   createdAt() {
-    // TODO: Resolve the trusted origin creation timestamp.
+    return this.$props.createdAt;
   }
 }
 
 /** Social provider callback URL resolver. */
-export class ApplicationAuthProviderCallbackUrlResolver extends IAMType<unknown> {
+export class ApplicationAuthProviderCallbackUrlResolver extends IAMType<ApplicationAuthProviderCallbackUrl> {
   provider() {
-    // TODO: Resolve the provider name.
+    return this.$props.provider.toUpperCase();
   }
 
   url() {
-    // TODO: Resolve the provider callback URL.
+    return this.$props.url;
   }
 }
 
 /** OAuth and OpenID Connect protocol URL resolver. */
-export class ApplicationAuthProtocolUrlsResolver extends IAMType<unknown> {
+export class ApplicationAuthProtocolUrlsResolver extends IAMType<ApplicationAuthProtocolUrls> {
   issuer() {
-    // TODO: Resolve the issuer URL.
+    return this.$props.issuer;
   }
 
   oidcDiscoveryUrl() {
-    // TODO: Resolve the OIDC discovery URL.
+    return this.$props.oidcDiscoveryUrl;
   }
 
   oauthAuthorizationServerMetadataUrl() {
-    // TODO: Resolve the OAuth authorization server metadata URL.
+    return this.$props.oauthAuthorizationServerMetadataUrl;
   }
 
   authorizationUrl() {
-    // TODO: Resolve the authorization URL.
+    return this.$props.authorizationUrl;
   }
 
   tokenUrl() {
-    // TODO: Resolve the token URL.
+    return this.$props.tokenUrl;
   }
 
   jwksUrl() {
-    // TODO: Resolve the JWKS URL.
+    return this.$props.jwksUrl;
   }
 
   revocationUrl() {
-    // TODO: Resolve the revocation URL.
+    return this.$props.revocationUrl;
   }
 
   endSessionUrl() {
-    // TODO: Resolve the end-session URL.
+    return this.$props.endSessionUrl;
   }
 
   providerCallbackUrls() {
-    // TODO: Resolve social provider callback URLs.
+    return this.$props.providerCallbackUrls.map(
+      (callback) =>
+        new ApplicationAuthProviderCallbackUrlResolver(callback, this.$ctx)
+    );
   }
 }
 
 /** Non-secret application email delivery configuration resolver. */
-export class ApplicationAuthEmailDeliveryConfigurationResolver extends IAMType<unknown> {
+export class ApplicationAuthEmailDeliveryConfigurationResolver extends IAMType<ApplicationAuthEmailDeliveryView> {
   configured() {
-    // TODO: Resolve whether email delivery is configured.
+    return this.$props.configured;
   }
 
   transportProfile() {
-    // TODO: Resolve the email transport profile.
+    return this.$props.transportProfile;
   }
 
   senderIdentity() {
-    // TODO: Resolve the email sender identity.
+    return this.$props.senderIdentity;
   }
 
   emailVerificationTemplateId() {
-    // TODO: Resolve the email verification template ID.
+    return this.$props.emailVerificationTemplateId;
   }
 
   passwordResetTemplateId() {
-    // TODO: Resolve the password reset template ID.
+    return this.$props.passwordResetTemplateId;
   }
 
   emailOtpSignInTemplateId() {
-    // TODO: Resolve the email OTP sign-in template ID.
+    return this.$props.emailOtpSignInTemplateId;
   }
 
   updatedAt() {
-    // TODO: Resolve the email delivery update timestamp.
+    return this.$props.updatedAt;
   }
 
   updatedBy() {
-    // TODO: Resolve the actor that updated email delivery.
+    return this.$props.updatedBy
+      ? encodeGlobalIdByType(this.$props.updatedBy, GlobalIdEntity.User)
+      : null;
   }
+}
+
+function createProtocolUrls(
+  publicBaseUrl: string,
+  applicationId: string
+): ApplicationAuthProtocolUrls {
+  const baseUrl = publicBaseUrl.replace(/\/$/u, "");
+  const issuer = `${baseUrl}/auth/applications/${applicationId}`;
+  return {
+    issuer,
+    oidcDiscoveryUrl: `${issuer}/.well-known/openid-configuration`,
+    oauthAuthorizationServerMetadataUrl:
+      `${baseUrl}/.well-known/oauth-authorization-server` +
+      `/auth/applications/${applicationId}`,
+    authorizationUrl: `${issuer}/oauth2/authorize`,
+    tokenUrl: `${issuer}/oauth2/token`,
+    jwksUrl: `${issuer}/jwks`,
+    revocationUrl: `${issuer}/oauth2/revoke`,
+    endSessionUrl: `${issuer}/oauth2/end-session`,
+    providerCallbackUrls: APPLICATION_AUTH_PROVIDER_NAMES.map((provider) => ({
+      provider,
+      url: `${issuer}/callback/${provider}`,
+    })),
+  };
+}
+
+function createProviderCallbackUrl(
+  publicBaseUrl: string,
+  applicationId: string,
+  provider: ApplicationAuthProviderName
+): string {
+  const baseUrl = publicBaseUrl.replace(/\/$/u, "");
+  return `${baseUrl}/auth/applications/${applicationId}/callback/${provider}`;
+}
+
+function createEmailDeliveryView(
+  profile: ApplicationAuthDeliveryProfile | null
+): ApplicationAuthEmailDeliveryView {
+  if (!profile) {
+    return {
+      configured: false,
+      transportProfile: null,
+      senderIdentity: null,
+      emailVerificationTemplateId: null,
+      passwordResetTemplateId: null,
+      emailOtpSignInTemplateId: null,
+      updatedAt: null,
+      updatedBy: null,
+    };
+  }
+  return {
+    configured: true,
+    transportProfile: profile.transportProfile,
+    senderIdentity: profile.senderIdentity,
+    emailVerificationTemplateId: profile.emailVerificationTemplateId,
+    passwordResetTemplateId: profile.passwordResetTemplateId,
+    emailOtpSignInTemplateId: profile.emailOtpSignInTemplateId,
+    updatedAt: profile.updatedAt,
+    updatedBy: profile.updatedBy,
+  };
 }
 
 /** Application auth update payload resolver. */

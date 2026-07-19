@@ -24,6 +24,7 @@ export type ApplicationAuthorizationStep = "login" | "consent";
 
 export interface ApplicationAuthBranding {
   displayName?: string;
+  headline?: string;
   logoUrl?: string;
   primaryColor?: string;
   backgroundColor?: string;

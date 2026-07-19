@@ -1,49 +1,73 @@
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
+import type { ApplicationAuthProviderName } from "../../auth/applicationSocialProviders.js";
 import { IAMType } from "./IAMType.js";
 
+export interface ApplicationAuthProviderResolverInput {
+  applicationId: string;
+  provider: ApplicationAuthProviderName;
+  supported: true;
+  configured: boolean;
+  enabled: boolean;
+  maskedClientId: string | null;
+  scopes: readonly string[];
+  callbackUrl: string;
+  revision: number;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+}
+
 /** Catalog-owned application social provider resolver. */
-export class ApplicationAuthProviderResolver extends IAMType<unknown> {
+export class ApplicationAuthProviderResolver extends IAMType<ApplicationAuthProviderResolverInput> {
   applicationId() {
-    // TODO: Resolve the application ID.
+    return encodeGlobalIdByType(
+      this.$props.applicationId,
+      GlobalIdEntity.Application
+    );
   }
 
   provider() {
-    // TODO: Resolve the provider name.
+    return this.$props.provider.toUpperCase();
   }
 
   supported() {
-    // TODO: Resolve whether the provider is supported.
+    return this.$props.supported;
   }
 
   configured() {
-    // TODO: Resolve whether the provider is configured.
+    return this.$props.configured;
   }
 
   enabled() {
-    // TODO: Resolve whether the provider is enabled.
+    return this.$props.enabled;
   }
 
   maskedClientId() {
-    // TODO: Resolve the masked provider client ID.
+    return this.$props.maskedClientId;
   }
 
   scopes() {
-    // TODO: Resolve the provider scopes.
+    return this.$props.scopes;
   }
 
   callbackUrl() {
-    // TODO: Resolve the exact provider callback URL.
+    return this.$props.callbackUrl;
   }
 
   revision() {
-    // TODO: Resolve the provider revision.
+    return this.$props.revision;
   }
 
   updatedAt() {
-    // TODO: Resolve the provider update timestamp.
+    return this.$props.updatedAt;
   }
 
   updatedBy() {
-    // TODO: Resolve the actor that updated the provider.
+    return this.$props.updatedBy
+      ? encodeGlobalIdByType(this.$props.updatedBy, GlobalIdEntity.User)
+      : null;
   }
 }
 

@@ -2,6 +2,7 @@ import { ApolloQuery } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { UserQueryResolver } from "./UserQueryResolver.js";
 import { OrganizationQueryResolver } from "./OrganizationQueryResolver.js";
+import { ApplicationQueryResolver } from "./ApplicationQueryResolver.js";
 
 /**
  * Root Query resolver.
@@ -27,6 +28,6 @@ export class QueryResolver extends IAMType<Record<string, never>> {
 
   /** Entry point for application realm management queries. */
   applicationQuery() {
-    // TODO: Implement the application query namespace entry point.
+    return new ApplicationQueryResolver({}, this.$ctx);
   }
 }

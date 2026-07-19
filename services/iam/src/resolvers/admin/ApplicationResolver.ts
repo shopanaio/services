@@ -1,77 +1,209 @@
+import {
+  PreloadNotFoundError,
+  SubgraphReference,
+  TypeAuthorizationError,
+} from "@shopana/type-resolver";
+import {
+  decodeGlobalIdByType,
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
+import type { ApplicationAdminRecord } from "../../repositories/ApplicationRepository.js";
+import { ApplicationOAuthClientManagementError } from "../../services/ApplicationOAuthClientManagementService.js";
 import { IAMType } from "./IAMType.js";
+import { OrganizationResolver } from "./OrganizationResolver.js";
+import { ApplicationAuthConfigurationResolver } from "./ApplicationAuthResolver.js";
+import {
+  ApplicationOAuthClientConnectionResolver,
+  mapApplicationOAuthClientConnectionInput,
+} from "./ApplicationOAuthClientConnectionResolver.js";
+import { ApplicationOAuthClientResolver } from "./ApplicationOAuthClientResolver.js";
+import {
+  ApplicationUserConnectionResolver,
+  mapApplicationUserConnectionInput,
+} from "./ApplicationUserConnectionResolver.js";
+import { ApplicationUserResolver } from "./ApplicationUserResolver.js";
+
+export interface ApplicationResolverInput {
+  id: string;
+  organizationId?: string | null;
+  applicationsReadAuthorized?: boolean;
+}
 
 /** Application realm type resolver. */
-export class ApplicationResolver extends IAMType<string> {
-  $preload() {
-    // TODO: Load the application realm.
+@SubgraphReference((reference: { id: string }) => ({
+  id: decodeGlobalIdByType(reference.id, GlobalIdEntity.Application),
+}))
+export class ApplicationResolver extends IAMType<
+  ApplicationResolverInput,
+  ApplicationAdminRecord
+> {
+  private applicationAuthReadAuthorization?: Promise<void>;
+
+  async $preload() {
+    const application = await this.$ctx.loaders.application.load({
+      id: this.$props.id,
+      organizationId: this.$props.organizationId,
+    });
+    if (!application) {
+      throw new PreloadNotFoundError("Application not found");
+    }
+    if (!this.$props.applicationsReadAuthorized) {
+      const authorized = await this.authProvider.authorize({
+        organizationId: application.organizationId,
+        domain: "org",
+        resource: "org.applications",
+        action: "read",
+      });
+      if (!authorized) {
+        throw new PreloadNotFoundError("Application not found");
+      }
+    }
+    return application;
   }
 
   id() {
-    // TODO: Resolve the application global ID.
+    return encodeGlobalIdByType(this.$props.id, GlobalIdEntity.Application);
   }
 
-  organizationId() {
-    // TODO: Resolve the owning organization ID.
+  async organizationId() {
+    return encodeGlobalIdByType(
+      await this.$get("organizationId"),
+      GlobalIdEntity.Organization
+    );
   }
 
-  organization() {
-    // TODO: Resolve the owning organization.
+  async organization() {
+    return new OrganizationResolver(await this.$get("organizationId"), this.$ctx);
   }
 
-  name() {
-    // TODO: Resolve the application name.
+  async name() {
+    return this.$get("name");
   }
 
-  displayName() {
-    // TODO: Resolve the application display name.
+  async displayName() {
+    return this.$get("displayName");
   }
 
-  description() {
-    // TODO: Resolve the application description.
+  async description() {
+    return this.$get("description");
   }
 
-  status() {
-    // TODO: Resolve the application lifecycle status.
+  async status() {
+    return (await this.$get("status")).toUpperCase();
   }
 
-  resource() {
-    // TODO: Resolve the immutable application resource.
+  async resource() {
+    await this.assertApplicationAuthReadAuthorized();
+    return this.$get("resource");
   }
 
-  revision() {
-    // TODO: Resolve the application revision.
+  async revision() {
+    return this.$get("revision");
   }
 
-  auth() {
-    // TODO: Resolve the application auth configuration.
+  async auth() {
+    return new ApplicationAuthConfigurationResolver(
+      {
+        organizationId: await this.$get("organizationId"),
+        applicationId: this.$props.id,
+      },
+      this.$ctx
+    );
   }
 
-  oauthClient(_args: { clientId: string }) {
-    // TODO: Resolve an OAuth client within the application.
+  async oauthClient(args: { clientId: string }) {
+    try {
+      const client = await this.$ctx.kernel.applicationOAuthClientManagement.get(
+        {
+          organizationId: await this.$get("organizationId"),
+          applicationId: this.$props.id,
+          clientId: args.clientId,
+        },
+        this.adminActor()
+      );
+      return new ApplicationOAuthClientResolver(client, this.$ctx);
+    } catch (error) {
+      if (
+        error instanceof ApplicationOAuthClientManagementError &&
+        error.code === "OAUTH_CLIENT_NOT_FOUND"
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 
-  oauthClients(_args: unknown) {
-    // TODO: Resolve the application OAuth client connection.
+  async oauthClients(
+    args: Parameters<typeof mapApplicationOAuthClientConnectionInput>[2]
+  ) {
+    return new ApplicationOAuthClientConnectionResolver(
+      mapApplicationOAuthClientConnectionInput(
+        await this.$get("organizationId"),
+        this.$props.id,
+        args
+      ),
+      this.$ctx
+    );
   }
 
-  user(_args: { id: string }) {
-    // TODO: Resolve a user within the application.
+  async user(args: { id: string }) {
+    return new ApplicationUserResolver(
+      {
+        organizationId: await this.$get("organizationId"),
+        applicationId: this.$props.id,
+        userId: decodeGlobalIdByType(args.id, GlobalIdEntity.ApplicationUser),
+      },
+      this.$ctx
+    );
   }
 
-  users(_args: unknown) {
-    // TODO: Resolve the application user connection.
+  async users(args: Parameters<typeof mapApplicationUserConnectionInput>[2]) {
+    return new ApplicationUserConnectionResolver(
+      mapApplicationUserConnectionInput(
+        await this.$get("organizationId"),
+        this.$props.id,
+        args
+      ),
+      this.$ctx
+    );
   }
 
-  createdAt() {
-    // TODO: Resolve the application creation timestamp.
+  async createdAt() {
+    return this.$get("createdAt");
   }
 
-  updatedAt() {
-    // TODO: Resolve the application update timestamp.
+  async updatedAt() {
+    return this.$get("updatedAt");
   }
 
-  archivedAt() {
-    // TODO: Resolve the application archival timestamp.
+  async archivedAt() {
+    return this.$get("archivedAt");
+  }
+
+  private adminActor() {
+    return {
+      id: this.$ctx.currentUser?.id ?? "",
+      requestId: this.$ctx.requestId,
+    };
+  }
+
+  private assertApplicationAuthReadAuthorized(): Promise<void> {
+    this.applicationAuthReadAuthorization ??= this.$get("organizationId")
+      .then((organizationId) =>
+        this.authProvider.authorize({
+          organizationId,
+          domain: "org",
+          resource: "org.application-auth",
+          action: "read",
+        })
+      )
+      .then((authorized) => {
+        if (!authorized) {
+          throw new TypeAuthorizationError("org.application-auth", "read");
+        }
+      });
+    return this.applicationAuthReadAuthorization;
   }
 }
 

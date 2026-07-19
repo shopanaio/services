@@ -1,6 +1,12 @@
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
+import {
   and,
   asc,
   count,
@@ -100,6 +106,54 @@ export interface ManagedApplicationOAuthClientPage {
   offset: number;
   limit: number;
   hasNextPage: boolean;
+}
+
+export const applicationOAuthClientRelayQuery = createRelayQuery(
+  createQuery(applicationOauthClient)
+    .include([
+      "id",
+      "applicationId",
+      "clientId",
+      "name",
+      "public",
+      "environment",
+      "redirectUris",
+      "postLogoutRedirectUris",
+      "resourceAudience",
+      "grantTypes",
+      "responseTypes",
+      "tokenEndpointAuthMethod",
+      "requirePKCE",
+      "protocolPolicyVersion",
+      "skipConsent",
+      "enableEndSession",
+      "disabled",
+      "revision",
+      "createdAt",
+      "updatedAt",
+      "deletedAt",
+      "createdBy",
+      "updatedBy",
+    ])
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "applicationOAuthClient", tieBreaker: "id" }
+);
+
+export type ApplicationOAuthClientRelayInput = InferRelayInput<
+  typeof applicationOAuthClientRelayQuery
+>;
+
+export type ManagedApplicationOAuthClientConnectionInput =
+  ApplicationOAuthClientRelayInput & { applicationId: string };
+
+export interface ManagedApplicationOAuthClientConnectionResult {
+  edges: Array<{
+    cursor: string;
+    client: ManagedApplicationOAuthClient;
+  }>;
+  pageInfo: PageInfo;
+  totalCount: number;
 }
 
 export interface ListManagedApplicationOAuthClientsInput {
@@ -446,6 +500,41 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
       offset: input.offset,
       limit: input.limit,
       hasNextPage: input.offset + records.length < totalCount,
+    };
+  }
+
+  @ReadOnly()
+  async getManagedConnection(
+    input: ManagedApplicationOAuthClientConnectionInput
+  ): Promise<ManagedApplicationOAuthClientConnectionResult> {
+    const { applicationId, where, orderBy, ...pagination } = input;
+    const mergedWhere: ApplicationOAuthClientRelayInput["where"] = {
+      _and: [
+        { applicationId: { _eq: applicationId } },
+        ...(where ? [where] : []),
+      ],
+    };
+    const executeInput: ApplicationOAuthClientRelayInput = {
+      ...pagination,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "updatedAt", direction: "desc" },
+        { field: "id", direction: "asc" },
+      ],
+    };
+    const [result, totalCount] = await Promise.all([
+      applicationOAuthClientRelayQuery.execute(this.connection, executeInput),
+      applicationOAuthClientRelayQuery.count(this.connection, {
+        where: mergedWhere,
+      }),
+    ]);
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        client: mapManagedClient(edge.node as ManagedClientRecord),
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
     };
   }
 

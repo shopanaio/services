@@ -18,6 +18,10 @@ export {
 export {
   ApplicationUserRepository,
   ApplicationUserRepositoryFactory,
+  type ApplicationUserRelayInput,
+  type ApplicationUserConnectionResult,
+  type ApplicationUserSecurityView,
+  type ApplicationUserLinkedAccountView,
 } from "./application-user/ApplicationUserRepository.js";
 export {
   AuthSessionRepository,
@@ -33,6 +37,19 @@ export {
   type ApplicationAuthProviderCredentials,
 } from "./ApplicationAuthConfigurationRepository.js";
 export {
+  ApplicationRepository,
+  type ApplicationAdminRecord,
+  type ApplicationConnectionInput,
+  type ApplicationConnectionResult,
+  type ApplicationKey,
+  type ApplicationRelayInput,
+} from "./ApplicationRepository.js";
+export {
+  ApplicationAuthAdminQueryRepository,
+  type ApplicationAuthAdminProviderView,
+  type ApplicationAuthAdminView,
+} from "./ApplicationAuthAdminQueryRepository.js";
+export {
   ApplicationAuthorizationContextRepository,
   type CreateApplicationAuthorizationContextInput,
   type CreatedApplicationAuthorizationContext,
@@ -45,6 +62,9 @@ export {
   type ManagedApplicationOAuthClientPage,
   type ManagedApplicationOAuthClientType,
   type ManagedApplicationOAuthClientEnvironment,
+  type ApplicationOAuthClientRelayInput,
+  type ManagedApplicationOAuthClientConnectionInput,
+  type ManagedApplicationOAuthClientConnectionResult,
 } from "./ApplicationOAuthClientRepository.js";
 export {
   ApplicationTokenValidationRepository,

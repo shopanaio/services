@@ -64,6 +64,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public applicationOAuthClientManagement!: ApplicationOAuthClientManagementService;
   public applicationTokenValidation!: ApplicationTokenValidationService;
   public applicationAuthLiveStateInvalidation!: ApplicationAuthLiveStateInvalidationBus;
+  public applicationAuthPublicBaseUrl!: string;
 
   private constructor(
     broker: ServiceBroker,
@@ -84,7 +85,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     applicationAuthAudit: ApplicationAuthAuditService,
     applicationOAuthClientManagement: ApplicationOAuthClientManagementService,
     applicationTokenValidation: ApplicationTokenValidationService,
-    applicationAuthLiveStateInvalidation: ApplicationAuthLiveStateInvalidationBus
+    applicationAuthLiveStateInvalidation: ApplicationAuthLiveStateInvalidationBus,
+    applicationAuthPublicBaseUrl: string
   ) {
     super(broker, logger, { repository, cache, authCache, nameResolver, workflow });
     this.repository = repository;
@@ -105,6 +107,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     this.applicationTokenValidation = applicationTokenValidation;
     this.applicationAuthLiveStateInvalidation =
       applicationAuthLiveStateInvalidation;
+    this.applicationAuthPublicBaseUrl = applicationAuthPublicBaseUrl;
   }
 
   static async create(
@@ -260,7 +263,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationAuthAudit,
       applicationOAuthClientManagement,
       applicationTokenValidation,
-      applicationAuthLiveStateInvalidation
+      applicationAuthLiveStateInvalidation,
+      applicationAuthPublicBaseUrl
     );
     return this.instance;
   }

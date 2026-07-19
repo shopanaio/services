@@ -6394,6 +6394,7 @@ __metadata:
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
     "@nestjs/cache-manager": "npm:^3.0.1"
     "@shopana/build-tools": "npm:0.0.1"
+    "@shopana/drizzle-query": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/rbac": "npm:*"
     "@shopana/shared-kernel": "npm:*"

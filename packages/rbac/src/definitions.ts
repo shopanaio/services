@@ -41,10 +41,30 @@ export const Resources = {
       displayName: "Access",
       description: "Member access to stores",
     },
+    "org.applications": {
+      actions: Actions,
+      displayName: "Applications",
+      description: "Application metadata and lifecycle",
+    },
+    "org.application-auth": {
+      actions: Actions,
+      displayName: "Application authentication",
+      description: "Application realm authentication configuration",
+    },
+    "org.application-auth-providers": {
+      actions: Actions,
+      displayName: "Application authentication providers",
+      description: "Application social provider configuration and credentials",
+    },
     "org.application-oauth-clients": {
       actions: Actions,
       displayName: "Application OAuth clients",
       description: "Application OAuth client lifecycle and secrets",
+    },
+    "org.application-users": {
+      actions: Actions,
+      displayName: "Application users",
+      description: "Application user security administration",
     },
   },
   store: {
@@ -124,7 +144,11 @@ export const Roles = {
       { resource: "org.roles", action: "admin" },
       { resource: "org.stores", action: "admin" },
       { resource: "org.access", action: "admin" },
+      { resource: "org.applications", action: "admin" },
+      { resource: "org.application-auth", action: "admin" },
+      { resource: "org.application-auth-providers", action: "admin" },
       { resource: "org.application-oauth-clients", action: "admin" },
+      { resource: "org.application-users", action: "admin" },
       { resource: "store.profile", action: "admin" },
       { resource: "store.members", action: "admin" },
       { resource: "store.roles", action: "admin" },

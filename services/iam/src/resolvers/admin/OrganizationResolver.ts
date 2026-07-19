@@ -11,6 +11,10 @@ import type { Organization } from "../../repositories/models/authorization.js";
 import { ORG_DOMAIN } from "../../casbin/CasbinService.js";
 import { IAMType } from "./IAMType.js";
 import { MembershipResolver } from "./MembershipResolver.js";
+import {
+  ApplicationConnectionResolver,
+  mapApplicationConnectionInput,
+} from "./ApplicationConnectionResolver.js";
 
 /**
  * Organization resolver - resolves organization domain interface
@@ -45,8 +49,11 @@ export class OrganizationResolver extends IAMType<string, Organization> {
     );
   }
 
-  applications(_args: unknown) {
-    // TODO: Resolve applications owned by the organization.
+  applications(args: Parameters<typeof mapApplicationConnectionInput>[1]) {
+    return new ApplicationConnectionResolver(
+      mapApplicationConnectionInput(this.$props, args),
+      this.$ctx
+    );
   }
 
   async name() {

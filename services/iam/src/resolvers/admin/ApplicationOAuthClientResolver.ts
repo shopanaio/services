@@ -1,109 +1,119 @@
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
+import type { ApplicationOAuthClient } from "../../services/ApplicationOAuthClientManagementService.js";
 import { IAMType } from "./IAMType.js";
 
 /** Application OAuth client resolver. */
-export class ApplicationOAuthClientResolver extends IAMType<unknown> {
+export class ApplicationOAuthClientResolver extends IAMType<ApplicationOAuthClient> {
   id() {
-    // TODO: Resolve the OAuth client global ID.
+    return encodeGlobalIdByType(
+      this.$props.id,
+      GlobalIdEntity.ApplicationOAuthClient
+    );
   }
 
   organizationId() {
-    // TODO: Resolve the owning organization ID.
+    return encodeGlobalIdByType(
+      this.$props.organizationId,
+      GlobalIdEntity.Organization
+    );
   }
 
   applicationId() {
-    // TODO: Resolve the owning application ID.
+    return encodeGlobalIdByType(
+      this.$props.applicationId,
+      GlobalIdEntity.Application
+    );
   }
 
   clientId() {
-    // TODO: Resolve the public OAuth client ID.
+    return this.$props.clientId;
   }
 
   name() {
-    // TODO: Resolve the OAuth client name.
+    return this.$props.name;
   }
 
   clientType() {
-    // TODO: Resolve the OAuth client type.
+    return this.$props.clientType.toUpperCase();
   }
 
   environment() {
-    // TODO: Resolve the OAuth client environment.
+    return this.$props.environment.toUpperCase();
   }
 
   redirectUris() {
-    // TODO: Resolve the OAuth client redirect URIs.
+    return this.$props.redirectUris;
   }
 
   postLogoutRedirectUris() {
-    // TODO: Resolve the OAuth client post-logout redirect URIs.
-  }
-
-  storeId() {
-    // TODO: Resolve the bound Store ID.
+    return this.$props.postLogoutRedirectUris;
   }
 
   resources() {
-    // TODO: Resolve the read-only OAuth resources.
+    return this.$props.resources;
   }
 
   grantTypes() {
-    // TODO: Resolve the read-only OAuth grant types.
+    return this.$props.grantTypes;
   }
 
   responseTypes() {
-    // TODO: Resolve the read-only OAuth response types.
+    return this.$props.responseTypes;
   }
 
   tokenEndpointAuthMethod() {
-    // TODO: Resolve the token endpoint authentication method.
+    return this.$props.tokenEndpointAuthMethod.toUpperCase();
   }
 
   requirePkce() {
-    // TODO: Resolve the PKCE requirement.
+    return this.$props.requirePKCE;
   }
 
   protocolPolicyVersion() {
-    // TODO: Resolve the protocol policy version.
+    return this.$props.protocolPolicyVersion;
   }
 
   skipConsent() {
-    // TODO: Resolve the consent bypass policy.
+    return this.$props.skipConsent;
   }
 
   enableEndSession() {
-    // TODO: Resolve the end-session capability state.
+    return this.$props.enableEndSession;
   }
 
   disabled() {
-    // TODO: Resolve whether the OAuth client is disabled.
+    return this.$props.disabled;
   }
 
   archived() {
-    // TODO: Resolve whether the OAuth client is archived.
+    return this.$props.archived;
   }
 
   revision() {
-    // TODO: Resolve the OAuth client revision.
+    return this.$props.revision;
   }
 
   createdAt() {
-    // TODO: Resolve the OAuth client creation timestamp.
+    return this.$props.createdAt;
   }
 
   updatedAt() {
-    // TODO: Resolve the OAuth client update timestamp.
+    return this.$props.updatedAt;
   }
 
   archivedAt() {
-    // TODO: Resolve the OAuth client archival timestamp.
+    return this.$props.archivedAt;
   }
 
   createdBy() {
-    // TODO: Resolve the actor that created the OAuth client.
+    return encodeGlobalIdByType(this.$props.createdBy, GlobalIdEntity.User);
   }
 
   updatedBy() {
-    // TODO: Resolve the actor that updated the OAuth client.
+    return encodeGlobalIdByType(this.$props.updatedBy, GlobalIdEntity.User);
   }
 }
 

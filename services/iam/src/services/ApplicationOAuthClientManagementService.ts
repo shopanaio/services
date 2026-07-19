@@ -14,7 +14,9 @@ import type {
   ManagedApplicationOAuthClient,
   ManagedApplicationOAuthClientEnvironment,
   ManagedApplicationOAuthClientType,
+  ManagedApplicationOAuthClientConnectionInput,
 } from "../repositories/ApplicationOAuthClientRepository.js";
+import type { PageInfo } from "@shopana/drizzle-query";
 import type {
   ApplicationAuthAdminAuditAction,
   ApplicationAuthAdminAuditPort,
@@ -68,6 +70,20 @@ export interface OAuthClientPage {
   limit: number;
   hasNextPage: boolean;
 }
+
+export interface OAuthClientConnection {
+  edges: Array<{ cursor: string; client: ApplicationOAuthClient }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+export type ListOAuthClientsConnectionInput = Omit<
+  ManagedApplicationOAuthClientConnectionInput,
+  "applicationId"
+> & {
+  organizationId: string;
+  applicationId: string;
+};
 
 export interface ListOAuthClientsInput {
   organizationId: string;
@@ -407,6 +423,39 @@ export class ApplicationOAuthClientManagementService {
     );
     const client = await this.requireClient(scope, value.clientId, true);
     return this.project(scope, client);
+  }
+
+  async getConnection(
+    input: ListOAuthClientsConnectionInput,
+    actor: ApplicationOAuthClientAdminActor
+  ): Promise<OAuthClientConnection> {
+    const scopeInput = this.parse(scopeSchema, {
+      organizationId: input.organizationId,
+      applicationId: input.applicationId,
+    });
+    const trustedActor = this.parseActor(actor);
+    await this.assertAuthorized(
+      scopeInput.organizationId,
+      trustedActor,
+      "read"
+    );
+    const scope = await this.requireScope(
+      scopeInput.organizationId,
+      scopeInput.applicationId
+    );
+    const { organizationId: _organizationId, ...relayInput } = input;
+    const result = await this.clients.getManagedConnection({
+      ...relayInput,
+      applicationId: scope.applicationId,
+    });
+    return {
+      edges: result.edges.map(({ cursor, client }) => {
+        this.assertProtocolPolicy(scope, client);
+        return { cursor, client: this.project(scope, client) };
+      }),
+      pageInfo: result.pageInfo,
+      totalCount: result.totalCount,
+    };
   }
 
   async create(

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Action, AuthorizeInput, CurrencyCode, DateTimeFilter, DimensionUnit, IdFilter, LocaleCode, MemberAccessRemoveInput, MemberInviteInput, MemberRemoveInput, MemberRoleChangeInput, OrganizationCreateInput, OrganizationOrderByInput, OrganizationOrderField, OrganizationUpdateInput, OrganizationWhereInput, OwnershipTransferInput, RoleAssignment, RoleCreateInput, RoleDeleteInput, RolePermissionInput, RoleUpdateInput, SessionRevokeInput, SortDirection, StringFilter, UserSignInInput, UserSignOutInput, UserSignUpInput, UserTokenRefreshInput, UserUpdateEmailInput, UserUpdatePasswordInput, UserUpdateProfileInput, WeightUnit } from './types.js'
+import { Action, ApplicationArchiveInput, ApplicationAuthBackgroundColor, ApplicationAuthBrandingInput, ApplicationAuthEmailDeliveryInput, ApplicationAuthMethodCapability, ApplicationAuthMethodUpdateInput, ApplicationAuthPrimaryColor, ApplicationAuthProviderConfigureInput, ApplicationAuthProviderCredentialsDeleteInput, ApplicationAuthProviderCredentialsRotateInput, ApplicationAuthProviderName, ApplicationAuthProviderUpdateInput, ApplicationAuthProviderValidateInput, ApplicationAuthProviderValidationStatus, ApplicationAuthRealmEnabledSetInput, ApplicationAuthUpdateInput, ApplicationConsentMode, ApplicationCreateInput, ApplicationLifecycleStatus, ApplicationOAuthClientArchiveInput, ApplicationOAuthClientCreateInput, ApplicationOAuthClientEnabledSetInput, ApplicationOAuthClientEnvironment, ApplicationOAuthClientOrderByInput, ApplicationOAuthClientOrderField, ApplicationOAuthClientSecretRotateInput, ApplicationOAuthClientSkipConsentSetInput, ApplicationOAuthClientType, ApplicationOAuthClientUpdateInput, ApplicationOAuthClientWhereInput, ApplicationOAuthTokenEndpointAuthMethod, ApplicationOrderByInput, ApplicationOrderField, ApplicationRegistrationMode, ApplicationUpdateInput, ApplicationUserAccountUnlinkInput, ApplicationUserOrderByInput, ApplicationUserOrderField, ApplicationUserSessionsRevokeAllInput, ApplicationUserStatus, ApplicationUserStatusSetInput, ApplicationUserWhereInput, ApplicationWhereInput, AuthorizeInput, CurrencyCode, DateTimeFilter, DimensionUnit, IdFilter, LocaleCode, MemberAccessRemoveInput, MemberInviteInput, MemberRemoveInput, MemberRoleChangeInput, OrganizationCreateInput, OrganizationOrderByInput, OrganizationOrderField, OrganizationUpdateInput, OrganizationWhereInput, OwnershipTransferInput, RoleAssignment, RoleCreateInput, RoleDeleteInput, RolePermissionInput, RoleUpdateInput, SessionRevokeInput, SortDirection, StringFilter, UserSignInInput, UserSignOutInput, UserSignUpInput, UserTokenRefreshInput, UserUpdateEmailInput, UserUpdatePasswordInput, UserUpdateProfileInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -13,6 +13,36 @@ export const definedNonNullAnySchema = z.any().refine((v) => isDefinedNonNullAny
 
 export const ActionSchema = z.nativeEnum(Action);
 
+export const ApplicationAuthBackgroundColorSchema = z.nativeEnum(ApplicationAuthBackgroundColor);
+
+export const ApplicationAuthMethodCapabilitySchema = z.nativeEnum(ApplicationAuthMethodCapability);
+
+export const ApplicationAuthPrimaryColorSchema = z.nativeEnum(ApplicationAuthPrimaryColor);
+
+export const ApplicationAuthProviderNameSchema = z.nativeEnum(ApplicationAuthProviderName);
+
+export const ApplicationAuthProviderValidationStatusSchema = z.nativeEnum(ApplicationAuthProviderValidationStatus);
+
+export const ApplicationConsentModeSchema = z.nativeEnum(ApplicationConsentMode);
+
+export const ApplicationLifecycleStatusSchema = z.nativeEnum(ApplicationLifecycleStatus);
+
+export const ApplicationOAuthClientEnvironmentSchema = z.nativeEnum(ApplicationOAuthClientEnvironment);
+
+export const ApplicationOAuthClientOrderFieldSchema = z.nativeEnum(ApplicationOAuthClientOrderField);
+
+export const ApplicationOAuthClientTypeSchema = z.nativeEnum(ApplicationOAuthClientType);
+
+export const ApplicationOAuthTokenEndpointAuthMethodSchema = z.nativeEnum(ApplicationOAuthTokenEndpointAuthMethod);
+
+export const ApplicationOrderFieldSchema = z.nativeEnum(ApplicationOrderField);
+
+export const ApplicationRegistrationModeSchema = z.nativeEnum(ApplicationRegistrationMode);
+
+export const ApplicationUserOrderFieldSchema = z.nativeEnum(ApplicationUserOrderField);
+
+export const ApplicationUserStatusSchema = z.nativeEnum(ApplicationUserStatus);
+
 export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
@@ -24,6 +54,280 @@ export const OrganizationOrderFieldSchema = z.nativeEnum(OrganizationOrderField)
 export const SortDirectionSchema = z.nativeEnum(SortDirection);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
+
+export function ApplicationArchiveInputSchema(): z.ZodObject<Properties<ApplicationArchiveInput>> {
+  return z.object({
+    applicationId: z.string(),
+    expectedRevision: z.number(),
+    organizationId: z.string()
+  })
+}
+
+export function ApplicationAuthBrandingInputSchema(): z.ZodObject<Properties<ApplicationAuthBrandingInput>> {
+  return z.object({
+    backgroundColor: ApplicationAuthBackgroundColorSchema.nullish(),
+    displayName: z.string().nullish(),
+    headline: z.string().nullish(),
+    logoUrl: z.string().nullish(),
+    primaryColor: ApplicationAuthPrimaryColorSchema.nullish()
+  })
+}
+
+export function ApplicationAuthEmailDeliveryInputSchema(): z.ZodObject<Properties<ApplicationAuthEmailDeliveryInput>> {
+  return z.object({
+    emailOtpSignInTemplateId: z.string(),
+    emailVerificationTemplateId: z.string(),
+    passwordResetTemplateId: z.string(),
+    senderIdentity: z.string(),
+    transportProfile: z.string()
+  })
+}
+
+export function ApplicationAuthMethodUpdateInputSchema(): z.ZodObject<Properties<ApplicationAuthMethodUpdateInput>> {
+  return z.object({
+    applicationId: z.string(),
+    enabledCapabilities: z.array(ApplicationAuthMethodCapabilitySchema),
+    expectedRevision: z.number(),
+    methodId: definedNonNullAnySchema,
+    organizationId: z.string()
+  })
+}
+
+export function ApplicationAuthProviderConfigureInputSchema(): z.ZodObject<Properties<ApplicationAuthProviderConfigureInput>> {
+  return z.object({
+    applicationId: z.string(),
+    clientId: z.string(),
+    clientSecret: z.string(),
+    expectedRevision: z.number(),
+    organizationId: z.string(),
+    provider: ApplicationAuthProviderNameSchema,
+    scopes: z.array(z.string())
+  })
+}
+
+export function ApplicationAuthProviderCredentialsDeleteInputSchema(): z.ZodObject<Properties<ApplicationAuthProviderCredentialsDeleteInput>> {
+  return z.object({
+    applicationId: z.string(),
+    expectedRevision: z.number(),
+    organizationId: z.string(),
+    provider: ApplicationAuthProviderNameSchema
+  })
+}
+
+export function ApplicationAuthProviderCredentialsRotateInputSchema(): z.ZodObject<Properties<ApplicationAuthProviderCredentialsRotateInput>> {
+  return z.object({
+    applicationId: z.string(),
+    clientId: z.string(),
+    clientSecret: z.string(),
+    expectedRevision: z.number(),
+    organizationId: z.string(),
+    provider: ApplicationAuthProviderNameSchema
+  })
+}
+
+export function ApplicationAuthProviderUpdateInputSchema(): z.ZodObject<Properties<ApplicationAuthProviderUpdateInput>> {
+  return z.object({
+    applicationId: z.string(),
+    enabled: z.boolean().nullish(),
+    expectedRevision: z.number(),
+    organizationId: z.string(),
+    provider: ApplicationAuthProviderNameSchema,
+    scopes: z.array(z.string()).nullish()
+  })
+}
+
+export function ApplicationAuthProviderValidateInputSchema(): z.ZodObject<Properties<ApplicationAuthProviderValidateInput>> {
+  return z.object({
+    applicationId: z.string(),
+    expectedRevision: z.number(),
+    organizationId: z.string(),
+    provider: ApplicationAuthProviderNameSchema
+  })
+}
+
+export function ApplicationAuthRealmEnabledSetInputSchema(): z.ZodObject<Properties<ApplicationAuthRealmEnabledSetInput>> {
+  return z.object({
+    applicationId: z.string(),
+    enabled: z.boolean(),
+    expectedRevision: z.number(),
+    organizationId: z.string()
+  })
+}
+
+export function ApplicationAuthUpdateInputSchema(): z.ZodObject<Properties<ApplicationAuthUpdateInput>> {
+  return z.object({
+    accessTokenTtlSeconds: z.number().nullish(),
+    applicationId: z.string(),
+    branding: z.lazy(() => ApplicationAuthBrandingInputSchema().nullish()),
+    defaultLocale: LocaleCodeSchema.nullish(),
+    emailDelivery: z.lazy(() => ApplicationAuthEmailDeliveryInputSchema().nullish()),
+    emailVerificationRequired: z.boolean().nullish(),
+    expectedRevision: z.number(),
+    idTokenTtlSeconds: z.number().nullish(),
+    organizationId: z.string(),
+    refreshTokenTtlSeconds: z.number().nullish(),
+    registrationMode: ApplicationRegistrationModeSchema.nullish(),
+    sessionTtlSeconds: z.number().nullish(),
+    trustedOrigins: z.array(z.string()).nullish()
+  })
+}
+
+export function ApplicationCreateInputSchema(): z.ZodObject<Properties<ApplicationCreateInput>> {
+  return z.object({
+    description: z.string().nullish(),
+    displayName: z.string(),
+    name: z.string(),
+    organizationId: z.string()
+  })
+}
+
+export function ApplicationOAuthClientArchiveInputSchema(): z.ZodObject<Properties<ApplicationOAuthClientArchiveInput>> {
+  return z.object({
+    applicationId: z.string(),
+    clientId: z.string(),
+    expectedRevision: z.number(),
+    organizationId: z.string()
+  })
+}
+
+export function ApplicationOAuthClientCreateInputSchema(): z.ZodObject<Properties<ApplicationOAuthClientCreateInput>> {
+  return z.object({
+    applicationId: z.string(),
+    clientType: ApplicationOAuthClientTypeSchema,
+    enableEndSession: z.boolean().nullish(),
+    environment: ApplicationOAuthClientEnvironmentSchema,
+    name: z.string(),
+    organizationId: z.string(),
+    postLogoutRedirectUris: z.array(z.string()).nullish(),
+    redirectUris: z.array(z.string()),
+    skipConsent: z.boolean().nullish()
+  })
+}
+
+export function ApplicationOAuthClientEnabledSetInputSchema(): z.ZodObject<Properties<ApplicationOAuthClientEnabledSetInput>> {
+  return z.object({
+    applicationId: z.string(),
+    clientId: z.string(),
+    enabled: z.boolean(),
+    expectedRevision: z.number(),
+    organizationId: z.string()
+  })
+}
+
+export function ApplicationOAuthClientOrderByInputSchema(): z.ZodObject<Properties<ApplicationOAuthClientOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: ApplicationOAuthClientOrderFieldSchema
+  })
+}
+
+export function ApplicationOAuthClientSecretRotateInputSchema(): z.ZodObject<Properties<ApplicationOAuthClientSecretRotateInput>> {
+  return z.object({
+    applicationId: z.string(),
+    clientId: z.string(),
+    expectedRevision: z.number(),
+    organizationId: z.string()
+  })
+}
+
+export function ApplicationOAuthClientSkipConsentSetInputSchema(): z.ZodObject<Properties<ApplicationOAuthClientSkipConsentSetInput>> {
+  return z.object({
+    applicationId: z.string(),
+    clientId: z.string(),
+    expectedRevision: z.number(),
+    organizationId: z.string(),
+    skipConsent: z.boolean()
+  })
+}
+
+export function ApplicationOAuthClientUpdateInputSchema(): z.ZodObject<Properties<ApplicationOAuthClientUpdateInput>> {
+  return z.object({
+    applicationId: z.string(),
+    clientId: z.string(),
+    enableEndSession: z.boolean().nullish(),
+    environment: ApplicationOAuthClientEnvironmentSchema.nullish(),
+    expectedRevision: z.number(),
+    name: z.string().nullish(),
+    organizationId: z.string(),
+    postLogoutRedirectUris: z.array(z.string()).nullish(),
+    redirectUris: z.array(z.string()).nullish()
+  })
+}
+
+export function ApplicationOAuthClientWhereInputSchema(): z.ZodObject<Properties<ApplicationOAuthClientWhereInput>> {
+  return z.object({
+    archived: z.boolean().nullish(),
+    clientType: z.array(ApplicationOAuthClientTypeSchema).nullish(),
+    disabled: z.boolean().nullish(),
+    environment: z.array(ApplicationOAuthClientEnvironmentSchema).nullish(),
+    search: z.string().nullish()
+  })
+}
+
+export function ApplicationOrderByInputSchema(): z.ZodObject<Properties<ApplicationOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: ApplicationOrderFieldSchema
+  })
+}
+
+export function ApplicationUpdateInputSchema(): z.ZodObject<Properties<ApplicationUpdateInput>> {
+  return z.object({
+    applicationId: z.string(),
+    description: z.string().nullish(),
+    displayName: z.string().nullish(),
+    expectedRevision: z.number(),
+    name: z.string().nullish(),
+    organizationId: z.string()
+  })
+}
+
+export function ApplicationUserAccountUnlinkInputSchema(): z.ZodObject<Properties<ApplicationUserAccountUnlinkInput>> {
+  return z.object({
+    accountId: z.string(),
+    applicationId: z.string(),
+    organizationId: z.string(),
+    userId: z.string()
+  })
+}
+
+export function ApplicationUserOrderByInputSchema(): z.ZodObject<Properties<ApplicationUserOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: ApplicationUserOrderFieldSchema
+  })
+}
+
+export function ApplicationUserSessionsRevokeAllInputSchema(): z.ZodObject<Properties<ApplicationUserSessionsRevokeAllInput>> {
+  return z.object({
+    applicationId: z.string(),
+    organizationId: z.string(),
+    userId: z.string()
+  })
+}
+
+export function ApplicationUserStatusSetInputSchema(): z.ZodObject<Properties<ApplicationUserStatusSetInput>> {
+  return z.object({
+    applicationId: z.string(),
+    organizationId: z.string(),
+    userId: z.string()
+  })
+}
+
+export function ApplicationUserWhereInputSchema(): z.ZodObject<Properties<ApplicationUserWhereInput>> {
+  return z.object({
+    emailVerified: z.boolean().nullish(),
+    search: z.string().nullish(),
+    status: z.array(ApplicationUserStatusSchema).nullish()
+  })
+}
+
+export function ApplicationWhereInputSchema(): z.ZodObject<Properties<ApplicationWhereInput>> {
+  return z.object({
+    search: z.string().nullish(),
+    status: z.array(ApplicationLifecycleStatusSchema).nullish()
+  })
+}
 
 export function AuthorizeInputSchema(): z.ZodObject<Properties<AuthorizeInput>> {
   return z.object({

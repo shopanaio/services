@@ -15,6 +15,8 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  /** Stable identifier of a catalog-owned authentication method. */
+  ApplicationAuthMethodId: { input: any; output: any; }
   DateTime: { input: string; output: string; }
   Email: { input: string; output: string; }
   JSON: { input: Record<string, unknown>; output: Record<string, unknown>; }
@@ -32,6 +34,1020 @@ export enum Action {
   Read = 'read',
   Write = 'write'
 }
+
+/** An organization-owned application authentication realm. */
+export type Application = Node & {
+  __typename?: 'Application';
+  /** Timestamp when the application was archived. */
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Authentication configuration for this application. */
+  auth: ApplicationAuthConfiguration;
+  /** Timestamp when the application was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Optional application description. */
+  description?: Maybe<Scalars['String']['output']>;
+  /** Human-readable application name. */
+  displayName: Scalars['String']['output'];
+  /** Globally unique application identifier. */
+  id: Scalars['ID']['output'];
+  /** URL-friendly application name. */
+  name: Scalars['String']['output'];
+  /** Find an OAuth client by its public client identifier. */
+  oauthClient?: Maybe<ApplicationOAuthClient>;
+  /** OAuth clients registered for this application. */
+  oauthClients: ApplicationOAuthClientConnection;
+  /** Organization that owns the application. */
+  organization: Organization;
+  /** Identifier of the organization that owns the application. */
+  organizationId: Scalars['ID']['output'];
+  /** Immutable OAuth resource audience assigned by IAM. */
+  resource: Scalars['String']['output'];
+  /** Current revision used for optimistic concurrency. */
+  revision: Scalars['Int']['output'];
+  /** Current application lifecycle status. */
+  status: ApplicationLifecycleStatus;
+  /** Timestamp when the application was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Find a user within this application realm. */
+  user?: Maybe<ApplicationUser>;
+  /** Users registered within this application realm. */
+  users: ApplicationUserConnection;
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApplicationOauthClientArgs = {
+  clientId: Scalars['String']['input'];
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApplicationOauthClientsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApplicationOAuthClientOrderByInput>>;
+  where?: InputMaybe<ApplicationOAuthClientWhereInput>;
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApplicationUserArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApplicationUsersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApplicationUserOrderByInput>>;
+  where?: InputMaybe<ApplicationUserWhereInput>;
+};
+
+/** Input for archiving an application. */
+export type ApplicationArchiveInput = {
+  /** Application to archive. */
+  applicationId: Scalars['ID']['input'];
+  /** Revision expected by the caller. */
+  expectedRevision: Scalars['Int']['input'];
+  /** Organization that owns the application. */
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of archiving an application. */
+export type ApplicationArchivePayload = {
+  __typename?: 'ApplicationArchivePayload';
+  application?: Maybe<Application>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Allowed background colors for hosted authentication UI. */
+export enum ApplicationAuthBackgroundColor {
+  Slate = 'SLATE',
+  White = 'WHITE'
+}
+
+/** Branding values used by the hosted authentication UI. */
+export type ApplicationAuthBranding = {
+  __typename?: 'ApplicationAuthBranding';
+  backgroundColor?: Maybe<ApplicationAuthBackgroundColor>;
+  displayName?: Maybe<Scalars['String']['output']>;
+  headline?: Maybe<Scalars['String']['output']>;
+  logoUrl?: Maybe<Scalars['String']['output']>;
+  primaryColor?: Maybe<ApplicationAuthPrimaryColor>;
+};
+
+/** Branding values for the hosted authentication UI. */
+export type ApplicationAuthBrandingInput = {
+  backgroundColor?: InputMaybe<ApplicationAuthBackgroundColor>;
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  headline?: InputMaybe<Scalars['String']['input']>;
+  logoUrl?: InputMaybe<Scalars['String']['input']>;
+  primaryColor?: InputMaybe<ApplicationAuthPrimaryColor>;
+};
+
+/** Administrative authentication configuration of an application realm. */
+export type ApplicationAuthConfiguration = {
+  __typename?: 'ApplicationAuthConfiguration';
+  /** Access token lifetime in seconds. */
+  accessTokenTtlSeconds: Scalars['Int']['output'];
+  /** Application that owns this configuration. */
+  applicationId: Scalars['ID']['output'];
+  /** Find an authentication method by its catalog identifier. */
+  authMethod: ApplicationAuthMethod;
+  /** Authentication methods supported by the realm. */
+  authMethods: Array<ApplicationAuthMethod>;
+  /** Hosted authentication UI branding. */
+  branding: ApplicationAuthBranding;
+  /** Read-only consent policy enforced by the protocol version. */
+  consentMode: ApplicationConsentMode;
+  /** Timestamp when the configuration was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Default locale for hosted authentication UI and messages. */
+  defaultLocale: LocaleCode;
+  /** Email delivery configuration without credential values. */
+  emailDelivery: ApplicationAuthEmailDeliveryConfiguration;
+  /** Whether a verified email is required by the realm. */
+  emailVerificationRequired: Scalars['Boolean']['output'];
+  /** ID token lifetime in seconds. */
+  idTokenTtlSeconds: Scalars['Int']['output'];
+  /** Canonical OAuth 2.1 and OpenID Connect endpoint URLs. */
+  protocolUrls: ApplicationAuthProtocolUrls;
+  /** Find a social provider by its catalog name. */
+  provider: ApplicationAuthProvider;
+  /** Social providers supported by the realm. */
+  providers: Array<ApplicationAuthProvider>;
+  /** Whether the application realm accepts authentication traffic. */
+  realmEnabled: Scalars['Boolean']['output'];
+  /** Refresh token lifetime in seconds. */
+  refreshTokenTtlSeconds: Scalars['Int']['output'];
+  /** Registration policy for new application users. */
+  registrationMode: ApplicationRegistrationMode;
+  /** Current revision used for optimistic concurrency. */
+  revision: Scalars['Int']['output'];
+  /** Application session lifetime in seconds. */
+  sessionTtlSeconds: Scalars['Int']['output'];
+  /** Locales supported by the application realm. */
+  supportedLocales: Array<LocaleCode>;
+  /** Origins trusted by the application realm. */
+  trustedOrigins: Array<ApplicationAuthTrustedOrigin>;
+  /** Timestamp when the configuration was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** Administrative authentication configuration of an application realm. */
+export type ApplicationAuthConfigurationAuthMethodArgs = {
+  id: Scalars['ApplicationAuthMethodId']['input'];
+};
+
+
+/** Administrative authentication configuration of an application realm. */
+export type ApplicationAuthConfigurationProviderArgs = {
+  name: ApplicationAuthProviderName;
+};
+
+/** Non-secret email delivery configuration for an application realm. */
+export type ApplicationAuthEmailDeliveryConfiguration = {
+  __typename?: 'ApplicationAuthEmailDeliveryConfiguration';
+  configured: Scalars['Boolean']['output'];
+  emailOtpSignInTemplateId?: Maybe<Scalars['String']['output']>;
+  emailVerificationTemplateId?: Maybe<Scalars['String']['output']>;
+  passwordResetTemplateId?: Maybe<Scalars['String']['output']>;
+  senderIdentity?: Maybe<Scalars['String']['output']>;
+  transportProfile?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<Scalars['ID']['output']>;
+};
+
+/** References to a preconfigured email transport and message templates. */
+export type ApplicationAuthEmailDeliveryInput = {
+  emailOtpSignInTemplateId: Scalars['String']['input'];
+  emailVerificationTemplateId: Scalars['String']['input'];
+  passwordResetTemplateId: Scalars['String']['input'];
+  senderIdentity: Scalars['String']['input'];
+  transportProfile: Scalars['String']['input'];
+};
+
+/** Status and enabled capabilities of a catalog-owned authentication method. */
+export type ApplicationAuthMethod = {
+  __typename?: 'ApplicationAuthMethod';
+  availableCapabilities: Array<ApplicationAuthMethodCapability>;
+  configured: Scalars['Boolean']['output'];
+  enabledCapabilities: Array<ApplicationAuthMethodCapability>;
+  id: Scalars['ApplicationAuthMethodId']['output'];
+  revision: Scalars['Int']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<Scalars['ID']['output']>;
+};
+
+/** Capability exposed by an authentication method. */
+export enum ApplicationAuthMethodCapability {
+  PasswordReset = 'PASSWORD_RESET',
+  SignIn = 'SIGN_IN',
+  SignUp = 'SIGN_UP'
+}
+
+/** Result of updating an application authentication method. */
+export type ApplicationAuthMethodPayload = {
+  __typename?: 'ApplicationAuthMethodPayload';
+  authMethod?: Maybe<ApplicationAuthMethod>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for updating enabled capabilities of an authentication method. */
+export type ApplicationAuthMethodUpdateInput = {
+  applicationId: Scalars['ID']['input'];
+  enabledCapabilities: Array<ApplicationAuthMethodCapability>;
+  expectedRevision: Scalars['Int']['input'];
+  methodId: Scalars['ApplicationAuthMethodId']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Allowed primary colors for hosted authentication UI. */
+export enum ApplicationAuthPrimaryColor {
+  Blue = 'BLUE',
+  Emerald = 'EMERALD',
+  Indigo = 'INDIGO',
+  Violet = 'VIOLET'
+}
+
+/** Canonical OAuth 2.1 and OpenID Connect URLs for an application realm. */
+export type ApplicationAuthProtocolUrls = {
+  __typename?: 'ApplicationAuthProtocolUrls';
+  authorizationUrl: Scalars['String']['output'];
+  endSessionUrl: Scalars['String']['output'];
+  issuer: Scalars['String']['output'];
+  jwksUrl: Scalars['String']['output'];
+  oauthAuthorizationServerMetadataUrl: Scalars['String']['output'];
+  oidcDiscoveryUrl: Scalars['String']['output'];
+  providerCallbackUrls: Array<ApplicationAuthProviderCallbackUrl>;
+  revocationUrl: Scalars['String']['output'];
+  tokenUrl: Scalars['String']['output'];
+};
+
+/** Non-secret status of a social authentication provider. */
+export type ApplicationAuthProvider = {
+  __typename?: 'ApplicationAuthProvider';
+  applicationId: Scalars['ID']['output'];
+  /** Exact callback URL computed by IAM. */
+  callbackUrl: Scalars['String']['output'];
+  configured: Scalars['Boolean']['output'];
+  enabled: Scalars['Boolean']['output'];
+  /** Masked client identifier safe for administrative display. */
+  maskedClientId?: Maybe<Scalars['String']['output']>;
+  provider: ApplicationAuthProviderName;
+  revision: Scalars['Int']['output'];
+  scopes: Array<Scalars['String']['output']>;
+  supported: Scalars['Boolean']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<Scalars['ID']['output']>;
+};
+
+/** Computed callback URL for a catalog-owned social provider. */
+export type ApplicationAuthProviderCallbackUrl = {
+  __typename?: 'ApplicationAuthProviderCallbackUrl';
+  provider: ApplicationAuthProviderName;
+  url: Scalars['String']['output'];
+};
+
+/** Input for configuring credentials and scopes of a social provider. */
+export type ApplicationAuthProviderConfigureInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  clientSecret: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+  scopes: Array<Scalars['String']['input']>;
+};
+
+/** Input for deleting credentials from a disabled social provider. */
+export type ApplicationAuthProviderCredentialsDeleteInput = {
+  applicationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+};
+
+/** Input for replacing social provider credentials. */
+export type ApplicationAuthProviderCredentialsRotateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  clientSecret: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+};
+
+/** Social authentication providers supported by the code-owned catalog. */
+export enum ApplicationAuthProviderName {
+  Facebook = 'FACEBOOK',
+  Google = 'GOOGLE'
+}
+
+/** Result of changing a social provider configuration. */
+export type ApplicationAuthProviderPayload = {
+  __typename?: 'ApplicationAuthProviderPayload';
+  provider?: Maybe<ApplicationAuthProvider>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for updating non-secret social provider settings. */
+export type ApplicationAuthProviderUpdateInput = {
+  applicationId: Scalars['ID']['input'];
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+  scopes?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Input for safely validating a social provider configuration. */
+export type ApplicationAuthProviderValidateInput = {
+  applicationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+};
+
+/** Safe validation result for a social provider configuration. */
+export type ApplicationAuthProviderValidation = {
+  __typename?: 'ApplicationAuthProviderValidation';
+  checkedAt: Scalars['DateTime']['output'];
+  provider: ApplicationAuthProviderName;
+  /** Stable non-secret reason code when validation did not succeed. */
+  reasonCode?: Maybe<Scalars['String']['output']>;
+  revision: Scalars['Int']['output'];
+  status: ApplicationAuthProviderValidationStatus;
+};
+
+/** Result of validating a social provider configuration. */
+export type ApplicationAuthProviderValidationPayload = {
+  __typename?: 'ApplicationAuthProviderValidationPayload';
+  userErrors: Array<GenericUserError>;
+  validation?: Maybe<ApplicationAuthProviderValidation>;
+};
+
+/** Result status of a safe provider configuration validation. */
+export enum ApplicationAuthProviderValidationStatus {
+  Invalid = 'INVALID',
+  Unavailable = 'UNAVAILABLE',
+  Valid = 'VALID'
+}
+
+/** Input for enabling or disabling an application realm. */
+export type ApplicationAuthRealmEnabledSetInput = {
+  applicationId: Scalars['ID']['input'];
+  enabled: Scalars['Boolean']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** An exact origin trusted by an application realm. */
+export type ApplicationAuthTrustedOrigin = {
+  __typename?: 'ApplicationAuthTrustedOrigin';
+  createdAt: Scalars['DateTime']['output'];
+  origin: Scalars['String']['output'];
+};
+
+/** Input for updating application authentication policy and presentation. */
+export type ApplicationAuthUpdateInput = {
+  accessTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  applicationId: Scalars['ID']['input'];
+  branding?: InputMaybe<ApplicationAuthBrandingInput>;
+  defaultLocale?: InputMaybe<LocaleCode>;
+  emailDelivery?: InputMaybe<ApplicationAuthEmailDeliveryInput>;
+  emailVerificationRequired?: InputMaybe<Scalars['Boolean']['input']>;
+  expectedRevision: Scalars['Int']['input'];
+  idTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  organizationId: Scalars['ID']['input'];
+  refreshTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  registrationMode?: InputMaybe<ApplicationRegistrationMode>;
+  sessionTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  trustedOrigins?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Result of updating application authentication configuration. */
+export type ApplicationAuthUpdatePayload = {
+  __typename?: 'ApplicationAuthUpdatePayload';
+  configuration?: Maybe<ApplicationAuthConfiguration>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** A paginated connection of applications. */
+export type ApplicationConnection = {
+  __typename?: 'ApplicationConnection';
+  /** Application edges in the current page. */
+  edges: Array<ApplicationEdge>;
+  /** Information needed to continue pagination. */
+  pageInfo: PageInfo;
+  /** Total number of applications matching the filter. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Consent policy supported by the current protocol version. */
+export enum ApplicationConsentMode {
+  /** Authorization requires explicit user consent when consent is applicable. */
+  Explicit = 'EXPLICIT'
+}
+
+/** Input for creating an application. */
+export type ApplicationCreateInput = {
+  /** Optional application description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** Human-readable application name. */
+  displayName: Scalars['String']['input'];
+  /** URL-friendly application name. */
+  name: Scalars['String']['input'];
+  /** Organization that will own the application. */
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of creating an application. */
+export type ApplicationCreatePayload = {
+  __typename?: 'ApplicationCreatePayload';
+  application?: Maybe<Application>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** An application and its pagination cursor. */
+export type ApplicationEdge = {
+  __typename?: 'ApplicationEdge';
+  /** Opaque pagination cursor. */
+  cursor: Scalars['String']['output'];
+  /** Application at the end of the edge. */
+  node: Application;
+};
+
+/** Lifecycle status of an application realm. */
+export enum ApplicationLifecycleStatus {
+  /** The application is active. */
+  Active = 'ACTIVE',
+  /** The application is archived and cannot be used for new authentication. */
+  Archived = 'ARCHIVED'
+}
+
+/** Application realm management mutations. */
+export type ApplicationMutation = {
+  __typename?: 'ApplicationMutation';
+  /** Archive an application realm. */
+  applicationArchive: ApplicationArchivePayload;
+  /** Update enabled capabilities of an authentication method. */
+  applicationAuthMethodUpdate: ApplicationAuthMethodPayload;
+  /** Configure credentials and scopes of a social provider. */
+  applicationAuthProviderConfigure: ApplicationAuthProviderPayload;
+  /** Delete credentials from a disabled social provider. */
+  applicationAuthProviderCredentialsDelete: ApplicationAuthProviderPayload;
+  /** Replace social provider credentials. */
+  applicationAuthProviderCredentialsRotate: ApplicationAuthProviderPayload;
+  /** Update non-secret social provider settings. */
+  applicationAuthProviderUpdate: ApplicationAuthProviderPayload;
+  /** Safely validate a social provider configuration. */
+  applicationAuthProviderValidate: ApplicationAuthProviderValidationPayload;
+  /** Enable or disable an application authentication realm. */
+  applicationAuthRealmEnabledSet: ApplicationAuthUpdatePayload;
+  /** Update application authentication policy and presentation. */
+  applicationAuthUpdate: ApplicationAuthUpdatePayload;
+  /** Create an application realm. */
+  applicationCreate: ApplicationCreatePayload;
+  /** Archive an OAuth client. */
+  applicationOAuthClientArchive: ApplicationOAuthClientPayload;
+  /** Create an OAuth client with fixed protocol policy. */
+  applicationOAuthClientCreate: ApplicationOAuthClientCreatePayload;
+  /** Enable or disable an OAuth client. */
+  applicationOAuthClientEnabledSet: ApplicationOAuthClientPayload;
+  /** Rotate a confidential OAuth client secret. */
+  applicationOAuthClientSecretRotate: ApplicationOAuthClientSecretRotatePayload;
+  /** Change first-party consent bypass policy for an OAuth client. */
+  applicationOAuthClientSkipConsentSet: ApplicationOAuthClientPayload;
+  /** Update mutable OAuth client metadata. */
+  applicationOAuthClientUpdate: ApplicationOAuthClientPayload;
+  /** Update application metadata. */
+  applicationUpdate: ApplicationUpdatePayload;
+  /** Unlink a login account from an application user. */
+  applicationUserAccountUnlink: ApplicationUserAccountUnlinkPayload;
+  /** Block an application user. */
+  applicationUserBlock: ApplicationUserPayload;
+  /** Revoke every active session of an application user. */
+  applicationUserSessionsRevokeAll: ApplicationUserSessionsRevokeAllPayload;
+  /** Unblock an application user. */
+  applicationUserUnblock: ApplicationUserPayload;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationArchiveArgs = {
+  input: ApplicationArchiveInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationAuthMethodUpdateArgs = {
+  input: ApplicationAuthMethodUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationAuthProviderConfigureArgs = {
+  input: ApplicationAuthProviderConfigureInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationAuthProviderCredentialsDeleteArgs = {
+  input: ApplicationAuthProviderCredentialsDeleteInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationAuthProviderCredentialsRotateArgs = {
+  input: ApplicationAuthProviderCredentialsRotateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationAuthProviderUpdateArgs = {
+  input: ApplicationAuthProviderUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationAuthProviderValidateArgs = {
+  input: ApplicationAuthProviderValidateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationAuthRealmEnabledSetArgs = {
+  input: ApplicationAuthRealmEnabledSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationAuthUpdateArgs = {
+  input: ApplicationAuthUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationCreateArgs = {
+  input: ApplicationCreateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationOAuthClientArchiveArgs = {
+  input: ApplicationOAuthClientArchiveInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationOAuthClientCreateArgs = {
+  input: ApplicationOAuthClientCreateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationOAuthClientEnabledSetArgs = {
+  input: ApplicationOAuthClientEnabledSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationOAuthClientSecretRotateArgs = {
+  input: ApplicationOAuthClientSecretRotateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationOAuthClientSkipConsentSetArgs = {
+  input: ApplicationOAuthClientSkipConsentSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationOAuthClientUpdateArgs = {
+  input: ApplicationOAuthClientUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationUpdateArgs = {
+  input: ApplicationUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationUserAccountUnlinkArgs = {
+  input: ApplicationUserAccountUnlinkInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationUserBlockArgs = {
+  input: ApplicationUserStatusSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationUserSessionsRevokeAllArgs = {
+  input: ApplicationUserSessionsRevokeAllInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApplicationMutationApplicationUserUnblockArgs = {
+  input: ApplicationUserStatusSetInput;
+};
+
+/** An OAuth 2.1 client registered within an application realm. */
+export type ApplicationOAuthClient = Node & {
+  __typename?: 'ApplicationOAuthClient';
+  applicationId: Scalars['ID']['output'];
+  archived: Scalars['Boolean']['output'];
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Public, globally unique OAuth client identifier. */
+  clientId: Scalars['String']['output'];
+  clientType: ApplicationOAuthClientType;
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: Scalars['ID']['output'];
+  disabled: Scalars['Boolean']['output'];
+  enableEndSession: Scalars['Boolean']['output'];
+  environment: ApplicationOAuthClientEnvironment;
+  /** Read-only grant types enforced by the protocol policy. */
+  grantTypes: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  organizationId: Scalars['ID']['output'];
+  postLogoutRedirectUris: Array<Scalars['String']['output']>;
+  protocolPolicyVersion: Scalars['Int']['output'];
+  redirectUris: Array<Scalars['String']['output']>;
+  /** Whether Proof Key for Code Exchange is required. */
+  requirePkce: Scalars['Boolean']['output'];
+  /** Read-only resource audience inherited from the application. */
+  resources: Array<Scalars['String']['output']>;
+  /** Read-only response types enforced by the protocol policy. */
+  responseTypes: Array<Scalars['String']['output']>;
+  revision: Scalars['Int']['output'];
+  skipConsent: Scalars['Boolean']['output'];
+  tokenEndpointAuthMethod: ApplicationOAuthTokenEndpointAuthMethod;
+  updatedAt: Scalars['DateTime']['output'];
+  updatedBy: Scalars['ID']['output'];
+};
+
+/** Input for archiving an OAuth client. */
+export type ApplicationOAuthClientArchiveInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** A paginated connection of OAuth clients. */
+export type ApplicationOAuthClientConnection = {
+  __typename?: 'ApplicationOAuthClientConnection';
+  edges: Array<ApplicationOAuthClientEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Input for creating an OAuth client with fixed protocol policy. */
+export type ApplicationOAuthClientCreateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientType: ApplicationOAuthClientType;
+  enableEndSession?: InputMaybe<Scalars['Boolean']['input']>;
+  environment: ApplicationOAuthClientEnvironment;
+  name: Scalars['String']['input'];
+  organizationId: Scalars['ID']['input'];
+  postLogoutRedirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
+  redirectUris: Array<Scalars['String']['input']>;
+  skipConsent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Result of creating an OAuth client. */
+export type ApplicationOAuthClientCreatePayload = {
+  __typename?: 'ApplicationOAuthClientCreatePayload';
+  client?: Maybe<ApplicationOAuthClient>;
+  /** One-time plaintext secret for a confidential client; otherwise null. */
+  clientSecret?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** An OAuth client and its pagination cursor. */
+export type ApplicationOAuthClientEdge = {
+  __typename?: 'ApplicationOAuthClientEdge';
+  cursor: Scalars['String']['output'];
+  node: ApplicationOAuthClient;
+};
+
+/** Input for enabling or disabling an OAuth client. */
+export type ApplicationOAuthClientEnabledSetInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Environment used to enforce redirect URI policy. */
+export enum ApplicationOAuthClientEnvironment {
+  Development = 'DEVELOPMENT',
+  Production = 'PRODUCTION'
+}
+
+/** Ordering configuration for application OAuth clients. */
+export type ApplicationOAuthClientOrderByInput = {
+  direction: SortDirection;
+  field: ApplicationOAuthClientOrderField;
+};
+
+/** Fields available for ordering application OAuth clients. */
+export enum ApplicationOAuthClientOrderField {
+  CreatedAt = 'CREATED_AT',
+  Name = 'NAME',
+  UpdatedAt = 'UPDATED_AT'
+}
+
+/** Result of changing an OAuth client. */
+export type ApplicationOAuthClientPayload = {
+  __typename?: 'ApplicationOAuthClientPayload';
+  client?: Maybe<ApplicationOAuthClient>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for rotating a confidential OAuth client secret. */
+export type ApplicationOAuthClientSecretRotateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of rotating a confidential OAuth client secret. */
+export type ApplicationOAuthClientSecretRotatePayload = {
+  __typename?: 'ApplicationOAuthClientSecretRotatePayload';
+  client?: Maybe<ApplicationOAuthClient>;
+  /** One-time plaintext replacement secret. */
+  clientSecret?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for changing first-party consent bypass policy. */
+export type ApplicationOAuthClientSkipConsentSetInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  skipConsent: Scalars['Boolean']['input'];
+};
+
+/** OAuth client confidentiality classification. */
+export enum ApplicationOAuthClientType {
+  Confidential = 'CONFIDENTIAL',
+  Public = 'PUBLIC'
+}
+
+/** Input for updating mutable OAuth client metadata. */
+export type ApplicationOAuthClientUpdateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  enableEndSession?: InputMaybe<Scalars['Boolean']['input']>;
+  environment?: InputMaybe<ApplicationOAuthClientEnvironment>;
+  expectedRevision: Scalars['Int']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  organizationId: Scalars['ID']['input'];
+  postLogoutRedirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
+  redirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Filter conditions for application OAuth clients. */
+export type ApplicationOAuthClientWhereInput = {
+  archived?: InputMaybe<Scalars['Boolean']['input']>;
+  clientType?: InputMaybe<Array<ApplicationOAuthClientType>>;
+  disabled?: InputMaybe<Scalars['Boolean']['input']>;
+  environment?: InputMaybe<Array<ApplicationOAuthClientEnvironment>>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Token endpoint authentication method enforced by IAM. */
+export enum ApplicationOAuthTokenEndpointAuthMethod {
+  ClientSecretBasic = 'CLIENT_SECRET_BASIC',
+  None = 'NONE'
+}
+
+/** Ordering configuration for applications. */
+export type ApplicationOrderByInput = {
+  /** Sort direction. */
+  direction: SortDirection;
+  /** Field to order by. */
+  field: ApplicationOrderField;
+};
+
+/** Fields available for ordering applications. */
+export enum ApplicationOrderField {
+  CreatedAt = 'CREATED_AT',
+  DisplayName = 'DISPLAY_NAME',
+  Name = 'NAME',
+  UpdatedAt = 'UPDATED_AT'
+}
+
+/** Application realm management queries. */
+export type ApplicationQuery = {
+  __typename?: 'ApplicationQuery';
+  /** Get an application owned by the selected organization. */
+  application?: Maybe<Application>;
+  /** List applications owned by the selected organization. */
+  applications: ApplicationConnection;
+};
+
+
+/** Application realm management queries. */
+export type ApplicationQueryApplicationArgs = {
+  id: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+
+/** Application realm management queries. */
+export type ApplicationQueryApplicationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApplicationOrderByInput>>;
+  organizationId: Scalars['ID']['input'];
+  where?: InputMaybe<ApplicationWhereInput>;
+};
+
+/** Registration policy for new application users. */
+export enum ApplicationRegistrationMode {
+  /** New user registration is disabled. */
+  Disabled = 'DISABLED',
+  /** New users may register through enabled sign-up methods. */
+  Open = 'OPEN'
+}
+
+/** Input for updating application metadata. */
+export type ApplicationUpdateInput = {
+  /** Application to update. */
+  applicationId: Scalars['ID']['input'];
+  /** New application description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** New human-readable application name. */
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  /** Revision expected by the caller. */
+  expectedRevision: Scalars['Int']['input'];
+  /** New URL-friendly application name. */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** Organization that owns the application. */
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of updating application metadata. */
+export type ApplicationUpdatePayload = {
+  __typename?: 'ApplicationUpdatePayload';
+  application?: Maybe<Application>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** A user scoped to a single application authentication realm. */
+export type ApplicationUser = Node & {
+  __typename?: 'ApplicationUser';
+  applicationId: Scalars['ID']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  email: Scalars['Email']['output'];
+  emailVerified: Scalars['Boolean']['output'];
+  firstName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  imageUrl?: Maybe<Scalars['String']['output']>;
+  lastName?: Maybe<Scalars['String']['output']>;
+  /** Linked login accounts without provider credentials or tokens. */
+  linkedAccounts: Array<ApplicationUserLinkedAccount>;
+  name: Scalars['String']['output'];
+  /** Safe security metadata without credentials or token values. */
+  security: ApplicationUserSecurityMetadata;
+  status: ApplicationUserStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Input for unlinking a login account from an application user. */
+export type ApplicationUserAccountUnlinkInput = {
+  accountId: Scalars['ID']['input'];
+  applicationId: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+/** Result of unlinking an application user login account. */
+export type ApplicationUserAccountUnlinkPayload = {
+  __typename?: 'ApplicationUserAccountUnlinkPayload';
+  unlinkedAccountId?: Maybe<Scalars['ID']['output']>;
+  user?: Maybe<ApplicationUser>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** A paginated connection of application users. */
+export type ApplicationUserConnection = {
+  __typename?: 'ApplicationUserConnection';
+  edges: Array<ApplicationUserEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An application user and its pagination cursor. */
+export type ApplicationUserEdge = {
+  __typename?: 'ApplicationUserEdge';
+  cursor: Scalars['String']['output'];
+  node: ApplicationUser;
+};
+
+/** A login account linked to an application user. */
+export type ApplicationUserLinkedAccount = Node & {
+  __typename?: 'ApplicationUserLinkedAccount';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  /** Whether unlinking this account would remove the user's last login method. */
+  isOnlyLoginMethod: Scalars['Boolean']['output'];
+  provider: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Ordering configuration for application users. */
+export type ApplicationUserOrderByInput = {
+  direction: SortDirection;
+  field: ApplicationUserOrderField;
+};
+
+/** Fields available for ordering application users. */
+export enum ApplicationUserOrderField {
+  CreatedAt = 'CREATED_AT',
+  Email = 'EMAIL',
+  Name = 'NAME',
+  UpdatedAt = 'UPDATED_AT'
+}
+
+/** Result of changing an application user's security status. */
+export type ApplicationUserPayload = {
+  __typename?: 'ApplicationUserPayload';
+  user?: Maybe<ApplicationUser>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Safe aggregate security metadata for an application user. */
+export type ApplicationUserSecurityMetadata = {
+  __typename?: 'ApplicationUserSecurityMetadata';
+  activeSessionCount: Scalars['Int']['output'];
+  hasPasswordLogin: Scalars['Boolean']['output'];
+  linkedAccountCount: Scalars['Int']['output'];
+};
+
+/** Input for revoking every session of an application user. */
+export type ApplicationUserSessionsRevokeAllInput = {
+  applicationId: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+/** Result of revoking every session of an application user. */
+export type ApplicationUserSessionsRevokeAllPayload = {
+  __typename?: 'ApplicationUserSessionsRevokeAllPayload';
+  revokedCount: Scalars['Int']['output'];
+  user?: Maybe<ApplicationUser>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Administrative security status of an application user. */
+export enum ApplicationUserStatus {
+  Active = 'ACTIVE',
+  Blocked = 'BLOCKED'
+}
+
+/** Input for blocking or unblocking an application user. */
+export type ApplicationUserStatusSetInput = {
+  applicationId: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+/** Filter conditions for application users. */
+export type ApplicationUserWhereInput = {
+  emailVerified?: InputMaybe<Scalars['Boolean']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Array<ApplicationUserStatus>>;
+};
+
+/** Filter conditions for applications. */
+export type ApplicationWhereInput = {
+  /** Search by application name or display name. */
+  search?: InputMaybe<Scalars['String']['input']>;
+  /** Limit results to the selected lifecycle statuses. */
+  status?: InputMaybe<Array<ApplicationLifecycleStatus>>;
+};
 
 export type AuthMutation = {
   __typename?: 'AuthMutation';
@@ -866,6 +1882,8 @@ export type Membership = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  /** Application realm management mutations. */
+  applicationMutation: ApplicationMutation;
   /** Authentication mutations. */
   authMutation: AuthMutation;
   /** Organization management mutations. */
@@ -888,6 +1906,8 @@ export type Node = {
  */
 export type Organization = Node & {
   __typename?: 'Organization';
+  /** Applications owned by this organization. */
+  applications: ApplicationConnection;
   /** Timestamp when the organization was created. */
   createdAt: Scalars['DateTime']['output'];
   /** Display name (e.g., "Acme Corp"). */
@@ -902,6 +1922,20 @@ export type Organization = Node & {
   name: Scalars['String']['output'];
   /** Timestamp when the organization was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+
+/**
+ * Organization - top level entity for multi-tenancy.
+ * Users belong to organizations, organizations contain stores.
+ */
+export type OrganizationApplicationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApplicationOrderByInput>>;
+  where?: InputMaybe<ApplicationWhereInput>;
 };
 
 /** A connection to a list of Organization items. */
@@ -1152,6 +2186,8 @@ export type PageInfo = {
 
 export type Query = {
   __typename?: 'Query';
+  /** Application realm management queries. */
+  applicationQuery: ApplicationQuery;
   /** Organization queries namespace. */
   organizationQuery: OrganizationQuery;
   /** User management queries. */
@@ -1706,21 +2742,100 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Organization );
+  Node: ( Application ) | ( ApplicationOAuthClient ) | ( ApplicationUser ) | ( ApplicationUserLinkedAccount ) | ( Organization );
   UserError: ( GenericUserError );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   Action: Action;
+  Application: ResolverTypeWrapper<Application>;
+  String: ResolverTypeWrapper<Scalars['String']['output']>;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  ApplicationArchiveInput: ApplicationArchiveInput;
+  ApplicationArchivePayload: ResolverTypeWrapper<ApplicationArchivePayload>;
+  ApplicationAuthBackgroundColor: ApplicationAuthBackgroundColor;
+  ApplicationAuthBranding: ResolverTypeWrapper<ApplicationAuthBranding>;
+  ApplicationAuthBrandingInput: ApplicationAuthBrandingInput;
+  ApplicationAuthConfiguration: ResolverTypeWrapper<ApplicationAuthConfiguration>;
+  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  ApplicationAuthEmailDeliveryConfiguration: ResolverTypeWrapper<ApplicationAuthEmailDeliveryConfiguration>;
+  ApplicationAuthEmailDeliveryInput: ApplicationAuthEmailDeliveryInput;
+  ApplicationAuthMethod: ResolverTypeWrapper<ApplicationAuthMethod>;
+  ApplicationAuthMethodCapability: ApplicationAuthMethodCapability;
+  ApplicationAuthMethodId: ResolverTypeWrapper<Scalars['ApplicationAuthMethodId']['output']>;
+  ApplicationAuthMethodPayload: ResolverTypeWrapper<ApplicationAuthMethodPayload>;
+  ApplicationAuthMethodUpdateInput: ApplicationAuthMethodUpdateInput;
+  ApplicationAuthPrimaryColor: ApplicationAuthPrimaryColor;
+  ApplicationAuthProtocolUrls: ResolverTypeWrapper<ApplicationAuthProtocolUrls>;
+  ApplicationAuthProvider: ResolverTypeWrapper<ApplicationAuthProvider>;
+  ApplicationAuthProviderCallbackUrl: ResolverTypeWrapper<ApplicationAuthProviderCallbackUrl>;
+  ApplicationAuthProviderConfigureInput: ApplicationAuthProviderConfigureInput;
+  ApplicationAuthProviderCredentialsDeleteInput: ApplicationAuthProviderCredentialsDeleteInput;
+  ApplicationAuthProviderCredentialsRotateInput: ApplicationAuthProviderCredentialsRotateInput;
+  ApplicationAuthProviderName: ApplicationAuthProviderName;
+  ApplicationAuthProviderPayload: ResolverTypeWrapper<ApplicationAuthProviderPayload>;
+  ApplicationAuthProviderUpdateInput: ApplicationAuthProviderUpdateInput;
+  ApplicationAuthProviderValidateInput: ApplicationAuthProviderValidateInput;
+  ApplicationAuthProviderValidation: ResolverTypeWrapper<ApplicationAuthProviderValidation>;
+  ApplicationAuthProviderValidationPayload: ResolverTypeWrapper<ApplicationAuthProviderValidationPayload>;
+  ApplicationAuthProviderValidationStatus: ApplicationAuthProviderValidationStatus;
+  ApplicationAuthRealmEnabledSetInput: ApplicationAuthRealmEnabledSetInput;
+  ApplicationAuthTrustedOrigin: ResolverTypeWrapper<ApplicationAuthTrustedOrigin>;
+  ApplicationAuthUpdateInput: ApplicationAuthUpdateInput;
+  ApplicationAuthUpdatePayload: ResolverTypeWrapper<ApplicationAuthUpdatePayload>;
+  ApplicationConnection: ResolverTypeWrapper<ApplicationConnection>;
+  ApplicationConsentMode: ApplicationConsentMode;
+  ApplicationCreateInput: ApplicationCreateInput;
+  ApplicationCreatePayload: ResolverTypeWrapper<ApplicationCreatePayload>;
+  ApplicationEdge: ResolverTypeWrapper<ApplicationEdge>;
+  ApplicationLifecycleStatus: ApplicationLifecycleStatus;
+  ApplicationMutation: ResolverTypeWrapper<ApplicationMutation>;
+  ApplicationOAuthClient: ResolverTypeWrapper<ApplicationOAuthClient>;
+  ApplicationOAuthClientArchiveInput: ApplicationOAuthClientArchiveInput;
+  ApplicationOAuthClientConnection: ResolverTypeWrapper<ApplicationOAuthClientConnection>;
+  ApplicationOAuthClientCreateInput: ApplicationOAuthClientCreateInput;
+  ApplicationOAuthClientCreatePayload: ResolverTypeWrapper<ApplicationOAuthClientCreatePayload>;
+  ApplicationOAuthClientEdge: ResolverTypeWrapper<ApplicationOAuthClientEdge>;
+  ApplicationOAuthClientEnabledSetInput: ApplicationOAuthClientEnabledSetInput;
+  ApplicationOAuthClientEnvironment: ApplicationOAuthClientEnvironment;
+  ApplicationOAuthClientOrderByInput: ApplicationOAuthClientOrderByInput;
+  ApplicationOAuthClientOrderField: ApplicationOAuthClientOrderField;
+  ApplicationOAuthClientPayload: ResolverTypeWrapper<ApplicationOAuthClientPayload>;
+  ApplicationOAuthClientSecretRotateInput: ApplicationOAuthClientSecretRotateInput;
+  ApplicationOAuthClientSecretRotatePayload: ResolverTypeWrapper<ApplicationOAuthClientSecretRotatePayload>;
+  ApplicationOAuthClientSkipConsentSetInput: ApplicationOAuthClientSkipConsentSetInput;
+  ApplicationOAuthClientType: ApplicationOAuthClientType;
+  ApplicationOAuthClientUpdateInput: ApplicationOAuthClientUpdateInput;
+  ApplicationOAuthClientWhereInput: ApplicationOAuthClientWhereInput;
+  ApplicationOAuthTokenEndpointAuthMethod: ApplicationOAuthTokenEndpointAuthMethod;
+  ApplicationOrderByInput: ApplicationOrderByInput;
+  ApplicationOrderField: ApplicationOrderField;
+  ApplicationQuery: ResolverTypeWrapper<ApplicationQuery>;
+  ApplicationRegistrationMode: ApplicationRegistrationMode;
+  ApplicationUpdateInput: ApplicationUpdateInput;
+  ApplicationUpdatePayload: ResolverTypeWrapper<ApplicationUpdatePayload>;
+  ApplicationUser: ResolverTypeWrapper<ApplicationUser>;
+  ApplicationUserAccountUnlinkInput: ApplicationUserAccountUnlinkInput;
+  ApplicationUserAccountUnlinkPayload: ResolverTypeWrapper<ApplicationUserAccountUnlinkPayload>;
+  ApplicationUserConnection: ResolverTypeWrapper<ApplicationUserConnection>;
+  ApplicationUserEdge: ResolverTypeWrapper<ApplicationUserEdge>;
+  ApplicationUserLinkedAccount: ResolverTypeWrapper<ApplicationUserLinkedAccount>;
+  ApplicationUserOrderByInput: ApplicationUserOrderByInput;
+  ApplicationUserOrderField: ApplicationUserOrderField;
+  ApplicationUserPayload: ResolverTypeWrapper<ApplicationUserPayload>;
+  ApplicationUserSecurityMetadata: ResolverTypeWrapper<ApplicationUserSecurityMetadata>;
+  ApplicationUserSessionsRevokeAllInput: ApplicationUserSessionsRevokeAllInput;
+  ApplicationUserSessionsRevokeAllPayload: ResolverTypeWrapper<ApplicationUserSessionsRevokeAllPayload>;
+  ApplicationUserStatus: ApplicationUserStatus;
+  ApplicationUserStatusSetInput: ApplicationUserStatusSetInput;
+  ApplicationUserWhereInput: ApplicationUserWhereInput;
+  ApplicationWhereInput: ApplicationWhereInput;
   AuthMutation: ResolverTypeWrapper<AuthMutation>;
   AuthTokenPayload: ResolverTypeWrapper<AuthTokenPayload>;
-  String: ResolverTypeWrapper<Scalars['String']['output']>;
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   AuthorizeInput: AuthorizeInput;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   AuthorizePayload: ResolverTypeWrapper<AuthorizePayload>;
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
@@ -1801,14 +2916,78 @@ export type ResolversTypes = ResolversObject<{
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
+  Application: Application;
+  String: Scalars['String']['output'];
+  ID: Scalars['ID']['output'];
+  Int: Scalars['Int']['output'];
+  ApplicationArchiveInput: ApplicationArchiveInput;
+  ApplicationArchivePayload: ApplicationArchivePayload;
+  ApplicationAuthBranding: ApplicationAuthBranding;
+  ApplicationAuthBrandingInput: ApplicationAuthBrandingInput;
+  ApplicationAuthConfiguration: ApplicationAuthConfiguration;
+  Boolean: Scalars['Boolean']['output'];
+  ApplicationAuthEmailDeliveryConfiguration: ApplicationAuthEmailDeliveryConfiguration;
+  ApplicationAuthEmailDeliveryInput: ApplicationAuthEmailDeliveryInput;
+  ApplicationAuthMethod: ApplicationAuthMethod;
+  ApplicationAuthMethodId: Scalars['ApplicationAuthMethodId']['output'];
+  ApplicationAuthMethodPayload: ApplicationAuthMethodPayload;
+  ApplicationAuthMethodUpdateInput: ApplicationAuthMethodUpdateInput;
+  ApplicationAuthProtocolUrls: ApplicationAuthProtocolUrls;
+  ApplicationAuthProvider: ApplicationAuthProvider;
+  ApplicationAuthProviderCallbackUrl: ApplicationAuthProviderCallbackUrl;
+  ApplicationAuthProviderConfigureInput: ApplicationAuthProviderConfigureInput;
+  ApplicationAuthProviderCredentialsDeleteInput: ApplicationAuthProviderCredentialsDeleteInput;
+  ApplicationAuthProviderCredentialsRotateInput: ApplicationAuthProviderCredentialsRotateInput;
+  ApplicationAuthProviderPayload: ApplicationAuthProviderPayload;
+  ApplicationAuthProviderUpdateInput: ApplicationAuthProviderUpdateInput;
+  ApplicationAuthProviderValidateInput: ApplicationAuthProviderValidateInput;
+  ApplicationAuthProviderValidation: ApplicationAuthProviderValidation;
+  ApplicationAuthProviderValidationPayload: ApplicationAuthProviderValidationPayload;
+  ApplicationAuthRealmEnabledSetInput: ApplicationAuthRealmEnabledSetInput;
+  ApplicationAuthTrustedOrigin: ApplicationAuthTrustedOrigin;
+  ApplicationAuthUpdateInput: ApplicationAuthUpdateInput;
+  ApplicationAuthUpdatePayload: ApplicationAuthUpdatePayload;
+  ApplicationConnection: ApplicationConnection;
+  ApplicationCreateInput: ApplicationCreateInput;
+  ApplicationCreatePayload: ApplicationCreatePayload;
+  ApplicationEdge: ApplicationEdge;
+  ApplicationMutation: ApplicationMutation;
+  ApplicationOAuthClient: ApplicationOAuthClient;
+  ApplicationOAuthClientArchiveInput: ApplicationOAuthClientArchiveInput;
+  ApplicationOAuthClientConnection: ApplicationOAuthClientConnection;
+  ApplicationOAuthClientCreateInput: ApplicationOAuthClientCreateInput;
+  ApplicationOAuthClientCreatePayload: ApplicationOAuthClientCreatePayload;
+  ApplicationOAuthClientEdge: ApplicationOAuthClientEdge;
+  ApplicationOAuthClientEnabledSetInput: ApplicationOAuthClientEnabledSetInput;
+  ApplicationOAuthClientOrderByInput: ApplicationOAuthClientOrderByInput;
+  ApplicationOAuthClientPayload: ApplicationOAuthClientPayload;
+  ApplicationOAuthClientSecretRotateInput: ApplicationOAuthClientSecretRotateInput;
+  ApplicationOAuthClientSecretRotatePayload: ApplicationOAuthClientSecretRotatePayload;
+  ApplicationOAuthClientSkipConsentSetInput: ApplicationOAuthClientSkipConsentSetInput;
+  ApplicationOAuthClientUpdateInput: ApplicationOAuthClientUpdateInput;
+  ApplicationOAuthClientWhereInput: ApplicationOAuthClientWhereInput;
+  ApplicationOrderByInput: ApplicationOrderByInput;
+  ApplicationQuery: ApplicationQuery;
+  ApplicationUpdateInput: ApplicationUpdateInput;
+  ApplicationUpdatePayload: ApplicationUpdatePayload;
+  ApplicationUser: ApplicationUser;
+  ApplicationUserAccountUnlinkInput: ApplicationUserAccountUnlinkInput;
+  ApplicationUserAccountUnlinkPayload: ApplicationUserAccountUnlinkPayload;
+  ApplicationUserConnection: ApplicationUserConnection;
+  ApplicationUserEdge: ApplicationUserEdge;
+  ApplicationUserLinkedAccount: ApplicationUserLinkedAccount;
+  ApplicationUserOrderByInput: ApplicationUserOrderByInput;
+  ApplicationUserPayload: ApplicationUserPayload;
+  ApplicationUserSecurityMetadata: ApplicationUserSecurityMetadata;
+  ApplicationUserSessionsRevokeAllInput: ApplicationUserSessionsRevokeAllInput;
+  ApplicationUserSessionsRevokeAllPayload: ApplicationUserSessionsRevokeAllPayload;
+  ApplicationUserStatusSetInput: ApplicationUserStatusSetInput;
+  ApplicationUserWhereInput: ApplicationUserWhereInput;
+  ApplicationWhereInput: ApplicationWhereInput;
   AuthMutation: AuthMutation;
   AuthTokenPayload: AuthTokenPayload;
-  String: Scalars['String']['output'];
-  Int: Scalars['Int']['output'];
   AuthorizeInput: AuthorizeInput;
-  ID: Scalars['ID']['output'];
   AuthorizePayload: AuthorizePayload;
-  Boolean: Scalars['Boolean']['output'];
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   Email: Scalars['Email']['output'];
@@ -1879,6 +3058,353 @@ export type ResolversParentTypes = ResolversObject<{
   UserUpdatePasswordPayload: UserUpdatePasswordPayload;
   UserUpdateProfileInput: UserUpdateProfileInput;
   UserUpdateProfilePayload: UserUpdateProfilePayload;
+}>;
+
+export type ApplicationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Application'] = ResolversParentTypes['Application']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Application']>, { __typename: 'Application' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  archivedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  auth?: Resolver<ResolversTypes['ApplicationAuthConfiguration'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  oauthClient?: Resolver<Maybe<ResolversTypes['ApplicationOAuthClient']>, ParentType, ContextType, RequireFields<ApplicationOauthClientArgs, 'clientId'>>;
+  oauthClients?: Resolver<ResolversTypes['ApplicationOAuthClientConnection'], ParentType, ContextType, Partial<ApplicationOauthClientsArgs>>;
+  organization?: Resolver<ResolversTypes['Organization'], ParentType, ContextType>;
+  organizationId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  resource?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['ApplicationLifecycleStatus'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['ApplicationUser']>, ParentType, ContextType, RequireFields<ApplicationUserArgs, 'id'>>;
+  users?: Resolver<ResolversTypes['ApplicationUserConnection'], ParentType, ContextType, Partial<ApplicationUsersArgs>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationArchivePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationArchivePayload'] = ResolversParentTypes['ApplicationArchivePayload']> = ResolversObject<{
+  application?: Resolver<Maybe<ResolversTypes['Application']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthBrandingResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthBranding'] = ResolversParentTypes['ApplicationAuthBranding']> = ResolversObject<{
+  backgroundColor?: Resolver<Maybe<ResolversTypes['ApplicationAuthBackgroundColor']>, ParentType, ContextType>;
+  displayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  headline?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  logoUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  primaryColor?: Resolver<Maybe<ResolversTypes['ApplicationAuthPrimaryColor']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthConfigurationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthConfiguration'] = ResolversParentTypes['ApplicationAuthConfiguration']> = ResolversObject<{
+  accessTokenTtlSeconds?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  applicationId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  authMethod?: Resolver<ResolversTypes['ApplicationAuthMethod'], ParentType, ContextType, RequireFields<ApplicationAuthConfigurationAuthMethodArgs, 'id'>>;
+  authMethods?: Resolver<Array<ResolversTypes['ApplicationAuthMethod']>, ParentType, ContextType>;
+  branding?: Resolver<ResolversTypes['ApplicationAuthBranding'], ParentType, ContextType>;
+  consentMode?: Resolver<ResolversTypes['ApplicationConsentMode'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  defaultLocale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
+  emailDelivery?: Resolver<ResolversTypes['ApplicationAuthEmailDeliveryConfiguration'], ParentType, ContextType>;
+  emailVerificationRequired?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  idTokenTtlSeconds?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  protocolUrls?: Resolver<ResolversTypes['ApplicationAuthProtocolUrls'], ParentType, ContextType>;
+  provider?: Resolver<ResolversTypes['ApplicationAuthProvider'], ParentType, ContextType, RequireFields<ApplicationAuthConfigurationProviderArgs, 'name'>>;
+  providers?: Resolver<Array<ResolversTypes['ApplicationAuthProvider']>, ParentType, ContextType>;
+  realmEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  refreshTokenTtlSeconds?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  registrationMode?: Resolver<ResolversTypes['ApplicationRegistrationMode'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  sessionTtlSeconds?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  supportedLocales?: Resolver<Array<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
+  trustedOrigins?: Resolver<Array<ResolversTypes['ApplicationAuthTrustedOrigin']>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthEmailDeliveryConfigurationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthEmailDeliveryConfiguration'] = ResolversParentTypes['ApplicationAuthEmailDeliveryConfiguration']> = ResolversObject<{
+  configured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  emailOtpSignInTemplateId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  emailVerificationTemplateId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  passwordResetTemplateId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  senderIdentity?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  transportProfile?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  updatedBy?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthMethodResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthMethod'] = ResolversParentTypes['ApplicationAuthMethod']> = ResolversObject<{
+  availableCapabilities?: Resolver<Array<ResolversTypes['ApplicationAuthMethodCapability']>, ParentType, ContextType>;
+  configured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  enabledCapabilities?: Resolver<Array<ResolversTypes['ApplicationAuthMethodCapability']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ApplicationAuthMethodId'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  updatedBy?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export interface ApplicationAuthMethodIdScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['ApplicationAuthMethodId'], any> {
+  name: 'ApplicationAuthMethodId';
+}
+
+export type ApplicationAuthMethodPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthMethodPayload'] = ResolversParentTypes['ApplicationAuthMethodPayload']> = ResolversObject<{
+  authMethod?: Resolver<Maybe<ResolversTypes['ApplicationAuthMethod']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthProtocolUrlsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthProtocolUrls'] = ResolversParentTypes['ApplicationAuthProtocolUrls']> = ResolversObject<{
+  authorizationUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  endSessionUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  issuer?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  jwksUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  oauthAuthorizationServerMetadataUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  oidcDiscoveryUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  providerCallbackUrls?: Resolver<Array<ResolversTypes['ApplicationAuthProviderCallbackUrl']>, ParentType, ContextType>;
+  revocationUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  tokenUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthProviderResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthProvider'] = ResolversParentTypes['ApplicationAuthProvider']> = ResolversObject<{
+  applicationId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  callbackUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  configured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  maskedClientId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  provider?: Resolver<ResolversTypes['ApplicationAuthProviderName'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  scopes?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  supported?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  updatedBy?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthProviderCallbackUrlResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthProviderCallbackUrl'] = ResolversParentTypes['ApplicationAuthProviderCallbackUrl']> = ResolversObject<{
+  provider?: Resolver<ResolversTypes['ApplicationAuthProviderName'], ParentType, ContextType>;
+  url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthProviderPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthProviderPayload'] = ResolversParentTypes['ApplicationAuthProviderPayload']> = ResolversObject<{
+  provider?: Resolver<Maybe<ResolversTypes['ApplicationAuthProvider']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthProviderValidationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthProviderValidation'] = ResolversParentTypes['ApplicationAuthProviderValidation']> = ResolversObject<{
+  checkedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  provider?: Resolver<ResolversTypes['ApplicationAuthProviderName'], ParentType, ContextType>;
+  reasonCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['ApplicationAuthProviderValidationStatus'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthProviderValidationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthProviderValidationPayload'] = ResolversParentTypes['ApplicationAuthProviderValidationPayload']> = ResolversObject<{
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  validation?: Resolver<Maybe<ResolversTypes['ApplicationAuthProviderValidation']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthTrustedOriginResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthTrustedOrigin'] = ResolversParentTypes['ApplicationAuthTrustedOrigin']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  origin?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationAuthUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationAuthUpdatePayload'] = ResolversParentTypes['ApplicationAuthUpdatePayload']> = ResolversObject<{
+  configuration?: Resolver<Maybe<ResolversTypes['ApplicationAuthConfiguration']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationConnection'] = ResolversParentTypes['ApplicationConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ApplicationEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationCreatePayload'] = ResolversParentTypes['ApplicationCreatePayload']> = ResolversObject<{
+  application?: Resolver<Maybe<ResolversTypes['Application']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationEdge'] = ResolversParentTypes['ApplicationEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Application'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationMutation'] = ResolversParentTypes['ApplicationMutation']> = ResolversObject<{
+  applicationArchive?: Resolver<ResolversTypes['ApplicationArchivePayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationArchiveArgs, 'input'>>;
+  applicationAuthMethodUpdate?: Resolver<ResolversTypes['ApplicationAuthMethodPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationAuthMethodUpdateArgs, 'input'>>;
+  applicationAuthProviderConfigure?: Resolver<ResolversTypes['ApplicationAuthProviderPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationAuthProviderConfigureArgs, 'input'>>;
+  applicationAuthProviderCredentialsDelete?: Resolver<ResolversTypes['ApplicationAuthProviderPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationAuthProviderCredentialsDeleteArgs, 'input'>>;
+  applicationAuthProviderCredentialsRotate?: Resolver<ResolversTypes['ApplicationAuthProviderPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationAuthProviderCredentialsRotateArgs, 'input'>>;
+  applicationAuthProviderUpdate?: Resolver<ResolversTypes['ApplicationAuthProviderPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationAuthProviderUpdateArgs, 'input'>>;
+  applicationAuthProviderValidate?: Resolver<ResolversTypes['ApplicationAuthProviderValidationPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationAuthProviderValidateArgs, 'input'>>;
+  applicationAuthRealmEnabledSet?: Resolver<ResolversTypes['ApplicationAuthUpdatePayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationAuthRealmEnabledSetArgs, 'input'>>;
+  applicationAuthUpdate?: Resolver<ResolversTypes['ApplicationAuthUpdatePayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationAuthUpdateArgs, 'input'>>;
+  applicationCreate?: Resolver<ResolversTypes['ApplicationCreatePayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationCreateArgs, 'input'>>;
+  applicationOAuthClientArchive?: Resolver<ResolversTypes['ApplicationOAuthClientPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationOAuthClientArchiveArgs, 'input'>>;
+  applicationOAuthClientCreate?: Resolver<ResolversTypes['ApplicationOAuthClientCreatePayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationOAuthClientCreateArgs, 'input'>>;
+  applicationOAuthClientEnabledSet?: Resolver<ResolversTypes['ApplicationOAuthClientPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationOAuthClientEnabledSetArgs, 'input'>>;
+  applicationOAuthClientSecretRotate?: Resolver<ResolversTypes['ApplicationOAuthClientSecretRotatePayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationOAuthClientSecretRotateArgs, 'input'>>;
+  applicationOAuthClientSkipConsentSet?: Resolver<ResolversTypes['ApplicationOAuthClientPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationOAuthClientSkipConsentSetArgs, 'input'>>;
+  applicationOAuthClientUpdate?: Resolver<ResolversTypes['ApplicationOAuthClientPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationOAuthClientUpdateArgs, 'input'>>;
+  applicationUpdate?: Resolver<ResolversTypes['ApplicationUpdatePayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationUpdateArgs, 'input'>>;
+  applicationUserAccountUnlink?: Resolver<ResolversTypes['ApplicationUserAccountUnlinkPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationUserAccountUnlinkArgs, 'input'>>;
+  applicationUserBlock?: Resolver<ResolversTypes['ApplicationUserPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationUserBlockArgs, 'input'>>;
+  applicationUserSessionsRevokeAll?: Resolver<ResolversTypes['ApplicationUserSessionsRevokeAllPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationUserSessionsRevokeAllArgs, 'input'>>;
+  applicationUserUnblock?: Resolver<ResolversTypes['ApplicationUserPayload'], ParentType, ContextType, RequireFields<ApplicationMutationApplicationUserUnblockArgs, 'input'>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationOAuthClientResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationOAuthClient'] = ResolversParentTypes['ApplicationOAuthClient']> = ResolversObject<{
+  applicationId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  archived?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  archivedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  clientId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  clientType?: Resolver<ResolversTypes['ApplicationOAuthClientType'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  createdBy?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  disabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  enableEndSession?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  environment?: Resolver<ResolversTypes['ApplicationOAuthClientEnvironment'], ParentType, ContextType>;
+  grantTypes?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  organizationId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  postLogoutRedirectUris?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  protocolPolicyVersion?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  redirectUris?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  requirePkce?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  resources?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  responseTypes?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  skipConsent?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  tokenEndpointAuthMethod?: Resolver<ResolversTypes['ApplicationOAuthTokenEndpointAuthMethod'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  updatedBy?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationOAuthClientConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationOAuthClientConnection'] = ResolversParentTypes['ApplicationOAuthClientConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ApplicationOAuthClientEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationOAuthClientCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationOAuthClientCreatePayload'] = ResolversParentTypes['ApplicationOAuthClientCreatePayload']> = ResolversObject<{
+  client?: Resolver<Maybe<ResolversTypes['ApplicationOAuthClient']>, ParentType, ContextType>;
+  clientSecret?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationOAuthClientEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationOAuthClientEdge'] = ResolversParentTypes['ApplicationOAuthClientEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['ApplicationOAuthClient'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationOAuthClientPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationOAuthClientPayload'] = ResolversParentTypes['ApplicationOAuthClientPayload']> = ResolversObject<{
+  client?: Resolver<Maybe<ResolversTypes['ApplicationOAuthClient']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationOAuthClientSecretRotatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationOAuthClientSecretRotatePayload'] = ResolversParentTypes['ApplicationOAuthClientSecretRotatePayload']> = ResolversObject<{
+  client?: Resolver<Maybe<ResolversTypes['ApplicationOAuthClient']>, ParentType, ContextType>;
+  clientSecret?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationQuery'] = ResolversParentTypes['ApplicationQuery']> = ResolversObject<{
+  application?: Resolver<Maybe<ResolversTypes['Application']>, ParentType, ContextType, RequireFields<ApplicationQueryApplicationArgs, 'id' | 'organizationId'>>;
+  applications?: Resolver<ResolversTypes['ApplicationConnection'], ParentType, ContextType, RequireFields<ApplicationQueryApplicationsArgs, 'organizationId'>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUpdatePayload'] = ResolversParentTypes['ApplicationUpdatePayload']> = ResolversObject<{
+  application?: Resolver<Maybe<ResolversTypes['Application']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationUserResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUser'] = ResolversParentTypes['ApplicationUser']> = ResolversObject<{
+  applicationId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  email?: Resolver<ResolversTypes['Email'], ParentType, ContextType>;
+  emailVerified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  firstName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  imageUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  lastName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  linkedAccounts?: Resolver<Array<ResolversTypes['ApplicationUserLinkedAccount']>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  security?: Resolver<ResolversTypes['ApplicationUserSecurityMetadata'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['ApplicationUserStatus'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationUserAccountUnlinkPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUserAccountUnlinkPayload'] = ResolversParentTypes['ApplicationUserAccountUnlinkPayload']> = ResolversObject<{
+  unlinkedAccountId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['ApplicationUser']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationUserConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUserConnection'] = ResolversParentTypes['ApplicationUserConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ApplicationUserEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationUserEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUserEdge'] = ResolversParentTypes['ApplicationUserEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['ApplicationUser'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationUserLinkedAccountResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUserLinkedAccount'] = ResolversParentTypes['ApplicationUserLinkedAccount']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isOnlyLoginMethod?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  provider?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationUserPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUserPayload'] = ResolversParentTypes['ApplicationUserPayload']> = ResolversObject<{
+  user?: Resolver<Maybe<ResolversTypes['ApplicationUser']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationUserSecurityMetadataResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUserSecurityMetadata'] = ResolversParentTypes['ApplicationUserSecurityMetadata']> = ResolversObject<{
+  activeSessionCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  hasPasswordLogin?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  linkedAccountCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApplicationUserSessionsRevokeAllPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUserSessionsRevokeAllPayload'] = ResolversParentTypes['ApplicationUserSessionsRevokeAllPayload']> = ResolversObject<{
+  revokedCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['ApplicationUser']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type AuthMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthMutation'] = ResolversParentTypes['AuthMutation']> = ResolversObject<{
@@ -1973,6 +3499,7 @@ export type MembershipResolvers<ContextType = ServiceContext, ParentType extends
 }>;
 
 export type MutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
+  applicationMutation?: Resolver<ResolversTypes['ApplicationMutation'], ParentType, ContextType>;
   authMutation?: Resolver<ResolversTypes['AuthMutation'], ParentType, ContextType>;
   organizationMutation?: Resolver<ResolversTypes['OrganizationMutation'], ParentType, ContextType>;
   roleMutation?: Resolver<ResolversTypes['RoleMutation'], ParentType, ContextType>;
@@ -1980,12 +3507,13 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Organization', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Application' | 'ApplicationOAuthClient' | 'ApplicationUser' | 'ApplicationUserLinkedAccount' | 'Organization', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
 export type OrganizationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Organization'] = ResolversParentTypes['Organization']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Organization']>, { __typename: 'Organization' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  applications?: Resolver<ResolversTypes['ApplicationConnection'], ParentType, ContextType, Partial<OrganizationApplicationsArgs>>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -2060,6 +3588,7 @@ export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
+  applicationQuery?: Resolver<ResolversTypes['ApplicationQuery'], ParentType, ContextType>;
   organizationQuery?: Resolver<ResolversTypes['OrganizationQuery'], ParentType, ContextType>;
   userQuery?: Resolver<ResolversTypes['UserQuery'], ParentType, ContextType>;
 }>;
@@ -2226,6 +3755,42 @@ export type UserUpdateProfilePayloadResolvers<ContextType = ServiceContext, Pare
 }>;
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
+  Application?: ApplicationResolvers<ContextType>;
+  ApplicationArchivePayload?: ApplicationArchivePayloadResolvers<ContextType>;
+  ApplicationAuthBranding?: ApplicationAuthBrandingResolvers<ContextType>;
+  ApplicationAuthConfiguration?: ApplicationAuthConfigurationResolvers<ContextType>;
+  ApplicationAuthEmailDeliveryConfiguration?: ApplicationAuthEmailDeliveryConfigurationResolvers<ContextType>;
+  ApplicationAuthMethod?: ApplicationAuthMethodResolvers<ContextType>;
+  ApplicationAuthMethodId?: GraphQLScalarType;
+  ApplicationAuthMethodPayload?: ApplicationAuthMethodPayloadResolvers<ContextType>;
+  ApplicationAuthProtocolUrls?: ApplicationAuthProtocolUrlsResolvers<ContextType>;
+  ApplicationAuthProvider?: ApplicationAuthProviderResolvers<ContextType>;
+  ApplicationAuthProviderCallbackUrl?: ApplicationAuthProviderCallbackUrlResolvers<ContextType>;
+  ApplicationAuthProviderPayload?: ApplicationAuthProviderPayloadResolvers<ContextType>;
+  ApplicationAuthProviderValidation?: ApplicationAuthProviderValidationResolvers<ContextType>;
+  ApplicationAuthProviderValidationPayload?: ApplicationAuthProviderValidationPayloadResolvers<ContextType>;
+  ApplicationAuthTrustedOrigin?: ApplicationAuthTrustedOriginResolvers<ContextType>;
+  ApplicationAuthUpdatePayload?: ApplicationAuthUpdatePayloadResolvers<ContextType>;
+  ApplicationConnection?: ApplicationConnectionResolvers<ContextType>;
+  ApplicationCreatePayload?: ApplicationCreatePayloadResolvers<ContextType>;
+  ApplicationEdge?: ApplicationEdgeResolvers<ContextType>;
+  ApplicationMutation?: ApplicationMutationResolvers<ContextType>;
+  ApplicationOAuthClient?: ApplicationOAuthClientResolvers<ContextType>;
+  ApplicationOAuthClientConnection?: ApplicationOAuthClientConnectionResolvers<ContextType>;
+  ApplicationOAuthClientCreatePayload?: ApplicationOAuthClientCreatePayloadResolvers<ContextType>;
+  ApplicationOAuthClientEdge?: ApplicationOAuthClientEdgeResolvers<ContextType>;
+  ApplicationOAuthClientPayload?: ApplicationOAuthClientPayloadResolvers<ContextType>;
+  ApplicationOAuthClientSecretRotatePayload?: ApplicationOAuthClientSecretRotatePayloadResolvers<ContextType>;
+  ApplicationQuery?: ApplicationQueryResolvers<ContextType>;
+  ApplicationUpdatePayload?: ApplicationUpdatePayloadResolvers<ContextType>;
+  ApplicationUser?: ApplicationUserResolvers<ContextType>;
+  ApplicationUserAccountUnlinkPayload?: ApplicationUserAccountUnlinkPayloadResolvers<ContextType>;
+  ApplicationUserConnection?: ApplicationUserConnectionResolvers<ContextType>;
+  ApplicationUserEdge?: ApplicationUserEdgeResolvers<ContextType>;
+  ApplicationUserLinkedAccount?: ApplicationUserLinkedAccountResolvers<ContextType>;
+  ApplicationUserPayload?: ApplicationUserPayloadResolvers<ContextType>;
+  ApplicationUserSecurityMetadata?: ApplicationUserSecurityMetadataResolvers<ContextType>;
+  ApplicationUserSessionsRevokeAllPayload?: ApplicationUserSessionsRevokeAllPayloadResolvers<ContextType>;
   AuthMutation?: AuthMutationResolvers<ContextType>;
   AuthTokenPayload?: AuthTokenPayloadResolvers<ContextType>;
   AuthorizePayload?: AuthorizePayloadResolvers<ContextType>;
