@@ -9,6 +9,7 @@ import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   applicationSession,
+  applicationAuthConfiguration,
   applicationUser,
   type ApplicationSession,
   type ApplicationUser,
@@ -122,6 +123,13 @@ export class AuthSessionRepository extends BaseRepository {
           organization,
           eq(organization.id, application.organizationId)
         )
+        .innerJoin(
+          applicationAuthConfiguration,
+          eq(
+            applicationAuthConfiguration.applicationId,
+            application.id
+          )
+        )
         .where(
           and(
             eq(applicationSession.applicationId, this.scope.applicationId),
@@ -129,6 +137,7 @@ export class AuthSessionRepository extends BaseRepository {
             eq(applicationSession.userId, userId),
             gt(applicationSession.expiresAt, new Date()),
             eq(applicationUser.status, "active"),
+            eq(applicationAuthConfiguration.realmEnabled, true),
             isNull(application.deletedAt),
             isNull(organization.deletedAt)
           )

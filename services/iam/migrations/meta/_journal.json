@@ -8,6 +8,13 @@
       "when": 1784449446817,
       "tag": "0000_kind_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784466437863,
+      "tag": "0001_cuddly_silver_centurion",
+      "breakpoints": true
     }
   ]
 }

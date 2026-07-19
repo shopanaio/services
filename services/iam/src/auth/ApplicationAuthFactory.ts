@@ -3,6 +3,8 @@ import {
   type ApplicationAuth,
   type ApplicationAuthConfiguration,
 } from "./auth.js";
+import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
+import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
 
 interface CacheEntry {
   auth: ApplicationAuth;
@@ -16,10 +18,14 @@ interface CacheEntry {
 export class ApplicationAuthFactory {
   private readonly cache = new Map<string, CacheEntry>();
 
-  constructor(private readonly maxEntries = 100) {}
+  constructor(
+    private readonly keyring: ApplicationAuthKeyring,
+    private readonly secrets: ApplicationAuthSecretService,
+    private readonly maxEntries = 100
+  ) {}
 
   forApplication(config: ApplicationAuthConfiguration): ApplicationAuth {
-    const version = String(config.version);
+    const version = `${String(config.version)}:${config.secretKeyVersion}`;
     const cached = this.cache.get(config.applicationId);
 
     if (cached?.version === version) {
@@ -29,7 +35,11 @@ export class ApplicationAuthFactory {
       return cached.auth;
     }
 
-    const auth = createApplicationAuth(config);
+    this.keyring.assertVersionsAvailable([config.secretKeyVersion]);
+    const auth = createApplicationAuth(config, {
+      keyring: this.keyring,
+      secrets: this.secrets,
+    });
     this.cache.set(config.applicationId, { auth, version });
     this.evictOverflow();
     return auth;

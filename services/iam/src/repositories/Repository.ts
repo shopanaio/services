@@ -3,10 +3,13 @@ import { UserRepository, type User } from "./user/UserRepository.js";
 import { OrganizationRepository } from "./organization/OrganizationRepository.js";
 import { ApplicationUserRepositoryFactory } from "./application-user/ApplicationUserRepository.js";
 import { AuthSessionRepositoryFactory } from "./auth-session/AuthSessionRepository.js";
+import { ApplicationAuthConfigurationRepository } from "./ApplicationAuthConfigurationRepository.js";
+import { ApplicationAuthorizationContextRepository } from "./ApplicationAuthorizationContextRepository.js";
 
 import { CasbinService } from "../casbin/CasbinService.js";
 import type { Database } from "../infrastructure//db/database.js";
 import type { Auth } from "../auth/auth.js";
+import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
 
 // Re-export User type
 export type { User };
@@ -15,6 +18,7 @@ export interface RepositoryConfig {
   db: Database;
   auth: Auth;
   databaseUrl: string;
+  applicationAuthKeyring: ApplicationAuthKeyring;
 }
 
 /**
@@ -26,6 +30,8 @@ export class Repository {
   public readonly applicationUser: ApplicationUserRepositoryFactory;
   public readonly authSession: AuthSessionRepositoryFactory;
   public readonly organization: OrganizationRepository;
+  public readonly applicationAuthConfiguration: ApplicationAuthConfigurationRepository;
+  public readonly applicationAuthorizationContext: ApplicationAuthorizationContextRepository;
   public readonly casbin: CasbinService;
   public readonly txManager: TransactionManager<Database>;
 
@@ -34,6 +40,8 @@ export class Repository {
     applicationUser: ApplicationUserRepositoryFactory,
     authSession: AuthSessionRepositoryFactory,
     organization: OrganizationRepository,
+    applicationAuthConfiguration: ApplicationAuthConfigurationRepository,
+    applicationAuthorizationContext: ApplicationAuthorizationContextRepository,
     casbin: CasbinService,
     txManager: TransactionManager<Database>
   ) {
@@ -41,6 +49,8 @@ export class Repository {
     this.applicationUser = applicationUser;
     this.authSession = authSession;
     this.organization = organization;
+    this.applicationAuthConfiguration = applicationAuthConfiguration;
+    this.applicationAuthorizationContext = applicationAuthorizationContext;
     this.casbin = casbin;
     this.txManager = txManager;
   }
@@ -49,7 +59,7 @@ export class Repository {
    * Create Repository with database and auth instances
    */
   static async create(config: RepositoryConfig): Promise<Repository> {
-    const { db, auth } = config;
+    const { db, auth, applicationAuthKeyring } = config;
 
     // Create transaction manager
     const txManager = new TransactionManager(db);
@@ -66,12 +76,22 @@ export class Repository {
       txManager
     );
     const organizationRepo = new OrganizationRepository(db, txManager);
+    const applicationAuthConfigurationRepo =
+      new ApplicationAuthConfigurationRepository(
+        db,
+        txManager,
+        applicationAuthKeyring
+      );
+    const applicationAuthorizationContextRepo =
+      new ApplicationAuthorizationContextRepository(db, txManager);
 
     return new Repository(
       userRepo,
       applicationUserRepo,
       authSessionRepo,
       organizationRepo,
+      applicationAuthConfigurationRepo,
+      applicationAuthorizationContextRepo,
       casbinService,
       txManager
     );

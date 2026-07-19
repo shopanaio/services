@@ -10,6 +10,14 @@ import { AuthorizationCache, NameResolver } from "../cache/index.js";
 import { createDatabase, type Database } from "../infrastructure/db/database.js";
 import { createAuth, type Auth } from "../auth/auth.js";
 import { ApplicationAuthFactory } from "../auth/ApplicationAuthFactory.js";
+import {
+  ApplicationAuthKeyring,
+  EnvironmentApplicationAuthRootKeyProvider,
+  type ApplicationAuthRootKeyProvider,
+} from "../services/ApplicationAuthKeyring.js";
+import { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
+import { ApplicationAuthProvisioningService } from "../services/ApplicationAuthProvisioningService.js";
+import { ApplicationAuthSecretRotationService } from "../services/ApplicationAuthSecretRotationService.js";
 
 /**
  * Extended kernel for IAM microservice (singleton)
@@ -25,6 +33,10 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public db!: Database;
   public auth!: Auth;
   public applicationAuth!: ApplicationAuthFactory;
+  public applicationAuthKeyring!: ApplicationAuthKeyring;
+  public applicationAuthSecrets!: ApplicationAuthSecretService;
+  public applicationAuthProvisioning!: ApplicationAuthProvisioningService;
+  public applicationAuthSecretRotation!: ApplicationAuthSecretRotationService;
 
   private constructor(
     broker: ServiceBroker,
@@ -36,7 +48,11 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     workflow: WorkflowRegistry,
     db: Database,
     auth: Auth,
-    applicationAuth: ApplicationAuthFactory
+    applicationAuth: ApplicationAuthFactory,
+    applicationAuthKeyring: ApplicationAuthKeyring,
+    applicationAuthSecrets: ApplicationAuthSecretService,
+    applicationAuthProvisioning: ApplicationAuthProvisioningService,
+    applicationAuthSecretRotation: ApplicationAuthSecretRotationService
   ) {
     super(broker, logger, { repository, cache, authCache, nameResolver, workflow });
     this.repository = repository;
@@ -47,12 +63,17 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     this.db = db;
     this.auth = auth;
     this.applicationAuth = applicationAuth;
+    this.applicationAuthKeyring = applicationAuthKeyring;
+    this.applicationAuthSecrets = applicationAuthSecrets;
+    this.applicationAuthProvisioning = applicationAuthProvisioning;
+    this.applicationAuthSecretRotation = applicationAuthSecretRotation;
   }
 
   static async create(
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
-    dbClient: DatabaseClient
+    dbClient: DatabaseClient,
+    applicationAuthRootKeys?: ApplicationAuthRootKeyProvider
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
@@ -67,8 +88,32 @@ export class Kernel extends BaseKernel<IamKernelServices> {
 
     const db = createDatabase(dbClient);
     const auth = createAuth();
-    const applicationAuth = new ApplicationAuthFactory();
-    const repository = await Repository.create({ db, auth, databaseUrl });
+    const applicationAuthKeyring = new ApplicationAuthKeyring(
+      applicationAuthRootKeys ??
+        EnvironmentApplicationAuthRootKeyProvider.fromEnvironment(process.env)
+    );
+    const applicationAuthSecrets = new ApplicationAuthSecretService(
+      applicationAuthKeyring
+    );
+    const applicationAuth = new ApplicationAuthFactory(
+      applicationAuthKeyring,
+      applicationAuthSecrets
+    );
+    const repository = await Repository.create({
+      db,
+      auth,
+      databaseUrl,
+      applicationAuthKeyring,
+    });
+    await repository.applicationAuthConfiguration.assertKeyringReady();
+    const applicationAuthProvisioning = new ApplicationAuthProvisioningService(
+      repository.applicationAuthConfiguration
+    );
+    const applicationAuthSecretRotation =
+      new ApplicationAuthSecretRotationService(
+        repository.applicationAuthConfiguration,
+        applicationAuth
+      );
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
@@ -87,7 +132,11 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       workflow,
       db,
       auth,
-      applicationAuth
+      applicationAuth,
+      applicationAuthKeyring,
+      applicationAuthSecrets,
+      applicationAuthProvisioning,
+      applicationAuthSecretRotation
     );
     return this.instance;
   }

@@ -7,6 +7,8 @@ import { bearer, jwt } from "better-auth/plugins";
 import { getDatabase } from "../infrastructure/db/database.js";
 import { assertApplicationId, type AuthAdapterScope } from "./AuthScope.js";
 import { createScopedDrizzleAdapter } from "./scopedDrizzleAdapter.js";
+import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
+import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
 
 interface IamAuthOptions extends BetterAuthOptions {
   plugins: [ReturnType<typeof bearer>, ReturnType<typeof jwt>];
@@ -16,6 +18,7 @@ export interface ApplicationAuthConfiguration {
   applicationId: string;
   /** Persisted config version or updatedAt; change it to invalidate the cache. */
   version: string | number;
+  secretKeyVersion: number;
   baseURL?: string;
   basePath?: string;
   issuer?: string;
@@ -51,7 +54,11 @@ export function createAuth(): BetterAuthInstance<IamAuthOptions> {
  * keys are stored in application tables and isolated by application ID.
  */
 export function createApplicationAuth(
-  config: ApplicationAuthConfiguration
+  config: ApplicationAuthConfiguration,
+  security: {
+    keyring: ApplicationAuthKeyring;
+    secrets: ApplicationAuthSecretService;
+  }
 ): BetterAuthInstance<IamAuthOptions> {
   const db = getDatabase();
   const { applicationId } = config;
@@ -63,7 +70,11 @@ export function createApplicationAuth(
     database: createScopedDrizzleAdapter(db, {
       kind: "application",
       applicationId,
-    }),
+    }, security),
+    secret: security.secrets.deriveRealmSecret(
+      applicationId,
+      config.secretKeyVersion
+    ),
     baseURL: config.baseURL,
     basePath: config.basePath ?? `/auth/applications/${applicationId}`,
     trustedOrigins: config.trustedOrigins,

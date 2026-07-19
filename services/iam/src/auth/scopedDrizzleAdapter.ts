@@ -34,6 +34,7 @@ import {
   account,
   application,
   applicationAccount,
+  applicationAuthConfiguration,
   applicationJwks,
   applicationSession,
   applicationUser,
@@ -48,6 +49,7 @@ import {
   assertApplicationId,
   type AuthAdapterScope,
 } from "./AuthScope.js";
+import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
 
 type DrizzleConnection = any;
 type AuthModelName = keyof typeof platformAuthSchema;
@@ -85,10 +87,16 @@ const APPLICATION_SCOPED_MODELS = new Set<AuthModelName>([
  */
 export function createScopedDrizzleAdapter(
   db: Database,
-  scope: AuthAdapterScope
+  scope: AuthAdapterScope,
+  security?: { keyring: ApplicationAuthKeyring }
 ): DBAdapterInstance<BetterAuthOptions> {
   if (scope.kind === "application") {
     assertApplicationId(scope.applicationId);
+    if (!security?.keyring) {
+      throw new BetterAuthError(
+        "Application auth keyring is required for scoped persistence"
+      );
+    }
   }
 
   let lazyOptions: CoreBetterAuthOptions | undefined;
@@ -106,7 +114,7 @@ export function createScopedDrizzleAdapter(
     },
   };
 
-  const createCustomAdapter = createScopedCustomAdapter(scope);
+  const createCustomAdapter = createScopedCustomAdapter(scope, security?.keyring);
   const adapterFactory = createAdapterFactory<CoreBetterAuthOptions>({
     config: {
       ...baseConfig,
@@ -145,7 +153,8 @@ export function createScopedDrizzleAdapter(
 }
 
 function createScopedCustomAdapter(
-  scope: AuthAdapterScope
+  scope: AuthAdapterScope,
+  keyring?: ApplicationAuthKeyring
 ): (connection: DrizzleConnection) => AdapterFactoryCustomizeAdapterCreator {
   return (connection) =>
     ({ getDefaultModelName, getFieldName }): CustomAdapter => {
@@ -175,6 +184,10 @@ function createScopedCustomAdapter(
         scope.kind === "application" &&
         getDefaultModelName(model) === "user";
 
+      const isApplicationJwksModel = (model: string): boolean =>
+        scope.kind === "application" &&
+        getDefaultModelName(model) === "jwks";
+
       const scopeData = (
         model: string,
         data: unknown
@@ -187,6 +200,76 @@ function createScopedCustomAdapter(
           applicationId:
             scope.kind === "application" ? scope.applicationId : null,
         };
+      };
+
+      const encryptJwksPrivateKey = (
+        model: string,
+        data: Record<string, any>,
+        rowId?: string
+      ): Record<string, any> => {
+        if (!isApplicationJwksModel(model) || data.privateKey === undefined) {
+          return data;
+        }
+        if (scope.kind !== "application" || !keyring) {
+          throw new BetterAuthError("Application auth keyring is unavailable");
+        }
+        const id = rowId ?? data.id;
+        if (typeof id !== "string" || !id) {
+          throw new BetterAuthError(
+            "Application JWKS private key encryption requires a row id"
+          );
+        }
+        if (typeof data.privateKey !== "string" || !data.privateKey) {
+          throw new BetterAuthError("Application JWKS private key is invalid");
+        }
+        return {
+          ...data,
+          privateKey: keyring.encrypt(data.privateKey, {
+            applicationId: scope.applicationId,
+            model: "jwks",
+            rowId: id,
+            field: "privateKey",
+          }),
+          privateKeyKeyVersion: keyring.activeVersion,
+        };
+      };
+
+      const decryptJwksPrivateKey = <T>(
+        model: string,
+        data: T | null
+      ): T | null => {
+        if (!data || !isApplicationJwksModel(model)) return data;
+        const record = data as Record<string, any>;
+        if (record.privateKey === undefined) return data;
+        if (scope.kind !== "application" || !keyring) {
+          throw new BetterAuthError("Application auth keyring is unavailable");
+        }
+        if (
+          typeof record.id !== "string" ||
+          typeof record.privateKey !== "string" ||
+          typeof record.privateKeyKeyVersion !== "number"
+        ) {
+          throw new BetterAuthError(
+            "Application JWKS encrypted record is incomplete"
+          );
+        }
+        if (
+          keyring.getEnvelopeKeyVersion(record.privateKey) !==
+          record.privateKeyKeyVersion
+        ) {
+          throw new BetterAuthError(
+            "Application JWKS private key version mismatch"
+          );
+        }
+        return {
+          ...record,
+          privateKey: keyring.decrypt(record.privateKey, {
+            applicationId: scope.applicationId,
+            model: "jwks",
+            rowId: record.id,
+            field: "privateKey",
+          }),
+        } as T;
       };
 
       const getColumn = (
@@ -217,11 +300,19 @@ function createScopedCustomAdapter(
             organization,
             eq(organization.id, application.organizationId)
           )
+          .innerJoin(
+            applicationAuthConfiguration,
+            eq(
+              applicationAuthConfiguration.applicationId,
+              application.id
+            )
+          )
           .where(
             and(
               eq(application.id, scope.applicationId),
               isNull(application.deletedAt),
-              isNull(organization.deletedAt)
+              isNull(organization.deletedAt),
+              eq(applicationAuthConfiguration.realmEnabled, true)
             )
           );
         const conditions = [
@@ -249,11 +340,19 @@ function createScopedCustomAdapter(
             organization,
             eq(organization.id, application.organizationId)
           )
+          .innerJoin(
+            applicationAuthConfiguration,
+            eq(
+              applicationAuthConfiguration.applicationId,
+              application.id
+            )
+          )
           .where(
             and(
               eq(application.id, scope.applicationId),
               isNull(application.deletedAt),
-              isNull(organization.deletedAt)
+              isNull(organization.deletedAt),
+              eq(applicationAuthConfiguration.realmEnabled, true)
             )
           )
           .limit(1);
@@ -400,11 +499,19 @@ function createScopedCustomAdapter(
         fields: string[] | undefined
       ) => {
         if (!fields?.length) return undefined;
-        return fields.reduce<Record<string, any>>((selection, field) => {
+        const selection = fields.reduce<Record<string, any>>((result, field) => {
           const fieldName = getFieldName({ model, field });
-          selection[fieldName] = getColumn(schemaModel, model, field);
-          return selection;
+          result[fieldName] = getColumn(schemaModel, model, field);
+          return result;
         }, {});
+        if (
+          isApplicationJwksModel(model) &&
+          Object.prototype.hasOwnProperty.call(selection, "privateKey")
+        ) {
+          selection.id = schemaModel.id;
+          selection.privateKeyKeyVersion = schemaModel.privateKeyKeyVersion;
+        }
+        return selection;
       };
 
       const ensureNoNativeJoin = (join: unknown): void => {
@@ -418,7 +525,10 @@ function createScopedCustomAdapter(
       const adapter: CustomAdapter = {
         async create({ model, data }) {
           const schemaModel = getSchemaModel(model);
-          const values = scopeData(model, data);
+          const values = encryptJwksPrivateKey(
+            model,
+            scopeData(model, data)
+          );
           await assertApplicationWriteAllowed(model, values);
           const rows = await connection
             .insert(schemaModel)
@@ -428,7 +538,7 @@ function createScopedCustomAdapter(
           if (!created) {
             throw new BetterAuthError(`Failed to create auth model "${model}"`);
           }
-          return created;
+          return decryptJwksPrivateKey(model, created);
         },
 
         async findOne({ model, where, select, join }) {
@@ -440,7 +550,7 @@ function createScopedCustomAdapter(
             .from(schemaModel)
             .where(...convertWhere(model, where))
             .limit(1);
-          return rows[0] ?? null;
+          return decryptJwksPrivateKey(model, rows[0] ?? null);
         },
 
         async findMany({ model, where, select, sortBy, limit, offset, join }) {
@@ -458,7 +568,10 @@ function createScopedCustomAdapter(
           }
           if (typeof limit === "number") query = query.limit(limit);
           if (typeof offset === "number") query = query.offset(offset);
-          return query;
+          const rows = await query;
+          return rows.map((row: Record<string, any>) =>
+            decryptJwksPrivateKey(model, row)
+          );
         },
 
         async count({ model, where }) {
@@ -472,16 +585,32 @@ function createScopedCustomAdapter(
 
         async update({ model, where, update }) {
           const schemaModel = getSchemaModel(model);
+          const id = where.find(
+            (condition) =>
+              condition.field === "id" &&
+              (condition.operator === "eq" || condition.operator === undefined) &&
+              typeof condition.value === "string"
+          )?.value as string | undefined;
+          const values = encryptJwksPrivateKey(
+            model,
+            scopeData(model, update),
+            id
+          );
           const rows = await connection
             .update(schemaModel)
-            .set(scopeData(model, update))
+            .set(values)
             .where(...convertWhere(model, where))
             .returning();
-          return rows[0] ?? null;
+          return decryptJwksPrivateKey(model, rows[0] ?? null);
         },
 
         async updateMany({ model, where, update }) {
           const schemaModel = getSchemaModel(model);
+          if (isApplicationJwksModel(model) && update.privateKey !== undefined) {
+            throw new BetterAuthError(
+              "Bulk application JWKS private key updates are forbidden"
+            );
+          }
           const idColumn = getColumn(schemaModel, model, "id");
           const rows = await connection
             .update(schemaModel)
@@ -520,7 +649,7 @@ function createScopedCustomAdapter(
             .delete(schemaModel)
             .where(inArray(idColumn, target))
             .returning();
-          return rows[0] ?? null;
+          return decryptJwksPrivateKey(model, rows[0] ?? null);
         },
 
         async incrementOne({ model, where, increment, set }) {
@@ -547,7 +676,7 @@ function createScopedCustomAdapter(
             .set(assignments)
             .where(inArray(idColumn, target))
             .returning();
-          return rows[0] ?? null;
+          return decryptJwksPrivateKey(model, rows[0] ?? null);
         },
 
         options: {

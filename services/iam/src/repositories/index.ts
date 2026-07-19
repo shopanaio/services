@@ -26,6 +26,18 @@ export {
   type ValidatedAuthSession,
 } from "./auth-session/AuthSessionRepository.js";
 export {
+  ApplicationAuthConfigurationRepository,
+  type ProvisionApplicationInput,
+  type ProvisionedApplication,
+  type ApplicationAuthProviderSummary,
+  type ApplicationAuthProviderCredentials,
+} from "./ApplicationAuthConfigurationRepository.js";
+export {
+  ApplicationAuthorizationContextRepository,
+  type CreateApplicationAuthorizationContextInput,
+  type CreatedApplicationAuthorizationContext,
+} from "./ApplicationAuthorizationContextRepository.js";
+export {
   BetterAuthUserRepository,
   type AuthUser,
   type JwtUserPayload,
