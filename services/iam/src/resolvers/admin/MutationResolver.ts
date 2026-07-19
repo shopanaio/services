@@ -42,4 +42,9 @@ export class MutationResolver extends IAMType<Record<string, never>> {
   organizationMutation() {
     return new OrganizationMutationResolver({}, this.$ctx);
   }
+
+  /** Entry point for application realm management mutations. */
+  applicationMutation() {
+    // TODO: Implement the application mutation namespace entry point.
+  }
 }

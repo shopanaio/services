@@ -133,6 +133,133 @@ type RoleMutation {
   roleDelete(input: RoleDeleteInput!): RoleDeletePayload!
 }
 
+# ---- Applications Namespace ----
+
+"""Application realm management queries."""
+type ApplicationQuery {
+  """Get an application owned by the selected organization."""
+  application(organizationId: ID!, id: ID!): Application
+
+  """List applications owned by the selected organization."""
+  applications(
+    organizationId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationWhereInput
+    orderBy: [ApplicationOrderByInput!]
+  ): ApplicationConnection!
+}
+
+"""Application realm management mutations."""
+type ApplicationMutation {
+  """Create an application realm."""
+  applicationCreate(
+    input: ApplicationCreateInput!
+  ): ApplicationCreatePayload!
+
+  """Update application metadata."""
+  applicationUpdate(
+    input: ApplicationUpdateInput!
+  ): ApplicationUpdatePayload!
+
+  """Archive an application realm."""
+  applicationArchive(
+    input: ApplicationArchiveInput!
+  ): ApplicationArchivePayload!
+
+  """Update application authentication policy and presentation."""
+  applicationAuthUpdate(
+    input: ApplicationAuthUpdateInput!
+  ): ApplicationAuthUpdatePayload!
+
+  """Enable or disable an application authentication realm."""
+  applicationAuthRealmEnabledSet(
+    input: ApplicationAuthRealmEnabledSetInput!
+  ): ApplicationAuthUpdatePayload!
+
+  """Update enabled capabilities of an authentication method."""
+  applicationAuthMethodUpdate(
+    input: ApplicationAuthMethodUpdateInput!
+  ): ApplicationAuthMethodPayload!
+
+  """Configure credentials and scopes of a social provider."""
+  applicationAuthProviderConfigure(
+    input: ApplicationAuthProviderConfigureInput!
+  ): ApplicationAuthProviderPayload!
+
+  """Update non-secret social provider settings."""
+  applicationAuthProviderUpdate(
+    input: ApplicationAuthProviderUpdateInput!
+  ): ApplicationAuthProviderPayload!
+
+  """Replace social provider credentials."""
+  applicationAuthProviderCredentialsRotate(
+    input: ApplicationAuthProviderCredentialsRotateInput!
+  ): ApplicationAuthProviderPayload!
+
+  """Delete credentials from a disabled social provider."""
+  applicationAuthProviderCredentialsDelete(
+    input: ApplicationAuthProviderCredentialsDeleteInput!
+  ): ApplicationAuthProviderPayload!
+
+  """Safely validate a social provider configuration."""
+  applicationAuthProviderValidate(
+    input: ApplicationAuthProviderValidateInput!
+  ): ApplicationAuthProviderValidationPayload!
+
+  """Create an OAuth client with fixed protocol policy."""
+  applicationOAuthClientCreate(
+    input: ApplicationOAuthClientCreateInput!
+  ): ApplicationOAuthClientCreatePayload!
+
+  """Update mutable OAuth client metadata."""
+  applicationOAuthClientUpdate(
+    input: ApplicationOAuthClientUpdateInput!
+  ): ApplicationOAuthClientPayload!
+
+  """Enable or disable an OAuth client."""
+  applicationOAuthClientEnabledSet(
+    input: ApplicationOAuthClientEnabledSetInput!
+  ): ApplicationOAuthClientPayload!
+
+  """Change first-party consent bypass policy for an OAuth client."""
+  applicationOAuthClientSkipConsentSet(
+    input: ApplicationOAuthClientSkipConsentSetInput!
+  ): ApplicationOAuthClientPayload!
+
+  """Rotate a confidential OAuth client secret."""
+  applicationOAuthClientSecretRotate(
+    input: ApplicationOAuthClientSecretRotateInput!
+  ): ApplicationOAuthClientSecretRotatePayload!
+
+  """Archive an OAuth client."""
+  applicationOAuthClientArchive(
+    input: ApplicationOAuthClientArchiveInput!
+  ): ApplicationOAuthClientPayload!
+
+  """Block an application user."""
+  applicationUserBlock(
+    input: ApplicationUserStatusSetInput!
+  ): ApplicationUserPayload!
+
+  """Unblock an application user."""
+  applicationUserUnblock(
+    input: ApplicationUserStatusSetInput!
+  ): ApplicationUserPayload!
+
+  """Revoke every active session of an application user."""
+  applicationUserSessionsRevokeAll(
+    input: ApplicationUserSessionsRevokeAllInput!
+  ): ApplicationUserSessionsRevokeAllPayload!
+
+  """Unlink a login account from an application user."""
+  applicationUserAccountUnlink(
+    input: ApplicationUserAccountUnlinkInput!
+  ): ApplicationUserAccountUnlinkPayload!
+}
+
 # ============================================================================
 # QUERIES & MUTATIONS
 # ============================================================================
@@ -147,6 +274,11 @@ type Query {
   Organization queries namespace.
   """
   organizationQuery: OrganizationQuery!
+
+  """
+  Application realm management queries.
+  """
+  applicationQuery: ApplicationQuery!
 }
 
 type Mutation {
@@ -166,4 +298,8 @@ type Mutation {
   Organization management mutations.
   """
   organizationMutation: OrganizationMutation!
+  """
+  Application realm management mutations.
+  """
+  applicationMutation: ApplicationMutation!
 }

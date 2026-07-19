@@ -28,6 +28,17 @@ type Organization implements Node @key(fields: "id") {
   """
   membership: Membership!
   """
+  Applications owned by this organization.
+  """
+  applications(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationWhereInput
+    orderBy: [ApplicationOrderByInput!]
+  ): ApplicationConnection!
+  """
   Timestamp when the organization was created.
   """
   createdAt: DateTime!

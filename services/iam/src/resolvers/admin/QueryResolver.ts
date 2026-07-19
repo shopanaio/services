@@ -24,4 +24,9 @@ export class QueryResolver extends IAMType<Record<string, never>> {
   organizationQuery() {
     return new OrganizationQueryResolver({}, this.$ctx);
   }
+
+  /** Entry point for application realm management queries. */
+  applicationQuery() {
+    // TODO: Implement the application query namespace entry point.
+  }
 }

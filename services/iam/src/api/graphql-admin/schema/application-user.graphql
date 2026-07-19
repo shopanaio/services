@@ -1,0 +1,137 @@
+# ============================================================================
+# APPLICATION USER TYPES
+# ============================================================================
+
+"""Administrative security status of an application user."""
+enum ApplicationUserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+"""A user scoped to a single application authentication realm."""
+type ApplicationUser implements Node {
+  id: ID!
+  applicationId: ID!
+  name: String!
+  firstName: String
+  lastName: String
+  email: Email!
+  emailVerified: Boolean!
+  imageUrl: String
+  status: ApplicationUserStatus!
+  """Safe security metadata without credentials or token values."""
+  security: ApplicationUserSecurityMetadata!
+  """Linked login accounts without provider credentials or tokens."""
+  linkedAccounts: [ApplicationUserLinkedAccount!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Safe aggregate security metadata for an application user."""
+type ApplicationUserSecurityMetadata {
+  activeSessionCount: Int!
+  linkedAccountCount: Int!
+  hasPasswordLogin: Boolean!
+}
+
+"""A login account linked to an application user."""
+type ApplicationUserLinkedAccount implements Node {
+  id: ID!
+  provider: String!
+  """Whether unlinking this account would remove the user's last login method."""
+  isOnlyLoginMethod: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# ============================================================================
+# CONNECTION TYPES
+# ============================================================================
+
+"""A paginated connection of application users."""
+type ApplicationUserConnection {
+  edges: [ApplicationUserEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+"""An application user and its pagination cursor."""
+type ApplicationUserEdge {
+  node: ApplicationUser!
+  cursor: String!
+}
+
+# ============================================================================
+# FILTER AND ORDER TYPES
+# ============================================================================
+
+"""Filter conditions for application users."""
+input ApplicationUserWhereInput {
+  search: String
+  status: [ApplicationUserStatus!]
+  emailVerified: Boolean
+}
+
+"""Fields available for ordering application users."""
+enum ApplicationUserOrderField {
+  NAME
+  EMAIL
+  CREATED_AT
+  UPDATED_AT
+}
+
+"""Ordering configuration for application users."""
+input ApplicationUserOrderByInput {
+  field: ApplicationUserOrderField!
+  direction: SortDirection!
+}
+
+# ============================================================================
+# INPUTS
+# ============================================================================
+
+"""Input for blocking or unblocking an application user."""
+input ApplicationUserStatusSetInput {
+  organizationId: ID!
+  applicationId: ID!
+  userId: ID!
+}
+
+"""Input for revoking every session of an application user."""
+input ApplicationUserSessionsRevokeAllInput {
+  organizationId: ID!
+  applicationId: ID!
+  userId: ID!
+}
+
+"""Input for unlinking a login account from an application user."""
+input ApplicationUserAccountUnlinkInput {
+  organizationId: ID!
+  applicationId: ID!
+  userId: ID!
+  accountId: ID!
+}
+
+# ============================================================================
+# PAYLOADS
+# ============================================================================
+
+"""Result of changing an application user's security status."""
+type ApplicationUserPayload {
+  user: ApplicationUser
+  userErrors: [GenericUserError!]!
+}
+
+"""Result of revoking every session of an application user."""
+type ApplicationUserSessionsRevokeAllPayload {
+  user: ApplicationUser
+  revokedCount: Int!
+  userErrors: [GenericUserError!]!
+}
+
+"""Result of unlinking an application user login account."""
+type ApplicationUserAccountUnlinkPayload {
+  user: ApplicationUser
+  unlinkedAccountId: ID
+  userErrors: [GenericUserError!]!
+}

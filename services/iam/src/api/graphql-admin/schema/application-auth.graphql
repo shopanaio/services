@@ -1,0 +1,222 @@
+# ============================================================================
+# APPLICATION AUTH ENUMS AND SCALARS
+# ============================================================================
+
+"""Registration policy for new application users."""
+enum ApplicationRegistrationMode {
+  """New users may register through enabled sign-up methods."""
+  OPEN
+  """New user registration is disabled."""
+  DISABLED
+}
+
+"""Consent policy supported by the current protocol version."""
+enum ApplicationConsentMode {
+  """Authorization requires explicit user consent when consent is applicable."""
+  EXPLICIT
+}
+
+"""Stable identifier of a catalog-owned authentication method."""
+scalar ApplicationAuthMethodId
+
+"""Capability exposed by an authentication method."""
+enum ApplicationAuthMethodCapability {
+  SIGN_IN
+  SIGN_UP
+  PASSWORD_RESET
+}
+
+"""Allowed primary colors for hosted authentication UI."""
+enum ApplicationAuthPrimaryColor {
+  BLUE
+  INDIGO
+  VIOLET
+  EMERALD
+}
+
+"""Allowed background colors for hosted authentication UI."""
+enum ApplicationAuthBackgroundColor {
+  WHITE
+  SLATE
+}
+
+# ============================================================================
+# APPLICATION AUTH TYPES
+# ============================================================================
+
+"""Administrative authentication configuration of an application realm."""
+type ApplicationAuthConfiguration {
+  """Application that owns this configuration."""
+  applicationId: ID!
+  """Whether the application realm accepts authentication traffic."""
+  realmEnabled: Boolean!
+  """Registration policy for new application users."""
+  registrationMode: ApplicationRegistrationMode!
+  """Whether a verified email is required by the realm."""
+  emailVerificationRequired: Boolean!
+  """Read-only consent policy enforced by the protocol version."""
+  consentMode: ApplicationConsentMode!
+  """Access token lifetime in seconds."""
+  accessTokenTtlSeconds: Int!
+  """ID token lifetime in seconds."""
+  idTokenTtlSeconds: Int!
+  """Refresh token lifetime in seconds."""
+  refreshTokenTtlSeconds: Int!
+  """Application session lifetime in seconds."""
+  sessionTtlSeconds: Int!
+  """Hosted authentication UI branding."""
+  branding: ApplicationAuthBranding!
+  """Default locale for hosted authentication UI and messages."""
+  defaultLocale: LocaleCode!
+  """Locales supported by the application realm."""
+  supportedLocales: [LocaleCode!]!
+  """Origins trusted by the application realm."""
+  trustedOrigins: [ApplicationAuthTrustedOrigin!]!
+  """Canonical OAuth 2.1 and OpenID Connect endpoint URLs."""
+  protocolUrls: ApplicationAuthProtocolUrls!
+  """Email delivery configuration without credential values."""
+  emailDelivery: ApplicationAuthEmailDeliveryConfiguration!
+  """Find an authentication method by its catalog identifier."""
+  authMethod(id: ApplicationAuthMethodId!): ApplicationAuthMethod!
+  """Authentication methods supported by the realm."""
+  authMethods: [ApplicationAuthMethod!]!
+  """Find a social provider by its catalog name."""
+  provider(name: ApplicationAuthProviderName!): ApplicationAuthProvider!
+  """Social providers supported by the realm."""
+  providers: [ApplicationAuthProvider!]!
+  """Current revision used for optimistic concurrency."""
+  revision: Int!
+  """Timestamp when the configuration was created."""
+  createdAt: DateTime!
+  """Timestamp when the configuration was last updated."""
+  updatedAt: DateTime!
+}
+
+"""Status and enabled capabilities of a catalog-owned authentication method."""
+type ApplicationAuthMethod {
+  id: ApplicationAuthMethodId!
+  availableCapabilities: [ApplicationAuthMethodCapability!]!
+  enabledCapabilities: [ApplicationAuthMethodCapability!]!
+  configured: Boolean!
+  revision: Int!
+  updatedAt: DateTime
+  updatedBy: ID
+}
+
+"""Branding values used by the hosted authentication UI."""
+type ApplicationAuthBranding {
+  displayName: String
+  headline: String
+  logoUrl: String
+  primaryColor: ApplicationAuthPrimaryColor
+  backgroundColor: ApplicationAuthBackgroundColor
+}
+
+"""An exact origin trusted by an application realm."""
+type ApplicationAuthTrustedOrigin {
+  origin: String!
+  createdAt: DateTime!
+}
+
+"""Computed callback URL for a catalog-owned social provider."""
+type ApplicationAuthProviderCallbackUrl {
+  provider: ApplicationAuthProviderName!
+  url: String!
+}
+
+"""Canonical OAuth 2.1 and OpenID Connect URLs for an application realm."""
+type ApplicationAuthProtocolUrls {
+  issuer: String!
+  oidcDiscoveryUrl: String!
+  oauthAuthorizationServerMetadataUrl: String!
+  authorizationUrl: String!
+  tokenUrl: String!
+  jwksUrl: String!
+  revocationUrl: String!
+  endSessionUrl: String!
+  providerCallbackUrls: [ApplicationAuthProviderCallbackUrl!]!
+}
+
+"""Non-secret email delivery configuration for an application realm."""
+type ApplicationAuthEmailDeliveryConfiguration {
+  configured: Boolean!
+  transportProfile: String
+  senderIdentity: String
+  emailVerificationTemplateId: String
+  passwordResetTemplateId: String
+  emailOtpSignInTemplateId: String
+  updatedAt: DateTime
+  updatedBy: ID
+}
+
+# ============================================================================
+# INPUTS
+# ============================================================================
+
+"""Input for updating application authentication policy and presentation."""
+input ApplicationAuthUpdateInput {
+  organizationId: ID!
+  applicationId: ID!
+  registrationMode: ApplicationRegistrationMode
+  emailVerificationRequired: Boolean
+  accessTokenTtlSeconds: Int
+  idTokenTtlSeconds: Int
+  refreshTokenTtlSeconds: Int
+  sessionTtlSeconds: Int
+  branding: ApplicationAuthBrandingInput
+  defaultLocale: LocaleCode
+  trustedOrigins: [String!]
+  emailDelivery: ApplicationAuthEmailDeliveryInput
+  expectedRevision: Int!
+}
+
+"""Input for enabling or disabling an application realm."""
+input ApplicationAuthRealmEnabledSetInput {
+  organizationId: ID!
+  applicationId: ID!
+  enabled: Boolean!
+  expectedRevision: Int!
+}
+
+"""Input for updating enabled capabilities of an authentication method."""
+input ApplicationAuthMethodUpdateInput {
+  organizationId: ID!
+  applicationId: ID!
+  methodId: ApplicationAuthMethodId!
+  enabledCapabilities: [ApplicationAuthMethodCapability!]!
+  expectedRevision: Int!
+}
+
+"""Branding values for the hosted authentication UI."""
+input ApplicationAuthBrandingInput {
+  displayName: String
+  headline: String
+  logoUrl: String
+  primaryColor: ApplicationAuthPrimaryColor
+  backgroundColor: ApplicationAuthBackgroundColor
+}
+
+"""References to a preconfigured email transport and message templates."""
+input ApplicationAuthEmailDeliveryInput {
+  transportProfile: String!
+  senderIdentity: String!
+  emailVerificationTemplateId: String!
+  passwordResetTemplateId: String!
+  emailOtpSignInTemplateId: String!
+}
+
+# ============================================================================
+# PAYLOADS
+# ============================================================================
+
+"""Result of updating application authentication configuration."""
+type ApplicationAuthUpdatePayload {
+  configuration: ApplicationAuthConfiguration
+  userErrors: [GenericUserError!]!
+}
+
+"""Result of updating an application authentication method."""
+type ApplicationAuthMethodPayload {
+  authMethod: ApplicationAuthMethod
+  userErrors: [GenericUserError!]!
+}

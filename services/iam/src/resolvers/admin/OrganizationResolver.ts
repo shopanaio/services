@@ -45,6 +45,10 @@ export class OrganizationResolver extends IAMType<string, Organization> {
     );
   }
 
+  applications(_args: unknown) {
+    // TODO: Resolve applications owned by the organization.
+  }
+
   async name() {
     return this.$get("name");
   }

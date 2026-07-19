@@ -50,6 +50,11 @@ export const adminGraphqlPlugin: FastifyPluginAsync<
     "role.graphql",
     "organization.graphql",
     "membership.graphql",
+    "application.graphql",
+    "application-auth.graphql",
+    "application-provider.graphql",
+    "application-oauth-client.graphql",
+    "application-user.graphql",
   ];
   const modules = schemaFiles.map((file) => ({
     typeDefs: gql(readFileSync(join(__dirname, "schema", file), "utf-8")),

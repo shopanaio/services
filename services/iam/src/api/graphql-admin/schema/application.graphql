@@ -1,0 +1,177 @@
+# ============================================================================
+# APPLICATION TYPES
+# ============================================================================
+
+"""Lifecycle status of an application realm."""
+enum ApplicationLifecycleStatus {
+  """The application is active."""
+  ACTIVE
+  """The application is archived and cannot be used for new authentication."""
+  ARCHIVED
+}
+
+"""An organization-owned application authentication realm."""
+type Application implements Node @key(fields: "id") {
+  """Globally unique application identifier."""
+  id: ID!
+  """Identifier of the organization that owns the application."""
+  organizationId: ID!
+  """Organization that owns the application."""
+  organization: Organization!
+  """URL-friendly application name."""
+  name: String!
+  """Human-readable application name."""
+  displayName: String!
+  """Optional application description."""
+  description: String
+  """Current application lifecycle status."""
+  status: ApplicationLifecycleStatus!
+  """Immutable OAuth resource audience assigned by IAM."""
+  resource: String!
+  """Current revision used for optimistic concurrency."""
+  revision: Int!
+  """Authentication configuration for this application."""
+  auth: ApplicationAuthConfiguration!
+  """Find an OAuth client by its public client identifier."""
+  oauthClient(clientId: String!): ApplicationOAuthClient
+  """OAuth clients registered for this application."""
+  oauthClients(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationOAuthClientWhereInput
+    orderBy: [ApplicationOAuthClientOrderByInput!]
+  ): ApplicationOAuthClientConnection!
+  """Find a user within this application realm."""
+  user(id: ID!): ApplicationUser
+  """Users registered within this application realm."""
+  users(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ApplicationUserWhereInput
+    orderBy: [ApplicationUserOrderByInput!]
+  ): ApplicationUserConnection!
+  """Timestamp when the application was created."""
+  createdAt: DateTime!
+  """Timestamp when the application was last updated."""
+  updatedAt: DateTime!
+  """Timestamp when the application was archived."""
+  archivedAt: DateTime
+}
+
+# ============================================================================
+# CONNECTION TYPES
+# ============================================================================
+
+"""A paginated connection of applications."""
+type ApplicationConnection {
+  """Application edges in the current page."""
+  edges: [ApplicationEdge!]!
+  """Information needed to continue pagination."""
+  pageInfo: PageInfo!
+  """Total number of applications matching the filter."""
+  totalCount: Int!
+}
+
+"""An application and its pagination cursor."""
+type ApplicationEdge {
+  """Application at the end of the edge."""
+  node: Application!
+  """Opaque pagination cursor."""
+  cursor: String!
+}
+
+# ============================================================================
+# FILTER AND ORDER TYPES
+# ============================================================================
+
+"""Filter conditions for applications."""
+input ApplicationWhereInput {
+  """Search by application name or display name."""
+  search: String
+  """Limit results to the selected lifecycle statuses."""
+  status: [ApplicationLifecycleStatus!]
+}
+
+"""Fields available for ordering applications."""
+enum ApplicationOrderField {
+  NAME
+  DISPLAY_NAME
+  CREATED_AT
+  UPDATED_AT
+}
+
+"""Ordering configuration for applications."""
+input ApplicationOrderByInput {
+  """Field to order by."""
+  field: ApplicationOrderField!
+  """Sort direction."""
+  direction: SortDirection!
+}
+
+# ============================================================================
+# INPUTS
+# ============================================================================
+
+"""Input for creating an application."""
+input ApplicationCreateInput {
+  """Organization that will own the application."""
+  organizationId: ID!
+  """URL-friendly application name."""
+  name: String!
+  """Human-readable application name."""
+  displayName: String!
+  """Optional application description."""
+  description: String
+}
+
+"""Input for updating application metadata."""
+input ApplicationUpdateInput {
+  """Organization that owns the application."""
+  organizationId: ID!
+  """Application to update."""
+  applicationId: ID!
+  """New URL-friendly application name."""
+  name: String
+  """New human-readable application name."""
+  displayName: String
+  """New application description."""
+  description: String
+  """Revision expected by the caller."""
+  expectedRevision: Int!
+}
+
+"""Input for archiving an application."""
+input ApplicationArchiveInput {
+  """Organization that owns the application."""
+  organizationId: ID!
+  """Application to archive."""
+  applicationId: ID!
+  """Revision expected by the caller."""
+  expectedRevision: Int!
+}
+
+# ============================================================================
+# PAYLOADS
+# ============================================================================
+
+"""Result of creating an application."""
+type ApplicationCreatePayload {
+  application: Application
+  userErrors: [GenericUserError!]!
+}
+
+"""Result of updating application metadata."""
+type ApplicationUpdatePayload {
+  application: Application
+  userErrors: [GenericUserError!]!
+}
+
+"""Result of archiving an application."""
+type ApplicationArchivePayload {
+  application: Application
+  userErrors: [GenericUserError!]!
+}

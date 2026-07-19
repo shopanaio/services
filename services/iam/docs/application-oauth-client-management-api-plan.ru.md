@@ -77,7 +77,7 @@ Platform session не передается в `applicationAuth.api.adminCreateOA
 - публичные `/oauth2/create-client`, `/oauth2/get-client`, `/oauth2/get-clients`, `/oauth2/update-client`, `/oauth2/delete-client`, `/oauth2/client/rotate-secret`;
 - прямой GraphQL input для plugin metadata, grants, response types или resource audience.
 
-Dynamic Client Registration остается выключен. Документация Better Auth указывает, что unauthenticated registration предназначена для public clients; она не заменяет организационную авторизацию, Casbin, Store ownership и trusted restricted fields.
+Dynamic Client Registration остается выключен. Документация Better Auth указывает, что unauthenticated registration предназначена для public clients; она не заменяет организационную авторизацию, Casbin, application ownership и trusted restricted fields.
 
 ## 4. Внешний Admin GraphQL контракт
 
@@ -94,7 +94,6 @@ type ApplicationOAuthClient {
   environment: ApplicationOAuthClientEnvironment!
   redirectUris: [String!]!
   postLogoutRedirectUris: [String!]!
-  storeId: ID!
   resources: [String!]!
   grantTypes: [String!]!
   responseTypes: [String!]!
@@ -138,7 +137,6 @@ input ApplicationOAuthClientCreateInput {
   environment: ApplicationOAuthClientEnvironment!
   redirectUris: [String!]!
   postLogoutRedirectUris: [String!]
-  storeId: ID!
   skipConsent: Boolean
   enableEndSession: Boolean
 }
@@ -164,7 +162,6 @@ Update разрешает менять только:
 - name;
 - redirect URIs;
 - post-logout URIs;
-- Store binding после повторной ownership-проверки;
 - `skipConsent` для подтвержденного first-party client;
 - `enableEndSession`;
 - environment в пределах URI policy;
@@ -261,12 +258,11 @@ interface ApplicationOAuthClientManagementService {
 4. Загрузку application с predicate по `applicationId + organizationId`.
 5. Проверку active/non-deleted organization и application.
 6. Загрузку active auth configuration и проверку наличия единственного `application.resource`.
-7. Проверку Store ownership через внутренний Project service action.
-8. Нормализацию и валидацию URI.
-9. Принудительное применение protocol policy v1 и наследование exact `application.resource`.
-10. Application-scoped транзакцию.
-11. Запись безопасного audit event без secrets.
-12. Revision increment и invalidation `ApplicationAuthFactory` cache.
+7. Нормализацию и валидацию URI.
+8. Принудительное применение protocol policy v1 и наследование exact `application.resource`.
+9. Application-scoped транзакцию.
+10. Запись безопасного audit event без secrets.
+11. Revision increment и invalidation `ApplicationAuthFactory` cache.
 
 Queries выполняют ту же последовательность platform actor -> client-provided `organizationId` -> Casbin `read` -> ownership predicate `applicationId + organizationId` до чтения OAuth client. List repository всегда фильтрует clients по trusted application scope, полученному после ownership check.
 
@@ -289,7 +285,6 @@ IAM-controlled metadata хранит:
 
 - `application_id`;
 - `client_id`;
-- `store_id`;
 - exact `resource_audience`;
 - `protocol_policy_version`;
 - `environment`;
@@ -318,7 +313,7 @@ IAM-controlled metadata хранит:
 4. Вернуть plaintext только из create/rotate result.
 5. Немедленно удалить plaintext из объектов после формирования ответа, не сохраняя его в cache/outbox/audit.
 
-Better Auth документирует hashed storage по умолчанию в разделе [Storage](https://www.better-auth.com/docs/plugins/oauth-provider#storage). Для совместимости с default `storeClientSecret=hashed` версии `1.6.23` использовать тот же утвержденный SHA-256 + base64url contract, зафиксированный документацией миграции OAuth Provider. Алгоритм покрыть compatibility test vector, чтобы upgrade пакета не изменил поведение незаметно.
+Better Auth документирует hashed storage по умолчанию в разделе [Storage](https://www.better-auth.com/docs/plugins/oauth-provider#storage). Для совместимости с default hashed-secret policy версии `1.6.23` использовать тот же утвержденный SHA-256 + base64url contract, зафиксированный документацией миграции OAuth Provider. Алгоритм покрыть compatibility test vector, чтобы upgrade пакета не изменил поведение незаметно.
 
 Нельзя импортировать нестабильный internal symbol пакета без compatibility wrapper и ADR. Предпочтительно локализовать совместимость в одном `OAuthClientSecretCodec`, versioned по версии plugin.
 
@@ -337,7 +332,7 @@ Better Auth документирует hashed storage по умолчанию в
 
 Post-logout URI валидируются отдельно по тем же базовым правилам. Trusted origins являются application configuration и не выводятся автоматически из redirect URI без отдельного решения.
 
-`storeId`, `resources`, actor claims и signed-token metadata формируются только из trusted server-side данных. `resources` проецируется как `[application.resource]`, а не принимается из client input. Произвольный JSON из GraphQL не переносится в plugin metadata или JWT claims.
+`resources`, actor claims и signed-token metadata формируются только из trusted server-side данных. `resources` проецируется как `[application.resource]`, а не принимается из client input. Произвольный JSON из GraphQL не переносится в plugin metadata или JWT claims.
 
 ## 10. Permissions и аудит
 
@@ -392,7 +387,6 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 
 - application не найдена в organization actor;
 - недостаточно прав;
-- Store принадлежит другой organization;
 - URI не соответствует environment policy;
 - client type нельзя изменить;
 - first-party policy не разрешает `skipConsent`;
@@ -429,8 +423,7 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 3. Утвердить application-level `resource` contract: IAM-generated immutable `urn:shopana:application:{applicationId}`, уникальность и запрет application/client-level override.
 4. Утвердить secret prefix/length/hash compatibility vector.
 5. Зафиксировать поля `oauthClient` версии `1.6.23` и protocol policy v1.
-6. Зафиксировать internal Project action для Store ownership.
-7. Решить archive versus hard-delete semantics.
+6. Решить archive versus hard-delete semantics.
 
 Критерий выхода: нет client-controlled полей, способных включить новый grant, audience или signed claim.
 
@@ -448,7 +441,7 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 1. Реализовать create/list/get/update.
 2. Реализовать enable/disable/archive.
 3. Реализовать one-time secret create/rotation.
-4. Добавить Store ownership action, audit и cache invalidation.
+4. Добавить audit и cache invalidation.
 5. Принудительно применять protocol policy v1.
 
 Критерий выхода: service не принимает application user session и не доверяет tenant/resource metadata из input.
@@ -485,7 +478,6 @@ Audit, logs, errors, traces и metrics не содержат plaintext/hash secr
 - organization `member` без явной custom policy не читает и не изменяет OAuth clients;
 - unknown resource/action отклоняется до owner/site-admin bypass;
 - admin organization A не создает client для application B;
-- Store другой organization не привязывается;
 - public client создается без secret;
 - confidential client получает secret один раз;
 - get/list/update не возвращают secret;
@@ -532,7 +524,6 @@ services/e2e/.../iam/application-oauth-client/*
 - `organizationId` приходит из Admin GraphQL input/arguments, не считается trusted и проверяется через Casbin и ownership predicate.
 - OAuth client создается без `application_user` session и impersonation.
 - Все данные client application-scoped.
-- Store принадлежит organization application.
 - Protocol grants, response type и PKCE задаются сервером; audience наследуется только из единственного `application.resource` и не управляется OAuth client mutation.
 - Confidential secret хранится hashed и показывается один раз.
 - Public management endpoints закрыты до `auth.handler`.
