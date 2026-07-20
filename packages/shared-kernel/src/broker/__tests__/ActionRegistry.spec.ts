@@ -9,8 +9,9 @@ describe('ActionRegistry', () => {
     registry.register('payments.test', handler);
     const resolved = registry.resolve('payments.test');
 
-    await expect(resolved(undefined)).resolves.toBe('ok');
-    expect(handler).toHaveBeenCalledWith(undefined);
+    const context = { callerService: 'payments' };
+    await expect(resolved(undefined, context)).resolves.toBe('ok');
+    expect(handler).toHaveBeenCalledWith(undefined, context);
   });
 
   it('prevents duplicates', () => {

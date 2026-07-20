@@ -6,6 +6,11 @@ export interface AuthRequest {
   resource: string;
   action: string;
   domain?: string;
+  protectedResource?: {
+    organizationId: string;
+    resourceKind: string;
+    resourceId: string;
+  };
 }
 
 interface BatchAuthorizeResult {
@@ -52,6 +57,7 @@ export function createAuthorizationLoader(broker: Broker) {
                   domain: request.domain,
                   resource: request.resource,
                   action: request.action,
+                  protectedResource: request.protectedResource,
                 })),
               }
             )) as BatchAuthorizeResult;
@@ -69,9 +75,14 @@ export function createAuthorizationLoader(broker: Broker) {
     {
       // Cache key based on all authorization parameters
       cacheKeyFn: (req) =>
-        `${req.userId}:${req.organizationId}:${req.domain ?? ""}:${
-          req.resource
-        }:${req.action}`,
+        JSON.stringify([
+          req.userId,
+          req.organizationId,
+          req.domain ?? "",
+          req.resource,
+          req.action,
+          req.protectedResource ?? null,
+        ]),
     }
   );
 }

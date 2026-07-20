@@ -10,7 +10,8 @@ import { getContext } from "../context/index.js";
 /**
  * Extended authorize params with store name support.
  */
-export interface ProjectAuthorizeParams extends AuthorizeParams {
+export interface ProjectAuthorizeParams
+  extends Omit<AuthorizeParams, "linkedOwner"> {
   /** Store name (slug) - will be resolved to storeId via NameResolver */
   storeName?: string;
 }
@@ -80,7 +81,6 @@ export class AuthProvider implements IAuthProvider {
       action: params.action,
       domain,
       protectedResource: params.protectedResource,
-      linkedOwner: params.linkedOwner,
     })) as BrokerAuthorizeResult;
 
     throwIfBrokerAuthorizeDenied(result);

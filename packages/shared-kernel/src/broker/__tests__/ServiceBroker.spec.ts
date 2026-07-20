@@ -32,6 +32,18 @@ describe('ServiceBroker', () => {
     });
   });
 
+  it('assigns caller service identity outside the action payload', async () => {
+    const registry = new ActionRegistry();
+    const broker = createBroker({ registry });
+    const handler: ActionHandler = jest.fn(async (_params, context) => context);
+
+    broker.register('inspectCaller', handler);
+
+    await expect(
+      broker.call('payments.inspectCaller', { callerService: 'forged' }),
+    ).resolves.toEqual({ callerService: 'payments' });
+  });
+
   it('throws when call action lacks prefix', async () => {
     const broker = createBroker();
 

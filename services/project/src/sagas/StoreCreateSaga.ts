@@ -278,13 +278,12 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       >("iam.deleteApplicationForStoreCreateCompensation", {
         applicationId,
         organizationId: input.organizationId,
+        storeId,
       });
       if (!result.success) {
-        this.logger.warn(
-          { applicationId, storeId, error: result.error },
-          "Failed to compensate IAM application",
+        throw new Error(
+          result.error ?? "Failed to compensate IAM application",
         );
-        return;
       }
       this.logger.log(
         { applicationId, storeId },
@@ -295,6 +294,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
         { applicationId, storeId, error },
         "Failed to compensate IAM application",
       );
+      throw error;
     }
   }
 

@@ -18,6 +18,7 @@ export class AuthProvider implements IAuthProvider {
   }
 
   async authorize(params: AuthorizeParams): Promise<boolean> {
+    if (params.linkedOwner) return false;
     const subject = params.subject ?? this.subject;
     if (!subject) {
       return false;
@@ -34,7 +35,6 @@ export class AuthProvider implements IAuthProvider {
       action: params.action,
       domain,
       protectedResource: params.protectedResource,
-      linkedOwner: params.linkedOwner,
     })) as BrokerAuthorizeResult;
 
     throwIfBrokerAuthorizeDenied(result);

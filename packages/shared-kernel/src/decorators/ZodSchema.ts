@@ -51,12 +51,14 @@ export function ZodSchema<TSchema extends ZodSchemaType>(schema: TSchema) {
     descriptor: TypedPropertyDescriptor<T>
   ): TypedPropertyDescriptor<T> {
     const originalMethod = descriptor.value as unknown as (
-      params: unknown
+      params: unknown,
+      ...args: unknown[]
     ) => Promise<unknown>;
 
     descriptor.value = async function (
       this: unknown,
-      params: unknown
+      params: unknown,
+      ...args: unknown[]
     ): Promise<unknown> {
       const result = schema.safeParse(params);
 
@@ -67,7 +69,7 @@ export function ZodSchema<TSchema extends ZodSchemaType>(schema: TSchema) {
         );
       }
 
-      return originalMethod.call(this, result.data);
+      return originalMethod.call(this, result.data, ...args);
     } as unknown as T;
 
     return descriptor;

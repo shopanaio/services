@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
+export interface ActionCallContext {
+  /** Service identity assigned by the calling ServiceBroker instance. */
+  readonly callerService: string;
+}
+
 export type ActionHandler<TParams = unknown, TResult = unknown> = (
   params: TParams | undefined,
+  context: ActionCallContext,
 ) => Promise<TResult> | TResult;
 
 export interface ActionMetadata {

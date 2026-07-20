@@ -85,6 +85,7 @@ export interface CreateApplicationResult {
 export interface DeleteApplicationForStoreCreateCompensationParams {
   applicationId: string;
   organizationId: string;
+  storeId: string;
 }
 
 export interface DeleteApplicationForStoreCreateCompensationResult {
@@ -118,7 +119,6 @@ export interface AuthorizeParams {
   resource: string;
   action: string;
   protectedResource?: ProtectedResourceRef;
-  linkedOwner?: LinkedOwnerRef;
 }
 
 export type AuthorizeDeniedCode = "RESOURCE_SERVICE_LINKED";
@@ -132,13 +132,14 @@ export interface AuthorizeResult {
 
 export interface BatchAuthorizeRequest {
   userId: string;
-  organizationId: string;
   domain?: string;
   resource: string;
   action: string;
+  protectedResource?: ProtectedResourceRef;
 }
 
 export interface BatchAuthorizeParams {
+  organizationId: string;
   requests: BatchAuthorizeRequest[];
 }
 

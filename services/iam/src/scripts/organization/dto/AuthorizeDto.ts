@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type {
-  AuthorizeParams,
+  AuthorizeParams as RbacAuthorizeParams,
   Domain,
   ResourceName,
   ServiceLinkedAuthorizationDetails,
@@ -14,14 +14,6 @@ const protectedResourceSchema = z
   })
   .strict();
 
-const linkedOwnerSchema = protectedResourceSchema
-  .extend({
-    linkedService: z.string().trim().min(1).max(64),
-    linkedOwnerType: z.string().trim().min(1).max(64),
-    linkedOwnerId: z.string().uuid("Invalid linked owner ID"),
-  })
-  .strict();
-
 export const authorizeInputSchema = z
   .object({
     subject: z.string().min(1, "Subject (user ID) is required"),
@@ -31,14 +23,14 @@ export const authorizeInputSchema = z
     resource: z.string().min(1, "Resource is required"),
     action: z.string().min(1, "Action is required"),
     protectedResource: protectedResourceSchema.optional(),
-    linkedOwner: linkedOwnerSchema.optional(),
   })
   .strict();
 
 export type AuthorizeInput = z.infer<typeof authorizeInputSchema>;
 
 // Re-export from @shopana/rbac
-export type { AuthorizeParams, Domain, ResourceName };
+export type AuthorizeParams = Omit<RbacAuthorizeParams, "linkedOwner">;
+export type { Domain, ResourceName };
 
 export interface AuthorizeResult {
   allowed: boolean;

@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import {
   createLocalJWKSet,
   jwtVerify,
@@ -210,6 +210,20 @@ export class UserRepository extends BetterAuthUserRepository<User> {
       .from(user)
       .where(eq(user.id, userId));
     return row?.admin ?? false;
+  }
+
+  async findAdminUserIds(userIds: readonly string[]): Promise<string[]> {
+    if (userIds.length === 0) return [];
+    const rows = await this.db
+      .select({ id: user.id })
+      .from(user)
+      .where(
+        and(
+          inArray(user.id, [...new Set(userIds)]),
+          eq(user.admin, true)
+        )
+      );
+    return rows.map(({ id }) => id);
   }
 
   protected mapAuthUser(value: unknown): User {

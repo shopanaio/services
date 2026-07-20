@@ -13,6 +13,7 @@ export {
 } from "./TransactionManager";
 export {
   ActionRegistry,
+  type ActionCallContext,
   type ActionHandler,
   type ActionMetadata,
 } from "./broker/ActionRegistry";

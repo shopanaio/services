@@ -1,5 +1,10 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
-import { ActionHandler, ActionRegistry, type ActionMetadata } from './ActionRegistry';
+import {
+  ActionHandler,
+  ActionRegistry,
+  type ActionCallContext,
+  type ActionMetadata,
+} from './ActionRegistry';
 import {
   WORKFLOW_REGISTRY,
   type WorkflowRegistry,
@@ -52,7 +57,10 @@ export class ServiceBroker implements OnModuleDestroy {
 
     this.inFlight++;
     try {
-      return (await handler(params)) as TResult;
+      const context: ActionCallContext = Object.freeze({
+        callerService: this.options.serviceName,
+      });
+      return (await handler(params, context)) as TResult;
     } finally {
       this.inFlight--;
     }

@@ -220,6 +220,25 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     return this.generateUuidV7();
   }
 
+  @ReadOnly()
+  async applicationExists(input: {
+    organizationId: string;
+    applicationId: string;
+  }): Promise<boolean> {
+    const [record] = await this.connection
+      .select({ id: application.id })
+      .from(application)
+      .where(
+        and(
+          eq(application.id, input.applicationId),
+          eq(application.organizationId, input.organizationId)
+        )
+      )
+      .limit(1);
+
+    return Boolean(record);
+  }
+
   @Transactional()
   async deleteApplicationForStoreCreateCompensation(input: {
     organizationId: string;

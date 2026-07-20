@@ -2,7 +2,9 @@ import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
 import { runWithContext } from "../context/index.js";
 import { AuthProvider } from "../kernel/Authorizable.js";
 import { AuthorizeScript } from "../scripts/organization/AuthorizeScript.js";
+import { BatchAuthorizeScript } from "../scripts/organization/BatchAuthorizeScript.js";
 import { authorizeInputSchema } from "../scripts/organization/dto/AuthorizeDto.js";
+import { batchAuthorizeInputSchema } from "../scripts/organization/dto/BatchAuthorizeDto.js";
 
 const protectedApplication = Object.freeze({
   organizationId: "018f8f6d-7980-7000-9000-000000000001",
@@ -18,7 +20,7 @@ const linkedOwner = Object.freeze({
 });
 
 describe("service-linked resource authorization contract", () => {
-  it("keeps service-linked context in broker authorize input", () => {
+  it("keeps protected resource context in broker authorize input", () => {
     const parsed = authorizeInputSchema.parse({
       subject: "platform-user",
       organizationId: protectedApplication.organizationId,
@@ -26,11 +28,74 @@ describe("service-linked resource authorization contract", () => {
       resource: "org.applications",
       action: "write",
       protectedResource: protectedApplication,
-      linkedOwner,
     });
 
     expect(parsed.protectedResource).toEqual(protectedApplication);
-    expect(parsed.linkedOwner).toEqual(linkedOwner);
+  });
+
+  it("rejects linked-owner context in generic broker authorize input", () => {
+    expect(() =>
+      authorizeInputSchema.parse({
+        subject: "platform-user",
+        organizationId: protectedApplication.organizationId,
+        domain: "org",
+        resource: "org.applications",
+        action: "write",
+        protectedResource: protectedApplication,
+        linkedOwner,
+      })
+    ).toThrow();
+  });
+
+  it("keeps protected resource context in broker batch authorize input", () => {
+    const parsed = batchAuthorizeInputSchema.parse({
+      organizationId: protectedApplication.organizationId,
+      requests: [
+        {
+          userId: "platform-user",
+          domain: "org",
+          resource: "org.applications",
+          action: "write",
+          protectedResource: protectedApplication,
+        },
+      ],
+    });
+
+    expect(parsed.requests[0]?.protectedResource).toEqual(protectedApplication);
+  });
+
+  it("rejects linked-owner context in generic broker batch authorize input", () => {
+    expect(() =>
+      batchAuthorizeInputSchema.parse({
+        organizationId: protectedApplication.organizationId,
+        requests: [
+          {
+            userId: "platform-user",
+            domain: "org",
+            resource: "org.applications",
+            action: "write",
+            protectedResource: protectedApplication,
+            linkedOwner,
+          },
+        ],
+      })
+    ).toThrow();
+  });
+
+  it("denies active service-linked resources through one bulk batch decision", async () => {
+    const services = createServices({
+      batchCasbinResults: [true, true],
+      bindingsByResources: [linkedOwner],
+    });
+
+    await expect(
+      runBatchAuthorizeScriptWithServices(services)
+    ).resolves.toEqual({ results: [false, true] });
+
+    expect(services.repository.casbin.batchEnforce).toHaveBeenCalledTimes(1);
+    expect(
+      services.repository.serviceLinkedResource.findActiveByResources
+    ).toHaveBeenCalledWith([protectedApplication]);
   });
 
   it("allows generic admin writes when the protected resource has no active binding", async () => {
@@ -184,7 +249,6 @@ function runAuthorizeScriptWithServices(
   services: ReturnType<typeof createServices>,
   context: {
     protectedResource?: typeof protectedApplication;
-    linkedOwner?: typeof linkedOwner;
   }
 ) {
   return runWithContext(
@@ -211,23 +275,69 @@ function runAuthorizeScriptWithServices(
   );
 }
 
+function runBatchAuthorizeScriptWithServices(
+  services: ReturnType<typeof createServices>
+) {
+  return runWithContext(
+    {
+      requestId: "test-request",
+      kernel: { getServices: () => services },
+      currentUser: {
+        id: "platform-user",
+        data: null,
+        sessionId: null,
+      },
+      loaders: {},
+      requestHeaders: {},
+    } as never,
+    () =>
+      new BatchAuthorizeScript(services as never).run({
+        organizationId: protectedApplication.organizationId,
+        requests: [
+          {
+            userId: "platform-user",
+            domain: "org",
+            resource: "org.applications",
+            action: "write",
+            protectedResource: protectedApplication,
+          },
+          {
+            userId: "platform-user",
+            domain: "org",
+            resource: "org.roles",
+            action: "read",
+          },
+        ],
+      } as never)
+  );
+}
+
 function createServices(input: {
   bindingByResource?: typeof linkedOwner | null;
   bindingByLinkedOwner?: typeof linkedOwner | null;
   casbinAllowed?: boolean;
   siteAdmin?: boolean;
   organizationOwner?: boolean;
+  batchCasbinResults?: boolean[];
+  bindingsByResources?: Array<typeof linkedOwner>;
 }) {
   return {
     repository: {
       user: {
         isAdmin: jest.fn().mockResolvedValue(input.siteAdmin ?? false),
+        findAdminUserIds: jest.fn().mockResolvedValue([]),
       },
       organization: {
         isOwner: jest.fn().mockResolvedValue(input.organizationOwner ?? false),
+        findOwner: jest.fn().mockResolvedValue(
+          input.organizationOwner ? { userId: "platform-user" } : null
+        ),
       },
       casbin: {
         enforce: jest.fn().mockResolvedValue(input.casbinAllowed ?? false),
+        batchEnforce: jest
+          .fn()
+          .mockResolvedValue(input.batchCasbinResults ?? []),
       },
       serviceLinkedResource: {
         findActiveByResource: jest
@@ -236,6 +346,9 @@ function createServices(input: {
         findActiveLinkedOwner: jest
           .fn()
           .mockResolvedValue(input.bindingByLinkedOwner ?? null),
+        findActiveByResources: jest
+          .fn()
+          .mockResolvedValue(input.bindingsByResources ?? []),
       },
     },
     nameResolver: {

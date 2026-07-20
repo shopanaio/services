@@ -7,6 +7,7 @@ import {
   ServiceBroker,
   Action,
   ZodSchema,
+  type ActionCallContext,
 } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
 import { AuthProvider } from "../kernel/Authorizable.js";
@@ -99,6 +100,7 @@ const deleteApplicationForStoreCreateCompensationInputSchema = z
   .object({
     applicationId: z.string().uuid("Invalid application ID"),
     organizationId: z.string().uuid("Invalid organization ID"),
+    storeId: z.string().uuid("Invalid store ID"),
   })
   .strict();
 
@@ -193,7 +195,6 @@ export class IamBrokerActions extends BrokerActions {
         resource: params.resource,
         action: params.action,
         protectedResource: params.protectedResource,
-        linkedOwner: params.linkedOwner,
       }),
     );
   }
@@ -270,6 +271,7 @@ export class IamBrokerActions extends BrokerActions {
   @ZodSchema(createApplicationInputSchema)
   async createApplication(
     params: CreateApplicationParams,
+    actionContext: ActionCallContext,
   ): Promise<CreateApplicationResult> {
     const ctx = await this.createUserContext(params.userId);
 
@@ -277,7 +279,10 @@ export class IamBrokerActions extends BrokerActions {
       const result = await runWithContext(ctx, () =>
         this.kernel.repository.txManager.run(async () => {
           if (params.managementMode === "service_linked") {
-            await this.assertServiceLinkedApplicationCreateAuthorized(params);
+            await this.assertServiceLinkedApplicationCreateAuthorized(
+              params,
+              actionContext,
+            );
           }
 
           const result =
@@ -318,6 +323,7 @@ export class IamBrokerActions extends BrokerActions {
               params,
               ctx.requestId,
               result.applicationId,
+              actionContext.callerService,
               "success",
               "success",
             );
@@ -339,6 +345,7 @@ export class IamBrokerActions extends BrokerActions {
             params,
             ctx.requestId,
             params.applicationId,
+            actionContext.callerService,
             "failure",
             serviceLinkedApplicationCreateFailureReason(error),
           );
@@ -360,6 +367,7 @@ export class IamBrokerActions extends BrokerActions {
     params: CreateApplicationParams,
     requestId: string,
     applicationId: string,
+    callerService: string,
     outcome: "success" | "failure",
     reasonCategory: ApplicationAuthAdminAuditReasonCategory,
   ): Promise<void> {
@@ -373,7 +381,7 @@ export class IamBrokerActions extends BrokerActions {
       outcome,
       reasonCategory,
       actorType: "external_service",
-      actorId: params.linkedOwner.linkedService,
+      actorId: callerService,
       organizationId: params.organizationId,
       applicationId,
       targetType: "application",
@@ -390,9 +398,14 @@ export class IamBrokerActions extends BrokerActions {
 
   private async assertServiceLinkedApplicationCreateAuthorized(
     params: CreateApplicationParams,
+    actionContext: ActionCallContext,
   ): Promise<void> {
     if (!params.linkedOwner) {
       throw new Error("Linked owner is required");
+    }
+
+    if (actionContext.callerService !== params.linkedOwner.linkedService) {
+      throw new Error("Linked service does not match broker caller");
     }
 
     const permission = serviceLinkedApplicationCreatePermission(params.linkedOwner);
@@ -419,22 +432,57 @@ export class IamBrokerActions extends BrokerActions {
   @ZodSchema(deleteApplicationForStoreCreateCompensationInputSchema)
   async deleteApplicationForStoreCreateCompensation(
     params: DeleteApplicationForStoreCreateCompensationParams,
+    actionContext: ActionCallContext,
   ): Promise<DeleteApplicationForStoreCreateCompensationResult> {
     try {
+      if (actionContext.callerService !== IAM_LINKED_SERVICE.project) {
+        throw new Error("Only project service can compensate store application");
+      }
+
       await this.kernel.repository.txManager.run(async () => {
-        await this.kernel.repository.serviceLinkedResource.softDeleteActiveByResource(
-          {
-            organizationId: params.organizationId,
-            resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
-            resourceId: params.applicationId,
-          },
-        );
-        await this.kernel.repository.applicationAuthAdminMutation.deleteApplicationForStoreCreateCompensation(
-          {
-            applicationId: params.applicationId,
-            organizationId: params.organizationId,
-          },
-        );
+        const linkedOwner = {
+          organizationId: params.organizationId,
+          resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+          resourceId: params.applicationId,
+          linkedService: IAM_LINKED_SERVICE.project,
+          linkedOwnerType: IAM_LINKED_OWNER_TYPE.store,
+          linkedOwnerId: params.storeId,
+        };
+        const binding =
+          await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner(
+            linkedOwner,
+          );
+
+        if (!binding) {
+          const applicationExists =
+            await this.kernel.repository.applicationAuthAdminMutation.applicationExists(
+              {
+                applicationId: params.applicationId,
+                organizationId: params.organizationId,
+              },
+            );
+          if (!applicationExists) return;
+          throw new Error("Application is not linked to the requested store");
+        }
+
+        const bindingDeleted =
+          await this.kernel.repository.serviceLinkedResource.softDeleteActiveLinkedOwner(
+            linkedOwner,
+          );
+        if (!bindingDeleted) {
+          throw new Error("Service-linked application binding could not be deleted");
+        }
+
+        const applicationDeleted =
+          await this.kernel.repository.applicationAuthAdminMutation.deleteApplicationForStoreCreateCompensation(
+            {
+              applicationId: params.applicationId,
+              organizationId: params.organizationId,
+            },
+          );
+        if (!applicationDeleted) {
+          throw new Error("Service-linked application could not be deleted");
+        }
       });
 
       return { success: true };
@@ -477,7 +525,11 @@ function serviceLinkedApplicationCreateFailureReason(
   }
   if (code === "ADMIN_AUDIT_UNAVAILABLE") return "audit_unavailable";
   const message = error instanceof Error ? error.message : "";
-  if (message.includes("not permitted") || message.includes("not allowed")) {
+  if (
+    message.includes("not permitted") ||
+    message.includes("not allowed") ||
+    message.includes("does not match broker caller")
+  ) {
     return "authorization";
   }
   if (message.includes("required")) return "invalid_input";

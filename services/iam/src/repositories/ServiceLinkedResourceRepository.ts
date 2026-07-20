@@ -115,8 +115,8 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
     return record;
   }
 
-  async softDeleteActiveByResource(input: ProtectedResourceRef): Promise<void> {
-    await this.connection
+  async softDeleteActiveLinkedOwner(input: LinkedOwnerRef): Promise<boolean> {
+    const rows = await this.connection
       .update(serviceLinkedResource)
       .set({ deletedAt: new Date() })
       .where(
@@ -124,9 +124,15 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
           eq(serviceLinkedResource.organizationId, input.organizationId),
           eq(serviceLinkedResource.resourceKind, input.resourceKind),
           eq(serviceLinkedResource.resourceId, input.resourceId),
+          eq(serviceLinkedResource.linkedService, input.linkedService),
+          eq(serviceLinkedResource.linkedOwnerType, input.linkedOwnerType),
+          eq(serviceLinkedResource.linkedOwnerId, input.linkedOwnerId),
           isNull(serviceLinkedResource.deletedAt)
         )
-      );
+      )
+      .returning({ id: serviceLinkedResource.id });
+
+    return rows.length > 0;
   }
 }
 
