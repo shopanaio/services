@@ -23,11 +23,13 @@ export type { RoleMeta } from "./definitions.js";
 export type {
   ActionsForResource,
   AuthorizeParams,
+  BrokerAuthorizeParams,
   AuthProvider,
   Authorizable,
   BasePolicyOptions,
   LinkedOwnerRef,
   ProtectedResourceRef,
   ServiceLinkedAuthorizationDetails,
+  ServiceAwareAuthorizeParams,
 } from "./auth.js";
 export { ServiceLinkedResourceAuthorizationError } from "./auth.js";

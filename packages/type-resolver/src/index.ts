@@ -22,8 +22,10 @@ export {
   authorizationMiddleware,
   type TypePolicyOptions,
   type AuthorizeParams,
+  type BrokerAuthorizeParams,
   type AuthProvider,
   type Authorizable,
+  type ServiceAwareAuthorizeParams,
   type AuthorizationMiddlewareOptions,
 } from "./middleware/authorization/index.js";
 

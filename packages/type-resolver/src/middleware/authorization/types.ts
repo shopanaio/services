@@ -1,8 +1,10 @@
 // Re-export common types from rbac
 export type {
   AuthorizeParams,
+  BrokerAuthorizeParams,
   AuthProvider,
   Authorizable,
+  ServiceAwareAuthorizeParams,
 } from "@shopana/rbac";
 
 import type {

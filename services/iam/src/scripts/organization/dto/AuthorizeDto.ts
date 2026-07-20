@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type {
-  AuthorizeParams as RbacAuthorizeParams,
+  BrokerAuthorizeParams,
   Domain,
   ResourceName,
   ServiceLinkedAuthorizationDetails,
@@ -29,7 +29,7 @@ export const authorizeInputSchema = z
 export type AuthorizeInput = z.infer<typeof authorizeInputSchema>;
 
 // Re-export from @shopana/rbac
-export type AuthorizeParams = Omit<RbacAuthorizeParams, "linkedOwner">;
+export type { BrokerAuthorizeParams as AuthorizeParams };
 export type { Domain, ResourceName };
 
 export interface AuthorizeResult {

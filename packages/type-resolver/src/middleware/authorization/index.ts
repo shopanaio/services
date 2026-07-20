@@ -1,5 +1,12 @@
 // Types
-export type { TypePolicyOptions, AuthorizeParams, AuthProvider, Authorizable } from "./types.js";
+export type {
+  TypePolicyOptions,
+  AuthorizeParams,
+  BrokerAuthorizeParams,
+  AuthProvider,
+  Authorizable,
+  ServiceAwareAuthorizeParams,
+} from "./types.js";
 
 // Error
 export { TypeAuthorizationError } from "./error.js";

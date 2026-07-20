@@ -10,11 +10,10 @@ import { getContext } from "../context/index.js";
 /**
  * Extended authorize params with store name support.
  */
-export interface ProjectAuthorizeParams
-  extends Omit<AuthorizeParams, "linkedOwner"> {
+export type ProjectAuthorizeParams = AuthorizeParams & {
   /** Store name (slug) - will be resolved to storeId via NameResolver */
   storeName?: string;
-}
+};
 
 /**
  * Authorization provider for project service.

@@ -4,6 +4,7 @@ import type {
   Domain,
   ActionsForResource,
   Authorizable,
+  BrokerAuthorizeParams,
   LinkedOwnerRef,
   ProtectedResourceRef,
 } from "@shopana/rbac";
@@ -12,8 +13,10 @@ import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
 // Re-export from rbac for backwards compatibility
 export type {
   AuthorizeParams,
+  BrokerAuthorizeParams,
   AuthProvider,
   Authorizable,
+  ServiceAwareAuthorizeParams,
 } from "@shopana/rbac";
 
 /**
@@ -112,12 +115,14 @@ export function Policy<
     descriptor: TypedPropertyDescriptor<T>
   ): TypedPropertyDescriptor<T> {
     const originalMethod = descriptor.value as unknown as (
-      params: TParams
+      params: TParams,
+      ...args: unknown[]
     ) => Promise<unknown>;
 
     descriptor.value = async function (
       this: TSelf,
-      params: TParams
+      params: TParams,
+      ...args: unknown[]
     ): Promise<unknown> {
       if (!this.authProvider.subject) {
         throw new AuthorizationError(
@@ -165,7 +170,7 @@ export function Policy<
 
       let allowed: boolean;
       try {
-        allowed = await this.authProvider.authorize({
+        const authorizeParams: BrokerAuthorizeParams = {
           resource: options.resource,
           action: options.action,
           organizationId,
@@ -173,8 +178,12 @@ export function Policy<
           domain,
           subject,
           protectedResource,
-          linkedOwner,
-        });
+        };
+        allowed = await this.authProvider.authorize(
+          linkedOwner
+            ? { ...authorizeParams, linkedOwner }
+            : authorizeParams
+        );
       } catch (error) {
         if (error instanceof ServiceLinkedResourceAuthorizationError) {
           throw new AuthorizationError(
@@ -206,7 +215,7 @@ export function Policy<
         );
       }
 
-      return originalMethod.call(this, params);
+      return originalMethod.call(this, params, ...args);
     } as unknown as T;
 
     return descriptor;

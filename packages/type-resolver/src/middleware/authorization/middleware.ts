@@ -1,5 +1,6 @@
 import type { Middleware, AfterCreateContext } from "../../types.js";
 import type { TypePolicyOptions, Authorizable } from "./types.js";
+import type { BrokerAuthorizeParams } from "@shopana/rbac";
 import { TypeAuthorizationError } from "./error.js";
 
 /**
@@ -111,15 +112,19 @@ export function createAuthorizationMiddleware<TContext = unknown>(
           ? policy.linkedOwner(instance)
           : policy.linkedOwner;
 
-      const allowed = await instance.authProvider.authorize({
+      const authorizeParams: BrokerAuthorizeParams = {
         resource: policy.resource,
         action: policy.action,
         organizationId,
         domain,
         subject: subject ?? undefined,
         protectedResource: protectedResource ?? undefined,
-        linkedOwner: linkedOwner ?? undefined,
-      });
+      };
+      const allowed = await instance.authProvider.authorize(
+        linkedOwner
+          ? { ...authorizeParams, linkedOwner }
+          : authorizeParams
+      );
 
       if (!allowed) {
         if (policy.onDeny === "null") {

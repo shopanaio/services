@@ -1,7 +1,33 @@
 import { jest } from '@jest/globals';
+import { z } from 'zod';
 import { ActionRegistry } from '../ActionRegistry';
 import { ServiceBroker } from '../ServiceBroker';
-import type { ActionHandler } from '../ActionRegistry';
+import type { ActionCallContext, ActionHandler } from '../ActionRegistry';
+import { BrokerActions } from '../BrokerActions';
+import { Action } from '../../decorators/Action';
+import { Policy } from '../../decorators/Authorize';
+import { ZodSchema } from '../../decorators/ZodSchema';
+
+class SecuredBrokerActions extends BrokerActions {
+  readonly authProvider = {
+    subject: 'platform-user',
+    authorize: jest.fn(async () => true),
+  };
+
+  @Action('securedAction')
+  @ZodSchema(z.object({ value: z.string() }).strict())
+  @Policy<{ value: string }>({
+    resource: 'org.stores',
+    action: 'read',
+    organizationId: '018f8f6d-7980-7000-9000-000000000001',
+  })
+  async securedAction(
+    params: { value: string },
+    context: ActionCallContext,
+  ): Promise<{ value: string; callerService: string }> {
+    return { value: params.value, callerService: context.callerService };
+  }
+}
 
 const createBroker = (options?: { registry?: ActionRegistry }) => {
   const registry = options?.registry ?? new ActionRegistry();
@@ -42,6 +68,18 @@ describe('ServiceBroker', () => {
     await expect(
       broker.call('payments.inspectCaller', { callerService: 'forged' }),
     ).resolves.toEqual({ callerService: 'payments' });
+  });
+
+  it('preserves caller context through ZodSchema and Policy decorators', async () => {
+    const registry = new ActionRegistry();
+    const targetBroker = createBroker({ registry });
+    const callerBroker = new ServiceBroker(registry, { serviceName: 'project' });
+    const actions = new SecuredBrokerActions(targetBroker);
+    actions.onModuleInit();
+
+    await expect(
+      callerBroker.call('payments.securedAction', { value: 'ok' }),
+    ).resolves.toEqual({ value: 'ok', callerService: 'project' });
   });
 
   it('throws when call action lacks prefix', async () => {

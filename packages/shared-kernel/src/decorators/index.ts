@@ -5,7 +5,9 @@ export {
   type Authorizable,
   type AuthProvider,
   type AuthorizeParams,
+  type BrokerAuthorizeParams,
   type AuthorizeOptions,
+  type ServiceAwareAuthorizeParams,
 } from "./Authorize.js";
 export {
   Action,

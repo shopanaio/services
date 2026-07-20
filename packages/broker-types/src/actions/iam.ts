@@ -111,7 +111,7 @@ export interface LinkedOwnerRef extends ProtectedResourceRef {
 
 export interface ServiceLinkedAuthorizationDetails extends LinkedOwnerRef {}
 
-export interface AuthorizeParams {
+export interface BrokerAuthorizeParams {
   subject?: string;
   organizationId?: string;
   organizationName?: string;
@@ -120,6 +120,8 @@ export interface AuthorizeParams {
   action: string;
   protectedResource?: ProtectedResourceRef;
 }
+
+export type AuthorizeParams = BrokerAuthorizeParams;
 
 export type AuthorizeDeniedCode = "RESOURCE_SERVICE_LINKED";
 

@@ -176,6 +176,7 @@ export type {
   AssignRoleResult,
   // Authorization
   AuthorizeParams,
+  BrokerAuthorizeParams,
   AuthorizeResult,
   BatchAuthorizeRequest,
   BatchAuthorizeParams,

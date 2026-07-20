@@ -5,6 +5,8 @@ import type {
 import {
   ServiceLinkedResourceAuthorizationError,
   validateAuthorizeInput,
+  type LinkedOwnerRef,
+  type ProtectedResourceRef,
 } from "@shopana/rbac";
 import type { IamKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
@@ -55,6 +57,8 @@ export class AuthProvider implements IAuthProvider {
    * Validates domain, resource, and action against @shopana/rbac definitions.
    */
   async authorize(params: AuthorizeParams): Promise<boolean> {
+    const linkedOwner =
+      "linkedOwner" in params ? params.linkedOwner : undefined;
     const subject = params.subject || this.subject;
     if (!subject) {
       return false;
@@ -81,7 +85,7 @@ export class AuthProvider implements IAuthProvider {
     ) {
       return false;
     }
-    if (params.linkedOwner && params.linkedOwner.organizationId !== organizationId) {
+    if (linkedOwner && linkedOwner.organizationId !== organizationId) {
       return false;
     }
 
@@ -100,16 +104,16 @@ export class AuthProvider implements IAuthProvider {
 
     if (
       params.protectedResource &&
-      params.linkedOwner &&
-      !this.sameProtectedResource(params.protectedResource, params.linkedOwner)
+      linkedOwner &&
+      !this.sameProtectedResource(params.protectedResource, linkedOwner)
     ) {
       return false;
     }
 
     if (
-      params.linkedOwner &&
+      linkedOwner &&
       !this.isLinkedOwnerPermissionScoped(
-        params.linkedOwner,
+        linkedOwner,
         params.resource,
         params.action
       )
@@ -117,8 +121,8 @@ export class AuthProvider implements IAuthProvider {
       return false;
     }
 
-    if (params.linkedOwner) {
-      return this.isLinkedOwnerAuthorized(params.linkedOwner);
+    if (linkedOwner) {
+      return this.isLinkedOwnerAuthorized(linkedOwner);
     }
 
     // Check if user is site admin (bypasses RBAC, but not service-linked mutability)
@@ -175,7 +179,7 @@ export class AuthProvider implements IAuthProvider {
   }
 
   private async isLinkedOwnerAuthorized(
-    linkedOwner: NonNullable<AuthorizeParams["linkedOwner"]>
+    linkedOwner: LinkedOwnerRef
   ): Promise<boolean> {
     const binding =
       await this.services.repository.serviceLinkedResource.findActiveLinkedOwner(
@@ -185,8 +189,8 @@ export class AuthProvider implements IAuthProvider {
   }
 
   private sameProtectedResource(
-    protectedResource: NonNullable<AuthorizeParams["protectedResource"]>,
-    linkedOwner: NonNullable<AuthorizeParams["linkedOwner"]>
+    protectedResource: ProtectedResourceRef,
+    linkedOwner: LinkedOwnerRef
   ): boolean {
     return (
       protectedResource.organizationId === linkedOwner.organizationId &&
@@ -196,7 +200,7 @@ export class AuthProvider implements IAuthProvider {
   }
 
   private isLinkedOwnerPermissionScoped(
-    linkedOwner: NonNullable<AuthorizeParams["linkedOwner"]>,
+    linkedOwner: LinkedOwnerRef,
     resource: string,
     action: string
   ): boolean {

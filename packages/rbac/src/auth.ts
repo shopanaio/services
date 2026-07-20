@@ -41,19 +41,23 @@ export interface ServiceLinkedAuthorizationDetails {
   linkedOwnerId: string;
 }
 
-export interface AuthorizeParams {
-  resource: string;
-  action: string;
+export interface BrokerAuthorizeParams {
+  subject?: string;
   organizationId?: string;
   organizationName?: string;
   domain?: string;
-  /** Subject (user ID) for authorization. */
-  subject?: string;
-  /** Concrete protected resource for write mutability checks. */
+  resource: string;
+  action: string;
   protectedResource?: ProtectedResourceRef;
-  /** Trusted linked owner context for service-aware write paths. */
-  linkedOwner?: LinkedOwnerRef;
 }
+
+export interface ServiceAwareAuthorizeParams extends BrokerAuthorizeParams {
+  linkedOwner: LinkedOwnerRef;
+}
+
+export type AuthorizeParams =
+  | BrokerAuthorizeParams
+  | ServiceAwareAuthorizeParams;
 
 export class ServiceLinkedResourceAuthorizationError extends Error {
   readonly code = "RESOURCE_SERVICE_LINKED";

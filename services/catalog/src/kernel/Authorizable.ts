@@ -35,7 +35,7 @@ export class AuthProvider implements IAuthProvider {
    * Uses store context from ServiceContext for domain resolution.
    */
   async authorize(params: AuthorizeParams): Promise<boolean> {
-    if (params.linkedOwner) return false;
+    if ("linkedOwner" in params && params.linkedOwner) return false;
     const subject = params.subject ?? this.subject;
     if (!subject) {
       return false;
