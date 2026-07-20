@@ -23,6 +23,7 @@ import type {
   ApplicationAuthAdminAuditReasonCategory,
   ApplicationRealmAdminAuditSafeDiff,
 } from "./ApplicationAuthAdminAuditPort.js";
+import type { ResourceManagementMode } from "../repositories/models/index.js";
 import type { ApplicationAuthProviderValidationPort } from "./ApplicationAuthProviderValidationPort.js";
 
 const APPLICATIONS_RESOURCE = "org.applications";
@@ -374,6 +375,7 @@ export class ApplicationAuthAdminManagementService {
     options: {
       applicationId?: string;
       authorization?: CreateApplicationAuthorizationMode;
+      managementMode?: ResourceManagementMode;
     } = {}
   ): Promise<ApplicationMutationResult> {
     const applicationId =
@@ -405,6 +407,7 @@ export class ApplicationAuthAdminManagementService {
         const created = await this.repository.createApplication({
           ...value,
           applicationId,
+          managementMode: options.managementMode ?? "organization",
         });
         const mutationResult = {
           organizationId: value.organizationId,

@@ -26,8 +26,10 @@ import {
   applicationAuthOrigin,
   applicationAuthProvider,
   organization,
+  resourceManagement,
   type Application,
   type ApplicationAuthConfigurationRecord,
+  type ResourceManagementMode,
 } from "./models/index.js";
 
 export interface ApplicationAuthAdminMutationScope {
@@ -45,6 +47,7 @@ export interface CreateAdminApplicationInput {
   name: string;
   displayName: string;
   description?: string | null;
+  managementMode: ResourceManagementMode;
 }
 
 export interface UpdateAdminApplicationInput {
@@ -192,6 +195,20 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       })
       .returning();
     if (!createdApplication) throw new Error("Application could not be created");
+
+    const [createdManagement] = await this.connection
+      .insert(resourceManagement)
+      .values({
+        id: await this.generateUuidV7(),
+        organizationId: input.organizationId,
+        resourceKind: "application",
+        resourceId: input.applicationId,
+        managementMode: input.managementMode,
+      })
+      .returning({ id: resourceManagement.id });
+    if (!createdManagement) {
+      throw new Error("Application resource management could not be created");
+    }
 
     const configuration = applicationAuthMutableConfigurationSchema.parse(
       DEFAULT_APPLICATION_AUTH_CONFIGURATION

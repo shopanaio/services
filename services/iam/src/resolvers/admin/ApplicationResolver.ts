@@ -104,22 +104,37 @@ export class ApplicationResolver extends IAMType<
   }
 
   async management() {
-    const binding = await this.$ctx.loaders.serviceLinkedResource.load({
+    const resource = {
       organizationId: await this.$get("organizationId"),
       resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
       resourceId: this.$props.id,
-    });
+    };
+    const [managementMode, binding] = await Promise.all([
+      this.$ctx.kernel
+        .getServices()
+        .repository.serviceLinkedResource.findManagementMode(resource),
+      this.$ctx.loaders.serviceLinkedResource.load(resource),
+    ]);
+    if (!managementMode) {
+      throw new Error("Application resource management state is missing");
+    }
+    if (
+      (managementMode === "service" && !binding) ||
+      (managementMode === "organization" && binding)
+    ) {
+      throw new Error("Application resource management state is inconsistent");
+    }
     return new ResourceManagementResolver(
-      binding
+      managementMode === "service" && binding
         ? {
-            mode: "SERVICE_LINKED",
+            mode: "SERVICE",
             linkedService: binding.linkedService,
             linkedOwnerType: binding.linkedOwnerType,
             linkedOwnerId: binding.linkedOwnerId,
             mutableFromOrganizationAdmin: false,
           }
         : {
-            mode: "ADMIN",
+            mode: "ORGANIZATION",
             linkedService: null,
             linkedOwnerType: null,
             linkedOwnerId: null,
@@ -273,7 +288,7 @@ export class ApplicationArchivePayloadResolver extends IAMType<ApplicationPayloa
 }
 
 interface ResourceManagementValue {
-  mode: "ADMIN" | "SERVICE_LINKED";
+  mode: "ORGANIZATION" | "SERVICE";
   linkedService: string | null;
   linkedOwnerType: string | null;
   linkedOwnerId: string | null;

@@ -104,16 +104,44 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
     ).not.toHaveBeenCalled();
   });
 
-  it("allows an unbound protected resource", async () => {
-    const services = createServices({ bindingByResource: null });
+  it("allows an unbound admin-managed protected resource", async () => {
+    const services = createServices({
+      managementMode: "organization",
+      bindingByResource: null,
+    });
 
     await expect(
       authorizeProtectedResource(services, protectedApplication)
     ).resolves.toBe(true);
   });
 
+  it("denies a service-linked resource when its binding is missing", async () => {
+    const services = createServices({
+      managementMode: "service",
+      bindingByResource: null,
+    });
+
+    await expect(
+      authorizeProtectedResource(services, protectedApplication)
+    ).resolves.toBe(false);
+  });
+
+  it("denies an admin-managed resource with an unexpected binding", async () => {
+    const services = createServices({
+      managementMode: "organization",
+      bindingByResource: linkedOwner,
+    });
+
+    await expect(
+      authorizeProtectedResource(services, protectedApplication)
+    ).resolves.toBe(false);
+  });
+
   it("denies generic Admin access to a service-linked resource", async () => {
-    const services = createServices({ bindingByResource: linkedOwner });
+    const services = createServices({
+      managementMode: "service",
+      bindingByResource: linkedOwner,
+    });
 
     await expect(
       authorizeProtectedResource(services, protectedApplication)
@@ -121,7 +149,10 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
   });
 
   it("allows the linked service with the matching owner type and ID", async () => {
-    const services = createServices({ bindingByResource: linkedOwner });
+    const services = createServices({
+      managementMode: "service",
+      bindingByResource: linkedOwner,
+    });
 
     await expect(
       authorizeProtectedResource(
@@ -152,7 +183,10 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
       callerService: "catalog",
     },
   ])("denies a mismatched linked-service claim", async ({ resource, callerService }) => {
-    const services = createServices({ bindingByResource: linkedOwner });
+    const services = createServices({
+      managementMode: "service",
+      bindingByResource: linkedOwner,
+    });
 
     await expect(
       authorizeProtectedResource(services, resource, {
@@ -227,6 +261,7 @@ function withIamContext<T>(
 }
 
 function createServices(input: {
+  managementMode?: "organization" | "service" | null;
   bindingByResource?: typeof linkedOwner | null;
   casbinAllowed?: boolean;
   batchCasbinResults?: boolean[];
@@ -248,6 +283,9 @@ function createServices(input: {
           .mockResolvedValue(input.batchCasbinResults ?? []),
       },
       serviceLinkedResource: {
+        findManagementMode: jest
+          .fn()
+          .mockResolvedValue(input.managementMode ?? "organization"),
         findActiveByResource: jest
           .fn()
           .mockResolvedValue(input.bindingByResource ?? null),

@@ -59,6 +59,24 @@ describe("ProtectedResource contract", () => {
     ).not.toHaveBeenCalled();
   });
 
+  it.each(["organizationId", "resourceKind", "resourceId"] as const)(
+    "fails closed when %s is empty",
+    async (field) => {
+      const boundary = new ProtectedBoundary();
+
+      await expect(
+        boundary.run({ ...protectedApplication, [field]: " " })
+      ).rejects.toMatchObject({
+        errors: [
+          expect.objectContaining({ code: "PROTECTED_RESOURCE_REQUIRED" }),
+        ],
+      });
+      expect(
+        boundary.authProvider.authorizeProtectedResource
+      ).not.toHaveBeenCalled();
+    }
+  );
+
   it("composes after Policy so RBAC is checked first", async () => {
     const boundary = new CombinedBoundary();
 

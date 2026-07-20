@@ -2212,11 +2212,11 @@ export type ResourceDefinition = {
 /** Read-only management metadata for an IAM resource. */
 export type ResourceManagement = {
   __typename?: 'ResourceManagement';
-  /** Linked owner id, when mode is SERVICE_LINKED. */
+  /** Linked owner id, when mode is SERVICE. */
   linkedOwnerId?: Maybe<Scalars['ID']['output']>;
-  /** Linked owner type, when mode is SERVICE_LINKED. */
+  /** Linked owner type, when mode is SERVICE. */
   linkedOwnerType?: Maybe<Scalars['String']['output']>;
-  /** Linked service owner, when mode is SERVICE_LINKED. */
+  /** Linked service owner, when mode is SERVICE. */
   linkedService?: Maybe<Scalars['String']['output']>;
   /** Current management mode. */
   mode: ResourceManagementMode;
@@ -2226,10 +2226,10 @@ export type ResourceManagement = {
 
 /** How an IAM resource lifecycle is managed. */
 export enum ResourceManagementMode {
-  /** The resource is managed through organization Admin APIs. */
-  Admin = 'ADMIN',
+  /** The resource is managed by the organization. */
+  Organization = 'ORGANIZATION',
   /** The resource is managed by a linked service owner. */
-  ServiceLinked = 'SERVICE_LINKED'
+  Service = 'SERVICE'
 }
 
 /** Role with permissions - universal, can be assigned at any level. */

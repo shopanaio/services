@@ -60,9 +60,9 @@ export interface ServiceLinkedOwnerInput {
 }
 
 export type ResourceManagementInput =
-  | { managementMode: "admin" }
+  | { managementMode: "organization" }
   | {
-      managementMode: "service_linked";
+      managementMode: "service";
       linkedOwner: ServiceLinkedOwnerInput;
     };
 

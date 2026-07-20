@@ -12,3 +12,6 @@ export * from "./authorization.js";
 
 // Generic service-linked IAM resource bindings
 export * from "./service-linked-resource.js";
+
+// Generic protected-resource management state
+export * from "./resource-management.js";

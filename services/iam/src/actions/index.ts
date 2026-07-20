@@ -78,19 +78,19 @@ const createApplicationInputSchema = z
     name: applicationNameSchema,
     displayName: z.string().trim().min(1).max(256),
     description: z.string().trim().max(4000).optional(),
-    managementMode: z.enum(["admin", "service_linked"]),
+    managementMode: z.enum(["organization", "service"]),
     linkedOwner: linkedOwnerInputSchema.optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (value.managementMode === "service_linked" && !value.linkedOwner) {
+    if (value.managementMode === "service" && !value.linkedOwner) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["linkedOwner"],
         message: "Linked owner is required for service-linked application",
       });
     }
-    if (value.managementMode === "admin" && value.linkedOwner) {
+    if (value.managementMode === "organization" && value.linkedOwner) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["linkedOwner"],
@@ -320,7 +320,7 @@ export class IamBrokerActions extends BrokerActions {
     try {
       const result = await runWithContext(ctx, () =>
         this.kernel.repository.txManager.run(async () => {
-          if (params.managementMode === "service_linked") {
+          if (params.managementMode === "service") {
             await this.assertServiceLinkedApplicationCreateAuthorized(
               params,
               actionContext,
@@ -342,13 +342,14 @@ export class IamBrokerActions extends BrokerActions {
               {
                 applicationId: params.applicationId,
                 authorization:
-                  params.managementMode === "service_linked"
+                  params.managementMode === "service"
                     ? "trusted_boundary"
                     : "admin",
+                managementMode: params.managementMode,
               },
             );
 
-          if (params.managementMode === "service_linked") {
+          if (params.managementMode === "service") {
             if (!params.linkedOwner) {
               throw new Error("Linked owner is required");
             }
@@ -381,7 +382,7 @@ export class IamBrokerActions extends BrokerActions {
       };
     } catch (error) {
       let effectiveError = error;
-      if (params.managementMode === "service_linked") {
+      if (params.managementMode === "service") {
         try {
           await this.appendServiceLinkedApplicationCreateAudit(
             params,
@@ -523,6 +524,15 @@ export class IamBrokerActions extends BrokerActions {
           );
         if (!applicationDeleted) {
           throw new Error("Service-linked application could not be deleted");
+        }
+        const managementDeleted =
+          await this.kernel.repository.serviceLinkedResource.deleteManagement({
+            organizationId: params.organizationId,
+            resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+            resourceId: params.applicationId,
+          });
+        if (!managementDeleted) {
+          throw new Error("Application resource management could not be deleted");
         }
       });
 

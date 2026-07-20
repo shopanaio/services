@@ -9,6 +9,8 @@ import type { Database } from "../infrastructure/db/database.js";
 import { BaseRepository } from "./BaseRepository.js";
 import {
   serviceLinkedResource,
+  resourceManagement,
+  type ResourceManagementMode,
   type ServiceLinkedResource,
 } from "./models/index.js";
 
@@ -25,6 +27,38 @@ export interface CreateServiceLinkedResourceBindingInput
 export class ServiceLinkedResourceRepository extends BaseRepository {
   constructor(db: Database, txManager: TransactionManager<Database>) {
     super(db, txManager);
+  }
+
+  @ReadOnly()
+  async findManagementMode(
+    input: ProtectedResourceRef
+  ): Promise<ResourceManagementMode | null> {
+    const [record] = await this.connection
+      .select({ managementMode: resourceManagement.managementMode })
+      .from(resourceManagement)
+      .where(
+        and(
+          eq(resourceManagement.organizationId, input.organizationId),
+          eq(resourceManagement.resourceKind, input.resourceKind),
+          eq(resourceManagement.resourceId, input.resourceId)
+        )
+      )
+      .limit(1);
+    return record?.managementMode ?? null;
+  }
+
+  async deleteManagement(input: ProtectedResourceRef): Promise<boolean> {
+    const rows = await this.connection
+      .delete(resourceManagement)
+      .where(
+        and(
+          eq(resourceManagement.organizationId, input.organizationId),
+          eq(resourceManagement.resourceKind, input.resourceKind),
+          eq(resourceManagement.resourceId, input.resourceId)
+        )
+      )
+      .returning({ id: resourceManagement.id });
+    return rows.length > 0;
   }
 
   @ReadOnly()

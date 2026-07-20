@@ -15,6 +15,7 @@ import {
   type Resource,
 } from "../casbin/CasbinService.js";
 import {
+  IAM_SERVICE_LINKED_RESOURCE_KIND,
   matchesServiceLinkedOwner,
 } from "../service-linked/resources.js";
 
@@ -117,16 +118,38 @@ export class AuthProvider implements IAuthProvider {
   async authorizeProtectedResource(
     params: ProtectedResourceAuthorizeParams
   ): Promise<boolean> {
+    const resource = params.protectedResource;
+    if (
+      !resource.organizationId.trim() ||
+      !resource.resourceKind.trim() ||
+      !resource.resourceId.trim()
+    ) {
+      return false;
+    }
+
+    if (resource.resourceKind !== IAM_SERVICE_LINKED_RESOURCE_KIND.application) {
+      return false;
+    }
+
+    const managementMode =
+      await this.services.repository.serviceLinkedResource.findManagementMode(
+        resource
+      );
+    if (!managementMode) return false;
+
     const binding =
       await this.services.repository.serviceLinkedResource.findActiveByResource(
-        params.protectedResource
+        resource
       );
-    if (!binding) return true;
+    if (managementMode === "organization") {
+      return binding === null;
+    }
+    if (!binding) return false;
 
     const caller = getContext().brokerCallContext?.caller;
     if (
       caller?.service === binding.linkedService &&
-      matchesServiceLinkedOwner(params.protectedResource, binding)
+      matchesServiceLinkedOwner(resource, binding)
     ) {
       return true;
     }

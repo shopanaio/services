@@ -12,21 +12,21 @@ enum ApplicationLifecycleStatus {
 
 """How an IAM resource lifecycle is managed."""
 enum ResourceManagementMode {
-  """The resource is managed through organization Admin APIs."""
-  ADMIN
+  """The resource is managed by the organization."""
+  ORGANIZATION
   """The resource is managed by a linked service owner."""
-  SERVICE_LINKED
+  SERVICE
 }
 
 """Read-only management metadata for an IAM resource."""
 type ResourceManagement {
   """Current management mode."""
   mode: ResourceManagementMode!
-  """Linked service owner, when mode is SERVICE_LINKED."""
+  """Linked service owner, when mode is SERVICE."""
   linkedService: String
-  """Linked owner type, when mode is SERVICE_LINKED."""
+  """Linked owner type, when mode is SERVICE."""
   linkedOwnerType: String
-  """Linked owner id, when mode is SERVICE_LINKED."""
+  """Linked owner id, when mode is SERVICE."""
   linkedOwnerId: ID
   """Whether generic organization Admin mutations may change this resource."""
   mutableFromOrganizationAdmin: Boolean!

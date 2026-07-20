@@ -44,7 +44,11 @@ export function ProtectedResource<
     ): Promise<unknown> {
       const protectedResource = resolve(resolver, args);
 
-      if (!protectedResource || !hasCompleteOwnerClaim(protectedResource)) {
+      if (
+        !protectedResource ||
+        !hasConcreteResourceIdentity(protectedResource) ||
+        !hasCompleteOwnerClaim(protectedResource)
+      ) {
         throw new AuthorizationError(
           [
             {
@@ -97,4 +101,12 @@ function hasCompleteOwnerClaim(resource: ProtectedResourceRef): boolean {
   const hasOwnerType = Boolean(resource.ownerType?.trim());
   const hasOwnerId = Boolean(resource.ownerId?.trim());
   return hasOwnerType === hasOwnerId;
+}
+
+function hasConcreteResourceIdentity(resource: ProtectedResourceRef): boolean {
+  return Boolean(
+    resource.organizationId.trim() &&
+      resource.resourceKind.trim() &&
+      resource.resourceId.trim()
+  );
 }

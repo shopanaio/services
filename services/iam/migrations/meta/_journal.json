@@ -43,6 +43,13 @@
       "when": 1784562747390,
       "tag": "0005_large_starjammers",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784583244065,
+      "tag": "0006_volatile_omega_red",
+      "breakpoints": true
     }
   ]
 }
