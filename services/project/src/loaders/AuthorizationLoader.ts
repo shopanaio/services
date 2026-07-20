@@ -10,6 +10,7 @@ export interface AuthRequest {
     organizationId: string;
     resourceKind: string;
     resourceId: string;
+    ownerType?: string;
     ownerId?: string;
   };
 }

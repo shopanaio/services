@@ -224,6 +224,7 @@ linked service must opt into the required protected-resource contract:
     organizationId: params.organizationId,
     resourceKind: "application",
     resourceId: params.applicationId,
+    ownerType: "store",
     ownerId: params.storeId,
   }),
 })
@@ -232,7 +233,8 @@ async updateApplication(params: UpdateApplicationInput): Promise<Application> {
 }
 ```
 
-`protectedResourceMode: "required"` is fail-closed and requires `ownerId`. If
+`protectedResourceMode: "required"` is fail-closed and requires both
+`ownerType` and `ownerId`. If
 the resolver cannot produce a concrete resource identity with its owner,
 `@Policy` returns an authorization error
 with code `PROTECTED_RESOURCE_REQUIRED` before calling the authorization
@@ -277,9 +279,9 @@ interface PolicyOptions<TParams> {
   domain?: (self: Authorizable, params: TParams) => string;
   protectedResourceMode?: "optional" | "required";
   protectedResource?:
-    | (ProtectedResourceRef & { ownerId: string })
+    | (ProtectedResourceRef & { ownerType: string; ownerId: string })
     | ((self: Authorizable, params: TParams) =>
-        (ProtectedResourceRef & { ownerId: string }) | null | undefined);
+        (ProtectedResourceRef & { ownerType: string; ownerId: string }) | null | undefined);
 }
 
 interface Authorizable {

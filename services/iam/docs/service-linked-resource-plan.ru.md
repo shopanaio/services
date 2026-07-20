@@ -11,9 +11,10 @@
 > action invocation. Target service инжектит context во внутренний request
 > context; вложенный broker call получает identity непосредственно вызывающего
 > service. Service-aware Policy
-> передает concrete `protectedResource` с обязательным `ownerId`; IAM
+> передает concrete `protectedResource` с обязательными `ownerType` и `ownerId`; IAM
 > сопоставляет `binding.linkedService` с `context.caller.service`, а
-> `binding.linkedOwnerId` с `protectedResource.ownerId`. Поля `linkedOwner` ниже относятся к persisted owner
+> `binding.linkedOwnerType + binding.linkedOwnerId` с
+> `protectedResource.ownerType + protectedResource.ownerId`. Поля `linkedOwner` ниже относятся к persisted owner
 > metadata при создании binding, но `linkedService` в них больше не принимается
 > от вызывающего сервиса.
 
@@ -432,6 +433,8 @@ interface ProtectedResourceRef {
   organizationId: string;
   resourceKind: ProtectedResourceKind;
   resourceId: string;
+  ownerType?: string;
+  ownerId?: string;
 }
 
 interface LinkedOwnerRef extends ProtectedResourceRef {

@@ -5,10 +5,16 @@ import type {
 } from "@shopana/rbac";
 import { Policy } from "../Authorize.js";
 
-const protectedApplication: ProtectedResourceRef & { ownerId: string } = {
+type OwnedProtectedResource = ProtectedResourceRef & {
+  ownerType: string;
+  ownerId: string;
+};
+
+const protectedApplication: OwnedProtectedResource = {
   organizationId: "018f8f6d-7980-7000-9000-000000000001",
   resourceKind: "application",
   resourceId: "018f8f6d-7980-7000-9000-000000000010",
+  ownerType: "store",
   ownerId: "018f8f6d-7980-7000-9000-000000000020",
 };
 
@@ -33,20 +39,30 @@ describe("Policy protected resource contract", () => {
     );
   });
 
-  it("fails closed when a required protected resource owner is missing", async () => {
-    const script = new RequiredProtectedResourceScript({
-      organizationId: protectedApplication.organizationId,
-      resourceKind: protectedApplication.resourceKind,
-      resourceId: protectedApplication.resourceId,
-    } as ProtectedResourceRef & { ownerId: string });
+  it.each([
+    {
+      ...protectedApplication,
+      ownerType: undefined,
+    },
+    {
+      ...protectedApplication,
+      ownerId: undefined,
+    },
+  ])(
+    "fails closed when a required protected resource owner claim is incomplete",
+    async (protectedResource) => {
+      const script = new RequiredProtectedResourceScript(
+        protectedResource as unknown as OwnedProtectedResource
+      );
 
-    await expect(script.run()).rejects.toMatchObject({
-      errors: [
-        expect.objectContaining({ code: "PROTECTED_RESOURCE_REQUIRED" }),
-      ],
-    });
-    expect(script.authProvider.authorize).not.toHaveBeenCalled();
-  });
+      await expect(script.run()).rejects.toMatchObject({
+        errors: [
+          expect.objectContaining({ code: "PROTECTED_RESOURCE_REQUIRED" }),
+        ],
+      });
+      expect(script.authProvider.authorize).not.toHaveBeenCalled();
+    }
+  );
 
   it("keeps collection-level policies valid without a protected resource", async () => {
     const script = new CollectionPolicyScript();
@@ -63,7 +79,7 @@ class RequiredProtectedResourceScript {
 
   constructor(
     private readonly protectedResource:
-      | (ProtectedResourceRef & { ownerId: string })
+      | OwnedProtectedResource
       | null
   ) {}
 

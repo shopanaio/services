@@ -10,9 +10,19 @@ const protectedResourceBaseSchema = z
   })
   .strict();
 
-const protectedResourceSchema = protectedResourceBaseSchema.extend({
-  ownerId: z.string().uuid("Invalid owner ID").optional(),
-});
+const protectedResourceSchema = protectedResourceBaseSchema
+  .extend({
+    ownerType: z.string().trim().min(1).max(64).optional(),
+    ownerId: z.string().uuid("Invalid owner ID").optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (Boolean(value.ownerType) === Boolean(value.ownerId)) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Protected resource owner type and ID must be provided together",
+      path: value.ownerType ? ["ownerId"] : ["ownerType"],
+    });
+  });
 
 /**
  * Single authorization request schema

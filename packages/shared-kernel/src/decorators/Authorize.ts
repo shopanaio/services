@@ -60,7 +60,7 @@ type ProtectedResourcePolicy<TParams, TSelf extends Authorizable> =
       protectedResource?: ProtectedResourceResolver<
         TParams,
         TSelf,
-        ProtectedResourceRef & { ownerId: string }
+        ProtectedResourceRef & { ownerType: string; ownerId: string }
       >;
     }
   | {
@@ -73,7 +73,7 @@ type ProtectedResourcePolicy<TParams, TSelf extends Authorizable> =
       protectedResource: ProtectedResourceResolver<
         TParams,
         TSelf,
-        ProtectedResourceRef & { ownerId: string }
+        ProtectedResourceRef & { ownerType: string; ownerId: string }
       >;
     };
 
@@ -193,13 +193,15 @@ export function Policy<
 
       if (
         (options.protectedResourceMode === "required" && !protectedResource) ||
-        (protectedResource && !protectedResource.ownerId?.trim())
+        (protectedResource &&
+          (!protectedResource.ownerType?.trim() ||
+            !protectedResource.ownerId?.trim()))
       ) {
         throw new AuthorizationError(
           [
             {
               code: "PROTECTED_RESOURCE_REQUIRED",
-              message: `Access denied: protected resource owner is required for ${options.resource}:${options.action}`,
+              message: `Access denied: protected resource owner type and ID are required for ${options.resource}:${options.action}`,
               field: null,
             },
           ],

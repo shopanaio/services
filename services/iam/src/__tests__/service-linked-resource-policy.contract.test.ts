@@ -19,6 +19,7 @@ const protectedApplication = Object.freeze({
 
 const protectedApplicationWithOwner = Object.freeze({
   ...protectedApplication,
+  ownerType: "store",
   ownerId: "018f8f6d-7980-7000-9000-000000000020",
 });
 
@@ -66,8 +67,25 @@ describe("service-linked resource authorization contract", () => {
         action: "write",
         protectedResource: {
           ...protectedApplication,
+          ownerType: "store",
           ownerId: "not-a-uuid",
         },
+      })
+    ).toThrow();
+  });
+
+  it.each([
+    { ownerType: "store" },
+    { ownerId: protectedApplicationWithOwner.ownerId },
+  ])("rejects an incomplete protected resource owner claim", (owner) => {
+    expect(() =>
+      authorizeInputSchema.parse({
+        subject: "platform-user",
+        organizationId: protectedApplication.organizationId,
+        domain: "org",
+        resource: "org.applications",
+        action: "write",
+        protectedResource: { ...protectedApplication, ...owner },
       })
     ).toThrow();
   });
@@ -101,6 +119,26 @@ describe("service-linked resource authorization contract", () => {
     });
 
     expect(parsed.requests[0]?.protectedResource).toEqual(protectedApplication);
+  });
+
+  it("rejects an incomplete protected resource owner claim in batch input", () => {
+    expect(() =>
+      batchAuthorizeInputSchema.parse({
+        organizationId: protectedApplication.organizationId,
+        requests: [
+          {
+            userId: "platform-user",
+            domain: "org",
+            resource: "org.applications",
+            action: "write",
+            protectedResource: {
+              ...protectedApplication,
+              ownerId: protectedApplicationWithOwner.ownerId,
+            },
+          },
+        ],
+      })
+    ).toThrow();
   });
 
   it("rejects linked-owner context in generic broker batch authorize input", () => {
@@ -259,6 +297,20 @@ describe("service-linked resource authorization contract", () => {
     ).resolves.toEqual({ results: [false, true] });
   });
 
+  it("denies matching linked-service batch writes when the owner type differs", async () => {
+    const services = createServices({
+      batchCasbinResults: [true, true],
+      bindingsByResources: [linkedOwner],
+    });
+
+    await expect(
+      runBatchAuthorizeScriptWithServices(services, "project", {
+        ...protectedApplicationWithOwner,
+        ownerType: "organization",
+      })
+    ).resolves.toEqual({ results: [false, true] });
+  });
+
   it("denies a different broker caller for a service-linked resource", async () => {
     const services = createServices({
       bindingByResource: linkedOwner,
@@ -284,6 +336,22 @@ describe("service-linked resource authorization contract", () => {
         protectedResource: {
           ...protectedApplicationWithOwner,
           ownerId: "018f8f6d-7980-7000-9000-000000000021",
+        },
+      })
+    ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
+  });
+
+  it("denies a matching service when the protected resource owner type differs", async () => {
+    const services = createServices({
+      bindingByResource: linkedOwner,
+      casbinAllowed: true,
+    });
+
+    await expect(
+      authorizeWithBrokerCaller(services, "project", {
+        protectedResource: {
+          ...protectedApplicationWithOwner,
+          ownerType: "organization",
         },
       })
     ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
@@ -421,7 +489,9 @@ function runAuthorizeScriptWithServices(
 
 function runBatchAuthorizeScriptWithServices(
   services: ReturnType<typeof createServices>,
-  callerService?: string
+  callerService?: string,
+  protectedResourceWithOwner: typeof protectedApplicationWithOwner =
+    protectedApplicationWithOwner
 ) {
   return runWithContext(
     {
@@ -448,7 +518,7 @@ function runBatchAuthorizeScriptWithServices(
             resource: "org.applications",
             action: "write",
             protectedResource: callerService
-              ? protectedApplicationWithOwner
+              ? protectedResourceWithOwner
               : protectedApplication,
           },
           {

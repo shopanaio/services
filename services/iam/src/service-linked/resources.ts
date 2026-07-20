@@ -40,7 +40,10 @@ export function isIamServiceLinkedPermission(
 
 export function matchesServiceLinkedOwner(
   protectedResource: ProtectedResourceRef,
-  binding: { linkedOwnerId: string }
+  binding: { linkedOwnerType: string; linkedOwnerId: string }
 ): boolean {
-  return protectedResource.ownerId === binding.linkedOwnerId;
+  return (
+    protectedResource.ownerType === binding.linkedOwnerType &&
+    protectedResource.ownerId === binding.linkedOwnerId
+  );
 }
