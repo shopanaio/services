@@ -49,6 +49,8 @@ export interface ApplicationMutationResult {
   applicationId: string;
 }
 
+type CreateApplicationAuthorizationMode = "admin" | "trusted_boundary";
+
 export interface ApplicationAuthProviderValidationResult {
   provider: ApplicationAuthProviderName;
   status: "valid" | "invalid" | "unavailable";
@@ -348,6 +350,8 @@ export class ApplicationAuthAdminManagementService {
       organizationId: string | null;
       applicationId: string | null;
       targetId?: string;
+      reasonCategory?: ApplicationAuthAdminAuditReasonCategory;
+      safeDiff?: ApplicationRealmAdminAuditSafeDiff;
     },
     actor: ApplicationAuthAdminActor
   ): Promise<void> {
@@ -357,17 +361,20 @@ export class ApplicationAuthAdminManagementService {
       applicationId: input.applicationId,
       action: input.action,
       outcome: "failure",
-      reasonCategory: "invalid_input",
+      reasonCategory: input.reasonCategory ?? "invalid_input",
       targetType: input.targetType,
       targetId: input.targetId,
-      safeDiff: {},
+      safeDiff: input.safeDiff ?? {},
     });
   }
 
   async createApplication(
     input: z.input<typeof createApplicationSchema>,
     actor: ApplicationAuthAdminActor,
-    options: { applicationId?: string } = {}
+    options: {
+      applicationId?: string;
+      authorization?: CreateApplicationAuthorizationMode;
+    } = {}
   ): Promise<ApplicationMutationResult> {
     const applicationId =
       options.applicationId ?? (await this.repository.allocateApplicationId());
@@ -384,14 +391,17 @@ export class ApplicationAuthAdminManagementService {
     const safeDiff = freezeDiff({
       changedFields: ["name", "displayName", "description"],
     });
+    const adminAuditEnabled = (options.authorization ?? "admin") === "admin";
     try {
       const result = await this.transactions.run(async () => {
-        await this.assertAuthorized(
-          value.organizationId,
-          trustedActor,
-          APPLICATIONS_RESOURCE,
-          "write"
-        );
+        if (adminAuditEnabled) {
+          await this.assertAuthorized(
+            value.organizationId,
+            trustedActor,
+            APPLICATIONS_RESOURCE,
+            "write"
+          );
+        }
         const created = await this.repository.createApplication({
           ...value,
           applicationId,
@@ -400,31 +410,35 @@ export class ApplicationAuthAdminManagementService {
           organizationId: value.organizationId,
           applicationId: created.application.id,
         };
-        await this.appendAudit({
-          actor: trustedActor,
-          organizationId: value.organizationId,
-          applicationId: created.application.id,
-          action: "application_create",
-          outcome: "success",
-          reasonCategory: "success",
-          targetType: "application",
-          targetId: created.application.id,
-          safeDiff,
-        });
+        if (adminAuditEnabled) {
+          await this.appendAudit({
+            actor: trustedActor,
+            organizationId: value.organizationId,
+            applicationId: created.application.id,
+            action: "application_create",
+            outcome: "success",
+            reasonCategory: "success",
+            targetType: "application",
+            targetId: created.application.id,
+            safeDiff,
+          });
+        }
         return mutationResult;
       });
       return result;
     } catch (error) {
       const normalized = normalizeManagementError(error);
-      await this.appendFailureAudit({
-        actor: trustedActor,
-        organizationId: value.organizationId,
-        applicationId,
-        action: "application_create",
-        targetType: "application",
-        reasonCategory: auditReason(normalized),
-        safeDiff,
-      });
+      if (adminAuditEnabled) {
+        await this.appendFailureAudit({
+          actor: trustedActor,
+          organizationId: value.organizationId,
+          applicationId,
+          action: "application_create",
+          targetType: "application",
+          reasonCategory: auditReason(normalized),
+          safeDiff,
+        });
+      }
       throw normalized;
     }
   }

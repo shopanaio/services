@@ -26,4 +26,8 @@ export type {
   AuthProvider,
   Authorizable,
   BasePolicyOptions,
+  LinkedOwnerRef,
+  ProtectedResourceRef,
+  ServiceLinkedAuthorizationDetails,
 } from "./auth.js";
+export { ServiceLinkedResourceAuthorizationError } from "./auth.js";

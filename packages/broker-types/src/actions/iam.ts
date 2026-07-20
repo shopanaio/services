@@ -54,14 +54,27 @@ export interface AllocateApplicationIdResult {
   error?: string;
 }
 
-export interface CreateApplicationParams {
+export interface ServiceLinkedOwnerInput {
+  linkedService: string;
+  linkedOwnerType: string;
+  linkedOwnerId: string;
+}
+
+export type ResourceManagementInput =
+  | { managementMode: "admin" }
+  | {
+      managementMode: "service_linked";
+      linkedOwner: ServiceLinkedOwnerInput;
+    };
+
+export type CreateApplicationParams = {
   applicationId: string;
   userId: string;
   organizationId: string;
   name: string;
   displayName: string;
   description?: string;
-}
+} & ResourceManagementInput;
 
 export interface CreateApplicationResult {
   success: boolean;
@@ -83,12 +96,27 @@ export interface DeleteApplicationForStoreCreateCompensationResult {
 // Authorization Actions
 // ============================================================================
 
+export interface ProtectedResourceRef {
+  organizationId: string;
+  resourceKind: string;
+  resourceId: string;
+}
+
+export interface LinkedOwnerRef extends ProtectedResourceRef {
+  linkedService: string;
+  linkedOwnerType: string;
+  linkedOwnerId: string;
+}
+
 export interface AuthorizeParams {
   subject?: string;
-  organizationId: string;
+  organizationId?: string;
+  organizationName?: string;
   domain?: string;
   resource: string;
   action: string;
+  protectedResource?: ProtectedResourceRef;
+  linkedOwner?: LinkedOwnerRef;
 }
 
 export interface AuthorizeResult {

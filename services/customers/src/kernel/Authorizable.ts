@@ -31,6 +31,8 @@ export class AuthProvider implements IAuthProvider {
       resource: params.resource,
       action: params.action,
       domain,
+      protectedResource: params.protectedResource,
+      linkedOwner: params.linkedOwner,
     })) as { allowed: boolean };
 
     return result.allowed;

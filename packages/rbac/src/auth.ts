@@ -20,6 +20,27 @@ export type ActionsForResource<R extends ResourceName> = R extends keyof typeof 
 /**
  * Parameters for authorization check.
  */
+export interface ProtectedResourceRef {
+  organizationId: string;
+  resourceKind: string;
+  resourceId: string;
+}
+
+export interface LinkedOwnerRef extends ProtectedResourceRef {
+  linkedService: string;
+  linkedOwnerType: string;
+  linkedOwnerId: string;
+}
+
+export interface ServiceLinkedAuthorizationDetails {
+  organizationId: string;
+  resourceKind: string;
+  resourceId: string;
+  linkedService: string;
+  linkedOwnerType: string;
+  linkedOwnerId: string;
+}
+
 export interface AuthorizeParams {
   resource: string;
   action: string;
@@ -28,6 +49,22 @@ export interface AuthorizeParams {
   domain?: string;
   /** Subject (user ID) for authorization. */
   subject?: string;
+  /** Concrete protected resource for write mutability checks. */
+  protectedResource?: ProtectedResourceRef;
+  /** Trusted linked owner context for service-aware write paths. */
+  linkedOwner?: LinkedOwnerRef;
+}
+
+export class ServiceLinkedResourceAuthorizationError extends Error {
+  readonly code = "RESOURCE_SERVICE_LINKED";
+
+  constructor(
+    public readonly details: ServiceLinkedAuthorizationDetails,
+    message = "Resource is managed by linked service"
+  ) {
+    super(message);
+    this.name = "ServiceLinkedResourceAuthorizationError";
+  }
 }
 
 /**

@@ -4,6 +4,7 @@ import { RoleLoader } from "./RoleLoader.js";
 import { ApplicationLoader } from "./ApplicationLoader.js";
 import { ApplicationAuthAdminLoader } from "./ApplicationAuthAdminLoader.js";
 import { ApplicationUserLoader } from "./ApplicationUserLoader.js";
+import { ServiceLinkedResourceLoader } from "./ServiceLinkedResourceLoader.js";
 
 /**
  * Loader - aggregates all data loaders for IAM service
@@ -18,6 +19,7 @@ export class Loader {
   public readonly applicationAuthAdmin: ApplicationAuthAdminLoader["applicationAuthAdmin"];
   public readonly applicationUser: ApplicationUserLoader["applicationUser"];
   public readonly applicationUserSecurity: ApplicationUserLoader["applicationUserSecurity"];
+  public readonly serviceLinkedResource: ServiceLinkedResourceLoader["serviceLinkedResource"];
 
   constructor(repository: Repository) {
     const memberLoader = new MemberLoader(repository);
@@ -25,6 +27,7 @@ export class Loader {
     const applicationLoader = new ApplicationLoader(repository);
     const applicationAuthAdminLoader = new ApplicationAuthAdminLoader(repository);
     const applicationUserLoader = new ApplicationUserLoader(repository);
+    const serviceLinkedResourceLoader = new ServiceLinkedResourceLoader(repository);
 
     this.member = memberLoader.member;
     this.role = roleLoader.role;
@@ -36,5 +39,7 @@ export class Loader {
     this.applicationUser = applicationUserLoader.applicationUser;
     this.applicationUserSecurity =
       applicationUserLoader.applicationUserSecurity;
+    this.serviceLinkedResource =
+      serviceLinkedResourceLoader.serviceLinkedResource;
   }
 }

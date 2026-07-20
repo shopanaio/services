@@ -8,6 +8,7 @@ import {
   ApplicationCreatePayloadResolver,
   ApplicationUpdatePayloadResolver,
   ApplicationArchivePayloadResolver,
+  ResourceManagementResolver,
 } from "../../../resolvers/admin/ApplicationResolver.js";
 import { ApplicationConnectionResolver } from "../../../resolvers/admin/ApplicationConnectionResolver.js";
 import {
@@ -56,6 +57,7 @@ export const resolvers = {
   Organization: OrganizationResolver,
   Session: SessionResolver,
   Application: ApplicationResolver,
+  ResourceManagement: ResourceManagementResolver,
   ApplicationConnection: ApplicationConnectionResolver,
   ApplicationCreatePayload: ApplicationCreatePayloadResolver,
   ApplicationUpdatePayload: ApplicationUpdatePayloadResolver,

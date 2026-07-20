@@ -10,6 +10,7 @@ import {
 } from "@shopana/shared-graphql-guid";
 import type { ApplicationAdminRecord } from "../../repositories/ApplicationRepository.js";
 import { ApplicationOAuthClientManagementError } from "../../services/ApplicationOAuthClientManagementService.js";
+import { IAM_SERVICE_LINKED_RESOURCE_KIND } from "../../service-linked/resources.js";
 import { IAMType } from "./IAMType.js";
 import { ApplicationAuthConfigurationResolver } from "./ApplicationAuthResolver.js";
 import {
@@ -100,6 +101,32 @@ export class ApplicationResolver extends IAMType<
 
   async revision() {
     return this.$get("revision");
+  }
+
+  async management() {
+    const binding = await this.$ctx.loaders.serviceLinkedResource.load({
+      organizationId: await this.$get("organizationId"),
+      resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+      resourceId: this.$props.id,
+    });
+    return new ResourceManagementResolver(
+      binding
+        ? {
+            mode: "SERVICE_LINKED",
+            linkedService: binding.linkedService,
+            linkedOwnerType: binding.linkedOwnerType,
+            linkedOwnerId: binding.linkedOwnerId,
+            mutableFromOrganizationAdmin: false,
+          }
+        : {
+            mode: "ADMIN",
+            linkedService: null,
+            linkedOwnerType: null,
+            linkedOwnerId: null,
+            mutableFromOrganizationAdmin: true,
+          },
+      this.$ctx
+    );
   }
 
   async auth() {
@@ -242,5 +269,35 @@ export class ApplicationArchivePayloadResolver extends IAMType<ApplicationPayloa
 
   userErrors() {
     return this.$props.userErrors;
+  }
+}
+
+interface ResourceManagementValue {
+  mode: "ADMIN" | "SERVICE_LINKED";
+  linkedService: string | null;
+  linkedOwnerType: string | null;
+  linkedOwnerId: string | null;
+  mutableFromOrganizationAdmin: boolean;
+}
+
+export class ResourceManagementResolver extends IAMType<ResourceManagementValue> {
+  mode() {
+    return this.$props.mode;
+  }
+
+  linkedService() {
+    return this.$props.linkedService;
+  }
+
+  linkedOwnerType() {
+    return this.$props.linkedOwnerType;
+  }
+
+  linkedOwnerId() {
+    return this.$props.linkedOwnerId;
+  }
+
+  mutableFromOrganizationAdmin() {
+    return this.$props.mutableFromOrganizationAdmin;
   }
 }

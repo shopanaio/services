@@ -551,7 +551,7 @@ export const applicationAuthAdminAudit = iamSchema.table(
     index("idx_application_auth_admin_audit_request").on(table.requestId),
     check(
       "application_auth_admin_audit_schema_check",
-      sql`${table.schemaVersion} = 1 AND ${table.category} = 'application_auth_admin'`
+      sql`${table.schemaVersion} = 1 AND ${table.category} IN ('application_auth_admin', 'iam_resource_admin')`
     ),
     check(
       "application_auth_admin_audit_outcome_check",
@@ -559,7 +559,7 @@ export const applicationAuthAdminAudit = iamSchema.table(
     ),
     check(
       "application_auth_admin_audit_actor_check",
-      sql`(${table.actorType} = 'platform_admin' AND ${table.actorId} IS NOT NULL) OR (${table.actorType} = 'anonymous' AND ${table.actorId} IS NULL)`
+      sql`(${table.actorType} IN ('platform_admin', 'external_service') AND ${table.actorId} IS NOT NULL) OR (${table.actorType} = 'anonymous' AND ${table.actorId} IS NULL)`
     ),
     check(
       "application_auth_admin_audit_safe_diff_check",

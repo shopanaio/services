@@ -17,6 +17,8 @@ export class AuthorizeScript extends BaseScript<
       domain,
       resource,
       action,
+      protectedResource,
+      linkedOwner,
     } = params;
 
     // Use authorize method (handles admin check, name resolution, casbin)
@@ -27,6 +29,8 @@ export class AuthorizeScript extends BaseScript<
       resource,
       action,
       subject,
+      protectedResource,
+      linkedOwner,
     });
 
     return {

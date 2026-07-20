@@ -101,12 +101,24 @@ export function createAuthorizationMiddleware<TContext = unknown>(
           ? policy.subject(instance)
           : policy.subject;
 
+      const protectedResource =
+        typeof policy.protectedResource === "function"
+          ? policy.protectedResource(instance)
+          : policy.protectedResource;
+
+      const linkedOwner =
+        typeof policy.linkedOwner === "function"
+          ? policy.linkedOwner(instance)
+          : policy.linkedOwner;
+
       const allowed = await instance.authProvider.authorize({
         resource: policy.resource,
         action: policy.action,
         organizationId,
         domain,
         subject: subject ?? undefined,
+        protectedResource: protectedResource ?? undefined,
+        linkedOwner: linkedOwner ?? undefined,
       });
 
       if (!allowed) {

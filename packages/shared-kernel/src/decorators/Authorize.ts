@@ -4,7 +4,10 @@ import type {
   Domain,
   ActionsForResource,
   Authorizable,
+  LinkedOwnerRef,
+  ProtectedResourceRef,
 } from "@shopana/rbac";
+import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
 
 // Re-export from rbac for backwards compatibility
 export type {
@@ -61,6 +64,14 @@ export interface AuthorizeOptions<
   domain?: Domain | ((self: TSelf, params: TParams) => Domain | string);
   /** Subject (user ID) for authorization. */
   subject?: string | ((self: TSelf, params: TParams) => string);
+  /** Concrete protected resource for write mutability checks. */
+  protectedResource?:
+    | ProtectedResourceRef
+    | ((self: TSelf, params: TParams) => ProtectedResourceRef);
+  /** Trusted linked owner context for service-aware write paths. */
+  linkedOwner?:
+    | LinkedOwnerRef
+    | ((self: TSelf, params: TParams) => LinkedOwnerRef);
 }
 
 type PolicyDecorator = <T>(
@@ -142,14 +153,44 @@ export function Policy<
           ? options.subject(this, params)
           : options.subject;
 
-      const allowed = await this.authProvider.authorize({
-        resource: options.resource,
-        action: options.action,
-        organizationId,
-        organizationName,
-        domain,
-        subject,
-      });
+      const protectedResource =
+        typeof options.protectedResource === "function"
+          ? options.protectedResource(this, params)
+          : options.protectedResource;
+
+      const linkedOwner =
+        typeof options.linkedOwner === "function"
+          ? options.linkedOwner(this, params)
+          : options.linkedOwner;
+
+      let allowed: boolean;
+      try {
+        allowed = await this.authProvider.authorize({
+          resource: options.resource,
+          action: options.action,
+          organizationId,
+          organizationName,
+          domain,
+          subject,
+          protectedResource,
+          linkedOwner,
+        });
+      } catch (error) {
+        if (error instanceof ServiceLinkedResourceAuthorizationError) {
+          throw new AuthorizationError(
+            [
+              {
+                code: error.code,
+                message: error.message,
+                field: null,
+              },
+            ],
+            options.resource,
+            options.action
+          );
+        }
+        throw error;
+      }
 
       if (!allowed) {
         throw new AuthorizationError(

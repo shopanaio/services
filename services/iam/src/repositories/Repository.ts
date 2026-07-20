@@ -11,6 +11,7 @@ import { ApplicationRepository } from "./ApplicationRepository.js";
 import { ApplicationAuthAdminQueryRepository } from "./ApplicationAuthAdminQueryRepository.js";
 import { ApplicationAuthAdminMutationRepository } from "./ApplicationAuthAdminMutationRepository.js";
 import { ApplicationAuthAdminAuditRepository } from "./ApplicationAuthAdminAuditRepository.js";
+import { ServiceLinkedResourceRepository } from "./ServiceLinkedResourceRepository.js";
 
 import { CasbinService } from "../casbin/CasbinService.js";
 import type { Database } from "../infrastructure//db/database.js";
@@ -46,6 +47,7 @@ export class Repository {
   public readonly applicationAuthorizationContext: ApplicationAuthorizationContextRepository;
   public readonly applicationOAuthClient: ApplicationOAuthClientRepository;
   public readonly applicationTokenValidation: ApplicationTokenValidationRepository;
+  public readonly serviceLinkedResource: ServiceLinkedResourceRepository;
   public readonly casbin: CasbinService;
   public readonly txManager: TransactionManager<Database>;
 
@@ -62,6 +64,7 @@ export class Repository {
     applicationAuthorizationContext: ApplicationAuthorizationContextRepository,
     applicationOAuthClient: ApplicationOAuthClientRepository,
     applicationTokenValidation: ApplicationTokenValidationRepository,
+    serviceLinkedResource: ServiceLinkedResourceRepository,
     casbin: CasbinService,
     txManager: TransactionManager<Database>
   ) {
@@ -77,6 +80,7 @@ export class Repository {
     this.applicationAuthorizationContext = applicationAuthorizationContext;
     this.applicationOAuthClient = applicationOAuthClient;
     this.applicationTokenValidation = applicationTokenValidation;
+    this.serviceLinkedResource = serviceLinkedResource;
     this.casbin = casbin;
     this.txManager = txManager;
   }
@@ -140,6 +144,10 @@ export class Repository {
     );
     const applicationTokenValidationRepo =
       new ApplicationTokenValidationRepository(db, txManager);
+    const serviceLinkedResourceRepo = new ServiceLinkedResourceRepository(
+      db,
+      txManager
+    );
 
     return new Repository(
       userRepo,
@@ -154,6 +162,7 @@ export class Repository {
       applicationAuthorizationContextRepo,
       applicationOAuthClientRepo,
       applicationTokenValidationRepo,
+      serviceLinkedResourceRepo,
       casbinService,
       txManager
     );

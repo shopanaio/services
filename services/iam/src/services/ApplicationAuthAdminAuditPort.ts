@@ -27,6 +27,7 @@ export type ApplicationAuthAdminAuditAction =
 
 export type ApplicationAuthAdminAuditReasonCategory =
   | "success"
+  | "authorization"
   | "unauthenticated"
   | "forbidden"
   | "scope_not_found"
@@ -103,6 +104,11 @@ export interface ApplicationRealmAdminAuditSafeDiff {
   trustedOriginCount?: number;
   scopeCount?: number;
   revokedCount?: number;
+  blockedByServiceLinkedBinding?: boolean;
+  resourceKind?: string;
+  linkedService?: string;
+  linkedOwnerType?: string;
+  serviceLinkedBindingCreated?: boolean;
 }
 
 export type ApplicationAuthAdminAuditSafeDiff =
@@ -113,11 +119,11 @@ export interface ApplicationAuthAdminAuditRecord {
   recordId: string;
   schemaVersion: 1;
   occurredAt: string;
-  category: "application_auth_admin";
+  category: "application_auth_admin" | "iam_resource_admin";
   action: ApplicationAuthAdminAuditAction;
   outcome: "success" | "failure";
   reasonCategory: ApplicationAuthAdminAuditReasonCategory;
-  actorType: "platform_admin" | "anonymous";
+  actorType: "platform_admin" | "external_service" | "anonymous";
   actorId: string | null;
   /** Null only when malformed GraphQL input cannot identify a tenant. */
   organizationId: string | null;

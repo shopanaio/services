@@ -1,4 +1,5 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -58,12 +59,21 @@ import { ApplicationAuthConfigurationResolver } from "./ApplicationAuthResolver.
 import { ApplicationAuthProviderValidationResolver } from "./ApplicationProviderResolver.js";
 import { ApplicationOAuthClientResolver } from "./ApplicationOAuthClientResolver.js";
 import { ApplicationUserResolver } from "./ApplicationUserResolver.js";
+import { IAM_SERVICE_LINKED_RESOURCE_KIND } from "../../service-linked/resources.js";
 
 type UserError = {
   code: string;
   message: string;
   field: string[] | null;
 };
+
+type ApplicationProtectedAction = "write" | "admin";
+
+const APPLICATIONS_RESOURCE = "org.applications";
+const AUTH_RESOURCE = "org.application-auth";
+const PROVIDERS_RESOURCE = "org.application-auth-providers";
+const OAUTH_CLIENT_RESOURCE = "org.application-oauth-clients";
+const USERS_RESOURCE = "org.application-users";
 
 interface GraphqlRejectionAudit {
   action: ApplicationAuthAdminAuditAction;
@@ -75,6 +85,13 @@ class ApplicationMutationGraphqlInputError extends Error {
   constructor() {
     super("Application realm global ID is invalid");
     this.name = "ApplicationMutationGraphqlInputError";
+  }
+}
+
+class ApplicationMutationBoundaryAuthorizationError extends ApplicationAuthAdminManagementError {
+  constructor() {
+    super("Application realm operation is not permitted", "FORBIDDEN");
+    this.name = "ApplicationMutationBoundaryAuthorizationError";
   }
 }
 
@@ -111,6 +128,10 @@ export class ApplicationMutationResolver extends IAMType<
   @ZodResolver(ApplicationUpdateInputSchema())
   async applicationUpdate(args: { input: ApplicationUpdateInput }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        APPLICATIONS_RESOURCE
+      );
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.updateApplication(
         {
           organizationId: decodeOrganizationId(args.input.organizationId),
@@ -142,6 +163,11 @@ export class ApplicationMutationResolver extends IAMType<
   @ZodResolver(ApplicationArchiveInputSchema())
   async applicationArchive(args: { input: ApplicationArchiveInput }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        APPLICATIONS_RESOURCE,
+        "admin"
+      );
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.archiveApplication(
         {
           organizationId: decodeOrganizationId(args.input.organizationId),
@@ -167,6 +193,7 @@ export class ApplicationMutationResolver extends IAMType<
   @ZodResolver(ApplicationAuthUpdateInputSchema())
   async applicationAuthUpdate(args: { input: ApplicationAuthUpdateInput }) {
     try {
+      await this.assertApplicationAdminMutable(args.input, AUTH_RESOURCE);
       const input = args.input;
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.updateAuth(
         {
@@ -232,6 +259,11 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationAuthRealmEnabledSetInput;
   }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        AUTH_RESOURCE,
+        "admin"
+      );
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.setRealmEnabled(
         {
           organizationId: decodeOrganizationId(args.input.organizationId),
@@ -260,6 +292,7 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationAuthMethodUpdateInput;
   }) {
     try {
+      await this.assertApplicationAdminMutable(args.input, AUTH_RESOURCE);
       const input = args.input;
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.updateAuthMethod(
         {
@@ -323,6 +356,11 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationAuthProviderValidateInput;
   }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        PROVIDERS_RESOURCE,
+        "admin"
+      );
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.validateProvider(
         {
           organizationId: decodeOrganizationId(args.input.organizationId),
@@ -353,6 +391,10 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationOAuthClientCreateInput;
   }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        OAUTH_CLIENT_RESOURCE
+      );
       const input = args.input;
       const result = await this.$ctx.kernel.applicationOAuthClientManagement.create(
         {
@@ -390,6 +432,10 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationOAuthClientUpdateInput;
   }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        OAUTH_CLIENT_RESOURCE
+      );
       const input = args.input;
       const client = await this.$ctx.kernel.applicationOAuthClientManagement.update(
         {
@@ -437,6 +483,11 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationOAuthClientSecretRotateInput;
   }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        OAUTH_CLIENT_RESOURCE,
+        "admin"
+      );
       const input = decodeOAuthClientRevisionInput(args.input);
       const result = await this.$ctx.kernel.applicationOAuthClientManagement.rotateSecret(
         input,
@@ -464,6 +515,11 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationOAuthClientArchiveInput;
   }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        OAUTH_CLIENT_RESOURCE,
+        "admin"
+      );
       const client = await this.$ctx.kernel.applicationOAuthClientManagement.archive(
         decodeOAuthClientRevisionInput(args.input),
         this.adminActor()
@@ -496,6 +552,11 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationUserSessionsRevokeAllInput;
   }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        USERS_RESOURCE,
+        "admin"
+      );
       const ids = decodeUserInput(args.input);
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.revokeAllUserSessions(
         ids,
@@ -524,6 +585,11 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationUserAccountUnlinkInput;
   }) {
     try {
+      await this.assertApplicationAdminMutable(
+        args.input,
+        USERS_RESOURCE,
+        "admin"
+      );
       const ids = {
         ...decodeUserInput(args.input),
         accountId: decodeLinkedAccountId(args.input.accountId),
@@ -562,6 +628,11 @@ export class ApplicationMutationResolver extends IAMType<
     operation: "configure" | "update" | "rotate" | "delete"
   ) {
     try {
+      await this.assertApplicationAdminMutable(
+        input,
+        PROVIDERS_RESOURCE,
+        operation === "update" ? "write" : "admin"
+      );
       const base = {
         organizationId: decodeOrganizationId(input.organizationId),
         applicationId: decodeApplicationId(input.applicationId),
@@ -642,6 +713,11 @@ export class ApplicationMutationResolver extends IAMType<
     operation: "enabled" | "skipConsent"
   ) {
     try {
+      await this.assertApplicationAdminMutable(
+        input,
+        OAUTH_CLIENT_RESOURCE,
+        operation === "enabled" ? "write" : "admin"
+      );
       const base = decodeOAuthClientRevisionInput(input);
       const management = this.$ctx.kernel.applicationOAuthClientManagement;
       const client =
@@ -687,6 +763,7 @@ export class ApplicationMutationResolver extends IAMType<
     status: "active" | "blocked"
   ) {
     try {
+      await this.assertApplicationAdminMutable(input, USERS_RESOURCE);
       const ids = decodeUserInput(input);
       await this.$ctx.kernel.applicationAuthAdminManagement.setUserStatus(
         ids,
@@ -769,16 +846,48 @@ export class ApplicationMutationResolver extends IAMType<
     };
   }
 
+  private async assertApplicationAdminMutable(
+    input: {
+      organizationId: string;
+      applicationId: string;
+    },
+    resource: string,
+    action: ApplicationProtectedAction = "write"
+  ): Promise<void> {
+    const organizationId = decodeOrganizationId(input.organizationId);
+    const applicationId = decodeApplicationId(input.applicationId);
+    const allowed = await this.authProvider.authorize({
+      subject: this.adminActor().id,
+      organizationId,
+      domain: "org",
+      resource,
+      action,
+      protectedResource: {
+        organizationId,
+        resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+        resourceId: applicationId,
+      },
+    });
+    if (!allowed) {
+      throw new ApplicationMutationBoundaryAuthorizationError();
+    }
+  }
+
   private async failure<TField extends string>(
     field: TField,
     error: unknown,
     audit?: GraphqlRejectionAudit
   ): Promise<Record<TField, null> & { userErrors: UserError[] }> {
     let effectiveError = error;
-    if (error instanceof ApplicationMutationGraphqlInputError && audit) {
+    if (
+      (error instanceof ApplicationMutationGraphqlInputError ||
+        error instanceof ServiceLinkedResourceAuthorizationError ||
+        error instanceof ApplicationMutationBoundaryAuthorizationError) &&
+      audit
+    ) {
       try {
         await this.$ctx.kernel.applicationAuthAdminManagement.recordRejectedGraphqlMutation(
-          rejectionAuditRecord(audit),
+          rejectionAuditRecord(audit, error),
           this.adminActor()
         );
       } catch (auditError) {
@@ -788,7 +897,8 @@ export class ApplicationMutationResolver extends IAMType<
     const userError = mapManagementUserError(effectiveError);
     const internal =
       !(effectiveError instanceof ApplicationAuthAdminManagementError) &&
-      !(effectiveError instanceof ApplicationOAuthClientManagementError)
+      !(effectiveError instanceof ApplicationOAuthClientManagementError) &&
+      !(effectiveError instanceof ServiceLinkedResourceAuthorizationError)
         ? true
         : effectiveError.code === "INTERNAL_ERROR" ||
           effectiveError.code === "OAUTH_CLIENT_INTERNAL_ERROR";
@@ -869,7 +979,13 @@ function rejection(
   };
 }
 
-function rejectionAuditRecord(audit: GraphqlRejectionAudit) {
+function rejectionAuditRecord(
+  audit: GraphqlRejectionAudit,
+  error:
+    | ApplicationMutationGraphqlInputError
+    | ServiceLinkedResourceAuthorizationError
+    | ApplicationMutationBoundaryAuthorizationError
+) {
   const organizationId = tryDecodeAuditGlobalId(
     audit.input.organizationId,
     GlobalIdEntity.Organization
@@ -878,12 +994,28 @@ function rejectionAuditRecord(audit: GraphqlRejectionAudit) {
     audit.input.applicationId,
     GlobalIdEntity.Application
   );
+  const authorizationFailure =
+    error instanceof ServiceLinkedResourceAuthorizationError ||
+    error instanceof ApplicationMutationBoundaryAuthorizationError;
   return {
     action: audit.action,
     targetType: audit.targetType,
     organizationId,
     applicationId,
     targetId: auditTargetId(audit),
+    ...(authorizationFailure
+      ? { reasonCategory: "authorization" as const }
+      : {}),
+    ...(error instanceof ServiceLinkedResourceAuthorizationError
+      ? {
+          safeDiff: {
+            blockedByServiceLinkedBinding: true,
+            resourceKind: error.details.resourceKind,
+            linkedService: error.details.linkedService,
+            linkedOwnerType: error.details.linkedOwnerType,
+          },
+        }
+      : {}),
   };
 }
 
@@ -945,6 +1077,13 @@ function enumLower<T extends string>(value: T | null | undefined) {
 }
 
 function mapManagementUserError(error: unknown): UserError {
+  if (error instanceof ServiceLinkedResourceAuthorizationError) {
+    return {
+      code: error.code,
+      message: error.message,
+      field: null,
+    };
+  }
   if (
     error instanceof ApplicationAuthAdminManagementError ||
     error instanceof ApplicationOAuthClientManagementError

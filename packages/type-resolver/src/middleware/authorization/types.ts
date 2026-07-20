@@ -9,6 +9,8 @@ import type {
   ResourceName,
   Domain,
   ActionsForResource,
+  LinkedOwnerRef,
+  ProtectedResourceRef,
 } from "@shopana/rbac";
 
 /**
@@ -34,6 +36,12 @@ export interface TypePolicyOptions<TSelf = unknown, R extends ResourceName = Res
   domain?: Domain | ((self: TSelf) => Domain | string);
   /** Subject (user ID) for authorization. */
   subject?: string | ((self: TSelf) => string | null);
+  /** Concrete protected resource for write mutability checks. */
+  protectedResource?:
+    | ProtectedResourceRef
+    | ((self: TSelf) => ProtectedResourceRef | null);
+  /** Trusted linked owner context for service-aware write paths. */
+  linkedOwner?: LinkedOwnerRef | ((self: TSelf) => LinkedOwnerRef | null);
   /** Behavior when authorization fails: 'throw' (default) or 'null' */
   onDeny?: "throw" | "null";
 }

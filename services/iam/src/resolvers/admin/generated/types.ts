@@ -50,6 +50,8 @@ export type Application = Node & {
   displayName: Scalars['String']['output'];
   /** Globally unique application identifier. */
   id: Scalars['ID']['output'];
+  /** Read-only resource lifecycle management metadata. */
+  management: ResourceManagement;
   /** URL-friendly application name. */
   name: Scalars['String']['output'];
   /** Find an OAuth client by its public client identifier. */
@@ -2207,6 +2209,29 @@ export type ResourceDefinition = {
   name: Scalars['String']['output'];
 };
 
+/** Read-only management metadata for an IAM resource. */
+export type ResourceManagement = {
+  __typename?: 'ResourceManagement';
+  /** Linked owner id, when mode is SERVICE_LINKED. */
+  linkedOwnerId?: Maybe<Scalars['ID']['output']>;
+  /** Linked owner type, when mode is SERVICE_LINKED. */
+  linkedOwnerType?: Maybe<Scalars['String']['output']>;
+  /** Linked service owner, when mode is SERVICE_LINKED. */
+  linkedService?: Maybe<Scalars['String']['output']>;
+  /** Current management mode. */
+  mode: ResourceManagementMode;
+  /** Whether generic organization Admin mutations may change this resource. */
+  mutableFromOrganizationAdmin: Scalars['Boolean']['output'];
+};
+
+/** How an IAM resource lifecycle is managed. */
+export enum ResourceManagementMode {
+  /** The resource is managed through organization Admin APIs. */
+  Admin = 'ADMIN',
+  /** The resource is managed by a linked service owner. */
+  ServiceLinked = 'SERVICE_LINKED'
+}
+
 /** Role with permissions - universal, can be assigned at any level. */
 export type Role = {
   __typename?: 'Role';
@@ -2876,6 +2901,8 @@ export type ResolversTypes = ResolversObject<{
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Query: ResolverTypeWrapper<{}>;
   ResourceDefinition: ResolverTypeWrapper<ResourceDefinition>;
+  ResourceManagement: ResolverTypeWrapper<ResourceManagement>;
+  ResourceManagementMode: ResourceManagementMode;
   Role: ResolverTypeWrapper<Role>;
   RoleAssignment: RoleAssignment;
   RoleCreateInput: RoleCreateInput;
@@ -3024,6 +3051,7 @@ export type ResolversParentTypes = ResolversObject<{
   PageInfo: PageInfo;
   Query: {};
   ResourceDefinition: ResourceDefinition;
+  ResourceManagement: ResourceManagement;
   Role: Role;
   RoleAssignment: RoleAssignment;
   RoleCreateInput: RoleCreateInput;
@@ -3068,6 +3096,7 @@ export type ApplicationResolvers<ContextType = ServiceContext, ParentType extend
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  management?: Resolver<ResolversTypes['ResourceManagement'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   oauthClient?: Resolver<Maybe<ResolversTypes['ApplicationOAuthClient']>, ParentType, ContextType, RequireFields<ApplicationOauthClientArgs, 'clientId'>>;
   oauthClients?: Resolver<ResolversTypes['ApplicationOAuthClientConnection'], ParentType, ContextType, Partial<ApplicationOauthClientsArgs>>;
@@ -3601,6 +3630,15 @@ export type ResourceDefinitionResolvers<ContextType = ServiceContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ResourceManagementResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ResourceManagement'] = ResolversParentTypes['ResourceManagement']> = ResolversObject<{
+  linkedOwnerId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  linkedOwnerType?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  linkedService?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  mode?: Resolver<ResolversTypes['ResourceManagementMode'], ParentType, ContextType>;
+  mutableFromOrganizationAdmin?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type RoleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Role'] = ResolversParentTypes['Role']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Role']>, { __typename: 'Role' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   createdAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
@@ -3819,6 +3857,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   PageInfo?: PageInfoResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   ResourceDefinition?: ResourceDefinitionResolvers<ContextType>;
+  ResourceManagement?: ResourceManagementResolvers<ContextType>;
   Role?: RoleResolvers<ContextType>;
   RoleCreatePayload?: RoleCreatePayloadResolvers<ContextType>;
   RoleDeletePayload?: RoleDeletePayloadResolvers<ContextType>;

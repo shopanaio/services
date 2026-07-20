@@ -1,0 +1,4 @@
+ALTER TABLE "iam"."application_auth_admin_audit" DROP CONSTRAINT "application_auth_admin_audit_schema_check";--> statement-breakpoint
+ALTER TABLE "iam"."application_auth_admin_audit" DROP CONSTRAINT "application_auth_admin_audit_actor_check";--> statement-breakpoint
+ALTER TABLE "iam"."application_auth_admin_audit" ADD CONSTRAINT "application_auth_admin_audit_schema_check" CHECK ("iam"."application_auth_admin_audit"."schema_version" = 1 AND "iam"."application_auth_admin_audit"."category" IN ('application_auth_admin', 'iam_resource_admin'));--> statement-breakpoint
+ALTER TABLE "iam"."application_auth_admin_audit" ADD CONSTRAINT "application_auth_admin_audit_actor_check" CHECK (("iam"."application_auth_admin_audit"."actor_type" IN ('platform_admin', 'external_service') AND "iam"."application_auth_admin_audit"."actor_id" IS NOT NULL) OR ("iam"."application_auth_admin_audit"."actor_type" = 'anonymous' AND "iam"."application_auth_admin_audit"."actor_id" IS NULL));

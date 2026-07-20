@@ -83,7 +83,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
     const storeId = await this.generateId();
     const applicationId = await this.allocateIamApplicationId();
-    await this.createIamApplication(applicationId, input);
+    await this.createIamApplication(applicationId, storeId, input);
     await this.createStore(storeId, applicationId, input);
     await this.createRoles(storeId, input);
     await this.assignAdminRole(storeId, input);
@@ -118,6 +118,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   @SagaStep()
   private async createIamApplication(
     applicationId: string,
+    storeId: string,
     input: StoreCreateInput,
   ): Promise<void> {
     const result = await this.broker.call<
@@ -130,6 +131,12 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       name: input.name,
       displayName: input.displayName,
       description: `Store application for ${input.displayName}`,
+      managementMode: "service_linked",
+      linkedOwner: {
+        linkedService: "project",
+        linkedOwnerType: "store",
+        linkedOwnerId: storeId,
+      },
     });
 
     if (result.success) return;
@@ -261,6 +268,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
 
   async compensateCreateIamApplication(
     applicationId: string,
+    storeId: string,
     input: StoreCreateInput,
   ): Promise<void> {
     try {
@@ -273,18 +281,18 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       });
       if (!result.success) {
         this.logger.warn(
-          { applicationId, error: result.error },
+          { applicationId, storeId, error: result.error },
           "Failed to compensate IAM application",
         );
         return;
       }
       this.logger.log(
-        { applicationId },
+        { applicationId, storeId },
         "Compensated: deleted IAM application",
       );
     } catch (error) {
       this.logger.warn(
-        { applicationId, error },
+        { applicationId, storeId, error },
         "Failed to compensate IAM application",
       );
     }

@@ -2,7 +2,10 @@ import type {
   AuthProvider as IAuthProvider,
   AuthorizeParams,
 } from "@shopana/shared-kernel";
-import { validateAuthorizeInput } from "@shopana/rbac";
+import {
+  ServiceLinkedResourceAuthorizationError,
+  validateAuthorizeInput,
+} from "@shopana/rbac";
 import type { IamKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
 import {
@@ -10,6 +13,17 @@ import {
   type Domain,
   type Resource,
 } from "../casbin/CasbinService.js";
+import { IAM_SERVICE_LINKED_RESOURCE_KIND } from "../service-linked/resources.js";
+
+const APPLICATION_LINKED_OWNER_RESOURCES = new Set([
+  "org.applications",
+  "org.application-auth",
+  "org.application-auth-providers",
+  "org.application-oauth-clients",
+  "org.application-users",
+]);
+
+const LINKED_OWNER_WRITE_ACTIONS = new Set(["write", "admin"]);
 
 /**
  * Authorization provider for IAM service.
@@ -46,11 +60,6 @@ export class AuthProvider implements IAuthProvider {
       return false;
     }
 
-    // Check if user is site admin (bypasses all checks)
-    if (await this.services.repository.user.isAdmin(subject)) {
-      return true;
-    }
-
     // Resolve organizationName to organizationId if needed
     let { organizationId, organizationName } = params;
     if (organizationName) {
@@ -66,6 +75,15 @@ export class AuthProvider implements IAuthProvider {
     }
 
     const domain = params.domain ?? "org";
+    if (
+      params.protectedResource &&
+      params.protectedResource.organizationId !== organizationId
+    ) {
+      return false;
+    }
+    if (params.linkedOwner && params.linkedOwner.organizationId !== organizationId) {
+      return false;
+    }
 
     // Validate authorization input against @shopana/rbac definitions
     // Must happen BEFORE owner bypass to reject invalid domains
@@ -80,19 +98,53 @@ export class AuthProvider implements IAuthProvider {
       return false;
     }
 
+    if (
+      params.protectedResource &&
+      params.linkedOwner &&
+      !this.sameProtectedResource(params.protectedResource, params.linkedOwner)
+    ) {
+      return false;
+    }
+
+    if (
+      params.linkedOwner &&
+      !this.isLinkedOwnerPermissionScoped(
+        params.linkedOwner,
+        params.resource,
+        params.action
+      )
+    ) {
+      return false;
+    }
+
+    if (params.linkedOwner) {
+      return this.isLinkedOwnerAuthorized(params.linkedOwner);
+    }
+
+    // Check if user is site admin (bypasses RBAC, but not service-linked mutability)
+    if (await this.services.repository.user.isAdmin(subject)) {
+      await this.assertAdminMutable(params);
+      return true;
+    }
+
     // Check if user is organization owner (bypasses all authorization checks within org)
     if (await this.services.repository.organization.isOwner(organizationId, subject)) {
+      await this.assertAdminMutable(params);
       return true;
     }
 
     // Check permission using Casbin RBAC
-    return this.services.repository.casbin.enforce({
+    const allowed = await this.services.repository.casbin.enforce({
       organizationId,
       subject,
       domain: domain as Domain,
       resource: params.resource as Resource,
       action: params.action,
     });
+    if (!allowed) return false;
+
+    await this.assertAdminMutable(params);
+    return true;
   }
 
   /**
@@ -103,5 +155,55 @@ export class AuthProvider implements IAuthProvider {
       const org = await this.services.repository.organization.findByName(n);
       return org?.id ?? null;
     });
+  }
+
+  private async assertAdminMutable(params: AuthorizeParams): Promise<void> {
+    if (!params.protectedResource) return;
+    const binding =
+      await this.services.repository.serviceLinkedResource.findActiveByResource(
+        params.protectedResource
+      );
+    if (!binding) return;
+    throw new ServiceLinkedResourceAuthorizationError({
+      organizationId: binding.organizationId,
+      resourceKind: binding.resourceKind,
+      resourceId: binding.resourceId,
+      linkedService: binding.linkedService,
+      linkedOwnerType: binding.linkedOwnerType,
+      linkedOwnerId: binding.linkedOwnerId,
+    });
+  }
+
+  private async isLinkedOwnerAuthorized(
+    linkedOwner: NonNullable<AuthorizeParams["linkedOwner"]>
+  ): Promise<boolean> {
+    const binding =
+      await this.services.repository.serviceLinkedResource.findActiveLinkedOwner(
+        linkedOwner
+      );
+    return Boolean(binding);
+  }
+
+  private sameProtectedResource(
+    protectedResource: NonNullable<AuthorizeParams["protectedResource"]>,
+    linkedOwner: NonNullable<AuthorizeParams["linkedOwner"]>
+  ): boolean {
+    return (
+      protectedResource.organizationId === linkedOwner.organizationId &&
+      protectedResource.resourceKind === linkedOwner.resourceKind &&
+      protectedResource.resourceId === linkedOwner.resourceId
+    );
+  }
+
+  private isLinkedOwnerPermissionScoped(
+    linkedOwner: NonNullable<AuthorizeParams["linkedOwner"]>,
+    resource: string,
+    action: string
+  ): boolean {
+    if (!LINKED_OWNER_WRITE_ACTIONS.has(action)) return false;
+    if (linkedOwner.resourceKind === IAM_SERVICE_LINKED_RESOURCE_KIND.application) {
+      return APPLICATION_LINKED_OWNER_RESOURCES.has(resource);
+    }
+    return false;
   }
 }

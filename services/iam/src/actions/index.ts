@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 import {
   BrokerActions,
@@ -8,13 +9,20 @@ import {
   ZodSchema,
 } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
+import { AuthProvider } from "../kernel/Authorizable.js";
 import { runWithContext, type ServiceContext } from "../context/index.js";
 import { Loader } from "../loaders/Loader.js";
+import type { ApplicationAuthAdminAuditReasonCategory } from "../services/ApplicationAuthAdminAuditPort.js";
 import { GetCurrentUserScript } from "../scripts/user/GetCurrentUserScript.js";
 import { AssignRoleScript } from "../scripts/organization/AssignRoleScript.js";
 import { AuthorizeScript } from "../scripts/organization/AuthorizeScript.js";
 import { BatchAuthorizeScript } from "../scripts/organization/BatchAuthorizeScript.js";
 import { CreateRolesScript } from "../scripts/organization/CreateRolesScript.js";
+import {
+  IAM_LINKED_OWNER_TYPE,
+  IAM_LINKED_SERVICE,
+  IAM_SERVICE_LINKED_RESOURCE_KIND,
+} from "../service-linked/resources.js";
 import {
   getCurrentUserInputSchema,
   type GetCurrentUserParams,
@@ -48,6 +56,14 @@ const applicationNameSchema = z
   .max(128)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u);
 
+const linkedOwnerInputSchema = z
+  .object({
+    linkedService: z.string().trim().min(1).max(64),
+    linkedOwnerType: z.string().trim().min(1).max(64),
+    linkedOwnerId: z.string().uuid("Invalid linked owner ID"),
+  })
+  .strict();
+
 const createApplicationInputSchema = z
   .object({
     applicationId: z.string().uuid("Invalid application ID"),
@@ -56,8 +72,26 @@ const createApplicationInputSchema = z
     name: applicationNameSchema,
     displayName: z.string().trim().min(1).max(256),
     description: z.string().trim().max(4000).optional(),
+    managementMode: z.enum(["admin", "service_linked"]),
+    linkedOwner: linkedOwnerInputSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.managementMode === "service_linked" && !value.linkedOwner) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["linkedOwner"],
+        message: "Linked owner is required for service-linked application",
+      });
+    }
+    if (value.managementMode === "admin" && value.linkedOwner) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["linkedOwner"],
+        message: "Linked owner is not allowed for admin-managed application",
+      });
+    }
+  });
 
 const allocateApplicationIdInputSchema = z.object({}).strict();
 
@@ -154,9 +188,12 @@ export class IamBrokerActions extends BrokerActions {
       this.kernel.runScript(AuthorizeScript, {
         subject: params.subject,
         organizationId: params.organizationId,
+        organizationName: params.organizationName,
         domain: params.domain ?? ORG_DOMAIN,
         resource: params.resource,
         action: params.action,
+        protectedResource: params.protectedResource,
+        linkedOwner: params.linkedOwner,
       }),
     );
   }
@@ -238,19 +275,56 @@ export class IamBrokerActions extends BrokerActions {
 
     try {
       const result = await runWithContext(ctx, () =>
-        this.kernel.applicationAuthAdminManagement.createApplication(
-          {
-            organizationId: params.organizationId,
-            name: params.name,
-            displayName: params.displayName,
-            description: params.description,
-          },
-          {
-            id: params.userId,
-            requestId: ctx.requestId,
-          },
-          { applicationId: params.applicationId },
-        ),
+        this.kernel.repository.txManager.run(async () => {
+          if (params.managementMode === "service_linked") {
+            await this.assertServiceLinkedApplicationCreateAuthorized(params);
+          }
+
+          const result =
+            await this.kernel.applicationAuthAdminManagement.createApplication(
+              {
+                organizationId: params.organizationId,
+                name: params.name,
+                displayName: params.displayName,
+                description: params.description,
+              },
+              {
+                id: params.userId,
+                requestId: ctx.requestId,
+              },
+              {
+                applicationId: params.applicationId,
+                authorization:
+                  params.managementMode === "service_linked"
+                    ? "trusted_boundary"
+                    : "admin",
+              },
+            );
+
+          if (params.managementMode === "service_linked") {
+            if (!params.linkedOwner) {
+              throw new Error("Linked owner is required");
+            }
+            await this.kernel.repository.serviceLinkedResource.createBinding({
+              organizationId: params.organizationId,
+              resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+              resourceId: result.applicationId,
+              linkedService: params.linkedOwner.linkedService,
+              linkedOwnerType: params.linkedOwner.linkedOwnerType,
+              linkedOwnerId: params.linkedOwner.linkedOwnerId,
+              createdBy: uuidOrNull(params.userId),
+            });
+            await this.appendServiceLinkedApplicationCreateAudit(
+              params,
+              ctx.requestId,
+              result.applicationId,
+              "success",
+              "success",
+            );
+          }
+
+          return result;
+        }),
       );
 
       return {
@@ -258,13 +332,83 @@ export class IamBrokerActions extends BrokerActions {
         applicationId: result.applicationId,
       };
     } catch (error) {
+      let effectiveError = error;
+      if (params.managementMode === "service_linked") {
+        try {
+          await this.appendServiceLinkedApplicationCreateAudit(
+            params,
+            ctx.requestId,
+            params.applicationId,
+            "failure",
+            serviceLinkedApplicationCreateFailureReason(error),
+          );
+        } catch (auditError) {
+          effectiveError = auditError;
+        }
+      }
       return {
         success: false,
         error:
-          error instanceof Error
-            ? error.message
+          effectiveError instanceof Error
+            ? effectiveError.message
             : "Failed to create application",
       };
+    }
+  }
+
+  private async appendServiceLinkedApplicationCreateAudit(
+    params: CreateApplicationParams,
+    requestId: string,
+    applicationId: string,
+    outcome: "success" | "failure",
+    reasonCategory: ApplicationAuthAdminAuditReasonCategory,
+  ): Promise<void> {
+    if (!params.linkedOwner) return;
+    await this.kernel.repository.applicationAuthAdminAudit.append({
+      recordId: uuidv7(),
+      schemaVersion: 1,
+      occurredAt: new Date().toISOString(),
+      category: "iam_resource_admin",
+      action: "application_create",
+      outcome,
+      reasonCategory,
+      actorType: "external_service",
+      actorId: params.linkedOwner.linkedService,
+      organizationId: params.organizationId,
+      applicationId,
+      targetType: "application",
+      targetId: applicationId,
+      requestId: requestId.trim().slice(0, 256) || "unknown",
+      safeDiff: Object.freeze({
+        serviceLinkedBindingCreated: outcome === "success",
+        resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+        linkedService: params.linkedOwner.linkedService,
+        linkedOwnerType: params.linkedOwner.linkedOwnerType,
+      }),
+    });
+  }
+
+  private async assertServiceLinkedApplicationCreateAuthorized(
+    params: CreateApplicationParams,
+  ): Promise<void> {
+    if (!params.linkedOwner) {
+      throw new Error("Linked owner is required");
+    }
+
+    const permission = serviceLinkedApplicationCreatePermission(params.linkedOwner);
+    if (!permission) {
+      throw new Error("Linked owner is not allowed to create IAM application");
+    }
+
+    const allowed = await new AuthProvider().authorize({
+      subject: params.userId,
+      organizationId: params.organizationId,
+      domain: ORG_DOMAIN,
+      resource: permission.resource,
+      action: permission.action,
+    });
+    if (!allowed) {
+      throw new Error("Linked owner application create is not permitted");
     }
   }
 
@@ -277,12 +421,21 @@ export class IamBrokerActions extends BrokerActions {
     params: DeleteApplicationForStoreCreateCompensationParams,
   ): Promise<DeleteApplicationForStoreCreateCompensationResult> {
     try {
-      await this.kernel.repository.applicationAuthAdminMutation.deleteApplicationForStoreCreateCompensation(
-        {
-          applicationId: params.applicationId,
-          organizationId: params.organizationId,
-        },
-      );
+      await this.kernel.repository.txManager.run(async () => {
+        await this.kernel.repository.serviceLinkedResource.softDeleteActiveByResource(
+          {
+            organizationId: params.organizationId,
+            resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+            resourceId: params.applicationId,
+          },
+        );
+        await this.kernel.repository.applicationAuthAdminMutation.deleteApplicationForStoreCreateCompensation(
+          {
+            applicationId: params.applicationId,
+            organizationId: params.organizationId,
+          },
+        );
+      });
 
       return { success: true };
     } catch (error) {
@@ -295,4 +448,44 @@ export class IamBrokerActions extends BrokerActions {
       };
     }
   }
+}
+
+function uuidOrNull(value: string): string | null {
+  return z.string().uuid().safeParse(value).success ? value : null;
+}
+
+function serviceLinkedApplicationCreatePermission(
+  linkedOwner: NonNullable<CreateApplicationParams["linkedOwner"]>,
+): { resource: string; action: "write" } | null {
+  if (
+    linkedOwner.linkedService === IAM_LINKED_SERVICE.project &&
+    linkedOwner.linkedOwnerType === IAM_LINKED_OWNER_TYPE.store
+  ) {
+    return { resource: "org.stores", action: "write" };
+  }
+  return null;
+}
+
+function serviceLinkedApplicationCreateFailureReason(
+  error: unknown,
+): ApplicationAuthAdminAuditReasonCategory {
+  const code = errorCode(error);
+  if (code === "UNAUTHENTICATED") return "unauthenticated";
+  if (code === "FORBIDDEN") return "authorization";
+  if (code === "DUPLICATE_VALUE" || code === "INVALID_INPUT") {
+    return "invalid_input";
+  }
+  if (code === "ADMIN_AUDIT_UNAVAILABLE") return "audit_unavailable";
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("not permitted") || message.includes("not allowed")) {
+    return "authorization";
+  }
+  if (message.includes("required")) return "invalid_input";
+  return "internal_error";
+}
+
+function errorCode(error: unknown): string | null {
+  if (!error || typeof error !== "object" || !("code" in error)) return null;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" ? code : null;
 }
