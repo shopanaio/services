@@ -190,7 +190,7 @@
           "name": "Amount off products modal backdrop · corrected",
           "fill": "#10111285",
           "width": 1440,
-          "height": 3200
+          "height": 1845
         },
         {
           "type": "frame",
@@ -200,7 +200,7 @@
           "name": "Amount off products modal surface · corrected",
           "clip": true,
           "width": 1404,
-          "height": 3164,
+          "height": 1807,
           "fill": "#F4F4F1",
           "cornerRadius": 14,
           "effect": {
