@@ -1,5 +1,4 @@
 import { ORG_DOMAIN } from "@src/casbin/CasbinService.js";
-import { getBrokerCallContext } from "@shopana/shared-kernel";
 import { validateAuthorizeInput } from "@shopana/rbac";
 import { BaseScript, ZodSchema } from "../../kernel/BaseScript.js";
 import {
@@ -68,7 +67,7 @@ export class BatchAuthorizeScript extends BaseScript<
     const bindingsByResource = new Map(
       bindings.map((binding) => [resourceKey(binding), binding])
     );
-    const caller = getBrokerCallContext()?.caller;
+    const caller = this.context.brokerCallContext?.caller;
 
     validRequests.forEach(({ index, request }, validIndex) => {
       const baseAllowed =

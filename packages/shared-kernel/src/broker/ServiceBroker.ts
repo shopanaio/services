@@ -4,11 +4,7 @@ import {
   ActionRegistry,
   type ActionMetadata,
 } from './ActionRegistry';
-import {
-  getBrokerCallContext,
-  runWithBrokerCallContext,
-  type BrokerCallContext,
-} from './BrokerCallContext.js';
+import type { BrokerCallContext } from './BrokerCallContext.js';
 import {
   WORKFLOW_REGISTRY,
   type WorkflowRegistry,
@@ -56,9 +52,10 @@ export class ServiceBroker implements OnModuleDestroy {
     action: string,
     params?: TParams,
   ): Promise<TResult> {
-    const context =
-      getBrokerCallContext() ??
-      this.createCallContext({ kind: 'action', service: this.options.serviceName });
+    const context = this.createCallContext({
+      kind: 'action',
+      service: this.options.serviceName,
+    });
     return this.invoke<TResult, TParams>(action, params, context);
   }
 
@@ -95,9 +92,7 @@ export class ServiceBroker implements OnModuleDestroy {
 
     this.inFlight++;
     try {
-      return (await runWithBrokerCallContext(context, () =>
-        handler(params, context),
-      )) as TResult;
+      return (await handler(params, context)) as TResult;
     } finally {
       this.inFlight--;
     }

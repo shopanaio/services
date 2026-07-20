@@ -2,7 +2,6 @@ import type {
   AuthProvider as IAuthProvider,
   AuthorizeParams,
 } from "@shopana/shared-kernel";
-import { getBrokerCallContext } from "@shopana/shared-kernel";
 import {
   ServiceLinkedResourceAuthorizationError,
   validateAuthorizeInput,
@@ -142,7 +141,7 @@ export class AuthProvider implements IAuthProvider {
       );
     if (!binding) return null;
 
-    const caller = getBrokerCallContext()?.caller;
+    const caller = getContext().brokerCallContext?.caller;
     if (
       caller?.service === binding.linkedService &&
       isIamServiceLinkedPermission(

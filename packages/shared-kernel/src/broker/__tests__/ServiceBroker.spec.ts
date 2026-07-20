@@ -89,7 +89,7 @@ describe('ServiceBroker', () => {
     });
   });
 
-  it('propagates the original caller through nested broker calls', async () => {
+  it('uses the immediate service identity for nested broker calls', async () => {
     const registry = new ActionRegistry();
     const projectBroker = new ServiceBroker(registry, { serviceName: 'project' });
     const catalogBroker = new ServiceBroker(registry, { serviceName: 'catalog' });
@@ -101,7 +101,7 @@ describe('ServiceBroker', () => {
     );
 
     await expect(projectBroker.call('catalog.authorize')).resolves.toEqual({
-      caller: { kind: 'action', service: 'project' },
+      caller: { kind: 'action', service: 'catalog' },
     });
   });
 

@@ -1,6 +1,7 @@
 import type { Kernel } from "../kernel/Kernel.js";
 import type { User } from "../repositories/index.js";
 import type { Loader } from "../loaders/Loader.js";
+import type { BrokerCallContext } from "@shopana/shared-kernel";
 
 /**
  * Request headers needed for session tracking (IP, User-Agent).
@@ -32,4 +33,6 @@ export interface ServiceContext {
   loaders: Loader;
   /** Request headers for session tracking */
   requestHeaders: RequestHeaders;
+  /** Trusted context injected by ServiceBroker for broker-originated calls. */
+  brokerCallContext?: BrokerCallContext;
 }

@@ -138,7 +138,10 @@ export class IamBrokerActions extends BrokerActions {
     return Kernel.getInstance();
   }
 
-  private async createUserContext(userId: string): Promise<ServiceContext> {
+  private async createUserContext(
+    userId: string,
+    brokerCallContext?: BrokerCallContext,
+  ): Promise<ServiceContext> {
     return {
       requestId: `broker-${Date.now()}`,
       kernel: this.kernel,
@@ -150,6 +153,7 @@ export class IamBrokerActions extends BrokerActions {
       },
       loaders: new Loader(this.kernel.repository),
       requestHeaders: {},
+      brokerCallContext,
     };
   }
 
@@ -183,8 +187,11 @@ export class IamBrokerActions extends BrokerActions {
    */
   @Action("authorize")
   @ZodSchema(authorizeInputSchema)
-  async authorize(params: AuthorizeParams): Promise<AuthorizeResult> {
-    const ctx = await this.createUserContext(params.subject!);
+  async authorize(
+    params: AuthorizeParams,
+    brokerCallContext: BrokerCallContext,
+  ): Promise<AuthorizeResult> {
+    const ctx = await this.createUserContext(params.subject!, brokerCallContext);
     return runWithContext(ctx, () =>
       this.kernel.runScript(AuthorizeScript, {
         subject: params.subject,
@@ -205,8 +212,12 @@ export class IamBrokerActions extends BrokerActions {
   @ZodSchema(batchAuthorizeInputSchema)
   async batchAuthorize(
     params: BatchAuthorizeParams,
+    brokerCallContext: BrokerCallContext,
   ): Promise<BatchAuthorizeResult> {
-    const ctx = await this.createUserContext(params.requests[0]?.userId ?? "");
+    const ctx = await this.createUserContext(
+      params.requests[0]?.userId ?? "",
+      brokerCallContext,
+    );
     return runWithContext(ctx, () =>
       this.kernel.runScript(BatchAuthorizeScript, params),
     );
@@ -272,7 +283,7 @@ export class IamBrokerActions extends BrokerActions {
     params: CreateApplicationParams,
     actionContext: BrokerCallContext,
   ): Promise<CreateApplicationResult> {
-    const ctx = await this.createUserContext(params.userId);
+    const ctx = await this.createUserContext(params.userId, actionContext);
 
     try {
       const result = await runWithContext(ctx, () =>

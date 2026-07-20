@@ -7,8 +7,11 @@
 
 > Актуальный authorization contract: caller service не передается в action
 > payload или `Policy` params. Broker создает trusted
-> `BrokerCallContext.caller` для action/event вызовов и сохраняет его при
-> вложенном `iam.authorize`. Service-aware Policy передает только concrete
+> `BrokerCallContext.caller` для action/event вызовов и передает его вместе с
+> action invocation. Target service инжектит context во внутренний request
+> context; вложенный broker call получает identity непосредственно вызывающего
+> service. Service-aware Policy
+> передает только concrete
 > `protectedResource`; IAM сопоставляет `binding.linkedService` с
 > `context.caller.service`. Поля `linkedOwner` ниже относятся к persisted owner
 > metadata при создании binding, но `linkedService` в них больше не принимается

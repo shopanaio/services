@@ -1,5 +1,9 @@
 import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
-import { ActionRegistry, ServiceBroker } from "@shopana/shared-kernel";
+import {
+  ActionRegistry,
+  ServiceBroker,
+  type BrokerCallContext,
+} from "@shopana/shared-kernel";
 import { runWithContext } from "../context/index.js";
 import { AuthProvider } from "../kernel/Authorizable.js";
 import { AuthorizeScript } from "../scripts/organization/AuthorizeScript.js";
@@ -215,7 +219,8 @@ function authorizeWithServices(
     protectedResource?: typeof protectedApplication;
     resource?: string;
     action?: string;
-  }
+  },
+  brokerCallContext?: BrokerCallContext,
 ) {
   return runWithContext(
     {
@@ -228,6 +233,7 @@ function authorizeWithServices(
       },
       loaders: {},
       requestHeaders: {},
+      brokerCallContext,
     } as never,
     () =>
       new AuthProvider().authorize({
@@ -255,9 +261,8 @@ function authorizeWithBrokerCaller(
   const callerBroker = new ServiceBroker(registry, {
     serviceName: callerService,
   });
-
-  iamBroker.register("authorizeForTest", () =>
-    authorizeWithServices(services, context)
+  iamBroker.register("authorizeForTest", (_params, brokerCallContext) =>
+    authorizeWithServices(services, context, brokerCallContext)
   );
 
   return callerBroker.call<boolean>("iam.authorizeForTest");
@@ -275,9 +280,8 @@ function authorizeWithEventCaller(
   const registry = new ActionRegistry();
   const iamBroker = new ServiceBroker(registry, { serviceName: "iam" });
   const eventsBroker = new ServiceBroker(registry, { serviceName: "events" });
-
-  iamBroker.register("authorizeForTest", () =>
-    authorizeWithServices(services, context)
+  iamBroker.register("authorizeForTest", (_params, brokerCallContext) =>
+    authorizeWithServices(services, context, brokerCallContext)
   );
 
   return eventsBroker.callEvent<boolean, undefined>(
