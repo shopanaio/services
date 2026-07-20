@@ -49,7 +49,6 @@ type ListingFacetMembershipChangedEmitParams = {
     facetIds: string[];
     refsHash: string;
   };
-  source: "listing";
   context: {
     organizationId: string;
     userId?: string;
@@ -154,7 +153,6 @@ export class FacetAffectedProductsResyncWorkflow extends BrokerWorkflows<
             facetIds,
             refsHash: params.refsHash,
           },
-          source: "listing",
           context: {
             organizationId: params.input.organizationId,
             userId: params.input.userId,

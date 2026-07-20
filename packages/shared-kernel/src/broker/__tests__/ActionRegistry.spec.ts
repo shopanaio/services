@@ -9,7 +9,9 @@ describe('ActionRegistry', () => {
     registry.register('payments.test', handler);
     const resolved = registry.resolve('payments.test');
 
-    const context = { callerService: 'payments' };
+    const context = {
+      caller: { kind: 'action' as const, service: 'payments' },
+    };
     await expect(resolved(undefined, context)).resolves.toBe('ok');
     expect(handler).toHaveBeenCalledWith(undefined, context);
   });

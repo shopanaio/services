@@ -63,7 +63,6 @@ export class CustomerCreateWorkflow extends BrokerWorkflows {
       {
         eventType: "customerCreated",
         payload,
-        source: "customers",
         context: {
           organizationId: input.context.organizationId,
           userId: input.context.userId,

@@ -1,4 +1,5 @@
 import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
+import { ActionRegistry, ServiceBroker } from "@shopana/shared-kernel";
 import { runWithContext } from "../context/index.js";
 import { AuthProvider } from "../kernel/Authorizable.js";
 import { AuthorizeScript } from "../scripts/organization/AuthorizeScript.js";
@@ -142,69 +143,65 @@ describe("service-linked resource authorization contract", () => {
     expect(services.logger.error).not.toHaveBeenCalled();
   });
 
-  it("allows service-aware linked owner writes only when the full owner predicate matches", async () => {
+  it("allows linked-service writes from the matching broker caller", async () => {
     const services = createServices({
-      bindingByLinkedOwner: linkedOwner,
+      bindingByResource: linkedOwner,
       casbinAllowed: false,
     });
 
-    await expect(authorizeWithServices(services, {
-      linkedOwner,
-    })).resolves.toBe(true);
+    await expect(
+      authorizeWithBrokerCaller(services, "project", {
+        protectedResource: protectedApplication,
+      })
+    ).resolves.toBe(true);
 
-    expect(services.repository.serviceLinkedResource.findActiveLinkedOwner)
-      .toHaveBeenCalledWith(linkedOwner);
+    expect(services.repository.serviceLinkedResource.findActiveByResource)
+      .toHaveBeenCalledWith(protectedApplication);
     expect(services.repository.casbin.enforce).not.toHaveBeenCalled();
   });
 
-  it("denies linked-owner writes for unrelated RBAC resources", async () => {
+  it("allows linked-service writes from a matching event producer", async () => {
     const services = createServices({
-      bindingByLinkedOwner: linkedOwner,
+      bindingByResource: linkedOwner,
       casbinAllowed: false,
     });
 
-    await expect(authorizeWithServices(services, {
-      linkedOwner,
-      resource: "org.roles",
-      action: "write",
-    })).resolves.toBe(false);
+    await expect(
+      authorizeWithEventCaller(services, "project", {
+        protectedResource: protectedApplication,
+      })
+    ).resolves.toBe(true);
 
-    expect(services.repository.serviceLinkedResource.findActiveLinkedOwner)
-      .not.toHaveBeenCalled();
     expect(services.repository.casbin.enforce).not.toHaveBeenCalled();
   });
 
-  it("denies linked-owner writes when protected resource identity differs", async () => {
-    const mismatchedLinkedOwner = {
-      ...linkedOwner,
-      resourceId: "018f8f6d-7980-7000-9000-000000000011",
-    };
+  it("denies a different broker caller for a service-linked resource", async () => {
     const services = createServices({
-      bindingByLinkedOwner: mismatchedLinkedOwner,
-      casbinAllowed: false,
-    });
-
-    await expect(authorizeWithServices(services, {
-      protectedResource: protectedApplication,
-      linkedOwner: mismatchedLinkedOwner,
-    })).resolves.toBe(false);
-
-    expect(services.repository.serviceLinkedResource.findActiveLinkedOwner)
-      .not.toHaveBeenCalled();
-  });
-
-  it("denies service-aware linked owner writes when the owner predicate does not match", async () => {
-    const services = createServices({
-      bindingByLinkedOwner: null,
+      bindingByResource: linkedOwner,
       casbinAllowed: true,
     });
 
-    await expect(authorizeWithServices(services, {
-      linkedOwner: {
-        ...linkedOwner,
-        linkedOwnerId: "018f8f6d-7980-7000-9000-000000000021",
-      },
-    })).resolves.toBe(false);
+    await expect(
+      authorizeWithBrokerCaller(services, "catalog", {
+        protectedResource: protectedApplication,
+      })
+    ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
+    expect(services.repository.casbin.enforce).not.toHaveBeenCalled();
+  });
+
+  it("denies linked-service writes for unrelated RBAC resources", async () => {
+    const services = createServices({
+      bindingByResource: linkedOwner,
+      casbinAllowed: true,
+    });
+
+    await expect(
+      authorizeWithBrokerCaller(services, "project", {
+        protectedResource: protectedApplication,
+        resource: "org.roles",
+      })
+    ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
+    expect(services.repository.casbin.enforce).not.toHaveBeenCalled();
   });
 
   it.todo("external service provisioning creates application and binding in one transaction");
@@ -216,7 +213,6 @@ function authorizeWithServices(
   services: ReturnType<typeof createServices>,
   context: {
     protectedResource?: typeof protectedApplication;
-    linkedOwner?: typeof linkedOwner;
     resource?: string;
     action?: string;
   }
@@ -242,6 +238,52 @@ function authorizeWithServices(
         action: context.action ?? "write",
         ...context,
       })
+  );
+}
+
+function authorizeWithBrokerCaller(
+  services: ReturnType<typeof createServices>,
+  callerService: string,
+  context: {
+    protectedResource: typeof protectedApplication;
+    resource?: string;
+    action?: string;
+  }
+) {
+  const registry = new ActionRegistry();
+  const iamBroker = new ServiceBroker(registry, { serviceName: "iam" });
+  const callerBroker = new ServiceBroker(registry, {
+    serviceName: callerService,
+  });
+
+  iamBroker.register("authorizeForTest", () =>
+    authorizeWithServices(services, context)
+  );
+
+  return callerBroker.call<boolean>("iam.authorizeForTest");
+}
+
+function authorizeWithEventCaller(
+  services: ReturnType<typeof createServices>,
+  producerService: string,
+  context: {
+    protectedResource: typeof protectedApplication;
+    resource?: string;
+    action?: string;
+  }
+) {
+  const registry = new ActionRegistry();
+  const iamBroker = new ServiceBroker(registry, { serviceName: "iam" });
+  const eventsBroker = new ServiceBroker(registry, { serviceName: "events" });
+
+  iamBroker.register("authorizeForTest", () =>
+    authorizeWithServices(services, context)
+  );
+
+  return eventsBroker.callEvent<boolean, undefined>(
+    "iam.authorizeForTest",
+    undefined,
+    producerService
   );
 }
 
@@ -314,7 +356,6 @@ function runBatchAuthorizeScriptWithServices(
 
 function createServices(input: {
   bindingByResource?: typeof linkedOwner | null;
-  bindingByLinkedOwner?: typeof linkedOwner | null;
   casbinAllowed?: boolean;
   siteAdmin?: boolean;
   organizationOwner?: boolean;
@@ -343,9 +384,6 @@ function createServices(input: {
         findActiveByResource: jest
           .fn()
           .mockResolvedValue(input.bindingByResource ?? null),
-        findActiveLinkedOwner: jest
-          .fn()
-          .mockResolvedValue(input.bindingByLinkedOwner ?? null),
         findActiveByResources: jest
           .fn()
           .mockResolvedValue(input.bindingsByResources ?? []),

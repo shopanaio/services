@@ -4,7 +4,7 @@ import {
   ACTION_METADATA_KEY,
   type ActionDecoratorMetadata,
 } from "../decorators/Action.js";
-import type { ActionCallContext } from "./ActionRegistry.js";
+import type { BrokerCallContext } from "./BrokerCallContext.js";
 import "reflect-metadata";
 
 /**
@@ -70,7 +70,7 @@ export abstract class BrokerActions implements OnModuleInit {
       if (metadata) {
         const method = (this as Record<string, unknown>)[methodName] as (
           params: unknown,
-          context: ActionCallContext
+          context: BrokerCallContext
         ) => Promise<unknown>;
 
         // Bind the method to this instance

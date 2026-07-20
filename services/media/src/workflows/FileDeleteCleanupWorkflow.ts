@@ -52,7 +52,6 @@ export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
       {
         eventType: "fileHardDeleted",
         payload: { fileId },
-        source: "media",
         context: {
           organizationId: ownerId,
         },

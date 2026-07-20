@@ -59,7 +59,6 @@ export class ReviewDeleteWorkflow extends ReviewsMutationWorkflow {
       {
         eventType: "reviewDeleted",
         payload,
-        source: "reviews",
         context: {
           organizationId: input.context.organizationId,
           userId: input.context.userId,

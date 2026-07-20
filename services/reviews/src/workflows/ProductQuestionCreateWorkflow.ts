@@ -58,7 +58,6 @@ export class ProductQuestionCreateWorkflow extends ReviewsMutationWorkflow {
       {
         eventType: "productQuestionCreated",
         payload,
-        source: "reviews",
         context: {
           organizationId: input.context.organizationId,
           userId: input.context.userId,

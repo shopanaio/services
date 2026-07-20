@@ -133,7 +133,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       description: `Store application for ${input.displayName}`,
       managementMode: "service_linked",
       linkedOwner: {
-        linkedService: "project",
         linkedOwnerType: "store",
         linkedOwnerId: storeId,
       },
@@ -243,7 +242,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
           organizationId: input.organizationId,
           name: input.name,
         },
-        source: "project",
         context: {
           organizationId: input.organizationId,
           userId: input.userId,

@@ -291,13 +291,17 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     try {
       response = await withTimeout(
         () =>
-          this.broker.call<
+          this.broker.callEvent<
             EventHandlerResponse,
             { event: DomainEvent; delivery: EventHandlerDelivery }
-          >(job.handlerAction, {
-            event,
-            delivery: toDelivery(job),
-          }),
+          >(
+            job.handlerAction,
+            {
+              event,
+              delivery: toDelivery(job),
+            },
+            event.source,
+          ),
         timeoutMs,
         job.handlerAction,
       );
@@ -336,18 +340,22 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     try {
       response = await withTimeout(
         () =>
-          this.broker.call<
+          this.broker.callEvent<
             EventBatchHandlerResponse,
             {
               events: DomainEvent[];
               payloads: unknown[];
               deliveries: EventHandlerDelivery[];
             }
-          >(first.job.handlerAction, {
-            events,
-            payloads: events.map((event) => event.payload),
-            deliveries: items.map((item) => toDelivery(item.job)),
-          }),
+          >(
+            first.job.handlerAction,
+            {
+              events,
+              payloads: events.map((event) => event.payload),
+              deliveries: items.map((item) => toDelivery(item.job)),
+            },
+            first.event.source,
+          ),
         timeoutMs,
         first.job.handlerAction,
       );
@@ -443,6 +451,7 @@ function groupBatchJobs(
       item.job.eventType,
       item.job.batchKey ?? "",
       item.job.handlerAction,
+      item.event.source,
     ].join("\0");
     const group = groups.get(groupKey) ?? [];
     group.push(item);

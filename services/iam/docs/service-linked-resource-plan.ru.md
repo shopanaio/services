@@ -5,6 +5,15 @@
 Сервисы: `services/iam`  
 Целевая область: защита IAM-owned resources от generic organization mutations
 
+> Актуальный authorization contract: caller service не передается в action
+> payload или `Policy` params. Broker создает trusted
+> `BrokerCallContext.caller` для action/event вызовов и сохраняет его при
+> вложенном `iam.authorize`. Service-aware Policy передает только concrete
+> `protectedResource`; IAM сопоставляет `binding.linkedService` с
+> `context.caller.service`. Поля `linkedOwner` ниже относятся к persisted owner
+> metadata при создании binding, но `linkedService` в них больше не принимается
+> от вызывающего сервиса.
+
 Связанные документы:
 
 - [План реализации Admin API для application auth в IAM](./application-auth-admin-api-implementation-plan.ru.md);
@@ -386,8 +395,8 @@ resourceId
    result и business inputs; service-linked context остается на IAM action
    boundary.
 5. Любой новый write surface для protected IAM resource должен добавлять
-   `protectedResource` / `linkedOwner` в Policy call, а не service-linked guard в
-   service/repository method.
+   `protectedResourceMode: "required"` и `protectedResource` в Policy call, а не
+   service-linked guard в service/repository method.
 
 Практическое правило:
 
@@ -398,7 +407,8 @@ generic Admin write:
   execute existing business mutation unchanged
 
 service-aware external write:
-  authorize through Policy/AuthProvider with linkedOwner
+  authorize through Policy/AuthProvider with concrete protectedResource
+  compare the trusted broker caller with binding.linkedService
   execute the same existing business mutation implementation unchanged
 ```
 

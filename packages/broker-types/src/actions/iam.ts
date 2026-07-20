@@ -55,7 +55,6 @@ export interface AllocateApplicationIdResult {
 }
 
 export interface ServiceLinkedOwnerInput {
-  linkedService: string;
   linkedOwnerType: string;
   linkedOwnerId: string;
 }

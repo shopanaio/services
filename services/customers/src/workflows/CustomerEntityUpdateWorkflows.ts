@@ -76,7 +76,6 @@ abstract class CustomerEntityUpdateWorkflow extends BrokerWorkflows {
             storeId: context.storeId,
             reasons: [reason],
           },
-          source: "customers",
           context: {
             organizationId: context.organizationId,
             userId: context.userId,

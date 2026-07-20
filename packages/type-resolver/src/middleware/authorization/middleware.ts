@@ -107,11 +107,6 @@ export function createAuthorizationMiddleware<TContext = unknown>(
           ? policy.protectedResource(instance)
           : policy.protectedResource;
 
-      const linkedOwner =
-        typeof policy.linkedOwner === "function"
-          ? policy.linkedOwner(instance)
-          : policy.linkedOwner;
-
       const authorizeParams: BrokerAuthorizeParams = {
         resource: policy.resource,
         action: policy.action,
@@ -120,11 +115,7 @@ export function createAuthorizationMiddleware<TContext = unknown>(
         subject: subject ?? undefined,
         protectedResource: protectedResource ?? undefined,
       };
-      const allowed = await instance.authProvider.authorize(
-        linkedOwner
-          ? { ...authorizeParams, linkedOwner }
-          : authorizeParams
-      );
+      const allowed = await instance.authProvider.authorize(authorizeParams);
 
       if (!allowed) {
         if (policy.onDeny === "null") {

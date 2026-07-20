@@ -2,9 +2,13 @@ import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/c
 import {
   ActionHandler,
   ActionRegistry,
-  type ActionCallContext,
   type ActionMetadata,
 } from './ActionRegistry';
+import {
+  getBrokerCallContext,
+  runWithBrokerCallContext,
+  type BrokerCallContext,
+} from './BrokerCallContext.js';
 import {
   WORKFLOW_REGISTRY,
   type WorkflowRegistry,
@@ -52,18 +56,57 @@ export class ServiceBroker implements OnModuleDestroy {
     action: string,
     params?: TParams,
   ): Promise<TResult> {
+    const context =
+      getBrokerCallContext() ??
+      this.createCallContext({ kind: 'action', service: this.options.serviceName });
+    return this.invoke<TResult, TParams>(action, params, context);
+  }
+
+  /**
+   * Dispatch an event handler with the persisted event producer as caller.
+   * Only the events service may create event caller contexts.
+   */
+  async callEvent<TResult = unknown, TParams = unknown>(
+    action: string,
+    params: TParams,
+    producerService: string,
+  ): Promise<TResult> {
+    if (this.options.serviceName !== 'events') {
+      throw new Error('Only events service can dispatch event broker calls');
+    }
+    const service = producerService.trim();
+    if (!service) {
+      throw new Error('Event producer service is required');
+    }
+    return this.invoke<TResult, TParams>(
+      action,
+      params,
+      this.createCallContext({ kind: 'event', service }),
+    );
+  }
+
+  private async invoke<TResult, TParams>(
+    action: string,
+    params: TParams | undefined,
+    context: BrokerCallContext,
+  ): Promise<TResult> {
     const qualifiedAction = this.assertFullyQualified(action);
     const handler = this.registry.resolve<TParams, TResult>(qualifiedAction);
 
     this.inFlight++;
     try {
-      const context: ActionCallContext = Object.freeze({
-        callerService: this.options.serviceName,
-      });
-      return (await handler(params, context)) as TResult;
+      return (await runWithBrokerCallContext(context, () =>
+        handler(params, context),
+      )) as TResult;
     } finally {
       this.inFlight--;
     }
+  }
+
+  private createCallContext(
+    caller: BrokerCallContext['caller'],
+  ): BrokerCallContext {
+    return Object.freeze({ caller: Object.freeze(caller) });
   }
 
   /**
@@ -98,9 +141,13 @@ export class ServiceBroker implements OnModuleDestroy {
     }
 
     const qualifiedWorkflow = this.assertFullyQualified(workflow);
-    const handle = await this.workflowRegistry.start<TParams, TResult>(
+    const trustedParams = this.withTrustedWorkflowCaller(
       qualifiedWorkflow,
       params,
+    );
+    const handle = await this.workflowRegistry.start<TParams, TResult>(
+      qualifiedWorkflow,
+      trustedParams,
       idempotencyCtx,
       options,
     );
@@ -123,9 +170,13 @@ export class ServiceBroker implements OnModuleDestroy {
     }
 
     const qualifiedWorkflow = this.assertFullyQualified(workflow);
-    const handle = await this.workflowRegistry.start<TParams, unknown>(
+    const trustedParams = this.withTrustedWorkflowCaller(
       qualifiedWorkflow,
       params,
+    );
+    const handle = await this.workflowRegistry.start<TParams, unknown>(
+      qualifiedWorkflow,
+      trustedParams,
       idempotencyCtx,
       options,
     );
@@ -220,5 +271,24 @@ export class ServiceBroker implements OnModuleDestroy {
     }
 
     return action;
+  }
+
+  private withTrustedWorkflowCaller<TParams>(
+    qualifiedWorkflow: string,
+    params: TParams,
+  ): TParams {
+    if (
+      qualifiedWorkflow !== 'events.emit' ||
+      typeof params !== 'object' ||
+      params === null ||
+      Array.isArray(params)
+    ) {
+      return params;
+    }
+
+    return {
+      ...params,
+      source: this.options.serviceName,
+    } as TParams;
   }
 }

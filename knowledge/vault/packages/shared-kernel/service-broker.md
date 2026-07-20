@@ -57,6 +57,33 @@ broker.register("getStock", handler);
 await broker.call("inventory.getStock", { productId });
 ```
 
+## Trusted Caller Context
+
+Broker handlers receive a second `BrokerCallContext` argument. Caller identity
+is created by broker infrastructure and is never read from the action payload:
+
+```typescript
+async updateResource(
+  params: UpdateResourceInput,
+  context: BrokerCallContext,
+) {
+  context.caller.kind;    // "action" | "event"
+  context.caller.service; // e.g. "project"
+}
+```
+
+Nested broker calls preserve the original caller. Event dispatch creates an
+event caller from the persisted event producer. Only the events service may
+create event caller contexts.
+
+`events.emit` also does not accept a producer service in its public input. The
+calling broker injects its configured service name before starting the durable
+workflow, and the events service persists that value as `event.source`.
+
+Authorization inputs must not contain a caller service name. Service-linked
+policies pass only the concrete `protectedResource`; IAM compares its binding
+with `context.caller.service`.
+
 ## API Reference
 
 ### register()
@@ -122,6 +149,22 @@ try {
   }
 }
 ```
+
+### callEvent()
+
+Dispatch an event handler with a trusted producer identity. This API is
+reserved for the events service; ordinary services use `call()`:
+
+```typescript
+await eventsBroker.callEvent(
+  "listing.productCreated",
+  { event, delivery },
+  event.source,
+);
+```
+
+The handler receives `caller.kind === "event"` and `caller.service` equal to
+the persisted producer.
 
 ### hasAction()
 

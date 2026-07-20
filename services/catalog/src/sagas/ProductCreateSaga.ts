@@ -120,7 +120,6 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
           storeId: input.storeId,
           name: input.title,
         },
-        source: "inventory",
         context: {
           organizationId: input.organizationId,
           userId: input.userId,

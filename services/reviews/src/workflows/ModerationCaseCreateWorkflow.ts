@@ -54,7 +54,6 @@ export class ModerationCaseCreateWorkflow extends ReviewsMutationWorkflow {
       {
         eventType: "reviewModerationCaseCreated",
         payload,
-        source: "reviews",
         context: {
           organizationId: input.context.organizationId,
           userId: input.context.userId,

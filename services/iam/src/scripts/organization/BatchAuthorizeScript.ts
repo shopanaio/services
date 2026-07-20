@@ -1,4 +1,5 @@
 import { ORG_DOMAIN } from "@src/casbin/CasbinService.js";
+import { getBrokerCallContext } from "@shopana/shared-kernel";
 import { validateAuthorizeInput } from "@shopana/rbac";
 import { BaseScript, ZodSchema } from "../../kernel/BaseScript.js";
 import {
@@ -6,6 +7,10 @@ import {
   type BatchAuthorizeParams,
   type BatchAuthorizeResult,
 } from "./dto/BatchAuthorizeDto.js";
+import {
+  isIamServiceLinkedPermission,
+  isServiceLinkedWriteAction,
+} from "../../service-linked/resources.js";
 
 export class BatchAuthorizeScript extends BaseScript<
   BatchAuthorizeParams,
@@ -60,17 +65,30 @@ export class BatchAuthorizeScript extends BaseScript<
     ]);
 
     const admins = new Set(adminUserIds);
-    const protectedResourceKeys = new Set(bindings.map(resourceKey));
+    const bindingsByResource = new Map(
+      bindings.map((binding) => [resourceKey(binding), binding])
+    );
+    const caller = getBrokerCallContext()?.caller;
 
     validRequests.forEach(({ index, request }, validIndex) => {
       const baseAllowed =
         admins.has(request.userId) ||
         owner?.userId === request.userId ||
         Boolean(casbinResults[validIndex]);
-      const serviceLinked = request.protectedResource
-        ? protectedResourceKeys.has(resourceKey(request.protectedResource))
-        : false;
-      results[index] = baseAllowed && !serviceLinked;
+      const binding = request.protectedResource
+        ? bindingsByResource.get(resourceKey(request.protectedResource))
+        : undefined;
+      if (binding && isServiceLinkedWriteAction(request.action)) {
+        results[index] =
+          caller?.service === binding.linkedService &&
+          isIamServiceLinkedPermission(
+            binding.resourceKind,
+            request.resource,
+            request.action
+          );
+        return;
+      }
+      results[index] = baseAllowed;
     });
 
     return { results };

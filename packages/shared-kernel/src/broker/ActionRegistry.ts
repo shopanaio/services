@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import type { BrokerCallContext } from './BrokerCallContext.js';
 
-export interface ActionCallContext {
-  /** Service identity assigned by the calling ServiceBroker instance. */
-  readonly callerService: string;
-}
+/** @deprecated Use BrokerCallContext. */
+export type ActionCallContext = BrokerCallContext;
 
 export type ActionHandler<TParams = unknown, TResult = unknown> = (
   params: TParams | undefined,
-  context: ActionCallContext,
+  context: BrokerCallContext,
 ) => Promise<TResult> | TResult;
 
 export interface ActionMetadata {

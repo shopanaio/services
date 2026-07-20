@@ -1471,7 +1471,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           storeId: input.context.storeId,
           reasons: getProductUpdatedReasons(changes),
         },
-        source: "catalog",
         context: {
           organizationId: input.context.organizationId,
           userId: input.context.userId,

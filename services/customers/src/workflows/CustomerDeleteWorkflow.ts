@@ -72,7 +72,6 @@ export class CustomerDeleteWorkflow extends BrokerWorkflows {
       {
         eventType: "customerDeleted",
         payload,
-        source: "customers",
         context: {
           organizationId: input.context.organizationId,
           userId: input.context.userId,

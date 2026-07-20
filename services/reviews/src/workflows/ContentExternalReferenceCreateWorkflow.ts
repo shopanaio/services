@@ -54,7 +54,6 @@ export class ContentExternalReferenceCreateWorkflow extends ReviewsMutationWorkf
       {
         eventType: "reviewContentExternalReferenceCreated",
         payload,
-        source: "reviews",
         context: {
           organizationId: input.context.organizationId,
           userId: input.context.userId,

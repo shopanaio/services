@@ -7,6 +7,7 @@ import {
   type EventHandlerMetadata,
 } from "../decorators/EventHandler.js";
 import "reflect-metadata";
+import type { BrokerCallContext } from "./BrokerCallContext.js";
 
 const BATCH_EVENT_ACTION_SUFFIX = ":batch";
 
@@ -36,7 +37,8 @@ export abstract class EventHandlers implements OnModuleInit {
 
       if (metadata) {
         const method = (this as Record<string, unknown>)[methodName] as (
-          params: unknown
+          params: unknown,
+          context: BrokerCallContext
         ) => Promise<unknown>;
 
         const boundMethod = method.bind(this);
@@ -54,7 +56,8 @@ export abstract class EventHandlers implements OnModuleInit {
 
       if (batchMetadata) {
         const method = (this as Record<string, unknown>)[methodName] as (
-          params: unknown
+          params: unknown,
+          context: BrokerCallContext
         ) => Promise<unknown>;
 
         const boundMethod = method.bind(this);

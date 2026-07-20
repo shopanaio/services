@@ -4,14 +4,12 @@ export type {
   BrokerAuthorizeParams,
   AuthProvider,
   Authorizable,
-  ServiceAwareAuthorizeParams,
 } from "@shopana/rbac";
 
 import type {
   ResourceName,
   Domain,
   ActionsForResource,
-  LinkedOwnerRef,
   ProtectedResourceRef,
 } from "@shopana/rbac";
 
@@ -42,8 +40,6 @@ export interface TypePolicyOptions<TSelf = unknown, R extends ResourceName = Res
   protectedResource?:
     | ProtectedResourceRef
     | ((self: TSelf) => ProtectedResourceRef | null);
-  /** Trusted linked owner context for service-aware write paths. */
-  linkedOwner?: LinkedOwnerRef | ((self: TSelf) => LinkedOwnerRef | null);
   /** Behavior when authorization fails: 'throw' (default) or 'null' */
   onDeny?: "throw" | "null";
 }

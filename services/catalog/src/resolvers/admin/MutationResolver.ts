@@ -518,7 +518,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             storeId: this.$ctx.store.id,
             reasons: ["category"],
           },
-          source: "catalog",
           context: {
             organizationId: this.$ctx.store.organizationId,
             userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
@@ -554,7 +553,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             storeId: this.$ctx.store.id,
             reasons: ["tag"],
           },
-          source: "catalog",
           context: {
             organizationId: this.$ctx.store.organizationId,
             userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
@@ -591,7 +589,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           deletedAt: args.deletedAt,
           entityType: args.entityType,
         },
-        source: "catalog",
         context: {
           organizationId: this.$ctx.store.organizationId,
           userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,

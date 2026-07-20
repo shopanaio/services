@@ -24,13 +24,17 @@ import type { PersistDispatchOptions } from "../repositories/Repository.js";
 export interface EmitParams<TType extends string = string, TPayload = unknown> {
   eventType: TType;
   payload: TPayload;
-  source: string;
   context: Omit<EventContext, "correlationId"> & { correlationId?: string };
   subject: { type: string; id: string };
   actor?: { type: "user" | "service" | "system"; id?: string };
   emitKey: string;
   dispatch?: EmitDispatchOptions;
 }
+
+type TrustedEmitParams<
+  TType extends string = string,
+  TPayload = unknown,
+> = EmitParams<TType, TPayload> & { readonly source: string };
 
 @Injectable()
 export class EventEmitWorkflow extends BrokerWorkflows {
@@ -47,7 +51,7 @@ export class EventEmitWorkflow extends BrokerWorkflows {
   }
 
   @Workflow("emit")
-  async run(params: EmitParams): Promise<EventEmitResult> {
+  async run(params: TrustedEmitParams): Promise<EventEmitResult> {
     const dispatch = normalizeDispatch(params);
     const { event } = this.buildEvent(params);
     const persisted = await this.stepPersistEvent(event, dispatch);
@@ -96,7 +100,7 @@ export class EventEmitWorkflow extends BrokerWorkflows {
     return this.repository.persistPendingEvent(event, dispatch);
   }
 
-  private buildEvent(params: EmitParams): {
+  private buildEvent(params: TrustedEmitParams): {
     event: DomainEvent;
     workflowId: string;
   } {

@@ -61,7 +61,6 @@ export class ContentExternalReferenceDeleteWorkflow extends ReviewsMutationWorkf
       {
         eventType: "reviewContentExternalReferenceDeleted",
         payload,
-        source: "reviews",
         context: {
           organizationId: input.context.organizationId,
           userId: input.context.userId,

@@ -5,7 +5,6 @@ export type {
   BrokerAuthorizeParams,
   AuthProvider,
   Authorizable,
-  ServiceAwareAuthorizeParams,
 } from "./types.js";
 
 // Error

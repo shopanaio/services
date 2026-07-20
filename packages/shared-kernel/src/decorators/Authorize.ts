@@ -5,7 +5,6 @@ import type {
   ActionsForResource,
   Authorizable,
   BrokerAuthorizeParams,
-  LinkedOwnerRef,
   ProtectedResourceRef,
 } from "@shopana/rbac";
 import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
@@ -16,7 +15,6 @@ export type {
   BrokerAuthorizeParams,
   AuthProvider,
   Authorizable,
-  ServiceAwareAuthorizeParams,
 } from "@shopana/rbac";
 
 /**
@@ -41,11 +39,37 @@ export class AuthorizationError extends Error {
  * @template TSelf - Type of the script instance
  * @template R - Resource type (typed to valid resources from @shopana/rbac)
  */
-export interface AuthorizeOptions<
+type ProtectedResourceResolver<TParams, TSelf extends Authorizable> =
+  | ProtectedResourceRef
+  | ((
+      self: TSelf,
+      params: TParams
+    ) => ProtectedResourceRef | null | undefined);
+
+type ProtectedResourcePolicy<TParams, TSelf extends Authorizable> =
+  | {
+      /**
+       * The policy does not require a concrete resource identity.
+       * Suitable for collection-level operations and resource creation.
+       */
+      protectedResourceMode?: "optional";
+      protectedResource?: ProtectedResourceResolver<TParams, TSelf>;
+    }
+  | {
+      /**
+       * The policy protects an existing resource whose service-linked binding
+       * must be checked. Authorization fails closed when the resolver cannot
+       * provide the concrete resource identity.
+       */
+      protectedResourceMode: "required";
+      protectedResource: ProtectedResourceResolver<TParams, TSelf>;
+    };
+
+export type AuthorizeOptions<
   TParams = unknown,
   TSelf extends Authorizable = Authorizable,
   R extends ResourceName = ResourceName
-> {
+> = {
   /** Resource to check authorization for (from @shopana/rbac) */
   resource: R;
   /** Action to check (validated against resource's allowed actions) */
@@ -67,15 +91,7 @@ export interface AuthorizeOptions<
   domain?: Domain | ((self: TSelf, params: TParams) => Domain | string);
   /** Subject (user ID) for authorization. */
   subject?: string | ((self: TSelf, params: TParams) => string);
-  /** Concrete protected resource for write mutability checks. */
-  protectedResource?:
-    | ProtectedResourceRef
-    | ((self: TSelf, params: TParams) => ProtectedResourceRef);
-  /** Trusted linked owner context for service-aware write paths. */
-  linkedOwner?:
-    | LinkedOwnerRef
-    | ((self: TSelf, params: TParams) => LinkedOwnerRef);
-}
+} & ProtectedResourcePolicy<TParams, TSelf>;
 
 type PolicyDecorator = <T>(
   _target: object,
@@ -163,10 +179,22 @@ export function Policy<
           ? options.protectedResource(this, params)
           : options.protectedResource;
 
-      const linkedOwner =
-        typeof options.linkedOwner === "function"
-          ? options.linkedOwner(this, params)
-          : options.linkedOwner;
+      if (
+        options.protectedResourceMode === "required" &&
+        !protectedResource
+      ) {
+        throw new AuthorizationError(
+          [
+            {
+              code: "PROTECTED_RESOURCE_REQUIRED",
+              message: `Access denied: protected resource is required for ${options.resource}:${options.action}`,
+              field: null,
+            },
+          ],
+          options.resource,
+          options.action
+        );
+      }
 
       let allowed: boolean;
       try {
@@ -177,13 +205,9 @@ export function Policy<
           organizationName,
           domain,
           subject,
-          protectedResource,
+          protectedResource: protectedResource ?? undefined,
         };
-        allowed = await this.authProvider.authorize(
-          linkedOwner
-            ? { ...authorizeParams, linkedOwner }
-            : authorizeParams
-        );
+        allowed = await this.authProvider.authorize(authorizeParams);
       } catch (error) {
         if (error instanceof ServiceLinkedResourceAuthorizationError) {
           throw new AuthorizationError(

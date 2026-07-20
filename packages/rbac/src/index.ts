@@ -30,6 +30,5 @@ export type {
   LinkedOwnerRef,
   ProtectedResourceRef,
   ServiceLinkedAuthorizationDetails,
-  ServiceAwareAuthorizeParams,
 } from "./auth.js";
 export { ServiceLinkedResourceAuthorizationError } from "./auth.js";

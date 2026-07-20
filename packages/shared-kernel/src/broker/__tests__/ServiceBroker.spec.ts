@@ -24,8 +24,8 @@ class SecuredBrokerActions extends BrokerActions {
   async securedAction(
     params: { value: string },
     context: ActionCallContext,
-  ): Promise<{ value: string; callerService: string }> {
-    return { value: params.value, callerService: context.callerService };
+  ): Promise<{ value: string; caller: ActionCallContext['caller'] }> {
+    return { value: params.value, caller: context.caller };
   }
 }
 
@@ -66,8 +66,12 @@ describe('ServiceBroker', () => {
     broker.register('inspectCaller', handler);
 
     await expect(
-      broker.call('payments.inspectCaller', { callerService: 'forged' }),
-    ).resolves.toEqual({ callerService: 'payments' });
+      broker.call('payments.inspectCaller', {
+        caller: { kind: 'event', service: 'forged' },
+      }),
+    ).resolves.toEqual({
+      caller: { kind: 'action', service: 'payments' },
+    });
   });
 
   it('preserves caller context through ZodSchema and Policy decorators', async () => {
@@ -79,7 +83,76 @@ describe('ServiceBroker', () => {
 
     await expect(
       callerBroker.call('payments.securedAction', { value: 'ok' }),
-    ).resolves.toEqual({ value: 'ok', callerService: 'project' });
+    ).resolves.toEqual({
+      value: 'ok',
+      caller: { kind: 'action', service: 'project' },
+    });
+  });
+
+  it('propagates the original caller through nested broker calls', async () => {
+    const registry = new ActionRegistry();
+    const projectBroker = new ServiceBroker(registry, { serviceName: 'project' });
+    const catalogBroker = new ServiceBroker(registry, { serviceName: 'catalog' });
+    const iamBroker = new ServiceBroker(registry, { serviceName: 'iam' });
+
+    iamBroker.register('inspectCaller', async (_params, context) => context);
+    catalogBroker.register('authorize', async () =>
+      catalogBroker.call('iam.inspectCaller'),
+    );
+
+    await expect(projectBroker.call('catalog.authorize')).resolves.toEqual({
+      caller: { kind: 'action', service: 'project' },
+    });
+  });
+
+  it('assigns persisted producer identity to event handler calls', async () => {
+    const registry = new ActionRegistry();
+    const eventsBroker = new ServiceBroker(registry, { serviceName: 'events' });
+    const listingBroker = new ServiceBroker(registry, { serviceName: 'listing' });
+
+    listingBroker.register('productCreated', async (_params, context) => context);
+
+    await expect(
+      eventsBroker.callEvent('listing.productCreated', {}, 'catalog'),
+    ).resolves.toEqual({
+      caller: { kind: 'event', service: 'catalog' },
+    });
+  });
+
+  it('does not let ordinary service brokers forge event caller contexts', async () => {
+    const broker = createBroker();
+
+    await expect(
+      broker.callEvent('payments.eventHandler', {}, 'catalog'),
+    ).rejects.toThrow('Only events service can dispatch event broker calls');
+  });
+
+  it('assigns event source from broker identity instead of workflow payload', async () => {
+    const registry = new ActionRegistry();
+    const workflowRegistry = {
+      start: jest.fn(async () => ({
+        workflowId: 'workflow-id',
+        getResult: async () => ({ eventId: 'event-id' }),
+      })),
+    };
+    const broker = new ServiceBroker(
+      registry,
+      { serviceName: 'catalog' },
+      workflowRegistry as never,
+    );
+
+    await broker.runWorkflow(
+      'events.emit',
+      { eventType: 'productCreated', source: 'forged' },
+      { source: 'workflow', workflowId: 'parent', stepId: 'emit' },
+    );
+
+    expect(workflowRegistry.start).toHaveBeenCalledWith(
+      'events.emit',
+      { eventType: 'productCreated', source: 'catalog' },
+      expect.any(Object),
+      undefined,
+    );
   });
 
   it('throws when call action lacks prefix', async () => {

@@ -315,7 +315,6 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
           storeId: input.context.storeId,
           reasons,
         },
-        source: "customers",
         context: {
           organizationId: input.context.organizationId,
           userId: input.context.userId,

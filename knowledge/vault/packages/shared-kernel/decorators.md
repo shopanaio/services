@@ -209,6 +209,38 @@ async updatePrice(params: UpdatePriceInput): Promise<Product> {
 }
 ```
 
+### With Service-Linked Resource Protection
+
+Policies that mutate an existing resource whose lifecycle can be owned by a
+linked service must opt into the required protected-resource contract:
+
+```typescript
+@Policy<UpdateApplicationInput>({
+  resource: "org.applications",
+  action: "write",
+  organizationId: (_self, params) => params.organizationId,
+  protectedResourceMode: "required",
+  protectedResource: (_self, params) => ({
+    organizationId: params.organizationId,
+    resourceKind: "application",
+    resourceId: params.applicationId,
+  }),
+})
+async updateApplication(params: UpdateApplicationInput): Promise<Application> {
+  return this.applicationService.update(params);
+}
+```
+
+`protectedResourceMode: "required"` is fail-closed. If the resolver cannot
+produce a concrete resource identity, `@Policy` returns an authorization error
+with code `PROTECTED_RESOURCE_REQUIRED` before calling the authorization
+provider. When the identity is present, IAM checks its active service-linked
+binding as part of authorization. A linked-service caller is taken only from
+the trusted broker call context; it must not be supplied through policy params.
+
+Collection operations and resource creation, where no existing resource
+identity exists yet, omit `protectedResourceMode`.
+
 ### Authorization Error
 
 When authorization fails, `AuthorizationError` is thrown:
@@ -241,6 +273,11 @@ interface PolicyOptions<TParams> {
   action: string;
   organizationId: (self: Authorizable, params: TParams) => string;
   domain?: (self: Authorizable, params: TParams) => string;
+  protectedResourceMode?: "optional" | "required";
+  protectedResource?:
+    | ProtectedResourceRef
+    | ((self: Authorizable, params: TParams) =>
+        ProtectedResourceRef | null | undefined);
 }
 
 interface Authorizable {

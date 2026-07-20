@@ -51,13 +51,7 @@ export interface BrokerAuthorizeParams {
   protectedResource?: ProtectedResourceRef;
 }
 
-export interface ServiceAwareAuthorizeParams extends BrokerAuthorizeParams {
-  linkedOwner: LinkedOwnerRef;
-}
-
-export type AuthorizeParams =
-  | BrokerAuthorizeParams
-  | ServiceAwareAuthorizeParams;
+export type AuthorizeParams = BrokerAuthorizeParams;
 
 export class ServiceLinkedResourceAuthorizationError extends Error {
   readonly code = "RESOURCE_SERVICE_LINKED";

@@ -17,6 +17,15 @@ export {
   type ActionHandler,
   type ActionMetadata,
 } from "./broker/ActionRegistry";
+/*
+ * Context mutation stays internal to ServiceBroker. Consumers can only inspect
+ * the caller assigned by broker infrastructure.
+ */
+export {
+  getBrokerCallContext,
+  type BrokerCaller,
+  type BrokerCallContext,
+} from "./broker/BrokerCallContext";
 export {
   ServiceBroker,
   type ServiceBrokerOptions,
@@ -106,7 +115,6 @@ export {
   type AuthorizeParams,
   type BrokerAuthorizeParams,
   type AuthorizeOptions,
-  type ServiceAwareAuthorizeParams,
   type ActionDecoratorMetadata,
   type BatchEventHandlerMetadata,
   type EventHandlerMetadata,

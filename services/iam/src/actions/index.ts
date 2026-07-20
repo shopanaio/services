@@ -7,7 +7,7 @@ import {
   ServiceBroker,
   Action,
   ZodSchema,
-  type ActionCallContext,
+  type BrokerCallContext,
 } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
 import { AuthProvider } from "../kernel/Authorizable.js";
@@ -59,7 +59,6 @@ const applicationNameSchema = z
 
 const linkedOwnerInputSchema = z
   .object({
-    linkedService: z.string().trim().min(1).max(64),
     linkedOwnerType: z.string().trim().min(1).max(64),
     linkedOwnerId: z.string().uuid("Invalid linked owner ID"),
   })
@@ -271,7 +270,7 @@ export class IamBrokerActions extends BrokerActions {
   @ZodSchema(createApplicationInputSchema)
   async createApplication(
     params: CreateApplicationParams,
-    actionContext: ActionCallContext,
+    actionContext: BrokerCallContext,
   ): Promise<CreateApplicationResult> {
     const ctx = await this.createUserContext(params.userId);
 
@@ -314,7 +313,7 @@ export class IamBrokerActions extends BrokerActions {
               organizationId: params.organizationId,
               resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
               resourceId: result.applicationId,
-              linkedService: params.linkedOwner.linkedService,
+              linkedService: actionContext.caller.service,
               linkedOwnerType: params.linkedOwner.linkedOwnerType,
               linkedOwnerId: params.linkedOwner.linkedOwnerId,
               createdBy: uuidOrNull(params.userId),
@@ -323,7 +322,7 @@ export class IamBrokerActions extends BrokerActions {
               params,
               ctx.requestId,
               result.applicationId,
-              actionContext.callerService,
+              actionContext.caller.service,
               "success",
               "success",
             );
@@ -345,7 +344,7 @@ export class IamBrokerActions extends BrokerActions {
             params,
             ctx.requestId,
             params.applicationId,
-            actionContext.callerService,
+            actionContext.caller.service,
             "failure",
             serviceLinkedApplicationCreateFailureReason(error),
           );
@@ -390,7 +389,7 @@ export class IamBrokerActions extends BrokerActions {
       safeDiff: Object.freeze({
         serviceLinkedBindingCreated: outcome === "success",
         resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
-        linkedService: params.linkedOwner.linkedService,
+        linkedService: callerService,
         linkedOwnerType: params.linkedOwner.linkedOwnerType,
       }),
     });
@@ -398,17 +397,16 @@ export class IamBrokerActions extends BrokerActions {
 
   private async assertServiceLinkedApplicationCreateAuthorized(
     params: CreateApplicationParams,
-    actionContext: ActionCallContext,
+    actionContext: BrokerCallContext,
   ): Promise<void> {
     if (!params.linkedOwner) {
       throw new Error("Linked owner is required");
     }
 
-    if (actionContext.callerService !== params.linkedOwner.linkedService) {
-      throw new Error("Linked service does not match broker caller");
-    }
-
-    const permission = serviceLinkedApplicationCreatePermission(params.linkedOwner);
+    const permission = serviceLinkedApplicationCreatePermission(
+      actionContext.caller.service,
+      params.linkedOwner
+    );
     if (!permission) {
       throw new Error("Linked owner is not allowed to create IAM application");
     }
@@ -432,10 +430,10 @@ export class IamBrokerActions extends BrokerActions {
   @ZodSchema(deleteApplicationForStoreCreateCompensationInputSchema)
   async deleteApplicationForStoreCreateCompensation(
     params: DeleteApplicationForStoreCreateCompensationParams,
-    actionContext: ActionCallContext,
+    actionContext: BrokerCallContext,
   ): Promise<DeleteApplicationForStoreCreateCompensationResult> {
     try {
-      if (actionContext.callerService !== IAM_LINKED_SERVICE.project) {
+      if (actionContext.caller.service !== IAM_LINKED_SERVICE.project) {
         throw new Error("Only project service can compensate store application");
       }
 
@@ -444,7 +442,7 @@ export class IamBrokerActions extends BrokerActions {
           organizationId: params.organizationId,
           resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
           resourceId: params.applicationId,
-          linkedService: IAM_LINKED_SERVICE.project,
+          linkedService: actionContext.caller.service,
           linkedOwnerType: IAM_LINKED_OWNER_TYPE.store,
           linkedOwnerId: params.storeId,
         };
@@ -503,10 +501,11 @@ function uuidOrNull(value: string): string | null {
 }
 
 function serviceLinkedApplicationCreatePermission(
+  callerService: string,
   linkedOwner: NonNullable<CreateApplicationParams["linkedOwner"]>,
 ): { resource: string; action: "write" } | null {
   if (
-    linkedOwner.linkedService === IAM_LINKED_SERVICE.project &&
+    callerService === IAM_LINKED_SERVICE.project &&
     linkedOwner.linkedOwnerType === IAM_LINKED_OWNER_TYPE.store
   ) {
     return { resource: "org.stores", action: "write" };

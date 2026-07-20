@@ -25,7 +25,6 @@ export {
   type BrokerAuthorizeParams,
   type AuthProvider,
   type Authorizable,
-  type ServiceAwareAuthorizeParams,
   type AuthorizationMiddlewareOptions,
 } from "./middleware/authorization/index.js";
 
