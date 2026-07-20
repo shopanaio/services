@@ -1,6 +1,8 @@
-import type {
-  AuthProvider as IAuthProvider,
-  AuthorizeParams,
+import {
+  throwIfBrokerAuthorizeDenied,
+  type AuthProvider as IAuthProvider,
+  type AuthorizeParams,
+  type BrokerAuthorizeResult,
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { ReviewsKernelServices } from "./types.js";
@@ -33,8 +35,9 @@ export class AuthProvider implements IAuthProvider {
       domain,
       protectedResource: params.protectedResource,
       linkedOwner: params.linkedOwner,
-    })) as { allowed: boolean };
+    })) as BrokerAuthorizeResult;
 
+    throwIfBrokerAuthorizeDenied(result);
     return result.allowed;
   }
 }

@@ -21,6 +21,11 @@ export {
   type ServiceBrokerOptions,
 } from "./broker/ServiceBroker";
 export { BrokerActions } from "./broker/BrokerActions";
+export {
+  throwIfBrokerAuthorizeDenied,
+  type BrokerAuthorizeDeniedCode,
+  type BrokerAuthorizeResult,
+} from "./broker/BrokerAuthorizeResult";
 export { EventHandlers } from "./broker/EventHandlers";
 export { BrokerWorkflows } from "./broker/BrokerWorkflows";
 export {

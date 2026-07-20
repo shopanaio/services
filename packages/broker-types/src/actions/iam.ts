@@ -108,6 +108,8 @@ export interface LinkedOwnerRef extends ProtectedResourceRef {
   linkedOwnerId: string;
 }
 
+export interface ServiceLinkedAuthorizationDetails extends LinkedOwnerRef {}
+
 export interface AuthorizeParams {
   subject?: string;
   organizationId?: string;
@@ -119,8 +121,13 @@ export interface AuthorizeParams {
   linkedOwner?: LinkedOwnerRef;
 }
 
+export type AuthorizeDeniedCode = "RESOURCE_SERVICE_LINKED";
+
 export interface AuthorizeResult {
   allowed: boolean;
+  deniedReason?: string;
+  deniedCode?: AuthorizeDeniedCode;
+  serviceLinkedDetails?: ServiceLinkedAuthorizationDetails;
 }
 
 export interface BatchAuthorizeRequest {

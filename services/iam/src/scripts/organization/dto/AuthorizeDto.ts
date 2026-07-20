@@ -1,5 +1,10 @@
 import { z } from "zod";
-import type { AuthorizeParams, Domain, ResourceName } from "@shopana/rbac";
+import type {
+  AuthorizeParams,
+  Domain,
+  ResourceName,
+  ServiceLinkedAuthorizationDetails,
+} from "@shopana/rbac";
 
 const protectedResourceSchema = z
   .object({
@@ -38,4 +43,6 @@ export type { AuthorizeParams, Domain, ResourceName };
 export interface AuthorizeResult {
   allowed: boolean;
   deniedReason?: string;
+  deniedCode?: "RESOURCE_SERVICE_LINKED";
+  serviceLinkedDetails?: ServiceLinkedAuthorizationDetails;
 }

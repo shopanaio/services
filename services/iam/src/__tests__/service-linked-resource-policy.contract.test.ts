@@ -1,6 +1,7 @@
 import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
 import { runWithContext } from "../context/index.js";
 import { AuthProvider } from "../kernel/Authorizable.js";
+import { AuthorizeScript } from "../scripts/organization/AuthorizeScript.js";
 import { authorizeInputSchema } from "../scripts/organization/dto/AuthorizeDto.js";
 
 const protectedApplication = Object.freeze({
@@ -57,6 +58,23 @@ describe("service-linked resource authorization contract", () => {
     })).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
 
     expect(services.repository.casbin.enforce).not.toHaveBeenCalled();
+  });
+
+  it("returns typed service-linked denial through broker authorize script", async () => {
+    const services = createServices({
+      bindingByResource: linkedOwner,
+      organizationOwner: true,
+    });
+
+    await expect(runAuthorizeScriptWithServices(services, {
+      protectedResource: protectedApplication,
+    })).resolves.toMatchObject({
+      allowed: false,
+      deniedCode: "RESOURCE_SERVICE_LINKED",
+      serviceLinkedDetails: linkedOwner,
+    });
+
+    expect(services.logger.error).not.toHaveBeenCalled();
   });
 
   it("allows service-aware linked owner writes only when the full owner predicate matches", async () => {
@@ -162,6 +180,37 @@ function authorizeWithServices(
   );
 }
 
+function runAuthorizeScriptWithServices(
+  services: ReturnType<typeof createServices>,
+  context: {
+    protectedResource?: typeof protectedApplication;
+    linkedOwner?: typeof linkedOwner;
+  }
+) {
+  return runWithContext(
+    {
+      requestId: "test-request",
+      kernel: { getServices: () => services },
+      currentUser: {
+        id: "platform-user",
+        data: null,
+        sessionId: null,
+      },
+      loaders: {},
+      requestHeaders: {},
+    } as never,
+    () =>
+      new AuthorizeScript(services as never).run({
+        subject: "platform-user",
+        organizationId: protectedApplication.organizationId,
+        domain: "org",
+        resource: "org.applications",
+        action: "write",
+        ...context,
+      })
+  );
+}
+
 function createServices(input: {
   bindingByResource?: typeof linkedOwner | null;
   bindingByLinkedOwner?: typeof linkedOwner | null;
@@ -191,6 +240,9 @@ function createServices(input: {
     },
     nameResolver: {
       resolveOrganizationId: jest.fn(),
+    },
+    logger: {
+      error: jest.fn(),
     },
   };
 }

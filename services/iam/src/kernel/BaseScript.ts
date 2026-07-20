@@ -6,6 +6,7 @@ import {
   type Authorizable,
   type UserError,
 } from "@shopana/shared-kernel";
+import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
 import { getContext } from "../context/index.js";
 import type { IamKernelServices } from "./types.js";
 import { AuthProvider } from "@src/kernel/Authorizable.js";
@@ -48,7 +49,8 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
     } catch (error) {
       if (
         !(error instanceof ValidationError) &&
-        !(error instanceof AuthorizationError)
+        !(error instanceof AuthorizationError) &&
+        !(error instanceof ServiceLinkedResourceAuthorizationError)
       ) {
         this.logger.error({ error }, `${this.constructor.name} failed`);
       }
