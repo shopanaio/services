@@ -79,6 +79,7 @@ export class BatchAuthorizeScript extends BaseScript<
         : undefined;
       if (binding && isServiceLinkedWriteAction(request.action)) {
         results[index] =
+          baseAllowed &&
           caller?.service === binding.linkedService &&
           isIamServiceLinkedPermission(
             binding.resourceKind,

@@ -82,36 +82,36 @@ export class AuthProvider implements IAuthProvider {
       return false;
     }
 
-    const protectedResourceDecision =
-      await this.authorizeProtectedResource(params);
-    if (protectedResourceDecision !== null) {
-      return protectedResourceDecision;
-    }
-
     const subject = params.subject || this.subject;
     if (!subject) {
       return false;
     }
 
     // Check if user is site admin (bypasses RBAC, but not service-linked mutability)
-    if (await this.services.repository.user.isAdmin(subject)) {
-      return true;
-    }
+    const isAdmin = await this.services.repository.user.isAdmin(subject);
+    const isOwner = isAdmin
+      ? false
+      : await this.services.repository.organization.isOwner(
+          organizationId,
+          subject
+        );
+    const baseAllowed =
+      isAdmin ||
+      isOwner ||
+      (await this.services.repository.casbin.enforce({
+        organizationId,
+        subject,
+        domain: domain as Domain,
+        resource: params.resource as Resource,
+        action: params.action,
+      }));
+    if (!baseAllowed) return false;
 
-    // Check if user is organization owner (bypasses all authorization checks within org)
-    if (await this.services.repository.organization.isOwner(organizationId, subject)) {
-      return true;
+    const protectedResourceDecision =
+      await this.authorizeProtectedResource(params);
+    if (protectedResourceDecision !== null) {
+      return baseAllowed && protectedResourceDecision;
     }
-
-    // Check permission using Casbin RBAC
-    const allowed = await this.services.repository.casbin.enforce({
-      organizationId,
-      subject,
-      domain: domain as Domain,
-      resource: params.resource as Resource,
-      action: params.action,
-    });
-    if (!allowed) return false;
 
     return true;
   }

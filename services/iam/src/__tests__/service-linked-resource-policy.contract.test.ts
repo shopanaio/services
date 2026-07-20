@@ -147,7 +147,7 @@ describe("service-linked resource authorization contract", () => {
     expect(services.logger.error).not.toHaveBeenCalled();
   });
 
-  it("allows linked-service writes from the matching broker caller", async () => {
+  it("denies matching linked-service writes when user RBAC denies", async () => {
     const services = createServices({
       bindingByResource: linkedOwner,
       casbinAllowed: false,
@@ -157,17 +157,37 @@ describe("service-linked resource authorization contract", () => {
       authorizeWithBrokerCaller(services, "project", {
         protectedResource: protectedApplication,
       })
-    ).resolves.toBe(true);
+    ).resolves.toBe(false);
 
     expect(services.repository.serviceLinkedResource.findActiveByResource)
-      .toHaveBeenCalledWith(protectedApplication);
-    expect(services.repository.casbin.enforce).not.toHaveBeenCalled();
+      .not.toHaveBeenCalled();
+    expect(services.repository.casbin.enforce).toHaveBeenCalledTimes(1);
   });
 
-  it("allows linked-service writes from a matching event producer", async () => {
+  it(
+    "allows linked-service writes when both caller and user RBAC match",
+    async () => {
+      const services = createServices({
+        bindingByResource: linkedOwner,
+        casbinAllowed: true,
+      });
+
+      await expect(
+        authorizeWithBrokerCaller(services, "project", {
+          protectedResource: protectedApplication,
+        })
+      ).resolves.toBe(true);
+
+      expect(services.repository.casbin.enforce).toHaveBeenCalledTimes(1);
+      expect(services.repository.serviceLinkedResource.findActiveByResource)
+        .toHaveBeenCalledWith(protectedApplication);
+    }
+  );
+
+  it("allows matching event writes when user RBAC also matches", async () => {
     const services = createServices({
       bindingByResource: linkedOwner,
-      casbinAllowed: false,
+      casbinAllowed: true,
     });
 
     await expect(
@@ -176,7 +196,18 @@ describe("service-linked resource authorization contract", () => {
       })
     ).resolves.toBe(true);
 
-    expect(services.repository.casbin.enforce).not.toHaveBeenCalled();
+    expect(services.repository.casbin.enforce).toHaveBeenCalledTimes(1);
+  });
+
+  it("denies matching linked-service batch writes when user RBAC denies", async () => {
+    const services = createServices({
+      batchCasbinResults: [false, true],
+      bindingsByResources: [linkedOwner],
+    });
+
+    await expect(
+      runBatchAuthorizeScriptWithServices(services, "project")
+    ).resolves.toEqual({ results: [false, true] });
   });
 
   it("denies a different broker caller for a service-linked resource", async () => {
@@ -190,7 +221,7 @@ describe("service-linked resource authorization contract", () => {
         protectedResource: protectedApplication,
       })
     ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
-    expect(services.repository.casbin.enforce).not.toHaveBeenCalled();
+    expect(services.repository.casbin.enforce).toHaveBeenCalledTimes(1);
   });
 
   it("denies linked-service writes for unrelated RBAC resources", async () => {
@@ -205,7 +236,7 @@ describe("service-linked resource authorization contract", () => {
         resource: "org.roles",
       })
     ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
-    expect(services.repository.casbin.enforce).not.toHaveBeenCalled();
+    expect(services.repository.casbin.enforce).toHaveBeenCalledTimes(1);
   });
 
   it.todo("external service provisioning creates application and binding in one transaction");
@@ -322,7 +353,8 @@ function runAuthorizeScriptWithServices(
 }
 
 function runBatchAuthorizeScriptWithServices(
-  services: ReturnType<typeof createServices>
+  services: ReturnType<typeof createServices>,
+  callerService?: string
 ) {
   return runWithContext(
     {
@@ -335,6 +367,9 @@ function runBatchAuthorizeScriptWithServices(
       },
       loaders: {},
       requestHeaders: {},
+      brokerCallContext: callerService
+        ? { caller: { service: callerService } }
+        : undefined,
     } as never,
     () =>
       new BatchAuthorizeScript(services as never).run({
