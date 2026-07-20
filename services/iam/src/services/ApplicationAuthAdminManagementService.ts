@@ -366,9 +366,11 @@ export class ApplicationAuthAdminManagementService {
 
   async createApplication(
     input: z.input<typeof createApplicationSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
+    options: { applicationId?: string } = {}
   ): Promise<ApplicationMutationResult> {
-    const applicationId = await this.repository.allocateApplicationId();
+    const applicationId =
+      options.applicationId ?? (await this.repository.allocateApplicationId());
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       createApplicationSchema,
       input,

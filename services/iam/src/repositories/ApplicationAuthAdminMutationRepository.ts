@@ -221,6 +221,24 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   }
 
   @Transactional()
+  async deleteApplicationForStoreCreateCompensation(input: {
+    organizationId: string;
+    applicationId: string;
+  }): Promise<boolean> {
+    const rows = await this.connection
+      .delete(application)
+      .where(
+        and(
+          eq(application.id, input.applicationId),
+          eq(application.organizationId, input.organizationId)
+        )
+      )
+      .returning({ id: application.id });
+
+    return rows.length > 0;
+  }
+
+  @Transactional()
   async updateApplication(
     input: UpdateAdminApplicationInput
   ): Promise<number | null> {

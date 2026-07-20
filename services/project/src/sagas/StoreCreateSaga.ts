@@ -53,6 +53,7 @@ export interface StoreCreateInput {
 export interface StoreCreateOutput {
   storeId: string;
   organizationId: string;
+  applicationId: string;
 }
 
 /**
@@ -60,11 +61,13 @@ export interface StoreCreateOutput {
  *
  * Steps:
  * 1. Generate store ID (UUIDv7)
- * 2. Create store record in database
- * 3. Create store roles
- * 4. Assign admin role to creator
- * 5. Create media asset group (non-critical)
- * 6. Emit storeCreated event (non-critical)
+ * 2. Allocate IAM application ID
+ * 3. Create IAM application
+ * 4. Create store record in database
+ * 5. Create store roles
+ * 6. Assign admin role to creator
+ * 7. Create media asset group
+ * 8. Emit storeCreated event
  */
 @Injectable()
 export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOutput> {
@@ -79,12 +82,14 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   @Saga("storeCreate")
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
     const storeId = await this.generateId();
-    await this.createStore(storeId, input);
+    const applicationId = await this.allocateIamApplicationId();
+    await this.createIamApplication(applicationId, input);
+    await this.createStore(storeId, applicationId, input);
     await this.createRoles(storeId, input);
     await this.assignAdminRole(storeId, input);
     await this.createMediaAssetGroup(storeId);
     await this.emitStoreCreated(storeId, input);
-    return { storeId, organizationId: input.organizationId };
+    return { storeId, organizationId: input.organizationId, applicationId };
   }
 
   @SagaStep()
@@ -93,10 +98,59 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   }
 
   @SagaStep()
-  private async createStore(id: string, input: StoreCreateInput): Promise<void> {
+  private async allocateIamApplicationId(): Promise<string> {
+    const result = await this.broker.call<
+      IAM.AllocateApplicationIdResult,
+      IAM.AllocateApplicationIdParams
+    >("iam.allocateApplicationId", {});
+
+    if (result.success && result.applicationId) {
+      return result.applicationId;
+    }
+
+    throw new FatalError(
+      result.error ?? "Failed to allocate IAM application id",
+      undefined,
+      "APPLICATION_ID_ALLOCATE_FAILED",
+    );
+  }
+
+  @SagaStep()
+  private async createIamApplication(
+    applicationId: string,
+    input: StoreCreateInput,
+  ): Promise<void> {
+    const result = await this.broker.call<
+      IAM.CreateApplicationResult,
+      IAM.CreateApplicationParams
+    >("iam.createApplication", {
+      applicationId,
+      userId: input.userId,
+      organizationId: input.organizationId,
+      name: input.name,
+      displayName: input.displayName,
+      description: `Store application for ${input.displayName}`,
+    });
+
+    if (result.success) return;
+
+    throw new FatalError(
+      result.error ?? "Failed to create IAM application",
+      undefined,
+      "APPLICATION_CREATE_FAILED",
+    );
+  }
+
+  @SagaStep()
+  private async createStore(
+    id: string,
+    applicationId: string,
+    input: StoreCreateInput,
+  ): Promise<void> {
     await this.kernel.repository.store.create({
       id,
       organizationId: input.organizationId,
+      applicationId,
       name: input.name,
       displayName: input.displayName,
       locales: input.locales,
@@ -203,6 +257,37 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   async compensateCreateStore(id: string): Promise<void> {
     await this.kernel.repository.store.delete(id);
     this.logger.log({ storeId: id }, "Compensated: deleted store");
+  }
+
+  async compensateCreateIamApplication(
+    applicationId: string,
+    input: StoreCreateInput,
+  ): Promise<void> {
+    try {
+      const result = await this.broker.call<
+        IAM.DeleteApplicationForStoreCreateCompensationResult,
+        IAM.DeleteApplicationForStoreCreateCompensationParams
+      >("iam.deleteApplicationForStoreCreateCompensation", {
+        applicationId,
+        organizationId: input.organizationId,
+      });
+      if (!result.success) {
+        this.logger.warn(
+          { applicationId, error: result.error },
+          "Failed to compensate IAM application",
+        );
+        return;
+      }
+      this.logger.log(
+        { applicationId },
+        "Compensated: deleted IAM application",
+      );
+    } catch (error) {
+      this.logger.warn(
+        { applicationId, error },
+        "Failed to compensate IAM application",
+      );
+    }
   }
 
   async compensateCreateMediaAssetGroup(id: string): Promise<void> {

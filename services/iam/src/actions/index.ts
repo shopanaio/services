@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 import {
   BrokerActions,
   InjectBroker,
@@ -39,7 +40,53 @@ import {
   type CreateRolesResult,
 } from "../scripts/organization/dto/CreateRolesDto.js";
 import { ORG_DOMAIN } from "../casbin/CasbinService.js";
-import { User } from "@src/repositories/Repository.js";
+
+const applicationNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(128)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u);
+
+const createApplicationInputSchema = z
+  .object({
+    applicationId: z.string().uuid("Invalid application ID"),
+    userId: z.string().min(1, "User ID is required"),
+    organizationId: z.string().uuid("Invalid organization ID"),
+    name: applicationNameSchema,
+    displayName: z.string().trim().min(1).max(256),
+    description: z.string().trim().max(4000).optional(),
+  })
+  .strict();
+
+const allocateApplicationIdInputSchema = z.object({}).strict();
+
+const deleteApplicationForStoreCreateCompensationInputSchema = z
+  .object({
+    applicationId: z.string().uuid("Invalid application ID"),
+    organizationId: z.string().uuid("Invalid organization ID"),
+  })
+  .strict();
+
+type AllocateApplicationIdParams = z.infer<typeof allocateApplicationIdInputSchema>;
+type AllocateApplicationIdResult = {
+  success: boolean;
+  applicationId?: string;
+  error?: string;
+};
+type CreateApplicationParams = z.infer<typeof createApplicationInputSchema>;
+type CreateApplicationResult = {
+  success: boolean;
+  applicationId?: string;
+  error?: string;
+};
+type DeleteApplicationForStoreCreateCompensationParams = z.infer<
+  typeof deleteApplicationForStoreCreateCompensationInputSchema
+>;
+type DeleteApplicationForStoreCreateCompensationResult = {
+  success: boolean;
+  error?: string;
+};
 
 /**
  * IAM broker actions registered with @Action decorator.
@@ -67,6 +114,7 @@ export class IamBrokerActions extends BrokerActions {
         // sessionId: params.sessionId, TODO: add sessionId
       },
       loaders: new Loader(this.kernel.repository),
+      requestHeaders: {},
     };
   }
 
@@ -149,5 +197,102 @@ export class IamBrokerActions extends BrokerActions {
     return runWithContext(ctx, () =>
       this.kernel.runScript(AssignRoleScript, params),
     );
+  }
+
+  /**
+   * Action: allocateApplicationId - allocate an IAM-owned application UUID.
+   */
+  @Action("allocateApplicationId")
+  @ZodSchema(allocateApplicationIdInputSchema)
+  async allocateApplicationId(
+    _params: AllocateApplicationIdParams,
+  ): Promise<AllocateApplicationIdResult> {
+    try {
+      const applicationId =
+        await this.kernel.repository.applicationAuthAdminMutation.allocateApplicationId();
+
+      return {
+        success: true,
+        applicationId,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to allocate application id",
+      };
+    }
+  }
+
+  /**
+   * Action: createApplication - create an IAM application in an organization
+   */
+  @Action("createApplication")
+  @ZodSchema(createApplicationInputSchema)
+  async createApplication(
+    params: CreateApplicationParams,
+  ): Promise<CreateApplicationResult> {
+    const ctx = await this.createUserContext(params.userId);
+
+    try {
+      const result = await runWithContext(ctx, () =>
+        this.kernel.applicationAuthAdminManagement.createApplication(
+          {
+            organizationId: params.organizationId,
+            name: params.name,
+            displayName: params.displayName,
+            description: params.description,
+          },
+          {
+            id: params.userId,
+            requestId: ctx.requestId,
+          },
+          { applicationId: params.applicationId },
+        ),
+      );
+
+      return {
+        success: true,
+        applicationId: result.applicationId,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create application",
+      };
+    }
+  }
+
+  /**
+   * Action: deleteApplicationForStoreCreateCompensation - rollback helper for project.storeCreate.
+   */
+  @Action("deleteApplicationForStoreCreateCompensation")
+  @ZodSchema(deleteApplicationForStoreCreateCompensationInputSchema)
+  async deleteApplicationForStoreCreateCompensation(
+    params: DeleteApplicationForStoreCreateCompensationParams,
+  ): Promise<DeleteApplicationForStoreCreateCompensationResult> {
+    try {
+      await this.kernel.repository.applicationAuthAdminMutation.deleteApplicationForStoreCreateCompensation(
+        {
+          applicationId: params.applicationId,
+          organizationId: params.organizationId,
+        },
+      );
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete application",
+      };
+    }
   }
 }

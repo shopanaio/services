@@ -39,6 +39,7 @@ export const store = storeSchema.table(
     id: uuid("id").primaryKey(),
     // Organization that owns this store (from IAM)
     organizationId: uuid("organization_id").notNull(),
+    applicationId: uuid("application_id").notNull(),
     externalSystem: varchar("external_system", { length: 64 }),
     externalId: varchar("external_id", { length: 255 }),
     /** URL-friendly identifier (e.g., "my-store") */
@@ -68,6 +69,7 @@ export const store = storeSchema.table(
       .where(sql`deleted_at IS NOT NULL`),
     index("idx_store_external").on(table.externalSystem, table.externalId),
     index("idx_store_organization").on(table.organizationId),
+    index("idx_store_application").on(table.applicationId),
     foreignKey({
       columns: [table.id, table.defaultLocale],
       foreignColumns: [locale.storeId, locale.code],

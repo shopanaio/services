@@ -43,6 +43,43 @@ export interface AssignRoleResult {
 }
 
 // ============================================================================
+// Application Actions
+// ============================================================================
+
+export interface AllocateApplicationIdParams {}
+
+export interface AllocateApplicationIdResult {
+  success: boolean;
+  applicationId?: string;
+  error?: string;
+}
+
+export interface CreateApplicationParams {
+  applicationId: string;
+  userId: string;
+  organizationId: string;
+  name: string;
+  displayName: string;
+  description?: string;
+}
+
+export interface CreateApplicationResult {
+  success: boolean;
+  applicationId?: string;
+  error?: string;
+}
+
+export interface DeleteApplicationForStoreCreateCompensationParams {
+  applicationId: string;
+  organizationId: string;
+}
+
+export interface DeleteApplicationForStoreCreateCompensationResult {
+  success: boolean;
+  error?: string;
+}
+
+// ============================================================================
 // Authorization Actions
 // ============================================================================
 
