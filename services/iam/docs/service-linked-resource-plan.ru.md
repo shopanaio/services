@@ -35,7 +35,7 @@ Application становится только первым resource type, кот
 Целевой паттерн соответствует AWS IAM service-linked role:
 
 - объект виден в IAM/Admin;
-- объект связан с конкретным internal owner;
+- объект связан с конкретным external service owner;
 - owner определяет создание, изменение и удаление;
 - обычные IAM/Admin API операции не должны свободно менять service-linked object;
 - lifecycle и mutability защищены на backend, а не только UI.
@@ -44,9 +44,9 @@ Application становится только первым resource type, кот
 
 ```text
 IAM resource
-  linked to IAM internal owner
+  linked to external service owner
   visible through normal read models when product needs it
-  mutable only through explicit IAM internal management path
+  mutable only through explicit service-aware backend path
 ```
 
 ## 3. Цели
@@ -56,14 +56,15 @@ IAM resource
 3. Сделать service-linked binding общей моделью для разных IAM resource types.
 4. Разрешить показывать service-linked resources в organization views.
 5. Запретить generic organization mutations для service-linked resources.
-6. Разрешить изменение service-linked resources только через доверенный IAM
-   internal management path.
+6. Разрешить изменение service-linked resources только через доверенный
+   service-aware backend path, который внешний сервис-владелец вызывает через
+   IAM actions.
 7. Усилить write predicates за счет binding lookup:
    `organizationId + resourceType + resourceId + linkedService +
    linkedResourceType + linkedResourceId`.
 8. Не использовать resource id как secret или capability token.
-9. Аудировать rejected generic mutations и successful internal mutations без
-   секретов.
+9. Аудировать rejected generic mutations и successful service-aware external
+   mutations без секретов.
 
 ## 4. Не входит в план
 
@@ -79,20 +80,21 @@ IAM resource
 **Admin-managed resource** — обычный IAM resource, созданный и изменяемый через
 organization Admin API.
 
-**Service-linked resource** — IAM resource, связанный с internal owner и
-управляемый только доверенным IAM internal path.
+**Service-linked resource** — IAM resource, связанный с external service owner и
+управляемый только доверенным service-aware backend path.
 
 **Protected resource** — конкретный IAM object, на который указывает binding:
 например `application`, OAuth client, provider config или future IAM resource.
 
-**Linked owner** — internal owner binding: `linkedService +
+**Linked owner** — owner binding внешнего сервиса: `linkedService +
 linkedResourceType + linkedResourceId`.
 
 **Generic admin mutation** — существующие mutations в organization Admin API,
 которые работают с organization-level resources.
 
-**Internal management path** — broker/domain API внутри IAM, который вызывается
-только доверенным backend кодом и проверяет service-linked binding.
+**Service-aware external path** — broker/API вызов из внешнего backend service в
+IAM. Внешний сервис явно передает IAM action контекст service-linked ownership и
+знает, какую service-linked сущность он создает или меняет.
 
 ## 6. Target model
 
@@ -101,14 +103,9 @@ linkedResourceType + linkedResourceId`.
 Добавить отдельную IAM-owned таблицу bindings:
 
 ```ts
-type ServiceLinkedResourceKind =
-  | "application"
-  | "application_auth_configuration"
-  | "application_auth_provider"
-  | "oauth_client";
-
-type ServiceLinkedService = "iam";
-type ServiceLinkedOwnerType = "application_realm";
+type ServiceLinkedResourceKind = string;
+type ServiceLinkedService = string;
+type ServiceLinkedOwnerType = string;
 
 serviceLinkedResource.id: uuid
 serviceLinkedResource.organizationId: uuid
@@ -145,14 +142,14 @@ UNIQUE (organization_id, resource_kind, resource_id)
 WHERE deleted_at IS NULL
 ```
 
-Для IAM-managed application:
+Examples, not a closed list:
 
 ```text
-resourceKind = application
-resourceId = application.id
-linkedService = iam
-linkedOwnerType = application_realm
-linkedOwnerId = internal realm id
+resourceKind = application | store | media_asset_group | ...
+resourceId = resource primary id
+linkedService = project | iam | media | ...
+linkedOwnerType = store | application_realm | ...
+linkedOwnerId = owner primary id
 ```
 
 ## 7. GraphQL/Admin поведение
@@ -231,45 +228,53 @@ Application-specific resolver может маппить это в legacy code
 `APPLICATION_SERVICE_LINKED`, если UI уже ожидает такой код. Базовый domain error
 должен быть resource-level.
 
-### 7.3. Internal IAM mutations
+### 7.3. External service mutations
 
-IAM internal code не должен вызывать generic organization mutations для
+Внешние сервисы не должны вызывать generic organization mutations для
 service-linked updates.
 
-Нужен общий internal backend path, который авторизуется через Policy/AuthProvider
-как linked owner и затем вызывает существующую business mutation implementation:
+Нужен service-aware backend path через existing IAM actions. Внешний сервис
+передает `managementMode` / `linkedOwner`, IAM action boundary авторизуется через
+Policy/AuthProvider как linked owner и затем вызывает существующую business
+mutation implementation:
 
 ```ts
-iam.updateServiceLinkedResource({
+iam.updateResource({
   organizationId,
   resourceKind,
   resourceId,
-  linkedService: "iam",
-  linkedOwnerType: "application_realm",
-  linkedOwnerId,
+  managementMode: "service_linked",
+  linkedOwner: {
+    linkedService,
+    linkedOwnerType,
+    linkedOwnerId,
+  },
   expectedRevision,
   patch,
 })
 ```
 
-Для application auth можно иметь thin wrapper только как adapter входного
-контракта. Он не должен копировать validation, patch building, revision, audit
-или repository write logic:
+Для application auth existing IAM action может иметь service-aware input
+contract. Он не должен копировать validation, patch building, revision, audit или
+repository write logic:
 
 ```ts
-iam.updateServiceLinkedApplicationAuth({
+iam.updateApplicationAuth({
   organizationId,
   applicationId,
-  linkedService: "iam",
-  linkedOwnerType: "application_realm",
-  linkedOwnerId,
+  managementMode: "service_linked",
+  linkedOwner: {
+    linkedService,
+    linkedOwnerType,
+    linkedOwnerId,
+  },
   expectedRevision,
   patch,
 })
 ```
 
-В IAM этот path передает `linkedOwner` context в Policy/AuthProvider. Именно
-Policy/AuthProvider обязан проверить binding с полным predicate:
+В IAM action boundary передает `linkedOwner` context в Policy/AuthProvider.
+Именно Policy/AuthProvider обязан проверить binding с полным predicate:
 
 ```sql
 WHERE service_linked_resource.organization_id = :organizationId
@@ -281,9 +286,9 @@ WHERE service_linked_resource.organization_id = :organizationId
   AND service_linked_resource.deleted_at IS NULL
 ```
 
-После успешной Policy decision path переиспользует существующую business
-mutation implementation для конкретного resource type. Revision, validation,
-audit и invalidation не должны обходиться.
+После успешной Policy decision action boundary переиспользует существующую
+business mutation implementation для конкретного resource type. Revision,
+validation, audit и invalidation не должны обходиться.
 
 ## 8. Backend enforcement
 
@@ -302,14 +307,21 @@ repositories.
 
 ```text
 service-linked enforcement belongs to Policy/AuthProvider only
-business service layer remains service-linked unaware
+IAM business service layer remains service-linked unaware
+external service callers are service-linked aware
 application/organization repository layer remains service-linked unaware
 ```
 
-Под "business service layer" здесь понимаются сервисы, которые реализуют
+Под "IAM business service layer" здесь понимаются сервисы, которые реализуют
 application auth, provider, OAuth client, application user и organization
-business rules. Они не должны получать новые branches, guards, DTO fields или
-отдельные service-linked methods.
+business rules. Они не должны получать новые branches, guards или отдельные
+service-linked methods.
+
+Внешние сервисы, которые создают или владеют service-linked IAM resources
+например `project`, обязаны быть service-linked aware. Они передают ownership
+context в IAM actions и выбирают, какие IAM resources создаются как
+service-linked. Обратная совместимость старых external-service вызовов не
+сохраняется.
 
 Разрешенные места, где код может знать поля:
 
@@ -323,19 +335,19 @@ resourceId
 
 1. Drizzle model и migration для `iam.service_linked_resource`.
 2. `ServiceLinkedResourceRepository` / dedicated lookup helpers, используемые
-   только Policy/AuthProvider layer и internal provisioning orchestration.
+   только Policy/AuthProvider layer и IAM action boundary orchestration.
 3. `Policy` / `AuthProvider` extension, который отвечает за organization admin
    mutability и trusted owner predicate.
-4. Internal IAM provisioning/orchestration path, который создает resource +
-   binding в одной transaction.
+4. IAM action boundary, который принимает service-linked context от внешнего
+   service owner и создает resource + binding в одной transaction.
 5. GraphQL read-only field resolver `Application.management`, который читает
    projection через service-linked lookup, не меняя `ApplicationRepository`.
 6. Audit safe diff allowlist для rejected generic writes.
 
 Запрещено:
 
-1. Добавлять `linkedService`, `linkedOwnerType`, `linkedOwnerId` в обычные
-   business input DTO для generic Admin mutations.
+1. Добавлять `linkedService`, `linkedOwnerType`, `linkedOwnerId` во внутренние
+   IAM business input DTO для generic Admin mutations.
 2. Передавать `serviceLinkedBinding` в application auth/provider/OAuth client
    бизнес-методы как часть основной mutation logic.
 3. Дублировать существующие mutations в отдельных методах вроде
@@ -343,9 +355,9 @@ resourceId
    building, revision handling или audit из generic path.
 4. Разветвлять business validation по признаку service-linked. Правила auth
    configuration, provider credentials, OAuth clients и users остаются общими.
-5. Расширять generic provisioning input так, чтобы обычный create path знал о
-   service-linked ownership. Binding создается external orchestrator-ом внутри
-   trusted IAM internal transaction.
+5. Скрывать service-linked ownership от внешних сервисов-владельцев. Внешний
+   сервис, который создает IAM-owned resource для своей lifecycle-модели, обязан
+   передать ownership context в IAM action.
 6. Менять application repository или organization repository для service-linked
    enforcement. Они остаются обычными persistence/read repositories.
 7. Добавлять service-linked joins/lookups в `ApplicationRepository`,
@@ -365,12 +377,14 @@ resourceId
 
 1. Generic Admin write path обязан передавать `protectedResource` в
    Policy/AuthProvider до выполнения business mutation.
-2. Trusted IAM internal write path обязан передавать `linkedOwner` в
-   Policy/AuthProvider до выполнения business mutation.
+2. Service-aware external write path обязан передавать `linkedOwner` в IAM
+   action, а IAM action boundary обязан передавать его в Policy/AuthProvider до
+   выполнения business mutation.
 3. Policy/AuthProvider является единственным backend enforcement point для
    service-linked mutability.
-4. Business services продолжают видеть только существующие authorization result
-   и существующие business inputs.
+4. IAM business services продолжают видеть только существующие authorization
+   result и business inputs; service-linked context остается на IAM action
+   boundary.
 5. Любой новый write surface для protected IAM resource должен добавлять
    `protectedResource` / `linkedOwner` в Policy call, а не service-linked guard в
    service/repository method.
@@ -383,7 +397,7 @@ generic Admin write:
   load existing business scope
   execute existing business mutation unchanged
 
-trusted IAM internal write:
+service-aware external write:
   authorize through Policy/AuthProvider with linkedOwner
   execute the same existing business mutation implementation unchanged
 ```
@@ -399,7 +413,7 @@ Policy/AuthProvider должен получать не только RBAC resourc
 service-linked binding до выполнения business mutation.
 
 ```ts
-type ProtectedResourceKind = ServiceLinkedResourceKind;
+type ProtectedResourceKind = string;
 
 interface ProtectedResourceRef {
   organizationId: string;
@@ -408,8 +422,8 @@ interface ProtectedResourceRef {
 }
 
 interface LinkedOwnerRef extends ProtectedResourceRef {
-  linkedService: "iam";
-  linkedOwnerType: "application_realm";
+  linkedService: string;
+  linkedOwnerType: string;
   linkedOwnerId: string;
 }
 
@@ -424,14 +438,13 @@ interface AuthorizeParams {
 }
 ```
 
-`ServiceLinkedResourceKind` является registry значением binding model, а не
-зависимостью от конкретной domain model. В v1 registry может содержать
-`application`, `application_auth_configuration`, `application_auth_provider`,
-`oauth_client`, но Policy/AuthProvider contract не меняется при добавлении новых
-resource kinds.
+`ServiceLinkedResourceKind`, `ServiceLinkedService` и `ServiceLinkedOwnerType`
+являются registry значениями binding model, а не зависимостью от конкретной
+domain model. Registry открыт для всех сервисов и resource kinds. Policy/AuthProvider
+contract не меняется при добавлении новых resource kinds или новых owner services.
 
 `protectedResource` используется generic Admin writes. `linkedOwner` используется
-только trusted IAM internal paths.
+только service-aware external paths через IAM action boundary.
 
 `Policy` decorator / manual `authorizer.authorize()` calls должны передавать
 `protectedResource` для mutations, которые меняют protected IAM resources.
@@ -490,7 +503,7 @@ Generic Admin write:
 7. If binding exists, deny with RESOURCE_SERVICE_LINKED.
 ```
 
-Trusted linked-owner write:
+Service-aware external linked-owner write:
 
 ```text
 1. Skip organization-admin mutability check only when linkedOwner is present.
@@ -579,38 +592,44 @@ infrastructure и boundary adapters.
    - это boundary-level изменение. Нельзя переносить check внутрь
      `applicationAuthAdminManagement` или `applicationOAuthClientManagement`.
 
-5. Broker/script boundary adapters that already use `@Policy`
-   - для future protected resource kinds добавлять `protectedResource` callback
-     в existing `@Policy` declaration;
-   - не добавлять service-linked checks в script/service body.
+5. IAM broker action boundary adapters
+   - все actions, которые создают или меняют protected IAM resource для внешних
+     сервисов, должны принимать explicit service-linked context от внешнего
+     сервиса-владельца;
+   - для admin-managed создания caller передает `managementMode: "admin"`;
+   - для service-linked создания caller передает
+     `managementMode: "service_linked"` и полный `linkedOwner`;
+   - отдельные `createServiceLinked*` actions не добавляются как параллельный
+     backward-compatible path. Existing create actions меняют contract без
+     обратной совместимости.
 
-V1 GraphQL Admin mapping examples:
+GraphQL Admin mapping examples:
 
 ```text
-applicationUpdate:
+generic resource update:
   protectedResource = {
     organizationId,
-    resourceKind: "application",
-    resourceId: applicationId
+    resourceKind,
+    resourceId
   }
 
-applicationAuthUpdate / method/provider mutations:
+nested resource update:
   protectedResource = {
     organizationId,
-    resourceKind: "application",
-    resourceId: applicationId
+    resourceKind,
+    resourceId
   }
 
-oauth client update/archive/rotate:
+resource with public external id:
   protectedResource = {
     organizationId,
-    resourceKind: "oauth_client",
-    resourceId: oauthClientResourceId
+    resourceKind,
+    resourceId: resolvedStableResourceId
   }
 ```
 
 Если mutation input не содержит stable `resourceId` нужного protected kind
-например OAuth client mutations use public `clientId`, boundary adapter обязан
+например mutation использует public/external identifier, boundary adapter обязан
 резолвить generic protected resource id до Policy call через dedicated lookup
 port/loader. Этот lookup не должен жить в business service и не должен менять
 resource repository scopes.
@@ -625,13 +644,18 @@ Implementation checklist для подключения Policy:
 5. Keep service methods and resource repositories unchanged.
 ```
 
-### 8.6. Internal management policy
+### 8.6. External service-aware management policy
 
-Добавить отдельный internal management wrapper / broker action, который вызывает
-Policy/AuthProvider as linked owner, но не отдельную копию бизнес-операции:
+Existing IAM actions, вызываемые внешними сервисами, должны стать
+service-linked aware на уровне action contract. Не добавлять параллельные
+`createServiceLinked*` / `updateServiceLinked*` actions для обратной
+совместимости.
+
+Action boundary вызывает Policy/AuthProvider as linked owner, но не копирует
+бизнес-операцию:
 
 ```ts
-async executeAsLinkedOwner(input, actorOrServiceContext) {
+async updateResourceFromExternalService(input, actorOrServiceContext) {
   await authorizer.authorize({
     subject: actorOrServiceContext.subject,
     organizationId: input.organizationId,
@@ -652,9 +676,31 @@ async executeAsLinkedOwner(input, actorOrServiceContext) {
 }
 ```
 
-Internal wrapper не должен обходить revision, validation, audit и invalidation.
+Create actions create resource and binding atomically:
+
+```ts
+async createResourceFromExternalService(input, actorOrServiceContext) {
+  const created = await executeExistingBusinessCreate(input.resource);
+
+  if (input.managementMode === "service_linked") {
+    await serviceLinkedResource.createBinding({
+      organizationId: input.organizationId,
+      resourceKind: input.resourceKind,
+      resourceId: created.resourceId,
+      linkedService: input.linkedOwner.linkedService,
+      linkedOwnerType: input.linkedOwner.linkedOwnerType,
+      linkedOwnerId: input.linkedOwner.linkedOwnerId,
+      createdBy: actorOrServiceContext.subject,
+    });
+  }
+
+  return created;
+}
+```
+
+Action boundary не должен обходить revision, validation, audit и invalidation.
 Он не должен копировать patch construction из generic mutation. Отличие только в
-Policy authorization source.
+том, что внешний сервис явно передает service-linked ownership context.
 
 ### 8.7. Code evidence for required changes
 
@@ -670,7 +716,7 @@ Policy authorization source.
 | Boundary adapters должны передавать concrete resource identity до входа в business service | `@Policy` pattern из `knowledge/vault/packages/shared-kernel/decorators.md` выполняет authorization before method execution и принимает params-derived context | Текущий Policy contract не умеет params-derived `protectedResource`; service-local authorization wrappers не являются допустимым местом для linked-service enforcement | Расширить Policy contract и использовать GraphQL/broker boundary adapters для `protectedResource`; business services остаются без service-linked changes |
 | Business scopes любых protected resources не должны содержать service-linked details | `ApplicationAuthAdminMutationScope` и `ApplicationOAuthClientManagementScope` содержат только business state, нужный соответствующим mutations | Это правильная граница, которую нельзя ломать для любых будущих resource kinds | Не добавлять `serviceLinkedBinding` в business scopes; active binding lookups выполняются только Policy/AuthProvider layer |
 | Resource-specific repositories не должны получать service-linked joins | `ApplicationRepository` выбирает application/auth/organization данные без service-linked ownership; organization repositories не участвуют в binding lookup | Read/write repositories конкретных моделей не должны становиться ownership-aware | Любые management projections строить dedicated field resolver / loader; enforcement lookup только через `ServiceLinkedResourceRepository` в Policy layer |
-| Generic provisioning DTO любого resource kind не должен знать `serviceLinked` | `ProvisionApplicationInput` сейчас является примером generic create DTO без ownership metadata | Добавление `serviceLinked` в create DTO привяжет ownership к business create path | Internal orchestrator создает binding отдельно в той же transaction; правило применяется ко всем future protected resource kinds |
+| External service action contracts должны быть service-linked aware без обратной совместимости | `services/project/src/sagas/StoreCreateSaga.ts` вызывает `iam.createApplication` как обычный create action | Внешний service owner не передает ownership context, поэтому binding не создается | Изменить existing IAM actions, вызываемые внешними сервисами, чтобы они принимали `managementMode` и `linkedOwner`; обновить callers вроде `project` без сохранения старого контракта |
 | Нужен dedicated binding repository для Policy layer | `Repository` агрегирует существующие repositories; dedicated `ServiceLinkedResourceRepository` отсутствует в current tree | Policy/AuthProvider не имеет generic lookup helper для binding | Добавить `ServiceLinkedResourceRepository` с generic methods `findActiveByResource`, `findActiveLinkedOwner`, `createBinding` |
 | Denial metadata должен маппиться в audit без протекания в business scope | Existing audit ports support safe failure records around Admin writes | Сейчас authorization возвращает boolean, поэтому нет typed denial reason/details | Расширить Policy/AuthProvider result/error mapping так, чтобы `RESOURCE_SERVICE_LINKED` и safe diff формировались у boundary/error mapper, не в business mutation |
 
@@ -684,48 +730,79 @@ evidence устаревает, план нужно обновить до реа�
 Не расширять `iam.application` columns.
 
 Generic create path для protected resource остается обычным business create path
-и не принимает service-linked ownership input.
+на уровне IAM business service. IAM action contract, который вызывают внешние
+сервисы, становится service-linked aware.
 
-Trusted IAM internal provisioning orchestrator должен уметь в одной transaction:
-
-1. создать сам resource обычным способом;
-2. если resource должен быть service-linked, создать запись binding в
-   `iam.service_linked_resource`.
-
-Admin GraphQL create path не создает binding. Такой resource остается
-admin-managed.
-
-Trusted IAM internal provisioning path обязан передавать полный service-linked
-binding только в orchestration layer, не в generic business DTO:
+Внешний сервис-владелец обязан передать в IAM action:
 
 ```ts
-await provisionServiceLinkedApplication({
-  application: existingProvisionApplicationInput,
-  binding: {
-    linkedService: "iam",
-    linkedOwnerType: "application_realm",
+type ResourceManagementInput =
+  | { managementMode: "admin" }
+  | {
+      managementMode: "service_linked";
+      linkedOwner: {
+        linkedService: string;
+        linkedOwnerType: string;
+        linkedOwnerId: string;
+      };
+    };
+```
+
+IAM action boundary должен уметь в одной transaction:
+
+1. создать сам resource обычным способом;
+2. если `managementMode = "service_linked"`, создать запись binding в
+   `iam.service_linked_resource`;
+3. вернуть identity созданного resource внешнему сервису.
+
+Admin GraphQL create path явно проходит через admin-managed branch и не создает
+binding. Такой resource остается admin-managed.
+
+External service provisioning path обязан передавать полный service-linked
+binding в IAM action contract:
+
+```ts
+await iam.createApplication({
+  ...existingCreateApplicationInput,
+  managementMode: "service_linked",
+  linkedOwner: {
+    linkedService: "project",
+    linkedOwnerType: "store",
     linkedOwnerId,
   },
 });
 ```
 
-### 9.2. Internal provisioning
+### 9.2. Resource kinds
 
-IAM internal provisioning для application должен создавать:
+Это правило применяется ко всем service-linked сущностям. Любой external-service
+caller, который создает protected resource в другом сервисе, должен знать, какой
+service-linked object создается, и передать ownership context в соответствующий
+action.
+
+Generic create action должен создавать:
 
 ```text
-iam.application row
-iam.service_linked_resource row:
-  resourceKind = application
-  resourceId = application.id
-  linkedService = iam
-  linkedOwnerType = application_realm
-  linkedOwnerId = internal realm id
+target service resource row
+target service service_linked_resource row:
+  resourceKind = registry value for created resource
+  resourceId = created resource id
+  linkedService = external owner service registry value
+  linkedOwnerType = external owner type registry value
+  linkedOwnerId = external owner id
 ```
 
+Examples only:
+
+- `project.storeCreate` creates IAM application with
+  `resourceKind = "application"` and `linkedService = "project"`.
+- A media service can create a protected asset group with
+  `resourceKind = "asset_group"` and `linkedService = "project"`.
+- Any future service can add its own registry values without changing
+  Policy/AuthProvider contract.
+
 Если создание binding не удалось, transaction должна откатить создание resource.
-Обычный `provisionApplication()` / Admin create API не должен знать о
-`serviceLinked` и не должен создавать binding.
+Старые внешние вызовы без `managementMode` не поддерживаются.
 
 ## 10. Database migration
 
@@ -751,16 +828,15 @@ CREATE TABLE iam.service_linked_resource (
 Добавить constraints:
 
 ```sql
-resource_kind IN (
-  'application',
-  'application_auth_configuration',
-  'application_auth_provider',
-  'oauth_client'
-)
-
-linked_service IN ('iam')
-linked_owner_type IN ('application_realm')
+resource_kind <> ''
+linked_service <> ''
+linked_owner_type <> ''
 ```
+
+Не добавлять DB-level `IN (...)` constraints для `resource_kind`,
+`linked_service` или `linked_owner_type`. Валидные значения контролируются
+service-owned registry/config/codegen слоем, чтобы механизм работал для любых
+service-linked сущностей без новой миграции на каждый resource kind.
 
 Добавить indexes:
 
@@ -798,16 +874,16 @@ reasonCategory = authorization
 safeDiff = {
   blockedByServiceLinkedBinding: true,
   resourceKind,
-  linkedService: "iam",
-  linkedOwnerType: "application_realm"
+  linkedService,
+  linkedOwnerType
 }
 ```
 
-Successful internal IAM mutation:
+Successful service-aware external mutation:
 
 ```text
 category = iam_resource_admin
-actorType = platform_admin | internal_service
+actorType = platform_admin | external_service
 organizationId
 resourceKind
 resourceId
@@ -824,30 +900,31 @@ safeDiff allowlist only
 
 1. Admin-created protected resource has no active service-linked binding by
    default.
-2. IAM internal provisioning creates protected resource and active binding in one
-   transaction.
+2. External service provisioning creates protected resource and active binding in
+   one transaction when it passes `managementMode: "service_linked"`.
 3. Read API can expose service-linked management metadata through a read-only
    projection without changing the resource repository.
 4. Generic Admin mutation rejects any protected resource with active binding via
    Policy/AuthProvider.
 5. Generic Admin mutation allows the same resource kind when active binding does
    not exist.
-6. Generic Admin mutation denial works for at least the v1 instantiated kinds:
-   `application`, `application_auth_configuration`,
-   `application_auth_provider`, `oauth_client`.
-7. IAM internal mutation succeeds for matching
+6. Generic Admin mutation denial works for any registered protected
+   `resourceKind`; tests must cover at least two unrelated services/resource
+   kinds to prove the mechanism is generic.
+7. Service-aware external mutation succeeds for matching
    `organizationId + resourceKind + resourceId + linked binding`.
-8. IAM internal mutation fails for mismatched linked owner id.
-9. IAM internal mutation fails for foreign organization.
-10. Adding a new resource kind requires only registry/schema + call-site
-    `protectedResource` mapping, not Policy/AuthProvider contract changes.
+8. Service-aware external mutation fails for mismatched linked owner id.
+9. Service-aware external mutation fails for foreign organization.
+10. Adding a new resource kind requires only registry/config + call-site
+    `protectedResource` mapping, not database migration or Policy/AuthProvider
+    contract changes.
 11. Removing or soft-deleting binding makes resource admin-managed only if the
     lifecycle explicitly allows unlinking.
 12. Audit contains safe failure record for rejected generic write.
-13. Service-linked internal path reuses the same business mutation
+13. Service-linked external path reuses the same business mutation
     implementation as generic Admin path; no duplicated
     `updateServiceLinked*` business method exists.
-14. Generic business scopes and create/update DTOs do not contain
+14. IAM business scopes and internal business DTOs do not contain
     `serviceLinkedBinding`, `linkedService`, `linkedOwnerType` or
     `linkedOwnerId`.
 15. Generic Admin mutation denial is produced by Policy/AuthProvider when
@@ -876,18 +953,22 @@ safeDiff allowlist only
    `linkedOwnerId` and `serviceLinkedBinding`.
 8. Add service-linked binding checks inside IAM `AuthProvider` / Policy decision
    flow, using `ServiceLinkedResourceRepository`.
-9. Add internal IAM broker/orchestrator action that authorizes as linked owner
-   through Policy and then reuses existing business mutation implementation.
-10. Update IAM internal provisioning orchestrator to create resource + binding
-   transactionally without changing generic create DTOs.
-11. Add contract tests.
-12. Run build when code implementation is complete.
+9. Change existing IAM broker action contracts used by external services to
+   accept `managementMode` and `linkedOwner`; do not add parallel
+   `createServiceLinked*` actions for backward compatibility.
+10. Update external services, starting with `project`, to pass service-linked
+   ownership context when they create IAM-owned protected resources.
+11. IAM action boundary creates resource + binding transactionally for any
+   registered protected resource kind created by external services.
+12. Add contract tests.
+13. Run build when code implementation is complete.
 
 ## 14. Open decisions
 
 1. Error mapping: expose generic `RESOURCE_SERVICE_LINKED` to Admin UI or map to
    resource-specific codes like `APPLICATION_SERVICE_LINKED`?
-2. Which initial resource kinds must be protected in v1 besides `application`?
+2. Where should the cross-service registry for `resourceKind`, `linkedService`
+   and `linkedOwnerType` live?
 3. Should service-linked binding be soft-deleted only through owner lifecycle?
 4. Should `resource_id` and `linked_owner_id` stay UUID columns or become text to
    support future non-UUID resources?
@@ -898,9 +979,11 @@ safeDiff allowlist only
 
 1. Use generic `RESOURCE_SERVICE_LINKED` in domain code and optionally map to
    resource-specific codes at GraphQL boundary.
-2. Start v1 with `application`; keep schema generic so OAuth clients/providers can
-   opt in without another table change.
-3. Allow unlink/archive/delete only from IAM internal lifecycle workflow.
+2. Start with an open registry contract. External services must pass explicit
+   ownership context for every service-linked create surface they use; adding a
+   new resource kind must not require a DB migration.
+3. Allow unlink/archive/delete only from the external service owner's lifecycle
+   workflow through IAM action boundary.
 4. Use UUID for both ids now because identifier conventions require UUID values.
 5. Show in organization settings with read-only badge.
 
@@ -908,18 +991,18 @@ safeDiff allowlist only
 
 - `iam.application` schema remains unchanged.
 - Service-linked state is stored in separate IAM binding table.
-- The binding model supports more than application resources.
+- The binding model is generic and is not limited to a fixed resource-kind list.
 - Service-linked resources can be visible through resource-specific read APIs as
   read-only managed resources.
-- IAM-managed service-linked application is only the v1 instantiated read
-  projection example.
+- IAM-managed service-linked application is only an example, not a boundary of
+  the mechanism.
 - Generic Admin GraphQL mutations cannot update resources with active
   service-linked binding because Policy/AuthProvider denies the write.
-- IAM internal path can update its own linked resource through a full management
-  predicate evaluated by Policy/AuthProvider.
+- Service-aware external path can update its own linked resource through a full
+  management predicate evaluated by Policy/AuthProvider.
 - Existing business mutation implementations are not duplicated for
   service-linked paths.
-- Existing business scopes and generic mutation DTOs do not expose
+- IAM business scopes and internal business DTOs do not expose
   `linkedService`, `linkedOwnerType`, `linkedOwnerId` or
   `serviceLinkedBinding`.
 - Existing business services do not contain service-linked enforcement methods,
@@ -928,11 +1011,13 @@ safeDiff allowlist only
   service-linked joins, lookups, guards or ownership-specific DTO fields.
 - Service-linked write enforcement is implemented through Policy/AuthProvider
   using `protectedResource` / `linkedOwner`.
-- Adding a new protected resource kind does not require changing
-  Policy/AuthProvider contract, application repositories, organization
-  repositories, or existing business service logic.
+- Adding a new protected resource kind does not require changing database
+  constraints, Policy/AuthProvider contract, application repositories,
+  organization repositories, or existing business service logic.
 - Every protected write path checks more than resource id: at minimum
   `organizationId + resourceKind + resourceId + linkedService + linkedOwnerType +
   linkedOwnerId`.
+- External service actions are service-linked aware and old calls without the new
+  management contract are not preserved for backward compatibility.
 - Admin-created resources have no active service-linked binding by default.
 - RBAC resources/domains remain unchanged.
