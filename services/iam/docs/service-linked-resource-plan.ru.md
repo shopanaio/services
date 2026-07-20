@@ -399,11 +399,7 @@ Policy/AuthProvider должен получать не только RBAC resourc
 service-linked binding до выполнения business mutation.
 
 ```ts
-type ProtectedResourceKind =
-  | "application"
-  | "application_auth_configuration"
-  | "application_auth_provider"
-  | "oauth_client";
+type ProtectedResourceKind = ServiceLinkedResourceKind;
 
 interface ProtectedResourceRef {
   organizationId: string;
@@ -428,23 +424,30 @@ interface AuthorizeParams {
 }
 ```
 
+`ServiceLinkedResourceKind` является registry значением binding model, а не
+зависимостью от конкретной domain model. В v1 registry может содержать
+`application`, `application_auth_configuration`, `application_auth_provider`,
+`oauth_client`, но Policy/AuthProvider contract не меняется при добавлении новых
+resource kinds.
+
 `protectedResource` используется generic Admin writes. `linkedOwner` используется
 только trusted IAM internal paths.
 
 `Policy` decorator / manual `authorizer.authorize()` calls должны передавать
-`protectedResource` для mutations, которые меняют protected IAM resources:
+`protectedResource` для mutations, которые меняют protected IAM resources.
+Policy contract является generic и не зависит от application model:
 
 ```ts
 await authorizer.authorize({
   subject: actor.id,
-  organizationId,
+  organizationId: input.organizationId,
   domain: "org",
-  resource: "org.application-auth",
+  resource: input.rbacResource,
   action: "write",
   protectedResource: {
-    organizationId,
-    resourceKind: "application",
-    resourceId: applicationId,
+    organizationId: input.organizationId,
+    resourceKind: input.resourceKind,
+    resourceId: input.resourceId,
   },
 });
 ```
@@ -453,14 +456,14 @@ await authorizer.authorize({
 из params, аналогично `organizationId`:
 
 ```ts
-@Policy<UpdateApplicationAuthInput>({
-  resource: "org.application-auth",
+@Policy<UpdateProtectedResourceInput>({
+  resource: "org.some-protected-resource",
   action: "write",
   organizationId: (_, params) => params.organizationId,
   protectedResource: (_, params) => ({
     organizationId: params.organizationId,
-    resourceKind: "application",
-    resourceId: params.applicationId,
+    resourceKind: params.resourceKind,
+    resourceId: params.resourceId,
   }),
 })
 ```
@@ -499,12 +502,13 @@ Trusted linked-owner write:
    mapping.
 ```
 
-Active binding lookup for generic Admin write uses:
+Active binding lookup for generic Admin write uses the generic protected
+resource identity:
 
 ```text
 organizationId
-resourceKind = application
-resourceId = applicationId
+resourceKind
+resourceId
 deletedAt IS NULL
 ```
 
@@ -530,8 +534,8 @@ executeExisting({
   ...
   protectedResource: {
     organizationId,
-    resourceKind: "application",
-    resourceId: applicationId,
+    resourceKind,
+    resourceId,
   },
 })
 ```
@@ -577,16 +581,14 @@ Policy authorization source.
 
 | Требование | Code evidence в текущем коде | Gap | Целевое изменение |
 | --- | --- | --- | --- |
-| Service-linked enforcement должен идти через Policy/AuthProvider | `services/iam/src/kernel/Authorizable.ts`: `authorize(params)` уже является IAM authorization boundary: subject resolution, site admin bypass, organization owner bypass, Casbin check | `AuthorizeParams` сейчас содержит только RBAC `resource/action/domain/organizationId`; нет `protectedResource`/`linkedOwner` context | Расширить `AuthorizeParams` и IAM `AuthProvider.authorize()` service-linked decision logic |
-| `@Policy` должен уметь передавать protected resource reference | `knowledge/vault/packages/shared-kernel/decorators.md` описывает `PolicyOptions`: `resource`, `action`, `organizationId`, optional `domain` | `PolicyOptions` не содержит resolver для concrete protected resource | Расширить Policy contract: `protectedResource?: (self, params) => ProtectedResourceRef`, `linkedOwner?: ...` для internal paths |
-| Generic Admin application/auth writes должны стать linked-service aware до business logic | `services/iam/src/services/ApplicationAuthAdminManagementService.ts`: `assertAuthorized()` вызывает `authorizer.authorize()` до `requireScope()` / write execution | `assertAuthorized()` передает только `subject`, `organizationId`, `domain`, `resource`, `action`; нет concrete resource id | Расширить local authorization wrapper параметром `protectedResource` и передавать его в `authorizer.authorize()` |
-| Generic OAuth client writes должны стать linked-service aware до business logic | `services/iam/src/services/ApplicationOAuthClientManagementService.ts`: `executeWrite()` вызывает `assertAuthorized()` до `requireScope()` и `input.execute()` | OAuth write authorization не передает `applicationId` как protected resource context | Расширить OAuth authorization wrapper параметром `protectedResource` без добавления service-linked checks в OAuth business logic |
-| Business scopes не должны содержать service-linked details | `services/iam/src/repositories/ApplicationAuthAdminMutationRepository.ts`: `ApplicationAuthAdminMutationScope` содержит только `organizationId`, `applicationId`, `archived`, `configuration`, `deliveryConfigured` | Это правильная граница, которую нельзя ломать | Не добавлять `serviceLinkedBinding` в scope; любые active binding lookups выполняются только Policy/AuthProvider layer |
-| OAuth management scope не должен содержать service-linked details | `services/iam/src/repositories/ApplicationOAuthClientRepository.ts`: `ApplicationOAuthClientManagementScope` содержит `organizationId`, `applicationId`, `resource`, `realmEnabled` | Это правильная business scope форма | Не добавлять `serviceLinkedBinding`; enforcement идет через Policy/AuthProvider перед `requireScope()` |
-| Application/organization repositories не должны получать service-linked joins | `services/iam/src/repositories/ApplicationRepository.ts`: read model выбирает application/auth/organization данные без service-linked ownership | Добавление `Application.management` не должно менять этот repository | Реализовать management read projection отдельным field resolver / loader через `ServiceLinkedResourceRepository` |
-| Generic provisioning DTO не должен знать `serviceLinked` | `services/iam/src/repositories/ApplicationAuthConfigurationRepository.ts`: `ProvisionApplicationInput` содержит `organizationId`, `name`, `displayName`, `description`, `configuration` | Это правильная generic create boundary | Не добавлять `serviceLinked` в `ProvisionApplicationInput`; internal orchestrator создает binding отдельно в той же transaction |
-| Нужен dedicated binding repository для Policy layer | `services/iam/src/repositories/Repository.ts` агрегирует существующие repositories; dedicated `ServiceLinkedResourceRepository` отсутствует в current tree | Policy/AuthProvider не имеет allowed lookup helper для binding | Добавить `ServiceLinkedResourceRepository` и подключить его к repository aggregator только как dependency для Policy/AuthProvider/internal orchestration |
-| Denial metadata должен маппиться в audit без протекания в business scope | `ApplicationAuthAdminManagementService.appendFailureAudit()` и OAuth audit wrappers уже централизуют failure audit вокруг authorization/write wrappers | Сейчас authorization возвращает boolean, поэтому нет typed denial reason/details | Расширить Policy/AuthProvider result/error mapping так, чтобы `RESOURCE_SERVICE_LINKED` и safe diff формировались у boundary/error mapper, не в business mutation |
+| Generic service-linked enforcement должен идти через Policy/AuthProvider | `services/iam/src/kernel/Authorizable.ts`: `authorize(params)` уже является IAM authorization boundary: subject resolution, site admin bypass, organization owner bypass, Casbin check | `AuthorizeParams` сейчас содержит только RBAC `resource/action/domain/organizationId`; нет generic `protectedResource`/`linkedOwner` context | Расширить `AuthorizeParams` и IAM `AuthProvider.authorize()` generic service-linked decision logic |
+| `@Policy` должен уметь передавать generic protected resource reference | `knowledge/vault/packages/shared-kernel/decorators.md` описывает `PolicyOptions`: `resource`, `action`, `organizationId`, optional `domain` | `PolicyOptions` не содержит resolver для concrete protected resource | Расширить Policy contract generic callbacks: `protectedResource?: (self, params) => ProtectedResourceRef`, `linkedOwner?: ...` |
+| Protected write wrappers должны передавать concrete resource identity до business logic | `ApplicationAuthAdminManagementService.assertAuthorized()` и `ApplicationOAuthClientManagementService.executeWrite()` вызывают `authorizer.authorize()` до `requireScope()` / write execution | Authorization wrappers передают только RBAC context; конкретный protected resource id не передается | Расширить локальные authorization wrappers generic параметром `protectedResource`; application/OAuth являются только первыми call sites |
+| Business scopes любых protected resources не должны содержать service-linked details | `ApplicationAuthAdminMutationScope` и `ApplicationOAuthClientManagementScope` содержат только business state, нужный соответствующим mutations | Это правильная граница, которую нельзя ломать для любых будущих resource kinds | Не добавлять `serviceLinkedBinding` в business scopes; active binding lookups выполняются только Policy/AuthProvider layer |
+| Resource-specific repositories не должны получать service-linked joins | `ApplicationRepository` выбирает application/auth/organization данные без service-linked ownership; organization repositories не участвуют в binding lookup | Read/write repositories конкретных моделей не должны становиться ownership-aware | Любые management projections строить dedicated field resolver / loader; enforcement lookup только через `ServiceLinkedResourceRepository` в Policy layer |
+| Generic provisioning DTO любого resource kind не должен знать `serviceLinked` | `ProvisionApplicationInput` сейчас является примером generic create DTO без ownership metadata | Добавление `serviceLinked` в create DTO привяжет ownership к business create path | Internal orchestrator создает binding отдельно в той же transaction; правило применяется ко всем future protected resource kinds |
+| Нужен dedicated binding repository для Policy layer | `Repository` агрегирует существующие repositories; dedicated `ServiceLinkedResourceRepository` отсутствует в current tree | Policy/AuthProvider не имеет generic lookup helper для binding | Добавить `ServiceLinkedResourceRepository` с generic methods `findActiveByResource`, `findActiveLinkedOwner`, `createBinding` |
+| Denial metadata должен маппиться в audit без протекания в business scope | Admin/OAuth audit wrappers уже централизуют failure audit вокруг authorization/write wrappers | Сейчас authorization возвращает boolean, поэтому нет typed denial reason/details | Расширить Policy/AuthProvider result/error mapping так, чтобы `RESOURCE_SERVICE_LINKED` и safe diff формировались у boundary/error mapper, не в business mutation |
 
 Implementation PR must keep this evidence table true. Если код меняется так, что
 evidence устаревает, план нужно обновить до реализации.
@@ -736,22 +738,25 @@ safeDiff allowlist only
 
 Добавить pending/real contract scenarios:
 
-1. Organization application created through Admin API has no active
-   service-linked binding.
-2. IAM internal provisioning creates application and active binding in one
+1. Admin-created protected resource has no active service-linked binding by
+   default.
+2. IAM internal provisioning creates protected resource and active binding in one
    transaction.
-3. Organization application list returns service-linked application with read-only
-   management metadata from binding lookup.
-4. Generic `applicationUpdate` rejects application with active binding.
-5. Generic `authConfigurationUpdate` rejects application with active binding.
-6. Generic provider credential rotation rejects provider/resource with active
-   binding.
-7. Generic OAuth client mutation rejects OAuth client/resource with active
-   binding.
-8. IAM internal mutation succeeds for matching
+3. Read API can expose service-linked management metadata through a read-only
+   projection without changing the resource repository.
+4. Generic Admin mutation rejects any protected resource with active binding via
+   Policy/AuthProvider.
+5. Generic Admin mutation allows the same resource kind when active binding does
+   not exist.
+6. Generic Admin mutation denial works for at least the v1 instantiated kinds:
+   `application`, `application_auth_configuration`,
+   `application_auth_provider`, `oauth_client`.
+7. IAM internal mutation succeeds for matching
    `organizationId + resourceKind + resourceId + linked binding`.
-9. IAM internal mutation fails for mismatched linked owner id.
-10. IAM internal mutation fails for foreign organization.
+8. IAM internal mutation fails for mismatched linked owner id.
+9. IAM internal mutation fails for foreign organization.
+10. Adding a new resource kind requires only registry/schema + call-site
+    `protectedResource` mapping, not Policy/AuthProvider contract changes.
 11. Removing or soft-deleting binding makes resource admin-managed only if the
     lifecycle explicitly allows unlinking.
 12. Audit contains safe failure record for rejected generic write.
@@ -817,8 +822,10 @@ safeDiff allowlist only
 - `iam.application` schema remains unchanged.
 - Service-linked state is stored in separate IAM binding table.
 - The binding model supports more than application resources.
-- IAM-managed service-linked application is visible but read-only in organization
-  application management.
+- Service-linked resources can be visible through resource-specific read APIs as
+  read-only managed resources.
+- IAM-managed service-linked application is only the v1 instantiated read
+  projection example.
 - Generic Admin GraphQL mutations cannot update resources with active
   service-linked binding because Policy/AuthProvider denies the write.
 - IAM internal path can update its own linked resource through a full management
@@ -834,6 +841,9 @@ safeDiff allowlist only
   service-linked joins, lookups, guards or ownership-specific DTO fields.
 - Service-linked write enforcement is implemented through Policy/AuthProvider
   using `protectedResource` / `linkedOwner`.
+- Adding a new protected resource kind does not require changing
+  Policy/AuthProvider contract, application repositories, organization
+  repositories, or existing business service logic.
 - Every protected write path checks more than resource id: at minimum
   `organizationId + resourceKind + resourceId + linkedService + linkedOwnerType +
   linkedOwnerId`.
