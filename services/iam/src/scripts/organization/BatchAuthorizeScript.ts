@@ -9,6 +9,7 @@ import {
 import {
   isIamServiceLinkedPermission,
   isServiceLinkedWriteAction,
+  matchesServiceLinkedOwner,
 } from "../../service-linked/resources.js";
 
 export class BatchAuthorizeScript extends BaseScript<
@@ -81,6 +82,7 @@ export class BatchAuthorizeScript extends BaseScript<
         results[index] =
           baseAllowed &&
           caller?.service === binding.linkedService &&
+          matchesServiceLinkedOwner(request.protectedResource!, binding) &&
           isIamServiceLinkedPermission(
             binding.resourceKind,
             request.resource,

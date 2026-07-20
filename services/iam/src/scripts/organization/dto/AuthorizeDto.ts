@@ -6,13 +6,17 @@ import type {
   ServiceLinkedAuthorizationDetails,
 } from "@shopana/rbac";
 
-const protectedResourceSchema = z
+const protectedResourceBaseSchema = z
   .object({
     organizationId: z.string().uuid("Invalid organization ID"),
     resourceKind: z.string().trim().min(1).max(64),
     resourceId: z.string().uuid("Invalid resource ID"),
   })
   .strict();
+
+const protectedResourceSchema = protectedResourceBaseSchema.extend({
+  ownerId: z.string().uuid("Invalid owner ID").optional(),
+});
 
 export const authorizeInputSchema = z
   .object({

@@ -224,6 +224,7 @@ linked service must opt into the required protected-resource contract:
     organizationId: params.organizationId,
     resourceKind: "application",
     resourceId: params.applicationId,
+    ownerId: params.storeId,
   }),
 })
 async updateApplication(params: UpdateApplicationInput): Promise<Application> {
@@ -231,8 +232,9 @@ async updateApplication(params: UpdateApplicationInput): Promise<Application> {
 }
 ```
 
-`protectedResourceMode: "required"` is fail-closed. If the resolver cannot
-produce a concrete resource identity, `@Policy` returns an authorization error
+`protectedResourceMode: "required"` is fail-closed and requires `ownerId`. If
+the resolver cannot produce a concrete resource identity with its owner,
+`@Policy` returns an authorization error
 with code `PROTECTED_RESOURCE_REQUIRED` before calling the authorization
 provider. When the identity is present, IAM checks its active service-linked
 binding as part of authorization. A linked-service caller is taken only from
@@ -275,9 +277,9 @@ interface PolicyOptions<TParams> {
   domain?: (self: Authorizable, params: TParams) => string;
   protectedResourceMode?: "optional" | "required";
   protectedResource?:
-    | ProtectedResourceRef
+    | (ProtectedResourceRef & { ownerId: string })
     | ((self: Authorizable, params: TParams) =>
-        ProtectedResourceRef | null | undefined);
+        (ProtectedResourceRef & { ownerId: string }) | null | undefined);
 }
 
 interface Authorizable {

@@ -17,11 +17,16 @@ const protectedApplication = Object.freeze({
   resourceId: "018f8f6d-7980-7000-9000-000000000010",
 });
 
+const protectedApplicationWithOwner = Object.freeze({
+  ...protectedApplication,
+  ownerId: "018f8f6d-7980-7000-9000-000000000020",
+});
+
 const linkedOwner = Object.freeze({
   ...protectedApplication,
   linkedService: "project",
   linkedOwnerType: "store",
-  linkedOwnerId: "018f8f6d-7980-7000-9000-000000000020",
+  linkedOwnerId: protectedApplicationWithOwner.ownerId,
 });
 
 describe("service-linked resource authorization contract", () => {
@@ -36,6 +41,35 @@ describe("service-linked resource authorization contract", () => {
     });
 
     expect(parsed.protectedResource).toEqual(protectedApplication);
+  });
+
+  it("keeps protected resource owner in broker authorize input", () => {
+    const parsed = authorizeInputSchema.parse({
+      subject: "platform-user",
+      organizationId: protectedApplication.organizationId,
+      domain: "org",
+      resource: "org.applications",
+      action: "write",
+      protectedResource: protectedApplicationWithOwner,
+    });
+
+    expect(parsed.protectedResource).toEqual(protectedApplicationWithOwner);
+  });
+
+  it("rejects an invalid protected resource owner ID", () => {
+    expect(() =>
+      authorizeInputSchema.parse({
+        subject: "platform-user",
+        organizationId: protectedApplication.organizationId,
+        domain: "org",
+        resource: "org.applications",
+        action: "write",
+        protectedResource: {
+          ...protectedApplication,
+          ownerId: "not-a-uuid",
+        },
+      })
+    ).toThrow();
   });
 
   it("rejects linked-owner context in generic broker authorize input", () => {
@@ -155,7 +189,7 @@ describe("service-linked resource authorization contract", () => {
 
     await expect(
       authorizeWithBrokerCaller(services, "project", {
-        protectedResource: protectedApplication,
+        protectedResource: protectedApplicationWithOwner,
       })
     ).resolves.toBe(false);
 
@@ -174,13 +208,13 @@ describe("service-linked resource authorization contract", () => {
 
       await expect(
         authorizeWithBrokerCaller(services, "project", {
-          protectedResource: protectedApplication,
+          protectedResource: protectedApplicationWithOwner,
         })
       ).resolves.toBe(true);
 
       expect(services.repository.casbin.enforce).toHaveBeenCalledTimes(1);
       expect(services.repository.serviceLinkedResource.findActiveByResource)
-        .toHaveBeenCalledWith(protectedApplication);
+        .toHaveBeenCalledWith(protectedApplicationWithOwner);
     }
   );
 
@@ -192,11 +226,26 @@ describe("service-linked resource authorization contract", () => {
 
     await expect(
       authorizeWithEventCaller(services, "project", {
-        protectedResource: protectedApplication,
+        protectedResource: protectedApplicationWithOwner,
       })
     ).resolves.toBe(true);
 
     expect(services.repository.casbin.enforce).toHaveBeenCalledTimes(1);
+  });
+
+  it("denies a matching service when protected resource owner ID is missing", async () => {
+    const services = createServices({
+      bindingByResource: linkedOwner,
+      casbinAllowed: true,
+    });
+
+    await expect(
+      authorizeWithServices(
+        services,
+        { protectedResource: protectedApplication },
+        { caller: { kind: "action", service: "project" } },
+      )
+    ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
   });
 
   it("denies matching linked-service batch writes when user RBAC denies", async () => {
@@ -218,10 +267,26 @@ describe("service-linked resource authorization contract", () => {
 
     await expect(
       authorizeWithBrokerCaller(services, "catalog", {
-        protectedResource: protectedApplication,
+        protectedResource: protectedApplicationWithOwner,
       })
     ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
     expect(services.repository.casbin.enforce).toHaveBeenCalledTimes(1);
+  });
+
+  it("denies a matching service when the protected resource owner differs", async () => {
+    const services = createServices({
+      bindingByResource: linkedOwner,
+      casbinAllowed: true,
+    });
+
+    await expect(
+      authorizeWithBrokerCaller(services, "project", {
+        protectedResource: {
+          ...protectedApplicationWithOwner,
+          ownerId: "018f8f6d-7980-7000-9000-000000000021",
+        },
+      })
+    ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
   });
 
   it("denies linked-service writes for unrelated RBAC resources", async () => {
@@ -232,7 +297,7 @@ describe("service-linked resource authorization contract", () => {
 
     await expect(
       authorizeWithBrokerCaller(services, "project", {
-        protectedResource: protectedApplication,
+        protectedResource: protectedApplicationWithOwner,
         resource: "org.roles",
       })
     ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
@@ -247,7 +312,9 @@ describe("service-linked resource authorization contract", () => {
 function authorizeWithServices(
   services: ReturnType<typeof createServices>,
   context: {
-    protectedResource?: typeof protectedApplication;
+    protectedResource?:
+      | typeof protectedApplication
+      | typeof protectedApplicationWithOwner;
     resource?: string;
     action?: string;
   },
@@ -282,7 +349,7 @@ function authorizeWithBrokerCaller(
   services: ReturnType<typeof createServices>,
   callerService: string,
   context: {
-    protectedResource: typeof protectedApplication;
+    protectedResource: typeof protectedApplicationWithOwner;
     resource?: string;
     action?: string;
   }
@@ -303,7 +370,7 @@ function authorizeWithEventCaller(
   services: ReturnType<typeof createServices>,
   producerService: string,
   context: {
-    protectedResource: typeof protectedApplication;
+    protectedResource: typeof protectedApplicationWithOwner;
     resource?: string;
     action?: string;
   }
@@ -368,7 +435,7 @@ function runBatchAuthorizeScriptWithServices(
       loaders: {},
       requestHeaders: {},
       brokerCallContext: callerService
-        ? { caller: { service: callerService } }
+        ? { caller: { kind: "action", service: callerService } }
         : undefined,
     } as never,
     () =>
@@ -380,7 +447,9 @@ function runBatchAuthorizeScriptWithServices(
             domain: "org",
             resource: "org.applications",
             action: "write",
-            protectedResource: protectedApplication,
+            protectedResource: callerService
+              ? protectedApplicationWithOwner
+              : protectedApplication,
           },
           {
             userId: "platform-user",

@@ -24,6 +24,7 @@ export interface ProtectedResourceRef {
   organizationId: string;
   resourceKind: string;
   resourceId: string;
+  ownerId?: string;
 }
 
 export interface LinkedOwnerRef extends ProtectedResourceRef {

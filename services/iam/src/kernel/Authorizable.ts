@@ -16,6 +16,7 @@ import {
 import {
   isIamServiceLinkedPermission,
   isServiceLinkedWriteAction,
+  matchesServiceLinkedOwner,
 } from "../service-linked/resources.js";
 
 /**
@@ -144,6 +145,7 @@ export class AuthProvider implements IAuthProvider {
     const caller = getContext().brokerCallContext?.caller;
     if (
       caller?.service === binding.linkedService &&
+      matchesServiceLinkedOwner(params.protectedResource, binding) &&
       isIamServiceLinkedPermission(
         binding.resourceKind,
         params.resource,

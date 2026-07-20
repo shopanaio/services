@@ -39,12 +39,16 @@ export class AuthorizationError extends Error {
  * @template TSelf - Type of the script instance
  * @template R - Resource type (typed to valid resources from @shopana/rbac)
  */
-type ProtectedResourceResolver<TParams, TSelf extends Authorizable> =
-  | ProtectedResourceRef
+type ProtectedResourceResolver<
+  TParams,
+  TSelf extends Authorizable,
+  TResource extends ProtectedResourceRef = ProtectedResourceRef
+> =
+  | TResource
   | ((
       self: TSelf,
       params: TParams
-    ) => ProtectedResourceRef | null | undefined);
+    ) => TResource | null | undefined);
 
 type ProtectedResourcePolicy<TParams, TSelf extends Authorizable> =
   | {
@@ -53,7 +57,11 @@ type ProtectedResourcePolicy<TParams, TSelf extends Authorizable> =
        * Suitable for collection-level operations and resource creation.
        */
       protectedResourceMode?: "optional";
-      protectedResource?: ProtectedResourceResolver<TParams, TSelf>;
+      protectedResource?: ProtectedResourceResolver<
+        TParams,
+        TSelf,
+        ProtectedResourceRef & { ownerId: string }
+      >;
     }
   | {
       /**
@@ -62,7 +70,11 @@ type ProtectedResourcePolicy<TParams, TSelf extends Authorizable> =
        * provide the concrete resource identity.
        */
       protectedResourceMode: "required";
-      protectedResource: ProtectedResourceResolver<TParams, TSelf>;
+      protectedResource: ProtectedResourceResolver<
+        TParams,
+        TSelf,
+        ProtectedResourceRef & { ownerId: string }
+      >;
     };
 
 export type AuthorizeOptions<
@@ -180,14 +192,14 @@ export function Policy<
           : options.protectedResource;
 
       if (
-        options.protectedResourceMode === "required" &&
-        !protectedResource
+        (options.protectedResourceMode === "required" && !protectedResource) ||
+        (protectedResource && !protectedResource.ownerId?.trim())
       ) {
         throw new AuthorizationError(
           [
             {
               code: "PROTECTED_RESOURCE_REQUIRED",
-              message: `Access denied: protected resource is required for ${options.resource}:${options.action}`,
+              message: `Access denied: protected resource owner is required for ${options.resource}:${options.action}`,
               field: null,
             },
           ],
