@@ -3,12 +3,27 @@ export const APPLICATION_AUTH_ADMIN_AUDIT_PORT = Symbol.for(
 );
 
 export type ApplicationAuthAdminAuditAction =
+  | "application_create"
+  | "application_update"
+  | "application_archive"
+  | "auth_configuration_update"
+  | "auth_realm_enabled_set"
+  | "auth_method_update"
+  | "provider_configure"
+  | "provider_update"
+  | "provider_credentials_rotate"
+  | "provider_credentials_delete"
+  | "provider_validate"
   | "oauth_client_create"
   | "oauth_client_update"
   | "oauth_client_enabled_set"
   | "oauth_client_skip_consent_set"
   | "oauth_client_secret_rotate"
-  | "oauth_client_archive";
+  | "oauth_client_archive"
+  | "application_user_block"
+  | "application_user_unblock"
+  | "application_user_sessions_revoke_all"
+  | "application_user_account_unlink";
 
 export type ApplicationAuthAdminAuditReasonCategory =
   | "success"
@@ -16,10 +31,12 @@ export type ApplicationAuthAdminAuditReasonCategory =
   | "forbidden"
   | "scope_not_found"
   | "client_not_found"
+  | "target_not_found"
   | "invalid_input"
   | "invalid_uri"
   | "first_party_required"
   | "invalid_client_state"
+  | "invalid_target_state"
   | "revision_conflict"
   | "audit_unavailable"
   | "internal_error";
@@ -50,6 +67,48 @@ export interface ApplicationOAuthClientAdminAuditSafeDiff {
   )[];
 }
 
+/** Closed, secret-free diff shared by the remaining realm mutations. */
+export interface ApplicationRealmAdminAuditSafeDiff {
+  changedFields?: readonly (
+    | "name"
+    | "displayName"
+    | "description"
+    | "realmEnabled"
+    | "registrationMode"
+    | "emailVerificationRequired"
+    | "accessTokenTtlSeconds"
+    | "idTokenTtlSeconds"
+    | "refreshTokenTtlSeconds"
+    | "sessionTtlSeconds"
+    | "branding"
+    | "defaultLocale"
+    | "trustedOrigins"
+    | "emailDelivery"
+    | "credentials"
+    | "scopes"
+    | "enabled"
+    | "status"
+    | "sessions"
+    | "linkedAccount"
+  )[];
+  enabled?: boolean;
+  status?: "active" | "blocked" | "archived";
+  provider?: "google" | "facebook";
+  methodId?: "password" | "email_otp";
+  enabledCapabilities?: readonly (
+    | "sign_in"
+    | "sign_up"
+    | "password_reset"
+  )[];
+  trustedOriginCount?: number;
+  scopeCount?: number;
+  revokedCount?: number;
+}
+
+export type ApplicationAuthAdminAuditSafeDiff =
+  | ApplicationOAuthClientAdminAuditSafeDiff
+  | ApplicationRealmAdminAuditSafeDiff;
+
 export interface ApplicationAuthAdminAuditRecord {
   recordId: string;
   schemaVersion: 1;
@@ -58,14 +117,23 @@ export interface ApplicationAuthAdminAuditRecord {
   action: ApplicationAuthAdminAuditAction;
   outcome: "success" | "failure";
   reasonCategory: ApplicationAuthAdminAuditReasonCategory;
-  actorType: "platform_admin";
-  actorId: string;
-  organizationId: string;
-  applicationId: string;
-  targetType: "oauth_client";
+  actorType: "platform_admin" | "anonymous";
+  actorId: string | null;
+  /** Null only when malformed GraphQL input cannot identify a tenant. */
+  organizationId: string | null;
+  /** Null only when validation fails before a target can be resolved. */
+  applicationId: string | null;
+  targetType:
+    | "application"
+    | "auth_configuration"
+    | "auth_method"
+    | "provider"
+    | "oauth_client"
+    | "application_user"
+    | "linked_account";
   targetId?: string;
   requestId: string;
-  safeDiff: Readonly<ApplicationOAuthClientAdminAuditSafeDiff>;
+  safeDiff: Readonly<ApplicationAuthAdminAuditSafeDiff>;
 }
 
 /**

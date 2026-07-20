@@ -58,6 +58,12 @@ export interface ApplicationUserSecurityView {
   linkedAccounts: readonly ApplicationUserLinkedAccountView[];
 }
 
+export type ApplicationUserAccountUnlinkResult =
+  | { status: "unlinked"; accountId: string }
+  | { status: "user_not_found" }
+  | { status: "account_not_found" }
+  | { status: "last_login_method" };
+
 /** Creates application-user repositories bound to one mandatory application. */
 export class ApplicationUserRepositoryFactory {
   constructor(
@@ -350,6 +356,115 @@ export class ApplicationUserRepository extends BaseRepository {
     return result ?? null;
   }
 
+  /**
+   * Administrative status change. Runtime invalidation is deliberately owned
+   * by the management service so it only happens after its audit transaction
+   * commits successfully.
+   */
+  @Transactional()
+  async setAdminStatus(
+    userId: string,
+    status: ApplicationUserStatus
+  ): Promise<ApplicationUser | null> {
+    const [updated] = await this.connection
+      .update(applicationUser)
+      .set({ status, updatedAt: new Date() })
+      .where(
+        and(
+          eq(applicationUser.applicationId, this.applicationId),
+          eq(applicationUser.id, userId)
+        )
+      )
+      .returning();
+    if (!updated) return null;
+    if (status === "blocked") await this.revokeAllCredentials(userId);
+    return updated;
+  }
+
+  /** Revoke every live credential for one identity in this application only. */
+  @Transactional()
+  async revokeAllAdminSessions(userId: string): Promise<number | null> {
+    const user = await this.find(userId);
+    if (!user) return null;
+    const sessions = await this.connection
+      .delete(applicationSession)
+      .where(
+        and(
+          eq(applicationSession.applicationId, this.applicationId),
+          eq(applicationSession.userId, userId)
+        )
+      )
+      .returning({ id: applicationSession.id });
+    const now = new Date();
+    await this.connection
+      .delete(applicationOauthAccessToken)
+      .where(
+        and(
+          eq(applicationOauthAccessToken.applicationId, this.applicationId),
+          eq(applicationOauthAccessToken.userId, userId)
+        )
+      );
+    await this.connection
+      .update(applicationOauthRefreshToken)
+      .set({ revoked: now, sessionId: null })
+      .where(
+        and(
+          eq(applicationOauthRefreshToken.applicationId, this.applicationId),
+          eq(applicationOauthRefreshToken.userId, userId)
+        )
+      );
+    return sessions.length;
+  }
+
+  /** Unlink a non-credential account without removing the last login method. */
+  @Transactional()
+  async unlinkAdminAccount(
+    userId: string,
+    accountId: string
+  ): Promise<ApplicationUserAccountUnlinkResult> {
+    const [user] = await this.connection
+      .select({ id: applicationUser.id })
+      .from(applicationUser)
+      .where(
+        and(
+          eq(applicationUser.applicationId, this.applicationId),
+          eq(applicationUser.id, userId)
+        )
+      )
+      .for("update")
+      .limit(1);
+    if (!user) return { status: "user_not_found" };
+    const accounts = await this.connection
+      .select({
+        id: applicationAccount.id,
+        provider: applicationAccount.providerId,
+      })
+      .from(applicationAccount)
+      .where(
+        and(
+          eq(applicationAccount.applicationId, this.applicationId),
+          eq(applicationAccount.userId, userId)
+        )
+      );
+    const account = accounts.find(({ id }) => id === accountId);
+    if (!account || account.provider === "credential") {
+      return { status: "account_not_found" };
+    }
+    if (accounts.length <= 1) return { status: "last_login_method" };
+    const rows = await this.connection
+      .delete(applicationAccount)
+      .where(
+        and(
+          eq(applicationAccount.applicationId, this.applicationId),
+          eq(applicationAccount.userId, userId),
+          eq(applicationAccount.id, accountId)
+        )
+      )
+      .returning({ id: applicationAccount.id });
+    if (rows.length !== 1) return { status: "account_not_found" };
+    return { status: "unlinked", accountId: rows[0]!.id };
+  }
+
   @Transactional()
   async remove(userId: string): Promise<boolean> {
     const result = await this.connection
@@ -363,6 +478,35 @@ export class ApplicationUserRepository extends BaseRepository {
       .returning({ id: applicationUser.id });
 
     return result.length > 0;
+  }
+
+  private async revokeAllCredentials(userId: string): Promise<void> {
+    const revokedAt = new Date();
+    await this.connection
+      .delete(applicationOauthAccessToken)
+      .where(
+        and(
+          eq(applicationOauthAccessToken.applicationId, this.applicationId),
+          eq(applicationOauthAccessToken.userId, userId)
+        )
+      );
+    await this.connection
+      .update(applicationOauthRefreshToken)
+      .set({ revoked: revokedAt, sessionId: null })
+      .where(
+        and(
+          eq(applicationOauthRefreshToken.applicationId, this.applicationId),
+          eq(applicationOauthRefreshToken.userId, userId)
+        )
+      );
+    await this.connection
+      .delete(applicationSession)
+      .where(
+        and(
+          eq(applicationSession.applicationId, this.applicationId),
+          eq(applicationSession.userId, userId)
+        )
+      );
   }
 }
 

@@ -152,42 +152,55 @@ export class ApplicationUserLinkedAccountResolver extends IAMType<ApplicationUse
 }
 
 /** Application user mutation payload resolver. */
-export class ApplicationUserPayloadResolver extends IAMType<unknown> {
+interface ApplicationUserPayloadValue {
+  user: ApplicationUserResolver | null;
+  userErrors: readonly unknown[];
+}
+
+interface ApplicationUserSessionsPayloadValue extends ApplicationUserPayloadValue {
+  revokedCount: number;
+}
+
+interface ApplicationUserUnlinkPayloadValue extends ApplicationUserPayloadValue {
+  unlinkedAccountId: string | null;
+}
+
+export class ApplicationUserPayloadResolver extends IAMType<ApplicationUserPayloadValue> {
   user() {
-    // TODO: Resolve the changed application user.
+    return this.$props.user;
   }
 
   userErrors() {
-    // TODO: Resolve application user mutation errors.
+    return this.$props.userErrors;
   }
 }
 
 /** Application user session revocation payload resolver. */
-export class ApplicationUserSessionsRevokeAllPayloadResolver extends IAMType<unknown> {
+export class ApplicationUserSessionsRevokeAllPayloadResolver extends IAMType<ApplicationUserSessionsPayloadValue> {
   user() {
-    // TODO: Resolve the application user.
+    return this.$props.user;
   }
 
   revokedCount() {
-    // TODO: Resolve the number of revoked sessions.
+    return this.$props.revokedCount;
   }
 
   userErrors() {
-    // TODO: Resolve session revocation user errors.
+    return this.$props.userErrors;
   }
 }
 
 /** Application user account unlink payload resolver. */
-export class ApplicationUserAccountUnlinkPayloadResolver extends IAMType<unknown> {
+export class ApplicationUserAccountUnlinkPayloadResolver extends IAMType<ApplicationUserUnlinkPayloadValue> {
   user() {
-    // TODO: Resolve the application user.
+    return this.$props.user;
   }
 
   unlinkedAccountId() {
-    // TODO: Resolve the unlinked account global ID.
+    return this.$props.unlinkedAccountId;
   }
 
   userErrors() {
-    // TODO: Resolve account unlink user errors.
+    return this.$props.userErrors;
   }
 }

@@ -34,6 +34,12 @@ import {
 } from "../services/ApplicationOAuthClientManagementService.js";
 import { OAuthClientSecretCodec } from "../services/OAuthClientSecretCodec.js";
 import type { ApplicationAuthAdminAuditPort } from "../services/ApplicationAuthAdminAuditPort.js";
+import { ApplicationAuthAdminManagementService } from "../services/ApplicationAuthAdminManagementService.js";
+import { LocalApplicationAuthAdminAuditAdapter } from "../infrastructure/audit/LocalApplicationAuthAdminAuditAdapter.js";
+import {
+  unavailableApplicationAuthProviderValidationPort,
+  type ApplicationAuthProviderValidationPort,
+} from "../services/ApplicationAuthProviderValidationPort.js";
 import { AuthProvider } from "./Authorizable.js";
 import {
   ApplicationAuthLiveStateInvalidationBus,
@@ -62,6 +68,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public applicationAuthRateLimiter!: ApplicationAuthRateLimiter;
   public applicationAuthAudit!: ApplicationAuthAuditService;
   public applicationOAuthClientManagement!: ApplicationOAuthClientManagementService;
+  public applicationAuthAdminManagement!: ApplicationAuthAdminManagementService;
   public applicationTokenValidation!: ApplicationTokenValidationService;
   public applicationAuthLiveStateInvalidation!: ApplicationAuthLiveStateInvalidationBus;
   public applicationAuthPublicBaseUrl!: string;
@@ -83,6 +90,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     applicationAuthSecretRotation: ApplicationAuthSecretRotationService,
     applicationAuthRateLimiter: ApplicationAuthRateLimiter,
     applicationAuthAudit: ApplicationAuthAuditService,
+    applicationAuthAdminManagement: ApplicationAuthAdminManagementService,
     applicationOAuthClientManagement: ApplicationOAuthClientManagementService,
     applicationTokenValidation: ApplicationTokenValidationService,
     applicationAuthLiveStateInvalidation: ApplicationAuthLiveStateInvalidationBus,
@@ -103,6 +111,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     this.applicationAuthSecretRotation = applicationAuthSecretRotation;
     this.applicationAuthRateLimiter = applicationAuthRateLimiter;
     this.applicationAuthAudit = applicationAuthAudit;
+    this.applicationAuthAdminManagement = applicationAuthAdminManagement;
     this.applicationOAuthClientManagement = applicationOAuthClientManagement;
     this.applicationTokenValidation = applicationTokenValidation;
     this.applicationAuthLiveStateInvalidation =
@@ -120,6 +129,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationAuthRateLimit?: ApplicationAuthRateLimitPort;
       applicationAuthAudit?: ApplicationAuthAuditPort;
       applicationAuthAdminAudit?: ApplicationAuthAdminAuditPort;
+      applicationAuthProviderValidation?: ApplicationAuthProviderValidationPort;
       applicationOAuthClientFirstPartyPolicy?: ApplicationOAuthClientFirstPartyPolicy;
       applicationOAuthClientAllowedMobileSchemes?: readonly string[];
       applicationAuthLiveStateInvalidation?: ApplicationAuthLiveStateInvalidationPort;
@@ -211,16 +221,21 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       consoleLogger,
       options.applicationAuthAudit
     );
+    const applicationAuthAdminAudit =
+      options.applicationAuthAdminAudit ??
+      new LocalApplicationAuthAdminAuditAdapter(
+        repository.applicationAuthAdminAudit
+      );
     const applicationOAuthClientManagement =
       new ApplicationOAuthClientManagementService(
         repository.applicationOAuthClient,
         repository.txManager,
         new AuthProvider(),
-        options.applicationAuthAdminAudit ?? unavailableAdminAuditPort,
+        applicationAuthAdminAudit,
         {
           invalidate(applicationId, clientId) {
             applicationAuth.invalidate(applicationId);
-            void applicationAuthLiveStateInvalidation.publish(
+            return applicationAuthLiveStateInvalidation.publishRequired(
               createApplicationAuthLiveStateInvalidationEvent({
                 kind: "client",
                 applicationId,
@@ -234,6 +249,37 @@ export class Kernel extends BaseKernel<IamKernelServices> {
           allowedMobileSchemes:
             options.applicationOAuthClientAllowedMobileSchemes,
           firstPartyPolicy: options.applicationOAuthClientFirstPartyPolicy,
+        }
+      );
+    const applicationAuthAdminManagement =
+      new ApplicationAuthAdminManagementService(
+        repository.applicationAuthAdminMutation,
+        repository.applicationUser,
+        repository.txManager,
+        new AuthProvider(),
+        applicationAuthAdminAudit,
+        options.applicationAuthProviderValidation ??
+          unavailableApplicationAuthProviderValidationPort,
+        {
+          invalidateApplication(applicationId) {
+            applicationAuth.invalidate(applicationId);
+            return applicationAuthLiveStateInvalidation.publishRequired(
+              createApplicationAuthLiveStateInvalidationEvent({
+                kind: "application",
+                applicationId,
+              })
+            );
+          },
+          invalidateUser(applicationId, userId) {
+            applicationAuth.invalidate(applicationId);
+            return applicationAuthLiveStateInvalidation.publishRequired(
+              createApplicationAuthLiveStateInvalidationEvent({
+                kind: "user",
+                applicationId,
+                userId,
+              })
+            );
+          },
         }
       );
 
@@ -261,6 +307,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationAuthSecretRotation,
       applicationAuthRateLimiter,
       applicationAuthAudit,
+      applicationAuthAdminManagement,
       applicationOAuthClientManagement,
       applicationTokenValidation,
       applicationAuthLiveStateInvalidation,
@@ -304,12 +351,6 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     return script.run(params);
   }
 }
-
-const unavailableAdminAuditPort: ApplicationAuthAdminAuditPort = {
-  async append() {
-    throw new Error("Application auth administrative audit is not configured");
-  },
-};
 
 export { BaseScript } from "./BaseScript.js";
 export { type UserError } from "@shopana/shared-kernel";

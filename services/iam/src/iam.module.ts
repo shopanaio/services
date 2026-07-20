@@ -61,6 +61,20 @@ export {
   type ArchiveOAuthClientInput,
   type OAuthClientPage,
 } from "./services/ApplicationOAuthClientManagementService.js";
+export {
+  ApplicationAuthAdminManagementService,
+  ApplicationAuthAdminManagementError,
+  type ApplicationAuthAdminActor,
+  type ApplicationAuthAdminInvalidator,
+  type ApplicationAuthAdminTransactionRunner,
+  type ApplicationAuthProviderValidationResult,
+} from "./services/ApplicationAuthAdminManagementService.js";
+export {
+  APPLICATION_AUTH_PROVIDER_VALIDATION_PORT,
+  type ApplicationAuthProviderValidationPort,
+  type ApplicationAuthProviderValidationRequest,
+  type ApplicationAuthProviderValidationOutcome,
+} from "./services/ApplicationAuthProviderValidationPort.js";
 export { OAuthClientSecretCodec } from "./services/OAuthClientSecretCodec.js";
 export {
   ApplicationTokenValidationService,

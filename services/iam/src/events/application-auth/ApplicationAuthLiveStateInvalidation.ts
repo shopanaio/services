@@ -74,6 +74,24 @@ export class ApplicationAuthLiveStateInvalidationBus {
     }
   }
 
+  /**
+   * Security-sensitive publish that does not downgrade distributed transport
+   * failures to best effort. Callers await this acknowledgement before
+   * reporting an administrative mutation as successful.
+   */
+  async publishRequired(
+    event: ApplicationAuthLiveStateInvalidationEvent
+  ): Promise<void> {
+    await this.dispatch(event);
+    if (!this.port) return;
+    try {
+      await this.port.publish(event);
+    } catch (error) {
+      this.onTransportError(error);
+      throw error;
+    }
+  }
+
   async close(): Promise<void> {
     const unsubscribe = this.unsubscribeExternal;
     this.unsubscribeExternal = null;

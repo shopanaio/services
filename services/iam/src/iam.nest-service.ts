@@ -31,6 +31,14 @@ import {
   type ApplicationAuthAuditPort,
 } from "./services/ApplicationAuthAuditService.js";
 import {
+  APPLICATION_AUTH_ADMIN_AUDIT_PORT,
+  type ApplicationAuthAdminAuditPort,
+} from "./services/ApplicationAuthAdminAuditPort.js";
+import {
+  APPLICATION_AUTH_PROVIDER_VALIDATION_PORT,
+  type ApplicationAuthProviderValidationPort,
+} from "./services/ApplicationAuthProviderValidationPort.js";
+import {
   APPLICATION_AUTH_LIVE_STATE_INVALIDATION_PORT,
   type ApplicationAuthLiveStateInvalidationPort,
 } from "./events/application-auth/index.js";
@@ -57,6 +65,12 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     @Inject(APPLICATION_AUTH_AUDIT_PORT)
     private readonly applicationAuthAudit?: ApplicationAuthAuditPort,
     @Optional()
+    @Inject(APPLICATION_AUTH_ADMIN_AUDIT_PORT)
+    private readonly applicationAuthAdminAudit?: ApplicationAuthAdminAuditPort,
+    @Optional()
+    @Inject(APPLICATION_AUTH_PROVIDER_VALIDATION_PORT)
+    private readonly applicationAuthProviderValidation?: ApplicationAuthProviderValidationPort,
+    @Optional()
     @Inject(APPLICATION_AUTH_LIVE_STATE_INVALIDATION_PORT)
     private readonly applicationAuthLiveStateInvalidation?: ApplicationAuthLiveStateInvalidationPort
   ) {}
@@ -75,6 +89,9 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       applicationAuthEmailDelivery: this.applicationAuthEmailDelivery,
       applicationAuthRateLimit: this.applicationAuthRateLimit,
       applicationAuthAudit: this.applicationAuthAudit,
+      applicationAuthAdminAudit: this.applicationAuthAdminAudit,
+      applicationAuthProviderValidation:
+        this.applicationAuthProviderValidation,
       applicationAuthLiveStateInvalidation:
         this.applicationAuthLiveStateInvalidation,
     });

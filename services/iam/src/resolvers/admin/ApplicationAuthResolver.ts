@@ -38,7 +38,7 @@ type ApplicationAuthMethodCapability =
   | "SIGN_UP"
   | "PASSWORD_RESET";
 
-interface ApplicationAuthMethodView {
+export interface ApplicationAuthMethodView {
   id: ApplicationAuthMethodId;
   availableCapabilities: readonly ApplicationAuthMethodCapability[];
   enabledCapabilities: readonly ApplicationAuthMethodCapability[];
@@ -547,23 +547,33 @@ function createEmailDeliveryView(
 }
 
 /** Application auth update payload resolver. */
-export class ApplicationAuthUpdatePayloadResolver extends IAMType<unknown> {
+interface ApplicationAuthUpdatePayloadValue {
+  configuration: ApplicationAuthConfigurationResolver | null;
+  userErrors: readonly unknown[];
+}
+
+export class ApplicationAuthUpdatePayloadResolver extends IAMType<ApplicationAuthUpdatePayloadValue> {
   configuration() {
-    // TODO: Resolve the updated auth configuration.
+    return this.$props.configuration;
   }
 
   userErrors() {
-    // TODO: Resolve auth configuration update user errors.
+    return this.$props.userErrors;
   }
 }
 
 /** Application auth method payload resolver. */
-export class ApplicationAuthMethodPayloadResolver extends IAMType<unknown> {
+interface ApplicationAuthMethodPayloadValue {
+  authMethod: ApplicationAuthMethodResolver | null;
+  userErrors: readonly unknown[];
+}
+
+export class ApplicationAuthMethodPayloadResolver extends IAMType<ApplicationAuthMethodPayloadValue> {
   authMethod() {
-    // TODO: Resolve the updated auth method.
+    return this.$props.authMethod;
   }
 
   userErrors() {
-    // TODO: Resolve auth method update user errors.
+    return this.$props.userErrors;
   }
 }

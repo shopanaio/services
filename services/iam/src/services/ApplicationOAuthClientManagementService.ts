@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import { KernelError } from "@shopana/shared-kernel";
 import type { AuthProvider } from "@shopana/rbac";
 import { z, ZodError } from "zod";
@@ -180,7 +180,7 @@ export interface ApplicationOAuthClientTransactionRunner {
 }
 
 export interface ApplicationOAuthClientCacheInvalidator {
-  /** Implementations must absorb transport failures after local invalidation. */
+  /** Security-sensitive callers await distributed invalidation acknowledgement. */
   invalidate(applicationId: string, clientId: string): void | Promise<void>;
 }
 
@@ -462,8 +462,12 @@ export class ApplicationOAuthClientManagementService {
     input: CreateOAuthClientInput,
     actor: ApplicationOAuthClientAdminActor
   ): Promise<CreateOAuthClientResult> {
-    const value = this.parse(createSchema, input);
-    const trustedActor = this.parseActor(actor);
+    const { value, actor: trustedActor } = await this.parseAuditedWrite(
+      createSchema,
+      input,
+      actor,
+      "oauth_client_create"
+    );
     const failureSafeDiff = {
       clientType: value.clientType,
       environment: value.environment,
@@ -545,8 +549,12 @@ export class ApplicationOAuthClientManagementService {
     input: UpdateOAuthClientInput,
     actor: ApplicationOAuthClientAdminActor
   ): Promise<ApplicationOAuthClient> {
-    const value = this.parse(updateSchema, input);
-    const trustedActor = this.parseActor(actor);
+    const { value, actor: trustedActor } = await this.parseAuditedWrite(
+      updateSchema,
+      input,
+      actor,
+      "oauth_client_update"
+    );
     const changedFields = mutableChangedFields(value);
     const failureSafeDiff = {
       ...(value.environment !== undefined
@@ -622,8 +630,12 @@ export class ApplicationOAuthClientManagementService {
     input: SetOAuthClientEnabledInput,
     actor: ApplicationOAuthClientAdminActor
   ): Promise<ApplicationOAuthClient> {
-    const value = this.parse(enabledSchema, input);
-    const trustedActor = this.parseActor(actor);
+    const { value, actor: trustedActor } = await this.parseAuditedWrite(
+      enabledSchema,
+      input,
+      actor,
+      "oauth_client_enabled_set"
+    );
     const safeDiff = {
       enabled: value.enabled,
       changedFields: Object.freeze(["enabled"] as const),
@@ -663,8 +675,12 @@ export class ApplicationOAuthClientManagementService {
     input: SetOAuthClientSkipConsentInput,
     actor: ApplicationOAuthClientAdminActor
   ): Promise<ApplicationOAuthClient> {
-    const value = this.parse(skipConsentSchema, input);
-    const trustedActor = this.parseActor(actor);
+    const { value, actor: trustedActor } = await this.parseAuditedWrite(
+      skipConsentSchema,
+      input,
+      actor,
+      "oauth_client_skip_consent_set"
+    );
     const safeDiff = {
       skipConsent: value.skipConsent,
       changedFields: Object.freeze(["skipConsent"] as const),
@@ -707,8 +723,12 @@ export class ApplicationOAuthClientManagementService {
     input: RotateOAuthClientSecretInput,
     actor: ApplicationOAuthClientAdminActor
   ): Promise<RotateSecretResult> {
-    const value = this.parse(revisionedClientSchema, input);
-    const trustedActor = this.parseActor(actor);
+    const { value, actor: trustedActor } = await this.parseAuditedWrite(
+      revisionedClientSchema,
+      input,
+      actor,
+      "oauth_client_secret_rotate"
+    );
     const safeDiff = {
       changedFields: Object.freeze(["clientSecret"] as const),
     } satisfies ApplicationOAuthClientAdminAuditSafeDiff;
@@ -766,8 +786,12 @@ export class ApplicationOAuthClientManagementService {
     input: ArchiveOAuthClientInput,
     actor: ApplicationOAuthClientAdminActor
   ): Promise<ApplicationOAuthClient> {
-    const value = this.parse(revisionedClientSchema, input);
-    const trustedActor = this.parseActor(actor);
+    const { value, actor: trustedActor } = await this.parseAuditedWrite(
+      revisionedClientSchema,
+      input,
+      actor,
+      "oauth_client_archive"
+    );
     const safeDiff = {
       enabled: false,
       changedFields: Object.freeze(["enabled", "archived"] as const),
@@ -846,10 +870,47 @@ export class ApplicationOAuthClientManagementService {
     }
   }
 
+  private async parseAuditedWrite<TSchema extends z.ZodTypeAny>(
+    schema: TSchema,
+    input: unknown,
+    actor: ApplicationOAuthClientAdminActor,
+    action: ApplicationAuthAdminAuditAction
+  ): Promise<{
+    value: z.infer<TSchema>;
+    actor: ApplicationOAuthClientAdminActor;
+  }> {
+    try {
+      return {
+        value: this.parse(schema, input),
+        actor: this.parseActor(actor),
+      };
+    } catch (error) {
+      const normalized = normalizeManagementError(error);
+      const raw =
+        typeof input === "object" && input !== null
+          ? (input as Record<string, unknown>)
+          : {};
+      await this.appendAudit({
+        actor,
+        organizationId: safeAuditUuid(raw.organizationId),
+        applicationId: safeAuditUuid(raw.applicationId),
+        targetId:
+          typeof raw.clientId === "string" && raw.clientId.length <= 512
+            ? raw.clientId
+            : undefined,
+        action,
+        outcome: "failure",
+        reasonCategory: auditReason(normalized),
+        safeDiff: {},
+      });
+      throw normalized;
+    }
+  }
+
   private async appendAudit(input: {
     actor: ApplicationOAuthClientAdminActor;
-    organizationId: string;
-    applicationId: string;
+    organizationId: string | null;
+    applicationId: string | null;
     targetId?: string;
     action: ApplicationAuthAdminAuditAction;
     outcome: "success" | "failure";
@@ -857,22 +918,29 @@ export class ApplicationOAuthClientManagementService {
     safeDiff: ApplicationOAuthClientAdminAuditSafeDiff;
   }): Promise<void> {
     try {
+      const actorIdResult = z
+        .string()
+        .trim()
+        .min(1)
+        .max(128)
+        .safeParse(input.actor.id);
       await this.audit.append(
         Object.freeze({
-          recordId: randomUUID(),
+          recordId: uuidv7(),
           schemaVersion: 1,
           occurredAt: this.now().toISOString(),
           category: "application_auth_admin",
           action: input.action,
           outcome: input.outcome,
           reasonCategory: input.reasonCategory,
-          actorType: "platform_admin",
-          actorId: input.actor.id,
+          actorType: actorIdResult.success ? "platform_admin" : "anonymous",
+          actorId: actorIdResult.success ? actorIdResult.data : null,
           organizationId: input.organizationId,
           applicationId: input.applicationId,
           targetType: "oauth_client",
           ...(input.targetId ? { targetId: input.targetId } : {}),
-          requestId: input.actor.requestId,
+          requestId:
+            input.actor.requestId.trim().slice(0, 256) || "unknown",
           safeDiff: freezeSafeDiff(input.safeDiff),
         })
       );
@@ -1182,6 +1250,11 @@ function hasExactValues(
 
 function unique<T>(values: readonly T[] | undefined): T[] | undefined {
   return values ? [...new Set(values)] : undefined;
+}
+
+function safeAuditUuid(value: unknown): string | null {
+  const result = z.string().uuid().safeParse(value);
+  return result.success ? result.data : null;
 }
 
 function mutableChangedFields(input: {

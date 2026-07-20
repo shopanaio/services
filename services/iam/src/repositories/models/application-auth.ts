@@ -509,6 +509,70 @@ export type ApplicationAuthDeliveryProfile =
 export type NewApplicationAuthDeliveryProfile =
   typeof applicationAuthDeliveryProfile.$inferInsert;
 
+/**
+ * Durable append-only administrative audit log.
+ *
+ * Organization/application columns deliberately have no foreign keys: a
+ * failure record must survive a rolled-back create and the later archival or
+ * deletion of its target. The service admits only its closed versioned audit
+ * contract into safeDiffJson.
+ */
+export const applicationAuthAdminAudit = iamSchema.table(
+  "application_auth_admin_audit",
+  {
+    recordId: uuid("record_id").primaryKey(),
+    schemaVersion: integer("schema_version").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    category: varchar("category", { length: 64 }).notNull(),
+    action: varchar("action", { length: 64 }).notNull(),
+    outcome: varchar("outcome", { length: 16 }).notNull(),
+    reasonCategory: varchar("reason_category", { length: 64 }).notNull(),
+    actorType: varchar("actor_type", { length: 32 }).notNull(),
+    actorId: text("actor_id"),
+    organizationId: uuid("organization_id"),
+    applicationId: uuid("application_id"),
+    targetType: varchar("target_type", { length: 64 }).notNull(),
+    targetId: text("target_id"),
+    requestId: varchar("request_id", { length: 256 }).notNull(),
+    safeDiffJson: jsonb("safe_diff_json")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+  },
+  (table) => [
+    index("idx_application_auth_admin_audit_org_occurred").on(
+      table.organizationId,
+      table.occurredAt
+    ),
+    index("idx_application_auth_admin_audit_application_occurred").on(
+      table.applicationId,
+      table.occurredAt
+    ),
+    index("idx_application_auth_admin_audit_request").on(table.requestId),
+    check(
+      "application_auth_admin_audit_schema_check",
+      sql`${table.schemaVersion} = 1 AND ${table.category} = 'application_auth_admin'`
+    ),
+    check(
+      "application_auth_admin_audit_outcome_check",
+      sql`${table.outcome} IN ('success', 'failure')`
+    ),
+    check(
+      "application_auth_admin_audit_actor_check",
+      sql`(${table.actorType} = 'platform_admin' AND ${table.actorId} IS NOT NULL) OR (${table.actorType} = 'anonymous' AND ${table.actorId} IS NULL)`
+    ),
+    check(
+      "application_auth_admin_audit_safe_diff_check",
+      sql`jsonb_typeof(${table.safeDiffJson}) = 'object'`
+    ),
+  ]
+);
+
+export type ApplicationAuthAdminAuditRecord =
+  typeof applicationAuthAdminAudit.$inferSelect;
+export type NewApplicationAuthAdminAuditRecord =
+  typeof applicationAuthAdminAudit.$inferInsert;
+
 /** OAuth Provider 1.6.23 compatible client model plus IAM-owned policy fields. */
 export const applicationOauthClient = iamSchema.table(
   "application_oauth_client",

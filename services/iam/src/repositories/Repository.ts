@@ -9,6 +9,8 @@ import { ApplicationOAuthClientRepository } from "./ApplicationOAuthClientReposi
 import { ApplicationTokenValidationRepository } from "./ApplicationTokenValidationRepository.js";
 import { ApplicationRepository } from "./ApplicationRepository.js";
 import { ApplicationAuthAdminQueryRepository } from "./ApplicationAuthAdminQueryRepository.js";
+import { ApplicationAuthAdminMutationRepository } from "./ApplicationAuthAdminMutationRepository.js";
+import { ApplicationAuthAdminAuditRepository } from "./ApplicationAuthAdminAuditRepository.js";
 
 import { CasbinService } from "../casbin/CasbinService.js";
 import type { Database } from "../infrastructure//db/database.js";
@@ -38,6 +40,8 @@ export class Repository {
   public readonly organization: OrganizationRepository;
   public readonly application: ApplicationRepository;
   public readonly applicationAuthAdminQuery: ApplicationAuthAdminQueryRepository;
+  public readonly applicationAuthAdminMutation: ApplicationAuthAdminMutationRepository;
+  public readonly applicationAuthAdminAudit: ApplicationAuthAdminAuditRepository;
   public readonly applicationAuthConfiguration: ApplicationAuthConfigurationRepository;
   public readonly applicationAuthorizationContext: ApplicationAuthorizationContextRepository;
   public readonly applicationOAuthClient: ApplicationOAuthClientRepository;
@@ -52,6 +56,8 @@ export class Repository {
     organization: OrganizationRepository,
     application: ApplicationRepository,
     applicationAuthAdminQuery: ApplicationAuthAdminQueryRepository,
+    applicationAuthAdminMutation: ApplicationAuthAdminMutationRepository,
+    applicationAuthAdminAudit: ApplicationAuthAdminAuditRepository,
     applicationAuthConfiguration: ApplicationAuthConfigurationRepository,
     applicationAuthorizationContext: ApplicationAuthorizationContextRepository,
     applicationOAuthClient: ApplicationOAuthClientRepository,
@@ -65,6 +71,8 @@ export class Repository {
     this.organization = organization;
     this.application = application;
     this.applicationAuthAdminQuery = applicationAuthAdminQuery;
+    this.applicationAuthAdminMutation = applicationAuthAdminMutation;
+    this.applicationAuthAdminAudit = applicationAuthAdminAudit;
     this.applicationAuthConfiguration = applicationAuthConfiguration;
     this.applicationAuthorizationContext = applicationAuthorizationContext;
     this.applicationOAuthClient = applicationOAuthClient;
@@ -107,6 +115,16 @@ export class Repository {
         txManager,
         applicationAuthKeyring
       );
+    const applicationAuthAdminMutationRepo =
+      new ApplicationAuthAdminMutationRepository(
+        db,
+        txManager,
+        applicationAuthKeyring
+      );
+    const applicationAuthAdminAuditRepo = new ApplicationAuthAdminAuditRepository(
+      db,
+      txManager
+    );
     const applicationAuthConfigurationRepo =
       new ApplicationAuthConfigurationRepository(
         db,
@@ -130,6 +148,8 @@ export class Repository {
       organizationRepo,
       applicationRepo,
       applicationAuthAdminQueryRepo,
+      applicationAuthAdminMutationRepo,
+      applicationAuthAdminAuditRepo,
       applicationAuthConfigurationRepo,
       applicationAuthorizationContextRepo,
       applicationOAuthClientRepo,

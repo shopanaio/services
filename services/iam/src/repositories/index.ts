@@ -22,6 +22,7 @@ export {
   type ApplicationUserConnectionResult,
   type ApplicationUserSecurityView,
   type ApplicationUserLinkedAccountView,
+  type ApplicationUserAccountUnlinkResult,
 } from "./application-user/ApplicationUserRepository.js";
 export {
   AuthSessionRepository,
@@ -49,6 +50,12 @@ export {
   type ApplicationAuthAdminProviderView,
   type ApplicationAuthAdminView,
 } from "./ApplicationAuthAdminQueryRepository.js";
+export {
+  ApplicationAuthAdminMutationRepository,
+  type ApplicationAuthAdminMutationScope,
+  type AdminApplicationProviderRecord,
+} from "./ApplicationAuthAdminMutationRepository.js";
+export { ApplicationAuthAdminAuditRepository } from "./ApplicationAuthAdminAuditRepository.js";
 export {
   ApplicationAuthorizationContextRepository,
   type CreateApplicationAuthorizationContextInput,

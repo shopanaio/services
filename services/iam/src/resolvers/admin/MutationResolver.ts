@@ -4,6 +4,7 @@ import { AuthMutationResolver } from "./AuthMutationResolver.js";
 import { UserMutationResolver } from "./UserMutationResolver.js";
 import { RoleMutationResolver } from "./RoleMutationResolver.js";
 import { OrganizationMutationResolver } from "./OrganizationMutationResolver.js";
+import { ApplicationMutationResolver } from "./ApplicationMutationResolver.js";
 
 /**
  * Root Mutation resolver.
@@ -45,6 +46,6 @@ export class MutationResolver extends IAMType<Record<string, never>> {
 
   /** Entry point for application realm management mutations. */
   applicationMutation() {
-    // TODO: Implement the application mutation namespace entry point.
+    return new ApplicationMutationResolver({}, this.$ctx);
   }
 }

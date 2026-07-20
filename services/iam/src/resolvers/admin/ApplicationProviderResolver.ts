@@ -3,6 +3,7 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { ApplicationAuthProviderName } from "../../auth/applicationSocialProviders.js";
+import type { ApplicationAuthProviderValidationResult } from "../../services/ApplicationAuthAdminManagementService.js";
 import { IAMType } from "./IAMType.js";
 
 export interface ApplicationAuthProviderResolverInput {
@@ -72,46 +73,56 @@ export class ApplicationAuthProviderResolver extends IAMType<ApplicationAuthProv
 }
 
 /** Application social provider validation result resolver. */
-export class ApplicationAuthProviderValidationResolver extends IAMType<unknown> {
+export class ApplicationAuthProviderValidationResolver extends IAMType<ApplicationAuthProviderValidationResult> {
   provider() {
-    // TODO: Resolve the validated provider name.
+    return this.$props.provider.toUpperCase();
   }
 
   status() {
-    // TODO: Resolve the provider validation status.
+    return this.$props.status.toUpperCase();
   }
 
   reasonCode() {
-    // TODO: Resolve the safe provider validation reason code.
+    return this.$props.reasonCode;
   }
 
   revision() {
-    // TODO: Resolve the validated provider revision.
+    return this.$props.revision;
   }
 
   checkedAt() {
-    // TODO: Resolve the provider validation timestamp.
+    return this.$props.checkedAt;
   }
 }
 
 /** Application social provider mutation payload resolver. */
-export class ApplicationAuthProviderPayloadResolver extends IAMType<unknown> {
+interface ApplicationAuthProviderPayloadValue {
+  provider: ApplicationAuthProviderResolver | null;
+  userErrors: readonly unknown[];
+}
+
+export class ApplicationAuthProviderPayloadResolver extends IAMType<ApplicationAuthProviderPayloadValue> {
   provider() {
-    // TODO: Resolve the changed provider.
+    return this.$props.provider;
   }
 
   userErrors() {
-    // TODO: Resolve provider mutation user errors.
+    return this.$props.userErrors;
   }
 }
 
 /** Application social provider validation payload resolver. */
-export class ApplicationAuthProviderValidationPayloadResolver extends IAMType<unknown> {
+interface ApplicationAuthProviderValidationPayloadValue {
+  validation: ApplicationAuthProviderValidationResolver | null;
+  userErrors: readonly unknown[];
+}
+
+export class ApplicationAuthProviderValidationPayloadResolver extends IAMType<ApplicationAuthProviderValidationPayloadValue> {
   validation() {
-    // TODO: Resolve the provider validation result.
+    return this.$props.validation;
   }
 
   userErrors() {
-    // TODO: Resolve provider validation user errors.
+    return this.$props.userErrors;
   }
 }

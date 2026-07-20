@@ -11,7 +11,6 @@ import {
 import type { ApplicationAdminRecord } from "../../repositories/ApplicationRepository.js";
 import { ApplicationOAuthClientManagementError } from "../../services/ApplicationOAuthClientManagementService.js";
 import { IAMType } from "./IAMType.js";
-import { OrganizationResolver } from "./OrganizationResolver.js";
 import { ApplicationAuthConfigurationResolver } from "./ApplicationAuthResolver.js";
 import {
   ApplicationOAuthClientConnectionResolver,
@@ -74,6 +73,7 @@ export class ApplicationResolver extends IAMType<
   }
 
   async organization() {
+    const { OrganizationResolver } = await import("./OrganizationResolver.js");
     return new OrganizationResolver(await this.$get("organizationId"), this.$ctx);
   }
 
@@ -208,34 +208,39 @@ export class ApplicationResolver extends IAMType<
 }
 
 /** Application create payload resolver. */
-export class ApplicationCreatePayloadResolver extends IAMType<unknown> {
+interface ApplicationPayloadValue {
+  application: ApplicationResolver | null;
+  userErrors: readonly unknown[];
+}
+
+export class ApplicationCreatePayloadResolver extends IAMType<ApplicationPayloadValue> {
   application() {
-    // TODO: Resolve the created application.
+    return this.$props.application;
   }
 
   userErrors() {
-    // TODO: Resolve application creation user errors.
+    return this.$props.userErrors;
   }
 }
 
 /** Application update payload resolver. */
-export class ApplicationUpdatePayloadResolver extends IAMType<unknown> {
+export class ApplicationUpdatePayloadResolver extends IAMType<ApplicationPayloadValue> {
   application() {
-    // TODO: Resolve the updated application.
+    return this.$props.application;
   }
 
   userErrors() {
-    // TODO: Resolve application update user errors.
+    return this.$props.userErrors;
   }
 }
 
 /** Application archive payload resolver. */
-export class ApplicationArchivePayloadResolver extends IAMType<unknown> {
+export class ApplicationArchivePayloadResolver extends IAMType<ApplicationPayloadValue> {
   application() {
-    // TODO: Resolve the archived application.
+    return this.$props.application;
   }
 
   userErrors() {
-    // TODO: Resolve application archival user errors.
+    return this.$props.userErrors;
   }
 }

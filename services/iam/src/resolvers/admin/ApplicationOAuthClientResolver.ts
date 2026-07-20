@@ -118,42 +118,52 @@ export class ApplicationOAuthClientResolver extends IAMType<ApplicationOAuthClie
 }
 
 /** Application OAuth client mutation payload resolver. */
-export class ApplicationOAuthClientPayloadResolver extends IAMType<unknown> {
+interface ApplicationOAuthClientPayloadValue {
+  client: ApplicationOAuthClientResolver | null;
+  userErrors: readonly unknown[];
+}
+
+interface ApplicationOAuthClientSecretPayloadValue
+  extends ApplicationOAuthClientPayloadValue {
+  clientSecret: string | null;
+}
+
+export class ApplicationOAuthClientPayloadResolver extends IAMType<ApplicationOAuthClientPayloadValue> {
   client() {
-    // TODO: Resolve the changed OAuth client.
+    return this.$props.client;
   }
 
   userErrors() {
-    // TODO: Resolve OAuth client mutation user errors.
+    return this.$props.userErrors;
   }
 }
 
 /** Application OAuth client create payload resolver. */
-export class ApplicationOAuthClientCreatePayloadResolver extends IAMType<unknown> {
+export class ApplicationOAuthClientCreatePayloadResolver extends IAMType<ApplicationOAuthClientSecretPayloadValue> {
   client() {
-    // TODO: Resolve the created OAuth client.
+    return this.$props.client;
   }
 
   clientSecret() {
-    // TODO: Resolve the one-time OAuth client secret.
+    return this.$props.clientSecret;
   }
 
   userErrors() {
-    // TODO: Resolve OAuth client creation user errors.
+    return this.$props.userErrors;
   }
 }
 
 /** Application OAuth client secret rotation payload resolver. */
-export class ApplicationOAuthClientSecretRotatePayloadResolver extends IAMType<unknown> {
+export class ApplicationOAuthClientSecretRotatePayloadResolver extends IAMType<ApplicationOAuthClientSecretPayloadValue> {
   client() {
-    // TODO: Resolve the OAuth client with the rotated secret.
+    return this.$props.client;
   }
 
   clientSecret() {
-    // TODO: Resolve the one-time rotated OAuth client secret.
+    return this.$props.clientSecret;
   }
 
   userErrors() {
-    // TODO: Resolve OAuth client secret rotation user errors.
+    return this.$props.userErrors;
   }
 }

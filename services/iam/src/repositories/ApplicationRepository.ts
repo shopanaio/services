@@ -77,8 +77,16 @@ const applicationAdminSelection = {
 } as const;
 
 type ApplicationAdminRow = {
-  [K in keyof typeof applicationAdminSelection]:
-    (typeof applicationAdminSelection)[K]["_"]["data"];
+  id: string;
+  organizationId: string;
+  name: string;
+  displayName: string;
+  description: string | null;
+  resource: string;
+  revision: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 };
 
 export class ApplicationRepository extends BaseRepository {
