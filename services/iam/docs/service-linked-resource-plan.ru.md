@@ -91,11 +91,13 @@ IAM resource
 
 ## 5. Термины
 
-**Admin-managed resource** — обычный IAM resource, созданный и изменяемый через
-organization Admin API.
+**Organization-managed resource** — обычный IAM resource с authoritative
+`managementMode = "organization"`, созданный и изменяемый через organization
+Admin API.
 
-**Service-linked resource** — IAM resource, связанный с external service owner и
-управляемый только доверенным service-aware backend path.
+**Service-linked resource** — IAM resource с authoritative
+`managementMode = "service"` и active external owner binding, управляемый только
+доверенным service-aware backend path.
 
 **Protected resource** — конкретный IAM object, на который указывает binding:
 например `application`, OAuth client, provider config или future IAM resource.
@@ -114,12 +116,25 @@ IAM. Внешний сервис явно передает IAM action конте
 
 Не добавлять management metadata в `iam.application`.
 
-Добавить отдельную IAM-owned таблицу bindings:
+Добавить две отдельные IAM-owned таблицы:
+
+1. `iam.resource_management` — authoritative management mode каждого
+   protected resource;
+2. `iam.service_linked_resource` — owner binding для resources с mode
+   `service`.
 
 ```ts
 type ServiceLinkedResourceKind = string;
 type ServiceLinkedService = string;
 type ServiceLinkedOwnerType = string;
+type ResourceManagementMode = "organization" | "service";
+
+resourceManagement.id: uuid
+resourceManagement.organizationId: uuid
+resourceManagement.resourceKind: ServiceLinkedResourceKind
+resourceManagement.resourceId: uuid
+resourceManagement.managementMode: ResourceManagementMode
+resourceManagement.createdAt: timestamp
 
 serviceLinkedResource.id: uuid
 serviceLinkedResource.organizationId: uuid
@@ -142,16 +157,23 @@ linkedService + linkedOwnerType + linkedOwnerId identify the internal owner
 active binding:
   deletedAt IS NULL
 
-admin-managed resource:
+organization-managed resource:
+  resource_management.managementMode = "organization"
   no active binding exists for organizationId + resourceKind + resourceId
 
 service-linked resource:
-  active binding exists for organizationId + resourceKind + resourceId
+  resource_management.managementMode = "service"
+  exactly one active binding exists for organizationId + resourceKind + resourceId
+
+missing or inconsistent management state:
+  deny protected-resource authorization (fail closed)
 ```
 
-Уникальность active binding:
+Уникальность management state и active binding:
 
 ```sql
+UNIQUE (organization_id, resource_kind, resource_id)
+
 UNIQUE (organization_id, resource_kind, resource_id)
 WHERE deleted_at IS NULL
 ```
@@ -170,7 +192,7 @@ linkedOwnerId = owner primary id
 
 ### 7.1. Read operations
 
-Organization Admin API может возвращать both admin-managed и service-linked
+Organization Admin API может возвращать both organization-managed и service-linked
 resources.
 
 Для application GraphQL type можно добавить read-only management projection,
@@ -180,8 +202,8 @@ resources.
 
 ```graphql
 enum ResourceManagementMode {
-  ADMIN
-  SERVICE_LINKED
+  ORGANIZATION
+  SERVICE
 }
 
 enum ServiceLinkedService {
@@ -206,7 +228,7 @@ type Application {
 }
 ```
 
-Для `SERVICE_LINKED` UI может показывать read-only badge:
+Для `SERVICE` UI может показывать read-only badge:
 
 ```text
 Managed by IAM
@@ -217,8 +239,10 @@ protected-resource authorization layer.
 
 ### 7.2. Generic organization mutations
 
-Generic mutations должны reject resource через `@ProtectedResource`, если для
-protected resource существует active service-linked binding.
+Generic mutations должны reject resource через `@ProtectedResource`, если его
+authoritative mode равен `service` и существует согласованный active binding.
+Отсутствующий management state или несогласованная пара mode/binding также
+отклоняются fail closed.
 
 Для application surface это включает:
 
@@ -257,9 +281,8 @@ iam.updateResource({
   organizationId,
   resourceKind,
   resourceId,
-  managementMode: "service_linked",
+  managementMode: "service",
   linkedOwner: {
-    linkedService,
     linkedOwnerType,
     linkedOwnerId,
   },
@@ -276,9 +299,8 @@ repository write logic:
 iam.updateApplicationAuth({
   organizationId,
   applicationId,
-  managementMode: "service_linked",
+  managementMode: "service",
   linkedOwner: {
-    linkedService,
     linkedOwnerType,
     linkedOwnerId,
   },
@@ -288,14 +310,24 @@ iam.updateApplicationAuth({
 ```
 
 IAM action boundary передает owner claim в `authorizeProtectedResource`.
-Именно dedicated provider проверяет binding с полным predicate:
+Именно dedicated provider сначала проверяет authoritative management state, а
+затем binding с полным predicate:
 
 ```sql
+SELECT management_mode
+FROM iam.resource_management
+WHERE organization_id = :organizationId
+  AND resource_kind = :resourceKind
+  AND resource_id = :resourceId;
+
+-- Required when management_mode = 'service'
+SELECT *
+FROM iam.service_linked_resource
 WHERE service_linked_resource.organization_id = :organizationId
   AND service_linked_resource.resource_kind = :resourceKind
   AND service_linked_resource.resource_id = :resourceId
-  AND service_linked_resource.linked_service = 'iam'
-  AND service_linked_resource.linked_owner_type = 'application_realm'
+  AND service_linked_resource.linked_service = :callerService
+  AND service_linked_resource.linked_owner_type = :linkedOwnerType
   AND service_linked_resource.linked_owner_id = :linkedOwnerId
   AND service_linked_resource.deleted_at IS NULL
 ```
@@ -348,13 +380,17 @@ resourceKind
 resourceId
 ```
 
-1. Drizzle model и migration для `iam.service_linked_resource`.
+1. Drizzle models и migrations для `iam.resource_management` и
+   `iam.service_linked_resource`.
 2. `ServiceLinkedResourceRepository` / dedicated lookup helpers, используемые
-   только protected-resource provider layer и IAM action boundary orchestration.
-3. `Policy` / `AuthProvider` extension, который отвечает за organization admin
-   mutability и trusted owner predicate.
-4. IAM action boundary, который принимает service-linked context от внешнего
-   service owner и создает resource + binding в одной transaction.
+   protected-resource provider layer, IAM action boundary orchestration и
+   read-only management projection.
+3. `ProtectedResource` / dedicated `AuthProvider.authorizeProtectedResource()`,
+   который отвечает за organization mutability и trusted owner predicate;
+   `Policy` остается RBAC-only.
+4. IAM action boundary, который принимает management mode и service-linked
+   context от внешнего service owner и создает resource + management state +
+   binding в одной transaction.
 5. GraphQL read-only field resolver `Application.management`, который читает
    projection через service-linked lookup, не меняя `ApplicationRepository`.
 6. Audit safe diff allowlist для rejected generic writes.
@@ -513,32 +549,36 @@ Generic Admin write:
 1. Validate domain/resource/action against @shopana/rbac.
 2. Check platform admin / organization owner / Casbin as before.
 3. If RBAC denies, deny as before.
-4. `@ProtectedResource` lookup active binding:
-   organizationId + resourceKind + resourceId + deletedAt IS NULL.
-5. If binding does not exist, allow.
-6. If binding exists, deny with RESOURCE_SERVICE_LINKED.
+4. `@ProtectedResource` loads authoritative `resource_management` by:
+   organizationId + resourceKind + resourceId.
+5. If management state is missing, deny (fail closed).
+6. If mode is `organization`, require that no active binding exists and allow.
+7. If mode is `service`, require an active binding and deny generic Admin with
+   RESOURCE_SERVICE_LINKED.
+8. Any mode/binding inconsistency is denied (fail closed).
 ```
 
 Service-aware external linked-owner write:
 
 ```text
-1. Skip organization-admin mutability check only when linkedOwner is present.
+1. Require authoritative management mode `service`.
 2. Lookup active binding by full predicate:
    organizationId + resourceKind + resourceId +
    linkedService + linkedOwnerType + linkedOwnerId + deletedAt IS NULL.
-3. If binding matches, allow the same business mutation implementation to run.
-4. If binding does not match, deny as not found/forbidden according to boundary
+3. Compare `linkedService` with trusted `BrokerCallContext.caller.service`; it
+   is not accepted from action payload.
+4. If binding matches, allow the same business mutation implementation to run.
+5. If binding does not match, deny as not found/forbidden according to boundary
    mapping.
 ```
 
-Active binding lookup for generic Admin write uses the generic protected
-resource identity:
+Management state and active binding lookups use the generic protected resource
+identity:
 
 ```text
 organizationId
 resourceKind
 resourceId
-deletedAt IS NULL
 ```
 
 Если binding найден, protected-resource provider возвращает denial mapped to:
@@ -589,7 +629,8 @@ infrastructure и boundary adapters.
 
 3. `services/iam/src/kernel/Authorizable.ts`
    - IAM `AuthProvider.authorize()` выполняет только RBAC;
-   - `authorizeProtectedResource()` выполняет generic binding lookup;
+   - `authorizeProtectedResource()` загружает authoritative management mode и
+     проверяет согласованность active binding;
    - lookup идет через `ServiceLinkedResourceRepository`, не через resource
      repositories.
 
@@ -605,9 +646,11 @@ infrastructure и boundary adapters.
    - все actions, которые создают или меняют protected IAM resource для внешних
      сервисов, должны принимать explicit service-linked context от внешнего
      сервиса-владельца;
-   - для admin-managed создания caller передает `managementMode: "admin"`;
+   - для organization-managed создания caller передает
+     `managementMode: "organization"`;
    - для service-linked создания caller передает
-     `managementMode: "service_linked"` и полный `linkedOwner`;
+     `managementMode: "service"` и полный `linkedOwner` (`linkedOwnerType` +
+     `linkedOwnerId`); `linkedService` берется из trusted broker context;
    - отдельные `createServiceLinked*` actions не добавляются как параллельный
      backward-compatible path. Existing create actions меняют contract без
      обратной совместимости.
@@ -686,18 +729,25 @@ async updateResourceFromExternalService(input, actorOrServiceContext) {
 }
 ```
 
-Create actions create resource and binding atomically:
+Create actions create resource, management state and binding atomically:
 
 ```ts
 async createResourceFromExternalService(input, actorOrServiceContext) {
   const created = await executeExistingBusinessCreate(input.resource);
 
-  if (input.managementMode === "service_linked") {
+  await resourceManagement.create({
+    organizationId: input.organizationId,
+    resourceKind: input.resourceKind,
+    resourceId: created.resourceId,
+    managementMode: input.managementMode,
+  });
+
+  if (input.managementMode === "service") {
     await serviceLinkedResource.createBinding({
       organizationId: input.organizationId,
       resourceKind: input.resourceKind,
       resourceId: created.resourceId,
-      linkedService: input.linkedOwner.linkedService,
+      linkedService: actorOrServiceContext.caller.service,
       linkedOwnerType: input.linkedOwner.linkedOwnerType,
       linkedOwnerId: input.linkedOwner.linkedOwnerId,
       createdBy: actorOrServiceContext.subject,
@@ -725,9 +775,9 @@ Action boundary не должен обходить revision, validation, audit �
 | GraphQL mutation boundary должен проверить оба predicates до service call | `ApplicationMutationResolver` выполняет validation и вызывает business services | Нельзя переносить binding lookup в business service | Сначала RBAC, затем decorated protected-resource helper внутри существующего error/audit boundary |
 | Boundary adapters передают identity до входа в business service | Decorators исполняются до target method | Business DTO не должен получать ownership metadata | Использовать `@ProtectedResource` на GraphQL/broker boundary; business services остаются без изменений |
 | Business scopes любых protected resources не должны содержать service-linked details | `ApplicationAuthAdminMutationScope` и `ApplicationOAuthClientManagementScope` содержат только business state, нужный соответствующим mutations | Это правильная граница, которую нельзя ломать для любых будущих resource kinds | Не добавлять `serviceLinkedBinding` в business scopes; active binding lookups выполняются только protected-resource provider layer |
-| Resource-specific repositories не должны получать service-linked joins | `ApplicationRepository` выбирает application/auth/organization данные без service-linked ownership; organization repositories не участвуют в binding lookup | Read/write repositories конкретных моделей не должны становиться ownership-aware | Любые management projections строить dedicated field resolver / loader; enforcement lookup только через `ServiceLinkedResourceRepository` в protected-resource layer |
-| External service action contracts должны быть service-linked aware без обратной совместимости | `services/project/src/sagas/StoreCreateSaga.ts` вызывает `iam.createApplication` как обычный create action | Внешний service owner не передает ownership context, поэтому binding не создается | Изменить existing IAM actions, вызываемые внешними сервисами, чтобы они принимали `managementMode` и `linkedOwner`; обновить callers вроде `project` без сохранения старого контракта |
-| Нужен dedicated binding repository для protected-resource layer | `Repository` агрегирует repositories | Dedicated provider требует generic lookup helper | Использовать `ServiceLinkedResourceRepository` methods `findActiveByResource`, `findActiveLinkedOwner`, `createBinding` |
+| Resource-specific repositories не должны получать service-linked joins | `ApplicationRepository` выбирает application/auth/organization данные без service-linked ownership; organization repositories не участвуют в binding lookup | Read/write repositories конкретных моделей не должны становиться ownership-aware | Management projection и enforcement используют dedicated `ServiceLinkedResourceRepository`; create repository только атомарно создает authoritative management row рядом с resource |
+| External service action contracts должны быть service-linked aware без обратной совместимости | `services/project/src/sagas/StoreCreateSaga.ts` передает `managementMode: "service"` и linked owner в `iam.createApplication` | Existing action contract должен оставаться единственным provisioning path | Поддерживать `organization/service` contract и trusted caller-derived `linkedService`; не добавлять параллельные create actions |
+| Нужен dedicated management/binding repository для protected-resource layer | `Repository` агрегирует repositories | Dedicated provider требует authoritative mode и generic binding lookup | Использовать `ServiceLinkedResourceRepository` methods `findManagementMode`, `findActiveByResource`, `findActiveLinkedOwner`, `createBinding` |
 | Denial metadata должен маппиться в audit без протекания в business scope | Existing audit ports support safe failure records around Admin writes | Boolean недостаточен для linked denial details | `authorizeProtectedResource` возвращает typed `RESOURCE_SERVICE_LINKED`, mapping остается у boundary/error mapper |
 
 Implementation PR must keep this evidence table true. Если код меняется так, что
@@ -747,11 +797,10 @@ Generic create path для protected resource остается обычным bu
 
 ```ts
 type ResourceManagementInput =
-  | { managementMode: "admin" }
+  | { managementMode: "organization" }
   | {
-      managementMode: "service_linked";
+      managementMode: "service";
       linkedOwner: {
-        linkedService: string;
         linkedOwnerType: string;
         linkedOwnerId: string;
       };
@@ -761,12 +810,14 @@ type ResourceManagementInput =
 IAM action boundary должен уметь в одной transaction:
 
 1. создать сам resource обычным способом;
-2. если `managementMode = "service_linked"`, создать запись binding в
+2. создать authoritative запись в `iam.resource_management` с выбранным mode;
+3. если `managementMode = "service"`, создать запись binding в
    `iam.service_linked_resource`;
-3. вернуть identity созданного resource внешнему сервису.
+4. записать `linkedService` из trusted `BrokerCallContext.caller.service`;
+5. вернуть identity созданного resource внешнему сервису.
 
-Admin GraphQL create path явно проходит через admin-managed branch и не создает
-binding. Такой resource остается admin-managed.
+Admin GraphQL create path явно создает `managementMode: "organization"` и не
+создает binding. Такой resource остается organization-managed.
 
 External service provisioning path обязан передавать полный service-linked
 binding в IAM action contract:
@@ -774,9 +825,8 @@ binding в IAM action contract:
 ```ts
 await iam.createApplication({
   ...existingCreateApplicationInput,
-  managementMode: "service_linked",
+  managementMode: "service",
   linkedOwner: {
-    linkedService: "project",
     linkedOwnerType: "store",
     linkedOwnerId,
   },
@@ -794,7 +844,12 @@ Generic create action должен создавать:
 
 ```text
 target service resource row
+target service resource_management row:
+  resourceKind = registry value for created resource
+  resourceId = created resource id
+  managementMode = organization | service
 target service service_linked_resource row:
+  only when managementMode = service
   resourceKind = registry value for created resource
   resourceId = created resource id
   linkedService = external owner service registry value
@@ -811,14 +866,31 @@ Examples only:
 - Any future service can add its own registry values without changing the
   protected-resource authorization contract.
 
-Если создание binding не удалось, transaction должна откатить создание resource.
+Если создание management state или обязательного service binding не удалось,
+transaction должна откатить создание resource.
 Старые внешние вызовы без `managementMode` не поддерживаются.
 
 ## 10. Database migration
 
 Не менять `iam.application`.
 
-Добавить новую таблицу:
+Добавить authoritative management table:
+
+```sql
+CREATE TABLE iam.resource_management (
+  id uuid PRIMARY KEY,
+  organization_id uuid NOT NULL,
+  resource_kind varchar(64) NOT NULL,
+  resource_id uuid NOT NULL,
+  management_mode varchar(32) NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  CHECK (resource_kind <> ''),
+  CHECK (management_mode IN ('organization', 'service')),
+  UNIQUE (organization_id, resource_kind, resource_id)
+);
+```
+
+Добавить owner binding table:
 
 ```sql
 CREATE TABLE iam.service_linked_resource (
@@ -869,8 +941,11 @@ CREATE INDEX idx_service_linked_owner_active
   WHERE deleted_at IS NULL;
 ```
 
-Так как проект pre-production, план исходит из чистого schema transition.
-Existing resources остаются admin-managed, пока для них нет active binding.
+Так как проект pre-production, план допускает чистый schema transition. Если
+migration применяется к базе с existing applications, она обязана создать для
+них `resource_management` rows: `service` для resources с active binding и
+`organization` для остальных. Отсутствующий management state не означает
+organization ownership и всегда приводит к fail-closed denial.
 
 ## 11. Audit
 
@@ -908,19 +983,20 @@ safeDiff allowlist only
 
 Добавить pending/real contract scenarios:
 
-1. Admin-created protected resource has no active service-linked binding by
-   default.
-2. External service provisioning creates protected resource and active binding in
-   one transaction when it passes `managementMode: "service_linked"`.
+1. Admin-created protected resource has `managementMode: "organization"` and no
+   active service-linked binding by default.
+2. External service provisioning creates protected resource, `service`
+   management state and active binding in one transaction when it passes
+   `managementMode: "service"`.
 3. Read API can expose service-linked management metadata through a read-only
    projection without changing the resource repository.
-4. Generic Admin mutation rejects any protected resource with active binding via
-   `@ProtectedResource`.
-5. Generic Admin mutation allows the same resource kind when active binding does
-   not exist.
-6. Generic Admin mutation denial works for any registered protected
-   `resourceKind`; tests must cover at least two unrelated services/resource
-   kinds to prove the mechanism is generic.
+4. Generic Admin mutation rejects a consistent `service` resource with active
+   binding via `@ProtectedResource`.
+5. Generic Admin mutation allows an `organization` resource only when active
+   binding does not exist.
+6. Generic Admin mutation denial works for every registered protected
+   `resourceKind`; each new kind requires contract coverage for its management
+   state and binding mapping.
 7. Service-aware external mutation succeeds for matching
    `organizationId + resourceKind + resourceId + linked binding`.
 8. Service-aware external mutation fails for mismatched linked owner id.
@@ -928,8 +1004,8 @@ safeDiff allowlist only
 10. Adding a new resource kind requires only registry/config + call-site
     `protectedResource` mapping, not database migration or protected-resource
     contract changes.
-11. Removing or soft-deleting binding makes resource admin-managed only if the
-    lifecycle explicitly allows unlinking.
+11. Removing or soft-deleting binding does not implicitly change management
+    mode; the lifecycle must explicitly transition or delete management state.
 12. Audit contains safe failure record for rejected generic write.
 13. Service-linked external path reuses the same business mutation
     implementation as generic Admin path; no duplicated
@@ -937,9 +1013,9 @@ safeDiff allowlist only
 14. IAM business scopes and internal business DTOs do not contain
     `serviceLinkedBinding`, `linkedService`, `linkedOwnerType` or
     `linkedOwnerId`.
-15. Generic Admin mutation denial is produced by `@ProtectedResource` when
-    `protectedResource` has active binding, not by application/OAuth/organization
-    repository logic.
+15. Generic Admin mutation denial is produced by `@ProtectedResource` from
+    authoritative management state plus active binding, not by
+    application/OAuth/organization business logic.
 16. Application and organization repositories have no service-linked imports,
     joins or ownership predicates.
 17. Business service layer has no `assertServiceLinked*`, `assertAdminMutable`,
@@ -947,10 +1023,11 @@ safeDiff allowlist only
 
 ## 13. Rollout sequence
 
-1. Add `iam.service_linked_resource` table, constraints and indexes.
-2. Add Drizzle model and generated types for binding table.
-3. Add dedicated `ServiceLinkedResourceRepository` methods for active binding
-   lookup.
+1. Add `iam.resource_management` and `iam.service_linked_resource` tables,
+   constraints and indexes.
+2. Add Drizzle models and generated types for management and binding tables.
+3. Add dedicated `ServiceLinkedResourceRepository` methods for authoritative
+   management mode and active binding lookup.
 4. Extend GraphQL `Application.management` with a dedicated read-only field
    resolver/loader from binding lookup; do not change application or
    organization repositories.
@@ -967,8 +1044,9 @@ safeDiff allowlist only
    `createServiceLinked*` actions for backward compatibility.
 10. Update external services, starting with `project`, to pass service-linked
    ownership context when they create IAM-owned protected resources.
-11. IAM action boundary creates resource + binding transactionally for any
-   registered protected resource kind created by external services.
+11. IAM action boundary creates resource + management state + optional service
+   binding transactionally for any registered protected resource kind created
+   by external services.
 12. Add contract tests.
 13. Run build when code implementation is complete.
 
@@ -999,14 +1077,16 @@ safeDiff allowlist only
 ## 16. Acceptance criteria
 
 - `iam.application` schema remains unchanged.
-- Service-linked state is stored in separate IAM binding table.
+- Authoritative management mode is stored in `iam.resource_management`; linked
+  owner metadata is stored separately in `iam.service_linked_resource`.
 - The binding model is generic and is not limited to a fixed resource-kind list.
 - Service-linked resources can be visible through resource-specific read APIs as
   read-only managed resources.
 - IAM-managed service-linked application is only an example, not a boundary of
   the mechanism.
-- Generic Admin GraphQL mutations cannot update resources with active
-  service-linked binding because `@ProtectedResource` denies the write.
+- Generic Admin GraphQL mutations can update only consistent `organization`
+  resources; `service`, missing, or inconsistent management state is denied by
+  `@ProtectedResource`.
 - Service-aware external path can update its own linked resource through
   combined RBAC and protected-resource predicates.
 - Existing business mutation implementations are not duplicated for
@@ -1028,5 +1108,6 @@ safeDiff allowlist only
   linkedOwnerId`.
 - External service actions are service-linked aware and old calls without the new
   management contract are not preserved for backward compatibility.
-- Admin-created resources have no active service-linked binding by default.
+- Admin-created resources use `managementMode: "organization"` and have no
+  active service-linked binding by default.
 - RBAC resources/domains remain unchanged.
