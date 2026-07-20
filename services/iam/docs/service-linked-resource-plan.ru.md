@@ -525,9 +525,10 @@ error mapper, но эти details не должны становиться ча�
 ### 8.4. Admin write integration
 
 В generic organization mutations service-linked enforcement должен происходить
-через существующий authorization call, до `requireScope()` или до write
-execution. Локальный `assertAuthorized()` может остаться wrapper-ом, но он должен
-передавать `protectedResource` в Policy/AuthProvider:
+через Policy boundary до входа в business service method. Boundary adapter
+resolver/action обязан передавать `protectedResource` в Policy/AuthProvider.
+Business service methods и их local authorization helpers не изменяются ради
+service-linked:
 
 ```ts
 executeExisting({
@@ -542,7 +543,89 @@ executeExisting({
 
 Read-only queries не вызывают этот guard.
 
-### 8.5. Internal management policy
+### 8.5. Policy hookup points
+
+Policy подключается не в `services/iam/src/services`, а в authorization
+infrastructure и boundary adapters.
+
+Обязательные точки подключения:
+
+1. `packages/shared-kernel/src/decorators/Authorize.ts`
+   - расширить `PolicyOptions` / `AuthorizeParams` generic полями
+     `protectedResource` и `linkedOwner`;
+   - `@Policy` должен вычислять эти поля из params до вызова target method;
+   - target method не должен получать service-linked DTO fields.
+
+2. `packages/type-resolver/src/middleware/authorization/*`
+   - если GraphQL mutation boundary использует type-resolver authorization
+     middleware, расширить соответствующий GraphQL policy options теми же
+     generic callbacks;
+   - `@TypePolicy` для read остается read-only authorization и не является
+     write enforcement point.
+
+3. `services/iam/src/kernel/Authorizable.ts`
+   - IAM `AuthProvider.authorize()` принимает расширенный `AuthorizeParams`;
+   - после обычной RBAC decision выполняет generic service-linked binding lookup
+     только если передан `protectedResource` или `linkedOwner`;
+   - lookup идет через `ServiceLinkedResourceRepository`, не через resource
+     repositories.
+
+4. GraphQL Admin mutation boundary adapters, e.g.
+   `services/iam/src/resolvers/admin/ApplicationMutationResolver.ts`
+   - сейчас mutations имеют `@ZodResolver` и затем вызывают business services;
+   - v1 должен добавить Policy boundary перед вызовом business service:
+     через `@Policy`/GraphQL policy decorator или через small boundary helper,
+     который вызывает `authProvider.authorize({ protectedResource })`;
+   - это boundary-level изменение. Нельзя переносить check внутрь
+     `applicationAuthAdminManagement` или `applicationOAuthClientManagement`.
+
+5. Broker/script boundary adapters that already use `@Policy`
+   - для future protected resource kinds добавлять `protectedResource` callback
+     в existing `@Policy` declaration;
+   - не добавлять service-linked checks в script/service body.
+
+V1 GraphQL Admin mapping examples:
+
+```text
+applicationUpdate:
+  protectedResource = {
+    organizationId,
+    resourceKind: "application",
+    resourceId: applicationId
+  }
+
+applicationAuthUpdate / method/provider mutations:
+  protectedResource = {
+    organizationId,
+    resourceKind: "application",
+    resourceId: applicationId
+  }
+
+oauth client update/archive/rotate:
+  protectedResource = {
+    organizationId,
+    resourceKind: "oauth_client",
+    resourceId: oauthClientResourceId
+  }
+```
+
+Если mutation input не содержит stable `resourceId` нужного protected kind
+например OAuth client mutations use public `clientId`, boundary adapter обязан
+резолвить generic protected resource id до Policy call через dedicated lookup
+port/loader. Этот lookup не должен жить в business service и не должен менять
+resource repository scopes.
+
+Implementation checklist для подключения Policy:
+
+```text
+1. Extend Policy/AuthorizeParams contract.
+2. Extend IAM AuthProvider with service-linked decision branch.
+3. Add ServiceLinkedResourceRepository generic lookup methods.
+4. Add boundary adapter mapping from mutation params to protectedResource.
+5. Keep service methods and resource repositories unchanged.
+```
+
+### 8.6. Internal management policy
 
 Добавить отдельный internal management wrapper / broker action, который вызывает
 Policy/AuthProvider as linked owner, но не отдельную копию бизнес-операции:
@@ -573,7 +656,7 @@ Internal wrapper не должен обходить revision, validation, audit 
 Он не должен копировать patch construction из generic mutation. Отличие только в
 Policy authorization source.
 
-### 8.6. Code evidence for required changes
+### 8.7. Code evidence for required changes
 
 Каждое требуемое изменение должно иметь code evidence: текущую точку в коде,
 наблюдаемый gap и целевое изменение. Без такой привязки изменение не считается
@@ -583,12 +666,13 @@ Policy authorization source.
 | --- | --- | --- | --- |
 | Generic service-linked enforcement должен идти через Policy/AuthProvider | `services/iam/src/kernel/Authorizable.ts`: `authorize(params)` уже является IAM authorization boundary: subject resolution, site admin bypass, organization owner bypass, Casbin check | `AuthorizeParams` сейчас содержит только RBAC `resource/action/domain/organizationId`; нет generic `protectedResource`/`linkedOwner` context | Расширить `AuthorizeParams` и IAM `AuthProvider.authorize()` generic service-linked decision logic |
 | `@Policy` должен уметь передавать generic protected resource reference | `knowledge/vault/packages/shared-kernel/decorators.md` описывает `PolicyOptions`: `resource`, `action`, `organizationId`, optional `domain` | `PolicyOptions` не содержит resolver для concrete protected resource | Расширить Policy contract generic callbacks: `protectedResource?: (self, params) => ProtectedResourceRef`, `linkedOwner?: ...` |
-| Protected write wrappers должны передавать concrete resource identity до business logic | `ApplicationAuthAdminManagementService.assertAuthorized()` и `ApplicationOAuthClientManagementService.executeWrite()` вызывают `authorizer.authorize()` до `requireScope()` / write execution | Authorization wrappers передают только RBAC context; конкретный protected resource id не передается | Расширить локальные authorization wrappers generic параметром `protectedResource`; application/OAuth являются только первыми call sites |
+| GraphQL mutation boundary должен подключать Policy до service call | `services/iam/src/resolvers/admin/ApplicationMutationResolver.ts` methods сейчас имеют `@ZodResolver` и затем вызывают business services | Boundary выполняет validation, decode и service call, но не имеет Policy hook с `protectedResource` | Добавить Policy-aware boundary decorator/helper around resolver methods; service methods не изменять |
+| Boundary adapters должны передавать concrete resource identity до входа в business service | `@Policy` pattern из `knowledge/vault/packages/shared-kernel/decorators.md` выполняет authorization before method execution и принимает params-derived context | Текущий Policy contract не умеет params-derived `protectedResource`; service-local authorization wrappers не являются допустимым местом для linked-service enforcement | Расширить Policy contract и использовать GraphQL/broker boundary adapters для `protectedResource`; business services остаются без service-linked changes |
 | Business scopes любых protected resources не должны содержать service-linked details | `ApplicationAuthAdminMutationScope` и `ApplicationOAuthClientManagementScope` содержат только business state, нужный соответствующим mutations | Это правильная граница, которую нельзя ломать для любых будущих resource kinds | Не добавлять `serviceLinkedBinding` в business scopes; active binding lookups выполняются только Policy/AuthProvider layer |
 | Resource-specific repositories не должны получать service-linked joins | `ApplicationRepository` выбирает application/auth/organization данные без service-linked ownership; organization repositories не участвуют в binding lookup | Read/write repositories конкретных моделей не должны становиться ownership-aware | Любые management projections строить dedicated field resolver / loader; enforcement lookup только через `ServiceLinkedResourceRepository` в Policy layer |
 | Generic provisioning DTO любого resource kind не должен знать `serviceLinked` | `ProvisionApplicationInput` сейчас является примером generic create DTO без ownership metadata | Добавление `serviceLinked` в create DTO привяжет ownership к business create path | Internal orchestrator создает binding отдельно в той же transaction; правило применяется ко всем future protected resource kinds |
 | Нужен dedicated binding repository для Policy layer | `Repository` агрегирует существующие repositories; dedicated `ServiceLinkedResourceRepository` отсутствует в current tree | Policy/AuthProvider не имеет generic lookup helper для binding | Добавить `ServiceLinkedResourceRepository` с generic methods `findActiveByResource`, `findActiveLinkedOwner`, `createBinding` |
-| Denial metadata должен маппиться в audit без протекания в business scope | Admin/OAuth audit wrappers уже централизуют failure audit вокруг authorization/write wrappers | Сейчас authorization возвращает boolean, поэтому нет typed denial reason/details | Расширить Policy/AuthProvider result/error mapping так, чтобы `RESOURCE_SERVICE_LINKED` и safe diff формировались у boundary/error mapper, не в business mutation |
+| Denial metadata должен маппиться в audit без протекания в business scope | Existing audit ports support safe failure records around Admin writes | Сейчас authorization возвращает boolean, поэтому нет typed denial reason/details | Расширить Policy/AuthProvider result/error mapping так, чтобы `RESOURCE_SERVICE_LINKED` и safe diff формировались у boundary/error mapper, не в business mutation |
 
 Implementation PR must keep this evidence table true. Если код меняется так, что
 evidence устаревает, план нужно обновить до реализации.
@@ -785,16 +869,19 @@ safeDiff allowlist only
    organization repositories.
 5. Extend `Policy` / `AuthorizeParams` to accept `protectedResource` and
    `linkedOwner` context.
-6. Keep existing business scopes free of `linkedService`, `linkedOwnerType`,
+6. Hook Policy into GraphQL/broker boundary adapters for protected writes,
+   including `ApplicationMutationResolver` v1 methods, before business service
+   calls.
+7. Keep existing business scopes free of `linkedService`, `linkedOwnerType`,
    `linkedOwnerId` and `serviceLinkedBinding`.
-7. Add service-linked binding checks inside IAM `AuthProvider` / Policy decision
+8. Add service-linked binding checks inside IAM `AuthProvider` / Policy decision
    flow, using `ServiceLinkedResourceRepository`.
-8. Add internal IAM broker/orchestrator action that authorizes as linked owner
+9. Add internal IAM broker/orchestrator action that authorizes as linked owner
    through Policy and then reuses existing business mutation implementation.
-9. Update IAM internal provisioning orchestrator to create resource + binding
+10. Update IAM internal provisioning orchestrator to create resource + binding
    transactionally without changing generic create DTOs.
-10. Add contract tests.
-11. Run build when code implementation is complete.
+11. Add contract tests.
+12. Run build when code implementation is complete.
 
 ## 14. Open decisions
 
