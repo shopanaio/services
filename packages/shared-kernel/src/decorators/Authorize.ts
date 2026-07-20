@@ -5,9 +5,7 @@ import type {
   ActionsForResource,
   Authorizable,
   BrokerAuthorizeParams,
-  ProtectedResourceRef,
 } from "@shopana/rbac";
-import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
 
 // Re-export from rbac for backwards compatibility
 export type {
@@ -15,6 +13,7 @@ export type {
   BrokerAuthorizeParams,
   AuthProvider,
   Authorizable,
+  ProtectedResourceAuthorizeParams,
 } from "@shopana/rbac";
 
 /**
@@ -39,44 +38,6 @@ export class AuthorizationError extends Error {
  * @template TSelf - Type of the script instance
  * @template R - Resource type (typed to valid resources from @shopana/rbac)
  */
-type ProtectedResourceResolver<
-  TParams,
-  TSelf extends Authorizable,
-  TResource extends ProtectedResourceRef = ProtectedResourceRef
-> =
-  | TResource
-  | ((
-      self: TSelf,
-      params: TParams
-    ) => TResource | null | undefined);
-
-type ProtectedResourcePolicy<TParams, TSelf extends Authorizable> =
-  | {
-      /**
-       * The policy does not require a concrete resource identity.
-       * Suitable for collection-level operations and resource creation.
-       */
-      protectedResourceMode?: "optional";
-      protectedResource?: ProtectedResourceResolver<
-        TParams,
-        TSelf,
-        ProtectedResourceRef & { ownerType: string; ownerId: string }
-      >;
-    }
-  | {
-      /**
-       * The policy protects an existing resource whose service-linked binding
-       * must be checked. Authorization fails closed when the resolver cannot
-       * provide the concrete resource identity.
-       */
-      protectedResourceMode: "required";
-      protectedResource: ProtectedResourceResolver<
-        TParams,
-        TSelf,
-        ProtectedResourceRef & { ownerType: string; ownerId: string }
-      >;
-    };
-
 export type AuthorizeOptions<
   TParams = unknown,
   TSelf extends Authorizable = Authorizable,
@@ -103,7 +64,7 @@ export type AuthorizeOptions<
   domain?: Domain | ((self: TSelf, params: TParams) => Domain | string);
   /** Subject (user ID) for authorization. */
   subject?: string | ((self: TSelf, params: TParams) => string);
-} & ProtectedResourcePolicy<TParams, TSelf>;
+};
 
 type PolicyDecorator = <T>(
   _target: object,
@@ -186,58 +147,15 @@ export function Policy<
           ? options.subject(this, params)
           : options.subject;
 
-      const protectedResource =
-        typeof options.protectedResource === "function"
-          ? options.protectedResource(this, params)
-          : options.protectedResource;
-
-      if (
-        (options.protectedResourceMode === "required" && !protectedResource) ||
-        (protectedResource &&
-          (!protectedResource.ownerType?.trim() ||
-            !protectedResource.ownerId?.trim()))
-      ) {
-        throw new AuthorizationError(
-          [
-            {
-              code: "PROTECTED_RESOURCE_REQUIRED",
-              message: `Access denied: protected resource owner type and ID are required for ${options.resource}:${options.action}`,
-              field: null,
-            },
-          ],
-          options.resource,
-          options.action
-        );
-      }
-
-      let allowed: boolean;
-      try {
-        const authorizeParams: BrokerAuthorizeParams = {
-          resource: options.resource,
-          action: options.action,
-          organizationId,
-          organizationName,
-          domain,
-          subject,
-          protectedResource: protectedResource ?? undefined,
-        };
-        allowed = await this.authProvider.authorize(authorizeParams);
-      } catch (error) {
-        if (error instanceof ServiceLinkedResourceAuthorizationError) {
-          throw new AuthorizationError(
-            [
-              {
-                code: error.code,
-                message: error.message,
-                field: null,
-              },
-            ],
-            options.resource,
-            options.action
-          );
-        }
-        throw error;
-      }
+      const authorizeParams: BrokerAuthorizeParams = {
+        resource: options.resource,
+        action: options.action,
+        organizationId,
+        organizationName,
+        domain,
+        subject,
+      };
+      const allowed = await this.authProvider.authorize(authorizeParams);
 
       if (!allowed) {
         throw new AuthorizationError(

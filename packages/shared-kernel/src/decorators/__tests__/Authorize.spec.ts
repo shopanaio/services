@@ -1,111 +1,33 @@
-import type {
-  AuthProvider,
-  AuthorizeParams,
-  ProtectedResourceRef,
-} from "@shopana/rbac";
+import type { AuthProvider, AuthorizeParams } from "@shopana/rbac";
 import { Policy } from "../Authorize.js";
 
-type OwnedProtectedResource = ProtectedResourceRef & {
-  ownerType: string;
-  ownerId: string;
-};
+describe("Policy RBAC contract", () => {
+  it("passes only RBAC context to the authorization provider", async () => {
+    const script = new PolicyScript();
 
-const protectedApplication: OwnedProtectedResource = {
-  organizationId: "018f8f6d-7980-7000-9000-000000000001",
-  resourceKind: "application",
-  resourceId: "018f8f6d-7980-7000-9000-000000000010",
-  ownerType: "store",
-  ownerId: "018f8f6d-7980-7000-9000-000000000020",
-};
-
-describe("Policy protected resource contract", () => {
-  it("fails closed when a required protected resource is missing", async () => {
-    const script = new RequiredProtectedResourceScript(null);
-
-    await expect(script.run()).rejects.toMatchObject({
-      errors: [
-        expect.objectContaining({ code: "PROTECTED_RESOURCE_REQUIRED" }),
-      ],
+    await expect(script.run({ organizationId: "org-id" })).resolves.toBe(
+      "executed"
+    );
+    expect(script.authProvider.authorize).toHaveBeenCalledWith({
+      resource: "org.applications",
+      action: "write",
+      organizationId: "org-id",
+      organizationName: undefined,
+      domain: undefined,
+      subject: undefined,
     });
-    expect(script.authProvider.authorize).not.toHaveBeenCalled();
-  });
-
-  it("passes a required protected resource to the authorization provider", async () => {
-    const script = new RequiredProtectedResourceScript(protectedApplication);
-
-    await expect(script.run()).resolves.toBe("executed");
-    expect(script.authProvider.authorize).toHaveBeenCalledWith(
-      expect.objectContaining({ protectedResource: protectedApplication })
-    );
-  });
-
-  it.each([
-    {
-      ...protectedApplication,
-      ownerType: undefined,
-    },
-    {
-      ...protectedApplication,
-      ownerId: undefined,
-    },
-  ])(
-    "fails closed when a required protected resource owner claim is incomplete",
-    async (protectedResource) => {
-      const script = new RequiredProtectedResourceScript(
-        protectedResource as unknown as OwnedProtectedResource
-      );
-
-      await expect(script.run()).rejects.toMatchObject({
-        errors: [
-          expect.objectContaining({ code: "PROTECTED_RESOURCE_REQUIRED" }),
-        ],
-      });
-      expect(script.authProvider.authorize).not.toHaveBeenCalled();
-    }
-  );
-
-  it("keeps collection-level policies valid without a protected resource", async () => {
-    const script = new CollectionPolicyScript();
-
-    await expect(script.run()).resolves.toBe("executed");
-    expect(script.authProvider.authorize).toHaveBeenCalledWith(
-      expect.objectContaining({ protectedResource: undefined })
-    );
   });
 });
 
-class RequiredProtectedResourceScript {
+class PolicyScript {
   readonly authProvider = createAuthProvider();
 
-  constructor(
-    private readonly protectedResource:
-      | OwnedProtectedResource
-      | null
-  ) {}
-
-  @Policy<void, RequiredProtectedResourceScript>({
+  @Policy<{ organizationId: string }, PolicyScript>({
     resource: "org.applications",
     action: "write",
-    organizationId: (self) =>
-      self.protectedResource?.organizationId ??
-      "018f8f6d-7980-7000-9000-000000000001",
-    protectedResourceMode: "required",
-    protectedResource: (self) => self.protectedResource,
+    organizationId: (_self, params) => params.organizationId,
   })
-  async run(): Promise<string> {
-    return "executed";
-  }
-}
-
-class CollectionPolicyScript {
-  readonly authProvider = createAuthProvider();
-
-  @Policy<void, CollectionPolicyScript>({
-    resource: "org.applications",
-    action: "write",
-    organizationId: "018f8f6d-7980-7000-9000-000000000001",
-  })
-  async run(): Promise<string> {
+  async run(_params: { organizationId: string }): Promise<string> {
     return "executed";
   }
 }
@@ -116,5 +38,6 @@ function createAuthProvider(): AuthProvider & {
   return {
     subject: "platform-user",
     authorize: jest.fn(async (_params: AuthorizeParams) => true),
+    authorizeProtectedResource: jest.fn(async () => true),
   };
 }

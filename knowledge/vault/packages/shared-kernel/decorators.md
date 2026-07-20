@@ -211,39 +211,36 @@ async updatePrice(params: UpdatePriceInput): Promise<Product> {
 
 ### With Service-Linked Resource Protection
 
-Policies that mutate an existing resource whose lifecycle can be owned by a
-linked service must opt into the required protected-resource contract:
+`@Policy` contains only RBAC context. Mutations of resources whose lifecycle
+can be owned by another service add the independent `@ProtectedResource`
+decorator. Decorator order keeps RBAC as the outer, first check:
 
 ```typescript
 @Policy<UpdateApplicationInput>({
   resource: "org.applications",
   action: "write",
   organizationId: (_self, params) => params.organizationId,
-  protectedResourceMode: "required",
-  protectedResource: (_self, params) => ({
-    organizationId: params.organizationId,
-    resourceKind: "application",
-    resourceId: params.applicationId,
-    ownerType: "store",
-    ownerId: params.storeId,
-  }),
 })
+@ProtectedResource<[UpdateApplicationInput], ApplicationActions>((params) => ({
+  organizationId: params.organizationId,
+  resourceKind: "application",
+  resourceId: params.applicationId,
+  ownerType: "store",
+  ownerId: params.storeId,
+}))
 async updateApplication(params: UpdateApplicationInput): Promise<Application> {
   return this.applicationService.update(params);
 }
 ```
 
-`protectedResourceMode: "required"` is fail-closed and requires both
-`ownerType` and `ownerId`. If
-the resolver cannot produce a concrete resource identity with its owner,
-`@Policy` returns an authorization error
-with code `PROTECTED_RESOURCE_REQUIRED` before calling the authorization
-provider. When the identity is present, IAM checks its active service-linked
-binding as part of authorization. A linked-service caller is taken only from
-the trusted broker call context; it must not be supplied through policy params.
+`@ProtectedResource` is fail-closed when it cannot resolve a concrete resource.
+`ownerType` and `ownerId` are optional for a generic Admin path, but must be
+provided together for a linked-service owner claim. IAM checks the active
+binding independently from Casbin. The linked-service caller comes only from
+trusted broker context and is never supplied through decorator params.
 
-Collection operations and resource creation, where no existing resource
-identity exists yet, omit `protectedResourceMode`.
+Collection operations and resource creation omit `@ProtectedResource` because
+no existing protected resource identity exists yet.
 
 ### Authorization Error
 
@@ -277,12 +274,13 @@ interface PolicyOptions<TParams> {
   action: string;
   organizationId: (self: Authorizable, params: TParams) => string;
   domain?: (self: Authorizable, params: TParams) => string;
-  protectedResourceMode?: "optional" | "required";
-  protectedResource?:
-    | (ProtectedResourceRef & { ownerType: string; ownerId: string })
-    | ((self: Authorizable, params: TParams) =>
-        (ProtectedResourceRef & { ownerType: string; ownerId: string }) | null | undefined);
 }
+
+function ProtectedResource<TArgs extends unknown[], TSelf extends Authorizable>(
+  resolver:
+    | ProtectedResourceRef
+    | ((...args: TArgs) => ProtectedResourceRef | null | undefined)
+): MethodDecorator
 
 interface Authorizable {
   readonly authProvider: AuthProvider;
@@ -290,6 +288,9 @@ interface Authorizable {
 
 interface AuthProvider {
   authorize(params: AuthorizeParams): Promise<boolean>;
+  authorizeProtectedResource(
+    params: { protectedResource: ProtectedResourceRef }
+  ): Promise<boolean>;
   getCurrentUserId(): string | null;
 }
 ```

@@ -102,18 +102,12 @@ export function createAuthorizationMiddleware<TContext = unknown>(
           ? policy.subject(instance)
           : policy.subject;
 
-      const protectedResource =
-        typeof policy.protectedResource === "function"
-          ? policy.protectedResource(instance)
-          : policy.protectedResource;
-
       const authorizeParams: BrokerAuthorizeParams = {
         resource: policy.resource,
         action: policy.action,
         organizationId,
         domain,
         subject: subject ?? undefined,
-        protectedResource: protectedResource ?? undefined,
       };
       const allowed = await instance.authProvider.authorize(authorizeParams);
 

@@ -6,8 +6,13 @@ export {
   type AuthProvider,
   type AuthorizeParams,
   type BrokerAuthorizeParams,
+  type ProtectedResourceAuthorizeParams,
   type AuthorizeOptions,
 } from "./Authorize.js";
+export {
+  ProtectedResource,
+  type ProtectedResourceResolver,
+} from "./ProtectedResource.js";
 export {
   Action,
   ACTION_METADATA_KEY,

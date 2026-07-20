@@ -1,5 +1,6 @@
 export * from "./AssignRoleDto.js";
 export * from "./AuthorizeDto.js";
+export * from "./ProtectedResourceAuthorizeDto.js";
 export * from "./BatchAuthorizeDto.js";
 export * from "./CreateRolesDto.js";
 export * from "./MemberAccessRemoveDto.js";

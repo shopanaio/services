@@ -80,9 +80,11 @@ create event caller contexts.
 calling broker injects its configured service name before starting the durable
 workflow, and the events service persists that value as `event.source`.
 
-Authorization inputs must not contain a caller service name. Service-linked
-policies pass only the concrete `protectedResource`; IAM compares its binding
-with `context.caller.service`.
+Authorization inputs must not contain a caller service name. The independent
+`@ProtectedResource` boundary passes only the concrete resource identity to
+`iam.authorizeProtectedResource`; IAM compares its binding with
+`context.caller.service`. Ordinary `@Policy`/`iam.authorize` inputs remain pure
+RBAC and contain no protected-resource fields.
 
 ## API Reference
 

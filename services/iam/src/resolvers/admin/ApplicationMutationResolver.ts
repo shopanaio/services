@@ -1,5 +1,6 @@
 import { ZodResolver } from "@shopana/type-resolver";
 import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
+import { ProtectedResource } from "@shopana/shared-kernel";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -67,13 +68,19 @@ type UserError = {
   field: string[] | null;
 };
 
-type ApplicationProtectedAction = "write" | "admin";
-
 const APPLICATIONS_RESOURCE = "org.applications";
 const AUTH_RESOURCE = "org.application-auth";
 const PROVIDERS_RESOURCE = "org.application-auth-providers";
 const OAUTH_CLIENT_RESOURCE = "org.application-oauth-clients";
 const USERS_RESOURCE = "org.application-users";
+
+type ApplicationProtectedAction = "write" | "admin";
+type ApplicationProtectedResource =
+  | typeof APPLICATIONS_RESOURCE
+  | typeof AUTH_RESOURCE
+  | typeof PROVIDERS_RESOURCE
+  | typeof OAUTH_CLIENT_RESOURCE
+  | typeof USERS_RESOURCE;
 
 interface GraphqlRejectionAudit {
   action: ApplicationAuthAdminAuditAction;
@@ -851,7 +858,7 @@ export class ApplicationMutationResolver extends IAMType<
       organizationId: string;
       applicationId: string;
     },
-    resource: string,
+    resource: ApplicationProtectedResource,
     action: ApplicationProtectedAction = "write"
   ): Promise<void> {
     const organizationId = decodeOrganizationId(input.organizationId);
@@ -862,15 +869,25 @@ export class ApplicationMutationResolver extends IAMType<
       domain: "org",
       resource,
       action,
-      protectedResource: {
-        organizationId,
-        resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
-        resourceId: applicationId,
-      },
     });
     if (!allowed) {
       throw new ApplicationMutationBoundaryAuthorizationError();
     }
+    await this.assertApplicationProtectedResource(input);
+  }
+
+  @ProtectedResource<
+    [input: { organizationId: string; applicationId: string }],
+    ApplicationMutationResolver
+  >((input) => ({
+    organizationId: decodeOrganizationId(input.organizationId),
+    resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+    resourceId: decodeApplicationId(input.applicationId),
+  }))
+  private async assertApplicationProtectedResource(
+    _input: { organizationId: string; applicationId: string }
+  ): Promise<void> {
+    // Enforcement is provided by @ProtectedResource.
   }
 
   private async failure<TField extends string>(

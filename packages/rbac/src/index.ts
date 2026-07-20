@@ -24,6 +24,7 @@ export type {
   ActionsForResource,
   AuthorizeParams,
   BrokerAuthorizeParams,
+  ProtectedResourceAuthorizeParams,
   AuthProvider,
   Authorizable,
   BasePolicyOptions,

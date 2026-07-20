@@ -119,7 +119,6 @@ export interface BrokerAuthorizeParams {
   domain?: string;
   resource: string;
   action: string;
-  protectedResource?: ProtectedResourceRef;
 }
 
 export type AuthorizeParams = BrokerAuthorizeParams;
@@ -129,8 +128,6 @@ export type AuthorizeDeniedCode = "RESOURCE_SERVICE_LINKED";
 export interface AuthorizeResult {
   allowed: boolean;
   deniedReason?: string;
-  deniedCode?: AuthorizeDeniedCode;
-  serviceLinkedDetails?: ServiceLinkedAuthorizationDetails;
 }
 
 export interface BatchAuthorizeRequest {
@@ -138,7 +135,17 @@ export interface BatchAuthorizeRequest {
   domain?: string;
   resource: string;
   action: string;
-  protectedResource?: ProtectedResourceRef;
+}
+
+export interface ProtectedResourceAuthorizeParams {
+  protectedResource: ProtectedResourceRef;
+}
+
+export interface ProtectedResourceAuthorizeResult {
+  allowed: boolean;
+  deniedReason?: string;
+  deniedCode?: AuthorizeDeniedCode;
+  serviceLinkedDetails?: ServiceLinkedAuthorizationDetails;
 }
 
 export interface BatchAuthorizeParams {

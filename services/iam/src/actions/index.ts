@@ -39,6 +39,12 @@ import {
   type AuthorizeResult,
 } from "../scripts/organization/dto/AuthorizeDto.js";
 import {
+  protectedResourceAuthorizeInputSchema,
+  type ProtectedResourceAuthorizeParams,
+  type ProtectedResourceAuthorizeResult,
+} from "../scripts/organization/dto/ProtectedResourceAuthorizeDto.js";
+import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
+import {
   batchAuthorizeInputSchema,
   type BatchAuthorizeParams,
   type BatchAuthorizeResult,
@@ -200,9 +206,35 @@ export class IamBrokerActions extends BrokerActions {
         domain: params.domain ?? ORG_DOMAIN,
         resource: params.resource,
         action: params.action,
-        protectedResource: params.protectedResource,
       }),
     );
+  }
+
+  /** Check service-linked mutability independently from user RBAC. */
+  @Action("authorizeProtectedResource")
+  @ZodSchema(protectedResourceAuthorizeInputSchema)
+  async authorizeProtectedResource(
+    params: ProtectedResourceAuthorizeParams,
+    brokerCallContext: BrokerCallContext,
+  ): Promise<ProtectedResourceAuthorizeResult> {
+    const ctx = await this.createUserContext("", brokerCallContext);
+    return runWithContext(ctx, async () => {
+      try {
+        return {
+          allowed: await new AuthProvider().authorizeProtectedResource(params),
+        };
+      } catch (error) {
+        if (error instanceof ServiceLinkedResourceAuthorizationError) {
+          return {
+            allowed: false,
+            deniedReason: error.message,
+            deniedCode: error.code,
+            serviceLinkedDetails: error.details,
+          };
+        }
+        throw error;
+      }
+    });
   }
 
   /**

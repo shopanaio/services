@@ -6,13 +6,6 @@ export interface AuthRequest {
   resource: string;
   action: string;
   domain?: string;
-  protectedResource?: {
-    organizationId: string;
-    resourceKind: string;
-    resourceId: string;
-    ownerType?: string;
-    ownerId?: string;
-  };
 }
 
 interface BatchAuthorizeResult {
@@ -59,7 +52,6 @@ export function createAuthorizationLoader(broker: Broker) {
                   domain: request.domain,
                   resource: request.resource,
                   action: request.action,
-                  protectedResource: request.protectedResource,
                 })),
               }
             )) as BatchAuthorizeResult;
@@ -83,7 +75,6 @@ export function createAuthorizationLoader(broker: Broker) {
           req.domain ?? "",
           req.resource,
           req.action,
-          req.protectedResource ?? null,
         ]),
     }
   );

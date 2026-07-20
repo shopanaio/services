@@ -3,6 +3,7 @@ import {
   type AuthProvider as IAuthProvider,
   type AuthorizeParams,
   type BrokerAuthorizeResult,
+  type ProtectedResourceAuthorizeParams,
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { ReviewsKernelServices } from "./types.js";
@@ -33,9 +34,19 @@ export class AuthProvider implements IAuthProvider {
       resource: params.resource,
       action: params.action,
       domain,
-      protectedResource: params.protectedResource,
     })) as BrokerAuthorizeResult;
 
+    throwIfBrokerAuthorizeDenied(result);
+    return result.allowed;
+  }
+
+  async authorizeProtectedResource(
+    params: ProtectedResourceAuthorizeParams
+  ): Promise<boolean> {
+    const result = (await this.services.broker.call(
+      "iam.authorizeProtectedResource",
+      params
+    )) as BrokerAuthorizeResult;
     throwIfBrokerAuthorizeDenied(result);
     return result.allowed;
   }

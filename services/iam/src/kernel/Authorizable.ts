@@ -4,6 +4,7 @@ import type {
 } from "@shopana/shared-kernel";
 import {
   ServiceLinkedResourceAuthorizationError,
+  type ProtectedResourceAuthorizeParams,
   validateAuthorizeInput,
 } from "@shopana/rbac";
 import type { IamKernelServices } from "./types.js";
@@ -14,8 +15,6 @@ import {
   type Resource,
 } from "../casbin/CasbinService.js";
 import {
-  isIamServiceLinkedPermission,
-  isServiceLinkedWriteAction,
   matchesServiceLinkedOwner,
 } from "../service-linked/resources.js";
 
@@ -64,12 +63,6 @@ export class AuthProvider implements IAuthProvider {
     }
 
     const domain = params.domain ?? "org";
-    if (
-      params.protectedResource &&
-      params.protectedResource.organizationId !== organizationId
-    ) {
-      return false;
-    }
     // Validate authorization input against @shopana/rbac definitions
     // Must happen BEFORE owner bypass to reject invalid domains
     const validation = validateAuthorizeInput({
@@ -108,12 +101,6 @@ export class AuthProvider implements IAuthProvider {
       }));
     if (!baseAllowed) return false;
 
-    const protectedResourceDecision =
-      await this.authorizeProtectedResource(params);
-    if (protectedResourceDecision !== null) {
-      return baseAllowed && protectedResourceDecision;
-    }
-
     return true;
   }
 
@@ -127,30 +114,19 @@ export class AuthProvider implements IAuthProvider {
     });
   }
 
-  private async authorizeProtectedResource(
-    params: AuthorizeParams
-  ): Promise<boolean | null> {
-    if (
-      !params.protectedResource ||
-      !isServiceLinkedWriteAction(params.action)
-    ) {
-      return null;
-    }
+  async authorizeProtectedResource(
+    params: ProtectedResourceAuthorizeParams
+  ): Promise<boolean> {
     const binding =
       await this.services.repository.serviceLinkedResource.findActiveByResource(
         params.protectedResource
       );
-    if (!binding) return null;
+    if (!binding) return true;
 
     const caller = getContext().brokerCallContext?.caller;
     if (
       caller?.service === binding.linkedService &&
-      matchesServiceLinkedOwner(params.protectedResource, binding) &&
-      isIamServiceLinkedPermission(
-        binding.resourceKind,
-        params.resource,
-        params.action
-      )
+      matchesServiceLinkedOwner(params.protectedResource, binding)
     ) {
       return true;
     }

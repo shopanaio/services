@@ -1,5 +1,4 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { ServiceLinkedResourceAuthorizationError } from "@shopana/rbac";
 import type { AuthorizeParams, AuthorizeResult } from "./dto/AuthorizeDto.js";
 
 /**
@@ -18,7 +17,6 @@ export class AuthorizeScript extends BaseScript<
       domain,
       resource,
       action,
-      protectedResource,
     } = params;
 
     // Use authorize method (handles admin check, name resolution, casbin)
@@ -29,7 +27,6 @@ export class AuthorizeScript extends BaseScript<
       resource,
       action,
       subject,
-      protectedResource,
     });
 
     return {
@@ -41,15 +38,6 @@ export class AuthorizeScript extends BaseScript<
   }
 
   protected handleError(error: unknown): AuthorizeResult {
-    if (error instanceof ServiceLinkedResourceAuthorizationError) {
-      return {
-        allowed: false,
-        deniedReason: error.message,
-        deniedCode: error.code,
-        serviceLinkedDetails: error.details,
-      };
-    }
-
     return {
       allowed: false,
       deniedReason:

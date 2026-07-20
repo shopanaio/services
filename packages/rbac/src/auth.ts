@@ -50,10 +50,13 @@ export interface BrokerAuthorizeParams {
   domain?: string;
   resource: string;
   action: string;
-  protectedResource?: ProtectedResourceRef;
 }
 
 export type AuthorizeParams = BrokerAuthorizeParams;
+
+export interface ProtectedResourceAuthorizeParams {
+  protectedResource: ProtectedResourceRef;
+}
 
 export class ServiceLinkedResourceAuthorizationError extends Error {
   readonly code = "RESOURCE_SERVICE_LINKED";
@@ -75,6 +78,9 @@ export interface AuthProvider {
   /** Current subject (user ID) for authorization checks. */
   subject: string | null;
   authorize(params: AuthorizeParams): Promise<boolean>;
+  authorizeProtectedResource(
+    params: ProtectedResourceAuthorizeParams
+  ): Promise<boolean>;
 }
 
 /**
