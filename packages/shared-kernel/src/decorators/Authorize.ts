@@ -113,7 +113,13 @@ export function Policy<
       params: TParams,
       ...args: unknown[]
     ): Promise<unknown> {
-      if (!this.authProvider.subject) {
+      const subject =
+        typeof options.subject === "function"
+          ? options.subject(this, params)
+          : options.subject;
+      const effectiveSubject = subject ?? this.authProvider.subject;
+
+      if (!effectiveSubject) {
         throw new AuthorizationError(
           [
             {
@@ -141,11 +147,6 @@ export function Policy<
         typeof options.domain === "function"
           ? options.domain(this, params)
           : options.domain;
-
-      const subject =
-        typeof options.subject === "function"
-          ? options.subject(this, params)
-          : options.subject;
 
       const authorizeParams: BrokerAuthorizeParams = {
         resource: options.resource,

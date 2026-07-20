@@ -17,6 +17,17 @@ describe("Policy RBAC contract", () => {
       subject: undefined,
     });
   });
+
+  it("uses an explicit subject when the provider has no ambient subject", async () => {
+    const script = new ExplicitSubjectPolicyScript();
+
+    await expect(script.run({ organizationId: "org-id" })).resolves.toBe(
+      "executed"
+    );
+    expect(script.authProvider.authorize).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: "explicit-user" })
+    );
+  });
 });
 
 class PolicyScript {
@@ -32,11 +43,27 @@ class PolicyScript {
   }
 }
 
-function createAuthProvider(): AuthProvider & {
+class ExplicitSubjectPolicyScript {
+  readonly authProvider = createAuthProvider(null);
+
+  @Policy<{ organizationId: string }, ExplicitSubjectPolicyScript>({
+    resource: "org.applications",
+    action: "write",
+    organizationId: (_self, params) => params.organizationId,
+    subject: "explicit-user",
+  })
+  async run(_params: { organizationId: string }): Promise<string> {
+    return "executed";
+  }
+}
+
+function createAuthProvider(
+  subject: string | null = "platform-user"
+): AuthProvider & {
   authorize: jest.MockedFunction<(params: AuthorizeParams) => Promise<boolean>>;
 } {
   return {
-    subject: "platform-user",
+    subject,
     authorize: jest.fn(async (_params: AuthorizeParams) => true),
     authorizeProtectedResource: jest.fn(async () => true),
   };
