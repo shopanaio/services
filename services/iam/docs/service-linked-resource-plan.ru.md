@@ -281,10 +281,69 @@ WHERE service_linked_resource.organization_id = :organizationId
 
 ## 8. Backend enforcement
 
-### 8.1. Repository scope
+### 8.1. Граница изменений в коде
 
-Расширить mutation scopes не колонками из application, а результатом binding
-lookup:
+Service-linked модель должна быть внедрена как отдельный **management
+boundary layer**, а не как часть бизнес-логики application auth, providers,
+OAuth clients или application users.
+
+Разрешенные места, где код может знать поля:
+
+```text
+linkedService
+linkedOwnerType
+linkedOwnerId
+resourceKind
+resourceId
+```
+
+1. Drizzle model и migration для `iam.service_linked_resource`.
+2. `ServiceLinkedResourceRepository` / dedicated lookup helpers.
+3. `ResourceManagementGuard` или аналогичный guard/port, который отвечает только
+   за admin mutability и trusted owner predicate.
+4. Internal IAM provisioning/orchestration path, который создает resource +
+   binding в одной transaction.
+5. GraphQL read projection `Application.management`, где поля нужны только для
+   read-only UI representation.
+6. Audit safe diff allowlist для rejected generic writes.
+
+Запрещено:
+
+1. Добавлять `linkedService`, `linkedOwnerType`, `linkedOwnerId` в обычные
+   business input DTO для generic Admin mutations.
+2. Передавать `serviceLinkedBinding` в application auth/provider/OAuth client
+   бизнес-методы как часть основной mutation logic.
+3. Дублировать существующие mutations в отдельных методах вроде
+   `updateServiceLinkedApplicationAuth`, если они копируют validation, patch
+   building, revision handling или audit из generic path.
+4. Разветвлять business validation по признаку service-linked. Правила auth
+   configuration, provider credentials, OAuth clients и users остаются общими.
+5. Расширять generic provisioning input так, чтобы обычный create path знал о
+   service-linked ownership. Binding создается external orchestrator-ом внутри
+   trusted IAM internal transaction.
+
+Практическое правило:
+
+```text
+generic Admin write:
+  authorize RBAC
+  load existing business scope
+  ResourceManagementGuard.assertOrganizationAdminMutable(...)
+  execute existing business mutation unchanged
+
+trusted IAM internal write:
+  ResourceManagementGuard.assertLinkedOwner(...)
+  execute the same existing business mutation implementation unchanged
+```
+
+Отличаться должны только authorization/management predicate wrappers. Revision,
+Zod validation, domain invariants, patch building, repository writes, audit и
+invalidation должны переиспользоваться из существующих implementation paths.
+
+### 8.2. Repository / guard scope
+
+Не расширять application/auth/OAuth business scopes service-linked деталями.
+Binding lookup должен быть инкапсулирован в отдельном repository/guard:
 
 ```ts
 interface ServiceLinkedResourceBindingScope {
@@ -296,18 +355,23 @@ interface ServiceLinkedResourceBindingScope {
   linkedOwnerId: string;
 }
 
-interface ApplicationAuthAdminMutationScope {
-  organizationId: string;
-  applicationId: string;
-  archived: boolean;
-  configuration: ApplicationAuthConfigurationRecord;
-  deliveryConfigured: boolean;
-  serviceLinkedBinding: ServiceLinkedResourceBindingScope | null;
+interface ResourceManagementGuard {
+  assertOrganizationAdminMutable(input: {
+    organizationId: string;
+    resourceKind: ServiceLinkedResourceKind;
+    resourceId: string;
+  }): Promise<void>;
+
+  assertLinkedOwner(input: ServiceLinkedResourceBindingScope): Promise<void>;
 }
 ```
 
-`ApplicationAuthAdminMutationRepository.findScope()` должен выбирать application
-как раньше и дополнительно left join / secondary lookup active binding для:
+`ApplicationAuthAdminMutationRepository.findScope()` и
+`ApplicationOAuthClientRepository.findManagementScope()` должны выбирать
+business scope как раньше. Они не должны возвращать `serviceLinkedBinding`.
+
+`ResourceManagementGuard.assertOrganizationAdminMutable()` отдельно делает
+active binding lookup для:
 
 ```text
 organizationId
@@ -316,46 +380,51 @@ resourceId = applicationId
 deletedAt IS NULL
 ```
 
-### 8.2. Admin management guard
+Если binding найден, guard выбрасывает domain error:
 
-В `ApplicationAuthAdminManagementService` добавить guard:
-
-```ts
-private assertAdminMutable(scope: ApplicationAuthAdminMutationScope): void {
-  if (scope.serviceLinkedBinding) {
-    throw new ApplicationAuthAdminManagementError(
-      "Resource is managed by linked service",
-      "RESOURCE_SERVICE_LINKED",
-      {
-        resourceKind: scope.serviceLinkedBinding.resourceKind,
-        linkedService: scope.serviceLinkedBinding.linkedService,
-        linkedOwnerType: scope.serviceLinkedBinding.linkedOwnerType,
-        linkedOwnerId: scope.serviceLinkedBinding.linkedOwnerId,
-      }
-    );
-  }
-}
+```text
+code: RESOURCE_SERVICE_LINKED
+message: Resource is managed by linked service
 ```
 
-Вызвать guard для всех generic organization mutations после `requireScope()` и
-до write execution. Лучше централизовать в `executeExisting()` через option:
+Safe details для audit можно сформировать внутри guard или error mapper, но эти
+details не должны становиться частью business scope.
+
+### 8.3. Admin management guard
+
+В generic organization mutations вызвать management guard после `requireScope()`
+и до write execution. Лучше централизовать в `executeExisting()` / equivalent
+write wrapper:
 
 ```ts
 executeExisting({
   ...
-  requireAdminMutable: true,
+  managementResource: {
+    organizationId,
+    resourceKind: "application",
+    resourceId: applicationId,
+  },
 })
+```
+
+Wrapper вызывает:
+
+```ts
+await resourceManagementGuard.assertOrganizationAdminMutable(
+  input.managementResource
+);
 ```
 
 Read-only queries не вызывают этот guard.
 
-### 8.3. Internal management guard
+### 8.4. Internal management guard
 
-Добавить отдельный service method:
+Добавить отдельный internal management wrapper / broker action, но не отдельную
+копию бизнес-операции:
 
 ```ts
-async executeServiceLinkedResourceMutation(input, actorOrServiceContext) {
-  const binding = await repository.findActiveServiceLinkedBinding({
+async executeAsLinkedOwner(input, actorOrServiceContext) {
+  await resourceManagementGuard.assertLinkedOwner({
     organizationId: input.organizationId,
     resourceKind: input.resourceKind,
     resourceId: input.resourceId,
@@ -364,13 +433,13 @@ async executeServiceLinkedResourceMutation(input, actorOrServiceContext) {
     linkedOwnerId: input.linkedOwnerId,
   });
 
-  if (!binding) throw RESOURCE_NOT_FOUND;
-  ...
+  return executeExistingBusinessMutation(input.patch, actorOrServiceContext);
 }
 ```
 
-Он не должен обходить revision, validation, audit и invalidation. Отличие только
-в management predicate и authorization source.
+Internal wrapper не должен обходить revision, validation, audit и invalidation.
+Он не должен копировать patch construction из generic mutation. Отличие только в
+management predicate и authorization source.
 
 ## 9. Provisioning changes
 
@@ -378,7 +447,10 @@ async executeServiceLinkedResourceMutation(input, actorOrServiceContext) {
 
 Не расширять `iam.application` columns.
 
-Create path для любого protected resource должен уметь в одной transaction:
+Generic create path для protected resource остается обычным business create path
+и не принимает service-linked ownership input.
+
+Trusted IAM internal provisioning orchestrator должен уметь в одной transaction:
 
 1. создать сам resource обычным способом;
 2. если resource должен быть service-linked, создать запись binding в
@@ -388,14 +460,17 @@ Admin GraphQL create path не создает binding. Такой resource ос�
 admin-managed.
 
 Trusted IAM internal provisioning path обязан передавать полный service-linked
-binding:
+binding только в orchestration layer, не в generic business DTO:
 
 ```ts
-serviceLinked: {
-  linkedService: "iam",
-  linkedOwnerType: "application_realm",
-  linkedOwnerId,
-}
+await provisionServiceLinkedApplication({
+  application: existingProvisionApplicationInput,
+  binding: {
+    linkedService: "iam",
+    linkedOwnerType: "application_realm",
+    linkedOwnerId,
+  },
+});
 ```
 
 ### 9.2. Internal provisioning
@@ -413,6 +488,8 @@ iam.service_linked_resource row:
 ```
 
 Если создание binding не удалось, transaction должна откатить создание resource.
+Обычный `provisionApplication()` / Admin create API не должен знать о
+`serviceLinked` и не должен создавать binding.
 
 ## 10. Database migration
 
@@ -528,18 +605,29 @@ safeDiff allowlist only
 11. Removing or soft-deleting binding makes resource admin-managed only if the
     lifecycle explicitly allows unlinking.
 12. Audit contains safe failure record for rejected generic write.
+13. Service-linked internal path reuses the same business mutation
+    implementation as generic Admin path; no duplicated
+    `updateServiceLinked*` business method exists.
+14. Generic business scopes and create/update DTOs do not contain
+    `serviceLinkedBinding`, `linkedService`, `linkedOwnerType` or
+    `linkedOwnerId`.
 
 ## 13. Rollout sequence
 
 1. Add `iam.service_linked_resource` table, constraints and indexes.
 2. Add Drizzle model and generated types for binding table.
-3. Add repository methods for active binding lookup.
+3. Add dedicated `ServiceLinkedResourceRepository` methods for active binding
+   lookup.
 4. Extend application read model with management projection from binding lookup.
-5. Extend application mutation scopes with `serviceLinkedBinding`.
-6. Add `assertAdminMutable` guard to all generic mutations.
-7. Add trusted service-linked resource scope lookup.
-8. Add internal IAM service method/broker action for service-linked updates.
-9. Update IAM internal provisioning to create resource + binding transactionally.
+5. Add `ResourceManagementGuard` / management port and call it from generic
+   write wrappers before existing mutation execution.
+6. Keep existing business scopes free of `linkedService`, `linkedOwnerType`,
+   `linkedOwnerId` and `serviceLinkedBinding`.
+7. Add trusted service-linked owner predicate lookup in the same guard/port.
+8. Add internal IAM broker/orchestrator action that validates linked owner and
+   then reuses existing business mutation implementation.
+9. Update IAM internal provisioning orchestrator to create resource + binding
+   transactionally without changing generic create DTOs.
 10. Add contract tests.
 11. Run build when code implementation is complete.
 
@@ -575,6 +663,11 @@ safeDiff allowlist only
   service-linked binding.
 - IAM internal path can update its own linked resource through a full management
   predicate.
+- Existing business mutation implementations are not duplicated for
+  service-linked paths.
+- Existing business scopes and generic mutation DTOs do not expose
+  `linkedService`, `linkedOwnerType`, `linkedOwnerId` or
+  `serviceLinkedBinding`.
 - Every protected write path checks more than resource id: at minimum
   `organizationId + resourceKind + resourceId + linkedService + linkedOwnerType +
   linkedOwnerId`.
