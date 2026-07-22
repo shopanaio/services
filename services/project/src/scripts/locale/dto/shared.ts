@@ -12,3 +12,24 @@ export interface LocaleSetDefaultParams {
 }
 
 export type LocaleSetDefaultResult = LocaleUpdatePayload;
+
+export interface LocaleCreateParams {
+  storeId: string;
+  code: LocaleCode;
+  isActive: boolean;
+}
+
+export interface LocaleCreateResult {
+  locale: { code: LocaleCode; isActive: boolean } | null;
+  userErrors: UserError[];
+}
+
+export interface LocaleDeleteParams {
+  storeId: string;
+  code: LocaleCode;
+}
+
+export interface LocaleDeleteResult {
+  deletedLocaleCode: LocaleCode | null;
+  userErrors: UserError[];
+}

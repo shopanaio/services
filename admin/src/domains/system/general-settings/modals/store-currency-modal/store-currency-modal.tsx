@@ -5,14 +5,6 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { Alert, App, InputNumber, Select, Typography } from "antd";
 import { createStyles } from "antd-style";
 import {
-  CurrencyDisplay,
-  CurrencyGrouping,
-  CurrencyRoundingMode,
-  CurrencySign,
-  CurrencySignDisplay,
-  CurrencyTrailingZeroDisplay,
-} from "@/graphql/types";
-import {
   ModalHeader,
   ModalLayout,
   useModalStackContext,

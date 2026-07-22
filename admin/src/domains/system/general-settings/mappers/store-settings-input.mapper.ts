@@ -4,6 +4,7 @@ import type {
   StoreDefaultsFormValues,
   StoreSettingsFormValues,
   StoreSettingsSection,
+  StoreOrderProcessingFormValues,
 } from "../types";
 
 const optionalValue = (value: string) => value.trim() || null;
@@ -81,4 +82,14 @@ export const mapStoreCurrencyInput = (
   values: StoreCurrencyFormValues,
 ): ApiStoreUpdateInput => ({
   currencySettings: { ...values },
+});
+
+export const mapStoreOrderProcessingInput = (
+  values: StoreOrderProcessingFormValues,
+): ApiStoreUpdateInput => ({
+  orderProcessing: {
+    ...values,
+    orderNumberPrefix: values.orderNumberPrefix.trim(),
+    orderNumberSuffix: values.orderNumberSuffix.trim() || null,
+  },
 });

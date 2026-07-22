@@ -191,6 +191,18 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     return this.$props.locales;
   }
 
+  async languageSettings() {
+    const languages = await this.$ctx.kernel.repository.locale.findByStoreId(
+      this.$props.id,
+    );
+    const names = new Intl.DisplayNames(["en"], { type: "language" });
+    return languages.map(({ code, isActive }) => ({
+      code,
+      isActive,
+      name: names.of(code) ?? code,
+    }));
+  }
+
   private loadSettings(): Promise<StoreSettingsSnapshot> {
     this.settingsPromise ??= this.$ctx.kernel.repository.storeSettings.findByStoreId(
       this.$props.id,

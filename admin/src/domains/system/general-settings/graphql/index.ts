@@ -1,3 +1,8 @@
 export { GENERAL_SETTINGS_STORE_FRAGMENT } from "./fragments";
 export { GENERAL_SETTINGS_QUERY } from "./queries";
 export { UPDATE_GENERAL_SETTINGS_MUTATION } from "./mutations";
+export {
+  CREATE_STORE_LANGUAGE_MUTATION,
+  DELETE_STORE_LANGUAGE_MUTATION,
+  SET_DEFAULT_STORE_LANGUAGE_MUTATION,
+} from "./mutations";

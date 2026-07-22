@@ -1,10 +1,10 @@
-import { eq } from "drizzle-orm";
-import { ReadOnly } from "@shopana/shared-kernel";
+import { and, eq } from "drizzle-orm";
+import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
-import { locale, type Locale } from "../models/index.js";
+import { locale, type Locale, type LocaleCode } from "../models/index.js";
 
 export interface CreateLocaleData {
-  code: string;
+  code: LocaleCode;
   isActive?: boolean;
 }
 
@@ -19,5 +19,38 @@ export class LocaleRepository extends BaseRepository {
       .select()
       .from(locale)
       .where(eq(locale.storeId, storeId));
+  }
+
+  @Transactional()
+  async create(storeId: string, data: CreateLocaleData): Promise<Locale> {
+    const now = new Date();
+    const [created] = await this.connection
+      .insert(locale)
+      .values({
+        storeId,
+        code: data.code,
+        isActive: data.isActive ?? false,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    return created;
+  }
+
+  @Transactional()
+  async setActive(storeId: string, code: LocaleCode, isActive: boolean): Promise<void> {
+    await this.connection
+      .update(locale)
+      .set({ isActive, updatedAt: new Date() })
+      .where(and(eq(locale.storeId, storeId), eq(locale.code, code)));
+  }
+
+  @Transactional()
+  async delete(storeId: string, code: LocaleCode): Promise<boolean> {
+    const deleted = await this.connection
+      .delete(locale)
+      .where(and(eq(locale.storeId, storeId), eq(locale.code, code)))
+      .returning({ code: locale.code });
+    return deleted.length > 0;
   }
 }

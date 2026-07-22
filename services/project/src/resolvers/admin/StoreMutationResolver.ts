@@ -11,6 +11,7 @@ import { StoreResolver } from "./StoreResolver.js";
 import { StoreCreateScript } from "../../scripts/store/StoreCreateScript.js";
 import { StoreDeleteScript } from "../../scripts/store/StoreDeleteScript.js";
 import { LocaleSetDefaultScript } from "../../scripts/locale/LocaleSetDefaultScript.js";
+import { LocaleCreateScript, LocaleDeleteScript } from "../../scripts/locale/index.js";
 import { ApiKeyCreateScript } from "../../scripts/apiKey/ApiKeyCreateScript.js";
 import { ApiKeyRevokeScript } from "../../scripts/apiKey/ApiKeyRevokeScript.js";
 import { ApiKeyDeleteScript } from "../../scripts/apiKey/ApiKeyDeleteScript.js";
@@ -43,6 +44,8 @@ import type {
   StoreMutationStoreUpdateArgs,
   StoreDeleteInput,
   LocaleSetDefaultInput,
+  LocaleCreateInput,
+  LocaleDeleteInput,
   ApiKeyCreateInput,
   ApiKeyRevokeInput,
   ApiKeyDeleteInput,
@@ -62,6 +65,8 @@ import {
   StoreCreateInputSchema,
   StoreDeleteInputSchema,
   LocaleSetDefaultInputSchema,
+  LocaleCreateInputSchema,
+  LocaleDeleteInputSchema,
   ApiKeyCreateInputSchema,
   ApiKeyRevokeInputSchema,
   ApiKeyDeleteInputSchema,
@@ -570,6 +575,32 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   }
 
   // ==================== Locale Mutations ====================
+
+  @ZodResolver(LocaleCreateInputSchema())
+  async localeCreate(args: { input: LocaleCreateInput }) {
+    const store = await this.getCurrentStore();
+    const result = await this.$ctx.kernel.runScript(LocaleCreateScript, {
+      storeId: store.id,
+      code: args.input.code,
+      isActive: args.input.isActive,
+    });
+    const names = new Intl.DisplayNames(["en"], { type: "language" });
+    return {
+      locale: result.locale
+        ? { ...result.locale, name: names.of(result.locale.code) ?? result.locale.code }
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(LocaleDeleteInputSchema())
+  async localeDelete(args: { input: LocaleDeleteInput }) {
+    const store = await this.getCurrentStore();
+    return this.$ctx.kernel.runScript(LocaleDeleteScript, {
+      storeId: store.id,
+      code: args.input.code,
+    });
+  }
 
   @ZodResolver(LocaleSetDefaultInputSchema())
   async localeSetDefault(args: { input: LocaleSetDefaultInput }) {

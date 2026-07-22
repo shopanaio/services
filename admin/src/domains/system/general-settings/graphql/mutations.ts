@@ -37,3 +37,52 @@ export const UPDATE_GENERAL_SETTINGS_MUTATION = gql`
   }
   ${GENERAL_SETTINGS_STORE_FRAGMENT}
 `;
+
+export const CREATE_STORE_LANGUAGE_MUTATION = gql`
+  mutation CreateStoreLanguage($input: LocaleCreateInput!) {
+    storeMutation {
+      localeCreate(input: $input) {
+        locale {
+          code
+          name
+          isActive
+        }
+        userErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  }
+`;
+
+export const DELETE_STORE_LANGUAGE_MUTATION = gql`
+  mutation DeleteStoreLanguage($input: LocaleDeleteInput!) {
+    storeMutation {
+      localeDelete(input: $input) {
+        deletedLocaleCode
+        userErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  }
+`;
+
+export const SET_DEFAULT_STORE_LANGUAGE_MUTATION = gql`
+  mutation SetDefaultStoreLanguage($input: LocaleSetDefaultInput!) {
+    storeMutation {
+      localeSetDefault(input: $input) {
+        success
+        userErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  }
+`;

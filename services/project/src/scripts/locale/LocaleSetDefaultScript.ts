@@ -10,17 +10,23 @@ export class LocaleSetDefaultScript extends BaseScript<LocaleSetDefaultParams, L
         userErrors: [{ message: "Store not found", code: "NOT_FOUND", field: null }],
       };
     }
-    if (!store.locales.includes(params.locale)) {
+    const language = (await this.repository.locale.findByStoreId(params.storeId)).find(
+      ({ code }) => code === params.locale,
+    );
+    if (!language) {
       return {
         success: false,
         userErrors: [{
-          message: "Default locale must be active for the store",
-          code: "DEFAULT_LOCALE_NOT_ACTIVE",
+          message: "Language is not configured for the store",
+          code: "LOCALE_NOT_FOUND",
           field: ["locale"],
         }],
       };
     }
 
+    if (!language.isActive) {
+      await this.repository.locale.setActive(params.storeId, params.locale, true);
+    }
     await this.repository.store.update(params.storeId, {
       defaultLocale: params.locale,
     });

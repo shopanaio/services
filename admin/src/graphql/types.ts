@@ -15274,6 +15274,8 @@ export type ApiStore = {
   email?: Maybe<Scalars['String']['output']>;
   /** Unique identifier of the store */
   id: Scalars['ID']['output'];
+  /** All configured languages, including inactive drafts */
+  languageSettings: Array<ApiLocale>;
   /** List of enabled locale codes for the store */
   locales: Array<LocaleCode>;
   /** Membership info (resolved from IAM by domain) */

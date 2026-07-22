@@ -17,3 +17,4 @@ export {
   getCurrencyOptions,
   toIntlOptionValue,
 } from "./store-currency-display";
+export { getLanguageTag } from "./languages-display";

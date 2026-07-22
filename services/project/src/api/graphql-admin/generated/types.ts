@@ -282,6 +282,8 @@ export type Store = {
   email: Maybe<Scalars['String']['output']>;
   /** Unique identifier of the store */
   id: Scalars['ID']['output'];
+  /** All configured languages, including inactive drafts */
+  languageSettings: Array<Locale>;
   /** List of enabled locale codes for the store */
   locales: Array<LocaleCode>;
   /** Membership info (resolved from IAM by domain) */
@@ -965,6 +967,7 @@ export type StoreResolvers<ContextType = ServiceContext, ParentType extends Reso
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  languageSettings?: Resolver<Array<ResolversTypes['Locale']>, ParentType, ContextType>;
   locales?: Resolver<Array<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
   membership?: Resolver<ResolversTypes['Membership'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

@@ -1,5 +1,7 @@
 export type StoreSettingsSection = "contact" | "address" | "brand";
 
+export type CustomerAuthenticationMethod = "password" | "email-code" | "sms-code";
+
 export interface StoreSettingsFormValues {
   name: string;
   slug: string;
@@ -41,4 +43,12 @@ export interface StoreCurrencyFormValues {
   maximumFractionDigits: number;
   roundingMode: import("@/graphql/types").CurrencyRoundingMode;
   trailingZeroDisplay: import("@/graphql/types").CurrencyTrailingZeroDisplay;
+}
+
+export interface StoreOrderProcessingFormValues {
+  orderNumberPrefix: string;
+  orderNumberSuffix: string;
+  requireCheckoutConfirmation: boolean;
+  automaticFulfillmentMode: import("@/graphql/types").AutomaticFulfillmentMode;
+  automaticallyArchiveOrders: boolean;
 }

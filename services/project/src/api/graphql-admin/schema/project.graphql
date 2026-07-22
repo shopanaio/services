@@ -50,6 +50,8 @@ type Store @key(fields: "id") {
   List of enabled locale codes for the store
   """
   locales: [LocaleCode!]!
+  """All configured languages, including inactive drafts"""
+  languageSettings: [Locale!]!
   """
   Default locale for new content
   """

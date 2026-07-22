@@ -105,6 +105,36 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard currency changes?',
     },
+    {
+      type: 'general-settings-add-store-language',
+      component: dynamic(() =>
+        import('@/domains/system/general-settings/modals/store-language-modal').then(
+          (m) => m.StoreLanguageModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard language selection?',
+    },
+    {
+      type: 'general-settings-edit-customer-accounts',
+      component: dynamic(() =>
+        import('@/domains/system/general-settings/modals/customer-accounts-modal').then(
+          (m) => m.CustomerAccountsModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard customer account changes?',
+    },
+    {
+      type: 'general-settings-edit-store-order-processing',
+      component: dynamic(() =>
+        import('@/domains/system/general-settings/modals/store-order-processing-modal').then(
+          (m) => m.StoreOrderProcessingModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard order processing changes?',
+    },
     // ========================================
     // Profile modals
     // ========================================

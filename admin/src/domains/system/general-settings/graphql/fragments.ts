@@ -8,6 +8,12 @@ export const GENERAL_SETTINGS_STORE_FRAGMENT = gql`
     displayName
     status
     email
+    defaultLocale
+    languageSettings {
+      code
+      name
+      isActive
+    }
     contactDetails {
       name
       slug
@@ -61,6 +67,13 @@ export const GENERAL_SETTINGS_STORE_FRAGMENT = gql`
       maximumFractionDigits
       roundingMode
       trailingZeroDisplay
+    }
+    orderProcessing {
+      orderNumberPrefix
+      orderNumberSuffix
+      requireCheckoutConfirmation
+      automaticFulfillmentMode
+      automaticallyArchiveOrders
     }
   }
 `;

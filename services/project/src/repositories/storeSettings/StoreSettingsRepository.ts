@@ -370,7 +370,6 @@ export class StoreSettingsRepository extends BaseRepository {
       .update(store)
       .set({
         currencyCode: data.currencyCode,
-        defaultLocale: data.locale,
         updatedAt: new Date(),
       })
       .where(and(eq(store.id, storeId), isNull(store.deletedAt)));
