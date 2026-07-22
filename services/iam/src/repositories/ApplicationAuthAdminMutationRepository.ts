@@ -30,7 +30,15 @@ import {
   type Application,
   type ApplicationAuthConfigurationRecord,
   type ResourceManagementMode,
+  applicationOauthClient,
 } from "./models/index.js";
+import {
+  APPLICATION_OAUTH_GRANT_TYPES,
+  APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION,
+  APPLICATION_OAUTH_RESPONSE_TYPES,
+  APPLICATION_OAUTH_SCOPES,
+  createApplicationOAuthClientPolicyMetadata,
+} from "../auth/applicationOAuthPolicy.js";
 
 export interface ApplicationAuthAdminMutationScope {
   organizationId: string;
@@ -48,6 +56,14 @@ export interface CreateAdminApplicationInput {
   displayName: string;
   description?: string | null;
   managementMode: ResourceManagementMode;
+  storefrontAuth?: {
+    origin: string;
+    redirectUri: string;
+    postLogoutRedirectUri: string;
+    defaultLocale: "en" | "uk" | "ru";
+    clientId: string;
+    actorId: string;
+  };
 }
 
 export interface UpdateAdminApplicationInput {
@@ -210,9 +226,20 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       throw new Error("Application resource management could not be created");
     }
 
-    const configuration = applicationAuthMutableConfigurationSchema.parse(
-      DEFAULT_APPLICATION_AUTH_CONFIGURATION
-    );
+    const configuration = applicationAuthMutableConfigurationSchema.parse({
+      ...DEFAULT_APPLICATION_AUTH_CONFIGURATION,
+      ...(input.storefrontAuth
+        ? {
+          registrationMode: "open",
+          realmEnabled: true,
+          emailVerificationRequired: false,
+            brandingJson: {
+              displayName: truncateUtf16(input.displayName, 80),
+            },
+            defaultLocale: input.storefrontAuth.defaultLocale,
+          }
+        : {}),
+    });
     const [createdConfiguration] = await this.connection
       .insert(applicationAuthConfiguration)
       .values({
@@ -224,6 +251,52 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .returning();
     if (!createdConfiguration) {
       throw new Error("Application auth configuration could not be created");
+    }
+    if (input.storefrontAuth) {
+      const storefront = input.storefrontAuth;
+      await this.connection.insert(applicationAuthOrigin).values({
+        applicationId: input.applicationId,
+        origin: storefront.origin,
+      });
+      const [createdClient] = await this.connection
+        .insert(applicationOauthClient)
+        .values({
+          id: await this.generateUuidV7(),
+          applicationId: input.applicationId,
+          clientId: storefront.clientId,
+          clientSecret: null,
+          disabled: false,
+          skipConsent: true,
+          enableEndSession: true,
+          scopes: [...APPLICATION_OAUTH_SCOPES],
+          userId: null,
+          name: `${input.displayName} Storefront`,
+          redirectUris: [storefront.redirectUri],
+          postLogoutRedirectUris: [storefront.postLogoutRedirectUri],
+          tokenEndpointAuthMethod: "none",
+          grantTypes: [...APPLICATION_OAUTH_GRANT_TYPES],
+          responseTypes: [...APPLICATION_OAUTH_RESPONSE_TYPES],
+          public: true,
+          type: "native",
+          requirePKCE: true,
+          referenceId: input.applicationId,
+          metadata: createApplicationOAuthClientPolicyMetadata({
+            applicationId: input.applicationId,
+            clientId: storefront.clientId,
+            resource: createdConfiguration.resource,
+          }),
+          resourceAudience: createdConfiguration.resource,
+          protocolPolicyVersion: APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION,
+          environment: storefront.origin.startsWith("https://")
+            ? "production"
+            : "development",
+          createdBy: storefront.actorId,
+          updatedBy: storefront.actorId,
+        })
+        .returning({ id: applicationOauthClient.id });
+      if (!createdClient) {
+        throw new Error("Storefront OAuth client could not be created");
+      }
     }
     return {
       application: createdApplication,
@@ -808,6 +881,18 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     });
     return { clientId, clientSecret };
   }
+}
+
+/**
+ * Keep a derived presentation value inside its own contract without narrowing
+ * the source application's display-name contract or splitting a surrogate pair.
+ */
+function truncateUtf16(value: string, maximumLength: number): string {
+  if (value.length <= maximumLength) return value;
+  let end = maximumLength;
+  const lastCodeUnit = value.charCodeAt(end - 1);
+  if (lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff) end -= 1;
+  return value.slice(0, end).trimEnd();
 }
 
 function mapProviderRecord(

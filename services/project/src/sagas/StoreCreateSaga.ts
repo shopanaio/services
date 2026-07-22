@@ -12,6 +12,7 @@ import type { IAM, Media } from "@shopana/broker-types";
 import { v7 as uuidv7 } from "uuid";
 import { Roles, RolesMeta } from "@shopana/rbac";
 import { Kernel } from "../kernel/Kernel.js";
+import { resolveStorefrontAuthUrls } from "../configuration/storefrontAuth.js";
 import type {
   CurrencyCode,
   LocaleCode,
@@ -120,6 +121,8 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     storeId: string,
     input: StoreCreateInput,
   ): Promise<void> {
+    const storefrontAuth = resolveStorefrontAuthUrls(input.name);
+    const defaultLocale = toApplicationAuthLocale(input.locales[0]);
     const result = await this.broker.call<
       IAM.CreateApplicationResult,
       IAM.CreateApplicationParams
@@ -130,6 +133,10 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       name: input.name,
       displayName: input.displayName,
       description: `Store application for ${input.displayName}`,
+      storefrontAuth: {
+        ...storefrontAuth,
+        defaultLocale,
+      },
       managementMode: "service",
       linkedOwner: {
         linkedOwnerType: "store",
@@ -308,4 +315,8 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       this.logger.warn({ storeId: id, error }, "Failed to compensate media asset group");
     }
   }
+}
+
+function toApplicationAuthLocale(locale: LocaleCode | undefined): "en" | "uk" | "ru" {
+  return locale === "uk" || locale === "ru" ? locale : "en";
 }

@@ -25,6 +25,7 @@ import type {
 } from "./ApplicationAuthAdminAuditPort.js";
 import type { ResourceManagementMode } from "../repositories/models/index.js";
 import type { ApplicationAuthProviderValidationPort } from "./ApplicationAuthProviderValidationPort.js";
+import { OAuthClientSecretCodec } from "./OAuthClientSecretCodec.js";
 
 const APPLICATIONS_RESOURCE = "org.applications";
 const AUTH_RESOURCE = "org.application-auth";
@@ -376,6 +377,12 @@ export class ApplicationAuthAdminManagementService {
       applicationId?: string;
       authorization?: CreateApplicationAuthorizationMode;
       managementMode?: ResourceManagementMode;
+      storefrontAuth?: {
+        origin: string;
+        redirectUri: string;
+        postLogoutRedirectUri: string;
+        defaultLocale: "en" | "uk" | "ru";
+      };
     } = {}
   ): Promise<ApplicationMutationResult> {
     const applicationId =
@@ -408,6 +415,15 @@ export class ApplicationAuthAdminManagementService {
           ...value,
           applicationId,
           managementMode: options.managementMode ?? "organization",
+          ...(options.storefrontAuth
+            ? {
+                storefrontAuth: {
+                  ...options.storefrontAuth,
+                  clientId: new OAuthClientSecretCodec().generateClientId(),
+                  actorId: trustedActor.id,
+                },
+              }
+            : {}),
         });
         const mutationResult = {
           organizationId: value.organizationId,
@@ -738,25 +754,6 @@ export class ApplicationAuthAdminManagementService {
             "Authentication method requires email delivery configuration"
           );
         }
-        if (scope.configuration.realmEnabled) {
-          const passwordSignInEnabled =
-            value.methodId === "password"
-              ? capabilities.includes("sign_in")
-              : scope.configuration.passwordSignInEnabled;
-          const emailOtpSignInEnabled =
-            value.methodId === "email_otp"
-              ? capabilities.includes("sign_in")
-              : scope.configuration.emailOtpSignInEnabled;
-          if (
-            !passwordSignInEnabled &&
-            !emailOtpSignInEnabled &&
-            !(await this.repository.hasEnabledProvider(scope.applicationId))
-          ) {
-            throw invalidRealmState(
-              "Disable the realm before removing its last sign-in method"
-            );
-          }
-        }
         const updated = await this.repository.updateAuthMethod({
           applicationId: scope.applicationId,
           methodId: value.methodId,
@@ -845,20 +842,6 @@ export class ApplicationAuthAdminManagementService {
         ] as ApplicationRealmChangedField[],
       },
       execute: async (scope, currentActor) => {
-        if (
-          value.enabled === false &&
-          scope.configuration.realmEnabled &&
-          !scope.configuration.passwordSignInEnabled &&
-          !scope.configuration.emailOtpSignInEnabled &&
-          !(await this.repository.hasEnabledProvider(
-            scope.applicationId,
-            value.provider
-          ))
-        ) {
-          throw invalidRealmState(
-            "Disable the realm before removing its last sign-in provider"
-          );
-        }
         const updated = await this.repository.updateProvider({
           ...value,
           applicationId: scope.applicationId,

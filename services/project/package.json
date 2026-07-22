@@ -23,6 +23,7 @@
     "@shopana/rbac": "*",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-references": "*",
+    "@shopana/shared-service-config": "*",
     "@shopana/type-resolver": "*",
     "cache-manager": "^7.2.7",
     "dataloader": "^2.2.3",

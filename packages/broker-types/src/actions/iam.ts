@@ -73,6 +73,17 @@ export type CreateApplicationParams = {
   name: string;
   displayName: string;
   description?: string;
+  /**
+   * System-owned storefront OAuth/OIDC preset. Protocol policy is still
+   * selected by IAM; the owning service supplies only storefront URLs and
+   * presentation defaults.
+   */
+  storefrontAuth?: {
+    origin: string;
+    redirectUri: string;
+    postLogoutRedirectUri: string;
+    defaultLocale: "en" | "uk" | "ru";
+  };
 } & ResourceManagementInput;
 
 export interface CreateApplicationResult {

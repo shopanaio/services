@@ -24,6 +24,7 @@ import {
   IAM_LINKED_SERVICE,
   IAM_SERVICE_LINKED_RESOURCE_KIND,
 } from "../service-linked/resources.js";
+import { normalizeApplicationAuthOrigin } from "../auth/applicationAuthConfiguration.js";
 import {
   getCurrentUserInputSchema,
   type GetCurrentUserParams,
@@ -70,6 +71,56 @@ const linkedOwnerInputSchema = z
   })
   .strict();
 
+const storefrontAuthInputSchema = z
+  .object({
+    origin: z.string().url().max(2048),
+    redirectUri: z.string().url().max(2048),
+    postLogoutRedirectUri: z.string().url().max(2048),
+    defaultLocale: z.enum(["en", "uk", "ru"]),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    let normalizedOrigin: string;
+    try {
+      normalizedOrigin = normalizeApplicationAuthOrigin(value.origin, {
+        allowInsecureLocalhost: true,
+      });
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["origin"],
+        message: "Storefront origin must use HTTPS or loopback HTTP",
+      });
+      return;
+    }
+    if (normalizedOrigin !== value.origin) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["origin"],
+        message: "Storefront origin must be canonical",
+      });
+    }
+    const origin = new URL(normalizedOrigin);
+    for (const [field, rawUri] of [
+      ["redirectUri", value.redirectUri],
+      ["postLogoutRedirectUri", value.postLogoutRedirectUri],
+    ] as const) {
+      const uri = new URL(rawUri);
+      if (
+        uri.origin !== origin.origin ||
+        uri.username ||
+        uri.password ||
+        uri.hash
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: "Storefront OAuth URI must be an exact URL on the storefront origin",
+        });
+      }
+    }
+  });
+
 const createApplicationInputSchema = z
   .object({
     applicationId: z.string().uuid("Invalid application ID"),
@@ -78,6 +129,7 @@ const createApplicationInputSchema = z
     name: applicationNameSchema,
     displayName: z.string().trim().min(1).max(256),
     description: z.string().trim().max(4000).optional(),
+    storefrontAuth: storefrontAuthInputSchema.optional(),
     managementMode: z.enum(["organization", "service"]),
     linkedOwner: linkedOwnerInputSchema.optional(),
   })
@@ -95,6 +147,13 @@ const createApplicationInputSchema = z
         code: z.ZodIssueCode.custom,
         path: ["linkedOwner"],
         message: "Linked owner is not allowed for admin-managed application",
+      });
+    }
+    if (value.storefrontAuth && value.managementMode !== "service") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["storefrontAuth"],
+        message: "Storefront auth preset is allowed only for service-linked applications",
       });
     }
   });
@@ -346,6 +405,7 @@ export class IamBrokerActions extends BrokerActions {
                     ? "trusted_boundary"
                     : "admin",
                 managementMode: params.managementMode,
+                storefrontAuth: params.storefrontAuth,
               },
             );
 
