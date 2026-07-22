@@ -1,10 +1,10 @@
 import {
+  check,
   uuid,
   varchar,
   timestamp,
   index,
   uniqueIndex,
-  foreignKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { storeSchema } from "./schema.js";
@@ -14,7 +14,7 @@ import {
   type WeightUnit,
   type DimensionUnit,
 } from "./reference.js";
-import { locale, localeCodeEnum, type LocaleCode } from "./locale.js";
+import { localeCodeEnum, type LocaleCode } from "./locale.js";
 import { currencyCodeEnum, type CurrencyCode } from "./reference.js";
 
 export {
@@ -33,6 +33,11 @@ export const storeStatusEnum = storeSchema.enum("store_status", [
   "inactive",
 ]);
 
+export const unitSystemEnum = storeSchema.enum("unit_system", [
+  "metric",
+  "imperial",
+]);
+
 export const store = storeSchema.table(
   "store",
   {
@@ -42,15 +47,16 @@ export const store = storeSchema.table(
     applicationId: uuid("application_id").notNull(),
     externalSystem: varchar("external_system", { length: 64 }),
     externalId: varchar("external_id", { length: 255 }),
-    /** URL-friendly identifier (e.g., "my-store") */
-    name: varchar("name", { length: 255 }).notNull(),
-    /** Human-readable display name (e.g., "My Store") */
+    /** URL/subdomain-safe store slug (kept as `name` in the public model). */
+    name: varchar("name", { length: 63 }).notNull(),
+    /** Human-readable store name shown to customers. */
     displayName: varchar("display_name", { length: 255 }).notNull(),
     status: storeStatusEnum("status").notNull().default("active"),
     timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
     email: varchar("email", { length: 255 }),
     defaultLocale: localeCodeEnum("default_locale").notNull(),
     currencyCode: currencyCodeEnum("currency_code").notNull(),
+    unitSystem: unitSystemEnum("unit_system").notNull().default("metric"),
     defaultWeightUnit: weightUnitEnum("default_weight_unit").notNull(),
     defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
@@ -58,25 +64,45 @@ export const store = storeSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
+    check(
+      "store_name_format_check",
+      sql`${table.name} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`,
+    ),
+    check(
+      "store_display_name_not_blank_check",
+      sql`btrim(${table.displayName}) <> ''`,
+    ),
+    check(
+      "store_timezone_not_blank_check",
+      sql`btrim(${table.timezone}) <> ''`,
+    ),
+    check(
+      "store_email_not_blank_check",
+      sql`${table.email} IS NULL OR btrim(${table.email}) <> ''`,
+    ),
+    check(
+      "store_external_identity_pair_check",
+      sql`(${table.externalSystem} IS NULL) = (${table.externalId} IS NULL)`,
+    ),
     uniqueIndex("store_name_key")
       .on(table.name)
-      .where(sql`deleted_at IS NULL`),
+      .where(sql`${table.deletedAt} IS NULL`),
     index("idx_store_status").on(table.status),
     index("idx_store_created_at").on(table.createdAt),
     index("idx_store_deleted_at")
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
-    index("idx_store_external").on(table.externalSystem, table.externalId),
+    uniqueIndex("store_external_identity_key")
+      .on(table.externalSystem, table.externalId)
+      .where(
+        sql`${table.externalSystem} IS NOT NULL AND ${table.externalId} IS NOT NULL AND ${table.deletedAt} IS NULL`,
+      ),
     index("idx_store_organization").on(table.organizationId),
     index("idx_store_application").on(table.applicationId),
-    foreignKey({
-      columns: [table.id, table.defaultLocale],
-      foreignColumns: [locale.storeId, locale.code],
-      name: "store_id_default_locale_locale_store_id_code_fk",
-    }),
   ]
 );
 
 export type StoreRecord = typeof store.$inferSelect;
 export type NewStore = typeof store.$inferInsert;
 export type StoreStatus = "active" | "inactive";
+export type UnitSystem = (typeof unitSystemEnum.enumValues)[number];

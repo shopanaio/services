@@ -40,7 +40,7 @@ export const integrationStatusEnum = storeSchema.enum("integration_status", [
 export const storeIntegration = storeSchema.table(
   "store_integration",
   {
-    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id")
       .notNull()
       .references(() => store.id, { onDelete: "cascade" }),

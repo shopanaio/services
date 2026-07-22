@@ -22,6 +22,13 @@
       "when": 1784717965158,
       "tag": "0002_fuzzy_ser_duncan",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784720566807,
+      "tag": "0003_white_lila_cheney",
+      "breakpoints": true
     }
   ]
 }
