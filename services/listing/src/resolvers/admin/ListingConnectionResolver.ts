@@ -133,7 +133,7 @@ export class ListingConnectionResolver extends ListingType<
     try {
       this.repositoryInput = toStorefrontListingInput(this.$props, {
         locale: this.$ctx.locale || this.$ctx.store.defaultLocale,
-        currency: this.$ctx.currency || this.$ctx.store.defaultCurrency,
+        currency: this.$ctx.currency || this.$ctx.store.currencyCode,
       });
       return this.repositoryInput;
     } catch (error) {
@@ -148,7 +148,7 @@ export class ListingConnectionResolver extends ListingType<
         listingArgs: listingArgsToLogObject(this.$props),
         storeId: this.$ctx.store.id,
         locale: this.$ctx.locale || this.$ctx.store.defaultLocale,
-        currency: this.$ctx.currency || this.$ctx.store.defaultCurrency,
+        currency: this.$ctx.currency || this.$ctx.store.currencyCode,
       },
       message
     );

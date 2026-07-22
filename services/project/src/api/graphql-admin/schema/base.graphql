@@ -54,14 +54,6 @@ type StoreMutation {
   """Delete a store"""
   storeDelete(input: StoreDeleteInput!): StoreDeletePayload!
 
-  # Currency mutations
-  """Add a new currency to the store"""
-  currencyCreate(input: CurrencyCreateInput!): CurrencyCreatePayload!
-  """Remove a currency from the store"""
-  currencyDelete(input: CurrencyDeleteInput!): CurrencyDeletePayload!
-  """Set the default currency for the store"""
-  currencySetDefault(input: CurrencySetDefaultInput!): CurrencyUpdatePayload!
-
   # Locale mutations
   """Add a new locale to the store"""
   localeCreate(input: LocaleCreateInput!): LocaleCreatePayload!

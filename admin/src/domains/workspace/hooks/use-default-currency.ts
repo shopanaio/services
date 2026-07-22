@@ -9,5 +9,5 @@ import { useStore } from "./use-store";
 export function useDefaultCurrency(): CurrencyCode | null {
   const store = useStore();
 
-  return store?.defaultCurrency ?? null;
+  return store?.currencyCode ?? null;
 }

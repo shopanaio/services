@@ -115,9 +115,8 @@ export class Kernel extends BaseKernel<ReviewsKernelServices> {
         timezone: "UTC",
         email: null,
         defaultLocale,
-        defaultCurrency,
+        currencyCode: defaultCurrency,
         locales: ctx.locales ?? [defaultLocale],
-        currencies: ctx.currencies ?? (defaultCurrency ? [defaultCurrency] : []),
       },
       user: ctx.userId
         ? { id: ctx.userId, name: "workflow-user" }

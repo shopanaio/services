@@ -116,7 +116,6 @@ async function getCategoryProductsSnapshot(api: ApiFixtures['api'], categoryId: 
 // Prepare function for pagination tests
 async function prepareCategoryProducts(api: ApiFixtures['api']) {
   await api.session.setupUserAndStore();
-  api.session.setCurrency('USD'); // Set currency for price sorting tests
 
   const category = await api.admin.category.create({
     handle: 'pagination-test-' + crypto.randomUUID().slice(0, 8),

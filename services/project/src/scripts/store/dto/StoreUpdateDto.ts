@@ -19,7 +19,7 @@ export interface StoreUpdateParams {
   defaultWeightUnit?: WeightUnit;
   defaultDimensionUnit?: DimensionUnit;
   locales?: LocaleCode[];
-  currencies?: CurrencyCode[];
+  currencyCode?: CurrencyCode;
 }
 
 export type StoreUpdateResult = StorePayload;

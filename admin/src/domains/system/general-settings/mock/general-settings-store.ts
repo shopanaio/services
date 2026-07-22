@@ -25,9 +25,7 @@ let snapshot: GeneralSettingsSnapshot = {
     phoneNumber: "+380 44 000 00 00",
     email: "hello@example.com",
     locales: [LocaleCode.En, LocaleCode.Uk],
-    currencies: [CurrencyCode.Usd],
-    baseCurrency: CurrencyCode.Usd,
-    defaultCurrency: CurrencyCode.Usd,
+    currencyCode: CurrencyCode.Usd,
     defaultLocale: LocaleCode.En,
     defaultWeightUnit: WeightUnit.Kg,
     defaultDimensionUnit: DimensionUnit.Cm,
@@ -80,6 +78,10 @@ export const updateMockStore = async (input: ApiStoreUpdateInput) => {
     ...(input.locales !== undefined && {
       locales: input.locales ?? snapshot.store.locales,
     }),
+    ...(input.currencyCode !== undefined &&
+      input.currencyCode !== null && {
+        currencyCode: input.currencyCode,
+      }),
     ...(input.defaultWeightUnit !== undefined &&
       input.defaultWeightUnit !== null && {
         defaultWeightUnit: input.defaultWeightUnit,

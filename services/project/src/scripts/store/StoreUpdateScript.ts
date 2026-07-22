@@ -37,10 +37,7 @@ export class StoreUpdateScript extends BaseScript<
 
     const settingsErrors = validateStoreSettings({
       locales: params.locales ?? existingStore.locales,
-      currencies: params.currencies ?? existingStore.currencies,
       defaultLocale: existingStore.defaultLocale,
-      defaultCurrency: existingStore.defaultCurrency,
-      baseCurrency: existingStore.baseCurrency,
     });
     if (settingsErrors.length > 0) {
       return { store: null, userErrors: settingsErrors };
@@ -54,7 +51,7 @@ export class StoreUpdateScript extends BaseScript<
       defaultWeightUnit,
       defaultDimensionUnit,
       locales,
-      currencies,
+      currencyCode,
     } = params;
 
     const store = await this.repository.store.update(params.id, {
@@ -65,7 +62,7 @@ export class StoreUpdateScript extends BaseScript<
       defaultWeightUnit,
       defaultDimensionUnit,
       locales,
-      currencies,
+      currencyCode,
     });
 
     return {

@@ -49,8 +49,7 @@ interface UseCreateStoreReturn {
  *     name: "my-store",
  *     displayName: "My Store",
  *     locales: ["en"],
- *     currencies: ["USD"],
- *     defaultCurrency: "USD",
+ *     currencyCode: "USD",
  *   });
  *
  *   if (userErrors.length > 0) {

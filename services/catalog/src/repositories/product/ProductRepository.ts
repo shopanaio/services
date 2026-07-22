@@ -93,7 +93,7 @@ export class ProductRepository extends BaseRepository {
   }
 
   private get currency(): CurrencyCode {
-    return (this.ctx.currency ?? this.ctx.store.defaultCurrency) as CurrencyCode;
+    return (this.ctx.currency ?? this.ctx.store.currencyCode) as CurrencyCode;
   }
 
   // ============ CRUD ============

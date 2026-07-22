@@ -7,10 +7,7 @@ export * from "./reference.js";
 // Locale (can be used without store)
 export * from "./locale.js";
 
-// Currency (can be used without store)
-export * from "./currency.js";
-
-// Store (imports locale and currency)
+// Store
 export * from "./store.js";
 
 // Commerce contexts

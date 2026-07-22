@@ -194,8 +194,7 @@ export const STORE_BASIC_FRAGMENT = gql`
     name
     displayName
     status
-    currencies
-    defaultCurrency
+    currencyCode
     createdAt
   }
 `;
@@ -210,10 +209,8 @@ export const STORE_FRAGMENT = gql`
     timezone
     email
     locales
-    currencies
-    baseCurrency
     defaultLocale
-    defaultCurrency
+    currencyCode
     defaultWeightUnit
     defaultDimensionUnit
     createdAt
@@ -240,10 +237,8 @@ export const CURRENT_STORE_FRAGMENT = gql`
     timezone
     email
     locales
-    currencies
-    baseCurrency
     defaultLocale
-    defaultCurrency
+    currencyCode
     defaultWeightUnit
     defaultDimensionUnit
     createdAt

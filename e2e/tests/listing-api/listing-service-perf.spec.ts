@@ -148,7 +148,6 @@ test.describe('Listing service perf', () => {
             'Content-Type': 'application/json',
             'X-Store-Name': api.session.projectSlug,
             'X-Organization-Id': api.session.organizationId ?? '',
-            'X-Currency': 'USD',
             'X-Idempotency-Key': 'listing-service-perf-price-facets-10k',
             Authorization: `Bearer ${api.session.accessToken}`,
           },

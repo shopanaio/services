@@ -281,12 +281,7 @@ export class DiscountCreateScript extends BaseScript<
         field: ["input", "metadata"],
       });
     }
-    if (
-      this.context.store.currencies.length > 0 &&
-      !this.context.store.currencies.some(
-        (currency) => currency === input.currency,
-      )
-    ) {
+    if (this.context.store.currencyCode !== input.currency) {
       errors.push({
         message: "Currency is not enabled for this store",
         code: "INVALID_CURRENCY",

@@ -36,10 +36,7 @@ export const storeCreateInputSchema = z.object({
   locales: z
     .array(z.nativeEnum(LocaleCodeEnum))
     .min(1, "At least one locale is required"),
-  currencies: z
-    .array(z.nativeEnum(CurrencyCodeEnum))
-    .min(1, "At least one currency is required"),
-  defaultCurrency: z.nativeEnum(CurrencyCodeEnum),
+  currencyCode: z.nativeEnum(CurrencyCodeEnum),
   status: z.enum(["active", "inactive"]).optional(),
   timezone: z.string().optional(),
   email: z.string().email("Invalid email format").optional().nullable(),
@@ -54,8 +51,7 @@ export interface StoreCreateParams {
   /** Human-readable display name (e.g., "My Store") */
   displayName: string;
   locales: LocaleCode[];
-  currencies: CurrencyCode[];
-  defaultCurrency: CurrencyCode;
+  currencyCode: CurrencyCode;
   status?: StoreStatus;
   timezone?: string;
   email?: string | null;

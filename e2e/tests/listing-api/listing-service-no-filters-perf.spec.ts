@@ -124,7 +124,6 @@ test.describe('Listing service no filters perf', () => {
             'Content-Type': 'application/json',
             'X-Store-Name': api.session.projectSlug,
             'X-Organization-Id': api.session.organizationId ?? '',
-            'X-Currency': 'USD',
             'X-Idempotency-Key': 'listing-service-perf-no-filters-10k',
             Authorization: `Bearer ${api.session.accessToken}`,
           },

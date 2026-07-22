@@ -9,11 +9,9 @@ export interface ContextStore {
   timezone: string;
   email: string | null;
   defaultLocale: string;
-  defaultCurrency: string;
+  currencyCode: string;
   /** Active locale codes from the Store bounded context. */
   locales: readonly string[];
-  /** Active currency codes from the Store bounded context. */
-  currencies: readonly string[];
 }
 
 /**

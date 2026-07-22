@@ -83,7 +83,6 @@ export async function startServer(serverConfig: ServerConfig) {
     "base.graphql",
     "project.graphql",
     "locale.graphql",
-    "currency.graphql",
     "apiKey.graphql",
   ];
 

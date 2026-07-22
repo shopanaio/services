@@ -319,9 +319,9 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
       userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
       locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
       defaultLocale: this.$ctx.store.defaultLocale,
-      defaultCurrency: this.$ctx.store.defaultCurrency,
+      defaultCurrency: this.$ctx.store.currencyCode,
       locales: [...this.$ctx.store.locales],
-      currencies: [...this.$ctx.store.currencies],
+      currencies: [this.$ctx.store.currencyCode],
       requestId: this.$ctx.requestId,
     };
   }

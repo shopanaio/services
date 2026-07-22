@@ -10,7 +10,6 @@ import { StoreCreateScript } from "../../scripts/store/StoreCreateScript.js";
 import { StoreUpdateScript } from "../../scripts/store/StoreUpdateScript.js";
 import { StoreDeleteScript } from "../../scripts/store/StoreDeleteScript.js";
 import { LocaleSetDefaultScript } from "../../scripts/locale/LocaleSetDefaultScript.js";
-import { CurrencySetDefaultScript } from "../../scripts/currency/CurrencySetDefaultScript.js";
 import { ApiKeyCreateScript } from "../../scripts/apiKey/ApiKeyCreateScript.js";
 import { ApiKeyRevokeScript } from "../../scripts/apiKey/ApiKeyRevokeScript.js";
 import { ApiKeyDeleteScript } from "../../scripts/apiKey/ApiKeyDeleteScript.js";
@@ -20,7 +19,6 @@ import type {
   StoreUpdateInput,
   StoreDeleteInput,
   LocaleSetDefaultInput,
-  CurrencySetDefaultInput,
   ApiKeyCreateInput,
   ApiKeyRevokeInput,
   ApiKeyDeleteInput,
@@ -30,7 +28,6 @@ import {
   StoreUpdateInputSchema,
   StoreDeleteInputSchema,
   LocaleSetDefaultInputSchema,
-  CurrencySetDefaultInputSchema,
   ApiKeyCreateInputSchema,
   ApiKeyRevokeInputSchema,
   ApiKeyDeleteInputSchema,
@@ -74,8 +71,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       name: input.name,
       displayName: input.displayName,
       locales: input.locales,
-      currencies: input.currencies,
-      defaultCurrency: input.defaultCurrency,
+      currencyCode: input.currencyCode,
       status: (input.status?.toLowerCase() as StoreStatus) ?? undefined,
       timezone: input.timezone ?? undefined,
       email: input.email,
@@ -114,7 +110,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       defaultWeightUnit: input.defaultWeightUnit ?? undefined,
       defaultDimensionUnit: input.defaultDimensionUnit ?? undefined,
       locales: input.locales ?? undefined,
-      currencies: input.currencies ?? undefined,
+      currencyCode: input.currencyCode ?? undefined,
     });
 
     if (!result.store) {
@@ -160,22 +156,6 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     const result = await this.$ctx.kernel.runScript(LocaleSetDefaultScript, {
       storeId: store.id,
       locale: args.input.locale,
-    });
-
-    return {
-      success: result.success,
-      userErrors: result.userErrors,
-    };
-  }
-
-  // ==================== Currency Mutations ====================
-
-  @ZodResolver(CurrencySetDefaultInputSchema())
-  async currencySetDefault(args: { input: CurrencySetDefaultInput }) {
-    const store = await this.getCurrentStore();
-    const result = await this.$ctx.kernel.runScript(CurrencySetDefaultScript, {
-      storeId: store.id,
-      currency: args.input.currency,
     });
 
     return {

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ApiKeyCreateInput, ApiKeyDeleteInput, ApiKeyRevokeInput, CurrencyCode, CurrencyCreateInput, CurrencyDeleteInput, CurrencySetDefaultInput, DimensionUnit, LocaleCode, LocaleCreateInput, LocaleDeleteInput, LocaleSetDefaultInput, StoreCreateInput, StoreDeleteInput, StoreStatus, StoreUpdateInput, WeightUnit } from './types.js'
+import { ApiKeyCreateInput, ApiKeyDeleteInput, ApiKeyRevokeInput, CurrencyCode, DimensionUnit, LocaleCode, LocaleCreateInput, LocaleDeleteInput, LocaleSetDefaultInput, StoreCreateInput, StoreDeleteInput, StoreStatus, StoreUpdateInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -40,25 +40,6 @@ export function ApiKeyRevokeInputSchema(): z.ZodObject<Properties<ApiKeyRevokeIn
   })
 }
 
-export function CurrencyCreateInputSchema(): z.ZodObject<Properties<CurrencyCreateInput>> {
-  return z.object({
-    code: CurrencyCodeSchema,
-    isActive: z.boolean()
-  })
-}
-
-export function CurrencyDeleteInputSchema(): z.ZodObject<Properties<CurrencyDeleteInput>> {
-  return z.object({
-    code: CurrencyCodeSchema
-  })
-}
-
-export function CurrencySetDefaultInputSchema(): z.ZodObject<Properties<CurrencySetDefaultInput>> {
-  return z.object({
-    currency: CurrencyCodeSchema
-  })
-}
-
 export function LocaleCreateInputSchema(): z.ZodObject<Properties<LocaleCreateInput>> {
   return z.object({
     code: LocaleCodeSchema,
@@ -80,8 +61,7 @@ export function LocaleSetDefaultInputSchema(): z.ZodObject<Properties<LocaleSetD
 
 export function StoreCreateInputSchema(): z.ZodObject<Properties<StoreCreateInput>> {
   return z.object({
-    currencies: z.array(CurrencyCodeSchema),
-    defaultCurrency: CurrencyCodeSchema,
+    currencyCode: CurrencyCodeSchema,
     displayName: z.string(),
     email: z.string().nullish(),
     locales: z.array(LocaleCodeSchema),
@@ -101,7 +81,7 @@ export function StoreDeleteInputSchema(): z.ZodObject<Properties<StoreDeleteInpu
 
 export function StoreUpdateInputSchema(): z.ZodObject<Properties<StoreUpdateInput>> {
   return z.object({
-    currencies: z.array(CurrencyCodeSchema).nullish(),
+    currencyCode: CurrencyCodeSchema.nullish(),
     defaultDimensionUnit: DimensionUnitSchema.nullish(),
     defaultWeightUnit: WeightUnitSchema.nullish(),
     displayName: z.string().nullish(),

@@ -15,7 +15,7 @@ import {
   type DimensionUnit,
 } from "./reference.js";
 import { locale, localeCodeEnum, type LocaleCode } from "./locale.js";
-import { currency, currencyCodeEnum, type CurrencyCode } from "./currency.js";
+import { currencyCodeEnum, type CurrencyCode } from "./reference.js";
 
 export {
   weightUnitEnum,
@@ -50,8 +50,7 @@ export const store = storeSchema.table(
     timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
     email: varchar("email", { length: 255 }),
     defaultLocale: localeCodeEnum("default_locale").notNull(),
-    baseCurrency: currencyCodeEnum("base_currency").notNull(),
-    defaultCurrency: currencyCodeEnum("default_currency").notNull(),
+    currencyCode: currencyCodeEnum("currency_code").notNull(),
     defaultWeightUnit: weightUnitEnum("default_weight_unit").notNull(),
     defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
@@ -74,16 +73,6 @@ export const store = storeSchema.table(
       columns: [table.id, table.defaultLocale],
       foreignColumns: [locale.storeId, locale.code],
       name: "store_id_default_locale_locale_store_id_code_fk",
-    }),
-    foreignKey({
-      columns: [table.id, table.baseCurrency],
-      foreignColumns: [currency.storeId, currency.code],
-      name: "store_id_base_currency_currency_store_id_code_fk",
-    }),
-    foreignKey({
-      columns: [table.id, table.defaultCurrency],
-      foreignColumns: [currency.storeId, currency.code],
-      name: "store_id_default_currency_currency_store_id_code_fk",
     }),
   ]
 );

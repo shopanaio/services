@@ -29,9 +29,7 @@ export class StoreCreateScript extends BaseScript<
   ): Promise<StoreCreateResult> {
     const settingsErrors = validateStoreSettings({
       locales: params.locales,
-      currencies: params.currencies,
       defaultLocale: params.locales[0],
-      defaultCurrency: params.defaultCurrency,
     });
     if (settingsErrors.length > 0) {
       return { store: null, userErrors: settingsErrors };
@@ -73,8 +71,7 @@ export class StoreCreateScript extends BaseScript<
         name: params.name,
         displayName: params.displayName,
         locales: params.locales,
-        currencies: params.currencies,
-        defaultCurrency: params.defaultCurrency,
+        currencyCode: params.currencyCode,
         status: params.status,
         timezone: params.timezone,
         email: params.email ?? undefined,

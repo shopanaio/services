@@ -63,7 +63,7 @@ Gateway uses these ports to route requests to subgraphs.
 4. Mesh Compose merges all subgraphs into supergraph
 
 **Runtime** (`gateway.config.ts`):
-Gateway propagates headers from client to subgraphs: authorization, x-store-name, x-organization-id, x-api-key, x-currency.
+Gateway propagates headers from client to subgraphs: authorization, x-store-name, x-organization-id, and x-api-key. Currency is resolved from `Store.currencyCode` and cannot be overridden by a request header.
 
 ## Adding New Subgraph
 

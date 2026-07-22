@@ -9,7 +9,6 @@ export interface GqlRequestSession {
   apiKey: string;
   accessToken: string | null;
   scope: 'tenant' | 'customer';
-  currency?: string;
 }
 
 export class BaseGqlRequest<QueryType, MutationType> {
@@ -34,7 +33,7 @@ export class BaseGqlRequest<QueryType, MutationType> {
       throwOnError?: boolean;
     },
   ): Promise<{ data: R; errors: GraphQLError[] }> {
-    const { projectSlug: slug, organizationId, apiKey, accessToken, scope, currency } = this.session;
+    const { projectSlug: slug, organizationId, apiKey, accessToken, scope } = this.session;
 
     if (!this.graphqlUrl) {
       throw new Error('GraphQL URL is not provided');
@@ -54,8 +53,6 @@ export class BaseGqlRequest<QueryType, MutationType> {
           }),
       // Tenant or Customer Access Token
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      // Currency for price operations
-      ...(currency ? { 'X-Currency': currency } : {}),
     };
     // console.log('[DEBUG gqlRequest] headers:', JSON.stringify(headers, null, 2));
     const response = await this.request.post(this.graphqlUrl, {

@@ -11,16 +11,16 @@ const currencyLabels: Partial<Record<CurrencyCode, string>> = {
 };
 
 export const StoreCurrencies = ({
-  defaultCurrency,
+  currencyCode,
 }: {
-  defaultCurrency: CurrencyCode;
+  currencyCode: CurrencyCode;
 }) => (
   <Paper data-testid="currencies-settings-section">
     <PaperHeader title="Currency" />
     <SettingValue
       icon={<DollarOutlined />}
       label="Store currency"
-      value={currencyLabels[defaultCurrency] ?? defaultCurrency}
+      value={currencyLabels[currencyCode] ?? currencyCode}
     />
   </Paper>
 );

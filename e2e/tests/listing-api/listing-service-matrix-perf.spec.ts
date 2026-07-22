@@ -277,7 +277,6 @@ test.describe('Listing service matrix perf', () => {
             'Content-Type': 'application/json',
             'X-Store-Name': api.session.projectSlug,
             'X-Organization-Id': api.session.organizationId ?? '',
-            'X-Currency': 'USD',
             'X-Idempotency-Key': `listing-service-matrix-perf-${scenario.name}`,
             Authorization: `Bearer ${api.session.accessToken}`,
           },

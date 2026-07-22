@@ -552,9 +552,8 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
         timezone: store.timezone ?? "UTC",
         email: store.email ?? null,
         defaultLocale: store.defaultLocale,
-        defaultCurrency: store.defaultCurrency,
+        currencyCode: store.currencyCode,
         locales: store.locales,
-        currencies: store.currencies,
       },
       user: input.userId ? { id: input.userId, name: "workflow-user" } : undefined,
     });

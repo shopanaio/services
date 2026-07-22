@@ -15,6 +15,13 @@
       "when": 1784546080055,
       "tag": "0001_dear_jack_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784717965158,
+      "tag": "0002_fuzzy_ser_duncan",
+      "breakpoints": true
     }
   ]
 }

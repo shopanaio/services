@@ -44,7 +44,7 @@ export default function GeneralSettingsPage() {
             locales={locales}
             onSaved={refresh}
           />
-          <StoreCurrencies defaultCurrency={store.defaultCurrency} />
+          <StoreCurrencies currencyCode={store.currencyCode} />
           <StoreUnits
             dimensionUnit={store.defaultDimensionUnit}
             weightUnit={store.defaultWeightUnit}

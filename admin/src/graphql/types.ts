@@ -12,6 +12,8 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  /** Stable identifier of a catalog-owned authentication method. */
+  ApplicationAuthMethodId: { input: any; output: any; }
   BigInt: { input: number; output: number; }
   /** Calendar date in ISO 8601 YYYY-MM-DD form. */
   Date: { input: any; output: any; }
@@ -115,6 +117,1022 @@ export type ApiApp = {
   code: Scalars['String']['output'];
   meta?: Maybe<Scalars['JSON']['output']>;
   name: Scalars['String']['output'];
+};
+
+/** An organization-owned application authentication realm. */
+export type ApiApplication = ApiNode & {
+  __typename?: 'Application';
+  /** Timestamp when the application was archived. */
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Authentication configuration for this application. */
+  auth: ApiApplicationAuthConfiguration;
+  /** Timestamp when the application was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Optional application description. */
+  description?: Maybe<Scalars['String']['output']>;
+  /** Human-readable application name. */
+  displayName: Scalars['String']['output'];
+  /** Globally unique application identifier. */
+  id: Scalars['ID']['output'];
+  /** Read-only resource lifecycle management metadata. */
+  management: ApiResourceManagement;
+  /** URL-friendly application name. */
+  name: Scalars['String']['output'];
+  /** Find an OAuth client by its public client identifier. */
+  oauthClient?: Maybe<ApiApplicationOAuthClient>;
+  /** OAuth clients registered for this application. */
+  oauthClients: ApiApplicationOAuthClientConnection;
+  /** Organization that owns the application. */
+  organization: ApiOrganization;
+  /** Identifier of the organization that owns the application. */
+  organizationId: Scalars['ID']['output'];
+  /** Immutable OAuth resource audience assigned by IAM. */
+  resource: Scalars['String']['output'];
+  /** Current revision used for optimistic concurrency. */
+  revision: Scalars['Int']['output'];
+  /** Current application lifecycle status. */
+  status: ApplicationLifecycleStatus;
+  /** Timestamp when the application was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Find a user within this application realm. */
+  user?: Maybe<ApiApplicationUser>;
+  /** Users registered within this application realm. */
+  users: ApiApplicationUserConnection;
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApiApplicationOauthClientArgs = {
+  clientId: Scalars['String']['input'];
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApiApplicationOauthClientsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiApplicationOAuthClientOrderByInput>>;
+  where?: InputMaybe<ApiApplicationOAuthClientWhereInput>;
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApiApplicationUserArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApiApplicationUsersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiApplicationUserOrderByInput>>;
+  where?: InputMaybe<ApiApplicationUserWhereInput>;
+};
+
+/** Input for archiving an application. */
+export type ApiApplicationArchiveInput = {
+  /** Application to archive. */
+  applicationId: Scalars['ID']['input'];
+  /** Revision expected by the caller. */
+  expectedRevision: Scalars['Int']['input'];
+  /** Organization that owns the application. */
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of archiving an application. */
+export type ApiApplicationArchivePayload = {
+  __typename?: 'ApplicationArchivePayload';
+  application?: Maybe<ApiApplication>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Allowed background colors for hosted authentication UI. */
+export enum ApplicationAuthBackgroundColor {
+  Slate = 'SLATE',
+  White = 'WHITE'
+}
+
+/** Branding values used by the hosted authentication UI. */
+export type ApiApplicationAuthBranding = {
+  __typename?: 'ApplicationAuthBranding';
+  backgroundColor?: Maybe<ApplicationAuthBackgroundColor>;
+  displayName?: Maybe<Scalars['String']['output']>;
+  headline?: Maybe<Scalars['String']['output']>;
+  logoUrl?: Maybe<Scalars['String']['output']>;
+  primaryColor?: Maybe<ApplicationAuthPrimaryColor>;
+};
+
+/** Branding values for the hosted authentication UI. */
+export type ApiApplicationAuthBrandingInput = {
+  backgroundColor?: InputMaybe<ApplicationAuthBackgroundColor>;
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  headline?: InputMaybe<Scalars['String']['input']>;
+  logoUrl?: InputMaybe<Scalars['String']['input']>;
+  primaryColor?: InputMaybe<ApplicationAuthPrimaryColor>;
+};
+
+/** Administrative authentication configuration of an application realm. */
+export type ApiApplicationAuthConfiguration = {
+  __typename?: 'ApplicationAuthConfiguration';
+  /** Access token lifetime in seconds. */
+  accessTokenTtlSeconds: Scalars['Int']['output'];
+  /** Application that owns this configuration. */
+  applicationId: Scalars['ID']['output'];
+  /** Find an authentication method by its catalog identifier. */
+  authMethod: ApiApplicationAuthMethod;
+  /** Authentication methods supported by the realm. */
+  authMethods: Array<ApiApplicationAuthMethod>;
+  /** Hosted authentication UI branding. */
+  branding: ApiApplicationAuthBranding;
+  /** Read-only consent policy enforced by the protocol version. */
+  consentMode: ApplicationConsentMode;
+  /** Timestamp when the configuration was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Default locale for hosted authentication UI and messages. */
+  defaultLocale: LocaleCode;
+  /** Email delivery configuration without credential values. */
+  emailDelivery: ApiApplicationAuthEmailDeliveryConfiguration;
+  /** Whether a verified email is required by the realm. */
+  emailVerificationRequired: Scalars['Boolean']['output'];
+  /** ID token lifetime in seconds. */
+  idTokenTtlSeconds: Scalars['Int']['output'];
+  /** Canonical OAuth 2.1 and OpenID Connect endpoint URLs. */
+  protocolUrls: ApiApplicationAuthProtocolUrls;
+  /** Find a social provider by its catalog name. */
+  provider: ApiApplicationAuthProvider;
+  /** Social providers supported by the realm. */
+  providers: Array<ApiApplicationAuthProvider>;
+  /** Whether the application realm accepts authentication traffic. */
+  realmEnabled: Scalars['Boolean']['output'];
+  /** Refresh token lifetime in seconds. */
+  refreshTokenTtlSeconds: Scalars['Int']['output'];
+  /** Registration policy for new application users. */
+  registrationMode: ApplicationRegistrationMode;
+  /** Current revision used for optimistic concurrency. */
+  revision: Scalars['Int']['output'];
+  /** Application session lifetime in seconds. */
+  sessionTtlSeconds: Scalars['Int']['output'];
+  /** Locales supported by the application realm. */
+  supportedLocales: Array<LocaleCode>;
+  /** Origins trusted by the application realm. */
+  trustedOrigins: Array<ApiApplicationAuthTrustedOrigin>;
+  /** Timestamp when the configuration was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** Administrative authentication configuration of an application realm. */
+export type ApiApplicationAuthConfigurationAuthMethodArgs = {
+  id: Scalars['ApplicationAuthMethodId']['input'];
+};
+
+
+/** Administrative authentication configuration of an application realm. */
+export type ApiApplicationAuthConfigurationProviderArgs = {
+  name: ApplicationAuthProviderName;
+};
+
+/** Non-secret email delivery configuration for an application realm. */
+export type ApiApplicationAuthEmailDeliveryConfiguration = {
+  __typename?: 'ApplicationAuthEmailDeliveryConfiguration';
+  configured: Scalars['Boolean']['output'];
+  emailOtpSignInTemplateId?: Maybe<Scalars['String']['output']>;
+  emailVerificationTemplateId?: Maybe<Scalars['String']['output']>;
+  passwordResetTemplateId?: Maybe<Scalars['String']['output']>;
+  senderIdentity?: Maybe<Scalars['String']['output']>;
+  transportProfile?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<Scalars['ID']['output']>;
+};
+
+/** References to a preconfigured email transport and message templates. */
+export type ApiApplicationAuthEmailDeliveryInput = {
+  emailOtpSignInTemplateId: Scalars['String']['input'];
+  emailVerificationTemplateId: Scalars['String']['input'];
+  passwordResetTemplateId: Scalars['String']['input'];
+  senderIdentity: Scalars['String']['input'];
+  transportProfile: Scalars['String']['input'];
+};
+
+/** Status and enabled capabilities of a catalog-owned authentication method. */
+export type ApiApplicationAuthMethod = {
+  __typename?: 'ApplicationAuthMethod';
+  availableCapabilities: Array<ApplicationAuthMethodCapability>;
+  configured: Scalars['Boolean']['output'];
+  enabledCapabilities: Array<ApplicationAuthMethodCapability>;
+  id: Scalars['ApplicationAuthMethodId']['output'];
+  revision: Scalars['Int']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<Scalars['ID']['output']>;
+};
+
+/** Capability exposed by an authentication method. */
+export enum ApplicationAuthMethodCapability {
+  PasswordReset = 'PASSWORD_RESET',
+  SignIn = 'SIGN_IN',
+  SignUp = 'SIGN_UP'
+}
+
+/** Result of updating an application authentication method. */
+export type ApiApplicationAuthMethodPayload = {
+  __typename?: 'ApplicationAuthMethodPayload';
+  authMethod?: Maybe<ApiApplicationAuthMethod>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating enabled capabilities of an authentication method. */
+export type ApiApplicationAuthMethodUpdateInput = {
+  applicationId: Scalars['ID']['input'];
+  enabledCapabilities: Array<ApplicationAuthMethodCapability>;
+  expectedRevision: Scalars['Int']['input'];
+  methodId: Scalars['ApplicationAuthMethodId']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Allowed primary colors for hosted authentication UI. */
+export enum ApplicationAuthPrimaryColor {
+  Blue = 'BLUE',
+  Emerald = 'EMERALD',
+  Indigo = 'INDIGO',
+  Violet = 'VIOLET'
+}
+
+/** Canonical OAuth 2.1 and OpenID Connect URLs for an application realm. */
+export type ApiApplicationAuthProtocolUrls = {
+  __typename?: 'ApplicationAuthProtocolUrls';
+  authorizationUrl: Scalars['String']['output'];
+  endSessionUrl: Scalars['String']['output'];
+  issuer: Scalars['String']['output'];
+  jwksUrl: Scalars['String']['output'];
+  oauthAuthorizationServerMetadataUrl: Scalars['String']['output'];
+  oidcDiscoveryUrl: Scalars['String']['output'];
+  providerCallbackUrls: Array<ApiApplicationAuthProviderCallbackUrl>;
+  revocationUrl: Scalars['String']['output'];
+  tokenUrl: Scalars['String']['output'];
+};
+
+/** Non-secret status of a social authentication provider. */
+export type ApiApplicationAuthProvider = {
+  __typename?: 'ApplicationAuthProvider';
+  applicationId: Scalars['ID']['output'];
+  /** Exact callback URL computed by IAM. */
+  callbackUrl: Scalars['String']['output'];
+  configured: Scalars['Boolean']['output'];
+  enabled: Scalars['Boolean']['output'];
+  /** Masked client identifier safe for administrative display. */
+  maskedClientId?: Maybe<Scalars['String']['output']>;
+  provider: ApplicationAuthProviderName;
+  revision: Scalars['Int']['output'];
+  scopes: Array<Scalars['String']['output']>;
+  supported: Scalars['Boolean']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<Scalars['ID']['output']>;
+};
+
+/** Computed callback URL for a catalog-owned social provider. */
+export type ApiApplicationAuthProviderCallbackUrl = {
+  __typename?: 'ApplicationAuthProviderCallbackUrl';
+  provider: ApplicationAuthProviderName;
+  url: Scalars['String']['output'];
+};
+
+/** Input for configuring credentials and scopes of a social provider. */
+export type ApiApplicationAuthProviderConfigureInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  clientSecret: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+  scopes: Array<Scalars['String']['input']>;
+};
+
+/** Input for deleting credentials from a disabled social provider. */
+export type ApiApplicationAuthProviderCredentialsDeleteInput = {
+  applicationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+};
+
+/** Input for replacing social provider credentials. */
+export type ApiApplicationAuthProviderCredentialsRotateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  clientSecret: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+};
+
+/** Social authentication providers supported by the code-owned catalog. */
+export enum ApplicationAuthProviderName {
+  Facebook = 'FACEBOOK',
+  Google = 'GOOGLE'
+}
+
+/** Result of changing a social provider configuration. */
+export type ApiApplicationAuthProviderPayload = {
+  __typename?: 'ApplicationAuthProviderPayload';
+  provider?: Maybe<ApiApplicationAuthProvider>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating non-secret social provider settings. */
+export type ApiApplicationAuthProviderUpdateInput = {
+  applicationId: Scalars['ID']['input'];
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+  scopes?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Input for safely validating a social provider configuration. */
+export type ApiApplicationAuthProviderValidateInput = {
+  applicationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+};
+
+/** Safe validation result for a social provider configuration. */
+export type ApiApplicationAuthProviderValidation = {
+  __typename?: 'ApplicationAuthProviderValidation';
+  checkedAt: Scalars['DateTime']['output'];
+  provider: ApplicationAuthProviderName;
+  /** Stable non-secret reason code when validation did not succeed. */
+  reasonCode?: Maybe<Scalars['String']['output']>;
+  revision: Scalars['Int']['output'];
+  status: ApplicationAuthProviderValidationStatus;
+};
+
+/** Result of validating a social provider configuration. */
+export type ApiApplicationAuthProviderValidationPayload = {
+  __typename?: 'ApplicationAuthProviderValidationPayload';
+  userErrors: Array<ApiGenericUserError>;
+  validation?: Maybe<ApiApplicationAuthProviderValidation>;
+};
+
+/** Result status of a safe provider configuration validation. */
+export enum ApplicationAuthProviderValidationStatus {
+  Invalid = 'INVALID',
+  Unavailable = 'UNAVAILABLE',
+  Valid = 'VALID'
+}
+
+/** Input for enabling or disabling an application realm. */
+export type ApiApplicationAuthRealmEnabledSetInput = {
+  applicationId: Scalars['ID']['input'];
+  enabled: Scalars['Boolean']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** An exact origin trusted by an application realm. */
+export type ApiApplicationAuthTrustedOrigin = {
+  __typename?: 'ApplicationAuthTrustedOrigin';
+  createdAt: Scalars['DateTime']['output'];
+  origin: Scalars['String']['output'];
+};
+
+/** Input for updating application authentication policy and presentation. */
+export type ApiApplicationAuthUpdateInput = {
+  accessTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  applicationId: Scalars['ID']['input'];
+  branding?: InputMaybe<ApiApplicationAuthBrandingInput>;
+  defaultLocale?: InputMaybe<LocaleCode>;
+  emailDelivery?: InputMaybe<ApiApplicationAuthEmailDeliveryInput>;
+  emailVerificationRequired?: InputMaybe<Scalars['Boolean']['input']>;
+  expectedRevision: Scalars['Int']['input'];
+  idTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  organizationId: Scalars['ID']['input'];
+  refreshTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  registrationMode?: InputMaybe<ApplicationRegistrationMode>;
+  sessionTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  trustedOrigins?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Result of updating application authentication configuration. */
+export type ApiApplicationAuthUpdatePayload = {
+  __typename?: 'ApplicationAuthUpdatePayload';
+  configuration?: Maybe<ApiApplicationAuthConfiguration>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A paginated connection of applications. */
+export type ApiApplicationConnection = {
+  __typename?: 'ApplicationConnection';
+  /** Application edges in the current page. */
+  edges: Array<ApiApplicationEdge>;
+  /** Information needed to continue pagination. */
+  pageInfo: ApiPageInfo;
+  /** Total number of applications matching the filter. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Consent policy supported by the current protocol version. */
+export enum ApplicationConsentMode {
+  /** Authorization requires explicit user consent when consent is applicable. */
+  Explicit = 'EXPLICIT'
+}
+
+/** Input for creating an application. */
+export type ApiApplicationCreateInput = {
+  /** Optional application description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** Human-readable application name. */
+  displayName: Scalars['String']['input'];
+  /** URL-friendly application name. */
+  name: Scalars['String']['input'];
+  /** Organization that will own the application. */
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of creating an application. */
+export type ApiApplicationCreatePayload = {
+  __typename?: 'ApplicationCreatePayload';
+  application?: Maybe<ApiApplication>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** An application and its pagination cursor. */
+export type ApiApplicationEdge = {
+  __typename?: 'ApplicationEdge';
+  /** Opaque pagination cursor. */
+  cursor: Scalars['String']['output'];
+  /** Application at the end of the edge. */
+  node: ApiApplication;
+};
+
+/** Lifecycle status of an application realm. */
+export enum ApplicationLifecycleStatus {
+  /** The application is active. */
+  Active = 'ACTIVE',
+  /** The application is archived and cannot be used for new authentication. */
+  Archived = 'ARCHIVED'
+}
+
+/** Application realm management mutations. */
+export type ApiApplicationMutation = {
+  __typename?: 'ApplicationMutation';
+  /** Archive an application realm. */
+  applicationArchive: ApiApplicationArchivePayload;
+  /** Update enabled capabilities of an authentication method. */
+  applicationAuthMethodUpdate: ApiApplicationAuthMethodPayload;
+  /** Configure credentials and scopes of a social provider. */
+  applicationAuthProviderConfigure: ApiApplicationAuthProviderPayload;
+  /** Delete credentials from a disabled social provider. */
+  applicationAuthProviderCredentialsDelete: ApiApplicationAuthProviderPayload;
+  /** Replace social provider credentials. */
+  applicationAuthProviderCredentialsRotate: ApiApplicationAuthProviderPayload;
+  /** Update non-secret social provider settings. */
+  applicationAuthProviderUpdate: ApiApplicationAuthProviderPayload;
+  /** Safely validate a social provider configuration. */
+  applicationAuthProviderValidate: ApiApplicationAuthProviderValidationPayload;
+  /** Enable or disable an application authentication realm. */
+  applicationAuthRealmEnabledSet: ApiApplicationAuthUpdatePayload;
+  /** Update application authentication policy and presentation. */
+  applicationAuthUpdate: ApiApplicationAuthUpdatePayload;
+  /** Create an application realm. */
+  applicationCreate: ApiApplicationCreatePayload;
+  /** Archive an OAuth client. */
+  applicationOAuthClientArchive: ApiApplicationOAuthClientPayload;
+  /** Create an OAuth client with fixed protocol policy. */
+  applicationOAuthClientCreate: ApiApplicationOAuthClientCreatePayload;
+  /** Enable or disable an OAuth client. */
+  applicationOAuthClientEnabledSet: ApiApplicationOAuthClientPayload;
+  /** Rotate a confidential OAuth client secret. */
+  applicationOAuthClientSecretRotate: ApiApplicationOAuthClientSecretRotatePayload;
+  /** Change first-party consent bypass policy for an OAuth client. */
+  applicationOAuthClientSkipConsentSet: ApiApplicationOAuthClientPayload;
+  /** Update mutable OAuth client metadata. */
+  applicationOAuthClientUpdate: ApiApplicationOAuthClientPayload;
+  /** Update application metadata. */
+  applicationUpdate: ApiApplicationUpdatePayload;
+  /** Unlink a login account from an application user. */
+  applicationUserAccountUnlink: ApiApplicationUserAccountUnlinkPayload;
+  /** Block an application user. */
+  applicationUserBlock: ApiApplicationUserPayload;
+  /** Revoke every active session of an application user. */
+  applicationUserSessionsRevokeAll: ApiApplicationUserSessionsRevokeAllPayload;
+  /** Unblock an application user. */
+  applicationUserUnblock: ApiApplicationUserPayload;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationArchiveArgs = {
+  input: ApiApplicationArchiveInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthMethodUpdateArgs = {
+  input: ApiApplicationAuthMethodUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderConfigureArgs = {
+  input: ApiApplicationAuthProviderConfigureInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderCredentialsDeleteArgs = {
+  input: ApiApplicationAuthProviderCredentialsDeleteInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderCredentialsRotateArgs = {
+  input: ApiApplicationAuthProviderCredentialsRotateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderUpdateArgs = {
+  input: ApiApplicationAuthProviderUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderValidateArgs = {
+  input: ApiApplicationAuthProviderValidateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthRealmEnabledSetArgs = {
+  input: ApiApplicationAuthRealmEnabledSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthUpdateArgs = {
+  input: ApiApplicationAuthUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationCreateArgs = {
+  input: ApiApplicationCreateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientArchiveArgs = {
+  input: ApiApplicationOAuthClientArchiveInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientCreateArgs = {
+  input: ApiApplicationOAuthClientCreateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientEnabledSetArgs = {
+  input: ApiApplicationOAuthClientEnabledSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientSecretRotateArgs = {
+  input: ApiApplicationOAuthClientSecretRotateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientSkipConsentSetArgs = {
+  input: ApiApplicationOAuthClientSkipConsentSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientUpdateArgs = {
+  input: ApiApplicationOAuthClientUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUpdateArgs = {
+  input: ApiApplicationUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUserAccountUnlinkArgs = {
+  input: ApiApplicationUserAccountUnlinkInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUserBlockArgs = {
+  input: ApiApplicationUserStatusSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUserSessionsRevokeAllArgs = {
+  input: ApiApplicationUserSessionsRevokeAllInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUserUnblockArgs = {
+  input: ApiApplicationUserStatusSetInput;
+};
+
+/** An OAuth 2.1 client registered within an application realm. */
+export type ApiApplicationOAuthClient = ApiNode & {
+  __typename?: 'ApplicationOAuthClient';
+  applicationId: Scalars['ID']['output'];
+  archived: Scalars['Boolean']['output'];
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Public, globally unique OAuth client identifier. */
+  clientId: Scalars['String']['output'];
+  clientType: ApplicationOAuthClientType;
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: Scalars['ID']['output'];
+  disabled: Scalars['Boolean']['output'];
+  enableEndSession: Scalars['Boolean']['output'];
+  environment: ApplicationOAuthClientEnvironment;
+  /** Read-only grant types enforced by the protocol policy. */
+  grantTypes: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  organizationId: Scalars['ID']['output'];
+  postLogoutRedirectUris: Array<Scalars['String']['output']>;
+  protocolPolicyVersion: Scalars['Int']['output'];
+  redirectUris: Array<Scalars['String']['output']>;
+  /** Whether Proof Key for Code Exchange is required. */
+  requirePkce: Scalars['Boolean']['output'];
+  /** Read-only resource audience inherited from the application. */
+  resources: Array<Scalars['String']['output']>;
+  /** Read-only response types enforced by the protocol policy. */
+  responseTypes: Array<Scalars['String']['output']>;
+  revision: Scalars['Int']['output'];
+  skipConsent: Scalars['Boolean']['output'];
+  tokenEndpointAuthMethod: ApplicationOAuthTokenEndpointAuthMethod;
+  updatedAt: Scalars['DateTime']['output'];
+  updatedBy: Scalars['ID']['output'];
+};
+
+/** Input for archiving an OAuth client. */
+export type ApiApplicationOAuthClientArchiveInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** A paginated connection of OAuth clients. */
+export type ApiApplicationOAuthClientConnection = {
+  __typename?: 'ApplicationOAuthClientConnection';
+  edges: Array<ApiApplicationOAuthClientEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Input for creating an OAuth client with fixed protocol policy. */
+export type ApiApplicationOAuthClientCreateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientType: ApplicationOAuthClientType;
+  enableEndSession?: InputMaybe<Scalars['Boolean']['input']>;
+  environment: ApplicationOAuthClientEnvironment;
+  name: Scalars['String']['input'];
+  organizationId: Scalars['ID']['input'];
+  postLogoutRedirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
+  redirectUris: Array<Scalars['String']['input']>;
+  skipConsent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Result of creating an OAuth client. */
+export type ApiApplicationOAuthClientCreatePayload = {
+  __typename?: 'ApplicationOAuthClientCreatePayload';
+  client?: Maybe<ApiApplicationOAuthClient>;
+  /** One-time plaintext secret for a confidential client; otherwise null. */
+  clientSecret?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** An OAuth client and its pagination cursor. */
+export type ApiApplicationOAuthClientEdge = {
+  __typename?: 'ApplicationOAuthClientEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiApplicationOAuthClient;
+};
+
+/** Input for enabling or disabling an OAuth client. */
+export type ApiApplicationOAuthClientEnabledSetInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Environment used to enforce redirect URI policy. */
+export enum ApplicationOAuthClientEnvironment {
+  Development = 'DEVELOPMENT',
+  Production = 'PRODUCTION'
+}
+
+/** Ordering configuration for application OAuth clients. */
+export type ApiApplicationOAuthClientOrderByInput = {
+  direction: SortDirection;
+  field: ApplicationOAuthClientOrderField;
+};
+
+/** Fields available for ordering application OAuth clients. */
+export enum ApplicationOAuthClientOrderField {
+  CreatedAt = 'CREATED_AT',
+  Name = 'NAME',
+  UpdatedAt = 'UPDATED_AT'
+}
+
+/** Result of changing an OAuth client. */
+export type ApiApplicationOAuthClientPayload = {
+  __typename?: 'ApplicationOAuthClientPayload';
+  client?: Maybe<ApiApplicationOAuthClient>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for rotating a confidential OAuth client secret. */
+export type ApiApplicationOAuthClientSecretRotateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of rotating a confidential OAuth client secret. */
+export type ApiApplicationOAuthClientSecretRotatePayload = {
+  __typename?: 'ApplicationOAuthClientSecretRotatePayload';
+  client?: Maybe<ApiApplicationOAuthClient>;
+  /** One-time plaintext replacement secret. */
+  clientSecret?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for changing first-party consent bypass policy. */
+export type ApiApplicationOAuthClientSkipConsentSetInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  skipConsent: Scalars['Boolean']['input'];
+};
+
+/** OAuth client confidentiality classification. */
+export enum ApplicationOAuthClientType {
+  Confidential = 'CONFIDENTIAL',
+  Public = 'PUBLIC'
+}
+
+/** Input for updating mutable OAuth client metadata. */
+export type ApiApplicationOAuthClientUpdateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  enableEndSession?: InputMaybe<Scalars['Boolean']['input']>;
+  environment?: InputMaybe<ApplicationOAuthClientEnvironment>;
+  expectedRevision: Scalars['Int']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  organizationId: Scalars['ID']['input'];
+  postLogoutRedirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
+  redirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Filter conditions for application OAuth clients. */
+export type ApiApplicationOAuthClientWhereInput = {
+  archived?: InputMaybe<Scalars['Boolean']['input']>;
+  clientType?: InputMaybe<Array<ApplicationOAuthClientType>>;
+  disabled?: InputMaybe<Scalars['Boolean']['input']>;
+  environment?: InputMaybe<Array<ApplicationOAuthClientEnvironment>>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Token endpoint authentication method enforced by IAM. */
+export enum ApplicationOAuthTokenEndpointAuthMethod {
+  ClientSecretBasic = 'CLIENT_SECRET_BASIC',
+  None = 'NONE'
+}
+
+/** Ordering configuration for applications. */
+export type ApiApplicationOrderByInput = {
+  /** Sort direction. */
+  direction: SortDirection;
+  /** Field to order by. */
+  field: ApplicationOrderField;
+};
+
+/** Fields available for ordering applications. */
+export enum ApplicationOrderField {
+  CreatedAt = 'CREATED_AT',
+  DisplayName = 'DISPLAY_NAME',
+  Name = 'NAME',
+  UpdatedAt = 'UPDATED_AT'
+}
+
+/** Application realm management queries. */
+export type ApiApplicationQuery = {
+  __typename?: 'ApplicationQuery';
+  /** Get an application owned by the selected organization. */
+  application?: Maybe<ApiApplication>;
+  /** List applications owned by the selected organization. */
+  applications: ApiApplicationConnection;
+};
+
+
+/** Application realm management queries. */
+export type ApiApplicationQueryApplicationArgs = {
+  id: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+
+/** Application realm management queries. */
+export type ApiApplicationQueryApplicationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiApplicationOrderByInput>>;
+  organizationId: Scalars['ID']['input'];
+  where?: InputMaybe<ApiApplicationWhereInput>;
+};
+
+/** Registration policy for new application users. */
+export enum ApplicationRegistrationMode {
+  /** New user registration is disabled. */
+  Disabled = 'DISABLED',
+  /** New users may register through enabled sign-up methods. */
+  Open = 'OPEN'
+}
+
+/** Input for updating application metadata. */
+export type ApiApplicationUpdateInput = {
+  /** Application to update. */
+  applicationId: Scalars['ID']['input'];
+  /** New application description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** New human-readable application name. */
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  /** Revision expected by the caller. */
+  expectedRevision: Scalars['Int']['input'];
+  /** New URL-friendly application name. */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** Organization that owns the application. */
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of updating application metadata. */
+export type ApiApplicationUpdatePayload = {
+  __typename?: 'ApplicationUpdatePayload';
+  application?: Maybe<ApiApplication>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A user scoped to a single application authentication realm. */
+export type ApiApplicationUser = ApiNode & {
+  __typename?: 'ApplicationUser';
+  applicationId: Scalars['ID']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  email: Scalars['Email']['output'];
+  emailVerified: Scalars['Boolean']['output'];
+  firstName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  imageUrl?: Maybe<Scalars['String']['output']>;
+  lastName?: Maybe<Scalars['String']['output']>;
+  /** Linked login accounts without provider credentials or tokens. */
+  linkedAccounts: Array<ApiApplicationUserLinkedAccount>;
+  name: Scalars['String']['output'];
+  /** Safe security metadata without credentials or token values. */
+  security: ApiApplicationUserSecurityMetadata;
+  status: ApplicationUserStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Input for unlinking a login account from an application user. */
+export type ApiApplicationUserAccountUnlinkInput = {
+  accountId: Scalars['ID']['input'];
+  applicationId: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+/** Result of unlinking an application user login account. */
+export type ApiApplicationUserAccountUnlinkPayload = {
+  __typename?: 'ApplicationUserAccountUnlinkPayload';
+  unlinkedAccountId?: Maybe<Scalars['ID']['output']>;
+  user?: Maybe<ApiApplicationUser>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A paginated connection of application users. */
+export type ApiApplicationUserConnection = {
+  __typename?: 'ApplicationUserConnection';
+  edges: Array<ApiApplicationUserEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An application user and its pagination cursor. */
+export type ApiApplicationUserEdge = {
+  __typename?: 'ApplicationUserEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiApplicationUser;
+};
+
+/** A login account linked to an application user. */
+export type ApiApplicationUserLinkedAccount = ApiNode & {
+  __typename?: 'ApplicationUserLinkedAccount';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  /** Whether unlinking this account would remove the user's last login method. */
+  isOnlyLoginMethod: Scalars['Boolean']['output'];
+  provider: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Ordering configuration for application users. */
+export type ApiApplicationUserOrderByInput = {
+  direction: SortDirection;
+  field: ApplicationUserOrderField;
+};
+
+/** Fields available for ordering application users. */
+export enum ApplicationUserOrderField {
+  CreatedAt = 'CREATED_AT',
+  Email = 'EMAIL',
+  Name = 'NAME',
+  UpdatedAt = 'UPDATED_AT'
+}
+
+/** Result of changing an application user's security status. */
+export type ApiApplicationUserPayload = {
+  __typename?: 'ApplicationUserPayload';
+  user?: Maybe<ApiApplicationUser>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Safe aggregate security metadata for an application user. */
+export type ApiApplicationUserSecurityMetadata = {
+  __typename?: 'ApplicationUserSecurityMetadata';
+  activeSessionCount: Scalars['Int']['output'];
+  hasPasswordLogin: Scalars['Boolean']['output'];
+  linkedAccountCount: Scalars['Int']['output'];
+};
+
+/** Input for revoking every session of an application user. */
+export type ApiApplicationUserSessionsRevokeAllInput = {
+  applicationId: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+/** Result of revoking every session of an application user. */
+export type ApiApplicationUserSessionsRevokeAllPayload = {
+  __typename?: 'ApplicationUserSessionsRevokeAllPayload';
+  revokedCount: Scalars['Int']['output'];
+  user?: Maybe<ApiApplicationUser>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Administrative security status of an application user. */
+export enum ApplicationUserStatus {
+  Active = 'ACTIVE',
+  Blocked = 'BLOCKED'
+}
+
+/** Input for blocking or unblocking an application user. */
+export type ApiApplicationUserStatusSetInput = {
+  applicationId: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+/** Filter conditions for application users. */
+export type ApiApplicationUserWhereInput = {
+  emailVerified?: InputMaybe<Scalars['Boolean']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Array<ApplicationUserStatus>>;
+};
+
+/** Filter conditions for applications. */
+export type ApiApplicationWhereInput = {
+  /** Search by application name or display name. */
+  search?: InputMaybe<Scalars['String']['input']>;
+  /** Limit results to the selected lifecycle statuses. */
+  status?: InputMaybe<Array<ApplicationLifecycleStatus>>;
 };
 
 export type ApiAppsMutation = {
@@ -2574,19 +3592,6 @@ export enum CountryCode {
   Zw = 'ZW'
 }
 
-/** Currency configuration for the project */
-export type ApiCurrency = {
-  __typename?: 'Currency';
-  /** ISO 4217 currency code */
-  code: CurrencyCode;
-  /** Exchange rate relative to the base currency */
-  exchangeRate: ApiExchangeRate;
-  /** Whether this currency is currently active for the project */
-  isActive: Scalars['Boolean']['output'];
-  /** Display name of the currency */
-  name: Scalars['String']['output'];
-};
-
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
@@ -2912,53 +3917,6 @@ export enum CurrencyCode {
   /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
   Zwl = 'ZWL'
 }
-
-/** Input for creating a new currency */
-export type ApiCurrencyCreateInput = {
-  /** ISO 4217 currency code to add */
-  code: CurrencyCode;
-  /** Whether the currency should be active upon creation */
-  isActive: Scalars['Boolean']['input'];
-};
-
-/** Payload returned after creating a currency */
-export type ApiCurrencyCreatePayload = {
-  __typename?: 'CurrencyCreatePayload';
-  /** The newly created currency, null if creation failed */
-  currency?: Maybe<ApiCurrency>;
-  /** List of errors that occurred during creation */
-  userErrors: Array<ApiUserError>;
-};
-
-/** Input for deleting a currency */
-export type ApiCurrencyDeleteInput = {
-  /** ISO 4217 currency code to delete */
-  code: CurrencyCode;
-};
-
-/** Payload returned after deleting a currency */
-export type ApiCurrencyDeletePayload = {
-  __typename?: 'CurrencyDeletePayload';
-  /** The code of the deleted currency, null if deletion failed */
-  deletedCurrencyCode?: Maybe<CurrencyCode>;
-  /** List of errors that occurred during deletion */
-  userErrors: Array<ApiUserError>;
-};
-
-/** Input for setting the default currency */
-export type ApiCurrencySetDefaultInput = {
-  /** ISO 4217 currency code to set as default */
-  currency: CurrencyCode;
-};
-
-/** Payload returned after updating currency settings */
-export type ApiCurrencyUpdatePayload = {
-  __typename?: 'CurrencyUpdatePayload';
-  /** Whether the update was successful */
-  success: Scalars['Boolean']['output'];
-  /** List of errors that occurred during update */
-  userErrors: Array<ApiUserError>;
-};
 
 /** A store-scoped customer business profile owned by Customers. */
 export type ApiCustomer = ApiNode & {
@@ -6504,15 +7462,6 @@ export type ApiDiscountWhereInput = {
   usageLimit?: InputMaybe<ApiBigIntFilter>;
 };
 
-/** Exchange rate representation using integer arithmetic for precision */
-export type ApiExchangeRate = {
-  __typename?: 'ExchangeRate';
-  /** The exchange rate value as an integer (divide by 10^scale for actual rate) */
-  amount: Scalars['Int']['output'];
-  /** The number of decimal places in the amount */
-  scale: Scalars['Int']['output'];
-};
-
 /** External media data (YouTube, Vimeo, etc). */
 export type ApiExternalMediaData = {
   __typename?: 'ExternalMediaData';
@@ -8723,6 +9672,8 @@ export type ApiMembership = {
 
 export type ApiMutation = {
   __typename?: 'Mutation';
+  /** Application realm management mutations. */
+  applicationMutation: ApiApplicationMutation;
   appsMutation: ApiAppsMutation;
   /** Authentication mutations. */
   authMutation: ApiAuthMutation;
@@ -8977,6 +9928,8 @@ export type ApiOrdersOutput = {
  */
 export type ApiOrganization = ApiNode & {
   __typename?: 'Organization';
+  /** Applications owned by this organization. */
+  applications: ApiApplicationConnection;
   /** Timestamp when the organization was created. */
   createdAt: Scalars['DateTime']['output'];
   /** Display name (e.g., "Acme Corp"). */
@@ -8991,6 +9944,20 @@ export type ApiOrganization = ApiNode & {
   name: Scalars['String']['output'];
   /** Timestamp when the organization was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+
+/**
+ * Organization - top level entity for multi-tenancy.
+ * Users belong to organizations, organizations contain stores.
+ */
+export type ApiOrganizationApplicationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiApplicationOrderByInput>>;
+  where?: InputMaybe<ApiApplicationWhereInput>;
 };
 
 /** A connection to a list of Organization items. */
@@ -9300,9 +10267,14 @@ export type ApiPricingQuery = {
   __typename?: 'PricingQuery';
   discount?: Maybe<ApiDiscount>;
   discountCode?: Maybe<ApiDiscountCode>;
+  discountCodes: ApiDiscountCodeConnection;
   discountExternalReference?: Maybe<ApiDiscountExternalReference>;
+  discountExternalReferences: ApiDiscountExternalReferenceConnection;
   discountRedemption?: Maybe<ApiDiscountRedemption>;
+  discountRedemptionAllocation?: Maybe<ApiDiscountRedemptionAllocation>;
+  discountRedemptions: ApiDiscountRedemptionConnection;
   discountUsageReservation?: Maybe<ApiDiscountUsageReservation>;
+  discountUsageReservations: ApiDiscountUsageReservationConnection;
   discounts: ApiDiscountConnection;
   /** Resolve a Pricing-owned Relay node by global ID. */
   node?: Maybe<ApiNode>;
@@ -9324,8 +10296,30 @@ export type ApiPricingQueryDiscountCodeArgs = {
 
 
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountCodesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountCodeOrderByInput>>;
+  where?: InputMaybe<ApiDiscountCodeWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountExternalReferenceArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountExternalReferenceOrderByInput>>;
+  where?: InputMaybe<ApiDiscountExternalReferenceWhereInput>;
 };
 
 
@@ -9336,8 +10330,36 @@ export type ApiPricingQueryDiscountRedemptionArgs = {
 
 
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountRedemptionAllocationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountRedemptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountRedemptionOrderByInput>>;
+  where?: InputMaybe<ApiDiscountRedemptionWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountUsageReservationArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountUsageReservationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountUsageReservationOrderByInput>>;
+  where?: InputMaybe<ApiDiscountUsageReservationWhereInput>;
 };
 
 
@@ -10884,6 +11906,8 @@ export type ApiPurchasableSnapshot = ApiPurchasable & {
 
 export type ApiQuery = {
   __typename?: 'Query';
+  /** Application realm management queries. */
+  applicationQuery: ApiApplicationQuery;
   appsQuery: ApiAppsQuery;
   /** Catalog query namespace for product, variant, category, and collection operations */
   catalogQuery: ApiCatalogQuery;
@@ -10921,6 +11945,29 @@ export type ApiResourceDefinition = {
   /** Resource name (product, order, etc.). */
   name: Scalars['String']['output'];
 };
+
+/** Read-only management metadata for an IAM resource. */
+export type ApiResourceManagement = {
+  __typename?: 'ResourceManagement';
+  /** Linked owner id, when mode is SERVICE. */
+  linkedOwnerId?: Maybe<Scalars['ID']['output']>;
+  /** Linked owner type, when mode is SERVICE. */
+  linkedOwnerType?: Maybe<Scalars['String']['output']>;
+  /** Linked service owner, when mode is SERVICE. */
+  linkedService?: Maybe<Scalars['String']['output']>;
+  /** Current management mode. */
+  mode: ResourceManagementMode;
+  /** Whether generic organization Admin mutations may change this resource. */
+  mutableFromOrganizationAdmin: Scalars['Boolean']['output'];
+};
+
+/** How an IAM resource lifecycle is managed. */
+export enum ResourceManagementMode {
+  /** The resource is managed by the organization. */
+  Organization = 'ORGANIZATION',
+  /** The resource is managed by a linked service owner. */
+  Service = 'SERVICE'
+}
 
 export type ApiReview = ApiNode & ApiReviewContent & {
   __typename?: 'Review';
@@ -14151,14 +15198,10 @@ export enum SortDirection {
 /** A store */
 export type ApiStore = {
   __typename?: 'Store';
-  /** Base currency used for exchange rate calculations */
-  baseCurrency: CurrencyCode;
   /** Timestamp when the store was created */
   createdAt: Scalars['DateTime']['output'];
-  /** List of enabled currency codes for the store */
-  currencies: Array<CurrencyCode>;
-  /** Default currency for pricing display */
-  defaultCurrency: CurrencyCode;
+  /** Currency used by the store */
+  currencyCode: CurrencyCode;
   /** Default unit for product dimensions */
   defaultDimensionUnit: DimensionUnit;
   /** Default locale for new content */
@@ -14189,10 +15232,8 @@ export type ApiStore = {
 
 /** Input for creating a new store */
 export type ApiStoreCreateInput = {
-  /** Initial list of currency codes to enable */
-  currencies: Array<CurrencyCode>;
-  /** Default currency for the store */
-  defaultCurrency: CurrencyCode;
+  /** Currency used by the store */
+  currencyCode: CurrencyCode;
   /** Display name of the store */
   displayName: Scalars['String']['input'];
   /** Contact email address */
@@ -14244,12 +15285,6 @@ export type ApiStoreMutation = {
   apiKeyDelete: ApiApiKeyDeletePayload;
   /** Revoke an API key (soft delete) */
   apiKeyRevoke: ApiApiKeyActionPayload;
-  /** Add a new currency to the store */
-  currencyCreate: ApiCurrencyCreatePayload;
-  /** Remove a currency from the store */
-  currencyDelete: ApiCurrencyDeletePayload;
-  /** Set the default currency for the store */
-  currencySetDefault: ApiCurrencyUpdatePayload;
   /** Add a new locale to the store */
   localeCreate: ApiLocaleCreatePayload;
   /** Remove a locale from the store */
@@ -14280,24 +15315,6 @@ export type ApiStoreMutationApiKeyDeleteArgs = {
 /** Mutations for store management */
 export type ApiStoreMutationApiKeyRevokeArgs = {
   input: ApiApiKeyRevokeInput;
-};
-
-
-/** Mutations for store management */
-export type ApiStoreMutationCurrencyCreateArgs = {
-  input: ApiCurrencyCreateInput;
-};
-
-
-/** Mutations for store management */
-export type ApiStoreMutationCurrencyDeleteArgs = {
-  input: ApiCurrencyDeleteInput;
-};
-
-
-/** Mutations for store management */
-export type ApiStoreMutationCurrencySetDefaultArgs = {
-  input: ApiCurrencySetDefaultInput;
 };
 
 
@@ -14363,8 +15380,8 @@ export enum StoreStatus {
 
 /** Input for updating an existing store */
 export type ApiStoreUpdateInput = {
-  /** Updated list of enabled currency codes */
-  currencies?: InputMaybe<Array<CurrencyCode>>;
+  /** New currency code */
+  currencyCode?: InputMaybe<CurrencyCode>;
   /** New default dimension unit */
   defaultDimensionUnit?: InputMaybe<DimensionUnit>;
   /** New default weight unit */

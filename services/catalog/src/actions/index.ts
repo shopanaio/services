@@ -59,7 +59,7 @@ export class CatalogBrokerActions extends BrokerActions {
       kernel,
       loaders: new Loader(kernel.repository),
       locale: store.defaultLocale,
-      currency: store.defaultCurrency,
+      currency: store.currencyCode,
       store,
     });
   }

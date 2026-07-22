@@ -253,7 +253,6 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
         { ids: Array.from(allVariantIds) },
         {
           "x-api-key": input.apiKey!,
-          "x-currency": input.currency!,
         }
       );
 

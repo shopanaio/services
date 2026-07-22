@@ -100,78 +100,9 @@ export type ApiKeyRevokeInput = {
   id: Scalars['ID']['input'];
 };
 
-/** Currency configuration for the project */
-export type Currency = {
-  __typename?: 'Currency';
-  /** ISO 4217 currency code */
-  code: CurrencyCode;
-  /** Exchange rate relative to the base currency */
-  exchangeRate: ExchangeRate;
-  /** Whether this currency is currently active for the project */
-  isActive: Scalars['Boolean']['output'];
-  /** Display name of the currency */
-  name: Scalars['String']['output'];
-};
-
 export { CurrencyCode };
 
-/** Input for creating a new currency */
-export type CurrencyCreateInput = {
-  /** ISO 4217 currency code to add */
-  code: CurrencyCode;
-  /** Whether the currency should be active upon creation */
-  isActive: Scalars['Boolean']['input'];
-};
-
-/** Payload returned after creating a currency */
-export type CurrencyCreatePayload = {
-  __typename?: 'CurrencyCreatePayload';
-  /** The newly created currency, null if creation failed */
-  currency: Maybe<Currency>;
-  /** List of errors that occurred during creation */
-  userErrors: Array<UserError>;
-};
-
-/** Input for deleting a currency */
-export type CurrencyDeleteInput = {
-  /** ISO 4217 currency code to delete */
-  code: CurrencyCode;
-};
-
-/** Payload returned after deleting a currency */
-export type CurrencyDeletePayload = {
-  __typename?: 'CurrencyDeletePayload';
-  /** The code of the deleted currency, null if deletion failed */
-  deletedCurrencyCode: Maybe<CurrencyCode>;
-  /** List of errors that occurred during deletion */
-  userErrors: Array<UserError>;
-};
-
-/** Input for setting the default currency */
-export type CurrencySetDefaultInput = {
-  /** ISO 4217 currency code to set as default */
-  currency: CurrencyCode;
-};
-
-/** Payload returned after updating currency settings */
-export type CurrencyUpdatePayload = {
-  __typename?: 'CurrencyUpdatePayload';
-  /** Whether the update was successful */
-  success: Scalars['Boolean']['output'];
-  /** List of errors that occurred during update */
-  userErrors: Array<UserError>;
-};
-
 export { DimensionUnit };
-
-/** Exchange rate representation using integer arithmetic for precision */
-export type ExchangeRate = {
-  __typename?: 'ExchangeRate';
-  /** The exchange rate value as an integer (divide by 10^scale for actual rate) */
-  amount: Scalars['Int']['output'];
-  /** The number of decimal places in the amount */
-  scale: Scalars['Int']['output'];
-};
 
 /** Generic implementation of UserError */
 export type GenericUserError = UserError & {
@@ -270,14 +201,10 @@ export type Query = {
 /** A store */
 export type Store = {
   __typename?: 'Store';
-  /** Base currency used for exchange rate calculations */
-  baseCurrency: CurrencyCode;
   /** Timestamp when the store was created */
   createdAt: Scalars['DateTime']['output'];
-  /** List of enabled currency codes for the store */
-  currencies: Array<CurrencyCode>;
-  /** Default currency for pricing display */
-  defaultCurrency: CurrencyCode;
+  /** Currency used by the store */
+  currencyCode: CurrencyCode;
   /** Default unit for product dimensions */
   defaultDimensionUnit: DimensionUnit;
   /** Default locale for new content */
@@ -308,10 +235,8 @@ export type Store = {
 
 /** Input for creating a new store */
 export type StoreCreateInput = {
-  /** Initial list of currency codes to enable */
-  currencies: Array<CurrencyCode>;
-  /** Default currency for the store */
-  defaultCurrency: CurrencyCode;
+  /** Currency used by the store */
+  currencyCode: CurrencyCode;
   /** Display name of the store */
   displayName: Scalars['String']['input'];
   /** Contact email address */
@@ -363,12 +288,6 @@ export type StoreMutation = {
   apiKeyDelete: ApiKeyDeletePayload;
   /** Revoke an API key (soft delete) */
   apiKeyRevoke: ApiKeyActionPayload;
-  /** Add a new currency to the store */
-  currencyCreate: CurrencyCreatePayload;
-  /** Remove a currency from the store */
-  currencyDelete: CurrencyDeletePayload;
-  /** Set the default currency for the store */
-  currencySetDefault: CurrencyUpdatePayload;
   /** Add a new locale to the store */
   localeCreate: LocaleCreatePayload;
   /** Remove a locale from the store */
@@ -399,24 +318,6 @@ export type StoreMutationApiKeyDeleteArgs = {
 /** Mutations for store management */
 export type StoreMutationApiKeyRevokeArgs = {
   input: ApiKeyRevokeInput;
-};
-
-
-/** Mutations for store management */
-export type StoreMutationCurrencyCreateArgs = {
-  input: CurrencyCreateInput;
-};
-
-
-/** Mutations for store management */
-export type StoreMutationCurrencyDeleteArgs = {
-  input: CurrencyDeleteInput;
-};
-
-
-/** Mutations for store management */
-export type StoreMutationCurrencySetDefaultArgs = {
-  input: CurrencySetDefaultInput;
 };
 
 
@@ -482,8 +383,8 @@ export enum StoreStatus {
 
 /** Input for updating an existing store */
 export type StoreUpdateInput = {
-  /** Updated list of enabled currency codes */
-  currencies?: InputMaybe<Array<CurrencyCode>>;
+  /** New currency code */
+  currencyCode?: InputMaybe<CurrencyCode>;
   /** New default dimension unit */
   defaultDimensionUnit?: InputMaybe<DimensionUnit>;
   /** New default weight unit */
@@ -622,19 +523,10 @@ export type ResolversTypes = ResolversObject<{
   ApiKeyDeleteInput: ApiKeyDeleteInput;
   ApiKeyDeletePayload: ResolverTypeWrapper<Omit<ApiKeyDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   ApiKeyRevokeInput: ApiKeyRevokeInput;
-  Currency: ResolverTypeWrapper<Currency>;
   CurrencyCode: CurrencyCode;
-  CurrencyCreateInput: CurrencyCreateInput;
-  CurrencyCreatePayload: ResolverTypeWrapper<Omit<CurrencyCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
-  CurrencyDeleteInput: CurrencyDeleteInput;
-  CurrencyDeletePayload: ResolverTypeWrapper<Omit<CurrencyDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
-  CurrencySetDefaultInput: CurrencySetDefaultInput;
-  CurrencyUpdatePayload: ResolverTypeWrapper<Omit<CurrencyUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
-  ExchangeRate: ResolverTypeWrapper<ExchangeRate>;
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   Locale: ResolverTypeWrapper<Locale>;
   LocaleCode: LocaleCode;
@@ -653,7 +545,7 @@ export type ResolversTypes = ResolversObject<{
   StoreCreatePayload: ResolverTypeWrapper<Omit<StoreCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   StoreDeleteInput: StoreDeleteInput;
   StoreDeletePayload: ResolverTypeWrapper<Omit<StoreDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
-  StoreMutation: ResolverTypeWrapper<Omit<StoreMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'storeCreate' | 'storeDelete' | 'storeUpdate'> & { apiKeyCreate: ResolversTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversTypes['ApiKeyActionPayload'], currencyCreate: ResolversTypes['CurrencyCreatePayload'], currencyDelete: ResolversTypes['CurrencyDeletePayload'], currencySetDefault: ResolversTypes['CurrencyUpdatePayload'], localeCreate: ResolversTypes['LocaleCreatePayload'], localeDelete: ResolversTypes['LocaleDeletePayload'], localeSetDefault: ResolversTypes['LocaleUpdatePayload'], storeCreate: ResolversTypes['StoreCreatePayload'], storeDelete: ResolversTypes['StoreDeletePayload'], storeUpdate: ResolversTypes['StoreUpdatePayload'] }>;
+  StoreMutation: ResolverTypeWrapper<Omit<StoreMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'storeCreate' | 'storeDelete' | 'storeUpdate'> & { apiKeyCreate: ResolversTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversTypes['ApiKeyActionPayload'], localeCreate: ResolversTypes['LocaleCreatePayload'], localeDelete: ResolversTypes['LocaleDeletePayload'], localeSetDefault: ResolversTypes['LocaleUpdatePayload'], storeCreate: ResolversTypes['StoreCreatePayload'], storeDelete: ResolversTypes['StoreDeletePayload'], storeUpdate: ResolversTypes['StoreUpdatePayload'] }>;
   StoreQuery: ResolverTypeWrapper<StoreQuery>;
   StoreStatus: StoreStatus;
   StoreUpdateInput: StoreUpdateInput;
@@ -675,17 +567,8 @@ export type ResolversParentTypes = ResolversObject<{
   ApiKeyDeleteInput: ApiKeyDeleteInput;
   ApiKeyDeletePayload: Omit<ApiKeyDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   ApiKeyRevokeInput: ApiKeyRevokeInput;
-  Currency: Currency;
-  CurrencyCreateInput: CurrencyCreateInput;
-  CurrencyCreatePayload: Omit<CurrencyCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
-  CurrencyDeleteInput: CurrencyDeleteInput;
-  CurrencyDeletePayload: Omit<CurrencyDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
-  CurrencySetDefaultInput: CurrencySetDefaultInput;
-  CurrencyUpdatePayload: Omit<CurrencyUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   DateTime: Scalars['DateTime']['output'];
   Email: Scalars['Email']['output'];
-  ExchangeRate: ExchangeRate;
-  Int: Scalars['Int']['output'];
   GenericUserError: GenericUserError;
   Locale: Locale;
   LocaleCreateInput: LocaleCreateInput;
@@ -703,7 +586,7 @@ export type ResolversParentTypes = ResolversObject<{
   StoreCreatePayload: Omit<StoreCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   StoreDeleteInput: StoreDeleteInput;
   StoreDeletePayload: Omit<StoreDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
-  StoreMutation: Omit<StoreMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'storeCreate' | 'storeDelete' | 'storeUpdate'> & { apiKeyCreate: ResolversParentTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversParentTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversParentTypes['ApiKeyActionPayload'], currencyCreate: ResolversParentTypes['CurrencyCreatePayload'], currencyDelete: ResolversParentTypes['CurrencyDeletePayload'], currencySetDefault: ResolversParentTypes['CurrencyUpdatePayload'], localeCreate: ResolversParentTypes['LocaleCreatePayload'], localeDelete: ResolversParentTypes['LocaleDeletePayload'], localeSetDefault: ResolversParentTypes['LocaleUpdatePayload'], storeCreate: ResolversParentTypes['StoreCreatePayload'], storeDelete: ResolversParentTypes['StoreDeletePayload'], storeUpdate: ResolversParentTypes['StoreUpdatePayload'] };
+  StoreMutation: Omit<StoreMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'storeCreate' | 'storeDelete' | 'storeUpdate'> & { apiKeyCreate: ResolversParentTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversParentTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversParentTypes['ApiKeyActionPayload'], localeCreate: ResolversParentTypes['LocaleCreatePayload'], localeDelete: ResolversParentTypes['LocaleDeletePayload'], localeSetDefault: ResolversParentTypes['LocaleUpdatePayload'], storeCreate: ResolversParentTypes['StoreCreatePayload'], storeDelete: ResolversParentTypes['StoreDeletePayload'], storeUpdate: ResolversParentTypes['StoreUpdatePayload'] };
   StoreQuery: StoreQuery;
   StoreUpdateInput: StoreUpdateInput;
   StoreUpdatePayload: Omit<StoreUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
@@ -743,33 +626,7 @@ export type ApiKeyDeletePayloadResolvers<ContextType = ServiceContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CurrencyResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Currency'] = ResolversParentTypes['Currency']> = ResolversObject<{
-  code?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
-  exchangeRate?: Resolver<ResolversTypes['ExchangeRate'], ParentType, ContextType>;
-  isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type CurrencyCodeResolvers = EnumResolverSignature<{ AED?: any, AFN?: any, ALL?: any, AMD?: any, ANG?: any, AOA?: any, ARS?: any, AUD?: any, AWG?: any, AZN?: any, BAM?: any, BBD?: any, BDT?: any, BGN?: any, BHD?: any, BIF?: any, BMD?: any, BND?: any, BOB?: any, BRL?: any, BSD?: any, BTN?: any, BWP?: any, BYN?: any, BZD?: any, CAD?: any, CDF?: any, CHF?: any, CLP?: any, CNY?: any, COP?: any, CRC?: any, CUP?: any, CVE?: any, CZK?: any, DJF?: any, DKK?: any, DOP?: any, DZD?: any, EGP?: any, ERN?: any, ETB?: any, EUR?: any, FJD?: any, FKP?: any, FOK?: any, GBP?: any, GEL?: any, GGP?: any, GHS?: any, GIP?: any, GMD?: any, GNF?: any, GTQ?: any, GYD?: any, HKD?: any, HNL?: any, HRK?: any, HTG?: any, HUF?: any, IDR?: any, ILS?: any, IMP?: any, INR?: any, IQD?: any, IRR?: any, ISK?: any, JEP?: any, JMD?: any, JOD?: any, JPY?: any, KES?: any, KGS?: any, KHR?: any, KMF?: any, KPW?: any, KRW?: any, KWD?: any, KYD?: any, KZT?: any, LAK?: any, LBP?: any, LKR?: any, LRD?: any, LSL?: any, LYD?: any, MAD?: any, MDL?: any, MGA?: any, MKD?: any, MMK?: any, MNT?: any, MOP?: any, MRU?: any, MUR?: any, MVR?: any, MWK?: any, MXN?: any, MYR?: any, MZN?: any, NAD?: any, NGN?: any, NIO?: any, NOK?: any, NPR?: any, NZD?: any, OMR?: any, PAB?: any, PEN?: any, PGK?: any, PHP?: any, PKR?: any, PLN?: any, PYG?: any, QAR?: any, RON?: any, RSD?: any, RUB?: any, RWF?: any, SAR?: any, SBD?: any, SCR?: any, SDG?: any, SEK?: any, SGD?: any, SHP?: any, SLE?: any, SOS?: any, SRD?: any, SSP?: any, STN?: any, SVC?: any, SYP?: any, SZL?: any, THB?: any, TJS?: any, TMT?: any, TND?: any, TOP?: any, TRY?: any, TTD?: any, TWD?: any, TZS?: any, UAH?: any, UGX?: any, USD?: any, UYU?: any, UZS?: any, VES?: any, VND?: any, VUV?: any, WST?: any, XAF?: any, XCD?: any, XDR?: any, XOF?: any, XPF?: any, YER?: any, ZAR?: any, ZMW?: any, ZWL?: any }, ResolversTypes['CurrencyCode']>;
-
-export type CurrencyCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CurrencyCreatePayload'] = ResolversParentTypes['CurrencyCreatePayload']> = ResolversObject<{
-  currency?: Resolver<Maybe<ResolversTypes['Currency']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CurrencyDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CurrencyDeletePayload'] = ResolversParentTypes['CurrencyDeletePayload']> = ResolversObject<{
-  deletedCurrencyCode?: Resolver<Maybe<ResolversTypes['CurrencyCode']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CurrencyUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CurrencyUpdatePayload'] = ResolversParentTypes['CurrencyUpdatePayload']> = ResolversObject<{
-  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
@@ -780,12 +637,6 @@ export type DimensionUnitResolvers = EnumResolverSignature<{ cm?: any, ft?: any,
 export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Email'], any> {
   name: 'Email';
 }
-
-export type ExchangeRateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ExchangeRate'] = ResolversParentTypes['ExchangeRate']> = ResolversObject<{
-  amount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  scale?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
 
 export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['GenericUserError'] = ResolversParentTypes['GenericUserError']> = ResolversObject<{
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -844,10 +695,8 @@ export type QueryResolvers<ContextType = ServiceContext, ParentType extends Reso
 
 export type StoreResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Store'] = ResolversParentTypes['Store']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Store']>, { __typename: 'Store' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  baseCurrency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  currencies?: Resolver<Array<ResolversTypes['CurrencyCode']>, ParentType, ContextType>;
-  defaultCurrency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
+  currencyCode?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
   defaultDimensionUnit?: Resolver<ResolversTypes['DimensionUnit'], ParentType, ContextType>;
   defaultLocale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   defaultWeightUnit?: Resolver<ResolversTypes['WeightUnit'], ParentType, ContextType>;
@@ -880,9 +729,6 @@ export type StoreMutationResolvers<ContextType = ServiceContext, ParentType exte
   apiKeyCreate?: Resolver<ResolversTypes['ApiKeyCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationApiKeyCreateArgs, 'input'>>;
   apiKeyDelete?: Resolver<ResolversTypes['ApiKeyDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationApiKeyDeleteArgs, 'input'>>;
   apiKeyRevoke?: Resolver<ResolversTypes['ApiKeyActionPayload'], ParentType, ContextType, RequireFields<StoreMutationApiKeyRevokeArgs, 'input'>>;
-  currencyCreate?: Resolver<ResolversTypes['CurrencyCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationCurrencyCreateArgs, 'input'>>;
-  currencyDelete?: Resolver<ResolversTypes['CurrencyDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationCurrencyDeleteArgs, 'input'>>;
-  currencySetDefault?: Resolver<ResolversTypes['CurrencyUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationCurrencySetDefaultArgs, 'input'>>;
   localeCreate?: Resolver<ResolversTypes['LocaleCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationLocaleCreateArgs, 'input'>>;
   localeDelete?: Resolver<ResolversTypes['LocaleDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationLocaleDeleteArgs, 'input'>>;
   localeSetDefault?: Resolver<ResolversTypes['LocaleUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationLocaleSetDefaultArgs, 'input'>>;
@@ -923,15 +769,10 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ApiKeyActionPayload?: ApiKeyActionPayloadResolvers<ContextType>;
   ApiKeyCreatePayload?: ApiKeyCreatePayloadResolvers<ContextType>;
   ApiKeyDeletePayload?: ApiKeyDeletePayloadResolvers<ContextType>;
-  Currency?: CurrencyResolvers<ContextType>;
   CurrencyCode?: CurrencyCodeResolvers;
-  CurrencyCreatePayload?: CurrencyCreatePayloadResolvers<ContextType>;
-  CurrencyDeletePayload?: CurrencyDeletePayloadResolvers<ContextType>;
-  CurrencyUpdatePayload?: CurrencyUpdatePayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   DimensionUnit?: DimensionUnitResolvers;
   Email?: GraphQLScalarType;
-  ExchangeRate?: ExchangeRateResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   Locale?: LocaleResolvers<ContextType>;
   LocaleCode?: LocaleCodeResolvers;

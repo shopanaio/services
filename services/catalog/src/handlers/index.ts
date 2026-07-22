@@ -273,9 +273,9 @@ export class CatalogEventHandlers extends EventHandlers {
         userId: params.userId,
         locale: params.store.defaultLocale,
         defaultLocale: params.store.defaultLocale,
-        defaultCurrency: params.store.defaultCurrency,
+        defaultCurrency: params.store.currencyCode,
         locales: [...params.store.locales],
-        currencies: [...params.store.currencies],
+        currencies: [params.store.currencyCode],
       }
     );
 

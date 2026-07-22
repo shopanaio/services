@@ -4,7 +4,7 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { Store } from "../../repositories/store/StoreRepository.js";
-import type { LocaleCode, CurrencyCode } from "@shopana/shared-references";
+import type { LocaleCode } from "@shopana/shared-references";
 import { BaseResolver } from "./BaseResolver.js";
 
 export { BaseResolver };
@@ -70,12 +70,8 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     return this.$get("defaultLocale");
   }
 
-  async baseCurrency() {
-    return this.$get("baseCurrency");
-  }
-
-  async defaultCurrency() {
-    return this.$get("defaultCurrency");
+  async currencyCode() {
+    return this.$get("currencyCode");
   }
 
   async defaultWeightUnit() {
@@ -98,7 +94,4 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     return this.$props.locales;
   }
 
-  async currencies(): Promise<CurrencyCode[]> {
-    return this.$props.currencies;
-  }
 }

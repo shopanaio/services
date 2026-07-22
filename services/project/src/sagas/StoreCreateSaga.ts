@@ -41,8 +41,7 @@ export interface StoreCreateInput {
   name: string;
   displayName: string;
   locales: LocaleCode[];
-  currencies: CurrencyCode[];
-  defaultCurrency: CurrencyCode;
+  currencyCode: CurrencyCode;
   status?: StoreStatus;
   timezone?: string;
   email?: string;
@@ -160,8 +159,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       name: input.name,
       displayName: input.displayName,
       locales: input.locales,
-      currencies: input.currencies,
-      defaultCurrency: input.defaultCurrency,
+      currencyCode: input.currencyCode,
       status: input.status,
       timezone: input.timezone,
       email: input.email,

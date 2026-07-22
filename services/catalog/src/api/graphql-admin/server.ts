@@ -141,10 +141,6 @@ export async function startServer(serverConfig: ServerConfig) {
         // Create loaders per request for proper batching
         const loaders = new Loader(kernel!.repository);
 
-        // Read currency from header, then store context.
-        const currency =
-          getHeaderValue(request.headers["x-currency"]) ??
-          request.store.defaultCurrency;
         const requestId =
           getHeaderValue(request.headers["x-idempotency-key"]) ??
           (request.id as string);
@@ -155,7 +151,7 @@ export async function startServer(serverConfig: ServerConfig) {
           store: request.store,
           user: request.user,
           loaders,
-          currency,
+          currency: request.store.currencyCode,
         });
 
         // Set context in AsyncLocalStorage for all resolvers

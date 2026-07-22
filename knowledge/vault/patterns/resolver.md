@@ -321,9 +321,9 @@ class MyResolver extends InventoryType<string> {
     const storeId = this.$ctx.store.id;
     const orgId = this.$ctx.store.organizationId;
 
-    // Access locale/currency
+    // Access locale and the store currency
     const locale = this.$ctx.locale ?? this.$ctx.store.defaultLocale;
-    const currency = this.$ctx.currency ?? "UAH";
+    const currency = this.$ctx.store.currencyCode;
   }
 }
 ```

@@ -31,6 +31,7 @@ import type {
   ApiRole,
   ApiStore,
   ApiRolePermissionInput,
+  CurrencyCode,
 } from "@/graphql/types";
 import type { ModulePageProps } from "@/registry";
 import {
@@ -170,8 +171,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
           name: values.name.toLowerCase().replace(/\s+/g, "-"),
           displayName: values.name,
           locales: values.locales as never[],
-          currencies: [values.currency] as never[],
-          defaultCurrency: values.currency as never,
+          currencyCode: values.currency as CurrencyCode,
         });
 
         if (userErrors.length > 0) {

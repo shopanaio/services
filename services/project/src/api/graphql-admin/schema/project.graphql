@@ -51,21 +51,13 @@ type Store @key(fields: "id") {
   """
   locales: [LocaleCode!]!
   """
-  List of enabled currency codes for the store
-  """
-  currencies: [CurrencyCode!]!
-  """
-  Base currency used for exchange rate calculations
-  """
-  baseCurrency: CurrencyCode!
-  """
   Default locale for new content
   """
   defaultLocale: LocaleCode!
   """
-  Default currency for pricing display
+  Currency used by the store
   """
-  defaultCurrency: CurrencyCode!
+  currencyCode: CurrencyCode!
   """
   Default unit for product weights
   """
@@ -120,13 +112,9 @@ input StoreCreateInput {
   """
   locales: [LocaleCode!]!
   """
-  Initial list of currency codes to enable
+  Currency used by the store
   """
-  currencies: [CurrencyCode!]!
-  """
-  Default currency for the store
-  """
-  defaultCurrency: CurrencyCode!
+  currencyCode: CurrencyCode!
   """
   Initial status of the store
   """
@@ -174,9 +162,9 @@ input StoreUpdateInput {
   """
   locales: [LocaleCode!]
   """
-  Updated list of enabled currency codes
+  New currency code
   """
-  currencies: [CurrencyCode!]
+  currencyCode: CurrencyCode
   """
   New default weight unit
   """

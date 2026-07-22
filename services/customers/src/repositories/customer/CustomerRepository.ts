@@ -135,7 +135,7 @@ export type CustomerPatch = Partial<
 
 export class CustomerRepository extends BaseRepository {
   private get currency(): string {
-    return this.ctx.currency ?? this.ctx.store.defaultCurrency;
+    return this.ctx.currency ?? this.ctx.store.currencyCode;
   }
 
   @ReadOnly()

@@ -5,7 +5,6 @@ import { BaseRepository } from "../BaseRepository.js";
 import {
   store,
   locale,
-  currency,
   storeIntegration,
   type StoreRecord,
   type StoreIntegration,
@@ -32,8 +31,6 @@ export interface IntegrationInfo<TConfig = Record<string, unknown>> {
 export interface Store extends StoreRecord {
   /** Active locale codes configured for this store. */
   locales: LocaleCode[];
-  /** Active currency codes configured for this store. */
-  currencies: CurrencyCode[];
   integrations: {
     payment?: IntegrationInfo;
     shipping?: IntegrationInfo;
@@ -61,8 +58,7 @@ export interface CreateStoreData {
   /** Human-readable display name (e.g., "My Store") */
   displayName: string;
   locales: LocaleCode[];
-  currencies: CurrencyCode[];
-  defaultCurrency: CurrencyCode;
+  currencyCode: CurrencyCode;
   status?: StoreStatus;
   timezone?: string;
   email?: string | null;
@@ -78,9 +74,8 @@ export interface UpdateStoreData {
   defaultWeightUnit?: WeightUnit;
   defaultDimensionUnit?: DimensionUnit;
   locales?: LocaleCode[];
-  currencies?: CurrencyCode[];
+  currencyCode?: CurrencyCode;
   defaultLocale?: LocaleCode;
-  defaultCurrency?: CurrencyCode;
 }
 
 export class StoreRepository extends BaseRepository {
@@ -88,7 +83,7 @@ export class StoreRepository extends BaseRepository {
    * Load integrations for a store and attach to store object
    */
   private async loadIntegrations(storeRecord: StoreRecord): Promise<Store> {
-    const [integrations, activeLocales, activeCurrencies] = await Promise.all([
+    const [integrations, activeLocales] = await Promise.all([
       this.connection
         .select()
         .from(storeIntegration)
@@ -99,18 +94,11 @@ export class StoreRepository extends BaseRepository {
         .where(
           and(eq(locale.storeId, storeRecord.id), eq(locale.isActive, true)),
         ),
-      this.connection
-        .select({ code: currency.code })
-        .from(currency)
-        .where(
-          and(eq(currency.storeId, storeRecord.id), eq(currency.isActive, true)),
-        ),
     ]);
 
     const result: Store = {
       ...storeRecord,
       locales: activeLocales.map(({ code }) => code),
-      currencies: activeCurrencies.map(({ code }) => code),
       integrations: {},
     };
 
@@ -144,7 +132,7 @@ export class StoreRepository extends BaseRepository {
   }
 
   /**
-   * Create a new store with locales and default currency.
+   * Create a new store with locales and its currency code.
    */
   @Transactional()
   async create(data: CreateStoreData): Promise<StoreRecord> {
@@ -162,21 +150,7 @@ export class StoreRepository extends BaseRepository {
       });
     }
 
-    // 2. Create currency records (required by store FK)
-    for (const currencyCode of data.currencies) {
-      await this.connection.insert(currency).values({
-        storeId: data.id,
-        code: currencyCode,
-        isActive: true,
-        exchangeRateAmount: BigInt(1),
-        exchangeRateScale: 0,
-        exchangeRate: 1,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-
-    // 3. Create store (now FK references exist)
+    // 2. Create store (locale FK references now exist)
     const [result] = await this.connection
       .insert(store)
       .values({
@@ -191,8 +165,7 @@ export class StoreRepository extends BaseRepository {
         timezone: data.timezone ?? "UTC",
         email: data.email ?? null,
         defaultLocale,
-        baseCurrency: data.defaultCurrency,
-        defaultCurrency: data.defaultCurrency,
+        currencyCode: data.currencyCode,
         defaultWeightUnit: data.defaultWeightUnit ?? "kg",
         defaultDimensionUnit: data.defaultDimensionUnit ?? "cm",
         createdAt: now,
@@ -287,34 +260,6 @@ export class StoreRepository extends BaseRepository {
       }
     }
 
-    if (data.currencies !== undefined) {
-      await this.connection
-        .update(currency)
-        .set({ isActive: false, updatedAt: now })
-        .where(eq(currency.storeId, id));
-
-      if (data.currencies.length > 0) {
-        await this.connection
-          .insert(currency)
-          .values(
-            data.currencies.map((code) => ({
-              storeId: id,
-              code,
-              isActive: true,
-              exchangeRateAmount: BigInt(1),
-              exchangeRateScale: 0,
-              exchangeRate: 1,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          )
-          .onConflictDoUpdate({
-            target: [currency.storeId, currency.code],
-            set: { isActive: true, updatedAt: now },
-          });
-      }
-    }
-
     const updateData: Record<string, unknown> = {
       updatedAt: now,
     };
@@ -329,8 +274,8 @@ export class StoreRepository extends BaseRepository {
       updateData.defaultDimensionUnit = data.defaultDimensionUnit;
     if (data.defaultLocale !== undefined)
       updateData.defaultLocale = data.defaultLocale;
-    if (data.defaultCurrency !== undefined)
-      updateData.defaultCurrency = data.defaultCurrency;
+    if (data.currencyCode !== undefined)
+      updateData.currencyCode = data.currencyCode;
 
     const [result] = await this.connection
       .update(store)
