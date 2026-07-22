@@ -152,7 +152,6 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     const { currencyFormatting } = await this.loadSettings();
     return {
       currencyCode: this.$props.currencyCode,
-      locale: this.$props.defaultLocale,
       currencyDisplay: this.enumValue(
         currencyFormatting?.currencyDisplay ?? "symbol",
       ),

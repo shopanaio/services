@@ -18,7 +18,6 @@ import {
   type CurrencySignDisplay,
   type CurrencyTrailingZeroDisplay,
   type DimensionUnit,
-  type LocaleCode,
   type StoreAddress,
   type StoreBrand,
   type StoreBrandSocialLink,
@@ -99,7 +98,6 @@ export interface StoreDefaultsData {
 
 export interface StoreCurrencySettingsSnapshotData {
   currencyCode: CurrencyCode;
-  locale: LocaleCode;
   formatting: StoreCurrencyFormattingData | null;
 }
 

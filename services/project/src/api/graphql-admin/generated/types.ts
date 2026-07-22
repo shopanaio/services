@@ -396,7 +396,6 @@ export type StoreCurrencySettings = {
   currencyDisplay: CurrencyDisplay;
   currencySign: CurrencySign;
   grouping: CurrencyGrouping;
-  locale: LocaleCode;
   maximumFractionDigits: Scalars['Int']['output'];
   minimumFractionDigits: Scalars['Int']['output'];
   roundingMode: CurrencyRoundingMode;
@@ -409,7 +408,6 @@ export type StoreCurrencySettingsUpdateInput = {
   currencyDisplay: CurrencyDisplay;
   currencySign: CurrencySign;
   grouping: CurrencyGrouping;
-  locale: LocaleCode;
   maximumFractionDigits: Scalars['Int']['input'];
   minimumFractionDigits: Scalars['Int']['input'];
   roundingMode: CurrencyRoundingMode;
@@ -1021,7 +1019,6 @@ export type StoreCurrencySettingsResolvers<ContextType = ServiceContext, ParentT
   currencyDisplay?: Resolver<ResolversTypes['CurrencyDisplay'], ParentType, ContextType>;
   currencySign?: Resolver<ResolversTypes['CurrencySign'], ParentType, ContextType>;
   grouping?: Resolver<ResolversTypes['CurrencyGrouping'], ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   maximumFractionDigits?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   minimumFractionDigits?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   roundingMode?: Resolver<ResolversTypes['CurrencyRoundingMode'], ParentType, ContextType>;

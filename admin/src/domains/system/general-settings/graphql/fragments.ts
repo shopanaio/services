@@ -51,5 +51,16 @@ export const GENERAL_SETTINGS_STORE_FRAGMENT = gql`
       defaultDimensionUnit
       timezone
     }
+    currencySettings {
+      currencyCode
+      currencyDisplay
+      currencySign
+      grouping
+      signDisplay
+      minimumFractionDigits
+      maximumFractionDigits
+      roundingMode
+      trailingZeroDisplay
+    }
   }
 `;

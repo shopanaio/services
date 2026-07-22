@@ -453,7 +453,6 @@ export class StoreUpdateSaga extends BrokerSaga<
       },
       currencySettings: {
         currencyCode: store.currencyCode,
-        locale: store.defaultLocale,
         formatting: settings.currencyFormatting
           ? {
               currencyDisplay: settings.currencyFormatting.currencyDisplay,

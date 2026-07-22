@@ -107,7 +107,6 @@ type StoreDefaults {
 
 type StoreCurrencySettings {
   currencyCode: CurrencyCode!
-  locale: LocaleCode!
   currencyDisplay: CurrencyDisplay!
   currencySign: CurrencySign!
   grouping: CurrencyGrouping!
@@ -168,7 +167,6 @@ input StoreDefaultsUpdateInput {
 
 input StoreCurrencySettingsUpdateInput {
   currencyCode: CurrencyCode!
-  locale: LocaleCode!
   currencyDisplay: CurrencyDisplay!
   currencySign: CurrencySign!
   grouping: CurrencyGrouping!

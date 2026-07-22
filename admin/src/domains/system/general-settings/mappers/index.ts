@@ -1,4 +1,5 @@
 export {
+  mapStoreCurrencyInput,
   mapStoreDefaultsInput,
   mapStoreSettingsInput,
   normalizeStorePhoneNumber,

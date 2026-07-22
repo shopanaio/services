@@ -15388,7 +15388,6 @@ export type ApiStoreCurrencySettings = {
   currencyDisplay: CurrencyDisplay;
   currencySign: CurrencySign;
   grouping: CurrencyGrouping;
-  locale: LocaleCode;
   maximumFractionDigits: Scalars['Int']['output'];
   minimumFractionDigits: Scalars['Int']['output'];
   roundingMode: CurrencyRoundingMode;
@@ -15401,7 +15400,6 @@ export type ApiStoreCurrencySettingsUpdateInput = {
   currencyDisplay: CurrencyDisplay;
   currencySign: CurrencySign;
   grouping: CurrencyGrouping;
-  locale: LocaleCode;
   maximumFractionDigits: Scalars['Int']['input'];
   minimumFractionDigits: Scalars['Int']['input'];
   roundingMode: CurrencyRoundingMode;

@@ -21,22 +21,8 @@ export class StoreCurrencySettingsUpdateScript extends StoreSettingsUpdateScript
     const store = await this.findStore(params);
     if (!store) return this.notFound();
 
-    if (!store.locales.includes(params.locale)) {
-      return {
-        store: null,
-        userErrors: [
-          {
-            message: "Currency locale must be active for the store",
-            code: "DEFAULT_LOCALE_NOT_ACTIVE",
-            field: ["locale"],
-          },
-        ],
-      };
-    }
-
     await this.repository.store.update(params.storeId, {
       currencyCode: params.currencyCode,
-      defaultLocale: params.locale,
     });
     await this.repository.storeSettings.upsertCurrencyFormatting(
       params.storeId,

@@ -3,10 +3,15 @@
 import { Alert } from "antd";
 import { createStyles } from "antd-style";
 import { DataLayout } from "@/layouts/data";
-import { StoreContactDetailsCard, StoreDefaultsCard } from "../components";
+import {
+  StoreContactDetailsCard,
+  StoreCurrencyCard,
+  StoreDefaultsCard,
+} from "../components";
 import { useGeneralSettings } from "../hooks";
 import {
   type StoreSettingsSection,
+  useEditStoreCurrencyModal,
   useEditStoreDefaultsModal,
   useEditStoreSettingsModal,
 } from "../modals";
@@ -27,6 +32,7 @@ export default function GeneralSettingsPage() {
   const { store, loading, error, refetch } = useGeneralSettings();
   const editStoreSettingsModal = useEditStoreSettingsModal();
   const editStoreDefaultsModal = useEditStoreDefaultsModal();
+  const editStoreCurrencyModal = useEditStoreCurrencyModal();
 
   const openEditor = (section: StoreSettingsSection) => {
     if (!store) return;
@@ -36,6 +42,11 @@ export default function GeneralSettingsPage() {
   const openDefaultsEditor = () => {
     if (!store) return;
     editStoreDefaultsModal.push({ store, onSaved: refetch });
+  };
+
+  const openCurrencyEditor = () => {
+    if (!store) return;
+    editStoreCurrencyModal.push({ store, onSaved: refetch });
   };
 
   return (
@@ -57,6 +68,7 @@ export default function GeneralSettingsPage() {
         {store ? (
           <>
             <StoreContactDetailsCard onEdit={openEditor} store={store} />
+            <StoreCurrencyCard onEdit={openCurrencyEditor} store={store} />
             <StoreDefaultsCard onEdit={openDefaultsEditor} store={store} />
           </>
         ) : null}

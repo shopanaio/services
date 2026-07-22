@@ -30,3 +30,15 @@ export interface StoreDefaultsFormValues {
   defaultWeightUnit: import("@/graphql/types").WeightUnit;
   timezone: string;
 }
+
+export interface StoreCurrencyFormValues {
+  currencyCode: import("@/graphql/types").CurrencyCode;
+  currencyDisplay: import("@/graphql/types").CurrencyDisplay;
+  currencySign: import("@/graphql/types").CurrencySign;
+  grouping: import("@/graphql/types").CurrencyGrouping;
+  signDisplay: import("@/graphql/types").CurrencySignDisplay;
+  minimumFractionDigits: number;
+  maximumFractionDigits: number;
+  roundingMode: import("@/graphql/types").CurrencyRoundingMode;
+  trailingZeroDisplay: import("@/graphql/types").CurrencyTrailingZeroDisplay;
+}

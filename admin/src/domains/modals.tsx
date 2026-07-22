@@ -95,6 +95,16 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard store defaults changes?',
     },
+    {
+      type: 'general-settings-edit-store-currency',
+      component: dynamic(() =>
+        import('@/domains/system/general-settings/modals/store-currency-modal').then(
+          (m) => m.StoreCurrencyModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard currency changes?',
+    },
     // ========================================
     // Profile modals
     // ========================================

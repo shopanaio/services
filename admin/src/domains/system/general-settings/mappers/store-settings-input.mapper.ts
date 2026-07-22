@@ -1,5 +1,6 @@
 import type { ApiStore, ApiStoreUpdateInput } from "@/graphql/types";
 import type {
+  StoreCurrencyFormValues,
   StoreDefaultsFormValues,
   StoreSettingsFormValues,
   StoreSettingsSection,
@@ -74,4 +75,10 @@ export const mapStoreDefaultsInput = (
     defaultDimensionUnit: store.defaults.defaultDimensionUnit,
     timezone: values.timezone,
   },
+});
+
+export const mapStoreCurrencyInput = (
+  values: StoreCurrencyFormValues,
+): ApiStoreUpdateInput => ({
+  currencySettings: { ...values },
 });

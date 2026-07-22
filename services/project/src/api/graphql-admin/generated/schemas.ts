@@ -130,7 +130,6 @@ export function StoreCurrencySettingsUpdateInputSchema(): z.ZodObject<Properties
     currencyDisplay: CurrencyDisplaySchema,
     currencySign: CurrencySignSchema,
     grouping: CurrencyGroupingSchema,
-    locale: LocaleCodeSchema,
     maximumFractionDigits: z.number(),
     minimumFractionDigits: z.number(),
     roundingMode: CurrencyRoundingModeSchema,
