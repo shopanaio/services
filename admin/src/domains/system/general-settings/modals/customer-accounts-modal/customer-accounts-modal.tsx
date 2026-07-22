@@ -34,6 +34,12 @@ const useStyles = createStyles(({ token }) => ({
     border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadiusLG,
   },
+  interactiveMethod: {
+    cursor: "pointer",
+    transition: `background-color ${token.motionDurationMid}, border-color ${token.motionDurationMid}`,
+    "&:hover": { background: token.colorFillQuaternary, borderColor: token.colorBorder },
+    "&:focus-visible": { outline: `2px solid ${token.colorPrimaryBorder}`, outlineOffset: 2 },
+  },
   icon: { flex: "0 0 auto", width: 20, height: 20 },
   copy: { display: "flex", flex: 1, flexDirection: "column", gap: 1, minWidth: 0 },
   label: { fontSize: 13, fontWeight: 600, lineHeight: "19px" },
@@ -105,7 +111,20 @@ export const CustomerAccountsModal = () => {
           {methodRows.map(({ id, label, description, Icon }) => {
             const checked = enabledMethods.includes(id);
             return (
-              <div className={styles.method} key={id}>
+              <div
+                aria-label={`Toggle ${label}`}
+                className={`${styles.method} ${styles.interactiveMethod}`}
+                key={id}
+                onClick={() => toggle(id, !checked)}
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  toggle(id, !checked);
+                }}
+                role="button"
+                tabIndex={0}
+              >
                 <Icon className={styles.icon} />
                 <span className={styles.copy}>
                   <span className={styles.label}>{label}</span>
@@ -115,6 +134,7 @@ export const CustomerAccountsModal = () => {
                   aria-label={label}
                   checked={checked}
                   disabled={checked && enabledMethods.length === 1}
+                  onClick={(_, event) => event.stopPropagation()}
                   onChange={(next) => toggle(id, next)}
                   size="small"
                 />

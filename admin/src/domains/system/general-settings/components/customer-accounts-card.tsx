@@ -24,9 +24,8 @@ const useStyles = createStyles(({ token }) => ({
   body: { display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px" },
   tiles: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))",
     gap: 12,
-    "@media (max-width: 760px)": { gridTemplateColumns: "1fr" },
   },
   tile: {
     boxSizing: "border-box",
