@@ -10,6 +10,7 @@ import {
 } from "react-icons/lu";
 import type { ApiStore } from "@/graphql/types";
 import { Paper } from "@/ui-kit/paper";
+import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import {
   formatTimeZoneLabel,
   UNIT_SYSTEM_LABELS,
@@ -47,57 +48,6 @@ const useStyles = createStyles(({ token }) => ({
       gridTemplateColumns: "1fr",
     },
   },
-  tile: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    height: 64,
-    padding: 12,
-    color: token.colorText,
-    font: "inherit",
-    textAlign: "left",
-    background: token.colorBgContainer,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-    cursor: "pointer",
-    transition: `border-color ${token.motionDurationMid}, background ${token.motionDurationMid}`,
-    "&:hover": {
-      background: token.colorFillQuaternary,
-      borderColor: token.colorBorder,
-    },
-    "&:focus-visible": {
-      outline: `2px solid ${token.colorPrimaryBorder}`,
-      outlineOffset: 2,
-    },
-  },
-  icon: {
-    flex: "0 0 auto",
-    width: 20,
-    height: 20,
-  },
-  copy: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-    minWidth: 0,
-  },
-  label: {
-    overflow: "hidden",
-    fontSize: 13,
-    fontWeight: 600,
-    lineHeight: "19px",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  value: {
-    overflow: "hidden",
-    color: token.colorTextSecondary,
-    fontSize: 12,
-    lineHeight: "18px",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
 }));
 
 interface StoreDefaultsCardProps {
@@ -119,19 +69,19 @@ export const StoreDefaultsCard = ({ store, onEdit }: StoreDefaultsCardProps) => 
   const tiles = [
     {
       key: "unit-system",
-      icon: <LuSlidersHorizontal className={styles.icon} />,
+      icon: <LuSlidersHorizontal />,
       label: "Unit system",
       value: UNIT_SYSTEM_LABELS[defaults.unitSystem],
     },
     {
       key: "weight-unit",
-      icon: <LuWeight className={styles.icon} />,
+      icon: <LuWeight />,
       label: "Default weight unit",
       value: WEIGHT_UNIT_LABELS[defaults.defaultWeightUnit],
     },
     {
       key: "time-zone",
-      icon: <LuClock3 className={styles.icon} />,
+      icon: <LuClock3 />,
       label: "Time zone",
       value: formatTimeZoneLabel(defaults.timezone),
     },
@@ -153,13 +103,14 @@ export const StoreDefaultsCard = ({ store, onEdit }: StoreDefaultsCardProps) => 
       </div>
       <div className={styles.body}>
         {tiles.map((tile) => (
-          <button className={styles.tile} key={tile.key} onClick={onEdit} type="button">
-            {tile.icon}
-            <span className={styles.copy}>
-              <span className={styles.label}>{tile.label}</span>
-              <span className={styles.value}>{tile.value}</span>
-            </span>
-          </button>
+          <SettingsItemTile
+            ariaLabel={`Edit ${tile.label}`}
+            icon={tile.icon}
+            key={tile.key}
+            label={tile.label}
+            onClick={onEdit}
+            value={tile.value}
+          />
         ))}
       </div>
     </Paper>

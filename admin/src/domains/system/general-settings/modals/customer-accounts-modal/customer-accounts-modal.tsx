@@ -8,6 +8,7 @@ import { FcGoogle } from "react-icons/fc";
 import { LuEllipsis, LuLockKeyhole, LuMail, LuMessageSquare } from "react-icons/lu";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
+import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import type { EditCustomerAccountsModalPayload } from "../../modals";
 import type { CustomerAuthenticationMethod } from "../../types";
 
@@ -25,30 +26,19 @@ const useStyles = createStyles(({ token }) => ({
   menuButton: { width: 32, height: 32, padding: 0 },
   body: { display: "flex", flexDirection: "column", gap: 10, padding: "14px 16px 16px" },
   sectionLabel: { fontSize: 12, fontWeight: 600, lineHeight: "18px" },
-  method: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    minHeight: 64,
-    padding: "10px 12px",
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-  },
-  interactiveMethod: {
-    cursor: "pointer",
-    transition: `background-color ${token.motionDurationMid}, border-color ${token.motionDurationMid}`,
-    "&:hover": { background: token.colorFillQuaternary, borderColor: token.colorBorder },
-    "&:focus-visible": { outline: `2px solid ${token.colorPrimaryBorder}`, outlineOffset: 2 },
-  },
-  icon: { flex: "0 0 auto", width: 20, height: 20 },
-  copy: { display: "flex", flex: 1, flexDirection: "column", gap: 1, minWidth: 0 },
-  label: { fontSize: 13, fontWeight: 600, lineHeight: "19px" },
-  description: { color: token.colorTextSecondary, fontSize: 12, lineHeight: "18px" },
   connectionsHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 1 },
   connectionsHint: { color: token.colorTextTertiary, fontSize: 12, lineHeight: "18px" },
-  providerIcon: { display: "grid", placeItems: "center", width: 20, height: 20, fontSize: 17 },
   facebook: { color: token.colorTextSecondary },
-  connectButton: { border: 0, boxShadow: "none", fontWeight: 600 },
+  connectButton: {
+    height: 24,
+    paddingInline: 8,
+    background: token.colorBgLayout,
+    border: 0,
+    borderRadius: 10,
+    boxShadow: "none",
+    fontSize: 12,
+    fontWeight: 600,
+  },
 }));
 
 const methodRows = [
@@ -111,50 +101,42 @@ export const CustomerAccountsModal = () => {
           {methodRows.map(({ id, label, description, Icon }) => {
             const checked = enabledMethods.includes(id);
             return (
-              <div
-                aria-label={`Toggle ${label}`}
-                className={`${styles.method} ${styles.interactiveMethod}`}
+              <SettingsItemTile
+                ariaLabel={`Toggle ${label}`}
+                icon={<Icon />}
                 key={id}
                 onClick={() => toggle(id, !checked)}
-                onKeyDown={(event) => {
-                  if (event.target !== event.currentTarget) return;
-                  if (event.key !== "Enter" && event.key !== " ") return;
-                  event.preventDefault();
-                  toggle(id, !checked);
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <Icon className={styles.icon} />
-                <span className={styles.copy}>
-                  <span className={styles.label}>{label}</span>
-                  <span className={styles.description}>{description}</span>
-                </span>
-                <Switch
-                  aria-label={label}
-                  checked={checked}
-                  disabled={checked && enabledMethods.length === 1}
-                  onClick={(_, event) => event.stopPropagation()}
-                  onChange={(next) => toggle(id, next)}
-                  size="small"
-                />
-              </div>
+                label={label}
+                trailing={
+                  <Switch
+                    aria-label={label}
+                    checked={checked}
+                    disabled={checked && enabledMethods.length === 1}
+                    onClick={(_, event) => event.stopPropagation()}
+                    onChange={(next) => toggle(id, next)}
+                    size="small"
+                  />
+                }
+                value={description}
+              />
             );
           })}
           <div className={styles.connectionsHeader}>
             <span className={styles.sectionLabel}>Available connections</span>
             <span className={styles.connectionsHint}>Social and identity providers</span>
           </div>
-          <div className={styles.method}>
-            <span className={styles.providerIcon}><FcGoogle /></span>
-            <span className={styles.copy}><span className={styles.label}>Google</span><span className={styles.description}>Social sign-in</span></span>
-            <Button className={styles.connectButton} disabled size="small" type="text">Connect</Button>
-          </div>
-          <div className={styles.method}>
-            <span className={`${styles.providerIcon} ${styles.facebook}`}><FaFacebookF /></span>
-            <span className={styles.copy}><span className={styles.label}>Facebook</span><span className={styles.description}>Social sign-in</span></span>
-            <Button className={styles.connectButton} disabled size="small" type="text">Connect</Button>
-          </div>
+          <SettingsItemTile
+            icon={<FcGoogle />}
+            label="Google"
+            trailing={<Button className={styles.connectButton} disabled size="small" type="text">Connect</Button>}
+            value="Social sign-in"
+          />
+          <SettingsItemTile
+            icon={<FaFacebookF className={styles.facebook} />}
+            label="Facebook"
+            trailing={<Button className={styles.connectButton} disabled size="small" type="text">Connect</Button>}
+            value="Social sign-in"
+          />
         </div>
       </Paper>
     </ModalLayout>

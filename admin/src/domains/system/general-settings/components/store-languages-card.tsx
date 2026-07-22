@@ -5,6 +5,7 @@ import { createStyles } from "antd-style";
 import { LuEllipsis, LuLanguages } from "react-icons/lu";
 import type { ApiStore, LocaleCode } from "@/graphql/types";
 import { Paper } from "@/ui-kit/paper";
+import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import { getLanguageTag } from "../utils";
 
 const useStyles = createStyles(({ token }) => ({
@@ -30,26 +31,6 @@ const useStyles = createStyles(({ token }) => ({
     gap: 12,
     padding: "14px 16px",
   },
-  row: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    height: 64,
-    padding: 12,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-  },
-  icon: { flex: "0 0 auto", width: 20, height: 20 },
-  copy: {
-    display: "flex",
-    flex: 1,
-    flexDirection: "column",
-    gap: 2,
-    minWidth: 0,
-  },
-  name: { fontSize: 13, fontWeight: 600, lineHeight: "19px" },
-  code: { color: token.colorTextSecondary, fontSize: 12, lineHeight: "18px" },
   status: {
     padding: "3px 8px",
     color: token.colorTextSecondary,
@@ -60,6 +41,7 @@ const useStyles = createStyles(({ token }) => ({
     borderRadius: 10,
   },
   published: { color: token.colorSuccess, background: token.colorSuccessBg },
+  rowActions: { display: "flex", alignItems: "center", gap: 4 },
   rowAction: { width: 32, height: 32, padding: 0, borderColor: "transparent" },
 }));
 
@@ -101,54 +83,55 @@ export const StoreLanguagesCard = ({
         {store.languageSettings.map((language) => {
           const isDefault = language.code === store.defaultLocale;
           return (
-            <div className={styles.row} key={language.code}>
-              <LuLanguages className={styles.icon} />
-              <div className={styles.copy}>
-                <span className={styles.name}>{language.name}</span>
-                <span className={styles.code}>
-                  {isDefault ? "Default · " : ""}{getLanguageTag(language.code)}
+            <SettingsItemTile
+              icon={<LuLanguages />}
+              key={language.code}
+              label={language.name}
+              trailing={
+                <span className={styles.rowActions}>
+                  <span className={cx(styles.status, language.isActive && styles.published)}>
+                    {language.isActive ? "Published" : "Draft"}
+                  </span>
+                  <Dropdown
+                    menu={{
+                      items: [
+                        {
+                          key: "default",
+                          label: "Set as default",
+                          disabled: isDefault,
+                          onClick: () => void onSetDefault(language.code),
+                        },
+                        {
+                          key: "delete",
+                          label: "Delete language",
+                          danger: true,
+                          disabled: isDefault,
+                          onClick: () =>
+                            modal.confirm({
+                              title: `Delete ${language.name}?`,
+                              content: "Translated content will no longer be available in this language.",
+                              okText: "Delete",
+                              okButtonProps: { danger: true },
+                              onOk: () => onDelete(language.code),
+                            }),
+                        },
+                      ],
+                    }}
+                    placement="bottomRight"
+                    trigger={["click"]}
+                  >
+                    <Button
+                      aria-label={`${language.name} actions`}
+                      className={styles.rowAction}
+                      disabled={loading}
+                      icon={<LuEllipsis />}
+                      type="text"
+                    />
+                  </Dropdown>
                 </span>
-              </div>
-              <span className={cx(styles.status, language.isActive && styles.published)}>
-                {language.isActive ? "Published" : "Draft"}
-              </span>
-              <Dropdown
-                menu={{
-                  items: [
-                    {
-                      key: "default",
-                      label: "Set as default",
-                      disabled: isDefault,
-                      onClick: () => void onSetDefault(language.code),
-                    },
-                    {
-                      key: "delete",
-                      label: "Delete language",
-                      danger: true,
-                      disabled: isDefault,
-                      onClick: () =>
-                        modal.confirm({
-                          title: `Delete ${language.name}?`,
-                          content: "Translated content will no longer be available in this language.",
-                          okText: "Delete",
-                          okButtonProps: { danger: true },
-                          onOk: () => onDelete(language.code),
-                        }),
-                    },
-                  ],
-                }}
-                placement="bottomRight"
-                trigger={["click"]}
-              >
-                <Button
-                  aria-label={`${language.name} actions`}
-                  className={styles.rowAction}
-                  disabled={loading}
-                  icon={<LuEllipsis />}
-                  type="text"
-                />
-              </Dropdown>
-            </div>
+              }
+              value={`${isDefault ? "Default · " : ""}${getLanguageTag(language.code)}`}
+            />
           );
         })}
       </div>

@@ -11,6 +11,7 @@ import {
 import type { ApiStore } from "@/graphql/types";
 import { shopCountries } from "@/defs/localization";
 import { Paper } from "@/ui-kit/paper";
+import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import type { StoreSettingsSection } from "../modals";
 
 const useStyles = createStyles(({ token }) => ({
@@ -41,60 +42,6 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     gap: 12,
     padding: "14px 16px",
-  },
-  item: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    width: "100%",
-    height: 64,
-    margin: 0,
-    padding: 12,
-    color: token.colorText,
-    font: "inherit",
-    textAlign: "left",
-    background: token.colorBgContainer,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-    cursor: "pointer",
-    transition: `border-color ${token.motionDurationMid}, background ${token.motionDurationMid}, box-shadow ${token.motionDurationMid}`,
-    "&:hover": {
-      background: token.colorFillQuaternary,
-      borderColor: token.colorBorder,
-    },
-    "&:focus-visible": {
-      outline: `2px solid ${token.colorPrimaryBorder}`,
-      outlineOffset: 2,
-    },
-  },
-  icon: {
-    flex: "0 0 auto",
-    width: 20,
-    height: 20,
-  },
-  copy: {
-    display: "flex",
-    flex: 1,
-    flexDirection: "column",
-    gap: 2,
-    minWidth: 0,
-  },
-  label: {
-    overflow: "hidden",
-    fontSize: 13,
-    fontWeight: 600,
-    lineHeight: "19px",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  value: {
-    overflow: "hidden",
-    color: token.colorTextSecondary,
-    fontSize: 12,
-    lineHeight: "18px",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
   },
   status: {
     flex: "0 0 auto",
@@ -160,51 +107,35 @@ export const StoreContactDetailsCard = ({
         </Dropdown>
       </div>
       <div className={styles.body}>
-        <button
-          className={styles.item}
-          data-testid="store-profile-settings-item"
+        <SettingsItemTile
+          ariaLabel="Edit store profile"
+          dataTestId="store-profile-settings-item"
+          icon={<StoreOutlined />}
+          label={`${details.name} · ${details.slug}`}
           onClick={() => onEdit("contact")}
-          type="button"
-        >
-          <StoreOutlined className={styles.icon} />
-          <span className={styles.copy}>
-            <span className={styles.label}>
-              {details.name} · {details.slug}
-            </span>
-            <span className={styles.value}>
-              {details.email ?? "No email address"} · {phone}
-            </span>
-          </span>
-          <Tag color={store.status === "ACTIVE" ? "green" : "default"} className={styles.status}>
-            {store.status === "ACTIVE" ? "Active" : "Inactive"}
-          </Tag>
-        </button>
-        <button
-          className={styles.item}
-          data-testid="store-address-settings-item"
+          trailing={
+            <Tag color={store.status === "ACTIVE" ? "green" : "default"} className={styles.status}>
+              {store.status === "ACTIVE" ? "Active" : "Inactive"}
+            </Tag>
+          }
+          value={`${details.email ?? "No email address"} · ${phone}`}
+        />
+        <SettingsItemTile
+          ariaLabel="Edit store address"
+          dataTestId="store-address-settings-item"
+          icon={<MapPinOutlined />}
+          label="Store address"
           onClick={() => onEdit("address")}
-          type="button"
-        >
-          <MapPinOutlined className={styles.icon} />
-          <span className={styles.copy}>
-            <span className={styles.label}>Store address</span>
-            <span className={styles.value}>{countryName}</span>
-          </span>
-        </button>
-        <button
-          className={styles.item}
-          data-testid="store-brand-settings-item"
+          value={countryName}
+        />
+        <SettingsItemTile
+          ariaLabel="Edit brand"
+          dataTestId="store-brand-settings-item"
+          icon={<BrandOutlined />}
+          label="Brand"
           onClick={() => onEdit("brand")}
-          type="button"
-        >
-          <BrandOutlined className={styles.icon} />
-          <span className={styles.copy}>
-            <span className={styles.label}>Brand</span>
-            <span className={styles.value}>
-              Logos, colors, cover, copy and social links
-            </span>
-          </span>
-        </button>
+          value="Logos, colors, cover, copy and social links"
+        />
       </div>
     </Paper>
   );

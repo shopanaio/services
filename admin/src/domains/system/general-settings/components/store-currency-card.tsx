@@ -5,6 +5,7 @@ import { createStyles } from "antd-style";
 import { LuCircleDollarSign, LuEllipsis } from "react-icons/lu";
 import type { ApiStore } from "@/graphql/types";
 import { Paper } from "@/ui-kit/paper";
+import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import { formatCurrencyName, formatCurrencySymbol } from "../utils";
 
 const useStyles = createStyles(({ token }) => ({
@@ -25,40 +26,6 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgContainerDisabled,
   },
   body: { padding: "14px 16px" },
-  tile: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    width: "100%",
-    height: 64,
-    padding: 12,
-    color: token.colorText,
-    font: "inherit",
-    textAlign: "left",
-    background: token.colorBgContainer,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-    cursor: "pointer",
-    "&:hover": {
-      background: token.colorFillQuaternary,
-      borderColor: token.colorBorder,
-    },
-    "&:focus-visible": {
-      outline: `2px solid ${token.colorPrimaryBorder}`,
-      outlineOffset: 2,
-    },
-  },
-  icon: { flex: "0 0 auto", width: 20, height: 20 },
-  copy: {
-    display: "flex",
-    flex: 1,
-    flexDirection: "column",
-    gap: 2,
-    minWidth: 0,
-  },
-  label: { fontSize: 13, fontWeight: 600, lineHeight: "19px" },
-  value: { color: token.colorTextSecondary, fontSize: 12, lineHeight: "18px" },
   badge: {
     flex: "0 0 auto",
     padding: "3px 8px",
@@ -99,16 +66,18 @@ export const StoreCurrencyCard = ({ store, onEdit }: StoreCurrencyCardProps) => 
         </Dropdown>
       </div>
       <div className={styles.body}>
-        <button className={styles.tile} onClick={onEdit} type="button">
-          <LuCircleDollarSign className={styles.icon} />
-          <span className={styles.copy}>
-            <span className={styles.label}>Currency display</span>
-            <span className={styles.value}>{formatCurrencyName(currencyCode)}</span>
-          </span>
-          <span className={styles.badge}>
-            {currencyCode} {formatCurrencySymbol(currencyCode)}
-          </span>
-        </button>
+        <SettingsItemTile
+          ariaLabel="Edit currency"
+          icon={<LuCircleDollarSign />}
+          label="Currency display"
+          onClick={onEdit}
+          trailing={
+            <span className={styles.badge}>
+              {currencyCode} {formatCurrencySymbol(currencyCode)}
+            </span>
+          }
+          value={formatCurrencyName(currencyCode)}
+        />
       </div>
     </Paper>
   );

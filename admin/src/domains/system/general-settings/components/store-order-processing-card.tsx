@@ -11,6 +11,7 @@ import {
 } from "react-icons/lu";
 import { AutomaticFulfillmentMode, type ApiStore } from "@/graphql/types";
 import { Paper } from "@/ui-kit/paper";
+import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 
 const useStyles = createStyles(({ token }) => ({
   paper: { padding: 0, overflow: "hidden" },
@@ -31,28 +32,6 @@ const useStyles = createStyles(({ token }) => ({
     gap: 12,
     "@media (max-width: 760px)": { gridTemplateColumns: "1fr" },
   },
-  tile: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    width: "100%",
-    height: 64,
-    padding: 12,
-    color: token.colorText,
-    font: "inherit",
-    textAlign: "left",
-    background: token.colorBgContainer,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-    cursor: "pointer",
-    "&:hover": { background: token.colorFillQuaternary, borderColor: token.colorBorder },
-    "&:focus-visible": { outline: `2px solid ${token.colorPrimaryBorder}`, outlineOffset: 2 },
-  },
-  icon: { flex: "0 0 auto", width: 20, height: 20 },
-  copy: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
-  label: { overflow: "hidden", fontSize: 13, fontWeight: 600, lineHeight: "19px", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  value: { overflow: "hidden", color: token.colorTextSecondary, fontSize: 12, lineHeight: "18px", textOverflow: "ellipsis", whiteSpace: "nowrap" },
 }));
 
 const fulfillmentLabels: Record<AutomaticFulfillmentMode, string> = {
@@ -72,13 +51,13 @@ export const StoreOrderProcessingCard = ({ store, onEdit }: StoreOrderProcessing
   const orderIdPreview = `${settings.orderNumberPrefix}1001${settings.orderNumberSuffix ?? ""}`;
 
   const tile = (Icon: typeof LuHash, label: string, value: string) => (
-    <button className={styles.tile} onClick={onEdit} type="button">
-      <Icon className={styles.icon} />
-      <span className={styles.copy}>
-        <span className={styles.label}>{label}</span>
-        <span className={styles.value}>{value}</span>
-      </span>
-    </button>
+    <SettingsItemTile
+      ariaLabel={`Edit ${label}`}
+      icon={<Icon />}
+      label={label}
+      onClick={onEdit}
+      value={value}
+    />
   );
 
   return (

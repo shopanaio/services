@@ -6,6 +6,7 @@ import { FaFacebookF } from "react-icons/fa";
 import { LuEllipsis, LuLockKeyhole, LuMail, LuMessageSquare } from "react-icons/lu";
 import { FcGoogle } from "react-icons/fc";
 import { Paper } from "@/ui-kit/paper";
+import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import type { CustomerAuthenticationMethod } from "../types";
 
 const useStyles = createStyles(({ token }) => ({
@@ -27,27 +28,6 @@ const useStyles = createStyles(({ token }) => ({
     gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))",
     gap: 12,
   },
-  tile: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    height: 64,
-    padding: 12,
-    color: token.colorText,
-    font: "inherit",
-    textAlign: "left",
-    background: token.colorBgContainer,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-    cursor: "pointer",
-    "&:hover": { background: token.colorFillQuaternary, borderColor: token.colorBorder },
-    "&:focus-visible": { outline: `2px solid ${token.colorPrimaryBorder}`, outlineOffset: 2 },
-  },
-  methodIcon: { flex: "0 0 auto", width: 20, height: 20 },
-  copy: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
-  label: { fontSize: 13, fontWeight: 600, lineHeight: "19px" },
-  value: { color: token.colorTextSecondary, fontSize: 12, lineHeight: "18px" },
   providers: {
     display: "flex",
     alignItems: "center",
@@ -105,13 +85,14 @@ export const CustomerAccountsCard = ({ enabledMethods, onEdit }: CustomerAccount
           {enabledMethods.map((method) => {
             const { Icon, label, description } = methods[method];
             return (
-              <button className={styles.tile} key={method} onClick={onEdit} type="button">
-                <Icon className={styles.methodIcon} />
-                <span className={styles.copy}>
-                  <span className={styles.label}>{label}</span>
-                  <span className={styles.value}>{description}</span>
-                </span>
-              </button>
+              <SettingsItemTile
+                ariaLabel={`Edit ${label}`}
+                icon={<Icon />}
+                key={method}
+                label={label}
+                onClick={onEdit}
+                value={description}
+              />
             );
           })}
         </div>
