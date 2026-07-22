@@ -1,5 +1,5 @@
-import { and, asc, eq } from "drizzle-orm";
-import { ReadOnly } from "@shopana/shared-kernel";
+import { and, asc, eq, isNull } from "drizzle-orm";
+import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   storeAddress,
@@ -8,19 +8,25 @@ import {
   storeCurrencyFormatting,
   storeOrderSettings,
   storePhone,
+  store,
   type AutomaticFulfillmentMode,
+  type CurrencyCode,
   type CurrencyDisplay,
   type CurrencyGrouping,
   type CurrencyRoundingMode,
   type CurrencySign,
   type CurrencySignDisplay,
   type CurrencyTrailingZeroDisplay,
+  type DimensionUnit,
+  type LocaleCode,
   type StoreAddress,
   type StoreBrand,
   type StoreBrandSocialLink,
   type StoreCurrencyFormatting,
   type StoreOrderSettings,
   type StorePhone,
+  type UnitSystem,
+  type WeightUnit,
 } from "../models/index.js";
 
 export interface StoreSettingsSnapshot {
@@ -40,6 +46,13 @@ export interface StoreAddressData {
   city: string | null;
   administrativeArea: string | null;
   postalCode: string | null;
+}
+
+export interface StoreContactDetailsData {
+  name: string;
+  slug: string;
+  email: string | null;
+  phoneNumbers: string[];
 }
 
 export interface StoreSocialLinkData {
@@ -75,6 +88,19 @@ export interface StoreCurrencyFormattingData {
   maximumFractionDigits: number;
   roundingMode: CurrencyRoundingMode;
   trailingZeroDisplay: CurrencyTrailingZeroDisplay;
+}
+
+export interface StoreDefaultsData {
+  unitSystem: UnitSystem;
+  defaultWeightUnit: WeightUnit;
+  defaultDimensionUnit: DimensionUnit;
+  timezone: string;
+}
+
+export interface StoreCurrencySettingsSnapshotData {
+  currencyCode: CurrencyCode;
+  locale: LocaleCode;
+  formatting: StoreCurrencyFormattingData | null;
 }
 
 export class StoreSettingsRepository extends BaseRepository {
@@ -262,5 +288,101 @@ export class StoreSettingsRepository extends BaseRepository {
       .returning();
 
     return result;
+  }
+
+  @Transactional()
+  async restoreContactDetails(
+    storeId: string,
+    data: StoreContactDetailsData,
+  ): Promise<void> {
+    await this.connection
+      .update(store)
+      .set({
+        name: data.slug,
+        displayName: data.name,
+        email: data.email,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(store.id, storeId), isNull(store.deletedAt)));
+    await this.replacePhones(storeId, data.phoneNumbers);
+  }
+
+  @Transactional()
+  async restoreAddress(
+    storeId: string,
+    data: StoreAddressData | null,
+  ): Promise<void> {
+    if (data) {
+      await this.upsertAddress(storeId, data);
+      return;
+    }
+    await this.connection
+      .delete(storeAddress)
+      .where(eq(storeAddress.storeId, storeId));
+  }
+
+  @Transactional()
+  async restoreBrand(
+    storeId: string,
+    data: StoreBrandData | null,
+  ): Promise<void> {
+    if (data) {
+      await this.upsertBrand(storeId, data);
+      return;
+    }
+    await this.connection
+      .delete(storeBrandSocialLink)
+      .where(eq(storeBrandSocialLink.storeId, storeId));
+    await this.connection
+      .delete(storeBrand)
+      .where(eq(storeBrand.storeId, storeId));
+  }
+
+  @Transactional()
+  async restoreOrderProcessing(
+    storeId: string,
+    data: StoreOrderProcessingData | null,
+  ): Promise<void> {
+    if (data) {
+      await this.upsertOrderProcessing(storeId, data);
+      return;
+    }
+    await this.connection
+      .delete(storeOrderSettings)
+      .where(eq(storeOrderSettings.storeId, storeId));
+  }
+
+  @Transactional()
+  async restoreDefaults(
+    storeId: string,
+    data: StoreDefaultsData,
+  ): Promise<void> {
+    await this.connection
+      .update(store)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(store.id, storeId), isNull(store.deletedAt)));
+  }
+
+  @Transactional()
+  async restoreCurrencySettings(
+    storeId: string,
+    data: StoreCurrencySettingsSnapshotData,
+  ): Promise<void> {
+    await this.connection
+      .update(store)
+      .set({
+        currencyCode: data.currencyCode,
+        defaultLocale: data.locale,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(store.id, storeId), isNull(store.deletedAt)));
+
+    if (data.formatting) {
+      await this.upsertCurrencyFormatting(storeId, data.formatting);
+      return;
+    }
+    await this.connection
+      .delete(storeCurrencyFormatting)
+      .where(eq(storeCurrencyFormatting.storeId, storeId));
   }
 }

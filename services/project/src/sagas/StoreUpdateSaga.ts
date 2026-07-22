@@ -1,8 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { DBOS } from "@dbos-inc/dbos-sdk";
-import type { IAM, Media } from "@shopana/broker-types";
+import type { Media } from "@shopana/broker-types";
 import {
   BrokerSaga,
+  FatalError,
   InjectBroker,
   Saga,
   SagaStep,
@@ -12,6 +13,14 @@ import {
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
+import type {
+  StoreAddressData,
+  StoreBrandData,
+  StoreContactDetailsData,
+  StoreCurrencySettingsSnapshotData,
+  StoreDefaultsData,
+  StoreOrderProcessingData,
+} from "../repositories/storeSettings/StoreSettingsRepository.js";
 import {
   StoreAddressUpdateScript,
   StoreBrandUpdateScript,
@@ -103,9 +112,13 @@ interface BrandMediaLink {
   role: string;
 }
 
-interface BrandMediaPreparation {
-  links: BrandMediaLink[];
-  errors: UserError[];
+interface StoreUpdateSnapshot {
+  contactDetails: StoreContactDetailsData;
+  address: StoreAddressData | null;
+  brand: StoreBrandData | null;
+  orderProcessing: StoreOrderProcessingData | null;
+  defaults: StoreDefaultsData;
+  currencySettings: StoreCurrencySettingsSnapshotData;
 }
 
 @Injectable()
@@ -138,107 +151,91 @@ export class StoreUpdateSaga extends BrokerSaga<
   private async execute(
     input: StoreUpdateSagaInput,
   ): Promise<StoreUpdateSagaOutput> {
-    const brandOperation = input.operations.find(
-      (operation): operation is Extract<StoreUpdateOperation, { type: "brandUpdate" }> =>
-        operation.type === "brandUpdate",
-    );
-    const previousBrandMedia = brandOperation
-      ? await this.loadBrandMedia(input.storeId)
-      : null;
+    const snapshot = await this.captureStoreUpdateSnapshot(input);
 
     const operationResults: StoreUpdateOperationResult[] = [];
     for (const operation of input.operations) {
       switch (operation.type) {
         case "contactDetailsUpdate":
           operationResults.push(
-            await this.updateContactDetails(input, operation),
+            await this.updateContactDetails(
+              input,
+              operation,
+              snapshot.contactDetails,
+            ),
           );
           break;
         case "addressUpdate":
-          operationResults.push(await this.updateAddress(input, operation));
-          break;
-        case "brandUpdate":
-          const authorizationErrors = await this.authorizeBrandUpdate(input);
-          if (authorizationErrors.length > 0) {
-            operationResults.push({
-              type: operation.type,
-              applied: false,
-              errors: prefixUserErrors(authorizationErrors, operation),
-            });
-            break;
-          }
-
-          if (!previousBrandMedia) {
-            operationResults.push({
-              type: operation.type,
-              applied: false,
-              errors: prefixUserErrors(
-                [
-                  {
-                    code: "STORE_BRAND_READ_FAILED",
-                    message: "Unable to read current store brand settings",
-                    field: null,
-                  },
-                ],
-                operation,
-              ),
-            });
-            break;
-          }
-
-          const preparation = await this.prepareBrandMediaLinks(
-            input.storeId,
-            previousBrandMedia,
-            operation.params,
+          operationResults.push(
+            await this.updateAddress(input, operation, snapshot.address),
           );
-          if (preparation.errors.length > 0) {
-            operationResults.push({
-              type: operation.type,
-              applied: false,
-              errors: prefixUserErrors(preparation.errors, operation),
-            });
-            break;
-          }
-
-          const brandResult = await this.updateBrand(input, operation);
+          break;
+        case "brandUpdate": {
+          const brandResult = await this.updateBrand(
+            input,
+            operation,
+            snapshot.brand,
+          );
           operationResults.push(brandResult);
           if (brandResult.applied) {
-            await this.unlinkPreviousBrandMedia(
-              input.storeId,
-              previousBrandMedia,
+            const previousMedia = brandMediaIds(snapshot.brand);
+            for (const entry of brandMediaEntries(
+              previousMedia,
               operation.params,
-            );
-          } else if (preparation.links.length > 0) {
-            await this.rollbackBrandMediaLinks(
-              input.storeId,
-              preparation.links,
-            );
+            )) {
+              if (entry.next && entry.previous !== entry.next) {
+                await this.linkBrandMedia(input.storeId, {
+                  fileId: entry.next,
+                  field: entry.field,
+                  role: entry.role,
+                });
+              }
+            }
+            for (const entry of brandMediaEntries(
+              previousMedia,
+              operation.params,
+            )) {
+              if (entry.previous && entry.previous !== entry.next) {
+                await this.unlinkBrandMedia(input.storeId, {
+                  fileId: entry.previous,
+                  field: entry.field,
+                  role: entry.role,
+                });
+              }
+            }
           }
           break;
+        }
         case "orderProcessingUpdate":
           operationResults.push(
-            await this.updateOrderProcessing(input, operation),
+            await this.updateOrderProcessing(
+              input,
+              operation,
+              snapshot.orderProcessing,
+            ),
           );
           break;
         case "defaultsUpdate":
-          operationResults.push(await this.updateDefaults(input, operation));
+          operationResults.push(
+            await this.updateDefaults(input, operation, snapshot.defaults),
+          );
           break;
         case "currencySettingsUpdate":
           operationResults.push(
-            await this.updateCurrencySettings(input, operation),
+            await this.updateCurrencySettings(
+              input,
+              operation,
+              snapshot.currencySettings,
+            ),
           );
           break;
       }
     }
 
-    const store = await this.loadStore(
-      input.storeId,
-      input.context.organizationId,
-    );
     const userErrors = operationResults.flatMap(({ errors }) => errors);
 
     return {
-      storeId: store?.id ?? null,
+      storeId: input.storeId,
       operationResults,
       userErrors,
     };
@@ -251,6 +248,7 @@ export class StoreUpdateSaga extends BrokerSaga<
       StoreUpdateOperation,
       { type: "contactDetailsUpdate" }
     >,
+    _previous: StoreContactDetailsData,
   ): Promise<StoreUpdateOperationResult> {
     const result = await this.kernel.runScript(StoreContactDetailsUpdateScript, {
       ...this.operationContext(input),
@@ -259,10 +257,25 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
+  private async compensateUpdateContactDetails(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<
+      StoreUpdateOperation,
+      { type: "contactDetailsUpdate" }
+    >,
+    previous: StoreContactDetailsData,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreContactDetails(
+      input.storeId,
+      previous,
+    );
+  }
+
   @SagaStep()
   private async updateAddress(
     input: StoreUpdateSagaInput,
     operation: Extract<StoreUpdateOperation, { type: "addressUpdate" }>,
+    _previous: StoreAddressData | null,
   ): Promise<StoreUpdateOperationResult> {
     const result = await this.kernel.runScript(StoreAddressUpdateScript, {
       ...this.operationContext(input),
@@ -271,16 +284,39 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
+  private async compensateUpdateAddress(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<StoreUpdateOperation, { type: "addressUpdate" }>,
+    previous: StoreAddressData | null,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreAddress(
+      input.storeId,
+      previous,
+    );
+  }
+
   @SagaStep()
   private async updateBrand(
     input: StoreUpdateSagaInput,
     operation: Extract<StoreUpdateOperation, { type: "brandUpdate" }>,
+    _previous: StoreBrandData | null,
   ): Promise<StoreUpdateOperationResult> {
     const result = await this.kernel.runScript(StoreBrandUpdateScript, {
       ...this.operationContext(input),
       ...operation.params,
     });
     return toOperationResult(result, operation);
+  }
+
+  private async compensateUpdateBrand(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<StoreUpdateOperation, { type: "brandUpdate" }>,
+    previous: StoreBrandData | null,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreBrand(
+      input.storeId,
+      previous,
+    );
   }
 
   @SagaStep()
@@ -290,6 +326,7 @@ export class StoreUpdateSaga extends BrokerSaga<
       StoreUpdateOperation,
       { type: "orderProcessingUpdate" }
     >,
+    _previous: StoreOrderProcessingData | null,
   ): Promise<StoreUpdateOperationResult> {
     const result = await this.kernel.runScript(StoreOrderProcessingUpdateScript, {
       ...this.operationContext(input),
@@ -298,16 +335,42 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
+  private async compensateUpdateOrderProcessing(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<
+      StoreUpdateOperation,
+      { type: "orderProcessingUpdate" }
+    >,
+    previous: StoreOrderProcessingData | null,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreOrderProcessing(
+      input.storeId,
+      previous,
+    );
+  }
+
   @SagaStep()
   private async updateDefaults(
     input: StoreUpdateSagaInput,
     operation: Extract<StoreUpdateOperation, { type: "defaultsUpdate" }>,
+    _previous: StoreDefaultsData,
   ): Promise<StoreUpdateOperationResult> {
     const result = await this.kernel.runScript(StoreDefaultsUpdateScript, {
       ...this.operationContext(input),
       ...operation.params,
     });
     return toOperationResult(result, operation);
+  }
+
+  private async compensateUpdateDefaults(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<StoreUpdateOperation, { type: "defaultsUpdate" }>,
+    previous: StoreDefaultsData,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreDefaults(
+      input.storeId,
+      previous,
+    );
   }
 
   @SagaStep()
@@ -317,6 +380,7 @@ export class StoreUpdateSaga extends BrokerSaga<
       StoreUpdateOperation,
       { type: "currencySettingsUpdate" }
     >,
+    _previous: StoreCurrencySettingsSnapshotData,
   ): Promise<StoreUpdateOperationResult> {
     const result = await this.kernel.runScript(
       StoreCurrencySettingsUpdateScript,
@@ -328,6 +392,20 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
+  private async compensateUpdateCurrencySettings(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<
+      StoreUpdateOperation,
+      { type: "currencySettingsUpdate" }
+    >,
+    previous: StoreCurrencySettingsSnapshotData,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreCurrencySettings(
+      input.storeId,
+      previous,
+    );
+  }
+
   private operationContext(input: StoreUpdateSagaInput) {
     return {
       storeId: input.storeId,
@@ -336,182 +414,175 @@ export class StoreUpdateSaga extends BrokerSaga<
   }
 
   @SagaStep()
-  private async loadBrandMedia(storeId: string): Promise<BrandMediaIds> {
-    const { brand } = await this.kernel.repository.storeSettings.findByStoreId(
-      storeId,
-    );
+  private async captureStoreUpdateSnapshot(
+    input: StoreUpdateSagaInput,
+  ): Promise<StoreUpdateSnapshot> {
+    const [store, settings] = await Promise.all([
+      this.kernel.repository.store.findById(
+        input.storeId,
+        input.context.organizationId,
+      ),
+      this.kernel.repository.storeSettings.findByStoreId(input.storeId),
+    ]);
+    if (!store) {
+      throw new FatalError("Store not found", undefined, "NOT_FOUND");
+    }
+
     return {
-      defaultLogoMediaId: brand?.defaultLogoMediaId ?? null,
-      squareLogoMediaId: brand?.squareLogoMediaId ?? null,
-      coverImageMediaId: brand?.coverImageMediaId ?? null,
+      contactDetails: {
+        name: store.displayName,
+        slug: store.name,
+        email: store.email,
+        phoneNumbers: settings.phones.map(({ phoneNumber }) => phoneNumber),
+      },
+      address: settings.address
+        ? {
+            companyName: settings.address.companyName,
+            countryCode: settings.address.countryCode,
+            addressLine1: settings.address.addressLine1,
+            addressLine2: settings.address.addressLine2,
+            city: settings.address.city,
+            administrativeArea: settings.address.administrativeArea,
+            postalCode: settings.address.postalCode,
+          }
+        : null,
+      brand: settings.brand
+        ? {
+            defaultLogoMediaId: settings.brand.defaultLogoMediaId,
+            squareLogoMediaId: settings.brand.squareLogoMediaId,
+            coverImageMediaId: settings.brand.coverImageMediaId,
+            primaryColor: settings.brand.primaryColor,
+            secondaryColor: settings.brand.secondaryColor,
+            slogan: settings.brand.slogan,
+            shortDescription: settings.brand.shortDescription,
+            socialLinks: settings.socialLinks.map(({ platform, url }) => ({
+              platform,
+              url,
+            })),
+          }
+        : null,
+      orderProcessing: settings.orderProcessing
+        ? {
+            orderNumberPrefix: settings.orderProcessing.orderNumberPrefix,
+            orderNumberSuffix: settings.orderProcessing.orderNumberSuffix,
+            requireCheckoutConfirmation:
+              settings.orderProcessing.requireCheckoutConfirmation,
+            automaticFulfillmentMode:
+              settings.orderProcessing.automaticFulfillmentMode,
+            automaticallyArchiveOrders:
+              settings.orderProcessing.automaticallyArchiveOrders,
+          }
+        : null,
+      defaults: {
+        unitSystem: store.unitSystem,
+        defaultWeightUnit:
+          store.defaultWeightUnit as StoreDefaultsData["defaultWeightUnit"],
+        defaultDimensionUnit:
+          store.defaultDimensionUnit as StoreDefaultsData["defaultDimensionUnit"],
+        timezone: store.timezone,
+      },
+      currencySettings: {
+        currencyCode: store.currencyCode,
+        locale: store.defaultLocale,
+        formatting: settings.currencyFormatting
+          ? {
+              currencyDisplay: settings.currencyFormatting.currencyDisplay,
+              currencySign: settings.currencyFormatting.currencySign,
+              grouping: settings.currencyFormatting.grouping,
+              signDisplay: settings.currencyFormatting.signDisplay,
+              minimumFractionDigits:
+                settings.currencyFormatting.minimumFractionDigits,
+              maximumFractionDigits:
+                settings.currencyFormatting.maximumFractionDigits,
+              roundingMode: settings.currencyFormatting.roundingMode,
+              trailingZeroDisplay:
+                settings.currencyFormatting.trailingZeroDisplay,
+            }
+          : null,
+      },
     };
   }
 
-  @SagaStep()
-  private loadStore(storeId: string, organizationId: string) {
-    return this.kernel.repository.store.findById(storeId, organizationId);
+  private async compensateCaptureStoreUpdateSnapshot(
+    _input: StoreUpdateSagaInput,
+  ): Promise<void> {
+    // Read-only step; the no-op compensation makes snapshot capture critical.
   }
 
   @SagaStep()
-  private async authorizeBrandUpdate(
-    input: StoreUpdateSagaInput,
-  ): Promise<UserError[]> {
-    if (!input.context.userId) {
-      return [
-        {
-          code: "UNAUTHENTICATED",
-          message: "Access denied: Subject is missing",
-          field: null,
-        },
-      ];
-    }
+  private async linkBrandMedia(
+    storeId: string,
+    link: BrandMediaLink,
+  ): Promise<void> {
+    await this.linkMediaReference(storeId, link);
+  }
 
+  private async compensateLinkBrandMedia(
+    storeId: string,
+    link: BrandMediaLink,
+  ): Promise<void> {
+    await this.unlinkMediaReference(storeId, link);
+  }
+
+  @SagaStep()
+  private async unlinkBrandMedia(
+    storeId: string,
+    link: BrandMediaLink,
+  ): Promise<void> {
+    await this.unlinkMediaReference(storeId, link);
+  }
+
+  private async compensateUnlinkBrandMedia(
+    storeId: string,
+    link: BrandMediaLink,
+  ): Promise<void> {
+    await this.linkMediaReference(storeId, link);
+  }
+
+  private async linkMediaReference(
+    storeId: string,
+    link: BrandMediaLink,
+  ): Promise<void> {
     const result = await this.broker.call<
-      IAM.AuthorizeResult,
-      IAM.AuthorizeParams
-    >("iam.authorize", {
-      subject: input.context.userId,
-      organizationId: input.context.organizationId,
-      domain: `store:${input.storeId}`,
-      resource: "store.profile",
-      action: "write",
+      Media.FileLinkResult,
+      Media.FileLinkParams
+    >("media.fileLink", {
+      fileId: link.fileId,
+      entityRef: storeMediaEntityRef(storeId),
+      role: link.role,
     });
+    if (result.success && result.fileExists && result.fileActive) return;
 
-    return result.allowed
-      ? []
-      : [
-          {
-            code: "FORBIDDEN",
-            message: "Access denied",
-            field: null,
-          },
-        ];
+    const error = brandMediaError({
+      field: link.field,
+      fileExists: result.fileExists,
+      fileActive: result.fileActive,
+    });
+    throw new FatalError(
+      error.message,
+      undefined,
+      error.code ?? "MEDIA_LINK_FAILED",
+    );
   }
 
-  @SagaStep()
-  private async prepareBrandMediaLinks(
+  private async unlinkMediaReference(
     storeId: string,
-    previous: BrandMediaIds,
-    next: BrandMediaIds,
-  ): Promise<BrandMediaPreparation> {
-    const links: BrandMediaLink[] = [];
-    const errors: UserError[] = [];
-
-    for (const entry of brandMediaEntries(previous, next)) {
-      if (!entry.next || entry.previous === entry.next) continue;
-
-      try {
-        const result = await this.broker.call<
-          Media.FileLinkResult,
-          Media.FileLinkParams
-        >("media.fileLink", {
-          fileId: entry.next,
-          entityRef: storeMediaEntityRef(storeId),
-          role: entry.role,
-        });
-
-        if (!result.success || !result.fileExists || !result.fileActive) {
-          errors.push(
-            brandMediaError({
-              field: entry.field,
-              fileExists: result.fileExists,
-              fileActive: result.fileActive,
-            }),
-          );
-          continue;
-        }
-
-        links.push({
-          fileId: entry.next,
-          field: entry.field,
-          role: entry.role,
-        });
-      } catch (error) {
-        this.logger.warn(
-          `Failed to link ${entry.role} file ${entry.next} to store ${storeId}: ${String(error)}`,
-        );
-        errors.push({
-          code: "MEDIA_LINK_FAILED",
-          message: "Unable to attach media file to the store",
-          field: [entry.field],
-        });
-      }
-    }
-
-    if (errors.length > 0 && links.length > 0) {
-      await this.unlinkMediaLinks(storeId, links);
-      return { links: [], errors };
-    }
-
-    return { links, errors };
-  }
-
-  private async compensatePrepareBrandMediaLinks(
-    storeId: string,
-    previous: BrandMediaIds,
-    next: BrandMediaIds,
+    link: BrandMediaLink,
   ): Promise<void> {
-    const links = brandMediaEntries(previous, next)
-      .filter((entry) => entry.next && entry.previous !== entry.next)
-      .map((entry) => ({
-        fileId: entry.next!,
-        field: entry.field,
-        role: entry.role,
-      }));
-    await this.unlinkMediaLinks(storeId, links);
-  }
-
-  @SagaStep()
-  private async rollbackBrandMediaLinks(
-    storeId: string,
-    links: BrandMediaLink[],
-  ): Promise<void> {
-    await this.unlinkMediaLinks(storeId, links);
-  }
-
-  @SagaStep()
-  private async unlinkPreviousBrandMedia(
-    storeId: string,
-    previous: BrandMediaIds,
-    next: BrandMediaIds,
-  ): Promise<void> {
-    const links = brandMediaEntries(previous, next)
-      .filter(
-        (entry) => entry.previous && entry.previous !== entry.next,
-      )
-      .map((entry) => ({
-        fileId: entry.previous!,
-        field: entry.field,
-        role: entry.role,
-      }));
-    await this.unlinkMediaLinks(storeId, links);
-  }
-
-  private async unlinkMediaLinks(
-    storeId: string,
-    links: BrandMediaLink[],
-  ): Promise<void> {
-    for (const link of links) {
-      try {
-        const result = await this.broker.call<
-          Media.FileUnlinkResult,
-          Media.FileUnlinkParams
-        >("media.fileUnlink", {
-          fileId: link.fileId,
-          entityRef: storeMediaEntityRef(storeId),
-          role: link.role,
-        });
-        if (!result.success) {
-          this.logger.warn(
-            `Failed to unlink ${link.role} file ${link.fileId} from store ${storeId}`,
-          );
-        }
-      } catch (error) {
-        this.logger.warn(
-          `Failed to unlink ${link.role} file ${link.fileId} from store ${storeId}: ${String(error)}`,
-        );
-      }
-    }
+    const result = await this.broker.call<
+      Media.FileUnlinkResult,
+      Media.FileUnlinkParams
+    >("media.fileUnlink", {
+      fileId: link.fileId,
+      entityRef: storeMediaEntityRef(storeId),
+      role: link.role,
+    });
+    if (result.success) return;
+    throw new FatalError(
+      "Unable to detach media file from the store",
+      undefined,
+      "MEDIA_UNLINK_FAILED",
+    );
   }
 }
 
@@ -536,6 +607,14 @@ function brandMediaEntries(previous: BrandMediaIds, next: BrandMediaIds) {
       next: next.coverImageMediaId,
     },
   ];
+}
+
+function brandMediaIds(brand: StoreBrandData | null): BrandMediaIds {
+  return {
+    defaultLogoMediaId: brand?.defaultLogoMediaId ?? null,
+    squareLogoMediaId: brand?.squareLogoMediaId ?? null,
+    coverImageMediaId: brand?.coverImageMediaId ?? null,
+  };
 }
 
 function storeMediaEntityRef(storeId: string) {

@@ -1,4 +1,4 @@
-import { Policy, ZodSchema } from "@shopana/shared-kernel";
+import { Policy, Transactional, ZodSchema } from "@shopana/shared-kernel";
 import { StoreSettingsUpdateScript } from "./StoreSettingsUpdateScript.js";
 import {
   storeDefaultsUpdateSchema,
@@ -14,6 +14,7 @@ export class StoreDefaultsUpdateScript extends StoreSettingsUpdateScript<StoreDe
     domain: (_, params) => `store:${params.storeId}`,
   })
   @ZodSchema(storeDefaultsUpdateSchema)
+  @Transactional()
   protected async execute(
     params: StoreDefaultsUpdateParams,
   ): Promise<StoreSettingsUpdateResult> {
