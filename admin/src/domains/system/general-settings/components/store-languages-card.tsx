@@ -23,7 +23,6 @@ const useStyles = createStyles(({ token }) => ({
     width: 32,
     height: 32,
     padding: 0,
-    background: token.colorBgContainerDisabled,
   },
   body: {
     display: "flex",
