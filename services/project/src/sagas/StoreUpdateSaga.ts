@@ -269,20 +269,6 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
-  private async compensateUpdateContactDetails(
-    input: StoreUpdateSagaInput,
-    _operation: Extract<
-      StoreUpdateOperation,
-      { type: "contactDetailsUpdate" }
-    >,
-    previous: StoreContactDetailsData,
-  ): Promise<void> {
-    await this.kernel.repository.storeSettings.restoreContactDetails(
-      input.storeId,
-      previous,
-    );
-  }
-
   @SagaStep()
   private async updateAddress(
     input: StoreUpdateSagaInput,
@@ -296,17 +282,6 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
-  private async compensateUpdateAddress(
-    input: StoreUpdateSagaInput,
-    _operation: Extract<StoreUpdateOperation, { type: "addressUpdate" }>,
-    previous: StoreAddressData | null,
-  ): Promise<void> {
-    await this.kernel.repository.storeSettings.restoreAddress(
-      input.storeId,
-      previous,
-    );
-  }
-
   @SagaStep()
   private async updateBrand(
     input: StoreUpdateSagaInput,
@@ -318,17 +293,6 @@ export class StoreUpdateSaga extends BrokerSaga<
       ...operation.params,
     });
     return toOperationResult(result, operation);
-  }
-
-  private async compensateUpdateBrand(
-    input: StoreUpdateSagaInput,
-    _operation: Extract<StoreUpdateOperation, { type: "brandUpdate" }>,
-    previous: StoreBrandData | null,
-  ): Promise<void> {
-    await this.kernel.repository.storeSettings.restoreBrand(
-      input.storeId,
-      previous,
-    );
   }
 
   @SagaStep()
@@ -347,20 +311,6 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
-  private async compensateUpdateOrderProcessing(
-    input: StoreUpdateSagaInput,
-    _operation: Extract<
-      StoreUpdateOperation,
-      { type: "orderProcessingUpdate" }
-    >,
-    previous: StoreOrderProcessingData | null,
-  ): Promise<void> {
-    await this.kernel.repository.storeSettings.restoreOrderProcessing(
-      input.storeId,
-      previous,
-    );
-  }
-
   @SagaStep()
   private async updateDefaults(
     input: StoreUpdateSagaInput,
@@ -372,17 +322,6 @@ export class StoreUpdateSaga extends BrokerSaga<
       ...operation.params,
     });
     return toOperationResult(result, operation);
-  }
-
-  private async compensateUpdateDefaults(
-    input: StoreUpdateSagaInput,
-    _operation: Extract<StoreUpdateOperation, { type: "defaultsUpdate" }>,
-    previous: StoreDefaultsData,
-  ): Promise<void> {
-    await this.kernel.repository.storeSettings.restoreDefaults(
-      input.storeId,
-      previous,
-    );
   }
 
   @SagaStep()
@@ -402,20 +341,6 @@ export class StoreUpdateSaga extends BrokerSaga<
       },
     );
     return toOperationResult(result, operation);
-  }
-
-  private async compensateUpdateCurrencySettings(
-    input: StoreUpdateSagaInput,
-    _operation: Extract<
-      StoreUpdateOperation,
-      { type: "currencySettingsUpdate" }
-    >,
-    previous: StoreCurrencySettingsSnapshotData,
-  ): Promise<void> {
-    await this.kernel.repository.storeSettings.restoreCurrencySettings(
-      input.storeId,
-      previous,
-    );
   }
 
   private operationContext(input: StoreUpdateSagaInput) {
@@ -454,24 +379,6 @@ export class StoreUpdateSaga extends BrokerSaga<
             field: ["storeId"],
           },
     };
-  }
-
-  private async compensateAcquireStoreRevision(
-    input: StoreUpdateSagaInput,
-    snapshot: StoreUpdateSnapshot,
-  ): Promise<void> {
-    const restored = await this.kernel.repository.store.restoreRevision({
-      id: input.storeId,
-      organizationId: input.context.organizationId,
-      acquiredRevision: input.expectedRevision + 1,
-      previousRevision: snapshot.revision,
-      previousUpdatedAt: snapshot.updatedAt,
-    });
-    if (!restored) {
-      throw new Error(
-        `Store revision compensation conflict for ${input.storeId}`,
-      );
-    }
   }
 
   @SagaStep()
