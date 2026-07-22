@@ -34,6 +34,7 @@ import { CustomerTagResolver } from "./CustomerTagResolver.js";
 import { CustomerTaxExemptionResolver } from "./CustomerTaxExemptionResolver.js";
 import { CustomerTaxIdentifierResolver } from "./CustomerTaxIdentifierResolver.js";
 import { CustomersType } from "./CustomersType.js";
+import type { IAM } from "@shopana/broker-types";
 
 @ApolloQuery
 export class QueryResolver extends CustomersType<Record<string, never>> {
@@ -45,6 +46,40 @@ export class QueryResolver extends CustomersType<Record<string, never>> {
 export class CustomersQueryResolver extends CustomersType<
   Record<string, never>
 > {
+  async customerAccountsSettings() {
+    const store = this.$ctx.store;
+    const allowed = await this.authProvider.authorize({
+      organizationId: store.organizationId,
+      domain: `store:${store.id}`,
+      resource: "store.profile",
+      action: "read",
+    });
+    if (!allowed) return null;
+
+    const configuration =
+      await this.$ctx.kernel.repository.storefrontAuth.findByStoreId(store.id);
+    if (!configuration) return null;
+    if (configuration.organizationId !== store.organizationId) {
+      throw new Error("Storefront auth organization does not match current store");
+    }
+
+    const result = await this.$ctx.kernel.getServices().broker.call<
+      IAM.ServiceLinkedApplicationAuthSettingsResult,
+      IAM.GetServiceLinkedApplicationAuthSettingsParams
+    >("iam.getServiceLinkedApplicationAuthSettings", {
+      applicationId: configuration.applicationId,
+      organizationId: store.organizationId,
+      linkedOwner: {
+        linkedOwnerType: "store",
+        linkedOwnerId: store.id,
+      },
+    });
+    if (!result.success) {
+      throw new Error(result.error ?? "Failed to read customer account settings");
+    }
+    return result.settings ? toGraphqlCustomerAccountsSettings(result.settings) : null;
+  }
+
   private safeDecodeId(
     globalId: string,
     expectedType: GlobalIdType
@@ -291,4 +326,24 @@ export class CustomersQueryResolver extends CustomersType<
   customerDataRequests(args: CustomerDataRequestRelayInput) {
     return new CustomerDataRequestConnectionResolver(args, this.$ctx);
   }
+}
+
+function toGraphqlCustomerAccountsSettings(
+  settings: IAM.ServiceLinkedApplicationAuthSettings,
+) {
+  return {
+    ...settings,
+    methods: settings.methods.map((method) => ({
+      ...method,
+      method: method.method.toUpperCase(),
+    })).concat({
+      method: "PHONE_OTP",
+      enabled: false,
+      configured: false,
+    }),
+    providers: settings.providers.map((provider) => ({
+      ...provider,
+      provider: provider.provider.toUpperCase(),
+    })),
+  };
 }

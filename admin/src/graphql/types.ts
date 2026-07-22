@@ -4109,6 +4109,26 @@ export type ApiCustomerAccountStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerAccountStatus>>;
 };
 
+export type ApiCustomerAccountsSettings = {
+  __typename?: 'CustomerAccountsSettings';
+  methods: Array<ApiCustomerAuthenticationMethodSettings>;
+  providers: Array<ApiCustomerAuthenticationProviderSettings>;
+  realmEnabled: Scalars['Boolean']['output'];
+  registrationMode: Scalars['String']['output'];
+  revision: Scalars['Int']['output'];
+};
+
+export type ApiCustomerAccountsSettingsUpdateInput = {
+  enabledMethods: Array<CustomerAuthenticationMethod>;
+  expectedRevision: Scalars['Int']['input'];
+};
+
+export type ApiCustomerAccountsSettingsUpdatePayload = {
+  __typename?: 'CustomerAccountsSettingsUpdatePayload';
+  settings?: Maybe<ApiCustomerAccountsSettings>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiCustomerAddress = ApiNode & {
   __typename?: 'CustomerAddress';
   address1: Scalars['String']['output'];
@@ -4326,6 +4346,31 @@ export type ApiCustomerAssignmentSourceFilter = {
   _in?: InputMaybe<Array<CustomerAssignmentSource>>;
   _neq?: InputMaybe<CustomerAssignmentSource>;
   _notIn?: InputMaybe<Array<CustomerAssignmentSource>>;
+};
+
+export enum CustomerAuthenticationMethod {
+  EmailOtp = 'EMAIL_OTP',
+  Password = 'PASSWORD',
+  PhoneOtp = 'PHONE_OTP'
+}
+
+export type ApiCustomerAuthenticationMethodSettings = {
+  __typename?: 'CustomerAuthenticationMethodSettings';
+  configured: Scalars['Boolean']['output'];
+  enabled: Scalars['Boolean']['output'];
+  method: CustomerAuthenticationMethod;
+};
+
+export enum CustomerAuthenticationProvider {
+  Facebook = 'FACEBOOK',
+  Google = 'GOOGLE'
+}
+
+export type ApiCustomerAuthenticationProviderSettings = {
+  __typename?: 'CustomerAuthenticationProviderSettings';
+  configured: Scalars['Boolean']['output'];
+  enabled: Scalars['Boolean']['output'];
+  provider: CustomerAuthenticationProvider;
 };
 
 /** Company fields in the unified customer update. */
@@ -6120,6 +6165,8 @@ export type ApiCustomerWhereInput = {
 /** Store-scoped customer commands. */
 export type ApiCustomersMutation = {
   __typename?: 'CustomersMutation';
+  /** Replace the enabled customer authentication methods for the current store. */
+  customerAccountsSettingsUpdate: ApiCustomerAccountsSettingsUpdatePayload;
   customerCreate: ApiCustomerCreatePayload;
   customerDataRequestCreate: ApiCustomerDataRequestCreatePayload;
   customerDataRequestDelete: ApiCustomerDataRequestDeletePayload;
@@ -6139,6 +6186,12 @@ export type ApiCustomersMutation = {
   customerTagUpdate: ApiCustomerTagUpdatePayload;
   /** Unified customer profile update with optimistic locking. */
   customerUpdate: ApiCustomerUpdatePayload;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerAccountsSettingsUpdateArgs = {
+  input: ApiCustomerAccountsSettingsUpdateInput;
 };
 
 
@@ -6262,6 +6315,8 @@ export type ApiCustomersMutationCustomerUpdateArgs = {
 export type ApiCustomersQuery = {
   __typename?: 'CustomersQuery';
   customer?: Maybe<ApiCustomer>;
+  /** Authentication settings for customer accounts in the current store. */
+  customerAccountsSettings?: Maybe<ApiCustomerAccountsSettings>;
   customerAddress?: Maybe<ApiCustomerAddress>;
   customerByEmail?: Maybe<ApiCustomer>;
   customerConsent?: Maybe<ApiCustomerConsent>;

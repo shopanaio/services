@@ -1,7 +1,5 @@
 export type StoreSettingsSection = "contact" | "address" | "brand";
 
-export type CustomerAuthenticationMethod = "password" | "email-code" | "sms-code";
-
 export interface StoreSettingsFormValues {
   name: string;
   slug: string;

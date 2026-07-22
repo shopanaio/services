@@ -35,6 +35,7 @@ const USERS_RESOURCE = "org.application-users";
 export interface ApplicationAuthAdminActor {
   id: string;
   requestId: string;
+  type?: "platform_admin" | "external_service";
 }
 
 export interface ApplicationAuthAdminTransactionRunner {
@@ -266,6 +267,23 @@ const methodSchema = revisionedScopeSchema
       });
     }
   });
+const replaceAuthMethodsSchema = revisionedScopeSchema
+  .extend({
+    enabledMethods: z
+      .array(z.enum(["password", "email_otp"]))
+      .min(1)
+      .max(2),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (new Set(value.enabledMethods).size !== value.enabledMethods.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["enabledMethods"],
+        message: "Authentication methods must be unique",
+      });
+    }
+  });
 const providerSchema = revisionedScopeSchema.extend({
   provider: z.enum(["google", "facebook"]),
 });
@@ -321,6 +339,7 @@ interface ExistingWriteInput<TResult> {
   targetId?: string;
   failureSafeDiff: ApplicationRealmAdminAuditSafeDiff;
   includeArchived?: boolean;
+  skipAuthorization?: boolean;
   execute(
     scope: ApplicationAuthAdminMutationScope,
     actor: ApplicationAuthAdminActor
@@ -779,6 +798,57 @@ export class ApplicationAuthAdminManagementService {
     return result;
   }
 
+  async replaceAuthMethods(
+    input: z.input<typeof replaceAuthMethodsSchema>,
+    actor: ApplicationAuthAdminActor,
+    options: { authorization?: CreateApplicationAuthorizationMode } = {}
+  ): Promise<ApplicationMutationResult> {
+    const { value, actor: trustedActor } = await this.parseAuditedMutation(
+      replaceAuthMethodsSchema,
+      input,
+      actor,
+      {
+        action: "auth_method_update",
+        targetType: "auth_configuration",
+      }
+    );
+    const enabledMethods = [...new Set(value.enabledMethods)];
+    const result = await this.executeExisting({
+      actor: trustedActor,
+      organizationId: value.organizationId,
+      applicationId: value.applicationId,
+      resource: AUTH_RESOURCE,
+      permission: "write",
+      auditAction: "auth_method_update",
+      targetType: "auth_configuration",
+      failureSafeDiff: { enabledMethods },
+      skipAuthorization: options.authorization === "trusted_boundary",
+      execute: async (scope) => {
+        this.assertRevision(scope, value.expectedRevision);
+        if (enabledMethods.includes("email_otp") && !scope.deliveryConfigured) {
+          throw invalidRealmState(
+            "Email one-time code requires email delivery configuration"
+          );
+        }
+        const updated = await this.repository.replaceAuthMethods({
+          applicationId: scope.applicationId,
+          enabledMethods,
+          expectedRevision: value.expectedRevision,
+        });
+        if (!updated) throw revisionConflict();
+        return {
+          result: {
+            organizationId: scope.organizationId,
+            applicationId: scope.applicationId,
+          },
+          safeDiff: { enabledMethods },
+        };
+      },
+    });
+    await this.invalidation.invalidateApplication(result.applicationId);
+    return result;
+  }
+
   async configureProvider(
     input: z.input<typeof providerConfigureSchema>,
     actor: ApplicationAuthAdminActor
@@ -1160,12 +1230,14 @@ export class ApplicationAuthAdminManagementService {
   ): Promise<TResult> {
     try {
       const execution = await this.transactions.run(async () => {
-        await this.assertAuthorized(
-          input.organizationId,
-          input.actor,
-          input.resource,
-          input.permission
-        );
+        if (!input.skipAuthorization) {
+          await this.assertAuthorized(
+            input.organizationId,
+            input.actor,
+            input.resource,
+            input.permission
+          );
+        }
         const scope = await this.requireScope(
           input.organizationId,
           input.applicationId,
@@ -1257,7 +1329,9 @@ export class ApplicationAuthAdminManagementService {
           action: input.action,
           outcome: input.outcome,
           reasonCategory: input.reasonCategory,
-          actorType: actorId ? "platform_admin" : "anonymous",
+          actorType: actorId
+            ? (input.actor.type ?? "platform_admin")
+            : "anonymous",
           actorId,
           organizationId: input.organizationId,
           applicationId: input.applicationId,
@@ -1477,6 +1551,9 @@ function freezeDiff(
       : {}),
     ...(diff.enabledCapabilities
       ? { enabledCapabilities: Object.freeze([...diff.enabledCapabilities]) }
+      : {}),
+    ...(diff.enabledMethods
+      ? { enabledMethods: Object.freeze([...diff.enabledMethods]) }
       : {}),
   });
 }

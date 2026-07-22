@@ -166,6 +166,35 @@ const deleteServiceLinkedApplicationInputSchema = z
   })
   .strict();
 
+const getServiceLinkedApplicationAuthSettingsInputSchema = z
+  .object({
+    applicationId: z.string().uuid("Invalid application ID"),
+    organizationId: z.string().uuid("Invalid organization ID"),
+    linkedOwner: linkedOwnerInputSchema,
+  })
+  .strict();
+
+const updateServiceLinkedApplicationAuthSettingsInputSchema =
+  getServiceLinkedApplicationAuthSettingsInputSchema
+    .extend({
+      userId: z.string().trim().min(1).max(128),
+      enabledMethods: z
+        .array(z.enum(["password", "email_otp"]))
+        .min(1)
+        .max(2),
+      expectedRevision: z.number().int().positive(),
+    })
+    .strict()
+    .superRefine((value, context) => {
+      if (new Set(value.enabledMethods).size !== value.enabledMethods.length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["enabledMethods"],
+          message: "Authentication methods must be unique",
+        });
+      }
+    });
+
 type AllocateApplicationIdParams = z.infer<typeof allocateApplicationIdInputSchema>;
 type AllocateApplicationIdResult = {
   success: boolean;
@@ -184,6 +213,33 @@ type DeleteServiceLinkedApplicationParams = z.infer<
 type DeleteServiceLinkedApplicationResult = {
   success: boolean;
   error?: string;
+};
+type GetServiceLinkedApplicationAuthSettingsParams = z.infer<
+  typeof getServiceLinkedApplicationAuthSettingsInputSchema
+>;
+type UpdateServiceLinkedApplicationAuthSettingsParams = z.infer<
+  typeof updateServiceLinkedApplicationAuthSettingsInputSchema
+>;
+type ServiceLinkedApplicationAuthSettings = {
+  realmEnabled: boolean;
+  registrationMode: "open" | "disabled";
+  revision: number;
+  methods: Array<{
+    method: "password" | "email_otp";
+    enabled: boolean;
+    configured: boolean;
+  }>;
+  providers: Array<{
+    provider: "google" | "facebook";
+    enabled: boolean;
+    configured: boolean;
+  }>;
+};
+type ServiceLinkedApplicationAuthSettingsResult = {
+  success: boolean;
+  settings?: ServiceLinkedApplicationAuthSettings;
+  error?: string;
+  errorCode?: string;
 };
 
 /**
@@ -538,6 +594,87 @@ export class IamBrokerActions extends BrokerActions {
     return scope !== null;
   }
 
+  @Action("getServiceLinkedApplicationAuthSettings")
+  @ZodSchema(getServiceLinkedApplicationAuthSettingsInputSchema)
+  async getServiceLinkedApplicationAuthSettings(
+    params: GetServiceLinkedApplicationAuthSettingsParams,
+    actionContext: BrokerCallContext,
+  ): Promise<ServiceLinkedApplicationAuthSettingsResult> {
+    try {
+      await this.assertServiceLinkedApplicationOwner(params, actionContext);
+      const [view] =
+        await this.kernel.repository.applicationAuthAdminQuery.getByApplicationKeys(
+          [{ id: params.applicationId, organizationId: params.organizationId }],
+        );
+      if (!view) throw new Error("Application auth settings were not found");
+      return { success: true, settings: mapServiceLinkedAuthSettings(view) };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to read auth settings",
+        errorCode: errorCode(error) ?? "INTERNAL_ERROR",
+      };
+    }
+  }
+
+  @Action("updateServiceLinkedApplicationAuthSettings")
+  @ZodSchema(updateServiceLinkedApplicationAuthSettingsInputSchema)
+  async updateServiceLinkedApplicationAuthSettings(
+    params: UpdateServiceLinkedApplicationAuthSettingsParams,
+    actionContext: BrokerCallContext,
+  ): Promise<ServiceLinkedApplicationAuthSettingsResult> {
+    try {
+      const ctx = await this.createUserContext(params.userId, actionContext);
+      await this.assertServiceLinkedApplicationOwner(params, actionContext);
+      await runWithContext(ctx, () =>
+        this.kernel.applicationAuthAdminManagement.replaceAuthMethods(
+          {
+            organizationId: params.organizationId,
+            applicationId: params.applicationId,
+            enabledMethods: params.enabledMethods,
+            expectedRevision: params.expectedRevision,
+          },
+          {
+            id: actionContext.caller.service,
+            requestId: ctx.requestId,
+            type: "external_service",
+          },
+          { authorization: "trusted_boundary" },
+        ),
+      );
+      const [view] =
+        await this.kernel.repository.applicationAuthAdminQuery.getByApplicationKeys(
+          [{ id: params.applicationId, organizationId: params.organizationId }],
+        );
+      if (!view) throw new Error("Application auth settings were not found");
+      return { success: true, settings: mapServiceLinkedAuthSettings(view) };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to update auth settings",
+        errorCode: errorCode(error) ?? "INTERNAL_ERROR",
+      };
+    }
+  }
+
+  private async assertServiceLinkedApplicationOwner(
+    params: GetServiceLinkedApplicationAuthSettingsParams,
+    actionContext: BrokerCallContext,
+  ): Promise<void> {
+    const binding =
+      await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner({
+        organizationId: params.organizationId,
+        resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+        resourceId: params.applicationId,
+        linkedService: actionContext.caller.service,
+        linkedOwnerType: params.linkedOwner.linkedOwnerType,
+        linkedOwnerId: params.linkedOwner.linkedOwnerId,
+      });
+    if (!binding) {
+      throw new Error("Application is not linked to the requested owner");
+    }
+  }
+
   /**
    * Delete an application only when the trusted caller owns its active
    * service-linked binding.
@@ -647,4 +784,55 @@ function errorCode(error: unknown): string | null {
   if (!error || typeof error !== "object" || !("code" in error)) return null;
   const code = (error as { code?: unknown }).code;
   return typeof code === "string" ? code : null;
+}
+
+function mapServiceLinkedAuthSettings(view: {
+  configuration: {
+    realmEnabled: boolean;
+    registrationMode: string;
+    revision: number;
+    passwordSignInEnabled: boolean;
+    passwordSignUpEnabled: boolean;
+    passwordResetEnabled: boolean;
+    emailOtpSignInEnabled: boolean;
+    emailOtpSignUpEnabled: boolean;
+  };
+  deliveryProfile: unknown | null;
+  providers: ReadonlyArray<{
+    provider: "google" | "facebook";
+    enabled: boolean;
+  }>;
+}): ServiceLinkedApplicationAuthSettings {
+  const { configuration } = view;
+  return {
+    realmEnabled: configuration.realmEnabled,
+    registrationMode:
+      configuration.registrationMode === "open" ? "open" : "disabled",
+    revision: configuration.revision,
+    methods: [
+      {
+        method: "password",
+        enabled:
+          configuration.passwordSignInEnabled ||
+          configuration.passwordSignUpEnabled ||
+          configuration.passwordResetEnabled,
+        configured: true,
+      },
+      {
+        method: "email_otp",
+        enabled:
+          configuration.emailOtpSignInEnabled ||
+          configuration.emailOtpSignUpEnabled,
+        configured: view.deliveryProfile !== null,
+      },
+    ],
+    providers: (["google", "facebook"] as const).map((provider) => {
+      const configured = view.providers.find((item) => item.provider === provider);
+      return {
+        provider,
+        configured: configured !== undefined,
+        enabled: configured?.enabled ?? false,
+      };
+    }),
+  };
 }

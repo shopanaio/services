@@ -10,7 +10,10 @@ import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals
 import { Paper } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import type { EditCustomerAccountsModalPayload } from "../../modals";
-import type { CustomerAuthenticationMethod } from "../../types";
+import {
+  CustomerAuthenticationMethod,
+  CustomerAuthenticationProvider,
+} from "@/graphql/types";
 
 const useStyles = createStyles(({ token }) => ({
   paper: { padding: 0, overflow: "hidden" },
@@ -42,10 +45,30 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 const methodRows = [
-  { id: "password", label: "Email and password", description: "Customers sign in with their email address and password.", Icon: LuLockKeyhole },
-  { id: "email-code", label: "Email one-time code", description: "Customers receive a sign-in code by email.", Icon: LuMail },
-  { id: "sms-code", label: "SMS one-time code", description: "Customers receive a sign-in code by text message.", Icon: LuMessageSquare },
-] satisfies Array<{ id: CustomerAuthenticationMethod; label: string; description: string; Icon: typeof LuMail }>;
+  {
+    id: CustomerAuthenticationMethod.Password,
+    label: "Email and password",
+    description: "Customers sign in with their email address and password.",
+    Icon: LuLockKeyhole,
+  },
+  {
+    id: CustomerAuthenticationMethod.EmailOtp,
+    label: "Email one-time code",
+    description: "Customers receive a sign-in code by email.",
+    Icon: LuMail,
+  },
+  {
+    id: CustomerAuthenticationMethod.PhoneOtp,
+    label: "Phone one-time code",
+    description: "Customers receive a sign-in code by text message.",
+    Icon: LuMessageSquare,
+  },
+] satisfies Array<{
+  id: CustomerAuthenticationMethod;
+  label: string;
+  description: string;
+  Icon: typeof LuMail;
+}>;
 
 const sameMethods = (a: CustomerAuthenticationMethod[], b: CustomerAuthenticationMethod[]) =>
   a.length === b.length && a.every((method) => b.includes(method));
@@ -55,12 +78,17 @@ export const CustomerAccountsModal = () => {
   const { message } = App.useApp();
   const { payload, pop, forcePop, setDirty } = useModalStackContext();
   const typedPayload = payload as EditCustomerAccountsModalPayload;
-  const [enabledMethods, setEnabledMethods] = useState<CustomerAuthenticationMethod[]>(
-    typedPayload.enabledMethods.length > 0 ? typedPayload.enabledMethods : ["password"],
+  const initialMethods = useMemo(
+    () => typedPayload.settings.methods.filter(({ enabled }) => enabled).map(({ method }) => method),
+    [typedPayload.settings.methods],
   );
+  const [enabledMethods, setEnabledMethods] = useState<CustomerAuthenticationMethod[]>(
+    initialMethods.length > 0 ? initialMethods : [CustomerAuthenticationMethod.Password],
+  );
+  const [saving, setSaving] = useState(false);
   const isDirty = useMemo(
-    () => !sameMethods(enabledMethods, typedPayload.enabledMethods),
-    [enabledMethods, typedPayload.enabledMethods],
+    () => !sameMethods(enabledMethods, initialMethods),
+    [enabledMethods, initialMethods],
   );
 
   useEffect(() => setDirty(isDirty), [isDirty, setDirty]);
@@ -73,10 +101,24 @@ export const CustomerAccountsModal = () => {
     });
   };
 
-  const save = () => {
-    typedPayload.onSave(enabledMethods);
-    message.success("Customer accounts updated");
-    forcePop();
+  const save = async () => {
+    setSaving(true);
+    try {
+      const userErrors = await typedPayload.onSave({
+        enabledMethods,
+        expectedRevision: typedPayload.settings.revision,
+      });
+      if (userErrors.length > 0) {
+        message.error(userErrors.map(({ message: errorMessage }) => errorMessage).join("\n"));
+        return;
+      }
+      message.success("Customer accounts updated");
+      forcePop();
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "Customer accounts could not be updated");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -86,7 +128,7 @@ export const CustomerAccountsModal = () => {
         <ModalHeader
           name="customer-accounts"
           onClose={pop}
-          submitButtonProps={{ children: "Save changes", disabled: !isDirty, onClick: save }}
+          submitButtonProps={{ children: "Save changes", disabled: !isDirty, loading: saving, onClick: save }}
           title="Edit customer accounts"
         />
       }
@@ -100,24 +142,25 @@ export const CustomerAccountsModal = () => {
           <span className={styles.sectionLabel}>Authentication</span>
           {methodRows.map(({ id, label, description, Icon }) => {
             const checked = enabledMethods.includes(id);
+            const configured = typedPayload.settings.methods.find(({ method }) => method === id)?.configured ?? false;
             return (
               <SettingsItemTile
                 ariaLabel={`Toggle ${label}`}
                 icon={<Icon />}
                 key={id}
-                onClick={() => toggle(id, !checked)}
+                onClick={() => configured && toggle(id, !checked)}
                 label={label}
                 trailing={
                   <Switch
                     aria-label={label}
                     checked={checked}
-                    disabled={checked && enabledMethods.length === 1}
+                    disabled={!configured || (checked && enabledMethods.length === 1)}
                     onClick={(_, event) => event.stopPropagation()}
                     onChange={(next) => toggle(id, next)}
                     size="small"
                   />
                 }
-                value={description}
+                value={configured ? description : `${description} Email delivery must be configured first.`}
               />
             );
           })}
@@ -125,18 +168,15 @@ export const CustomerAccountsModal = () => {
             <span className={styles.sectionLabel}>Available connections</span>
             <span className={styles.connectionsHint}>Social and identity providers</span>
           </div>
-          <SettingsItemTile
-            icon={<FcGoogle />}
-            label="Google"
-            trailing={<Button className={styles.connectButton} disabled size="small" type="text">Connect</Button>}
-            value="Social sign-in"
-          />
-          <SettingsItemTile
-            icon={<FaFacebookF className={styles.facebook} />}
-            label="Facebook"
-            trailing={<Button className={styles.connectButton} disabled size="small" type="text">Connect</Button>}
-            value="Social sign-in"
-          />
+          {typedPayload.settings.providers.map(({ provider, configured, enabled }) => (
+            <SettingsItemTile
+              icon={provider === CustomerAuthenticationProvider.Google ? <FcGoogle /> : <FaFacebookF className={styles.facebook} />}
+              key={provider}
+              label={provider === CustomerAuthenticationProvider.Google ? "Google" : "Facebook"}
+              trailing={<Button className={styles.connectButton} disabled size="small" type="text">{configured ? (enabled ? "Connected" : "Disabled") : "Connect"}</Button>}
+              value="Social sign-in"
+            />
+          ))}
         </div>
       </Paper>
     </ModalLayout>

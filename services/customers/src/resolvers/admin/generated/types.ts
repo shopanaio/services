@@ -518,6 +518,26 @@ export type CustomerAccountStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerAccountStatus>>;
 };
 
+export type CustomerAccountsSettings = {
+  __typename?: 'CustomerAccountsSettings';
+  methods: Array<CustomerAuthenticationMethodSettings>;
+  providers: Array<CustomerAuthenticationProviderSettings>;
+  realmEnabled: Scalars['Boolean']['output'];
+  registrationMode: Scalars['String']['output'];
+  revision: Scalars['Int']['output'];
+};
+
+export type CustomerAccountsSettingsUpdateInput = {
+  enabledMethods: Array<CustomerAuthenticationMethod>;
+  expectedRevision: Scalars['Int']['input'];
+};
+
+export type CustomerAccountsSettingsUpdatePayload = {
+  __typename?: 'CustomerAccountsSettingsUpdatePayload';
+  settings: Maybe<CustomerAccountsSettings>;
+  userErrors: Array<GenericUserError>;
+};
+
 export type CustomerAddress = Node & {
   __typename?: 'CustomerAddress';
   address1: Scalars['String']['output'];
@@ -735,6 +755,31 @@ export type CustomerAssignmentSourceFilter = {
   _in?: InputMaybe<Array<CustomerAssignmentSource>>;
   _neq?: InputMaybe<CustomerAssignmentSource>;
   _notIn?: InputMaybe<Array<CustomerAssignmentSource>>;
+};
+
+export enum CustomerAuthenticationMethod {
+  EmailOtp = 'EMAIL_OTP',
+  Password = 'PASSWORD',
+  PhoneOtp = 'PHONE_OTP'
+}
+
+export type CustomerAuthenticationMethodSettings = {
+  __typename?: 'CustomerAuthenticationMethodSettings';
+  configured: Scalars['Boolean']['output'];
+  enabled: Scalars['Boolean']['output'];
+  method: CustomerAuthenticationMethod;
+};
+
+export enum CustomerAuthenticationProvider {
+  Facebook = 'FACEBOOK',
+  Google = 'GOOGLE'
+}
+
+export type CustomerAuthenticationProviderSettings = {
+  __typename?: 'CustomerAuthenticationProviderSettings';
+  configured: Scalars['Boolean']['output'];
+  enabled: Scalars['Boolean']['output'];
+  provider: CustomerAuthenticationProvider;
 };
 
 /** Company fields in the unified customer update. */
@@ -2529,6 +2574,8 @@ export type CustomerWhereInput = {
 /** Store-scoped customer commands. */
 export type CustomersMutation = {
   __typename?: 'CustomersMutation';
+  /** Replace the enabled customer authentication methods for the current store. */
+  customerAccountsSettingsUpdate: CustomerAccountsSettingsUpdatePayload;
   customerCreate: CustomerCreatePayload;
   customerDataRequestCreate: CustomerDataRequestCreatePayload;
   customerDataRequestDelete: CustomerDataRequestDeletePayload;
@@ -2548,6 +2595,12 @@ export type CustomersMutation = {
   customerTagUpdate: CustomerTagUpdatePayload;
   /** Unified customer profile update with optimistic locking. */
   customerUpdate: CustomerUpdatePayload;
+};
+
+
+/** Store-scoped customer commands. */
+export type CustomersMutationCustomerAccountsSettingsUpdateArgs = {
+  input: CustomerAccountsSettingsUpdateInput;
 };
 
 
@@ -2671,6 +2724,8 @@ export type CustomersMutationCustomerUpdateArgs = {
 export type CustomersQuery = {
   __typename?: 'CustomersQuery';
   customer: Maybe<Customer>;
+  /** Authentication settings for customer accounts in the current store. */
+  customerAccountsSettings: Maybe<CustomerAccountsSettings>;
   customerAddress: Maybe<CustomerAddress>;
   customerByEmail: Maybe<Customer>;
   customerConsent: Maybe<CustomerConsent>;
@@ -3415,7 +3470,6 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
   Node: ( Customer ) | ( CustomerAddress ) | ( CustomerConsent ) | ( CustomerConsentEvent ) | ( CustomerDataRequest ) | ( CustomerGroup ) | ( CustomerGroupMembership ) | ( CustomerMerge ) | ( CustomerMonetaryStatistics ) | ( CustomerSegment ) | ( CustomerSegmentMembership ) | ( CustomerTag ) | ( CustomerTagAssignment ) | ( CustomerTaxExemption ) | ( CustomerTaxIdentifier );
   UserError: ( GenericUserError );
 }>;
-
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
@@ -3429,6 +3483,9 @@ export type ResolversTypes = ResolversObject<{
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   CustomerAccountStatus: CustomerAccountStatus;
   CustomerAccountStatusFilter: CustomerAccountStatusFilter;
+  CustomerAccountsSettings: ResolverTypeWrapper<CustomerAccountsSettings>;
+  CustomerAccountsSettingsUpdateInput: CustomerAccountsSettingsUpdateInput;
+  CustomerAccountsSettingsUpdatePayload: ResolverTypeWrapper<CustomerAccountsSettingsUpdatePayload>;
   CustomerAddress: ResolverTypeWrapper<CustomerAddress>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   CustomerAddressConnection: ResolverTypeWrapper<CustomerAddressConnection>;
@@ -3445,6 +3502,10 @@ export type ResolversTypes = ResolversObject<{
   CustomerAdminLifecycleStatus: CustomerAdminLifecycleStatus;
   CustomerAssignmentSource: CustomerAssignmentSource;
   CustomerAssignmentSourceFilter: CustomerAssignmentSourceFilter;
+  CustomerAuthenticationMethod: CustomerAuthenticationMethod;
+  CustomerAuthenticationMethodSettings: ResolverTypeWrapper<CustomerAuthenticationMethodSettings>;
+  CustomerAuthenticationProvider: CustomerAuthenticationProvider;
+  CustomerAuthenticationProviderSettings: ResolverTypeWrapper<CustomerAuthenticationProviderSettings>;
   CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
   CustomerConnection: ResolverTypeWrapper<CustomerConnection>;
   CustomerConsent: ResolverTypeWrapper<CustomerConsent>;
@@ -3652,6 +3713,9 @@ export type ResolversParentTypes = ResolversObject<{
   Int: Scalars['Int']['output'];
   ID: Scalars['ID']['output'];
   CustomerAccountStatusFilter: CustomerAccountStatusFilter;
+  CustomerAccountsSettings: CustomerAccountsSettings;
+  CustomerAccountsSettingsUpdateInput: CustomerAccountsSettingsUpdateInput;
+  CustomerAccountsSettingsUpdatePayload: CustomerAccountsSettingsUpdatePayload;
   CustomerAddress: CustomerAddress;
   Float: Scalars['Float']['output'];
   CustomerAddressConnection: CustomerAddressConnection;
@@ -3664,6 +3728,8 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerAddressWhereInput: CustomerAddressWhereInput;
   CustomerAddressesUpdateInput: CustomerAddressesUpdateInput;
   CustomerAssignmentSourceFilter: CustomerAssignmentSourceFilter;
+  CustomerAuthenticationMethodSettings: CustomerAuthenticationMethodSettings;
+  CustomerAuthenticationProviderSettings: CustomerAuthenticationProviderSettings;
   CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
   CustomerConnection: CustomerConnection;
   CustomerConsent: CustomerConsent;
@@ -3881,6 +3947,21 @@ export type CustomerResolvers<ContextType = ServiceContext, ParentType extends R
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CustomerAccountsSettingsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAccountsSettings'] = ResolversParentTypes['CustomerAccountsSettings']> = ResolversObject<{
+  methods?: Resolver<Array<ResolversTypes['CustomerAuthenticationMethodSettings']>, ParentType, ContextType>;
+  providers?: Resolver<Array<ResolversTypes['CustomerAuthenticationProviderSettings']>, ParentType, ContextType>;
+  realmEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  registrationMode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAccountsSettingsUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAccountsSettingsUpdatePayload'] = ResolversParentTypes['CustomerAccountsSettingsUpdatePayload']> = ResolversObject<{
+  settings?: Resolver<Maybe<ResolversTypes['CustomerAccountsSettings']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CustomerAddressResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddress'] = ResolversParentTypes['CustomerAddress']> = ResolversObject<{
   address1?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   address2?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -3921,6 +4002,20 @@ export type CustomerAddressConnectionResolvers<ContextType = ServiceContext, Par
 export type CustomerAddressEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAddressEdge'] = ResolversParentTypes['CustomerAddressEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['CustomerAddress'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAuthenticationMethodSettingsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAuthenticationMethodSettings'] = ResolversParentTypes['CustomerAuthenticationMethodSettings']> = ResolversObject<{
+  configured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  method?: Resolver<ResolversTypes['CustomerAuthenticationMethod'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerAuthenticationProviderSettingsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAuthenticationProviderSettings'] = ResolversParentTypes['CustomerAuthenticationProviderSettings']> = ResolversObject<{
+  configured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  provider?: Resolver<ResolversTypes['CustomerAuthenticationProvider'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4440,6 +4535,7 @@ export type CustomerUpdatePayloadResolvers<ContextType = ServiceContext, ParentT
 }>;
 
 export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomersMutation'] = ResolversParentTypes['CustomersMutation']> = ResolversObject<{
+  customerAccountsSettingsUpdate?: Resolver<ResolversTypes['CustomerAccountsSettingsUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAccountsSettingsUpdateArgs, 'input'>>;
   customerCreate?: Resolver<ResolversTypes['CustomerCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerCreateArgs, 'input'>>;
   customerDataRequestCreate?: Resolver<ResolversTypes['CustomerDataRequestCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestCreateArgs, 'input'>>;
   customerDataRequestDelete?: Resolver<ResolversTypes['CustomerDataRequestDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestDeleteArgs, 'input'>>;
@@ -4463,6 +4559,7 @@ export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType 
 
 export type CustomersQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomersQuery'] = ResolversParentTypes['CustomersQuery']> = ResolversObject<{
   customer?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerArgs, 'id'>>;
+  customerAccountsSettings?: Resolver<Maybe<ResolversTypes['CustomerAccountsSettings']>, ParentType, ContextType>;
   customerAddress?: Resolver<Maybe<ResolversTypes['CustomerAddress']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerAddressArgs, 'id'>>;
   customerByEmail?: Resolver<Maybe<ResolversTypes['Customer']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerByEmailArgs, 'email'>>;
   customerConsent?: Resolver<Maybe<ResolversTypes['CustomerConsent']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerConsentArgs, 'id'>>;
@@ -4544,9 +4641,13 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   Customer?: CustomerResolvers<ContextType>;
+  CustomerAccountsSettings?: CustomerAccountsSettingsResolvers<ContextType>;
+  CustomerAccountsSettingsUpdatePayload?: CustomerAccountsSettingsUpdatePayloadResolvers<ContextType>;
   CustomerAddress?: CustomerAddressResolvers<ContextType>;
   CustomerAddressConnection?: CustomerAddressConnectionResolvers<ContextType>;
   CustomerAddressEdge?: CustomerAddressEdgeResolvers<ContextType>;
+  CustomerAuthenticationMethodSettings?: CustomerAuthenticationMethodSettingsResolvers<ContextType>;
+  CustomerAuthenticationProviderSettings?: CustomerAuthenticationProviderSettingsResolvers<ContextType>;
   CustomerConnection?: CustomerConnectionResolvers<ContextType>;
   CustomerConsent?: CustomerConsentResolvers<ContextType>;
   CustomerConsentEvent?: CustomerConsentEventResolvers<ContextType>;

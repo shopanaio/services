@@ -103,6 +103,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "filters.graphql",
     "media.graphql",
     "customer.graphql",
+    "customerAccounts.graphql",
     "address.graphql",
     "tax.graphql",
     "consent.graphql",

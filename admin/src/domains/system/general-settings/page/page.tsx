@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Alert, App } from "antd";
 import { createStyles } from "antd-style";
 import { DataLayout } from "@/layouts/data";
@@ -13,7 +12,11 @@ import {
   StoreOrderProcessingCard,
   StoreDangerZoneCard,
 } from "../components";
-import { useGeneralSettings, useLanguageSettingsMutations } from "../hooks";
+import {
+  useCustomerAccountsSettings,
+  useGeneralSettings,
+  useLanguageSettingsMutations,
+} from "../hooks";
 import {
   type StoreSettingsSection,
   useAddStoreLanguageModal,
@@ -23,7 +26,6 @@ import {
   useEditCustomerAccountsModal,
   useEditStoreOrderProcessingModal,
 } from "../modals";
-import type { CustomerAuthenticationMethod } from "../types";
 
 const useStyles = createStyles(() => ({
   content: {
@@ -46,9 +48,8 @@ export default function GeneralSettingsPage() {
   const editStoreCurrencyModal = useEditStoreCurrencyModal();
   const addStoreLanguageModal = useAddStoreLanguageModal();
   const languageMutations = useLanguageSettingsMutations();
+  const customerAccounts = useCustomerAccountsSettings();
   const editCustomerAccountsModal = useEditCustomerAccountsModal();
-  const [customerAuthenticationMethods, setCustomerAuthenticationMethods] =
-    useState<CustomerAuthenticationMethod[]>(["password"]);
   const editOrderProcessingModal = useEditStoreOrderProcessingModal();
 
   const openEditor = (section: StoreSettingsSection) => {
@@ -72,9 +73,13 @@ export default function GeneralSettingsPage() {
   };
 
   const openCustomerAccountsEditor = () => {
+    if (!customerAccounts.settings) return;
     editCustomerAccountsModal.push({
-      enabledMethods: customerAuthenticationMethods,
-      onSave: setCustomerAuthenticationMethods,
+      settings: customerAccounts.settings,
+      onSave: async (input) => {
+        const result = await customerAccounts.updateSettings(input);
+        return result.userErrors;
+      },
     });
   };
 
@@ -127,6 +132,14 @@ export default function GeneralSettingsPage() {
             type="error"
           />
         ) : null}
+        {customerAccounts.error ? (
+          <Alert
+            message="Unable to load customer account settings"
+            description={customerAccounts.error.message}
+            showIcon
+            type="error"
+          />
+        ) : null}
         {store ? (
           <>
             <StoreContactDetailsCard onEdit={openEditor} store={store} />
@@ -139,10 +152,12 @@ export default function GeneralSettingsPage() {
               onSetDefault={setDefaultLanguage}
               store={store}
             />
-            <CustomerAccountsCard
-              enabledMethods={customerAuthenticationMethods}
-              onEdit={openCustomerAccountsEditor}
-            />
+            {customerAccounts.settings ? (
+              <CustomerAccountsCard
+                settings={customerAccounts.settings}
+                onEdit={openCustomerAccountsEditor}
+              />
+            ) : null}
             <StoreOrderProcessingCard
               onEdit={openOrderProcessingEditor}
               store={store}

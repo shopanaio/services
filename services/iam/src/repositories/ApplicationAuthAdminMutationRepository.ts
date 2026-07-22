@@ -526,6 +526,34 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   }
 
   @Transactional()
+  async replaceAuthMethods(input: {
+    applicationId: string;
+    enabledMethods: readonly ("password" | "email_otp")[];
+    expectedRevision: number;
+  }): Promise<ApplicationAuthConfigurationRecord | null> {
+    const enabled = new Set(input.enabledMethods);
+    const [updated] = await this.connection
+      .update(applicationAuthConfiguration)
+      .set({
+        passwordSignInEnabled: enabled.has("password"),
+        passwordSignUpEnabled: enabled.has("password"),
+        passwordResetEnabled: false,
+        emailOtpSignInEnabled: enabled.has("email_otp"),
+        emailOtpSignUpEnabled: enabled.has("email_otp"),
+        revision: sql`${applicationAuthConfiguration.revision} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(applicationAuthConfiguration.applicationId, input.applicationId),
+          eq(applicationAuthConfiguration.revision, input.expectedRevision)
+        )
+      )
+      .returning();
+    return updated ?? null;
+  }
+
+  @Transactional()
   async configureProvider(
     input: ConfigureAdminApplicationProviderInput
   ): Promise<AdminApplicationProviderRecord | "already_configured" | null> {

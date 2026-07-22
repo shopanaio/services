@@ -103,6 +103,45 @@ export interface DeleteServiceLinkedApplicationResult {
   error?: string;
 }
 
+export type ApplicationAuthMethod = "password" | "email_otp";
+export type ApplicationAuthProvider = "google" | "facebook";
+
+export interface ServiceLinkedApplicationAuthSettings {
+  realmEnabled: boolean;
+  registrationMode: "open" | "disabled";
+  revision: number;
+  methods: Array<{
+    method: ApplicationAuthMethod;
+    enabled: boolean;
+    configured: boolean;
+  }>;
+  providers: Array<{
+    provider: ApplicationAuthProvider;
+    enabled: boolean;
+    configured: boolean;
+  }>;
+}
+
+export interface GetServiceLinkedApplicationAuthSettingsParams {
+  applicationId: string;
+  organizationId: string;
+  linkedOwner: ServiceLinkedOwnerInput;
+}
+
+export interface UpdateServiceLinkedApplicationAuthSettingsParams
+  extends GetServiceLinkedApplicationAuthSettingsParams {
+  userId: string;
+  enabledMethods: ApplicationAuthMethod[];
+  expectedRevision: number;
+}
+
+export interface ServiceLinkedApplicationAuthSettingsResult {
+  success: boolean;
+  settings?: ServiceLinkedApplicationAuthSettings;
+  error?: string;
+  errorCode?: string;
+}
+
 // ============================================================================
 // Authorization Actions
 // ============================================================================

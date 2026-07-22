@@ -1,8 +1,12 @@
-import type { ApiStore } from "@/graphql/types";
+import type {
+  ApiCustomerAccountsSettings,
+  ApiCustomerAccountsSettingsUpdateInput,
+  ApiGenericUserError,
+  ApiStore,
+} from "@/graphql/types";
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { StoreSettingsSection } from "./types";
-import type { CustomerAuthenticationMethod } from "./types";
 
 export type { StoreSettingsSection } from "./types";
 
@@ -57,8 +61,10 @@ export const useAddStoreLanguageModal = createModalStackHook(
 );
 
 export interface EditCustomerAccountsModalPayload extends IModalStackPayload {
-  enabledMethods: CustomerAuthenticationMethod[];
-  onSave: (methods: CustomerAuthenticationMethod[]) => void;
+  settings: ApiCustomerAccountsSettings;
+  onSave: (
+    input: ApiCustomerAccountsSettingsUpdateInput,
+  ) => Promise<ApiGenericUserError[]>;
 }
 
 export const useEditCustomerAccountsModal = createModalStackHook(

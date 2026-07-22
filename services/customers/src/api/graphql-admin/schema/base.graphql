@@ -24,6 +24,9 @@ type Mutation {
 
 """Store-scoped customer reads. The current Store is taken from trusted context."""
 type CustomersQuery {
+  """Authentication settings for customer accounts in the current store."""
+  customerAccountsSettings: CustomerAccountsSettings
+
   """Resolve a customer-owned Relay node by global ID."""
   node(id: ID!): Node
 
@@ -99,6 +102,11 @@ type CustomersQuery {
 
 """Store-scoped customer commands."""
 type CustomersMutation {
+  """Replace the enabled customer authentication methods for the current store."""
+  customerAccountsSettingsUpdate(
+    input: CustomerAccountsSettingsUpdateInput!
+  ): CustomerAccountsSettingsUpdatePayload!
+
   customerCreate(input: CustomerCreateInput!): CustomerCreatePayload!
   """Unified customer profile update with optimistic locking."""
   customerUpdate(

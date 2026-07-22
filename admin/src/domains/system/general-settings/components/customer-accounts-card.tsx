@@ -7,7 +7,11 @@ import { LuEllipsis, LuLockKeyhole, LuMail, LuMessageSquare } from "react-icons/
 import { FcGoogle } from "react-icons/fc";
 import { Paper } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
-import type { CustomerAuthenticationMethod } from "../types";
+import type { ApiCustomerAccountsSettings } from "@/graphql/types";
+import {
+  CustomerAuthenticationMethod,
+  CustomerAuthenticationProvider,
+} from "@/graphql/types";
 
 const useStyles = createStyles(({ token }) => ({
   paper: { padding: 0, overflow: "hidden" },
@@ -55,18 +59,20 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 const methods = {
-  password: { label: "Password", description: "Email and password", Icon: LuLockKeyhole },
-  "email-code": { label: "Email code", description: "One-time code", Icon: LuMail },
-  "sms-code": { label: "SMS code", description: "One-time code", Icon: LuMessageSquare },
+  [CustomerAuthenticationMethod.Password]: { label: "Password", description: "Email and password", Icon: LuLockKeyhole },
+  [CustomerAuthenticationMethod.EmailOtp]: { label: "Email code", description: "One-time code", Icon: LuMail },
+  [CustomerAuthenticationMethod.PhoneOtp]: { label: "Phone code", description: "One-time code", Icon: LuMessageSquare },
 } satisfies Record<CustomerAuthenticationMethod, { label: string; description: string; Icon: typeof LuMail }>;
 
 interface CustomerAccountsCardProps {
-  enabledMethods: CustomerAuthenticationMethod[];
+  settings: ApiCustomerAccountsSettings;
   onEdit: () => void;
 }
 
-export const CustomerAccountsCard = ({ enabledMethods, onEdit }: CustomerAccountsCardProps) => {
+export const CustomerAccountsCard = ({ settings, onEdit }: CustomerAccountsCardProps) => {
   const { styles } = useStyles();
+  const enabledMethods = settings.methods.filter(({ enabled }) => enabled);
+  const connectedProviders = settings.providers.filter(({ configured }) => configured);
 
   return (
     <Paper className={styles.paper} data-testid="customer-accounts-card">
@@ -82,7 +88,7 @@ export const CustomerAccountsCard = ({ enabledMethods, onEdit }: CustomerAccount
       </div>
       <div className={styles.body}>
         <div className={styles.tiles}>
-          {enabledMethods.map((method) => {
+          {enabledMethods.map(({ method }) => {
             const { Icon, label, description } = methods[method];
             return (
               <SettingsItemTile
@@ -99,8 +105,20 @@ export const CustomerAccountsCard = ({ enabledMethods, onEdit }: CustomerAccount
         <div className={styles.providers}>
           <span className={styles.providerLabel}>Connected providers</span>
           <div className={styles.providerList}>
-            <span className={styles.providerChip}><FcGoogle />Google</span>
-            <span className={styles.providerChip}><FaFacebookF className={styles.facebook} />Facebook</span>
+            {connectedProviders.length === 0 ? (
+              <Typography.Text type="secondary">None</Typography.Text>
+            ) : null}
+            {connectedProviders.map(({ provider, enabled }) => (
+              <span className={styles.providerChip} key={provider}>
+                {provider === CustomerAuthenticationProvider.Google ? (
+                  <FcGoogle />
+                ) : (
+                  <FaFacebookF className={styles.facebook} />
+                )}
+                {provider === CustomerAuthenticationProvider.Google ? "Google" : "Facebook"}
+                {!enabled ? " (disabled)" : ""}
+              </span>
+            ))}
           </div>
         </div>
       </div>

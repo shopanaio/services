@@ -77,3 +77,21 @@ export const GENERAL_SETTINGS_STORE_FRAGMENT = gql`
     }
   }
 `;
+
+export const CUSTOMER_ACCOUNTS_SETTINGS_FRAGMENT = gql`
+  fragment CustomerAccountsSettingsFields on CustomerAccountsSettings {
+    realmEnabled
+    registrationMode
+    revision
+    methods {
+      method
+      enabled
+      configured
+    }
+    providers {
+      provider
+      enabled
+      configured
+    }
+  }
+`;

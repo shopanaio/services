@@ -86,7 +86,10 @@ import type {
   CustomersMutationCustomerTagUpdateArgs,
   CustomersMutationCustomerUpdateArgs,
 } from "./generated/types.js";
+import { CustomerAuthenticationMethod } from "./generated/types.js";
 import { mapCustomerUpdateInput } from "./customerUpdateMapper.js";
+import type { IAM } from "@shopana/broker-types";
+import type { CustomersMutationCustomerAccountsSettingsUpdateArgs } from "./generated/types.js";
 
 @ApolloMutation
 export class MutationResolver extends CustomersType<Record<string, never>> {
@@ -98,6 +101,127 @@ export class MutationResolver extends CustomersType<Record<string, never>> {
 export class CustomersMutationResolver extends CustomersType<
   Record<string, never>
 > {
+  async customerAccountsSettingsUpdate(
+    args: CustomersMutationCustomerAccountsSettingsUpdateArgs,
+  ) {
+    const store = this.$ctx.store;
+    if (!this.$ctx.hasUser) {
+      return {
+        settings: null,
+        userErrors: [userError("UNAUTHENTICATED", "Authentication is required")],
+      };
+    }
+    const allowed = await this.authProvider.authorize({
+      organizationId: store.organizationId,
+      domain: `store:${store.id}`,
+      resource: "store.profile",
+      action: "write",
+    });
+    if (!allowed) {
+      return {
+        settings: null,
+        userErrors: [userError("FORBIDDEN", "Customer account settings cannot be changed")],
+      };
+    }
+
+    if (args.input.enabledMethods.includes(CustomerAuthenticationMethod.PhoneOtp)) {
+      return {
+        settings: null,
+        userErrors: [
+          userError(
+            "METHOD_NOT_CONFIGURED",
+            "Phone one-time code is not configured yet",
+            ["input", "enabledMethods"],
+          ),
+        ],
+      };
+    }
+    const enabledMethods = args.input.enabledMethods.map((method) => {
+      if (method === CustomerAuthenticationMethod.Password) return "password" as const;
+      if (method === CustomerAuthenticationMethod.EmailOtp) return "email_otp" as const;
+      throw new Error("Phone OTP must be rejected before IAM mapping");
+    });
+    if (enabledMethods.length === 0) {
+      return {
+        settings: null,
+        userErrors: [
+          userError(
+            "INVALID_INPUT",
+            "At least one authentication method must be enabled",
+            ["input", "enabledMethods"],
+          ),
+        ],
+      };
+    }
+    if (new Set(enabledMethods).size !== enabledMethods.length) {
+      return {
+        settings: null,
+        userErrors: [
+          userError(
+            "INVALID_INPUT",
+            "Authentication methods must be unique",
+            ["input", "enabledMethods"],
+          ),
+        ],
+      };
+    }
+    if (
+      !Number.isSafeInteger(args.input.expectedRevision) ||
+      args.input.expectedRevision < 1
+    ) {
+      return {
+        settings: null,
+        userErrors: [
+          userError(
+            "INVALID_INPUT",
+            "Expected revision must be a positive integer",
+            ["input", "expectedRevision"],
+          ),
+        ],
+      };
+    }
+
+    const configuration =
+      await this.$ctx.kernel.repository.storefrontAuth.findByStoreId(store.id);
+    if (!configuration || configuration.organizationId !== store.organizationId) {
+      return {
+        settings: null,
+        userErrors: [
+          userError("NOT_FOUND", "Customer account settings are not available"),
+        ],
+      };
+    }
+
+    const result = await this.$ctx.kernel.getServices().broker.call<
+      IAM.ServiceLinkedApplicationAuthSettingsResult,
+      IAM.UpdateServiceLinkedApplicationAuthSettingsParams
+    >("iam.updateServiceLinkedApplicationAuthSettings", {
+      applicationId: configuration.applicationId,
+      organizationId: store.organizationId,
+      userId: this.$ctx.user.id,
+      enabledMethods,
+      expectedRevision: args.input.expectedRevision,
+      linkedOwner: {
+        linkedOwnerType: "store",
+        linkedOwnerId: store.id,
+      },
+    });
+
+    return {
+      settings: result.settings
+        ? toGraphqlCustomerAccountsSettings(result.settings)
+        : null,
+      userErrors: result.success
+        ? []
+        : [
+            userError(
+              result.errorCode ?? "INTERNAL_ERROR",
+              result.error ?? "Failed to update customer account settings",
+            ),
+          ],
+    };
+  }
+
   @ZodResolver(CustomerCreateInputSchema())
   async customerCreate(args: CustomersMutationCustomerCreateArgs) {
     const workflowInput: CustomerCreateWorkflowInput = {
@@ -948,6 +1072,30 @@ export class CustomersMutationResolver extends CustomersType<
       userErrors: result.userErrors,
     };
   }
+}
+
+function toGraphqlCustomerAccountsSettings(
+  settings: IAM.ServiceLinkedApplicationAuthSettings,
+) {
+  return {
+    ...settings,
+    methods: settings.methods.map((method) => ({
+      ...method,
+      method: method.method.toUpperCase(),
+    })).concat({
+      method: "PHONE_OTP",
+      enabled: false,
+      configured: false,
+    }),
+    providers: settings.providers.map((provider) => ({
+      ...provider,
+      provider: provider.provider.toUpperCase(),
+    })),
+  };
+}
+
+function userError(code: string, message: string, field?: string[]) {
+  return { code, message, field: field ?? null };
 }
 
 function safeDecodeCustomerId(globalId: string): string | null {

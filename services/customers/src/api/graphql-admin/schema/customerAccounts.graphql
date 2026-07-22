@@ -1,0 +1,40 @@
+enum CustomerAuthenticationMethod {
+  PASSWORD
+  EMAIL_OTP
+  PHONE_OTP
+}
+
+enum CustomerAuthenticationProvider {
+  GOOGLE
+  FACEBOOK
+}
+
+type CustomerAuthenticationMethodSettings {
+  method: CustomerAuthenticationMethod!
+  enabled: Boolean!
+  configured: Boolean!
+}
+
+type CustomerAuthenticationProviderSettings {
+  provider: CustomerAuthenticationProvider!
+  enabled: Boolean!
+  configured: Boolean!
+}
+
+type CustomerAccountsSettings {
+  realmEnabled: Boolean!
+  registrationMode: String!
+  revision: Int!
+  methods: [CustomerAuthenticationMethodSettings!]!
+  providers: [CustomerAuthenticationProviderSettings!]!
+}
+
+input CustomerAccountsSettingsUpdateInput {
+  enabledMethods: [CustomerAuthenticationMethod!]!
+  expectedRevision: Int!
+}
+
+type CustomerAccountsSettingsUpdatePayload {
+  settings: CustomerAccountsSettings
+  userErrors: [GenericUserError!]!
+}

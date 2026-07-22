@@ -101,6 +101,7 @@ export interface ApplicationRealmAdminAuditSafeDiff {
     | "sign_up"
     | "password_reset"
   )[];
+  enabledMethods?: readonly ("password" | "email_otp")[];
   trustedOriginCount?: number;
   scopeCount?: number;
   revokedCount?: number;

@@ -1,5 +1,6 @@
 import { gql } from "@apollo/client";
 import { GENERAL_SETTINGS_STORE_FRAGMENT } from "./fragments";
+import { CUSTOMER_ACCOUNTS_SETTINGS_FRAGMENT } from "./fragments";
 
 export const UPDATE_GENERAL_SETTINGS_MUTATION = gql`
   mutation UpdateGeneralSettings(
@@ -85,4 +86,24 @@ export const SET_DEFAULT_STORE_LANGUAGE_MUTATION = gql`
       }
     }
   }
+`;
+
+export const UPDATE_CUSTOMER_ACCOUNTS_SETTINGS_MUTATION = gql`
+  mutation UpdateCustomerAccountsSettings(
+    $input: CustomerAccountsSettingsUpdateInput!
+  ) {
+    customersMutation {
+      customerAccountsSettingsUpdate(input: $input) {
+        settings {
+          ...CustomerAccountsSettingsFields
+        }
+        userErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  }
+  ${CUSTOMER_ACCOUNTS_SETTINGS_FRAGMENT}
 `;
