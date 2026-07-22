@@ -141,18 +141,6 @@ export class CustomersMutationResolver extends CustomersType<
       if (method === CustomerAuthenticationMethod.EmailOtp) return "email_otp" as const;
       throw new Error("Phone OTP must be rejected before IAM mapping");
     });
-    if (enabledMethods.length === 0) {
-      return {
-        settings: null,
-        userErrors: [
-          userError(
-            "INVALID_INPUT",
-            "At least one authentication method must be enabled",
-            ["input", "enabledMethods"],
-          ),
-        ],
-      };
-    }
     if (new Set(enabledMethods).size !== enabledMethods.length) {
       return {
         settings: null,

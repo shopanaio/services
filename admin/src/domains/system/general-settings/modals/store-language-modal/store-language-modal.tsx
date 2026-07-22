@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Checkbox, Input, Typography } from "antd";
+import { Alert, App, Checkbox, Input, Typography } from "antd";
 import { createStyles } from "antd-style";
-import { LuEllipsis, LuSearch } from "react-icons/lu";
+import { LuSearch } from "react-icons/lu";
 import { shopLocales } from "@/defs/localization";
 import type { LocaleCode } from "@/graphql/types";
 import {
@@ -27,12 +27,6 @@ const useStyles = createStyles(({ token }) => ({
     height: 50,
     padding: "5px 16px",
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  headerAction: {
-    width: 32,
-    height: 32,
-    padding: 0,
-    background: token.colorBgContainerDisabled,
   },
   search: { padding: "0 14px", marginTop: 0 },
   list: {
@@ -127,11 +121,6 @@ export const StoreLanguageModal = () => {
       <Paper className={styles.paper}>
         <div className={styles.paperHeader}>
           <Typography.Text strong>Language details</Typography.Text>
-          <Button
-            aria-label="Language details actions"
-            className={styles.headerAction}
-            icon={<LuEllipsis />}
-          />
         </div>
         <div className={styles.search}>
           <Input

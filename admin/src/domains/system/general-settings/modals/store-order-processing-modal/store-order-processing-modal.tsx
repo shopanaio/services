@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { Alert, App, Button, Checkbox, Input, Radio, Typography } from "antd";
+import { Alert, App, Checkbox, Input, Radio, Typography } from "antd";
 import { createStyles } from "antd-style";
-import { LuEllipsis } from "react-icons/lu";
 import { AutomaticFulfillmentMode } from "@/graphql/types";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
@@ -28,7 +27,6 @@ const useStyles = createStyles(({ token }) => ({
     padding: "5px 16px",
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
-  menuButton: { width: 32, height: 32, padding: 0 },
   paperBody: { display: "flex", flexDirection: "column", gap: 14, padding: "14px 20px 18px" },
   inputGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, "@media (max-width: 680px)": { gridTemplateColumns: "1fr" } },
   field: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
@@ -100,7 +98,6 @@ export const StoreOrderProcessingModal = () => {
         <Paper className={styles.paper}>
           <div className={styles.paperHeader}>
             <Typography.Text strong>Order ID format</Typography.Text>
-            <Button aria-label="Order ID format options" className={styles.menuButton} disabled icon={<LuEllipsis />} />
           </div>
           <div className={styles.paperBody}>
             <div className={styles.inputGrid}>
@@ -119,7 +116,6 @@ export const StoreOrderProcessingModal = () => {
         <Paper className={styles.paper}>
           <div className={styles.paperHeader}>
             <Typography.Text strong>Processing rules</Typography.Text>
-            <Button aria-label="Processing rules options" className={styles.menuButton} disabled icon={<LuEllipsis />} />
           </div>
           <div className={styles.paperBody}>
             <div className={styles.rule}>

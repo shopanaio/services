@@ -39,7 +39,6 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgLayout,
     borderRadius: 10,
   },
-  published: { color: token.colorSuccess, background: token.colorSuccessBg },
   rowActions: { display: "flex", alignItems: "center", gap: 4 },
   rowAction: { width: 32, height: 32, padding: 0, borderColor: "transparent" },
 }));
@@ -59,7 +58,7 @@ export const StoreLanguagesCard = ({
   onDelete,
   onSetDefault,
 }: StoreLanguagesCardProps) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
   const { modal } = App.useApp();
 
   return (
@@ -79,60 +78,63 @@ export const StoreLanguagesCard = ({
         </Dropdown>
       </div>
       <div className={styles.body}>
-        {store.languageSettings.map((language) => {
-          const isDefault = language.code === store.defaultLocale;
-          return (
-            <SettingsItemTile
-              icon={<LuLanguages />}
-              key={language.code}
-              label={language.name}
-              trailing={
-                <span className={styles.rowActions}>
-                  <span className={cx(styles.status, language.isActive && styles.published)}>
-                    {language.isActive ? "Published" : "Draft"}
+        {[...store.languageSettings]
+          .sort(
+            (a, b) =>
+              Number(b.code === store.defaultLocale) - Number(a.code === store.defaultLocale),
+          )
+          .map((language) => {
+            const isDefault = language.code === store.defaultLocale;
+            return (
+              <SettingsItemTile
+                icon={<LuLanguages />}
+                key={language.code}
+                label={language.name}
+                trailing={
+                  <span className={styles.rowActions}>
+                    {isDefault ? <span className={styles.status}>Default</span> : null}
+                    <Dropdown
+                      menu={{
+                        items: [
+                          {
+                            key: "default",
+                            label: "Set as default",
+                            disabled: isDefault,
+                            onClick: () => void onSetDefault(language.code),
+                          },
+                          {
+                            key: "delete",
+                            label: "Delete language",
+                            danger: true,
+                            disabled: isDefault,
+                            onClick: () =>
+                              modal.confirm({
+                                title: `Delete ${language.name}?`,
+                                content: "Translated content will no longer be available in this language.",
+                                okText: "Delete",
+                                okButtonProps: { danger: true },
+                                onOk: () => onDelete(language.code),
+                              }),
+                          },
+                        ],
+                      }}
+                      placement="bottomRight"
+                      trigger={["click"]}
+                    >
+                      <Button
+                        aria-label={`${language.name} actions`}
+                        className={styles.rowAction}
+                        disabled={loading}
+                        icon={<LuEllipsis />}
+                        type="text"
+                      />
+                    </Dropdown>
                   </span>
-                  <Dropdown
-                    menu={{
-                      items: [
-                        {
-                          key: "default",
-                          label: "Set as default",
-                          disabled: isDefault,
-                          onClick: () => void onSetDefault(language.code),
-                        },
-                        {
-                          key: "delete",
-                          label: "Delete language",
-                          danger: true,
-                          disabled: isDefault,
-                          onClick: () =>
-                            modal.confirm({
-                              title: `Delete ${language.name}?`,
-                              content: "Translated content will no longer be available in this language.",
-                              okText: "Delete",
-                              okButtonProps: { danger: true },
-                              onOk: () => onDelete(language.code),
-                            }),
-                        },
-                      ],
-                    }}
-                    placement="bottomRight"
-                    trigger={["click"]}
-                  >
-                    <Button
-                      aria-label={`${language.name} actions`}
-                      className={styles.rowAction}
-                      disabled={loading}
-                      icon={<LuEllipsis />}
-                      type="text"
-                    />
-                  </Dropdown>
-                </span>
-              }
-              value={`${isDefault ? "Default · " : ""}${getLanguageTag(language.code)}`}
-            />
-          );
-        })}
+                }
+                value={getLanguageTag(language.code)}
+              />
+            );
+          })}
       </div>
     </Paper>
   );

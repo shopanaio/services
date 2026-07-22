@@ -230,9 +230,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       ...DEFAULT_APPLICATION_AUTH_CONFIGURATION,
       ...(input.storefrontAuth
         ? {
-          registrationMode: "open",
-          realmEnabled: true,
-          emailVerificationRequired: false,
+            registrationMode: "open",
+            emailVerificationRequired: false,
             brandingJson: {
               displayName: truncateUtf16(input.displayName, 80),
             },
@@ -246,6 +245,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         applicationId: input.applicationId,
         resource: createApplicationResource(input.applicationId),
         secretKeyVersion: this.keyring.activeVersion,
+        realmEnabled: input.storefrontAuth !== undefined,
         ...configuration,
       })
       .returning();

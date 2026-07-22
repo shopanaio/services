@@ -115,6 +115,7 @@ const actorSchema = z
   .object({
     id: z.string().trim().min(1).max(128),
     requestId: z.string().trim().min(1).max(256),
+    type: z.enum(["platform_admin", "external_service"]).optional(),
   })
   .strict();
 const scopeSchema = z
@@ -271,7 +272,6 @@ const replaceAuthMethodsSchema = revisionedScopeSchema
   .extend({
     enabledMethods: z
       .array(z.enum(["password", "email_otp"]))
-      .min(1)
       .max(2),
   })
   .strict()

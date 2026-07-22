@@ -4,6 +4,7 @@ import {
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
+import { GraphQLError } from "graphql";
 import type { CustomerConnectionInput } from "../../repositories/customer/CustomerRepository.js";
 import type { CustomerGroupRelayInput } from "../../repositories/classification/CustomerGroupRepository.js";
 import type { CustomerSegmentRelayInput } from "../../repositories/classification/CustomerSegmentRepository.js";
@@ -75,7 +76,14 @@ export class CustomersQueryResolver extends CustomersType<
       },
     });
     if (!result.success) {
-      throw new Error(result.error ?? "Failed to read customer account settings");
+      throw new GraphQLError(
+        result.error ?? "Failed to read customer account settings",
+        {
+          extensions: {
+            code: result.errorCode ?? "CUSTOMER_ACCOUNTS_SETTINGS_UNAVAILABLE",
+          },
+        },
+      );
     }
     return result.settings ? toGraphqlCustomerAccountsSettings(result.settings) : null;
   }

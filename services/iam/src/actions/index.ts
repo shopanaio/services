@@ -180,7 +180,6 @@ const updateServiceLinkedApplicationAuthSettingsInputSchema =
       userId: z.string().trim().min(1).max(128),
       enabledMethods: z
         .array(z.enum(["password", "email_otp"]))
-        .min(1)
         .max(2),
       expectedRevision: z.number().int().positive(),
     })
@@ -606,7 +605,13 @@ export class IamBrokerActions extends BrokerActions {
         await this.kernel.repository.applicationAuthAdminQuery.getByApplicationKeys(
           [{ id: params.applicationId, organizationId: params.organizationId }],
         );
-      if (!view) throw new Error("Application auth settings were not found");
+      if (!view) {
+        return {
+          success: false,
+          error: "Application auth settings were not found",
+          errorCode: "APPLICATION_NOT_FOUND",
+        };
+      }
       return { success: true, settings: mapServiceLinkedAuthSettings(view) };
     } catch (error) {
       return {

@@ -5,7 +5,7 @@ import { App, Button, Switch, Typography } from "antd";
 import { createStyles } from "antd-style";
 import { FaFacebookF } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { LuEllipsis, LuLockKeyhole, LuMail, LuMessageSquare } from "react-icons/lu";
+import { LuLockKeyhole, LuMail, LuMessageSquare } from "react-icons/lu";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
@@ -26,7 +26,6 @@ const useStyles = createStyles(({ token }) => ({
     padding: "5px 16px",
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
-  menuButton: { width: 32, height: 32, padding: 0 },
   body: { display: "flex", flexDirection: "column", gap: 10, padding: "14px 16px 16px" },
   sectionLabel: { fontSize: 12, fontWeight: 600, lineHeight: "18px" },
   connectionsHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 1 },
@@ -83,7 +82,7 @@ export const CustomerAccountsModal = () => {
     [typedPayload.settings.methods],
   );
   const [enabledMethods, setEnabledMethods] = useState<CustomerAuthenticationMethod[]>(
-    initialMethods.length > 0 ? initialMethods : [CustomerAuthenticationMethod.Password],
+    initialMethods,
   );
   const [saving, setSaving] = useState(false);
   const isDirty = useMemo(
@@ -96,7 +95,6 @@ export const CustomerAccountsModal = () => {
   const toggle = (method: CustomerAuthenticationMethod, checked: boolean) => {
     setEnabledMethods((current) => {
       if (checked) return current.includes(method) ? current : [...current, method];
-      if (current.length === 1) return current;
       return current.filter((item) => item !== method);
     });
   };
@@ -136,7 +134,6 @@ export const CustomerAccountsModal = () => {
       <Paper className={styles.paper}>
         <div className={styles.paperHeader}>
           <Typography.Text strong>Customer accounts</Typography.Text>
-          <Button aria-label="Customer accounts options" className={styles.menuButton} disabled icon={<LuEllipsis />} />
         </div>
         <div className={styles.body}>
           <span className={styles.sectionLabel}>Authentication</span>
@@ -158,7 +155,7 @@ export const CustomerAccountsModal = () => {
                   <Switch
                     aria-label={label}
                     checked={checked}
-                    disabled={!configured || (checked && enabledMethods.length === 1)}
+                    disabled={!configured}
                     onClick={(_, event) => event.stopPropagation()}
                     onChange={(next) => toggle(id, next)}
                     size="small"

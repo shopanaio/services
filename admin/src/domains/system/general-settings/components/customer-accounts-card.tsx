@@ -88,6 +88,9 @@ export const CustomerAccountsCard = ({ settings, onEdit }: CustomerAccountsCardP
       </div>
       <div className={styles.body}>
         <div className={styles.tiles}>
+          {enabledMethods.length === 0 ? (
+            <Typography.Text type="secondary">None</Typography.Text>
+          ) : null}
           {enabledMethods.map(({ method }) => {
             const { Icon, label, description } = methods[method];
             return (

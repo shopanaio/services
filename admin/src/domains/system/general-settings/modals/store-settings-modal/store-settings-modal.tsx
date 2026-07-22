@@ -11,7 +11,6 @@ import { Alert, App, Button, Input, Select, Typography, Upload } from "antd";
 import { createStyles } from "antd-style";
 import {
   LuDiamond,
-  LuEllipsis,
   LuImage,
   LuPanelTop,
   LuPlus,
@@ -60,12 +59,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   paperTitle: {
     lineHeight: "22px",
-  },
-  paperAction: {
-    width: 32,
-    height: 32,
-    padding: 0,
-    background: token.colorBgContainerDisabled,
   },
   paperBody: {
     padding: "14px 16px 16px",
@@ -262,11 +255,6 @@ const FormPaper = ({ children, title }: FormPaperProps) => {
         <Typography.Text strong className={styles.paperTitle}>
           {title}
         </Typography.Text>
-        <Button
-          aria-label={`${title} actions`}
-          className={styles.paperAction}
-          icon={<LuEllipsis />}
-        />
       </div>
       <div className={styles.paperBody}>{children}</div>
     </Paper>
