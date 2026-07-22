@@ -566,12 +566,6 @@ export class StoreUpdateSaga extends BrokerSaga<
     };
   }
 
-  private async compensateCaptureStoreUpdateSnapshot(
-    _input: StoreUpdateSagaInput,
-  ): Promise<void> {
-    // Read-only step; the no-op compensation makes snapshot capture critical.
-  }
-
   @SagaStep()
   private async linkBrandMedia(
     storeId: string,
