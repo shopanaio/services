@@ -20,8 +20,6 @@ import { AuthorizeScript } from "../scripts/organization/AuthorizeScript.js";
 import { BatchAuthorizeScript } from "../scripts/organization/BatchAuthorizeScript.js";
 import { CreateRolesScript } from "../scripts/organization/CreateRolesScript.js";
 import {
-  IAM_LINKED_OWNER_TYPE,
-  IAM_LINKED_SERVICE,
   IAM_SERVICE_LINKED_RESOURCE_KIND,
 } from "../service-linked/resources.js";
 import { normalizeApplicationAuthOrigin } from "../auth/applicationAuthConfiguration.js";
@@ -160,11 +158,11 @@ const createApplicationInputSchema = z
 
 const allocateApplicationIdInputSchema = z.object({}).strict();
 
-const deleteApplicationForStoreCreateCompensationInputSchema = z
+const deleteServiceLinkedApplicationInputSchema = z
   .object({
     applicationId: z.string().uuid("Invalid application ID"),
     organizationId: z.string().uuid("Invalid organization ID"),
-    storeId: z.string().uuid("Invalid store ID"),
+    linkedOwner: linkedOwnerInputSchema,
   })
   .strict();
 
@@ -180,10 +178,10 @@ type CreateApplicationResult = {
   applicationId?: string;
   error?: string;
 };
-type DeleteApplicationForStoreCreateCompensationParams = z.infer<
-  typeof deleteApplicationForStoreCreateCompensationInputSchema
+type DeleteServiceLinkedApplicationParams = z.infer<
+  typeof deleteServiceLinkedApplicationInputSchema
 >;
-type DeleteApplicationForStoreCreateCompensationResult = {
+type DeleteServiceLinkedApplicationResult = {
   success: boolean;
   error?: string;
 };
@@ -367,6 +365,8 @@ export class IamBrokerActions extends BrokerActions {
 
   /**
    * Action: createApplication - create an IAM application in an organization
+   * Service-linked business authorization belongs to the trusted caller; IAM
+   * derives ownership exclusively from the broker call context.
    */
   @Action("createApplication")
   @ZodSchema(createApplicationInputSchema)
@@ -380,10 +380,6 @@ export class IamBrokerActions extends BrokerActions {
       const result = await runWithContext(ctx, () =>
         this.kernel.repository.txManager.run(async () => {
           if (params.managementMode === "service") {
-            await this.assertServiceLinkedApplicationCreateAuthorized(
-              params,
-              actionContext,
-            );
             if (
               await this.isExistingServiceLinkedApplication(
                 params,
@@ -542,57 +538,25 @@ export class IamBrokerActions extends BrokerActions {
     return scope !== null;
   }
 
-  private async assertServiceLinkedApplicationCreateAuthorized(
-    params: CreateApplicationParams,
-    actionContext: BrokerCallContext,
-  ): Promise<void> {
-    if (!params.linkedOwner) {
-      throw new Error("Linked owner is required");
-    }
-
-    const permission = serviceLinkedApplicationCreatePermission(
-      actionContext.caller.service,
-      params.linkedOwner
-    );
-    if (!permission) {
-      throw new Error("Linked owner is not allowed to create IAM application");
-    }
-
-    const allowed = await new AuthProvider().authorize({
-      subject: params.userId,
-      organizationId: params.organizationId,
-      domain: ORG_DOMAIN,
-      resource: permission.resource,
-      action: permission.action,
-    });
-    if (!allowed) {
-      throw new Error("Linked owner application create is not permitted");
-    }
-  }
-
   /**
-   * Action: deleteApplicationForStoreCreateCompensation - rollback helper for
-   * Customers storefront auth provisioning.
+   * Delete an application only when the trusted caller owns its active
+   * service-linked binding.
    */
-  @Action("deleteApplicationForStoreCreateCompensation")
-  @ZodSchema(deleteApplicationForStoreCreateCompensationInputSchema)
-  async deleteApplicationForStoreCreateCompensation(
-    params: DeleteApplicationForStoreCreateCompensationParams,
+  @Action("deleteServiceLinkedApplication")
+  @ZodSchema(deleteServiceLinkedApplicationInputSchema)
+  async deleteServiceLinkedApplication(
+    params: DeleteServiceLinkedApplicationParams,
     actionContext: BrokerCallContext,
-  ): Promise<DeleteApplicationForStoreCreateCompensationResult> {
+  ): Promise<DeleteServiceLinkedApplicationResult> {
     try {
-      if (actionContext.caller.service !== IAM_LINKED_SERVICE.customers) {
-        throw new Error("Only customers service can compensate store application");
-      }
-
       await this.kernel.repository.txManager.run(async () => {
         const linkedOwner = {
           organizationId: params.organizationId,
           resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
           resourceId: params.applicationId,
           linkedService: actionContext.caller.service,
-          linkedOwnerType: IAM_LINKED_OWNER_TYPE.store,
-          linkedOwnerId: params.storeId,
+          linkedOwnerType: params.linkedOwner.linkedOwnerType,
+          linkedOwnerId: params.linkedOwner.linkedOwnerId,
         };
         const binding =
           await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner(
@@ -608,7 +572,7 @@ export class IamBrokerActions extends BrokerActions {
               },
             );
           if (!applicationExists) return;
-          throw new Error("Application is not linked to the requested store");
+          throw new Error("Application is not linked to the requested owner");
         }
 
         const bindingDeleted =
@@ -620,7 +584,7 @@ export class IamBrokerActions extends BrokerActions {
         }
 
         const applicationDeleted =
-          await this.kernel.repository.applicationAuthAdminMutation.deleteApplicationForStoreCreateCompensation(
+          await this.kernel.repository.applicationAuthAdminMutation.deleteServiceLinkedApplication(
             {
               applicationId: params.applicationId,
               organizationId: params.organizationId,
@@ -655,19 +619,6 @@ export class IamBrokerActions extends BrokerActions {
 
 function uuidOrNull(value: string): string | null {
   return z.string().uuid().safeParse(value).success ? value : null;
-}
-
-function serviceLinkedApplicationCreatePermission(
-  callerService: string,
-  linkedOwner: NonNullable<CreateApplicationParams["linkedOwner"]>,
-): { resource: string; action: "write" } | null {
-  if (
-    callerService === IAM_LINKED_SERVICE.customers &&
-    linkedOwner.linkedOwnerType === IAM_LINKED_OWNER_TYPE.store
-  ) {
-    return { resource: "org.stores", action: "write" };
-  }
-  return null;
 }
 
 function serviceLinkedApplicationCreateFailureReason(

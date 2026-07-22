@@ -92,13 +92,13 @@ export interface CreateApplicationResult {
   error?: string;
 }
 
-export interface DeleteApplicationForStoreCreateCompensationParams {
+export interface DeleteServiceLinkedApplicationParams {
   applicationId: string;
   organizationId: string;
-  storeId: string;
+  linkedOwner: ServiceLinkedOwnerInput;
 }
 
-export interface DeleteApplicationForStoreCreateCompensationResult {
+export interface DeleteServiceLinkedApplicationResult {
   success: boolean;
   error?: string;
 }

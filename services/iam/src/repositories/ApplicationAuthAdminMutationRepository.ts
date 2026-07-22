@@ -330,7 +330,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   }
 
   @Transactional()
-  async deleteApplicationForStoreCreateCompensation(input: {
+  async deleteServiceLinkedApplication(input: {
     organizationId: string;
     applicationId: string;
   }): Promise<boolean> {

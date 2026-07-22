@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
 import type { Database } from "../Repository.js";
@@ -43,5 +43,22 @@ export class StorefrontAuthConfigurationRepository extends BaseRepository {
     }
 
     return configuration;
+  }
+
+  async delete(input: {
+    storeId: string;
+    organizationId: string;
+  }): Promise<boolean> {
+    const rows = await this.connection
+      .delete(storefrontAuthConfiguration)
+      .where(
+        and(
+          eq(storefrontAuthConfiguration.storeId, input.storeId),
+          eq(storefrontAuthConfiguration.organizationId, input.organizationId),
+        ),
+      )
+      .returning({ storeId: storefrontAuthConfiguration.storeId });
+
+    return rows.length > 0;
   }
 }

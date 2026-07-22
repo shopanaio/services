@@ -3,6 +3,7 @@ import type {
   EventHandlerDelivery,
   EventHandlerResponse,
   StoreCreatedEvent,
+  StoreDeletedEvent,
 } from "@shopana/events";
 import {
   EventHandler,
@@ -15,6 +16,9 @@ import type {
   StorefrontAuthProvisionInput,
   StorefrontAuthProvisionOutput,
 } from "../workflows/StorefrontAuthProvisionWorkflow.js";
+import type {
+  StorefrontAuthDeprovisionInput,
+} from "../workflows/StorefrontAuthDeprovisionWorkflow.js";
 
 @Injectable()
 export class StoreEventHandlers extends EventHandlers {
@@ -75,8 +79,56 @@ export class StoreEventHandlers extends EventHandlers {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        { eventId: event.eventId, storeId: event.payload.storeId, error: message },
+        {
+          eventId: event.eventId,
+          storeId: event.payload.storeId,
+          error: message,
+        },
         "Failed to provision storefront IAM application",
+      );
+      return {
+        success: false,
+        error: { message, retryable: true },
+      };
+    }
+  }
+
+  @EventHandler("storeDeleted", { retry: { maxAttempts: 5 } })
+  async handleStoreDeleted(params: {
+    event: StoreDeletedEvent;
+    delivery: EventHandlerDelivery;
+  }): Promise<EventHandlerResponse> {
+    const { event, delivery } = params;
+    const input: StorefrontAuthDeprovisionInput = {
+      storeId: event.payload.storeId,
+      organizationId: event.payload.organizationId,
+    };
+
+    try {
+      await this.broker.runWorkflow<void, StorefrontAuthDeprovisionInput>(
+        "customers.storefrontAuthDeprovision",
+        input,
+        {
+          source: "content",
+          resourceId: event.payload.storeId,
+          operation: "storefrontAuthDeprovision",
+          contentHash: hashContent({
+            eventId: event.eventId,
+            attempt: delivery.attempt,
+          }),
+        },
+      );
+
+      this.logger.log(
+        { eventId: event.eventId, storeId: event.payload.storeId },
+        "Deprovisioned storefront IAM application",
+      );
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        { eventId: event.eventId, storeId: event.payload.storeId, error: message },
+        "Failed to deprovision storefront IAM application",
       );
       return {
         success: false,
