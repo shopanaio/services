@@ -5,7 +5,6 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "db:generate": "npx --yes tsx ../../node_modules/drizzle-kit/bin.cjs generate",
     "zod:generate": "ts-to-zod"
   },
   "exports": {
@@ -44,6 +43,7 @@
     "keyv": "^5.5.5",
     "kysely": "^0.28.17 || ^0.29.0",
     "nanostores": "^1.1.1",
+    "node-pg-migrate": "^8.0.4",
     "pino": "^9.3.2",
     "pino-pretty": "^11.2.2",
     "postgres": "^3.4.7",
@@ -57,7 +57,6 @@
     "@shopana/build-tools": "0.0.1",
     "@types/node": "^20.14.14",
     "@types/uuid": "^11.0.0",
-    "drizzle-kit": "^0.31.8",
     "graphql-codegen-typescript-validation-schema": "^0.18.1",
     "ts-to-zod": "^5.1.0",
     "tsx": "^4.16.2",

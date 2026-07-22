@@ -14,7 +14,9 @@ related:
 
 ## Purpose
 
-`drizzle.config.ts` configures Drizzle Kit for database migration generation. Each service with a database has its own config file.
+`drizzle.config.ts` configures Drizzle Kit for services that use generated
+Drizzle migrations. Services with handwritten migrations do not keep this
+file.
 
 ## Structure
 
@@ -189,22 +191,26 @@ migrations/
 └── 0002_add_features.sql
 ```
 
-### Catalog Migration Exception
+### Handwritten Migration Exceptions
 
-Catalog uses Drizzle models as the runtime schema/query contract, but catalog
-migrations are handwritten PostgreSQL SQL executed by `node-pg-migrate`.
+Catalog, Listing, and IAM use Drizzle models as the runtime schema/query
+contract, but their migrations are handwritten PostgreSQL SQL executed by
+`node-pg-migrate`.
 
-Catalog migration files live under:
+Their migration files live under:
 
 ```text
 services/catalog/migrations/domains/**/*.sql
+services/listing/migrations/domains/**/*.sql
+services/iam/migrations/domains/**/*.sql
 ```
 
-The catalog runner uses glob mode and keeps tracking in
-`catalog.pgmigrations`. Do not use the Drizzle migrator or Drizzle migration
-generation for catalog. When catalog models change, first update the model-derived
-inventory under `services/catalog/docs/`, then add a handwritten SQL migration in
-the owning domain folder with a globally unique basename.
+The runners use glob mode and keep tracking in the service schema's
+`pgmigrations` table (`catalog.pgmigrations`, `listing.pgmigrations`, or
+`iam.pgmigrations`). Do not use the Drizzle migrator or Drizzle migration
+generation for these services. Add a handwritten SQL migration in the owning
+domain folder with a globally unique basename. Catalog additionally requires
+updating its model-derived inventory under `services/catalog/docs/`.
 
 ### Migration Key Constraint Rule
 
