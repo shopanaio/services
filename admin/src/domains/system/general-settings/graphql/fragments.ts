@@ -45,5 +45,11 @@ export const GENERAL_SETTINGS_STORE_FRAGMENT = gql`
         url
       }
     }
+    defaults {
+      unitSystem
+      defaultWeightUnit
+      defaultDimensionUnit
+      timezone
+    }
   }
 `;

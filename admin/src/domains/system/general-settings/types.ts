@@ -24,3 +24,9 @@ export interface StoreSettingsFormValues {
   coverImageId: string | null;
   coverImageUrl: string | null;
 }
+
+export interface StoreDefaultsFormValues {
+  unitSystem: import("@/graphql/types").UnitSystem;
+  defaultWeightUnit: import("@/graphql/types").WeightUnit;
+  timezone: string;
+}

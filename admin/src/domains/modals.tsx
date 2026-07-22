@@ -85,6 +85,16 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard store settings changes?',
     },
+    {
+      type: 'general-settings-edit-store-defaults',
+      component: dynamic(() =>
+        import('@/domains/system/general-settings/modals/store-defaults-modal').then(
+          (m) => m.StoreDefaultsModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard store defaults changes?',
+    },
     // ========================================
     // Profile modals
     // ========================================

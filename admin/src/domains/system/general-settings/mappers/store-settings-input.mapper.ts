@@ -1,5 +1,6 @@
 import type { ApiStore, ApiStoreUpdateInput } from "@/graphql/types";
 import type {
+  StoreDefaultsFormValues,
   StoreSettingsFormValues,
   StoreSettingsSection,
 } from "../types";
@@ -62,3 +63,15 @@ export const mapStoreSettingsInput = (
     },
   };
 };
+
+export const mapStoreDefaultsInput = (
+  values: StoreDefaultsFormValues,
+  store: ApiStore,
+): ApiStoreUpdateInput => ({
+  defaults: {
+    unitSystem: values.unitSystem,
+    defaultWeightUnit: values.defaultWeightUnit,
+    defaultDimensionUnit: store.defaults.defaultDimensionUnit,
+    timezone: values.timezone,
+  },
+});
