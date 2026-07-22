@@ -825,9 +825,13 @@ export class ApplicationAuthAdminManagementService {
       skipAuthorization: options.authorization === "trusted_boundary",
       execute: async (scope) => {
         this.assertRevision(scope, value.expectedRevision);
-        if (enabledMethods.includes("email_otp") && !scope.deliveryConfigured) {
+        const requiresDelivery =
+          enabledMethods.includes("email_otp") ||
+          (enabledMethods.includes("password") &&
+            scope.configuration.emailVerificationRequired);
+        if (requiresDelivery && !scope.deliveryConfigured) {
           throw invalidRealmState(
-            "Email one-time code requires email delivery configuration"
+            "Enabled authentication methods require email delivery configuration"
           );
         }
         const updated = await this.repository.replaceAuthMethods({

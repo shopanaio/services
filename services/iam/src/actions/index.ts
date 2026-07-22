@@ -814,8 +814,7 @@ function mapServiceLinkedAuthSettings(view: {
         method: "password",
         enabled:
           configuration.passwordSignInEnabled ||
-          configuration.passwordSignUpEnabled ||
-          configuration.passwordResetEnabled,
+          configuration.passwordSignUpEnabled,
         configured: true,
       },
       {

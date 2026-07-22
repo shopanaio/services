@@ -537,7 +537,6 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .set({
         passwordSignInEnabled: enabled.has("password"),
         passwordSignUpEnabled: enabled.has("password"),
-        passwordResetEnabled: false,
         emailOtpSignInEnabled: enabled.has("email_otp"),
         emailOtpSignUpEnabled: enabled.has("email_otp"),
         revision: sql`${applicationAuthConfiguration.revision} + 1`,

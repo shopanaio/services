@@ -143,6 +143,10 @@ export const CustomerAccountsModal = () => {
           {methodRows.map(({ id, label, description, Icon }) => {
             const checked = enabledMethods.includes(id);
             const configured = typedPayload.settings.methods.find(({ method }) => method === id)?.configured ?? false;
+            const unavailableDescription =
+              id === CustomerAuthenticationMethod.PhoneOtp
+                ? `${description} Phone one-time code is not available yet.`
+                : `${description} Email delivery must be configured first.`;
             return (
               <SettingsItemTile
                 ariaLabel={`Toggle ${label}`}
@@ -160,7 +164,7 @@ export const CustomerAccountsModal = () => {
                     size="small"
                   />
                 }
-                value={configured ? description : `${description} Email delivery must be configured first.`}
+                value={configured ? description : unavailableDescription}
               />
             );
           })}
