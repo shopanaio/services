@@ -73,6 +73,10 @@ services:
     db:
       <<: *db_default
       schema: null
+    storefront_auth:
+      origin_template: http://localhost:3000
+      callback_path: /auth/callback
+      post_logout_path: /
 
   reviews:
     ports:
@@ -109,10 +113,6 @@ services:
       metrics: 13036
     db:
       <<: *db_default
-    storefront_auth:
-      origin_template: http://localhost:3000
-      callback_path: /auth/callback
-      post_logout_path: /
 
   iam:
     ports:

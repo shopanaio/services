@@ -384,6 +384,23 @@ export class IamBrokerActions extends BrokerActions {
               params,
               actionContext,
             );
+            if (
+              await this.isExistingServiceLinkedApplication(
+                params,
+                actionContext,
+              )
+            ) {
+              await this.appendServiceLinkedApplicationCreateAudit(
+                params,
+                ctx.requestId,
+                params.applicationId,
+                actionContext.caller.service,
+                "success",
+                "success",
+                false,
+              );
+              return { applicationId: params.applicationId };
+            }
           }
 
           const result =
@@ -473,6 +490,7 @@ export class IamBrokerActions extends BrokerActions {
     callerService: string,
     outcome: "success" | "failure",
     reasonCategory: ApplicationAuthAdminAuditReasonCategory,
+    serviceLinkedBindingCreated = outcome === "success",
   ): Promise<void> {
     if (!params.linkedOwner) return;
     await this.kernel.repository.applicationAuthAdminAudit.append({
@@ -491,12 +509,37 @@ export class IamBrokerActions extends BrokerActions {
       targetId: applicationId,
       requestId: requestId.trim().slice(0, 256) || "unknown",
       safeDiff: Object.freeze({
-        serviceLinkedBindingCreated: outcome === "success",
+        serviceLinkedBindingCreated,
         resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
         linkedService: callerService,
         linkedOwnerType: params.linkedOwner.linkedOwnerType,
       }),
     });
+  }
+
+  private async isExistingServiceLinkedApplication(
+    params: CreateApplicationParams,
+    actionContext: BrokerCallContext,
+  ): Promise<boolean> {
+    if (!params.linkedOwner) return false;
+
+    const binding =
+      await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner({
+        organizationId: params.organizationId,
+        resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+        resourceId: params.applicationId,
+        linkedService: actionContext.caller.service,
+        linkedOwnerType: params.linkedOwner.linkedOwnerType,
+        linkedOwnerId: params.linkedOwner.linkedOwnerId,
+      });
+    if (!binding) return false;
+
+    const scope =
+      await this.kernel.repository.applicationAuthAdminMutation.findScope(
+        params.organizationId,
+        params.applicationId,
+      );
+    return scope !== null;
   }
 
   private async assertServiceLinkedApplicationCreateAuthorized(
@@ -528,7 +571,8 @@ export class IamBrokerActions extends BrokerActions {
   }
 
   /**
-   * Action: deleteApplicationForStoreCreateCompensation - rollback helper for project.storeCreate.
+   * Action: deleteApplicationForStoreCreateCompensation - rollback helper for
+   * Customers storefront auth provisioning.
    */
   @Action("deleteApplicationForStoreCreateCompensation")
   @ZodSchema(deleteApplicationForStoreCreateCompensationInputSchema)
@@ -537,8 +581,8 @@ export class IamBrokerActions extends BrokerActions {
     actionContext: BrokerCallContext,
   ): Promise<DeleteApplicationForStoreCreateCompensationResult> {
     try {
-      if (actionContext.caller.service !== IAM_LINKED_SERVICE.project) {
-        throw new Error("Only project service can compensate store application");
+      if (actionContext.caller.service !== IAM_LINKED_SERVICE.customers) {
+        throw new Error("Only customers service can compensate store application");
       }
 
       await this.kernel.repository.txManager.run(async () => {
@@ -618,7 +662,7 @@ function serviceLinkedApplicationCreatePermission(
   linkedOwner: NonNullable<CreateApplicationParams["linkedOwner"]>,
 ): { resource: string; action: "write" } | null {
   if (
-    callerService === IAM_LINKED_SERVICE.project &&
+    callerService === IAM_LINKED_SERVICE.customers &&
     linkedOwner.linkedOwnerType === IAM_LINKED_OWNER_TYPE.store
   ) {
     return { resource: "org.stores", action: "write" };

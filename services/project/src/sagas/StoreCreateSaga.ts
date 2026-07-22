@@ -12,7 +12,6 @@ import type { IAM, Media } from "@shopana/broker-types";
 import { v7 as uuidv7 } from "uuid";
 import { Roles, RolesMeta } from "@shopana/rbac";
 import { Kernel } from "../kernel/Kernel.js";
-import { resolveStorefrontAuthUrls } from "../configuration/storefrontAuth.js";
 import type {
   CurrencyCode,
   LocaleCode,
@@ -53,7 +52,6 @@ export interface StoreCreateInput {
 export interface StoreCreateOutput {
   storeId: string;
   organizationId: string;
-  applicationId: string;
 }
 
 /**
@@ -61,13 +59,11 @@ export interface StoreCreateOutput {
  *
  * Steps:
  * 1. Generate store ID (UUIDv7)
- * 2. Allocate IAM application ID
- * 3. Create IAM application
- * 4. Create store record in database
- * 5. Create store roles
- * 6. Assign admin role to creator
- * 7. Create media asset group
- * 8. Emit storeCreated event
+ * 2. Create store record in database
+ * 3. Create store roles
+ * 4. Assign admin role to creator
+ * 5. Create media asset group
+ * 6. Emit storeCreated event
  */
 @Injectable()
 export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOutput> {
@@ -82,14 +78,12 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   @Saga("storeCreate")
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
     const storeId = await this.generateId();
-    const applicationId = await this.allocateIamApplicationId();
-    await this.createIamApplication(applicationId, storeId, input);
-    await this.createStore(storeId, applicationId, input);
+    await this.createStore(storeId, input);
     await this.createRoles(storeId, input);
     await this.assignAdminRole(storeId, input);
     await this.createMediaAssetGroup(storeId);
     await this.emitStoreCreated(storeId, input);
-    return { storeId, organizationId: input.organizationId, applicationId };
+    return { storeId, organizationId: input.organizationId };
   }
 
   @SagaStep()
@@ -98,71 +92,13 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   }
 
   @SagaStep()
-  private async allocateIamApplicationId(): Promise<string> {
-    const result = await this.broker.call<
-      IAM.AllocateApplicationIdResult,
-      IAM.AllocateApplicationIdParams
-    >("iam.allocateApplicationId", {});
-
-    if (result.success && result.applicationId) {
-      return result.applicationId;
-    }
-
-    throw new FatalError(
-      result.error ?? "Failed to allocate IAM application id",
-      undefined,
-      "APPLICATION_ID_ALLOCATE_FAILED",
-    );
-  }
-
-  @SagaStep()
-  private async createIamApplication(
-    applicationId: string,
-    storeId: string,
-    input: StoreCreateInput,
-  ): Promise<void> {
-    const storefrontAuth = resolveStorefrontAuthUrls(input.name);
-    const defaultLocale = toApplicationAuthLocale(input.locales[0]);
-    const result = await this.broker.call<
-      IAM.CreateApplicationResult,
-      IAM.CreateApplicationParams
-    >("iam.createApplication", {
-      applicationId,
-      userId: input.userId,
-      organizationId: input.organizationId,
-      name: input.name,
-      displayName: input.displayName,
-      description: `Store application for ${input.displayName}`,
-      storefrontAuth: {
-        ...storefrontAuth,
-        defaultLocale,
-      },
-      managementMode: "service",
-      linkedOwner: {
-        linkedOwnerType: "store",
-        linkedOwnerId: storeId,
-      },
-    });
-
-    if (result.success) return;
-
-    throw new FatalError(
-      result.error ?? "Failed to create IAM application",
-      undefined,
-      "APPLICATION_CREATE_FAILED",
-    );
-  }
-
-  @SagaStep()
   private async createStore(
     id: string,
-    applicationId: string,
     input: StoreCreateInput,
   ): Promise<void> {
     await this.kernel.repository.store.create({
       id,
       organizationId: input.organizationId,
-      applicationId,
       name: input.name,
       displayName: input.displayName,
       locales: input.locales,
@@ -246,6 +182,8 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
           storeId: id,
           organizationId: input.organizationId,
           name: input.name,
+          displayName: input.displayName,
+          defaultLocale: input.locales[0],
         },
         context: {
           organizationId: input.organizationId,
@@ -269,38 +207,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     this.logger.log({ storeId: id }, "Compensated: deleted store");
   }
 
-  async compensateCreateIamApplication(
-    applicationId: string,
-    storeId: string,
-    input: StoreCreateInput,
-  ): Promise<void> {
-    try {
-      const result = await this.broker.call<
-        IAM.DeleteApplicationForStoreCreateCompensationResult,
-        IAM.DeleteApplicationForStoreCreateCompensationParams
-      >("iam.deleteApplicationForStoreCreateCompensation", {
-        applicationId,
-        organizationId: input.organizationId,
-        storeId,
-      });
-      if (!result.success) {
-        throw new Error(
-          result.error ?? "Failed to compensate IAM application",
-        );
-      }
-      this.logger.log(
-        { applicationId, storeId },
-        "Compensated: deleted IAM application",
-      );
-    } catch (error) {
-      this.logger.warn(
-        { applicationId, storeId, error },
-        "Failed to compensate IAM application",
-      );
-      throw error;
-    }
-  }
-
   async compensateCreateMediaAssetGroup(id: string): Promise<void> {
     try {
       await this.broker.call<
@@ -315,8 +221,4 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       this.logger.warn({ storeId: id, error }, "Failed to compensate media asset group");
     }
   }
-}
-
-function toApplicationAuthLocale(locale: LocaleCode | undefined): "en" | "uk" | "ru" {
-  return locale === "uk" || locale === "ru" ? locale : "en";
 }

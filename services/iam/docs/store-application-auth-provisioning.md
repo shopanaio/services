@@ -1,8 +1,11 @@
 # Store application auth provisioning
 
-`project.storeCreate` owns the lifecycle of the store's service-linked IAM
-application. The trusted `iam.createApplication` action creates the following
-state in one IAM database transaction:
+The Customers service owns the lifecycle of each store's service-linked IAM
+application. Its `storeCreated` event handler starts the durable
+`customers.storefrontAuthProvision` workflow, persists the allocated application
+ID in `customers.storefront_auth_configuration`, and calls the trusted
+`iam.createApplication` action. IAM creates the following state in one database
+transaction:
 
 - the application, immutable resource audience and service management row;
 - an auth configuration with open registration, store branding and locale;
@@ -21,7 +24,8 @@ credentials, provider scopes or upstream consent configuration. Google and
 Facebook remain tenant-admin configuration performed after store creation.
 Their exact callback URLs are derived by IAM from its canonical public base URL.
 
-The Project service resolves storefront URLs from `services.project.storefront_auth`:
+The Customers service resolves storefront URLs from
+`services.customers.storefront_auth`:
 
 ```yaml
 storefront_auth:
@@ -31,5 +35,6 @@ storefront_auth:
 ```
 
 Production templates must resolve to HTTPS. Development may use loopback HTTP.
-Failure to create any preset row rolls back the IAM application, so a store is
-never returned with a partially provisioned authentication realm.
+Failure to create any preset row rolls back the IAM transaction. The event job
+is retried and the persisted application ID is reused by the durable provisioning
+workflow.

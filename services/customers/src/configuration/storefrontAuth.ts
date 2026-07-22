@@ -16,7 +16,7 @@ export interface StorefrontAuthUrls {
 }
 
 export function resolveStorefrontAuthUrls(storeName: string): StorefrontAuthUrls {
-  const { service, global } = getServiceConfig("project");
+  const { service, global } = getServiceConfig("customers");
   const configuration = configurationSchema.parse(service.storefront_auth);
   const renderedOrigin = configuration.origin_template.replaceAll(
     "{store}",
@@ -30,7 +30,9 @@ export function resolveStorefrontAuthUrls(storeName: string): StorefrontAuthUrls
     originUrl.hash ||
     (originUrl.pathname !== "" && originUrl.pathname !== "/")
   ) {
-    throw new Error("Project storefront_auth.origin_template must resolve to an origin");
+    throw new Error(
+      "Customers storefront_auth.origin_template must resolve to an origin",
+    );
   }
   if (global.environment === "production" && originUrl.protocol !== "https:") {
     throw new Error("Production storefront auth origin must use HTTPS");

@@ -21,7 +21,7 @@ const protectedApplicationWithOwner = Object.freeze({
 
 const linkedOwner = Object.freeze({
   ...protectedApplication,
-  linkedService: "project",
+  linkedService: "customers",
   linkedOwnerType: "store",
   linkedOwnerId: protectedApplicationWithOwner.ownerId,
 });
@@ -158,7 +158,7 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
       authorizeProtectedResource(
         services,
         protectedApplicationWithOwner,
-        { caller: { kind: "action", service: "project" } }
+        { caller: { kind: "action", service: "customers" } }
       )
     ).resolves.toBe(true);
   });
@@ -169,14 +169,14 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
         ...protectedApplicationWithOwner,
         ownerType: "organization",
       },
-      callerService: "project",
+      callerService: "customers",
     },
     {
       resource: {
         ...protectedApplicationWithOwner,
         ownerId: "018f8f6d-7980-7000-9000-000000000021",
       },
-      callerService: "project",
+      callerService: "customers",
     },
     {
       resource: protectedApplicationWithOwner,

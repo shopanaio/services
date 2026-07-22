@@ -11,6 +11,7 @@ import { CustomerLifecycleRepository } from "./lifecycle/CustomerLifecycleReposi
 import { CustomerStatisticsRepository } from "./statistics/CustomerStatisticsRepository.js";
 import { CustomerTaxExemptionRepository } from "./tax/CustomerTaxExemptionRepository.js";
 import { CustomerTaxIdentifierRepository } from "./tax/CustomerTaxIdentifierRepository.js";
+import { StorefrontAuthConfigurationRepository } from "./storefront-auth/StorefrontAuthConfigurationRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -30,6 +31,7 @@ export class Repository {
   public readonly statistics: CustomerStatisticsRepository;
   public readonly lifecycle: CustomerLifecycleRepository;
   public readonly externalReference: CustomerExternalReferenceRepository;
+  public readonly storefrontAuth: StorefrontAuthConfigurationRepository;
   public readonly txManager: TransactionManager<Database>;
 
   public get db(): Database {
@@ -48,6 +50,7 @@ export class Repository {
     statistics: CustomerStatisticsRepository,
     lifecycle: CustomerLifecycleRepository,
     externalReference: CustomerExternalReferenceRepository,
+    storefrontAuth: StorefrontAuthConfigurationRepository,
     txManager: TransactionManager<Database>
   ) {
     this.customer = customer;
@@ -61,6 +64,7 @@ export class Repository {
     this.statistics = statistics;
     this.lifecycle = lifecycle;
     this.externalReference = externalReference;
+    this.storefrontAuth = storefrontAuth;
     this.txManager = txManager;
   }
 
@@ -78,6 +82,7 @@ export class Repository {
       new CustomerStatisticsRepository(config.db, txManager),
       new CustomerLifecycleRepository(config.db, txManager),
       new CustomerExternalReferenceRepository(config.db, txManager),
+      new StorefrontAuthConfigurationRepository(config.db, txManager),
       txManager
     );
   }

@@ -5,7 +5,7 @@ export const IAM_SERVICE_LINKED_RESOURCE_KIND = Object.freeze({
 });
 
 export const IAM_LINKED_SERVICE = Object.freeze({
-  project: "project",
+  customers: "customers",
 });
 
 export const IAM_LINKED_OWNER_TYPE = Object.freeze({

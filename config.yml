@@ -81,6 +81,11 @@ services:
     db:
       <<: *db_default
       schema: null
+    storefront_auth:
+      # Production deployments should use https://{store}.shopana.io.
+      origin_template: http://localhost:3000
+      callback_path: /auth/callback
+      post_logout_path: /
 
   reviews:
     ports:
@@ -117,11 +122,6 @@ services:
       metrics: 3036
     db:
       <<: *db_default
-    storefront_auth:
-      # Production deployments should use https://{store}.shopana.io.
-      origin_template: http://localhost:3000
-      callback_path: /auth/callback
-      post_logout_path: /
 
   iam:
     ports:

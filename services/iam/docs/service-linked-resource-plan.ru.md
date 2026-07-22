@@ -859,8 +859,8 @@ target service service_linked_resource row:
 
 Examples only:
 
-- `project.storeCreate` creates IAM application with
-  `resourceKind = "application"` and `linkedService = "project"`.
+- `customers.storefrontAuthProvision` creates the store IAM application with
+  `resourceKind = "application"` and `linkedService = "customers"`.
 - A media service can create a protected asset group with
   `resourceKind = "asset_group"` and `linkedService = "project"`.
 - Any future service can add its own registry values without changing the

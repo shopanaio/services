@@ -376,6 +376,8 @@ export interface StoreCreatedEvent
       storeId: string;
       organizationId: string;
       name: string;
+      displayName: string;
+      defaultLocale: string;
     }
   > {}
 

@@ -74,6 +74,9 @@ export namespace ProjectEvents {
   export interface StoreCreated {
     storeId: string;
     organizationId: string;
+    name: string;
+    displayName: string;
+    defaultLocale: string;
   }
 
   /** Emitted when a store is deleted */

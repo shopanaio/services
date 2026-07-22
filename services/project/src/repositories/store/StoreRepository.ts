@@ -53,7 +53,6 @@ export interface StoreConnectionResult {
 export interface CreateStoreData {
   id: string;
   organizationId: string;
-  applicationId: string;
   /** URL-friendly identifier (e.g., "my-store") */
   name: string;
   /** Human-readable display name (e.g., "My Store") */
@@ -167,7 +166,6 @@ export class StoreRepository extends BaseRepository {
       .values({
         id: data.id,
         organizationId: data.organizationId,
-        applicationId: data.applicationId,
         externalSystem: null,
         externalId: null,
         name: data.name,

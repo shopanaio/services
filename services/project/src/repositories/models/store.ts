@@ -45,7 +45,6 @@ export const store = storeSchema.table(
     id: uuid("id").primaryKey(),
     // Organization that owns this store (from IAM)
     organizationId: uuid("organization_id").notNull(),
-    applicationId: uuid("application_id").notNull(),
     externalSystem: varchar("external_system", { length: 64 }),
     externalId: varchar("external_id", { length: 255 }),
     /** URL/subdomain-safe store slug (kept as `name` in the public model). */
@@ -100,7 +99,6 @@ export const store = storeSchema.table(
         sql`${table.externalSystem} IS NOT NULL AND ${table.externalId} IS NOT NULL AND ${table.deletedAt} IS NULL`,
       ),
     index("idx_store_organization").on(table.organizationId),
-    index("idx_store_application").on(table.applicationId),
     index("idx_store_revision").on(table.id, table.revision),
   ]
 );
