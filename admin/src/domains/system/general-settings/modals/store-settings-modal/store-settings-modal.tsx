@@ -436,7 +436,7 @@ export const StoreSettingsModal = () => {
           <Input
             {...field}
             disabled={options.disabled}
-            placeholder={options.placeholder}
+            placeholder={options.placeholder ?? `Enter ${label.toLowerCase()}`}
             status={errors[name] ? "error" : undefined}
             value={typeof field.value === "string" ? field.value : ""}
           />
@@ -485,6 +485,7 @@ export const StoreSettingsModal = () => {
                       <Input
                         {...field}
                         className={styles.grow}
+                        placeholder="+380 00 000 0000"
                         status={
                           errors.phoneNumbers?.[index]?.value
                             ? "error"
@@ -569,7 +570,12 @@ export const StoreSettingsModal = () => {
           name={name}
           rules={{ required: `${label} color is required` }}
           render={({ field }) => (
-            <Input {...field} className={styles.colorText} value={value} />
+            <Input
+              {...field}
+              className={styles.colorText}
+              placeholder="#000000"
+              value={value}
+            />
           )}
         />
       </div>

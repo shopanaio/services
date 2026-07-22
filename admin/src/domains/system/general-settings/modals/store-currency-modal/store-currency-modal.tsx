@@ -198,6 +198,7 @@ export const StoreCurrencyModal = () => {
             className={styles.control}
             optionFilterProp="label"
             options={options}
+            placeholder={`Select ${label.toLowerCase()}`}
             showSearch={options.length > 10}
           />
         )}
@@ -229,6 +230,7 @@ export const StoreCurrencyModal = () => {
             min={0}
             onBlur={field.onBlur}
             onChange={(value) => field.onChange(value ?? 0)}
+            placeholder={`Enter ${label.toLowerCase()}`}
             value={field.value}
           />
         )}
@@ -268,6 +270,7 @@ export const StoreCurrencyModal = () => {
                   className={styles.control}
                   optionFilterProp="label"
                   options={currencyOptions}
+                  placeholder="Select store currency"
                   showSearch
                 />
               )}

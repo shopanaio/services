@@ -199,7 +199,13 @@ export const StoreDefaultsModal = () => {
               <Controller
                 control={control}
                 name="unitSystem"
-                render={({ field }) => <Select {...field} options={unitSystemOptions} />}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    options={unitSystemOptions}
+                    placeholder="Select unit system"
+                  />
+                )}
               />
             </div>
             <div className={styles.field}>
@@ -209,7 +215,13 @@ export const StoreDefaultsModal = () => {
               <Controller
                 control={control}
                 name="defaultWeightUnit"
-                render={({ field }) => <Select {...field} options={weightUnitOptions} />}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    options={weightUnitOptions}
+                    placeholder="Select default weight unit"
+                  />
+                )}
               />
             </div>
           </div>
@@ -225,6 +237,7 @@ export const StoreDefaultsModal = () => {
                   {...field}
                   optionFilterProp="label"
                   options={timeZoneOptions}
+                  placeholder="Select time zone"
                   showSearch
                 />
               )}

@@ -103,7 +103,7 @@ export const StoreOrderProcessingModal = () => {
             <div className={styles.inputGrid}>
               <label className={styles.field}>
                 <span className={styles.fieldLabel}>Prefix</span>
-                <Controller control={control} name="orderNumberPrefix" render={({ field }) => <Input {...field} maxLength={16} />} />
+                <Controller control={control} name="orderNumberPrefix" render={({ field }) => <Input {...field} maxLength={16} placeholder="e.g. #" />} />
               </label>
               <label className={styles.field}>
                 <span className={styles.fieldLabel}>Suffix</span>
