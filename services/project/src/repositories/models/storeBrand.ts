@@ -117,3 +117,17 @@ export type NewStoreBrand = typeof storeBrand.$inferInsert;
 export type StoreBrandSocialLink = typeof storeBrandSocialLink.$inferSelect;
 export type NewStoreBrandSocialLink =
   typeof storeBrandSocialLink.$inferInsert;
+
+  Два прошлых замечания исправлены: saga-шаги теперь critical, а compensation больше не поглощает ошибки. Остались четыре прежних проблемы и появилась одна новая.
+
+  ::code-comment{title="[P1] Compensation может затереть конкурентное обновление" body="Все restore-методы безусловно восстанавливают начальный snapshot. Два workflow одного store могут выполняться параллельно: если B успешно сохранит новое значение, а A затем упадёт, compensation A перезапишет результат B старым snapshot. Нужна сериализация по storeId либо optimistic version/CAS, проверяющий, что восстанавливается именно значение, записанное этим workflow." file="/Users/phl/Projects/shopana-io/services/services/project/src/repositories/storeSettings/StoreSettingsRepository.ts" start=298 end=307 priority=1}
+
+  ::code-comment{title="[P1] Владелец media всё ещё не проверяется" body="В media.fileLink по-прежнему передаются только fileId и целевой entityRef. Media-сервис принимает любой активный файл независимо от его assetGroup owner, поэтому к бренду можно привязать файл другого магазина. Перед link нужно подтвердить принадлежность файла целевому store или разрешённой organization." file="/Users/phl/Projects/shopana-io/services/services/project/src/sagas/StoreUpdateSaga.ts" start=546 end=553 priority=1}
+
+  ::code-comment{title="[P2] Инфраструктурный сбой превращается в NOT_FOUND" body="При result.success=false media-скрипт обычно возвращает fileExists=false, после чего код формирует MEDIA_FILE_NOT_FOUND и выбрасывает FatalError. Временная ошибка media поэтому не повторяется и выглядит как ошибка пользовательского ID. Обработайте !result.success отдельно как MEDIA_LINK_FAILED/RetryableError, а затем проверяйте exists и active." file="/Users/phl/Projects/shopana-io/services/services/project/src/sagas/StoreUpdateSaga.ts" start=554 end=565 priority=2}
+
+  ::code-comment{title="[P2] Apollo cache остаётся устаревшим" body="StoreFields всё ещё не запрашивает contactDetails, address, brand, orderProcessing, defaults и currencySettings, а hook не выполняет refetchQueries/cache.modify. После mutation вложенные настройки в Apollo cache останутся прежними. Добавьте необходимые секции в ответ либо явно обновляйте cache." file="/Users/phl/Projects/shopana-io/services/admin/src/domains/workspace/graphql/mutations.ts" start=441 end=443 priority=2}
+
+  ::code-comment{title="[P2] clientMutationId всё ещё не ключ идемпотентности" body="Content hash включает clientMutationId вместе с operations и userId. Одинаковый clientMutationId с изменённым payload создаст другой workflow и повторно применит mutation. Workflow ID должен выводиться из клиентского ключа, а повтор ключа с другим payload должен отклоняться." file="/Users/phl/Projects/shopana-io/services/services/project/src/resolvers/admin/StoreMutationResolver.ts" start=456 end=469 priority=2}
+
+  Рабочее дерево чистое, `git diff --check` прошёл. Тесты, `tsc` и build не запускал по правилам проекта.
