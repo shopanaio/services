@@ -1,25 +1,22 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
-import {
-  getGeneralSettingsSnapshot,
-  subscribeToGeneralSettings,
-} from "../mock/general-settings-store";
+import { useQuery } from "@apollo/client/react";
+import type { ApiStore } from "@/graphql/types";
+import { GENERAL_SETTINGS_QUERY } from "../graphql";
 
 export const useGeneralSettings = () => {
-  const snapshot = useSyncExternalStore(
-    subscribeToGeneralSettings,
-    getGeneralSettingsSnapshot,
-    getGeneralSettingsSnapshot,
-  );
-
-  const refetch = useCallback(async () => getGeneralSettingsSnapshot(), []);
+  const { data, loading, error, refetch } = useQuery<{
+    storeQuery: { currentStore: ApiStore | null };
+  }>(GENERAL_SETTINGS_QUERY, {
+    fetchPolicy: "cache-and-network",
+  });
 
   return {
-    store: snapshot.store,
-    locales: snapshot.locales,
-    loading: false,
-    error: null as Error | null,
-    refetch,
+    store: data?.storeQuery.currentStore ?? null,
+    loading,
+    error: error ?? null,
+    refetch: async () => {
+      await refetch();
+    },
   };
 };

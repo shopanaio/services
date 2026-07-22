@@ -75,6 +75,16 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard email template changes?',
     },
+    {
+      type: 'general-settings-edit-store-settings',
+      component: dynamic(() =>
+        import('@/domains/system/general-settings/modals/store-settings-modal').then(
+          (m) => m.StoreSettingsModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard store settings changes?',
+    },
     // ========================================
     // Profile modals
     // ========================================

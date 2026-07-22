@@ -1,94 +1,56 @@
 "use client";
 
+import { useMutation } from "@apollo/client/react";
 import type {
-  ApiLocale,
-  ApiLocaleCreateInput,
-  ApiLocaleDeleteInput,
-  ApiLocaleSetDefaultInput,
-  ApiStoreDeleteInput,
+  ApiGenericUserError,
+  ApiStore,
   ApiStoreUpdateInput,
-  LocaleCode,
+  ApiStoreUpdateOperationResult,
 } from "@/graphql/types";
-import { useCallback, useState } from "react";
-import {
-  addMockLocale,
-  deleteMockLocale,
-  deleteMockStore,
-  setMockDefaultLocale,
-  updateMockStore,
-} from "../mock/general-settings-store";
-import type {
-  GeneralSettingsMutationResult,
-  GeneralSettingsStore,
-} from "../types";
-
-interface GeneralSettingsStoreUpdateRequest {
-  expectedRevision: number;
-  operations: ApiStoreUpdateInput;
-}
-
-const useMockMutation = <TInput, TData>(
-  mutation: (input: TInput) => Promise<TData>,
-) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const mutate = useCallback(
-    async (input: TInput): Promise<GeneralSettingsMutationResult<TData>> => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        return { data: await mutation(input), userErrors: [] };
-      } catch (caughtError) {
-        const nextError =
-          caughtError instanceof Error
-            ? caughtError
-            : new Error("Unexpected settings error");
-        setError(nextError);
-        return { data: null, userErrors: [] };
-      } finally {
-        setLoading(false);
-      }
-    },
-    [mutation],
-  );
-
-  const reset = useCallback(() => setError(null), []);
-
-  return { mutate, loading, error, reset };
-};
+import { useCallback } from "react";
+import { UPDATE_GENERAL_SETTINGS_MUTATION } from "../graphql";
 
 export const useUpdateGeneralSettings = () => {
-  const mutation = useMockMutation<
-    GeneralSettingsStoreUpdateRequest,
-    GeneralSettingsStore
-  >(updateMockStore);
-  return { ...mutation, updateStore: mutation.mutate };
-};
+  const [mutate, { loading, error, reset }] = useMutation<
+    {
+      storeMutation: {
+        storeUpdate: {
+          store: ApiStore | null;
+          operationResults: ApiStoreUpdateOperationResult[];
+          userErrors: ApiGenericUserError[];
+        };
+      };
+    },
+    {
+      storeId: string;
+      clientMutationId: string;
+      expectedRevision: number;
+      operations: ApiStoreUpdateInput;
+    }
+  >(UPDATE_GENERAL_SETTINGS_MUTATION);
 
-export const useAddLocale = () => {
-  const mutation = useMockMutation<ApiLocaleCreateInput, ApiLocale>(
-    addMockLocale,
+  const updateStore = useCallback(
+    async (input: {
+      storeId: string;
+      expectedRevision: number;
+      operations: ApiStoreUpdateInput;
+    }) => {
+      const result = await mutate({
+        variables: {
+          ...input,
+          clientMutationId: crypto.randomUUID(),
+        },
+      });
+      const payload = result.data?.storeMutation.storeUpdate;
+
+      return {
+        data: payload?.store ?? null,
+        operationResults: payload?.operationResults ?? [],
+        userErrors: payload?.userErrors ?? [],
+      };
+    },
+    [mutate],
   );
-  return { ...mutation, addLocale: mutation.mutate };
-};
 
-export const useDeleteLocale = () => {
-  const mutation = useMockMutation<ApiLocaleDeleteInput, LocaleCode>(
-    deleteMockLocale,
-  );
-  return { ...mutation, deleteLocale: mutation.mutate };
-};
-
-export const useSetDefaultLocale = () => {
-  const mutation = useMockMutation<ApiLocaleSetDefaultInput, boolean>(
-    setMockDefaultLocale,
-  );
-  return { ...mutation, setDefaultLocale: mutation.mutate };
-};
-
-export const useDeleteStore = () => {
-  const mutation = useMockMutation<ApiStoreDeleteInput, string>(deleteMockStore);
-  return { ...mutation, deleteStore: mutation.mutate };
+  return { updateStore, loading, error: error ?? null, reset };
 };

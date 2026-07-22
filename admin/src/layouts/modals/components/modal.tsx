@@ -225,7 +225,7 @@ export const ModalStackItem = ({
         transitionName="modal-stack-slide-up"
         maskTransitionName="modal-stack-fade"
         mask={level === 0}
-        width={`calc(100wv - ${token.padding * 2}px)`}
+        width={`calc(100vw - ${token.padding * 2}px)`}
         classNames={{
           wrapper: styles.wrapper,
           container: styles.container,
