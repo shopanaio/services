@@ -1,12 +1,29 @@
-mutation StoreUpdate($input: StoreUpdateInput!) {
+mutation StoreUpdate(
+  $storeId: ID!
+  $clientMutationId: String!
+  $operations: StoreUpdateInput
+) {
   storeMutation {
-    storeUpdate(input: $input) {
+    storeUpdate(
+      storeId: $storeId
+      clientMutationId: $clientMutationId
+      operations: $operations
+    ) {
       store {
         id
         name
         displayName
         email
         timezone
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          code
+          message
+          field
+        }
       }
       userErrors {
         code

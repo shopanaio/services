@@ -201,16 +201,25 @@ test.describe('Store-Level Domain Isolation', () => {
     // Viewer CANNOT update store
     const { data: updateData } = await api.admin.mutation('project-api/ProjectUpdate', {
       variables: {
-        input: {
-          id: owner.storeAId,
-          organizationId: owner.organizationId,
-          displayName: 'Hacked by Viewer',
+        storeId: owner.storeAId,
+        clientMutationId: 'viewer-update-store-a',
+        operations: {
+          contactDetails: {
+            name: 'Hacked by Viewer',
+            slug: owner.storeAName,
+            phoneNumbers: [],
+          },
         },
       },
     });
 
     const updateResult = updateData.storeMutation.storeUpdate;
-    const updateFailed = updateResult.store === null || updateResult.userErrors.length > 0;
+    const updateFailed =
+      updateResult.store === null ||
+      updateResult.userErrors.length > 0 ||
+      updateResult.operationResults.some(
+        (operation: { applied: boolean }) => !operation.applied,
+      );
     expect(updateFailed).toBe(true);
 
     // Verify store was not modified
@@ -236,17 +245,26 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.project = { id: owner.storeBId, name: owner.storeBName, displayName: 'Store B' };
     const { data } = await api.admin.mutation('project-api/ProjectUpdate', {
       variables: {
-        input: {
-          id: owner.storeBId,
-          organizationId: owner.organizationId,
-          displayName: 'Hacked Store B',
+        storeId: owner.storeBId,
+        clientMutationId: 'manager-store-b-update',
+        operations: {
+          contactDetails: {
+            name: 'Hacked Store B',
+            slug: owner.storeBName,
+            phoneNumbers: [],
+          },
         },
       },
     });
 
     // Update should fail - null store or userErrors
     const result = data.storeMutation.storeUpdate;
-    const updateFailed = result.store === null || result.userErrors.length > 0;
+    const updateFailed =
+      result.store === null ||
+      result.userErrors.length > 0 ||
+      result.operationResults.some(
+        (operation: { applied: boolean }) => !operation.applied,
+      );
     expect(updateFailed).toBe(true);
 
     // Verify Store B was not modified by switching to owner
@@ -273,10 +291,14 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.organizationId = owner.organizationId;
     const { data: updateAData } = await api.admin.mutation('project-api/ProjectUpdate', {
       variables: {
-        input: {
-          id: owner.storeAId,
-          organizationId: owner.organizationId,
-          displayName: 'Store A Updated',
+        storeId: owner.storeAId,
+        clientMutationId: 'manager-store-a-update',
+        operations: {
+          contactDetails: {
+            name: 'Store A Updated',
+            slug: owner.storeAName,
+            phoneNumbers: [],
+          },
         },
       },
     });
@@ -285,21 +307,32 @@ test.describe('Store-Level Domain Isolation', () => {
     const updateAResult = updateAData.storeMutation.storeUpdate;
     expect(updateAResult.store).not.toBeNull();
     expect(updateAResult.store?.displayName).toBe('Store A Updated');
+    expect(updateAResult.operationResults).toHaveLength(1);
+    expect(updateAResult.operationResults[0]?.applied).toBe(true);
 
     // User CANNOT update Store B (even with project context set to B)
     api.session.project = { id: owner.storeBId, name: owner.storeBName, displayName: 'Store B' };
     const { data: updateBData } = await api.admin.mutation('project-api/ProjectUpdate', {
       variables: {
-        input: {
-          id: owner.storeBId,
-          organizationId: owner.organizationId,
-          displayName: 'Store B Updated',
+        storeId: owner.storeBId,
+        clientMutationId: 'manager-store-b-isolation-update',
+        operations: {
+          contactDetails: {
+            name: 'Store B Updated',
+            slug: owner.storeBName,
+            phoneNumbers: [],
+          },
         },
       },
     });
 
     const updateBResult = updateBData.storeMutation.storeUpdate;
-    const updateBFailed = updateBResult.store === null || updateBResult.userErrors.length > 0;
+    const updateBFailed =
+      updateBResult.store === null ||
+      updateBResult.userErrors.length > 0 ||
+      updateBResult.operationResults.some(
+        (operation: { applied: boolean }) => !operation.applied,
+      );
     expect(updateBFailed).toBe(true);
   });
 

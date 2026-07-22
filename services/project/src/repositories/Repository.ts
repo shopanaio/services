@@ -4,6 +4,7 @@ import { StoreRepository } from "./store/StoreRepository.js";
 import { LocaleRepository } from "./locale/LocaleRepository.js";
 import { ApiKeyRepository } from "./apiKey/ApiKeyRepository.js";
 import { IntegrationRepository } from "./integration/IntegrationRepository.js";
+import { StoreSettingsRepository } from "./storeSettings/StoreSettingsRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -14,6 +15,7 @@ export class Repository {
   public readonly locale: LocaleRepository;
   public readonly apiKey: ApiKeyRepository;
   public readonly integration: IntegrationRepository;
+  public readonly storeSettings: StoreSettingsRepository;
 
   private readonly db: Database;
 
@@ -28,6 +30,7 @@ export class Repository {
     this.locale = new LocaleRepository(this.db, this.txManager);
     this.apiKey = new ApiKeyRepository(this.db, this.txManager);
     this.integration = new IntegrationRepository(this.db, this.txManager);
+    this.storeSettings = new StoreSettingsRepository(this.db, this.txManager);
   }
 
   static async create(config: RepositoryConfig): Promise<Repository> {

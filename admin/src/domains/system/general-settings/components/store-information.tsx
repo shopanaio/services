@@ -29,7 +29,10 @@ export const StoreInformation = ({
               editModal.push({
                 storeId: store.id,
                 organizationId: store.organizationId,
+                storeName: store.name,
                 displayName: store.displayName,
+                email: store.email ?? null,
+                phoneNumbers: store.phoneNumber ? [store.phoneNumber] : [],
                 onSaved,
               })
             }

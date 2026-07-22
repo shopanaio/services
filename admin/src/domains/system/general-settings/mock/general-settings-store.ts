@@ -66,30 +66,26 @@ export const subscribeToGeneralSettings = (listener: () => void) => {
 export const getGeneralSettingsSnapshot = () => snapshot;
 
 export const updateMockStore = async (input: ApiStoreUpdateInput) => {
+  const contactDetails = input.contactDetails;
+  const defaults = input.defaults;
+  const currencySettings = input.currencySettings;
   const nextStore = {
     ...snapshot.store,
-    ...(input.displayName !== undefined && {
-      displayName: input.displayName ?? snapshot.store.displayName,
+    ...(contactDetails && {
+      displayName: contactDetails.name,
+      name: contactDetails.slug,
+      email: contactDetails.email ?? null,
+      phoneNumber: contactDetails.phoneNumbers[0] ?? null,
     }),
-    ...(input.email !== undefined && { email: input.email }),
-    ...(input.timezone !== undefined && {
-      timezone: input.timezone ?? snapshot.store.timezone,
+    ...(defaults && {
+      timezone: defaults.timezone,
+      defaultWeightUnit: defaults.defaultWeightUnit,
+      defaultDimensionUnit: defaults.defaultDimensionUnit,
     }),
-    ...(input.locales !== undefined && {
-      locales: input.locales ?? snapshot.store.locales,
+    ...(currencySettings && {
+      currencyCode: currencySettings.currencyCode,
+      defaultLocale: currencySettings.locale,
     }),
-    ...(input.currencyCode !== undefined &&
-      input.currencyCode !== null && {
-        currencyCode: input.currencyCode,
-      }),
-    ...(input.defaultWeightUnit !== undefined &&
-      input.defaultWeightUnit !== null && {
-        defaultWeightUnit: input.defaultWeightUnit,
-      }),
-    ...(input.defaultDimensionUnit !== undefined &&
-      input.defaultDimensionUnit !== null && {
-        defaultDimensionUnit: input.defaultDimensionUnit,
-      }),
   };
 
   publish({ ...snapshot, store: nextStore });

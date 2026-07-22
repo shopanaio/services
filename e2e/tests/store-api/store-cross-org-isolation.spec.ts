@@ -221,10 +221,14 @@ test.describe('Cross-Organization Store Isolation', () => {
     const { data, errors } = await api.admin.mutation('project-api/ProjectUpdate', {
       throwOnError: false,
       variables: {
-        input: {
-          id: userB.storeId,
-          organizationId: userB.organizationId,
-          displayName: 'Hacked Store B',
+        storeId: userB.storeId,
+        clientMutationId: 'cross-org-update',
+        operations: {
+          contactDetails: {
+            name: 'Hacked Store B',
+            slug: userB.storeName,
+            phoneNumbers: [],
+          },
         },
       },
     });
@@ -234,7 +238,12 @@ test.describe('Cross-Organization Store Isolation', () => {
       expect(errors.length).toBeGreaterThan(0);
     } else {
       const result = data.storeMutation.storeUpdate;
-      const updateFailed = result.store === null || result.userErrors.length > 0;
+      const updateFailed =
+        result.store === null ||
+        result.userErrors.length > 0 ||
+        result.operationResults.some(
+          (operation: { applied: boolean }) => !operation.applied,
+        );
       expect(updateFailed).toBe(true);
     }
 

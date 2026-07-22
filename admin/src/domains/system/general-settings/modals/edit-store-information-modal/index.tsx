@@ -46,9 +46,12 @@ export const EditStoreInformationModal = () => {
 
   const submit = handleSubmit(async ({ displayName }) => {
     const result = await mutation.updateStore({
-      id: typedPayload.storeId,
-      organizationId: typedPayload.organizationId,
-      displayName: displayName.trim(),
+      contactDetails: {
+        name: displayName.trim(),
+        slug: typedPayload.storeName,
+        email: typedPayload.email,
+        phoneNumbers: typedPayload.phoneNumbers,
+      },
     });
 
     if (!result.data) return;

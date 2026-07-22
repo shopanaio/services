@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { UPDATE_STORE_MUTATION } from "../graphql";
 import type {
   ApiStoreUpdateInput,
+  ApiStoreUpdateOperationResult,
   ApiStore,
   ApiGenericUserError,
 } from "@/graphql/types";
@@ -18,13 +19,19 @@ interface UpdateStoreResult {
    * List of validation/business logic errors.
    */
   userErrors: ApiGenericUserError[];
+  /** Result of each requested store update operation. */
+  operationResults: ApiStoreUpdateOperationResult[];
 }
 
 interface UseUpdateStoreReturn {
   /**
    * Function to update a store.
    */
-  updateStore: (input: ApiStoreUpdateInput) => Promise<UpdateStoreResult>;
+  updateStore: (
+    storeId: string,
+    operations: ApiStoreUpdateInput,
+    clientMutationId?: string,
+  ) => Promise<UpdateStoreResult>;
   /**
    * Whether the mutation is in progress.
    */
@@ -44,11 +51,12 @@ interface UseUpdateStoreReturn {
  * const { updateStore, loading } = useUpdateStore();
  *
  * const handleUpdate = async () => {
- *   const { store, userErrors } = await updateStore({
- *     id: "store-123",
- *     organizationId: "org-456",
- *     displayName: "Updated Store Name",
- *     timezone: "America/New_York",
+ *   const { store, userErrors } = await updateStore("store-123", {
+ *     contactDetails: {
+ *       name: "Updated Store Name",
+ *       slug: "my-store",
+ *       phoneNumbers: [],
+ *     },
  *   });
  *
  *   if (userErrors.length > 0) {
@@ -63,20 +71,32 @@ export function useUpdateStore(): UseUpdateStoreReturn {
       storeMutation: {
         storeUpdate: {
           store: ApiStore | null;
+          operationResults: ApiStoreUpdateOperationResult[];
           userErrors: ApiGenericUserError[];
         };
       };
     },
-    { input: ApiStoreUpdateInput }
+    {
+      storeId: string;
+      clientMutationId: string;
+      operations: ApiStoreUpdateInput;
+    }
   >(UPDATE_STORE_MUTATION);
 
   const updateStore = useCallback(
-    async (input: ApiStoreUpdateInput): Promise<UpdateStoreResult> => {
-      const result = await mutate({ variables: { input } });
+    async (
+      storeId: string,
+      operations: ApiStoreUpdateInput,
+      clientMutationId = crypto.randomUUID(),
+    ): Promise<UpdateStoreResult> => {
+      const result = await mutate({
+        variables: { storeId, clientMutationId, operations },
+      });
       const payload = result.data?.storeMutation.storeUpdate;
 
       return {
         store: payload?.store ?? null,
+        operationResults: payload?.operationResults ?? [],
         userErrors: payload?.userErrors ?? [],
       };
     },

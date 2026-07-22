@@ -14,14 +14,10 @@ import type { StorePayload } from "./shared.js";
 export const storeNameSchema = z
   .string()
   .min(3, "Name must be at least 3 characters")
-  .max(64, "Name must be at most 64 characters")
+  .max(63, "Name must be at most 63 characters")
   .regex(
-    /^[a-z0-9-]+$/,
-    "Name must contain only lowercase letters, numbers, and hyphens"
-  )
-  .refine(
-    (name) => !name.startsWith("-") && !name.endsWith("-"),
-    "Name cannot start or end with a hyphen"
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    "Name must use lowercase letters, numbers, and single hyphen separators",
   );
 
 /**

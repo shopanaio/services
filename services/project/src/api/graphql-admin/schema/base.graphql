@@ -49,8 +49,15 @@ type StoreMutation {
   # Store mutations
   """Create a new store"""
   storeCreate(input: StoreCreateInput!): StoreCreatePayload!
-  """Update an existing store"""
-  storeUpdate(input: StoreUpdateInput!): StoreUpdatePayload!
+  """Unified store update composed from independent settings operations"""
+  storeUpdate(
+    """The store ID to update"""
+    storeId: ID!
+    """Unique client-generated ID reused only when retrying this mutation"""
+    clientMutationId: String!
+    """Store settings operations to apply"""
+    operations: StoreUpdateInput
+  ): StoreUpdatePayload!
   """Delete a store"""
   storeDelete(input: StoreDeleteInput!): StoreDeletePayload!
 

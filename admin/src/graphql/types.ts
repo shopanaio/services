@@ -1220,6 +1220,12 @@ export type ApiAuthorizePayload = {
   deniedReason?: Maybe<Scalars['String']['output']>;
 };
 
+export enum AutomaticFulfillmentMode {
+  AllLineItems = 'ALL_LINE_ITEMS',
+  Disabled = 'DISABLED',
+  GiftCardsOnly = 'GIFT_CARDS_ONLY'
+}
+
 /** Input for uploading avatar or logo. */
 export type ApiAvatarUploadInput = {
   /** The file to upload. */
@@ -3916,6 +3922,50 @@ export enum CurrencyCode {
   Zmw = 'ZMW',
   /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
   Zwl = 'ZWL'
+}
+
+export enum CurrencyDisplay {
+  Code = 'CODE',
+  Name = 'NAME',
+  NarrowSymbol = 'NARROW_SYMBOL',
+  Symbol = 'SYMBOL'
+}
+
+export enum CurrencyGrouping {
+  Always = 'ALWAYS',
+  Auto = 'AUTO',
+  Min2 = 'MIN2',
+  Never = 'NEVER'
+}
+
+export enum CurrencyRoundingMode {
+  Ceil = 'CEIL',
+  Expand = 'EXPAND',
+  Floor = 'FLOOR',
+  HalfCeil = 'HALF_CEIL',
+  HalfEven = 'HALF_EVEN',
+  HalfExpand = 'HALF_EXPAND',
+  HalfFloor = 'HALF_FLOOR',
+  HalfTrunc = 'HALF_TRUNC',
+  Trunc = 'TRUNC'
+}
+
+export enum CurrencySign {
+  Accounting = 'ACCOUNTING',
+  Standard = 'STANDARD'
+}
+
+export enum CurrencySignDisplay {
+  Always = 'ALWAYS',
+  Auto = 'AUTO',
+  ExceptZero = 'EXCEPT_ZERO',
+  Negative = 'NEGATIVE',
+  Never = 'NEVER'
+}
+
+export enum CurrencyTrailingZeroDisplay {
+  Auto = 'AUTO',
+  StripIfInteger = 'STRIP_IF_INTEGER'
 }
 
 /** A store-scoped customer business profile owned by Customers. */
@@ -15198,16 +15248,26 @@ export enum SortDirection {
 /** A store */
 export type ApiStore = {
   __typename?: 'Store';
+  /** Customer-visible store address */
+  address?: Maybe<ApiStoreAddress>;
+  /** Store brand assets, colors, copy, and social links */
+  brand: ApiStoreBrand;
+  /** Store contact details and ordered phone numbers */
+  contactDetails: ApiStoreContactDetails;
   /** Timestamp when the store was created */
   createdAt: Scalars['DateTime']['output'];
   /** Currency used by the store */
   currencyCode: CurrencyCode;
+  /** Currency and number-formatting settings */
+  currencySettings: ApiStoreCurrencySettings;
   /** Default unit for product dimensions */
   defaultDimensionUnit: DimensionUnit;
   /** Default locale for new content */
   defaultLocale: LocaleCode;
   /** Default unit for product weights */
   defaultWeightUnit: WeightUnit;
+  /** Regional and measurement defaults */
+  defaults: ApiStoreDefaults;
   /** Display name of the store */
   displayName: Scalars['String']['output'];
   /** Contact email address for the store */
@@ -15220,6 +15280,8 @@ export type ApiStore = {
   membership: ApiMembership;
   /** URL-friendly unique identifier */
   name: Scalars['String']['output'];
+  /** Order numbering and processing behavior */
+  orderProcessing: ApiStoreOrderProcessing;
   /** Organization that owns this store (federation reference) */
   organization?: Maybe<ApiOrganization>;
   /** Current operational status of the store */
@@ -15228,6 +15290,65 @@ export type ApiStore = {
   timezone: Scalars['String']['output'];
   /** Timestamp when the store was last updated */
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiStoreAddress = {
+  __typename?: 'StoreAddress';
+  addressLine1?: Maybe<Scalars['String']['output']>;
+  addressLine2?: Maybe<Scalars['String']['output']>;
+  administrativeArea?: Maybe<Scalars['String']['output']>;
+  city?: Maybe<Scalars['String']['output']>;
+  companyName?: Maybe<Scalars['String']['output']>;
+  countryCode: Scalars['String']['output'];
+  postalCode?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiStoreAddressUpdateInput = {
+  addressLine1?: InputMaybe<Scalars['String']['input']>;
+  addressLine2?: InputMaybe<Scalars['String']['input']>;
+  administrativeArea?: InputMaybe<Scalars['String']['input']>;
+  city?: InputMaybe<Scalars['String']['input']>;
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode: Scalars['String']['input'];
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiStoreBrand = {
+  __typename?: 'StoreBrand';
+  coverImage?: Maybe<ApiFile>;
+  defaultLogo?: Maybe<ApiFile>;
+  primaryColor: Scalars['String']['output'];
+  secondaryColor: Scalars['String']['output'];
+  shortDescription?: Maybe<Scalars['String']['output']>;
+  slogan?: Maybe<Scalars['String']['output']>;
+  socialLinks: Array<ApiStoreSocialLink>;
+  squareLogo?: Maybe<ApiFile>;
+};
+
+export type ApiStoreBrandUpdateInput = {
+  coverImageId?: InputMaybe<Scalars['ID']['input']>;
+  defaultLogoId?: InputMaybe<Scalars['ID']['input']>;
+  primaryColor: Scalars['String']['input'];
+  secondaryColor: Scalars['String']['input'];
+  shortDescription?: InputMaybe<Scalars['String']['input']>;
+  slogan?: InputMaybe<Scalars['String']['input']>;
+  socialLinks: Array<ApiStoreSocialLinkInput>;
+  squareLogoId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiStoreContactDetails = {
+  __typename?: 'StoreContactDetails';
+  email?: Maybe<Scalars['Email']['output']>;
+  name: Scalars['String']['output'];
+  phoneNumbers: Array<Scalars['String']['output']>;
+  slug: Scalars['String']['output'];
+};
+
+export type ApiStoreContactDetailsUpdateInput = {
+  email?: InputMaybe<Scalars['Email']['input']>;
+  name: Scalars['String']['input'];
+  phoneNumbers: Array<Scalars['String']['input']>;
+  slug: Scalars['String']['input'];
 };
 
 /** Input for creating a new store */
@@ -15257,6 +15378,48 @@ export type ApiStoreCreatePayload = {
   store?: Maybe<ApiStore>;
   /** List of errors that occurred during creation */
   userErrors: Array<ApiUserError>;
+};
+
+export type ApiStoreCurrencySettings = {
+  __typename?: 'StoreCurrencySettings';
+  currencyCode: CurrencyCode;
+  currencyDisplay: CurrencyDisplay;
+  currencySign: CurrencySign;
+  grouping: CurrencyGrouping;
+  locale: LocaleCode;
+  maximumFractionDigits: Scalars['Int']['output'];
+  minimumFractionDigits: Scalars['Int']['output'];
+  roundingMode: CurrencyRoundingMode;
+  signDisplay: CurrencySignDisplay;
+  trailingZeroDisplay: CurrencyTrailingZeroDisplay;
+};
+
+export type ApiStoreCurrencySettingsUpdateInput = {
+  currencyCode: CurrencyCode;
+  currencyDisplay: CurrencyDisplay;
+  currencySign: CurrencySign;
+  grouping: CurrencyGrouping;
+  locale: LocaleCode;
+  maximumFractionDigits: Scalars['Int']['input'];
+  minimumFractionDigits: Scalars['Int']['input'];
+  roundingMode: CurrencyRoundingMode;
+  signDisplay: CurrencySignDisplay;
+  trailingZeroDisplay: CurrencyTrailingZeroDisplay;
+};
+
+export type ApiStoreDefaults = {
+  __typename?: 'StoreDefaults';
+  defaultDimensionUnit: DimensionUnit;
+  defaultWeightUnit: WeightUnit;
+  timezone: Scalars['String']['output'];
+  unitSystem: UnitSystem;
+};
+
+export type ApiStoreDefaultsUpdateInput = {
+  defaultDimensionUnit: DimensionUnit;
+  defaultWeightUnit: WeightUnit;
+  timezone: Scalars['String']['input'];
+  unitSystem: UnitSystem;
 };
 
 /** Input for deleting a store */
@@ -15295,7 +15458,7 @@ export type ApiStoreMutation = {
   storeCreate: ApiStoreCreatePayload;
   /** Delete a store */
   storeDelete: ApiStoreDeletePayload;
-  /** Update an existing store */
+  /** Unified store update composed from independent settings operations */
   storeUpdate: ApiStoreUpdatePayload;
 };
 
@@ -15350,7 +15513,26 @@ export type ApiStoreMutationStoreDeleteArgs = {
 
 /** Mutations for store management */
 export type ApiStoreMutationStoreUpdateArgs = {
-  input: ApiStoreUpdateInput;
+  clientMutationId: Scalars['String']['input'];
+  operations?: InputMaybe<ApiStoreUpdateInput>;
+  storeId: Scalars['ID']['input'];
+};
+
+export type ApiStoreOrderProcessing = {
+  __typename?: 'StoreOrderProcessing';
+  automaticFulfillmentMode: AutomaticFulfillmentMode;
+  automaticallyArchiveOrders: Scalars['Boolean']['output'];
+  orderNumberPrefix: Scalars['String']['output'];
+  orderNumberSuffix?: Maybe<Scalars['String']['output']>;
+  requireCheckoutConfirmation: Scalars['Boolean']['output'];
+};
+
+export type ApiStoreOrderProcessingUpdateInput = {
+  automaticFulfillmentMode: AutomaticFulfillmentMode;
+  automaticallyArchiveOrders: Scalars['Boolean']['input'];
+  orderNumberPrefix: Scalars['String']['input'];
+  orderNumberSuffix?: InputMaybe<Scalars['String']['input']>;
+  requireCheckoutConfirmation: Scalars['Boolean']['input'];
 };
 
 /** Queries for store management */
@@ -15370,6 +15552,17 @@ export type ApiStoreQueryStoresArgs = {
   organizationId: Scalars['ID']['input'];
 };
 
+export type ApiStoreSocialLink = {
+  __typename?: 'StoreSocialLink';
+  platform: Scalars['String']['output'];
+  url: Scalars['String']['output'];
+};
+
+export type ApiStoreSocialLinkInput = {
+  platform: Scalars['String']['input'];
+  url: Scalars['String']['input'];
+};
+
 /** Status of a store */
 export enum StoreStatus {
   /** Store is active and operational */
@@ -15378,36 +15571,40 @@ export enum StoreStatus {
   Inactive = 'INACTIVE'
 }
 
-/** Input for updating an existing store */
+/** Independent sections accepted by the unified store update mutation. */
 export type ApiStoreUpdateInput = {
-  /** New currency code */
-  currencyCode?: InputMaybe<CurrencyCode>;
-  /** New default dimension unit */
-  defaultDimensionUnit?: InputMaybe<DimensionUnit>;
-  /** New default weight unit */
-  defaultWeightUnit?: InputMaybe<WeightUnit>;
-  /** New display name */
-  displayName?: InputMaybe<Scalars['String']['input']>;
-  /** New contact email address */
-  email?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the store to update */
-  id: Scalars['ID']['input'];
-  /** Updated list of enabled locale codes */
-  locales?: InputMaybe<Array<LocaleCode>>;
-  /** New display name */
-  name?: InputMaybe<Scalars['String']['input']>;
-  /** Organization id for authorization context */
-  organizationId: Scalars['ID']['input'];
-  /** New IANA timezone identifier */
-  timezone?: InputMaybe<Scalars['String']['input']>;
+  address?: InputMaybe<ApiStoreAddressUpdateInput>;
+  brand?: InputMaybe<ApiStoreBrandUpdateInput>;
+  contactDetails?: InputMaybe<ApiStoreContactDetailsUpdateInput>;
+  currencySettings?: InputMaybe<ApiStoreCurrencySettingsUpdateInput>;
+  defaults?: InputMaybe<ApiStoreDefaultsUpdateInput>;
+  orderProcessing?: InputMaybe<ApiStoreOrderProcessingUpdateInput>;
 };
+
+export type ApiStoreUpdateOperationResult = {
+  __typename?: 'StoreUpdateOperationResult';
+  applied: Scalars['Boolean']['output'];
+  errors: Array<ApiUserError>;
+  type: StoreUpdateOperationType;
+};
+
+export enum StoreUpdateOperationType {
+  AddressUpdate = 'ADDRESS_UPDATE',
+  BrandUpdate = 'BRAND_UPDATE',
+  ContactDetailsUpdate = 'CONTACT_DETAILS_UPDATE',
+  CurrencySettingsUpdate = 'CURRENCY_SETTINGS_UPDATE',
+  DefaultsUpdate = 'DEFAULTS_UPDATE',
+  OrderProcessingUpdate = 'ORDER_PROCESSING_UPDATE'
+}
 
 /** Payload returned after updating a store */
 export type ApiStoreUpdatePayload = {
   __typename?: 'StoreUpdatePayload';
+  /** Result of every requested operation in deterministic input order */
+  operationResults: Array<ApiStoreUpdateOperationResult>;
   /** The updated store, null if update failed */
   store?: Maybe<ApiStore>;
-  /** List of errors that occurred during update */
+  /** Aggregated errors from all operations */
   userErrors: Array<ApiUserError>;
 };
 
@@ -15581,6 +15778,11 @@ export type ApiTagWhereInput = {
 export enum ThresholdMethod {
   ReorderPoint = 'REORDER_POINT',
   SafetyStock = 'SAFETY_STOCK'
+}
+
+export enum UnitSystem {
+  Imperial = 'IMPERIAL',
+  Metric = 'METRIC'
 }
 
 /** User type representing admin users (CMS/backoffice). */

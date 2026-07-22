@@ -82,6 +82,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "shared-units.graphql",
     "base.graphql",
     "project.graphql",
+    "storeSettings.graphql",
     "locale.graphql",
     "apiKey.graphql",
   ];

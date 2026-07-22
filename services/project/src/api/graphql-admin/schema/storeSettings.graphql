@@ -1,0 +1,205 @@
+enum UnitSystem {
+  METRIC
+  IMPERIAL
+}
+
+enum AutomaticFulfillmentMode {
+  ALL_LINE_ITEMS
+  GIFT_CARDS_ONLY
+  DISABLED
+}
+
+enum CurrencyDisplay {
+  SYMBOL
+  NARROW_SYMBOL
+  CODE
+  NAME
+}
+
+enum CurrencySign {
+  STANDARD
+  ACCOUNTING
+}
+
+enum CurrencyGrouping {
+  AUTO
+  ALWAYS
+  MIN2
+  NEVER
+}
+
+enum CurrencySignDisplay {
+  AUTO
+  ALWAYS
+  EXCEPT_ZERO
+  NEGATIVE
+  NEVER
+}
+
+enum CurrencyRoundingMode {
+  CEIL
+  FLOOR
+  EXPAND
+  TRUNC
+  HALF_CEIL
+  HALF_FLOOR
+  HALF_EXPAND
+  HALF_TRUNC
+  HALF_EVEN
+}
+
+enum CurrencyTrailingZeroDisplay {
+  AUTO
+  STRIP_IF_INTEGER
+}
+
+extend type File @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+type StoreContactDetails {
+  name: String!
+  slug: String!
+  email: Email
+  phoneNumbers: [String!]!
+}
+
+type StoreAddress {
+  companyName: String
+  countryCode: String!
+  addressLine1: String
+  addressLine2: String
+  city: String
+  administrativeArea: String
+  postalCode: String
+}
+
+type StoreSocialLink {
+  platform: String!
+  url: String!
+}
+
+type StoreBrand {
+  defaultLogo: File
+  squareLogo: File
+  coverImage: File
+  primaryColor: String!
+  secondaryColor: String!
+  slogan: String
+  shortDescription: String
+  socialLinks: [StoreSocialLink!]!
+}
+
+type StoreOrderProcessing {
+  orderNumberPrefix: String!
+  orderNumberSuffix: String
+  requireCheckoutConfirmation: Boolean!
+  automaticFulfillmentMode: AutomaticFulfillmentMode!
+  automaticallyArchiveOrders: Boolean!
+}
+
+type StoreDefaults {
+  unitSystem: UnitSystem!
+  defaultWeightUnit: WeightUnit!
+  defaultDimensionUnit: DimensionUnit!
+  timezone: String!
+}
+
+type StoreCurrencySettings {
+  currencyCode: CurrencyCode!
+  locale: LocaleCode!
+  currencyDisplay: CurrencyDisplay!
+  currencySign: CurrencySign!
+  grouping: CurrencyGrouping!
+  signDisplay: CurrencySignDisplay!
+  minimumFractionDigits: Int!
+  maximumFractionDigits: Int!
+  roundingMode: CurrencyRoundingMode!
+  trailingZeroDisplay: CurrencyTrailingZeroDisplay!
+}
+
+input StoreContactDetailsUpdateInput {
+  name: String!
+  slug: String!
+  email: Email
+  phoneNumbers: [String!]!
+}
+
+input StoreAddressUpdateInput {
+  companyName: String
+  countryCode: String!
+  addressLine1: String
+  addressLine2: String
+  city: String
+  administrativeArea: String
+  postalCode: String
+}
+
+input StoreSocialLinkInput {
+  platform: String!
+  url: String!
+}
+
+input StoreBrandUpdateInput {
+  defaultLogoId: ID
+  squareLogoId: ID
+  coverImageId: ID
+  primaryColor: String!
+  secondaryColor: String!
+  slogan: String
+  shortDescription: String
+  socialLinks: [StoreSocialLinkInput!]!
+}
+
+input StoreOrderProcessingUpdateInput {
+  orderNumberPrefix: String!
+  orderNumberSuffix: String
+  requireCheckoutConfirmation: Boolean!
+  automaticFulfillmentMode: AutomaticFulfillmentMode!
+  automaticallyArchiveOrders: Boolean!
+}
+
+input StoreDefaultsUpdateInput {
+  unitSystem: UnitSystem!
+  defaultWeightUnit: WeightUnit!
+  defaultDimensionUnit: DimensionUnit!
+  timezone: String!
+}
+
+input StoreCurrencySettingsUpdateInput {
+  currencyCode: CurrencyCode!
+  locale: LocaleCode!
+  currencyDisplay: CurrencyDisplay!
+  currencySign: CurrencySign!
+  grouping: CurrencyGrouping!
+  signDisplay: CurrencySignDisplay!
+  minimumFractionDigits: Int!
+  maximumFractionDigits: Int!
+  roundingMode: CurrencyRoundingMode!
+  trailingZeroDisplay: CurrencyTrailingZeroDisplay!
+}
+
+"""Independent sections accepted by the unified store update mutation."""
+input StoreUpdateInput {
+  contactDetails: StoreContactDetailsUpdateInput
+  address: StoreAddressUpdateInput
+  brand: StoreBrandUpdateInput
+  orderProcessing: StoreOrderProcessingUpdateInput
+  defaults: StoreDefaultsUpdateInput
+  currencySettings: StoreCurrencySettingsUpdateInput
+}
+
+enum StoreUpdateOperationType {
+  CONTACT_DETAILS_UPDATE
+  ADDRESS_UPDATE
+  BRAND_UPDATE
+  ORDER_PROCESSING_UPDATE
+  DEFAULTS_UPDATE
+  CURRENCY_SETTINGS_UPDATE
+}
+
+type StoreUpdateOperationResult {
+  type: StoreUpdateOperationType!
+  applied: Boolean!
+  errors: [UserError!]!
+}

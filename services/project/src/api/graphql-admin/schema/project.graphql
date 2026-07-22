@@ -78,6 +78,18 @@ type Store @key(fields: "id") {
   Membership info (resolved from IAM by domain)
   """
   membership: Membership!
+  """Store contact details and ordered phone numbers"""
+  contactDetails: StoreContactDetails!
+  """Customer-visible store address"""
+  address: StoreAddress
+  """Store brand assets, colors, copy, and social links"""
+  brand: StoreBrand!
+  """Order numbering and processing behavior"""
+  orderProcessing: StoreOrderProcessing!
+  """Regional and measurement defaults"""
+  defaults: StoreDefaults!
+  """Currency and number-formatting settings"""
+  currencySettings: StoreCurrencySettings!
 }
 
 # Organization entity (extended from IAM service)
@@ -127,52 +139,6 @@ input StoreCreateInput {
   Contact email address
   """
   email: String
-}
-
-"""
-Input for updating an existing store
-"""
-input StoreUpdateInput {
-  """
-  ID of the store to update
-  """
-  id: ID!
-  """
-  Organization id for authorization context
-  """
-  organizationId: ID!
-  """
-  New display name
-  """
-  name: String
-  """
-  New display name
-  """
-  displayName: String
-  """
-  New contact email address
-  """
-  email: String
-  """
-  New IANA timezone identifier
-  """
-  timezone: String
-  """
-  Updated list of enabled locale codes
-  """
-  locales: [LocaleCode!]
-  """
-  New currency code
-  """
-  currencyCode: CurrencyCode
-  """
-  New default weight unit
-  """
-  defaultWeightUnit: WeightUnit
-  """
-  New default dimension unit
-  """
-  defaultDimensionUnit: DimensionUnit
 }
 
 """
@@ -248,7 +214,11 @@ type StoreUpdatePayload {
   """
   store: Store
   """
-  List of errors that occurred during update
+  Result of every requested operation in deterministic input order
+  """
+  operationResults: [StoreUpdateOperationResult!]!
+  """
+  Aggregated errors from all operations
   """
   userErrors: [UserError!]!
 }

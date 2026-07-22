@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { PageInfo } from "@shopana/drizzle-query";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
@@ -14,6 +14,7 @@ import {
   type CurrencyCode,
   type LocaleCode,
   type IamIntegrationConfig,
+  type UnitSystem,
 } from "../models/index.js";
 
 /**
@@ -64,6 +65,7 @@ export interface CreateStoreData {
   email?: string | null;
   defaultWeightUnit?: WeightUnit;
   defaultDimensionUnit?: DimensionUnit;
+  unitSystem?: UnitSystem;
 }
 
 export interface UpdateStoreData {
@@ -73,6 +75,7 @@ export interface UpdateStoreData {
   timezone?: string;
   defaultWeightUnit?: WeightUnit;
   defaultDimensionUnit?: DimensionUnit;
+  unitSystem?: UnitSystem;
   locales?: LocaleCode[];
   currencyCode?: CurrencyCode;
   defaultLocale?: LocaleCode;
@@ -166,6 +169,7 @@ export class StoreRepository extends BaseRepository {
         email: data.email ?? null,
         defaultLocale,
         currencyCode: data.currencyCode,
+        unitSystem: data.unitSystem ?? "metric",
         defaultWeightUnit: data.defaultWeightUnit ?? "kg",
         defaultDimensionUnit: data.defaultDimensionUnit ?? "cm",
         createdAt: now,
@@ -179,9 +183,13 @@ export class StoreRepository extends BaseRepository {
 
   @ReadOnly()
   async findById(id: string, organizationId?: string): Promise<Store | null> {
-    const conditions = organizationId
-      ? and(eq(store.id, id), eq(store.organizationId, organizationId))
-      : eq(store.id, id);
+    const conditions = and(
+      eq(store.id, id),
+      isNull(store.deletedAt),
+      organizationId
+        ? eq(store.organizationId, organizationId)
+        : undefined,
+    );
 
     const [result] = await this.connection
       .select()
@@ -201,7 +209,7 @@ export class StoreRepository extends BaseRepository {
     const [result] = await this.connection
       .select()
       .from(store)
-      .where(eq(store.name, name));
+      .where(and(eq(store.name, name), isNull(store.deletedAt)));
 
     if (!result) return null;
     return this.loadIntegrations(result);
@@ -209,7 +217,10 @@ export class StoreRepository extends BaseRepository {
 
   @ReadOnly()
   async getMany(): Promise<Store[]> {
-    const stores = await this.connection.select().from(store);
+    const stores = await this.connection
+      .select()
+      .from(store)
+      .where(isNull(store.deletedAt));
     return Promise.all(stores.map((s) => this.loadIntegrations(s)));
   }
 
@@ -218,7 +229,12 @@ export class StoreRepository extends BaseRepository {
     const stores = await this.connection
       .select({ id: store.id })
       .from(store)
-      .where(eq(store.organizationId, organizationId));
+      .where(
+        and(
+          eq(store.organizationId, organizationId),
+          isNull(store.deletedAt),
+        ),
+      );
     return stores.map((s) => s.id);
   }
 
@@ -227,7 +243,12 @@ export class StoreRepository extends BaseRepository {
     const stores = await this.connection
       .select()
       .from(store)
-      .where(eq(store.organizationId, organizationId));
+      .where(
+        and(
+          eq(store.organizationId, organizationId),
+          isNull(store.deletedAt),
+        ),
+      );
     return Promise.all(stores.map((s) => this.loadIntegrations(s)));
   }
 
@@ -272,6 +293,8 @@ export class StoreRepository extends BaseRepository {
       updateData.defaultWeightUnit = data.defaultWeightUnit;
     if (data.defaultDimensionUnit !== undefined)
       updateData.defaultDimensionUnit = data.defaultDimensionUnit;
+    if (data.unitSystem !== undefined)
+      updateData.unitSystem = data.unitSystem;
     if (data.defaultLocale !== undefined)
       updateData.defaultLocale = data.defaultLocale;
     if (data.currencyCode !== undefined)
@@ -280,7 +303,7 @@ export class StoreRepository extends BaseRepository {
     const [result] = await this.connection
       .update(store)
       .set(updateData)
-      .where(eq(store.id, id))
+      .where(and(eq(store.id, id), isNull(store.deletedAt)))
       .returning();
 
     if (!result) return null;
@@ -297,7 +320,7 @@ export class StoreRepository extends BaseRepository {
         deletedAt: now,
         updatedAt: now,
       })
-      .where(eq(store.id, id))
+      .where(and(eq(store.id, id), isNull(store.deletedAt)))
       .returning({ id: store.id });
 
     return result?.id ?? null;

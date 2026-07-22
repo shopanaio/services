@@ -427,11 +427,26 @@ export const CREATE_STORE_MUTATION = gql`
  * Requires store:write permission.
  */
 export const UPDATE_STORE_MUTATION = gql`
-  mutation UpdateStore($input: StoreUpdateInput!) {
+  mutation UpdateStore(
+    $storeId: ID!
+    $clientMutationId: String!
+    $operations: StoreUpdateInput
+  ) {
     storeMutation {
-      storeUpdate(input: $input) {
+      storeUpdate(
+        storeId: $storeId
+        clientMutationId: $clientMutationId
+        operations: $operations
+      ) {
         store {
           ...StoreFields
+        }
+        operationResults {
+          type
+          applied
+          errors {
+            ...UserErrorFields
+          }
         }
         userErrors {
           ...UserErrorFields

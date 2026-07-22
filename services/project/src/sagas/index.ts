@@ -10,13 +10,25 @@ import {
   type StoreDeleteOutput,
 } from "./StoreDeleteSaga.js";
 
-export { StoreCreateSaga, StoreDeleteSaga };
+import {
+  StoreUpdateSaga,
+  type StoreUpdateOperation,
+  type StoreUpdateOperationResult,
+  type StoreUpdateSagaInput,
+  type StoreUpdateSagaOutput,
+} from "./StoreUpdateSaga.js";
+
+export { StoreCreateSaga, StoreDeleteSaga, StoreUpdateSaga };
 
 export type {
   StoreCreateInput,
   StoreCreateOutput,
   StoreDeleteInput,
   StoreDeleteOutput,
+  StoreUpdateOperation,
+  StoreUpdateOperationResult,
+  StoreUpdateSagaInput,
+  StoreUpdateSagaOutput,
 };
 
-export const sagas = [StoreCreateSaga, StoreDeleteSaga];
+export const sagas = [StoreCreateSaga, StoreUpdateSaga, StoreDeleteSaga];

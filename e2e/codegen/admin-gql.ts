@@ -12,7 +12,11 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  /** Stable identifier of a catalog-owned authentication method. */
+  ApplicationAuthMethodId: { input: any; output: any; }
   BigInt: { input: any; output: any; }
+  /** Calendar date in ISO 8601 YYYY-MM-DD form. */
+  Date: { input: any; output: any; }
   /** ISO 8601 date-time string */
   DateTime: { input: string; output: string; }
   /** Valid email address */
@@ -114,6 +118,1007 @@ export type ApiApp = {
   name: Scalars['String']['output'];
 };
 
+/** An organization-owned application authentication realm. */
+export type ApiApplication = ApiNode & {
+  __typename?: 'Application';
+  /** Timestamp when the application was archived. */
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Authentication configuration for this application. */
+  auth: ApiApplicationAuthConfiguration;
+  /** Timestamp when the application was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Optional application description. */
+  description?: Maybe<Scalars['String']['output']>;
+  /** Human-readable application name. */
+  displayName: Scalars['String']['output'];
+  /** Globally unique application identifier. */
+  id: Scalars['ID']['output'];
+  /** Read-only resource lifecycle management metadata. */
+  management: ApiResourceManagement;
+  /** URL-friendly application name. */
+  name: Scalars['String']['output'];
+  /** Find an OAuth client by its public client identifier. */
+  oauthClient?: Maybe<ApiApplicationOAuthClient>;
+  /** OAuth clients registered for this application. */
+  oauthClients: ApiApplicationOAuthClientConnection;
+  /** Organization that owns the application. */
+  organization: ApiOrganization;
+  /** Identifier of the organization that owns the application. */
+  organizationId: Scalars['ID']['output'];
+  /** Immutable OAuth resource audience assigned by IAM. */
+  resource: Scalars['String']['output'];
+  /** Current revision used for optimistic concurrency. */
+  revision: Scalars['Int']['output'];
+  /** Current application lifecycle status. */
+  status: ApplicationLifecycleStatus;
+  /** Timestamp when the application was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Find a user within this application realm. */
+  user?: Maybe<ApiApplicationUser>;
+  /** Users registered within this application realm. */
+  users: ApiApplicationUserConnection;
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApiApplicationOauthClientArgs = {
+  clientId: Scalars['String']['input'];
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApiApplicationOauthClientsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiApplicationOAuthClientOrderByInput>>;
+  where?: InputMaybe<ApiApplicationOAuthClientWhereInput>;
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApiApplicationUserArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** An organization-owned application authentication realm. */
+export type ApiApplicationUsersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiApplicationUserOrderByInput>>;
+  where?: InputMaybe<ApiApplicationUserWhereInput>;
+};
+
+/** Input for archiving an application. */
+export type ApiApplicationArchiveInput = {
+  /** Application to archive. */
+  applicationId: Scalars['ID']['input'];
+  /** Revision expected by the caller. */
+  expectedRevision: Scalars['Int']['input'];
+  /** Organization that owns the application. */
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of archiving an application. */
+export type ApiApplicationArchivePayload = {
+  __typename?: 'ApplicationArchivePayload';
+  application?: Maybe<ApiApplication>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Allowed background colors for hosted authentication UI. */
+export type ApplicationAuthBackgroundColor =
+  | 'SLATE'
+  | 'WHITE';
+
+/** Branding values used by the hosted authentication UI. */
+export type ApiApplicationAuthBranding = {
+  __typename?: 'ApplicationAuthBranding';
+  backgroundColor?: Maybe<ApplicationAuthBackgroundColor>;
+  displayName?: Maybe<Scalars['String']['output']>;
+  headline?: Maybe<Scalars['String']['output']>;
+  logoUrl?: Maybe<Scalars['String']['output']>;
+  primaryColor?: Maybe<ApplicationAuthPrimaryColor>;
+};
+
+/** Branding values for the hosted authentication UI. */
+export type ApiApplicationAuthBrandingInput = {
+  backgroundColor?: InputMaybe<ApplicationAuthBackgroundColor>;
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  headline?: InputMaybe<Scalars['String']['input']>;
+  logoUrl?: InputMaybe<Scalars['String']['input']>;
+  primaryColor?: InputMaybe<ApplicationAuthPrimaryColor>;
+};
+
+/** Administrative authentication configuration of an application realm. */
+export type ApiApplicationAuthConfiguration = {
+  __typename?: 'ApplicationAuthConfiguration';
+  /** Access token lifetime in seconds. */
+  accessTokenTtlSeconds: Scalars['Int']['output'];
+  /** Application that owns this configuration. */
+  applicationId: Scalars['ID']['output'];
+  /** Find an authentication method by its catalog identifier. */
+  authMethod: ApiApplicationAuthMethod;
+  /** Authentication methods supported by the realm. */
+  authMethods: Array<ApiApplicationAuthMethod>;
+  /** Hosted authentication UI branding. */
+  branding: ApiApplicationAuthBranding;
+  /** Read-only consent policy enforced by the protocol version. */
+  consentMode: ApplicationConsentMode;
+  /** Timestamp when the configuration was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Default locale for hosted authentication UI and messages. */
+  defaultLocale: LocaleCode;
+  /** Email delivery configuration without credential values. */
+  emailDelivery: ApiApplicationAuthEmailDeliveryConfiguration;
+  /** Whether a verified email is required by the realm. */
+  emailVerificationRequired: Scalars['Boolean']['output'];
+  /** ID token lifetime in seconds. */
+  idTokenTtlSeconds: Scalars['Int']['output'];
+  /** Canonical OAuth 2.1 and OpenID Connect endpoint URLs. */
+  protocolUrls: ApiApplicationAuthProtocolUrls;
+  /** Find a social provider by its catalog name. */
+  provider: ApiApplicationAuthProvider;
+  /** Social providers supported by the realm. */
+  providers: Array<ApiApplicationAuthProvider>;
+  /** Whether the application realm accepts authentication traffic. */
+  realmEnabled: Scalars['Boolean']['output'];
+  /** Refresh token lifetime in seconds. */
+  refreshTokenTtlSeconds: Scalars['Int']['output'];
+  /** Registration policy for new application users. */
+  registrationMode: ApplicationRegistrationMode;
+  /** Current revision used for optimistic concurrency. */
+  revision: Scalars['Int']['output'];
+  /** Application session lifetime in seconds. */
+  sessionTtlSeconds: Scalars['Int']['output'];
+  /** Locales supported by the application realm. */
+  supportedLocales: Array<LocaleCode>;
+  /** Origins trusted by the application realm. */
+  trustedOrigins: Array<ApiApplicationAuthTrustedOrigin>;
+  /** Timestamp when the configuration was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** Administrative authentication configuration of an application realm. */
+export type ApiApplicationAuthConfigurationAuthMethodArgs = {
+  id: Scalars['ApplicationAuthMethodId']['input'];
+};
+
+
+/** Administrative authentication configuration of an application realm. */
+export type ApiApplicationAuthConfigurationProviderArgs = {
+  name: ApplicationAuthProviderName;
+};
+
+/** Non-secret email delivery configuration for an application realm. */
+export type ApiApplicationAuthEmailDeliveryConfiguration = {
+  __typename?: 'ApplicationAuthEmailDeliveryConfiguration';
+  configured: Scalars['Boolean']['output'];
+  emailOtpSignInTemplateId?: Maybe<Scalars['String']['output']>;
+  emailVerificationTemplateId?: Maybe<Scalars['String']['output']>;
+  passwordResetTemplateId?: Maybe<Scalars['String']['output']>;
+  senderIdentity?: Maybe<Scalars['String']['output']>;
+  transportProfile?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<Scalars['ID']['output']>;
+};
+
+/** References to a preconfigured email transport and message templates. */
+export type ApiApplicationAuthEmailDeliveryInput = {
+  emailOtpSignInTemplateId: Scalars['String']['input'];
+  emailVerificationTemplateId: Scalars['String']['input'];
+  passwordResetTemplateId: Scalars['String']['input'];
+  senderIdentity: Scalars['String']['input'];
+  transportProfile: Scalars['String']['input'];
+};
+
+/** Status and enabled capabilities of a catalog-owned authentication method. */
+export type ApiApplicationAuthMethod = {
+  __typename?: 'ApplicationAuthMethod';
+  availableCapabilities: Array<ApplicationAuthMethodCapability>;
+  configured: Scalars['Boolean']['output'];
+  enabledCapabilities: Array<ApplicationAuthMethodCapability>;
+  id: Scalars['ApplicationAuthMethodId']['output'];
+  revision: Scalars['Int']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<Scalars['ID']['output']>;
+};
+
+/** Capability exposed by an authentication method. */
+export type ApplicationAuthMethodCapability =
+  | 'PASSWORD_RESET'
+  | 'SIGN_IN'
+  | 'SIGN_UP';
+
+/** Result of updating an application authentication method. */
+export type ApiApplicationAuthMethodPayload = {
+  __typename?: 'ApplicationAuthMethodPayload';
+  authMethod?: Maybe<ApiApplicationAuthMethod>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating enabled capabilities of an authentication method. */
+export type ApiApplicationAuthMethodUpdateInput = {
+  applicationId: Scalars['ID']['input'];
+  enabledCapabilities: Array<ApplicationAuthMethodCapability>;
+  expectedRevision: Scalars['Int']['input'];
+  methodId: Scalars['ApplicationAuthMethodId']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Allowed primary colors for hosted authentication UI. */
+export type ApplicationAuthPrimaryColor =
+  | 'BLUE'
+  | 'EMERALD'
+  | 'INDIGO'
+  | 'VIOLET';
+
+/** Canonical OAuth 2.1 and OpenID Connect URLs for an application realm. */
+export type ApiApplicationAuthProtocolUrls = {
+  __typename?: 'ApplicationAuthProtocolUrls';
+  authorizationUrl: Scalars['String']['output'];
+  endSessionUrl: Scalars['String']['output'];
+  issuer: Scalars['String']['output'];
+  jwksUrl: Scalars['String']['output'];
+  oauthAuthorizationServerMetadataUrl: Scalars['String']['output'];
+  oidcDiscoveryUrl: Scalars['String']['output'];
+  providerCallbackUrls: Array<ApiApplicationAuthProviderCallbackUrl>;
+  revocationUrl: Scalars['String']['output'];
+  tokenUrl: Scalars['String']['output'];
+};
+
+/** Non-secret status of a social authentication provider. */
+export type ApiApplicationAuthProvider = {
+  __typename?: 'ApplicationAuthProvider';
+  applicationId: Scalars['ID']['output'];
+  /** Exact callback URL computed by IAM. */
+  callbackUrl: Scalars['String']['output'];
+  configured: Scalars['Boolean']['output'];
+  enabled: Scalars['Boolean']['output'];
+  /** Masked client identifier safe for administrative display. */
+  maskedClientId?: Maybe<Scalars['String']['output']>;
+  provider: ApplicationAuthProviderName;
+  revision: Scalars['Int']['output'];
+  scopes: Array<Scalars['String']['output']>;
+  supported: Scalars['Boolean']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<Scalars['ID']['output']>;
+};
+
+/** Computed callback URL for a catalog-owned social provider. */
+export type ApiApplicationAuthProviderCallbackUrl = {
+  __typename?: 'ApplicationAuthProviderCallbackUrl';
+  provider: ApplicationAuthProviderName;
+  url: Scalars['String']['output'];
+};
+
+/** Input for configuring credentials and scopes of a social provider. */
+export type ApiApplicationAuthProviderConfigureInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  clientSecret: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+  scopes: Array<Scalars['String']['input']>;
+};
+
+/** Input for deleting credentials from a disabled social provider. */
+export type ApiApplicationAuthProviderCredentialsDeleteInput = {
+  applicationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+};
+
+/** Input for replacing social provider credentials. */
+export type ApiApplicationAuthProviderCredentialsRotateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  clientSecret: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+};
+
+/** Social authentication providers supported by the code-owned catalog. */
+export type ApplicationAuthProviderName =
+  | 'FACEBOOK'
+  | 'GOOGLE';
+
+/** Result of changing a social provider configuration. */
+export type ApiApplicationAuthProviderPayload = {
+  __typename?: 'ApplicationAuthProviderPayload';
+  provider?: Maybe<ApiApplicationAuthProvider>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating non-secret social provider settings. */
+export type ApiApplicationAuthProviderUpdateInput = {
+  applicationId: Scalars['ID']['input'];
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+  scopes?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Input for safely validating a social provider configuration. */
+export type ApiApplicationAuthProviderValidateInput = {
+  applicationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  provider: ApplicationAuthProviderName;
+};
+
+/** Safe validation result for a social provider configuration. */
+export type ApiApplicationAuthProviderValidation = {
+  __typename?: 'ApplicationAuthProviderValidation';
+  checkedAt: Scalars['DateTime']['output'];
+  provider: ApplicationAuthProviderName;
+  /** Stable non-secret reason code when validation did not succeed. */
+  reasonCode?: Maybe<Scalars['String']['output']>;
+  revision: Scalars['Int']['output'];
+  status: ApplicationAuthProviderValidationStatus;
+};
+
+/** Result of validating a social provider configuration. */
+export type ApiApplicationAuthProviderValidationPayload = {
+  __typename?: 'ApplicationAuthProviderValidationPayload';
+  userErrors: Array<ApiGenericUserError>;
+  validation?: Maybe<ApiApplicationAuthProviderValidation>;
+};
+
+/** Result status of a safe provider configuration validation. */
+export type ApplicationAuthProviderValidationStatus =
+  | 'INVALID'
+  | 'UNAVAILABLE'
+  | 'VALID';
+
+/** Input for enabling or disabling an application realm. */
+export type ApiApplicationAuthRealmEnabledSetInput = {
+  applicationId: Scalars['ID']['input'];
+  enabled: Scalars['Boolean']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** An exact origin trusted by an application realm. */
+export type ApiApplicationAuthTrustedOrigin = {
+  __typename?: 'ApplicationAuthTrustedOrigin';
+  createdAt: Scalars['DateTime']['output'];
+  origin: Scalars['String']['output'];
+};
+
+/** Input for updating application authentication policy and presentation. */
+export type ApiApplicationAuthUpdateInput = {
+  accessTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  applicationId: Scalars['ID']['input'];
+  branding?: InputMaybe<ApiApplicationAuthBrandingInput>;
+  defaultLocale?: InputMaybe<LocaleCode>;
+  emailDelivery?: InputMaybe<ApiApplicationAuthEmailDeliveryInput>;
+  emailVerificationRequired?: InputMaybe<Scalars['Boolean']['input']>;
+  expectedRevision: Scalars['Int']['input'];
+  idTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  organizationId: Scalars['ID']['input'];
+  refreshTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  registrationMode?: InputMaybe<ApplicationRegistrationMode>;
+  sessionTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
+  trustedOrigins?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Result of updating application authentication configuration. */
+export type ApiApplicationAuthUpdatePayload = {
+  __typename?: 'ApplicationAuthUpdatePayload';
+  configuration?: Maybe<ApiApplicationAuthConfiguration>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A paginated connection of applications. */
+export type ApiApplicationConnection = {
+  __typename?: 'ApplicationConnection';
+  /** Application edges in the current page. */
+  edges: Array<ApiApplicationEdge>;
+  /** Information needed to continue pagination. */
+  pageInfo: ApiPageInfo;
+  /** Total number of applications matching the filter. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Consent policy supported by the current protocol version. */
+export type ApplicationConsentMode =
+  /** Authorization requires explicit user consent when consent is applicable. */
+  | 'EXPLICIT';
+
+/** Input for creating an application. */
+export type ApiApplicationCreateInput = {
+  /** Optional application description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** Human-readable application name. */
+  displayName: Scalars['String']['input'];
+  /** URL-friendly application name. */
+  name: Scalars['String']['input'];
+  /** Organization that will own the application. */
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of creating an application. */
+export type ApiApplicationCreatePayload = {
+  __typename?: 'ApplicationCreatePayload';
+  application?: Maybe<ApiApplication>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** An application and its pagination cursor. */
+export type ApiApplicationEdge = {
+  __typename?: 'ApplicationEdge';
+  /** Opaque pagination cursor. */
+  cursor: Scalars['String']['output'];
+  /** Application at the end of the edge. */
+  node: ApiApplication;
+};
+
+/** Lifecycle status of an application realm. */
+export type ApplicationLifecycleStatus =
+  /** The application is active. */
+  | 'ACTIVE'
+  /** The application is archived and cannot be used for new authentication. */
+  | 'ARCHIVED';
+
+/** Application realm management mutations. */
+export type ApiApplicationMutation = {
+  __typename?: 'ApplicationMutation';
+  /** Archive an application realm. */
+  applicationArchive: ApiApplicationArchivePayload;
+  /** Update enabled capabilities of an authentication method. */
+  applicationAuthMethodUpdate: ApiApplicationAuthMethodPayload;
+  /** Configure credentials and scopes of a social provider. */
+  applicationAuthProviderConfigure: ApiApplicationAuthProviderPayload;
+  /** Delete credentials from a disabled social provider. */
+  applicationAuthProviderCredentialsDelete: ApiApplicationAuthProviderPayload;
+  /** Replace social provider credentials. */
+  applicationAuthProviderCredentialsRotate: ApiApplicationAuthProviderPayload;
+  /** Update non-secret social provider settings. */
+  applicationAuthProviderUpdate: ApiApplicationAuthProviderPayload;
+  /** Safely validate a social provider configuration. */
+  applicationAuthProviderValidate: ApiApplicationAuthProviderValidationPayload;
+  /** Enable or disable an application authentication realm. */
+  applicationAuthRealmEnabledSet: ApiApplicationAuthUpdatePayload;
+  /** Update application authentication policy and presentation. */
+  applicationAuthUpdate: ApiApplicationAuthUpdatePayload;
+  /** Create an application realm. */
+  applicationCreate: ApiApplicationCreatePayload;
+  /** Archive an OAuth client. */
+  applicationOAuthClientArchive: ApiApplicationOAuthClientPayload;
+  /** Create an OAuth client with fixed protocol policy. */
+  applicationOAuthClientCreate: ApiApplicationOAuthClientCreatePayload;
+  /** Enable or disable an OAuth client. */
+  applicationOAuthClientEnabledSet: ApiApplicationOAuthClientPayload;
+  /** Rotate a confidential OAuth client secret. */
+  applicationOAuthClientSecretRotate: ApiApplicationOAuthClientSecretRotatePayload;
+  /** Change first-party consent bypass policy for an OAuth client. */
+  applicationOAuthClientSkipConsentSet: ApiApplicationOAuthClientPayload;
+  /** Update mutable OAuth client metadata. */
+  applicationOAuthClientUpdate: ApiApplicationOAuthClientPayload;
+  /** Update application metadata. */
+  applicationUpdate: ApiApplicationUpdatePayload;
+  /** Unlink a login account from an application user. */
+  applicationUserAccountUnlink: ApiApplicationUserAccountUnlinkPayload;
+  /** Block an application user. */
+  applicationUserBlock: ApiApplicationUserPayload;
+  /** Revoke every active session of an application user. */
+  applicationUserSessionsRevokeAll: ApiApplicationUserSessionsRevokeAllPayload;
+  /** Unblock an application user. */
+  applicationUserUnblock: ApiApplicationUserPayload;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationArchiveArgs = {
+  input: ApiApplicationArchiveInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthMethodUpdateArgs = {
+  input: ApiApplicationAuthMethodUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderConfigureArgs = {
+  input: ApiApplicationAuthProviderConfigureInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderCredentialsDeleteArgs = {
+  input: ApiApplicationAuthProviderCredentialsDeleteInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderCredentialsRotateArgs = {
+  input: ApiApplicationAuthProviderCredentialsRotateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderUpdateArgs = {
+  input: ApiApplicationAuthProviderUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthProviderValidateArgs = {
+  input: ApiApplicationAuthProviderValidateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthRealmEnabledSetArgs = {
+  input: ApiApplicationAuthRealmEnabledSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationAuthUpdateArgs = {
+  input: ApiApplicationAuthUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationCreateArgs = {
+  input: ApiApplicationCreateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientArchiveArgs = {
+  input: ApiApplicationOAuthClientArchiveInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientCreateArgs = {
+  input: ApiApplicationOAuthClientCreateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientEnabledSetArgs = {
+  input: ApiApplicationOAuthClientEnabledSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientSecretRotateArgs = {
+  input: ApiApplicationOAuthClientSecretRotateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientSkipConsentSetArgs = {
+  input: ApiApplicationOAuthClientSkipConsentSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationOAuthClientUpdateArgs = {
+  input: ApiApplicationOAuthClientUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUpdateArgs = {
+  input: ApiApplicationUpdateInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUserAccountUnlinkArgs = {
+  input: ApiApplicationUserAccountUnlinkInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUserBlockArgs = {
+  input: ApiApplicationUserStatusSetInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUserSessionsRevokeAllArgs = {
+  input: ApiApplicationUserSessionsRevokeAllInput;
+};
+
+
+/** Application realm management mutations. */
+export type ApiApplicationMutationApplicationUserUnblockArgs = {
+  input: ApiApplicationUserStatusSetInput;
+};
+
+/** An OAuth 2.1 client registered within an application realm. */
+export type ApiApplicationOAuthClient = ApiNode & {
+  __typename?: 'ApplicationOAuthClient';
+  applicationId: Scalars['ID']['output'];
+  archived: Scalars['Boolean']['output'];
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Public, globally unique OAuth client identifier. */
+  clientId: Scalars['String']['output'];
+  clientType: ApplicationOAuthClientType;
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: Scalars['ID']['output'];
+  disabled: Scalars['Boolean']['output'];
+  enableEndSession: Scalars['Boolean']['output'];
+  environment: ApplicationOAuthClientEnvironment;
+  /** Read-only grant types enforced by the protocol policy. */
+  grantTypes: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  organizationId: Scalars['ID']['output'];
+  postLogoutRedirectUris: Array<Scalars['String']['output']>;
+  protocolPolicyVersion: Scalars['Int']['output'];
+  redirectUris: Array<Scalars['String']['output']>;
+  /** Whether Proof Key for Code Exchange is required. */
+  requirePkce: Scalars['Boolean']['output'];
+  /** Read-only resource audience inherited from the application. */
+  resources: Array<Scalars['String']['output']>;
+  /** Read-only response types enforced by the protocol policy. */
+  responseTypes: Array<Scalars['String']['output']>;
+  revision: Scalars['Int']['output'];
+  skipConsent: Scalars['Boolean']['output'];
+  tokenEndpointAuthMethod: ApplicationOAuthTokenEndpointAuthMethod;
+  updatedAt: Scalars['DateTime']['output'];
+  updatedBy: Scalars['ID']['output'];
+};
+
+/** Input for archiving an OAuth client. */
+export type ApiApplicationOAuthClientArchiveInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** A paginated connection of OAuth clients. */
+export type ApiApplicationOAuthClientConnection = {
+  __typename?: 'ApplicationOAuthClientConnection';
+  edges: Array<ApiApplicationOAuthClientEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Input for creating an OAuth client with fixed protocol policy. */
+export type ApiApplicationOAuthClientCreateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientType: ApplicationOAuthClientType;
+  enableEndSession?: InputMaybe<Scalars['Boolean']['input']>;
+  environment: ApplicationOAuthClientEnvironment;
+  name: Scalars['String']['input'];
+  organizationId: Scalars['ID']['input'];
+  postLogoutRedirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
+  redirectUris: Array<Scalars['String']['input']>;
+  skipConsent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Result of creating an OAuth client. */
+export type ApiApplicationOAuthClientCreatePayload = {
+  __typename?: 'ApplicationOAuthClientCreatePayload';
+  client?: Maybe<ApiApplicationOAuthClient>;
+  /** One-time plaintext secret for a confidential client; otherwise null. */
+  clientSecret?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** An OAuth client and its pagination cursor. */
+export type ApiApplicationOAuthClientEdge = {
+  __typename?: 'ApplicationOAuthClientEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiApplicationOAuthClient;
+};
+
+/** Input for enabling or disabling an OAuth client. */
+export type ApiApplicationOAuthClientEnabledSetInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Environment used to enforce redirect URI policy. */
+export type ApplicationOAuthClientEnvironment =
+  | 'DEVELOPMENT'
+  | 'PRODUCTION';
+
+/** Ordering configuration for application OAuth clients. */
+export type ApiApplicationOAuthClientOrderByInput = {
+  direction: SortDirection;
+  field: ApplicationOAuthClientOrderField;
+};
+
+/** Fields available for ordering application OAuth clients. */
+export type ApplicationOAuthClientOrderField =
+  | 'CREATED_AT'
+  | 'NAME'
+  | 'UPDATED_AT';
+
+/** Result of changing an OAuth client. */
+export type ApiApplicationOAuthClientPayload = {
+  __typename?: 'ApplicationOAuthClientPayload';
+  client?: Maybe<ApiApplicationOAuthClient>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for rotating a confidential OAuth client secret. */
+export type ApiApplicationOAuthClientSecretRotateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of rotating a confidential OAuth client secret. */
+export type ApiApplicationOAuthClientSecretRotatePayload = {
+  __typename?: 'ApplicationOAuthClientSecretRotatePayload';
+  client?: Maybe<ApiApplicationOAuthClient>;
+  /** One-time plaintext replacement secret. */
+  clientSecret?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for changing first-party consent bypass policy. */
+export type ApiApplicationOAuthClientSkipConsentSetInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+  skipConsent: Scalars['Boolean']['input'];
+};
+
+/** OAuth client confidentiality classification. */
+export type ApplicationOAuthClientType =
+  | 'CONFIDENTIAL'
+  | 'PUBLIC';
+
+/** Input for updating mutable OAuth client metadata. */
+export type ApiApplicationOAuthClientUpdateInput = {
+  applicationId: Scalars['ID']['input'];
+  clientId: Scalars['String']['input'];
+  enableEndSession?: InputMaybe<Scalars['Boolean']['input']>;
+  environment?: InputMaybe<ApplicationOAuthClientEnvironment>;
+  expectedRevision: Scalars['Int']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  organizationId: Scalars['ID']['input'];
+  postLogoutRedirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
+  redirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Filter conditions for application OAuth clients. */
+export type ApiApplicationOAuthClientWhereInput = {
+  archived?: InputMaybe<Scalars['Boolean']['input']>;
+  clientType?: InputMaybe<Array<ApplicationOAuthClientType>>;
+  disabled?: InputMaybe<Scalars['Boolean']['input']>;
+  environment?: InputMaybe<Array<ApplicationOAuthClientEnvironment>>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Token endpoint authentication method enforced by IAM. */
+export type ApplicationOAuthTokenEndpointAuthMethod =
+  | 'CLIENT_SECRET_BASIC'
+  | 'NONE';
+
+/** Ordering configuration for applications. */
+export type ApiApplicationOrderByInput = {
+  /** Sort direction. */
+  direction: SortDirection;
+  /** Field to order by. */
+  field: ApplicationOrderField;
+};
+
+/** Fields available for ordering applications. */
+export type ApplicationOrderField =
+  | 'CREATED_AT'
+  | 'DISPLAY_NAME'
+  | 'NAME'
+  | 'UPDATED_AT';
+
+/** Application realm management queries. */
+export type ApiApplicationQuery = {
+  __typename?: 'ApplicationQuery';
+  /** Get an application owned by the selected organization. */
+  application?: Maybe<ApiApplication>;
+  /** List applications owned by the selected organization. */
+  applications: ApiApplicationConnection;
+};
+
+
+/** Application realm management queries. */
+export type ApiApplicationQueryApplicationArgs = {
+  id: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+
+/** Application realm management queries. */
+export type ApiApplicationQueryApplicationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiApplicationOrderByInput>>;
+  organizationId: Scalars['ID']['input'];
+  where?: InputMaybe<ApiApplicationWhereInput>;
+};
+
+/** Registration policy for new application users. */
+export type ApplicationRegistrationMode =
+  /** New user registration is disabled. */
+  | 'DISABLED'
+  /** New users may register through enabled sign-up methods. */
+  | 'OPEN';
+
+/** Input for updating application metadata. */
+export type ApiApplicationUpdateInput = {
+  /** Application to update. */
+  applicationId: Scalars['ID']['input'];
+  /** New application description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** New human-readable application name. */
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  /** Revision expected by the caller. */
+  expectedRevision: Scalars['Int']['input'];
+  /** New URL-friendly application name. */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** Organization that owns the application. */
+  organizationId: Scalars['ID']['input'];
+};
+
+/** Result of updating application metadata. */
+export type ApiApplicationUpdatePayload = {
+  __typename?: 'ApplicationUpdatePayload';
+  application?: Maybe<ApiApplication>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A user scoped to a single application authentication realm. */
+export type ApiApplicationUser = ApiNode & {
+  __typename?: 'ApplicationUser';
+  applicationId: Scalars['ID']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  email: Scalars['Email']['output'];
+  emailVerified: Scalars['Boolean']['output'];
+  firstName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  imageUrl?: Maybe<Scalars['String']['output']>;
+  lastName?: Maybe<Scalars['String']['output']>;
+  /** Linked login accounts without provider credentials or tokens. */
+  linkedAccounts: Array<ApiApplicationUserLinkedAccount>;
+  name: Scalars['String']['output'];
+  /** Safe security metadata without credentials or token values. */
+  security: ApiApplicationUserSecurityMetadata;
+  status: ApplicationUserStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Input for unlinking a login account from an application user. */
+export type ApiApplicationUserAccountUnlinkInput = {
+  accountId: Scalars['ID']['input'];
+  applicationId: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+/** Result of unlinking an application user login account. */
+export type ApiApplicationUserAccountUnlinkPayload = {
+  __typename?: 'ApplicationUserAccountUnlinkPayload';
+  unlinkedAccountId?: Maybe<Scalars['ID']['output']>;
+  user?: Maybe<ApiApplicationUser>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A paginated connection of application users. */
+export type ApiApplicationUserConnection = {
+  __typename?: 'ApplicationUserConnection';
+  edges: Array<ApiApplicationUserEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An application user and its pagination cursor. */
+export type ApiApplicationUserEdge = {
+  __typename?: 'ApplicationUserEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiApplicationUser;
+};
+
+/** A login account linked to an application user. */
+export type ApiApplicationUserLinkedAccount = ApiNode & {
+  __typename?: 'ApplicationUserLinkedAccount';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  /** Whether unlinking this account would remove the user's last login method. */
+  isOnlyLoginMethod: Scalars['Boolean']['output'];
+  provider: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Ordering configuration for application users. */
+export type ApiApplicationUserOrderByInput = {
+  direction: SortDirection;
+  field: ApplicationUserOrderField;
+};
+
+/** Fields available for ordering application users. */
+export type ApplicationUserOrderField =
+  | 'CREATED_AT'
+  | 'EMAIL'
+  | 'NAME'
+  | 'UPDATED_AT';
+
+/** Result of changing an application user's security status. */
+export type ApiApplicationUserPayload = {
+  __typename?: 'ApplicationUserPayload';
+  user?: Maybe<ApiApplicationUser>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Safe aggregate security metadata for an application user. */
+export type ApiApplicationUserSecurityMetadata = {
+  __typename?: 'ApplicationUserSecurityMetadata';
+  activeSessionCount: Scalars['Int']['output'];
+  hasPasswordLogin: Scalars['Boolean']['output'];
+  linkedAccountCount: Scalars['Int']['output'];
+};
+
+/** Input for revoking every session of an application user. */
+export type ApiApplicationUserSessionsRevokeAllInput = {
+  applicationId: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+/** Result of revoking every session of an application user. */
+export type ApiApplicationUserSessionsRevokeAllPayload = {
+  __typename?: 'ApplicationUserSessionsRevokeAllPayload';
+  revokedCount: Scalars['Int']['output'];
+  user?: Maybe<ApiApplicationUser>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Administrative security status of an application user. */
+export type ApplicationUserStatus =
+  | 'ACTIVE'
+  | 'BLOCKED';
+
+/** Input for blocking or unblocking an application user. */
+export type ApiApplicationUserStatusSetInput = {
+  applicationId: Scalars['ID']['input'];
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+/** Filter conditions for application users. */
+export type ApiApplicationUserWhereInput = {
+  emailVerified?: InputMaybe<Scalars['Boolean']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Array<ApplicationUserStatus>>;
+};
+
+/** Filter conditions for applications. */
+export type ApiApplicationWhereInput = {
+  /** Search by application name or display name. */
+  search?: InputMaybe<Scalars['String']['input']>;
+  /** Limit results to the selected lifecycle statuses. */
+  status?: InputMaybe<Array<ApplicationLifecycleStatus>>;
+};
+
 export type ApiAppsMutation = {
   __typename?: 'AppsMutation';
   /** Install app */
@@ -199,6 +1204,11 @@ export type ApiAuthorizePayload = {
   deniedReason?: Maybe<Scalars['String']['output']>;
 };
 
+export type AutomaticFulfillmentMode =
+  | 'ALL_LINE_ITEMS'
+  | 'DISABLED'
+  | 'GIFT_CARDS_ONLY';
+
 /** Input for uploading avatar or logo. */
 export type ApiAvatarUploadInput = {
   /** The file to upload. */
@@ -217,6 +1227,20 @@ export type ApiAvatarUploadPayload = {
   file?: Maybe<ApiFile>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiBigIntFilter = {
+  _between?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  _eq?: InputMaybe<Scalars['BigInt']['input']>;
+  _gt?: InputMaybe<Scalars['BigInt']['input']>;
+  _gte?: InputMaybe<Scalars['BigInt']['input']>;
+  _in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['BigInt']['input']>;
+  _lte?: InputMaybe<Scalars['BigInt']['input']>;
+  _neq?: InputMaybe<Scalars['BigInt']['input']>;
+  _notIn?: InputMaybe<Array<Scalars['BigInt']['input']>>;
 };
 
 /** Filter operators for Boolean fields */
@@ -2535,19 +3559,6 @@ export type CountryCode =
   /** Zimbabwe */
   | 'ZW';
 
-/** Currency configuration for the project */
-export type ApiCurrency = {
-  __typename?: 'Currency';
-  /** ISO 4217 currency code */
-  code: CurrencyCode;
-  /** Exchange rate relative to the base currency */
-  exchangeRate: ApiExchangeRate;
-  /** Whether this currency is currently active for the project */
-  isActive: Scalars['Boolean']['output'];
-  /** Display name of the currency */
-  name: Scalars['String']['output'];
-};
-
 /** Currency codes according to ISO 4217 */
 export type CurrencyCode =
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
@@ -2873,56 +3884,2485 @@ export type CurrencyCode =
   /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
   | 'ZWL';
 
-/** Input for creating a new currency */
-export type ApiCurrencyCreateInput = {
-  /** ISO 4217 currency code to add */
-  code: CurrencyCode;
-  /** Whether the currency should be active upon creation */
-  isActive: Scalars['Boolean']['input'];
-};
+export type CurrencyDisplay =
+  | 'CODE'
+  | 'NAME'
+  | 'NARROW_SYMBOL'
+  | 'SYMBOL';
 
-/** Payload returned after creating a currency */
-export type ApiCurrencyCreatePayload = {
-  __typename?: 'CurrencyCreatePayload';
-  /** The newly created currency, null if creation failed */
-  currency?: Maybe<ApiCurrency>;
-  /** List of errors that occurred during creation */
-  userErrors: Array<ApiUserError>;
-};
+export type CurrencyGrouping =
+  | 'ALWAYS'
+  | 'AUTO'
+  | 'MIN2'
+  | 'NEVER';
 
-/** Input for deleting a currency */
-export type ApiCurrencyDeleteInput = {
-  /** ISO 4217 currency code to delete */
-  code: CurrencyCode;
-};
+export type CurrencyRoundingMode =
+  | 'CEIL'
+  | 'EXPAND'
+  | 'FLOOR'
+  | 'HALF_CEIL'
+  | 'HALF_EVEN'
+  | 'HALF_EXPAND'
+  | 'HALF_FLOOR'
+  | 'HALF_TRUNC'
+  | 'TRUNC';
 
-/** Payload returned after deleting a currency */
-export type ApiCurrencyDeletePayload = {
-  __typename?: 'CurrencyDeletePayload';
-  /** The code of the deleted currency, null if deletion failed */
-  deletedCurrencyCode?: Maybe<CurrencyCode>;
-  /** List of errors that occurred during deletion */
-  userErrors: Array<ApiUserError>;
-};
+export type CurrencySign =
+  | 'ACCOUNTING'
+  | 'STANDARD';
 
-/** Input for setting the default currency */
-export type ApiCurrencySetDefaultInput = {
-  /** ISO 4217 currency code to set as default */
-  currency: CurrencyCode;
-};
+export type CurrencySignDisplay =
+  | 'ALWAYS'
+  | 'AUTO'
+  | 'EXCEPT_ZERO'
+  | 'NEGATIVE'
+  | 'NEVER';
 
-/** Payload returned after updating currency settings */
-export type ApiCurrencyUpdatePayload = {
-  __typename?: 'CurrencyUpdatePayload';
-  /** Whether the update was successful */
-  success: Scalars['Boolean']['output'];
-  /** List of errors that occurred during update */
-  userErrors: Array<ApiUserError>;
-};
+export type CurrencyTrailingZeroDisplay =
+  | 'AUTO'
+  | 'STRIP_IF_INTEGER';
 
-export type ApiCustomer = {
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomer = ApiNode & {
   __typename?: 'Customer';
+  accountStatus: CustomerAccountStatus;
+  addresses: ApiCustomerAddressConnection;
+  /** Reason the customer is currently blocked. Null for other lifecycle states. */
+  blockedReason?: Maybe<Scalars['String']['output']>;
+  companyName?: Maybe<Scalars['String']['output']>;
+  /** At most one current consent record per channel. */
+  consents: Array<ApiCustomerConsent>;
+  createdAt: Scalars['DateTime']['output'];
+  createdByUserId?: Maybe<Scalars['String']['output']>;
+  dateOfBirth?: Maybe<Scalars['Date']['output']>;
+  defaultBillingAddress?: Maybe<ApiCustomerAddress>;
+  defaultShippingAddress?: Maybe<ApiCustomerAddress>;
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  displayName: Scalars['String']['output'];
+  email?: Maybe<Scalars['Email']['output']>;
+  emailVerified: Scalars['Boolean']['output'];
+  firstName?: Maybe<Scalars['String']['output']>;
+  gender?: Maybe<Scalars['String']['output']>;
+  groupMemberships: ApiCustomerGroupMembershipConnection;
+  /** Opaque IAM principal identifier. Null for guests and imported profiles. */
+  iamPrincipalId?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  jobTitle?: Maybe<Scalars['String']['output']>;
+  lastActivityAt?: Maybe<Scalars['DateTime']['output']>;
+  lastName?: Maybe<Scalars['String']['output']>;
+  lifecycleStatus: CustomerLifecycleStatus;
+  mergedInto?: Maybe<ApiCustomer>;
+  middleName?: Maybe<Scalars['String']['output']>;
+  /** Internal moderation context visible only to administrators. */
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  monetaryStatistics: ApiCustomerMonetaryStatisticsConnection;
+  note?: Maybe<Scalars['String']['output']>;
+  phoneE164?: Maybe<Scalars['String']['output']>;
+  phoneVerified: Scalars['Boolean']['output'];
+  preferredLocale?: Maybe<Scalars['String']['output']>;
+  prefix?: Maybe<Scalars['String']['output']>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  revision: Scalars['Int']['output'];
+  segmentMemberships: ApiCustomerSegmentMembershipConnection;
+  source: Scalars['String']['output'];
+  statistics?: Maybe<ApiCustomerStatistics>;
+  suffix?: Maybe<Scalars['String']['output']>;
+  tagAssignments: ApiCustomerTagAssignmentConnection;
+  taxExemptions: ApiCustomerTaxExemptionConnection;
+  taxIdentifiers: ApiCustomerTaxIdentifierConnection;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerAddressesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerAddressOrderByInput>>;
+  where?: InputMaybe<ApiCustomerAddressWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerGroupMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerGroupMembershipOrderByInput>>;
+  where?: InputMaybe<ApiCustomerGroupMembershipWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerMonetaryStatisticsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerMonetaryStatisticsOrderByInput>>;
+  where?: InputMaybe<ApiCustomerMonetaryStatisticsWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerSegmentMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerSegmentMembershipOrderByInput>>;
+  where?: InputMaybe<ApiCustomerSegmentMembershipWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerTagAssignmentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTagAssignmentOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTagAssignmentWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerTaxExemptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTaxExemptionOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTaxExemptionWhereInput>;
+};
+
+
+/** A store-scoped customer business profile owned by Customers. */
+export type ApiCustomerTaxIdentifiersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTaxIdentifierOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTaxIdentifierWhereInput>;
+};
+
+export type CustomerAccountStatus =
+  | 'GUEST'
+  | 'INVITED'
+  | 'REGISTERED';
+
+export type ApiCustomerAccountStatusFilter = {
+  _eq?: InputMaybe<CustomerAccountStatus>;
+  _in?: InputMaybe<Array<CustomerAccountStatus>>;
+  _neq?: InputMaybe<CustomerAccountStatus>;
+  _notIn?: InputMaybe<Array<CustomerAccountStatus>>;
+};
+
+export type ApiCustomerAddress = ApiNode & {
+  __typename?: 'CustomerAddress';
+  address1: Scalars['String']['output'];
+  address2?: Maybe<Scalars['String']['output']>;
+  city: Scalars['String']['output'];
+  companyName?: Maybe<Scalars['String']['output']>;
+  /** Uppercase ISO 3166-1 alpha-2 code. */
+  countryCode: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  firstName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isDefaultBilling: Scalars['Boolean']['output'];
+  isDefaultShipping: Scalars['Boolean']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  lastName?: Maybe<Scalars['String']['output']>;
+  latitude?: Maybe<Scalars['Float']['output']>;
+  longitude?: Maybe<Scalars['Float']['output']>;
+  middleName?: Maybe<Scalars['String']['output']>;
+  phoneE164?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+  prefix?: Maybe<Scalars['String']['output']>;
+  regionCode?: Maybe<Scalars['String']['output']>;
+  regionName?: Maybe<Scalars['String']['output']>;
+  suffix?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  validatedAt?: Maybe<Scalars['DateTime']['output']>;
+  validationStatus: CustomerAddressValidationStatus;
+};
+
+export type ApiCustomerAddressConnection = {
+  __typename?: 'CustomerAddressConnection';
+  edges: Array<ApiCustomerAddressEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Address values used inside the unified customerUpdate workflow. */
+export type ApiCustomerAddressCreateOperationInput = {
+  address1: Scalars['String']['input'];
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city: Scalars['String']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode: Scalars['String']['input'];
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  regionName?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerAddressEdge = {
+  __typename?: 'CustomerAddressEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerAddress;
+};
+
+/** Ordering configuration for CustomerAddress */
+export type ApiCustomerAddressOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerAddressOrderField;
+};
+
+/** Fields available for sorting CustomerAddress */
+export type CustomerAddressOrderField =
+  /** Sort by city */
+  | 'city'
+  /** Sort by countryCode */
+  | 'countryCode'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by firstName */
+  | 'firstName'
+  /** Sort by id */
+  | 'id'
+  /** Sort by isDefaultBilling */
+  | 'isDefaultBilling'
+  /** Sort by isDefaultShipping */
+  | 'isDefaultShipping'
+  /** Sort by label */
+  | 'label'
+  /** Sort by lastName */
+  | 'lastName'
+  /** Sort by postalCode */
+  | 'postalCode'
+  /** Sort by regionCode */
+  | 'regionCode'
+  /** Sort by updatedAt */
+  | 'updatedAt'
+  /** Sort by validationStatus */
+  | 'validationStatus';
+
+export type ApiCustomerAddressPatchInput = {
+  address1?: InputMaybe<Scalars['String']['input']>;
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city?: InputMaybe<Scalars['String']['input']>;
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  /** Set or clear this address as the customer's billing default. */
+  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Set or clear this address as the customer's shipping default. */
+  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  regionName?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerAddressUpdateOperationInput = {
+  addressId: Scalars['ID']['input'];
+  operations: ApiCustomerAddressPatchInput;
+};
+
+export type CustomerAddressValidationStatus =
+  | 'INVALID'
+  | 'UNVALIDATED'
+  | 'VALID';
+
+export type ApiCustomerAddressValidationStatusFilter = {
+  _eq?: InputMaybe<CustomerAddressValidationStatus>;
+  _in?: InputMaybe<Array<CustomerAddressValidationStatus>>;
+  _neq?: InputMaybe<CustomerAddressValidationStatus>;
+  _notIn?: InputMaybe<Array<CustomerAddressValidationStatus>>;
+};
+
+/** Filter conditions for CustomerAddress */
+export type ApiCustomerAddressWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerAddressWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerAddressWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerAddressWhereInput>>;
+  /** Filter by city */
+  city?: InputMaybe<ApiStringFilter>;
+  /** Filter by companyName */
+  companyName?: InputMaybe<ApiStringFilter>;
+  /** Filter by countryCode */
+  countryCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by firstName */
+  firstName?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isDefaultBilling */
+  isDefaultBilling?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by isDefaultShipping */
+  isDefaultShipping?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by label */
+  label?: InputMaybe<ApiStringFilter>;
+  /** Filter by lastName */
+  lastName?: InputMaybe<ApiStringFilter>;
+  /** Filter by phoneE164 */
+  phoneE164?: InputMaybe<ApiStringFilter>;
+  /** Filter by postalCode */
+  postalCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by regionCode */
+  regionCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by validationStatus */
+  validationStatus?: InputMaybe<ApiCustomerAddressValidationStatusFilter>;
+};
+
+/** Batched address changes scoped to the customer being updated. */
+export type ApiCustomerAddressesUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerAddressCreateOperationInput>>;
+  /** Existing address ID to make the default. Explicit null clears the default. */
+  defaultBillingAddressId?: InputMaybe<Scalars['ID']['input']>;
+  /** Existing address ID to make the default. Explicit null clears the default. */
+  defaultShippingAddressId?: InputMaybe<Scalars['ID']['input']>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerAddressUpdateOperationInput>>;
+};
+
+/** Lifecycle states that a merchant administrator may select directly. */
+export type CustomerAdminLifecycleStatus =
+  | 'ACTIVE'
+  | 'BLOCKED'
+  | 'DISABLED';
+
+export type CustomerAssignmentSource =
+  | 'IMPORT'
+  | 'MANUAL'
+  | 'RULE'
+  | 'SYSTEM';
+
+export type ApiCustomerAssignmentSourceFilter = {
+  _eq?: InputMaybe<CustomerAssignmentSource>;
+  _in?: InputMaybe<Array<CustomerAssignmentSource>>;
+  _neq?: InputMaybe<CustomerAssignmentSource>;
+  _notIn?: InputMaybe<Array<CustomerAssignmentSource>>;
+};
+
+/** Company fields in the unified customer update. */
+export type ApiCustomerCompanyUpdateInput = {
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  jobTitle?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerConnection = {
+  __typename?: 'CustomerConnection';
+  edges: Array<ApiCustomerEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Current consent state for one customer and channel. */
+export type ApiCustomerConsent = ApiNode & {
+  __typename?: 'CustomerConsent';
+  channel: CustomerConsentChannel;
+  consentedAt?: Maybe<Scalars['DateTime']['output']>;
+  contactPoint: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  events: ApiCustomerConsentEventConnection;
+  id: Scalars['ID']['output'];
+  optInLevel: CustomerConsentOptInLevel;
+  source: Scalars['String']['output'];
+  sourceIp?: Maybe<Scalars['String']['output']>;
+  sourceLocationId?: Maybe<Scalars['ID']['output']>;
+  state: CustomerConsentState;
+  updatedAt: Scalars['DateTime']['output'];
+  userAgent?: Maybe<Scalars['String']['output']>;
+  withdrawnAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+
+/** Current consent state for one customer and channel. */
+export type ApiCustomerConsentEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerConsentEventOrderByInput>>;
+};
+
+/** Consent states that a merchant administrator may set explicitly. */
+export type CustomerConsentAdminState =
+  | 'NOT_SUBSCRIBED'
+  | 'PENDING'
+  | 'SUBSCRIBED'
+  | 'UNSUBSCRIBED';
+
+export type CustomerConsentChannel =
+  | 'EMAIL'
+  | 'PUSH'
+  | 'SMS'
+  | 'WHATSAPP';
+
+/** Immutable evidence record for a consent transition. */
+export type ApiCustomerConsentEvent = ApiNode & {
+  __typename?: 'CustomerConsentEvent';
+  actorId?: Maybe<Scalars['String']['output']>;
+  actorType: Scalars['String']['output'];
+  channel: CustomerConsentChannel;
+  consent: ApiCustomerConsent;
+  contactPoint: Scalars['String']['output'];
+  customer: ApiCustomer;
+  evidence: Scalars['JSON']['output'];
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  newState: CustomerConsentState;
+  occurredAt: Scalars['DateTime']['output'];
+  optInLevel: CustomerConsentOptInLevel;
+  previousState?: Maybe<CustomerConsentState>;
+  requestId?: Maybe<Scalars['String']['output']>;
+  source: Scalars['String']['output'];
+  sourceIp?: Maybe<Scalars['String']['output']>;
+  sourceLocationId?: Maybe<Scalars['ID']['output']>;
+  userAgent?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiCustomerConsentEventConnection = {
+  __typename?: 'CustomerConsentEventConnection';
+  edges: Array<ApiCustomerConsentEventEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerConsentEventEdge = {
+  __typename?: 'CustomerConsentEventEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerConsentEvent;
+};
+
+/** Ordering configuration for CustomerConsentEvent */
+export type ApiCustomerConsentEventOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerConsentEventOrderField;
+};
+
+/** Fields available for sorting CustomerConsentEvent */
+export type CustomerConsentEventOrderField =
+  /** Sort by actorType */
+  | 'actorType'
+  /** Sort by channel */
+  | 'channel'
+  /** Sort by id */
+  | 'id'
+  /** Sort by newState */
+  | 'newState'
+  /** Sort by occurredAt */
+  | 'occurredAt'
+  /** Sort by source */
+  | 'source';
+
+export type CustomerConsentOptInLevel =
+  | 'CONFIRMED_OPT_IN'
+  | 'SINGLE_OPT_IN'
+  | 'UNKNOWN';
+
+export type CustomerConsentState =
+  | 'INVALID'
+  | 'NOT_SUBSCRIBED'
+  | 'PENDING'
+  | 'REDACTED'
+  | 'SUBSCRIBED'
+  | 'UNSUBSCRIBED';
+
+export type ApiCustomerConsentStateFilter = {
+  _eq?: InputMaybe<CustomerConsentState>;
+  _in?: InputMaybe<Array<CustomerConsentState>>;
+  _neq?: InputMaybe<CustomerConsentState>;
+  _notIn?: InputMaybe<Array<CustomerConsentState>>;
+};
+
+/** Consent transition scoped to the customer being updated. */
+export type ApiCustomerConsentUpdateOperationInput = {
+  channel: CustomerConsentChannel;
+  contactPoint: Scalars['String']['input'];
+  evidence?: InputMaybe<Scalars['JSON']['input']>;
+  /** Defaults to UNKNOWN when omitted. */
+  optInLevel?: InputMaybe<CustomerConsentOptInLevel>;
+  sourceLocationId?: InputMaybe<Scalars['ID']['input']>;
+  state: CustomerConsentAdminState;
+};
+
+/** Batched consent transitions keyed by channel. */
+export type ApiCustomerConsentsUpdateInput = {
+  set: Array<ApiCustomerConsentUpdateOperationInput>;
+};
+
+/** Contact projections in the unified customer update. */
+export type ApiCustomerContactUpdateInput = {
+  email?: InputMaybe<Scalars['Email']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerCreateInput = {
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  dateOfBirth?: InputMaybe<Scalars['Date']['input']>;
+  email?: InputMaybe<Scalars['Email']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  gender?: InputMaybe<Scalars['String']['input']>;
+  jobTitle?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  moderationNote?: InputMaybe<Scalars['String']['input']>;
+  note?: InputMaybe<Scalars['String']['input']>;
+  phoneE164?: InputMaybe<Scalars['String']['input']>;
+  preferredLocale?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerCreatePayload = {
+  __typename?: 'CustomerCreatePayload';
+  customer?: Maybe<ApiCustomer>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Auditable privacy access, export, correction or erasure workflow. */
+export type ApiCustomerDataRequest = ApiNode & {
+  __typename?: 'CustomerDataRequest';
+  customer: ApiCustomer;
+  dueAt?: Maybe<Scalars['DateTime']['output']>;
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  legalBasis?: Maybe<Scalars['String']['output']>;
+  rejectionReason?: Maybe<Scalars['String']['output']>;
+  requestMetadata: Scalars['JSON']['output'];
+  requestedAt: Scalars['DateTime']['output'];
+  requestedById?: Maybe<Scalars['String']['output']>;
+  requestedByType: Scalars['String']['output'];
+  resultFile?: Maybe<ApiFile>;
+  resultFileId?: Maybe<Scalars['ID']['output']>;
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: CustomerDataRequestStatus;
+  type: CustomerDataRequestType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiCustomerDataRequestCancelOperationInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerDataRequestConnection = {
+  __typename?: 'CustomerDataRequestConnection';
+  edges: Array<ApiCustomerDataRequestEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerDataRequestCreateInput = {
+  customerId: Scalars['ID']['input'];
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  legalBasis?: InputMaybe<Scalars['String']['input']>;
+  requestMetadata?: InputMaybe<Scalars['JSON']['input']>;
+  type: CustomerDataRequestType;
+};
+
+export type ApiCustomerDataRequestCreatePayload = {
+  __typename?: 'CustomerDataRequestCreatePayload';
+  dataRequest?: Maybe<ApiCustomerDataRequest>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerDataRequestDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerDataRequestDeletePayload = {
+  __typename?: 'CustomerDataRequestDeletePayload';
+  deletedDataRequestId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerDataRequestEdge = {
+  __typename?: 'CustomerDataRequestEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerDataRequest;
+};
+
+/** Ordering configuration for CustomerDataRequest */
+export type ApiCustomerDataRequestOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerDataRequestOrderField;
+};
+
+/** Fields available for sorting CustomerDataRequest */
+export type CustomerDataRequestOrderField =
+  /** Sort by dueAt */
+  | 'dueAt'
+  /** Sort by finishedAt */
+  | 'finishedAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by requestedAt */
+  | 'requestedAt'
+  /** Sort by startedAt */
+  | 'startedAt'
+  /** Sort by status */
+  | 'status'
+  /** Sort by type */
+  | 'type'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type CustomerDataRequestStatus =
+  | 'CANCELLED'
+  | 'COMPLETED'
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'REJECTED';
+
+export type ApiCustomerDataRequestStatusFilter = {
+  _eq?: InputMaybe<CustomerDataRequestStatus>;
+  _in?: InputMaybe<Array<CustomerDataRequestStatus>>;
+  _neq?: InputMaybe<CustomerDataRequestStatus>;
+  _notIn?: InputMaybe<Array<CustomerDataRequestStatus>>;
+};
+
+export type CustomerDataRequestType =
+  | 'ACCESS'
+  | 'CORRECTION'
+  | 'ERASURE'
+  | 'EXPORT';
+
+export type ApiCustomerDataRequestTypeFilter = {
+  _eq?: InputMaybe<CustomerDataRequestType>;
+  _in?: InputMaybe<Array<CustomerDataRequestType>>;
+  _neq?: InputMaybe<CustomerDataRequestType>;
+  _notIn?: InputMaybe<Array<CustomerDataRequestType>>;
+};
+
+/** Update request metadata, its customer relation, or cancel the workflow. */
+export type ApiCustomerDataRequestUpdateInput = {
+  cancel?: InputMaybe<ApiCustomerDataRequestCancelOperationInput>;
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  legalBasis?: InputMaybe<Scalars['String']['input']>;
+  requestMetadata?: InputMaybe<Scalars['JSON']['input']>;
+  type?: InputMaybe<CustomerDataRequestType>;
+};
+
+export type ApiCustomerDataRequestUpdatePayload = {
+  __typename?: 'CustomerDataRequestUpdatePayload';
+  dataRequest?: Maybe<ApiCustomerDataRequest>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for CustomerDataRequest */
+export type ApiCustomerDataRequestWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerDataRequestWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerDataRequestWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerDataRequestWhereInput>>;
+  /** Filter by customerId */
+  customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by dueAt */
+  dueAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by finishedAt */
+  finishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by legalBasis */
+  legalBasis?: InputMaybe<ApiStringFilter>;
+  /** Filter by requestedAt */
+  requestedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by requestedById */
+  requestedById?: InputMaybe<ApiStringFilter>;
+  /** Filter by requestedByType */
+  requestedByType?: InputMaybe<ApiStringFilter>;
+  /** Filter by startedAt */
+  startedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiCustomerDataRequestStatusFilter>;
+  /** Filter by type */
+  type?: InputMaybe<ApiCustomerDataRequestTypeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiCustomerDeleteInput = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerDeletePayload = {
+  __typename?: 'CustomerDeletePayload';
+  deletedCustomerId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerEdge = {
+  __typename?: 'CustomerEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomer;
+};
+
+export type ApiCustomerGroup = ApiNode & {
+  __typename?: 'CustomerGroup';
+  code: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  customerMemberships: ApiCustomerGroupMembershipConnection;
+  customersCount: Scalars['Int']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isDefault: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  /** Aggregate revision incremented by definition and membership changes. */
+  revision: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ApiCustomerGroupCustomerMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerGroupMembershipOrderByInput>>;
+  where?: InputMaybe<ApiCustomerGroupMembershipWhereInput>;
+};
+
+export type ApiCustomerGroupConnection = {
+  __typename?: 'CustomerGroupConnection';
+  edges: Array<ApiCustomerGroupEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerGroupCreateInput = {
+  code: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export type ApiCustomerGroupCreatePayload = {
+  __typename?: 'CustomerGroupCreatePayload';
+  group?: Maybe<ApiCustomerGroup>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerGroupDefinitionUpdateInput = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerGroupDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerGroupDeletePayload = {
+  __typename?: 'CustomerGroupDeletePayload';
+  deletedGroupId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerGroupEdge = {
+  __typename?: 'CustomerGroupEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerGroup;
+};
+
+export type ApiCustomerGroupMembership = ApiNode & {
+  __typename?: 'CustomerGroupMembership';
+  assignedAt: Scalars['DateTime']['output'];
+  assignedById?: Maybe<Scalars['String']['output']>;
+  customer: ApiCustomer;
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  group: ApiCustomerGroup;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isPrimary: Scalars['Boolean']['output'];
+  source: CustomerAssignmentSource;
+};
+
+export type ApiCustomerGroupMembershipConnection = {
+  __typename?: 'CustomerGroupMembershipConnection';
+  edges: Array<ApiCustomerGroupMembershipEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerGroupMembershipEdge = {
+  __typename?: 'CustomerGroupMembershipEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerGroupMembership;
+};
+
+/** Ordering configuration for CustomerGroupMembership */
+export type ApiCustomerGroupMembershipOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerGroupMembershipOrderField;
+};
+
+/** Fields available for sorting CustomerGroupMembership */
+export type CustomerGroupMembershipOrderField =
+  /** Sort by assignedAt */
+  | 'assignedAt'
+  /** Sort by expiresAt */
+  | 'expiresAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by isPrimary */
+  | 'isPrimary'
+  /** Sort by source */
+  | 'source';
+
+/** Create a customer's membership in this group. */
+export type ApiCustomerGroupMembershipRelationCreateInput = {
+  customerId: Scalars['ID']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiCustomerGroupMembershipRelationUpdateInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  membershipId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerGroupMembershipRelationsUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerGroupMembershipRelationCreateInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerGroupMembershipRelationUpdateInput>>;
+};
+
+/** One group membership used by the unified customer update. */
+export type ApiCustomerGroupMembershipUpdateOperationInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  groupId: Scalars['ID']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Filter conditions for CustomerGroupMembership */
+export type ApiCustomerGroupMembershipWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerGroupMembershipWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerGroupMembershipWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerGroupMembershipWhereInput>>;
+  /** Filter by assignedAt */
+  assignedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by customerId */
+  customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by expiresAt */
+  expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by groupId */
+  groupId?: InputMaybe<ApiIdFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isPrimary */
+  isPrimary?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by source */
+  source?: InputMaybe<ApiCustomerAssignmentSourceFilter>;
+};
+
+/** Replace all manual group memberships for the customer. */
+export type ApiCustomerGroupMembershipsUpdateInput = {
+  memberships: Array<ApiCustomerGroupMembershipUpdateOperationInput>;
+};
+
+/** Ordering configuration for CustomerGroup */
+export type ApiCustomerGroupOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerGroupOrderField;
+};
+
+/** Fields available for sorting CustomerGroup */
+export type CustomerGroupOrderField =
+  /** Sort by code */
+  | 'code'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by isActive */
+  | 'isActive'
+  /** Sort by isDefault */
+  | 'isDefault'
+  /** Sort by name */
+  | 'name'
+  /** Sort by revision */
+  | 'revision'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type ApiCustomerGroupStateUpdateInput = {
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiCustomerGroupUpdateInput = {
+  definition?: InputMaybe<ApiCustomerGroupDefinitionUpdateInput>;
+  /** Create, update, or delete customer memberships in this group. */
+  memberships?: InputMaybe<ApiCustomerGroupMembershipRelationsUpdateInput>;
+  state?: InputMaybe<ApiCustomerGroupStateUpdateInput>;
+};
+
+export type ApiCustomerGroupUpdatePayload = {
+  __typename?: 'CustomerGroupUpdatePayload';
+  group?: Maybe<ApiCustomerGroup>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for CustomerGroup */
+export type ApiCustomerGroupWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerGroupWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerGroupWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerGroupWhereInput>>;
+  /** Filter by code */
+  code?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isActive */
+  isActive?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by isDefault */
+  isDefault?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by revision */
+  revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type CustomerLifecycleStatus =
+  | 'ACTIVE'
+  | 'BLOCKED'
+  | 'DISABLED'
+  | 'MERGED'
+  | 'REDACTED';
+
+export type ApiCustomerLifecycleStatusFilter = {
+  _eq?: InputMaybe<CustomerLifecycleStatus>;
+  _in?: InputMaybe<Array<CustomerLifecycleStatus>>;
+  _neq?: InputMaybe<CustomerLifecycleStatus>;
+  _notIn?: InputMaybe<Array<CustomerLifecycleStatus>>;
+};
+
+/** Idempotent workflow that merges one customer profile into another. */
+export type ApiCustomerMerge = ApiNode & {
+  __typename?: 'CustomerMerge';
+  errorCode?: Maybe<Scalars['String']['output']>;
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  requestedAt: Scalars['DateTime']['output'];
+  requestedById?: Maybe<Scalars['String']['output']>;
+  requestedByType: Scalars['String']['output'];
+  resolution: Scalars['JSON']['output'];
+  sourceCustomer: ApiCustomer;
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: CustomerMergeStatus;
+  targetCustomer: ApiCustomer;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiCustomerMergeConnection = {
+  __typename?: 'CustomerMergeConnection';
+  edges: Array<ApiCustomerMergeEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerMergeCreateInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+  sourceCustomerId: Scalars['ID']['input'];
+  targetCustomerId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerMergeCreatePayload = {
+  __typename?: 'CustomerMergeCreatePayload';
+  merge?: Maybe<ApiCustomerMerge>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerMergeDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerMergeDeletePayload = {
+  __typename?: 'CustomerMergeDeletePayload';
+  deletedMergeId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerMergeEdge = {
+  __typename?: 'CustomerMergeEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerMerge;
+};
+
+/** Ordering configuration for CustomerMerge */
+export type ApiCustomerMergeOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerMergeOrderField;
+};
+
+/** Fields available for sorting CustomerMerge */
+export type CustomerMergeOrderField =
+  /** Sort by finishedAt */
+  | 'finishedAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by requestedAt */
+  | 'requestedAt'
+  /** Sort by startedAt */
+  | 'startedAt'
+  /** Sort by status */
+  | 'status'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type CustomerMergeStatus =
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'IN_PROGRESS'
+  | 'REQUESTED';
+
+export type ApiCustomerMergeStatusFilter = {
+  _eq?: InputMaybe<CustomerMergeStatus>;
+  _in?: InputMaybe<Array<CustomerMergeStatus>>;
+  _neq?: InputMaybe<CustomerMergeStatus>;
+  _notIn?: InputMaybe<Array<CustomerMergeStatus>>;
+};
+
+/** Update merge metadata or either customer relation before processing starts. */
+export type ApiCustomerMergeUpdateInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+  sourceCustomerId?: InputMaybe<Scalars['ID']['input']>;
+  targetCustomerId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiCustomerMergeUpdatePayload = {
+  __typename?: 'CustomerMergeUpdatePayload';
+  merge?: Maybe<ApiCustomerMerge>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for CustomerMerge */
+export type ApiCustomerMergeWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerMergeWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerMergeWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerMergeWhereInput>>;
+  /** Filter by errorCode */
+  errorCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by finishedAt */
+  finishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by idempotencyKey */
+  idempotencyKey?: InputMaybe<ApiStringFilter>;
+  /** Filter by requestedAt */
+  requestedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by requestedById */
+  requestedById?: InputMaybe<ApiStringFilter>;
+  /** Filter by requestedByType */
+  requestedByType?: InputMaybe<ApiStringFilter>;
+  /** Filter by sourceCustomerId */
+  sourceCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by startedAt */
+  startedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiCustomerMergeStatusFilter>;
+  /** Filter by targetCustomerId */
+  targetCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Internal moderation context independent from the merchant note. */
+export type ApiCustomerModerationUpdateInput = {
+  moderationNote?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Rebuildable monetary customer projection for one ISO 4217 currency. */
+export type ApiCustomerMonetaryStatistics = ApiNode & {
+  __typename?: 'CustomerMonetaryStatistics';
+  averageOrderValueMinor: Scalars['BigInt']['output'];
+  currencyCode: CurrencyCode;
+  customer: ApiCustomer;
+  id: Scalars['ID']['output'];
+  netSpentMinor: Scalars['BigInt']['output'];
+  ordersCount: Scalars['Int']['output'];
+  totalRefundedMinor: Scalars['BigInt']['output'];
+  totalSpentMinor: Scalars['BigInt']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiCustomerMonetaryStatisticsConnection = {
+  __typename?: 'CustomerMonetaryStatisticsConnection';
+  edges: Array<ApiCustomerMonetaryStatisticsEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerMonetaryStatisticsEdge = {
+  __typename?: 'CustomerMonetaryStatisticsEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerMonetaryStatistics;
+};
+
+/** Ordering configuration for CustomerMonetaryStatistics */
+export type ApiCustomerMonetaryStatisticsOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerMonetaryStatisticsOrderField;
+};
+
+/** Fields available for sorting CustomerMonetaryStatistics */
+export type CustomerMonetaryStatisticsOrderField =
+  /** Sort by averageOrderValueMinor */
+  | 'averageOrderValueMinor'
+  /** Sort by currencyCode */
+  | 'currencyCode'
+  /** Sort by id */
+  | 'id'
+  /** Sort by netSpentMinor */
+  | 'netSpentMinor'
+  /** Sort by ordersCount */
+  | 'ordersCount'
+  /** Sort by totalRefundedMinor */
+  | 'totalRefundedMinor'
+  /** Sort by totalSpentMinor */
+  | 'totalSpentMinor'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+/** Filter conditions for CustomerMonetaryStatistics */
+export type ApiCustomerMonetaryStatisticsWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerMonetaryStatisticsWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerMonetaryStatisticsWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerMonetaryStatisticsWhereInput>>;
+  /** Filter by averageOrderValueMinor */
+  averageOrderValueMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by currencyCode */
+  currencyCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by netSpentMinor */
+  netSpentMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by ordersCount */
+  ordersCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by totalRefundedMinor */
+  totalRefundedMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by totalSpentMinor */
+  totalSpentMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Merchant note in the unified customer update. */
+export type ApiCustomerNoteUpdateInput = {
+  note?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Result of one operation in a customer-domain update. */
+export type ApiCustomerOperationResult = {
+  __typename?: 'CustomerOperationResult';
+  applied: Scalars['Boolean']['output'];
+  errors: Array<ApiGenericUserError>;
+  type: CustomerOperationType;
+};
+
+export type CustomerOperationType =
+  | 'ADDRESS_UPDATE'
+  | 'COMPANY_UPDATE'
+  | 'CONSENT_UPDATE'
+  | 'CONTACT_UPDATE'
+  | 'DATA_REQUEST_UPDATE'
+  | 'GROUP_UPDATE'
+  | 'MERGE_UPDATE'
+  | 'MODERATION_UPDATE'
+  | 'NOTE_UPDATE'
+  | 'PROFILE_UPDATE'
+  | 'SEGMENT_UPDATE'
+  | 'STATUS_UPDATE'
+  | 'TAG_UPDATE'
+  | 'TAX_EXEMPTION_UPDATE'
+  | 'TAX_IDENTIFIER_UPDATE';
+
+/** Ordering configuration for Customer */
+export type ApiCustomerOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerOrderField;
+};
+
+/** Fields available for sorting Customer */
+export type CustomerOrderField =
+  /** Sort by accountStatus */
+  | 'accountStatus'
+  /** Sort by companyName */
+  | 'companyName'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by dateOfBirth */
+  | 'dateOfBirth'
+  /** Sort by displayName */
+  | 'displayName'
+  /** Sort by email */
+  | 'email'
+  /** Sort by firstName */
+  | 'firstName'
+  /** Sort by id */
+  | 'id'
+  /** Sort by lastActivityAt */
+  | 'lastActivityAt'
+  /** Sort by lastName */
+  | 'lastName'
+  /** Sort by lastOrderAt */
+  | 'lastOrderAt'
+  /** Sort by lifecycleStatus */
+  | 'lifecycleStatus'
+  /** Sort by ordersCount */
+  | 'ordersCount'
+  /** Sort by phoneE164 */
+  | 'phoneE164'
+  /** Sort by totalSpentMinor */
+  | 'totalSpentMinor'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+/** Personal profile fields in the unified customer update. */
+export type ApiCustomerProfileUpdateInput = {
+  dateOfBirth?: InputMaybe<Scalars['Date']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  gender?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  preferredLocale?: InputMaybe<Scalars['String']['input']>;
+  prefix?: InputMaybe<Scalars['String']['input']>;
+  suffix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerSegment = ApiNode & {
+  __typename?: 'CustomerSegment';
+  /** Optional merchant-selected #RRGGBB presentation color. */
+  color?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  createdById?: Maybe<Scalars['String']['output']>;
+  customerMemberships: ApiCustomerSegmentMembershipConnection;
+  customersCount: Scalars['Int']['output'];
+  definition: Scalars['JSON']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  query?: Maybe<Scalars['String']['output']>;
+  /** Aggregate revision incremented by definition and membership changes. */
+  revision: Scalars['Int']['output'];
+  status: CustomerSegmentStatus;
+  type: CustomerSegmentType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ApiCustomerSegmentCustomerMembershipsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerSegmentMembershipOrderByInput>>;
+  where?: InputMaybe<ApiCustomerSegmentMembershipWhereInput>;
+};
+
+export type ApiCustomerSegmentConnection = {
+  __typename?: 'CustomerSegmentConnection';
+  edges: Array<ApiCustomerSegmentEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerSegmentCreateInput = {
+  color?: InputMaybe<Scalars['String']['input']>;
+  definition?: InputMaybe<Scalars['JSON']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  query?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to DRAFT when omitted. */
+  status?: InputMaybe<CustomerSegmentStatus>;
+  type: CustomerSegmentType;
+};
+
+export type ApiCustomerSegmentCreatePayload = {
+  __typename?: 'CustomerSegmentCreatePayload';
+  segment?: Maybe<ApiCustomerSegment>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerSegmentDefinitionUpdateInput = {
+  definition?: InputMaybe<Scalars['JSON']['input']>;
+  query?: InputMaybe<Scalars['String']['input']>;
+  type?: InputMaybe<CustomerSegmentType>;
+};
+
+export type ApiCustomerSegmentDeleteInput = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerSegmentDeletePayload = {
+  __typename?: 'CustomerSegmentDeletePayload';
+  deletedSegmentId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerSegmentDetailsUpdateInput = {
+  color?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerSegmentEdge = {
+  __typename?: 'CustomerSegmentEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerSegment;
+};
+
+export type ApiCustomerSegmentMembership = ApiNode & {
+  __typename?: 'CustomerSegmentMembership';
+  customer: ApiCustomer;
+  evaluatedAt: Scalars['DateTime']['output'];
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  segment: ApiCustomerSegment;
+  source: CustomerAssignmentSource;
+};
+
+export type ApiCustomerSegmentMembershipConnection = {
+  __typename?: 'CustomerSegmentMembershipConnection';
+  edges: Array<ApiCustomerSegmentMembershipEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerSegmentMembershipEdge = {
+  __typename?: 'CustomerSegmentMembershipEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerSegmentMembership;
+};
+
+/** Ordering configuration for CustomerSegmentMembership */
+export type ApiCustomerSegmentMembershipOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerSegmentMembershipOrderField;
+};
+
+/** Fields available for sorting CustomerSegmentMembership */
+export type CustomerSegmentMembershipOrderField =
+  /** Sort by evaluatedAt */
+  | 'evaluatedAt'
+  /** Sort by expiresAt */
+  | 'expiresAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by source */
+  | 'source';
+
+export type ApiCustomerSegmentMembershipRelationCreateInput = {
+  customerId: Scalars['ID']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type ApiCustomerSegmentMembershipRelationUpdateInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  membershipId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerSegmentMembershipRelationsUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerSegmentMembershipRelationCreateInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Atomically replace all manual memberships with these customers. */
+  setCustomerIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerSegmentMembershipRelationUpdateInput>>;
+};
+
+/** Filter conditions for CustomerSegmentMembership */
+export type ApiCustomerSegmentMembershipWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerSegmentMembershipWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerSegmentMembershipWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerSegmentMembershipWhereInput>>;
+  /** Filter by customerId */
+  customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by evaluatedAt */
+  evaluatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by expiresAt */
+  expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by segmentId */
+  segmentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by source */
+  source?: InputMaybe<ApiCustomerAssignmentSourceFilter>;
+};
+
+/** Replace all manual segment memberships for the customer. */
+export type ApiCustomerSegmentMembershipsUpdateInput = {
+  segmentIds: Array<Scalars['ID']['input']>;
+};
+
+/** Ordering configuration for CustomerSegment */
+export type ApiCustomerSegmentOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerSegmentOrderField;
+};
+
+/** Fields available for sorting CustomerSegment */
+export type CustomerSegmentOrderField =
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by customersCount */
+  | 'customersCount'
+  /** Sort by id */
+  | 'id'
+  /** Sort by name */
+  | 'name'
+  /** Sort by status */
+  | 'status'
+  /** Sort by type */
+  | 'type'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type ApiCustomerSegmentStateUpdateInput = {
+  status?: InputMaybe<CustomerSegmentStatus>;
+};
+
+export type CustomerSegmentStatus =
+  | 'ACTIVE'
+  | 'ARCHIVED'
+  | 'DRAFT';
+
+export type ApiCustomerSegmentStatusFilter = {
+  _eq?: InputMaybe<CustomerSegmentStatus>;
+  _in?: InputMaybe<Array<CustomerSegmentStatus>>;
+  _neq?: InputMaybe<CustomerSegmentStatus>;
+  _notIn?: InputMaybe<Array<CustomerSegmentStatus>>;
+};
+
+export type CustomerSegmentType =
+  | 'DYNAMIC'
+  | 'MANUAL';
+
+export type ApiCustomerSegmentTypeFilter = {
+  _eq?: InputMaybe<CustomerSegmentType>;
+  _in?: InputMaybe<Array<CustomerSegmentType>>;
+  _neq?: InputMaybe<CustomerSegmentType>;
+  _notIn?: InputMaybe<Array<CustomerSegmentType>>;
+};
+
+export type ApiCustomerSegmentUpdateInput = {
+  definition?: InputMaybe<ApiCustomerSegmentDefinitionUpdateInput>;
+  details?: InputMaybe<ApiCustomerSegmentDetailsUpdateInput>;
+  /** Create, update, delete, or replace manual customer memberships. */
+  memberships?: InputMaybe<ApiCustomerSegmentMembershipRelationsUpdateInput>;
+  state?: InputMaybe<ApiCustomerSegmentStateUpdateInput>;
+};
+
+export type ApiCustomerSegmentUpdatePayload = {
+  __typename?: 'CustomerSegmentUpdatePayload';
+  operationResults: Array<ApiCustomerOperationResult>;
+  segment?: Maybe<ApiCustomerSegment>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for CustomerSegment */
+export type ApiCustomerSegmentWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerSegmentWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerSegmentWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerSegmentWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by createdById */
+  createdById?: InputMaybe<ApiStringFilter>;
+  /** Filter by customersCount */
+  customersCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by description */
+  description?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiCustomerSegmentStatusFilter>;
+  /** Filter by type */
+  type?: InputMaybe<ApiCustomerSegmentTypeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Rebuildable, currency-independent customer activity projection. */
+export type ApiCustomerStatistics = {
+  __typename?: 'CustomerStatistics';
+  cancelledOrdersCount: Scalars['Int']['output'];
+  completedOrdersCount: Scalars['Int']['output'];
+  customer: ApiCustomer;
+  firstOrderAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Raw Orders service UUID; Orders Admin type is not a federation entity. */
+  firstOrderId?: Maybe<Scalars['ID']['output']>;
+  lastCheckoutAt?: Maybe<Scalars['DateTime']['output']>;
+  lastOrderAt?: Maybe<Scalars['DateTime']['output']>;
+  lastOrderId?: Maybe<Scalars['ID']['output']>;
+  ordersCount: Scalars['Int']['output'];
+  returnsCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * Lifecycle fields available to Admin. Merge and redaction remain dedicated
+ * workflows and cannot be selected here.
+ */
+export type ApiCustomerStatusUpdateInput = {
+  /** Required for BLOCKED. Omit for ACTIVE and DISABLED. */
+  blockedReason?: InputMaybe<Scalars['String']['input']>;
+  status: CustomerAdminLifecycleStatus;
+};
+
+export type ApiCustomerTag = ApiNode & {
+  __typename?: 'CustomerTag';
+  createdAt: Scalars['DateTime']['output'];
+  customerAssignments: ApiCustomerTagAssignmentConnection;
+  customersCount: Scalars['Int']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  normalizedName: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ApiCustomerTagCustomerAssignmentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTagAssignmentOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTagAssignmentWhereInput>;
+};
+
+export type ApiCustomerTagAssignment = ApiNode & {
+  __typename?: 'CustomerTagAssignment';
+  assignedAt: Scalars['DateTime']['output'];
+  assignedById?: Maybe<Scalars['String']['output']>;
+  customer: ApiCustomer;
+  id: Scalars['ID']['output'];
+  tag: ApiCustomerTag;
+};
+
+export type ApiCustomerTagAssignmentConnection = {
+  __typename?: 'CustomerTagAssignmentConnection';
+  edges: Array<ApiCustomerTagAssignmentEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerTagAssignmentEdge = {
+  __typename?: 'CustomerTagAssignmentEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerTagAssignment;
+};
+
+/** Ordering configuration for CustomerTagAssignment */
+export type ApiCustomerTagAssignmentOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerTagAssignmentOrderField;
+};
+
+/** Fields available for sorting CustomerTagAssignment */
+export type CustomerTagAssignmentOrderField =
+  /** Sort by assignedAt */
+  | 'assignedAt'
+  /** Sort by id */
+  | 'id';
+
+export type ApiCustomerTagAssignmentRelationCreateInput = {
+  customerId: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTagAssignmentRelationsUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerTagAssignmentRelationCreateInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+/** Filter conditions for CustomerTagAssignment */
+export type ApiCustomerTagAssignmentWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerTagAssignmentWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerTagAssignmentWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerTagAssignmentWhereInput>>;
+  /** Filter by assignedAt */
+  assignedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by assignedById */
+  assignedById?: InputMaybe<ApiStringFilter>;
+  /** Filter by customerId */
+  customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by tagId */
+  tagId?: InputMaybe<ApiIdFilter>;
+};
+
+/** Replace all tag assignments for the customer. */
+export type ApiCustomerTagAssignmentsUpdateInput = {
+  tagIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiCustomerTagConnection = {
+  __typename?: 'CustomerTagConnection';
+  edges: Array<ApiCustomerTagEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerTagCreateInput = {
+  name: Scalars['String']['input'];
+};
+
+export type ApiCustomerTagCreatePayload = {
+  __typename?: 'CustomerTagCreatePayload';
+  tag?: Maybe<ApiCustomerTag>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTagDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCustomerTagDeletePayload = {
+  __typename?: 'CustomerTagDeletePayload';
+  deletedTagId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCustomerTagEdge = {
+  __typename?: 'CustomerTagEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerTag;
+};
+
+/** Ordering configuration for CustomerTag */
+export type ApiCustomerTagOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerTagOrderField;
+};
+
+/** Fields available for sorting CustomerTag */
+export type CustomerTagOrderField =
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by name */
+  | 'name'
+  /** Sort by normalizedName */
+  | 'normalizedName'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type ApiCustomerTagUpdateInput = {
+  /** Create or delete customer assignments for this tag. */
+  assignments?: InputMaybe<ApiCustomerTagAssignmentRelationsUpdateInput>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCustomerTagUpdatePayload = {
+  __typename?: 'CustomerTagUpdatePayload';
+  operationResults: Array<ApiCustomerOperationResult>;
+  tag?: Maybe<ApiCustomerTag>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for CustomerTag */
+export type ApiCustomerTagWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerTagWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerTagWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerTagWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by normalizedName */
+  normalizedName?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiCustomerTaxExemption = ApiNode & {
+  __typename?: 'CustomerTaxExemption';
+  certificateFile?: Maybe<ApiFile>;
+  certificateFileId?: Maybe<Scalars['ID']['output']>;
+  code: Scalars['String']['output'];
+  countryCode?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  regionCode?: Maybe<Scalars['String']['output']>;
+  status: CustomerTaxExemptionStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  validFrom?: Maybe<Scalars['Date']['output']>;
+  validTo?: Maybe<Scalars['Date']['output']>;
+};
+
+export type ApiCustomerTaxExemptionConnection = {
+  __typename?: 'CustomerTaxExemptionConnection';
+  edges: Array<ApiCustomerTaxExemptionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerTaxExemptionCreateOperationInput = {
+  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
+  code: Scalars['String']['input'];
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  reason?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to ACTIVE when omitted. */
+  status?: InputMaybe<CustomerTaxExemptionStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+};
+
+export type ApiCustomerTaxExemptionEdge = {
+  __typename?: 'CustomerTaxExemptionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerTaxExemption;
+};
+
+/** Ordering configuration for CustomerTaxExemption */
+export type ApiCustomerTaxExemptionOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerTaxExemptionOrderField;
+};
+
+/** Fields available for sorting CustomerTaxExemption */
+export type CustomerTaxExemptionOrderField =
+  /** Sort by code */
+  | 'code'
+  /** Sort by countryCode */
+  | 'countryCode'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by regionCode */
+  | 'regionCode'
+  /** Sort by status */
+  | 'status'
+  /** Sort by updatedAt */
+  | 'updatedAt'
+  /** Sort by validFrom */
+  | 'validFrom'
+  /** Sort by validTo */
+  | 'validTo';
+
+export type ApiCustomerTaxExemptionPatchInput = {
+  certificateFileId?: InputMaybe<Scalars['ID']['input']>;
+  code?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  reason?: InputMaybe<Scalars['String']['input']>;
+  regionCode?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<CustomerTaxExemptionStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+};
+
+export type CustomerTaxExemptionStatus =
+  | 'ACTIVE'
+  | 'EXPIRED'
+  | 'REVOKED';
+
+export type ApiCustomerTaxExemptionStatusFilter = {
+  _eq?: InputMaybe<CustomerTaxExemptionStatus>;
+  _in?: InputMaybe<Array<CustomerTaxExemptionStatus>>;
+  _neq?: InputMaybe<CustomerTaxExemptionStatus>;
+  _notIn?: InputMaybe<Array<CustomerTaxExemptionStatus>>;
+};
+
+export type ApiCustomerTaxExemptionUpdateOperationInput = {
+  operations: ApiCustomerTaxExemptionPatchInput;
+  taxExemptionId: Scalars['ID']['input'];
+};
+
+/** Filter conditions for CustomerTaxExemption */
+export type ApiCustomerTaxExemptionWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerTaxExemptionWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerTaxExemptionWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerTaxExemptionWhereInput>>;
+  /** Filter by code */
+  code?: InputMaybe<ApiStringFilter>;
+  /** Filter by countryCode */
+  countryCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by regionCode */
+  regionCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiCustomerTaxExemptionStatusFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by validFrom */
+  validFrom?: InputMaybe<ApiDateFilter>;
+  /** Filter by validTo */
+  validTo?: InputMaybe<ApiDateFilter>;
+};
+
+/** Batched tax exemption changes scoped to the customer being updated. */
+export type ApiCustomerTaxExemptionsUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerTaxExemptionCreateOperationInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerTaxExemptionUpdateOperationInput>>;
+};
+
+export type ApiCustomerTaxIdentifier = ApiNode & {
+  __typename?: 'CustomerTaxIdentifier';
+  countryCode?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  identifierType: Scalars['String']['output'];
+  isPrimary: Scalars['Boolean']['output'];
+  normalizedValue: Scalars['String']['output'];
+  status: CustomerTaxIdentifierStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  validFrom?: Maybe<Scalars['Date']['output']>;
+  validTo?: Maybe<Scalars['Date']['output']>;
+  value: Scalars['String']['output'];
+  verifiedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type ApiCustomerTaxIdentifierConnection = {
+  __typename?: 'CustomerTaxIdentifierConnection';
+  edges: Array<ApiCustomerTaxIdentifierEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCustomerTaxIdentifierCreateOperationInput = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  identifierType: Scalars['String']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Defaults to UNVERIFIED when omitted. */
+  status?: InputMaybe<CustomerTaxIdentifierStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+  value: Scalars['String']['input'];
+};
+
+export type ApiCustomerTaxIdentifierEdge = {
+  __typename?: 'CustomerTaxIdentifierEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCustomerTaxIdentifier;
+};
+
+/** Ordering configuration for CustomerTaxIdentifier */
+export type ApiCustomerTaxIdentifierOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CustomerTaxIdentifierOrderField;
+};
+
+/** Fields available for sorting CustomerTaxIdentifier */
+export type CustomerTaxIdentifierOrderField =
+  /** Sort by countryCode */
+  | 'countryCode'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by identifierType */
+  | 'identifierType'
+  /** Sort by isPrimary */
+  | 'isPrimary'
+  /** Sort by status */
+  | 'status'
+  /** Sort by updatedAt */
+  | 'updatedAt'
+  /** Sort by validFrom */
+  | 'validFrom'
+  /** Sort by validTo */
+  | 'validTo';
+
+export type ApiCustomerTaxIdentifierPatchInput = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  identifierType?: InputMaybe<Scalars['String']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  status?: InputMaybe<CustomerTaxIdentifierStatus>;
+  validFrom?: InputMaybe<Scalars['Date']['input']>;
+  validTo?: InputMaybe<Scalars['Date']['input']>;
+  value?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CustomerTaxIdentifierStatus =
+  | 'EXPIRED'
+  | 'REJECTED'
+  | 'UNVERIFIED'
+  | 'VERIFIED';
+
+export type ApiCustomerTaxIdentifierStatusFilter = {
+  _eq?: InputMaybe<CustomerTaxIdentifierStatus>;
+  _in?: InputMaybe<Array<CustomerTaxIdentifierStatus>>;
+  _neq?: InputMaybe<CustomerTaxIdentifierStatus>;
+  _notIn?: InputMaybe<Array<CustomerTaxIdentifierStatus>>;
+};
+
+export type ApiCustomerTaxIdentifierUpdateOperationInput = {
+  operations: ApiCustomerTaxIdentifierPatchInput;
+  taxIdentifierId: Scalars['ID']['input'];
+};
+
+/** Filter conditions for CustomerTaxIdentifier */
+export type ApiCustomerTaxIdentifierWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerTaxIdentifierWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerTaxIdentifierWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerTaxIdentifierWhereInput>>;
+  /** Filter by countryCode */
+  countryCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by identifierType */
+  identifierType?: InputMaybe<ApiStringFilter>;
+  /** Filter by isPrimary */
+  isPrimary?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiCustomerTaxIdentifierStatusFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by validFrom */
+  validFrom?: InputMaybe<ApiDateFilter>;
+  /** Filter by validTo */
+  validTo?: InputMaybe<ApiDateFilter>;
+  /** Filter by value */
+  value?: InputMaybe<ApiStringFilter>;
+};
+
+/** Batched tax identifier changes scoped to the customer being updated. */
+export type ApiCustomerTaxIdentifiersUpdateInput = {
+  create?: InputMaybe<Array<ApiCustomerTaxIdentifierCreateOperationInput>>;
+  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  update?: InputMaybe<Array<ApiCustomerTaxIdentifierUpdateOperationInput>>;
+};
+
+/** Customer-level sections executed by the unified customerUpdate workflow. */
+export type ApiCustomerUpdateInput = {
+  addresses?: InputMaybe<ApiCustomerAddressesUpdateInput>;
+  company?: InputMaybe<ApiCustomerCompanyUpdateInput>;
+  consents?: InputMaybe<ApiCustomerConsentsUpdateInput>;
+  contact?: InputMaybe<ApiCustomerContactUpdateInput>;
+  groups?: InputMaybe<ApiCustomerGroupMembershipsUpdateInput>;
+  moderation?: InputMaybe<ApiCustomerModerationUpdateInput>;
+  note?: InputMaybe<ApiCustomerNoteUpdateInput>;
+  profile?: InputMaybe<ApiCustomerProfileUpdateInput>;
+  segments?: InputMaybe<ApiCustomerSegmentMembershipsUpdateInput>;
+  status?: InputMaybe<ApiCustomerStatusUpdateInput>;
+  tags?: InputMaybe<ApiCustomerTagAssignmentsUpdateInput>;
+  taxExemptions?: InputMaybe<ApiCustomerTaxExemptionsUpdateInput>;
+  taxIdentifiers?: InputMaybe<ApiCustomerTaxIdentifiersUpdateInput>;
+};
+
+export type ApiCustomerUpdatePayload = {
+  __typename?: 'CustomerUpdatePayload';
+  customer?: Maybe<ApiCustomer>;
+  operationResults: Array<ApiCustomerOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for Customer */
+export type ApiCustomerWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCustomerWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCustomerWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCustomerWhereInput>>;
+  /** Filter by accountStatus */
+  accountStatus?: InputMaybe<ApiCustomerAccountStatusFilter>;
+  /** Filter by companyName */
+  companyName?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by dateOfBirth */
+  dateOfBirth?: InputMaybe<ApiDateFilter>;
+  /** Filter by defaultShippingCity */
+  defaultShippingCity?: InputMaybe<ApiStringFilter>;
+  /** Filter by defaultShippingCountryCode */
+  defaultShippingCountryCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by defaultShippingRegionCode */
+  defaultShippingRegionCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by displayName */
+  displayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by email */
+  email?: InputMaybe<ApiStringFilter>;
+  /** Filter by emailMarketingState */
+  emailMarketingState?: InputMaybe<ApiCustomerConsentStateFilter>;
+  /** Filter by emailVerified */
+  emailVerified?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by firstName */
+  firstName?: InputMaybe<ApiStringFilter>;
+  /** Filter by iamPrincipalId */
+  iamPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by lastActivityAt */
+  lastActivityAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by lastName */
+  lastName?: InputMaybe<ApiStringFilter>;
+  /** Filter by lastOrderAt */
+  lastOrderAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by lifecycleStatus */
+  lifecycleStatus?: InputMaybe<ApiCustomerLifecycleStatusFilter>;
+  /** Filter by ordersCount */
+  ordersCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by phoneE164 */
+  phoneE164?: InputMaybe<ApiStringFilter>;
+  /** Filter by phoneVerified */
+  phoneVerified?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by preferredLocale */
+  preferredLocale?: InputMaybe<ApiStringFilter>;
+  /** Match customers with a current membership in the selected segment IDs. */
+  segmentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by source */
+  source?: InputMaybe<ApiStringFilter>;
+  /** Filter by totalSpentMinor */
+  totalSpentMinor?: InputMaybe<ApiBigIntFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutation = {
+  __typename?: 'CustomersMutation';
+  customerCreate: ApiCustomerCreatePayload;
+  customerDataRequestCreate: ApiCustomerDataRequestCreatePayload;
+  customerDataRequestDelete: ApiCustomerDataRequestDeletePayload;
+  customerDataRequestUpdate: ApiCustomerDataRequestUpdatePayload;
+  customerDelete: ApiCustomerDeletePayload;
+  customerGroupCreate: ApiCustomerGroupCreatePayload;
+  customerGroupDelete: ApiCustomerGroupDeletePayload;
+  customerGroupUpdate: ApiCustomerGroupUpdatePayload;
+  customerMergeCreate: ApiCustomerMergeCreatePayload;
+  customerMergeDelete: ApiCustomerMergeDeletePayload;
+  customerMergeUpdate: ApiCustomerMergeUpdatePayload;
+  customerSegmentCreate: ApiCustomerSegmentCreatePayload;
+  customerSegmentDelete: ApiCustomerSegmentDeletePayload;
+  customerSegmentUpdate: ApiCustomerSegmentUpdatePayload;
+  customerTagCreate: ApiCustomerTagCreatePayload;
+  customerTagDelete: ApiCustomerTagDeletePayload;
+  customerTagUpdate: ApiCustomerTagUpdatePayload;
+  /** Unified customer profile update with optimistic locking. */
+  customerUpdate: ApiCustomerUpdatePayload;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerCreateArgs = {
+  input: ApiCustomerCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerDataRequestCreateArgs = {
+  input: ApiCustomerDataRequestCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerDataRequestDeleteArgs = {
+  input: ApiCustomerDataRequestDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerDataRequestUpdateArgs = {
+  dataRequestId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiCustomerDataRequestUpdateInput>;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerDeleteArgs = {
+  input: ApiCustomerDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerGroupCreateArgs = {
+  input: ApiCustomerGroupCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerGroupDeleteArgs = {
+  input: ApiCustomerGroupDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerGroupUpdateArgs = {
+  expectedRevision: Scalars['Int']['input'];
+  groupId: Scalars['ID']['input'];
+  operations: ApiCustomerGroupUpdateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerMergeCreateArgs = {
+  input: ApiCustomerMergeCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerMergeDeleteArgs = {
+  input: ApiCustomerMergeDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerMergeUpdateArgs = {
+  mergeId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiCustomerMergeUpdateInput>;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerSegmentCreateArgs = {
+  input: ApiCustomerSegmentCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerSegmentDeleteArgs = {
+  input: ApiCustomerSegmentDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerSegmentUpdateArgs = {
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiCustomerSegmentUpdateInput;
+  segmentId: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTagCreateArgs = {
+  input: ApiCustomerTagCreateInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTagDeleteArgs = {
+  input: ApiCustomerTagDeleteInput;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerTagUpdateArgs = {
+  operations?: InputMaybe<ApiCustomerTagUpdateInput>;
+  tagId: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerUpdateArgs = {
+  customerId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiCustomerUpdateInput;
+};
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQuery = {
+  __typename?: 'CustomersQuery';
+  customer?: Maybe<ApiCustomer>;
+  customerAddress?: Maybe<ApiCustomerAddress>;
+  customerByEmail?: Maybe<ApiCustomer>;
+  customerConsent?: Maybe<ApiCustomerConsent>;
+  customerDataRequest?: Maybe<ApiCustomerDataRequest>;
+  customerDataRequests: ApiCustomerDataRequestConnection;
+  customerGroup?: Maybe<ApiCustomerGroup>;
+  customerGroups: ApiCustomerGroupConnection;
+  customerMerge?: Maybe<ApiCustomerMerge>;
+  customerMerges: ApiCustomerMergeConnection;
+  customerSegment?: Maybe<ApiCustomerSegment>;
+  customerSegments: ApiCustomerSegmentConnection;
+  customerTag?: Maybe<ApiCustomerTag>;
+  customerTags: ApiCustomerTagConnection;
+  customerTaxExemption?: Maybe<ApiCustomerTaxExemption>;
+  customerTaxIdentifier?: Maybe<ApiCustomerTaxIdentifier>;
+  customers: ApiCustomerConnection;
+  /** Resolve a customer-owned Relay node by global ID. */
+  node?: Maybe<ApiNode>;
+  /** Resolve customer-owned Relay nodes while preserving input order. */
+  nodes: Array<Maybe<ApiNode>>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerAddressArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerByEmailArgs = {
+  email: Scalars['Email']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerConsentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerDataRequestArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerDataRequestsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerDataRequestOrderByInput>>;
+  where?: InputMaybe<ApiCustomerDataRequestWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerGroupArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerGroupsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerGroupOrderByInput>>;
+  where?: InputMaybe<ApiCustomerGroupWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerMergeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerMergesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerMergeOrderByInput>>;
+  where?: InputMaybe<ApiCustomerMergeWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerSegmentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerSegmentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerSegmentOrderByInput>>;
+  where?: InputMaybe<ApiCustomerSegmentWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerTagArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerTagsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerTagOrderByInput>>;
+  where?: InputMaybe<ApiCustomerTagWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerTaxExemptionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomerTaxIdentifierArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryCustomersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCustomerOrderByInput>>;
+  where?: InputMaybe<ApiCustomerWhereInput>;
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type ApiCustomersQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+export type ApiDateFilter = {
+  _between?: InputMaybe<Array<Scalars['Date']['input']>>;
+  _eq?: InputMaybe<Scalars['Date']['input']>;
+  _gt?: InputMaybe<Scalars['Date']['input']>;
+  _gte?: InputMaybe<Scalars['Date']['input']>;
+  _in?: InputMaybe<Array<Scalars['Date']['input']>>;
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['Date']['input']>;
+  _lte?: InputMaybe<Scalars['Date']['input']>;
+  _neq?: InputMaybe<Scalars['Date']['input']>;
+  _notIn?: InputMaybe<Array<Scalars['Date']['input']>>;
 };
 
 /** Filter operators for DateTime fields */
@@ -2968,13 +6408,1006 @@ export type ApiDimensionsInput = {
   width: Scalars['Int']['input'];
 };
 
-/** Exchange rate representation using integer arithmetic for precision */
-export type ApiExchangeRate = {
-  __typename?: 'ExchangeRate';
-  /** The exchange rate value as an integer (divide by 10^scale for actual rate) */
-  amount: Scalars['Int']['output'];
-  /** The number of decimal places in the amount */
-  scale: Scalars['Int']['output'];
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscount = ApiNode & {
+  __typename?: 'Discount';
+  appliesOnOneTimePurchase: Scalars['Boolean']['output'];
+  appliesOnSubscription: Scalars['Boolean']['output'];
+  appliesOncePerCustomer: Scalars['Boolean']['output'];
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  buyerContext: ApiDiscountBuyerContext;
+  channelCodes: Array<Scalars['String']['output']>;
+  channels: Array<ApiDiscountChannel>;
+  codes: ApiDiscountCodeConnection;
+  codesCount: Scalars['Int']['output'];
+  combinations: Array<ApiDiscountCombination>;
+  combinesWithOrderDiscounts: Scalars['Boolean']['output'];
+  combinesWithProductDiscounts: Scalars['Boolean']['output'];
+  combinesWithShippingDiscounts: Scalars['Boolean']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  createdById?: Maybe<Scalars['String']['output']>;
+  currency: CurrencyCode;
+  discountClass: DiscountClass;
+  effectiveStatus: DiscountEffectiveStatus;
+  endsAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiDiscountExternalReferenceConnection;
+  featuredChannelCodes: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  kind: DiscountKind;
+  metadata: Scalars['JSON']['output'];
+  method: DiscountMethod;
+  minimumRequirement?: Maybe<ApiDiscountMinimumRequirement>;
+  /** First active code, or the oldest code when all codes are disabled. */
+  primaryCode?: Maybe<Scalars['String']['output']>;
+  priority: Scalars['Int']['output'];
+  redemptions: ApiDiscountRedemptionConnection;
+  reservedUsageCount: Scalars['BigInt']['output'];
+  revision: Scalars['Int']['output'];
+  /** Exactly one rule subtype is present for a complete aggregate. */
+  rule?: Maybe<ApiDiscountRule>;
+  startsAt: Scalars['DateTime']['output'];
+  state: DiscountState;
+  tags: Array<Scalars['String']['output']>;
+  targetSelections: Array<ApiDiscountTargetSelection>;
+  title?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  usage: ApiDiscountUsageSummary;
+  usageCount: Scalars['BigInt']['output'];
+  usageLimit?: Maybe<Scalars['BigInt']['output']>;
+  usageReservations: ApiDiscountUsageReservationConnection;
+};
+
+
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscountCodesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountCodeOrderByInput>>;
+  where?: InputMaybe<ApiDiscountCodeWhereInput>;
+};
+
+
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscountExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountExternalReferenceOrderByInput>>;
+  where?: InputMaybe<ApiDiscountExternalReferenceWhereInput>;
+};
+
+
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscountRedemptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountRedemptionOrderByInput>>;
+  where?: InputMaybe<ApiDiscountRedemptionWhereInput>;
+};
+
+
+/** A store-scoped native discount aggregate owned by Pricing. */
+export type ApiDiscountUsageReservationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountUsageReservationOrderByInput>>;
+  where?: InputMaybe<ApiDiscountUsageReservationWhereInput>;
+};
+
+export type DiscountAllocationMethod =
+  | 'ACROSS'
+  | 'EACH';
+
+export type DiscountAllocationTargetType =
+  | 'ORDER'
+  | 'ORDER_LINE'
+  | 'SHIPPING_LINE';
+
+/** Percentage or fixed-amount rule used by product and order discounts. */
+export type ApiDiscountAmountOffRule = {
+  __typename?: 'DiscountAmountOffRule';
+  allocationMethod: DiscountAllocationMethod;
+  amountMinor?: Maybe<Scalars['BigInt']['output']>;
+  maximumDiscountMinor?: Maybe<Scalars['BigInt']['output']>;
+  percentageBps?: Maybe<Scalars['Int']['output']>;
+  valueType: DiscountValueType;
+};
+
+export type ApiDiscountAmountOffRuleInput = {
+  /** Defaults to ACROSS when omitted. */
+  allocationMethod?: InputMaybe<DiscountAllocationMethod>;
+  amountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  maximumDiscountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  percentageBps?: InputMaybe<Scalars['Int']['input']>;
+  valueType: DiscountValueType;
+};
+
+export type ApiDiscountBuyXGetYRule = {
+  __typename?: 'DiscountBuyXGetYRule';
+  benefitAmountMinor?: Maybe<Scalars['BigInt']['output']>;
+  benefitPercentageBps?: Maybe<Scalars['Int']['output']>;
+  benefitQuantity: Scalars['Int']['output'];
+  benefitValueType: DiscountValueType;
+  requiredQuantity?: Maybe<Scalars['Int']['output']>;
+  requiredSubtotalMinor?: Maybe<Scalars['BigInt']['output']>;
+  requirementType: DiscountRequirementType;
+  usesPerOrderLimit?: Maybe<Scalars['Int']['output']>;
+};
+
+export type ApiDiscountBuyXGetYRuleInput = {
+  benefitAmountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  benefitPercentageBps?: InputMaybe<Scalars['Int']['input']>;
+  benefitQuantity: Scalars['Int']['input'];
+  benefitValueType: DiscountValueType;
+  requiredQuantity?: InputMaybe<Scalars['Int']['input']>;
+  requiredSubtotalMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  requirementType: DiscountRequirementType;
+  usesPerOrderLimit?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiDiscountBuyerContext = {
+  __typename?: 'DiscountBuyerContext';
+  createdAt: Scalars['DateTime']['output'];
+  customers: Array<ApiDiscountEligibleCustomer>;
+  segments: Array<ApiDiscountEligibleSegment>;
+  type: DiscountBuyerContextType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDiscountBuyerContextInput = {
+  customerIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  segmentIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  type: DiscountBuyerContextType;
+};
+
+export type DiscountBuyerContextType =
+  | 'ALL'
+  | 'CUSTOMERS'
+  | 'SEGMENTS';
+
+export type ApiDiscountCatalogTarget = ApiCategory | ApiProduct | ApiVariant;
+
+export type ApiDiscountChannel = {
+  __typename?: 'DiscountChannel';
+  code: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  featured: Scalars['Boolean']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDiscountChannelInput = {
+  code: Scalars['String']['input'];
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type DiscountClass =
+  | 'ORDER'
+  | 'PRODUCT'
+  | 'SHIPPING';
+
+export type ApiDiscountClassFilter = {
+  _eq?: InputMaybe<DiscountClass>;
+  _in?: InputMaybe<Array<DiscountClass>>;
+  _neq?: InputMaybe<DiscountClass>;
+  _notIn?: InputMaybe<Array<DiscountClass>>;
+};
+
+/** A redeemable code and its usage projection. */
+export type ApiDiscountCode = ApiNode & {
+  __typename?: 'DiscountCode';
+  code: Scalars['String']['output'];
+  committedCount: Scalars['BigInt']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  disabledAt?: Maybe<Scalars['DateTime']['output']>;
+  discount: ApiDiscount;
+  id: Scalars['ID']['output'];
+  metadata: Scalars['JSON']['output'];
+  normalizedCode: Scalars['String']['output'];
+  remainingCount?: Maybe<Scalars['BigInt']['output']>;
+  reservedCount: Scalars['BigInt']['output'];
+  reversedCount: Scalars['BigInt']['output'];
+  status: DiscountCodeStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  usageCount: Scalars['BigInt']['output'];
+  usageLimit?: Maybe<Scalars['BigInt']['output']>;
+};
+
+export type ApiDiscountCodeConnection = {
+  __typename?: 'DiscountCodeConnection';
+  edges: Array<ApiDiscountCodeEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountCodeCreateOperationInput = {
+  /** Client-provided correlation key returned in the operation result. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  code: Scalars['String']['input'];
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export type ApiDiscountCodeDeleteOperationInput = {
+  codeId: Scalars['ID']['input'];
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+};
+
+export type ApiDiscountCodeEdge = {
+  __typename?: 'DiscountCodeEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscountCode;
+};
+
+export type ApiDiscountCodeOrderByInput = {
+  direction: SortDirection;
+  field: DiscountCodeOrderField;
+};
+
+export type DiscountCodeOrderField =
+  | 'code'
+  | 'createdAt'
+  | 'disabledAt'
+  | 'id'
+  | 'normalizedCode'
+  | 'remainingCount'
+  | 'reservedCount'
+  | 'status'
+  | 'updatedAt'
+  | 'usageCount'
+  | 'usageLimit';
+
+export type DiscountCodeStatus =
+  | 'ACTIVE'
+  | 'DISABLED';
+
+export type ApiDiscountCodeStatusFilter = {
+  _eq?: InputMaybe<DiscountCodeStatus>;
+  _in?: InputMaybe<Array<DiscountCodeStatus>>;
+  _neq?: InputMaybe<DiscountCodeStatus>;
+  _notIn?: InputMaybe<Array<DiscountCodeStatus>>;
+};
+
+export type ApiDiscountCodeUpdateOperationInput = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  codeId: Scalars['ID']['input'];
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  status?: InputMaybe<DiscountCodeStatus>;
+  usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export type ApiDiscountCodeWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountCodeWhereInput>>;
+  _not?: InputMaybe<ApiDiscountCodeWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountCodeWhereInput>>;
+  code?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  disabledAt?: InputMaybe<ApiDateTimeFilter>;
+  discountId?: InputMaybe<ApiIdFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  normalizedCode?: InputMaybe<ApiStringFilter>;
+  remainingCount?: InputMaybe<ApiBigIntFilter>;
+  reservedCount?: InputMaybe<ApiBigIntFilter>;
+  status?: InputMaybe<ApiDiscountCodeStatusFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  usageCount?: InputMaybe<ApiBigIntFilter>;
+  usageLimit?: InputMaybe<ApiBigIntFilter>;
+};
+
+export type ApiDiscountCodesUpdateInput = {
+  create?: InputMaybe<Array<ApiDiscountCodeCreateOperationInput>>;
+  delete?: InputMaybe<Array<ApiDiscountCodeDeleteOperationInput>>;
+  update?: InputMaybe<Array<ApiDiscountCodeUpdateOperationInput>>;
+};
+
+export type ApiDiscountCombination = {
+  __typename?: 'DiscountCombination';
+  createdAt: Scalars['DateTime']['output'];
+  discountClass: DiscountClass;
+};
+
+export type ApiDiscountConnection = {
+  __typename?: 'DiscountConnection';
+  edges: Array<ApiDiscountEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountCreateInput = {
+  buyerContext?: InputMaybe<ApiDiscountBuyerContextInput>;
+  channels?: InputMaybe<Array<ApiDiscountChannelInput>>;
+  codes?: InputMaybe<Array<ApiDiscountCodeCreateOperationInput>>;
+  combinesWith?: InputMaybe<Array<DiscountClass>>;
+  currency: CurrencyCode;
+  kind: DiscountKind;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  method: DiscountMethod;
+  minimumRequirement?: InputMaybe<ApiDiscountMinimumRequirementInput>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  purchaseModes?: InputMaybe<ApiDiscountPurchaseModesInput>;
+  rule?: InputMaybe<ApiDiscountRuleInput>;
+  schedule?: InputMaybe<ApiDiscountScheduleInput>;
+  /** Defaults to DRAFT when omitted. */
+  state?: InputMaybe<DiscountState>;
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+  targetSelections?: InputMaybe<Array<ApiDiscountTargetSelectionInput>>;
+  title?: InputMaybe<Scalars['String']['input']>;
+  usage?: InputMaybe<ApiDiscountUsageLimitsInput>;
+};
+
+export type ApiDiscountCreatePayload = {
+  __typename?: 'DiscountCreatePayload';
+  discount?: Maybe<ApiDiscount>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountCurrencyFilter = {
+  _eq?: InputMaybe<CurrencyCode>;
+  _in?: InputMaybe<Array<CurrencyCode>>;
+  _neq?: InputMaybe<CurrencyCode>;
+  _notIn?: InputMaybe<Array<CurrencyCode>>;
+};
+
+export type ApiDiscountDefinitionUpdateInput = {
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  purchaseModes?: InputMaybe<ApiDiscountPurchaseModesInput>;
+  schedule?: InputMaybe<ApiDiscountScheduleInput>;
+  title?: InputMaybe<Scalars['String']['input']>;
+  usage?: InputMaybe<ApiDiscountUsageLimitsInput>;
+};
+
+export type ApiDiscountDeleteInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type ApiDiscountDeletePayload = {
+  __typename?: 'DiscountDeletePayload';
+  deletedDiscountId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountEdge = {
+  __typename?: 'DiscountEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscount;
+};
+
+/** Lifecycle plus schedule-derived state used by Admin list views. */
+export type DiscountEffectiveStatus =
+  | 'ACTIVE'
+  | 'ARCHIVED'
+  | 'DRAFT'
+  | 'EXPIRED'
+  | 'PAUSED'
+  | 'SCHEDULED';
+
+export type ApiDiscountEffectiveStatusFilter = {
+  _eq?: InputMaybe<DiscountEffectiveStatus>;
+  _in?: InputMaybe<Array<DiscountEffectiveStatus>>;
+  _neq?: InputMaybe<DiscountEffectiveStatus>;
+  _notIn?: InputMaybe<Array<DiscountEffectiveStatus>>;
+};
+
+export type ApiDiscountEligibleCustomer = {
+  __typename?: 'DiscountEligibleCustomer';
+  createdAt: Scalars['DateTime']['output'];
+  customer?: Maybe<ApiCustomer>;
+  customerId: Scalars['ID']['output'];
+  referenceCheckedAt?: Maybe<Scalars['DateTime']['output']>;
+  referenceStatus: DiscountReferenceStatus;
+  referenceStatusChangedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type ApiDiscountEligibleSegment = {
+  __typename?: 'DiscountEligibleSegment';
+  createdAt: Scalars['DateTime']['output'];
+  referenceCheckedAt?: Maybe<Scalars['DateTime']['output']>;
+  referenceStatus: DiscountReferenceStatus;
+  referenceStatusChangedAt?: Maybe<Scalars['DateTime']['output']>;
+  segmentId: Scalars['ID']['output'];
+};
+
+export type ApiDiscountExternalReference = ApiNode & {
+  __typename?: 'DiscountExternalReference';
+  contentChecksum?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  direction: DiscountExternalSyncDirection;
+  discount: ApiDiscount;
+  etag?: Maybe<Scalars['String']['output']>;
+  externalId: Scalars['String']['output'];
+  externalSystem: Scalars['String']['output'];
+  externalType: Scalars['String']['output'];
+  externalUrl?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  lastSyncedAt?: Maybe<Scalars['DateTime']['output']>;
+  metadata: Scalars['JSON']['output'];
+  syncStatus: DiscountExternalSyncStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDiscountExternalReferenceConnection = {
+  __typename?: 'DiscountExternalReferenceConnection';
+  edges: Array<ApiDiscountExternalReferenceEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountExternalReferenceCreateInput = {
+  direction: DiscountExternalSyncDirection;
+  discountId: Scalars['ID']['input'];
+  externalId: Scalars['String']['input'];
+  externalSystem: Scalars['String']['input'];
+  externalType?: InputMaybe<Scalars['String']['input']>;
+  externalUrl?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiDiscountExternalReferenceCreatePayload = {
+  __typename?: 'DiscountExternalReferenceCreatePayload';
+  externalReference?: Maybe<ApiDiscountExternalReference>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountExternalReferenceDeleteInput = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  id: Scalars['ID']['input'];
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiDiscountExternalReferenceDeletePayload = {
+  __typename?: 'DiscountExternalReferenceDeletePayload';
+  deletedExternalReferenceId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountExternalReferenceEdge = {
+  __typename?: 'DiscountExternalReferenceEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscountExternalReference;
+};
+
+export type ApiDiscountExternalReferenceIdentityInput = {
+  externalId?: InputMaybe<Scalars['String']['input']>;
+  externalSystem?: InputMaybe<Scalars['String']['input']>;
+  externalType?: InputMaybe<Scalars['String']['input']>;
+  externalUrl?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiDiscountExternalReferenceOrderByInput = {
+  direction: SortDirection;
+  field: DiscountExternalReferenceOrderField;
+};
+
+export type DiscountExternalReferenceOrderField =
+  | 'createdAt'
+  | 'deletedAt'
+  | 'direction'
+  | 'externalId'
+  | 'externalSystem'
+  | 'externalType'
+  | 'id'
+  | 'lastSyncedAt'
+  | 'syncStatus'
+  | 'updatedAt';
+
+export type ApiDiscountExternalReferenceSyncInput = {
+  contentChecksum?: InputMaybe<Scalars['String']['input']>;
+  direction?: InputMaybe<DiscountExternalSyncDirection>;
+  etag?: InputMaybe<Scalars['String']['input']>;
+  lastError?: InputMaybe<Scalars['String']['input']>;
+  lastSyncedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  status?: InputMaybe<DiscountExternalSyncStatus>;
+};
+
+export type ApiDiscountExternalReferenceUpdateInput = {
+  identity?: InputMaybe<ApiDiscountExternalReferenceIdentityInput>;
+  sync?: InputMaybe<ApiDiscountExternalReferenceSyncInput>;
+};
+
+export type ApiDiscountExternalReferenceUpdatePayload = {
+  __typename?: 'DiscountExternalReferenceUpdatePayload';
+  externalReference?: Maybe<ApiDiscountExternalReference>;
+  operationResults: Array<ApiDiscountOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountExternalReferenceWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountExternalReferenceWhereInput>>;
+  _not?: InputMaybe<ApiDiscountExternalReferenceWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountExternalReferenceWhereInput>>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  direction?: InputMaybe<ApiDiscountExternalSyncDirectionFilter>;
+  discountId?: InputMaybe<ApiIdFilter>;
+  externalId?: InputMaybe<ApiStringFilter>;
+  externalSystem?: InputMaybe<ApiStringFilter>;
+  externalType?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  lastSyncedAt?: InputMaybe<ApiDateTimeFilter>;
+  syncStatus?: InputMaybe<ApiDiscountExternalSyncStatusFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type DiscountExternalSyncDirection =
+  | 'BIDIRECTIONAL'
+  | 'EXPORT'
+  | 'IMPORT';
+
+export type ApiDiscountExternalSyncDirectionFilter = {
+  _eq?: InputMaybe<DiscountExternalSyncDirection>;
+  _in?: InputMaybe<Array<DiscountExternalSyncDirection>>;
+  _neq?: InputMaybe<DiscountExternalSyncDirection>;
+  _notIn?: InputMaybe<Array<DiscountExternalSyncDirection>>;
+};
+
+export type DiscountExternalSyncStatus =
+  | 'DISABLED'
+  | 'FAILED'
+  | 'PENDING'
+  | 'SYNCED';
+
+export type ApiDiscountExternalSyncStatusFilter = {
+  _eq?: InputMaybe<DiscountExternalSyncStatus>;
+  _in?: InputMaybe<Array<DiscountExternalSyncStatus>>;
+  _neq?: InputMaybe<DiscountExternalSyncStatus>;
+  _notIn?: InputMaybe<Array<DiscountExternalSyncStatus>>;
+};
+
+export type ApiDiscountFreeShippingRule = {
+  __typename?: 'DiscountFreeShippingRule';
+  maximumShippingPriceMinor?: Maybe<Scalars['BigInt']['output']>;
+};
+
+export type ApiDiscountFreeShippingRuleInput = {
+  maximumShippingPriceMinor?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export type DiscountKind =
+  | 'AMOUNT_OFF_ORDER'
+  | 'AMOUNT_OFF_PRODUCTS'
+  | 'BUY_X_GET_Y'
+  | 'FREE_SHIPPING';
+
+export type ApiDiscountKindFilter = {
+  _eq?: InputMaybe<DiscountKind>;
+  _in?: InputMaybe<Array<DiscountKind>>;
+  _neq?: InputMaybe<DiscountKind>;
+  _notIn?: InputMaybe<Array<DiscountKind>>;
+};
+
+export type ApiDiscountLifecycleUpdateInput = {
+  state: DiscountState;
+};
+
+export type DiscountMethod =
+  | 'AUTOMATIC'
+  | 'CODE';
+
+export type ApiDiscountMethodFilter = {
+  _eq?: InputMaybe<DiscountMethod>;
+  _in?: InputMaybe<Array<DiscountMethod>>;
+  _neq?: InputMaybe<DiscountMethod>;
+  _notIn?: InputMaybe<Array<DiscountMethod>>;
+};
+
+export type ApiDiscountMinimumRequirement = {
+  __typename?: 'DiscountMinimumRequirement';
+  quantity?: Maybe<Scalars['Int']['output']>;
+  requirementType: DiscountRequirementType;
+  subtotalMinor?: Maybe<Scalars['BigInt']['output']>;
+};
+
+export type ApiDiscountMinimumRequirementInput = {
+  quantity?: InputMaybe<Scalars['Int']['input']>;
+  requirementType: DiscountRequirementType;
+  subtotalMinor?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+/** Wrapper used by updates so a null requirement can explicitly clear it. */
+export type ApiDiscountMinimumRequirementSyncInput = {
+  requirement?: InputMaybe<ApiDiscountMinimumRequirementInput>;
+};
+
+/** Result of one section in a discount aggregate update. */
+export type ApiDiscountOperationResult = {
+  __typename?: 'DiscountOperationResult';
+  applied: Scalars['Boolean']['output'];
+  errors: Array<ApiGenericUserError>;
+  type: DiscountOperationType;
+};
+
+/** Sections executed by the unified discountUpdate workflow. */
+export type DiscountOperationType =
+  | 'CHANNELS_UPDATE'
+  | 'CODES_UPDATE'
+  | 'COMBINATIONS_UPDATE'
+  | 'DEFINITION_UPDATE'
+  | 'ELIGIBILITY_UPDATE'
+  | 'EXTERNAL_REFERENCE_UPDATE'
+  | 'LIFECYCLE_UPDATE'
+  | 'METADATA_UPDATE'
+  | 'MINIMUM_REQUIREMENT_UPDATE'
+  | 'RULE_UPDATE'
+  | 'TAGS_UPDATE'
+  | 'TARGETS_UPDATE';
+
+export type ApiDiscountOrderByInput = {
+  direction: SortDirection;
+  field: DiscountOrderField;
+};
+
+export type DiscountOrderField =
+  | 'archivedAt'
+  | 'codesCount'
+  | 'createdAt'
+  | 'currency'
+  | 'discountClass'
+  | 'effectiveStatus'
+  | 'endsAt'
+  | 'id'
+  | 'kind'
+  | 'method'
+  | 'primaryCode'
+  | 'priority'
+  | 'reservedUsageCount'
+  | 'revision'
+  | 'startsAt'
+  | 'state'
+  | 'title'
+  | 'updatedAt'
+  | 'usageCount'
+  | 'usageLimit';
+
+export type ApiDiscountPurchaseModesInput = {
+  appliesOnOneTimePurchase: Scalars['Boolean']['input'];
+  appliesOnSubscription: Scalars['Boolean']['input'];
+};
+
+/** Order-level discount accounting header. */
+export type ApiDiscountRedemption = ApiNode & {
+  __typename?: 'DiscountRedemption';
+  allocations: Array<ApiDiscountRedemptionAllocation>;
+  amountMinor: Scalars['BigInt']['output'];
+  checkoutId: Scalars['ID']['output'];
+  committedAt: Scalars['DateTime']['output'];
+  configurationRevision: Scalars['Int']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  currency: CurrencyCode;
+  customer?: Maybe<ApiCustomer>;
+  customerId?: Maybe<Scalars['ID']['output']>;
+  discount: ApiDiscount;
+  discountClass: DiscountClass;
+  discountCode?: Maybe<ApiDiscountCode>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  metadata: Scalars['JSON']['output'];
+  orderId: Scalars['ID']['output'];
+  reservation?: Maybe<ApiDiscountUsageReservation>;
+  reversalReason?: Maybe<Scalars['String']['output']>;
+  reversedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: DiscountRedemptionStatus;
+};
+
+export type ApiDiscountRedemptionAllocation = ApiNode & {
+  __typename?: 'DiscountRedemptionAllocation';
+  amountMinor: Scalars['BigInt']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  metadata: Scalars['JSON']['output'];
+  quantity?: Maybe<Scalars['Int']['output']>;
+  redemption: ApiDiscountRedemption;
+  targetId?: Maybe<Scalars['ID']['output']>;
+  targetType: DiscountAllocationTargetType;
+};
+
+export type ApiDiscountRedemptionConnection = {
+  __typename?: 'DiscountRedemptionConnection';
+  edges: Array<ApiDiscountRedemptionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountRedemptionEdge = {
+  __typename?: 'DiscountRedemptionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscountRedemption;
+};
+
+export type ApiDiscountRedemptionOrderByInput = {
+  direction: SortDirection;
+  field: DiscountRedemptionOrderField;
+};
+
+export type DiscountRedemptionOrderField =
+  | 'amountMinor'
+  | 'committedAt'
+  | 'configurationRevision'
+  | 'createdAt'
+  | 'currency'
+  | 'discountClass'
+  | 'id'
+  | 'reversedAt'
+  | 'status';
+
+export type DiscountRedemptionStatus =
+  | 'COMMITTED'
+  | 'REVERSED';
+
+export type ApiDiscountRedemptionStatusFilter = {
+  _eq?: InputMaybe<DiscountRedemptionStatus>;
+  _in?: InputMaybe<Array<DiscountRedemptionStatus>>;
+  _neq?: InputMaybe<DiscountRedemptionStatus>;
+  _notIn?: InputMaybe<Array<DiscountRedemptionStatus>>;
+};
+
+export type ApiDiscountRedemptionWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountRedemptionWhereInput>>;
+  _not?: InputMaybe<ApiDiscountRedemptionWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountRedemptionWhereInput>>;
+  amountMinor?: InputMaybe<ApiBigIntFilter>;
+  checkoutId?: InputMaybe<ApiIdFilter>;
+  codeId?: InputMaybe<ApiIdFilter>;
+  committedAt?: InputMaybe<ApiDateTimeFilter>;
+  configurationRevision?: InputMaybe<ApiIntFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  currency?: InputMaybe<ApiDiscountCurrencyFilter>;
+  customerId?: InputMaybe<ApiIdFilter>;
+  discountClass?: InputMaybe<ApiDiscountClassFilter>;
+  discountId?: InputMaybe<ApiIdFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  orderId?: InputMaybe<ApiIdFilter>;
+  reservationId?: InputMaybe<ApiIdFilter>;
+  reversedAt?: InputMaybe<ApiDateTimeFilter>;
+  status?: InputMaybe<ApiDiscountRedemptionStatusFilter>;
+};
+
+export type DiscountReferenceStatus =
+  | 'STALE'
+  | 'VALID';
+
+export type DiscountRequirementType =
+  | 'QUANTITY'
+  | 'SUBTOTAL';
+
+export type DiscountReservationStatus =
+  | 'ACTIVE'
+  | 'COMMITTED'
+  | 'EXPIRED'
+  | 'RELEASED';
+
+export type ApiDiscountReservationStatusFilter = {
+  _eq?: InputMaybe<DiscountReservationStatus>;
+  _in?: InputMaybe<Array<DiscountReservationStatus>>;
+  _neq?: InputMaybe<DiscountReservationStatus>;
+  _notIn?: InputMaybe<Array<DiscountReservationStatus>>;
+};
+
+export type ApiDiscountRule = ApiDiscountAmountOffRule | ApiDiscountBuyXGetYRule | ApiDiscountFreeShippingRule;
+
+/** Exactly one rule field must match the owning discount kind. */
+export type ApiDiscountRuleInput = {
+  amountOff?: InputMaybe<ApiDiscountAmountOffRuleInput>;
+  buyXGetY?: InputMaybe<ApiDiscountBuyXGetYRuleInput>;
+  freeShipping?: InputMaybe<ApiDiscountFreeShippingRuleInput>;
+};
+
+export type ApiDiscountScheduleInput = {
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  startsAt: Scalars['DateTime']['input'];
+};
+
+export type DiscountState =
+  | 'ACTIVE'
+  | 'ARCHIVED'
+  | 'DRAFT'
+  | 'PAUSED';
+
+export type ApiDiscountStateFilter = {
+  _eq?: InputMaybe<DiscountState>;
+  _in?: InputMaybe<Array<DiscountState>>;
+  _neq?: InputMaybe<DiscountState>;
+  _notIn?: InputMaybe<Array<DiscountState>>;
+};
+
+/** A long-lived cross-service target reference and its reconciliation state. */
+export type ApiDiscountTarget = {
+  __typename?: 'DiscountTarget';
+  createdAt: Scalars['DateTime']['output'];
+  referenceCheckedAt?: Maybe<Scalars['DateTime']['output']>;
+  referenceStatus: DiscountReferenceStatus;
+  referenceStatusChangedAt?: Maybe<Scalars['DateTime']['output']>;
+  target?: Maybe<ApiDiscountCatalogTarget>;
+  targetId: Scalars['ID']['output'];
+  targetType: DiscountTargetType;
+};
+
+export type DiscountTargetRole =
+  | 'BENEFIT'
+  | 'QUALIFIER';
+
+export type ApiDiscountTargetSelection = {
+  __typename?: 'DiscountTargetSelection';
+  role: DiscountTargetRole;
+  targetType: DiscountTargetType;
+  targets: Array<ApiDiscountTarget>;
+};
+
+export type ApiDiscountTargetSelectionInput = {
+  role: DiscountTargetRole;
+  /** Must be empty for ALL_PRODUCTS and non-empty for specific target types. */
+  targetIds: Array<Scalars['ID']['input']>;
+  targetType: DiscountTargetType;
+};
+
+export type DiscountTargetType =
+  | 'ALL_PRODUCTS'
+  | 'CATEGORIES'
+  | 'PRODUCTS'
+  | 'VARIANTS';
+
+/** Discount-level sections executed by the unified discountUpdate workflow. */
+export type ApiDiscountUpdateInput = {
+  /** Complete channel replacement when supplied. Empty removes every channel. */
+  channels?: InputMaybe<Array<ApiDiscountChannelInput>>;
+  codes?: InputMaybe<ApiDiscountCodesUpdateInput>;
+  /** Complete compatible-class replacement when supplied. */
+  combinesWith?: InputMaybe<Array<DiscountClass>>;
+  definition?: InputMaybe<ApiDiscountDefinitionUpdateInput>;
+  eligibility?: InputMaybe<ApiDiscountBuyerContextInput>;
+  lifecycle?: InputMaybe<ApiDiscountLifecycleUpdateInput>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  minimumRequirement?: InputMaybe<ApiDiscountMinimumRequirementSyncInput>;
+  rule?: InputMaybe<ApiDiscountRuleInput>;
+  /** Complete tag replacement when supplied. Empty removes every tag. */
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Complete qualifier/benefit target replacement when supplied. */
+  targetSelections?: InputMaybe<Array<ApiDiscountTargetSelectionInput>>;
+};
+
+export type ApiDiscountUpdatePayload = {
+  __typename?: 'DiscountUpdatePayload';
+  discount?: Maybe<ApiDiscount>;
+  operationResults: Array<ApiDiscountOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiDiscountUsageLimitsInput = {
+  appliesOncePerCustomer: Scalars['Boolean']['input'];
+  usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+/** Operational capacity reservation retained as an audit record after closing. */
+export type ApiDiscountUsageReservation = ApiNode & {
+  __typename?: 'DiscountUsageReservation';
+  checkoutId: Scalars['ID']['output'];
+  closedAt?: Maybe<Scalars['DateTime']['output']>;
+  committedAt?: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customer?: Maybe<ApiCustomer>;
+  customerId?: Maybe<Scalars['ID']['output']>;
+  discount: ApiDiscount;
+  discountCode?: Maybe<ApiDiscountCode>;
+  expiresAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  metadata: Scalars['JSON']['output'];
+  status: DiscountReservationStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDiscountUsageReservationConnection = {
+  __typename?: 'DiscountUsageReservationConnection';
+  edges: Array<ApiDiscountUsageReservationEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiDiscountUsageReservationEdge = {
+  __typename?: 'DiscountUsageReservationEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiDiscountUsageReservation;
+};
+
+export type ApiDiscountUsageReservationOrderByInput = {
+  direction: SortDirection;
+  field: DiscountUsageReservationOrderField;
+};
+
+export type DiscountUsageReservationOrderField =
+  | 'closedAt'
+  | 'committedAt'
+  | 'createdAt'
+  | 'expiresAt'
+  | 'id'
+  | 'status'
+  | 'updatedAt';
+
+export type ApiDiscountUsageReservationWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountUsageReservationWhereInput>>;
+  _not?: InputMaybe<ApiDiscountUsageReservationWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountUsageReservationWhereInput>>;
+  checkoutId?: InputMaybe<ApiIdFilter>;
+  closedAt?: InputMaybe<ApiDateTimeFilter>;
+  codeId?: InputMaybe<ApiIdFilter>;
+  committedAt?: InputMaybe<ApiDateTimeFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  customerId?: InputMaybe<ApiIdFilter>;
+  discountId?: InputMaybe<ApiIdFilter>;
+  expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  status?: InputMaybe<ApiDiscountReservationStatusFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Aggregate usage accounting including active checkout reservations. */
+export type ApiDiscountUsageSummary = {
+  __typename?: 'DiscountUsageSummary';
+  committedCount: Scalars['BigInt']['output'];
+  consumedCount: Scalars['BigInt']['output'];
+  netCommittedCount: Scalars['BigInt']['output'];
+  remainingCount?: Maybe<Scalars['BigInt']['output']>;
+  reservedCount: Scalars['BigInt']['output'];
+  reversedCount: Scalars['BigInt']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  usageLimit?: Maybe<Scalars['BigInt']['output']>;
+  version?: Maybe<Scalars['BigInt']['output']>;
+};
+
+export type DiscountValueType =
+  | 'FIXED_AMOUNT'
+  | 'FREE'
+  | 'PERCENTAGE';
+
+/** Filters backed by pricing.discount_list_view and store-scoped relations. */
+export type ApiDiscountWhereInput = {
+  _and?: InputMaybe<Array<ApiDiscountWhereInput>>;
+  _not?: InputMaybe<ApiDiscountWhereInput>;
+  _or?: InputMaybe<Array<ApiDiscountWhereInput>>;
+  appliesOnOneTimePurchase?: InputMaybe<ApiBooleanFilter>;
+  appliesOnSubscription?: InputMaybe<ApiBooleanFilter>;
+  appliesOncePerCustomer?: InputMaybe<ApiBooleanFilter>;
+  archivedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Match discounts available on a channel code. */
+  channelCode?: InputMaybe<ApiStringFilter>;
+  /** Match any code assigned to the discount, including disabled codes. */
+  code?: InputMaybe<ApiStringFilter>;
+  combinesWithOrderDiscounts?: InputMaybe<ApiBooleanFilter>;
+  combinesWithProductDiscounts?: InputMaybe<ApiBooleanFilter>;
+  combinesWithShippingDiscounts?: InputMaybe<ApiBooleanFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  createdById?: InputMaybe<ApiStringFilter>;
+  currency?: InputMaybe<ApiDiscountCurrencyFilter>;
+  discountClass?: InputMaybe<ApiDiscountClassFilter>;
+  effectiveStatus?: InputMaybe<ApiDiscountEffectiveStatusFilter>;
+  endsAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Match discounts featured on a channel code. */
+  featuredChannelCode?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  kind?: InputMaybe<ApiDiscountKindFilter>;
+  method?: InputMaybe<ApiDiscountMethodFilter>;
+  primaryCode?: InputMaybe<ApiStringFilter>;
+  priority?: InputMaybe<ApiIntFilter>;
+  reservedUsageCount?: InputMaybe<ApiBigIntFilter>;
+  revision?: InputMaybe<ApiIntFilter>;
+  startsAt?: InputMaybe<ApiDateTimeFilter>;
+  state?: InputMaybe<ApiDiscountStateFilter>;
+  /** Match discounts assigned to at least one normalized tag. */
+  tag?: InputMaybe<ApiStringFilter>;
+  title?: InputMaybe<ApiStringFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  usageCount?: InputMaybe<ApiBigIntFilter>;
+  usageLimit?: InputMaybe<ApiBigIntFilter>;
 };
 
 /** External media data (YouTube, Vimeo, etc). */
@@ -3070,6 +7503,23 @@ export type ApiFacetRebalancePayload = {
 export type FacetScopeType =
   | 'CATEGORY'
   | 'SEARCH';
+
+export type ApiFacetScopesUpdateInput = {
+  /** Only changed facets need to be included. All updates are applied atomically. */
+  updates: Array<ApiFacetScopesUpdateItemInput>;
+};
+
+export type ApiFacetScopesUpdateItemInput = {
+  id: Scalars['ID']['input'];
+  /** Replaces the current scopes. The list cannot be empty. */
+  scopes: Array<FacetScopeType>;
+};
+
+export type ApiFacetScopesUpdatePayload = {
+  __typename?: 'FacetScopesUpdatePayload';
+  facets: Array<ApiFacet>;
+  userErrors: Array<ApiGenericUserError>;
+};
 
 export type FacetSelectionMode =
   | 'MULTI'
@@ -4224,6 +8674,11 @@ export type ApiListingMutation = {
   facetMove: ApiFacetMovePayload;
   /** Rebalance facet lexo ranks. */
   facetRebalance: ApiFacetRebalancePayload;
+  /**
+   * Atomically replace scopes for multiple facets.
+   * No updates are applied when any input item is invalid.
+   */
+  facetScopesUpdate: ApiFacetScopesUpdatePayload;
   /** Create a new facet swatch. */
   facetSwatchCreate: ApiFacetSwatchCreatePayload;
   /** Delete a facet swatch. */
@@ -4270,6 +8725,11 @@ export type ApiListingMutationFacetMoveArgs = {
 
 export type ApiListingMutationFacetRebalanceArgs = {
   input: ApiFacetRebalanceInput;
+};
+
+
+export type ApiListingMutationFacetScopesUpdateArgs = {
+  input: ApiFacetScopesUpdateInput;
 };
 
 
@@ -5143,11 +9603,15 @@ export type ApiMembership = {
 
 export type ApiMutation = {
   __typename?: 'Mutation';
+  /** Application realm management mutations. */
+  applicationMutation: ApiApplicationMutation;
   appsMutation: ApiAppsMutation;
   /** Authentication mutations. */
   authMutation: ApiAuthMutation;
   /** Catalog mutation namespace for product, variant, category, and collection operations */
   catalogMutation: ApiCatalogMutation;
+  /** Customers Admin mutation namespace. */
+  customersMutation: ApiCustomersMutation;
   /** Inventory mutation namespace for warehouse, stock, and inventory item operations */
   inventoryMutation: ApiInventoryMutation;
   /** Listing mutation namespace. */
@@ -5156,6 +9620,10 @@ export type ApiMutation = {
   orderMutation: ApiOrderMutation;
   /** Organization management mutations. */
   organizationMutation: ApiOrganizationMutation;
+  /** Pricing Admin mutation namespace. */
+  pricingMutation: ApiPricingMutation;
+  /** Admin-only Reviews mutation namespace. */
+  reviewsMutation: ApiReviewsMutation;
   /** Role management mutations. */
   roleMutation: ApiRoleMutation;
   /** Store-related mutations */
@@ -5386,6 +9854,8 @@ export type ApiOrdersOutput = {
  */
 export type ApiOrganization = ApiNode & {
   __typename?: 'Organization';
+  /** Applications owned by this organization. */
+  applications: ApiApplicationConnection;
   /** Timestamp when the organization was created. */
   createdAt: Scalars['DateTime']['output'];
   /** Display name (e.g., "Acme Corp"). */
@@ -5400,6 +9870,20 @@ export type ApiOrganization = ApiNode & {
   name: Scalars['String']['output'];
   /** Timestamp when the organization was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+
+/**
+ * Organization - top level entity for multi-tenancy.
+ * Users belong to organizations, organizations contain stores.
+ */
+export type ApiOrganizationApplicationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiApplicationOrderByInput>>;
+  where?: InputMaybe<ApiApplicationWhereInput>;
 };
 
 /** A connection to a list of Organization items. */
@@ -5645,6 +10129,185 @@ export type ApiPageInfo = {
   hasPreviousPage: Scalars['Boolean']['output'];
   /** When paginating backwards, the cursor to continue. */
   startCursor?: Maybe<Scalars['String']['output']>;
+};
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutation = {
+  __typename?: 'PricingMutation';
+  discountCreate: ApiDiscountCreatePayload;
+  /**
+   * Permanently delete an unused draft. Active, historical, or redeemed discounts
+   * must be archived through discountUpdate instead.
+   */
+  discountDelete: ApiDiscountDeletePayload;
+  discountExternalReferenceCreate: ApiDiscountExternalReferenceCreatePayload;
+  discountExternalReferenceDelete: ApiDiscountExternalReferenceDeletePayload;
+  discountExternalReferenceUpdate: ApiDiscountExternalReferenceUpdatePayload;
+  /** Unified discount configuration update with optimistic locking. */
+  discountUpdate: ApiDiscountUpdatePayload;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountCreateArgs = {
+  input: ApiDiscountCreateInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountDeleteArgs = {
+  input: ApiDiscountDeleteInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountExternalReferenceCreateArgs = {
+  input: ApiDiscountExternalReferenceCreateInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountExternalReferenceDeleteArgs = {
+  input: ApiDiscountExternalReferenceDeleteInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountExternalReferenceUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  externalReferenceId: Scalars['ID']['input'];
+  operations: ApiDiscountExternalReferenceUpdateInput;
+};
+
+
+/** Store-scoped pricing commands. */
+export type ApiPricingMutationDiscountUpdateArgs = {
+  discountId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiDiscountUpdateInput;
+};
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQuery = {
+  __typename?: 'PricingQuery';
+  discount?: Maybe<ApiDiscount>;
+  discountCode?: Maybe<ApiDiscountCode>;
+  discountCodes: ApiDiscountCodeConnection;
+  discountExternalReference?: Maybe<ApiDiscountExternalReference>;
+  discountExternalReferences: ApiDiscountExternalReferenceConnection;
+  discountRedemption?: Maybe<ApiDiscountRedemption>;
+  discountRedemptionAllocation?: Maybe<ApiDiscountRedemptionAllocation>;
+  discountRedemptions: ApiDiscountRedemptionConnection;
+  discountUsageReservation?: Maybe<ApiDiscountUsageReservation>;
+  discountUsageReservations: ApiDiscountUsageReservationConnection;
+  discounts: ApiDiscountConnection;
+  /** Resolve a Pricing-owned Relay node by global ID. */
+  node?: Maybe<ApiNode>;
+  /** Resolve Pricing-owned Relay nodes while preserving input order. */
+  nodes: Array<Maybe<ApiNode>>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountCodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountCodesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountCodeOrderByInput>>;
+  where?: InputMaybe<ApiDiscountCodeWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountExternalReferenceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountExternalReferenceOrderByInput>>;
+  where?: InputMaybe<ApiDiscountExternalReferenceWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountRedemptionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountRedemptionAllocationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountRedemptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountRedemptionOrderByInput>>;
+  where?: InputMaybe<ApiDiscountRedemptionWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountUsageReservationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountUsageReservationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountUsageReservationOrderByInput>>;
+  where?: InputMaybe<ApiDiscountUsageReservationWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryDiscountsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiDiscountOrderByInput>>;
+  where?: InputMaybe<ApiDiscountWhereInput>;
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped pricing reads. The current Store is taken from trusted context. */
+export type ApiPricingQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
 };
 
 /** Input for pricing widget query. */
@@ -6435,6 +11098,584 @@ export type ApiProductProductsMetaInput = {
   categoriesScope?: InputMaybe<ApiProductCategoriesScopeInput>;
 };
 
+export type ApiProductQuestion = ApiNode & ApiReviewContent & {
+  __typename?: 'ProductQuestion';
+  answerState: ProductQuestionAnswerState;
+  answers: ApiProductQuestionAnswerConnection;
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  kind: ReviewContentKind;
+  locale: LocaleCode;
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  product: ApiProduct;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  reports: ApiReviewContentReportConnection;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  subscriptions: ApiProductQuestionSubscriptionConnection;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  variant?: Maybe<ApiVariant>;
+  votes: ApiReviewContentVoteConnection;
+};
+
+
+export type ApiProductQuestionAnswersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiProductQuestionAnswerOrderByInput>>;
+  where?: InputMaybe<ApiProductQuestionAnswerWhereInput>;
+};
+
+
+export type ApiProductQuestionExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionSubscriptionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiProductQuestionAnswer = ApiNode & ApiReviewContent & {
+  __typename?: 'ProductQuestionAnswer';
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  isAccepted: Scalars['Boolean']['output'];
+  isOfficial: Scalars['Boolean']['output'];
+  kind: ReviewContentKind;
+  locale: LocaleCode;
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  question: ApiProductQuestion;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  reports: ApiReviewContentReportConnection;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sortIndex: Scalars['Int']['output'];
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  votes: ApiReviewContentVoteConnection;
+};
+
+
+export type ApiProductQuestionAnswerExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiProductQuestionAnswerVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiProductQuestionAnswerConnection = {
+  __typename?: 'ProductQuestionAnswerConnection';
+  edges: Array<ApiProductQuestionAnswerEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiProductQuestionAnswerCreateOperationInput = {
+  /** Client-provided correlation key returned in the operation result. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  content: ApiReviewContentCreateInput;
+  isAccepted?: InputMaybe<Scalars['Boolean']['input']>;
+  isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiProductQuestionAnswerDeleteOperationInput = {
+  answerId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  /** Hard deletion is reserved for explicit privacy or retention workflows. */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiProductQuestionAnswerEdge = {
+  __typename?: 'ProductQuestionAnswerEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProductQuestionAnswer;
+};
+
+/** Ordering configuration for ProductQuestionAnswer */
+export type ApiProductQuestionAnswerOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ProductQuestionAnswerOrderField;
+};
+
+/** Fields available for sorting ProductQuestionAnswer */
+export type ProductQuestionAnswerOrderField =
+  /** Sort by authorType */
+  | 'authorType'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by deletedAt */
+  | 'deletedAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by isAccepted */
+  | 'isAccepted'
+  /** Sort by isOfficial */
+  | 'isOfficial'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by questionId */
+  | 'questionId'
+  /** Sort by revision */
+  | 'revision'
+  /** Sort by sortIndex */
+  | 'sortIndex'
+  /** Sort by status */
+  | 'status'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type ApiProductQuestionAnswerPropertiesUpdateInput = {
+  isAccepted?: InputMaybe<Scalars['Boolean']['input']>;
+  isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ProductQuestionAnswerState =
+  | 'ANSWERED'
+  | 'UNANSWERED';
+
+export type ApiProductQuestionAnswerUpdateInput = {
+  /** Text, author, source, moderation, translations, and publications. */
+  content?: InputMaybe<ApiReviewContentUpdateInput>;
+  properties?: InputMaybe<ApiProductQuestionAnswerPropertiesUpdateInput>;
+};
+
+export type ApiProductQuestionAnswerUpdateOperationInput = {
+  answerId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiProductQuestionAnswerUpdateInput;
+};
+
+/** Filter conditions for ProductQuestionAnswer */
+export type ApiProductQuestionAnswerWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiProductQuestionAnswerWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiProductQuestionAnswerWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiProductQuestionAnswerWhereInput>>;
+  /** Filter by authorCustomerId */
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorType */
+  authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
+  body?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isAccepted */
+  isAccepted?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by isOfficial */
+  isOfficial?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by questionId */
+  questionId?: InputMaybe<ApiIdFilter>;
+  /** Filter by revision */
+  revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sortIndex */
+  sortIndex?: InputMaybe<ApiIntFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiProductQuestionAnswersUpdateInput = {
+  create?: InputMaybe<Array<ApiProductQuestionAnswerCreateOperationInput>>;
+  delete?: InputMaybe<Array<ApiProductQuestionAnswerDeleteOperationInput>>;
+  update?: InputMaybe<Array<ApiProductQuestionAnswerUpdateOperationInput>>;
+};
+
+export type ApiProductQuestionConnection = {
+  __typename?: 'ProductQuestionConnection';
+  edges: Array<ApiProductQuestionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiProductQuestionCreateInput = {
+  content: ApiReviewContentCreateInput;
+  productId: Scalars['ID']['input'];
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiProductQuestionCreatePayload = {
+  __typename?: 'ProductQuestionCreatePayload';
+  productQuestion?: Maybe<ApiProductQuestion>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductQuestionDeletePayload = {
+  __typename?: 'ProductQuestionDeletePayload';
+  deletedProductQuestionId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductQuestionEdge = {
+  __typename?: 'ProductQuestionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProductQuestion;
+};
+
+/** Ordering configuration for ProductQuestion */
+export type ApiProductQuestionOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ProductQuestionOrderField;
+};
+
+/** Fields available for sorting ProductQuestion */
+export type ProductQuestionOrderField =
+  /** Sort by acceptedAnswerCount */
+  | 'acceptedAnswerCount'
+  /** Sort by answerCount */
+  | 'answerCount'
+  /** Sort by answerState */
+  | 'answerState'
+  /** Sort by authorDisplayName */
+  | 'authorDisplayName'
+  /** Sort by authorType */
+  | 'authorType'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by deletedAt */
+  | 'deletedAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by officialAnswerCount */
+  | 'officialAnswerCount'
+  /** Sort by productId */
+  | 'productId'
+  /** Sort by publishedAt */
+  | 'publishedAt'
+  /** Sort by reportCount */
+  | 'reportCount'
+  /** Sort by revision */
+  | 'revision'
+  /** Sort by sourceChannel */
+  | 'sourceChannel'
+  /** Sort by status */
+  | 'status'
+  /** Sort by updatedAt */
+  | 'updatedAt'
+  /** Sort by variantId */
+  | 'variantId';
+
+export type ApiProductQuestionSubjectUpdateInput = {
+  productId?: InputMaybe<Scalars['ID']['input']>;
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiProductQuestionSubscription = ApiNode & {
+  __typename?: 'ProductQuestionSubscription';
+  channel: ReviewNotificationChannel;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  lastNotifiedAt?: Maybe<Scalars['DateTime']['output']>;
+  locale: LocaleCode;
+  question: ApiProductQuestion;
+  status: ProductQuestionSubscriptionStatus;
+  subscriberCustomer?: Maybe<ApiCustomer>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiProductQuestionSubscriptionConnection = {
+  __typename?: 'ProductQuestionSubscriptionConnection';
+  edges: Array<ApiProductQuestionSubscriptionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiProductQuestionSubscriptionEdge = {
+  __typename?: 'ProductQuestionSubscriptionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProductQuestionSubscription;
+};
+
+export type ProductQuestionSubscriptionStatus =
+  | 'ACTIVE'
+  | 'PAUSED'
+  | 'UNSUBSCRIBED';
+
+export type ApiProductQuestionSubscriptionUpdateInput = {
+  channel?: InputMaybe<ReviewNotificationChannel>;
+  locale?: InputMaybe<LocaleCode>;
+  status?: InputMaybe<ProductQuestionSubscriptionStatus>;
+};
+
+export type ApiProductQuestionSubscriptionUpdatePayload = {
+  __typename?: 'ProductQuestionSubscriptionUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  subscription?: Maybe<ApiProductQuestionSubscription>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Read-only projection over currently published product questions and answers. */
+export type ApiProductQuestionSummary = {
+  __typename?: 'ProductQuestionSummary';
+  answerCount: Scalars['Int']['output'];
+  answeredQuestionCount: Scalars['Int']['output'];
+  lastAnsweredAt?: Maybe<Scalars['DateTime']['output']>;
+  lastQuestionAt?: Maybe<Scalars['DateTime']['output']>;
+  officialAnswerCount: Scalars['Int']['output'];
+  product: ApiProduct;
+  questionCount: Scalars['Int']['output'];
+  unansweredQuestionCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiProductQuestionUpdateInput = {
+  /** Create, update, or delete answers owned by this question. */
+  answers?: InputMaybe<ApiProductQuestionAnswersUpdateInput>;
+  /** Text, author, source, moderation, translations, and publications. */
+  content?: InputMaybe<ApiReviewContentUpdateInput>;
+  subject?: InputMaybe<ApiProductQuestionSubjectUpdateInput>;
+};
+
+export type ApiProductQuestionUpdatePayload = {
+  __typename?: 'ProductQuestionUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  productQuestion?: Maybe<ApiProductQuestion>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for ProductQuestion */
+export type ApiProductQuestionWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiProductQuestionWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiProductQuestionWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiProductQuestionWhereInput>>;
+  /** Filter by acceptedAnswerCount */
+  acceptedAnswerCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by answerCount */
+  answerCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by answerState */
+  answerState?: InputMaybe<ApiStringFilter>;
+  /** Filter by authorCustomerId */
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorDisplayName */
+  authorDisplayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by authorType */
+  authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
+  body?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by officialAnswerCount */
+  officialAnswerCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by productId */
+  productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by publishedAt */
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by reportCount */
+  reportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by revision */
+  revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sourceChannel */
+  sourceChannel?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by variantId */
+  variantId?: InputMaybe<ApiIdFilter>;
+};
+
+export type ApiProductRatingCriterionSummary = {
+  __typename?: 'ProductRatingCriterionSummary';
+  averageRating: Scalars['Float']['output'];
+  criterion: ApiReviewRatingCriterion;
+  ratingBreakdown: ApiReviewRatingBreakdown;
+  ratingSum: Scalars['BigInt']['output'];
+  reviewCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Read-only projection over currently published, non-deleted product reviews. */
+export type ApiProductReviewSummary = {
+  __typename?: 'ProductReviewSummary';
+  averageRating: Scalars['Float']['output'];
+  criteria: Array<ApiProductRatingCriterionSummary>;
+  lastReviewedAt?: Maybe<Scalars['DateTime']['output']>;
+  mediaReviewCount: Scalars['Int']['output'];
+  product: ApiProduct;
+  ratingBreakdown: ApiReviewRatingBreakdown;
+  ratingSum: Scalars['BigInt']['output'];
+  reviewCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  verifiedReviewCount: Scalars['Int']['output'];
+};
+
+/** Aggregated Reviews data used by product management widgets. */
+export type ApiProductReviewsWidget = {
+  __typename?: 'ProductReviewsWidget';
+  /** Published question and answer aggregates for the product. */
+  questionSummary?: Maybe<ApiProductQuestionSummary>;
+  /** Published review aggregates for the product. */
+  reviewSummary?: Maybe<ApiProductReviewSummary>;
+};
+
 /** SEO and Open Graph metadata for a product. */
 export type ApiProductSeo = {
   __typename?: 'ProductSeo';
@@ -6579,9 +11820,13 @@ export type ApiPurchasableSnapshot = ApiPurchasable & {
 
 export type ApiQuery = {
   __typename?: 'Query';
+  /** Application realm management queries. */
+  applicationQuery: ApiApplicationQuery;
   appsQuery: ApiAppsQuery;
   /** Catalog query namespace for product, variant, category, and collection operations */
   catalogQuery: ApiCatalogQuery;
+  /** Customers Admin query namespace. */
+  customersQuery: ApiCustomersQuery;
   /** Inventory query namespace for warehouse, stock, and inventory item operations */
   inventoryQuery: ApiInventoryQuery;
   /** Listing query namespace. */
@@ -6590,6 +11835,10 @@ export type ApiQuery = {
   orderQuery: ApiOrderQuery;
   /** Organization queries namespace. */
   organizationQuery: ApiOrganizationQuery;
+  /** Pricing Admin query namespace. */
+  pricingQuery: ApiPricingQuery;
+  /** Admin-only Reviews query namespace. */
+  reviewsQuery: ApiReviewsQuery;
   /** Store-related queries */
   storeQuery: ApiStoreQuery;
   /** User management queries. */
@@ -6609,6 +11858,2532 @@ export type ApiResourceDefinition = {
   displayName?: Maybe<Scalars['String']['output']>;
   /** Resource name (product, order, etc.). */
   name: Scalars['String']['output'];
+};
+
+/** Read-only management metadata for an IAM resource. */
+export type ApiResourceManagement = {
+  __typename?: 'ResourceManagement';
+  /** Linked owner id, when mode is SERVICE. */
+  linkedOwnerId?: Maybe<Scalars['ID']['output']>;
+  /** Linked owner type, when mode is SERVICE. */
+  linkedOwnerType?: Maybe<Scalars['String']['output']>;
+  /** Linked service owner, when mode is SERVICE. */
+  linkedService?: Maybe<Scalars['String']['output']>;
+  /** Current management mode. */
+  mode: ResourceManagementMode;
+  /** Whether generic organization Admin mutations may change this resource. */
+  mutableFromOrganizationAdmin: Scalars['Boolean']['output'];
+};
+
+/** How an IAM resource lifecycle is managed. */
+export type ResourceManagementMode =
+  /** The resource is managed by the organization. */
+  | 'ORGANIZATION'
+  /** The resource is managed by a linked service owner. */
+  | 'SERVICE';
+
+export type ApiReview = ApiNode & ApiReviewContent & {
+  __typename?: 'Review';
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  incentiveDisclosure?: Maybe<Scalars['String']['output']>;
+  isIncentivized: Scalars['Boolean']['output'];
+  isVerifiedPurchase: Scalars['Boolean']['output'];
+  kind: ReviewContentKind;
+  locale: LocaleCode;
+  media: Array<ApiReviewMedia>;
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  /** Orders is not yet an admin federation entity, so evidence remains a global ID contract. */
+  orderId?: Maybe<Scalars['ID']['output']>;
+  orderLineId?: Maybe<Scalars['ID']['output']>;
+  product: ApiProduct;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  rating: Scalars['Int']['output'];
+  ratings: Array<ApiReviewRating>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  replies: ApiReviewReplyConnection;
+  reports: ApiReviewContentReportConnection;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  variant?: Maybe<ApiVariant>;
+  verificationMethod?: Maybe<Scalars['String']['output']>;
+  verificationStatus: ReviewVerificationStatus;
+  verifiedAt?: Maybe<Scalars['DateTime']['output']>;
+  votes: ApiReviewContentVoteConnection;
+};
+
+
+export type ApiReviewExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewRepliesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiReviewReplyOrderByInput>>;
+  where?: InputMaybe<ApiReviewReplyWhereInput>;
+};
+
+
+export type ApiReviewReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewConnection = {
+  __typename?: 'ReviewConnection';
+  edges: Array<ApiReviewEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContent = {
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  kind: ReviewContentKind;
+  locale: LocaleCode;
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  reports: ApiReviewContentReportConnection;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  votes: ApiReviewContentVoteConnection;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Shared contract implemented by every moderated Reviews content aggregate. */
+export type ApiReviewContentVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewContentAuthor = {
+  __typename?: 'ReviewContentAuthor';
+  customer?: Maybe<ApiCustomer>;
+  displayName: Scalars['String']['output'];
+  /** Snapshot email; null after privacy redaction or when not collected. */
+  email?: Maybe<Scalars['Email']['output']>;
+  principalId?: Maybe<Scalars['String']['output']>;
+  type: ReviewContentAuthorType;
+};
+
+export type ApiReviewContentAuthorCreateInput = {
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  displayName: Scalars['String']['input'];
+  email?: InputMaybe<Scalars['Email']['input']>;
+  principalId?: InputMaybe<Scalars['String']['input']>;
+  type: ReviewContentAuthorType;
+};
+
+export type ReviewContentAuthorType =
+  | 'CUSTOMER'
+  | 'EXTERNAL'
+  | 'GUEST'
+  | 'SELLER'
+  | 'STAFF'
+  | 'SYSTEM';
+
+export type ApiReviewContentAuthorUpdateInput = {
+  /** Pass null to remove the customer link when the resulting author type allows it. */
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  email?: InputMaybe<Scalars['Email']['input']>;
+  principalId?: InputMaybe<Scalars['String']['input']>;
+  type?: InputMaybe<ReviewContentAuthorType>;
+};
+
+export type ApiReviewContentConnection = {
+  __typename?: 'ReviewContentConnection';
+  edges: Array<ApiReviewContentEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Repository-enforced visibility controls for moderated content lists. */
+export type ApiReviewContentConnectionMetaInput = {
+  /** Include soft-deleted content; false by default. */
+  includeDeleted?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Include privacy-redacted content; true by default for audit workflows. */
+  includeRedacted?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewContentCreateInput = {
+  author: ApiReviewContentAuthorCreateInput;
+  body: Scalars['String']['input'];
+  locale: LocaleCode;
+  moderationNote?: InputMaybe<Scalars['String']['input']>;
+  source?: InputMaybe<ApiReviewContentSourceCreateInput>;
+  /** Admin imports may set an initial status; PENDING is the default. */
+  status?: InputMaybe<ReviewContentStatus>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentDeleteInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  /** Hard deletion is reserved for explicit privacy or retention workflows. */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewContentEdge = {
+  __typename?: 'ReviewContentEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContent;
+};
+
+export type ApiReviewContentExternalReference = ApiNode & {
+  __typename?: 'ReviewContentExternalReference';
+  content: ApiReviewContent;
+  contentChecksum?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  direction: ReviewExternalSyncDirection;
+  etag?: Maybe<Scalars['String']['output']>;
+  externalId: Scalars['String']['output'];
+  externalSystem: Scalars['String']['output'];
+  externalType: Scalars['String']['output'];
+  externalUrl?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  lastSyncedAt?: Maybe<Scalars['DateTime']['output']>;
+  metadata: Scalars['JSON']['output'];
+  syncStatus: ReviewExternalSyncStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentExternalReferenceConnection = {
+  __typename?: 'ReviewContentExternalReferenceConnection';
+  edges: Array<ApiReviewContentExternalReferenceEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewContentExternalReferenceCreateInput = {
+  contentId: Scalars['ID']['input'];
+  direction: ReviewExternalSyncDirection;
+  externalId: Scalars['String']['input'];
+  externalSystem: Scalars['String']['input'];
+  externalType: Scalars['String']['input'];
+  externalUrl?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiReviewContentExternalReferenceCreatePayload = {
+  __typename?: 'ReviewContentExternalReferenceCreatePayload';
+  externalReference?: Maybe<ApiReviewContentExternalReference>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentExternalReferenceDeleteInput = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  id: Scalars['ID']['input'];
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewContentExternalReferenceDeletePayload = {
+  __typename?: 'ReviewContentExternalReferenceDeletePayload';
+  deletedExternalReferenceId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewContentExternalReferenceEdge = {
+  __typename?: 'ReviewContentExternalReferenceEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContentExternalReference;
+};
+
+export type ApiReviewContentExternalReferenceIdentityInput = {
+  externalId?: InputMaybe<Scalars['String']['input']>;
+  externalSystem?: InputMaybe<Scalars['String']['input']>;
+  externalType?: InputMaybe<Scalars['String']['input']>;
+  externalUrl?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Ordering configuration for ReviewContentExternalReference */
+export type ApiReviewContentExternalReferenceOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ReviewContentExternalReferenceOrderField;
+};
+
+/** Fields available for sorting ReviewContentExternalReference */
+export type ReviewContentExternalReferenceOrderField =
+  /** Sort by contentId */
+  | 'contentId'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by deletedAt */
+  | 'deletedAt'
+  /** Sort by direction */
+  | 'direction'
+  /** Sort by externalId */
+  | 'externalId'
+  /** Sort by externalSystem */
+  | 'externalSystem'
+  /** Sort by externalType */
+  | 'externalType'
+  /** Sort by id */
+  | 'id'
+  /** Sort by lastSyncedAt */
+  | 'lastSyncedAt'
+  /** Sort by syncStatus */
+  | 'syncStatus'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type ApiReviewContentExternalReferenceSyncInput = {
+  contentChecksum?: InputMaybe<Scalars['String']['input']>;
+  direction?: InputMaybe<ReviewExternalSyncDirection>;
+  etag?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  status?: InputMaybe<ReviewExternalSyncStatus>;
+};
+
+export type ApiReviewContentExternalReferenceUpdateInput = {
+  identity?: InputMaybe<ApiReviewContentExternalReferenceIdentityInput>;
+  sync?: InputMaybe<ApiReviewContentExternalReferenceSyncInput>;
+};
+
+export type ApiReviewContentExternalReferenceUpdatePayload = {
+  __typename?: 'ReviewContentExternalReferenceUpdatePayload';
+  externalReference?: Maybe<ApiReviewContentExternalReference>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for ReviewContentExternalReference */
+export type ApiReviewContentExternalReferenceWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiReviewContentExternalReferenceWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiReviewContentExternalReferenceWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiReviewContentExternalReferenceWhereInput>>;
+  /** Filter by contentId */
+  contentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by direction */
+  direction?: InputMaybe<ApiStringFilter>;
+  /** Filter by externalId */
+  externalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by externalSystem */
+  externalSystem?: InputMaybe<ApiStringFilter>;
+  /** Filter by externalType */
+  externalType?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by lastSyncedAt */
+  lastSyncedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by syncStatus */
+  syncStatus?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ReviewContentKind =
+  | 'PRODUCT_QUESTION'
+  | 'QUESTION_ANSWER'
+  | 'REVIEW'
+  | 'REVIEW_REPLY';
+
+/** Transactionally maintained counters used by admin filtering and sorting. */
+export type ApiReviewContentMetrics = {
+  __typename?: 'ReviewContentMetrics';
+  acceptedChildCount: Scalars['Int']['output'];
+  childCount: Scalars['Int']['output'];
+  dislikeCount: Scalars['Int']['output'];
+  lastChildAt?: Maybe<Scalars['DateTime']['output']>;
+  likeCount: Scalars['Int']['output'];
+  mediaCount: Scalars['Int']['output'];
+  officialChildCount: Scalars['Int']['output'];
+  openReportCount: Scalars['Int']['output'];
+  reportCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentModerationInput = {
+  moderationNote?: InputMaybe<Scalars['String']['input']>;
+  status: ReviewContentStatus;
+};
+
+/** Ordering configuration for ReviewContent */
+export type ApiReviewContentOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ReviewContentOrderField;
+};
+
+/** Fields available for sorting ReviewContent */
+export type ReviewContentOrderField =
+  /** Sort by authorDisplayName */
+  | 'authorDisplayName'
+  /** Sort by authorType */
+  | 'authorType'
+  /** Sort by childCount */
+  | 'childCount'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by deletedAt */
+  | 'deletedAt'
+  /** Sort by dislikeCount */
+  | 'dislikeCount'
+  /** Sort by id */
+  | 'id'
+  /** Sort by kind */
+  | 'kind'
+  /** Sort by likeCount */
+  | 'likeCount'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by mediaCount */
+  | 'mediaCount'
+  /** Sort by openReportCount */
+  | 'openReportCount'
+  /** Sort by publishedAt */
+  | 'publishedAt'
+  /** Sort by redactedAt */
+  | 'redactedAt'
+  /** Sort by reportCount */
+  | 'reportCount'
+  /** Sort by revision */
+  | 'revision'
+  /** Sort by sourceChannel */
+  | 'sourceChannel'
+  /** Sort by status */
+  | 'status'
+  /** Sort by title */
+  | 'title'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type ApiReviewContentPublication = ApiNode & {
+  __typename?: 'ReviewContentPublication';
+  channel: Scalars['String']['output'];
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  locale?: Maybe<LocaleCode>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  scheduledAt?: Maybe<Scalars['DateTime']['output']>;
+  status: ReviewPublicationStatus;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentPublicationSyncInput = {
+  channel: Scalars['String']['input'];
+  locale?: InputMaybe<LocaleCode>;
+  scheduledAt?: InputMaybe<Scalars['DateTime']['input']>;
+  status: ReviewPublicationStatus;
+};
+
+export type ApiReviewContentReport = ApiNode & {
+  __typename?: 'ReviewContentReport';
+  assignedToPrincipalId?: Maybe<Scalars['String']['output']>;
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  details?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  reason: ReviewContentReportReason;
+  reporterCustomer?: Maybe<ApiCustomer>;
+  resolutionNote?: Maybe<Scalars['String']['output']>;
+  resolvedAt?: Maybe<Scalars['DateTime']['output']>;
+  resolvedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  status: ReviewContentReportStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentReportAssignmentInput = {
+  assignedToPrincipalId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentReportConnection = {
+  __typename?: 'ReviewContentReportConnection';
+  edges: Array<ApiReviewContentReportEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewContentReportEdge = {
+  __typename?: 'ReviewContentReportEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContentReport;
+};
+
+/** Ordering configuration for ReviewContentReport */
+export type ApiReviewContentReportOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ReviewContentReportOrderField;
+};
+
+/** Fields available for sorting ReviewContentReport */
+export type ReviewContentReportOrderField =
+  /** Sort by assignedToPrincipalId */
+  | 'assignedToPrincipalId'
+  /** Sort by contentId */
+  | 'contentId'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by reason */
+  | 'reason'
+  /** Sort by reporterCustomerId */
+  | 'reporterCustomerId'
+  /** Sort by resolvedAt */
+  | 'resolvedAt'
+  /** Sort by resolvedByPrincipalId */
+  | 'resolvedByPrincipalId'
+  /** Sort by status */
+  | 'status'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type ReviewContentReportReason =
+  | 'CONFLICT_OF_INTEREST'
+  | 'FRAUD_OR_SCAM'
+  | 'HARASSMENT'
+  | 'HATE_SPEECH'
+  | 'ILLEGAL_CONTENT'
+  | 'INTELLECTUAL_PROPERTY'
+  | 'NOT_RELEVANT'
+  | 'OFFENSIVE'
+  | 'OTHER'
+  | 'PERSONAL_INFORMATION'
+  | 'SPAM';
+
+export type ApiReviewContentReportResolutionInput = {
+  note?: InputMaybe<Scalars['String']['input']>;
+  /** Must be ACTIONED or DISMISSED. */
+  status: ReviewContentReportStatus;
+};
+
+export type ReviewContentReportStatus =
+  | 'ACTIONED'
+  | 'DISMISSED'
+  | 'OPEN'
+  | 'UNDER_REVIEW';
+
+export type ApiReviewContentReportUpdateInput = {
+  assignment?: InputMaybe<ApiReviewContentReportAssignmentInput>;
+  resolution?: InputMaybe<ApiReviewContentReportResolutionInput>;
+};
+
+export type ApiReviewContentReportUpdatePayload = {
+  __typename?: 'ReviewContentReportUpdatePayload';
+  contentReport?: Maybe<ApiReviewContentReport>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for ReviewContentReport */
+export type ApiReviewContentReportWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiReviewContentReportWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiReviewContentReportWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiReviewContentReportWhereInput>>;
+  /** Filter by assignedToPrincipalId */
+  assignedToPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by contentId */
+  contentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by reason */
+  reason?: InputMaybe<ApiStringFilter>;
+  /** Filter by reporterCustomerId */
+  reporterCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by resolvedAt */
+  resolvedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by resolvedByPrincipalId */
+  resolvedByPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Immutable aggregate snapshot used for audit and restore workflows. */
+export type ApiReviewContentRevision = ApiNode & {
+  __typename?: 'ReviewContentRevision';
+  changeReason?: Maybe<Scalars['String']['output']>;
+  changedById?: Maybe<Scalars['String']['output']>;
+  changedByType: Scalars['String']['output'];
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  revision: Scalars['Int']['output'];
+  snapshot: Scalars['JSON']['output'];
+};
+
+export type ApiReviewContentRevisionConnection = {
+  __typename?: 'ReviewContentRevisionConnection';
+  edges: Array<ApiReviewContentRevisionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewContentRevisionEdge = {
+  __typename?: 'ReviewContentRevisionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContentRevision;
+};
+
+export type ApiReviewContentSourceCreateInput = {
+  channel?: InputMaybe<Scalars['String']['input']>;
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiReviewContentSourceUpdateInput = {
+  channel?: InputMaybe<Scalars['String']['input']>;
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ReviewContentStatus =
+  | 'PENDING'
+  | 'PUBLISHED'
+  | 'REJECTED';
+
+export type ApiReviewContentTextUpdateInput = {
+  body?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<LocaleCode>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewContentTranslation = ApiNode & {
+  __typename?: 'ReviewContentTranslation';
+  body: Scalars['String']['output'];
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  locale: LocaleCode;
+  reviewedAt?: Maybe<Scalars['DateTime']['output']>;
+  reviewedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  revision: Scalars['Int']['output'];
+  source: ReviewTranslationSource;
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewContentTranslationSyncInput = {
+  body: Scalars['String']['input'];
+  locale: LocaleCode;
+  source: ReviewTranslationSource;
+  status?: InputMaybe<ReviewContentStatus>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Common section operations reused by all content aggregate updates. */
+export type ApiReviewContentUpdateInput = {
+  author?: InputMaybe<ApiReviewContentAuthorUpdateInput>;
+  moderation?: InputMaybe<ApiReviewContentModerationInput>;
+  /** Complete publication destination replacement when supplied. */
+  publications?: InputMaybe<Array<ApiReviewContentPublicationSyncInput>>;
+  source?: InputMaybe<ApiReviewContentSourceUpdateInput>;
+  text?: InputMaybe<ApiReviewContentTextUpdateInput>;
+  /** Complete translation replacement when supplied. Empty removes all translations. */
+  translations?: InputMaybe<Array<ApiReviewContentTranslationSyncInput>>;
+};
+
+export type ApiReviewContentUpdatePayload = {
+  __typename?: 'ReviewContentUpdatePayload';
+  content?: Maybe<ApiReviewContent>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Read-only admin view of a storefront reaction. */
+export type ApiReviewContentVote = ApiNode & {
+  __typename?: 'ReviewContentVote';
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  type: ReviewContentVoteType;
+  updatedAt: Scalars['DateTime']['output'];
+  voterCustomer?: Maybe<ApiCustomer>;
+};
+
+export type ApiReviewContentVoteConnection = {
+  __typename?: 'ReviewContentVoteConnection';
+  edges: Array<ApiReviewContentVoteEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewContentVoteEdge = {
+  __typename?: 'ReviewContentVoteEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewContentVote;
+};
+
+export type ReviewContentVoteType =
+  | 'DISLIKE'
+  | 'LIKE';
+
+/** Filter conditions for ReviewContent */
+export type ApiReviewContentWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiReviewContentWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiReviewContentWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiReviewContentWhereInput>>;
+  /** Filter by authorCustomerId */
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorDisplayName */
+  authorDisplayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by authorType */
+  authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
+  body?: InputMaybe<ApiStringFilter>;
+  /** Filter by childCount */
+  childCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by dislikeCount */
+  dislikeCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by kind */
+  kind?: InputMaybe<ApiStringFilter>;
+  /** Filter by likeCount */
+  likeCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by mediaCount */
+  mediaCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by openReportCount */
+  openReportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by publishedAt */
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by redactedAt */
+  redactedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by reportCount */
+  reportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by revision */
+  revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sourceChannel */
+  sourceChannel?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by title */
+  title?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiReviewCreateInput = {
+  content: ApiReviewContentCreateInput;
+  incentive?: InputMaybe<ApiReviewIncentiveUpdateInput>;
+  media?: InputMaybe<Array<ApiReviewMediaSyncItemInput>>;
+  orderId?: InputMaybe<Scalars['ID']['input']>;
+  orderLineId?: InputMaybe<Scalars['ID']['input']>;
+  productId: Scalars['ID']['input'];
+  rating: Scalars['Int']['input'];
+  ratings?: InputMaybe<Array<ApiReviewRatingValueInput>>;
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+  verification?: InputMaybe<ApiReviewVerificationUpdateInput>;
+};
+
+export type ApiReviewCreatePayload = {
+  __typename?: 'ReviewCreatePayload';
+  review?: Maybe<ApiReview>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewDeletePayload = {
+  __typename?: 'ReviewDeletePayload';
+  deletedReviewId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ReviewDuplicatePolicy =
+  | 'ALLOW_MULTIPLE'
+  | 'ONE_PER_ORDER_LINE'
+  | 'ONE_PER_PRODUCT';
+
+export type ApiReviewEdge = {
+  __typename?: 'ReviewEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReview;
+};
+
+export type ReviewExternalSyncDirection =
+  | 'BIDIRECTIONAL'
+  | 'EXPORT'
+  | 'IMPORT';
+
+export type ReviewExternalSyncStatus =
+  | 'DISABLED'
+  | 'FAILED'
+  | 'PENDING'
+  | 'SYNCED';
+
+export type ApiReviewIncentiveUpdateInput = {
+  disclosure?: InputMaybe<Scalars['String']['input']>;
+  isIncentivized: Scalars['Boolean']['input'];
+};
+
+export type ApiReviewMedia = ApiNode & {
+  __typename?: 'ReviewMedia';
+  caption?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  file: ApiFile;
+  id: Scalars['ID']['output'];
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  review: ApiReview;
+  sortIndex: Scalars['Int']['output'];
+  status: ReviewContentStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewMediaSyncItemInput = {
+  caption?: InputMaybe<Scalars['String']['input']>;
+  fileId: Scalars['ID']['input'];
+  moderation?: InputMaybe<ApiReviewContentModerationInput>;
+  sortIndex: Scalars['Int']['input'];
+};
+
+export type ReviewModerationAction =
+  | 'ASSIGNED'
+  | 'AUTO_FLAGGED'
+  | 'DELETED'
+  | 'EDITED'
+  | 'PUBLISHED'
+  | 'REDACTED'
+  | 'REJECTED'
+  | 'RESTORED'
+  | 'SUBMITTED';
+
+export type ApiReviewModerationCase = ApiNode & {
+  __typename?: 'ReviewModerationCase';
+  assignedToPrincipalId?: Maybe<Scalars['String']['output']>;
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  dueAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  priority: Scalars['Int']['output'];
+  reasonCode: Scalars['String']['output'];
+  resolutionCode?: Maybe<Scalars['String']['output']>;
+  resolutionNote?: Maybe<Scalars['String']['output']>;
+  resolvedAt?: Maybe<Scalars['DateTime']['output']>;
+  resolvedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  status: ReviewModerationCaseStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewModerationCaseConnection = {
+  __typename?: 'ReviewModerationCaseConnection';
+  edges: Array<ApiReviewModerationCaseEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewModerationCaseCreateInput = {
+  assignedToPrincipalId?: InputMaybe<Scalars['String']['input']>;
+  contentId: Scalars['ID']['input'];
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  reasonCode: Scalars['String']['input'];
+};
+
+export type ApiReviewModerationCaseCreatePayload = {
+  __typename?: 'ReviewModerationCaseCreatePayload';
+  moderationCase?: Maybe<ApiReviewModerationCase>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewModerationCaseDetailsInput = {
+  assignedToPrincipalId?: InputMaybe<Scalars['String']['input']>;
+  dueAt?: InputMaybe<Scalars['DateTime']['input']>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  reasonCode?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewModerationCaseEdge = {
+  __typename?: 'ReviewModerationCaseEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewModerationCase;
+};
+
+/** Ordering configuration for ReviewModerationCase */
+export type ApiReviewModerationCaseOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ReviewModerationCaseOrderField;
+};
+
+/** Fields available for sorting ReviewModerationCase */
+export type ReviewModerationCaseOrderField =
+  /** Sort by assignedToPrincipalId */
+  | 'assignedToPrincipalId'
+  /** Sort by contentId */
+  | 'contentId'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by dueAt */
+  | 'dueAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by priority */
+  | 'priority'
+  /** Sort by reasonCode */
+  | 'reasonCode'
+  /** Sort by resolutionCode */
+  | 'resolutionCode'
+  /** Sort by resolvedAt */
+  | 'resolvedAt'
+  /** Sort by resolvedByPrincipalId */
+  | 'resolvedByPrincipalId'
+  /** Sort by status */
+  | 'status'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type ApiReviewModerationCaseResolutionInput = {
+  resolutionCode?: InputMaybe<Scalars['String']['input']>;
+  resolutionNote?: InputMaybe<Scalars['String']['input']>;
+  /** Must be RESOLVED or CANCELLED. */
+  status: ReviewModerationCaseStatus;
+};
+
+export type ReviewModerationCaseStatus =
+  | 'CANCELLED'
+  | 'IN_REVIEW'
+  | 'OPEN'
+  | 'RESOLVED';
+
+export type ApiReviewModerationCaseUpdateInput = {
+  details?: InputMaybe<ApiReviewModerationCaseDetailsInput>;
+  resolution?: InputMaybe<ApiReviewModerationCaseResolutionInput>;
+};
+
+export type ApiReviewModerationCaseUpdatePayload = {
+  __typename?: 'ReviewModerationCaseUpdatePayload';
+  moderationCase?: Maybe<ApiReviewModerationCase>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for ReviewModerationCase */
+export type ApiReviewModerationCaseWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiReviewModerationCaseWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiReviewModerationCaseWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiReviewModerationCaseWhereInput>>;
+  /** Filter by assignedToPrincipalId */
+  assignedToPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by contentId */
+  contentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by dueAt */
+  dueAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by priority */
+  priority?: InputMaybe<ApiIntFilter>;
+  /** Filter by reasonCode */
+  reasonCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by resolutionCode */
+  resolutionCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by resolvedAt */
+  resolvedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by resolvedByPrincipalId */
+  resolvedByPrincipalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Append-only moderation timeline entry. */
+export type ApiReviewModerationEvent = ApiNode & {
+  __typename?: 'ReviewModerationEvent';
+  action: ReviewModerationAction;
+  actorId?: Maybe<Scalars['String']['output']>;
+  actorType: Scalars['String']['output'];
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  fromStatus?: Maybe<ReviewContentStatus>;
+  id: Scalars['ID']['output'];
+  isAutomated: Scalars['Boolean']['output'];
+  metadata: Scalars['JSON']['output'];
+  moderationCase?: Maybe<ApiReviewModerationCase>;
+  note?: Maybe<Scalars['String']['output']>;
+  reasonCode?: Maybe<Scalars['String']['output']>;
+  toStatus?: Maybe<ReviewContentStatus>;
+};
+
+export type ApiReviewModerationEventConnection = {
+  __typename?: 'ReviewModerationEventConnection';
+  edges: Array<ApiReviewModerationEventEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewModerationEventEdge = {
+  __typename?: 'ReviewModerationEventEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewModerationEvent;
+};
+
+export type ReviewModerationMode =
+  | 'AUTOMATED'
+  | 'POSTMODERATION'
+  | 'PREMODERATION';
+
+/** Immutable automated moderation evidence; it is not the moderation decision. */
+export type ApiReviewModerationSignal = ApiNode & {
+  __typename?: 'ReviewModerationSignal';
+  content: ApiReviewContent;
+  createdAt: Scalars['DateTime']['output'];
+  evidence: Scalars['JSON']['output'];
+  id: Scalars['ID']['output'];
+  modelVersion?: Maybe<Scalars['String']['output']>;
+  provider: Scalars['String']['output'];
+  score?: Maybe<Scalars['Float']['output']>;
+  signalType: Scalars['String']['output'];
+  verdict: ReviewModerationVerdict;
+};
+
+export type ApiReviewModerationSignalConnection = {
+  __typename?: 'ReviewModerationSignalConnection';
+  edges: Array<ApiReviewModerationSignalEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewModerationSignalEdge = {
+  __typename?: 'ReviewModerationSignalEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewModerationSignal;
+};
+
+export type ReviewModerationVerdict =
+  | 'BLOCK'
+  | 'PASS'
+  | 'REVIEW';
+
+export type ReviewNotificationChannel =
+  | 'EMAIL'
+  | 'IN_APP'
+  | 'PUSH'
+  | 'SMS';
+
+/** Ordering configuration for Review */
+export type ApiReviewOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ReviewOrderField;
+};
+
+/** Fields available for sorting Review */
+export type ReviewOrderField =
+  /** Sort by authorDisplayName */
+  | 'authorDisplayName'
+  /** Sort by authorType */
+  | 'authorType'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by deletedAt */
+  | 'deletedAt'
+  /** Sort by dislikeCount */
+  | 'dislikeCount'
+  /** Sort by id */
+  | 'id'
+  /** Sort by isIncentivized */
+  | 'isIncentivized'
+  /** Sort by likeCount */
+  | 'likeCount'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by mediaCount */
+  | 'mediaCount'
+  /** Sort by openReportCount */
+  | 'openReportCount'
+  /** Sort by productId */
+  | 'productId'
+  /** Sort by publishedAt */
+  | 'publishedAt'
+  /** Sort by rating */
+  | 'rating'
+  /** Sort by reportCount */
+  | 'reportCount'
+  /** Sort by revision */
+  | 'revision'
+  /** Sort by sourceChannel */
+  | 'sourceChannel'
+  /** Sort by status */
+  | 'status'
+  /** Sort by title */
+  | 'title'
+  /** Sort by updatedAt */
+  | 'updatedAt'
+  /** Sort by variantId */
+  | 'variantId'
+  /** Sort by verificationStatus */
+  | 'verificationStatus';
+
+export type ReviewPublicationStatus =
+  | 'DRAFT'
+  | 'FAILED'
+  | 'PUBLISHED'
+  | 'SCHEDULED'
+  | 'UNPUBLISHED';
+
+export type ApiReviewRating = {
+  __typename?: 'ReviewRating';
+  createdAt: Scalars['DateTime']['output'];
+  criterion: ApiReviewRatingCriterion;
+  updatedAt: Scalars['DateTime']['output'];
+  value: Scalars['Int']['output'];
+};
+
+export type ApiReviewRatingBreakdown = {
+  __typename?: 'ReviewRatingBreakdown';
+  rating1Count: Scalars['Int']['output'];
+  rating2Count: Scalars['Int']['output'];
+  rating3Count: Scalars['Int']['output'];
+  rating4Count: Scalars['Int']['output'];
+  rating5Count: Scalars['Int']['output'];
+};
+
+export type ApiReviewRatingCriterion = ApiNode & {
+  __typename?: 'ReviewRatingCriterion';
+  appliesToAllProducts: Scalars['Boolean']['output'];
+  assignments: Array<ApiReviewRatingCriterionAssignment>;
+  code: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  defaultDescription?: Maybe<Scalars['String']['output']>;
+  defaultTitle: Scalars['String']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isRequired: Scalars['Boolean']['output'];
+  sortIndex: Scalars['Int']['output'];
+  translations: Array<ApiReviewRatingCriterionTranslation>;
+  updatedAt: Scalars['DateTime']['output'];
+  weight: Scalars['Float']['output'];
+};
+
+export type ApiReviewRatingCriterionApplicabilityInput = {
+  appliesToAllProducts: Scalars['Boolean']['input'];
+};
+
+export type ApiReviewRatingCriterionAssignment = ApiNode & {
+  __typename?: 'ReviewRatingCriterionAssignment';
+  createdAt: Scalars['DateTime']['output'];
+  criterion: ApiReviewRatingCriterion;
+  id: Scalars['ID']['output'];
+  isRequiredOverride?: Maybe<Scalars['Boolean']['output']>;
+  sortIndexOverride?: Maybe<Scalars['Int']['output']>;
+  target: ApiReviewRatingCriterionTarget;
+  targetId: Scalars['ID']['output'];
+  targetType: ReviewRatingCriterionTargetType;
+};
+
+export type ApiReviewRatingCriterionAssignmentInput = {
+  isRequiredOverride?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndexOverride?: InputMaybe<Scalars['Int']['input']>;
+  targetId: Scalars['ID']['input'];
+  targetType: ReviewRatingCriterionTargetType;
+};
+
+export type ApiReviewRatingCriterionConnection = {
+  __typename?: 'ReviewRatingCriterionConnection';
+  edges: Array<ApiReviewRatingCriterionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewRatingCriterionCreateInput = {
+  appliesToAllProducts?: InputMaybe<Scalars['Boolean']['input']>;
+  assignments?: InputMaybe<Array<ApiReviewRatingCriterionAssignmentInput>>;
+  code: Scalars['String']['input'];
+  defaultDescription?: InputMaybe<Scalars['String']['input']>;
+  defaultTitle: Scalars['String']['input'];
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isRequired?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  translations?: InputMaybe<Array<ApiReviewRatingCriterionTranslationInput>>;
+  weight?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type ApiReviewRatingCriterionCreatePayload = {
+  __typename?: 'ReviewRatingCriterionCreatePayload';
+  criterion?: Maybe<ApiReviewRatingCriterion>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewRatingCriterionDefinitionInput = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  defaultDescription?: InputMaybe<Scalars['String']['input']>;
+  defaultTitle?: InputMaybe<Scalars['String']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  isRequired?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  weight?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type ApiReviewRatingCriterionDeleteInput = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  id: Scalars['ID']['input'];
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewRatingCriterionDeletePayload = {
+  __typename?: 'ReviewRatingCriterionDeletePayload';
+  deletedCriterionId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewRatingCriterionEdge = {
+  __typename?: 'ReviewRatingCriterionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewRatingCriterion;
+};
+
+/** Ordering configuration for ReviewRatingCriterion */
+export type ApiReviewRatingCriterionOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ReviewRatingCriterionOrderField;
+};
+
+/** Fields available for sorting ReviewRatingCriterion */
+export type ReviewRatingCriterionOrderField =
+  /** Sort by appliesToAllProducts */
+  | 'appliesToAllProducts'
+  /** Sort by code */
+  | 'code'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by defaultTitle */
+  | 'defaultTitle'
+  /** Sort by deletedAt */
+  | 'deletedAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by isActive */
+  | 'isActive'
+  /** Sort by isRequired */
+  | 'isRequired'
+  /** Sort by sortIndex */
+  | 'sortIndex'
+  /** Sort by updatedAt */
+  | 'updatedAt'
+  /** Sort by weight */
+  | 'weight';
+
+export type ApiReviewRatingCriterionTarget = ApiCategory | ApiProduct;
+
+export type ReviewRatingCriterionTargetType =
+  | 'CATEGORY'
+  | 'PRODUCT';
+
+export type ApiReviewRatingCriterionTranslation = {
+  __typename?: 'ReviewRatingCriterionTranslation';
+  createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  locale: LocaleCode;
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiReviewRatingCriterionTranslationInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  locale: LocaleCode;
+  title: Scalars['String']['input'];
+};
+
+export type ApiReviewRatingCriterionUpdateInput = {
+  applicability?: InputMaybe<ApiReviewRatingCriterionApplicabilityInput>;
+  /** Complete product/category assignment replacement when supplied. */
+  assignments?: InputMaybe<Array<ApiReviewRatingCriterionAssignmentInput>>;
+  definition?: InputMaybe<ApiReviewRatingCriterionDefinitionInput>;
+  /** Complete translation replacement when supplied. */
+  translations?: InputMaybe<Array<ApiReviewRatingCriterionTranslationInput>>;
+};
+
+export type ApiReviewRatingCriterionUpdatePayload = {
+  __typename?: 'ReviewRatingCriterionUpdatePayload';
+  criterion?: Maybe<ApiReviewRatingCriterion>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for ReviewRatingCriterion */
+export type ApiReviewRatingCriterionWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiReviewRatingCriterionWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiReviewRatingCriterionWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiReviewRatingCriterionWhereInput>>;
+  /** Filter by appliesToAllProducts */
+  appliesToAllProducts?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by code */
+  code?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by defaultTitle */
+  defaultTitle?: InputMaybe<ApiStringFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isActive */
+  isActive?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by isRequired */
+  isRequired?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by sortIndex */
+  sortIndex?: InputMaybe<ApiIntFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by weight */
+  weight?: InputMaybe<ApiFloatFilter>;
+};
+
+export type ApiReviewRatingUpdateInput = {
+  /** Complete detailed criterion rating replacement when supplied. */
+  criteria?: InputMaybe<Array<ApiReviewRatingValueInput>>;
+  overall?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewRatingValueInput = {
+  criterionId: Scalars['ID']['input'];
+  value: Scalars['Int']['input'];
+};
+
+export type ApiReviewRepliesUpdateInput = {
+  create?: InputMaybe<Array<ApiReviewReplyCreateOperationInput>>;
+  delete?: InputMaybe<Array<ApiReviewReplyDeleteOperationInput>>;
+  update?: InputMaybe<Array<ApiReviewReplyUpdateOperationInput>>;
+};
+
+export type ApiReviewReply = ApiNode & ApiReviewContent & {
+  __typename?: 'ReviewReply';
+  author: ApiReviewContentAuthor;
+  body: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  externalReferences: ApiReviewContentExternalReferenceConnection;
+  id: Scalars['ID']['output'];
+  idempotencyKey?: Maybe<Scalars['String']['output']>;
+  isOfficial: Scalars['Boolean']['output'];
+  kind: ReviewContentKind;
+  locale: LocaleCode;
+  metrics: ApiReviewContentMetrics;
+  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  moderationEvents: ApiReviewModerationEventConnection;
+  moderationNote?: Maybe<Scalars['String']['output']>;
+  moderationSignals: ApiReviewModerationSignalConnection;
+  publications: Array<ApiReviewContentPublication>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+  reports: ApiReviewContentReportConnection;
+  review: ApiReview;
+  revision: Scalars['Int']['output'];
+  revisions: ApiReviewContentRevisionConnection;
+  sortIndex: Scalars['Int']['output'];
+  sourceChannel: Scalars['String']['output'];
+  sourceMetadata: Scalars['JSON']['output'];
+  status: ReviewContentStatus;
+  title?: Maybe<Scalars['String']['output']>;
+  translations: Array<ApiReviewContentTranslation>;
+  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  votes: ApiReviewContentVoteConnection;
+};
+
+
+export type ApiReviewReplyExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyModerationEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyModerationSignalsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyRevisionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiReviewReplyVotesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewReplyConnection = {
+  __typename?: 'ReviewReplyConnection';
+  edges: Array<ApiReviewReplyEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewReplyCreateOperationInput = {
+  /** Client-provided correlation key returned in the operation result. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  content: ApiReviewContentCreateInput;
+  isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewReplyDeleteOperationInput = {
+  expectedRevision: Scalars['Int']['input'];
+  /** Hard deletion is reserved for explicit privacy or retention workflows. */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+  replyId: Scalars['ID']['input'];
+};
+
+export type ApiReviewReplyEdge = {
+  __typename?: 'ReviewReplyEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewReply;
+};
+
+/** Ordering configuration for ReviewReply */
+export type ApiReviewReplyOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ReviewReplyOrderField;
+};
+
+/** Fields available for sorting ReviewReply */
+export type ReviewReplyOrderField =
+  /** Sort by authorType */
+  | 'authorType'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by deletedAt */
+  | 'deletedAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by isOfficial */
+  | 'isOfficial'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by reviewId */
+  | 'reviewId'
+  /** Sort by revision */
+  | 'revision'
+  /** Sort by sortIndex */
+  | 'sortIndex'
+  /** Sort by status */
+  | 'status'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+export type ApiReviewReplyPropertiesUpdateInput = {
+  isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewReplyUpdateInput = {
+  /** Text, author, source, moderation, translations, and publications. */
+  content?: InputMaybe<ApiReviewContentUpdateInput>;
+  properties?: InputMaybe<ApiReviewReplyPropertiesUpdateInput>;
+};
+
+export type ApiReviewReplyUpdateOperationInput = {
+  expectedRevision: Scalars['Int']['input'];
+  operations: ApiReviewReplyUpdateInput;
+  replyId: Scalars['ID']['input'];
+};
+
+/** Filter conditions for ReviewReply */
+export type ApiReviewReplyWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiReviewReplyWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiReviewReplyWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiReviewReplyWhereInput>>;
+  /** Filter by authorCustomerId */
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorType */
+  authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
+  body?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isOfficial */
+  isOfficial?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by reviewId */
+  reviewId?: InputMaybe<ApiIdFilter>;
+  /** Filter by revision */
+  revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sortIndex */
+  sortIndex?: InputMaybe<ApiIntFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiReviewRequest = ApiNode & {
+  __typename?: 'ReviewRequest';
+  attemptCount: Scalars['Int']['output'];
+  channel: ReviewNotificationChannel;
+  createdAt: Scalars['DateTime']['output'];
+  customer: ApiCustomer;
+  deliveredAt?: Maybe<Scalars['DateTime']['output']>;
+  events: ApiReviewRequestEventConnection;
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  locale: LocaleCode;
+  openedAt?: Maybe<Scalars['DateTime']['output']>;
+  orderId: Scalars['ID']['output'];
+  orderLineId: Scalars['ID']['output'];
+  product: ApiProduct;
+  providerMessageId?: Maybe<Scalars['String']['output']>;
+  review?: Maybe<ApiReview>;
+  scheduledAt: Scalars['DateTime']['output'];
+  sentAt?: Maybe<Scalars['DateTime']['output']>;
+  sourceChannel: Scalars['String']['output'];
+  status: ReviewRequestStatus;
+  submittedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  variant?: Maybe<ApiVariant>;
+};
+
+
+export type ApiReviewRequestEventsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiReviewRequestConnection = {
+  __typename?: 'ReviewRequestConnection';
+  edges: Array<ApiReviewRequestEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewRequestCreateInput = {
+  channel: ReviewNotificationChannel;
+  customerId: Scalars['ID']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  locale: LocaleCode;
+  orderId: Scalars['ID']['input'];
+  orderLineId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+  scheduledAt: Scalars['DateTime']['input'];
+  sourceChannel?: InputMaybe<Scalars['String']['input']>;
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiReviewRequestCreatePayload = {
+  __typename?: 'ReviewRequestCreatePayload';
+  reviewRequest?: Maybe<ApiReviewRequest>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewRequestDeliveryUpdateInput = {
+  channel?: InputMaybe<ReviewNotificationChannel>;
+  locale?: InputMaybe<LocaleCode>;
+};
+
+export type ApiReviewRequestEdge = {
+  __typename?: 'ReviewRequestEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewRequest;
+};
+
+export type ApiReviewRequestEvent = ApiNode & {
+  __typename?: 'ReviewRequestEvent';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  metadata: Scalars['JSON']['output'];
+  occurredAt: Scalars['DateTime']['output'];
+  providerEventId?: Maybe<Scalars['String']['output']>;
+  reviewRequest: ApiReviewRequest;
+  type: ReviewRequestEventType;
+};
+
+export type ApiReviewRequestEventConnection = {
+  __typename?: 'ReviewRequestEventConnection';
+  edges: Array<ApiReviewRequestEventEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiReviewRequestEventEdge = {
+  __typename?: 'ReviewRequestEventEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiReviewRequestEvent;
+};
+
+export type ReviewRequestEventType =
+  | 'BOUNCED'
+  | 'CANCELLED'
+  | 'CLICKED'
+  | 'COMPLAINED'
+  | 'DELIVERED'
+  | 'EXPIRED'
+  | 'FAILED'
+  | 'OPENED'
+  | 'SCHEDULED'
+  | 'SENT'
+  | 'SUBMITTED';
+
+/** Ordering configuration for ReviewRequest */
+export type ApiReviewRequestOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ReviewRequestOrderField;
+};
+
+/** Fields available for sorting ReviewRequest */
+export type ReviewRequestOrderField =
+  /** Sort by attemptCount */
+  | 'attemptCount'
+  /** Sort by channel */
+  | 'channel'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by customerId */
+  | 'customerId'
+  /** Sort by deliveredAt */
+  | 'deliveredAt'
+  /** Sort by expiresAt */
+  | 'expiresAt'
+  /** Sort by id */
+  | 'id'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by openedAt */
+  | 'openedAt'
+  /** Sort by orderId */
+  | 'orderId'
+  /** Sort by orderLineId */
+  | 'orderLineId'
+  /** Sort by productId */
+  | 'productId'
+  /** Sort by providerMessageId */
+  | 'providerMessageId'
+  /** Sort by reviewId */
+  | 'reviewId'
+  /** Sort by scheduledAt */
+  | 'scheduledAt'
+  /** Sort by sentAt */
+  | 'sentAt'
+  /** Sort by sourceChannel */
+  | 'sourceChannel'
+  /** Sort by status */
+  | 'status'
+  /** Sort by submittedAt */
+  | 'submittedAt'
+  /** Sort by updatedAt */
+  | 'updatedAt'
+  /** Sort by variantId */
+  | 'variantId';
+
+export type ApiReviewRequestScheduleUpdateInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  scheduledAt: Scalars['DateTime']['input'];
+};
+
+export type ReviewRequestStatus =
+  | 'CANCELLED'
+  | 'DELIVERED'
+  | 'EXPIRED'
+  | 'FAILED'
+  | 'OPENED'
+  | 'SCHEDULED'
+  | 'SENT'
+  | 'SUBMITTED';
+
+export type ReviewRequestTransitionAction =
+  | 'CANCEL'
+  | 'EXPIRE'
+  | 'RESCHEDULE'
+  | 'RETRY';
+
+export type ApiReviewRequestTransitionInput = {
+  action: ReviewRequestTransitionAction;
+  reason?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiReviewRequestUpdateInput = {
+  delivery?: InputMaybe<ApiReviewRequestDeliveryUpdateInput>;
+  schedule?: InputMaybe<ApiReviewRequestScheduleUpdateInput>;
+  transition?: InputMaybe<ApiReviewRequestTransitionInput>;
+};
+
+export type ApiReviewRequestUpdatePayload = {
+  __typename?: 'ReviewRequestUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  reviewRequest?: Maybe<ApiReviewRequest>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for ReviewRequest */
+export type ApiReviewRequestWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiReviewRequestWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiReviewRequestWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiReviewRequestWhereInput>>;
+  /** Filter by attemptCount */
+  attemptCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by channel */
+  channel?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by customerId */
+  customerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by deliveredAt */
+  deliveredAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by expiresAt */
+  expiresAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by openedAt */
+  openedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by orderId */
+  orderId?: InputMaybe<ApiIdFilter>;
+  /** Filter by orderLineId */
+  orderLineId?: InputMaybe<ApiIdFilter>;
+  /** Filter by productId */
+  productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by providerMessageId */
+  providerMessageId?: InputMaybe<ApiStringFilter>;
+  /** Filter by reviewId */
+  reviewId?: InputMaybe<ApiIdFilter>;
+  /** Filter by scheduledAt */
+  scheduledAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by sentAt */
+  sentAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by sourceChannel */
+  sourceChannel?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by submittedAt */
+  submittedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by variantId */
+  variantId?: InputMaybe<ApiIdFilter>;
+};
+
+export type ApiReviewStoreConfiguration = ApiNode & {
+  __typename?: 'ReviewStoreConfiguration';
+  answerEditWindowHours: Scalars['Int']['output'];
+  answerModerationMode: ReviewModerationMode;
+  createdAt: Scalars['DateTime']['output'];
+  customerAnswersEnabled: Scalars['Boolean']['output'];
+  guestQuestionsEnabled: Scalars['Boolean']['output'];
+  guestReviewsEnabled: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  maxAnswersPerQuestion: Scalars['Int']['output'];
+  maxReviewMediaCount: Scalars['Int']['output'];
+  questionEditWindowHours: Scalars['Int']['output'];
+  questionModerationMode: ReviewModerationMode;
+  questionsEnabled: Scalars['Boolean']['output'];
+  reviewDuplicatePolicy: ReviewDuplicatePolicy;
+  reviewEditWindowHours: Scalars['Int']['output'];
+  reviewModerationMode: ReviewModerationMode;
+  reviewRequestDelayDays: Scalars['Int']['output'];
+  reviewRequestExpiryDays: Scalars['Int']['output'];
+  reviewRequestsEnabled: Scalars['Boolean']['output'];
+  reviewsEnabled: Scalars['Boolean']['output'];
+  revision: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  verifiedPurchaseRequired: Scalars['Boolean']['output'];
+};
+
+export type ApiReviewStoreConfigurationUpdateInput = {
+  answerEditWindowHours?: InputMaybe<Scalars['Int']['input']>;
+  answerModerationMode?: InputMaybe<ReviewModerationMode>;
+  customerAnswersEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  guestQuestionsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  guestReviewsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  maxAnswersPerQuestion?: InputMaybe<Scalars['Int']['input']>;
+  maxReviewMediaCount?: InputMaybe<Scalars['Int']['input']>;
+  questionEditWindowHours?: InputMaybe<Scalars['Int']['input']>;
+  questionModerationMode?: InputMaybe<ReviewModerationMode>;
+  questionsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  reviewDuplicatePolicy?: InputMaybe<ReviewDuplicatePolicy>;
+  reviewEditWindowHours?: InputMaybe<Scalars['Int']['input']>;
+  reviewModerationMode?: InputMaybe<ReviewModerationMode>;
+  reviewRequestDelayDays?: InputMaybe<Scalars['Int']['input']>;
+  reviewRequestExpiryDays?: InputMaybe<Scalars['Int']['input']>;
+  reviewRequestsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  reviewsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  verifiedPurchaseRequired?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiReviewStoreConfigurationUpdatePayload = {
+  __typename?: 'ReviewStoreConfigurationUpdatePayload';
+  configuration?: Maybe<ApiReviewStoreConfiguration>;
+  operationResults: Array<ApiReviewsOperationResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiReviewSubjectUpdateInput = {
+  orderId?: InputMaybe<Scalars['ID']['input']>;
+  orderLineId?: InputMaybe<Scalars['ID']['input']>;
+  productId?: InputMaybe<Scalars['ID']['input']>;
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ReviewTranslationSource =
+  | 'HUMAN'
+  | 'IMPORT'
+  | 'MACHINE';
+
+/** Section-based aggregate update following Catalog productUpdate semantics. */
+export type ApiReviewUpdateInput = {
+  /** Text, author, source, moderation, translations, and publications. */
+  content?: InputMaybe<ApiReviewContentUpdateInput>;
+  incentive?: InputMaybe<ApiReviewIncentiveUpdateInput>;
+  /** Complete media replacement when supplied. Empty removes every attachment. */
+  media?: InputMaybe<Array<ApiReviewMediaSyncItemInput>>;
+  rating?: InputMaybe<ApiReviewRatingUpdateInput>;
+  /** Create, update, or delete replies owned by this review. */
+  replies?: InputMaybe<ApiReviewRepliesUpdateInput>;
+  subject?: InputMaybe<ApiReviewSubjectUpdateInput>;
+  verification?: InputMaybe<ApiReviewVerificationUpdateInput>;
+};
+
+export type ApiReviewUpdatePayload = {
+  __typename?: 'ReviewUpdatePayload';
+  operationResults: Array<ApiReviewsOperationResult>;
+  review?: Maybe<ApiReview>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ReviewVerificationStatus =
+  | 'REVOKED'
+  | 'UNVERIFIED'
+  | 'VERIFIED';
+
+export type ApiReviewVerificationUpdateInput = {
+  method?: InputMaybe<Scalars['String']['input']>;
+  status: ReviewVerificationStatus;
+  verifiedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+/** Filter conditions for Review */
+export type ApiReviewWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiReviewWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiReviewWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiReviewWhereInput>>;
+  /** Filter by authorCustomerId */
+  authorCustomerId?: InputMaybe<ApiIdFilter>;
+  /** Filter by authorDisplayName */
+  authorDisplayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by authorType */
+  authorType?: InputMaybe<ApiStringFilter>;
+  /** Filter by body */
+  body?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by dislikeCount */
+  dislikeCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isIncentivized */
+  isIncentivized?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by likeCount */
+  likeCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by mediaCount */
+  mediaCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by openReportCount */
+  openReportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by orderId */
+  orderId?: InputMaybe<ApiIdFilter>;
+  /** Filter by orderLineId */
+  orderLineId?: InputMaybe<ApiIdFilter>;
+  /** Filter by productId */
+  productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by publishedAt */
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by rating */
+  rating?: InputMaybe<ApiIntFilter>;
+  /** Filter by reportCount */
+  reportCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by revision */
+  revision?: InputMaybe<ApiIntFilter>;
+  /** Filter by sourceChannel */
+  sourceChannel?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by title */
+  title?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by variantId */
+  variantId?: InputMaybe<ApiIdFilter>;
+  /** Filter by verificationStatus */
+  verificationStatus?: InputMaybe<ApiStringFilter>;
+};
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutation = {
+  __typename?: 'ReviewsMutation';
+  contentExternalReferenceCreate: ApiReviewContentExternalReferenceCreatePayload;
+  contentExternalReferenceDelete: ApiReviewContentExternalReferenceDeletePayload;
+  contentExternalReferenceUpdate: ApiReviewContentExternalReferenceUpdatePayload;
+  contentRedact: ApiReviewContentUpdatePayload;
+  contentReportUpdate: ApiReviewContentReportUpdatePayload;
+  contentRevisionRestore: ApiReviewContentUpdatePayload;
+  moderationCaseCreate: ApiReviewModerationCaseCreatePayload;
+  moderationCaseUpdate: ApiReviewModerationCaseUpdatePayload;
+  productQuestionCreate: ApiProductQuestionCreatePayload;
+  productQuestionDelete: ApiProductQuestionDeletePayload;
+  productQuestionSubscriptionUpdate: ApiProductQuestionSubscriptionUpdatePayload;
+  productQuestionUpdate: ApiProductQuestionUpdatePayload;
+  ratingCriterionCreate: ApiReviewRatingCriterionCreatePayload;
+  ratingCriterionDelete: ApiReviewRatingCriterionDeletePayload;
+  ratingCriterionUpdate: ApiReviewRatingCriterionUpdatePayload;
+  reviewCreate: ApiReviewCreatePayload;
+  reviewDelete: ApiReviewDeletePayload;
+  reviewRequestCreate: ApiReviewRequestCreatePayload;
+  reviewRequestUpdate: ApiReviewRequestUpdatePayload;
+  reviewUpdate: ApiReviewUpdatePayload;
+  storeConfigurationUpdate: ApiReviewStoreConfigurationUpdatePayload;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentExternalReferenceCreateArgs = {
+  input: ApiReviewContentExternalReferenceCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentExternalReferenceDeleteArgs = {
+  input: ApiReviewContentExternalReferenceDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentExternalReferenceUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  externalReferenceId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiReviewContentExternalReferenceUpdateInput>;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentRedactArgs = {
+  contentId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentReportUpdateArgs = {
+  contentReportId: Scalars['ID']['input'];
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiReviewContentReportUpdateInput>;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationContentRevisionRestoreArgs = {
+  contentId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  revision: Scalars['Int']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationModerationCaseCreateArgs = {
+  input: ApiReviewModerationCaseCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationModerationCaseUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  moderationCaseId: Scalars['ID']['input'];
+  operations?: InputMaybe<ApiReviewModerationCaseUpdateInput>;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionCreateArgs = {
+  input: ApiProductQuestionCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionDeleteArgs = {
+  input: ApiReviewContentDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionSubscriptionUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiProductQuestionSubscriptionUpdateInput>;
+  subscriptionId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationProductQuestionUpdateArgs = {
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiProductQuestionUpdateInput>;
+  productQuestionId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationRatingCriterionCreateArgs = {
+  input: ApiReviewRatingCriterionCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationRatingCriterionDeleteArgs = {
+  input: ApiReviewRatingCriterionDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationRatingCriterionUpdateArgs = {
+  criterionId: Scalars['ID']['input'];
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiReviewRatingCriterionUpdateInput>;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewCreateArgs = {
+  input: ApiReviewCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewDeleteArgs = {
+  input: ApiReviewContentDeleteInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewRequestCreateArgs = {
+  input: ApiReviewRequestCreateInput;
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewRequestUpdateArgs = {
+  expectedUpdatedAt: Scalars['DateTime']['input'];
+  operations?: InputMaybe<ApiReviewRequestUpdateInput>;
+  reviewRequestId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationReviewUpdateArgs = {
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiReviewUpdateInput>;
+  reviewId: Scalars['ID']['input'];
+};
+
+
+/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
+export type ApiReviewsMutationStoreConfigurationUpdateArgs = {
+  configurationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiReviewStoreConfigurationUpdateInput>;
+};
+
+/** Result for one section of a unified update. */
+export type ApiReviewsOperationResult = {
+  __typename?: 'ReviewsOperationResult';
+  applied: Scalars['Boolean']['output'];
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  entityId?: Maybe<Scalars['ID']['output']>;
+  errors: Array<ApiGenericUserError>;
+  type: ReviewsOperationType;
+};
+
+/** Logical sections executed by unified admin update workflows. */
+export type ReviewsOperationType =
+  | 'CONTENT_AUTHOR_UPDATE'
+  | 'CONTENT_EXTERNAL_REFERENCE_UPDATE'
+  | 'CONTENT_MODERATION_UPDATE'
+  | 'CONTENT_PUBLICATIONS_SYNC'
+  | 'CONTENT_REDACT'
+  | 'CONTENT_REPORT_UPDATE'
+  | 'CONTENT_REVISION_RESTORE'
+  | 'CONTENT_SOURCE_UPDATE'
+  | 'CONTENT_TRANSLATIONS_SYNC'
+  | 'CONTENT_UPDATE'
+  | 'MODERATION_CASE_UPDATE'
+  | 'PRODUCT_QUESTION_ANSWER_CREATE'
+  | 'PRODUCT_QUESTION_ANSWER_DELETE'
+  | 'PRODUCT_QUESTION_ANSWER_UPDATE'
+  | 'PRODUCT_QUESTION_SUBSCRIPTION_UPDATE'
+  | 'PRODUCT_QUESTION_UPDATE'
+  | 'RATING_CRITERION_APPLICABILITY_UPDATE'
+  | 'RATING_CRITERION_ASSIGNMENTS_SYNC'
+  | 'RATING_CRITERION_DEFINITION_UPDATE'
+  | 'RATING_CRITERION_TRANSLATIONS_SYNC'
+  | 'REVIEW_INCENTIVE_UPDATE'
+  | 'REVIEW_MEDIA_SYNC'
+  | 'REVIEW_RATING_UPDATE'
+  | 'REVIEW_REPLY_CREATE'
+  | 'REVIEW_REPLY_DELETE'
+  | 'REVIEW_REPLY_UPDATE'
+  | 'REVIEW_REQUEST_UPDATE'
+  | 'REVIEW_SUBJECT_UPDATE'
+  | 'REVIEW_VERIFICATION_UPDATE'
+  | 'STORE_CONFIGURATION_UPDATE';
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQuery = {
+  __typename?: 'ReviewsQuery';
+  /** Any moderated content aggregate owned by Reviews. */
+  content?: Maybe<ApiReviewContent>;
+  contentExternalReference?: Maybe<ApiReviewContentExternalReference>;
+  contentExternalReferences: ApiReviewContentExternalReferenceConnection;
+  contentReport?: Maybe<ApiReviewContentReport>;
+  contentReports: ApiReviewContentReportConnection;
+  contents: ApiReviewContentConnection;
+  moderationCase?: Maybe<ApiReviewModerationCase>;
+  moderationCases: ApiReviewModerationCaseConnection;
+  /** Resolve a Reviews-owned node by global ID. */
+  node?: Maybe<ApiNode>;
+  /** Resolve multiple Reviews-owned nodes while preserving input order. */
+  nodes: Array<Maybe<ApiNode>>;
+  productQuestion?: Maybe<ApiProductQuestion>;
+  productQuestionAnswer?: Maybe<ApiProductQuestionAnswer>;
+  productQuestionAnswers: ApiProductQuestionAnswerConnection;
+  productQuestions: ApiProductQuestionConnection;
+  ratingCriteria: ApiReviewRatingCriterionConnection;
+  ratingCriterion?: Maybe<ApiReviewRatingCriterion>;
+  review?: Maybe<ApiReview>;
+  reviewReplies: ApiReviewReplyConnection;
+  reviewReply?: Maybe<ApiReviewReply>;
+  reviewRequest?: Maybe<ApiReviewRequest>;
+  reviewRequests: ApiReviewRequestConnection;
+  reviews: ApiReviewConnection;
+  /** Current store review and Q&A configuration. */
+  storeConfiguration?: Maybe<ApiReviewStoreConfiguration>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentExternalReferenceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentExternalReferencesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewContentExternalReferenceOrderByInput>>;
+  where?: InputMaybe<ApiReviewContentExternalReferenceWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentReportArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentReportsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewContentReportOrderByInput>>;
+  where?: InputMaybe<ApiReviewContentReportWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryContentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiReviewContentOrderByInput>>;
+  where?: InputMaybe<ApiReviewContentWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryModerationCaseArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryModerationCasesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewModerationCaseOrderByInput>>;
+  where?: InputMaybe<ApiReviewModerationCaseWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductQuestionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductQuestionAnswerArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductQuestionAnswersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiProductQuestionAnswerOrderByInput>>;
+  where?: InputMaybe<ApiProductQuestionAnswerWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryProductQuestionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiProductQuestionOrderByInput>>;
+  where?: InputMaybe<ApiProductQuestionWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryRatingCriteriaArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewRatingCriterionOrderByInput>>;
+  where?: InputMaybe<ApiReviewRatingCriterionWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryRatingCriterionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewRepliesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiReviewReplyOrderByInput>>;
+  where?: InputMaybe<ApiReviewReplyWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewReplyArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewRequestArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewRequestsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiReviewRequestOrderByInput>>;
+  where?: InputMaybe<ApiReviewRequestWhereInput>;
+};
+
+
+/** Administrative reads for review, Q&A, moderation, and configuration data. */
+export type ApiReviewsQueryReviewsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiReviewContentConnectionMetaInput>;
+  orderBy?: InputMaybe<Array<ApiReviewOrderByInput>>;
+  where?: InputMaybe<ApiReviewWhereInput>;
 };
 
 /** Rich text content in multiple formats. */
@@ -7296,20 +15071,26 @@ export type SortDirection =
 /** A store */
 export type ApiStore = {
   __typename?: 'Store';
-  /** Base currency used for exchange rate calculations */
-  baseCurrency: CurrencyCode;
+  /** Customer-visible store address */
+  address?: Maybe<ApiStoreAddress>;
+  /** Store brand assets, colors, copy, and social links */
+  brand: ApiStoreBrand;
+  /** Store contact details and ordered phone numbers */
+  contactDetails: ApiStoreContactDetails;
   /** Timestamp when the store was created */
   createdAt: Scalars['DateTime']['output'];
-  /** List of enabled currency codes for the store */
-  currencies: Array<CurrencyCode>;
-  /** Default currency for pricing display */
-  defaultCurrency: CurrencyCode;
+  /** Currency used by the store */
+  currencyCode: CurrencyCode;
+  /** Currency and number-formatting settings */
+  currencySettings: ApiStoreCurrencySettings;
   /** Default unit for product dimensions */
   defaultDimensionUnit: DimensionUnit;
   /** Default locale for new content */
   defaultLocale: LocaleCode;
   /** Default unit for product weights */
   defaultWeightUnit: WeightUnit;
+  /** Regional and measurement defaults */
+  defaults: ApiStoreDefaults;
   /** Display name of the store */
   displayName: Scalars['String']['output'];
   /** Contact email address for the store */
@@ -7322,6 +15103,8 @@ export type ApiStore = {
   membership: ApiMembership;
   /** URL-friendly unique identifier */
   name: Scalars['String']['output'];
+  /** Order numbering and processing behavior */
+  orderProcessing: ApiStoreOrderProcessing;
   /** Organization that owns this store (federation reference) */
   organization?: Maybe<ApiOrganization>;
   /** Current operational status of the store */
@@ -7332,12 +15115,69 @@ export type ApiStore = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type ApiStoreAddress = {
+  __typename?: 'StoreAddress';
+  addressLine1?: Maybe<Scalars['String']['output']>;
+  addressLine2?: Maybe<Scalars['String']['output']>;
+  administrativeArea?: Maybe<Scalars['String']['output']>;
+  city?: Maybe<Scalars['String']['output']>;
+  companyName?: Maybe<Scalars['String']['output']>;
+  countryCode: Scalars['String']['output'];
+  postalCode?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiStoreAddressUpdateInput = {
+  addressLine1?: InputMaybe<Scalars['String']['input']>;
+  addressLine2?: InputMaybe<Scalars['String']['input']>;
+  administrativeArea?: InputMaybe<Scalars['String']['input']>;
+  city?: InputMaybe<Scalars['String']['input']>;
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode: Scalars['String']['input'];
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiStoreBrand = {
+  __typename?: 'StoreBrand';
+  coverImage?: Maybe<ApiFile>;
+  defaultLogo?: Maybe<ApiFile>;
+  primaryColor: Scalars['String']['output'];
+  secondaryColor: Scalars['String']['output'];
+  shortDescription?: Maybe<Scalars['String']['output']>;
+  slogan?: Maybe<Scalars['String']['output']>;
+  socialLinks: Array<ApiStoreSocialLink>;
+  squareLogo?: Maybe<ApiFile>;
+};
+
+export type ApiStoreBrandUpdateInput = {
+  coverImageId?: InputMaybe<Scalars['ID']['input']>;
+  defaultLogoId?: InputMaybe<Scalars['ID']['input']>;
+  primaryColor: Scalars['String']['input'];
+  secondaryColor: Scalars['String']['input'];
+  shortDescription?: InputMaybe<Scalars['String']['input']>;
+  slogan?: InputMaybe<Scalars['String']['input']>;
+  socialLinks: Array<ApiStoreSocialLinkInput>;
+  squareLogoId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiStoreContactDetails = {
+  __typename?: 'StoreContactDetails';
+  email?: Maybe<Scalars['Email']['output']>;
+  name: Scalars['String']['output'];
+  phoneNumbers: Array<Scalars['String']['output']>;
+  slug: Scalars['String']['output'];
+};
+
+export type ApiStoreContactDetailsUpdateInput = {
+  email?: InputMaybe<Scalars['Email']['input']>;
+  name: Scalars['String']['input'];
+  phoneNumbers: Array<Scalars['String']['input']>;
+  slug: Scalars['String']['input'];
+};
+
 /** Input for creating a new store */
 export type ApiStoreCreateInput = {
-  /** Initial list of currency codes to enable */
-  currencies: Array<CurrencyCode>;
-  /** Default currency for the store */
-  defaultCurrency: CurrencyCode;
+  /** Currency used by the store */
+  currencyCode: CurrencyCode;
   /** Display name of the store */
   displayName: Scalars['String']['input'];
   /** Contact email address */
@@ -7361,6 +15201,48 @@ export type ApiStoreCreatePayload = {
   store?: Maybe<ApiStore>;
   /** List of errors that occurred during creation */
   userErrors: Array<ApiUserError>;
+};
+
+export type ApiStoreCurrencySettings = {
+  __typename?: 'StoreCurrencySettings';
+  currencyCode: CurrencyCode;
+  currencyDisplay: CurrencyDisplay;
+  currencySign: CurrencySign;
+  grouping: CurrencyGrouping;
+  locale: LocaleCode;
+  maximumFractionDigits: Scalars['Int']['output'];
+  minimumFractionDigits: Scalars['Int']['output'];
+  roundingMode: CurrencyRoundingMode;
+  signDisplay: CurrencySignDisplay;
+  trailingZeroDisplay: CurrencyTrailingZeroDisplay;
+};
+
+export type ApiStoreCurrencySettingsUpdateInput = {
+  currencyCode: CurrencyCode;
+  currencyDisplay: CurrencyDisplay;
+  currencySign: CurrencySign;
+  grouping: CurrencyGrouping;
+  locale: LocaleCode;
+  maximumFractionDigits: Scalars['Int']['input'];
+  minimumFractionDigits: Scalars['Int']['input'];
+  roundingMode: CurrencyRoundingMode;
+  signDisplay: CurrencySignDisplay;
+  trailingZeroDisplay: CurrencyTrailingZeroDisplay;
+};
+
+export type ApiStoreDefaults = {
+  __typename?: 'StoreDefaults';
+  defaultDimensionUnit: DimensionUnit;
+  defaultWeightUnit: WeightUnit;
+  timezone: Scalars['String']['output'];
+  unitSystem: UnitSystem;
+};
+
+export type ApiStoreDefaultsUpdateInput = {
+  defaultDimensionUnit: DimensionUnit;
+  defaultWeightUnit: WeightUnit;
+  timezone: Scalars['String']['input'];
+  unitSystem: UnitSystem;
 };
 
 /** Input for deleting a store */
@@ -7389,12 +15271,6 @@ export type ApiStoreMutation = {
   apiKeyDelete: ApiApiKeyDeletePayload;
   /** Revoke an API key (soft delete) */
   apiKeyRevoke: ApiApiKeyActionPayload;
-  /** Add a new currency to the store */
-  currencyCreate: ApiCurrencyCreatePayload;
-  /** Remove a currency from the store */
-  currencyDelete: ApiCurrencyDeletePayload;
-  /** Set the default currency for the store */
-  currencySetDefault: ApiCurrencyUpdatePayload;
   /** Add a new locale to the store */
   localeCreate: ApiLocaleCreatePayload;
   /** Remove a locale from the store */
@@ -7405,7 +15281,7 @@ export type ApiStoreMutation = {
   storeCreate: ApiStoreCreatePayload;
   /** Delete a store */
   storeDelete: ApiStoreDeletePayload;
-  /** Update an existing store */
+  /** Unified store update composed from independent settings operations */
   storeUpdate: ApiStoreUpdatePayload;
 };
 
@@ -7425,24 +15301,6 @@ export type ApiStoreMutationApiKeyDeleteArgs = {
 /** Mutations for store management */
 export type ApiStoreMutationApiKeyRevokeArgs = {
   input: ApiApiKeyRevokeInput;
-};
-
-
-/** Mutations for store management */
-export type ApiStoreMutationCurrencyCreateArgs = {
-  input: ApiCurrencyCreateInput;
-};
-
-
-/** Mutations for store management */
-export type ApiStoreMutationCurrencyDeleteArgs = {
-  input: ApiCurrencyDeleteInput;
-};
-
-
-/** Mutations for store management */
-export type ApiStoreMutationCurrencySetDefaultArgs = {
-  input: ApiCurrencySetDefaultInput;
 };
 
 
@@ -7478,7 +15336,26 @@ export type ApiStoreMutationStoreDeleteArgs = {
 
 /** Mutations for store management */
 export type ApiStoreMutationStoreUpdateArgs = {
-  input: ApiStoreUpdateInput;
+  clientMutationId: Scalars['String']['input'];
+  operations?: InputMaybe<ApiStoreUpdateInput>;
+  storeId: Scalars['ID']['input'];
+};
+
+export type ApiStoreOrderProcessing = {
+  __typename?: 'StoreOrderProcessing';
+  automaticFulfillmentMode: AutomaticFulfillmentMode;
+  automaticallyArchiveOrders: Scalars['Boolean']['output'];
+  orderNumberPrefix: Scalars['String']['output'];
+  orderNumberSuffix?: Maybe<Scalars['String']['output']>;
+  requireCheckoutConfirmation: Scalars['Boolean']['output'];
+};
+
+export type ApiStoreOrderProcessingUpdateInput = {
+  automaticFulfillmentMode: AutomaticFulfillmentMode;
+  automaticallyArchiveOrders: Scalars['Boolean']['input'];
+  orderNumberPrefix: Scalars['String']['input'];
+  orderNumberSuffix?: InputMaybe<Scalars['String']['input']>;
+  requireCheckoutConfirmation: Scalars['Boolean']['input'];
 };
 
 /** Queries for store management */
@@ -7498,6 +15375,17 @@ export type ApiStoreQueryStoresArgs = {
   organizationId: Scalars['ID']['input'];
 };
 
+export type ApiStoreSocialLink = {
+  __typename?: 'StoreSocialLink';
+  platform: Scalars['String']['output'];
+  url: Scalars['String']['output'];
+};
+
+export type ApiStoreSocialLinkInput = {
+  platform: Scalars['String']['input'];
+  url: Scalars['String']['input'];
+};
+
 /** Status of a store */
 export type StoreStatus =
   /** Store is active and operational */
@@ -7505,36 +15393,39 @@ export type StoreStatus =
   /** Store is inactive and not processing requests */
   | 'INACTIVE';
 
-/** Input for updating an existing store */
+/** Independent sections accepted by the unified store update mutation. */
 export type ApiStoreUpdateInput = {
-  /** Updated list of enabled currency codes */
-  currencies?: InputMaybe<Array<CurrencyCode>>;
-  /** New default dimension unit */
-  defaultDimensionUnit?: InputMaybe<DimensionUnit>;
-  /** New default weight unit */
-  defaultWeightUnit?: InputMaybe<WeightUnit>;
-  /** New display name */
-  displayName?: InputMaybe<Scalars['String']['input']>;
-  /** New contact email address */
-  email?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the store to update */
-  id: Scalars['ID']['input'];
-  /** Updated list of enabled locale codes */
-  locales?: InputMaybe<Array<LocaleCode>>;
-  /** New display name */
-  name?: InputMaybe<Scalars['String']['input']>;
-  /** Organization id for authorization context */
-  organizationId: Scalars['ID']['input'];
-  /** New IANA timezone identifier */
-  timezone?: InputMaybe<Scalars['String']['input']>;
+  address?: InputMaybe<ApiStoreAddressUpdateInput>;
+  brand?: InputMaybe<ApiStoreBrandUpdateInput>;
+  contactDetails?: InputMaybe<ApiStoreContactDetailsUpdateInput>;
+  currencySettings?: InputMaybe<ApiStoreCurrencySettingsUpdateInput>;
+  defaults?: InputMaybe<ApiStoreDefaultsUpdateInput>;
+  orderProcessing?: InputMaybe<ApiStoreOrderProcessingUpdateInput>;
 };
+
+export type ApiStoreUpdateOperationResult = {
+  __typename?: 'StoreUpdateOperationResult';
+  applied: Scalars['Boolean']['output'];
+  errors: Array<ApiUserError>;
+  type: StoreUpdateOperationType;
+};
+
+export type StoreUpdateOperationType =
+  | 'ADDRESS_UPDATE'
+  | 'BRAND_UPDATE'
+  | 'CONTACT_DETAILS_UPDATE'
+  | 'CURRENCY_SETTINGS_UPDATE'
+  | 'DEFAULTS_UPDATE'
+  | 'ORDER_PROCESSING_UPDATE';
 
 /** Payload returned after updating a store */
 export type ApiStoreUpdatePayload = {
   __typename?: 'StoreUpdatePayload';
+  /** Result of every requested operation in deterministic input order */
+  operationResults: Array<ApiStoreUpdateOperationResult>;
   /** The updated store, null if update failed */
   store?: Maybe<ApiStore>;
-  /** List of errors that occurred during update */
+  /** Aggregated errors from all operations */
   userErrors: Array<ApiUserError>;
 };
 
@@ -7706,6 +15597,10 @@ export type ApiTagWhereInput = {
 export type ThresholdMethod =
   | 'REORDER_POINT'
   | 'SAFETY_STOCK';
+
+export type UnitSystem =
+  | 'IMPERIAL'
+  | 'METRIC';
 
 /** User type representing admin users (CMS/backoffice). */
 export type ApiUser = {
@@ -8840,6 +16735,8 @@ export type ApiWidgetQuery = {
   inventory?: Maybe<ApiProductInventoryWidget>;
   /** Get pricing widget data for a variant. */
   pricing: ApiPricingWidgetPayload;
+  /** Aggregated reviews and Q&A data for a product. */
+  reviews: ApiProductReviewsWidget;
 };
 
 
@@ -8854,14 +16751,23 @@ export type ApiWidgetQueryPricingArgs = {
   input: ApiPricingWidgetInput;
 };
 
+
+/** Widget query namespace for dashboard widgets. */
+export type ApiWidgetQueryReviewsArgs = {
+  productId: Scalars['ID']['input'];
+};
+
 export type Join__Graph =
   | 'APPS_ADMIN'
   | 'CATALOG_ADMIN'
+  | 'CUSTOMERS_ADMIN'
   | 'IAM_ADMIN'
   | 'LISTING_ADMIN'
   | 'MEDIA_ADMIN'
   | 'ORDERS_ADMIN'
-  | 'PROJECT_ADMIN';
+  | 'PRICING_ADMIN'
+  | 'PROJECT_ADMIN'
+  | 'REVIEWS_ADMIN';
 
 export type Link__Purpose =
   /** `EXECUTION` features provide metadata necessary for operation execution. */

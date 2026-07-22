@@ -100,9 +100,64 @@ export type ApiKeyRevokeInput = {
   id: Scalars['ID']['input'];
 };
 
+export enum AutomaticFulfillmentMode {
+  AllLineItems = 'ALL_LINE_ITEMS',
+  Disabled = 'DISABLED',
+  GiftCardsOnly = 'GIFT_CARDS_ONLY'
+}
+
 export { CurrencyCode };
 
+export enum CurrencyDisplay {
+  Code = 'CODE',
+  Name = 'NAME',
+  NarrowSymbol = 'NARROW_SYMBOL',
+  Symbol = 'SYMBOL'
+}
+
+export enum CurrencyGrouping {
+  Always = 'ALWAYS',
+  Auto = 'AUTO',
+  Min2 = 'MIN2',
+  Never = 'NEVER'
+}
+
+export enum CurrencyRoundingMode {
+  Ceil = 'CEIL',
+  Expand = 'EXPAND',
+  Floor = 'FLOOR',
+  HalfCeil = 'HALF_CEIL',
+  HalfEven = 'HALF_EVEN',
+  HalfExpand = 'HALF_EXPAND',
+  HalfFloor = 'HALF_FLOOR',
+  HalfTrunc = 'HALF_TRUNC',
+  Trunc = 'TRUNC'
+}
+
+export enum CurrencySign {
+  Accounting = 'ACCOUNTING',
+  Standard = 'STANDARD'
+}
+
+export enum CurrencySignDisplay {
+  Always = 'ALWAYS',
+  Auto = 'AUTO',
+  ExceptZero = 'EXCEPT_ZERO',
+  Negative = 'NEGATIVE',
+  Never = 'NEVER'
+}
+
+export enum CurrencyTrailingZeroDisplay {
+  Auto = 'AUTO',
+  StripIfInteger = 'STRIP_IF_INTEGER'
+}
+
 export { DimensionUnit };
+
+export type File = {
+  __typename?: 'File';
+  id: Scalars['ID']['output'];
+};
 
 /** Generic implementation of UserError */
 export type GenericUserError = UserError & {
@@ -201,16 +256,26 @@ export type Query = {
 /** A store */
 export type Store = {
   __typename?: 'Store';
+  /** Customer-visible store address */
+  address: Maybe<StoreAddress>;
+  /** Store brand assets, colors, copy, and social links */
+  brand: StoreBrand;
+  /** Store contact details and ordered phone numbers */
+  contactDetails: StoreContactDetails;
   /** Timestamp when the store was created */
   createdAt: Scalars['DateTime']['output'];
   /** Currency used by the store */
   currencyCode: CurrencyCode;
+  /** Currency and number-formatting settings */
+  currencySettings: StoreCurrencySettings;
   /** Default unit for product dimensions */
   defaultDimensionUnit: DimensionUnit;
   /** Default locale for new content */
   defaultLocale: LocaleCode;
   /** Default unit for product weights */
   defaultWeightUnit: WeightUnit;
+  /** Regional and measurement defaults */
+  defaults: StoreDefaults;
   /** Display name of the store */
   displayName: Scalars['String']['output'];
   /** Contact email address for the store */
@@ -223,6 +288,8 @@ export type Store = {
   membership: Membership;
   /** URL-friendly unique identifier */
   name: Scalars['String']['output'];
+  /** Order numbering and processing behavior */
+  orderProcessing: StoreOrderProcessing;
   /** Organization that owns this store (federation reference) */
   organization: Maybe<Organization>;
   /** Current operational status of the store */
@@ -231,6 +298,65 @@ export type Store = {
   timezone: Scalars['String']['output'];
   /** Timestamp when the store was last updated */
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type StoreAddress = {
+  __typename?: 'StoreAddress';
+  addressLine1: Maybe<Scalars['String']['output']>;
+  addressLine2: Maybe<Scalars['String']['output']>;
+  administrativeArea: Maybe<Scalars['String']['output']>;
+  city: Maybe<Scalars['String']['output']>;
+  companyName: Maybe<Scalars['String']['output']>;
+  countryCode: Scalars['String']['output'];
+  postalCode: Maybe<Scalars['String']['output']>;
+};
+
+export type StoreAddressUpdateInput = {
+  addressLine1?: InputMaybe<Scalars['String']['input']>;
+  addressLine2?: InputMaybe<Scalars['String']['input']>;
+  administrativeArea?: InputMaybe<Scalars['String']['input']>;
+  city?: InputMaybe<Scalars['String']['input']>;
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  countryCode: Scalars['String']['input'];
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type StoreBrand = {
+  __typename?: 'StoreBrand';
+  coverImage: Maybe<File>;
+  defaultLogo: Maybe<File>;
+  primaryColor: Scalars['String']['output'];
+  secondaryColor: Scalars['String']['output'];
+  shortDescription: Maybe<Scalars['String']['output']>;
+  slogan: Maybe<Scalars['String']['output']>;
+  socialLinks: Array<StoreSocialLink>;
+  squareLogo: Maybe<File>;
+};
+
+export type StoreBrandUpdateInput = {
+  coverImageId?: InputMaybe<Scalars['ID']['input']>;
+  defaultLogoId?: InputMaybe<Scalars['ID']['input']>;
+  primaryColor: Scalars['String']['input'];
+  secondaryColor: Scalars['String']['input'];
+  shortDescription?: InputMaybe<Scalars['String']['input']>;
+  slogan?: InputMaybe<Scalars['String']['input']>;
+  socialLinks: Array<StoreSocialLinkInput>;
+  squareLogoId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type StoreContactDetails = {
+  __typename?: 'StoreContactDetails';
+  email: Maybe<Scalars['Email']['output']>;
+  name: Scalars['String']['output'];
+  phoneNumbers: Array<Scalars['String']['output']>;
+  slug: Scalars['String']['output'];
+};
+
+export type StoreContactDetailsUpdateInput = {
+  email?: InputMaybe<Scalars['Email']['input']>;
+  name: Scalars['String']['input'];
+  phoneNumbers: Array<Scalars['String']['input']>;
+  slug: Scalars['String']['input'];
 };
 
 /** Input for creating a new store */
@@ -260,6 +386,48 @@ export type StoreCreatePayload = {
   store: Maybe<Store>;
   /** List of errors that occurred during creation */
   userErrors: Array<UserError>;
+};
+
+export type StoreCurrencySettings = {
+  __typename?: 'StoreCurrencySettings';
+  currencyCode: CurrencyCode;
+  currencyDisplay: CurrencyDisplay;
+  currencySign: CurrencySign;
+  grouping: CurrencyGrouping;
+  locale: LocaleCode;
+  maximumFractionDigits: Scalars['Int']['output'];
+  minimumFractionDigits: Scalars['Int']['output'];
+  roundingMode: CurrencyRoundingMode;
+  signDisplay: CurrencySignDisplay;
+  trailingZeroDisplay: CurrencyTrailingZeroDisplay;
+};
+
+export type StoreCurrencySettingsUpdateInput = {
+  currencyCode: CurrencyCode;
+  currencyDisplay: CurrencyDisplay;
+  currencySign: CurrencySign;
+  grouping: CurrencyGrouping;
+  locale: LocaleCode;
+  maximumFractionDigits: Scalars['Int']['input'];
+  minimumFractionDigits: Scalars['Int']['input'];
+  roundingMode: CurrencyRoundingMode;
+  signDisplay: CurrencySignDisplay;
+  trailingZeroDisplay: CurrencyTrailingZeroDisplay;
+};
+
+export type StoreDefaults = {
+  __typename?: 'StoreDefaults';
+  defaultDimensionUnit: DimensionUnit;
+  defaultWeightUnit: WeightUnit;
+  timezone: Scalars['String']['output'];
+  unitSystem: UnitSystem;
+};
+
+export type StoreDefaultsUpdateInput = {
+  defaultDimensionUnit: DimensionUnit;
+  defaultWeightUnit: WeightUnit;
+  timezone: Scalars['String']['input'];
+  unitSystem: UnitSystem;
 };
 
 /** Input for deleting a store */
@@ -298,7 +466,7 @@ export type StoreMutation = {
   storeCreate: StoreCreatePayload;
   /** Delete a store */
   storeDelete: StoreDeletePayload;
-  /** Update an existing store */
+  /** Unified store update composed from independent settings operations */
   storeUpdate: StoreUpdatePayload;
 };
 
@@ -353,7 +521,26 @@ export type StoreMutationStoreDeleteArgs = {
 
 /** Mutations for store management */
 export type StoreMutationStoreUpdateArgs = {
-  input: StoreUpdateInput;
+  clientMutationId: Scalars['String']['input'];
+  operations?: InputMaybe<StoreUpdateInput>;
+  storeId: Scalars['ID']['input'];
+};
+
+export type StoreOrderProcessing = {
+  __typename?: 'StoreOrderProcessing';
+  automaticFulfillmentMode: AutomaticFulfillmentMode;
+  automaticallyArchiveOrders: Scalars['Boolean']['output'];
+  orderNumberPrefix: Scalars['String']['output'];
+  orderNumberSuffix: Maybe<Scalars['String']['output']>;
+  requireCheckoutConfirmation: Scalars['Boolean']['output'];
+};
+
+export type StoreOrderProcessingUpdateInput = {
+  automaticFulfillmentMode: AutomaticFulfillmentMode;
+  automaticallyArchiveOrders: Scalars['Boolean']['input'];
+  orderNumberPrefix: Scalars['String']['input'];
+  orderNumberSuffix?: InputMaybe<Scalars['String']['input']>;
+  requireCheckoutConfirmation: Scalars['Boolean']['input'];
 };
 
 /** Queries for store management */
@@ -373,6 +560,17 @@ export type StoreQueryStoresArgs = {
   organizationId: Scalars['ID']['input'];
 };
 
+export type StoreSocialLink = {
+  __typename?: 'StoreSocialLink';
+  platform: Scalars['String']['output'];
+  url: Scalars['String']['output'];
+};
+
+export type StoreSocialLinkInput = {
+  platform: Scalars['String']['input'];
+  url: Scalars['String']['input'];
+};
+
 /** Status of a store */
 export enum StoreStatus {
   /** Store is active and operational */
@@ -381,38 +579,47 @@ export enum StoreStatus {
   Inactive = 'INACTIVE'
 }
 
-/** Input for updating an existing store */
+/** Independent sections accepted by the unified store update mutation. */
 export type StoreUpdateInput = {
-  /** New currency code */
-  currencyCode?: InputMaybe<CurrencyCode>;
-  /** New default dimension unit */
-  defaultDimensionUnit?: InputMaybe<DimensionUnit>;
-  /** New default weight unit */
-  defaultWeightUnit?: InputMaybe<WeightUnit>;
-  /** New display name */
-  displayName?: InputMaybe<Scalars['String']['input']>;
-  /** New contact email address */
-  email?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the store to update */
-  id: Scalars['ID']['input'];
-  /** Updated list of enabled locale codes */
-  locales?: InputMaybe<Array<LocaleCode>>;
-  /** New display name */
-  name?: InputMaybe<Scalars['String']['input']>;
-  /** Organization id for authorization context */
-  organizationId: Scalars['ID']['input'];
-  /** New IANA timezone identifier */
-  timezone?: InputMaybe<Scalars['String']['input']>;
+  address?: InputMaybe<StoreAddressUpdateInput>;
+  brand?: InputMaybe<StoreBrandUpdateInput>;
+  contactDetails?: InputMaybe<StoreContactDetailsUpdateInput>;
+  currencySettings?: InputMaybe<StoreCurrencySettingsUpdateInput>;
+  defaults?: InputMaybe<StoreDefaultsUpdateInput>;
+  orderProcessing?: InputMaybe<StoreOrderProcessingUpdateInput>;
 };
+
+export type StoreUpdateOperationResult = {
+  __typename?: 'StoreUpdateOperationResult';
+  applied: Scalars['Boolean']['output'];
+  errors: Array<UserError>;
+  type: StoreUpdateOperationType;
+};
+
+export enum StoreUpdateOperationType {
+  AddressUpdate = 'ADDRESS_UPDATE',
+  BrandUpdate = 'BRAND_UPDATE',
+  ContactDetailsUpdate = 'CONTACT_DETAILS_UPDATE',
+  CurrencySettingsUpdate = 'CURRENCY_SETTINGS_UPDATE',
+  DefaultsUpdate = 'DEFAULTS_UPDATE',
+  OrderProcessingUpdate = 'ORDER_PROCESSING_UPDATE'
+}
 
 /** Payload returned after updating a store */
 export type StoreUpdatePayload = {
   __typename?: 'StoreUpdatePayload';
+  /** Result of every requested operation in deterministic input order */
+  operationResults: Array<StoreUpdateOperationResult>;
   /** The updated store, null if update failed */
   store: Maybe<Store>;
-  /** List of errors that occurred during update */
+  /** Aggregated errors from all operations */
   userErrors: Array<UserError>;
 };
+
+export enum UnitSystem {
+  Imperial = 'IMPERIAL',
+  Metric = 'METRIC'
+}
 
 /** Represents a user-facing error */
 export type UserError = {
@@ -523,10 +730,18 @@ export type ResolversTypes = ResolversObject<{
   ApiKeyDeleteInput: ApiKeyDeleteInput;
   ApiKeyDeletePayload: ResolverTypeWrapper<Omit<ApiKeyDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   ApiKeyRevokeInput: ApiKeyRevokeInput;
+  AutomaticFulfillmentMode: AutomaticFulfillmentMode;
   CurrencyCode: CurrencyCode;
+  CurrencyDisplay: CurrencyDisplay;
+  CurrencyGrouping: CurrencyGrouping;
+  CurrencyRoundingMode: CurrencyRoundingMode;
+  CurrencySign: CurrencySign;
+  CurrencySignDisplay: CurrencySignDisplay;
+  CurrencyTrailingZeroDisplay: CurrencyTrailingZeroDisplay;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
+  File: ResolverTypeWrapper<File>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   Locale: ResolverTypeWrapper<Locale>;
   LocaleCode: LocaleCode;
@@ -541,16 +756,34 @@ export type ResolversTypes = ResolversObject<{
   Organization: ResolverTypeWrapper<Organization>;
   Query: ResolverTypeWrapper<{}>;
   Store: ResolverTypeWrapper<Store>;
+  StoreAddress: ResolverTypeWrapper<StoreAddress>;
+  StoreAddressUpdateInput: StoreAddressUpdateInput;
+  StoreBrand: ResolverTypeWrapper<StoreBrand>;
+  StoreBrandUpdateInput: StoreBrandUpdateInput;
+  StoreContactDetails: ResolverTypeWrapper<StoreContactDetails>;
+  StoreContactDetailsUpdateInput: StoreContactDetailsUpdateInput;
   StoreCreateInput: StoreCreateInput;
   StoreCreatePayload: ResolverTypeWrapper<Omit<StoreCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  StoreCurrencySettings: ResolverTypeWrapper<StoreCurrencySettings>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  StoreCurrencySettingsUpdateInput: StoreCurrencySettingsUpdateInput;
+  StoreDefaults: ResolverTypeWrapper<StoreDefaults>;
+  StoreDefaultsUpdateInput: StoreDefaultsUpdateInput;
   StoreDeleteInput: StoreDeleteInput;
   StoreDeletePayload: ResolverTypeWrapper<Omit<StoreDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   StoreMutation: ResolverTypeWrapper<Omit<StoreMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'storeCreate' | 'storeDelete' | 'storeUpdate'> & { apiKeyCreate: ResolversTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversTypes['ApiKeyActionPayload'], localeCreate: ResolversTypes['LocaleCreatePayload'], localeDelete: ResolversTypes['LocaleDeletePayload'], localeSetDefault: ResolversTypes['LocaleUpdatePayload'], storeCreate: ResolversTypes['StoreCreatePayload'], storeDelete: ResolversTypes['StoreDeletePayload'], storeUpdate: ResolversTypes['StoreUpdatePayload'] }>;
+  StoreOrderProcessing: ResolverTypeWrapper<StoreOrderProcessing>;
+  StoreOrderProcessingUpdateInput: StoreOrderProcessingUpdateInput;
   StoreQuery: ResolverTypeWrapper<StoreQuery>;
+  StoreSocialLink: ResolverTypeWrapper<StoreSocialLink>;
+  StoreSocialLinkInput: StoreSocialLinkInput;
   StoreStatus: StoreStatus;
   StoreUpdateInput: StoreUpdateInput;
-  StoreUpdatePayload: ResolverTypeWrapper<Omit<StoreUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  StoreUpdateOperationResult: ResolverTypeWrapper<Omit<StoreUpdateOperationResult, 'errors'> & { errors: Array<ResolversTypes['UserError']> }>;
+  StoreUpdateOperationType: StoreUpdateOperationType;
+  StoreUpdatePayload: ResolverTypeWrapper<Omit<StoreUpdatePayload, 'operationResults' | 'userErrors'> & { operationResults: Array<ResolversTypes['StoreUpdateOperationResult']>, userErrors: Array<ResolversTypes['UserError']> }>;
   Timestamp: ResolverTypeWrapper<Scalars['Timestamp']['output']>;
+  UnitSystem: UnitSystem;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   WeightUnit: WeightUnit;
 }>;
@@ -569,6 +802,7 @@ export type ResolversParentTypes = ResolversObject<{
   ApiKeyRevokeInput: ApiKeyRevokeInput;
   DateTime: Scalars['DateTime']['output'];
   Email: Scalars['Email']['output'];
+  File: File;
   GenericUserError: GenericUserError;
   Locale: Locale;
   LocaleCreateInput: LocaleCreateInput;
@@ -582,14 +816,30 @@ export type ResolversParentTypes = ResolversObject<{
   Organization: Organization;
   Query: {};
   Store: Store;
+  StoreAddress: StoreAddress;
+  StoreAddressUpdateInput: StoreAddressUpdateInput;
+  StoreBrand: StoreBrand;
+  StoreBrandUpdateInput: StoreBrandUpdateInput;
+  StoreContactDetails: StoreContactDetails;
+  StoreContactDetailsUpdateInput: StoreContactDetailsUpdateInput;
   StoreCreateInput: StoreCreateInput;
   StoreCreatePayload: Omit<StoreCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  StoreCurrencySettings: StoreCurrencySettings;
+  Int: Scalars['Int']['output'];
+  StoreCurrencySettingsUpdateInput: StoreCurrencySettingsUpdateInput;
+  StoreDefaults: StoreDefaults;
+  StoreDefaultsUpdateInput: StoreDefaultsUpdateInput;
   StoreDeleteInput: StoreDeleteInput;
   StoreDeletePayload: Omit<StoreDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   StoreMutation: Omit<StoreMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'storeCreate' | 'storeDelete' | 'storeUpdate'> & { apiKeyCreate: ResolversParentTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversParentTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversParentTypes['ApiKeyActionPayload'], localeCreate: ResolversParentTypes['LocaleCreatePayload'], localeDelete: ResolversParentTypes['LocaleDeletePayload'], localeSetDefault: ResolversParentTypes['LocaleUpdatePayload'], storeCreate: ResolversParentTypes['StoreCreatePayload'], storeDelete: ResolversParentTypes['StoreDeletePayload'], storeUpdate: ResolversParentTypes['StoreUpdatePayload'] };
+  StoreOrderProcessing: StoreOrderProcessing;
+  StoreOrderProcessingUpdateInput: StoreOrderProcessingUpdateInput;
   StoreQuery: StoreQuery;
+  StoreSocialLink: StoreSocialLink;
+  StoreSocialLinkInput: StoreSocialLinkInput;
   StoreUpdateInput: StoreUpdateInput;
-  StoreUpdatePayload: Omit<StoreUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  StoreUpdateOperationResult: Omit<StoreUpdateOperationResult, 'errors'> & { errors: Array<ResolversParentTypes['UserError']> };
+  StoreUpdatePayload: Omit<StoreUpdatePayload, 'operationResults' | 'userErrors'> & { operationResults: Array<ResolversParentTypes['StoreUpdateOperationResult']>, userErrors: Array<ResolversParentTypes['UserError']> };
   Timestamp: Scalars['Timestamp']['output'];
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
 }>;
@@ -637,6 +887,12 @@ export type DimensionUnitResolvers = EnumResolverSignature<{ cm?: any, ft?: any,
 export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Email'], any> {
   name: 'Email';
 }
+
+export type FileResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['File'] = ResolversParentTypes['File']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['GenericUserError'] = ResolversParentTypes['GenericUserError']> = ResolversObject<{
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -695,17 +951,23 @@ export type QueryResolvers<ContextType = ServiceContext, ParentType extends Reso
 
 export type StoreResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Store'] = ResolversParentTypes['Store']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Store']>, { __typename: 'Store' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  address?: Resolver<Maybe<ResolversTypes['StoreAddress']>, ParentType, ContextType>;
+  brand?: Resolver<ResolversTypes['StoreBrand'], ParentType, ContextType>;
+  contactDetails?: Resolver<ResolversTypes['StoreContactDetails'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   currencyCode?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
+  currencySettings?: Resolver<ResolversTypes['StoreCurrencySettings'], ParentType, ContextType>;
   defaultDimensionUnit?: Resolver<ResolversTypes['DimensionUnit'], ParentType, ContextType>;
   defaultLocale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   defaultWeightUnit?: Resolver<ResolversTypes['WeightUnit'], ParentType, ContextType>;
+  defaults?: Resolver<ResolversTypes['StoreDefaults'], ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   locales?: Resolver<Array<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
   membership?: Resolver<ResolversTypes['Membership'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  orderProcessing?: Resolver<ResolversTypes['StoreOrderProcessing'], ParentType, ContextType>;
   organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
   status?: Resolver<ResolversTypes['StoreStatus'], ParentType, ContextType>;
   timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -713,9 +975,62 @@ export type StoreResolvers<ContextType = ServiceContext, ParentType extends Reso
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type StoreAddressResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreAddress'] = ResolversParentTypes['StoreAddress']> = ResolversObject<{
+  addressLine1?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  addressLine2?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  administrativeArea?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  city?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  companyName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  countryCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  postalCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type StoreBrandResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreBrand'] = ResolversParentTypes['StoreBrand']> = ResolversObject<{
+  coverImage?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  defaultLogo?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  primaryColor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  secondaryColor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  shortDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  slogan?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  socialLinks?: Resolver<Array<ResolversTypes['StoreSocialLink']>, ParentType, ContextType>;
+  squareLogo?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type StoreContactDetailsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreContactDetails'] = ResolversParentTypes['StoreContactDetails']> = ResolversObject<{
+  email?: Resolver<Maybe<ResolversTypes['Email']>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  phoneNumbers?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type StoreCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreCreatePayload'] = ResolversParentTypes['StoreCreatePayload']> = ResolversObject<{
   store?: Resolver<Maybe<ResolversTypes['Store']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type StoreCurrencySettingsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreCurrencySettings'] = ResolversParentTypes['StoreCurrencySettings']> = ResolversObject<{
+  currencyCode?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
+  currencyDisplay?: Resolver<ResolversTypes['CurrencyDisplay'], ParentType, ContextType>;
+  currencySign?: Resolver<ResolversTypes['CurrencySign'], ParentType, ContextType>;
+  grouping?: Resolver<ResolversTypes['CurrencyGrouping'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
+  maximumFractionDigits?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  minimumFractionDigits?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  roundingMode?: Resolver<ResolversTypes['CurrencyRoundingMode'], ParentType, ContextType>;
+  signDisplay?: Resolver<ResolversTypes['CurrencySignDisplay'], ParentType, ContextType>;
+  trailingZeroDisplay?: Resolver<ResolversTypes['CurrencyTrailingZeroDisplay'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type StoreDefaultsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreDefaults'] = ResolversParentTypes['StoreDefaults']> = ResolversObject<{
+  defaultDimensionUnit?: Resolver<ResolversTypes['DimensionUnit'], ParentType, ContextType>;
+  defaultWeightUnit?: Resolver<ResolversTypes['WeightUnit'], ParentType, ContextType>;
+  timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  unitSystem?: Resolver<ResolversTypes['UnitSystem'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -734,7 +1049,16 @@ export type StoreMutationResolvers<ContextType = ServiceContext, ParentType exte
   localeSetDefault?: Resolver<ResolversTypes['LocaleUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationLocaleSetDefaultArgs, 'input'>>;
   storeCreate?: Resolver<ResolversTypes['StoreCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreCreateArgs, 'input'>>;
   storeDelete?: Resolver<ResolversTypes['StoreDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreDeleteArgs, 'input'>>;
-  storeUpdate?: Resolver<ResolversTypes['StoreUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreUpdateArgs, 'input'>>;
+  storeUpdate?: Resolver<ResolversTypes['StoreUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreUpdateArgs, 'clientMutationId' | 'storeId'>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type StoreOrderProcessingResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreOrderProcessing'] = ResolversParentTypes['StoreOrderProcessing']> = ResolversObject<{
+  automaticFulfillmentMode?: Resolver<ResolversTypes['AutomaticFulfillmentMode'], ParentType, ContextType>;
+  automaticallyArchiveOrders?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  orderNumberPrefix?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  orderNumberSuffix?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  requireCheckoutConfirmation?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -745,7 +1069,21 @@ export type StoreQueryResolvers<ContextType = ServiceContext, ParentType extends
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type StoreSocialLinkResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreSocialLink'] = ResolversParentTypes['StoreSocialLink']> = ResolversObject<{
+  platform?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type StoreUpdateOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreUpdateOperationResult'] = ResolversParentTypes['StoreUpdateOperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['StoreUpdateOperationType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type StoreUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreUpdatePayload'] = ResolversParentTypes['StoreUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['StoreUpdateOperationResult']>, ParentType, ContextType>;
   store?: Resolver<Maybe<ResolversTypes['Store']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -773,6 +1111,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   DateTime?: GraphQLScalarType;
   DimensionUnit?: DimensionUnitResolvers;
   Email?: GraphQLScalarType;
+  File?: FileResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   Locale?: LocaleResolvers<ContextType>;
   LocaleCode?: LocaleCodeResolvers;
@@ -784,10 +1123,18 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Organization?: OrganizationResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Store?: StoreResolvers<ContextType>;
+  StoreAddress?: StoreAddressResolvers<ContextType>;
+  StoreBrand?: StoreBrandResolvers<ContextType>;
+  StoreContactDetails?: StoreContactDetailsResolvers<ContextType>;
   StoreCreatePayload?: StoreCreatePayloadResolvers<ContextType>;
+  StoreCurrencySettings?: StoreCurrencySettingsResolvers<ContextType>;
+  StoreDefaults?: StoreDefaultsResolvers<ContextType>;
   StoreDeletePayload?: StoreDeletePayloadResolvers<ContextType>;
   StoreMutation?: StoreMutationResolvers<ContextType>;
+  StoreOrderProcessing?: StoreOrderProcessingResolvers<ContextType>;
   StoreQuery?: StoreQueryResolvers<ContextType>;
+  StoreSocialLink?: StoreSocialLinkResolvers<ContextType>;
+  StoreUpdateOperationResult?: StoreUpdateOperationResultResolvers<ContextType>;
   StoreUpdatePayload?: StoreUpdatePayloadResolvers<ContextType>;
   Timestamp?: GraphQLScalarType;
   UserError?: UserErrorResolvers<ContextType>;

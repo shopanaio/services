@@ -16,7 +16,10 @@ export interface EditStoreInformationModalPayload
   extends GeneralSettingsModalPayload {
   storeId: string;
   organizationId: string;
+  storeName: string;
   displayName: string;
+  email: string | null;
+  phoneNumbers: string[];
 }
 
 export type AddLanguageModalPayload = GeneralSettingsModalPayload;
