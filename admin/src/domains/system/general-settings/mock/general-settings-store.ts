@@ -17,6 +17,7 @@ const MOCK_REQUEST_DELAY = 250;
 let snapshot: GeneralSettingsSnapshot = {
   store: {
     id: "mock-store-id",
+    revision: 0,
     organizationId: "mock-organization-id",
     name: "demo-store",
     displayName: "Demo store",
@@ -65,12 +66,20 @@ export const subscribeToGeneralSettings = (listener: () => void) => {
 
 export const getGeneralSettingsSnapshot = () => snapshot;
 
-export const updateMockStore = async (input: ApiStoreUpdateInput) => {
-  const contactDetails = input.contactDetails;
-  const defaults = input.defaults;
-  const currencySettings = input.currencySettings;
+export const updateMockStore = async (input: {
+  expectedRevision: number;
+  operations: ApiStoreUpdateInput;
+}) => {
+  if (input.expectedRevision !== snapshot.store.revision) {
+    throw new Error("Store was modified by another user");
+  }
+  const operations = input.operations;
+  const contactDetails = operations.contactDetails;
+  const defaults = operations.defaults;
+  const currencySettings = operations.currencySettings;
   const nextStore = {
     ...snapshot.store,
+    revision: snapshot.store.revision + 1,
     ...(contactDetails && {
       displayName: contactDetails.name,
       name: contactDetails.slug,

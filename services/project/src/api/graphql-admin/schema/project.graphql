@@ -74,6 +74,8 @@ type Store @key(fields: "id") {
   Timestamp when the store was last updated
   """
   updatedAt: DateTime!
+  """Optimistic locking revision incremented by each unified update"""
+  revision: Int!
   """
   Membership info (resolved from IAM by domain)
   """

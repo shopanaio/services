@@ -15284,6 +15284,8 @@ export type ApiStore = {
   orderProcessing: ApiStoreOrderProcessing;
   /** Organization that owns this store (federation reference) */
   organization?: Maybe<ApiOrganization>;
+  /** Optimistic locking revision incremented by each unified update */
+  revision: Scalars['Int']['output'];
   /** Current operational status of the store */
   status: StoreStatus;
   /** IANA timezone identifier for the store */
@@ -15514,6 +15516,7 @@ export type ApiStoreMutationStoreDeleteArgs = {
 /** Mutations for store management */
 export type ApiStoreMutationStoreUpdateArgs = {
   clientMutationId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
   operations?: InputMaybe<ApiStoreUpdateInput>;
   storeId: Scalars['ID']['input'];
 };

@@ -3,6 +3,7 @@ mutation StoreCreate($input: StoreCreateInput!) {
     storeCreate(input: $input) {
       store {
         id
+        revision
         name
         displayName
         status

@@ -2,6 +2,7 @@ query CurrentStore {
   storeQuery {
     currentStore {
       id
+      revision
       name
       displayName
       status

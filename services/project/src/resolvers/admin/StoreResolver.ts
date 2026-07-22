@@ -184,6 +184,10 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     return this.$get("updatedAt");
   }
 
+  async revision() {
+    return this.$get("revision");
+  }
+
   async locales(): Promise<LocaleCode[]> {
     return this.$props.locales;
   }

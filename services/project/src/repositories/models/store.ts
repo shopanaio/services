@@ -1,5 +1,6 @@
 import {
   check,
+  integer,
   uuid,
   varchar,
   timestamp,
@@ -59,6 +60,7 @@ export const store = storeSchema.table(
     unitSystem: unitSystemEnum("unit_system").notNull().default("metric"),
     defaultWeightUnit: weightUnitEnum("default_weight_unit").notNull(),
     defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit").notNull(),
+    revision: integer("revision").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -99,6 +101,7 @@ export const store = storeSchema.table(
       ),
     index("idx_store_organization").on(table.organizationId),
     index("idx_store_application").on(table.applicationId),
+    index("idx_store_revision").on(table.id, table.revision),
   ]
 );
 

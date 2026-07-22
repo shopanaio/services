@@ -412,6 +412,18 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       return { store: null, operationResults: [], userErrors: [error] };
     }
 
+    if (
+      !Number.isSafeInteger(args.expectedRevision) ||
+      args.expectedRevision < 0
+    ) {
+      const error = {
+        message: "Expected revision must be a non-negative integer",
+        field: ["expectedRevision"],
+        code: "INVALID_EXPECTED_REVISION",
+      };
+      return { store: null, operationResults: [], userErrors: [error] };
+    }
+
     const store = await this.$ctx.kernel.repository.store.findById(storeId);
     if (!store) {
       const error = {
@@ -443,8 +455,44 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       };
     }
 
+    let authorizationError: UserError | null = null;
+    if (!this.$ctx.user?.id) {
+      authorizationError = {
+        message: "Access denied: Subject is missing",
+        field: null,
+        code: "UNAUTHENTICATED",
+      };
+    } else {
+      const allowed = await this.authProvider.authorize({
+        subject: this.$ctx.user.id,
+        organizationId: store.organizationId,
+        domain: `store:${store.id}`,
+        resource: "store.profile",
+        action: "write",
+      });
+      if (!allowed) {
+        authorizationError = {
+          message: "Access denied: store.profile:write",
+          field: null,
+          code: "FORBIDDEN",
+        };
+      }
+    }
+    if (authorizationError) {
+      return {
+        store: null,
+        operationResults: mapped.entries.map((entry) => ({
+          type: toGraphqlOperationType(entry.type),
+          applied: false,
+          errors: [authorizationError],
+        })),
+        userErrors: [authorizationError],
+      };
+    }
+
     const sagaInput: StoreUpdateSagaInput = {
       storeId,
+      expectedRevision: args.expectedRevision,
       operations: mapped.operations,
       context: {
         organizationId: store.organizationId,
@@ -463,6 +511,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       operation: "storeUpdate",
       content: {
         clientMutationId,
+        expectedRevision: sagaInput.expectedRevision,
         operations: sagaInput.operations,
         userId: sagaInput.context.userId ?? null,
       },

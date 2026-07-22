@@ -22,6 +22,11 @@ import type {
   GeneralSettingsStore,
 } from "../types";
 
+interface GeneralSettingsStoreUpdateRequest {
+  expectedRevision: number;
+  operations: ApiStoreUpdateInput;
+}
+
 const useMockMutation = <TInput, TData>(
   mutation: (input: TInput) => Promise<TData>,
 ) => {
@@ -55,9 +60,10 @@ const useMockMutation = <TInput, TData>(
 };
 
 export const useUpdateGeneralSettings = () => {
-  const mutation = useMockMutation<ApiStoreUpdateInput, GeneralSettingsStore>(
-    updateMockStore,
-  );
+  const mutation = useMockMutation<
+    GeneralSettingsStoreUpdateRequest,
+    GeneralSettingsStore
+  >(updateMockStore);
   return { ...mutation, updateStore: mutation.mutate };
 };
 

@@ -29,6 +29,13 @@
       "when": 1784720566807,
       "tag": "0003_white_lila_cheney",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784730041906,
+      "tag": "0004_hot_dazzler",
+      "breakpoints": true
     }
   ]
 }

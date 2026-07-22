@@ -191,6 +191,7 @@ export const USER_ERROR_FRAGMENT = gql`
 export const STORE_BASIC_FRAGMENT = gql`
   fragment StoreBasicFields on Store {
     id
+    revision
     name
     displayName
     status
@@ -203,6 +204,7 @@ export const STORE_BASIC_FRAGMENT = gql`
 export const STORE_FRAGMENT = gql`
   fragment StoreFields on Store {
     id
+    revision
     name
     displayName
     status
@@ -231,6 +233,7 @@ export const STORE_FRAGMENT = gql`
 export const CURRENT_STORE_FRAGMENT = gql`
   fragment CurrentStoreFields on Store {
     id
+    revision
     name
     displayName
     status

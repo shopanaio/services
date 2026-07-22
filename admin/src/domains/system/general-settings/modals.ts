@@ -15,6 +15,7 @@ interface GeneralSettingsModalPayload extends IModalStackPayload {
 export interface EditStoreInformationModalPayload
   extends GeneralSettingsModalPayload {
   storeId: string;
+  expectedRevision: number;
   organizationId: string;
   storeName: string;
   displayName: string;

@@ -292,6 +292,8 @@ export type Store = {
   orderProcessing: StoreOrderProcessing;
   /** Organization that owns this store (federation reference) */
   organization: Maybe<Organization>;
+  /** Optimistic locking revision incremented by each unified update */
+  revision: Scalars['Int']['output'];
   /** Current operational status of the store */
   status: StoreStatus;
   /** IANA timezone identifier for the store */
@@ -522,6 +524,7 @@ export type StoreMutationStoreDeleteArgs = {
 /** Mutations for store management */
 export type StoreMutationStoreUpdateArgs = {
   clientMutationId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
   operations?: InputMaybe<StoreUpdateInput>;
   storeId: Scalars['ID']['input'];
 };
@@ -756,6 +759,7 @@ export type ResolversTypes = ResolversObject<{
   Organization: ResolverTypeWrapper<Organization>;
   Query: ResolverTypeWrapper<{}>;
   Store: ResolverTypeWrapper<Store>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   StoreAddress: ResolverTypeWrapper<StoreAddress>;
   StoreAddressUpdateInput: StoreAddressUpdateInput;
   StoreBrand: ResolverTypeWrapper<StoreBrand>;
@@ -765,7 +769,6 @@ export type ResolversTypes = ResolversObject<{
   StoreCreateInput: StoreCreateInput;
   StoreCreatePayload: ResolverTypeWrapper<Omit<StoreCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   StoreCurrencySettings: ResolverTypeWrapper<StoreCurrencySettings>;
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   StoreCurrencySettingsUpdateInput: StoreCurrencySettingsUpdateInput;
   StoreDefaults: ResolverTypeWrapper<StoreDefaults>;
   StoreDefaultsUpdateInput: StoreDefaultsUpdateInput;
@@ -816,6 +819,7 @@ export type ResolversParentTypes = ResolversObject<{
   Organization: Organization;
   Query: {};
   Store: Store;
+  Int: Scalars['Int']['output'];
   StoreAddress: StoreAddress;
   StoreAddressUpdateInput: StoreAddressUpdateInput;
   StoreBrand: StoreBrand;
@@ -825,7 +829,6 @@ export type ResolversParentTypes = ResolversObject<{
   StoreCreateInput: StoreCreateInput;
   StoreCreatePayload: Omit<StoreCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   StoreCurrencySettings: StoreCurrencySettings;
-  Int: Scalars['Int']['output'];
   StoreCurrencySettingsUpdateInput: StoreCurrencySettingsUpdateInput;
   StoreDefaults: StoreDefaults;
   StoreDefaultsUpdateInput: StoreDefaultsUpdateInput;
@@ -969,6 +972,7 @@ export type StoreResolvers<ContextType = ServiceContext, ParentType extends Reso
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   orderProcessing?: Resolver<ResolversTypes['StoreOrderProcessing'], ParentType, ContextType>;
   organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['StoreStatus'], ParentType, ContextType>;
   timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -1049,7 +1053,7 @@ export type StoreMutationResolvers<ContextType = ServiceContext, ParentType exte
   localeSetDefault?: Resolver<ResolversTypes['LocaleUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationLocaleSetDefaultArgs, 'input'>>;
   storeCreate?: Resolver<ResolversTypes['StoreCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreCreateArgs, 'input'>>;
   storeDelete?: Resolver<ResolversTypes['StoreDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreDeleteArgs, 'input'>>;
-  storeUpdate?: Resolver<ResolversTypes['StoreUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreUpdateArgs, 'clientMutationId' | 'storeId'>>;
+  storeUpdate?: Resolver<ResolversTypes['StoreUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreUpdateArgs, 'clientMutationId' | 'expectedRevision' | 'storeId'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

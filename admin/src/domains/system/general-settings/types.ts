@@ -7,6 +7,7 @@ import type {
 export type GeneralSettingsStore = Pick<
   ApiStore,
   | "id"
+  | "revision"
   | "name"
   | "displayName"
   | "email"

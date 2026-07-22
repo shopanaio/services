@@ -46,11 +46,14 @@ export const EditStoreInformationModal = () => {
 
   const submit = handleSubmit(async ({ displayName }) => {
     const result = await mutation.updateStore({
-      contactDetails: {
-        name: displayName.trim(),
-        slug: typedPayload.storeName,
-        email: typedPayload.email,
-        phoneNumbers: typedPayload.phoneNumbers,
+      expectedRevision: typedPayload.expectedRevision,
+      operations: {
+        contactDetails: {
+          name: displayName.trim(),
+          slug: typedPayload.storeName,
+          email: typedPayload.email,
+          phoneNumbers: typedPayload.phoneNumbers,
+        },
       },
     });
 

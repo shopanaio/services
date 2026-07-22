@@ -5,6 +5,7 @@ import {
   BrokerSaga,
   FatalError,
   InjectBroker,
+  RetryableError,
   Saga,
   SagaStep,
   ServiceBroker,
@@ -79,6 +80,7 @@ export type StoreUpdateOperation =
 
 export interface StoreUpdateSagaInput {
   storeId: string;
+  expectedRevision: number;
   operations: StoreUpdateOperation[];
   context: {
     organizationId: string;
@@ -113,6 +115,8 @@ interface BrandMediaLink {
 }
 
 interface StoreUpdateSnapshot {
+  revision: number;
+  updatedAt: Date;
   contactDetails: StoreContactDetailsData;
   address: StoreAddressData | null;
   brand: StoreBrandData | null;
@@ -152,6 +156,14 @@ export class StoreUpdateSaga extends BrokerSaga<
     input: StoreUpdateSagaInput,
   ): Promise<StoreUpdateSagaOutput> {
     const snapshot = await this.captureStoreUpdateSnapshot(input);
+    const revision = await this.acquireStoreRevision(input, snapshot);
+    if ("error" in revision) {
+      return {
+        storeId: null,
+        operationResults: [],
+        userErrors: [revision.error],
+      };
+    }
 
     const operationResults: StoreUpdateOperationResult[] = [];
     for (const operation of input.operations) {
@@ -414,6 +426,55 @@ export class StoreUpdateSaga extends BrokerSaga<
   }
 
   @SagaStep()
+  private async acquireStoreRevision(
+    input: StoreUpdateSagaInput,
+    _snapshot: StoreUpdateSnapshot,
+  ): Promise<{ revision: number } | { error: UserError }> {
+    const revision = await this.kernel.repository.store.acquireRevision(
+      input.storeId,
+      input.context.organizationId,
+      input.expectedRevision,
+    );
+    if (revision !== null) return { revision };
+
+    const store = await this.kernel.repository.store.findById(
+      input.storeId,
+      input.context.organizationId,
+    );
+    return {
+      error: store
+        ? {
+            message: "Store was modified by another user",
+            code: "REVISION_CONFLICT",
+            field: ["expectedRevision"],
+          }
+        : {
+            message: "Store not found",
+            code: "NOT_FOUND",
+            field: ["storeId"],
+          },
+    };
+  }
+
+  private async compensateAcquireStoreRevision(
+    input: StoreUpdateSagaInput,
+    snapshot: StoreUpdateSnapshot,
+  ): Promise<void> {
+    const restored = await this.kernel.repository.store.restoreRevision({
+      id: input.storeId,
+      organizationId: input.context.organizationId,
+      acquiredRevision: input.expectedRevision + 1,
+      previousRevision: snapshot.revision,
+      previousUpdatedAt: snapshot.updatedAt,
+    });
+    if (!restored) {
+      throw new Error(
+        `Store revision compensation conflict for ${input.storeId}`,
+      );
+    }
+  }
+
+  @SagaStep()
   private async captureStoreUpdateSnapshot(
     input: StoreUpdateSagaInput,
   ): Promise<StoreUpdateSnapshot> {
@@ -429,6 +490,8 @@ export class StoreUpdateSaga extends BrokerSaga<
     }
 
     return {
+      revision: store.revision,
+      updatedAt: store.updatedAt,
       contactDetails: {
         name: store.displayName,
         slug: store.name,
@@ -551,7 +614,13 @@ export class StoreUpdateSaga extends BrokerSaga<
       entityRef: storeMediaEntityRef(storeId),
       role: link.role,
     });
-    if (result.success && result.fileExists && result.fileActive) return;
+    if (!result.success) {
+      throw mediaInfrastructureError(
+        "Unable to attach media file to the store",
+        "MEDIA_LINK_FAILED",
+      );
+    }
+    if (result.fileExists && result.fileActive) return;
 
     const error = brandMediaError({
       field: link.field,
@@ -578,9 +647,8 @@ export class StoreUpdateSaga extends BrokerSaga<
       role: link.role,
     });
     if (result.success) return;
-    throw new FatalError(
+    throw mediaInfrastructureError(
       "Unable to detach media file from the store",
-      undefined,
       "MEDIA_UNLINK_FAILED",
     );
   }
@@ -649,6 +717,15 @@ function brandMediaError(input: {
     message: "Unable to attach media file to the store",
     field: [input.field],
   };
+}
+
+function mediaInfrastructureError(
+  message: string,
+  code: string,
+): RetryableError {
+  const error = new RetryableError(message);
+  error.code = code;
+  return error;
 }
 
 function toOperationResult(

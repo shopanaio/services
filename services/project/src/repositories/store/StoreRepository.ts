@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type { PageInfo } from "@shopana/drizzle-query";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
@@ -79,6 +79,14 @@ export interface UpdateStoreData {
   locales?: LocaleCode[];
   currencyCode?: CurrencyCode;
   defaultLocale?: LocaleCode;
+}
+
+export interface StoreRevisionRestoreInput {
+  id: string;
+  organizationId: string;
+  acquiredRevision: number;
+  previousRevision: number;
+  previousUpdatedAt: Date;
 }
 
 export class StoreRepository extends BaseRepository {
@@ -308,6 +316,58 @@ export class StoreRepository extends BaseRepository {
 
     if (!result) return null;
     return this.loadIntegrations(result);
+  }
+
+  /**
+   * Atomically reserves the next store revision for a unified update.
+   */
+  @Transactional()
+  async acquireRevision(
+    id: string,
+    organizationId: string,
+    expectedRevision: number,
+  ): Promise<number | null> {
+    const [result] = await this.connection
+      .update(store)
+      .set({
+        revision: sql`${store.revision} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(store.id, id),
+          eq(store.organizationId, organizationId),
+          eq(store.revision, expectedRevision),
+          isNull(store.deletedAt),
+        ),
+      )
+      .returning({ revision: store.revision });
+
+    return result?.revision ?? null;
+  }
+
+  /**
+   * Rolls back only the revision reserved by the compensating workflow.
+   */
+  @Transactional()
+  async restoreRevision(input: StoreRevisionRestoreInput): Promise<boolean> {
+    const [result] = await this.connection
+      .update(store)
+      .set({
+        revision: input.previousRevision,
+        updatedAt: input.previousUpdatedAt,
+      })
+      .where(
+        and(
+          eq(store.id, input.id),
+          eq(store.organizationId, input.organizationId),
+          eq(store.revision, input.acquiredRevision),
+          isNull(store.deletedAt),
+        ),
+      )
+      .returning({ id: store.id });
+
+    return result !== undefined;
   }
 
   @Transactional()

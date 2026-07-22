@@ -28,6 +28,7 @@ export const StoreInformation = ({
             onClick={() =>
               editModal.push({
                 storeId: store.id,
+                expectedRevision: store.revision,
                 organizationId: store.organizationId,
                 storeName: store.name,
                 displayName: store.displayName,

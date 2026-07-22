@@ -223,6 +223,7 @@ test.describe('Cross-Organization Store Isolation', () => {
       variables: {
         storeId: userB.storeId,
         clientMutationId: 'cross-org-update',
+        expectedRevision: 0,
         operations: {
           contactDetails: {
             name: 'Hacked Store B',

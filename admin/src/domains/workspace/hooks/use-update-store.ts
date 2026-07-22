@@ -29,6 +29,7 @@ interface UseUpdateStoreReturn {
    */
   updateStore: (
     storeId: string,
+    expectedRevision: number,
     operations: ApiStoreUpdateInput,
     clientMutationId?: string,
   ) => Promise<UpdateStoreResult>;
@@ -51,7 +52,7 @@ interface UseUpdateStoreReturn {
  * const { updateStore, loading } = useUpdateStore();
  *
  * const handleUpdate = async () => {
- *   const { store, userErrors } = await updateStore("store-123", {
+ *   const { store, userErrors } = await updateStore("store-123", 0, {
  *     contactDetails: {
  *       name: "Updated Store Name",
  *       slug: "my-store",
@@ -79,6 +80,7 @@ export function useUpdateStore(): UseUpdateStoreReturn {
     {
       storeId: string;
       clientMutationId: string;
+      expectedRevision: number;
       operations: ApiStoreUpdateInput;
     }
   >(UPDATE_STORE_MUTATION);
@@ -86,11 +88,17 @@ export function useUpdateStore(): UseUpdateStoreReturn {
   const updateStore = useCallback(
     async (
       storeId: string,
+      expectedRevision: number,
       operations: ApiStoreUpdateInput,
       clientMutationId = crypto.randomUUID(),
     ): Promise<UpdateStoreResult> => {
       const result = await mutate({
-        variables: { storeId, clientMutationId, operations },
+        variables: {
+          storeId,
+          clientMutationId,
+          expectedRevision,
+          operations,
+        },
       });
       const payload = result.data?.storeMutation.storeUpdate;
 
