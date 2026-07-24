@@ -35,7 +35,6 @@ export abstract class MaterializationWorkflowBase extends BrokerWorkflows {
     );
   }
 
-  @WorkflowStep({ retriesAllowed: false })
   protected async startDelivery(
     input: DeliveryWorkflowInput
   ): Promise<string> {
