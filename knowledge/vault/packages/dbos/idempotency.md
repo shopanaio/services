@@ -110,7 +110,6 @@ workflow:{sha256(v1:workflow:tenantId:workflowId:stepId:callId:workflowName)}
 
 ### Use Cases
 
-- Child workflows called from parent workflow steps
 - Fan-out patterns (processing multiple items)
 - Event handler workflow triggers
 
