@@ -6,15 +6,17 @@ import {
   type NotificationProvider,
 } from "@shopana/plugin-sdk/notifications";
 
-export const configSchema = z.object({
-  host: z.string().min(1),
-  port: z.number().int().min(1).max(65_535),
-  secure: z.boolean().default(false),
-  username: z.string().optional(),
-  password: z.string().optional(),
-  fromEmail: z.string().email(),
-  fromName: z.string().optional(),
-}).strict();
+export const configSchema = z
+  .object({
+    host: z.string().min(1),
+    port: z.number().int().min(1).max(65_535),
+    security: z.enum(["NONE", "STARTTLS", "TLS"]),
+    username: z.string().optional(),
+    password: z.string().optional(),
+    fromEmail: z.string().email(),
+    fromName: z.string().optional(),
+  })
+  .strict();
 
 type Config = z.infer<typeof configSchema>;
 
@@ -25,7 +27,9 @@ class SmtpProvider implements NotificationProvider {
     this.transport = nodemailer.createTransport({
       host: config.host,
       port: config.port,
-      secure: config.secure,
+      secure: config.security === "TLS",
+      requireTLS: config.security === "STARTTLS",
+      ignoreTLS: config.security === "NONE",
       auth:
         config.username && config.password
           ? { user: config.username, pass: config.password }
@@ -121,7 +125,7 @@ export const plugin: NotificationPlugin<typeof configSchema> = {
   manifest: {
     code: "smtp",
     displayName: "SMTP",
-    version: "1.0.0",
+    version: "1.1.0",
     apiVersionRange: "^1.0.0",
     domains: ["notifications"],
     notification: {

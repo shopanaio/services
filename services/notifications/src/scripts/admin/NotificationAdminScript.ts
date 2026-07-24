@@ -3,6 +3,10 @@ import type {
   Notifications,
 } from "@shopana/broker-types";
 import { z } from "zod";
+import {
+  WEBHOOK_API_VERSIONS,
+  isSupportedWebhookApiVersion,
+} from "../../infrastructure/webhooks/WebhookCapabilities.js";
 import { BaseScript } from "../../kernel/BaseScript.js";
 
 export type NotificationAdminParams =
@@ -51,6 +55,16 @@ export type NotificationAdminParams =
       expectedVersion: number;
     }
   | {
+      operation: "validateTemplate";
+      input: {
+        key: Notifications.NotificationDefinitionKey;
+        channel: Notifications.NotificationChannel;
+        subjectTemplate?: string;
+        bodyTemplate: string;
+        plainTextTemplate?: string;
+      };
+    }
+  | {
       operation: "preview";
       input: Omit<Notifications.PreviewNotificationParams, "storeId">;
     }
@@ -90,6 +104,7 @@ export type NotificationAdminParams =
         "storeId" | "organizationId"
       >;
     }
+  | { operation: "webhookCapabilities" }
   | { operation: "webhooks" }
   | {
       operation: "createWebhook";
@@ -252,6 +267,27 @@ export class NotificationAdminScript extends BaseScript<
         );
         return pointer;
       }
+      case "validateTemplate": {
+        if (
+          params.input.channel !== "EMAIL" &&
+          params.input.channel !== "SMS"
+        ) {
+          return {
+            valid: false,
+            issues: [
+              {
+                field: "BODY",
+                line: 1,
+                column: 1,
+                code: "CHANNEL_DOES_NOT_SUPPORT_TEMPLATES",
+                message: "Only EMAIL and SMS channels support templates",
+              },
+            ],
+          };
+        }
+        const issues = this.renderer.validateSourcesStructured(params.input);
+        return { valid: issues.length === 0, issues };
+      }
       case "preview":
         return this.renderer.preview(params.input);
       case "staffRecipients":
@@ -330,9 +366,18 @@ export class NotificationAdminScript extends BaseScript<
           storeId: this.context.store.id,
           organizationId: this.context.store.organizationId,
         } satisfies Notifications.SendTestNotificationParams);
+      case "webhookCapabilities":
+        return {
+          events: this.definitions.listEventTypes().map((eventType) => ({
+            eventType,
+            title: humanizeEventType(eventType),
+          })),
+          apiVersions: WEBHOOK_API_VERSIONS,
+        };
       case "webhooks":
         return this.repository.webhooks.list();
       case "createWebhook": {
+        this.assertWebhookCapabilities(params.eventType, params.apiVersion);
         const result = await this.repository.webhooks.create({
           ...params,
           createdBy: actorId,
@@ -346,6 +391,18 @@ export class NotificationAdminScript extends BaseScript<
         return result;
       }
       case "updateWebhook": {
+        if (
+          params.eventType &&
+          this.definitions.forEvent(params.eventType).length === 0
+        ) {
+          throw new Error("UNSUPPORTED_WEBHOOK_EVENT");
+        }
+        if (
+          params.apiVersion &&
+          !isSupportedWebhookApiVersion(params.apiVersion)
+        ) {
+          throw new Error("UNSUPPORTED_WEBHOOK_API_VERSION");
+        }
         const webhook = await this.repository.webhooks.update(params);
         await this.audit("webhook.updated", "webhook", params.id, {
           version: webhook.version,
@@ -427,6 +484,18 @@ export class NotificationAdminScript extends BaseScript<
     }));
   }
 
+  private assertWebhookCapabilities(
+    eventType: string,
+    apiVersion: string
+  ): void {
+    if (this.definitions.forEvent(eventType).length === 0) {
+      throw new Error("UNSUPPORTED_WEBHOOK_EVENT");
+    }
+    if (!isSupportedWebhookApiVersion(apiVersion)) {
+      throw new Error("UNSUPPORTED_WEBHOOK_API_VERSION");
+    }
+  }
+
   private async authorize(params: NotificationAdminParams): Promise<void> {
     const permission = permissionFor(params);
     const allowed = await this.authProvider.authorize({
@@ -473,6 +542,8 @@ function permissionFor(params: NotificationAdminParams): {
       action:
         operation === "templateRevisions" || operation === "template"
           ? "read"
+          : operation === "validateTemplate"
+            ? "preview"
           : operation === "activateTemplateRevision"
             ? "activate"
             : "update",
@@ -497,7 +568,11 @@ function permissionFor(params: NotificationAdminParams): {
           : "configure",
     };
   }
-  if (operation.includes("Webhook") || operation === "webhooks") {
+  if (
+    operation.includes("Webhook") ||
+    operation === "webhooks" ||
+    operation === "webhookCapabilities"
+  ) {
     return {
       resource: "notification_webhook",
       action: operation === "rotateWebhookSecret"
@@ -508,7 +583,8 @@ function permissionFor(params: NotificationAdminParams): {
           ? "create"
           : operation === "deleteWebhook"
             ? "delete"
-            : operation === "webhooks"
+            : operation === "webhooks" ||
+                operation === "webhookCapabilities"
               ? "read"
               : "update",
     };
@@ -551,4 +627,14 @@ function permissionFor(params: NotificationAdminParams): {
         ? "read"
         : "update",
   };
+}
+
+function humanizeEventType(value: string): string {
+  const words = value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim();
+  return words.length === 0
+    ? value
+    : words[0]!.toUpperCase() + words.slice(1);
 }

@@ -3,10 +3,10 @@ import type {
   NotificationChannel,
   NotificationDefinitionKey,
   NotificationDefinitionMetadata,
-  NotificationTemplateVariable,
 } from "@shopana/broker-types";
 import { NOTIFICATION_DEFINITION_KEYS } from "@shopana/broker-types";
 import { z } from "zod";
+import { getDefinitionContract } from "./DefinitionContracts.js";
 
 export type NotificationTrigger =
   | { kind: "EVENT"; eventType: string }
@@ -25,17 +25,6 @@ export interface NotificationDefinition
   recipientPolicy: "SNAPSHOT" | "STAFF_CONFIGURATION";
   retentionPolicy: RetentionPolicy;
 }
-
-const notificationDataSchema = z.record(z.unknown());
-
-const variables: readonly NotificationTemplateVariable[] = [
-  {
-    path: "*",
-    type: "STRING",
-    required: false,
-    description: "Event-provided rendering data",
-  },
-] as const;
 
 const event = (eventType: string): NotificationTrigger => ({
   kind: "EVENT",
@@ -118,6 +107,7 @@ export class TemplateDefinitionRegistry {
   constructor() {
     const definitions = manifest.map(
       ([key, title, trigger, audience, optional]): NotificationDefinition => {
+        const contract = getDefinitionContract(key);
         return {
           key,
           title,
@@ -126,12 +116,12 @@ export class TemplateDefinitionRegistry {
           optional,
           allowedChannels: ["EMAIL", "SMS"],
           defaultChannels: ["EMAIL"],
-          dataSchema: notificationDataSchema,
+          dataSchema: contract.dataSchema,
           recipientPolicy:
             audience === "STAFF"
               ? "STAFF_CONFIGURATION"
               : "SNAPSHOT",
-          variables,
+          variables: contract.variables,
           retentionPolicy: key.startsWith("customer.auth.")
             ? { snapshotDays: 7, renderedContentHours: 1 }
             : { snapshotDays: 30, renderedContentHours: 24 },
@@ -167,6 +157,10 @@ export class TemplateDefinitionRegistry {
 
   forEvent(eventType: string): readonly NotificationDefinition[] {
     return this.eventIndex.get(eventType) ?? [];
+  }
+
+  listEventTypes(): readonly string[] {
+    return [...this.eventIndex.keys()].sort();
   }
 
   private assertInvariants(): void {

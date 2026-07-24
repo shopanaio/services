@@ -63,6 +63,8 @@ export const resolvers = {
         operation: "providerConfiguration",
         channel: args.channel as never,
       }),
+    webhookCapabilities: (_: unknown, __: Args, context: ServiceContext) =>
+      run(context, { operation: "webhookCapabilities" }),
     webhookSubscriptions: (_: unknown, __: Args, context: ServiceContext) =>
       run(context, { operation: "webhooks" }),
     deliveries: (_: unknown, args: Args, context: ServiceContext) =>
@@ -103,6 +105,11 @@ export const resolvers = {
         operation: "activateTemplateRevision",
         revisionId: args.revisionId as string,
         expectedVersion: args.expectedVersion as number,
+      }),
+    validateTemplate: (_: unknown, args: Args, context: ServiceContext) =>
+      run(context, {
+        operation: "validateTemplate",
+        input: args.input as never,
       }),
     preview: (_: unknown, args: Args, context: ServiceContext) =>
       run(context, {

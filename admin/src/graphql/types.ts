@@ -10064,6 +10064,35 @@ export type ApiNotificationTemplateRevisionInput = {
   subjectTemplate?: InputMaybe<Scalars['String']['input']>;
 };
 
+export enum NotificationTemplateSourceField {
+  Body = 'BODY',
+  PlainText = 'PLAIN_TEXT',
+  Subject = 'SUBJECT'
+}
+
+export type ApiNotificationTemplateValidation = {
+  __typename?: 'NotificationTemplateValidation';
+  issues: Array<ApiNotificationTemplateValidationIssue>;
+  valid: Scalars['Boolean']['output'];
+};
+
+export type ApiNotificationTemplateValidationInput = {
+  bodyTemplate: Scalars['String']['input'];
+  channel: NotificationChannel;
+  key: Scalars['String']['input'];
+  plainTextTemplate?: InputMaybe<Scalars['String']['input']>;
+  subjectTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationTemplateValidationIssue = {
+  __typename?: 'NotificationTemplateValidationIssue';
+  code: Scalars['String']['output'];
+  column: Scalars['Int']['output'];
+  field: NotificationTemplateSourceField;
+  line: Scalars['Int']['output'];
+  message: Scalars['String']['output'];
+};
+
 export type ApiNotificationTemplateVariable = {
   __typename?: 'NotificationTemplateVariable';
   children?: Maybe<Array<ApiNotificationTemplateVariable>>;
@@ -10087,11 +10116,36 @@ export type ApiNotificationTestMessageInput = {
   userId?: InputMaybe<Scalars['ID']['input']>;
 };
 
+export enum NotificationWebhookApiStability {
+  Deprecated = 'DEPRECATED',
+  Stable = 'STABLE',
+  Unstable = 'UNSTABLE'
+}
+
+export type ApiNotificationWebhookApiVersion = {
+  __typename?: 'NotificationWebhookApiVersion';
+  isDefault: Scalars['Boolean']['output'];
+  stability: NotificationWebhookApiStability;
+  version: Scalars['String']['output'];
+};
+
+export type ApiNotificationWebhookCapabilities = {
+  __typename?: 'NotificationWebhookCapabilities';
+  apiVersions: Array<ApiNotificationWebhookApiVersion>;
+  events: Array<ApiNotificationWebhookEvent>;
+};
+
 export type ApiNotificationWebhookCreateInput = {
   apiVersion: Scalars['String']['input'];
   eventType: Scalars['String']['input'];
   format: NotificationWebhookFormat;
   url: Scalars['String']['input'];
+};
+
+export type ApiNotificationWebhookEvent = {
+  __typename?: 'NotificationWebhookEvent';
+  eventType: Scalars['String']['output'];
+  title: Scalars['String']['output'];
 };
 
 export enum NotificationWebhookFormat {
@@ -10158,6 +10212,7 @@ export type ApiNotificationsMutation = {
   testProvider: ApiNotificationProviderTestResult;
   updateWebhook: ApiNotificationWebhookSubscription;
   upsertStaffRecipient: ApiStaffNotificationRecipient;
+  validateTemplate: ApiNotificationTemplateValidation;
 };
 
 
@@ -10251,6 +10306,11 @@ export type ApiNotificationsMutationUpsertStaffRecipientArgs = {
   input: ApiStaffNotificationRecipientInput;
 };
 
+
+export type ApiNotificationsMutationValidateTemplateArgs = {
+  input: ApiNotificationTemplateValidationInput;
+};
+
 export type ApiNotificationsQuery = {
   __typename?: 'NotificationsQuery';
   definitions: Array<ApiNotificationDefinition>;
@@ -10262,6 +10322,7 @@ export type ApiNotificationsQuery = {
   staffRecipients: Array<ApiStaffNotificationRecipient>;
   template: ApiNotificationEffectiveTemplate;
   templateRevisions: Array<ApiNotificationTemplateRevision>;
+  webhookCapabilities: ApiNotificationWebhookCapabilities;
   webhookSubscriptions: Array<ApiNotificationWebhookSubscription>;
 };
 

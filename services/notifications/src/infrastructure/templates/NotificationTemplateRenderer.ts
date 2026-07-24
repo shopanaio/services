@@ -30,6 +30,13 @@ export interface RenderedNotification {
   sms?: { encoding: "GSM_7" | "UCS_2"; segmentCount: number; length: number };
 }
 
+export type TemplateSourceField = "SUBJECT" | "BODY" | "PLAIN_TEXT";
+
+export interface StructuredTemplateValidationIssue
+  extends TemplateValidationIssue {
+  field: TemplateSourceField;
+}
+
 export class NotificationTemplateRenderer {
   private readonly engine = new HandlebarsTemplateEngine();
   private readonly validator = new TemplateVariableValidator();
@@ -65,20 +72,32 @@ export class NotificationTemplateRenderer {
     bodyTemplate: string;
     plainTextTemplate?: string;
   }): TemplateValidationIssue[] {
+    return this.validateSourcesStructured(input);
+  }
+
+  validateSourcesStructured(input: {
+    key: NotificationDefinitionKey;
+    channel: NotificationChannel;
+    subjectTemplate?: string;
+    bodyTemplate: string;
+    plainTextTemplate?: string;
+  }): StructuredTemplateValidationIssue[] {
     const definition = this.definitions.get(input.key);
     const issues = [
       ...(input.subjectTemplate
         ? this.validator.validate(
             input.subjectTemplate,
             definition.variables
-          )
+          ).map((issue) => ({ ...issue, field: "SUBJECT" as const }))
         : []),
-      ...this.validator.validate(input.bodyTemplate, definition.variables),
+      ...this.validator
+        .validate(input.bodyTemplate, definition.variables)
+        .map((issue) => ({ ...issue, field: "BODY" as const })),
       ...(input.plainTextTemplate
         ? this.validator.validate(
             input.plainTextTemplate,
             definition.variables
-          )
+          ).map((issue) => ({ ...issue, field: "PLAIN_TEXT" as const }))
         : []),
     ];
     if (input.channel === "EMAIL") {
@@ -86,6 +105,7 @@ export class NotificationTemplateRenderer {
         assertSafeEmailHtml(input.bodyTemplate);
       } catch (error) {
         issues.push({
+          field: "BODY",
           line: 1,
           column: 1,
           code: "UNSAFE_EMAIL_HTML",

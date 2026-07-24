@@ -31,6 +31,7 @@ type NotificationsQuery {
   staffRecipients: [StaffNotificationRecipient!]!
   providerRoutes: [NotificationProviderRoute!]!
   providerConfiguration(channel: NotificationChannel!): NotificationProviderMaskedConfiguration!
+  webhookCapabilities: NotificationWebhookCapabilities!
   webhookSubscriptions: [NotificationWebhookSubscription!]!
   deliveries(limit: Int = 100): [NotificationDelivery!]!
   deliveryAttempts(deliveryId: ID!): [NotificationDeliveryAttempt!]!
@@ -45,6 +46,7 @@ type NotificationsMutation {
   setChannelEnabled(input: NotificationChannelSettingInput!): NotificationChannelSetting!
   createTemplateRevision(input: NotificationTemplateRevisionInput!): NotificationTemplateRevision!
   activateTemplateRevision(revisionId: ID!, expectedVersion: Int!): NotificationTemplatePointer!
+  validateTemplate(input: NotificationTemplateValidationInput!): NotificationTemplateValidation!
   preview(input: NotificationPreviewInput!): NotificationPreview!
   upsertStaffRecipient(input: StaffNotificationRecipientInput!): StaffNotificationRecipient!
   deleteStaffRecipient(id: ID!): DeletePayload!
@@ -192,6 +194,33 @@ type NotificationTemplatePointer {
   updatedAt: DateTime!
 }
 
+enum NotificationTemplateSourceField {
+  SUBJECT
+  BODY
+  PLAIN_TEXT
+}
+
+input NotificationTemplateValidationInput {
+  key: String!
+  channel: NotificationChannel!
+  subjectTemplate: String
+  bodyTemplate: String!
+  plainTextTemplate: String
+}
+
+type NotificationTemplateValidation {
+  valid: Boolean!
+  issues: [NotificationTemplateValidationIssue!]!
+}
+
+type NotificationTemplateValidationIssue {
+  field: NotificationTemplateSourceField!
+  line: Int!
+  column: Int!
+  code: String!
+  message: String!
+}
+
 type NotificationEffectiveTemplate {
   key: String!
   channel: NotificationChannel!
@@ -313,6 +342,28 @@ input NotificationWebhookCreateInput {
   format: NotificationWebhookFormat!
   url: String!
   apiVersion: String!
+}
+
+enum NotificationWebhookApiStability {
+  UNSTABLE
+  STABLE
+  DEPRECATED
+}
+
+type NotificationWebhookCapabilities {
+  events: [NotificationWebhookEvent!]!
+  apiVersions: [NotificationWebhookApiVersion!]!
+}
+
+type NotificationWebhookEvent {
+  eventType: String!
+  title: String!
+}
+
+type NotificationWebhookApiVersion {
+  version: String!
+  stability: NotificationWebhookApiStability!
+  isDefault: Boolean!
 }
 
 input NotificationWebhookUpdateInput {
