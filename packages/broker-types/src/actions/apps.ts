@@ -8,7 +8,6 @@ import type {
   NotificationDeliveryReceipt,
   NotificationProviderTestInput,
   NotificationProviderTestResult,
-  NotificationStatusInput,
 } from "./notifications.js";
 
 // ============================================================================
@@ -36,10 +35,7 @@ export interface ExecuteResult {
 // Side-effect-safe assigned execution
 // ============================================================================
 
-export type AssignedNotificationOperation =
-  | "deliver"
-  | "testConnection"
-  | "getStatus";
+export type AssignedNotificationOperation = "deliver" | "testConnection";
 
 export interface ExecuteAssignedParams {
   storeId: string;
@@ -50,14 +46,7 @@ export interface ExecuteAssignedParams {
     aggregate: "notifications";
     aggregateId: NotificationChannel;
   };
-  expectedProvider?: {
-    providerCode: string;
-    slotId: string;
-  };
-  input:
-    | NotificationDeliveryInput
-    | NotificationProviderTestInput
-    | NotificationStatusInput;
+  input: NotificationDeliveryInput | NotificationProviderTestInput;
   idempotencyKey: string;
 }
 
@@ -65,7 +54,6 @@ export interface ExecuteAssignedResult {
   providerCode: string;
   slotId: string;
   assignmentId: string;
-  supportsStatusLookup: boolean;
   receipt:
     | NotificationDeliveryReceipt
     | NotificationProviderTestResult;

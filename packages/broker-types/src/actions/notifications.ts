@@ -210,11 +210,6 @@ export interface NotificationProviderTestResult {
   message?: string;
 }
 
-export interface NotificationStatusInput {
-  providerMessageId: string;
-  deliveryId: string;
-}
-
 export interface SendTestNotificationParams {
   storeId: string;
   organizationId: string;

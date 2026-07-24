@@ -78,17 +78,10 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
             providerSlotId: execution.slotId,
             receipt,
           });
-          if (
-            receipt.state === "ACCEPTED" &&
-            execution.supportsStatusLookup &&
-            receipt.providerMessageId
-          ) {
-            await this.stepStartReconcile(input);
-          }
           return { status: receipt.state };
         }
         if (receipt.state === "UNKNOWN") {
-          await this.recordUnknownAndReconcile(input, attempt.attemptId, {
+          await this.recordUnknown(input, attempt.attemptId, {
             providerCode: execution.providerCode,
             providerSlotId: execution.slotId,
             providerMessageId: receipt.providerMessageId,
@@ -109,7 +102,7 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
       } catch (error) {
         const failure = classifyProviderError(error);
         if (failure.unknown) {
-          await this.recordUnknownAndReconcile(input, attempt.attemptId, {
+          await this.recordUnknown(input, attempt.attemptId, {
             errorCode: failure.code,
             diagnostics: failure.diagnostics,
           });
@@ -189,7 +182,7 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
     } satisfies Apps.ExecuteAssignedParams);
   }
 
-  private async recordUnknownAndReconcile(
+  private async recordUnknown(
     input: DeliveryWorkflowInput,
     attemptId: string,
     details: {
@@ -208,24 +201,6 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
       errorKind: "UNKNOWN",
       ...details,
     });
-    await this.stepStartReconcile(input);
-  }
-
-  @WorkflowStep({ retriesAllowed: false })
-  private async stepStartReconcile(
-    input: DeliveryWorkflowInput
-  ): Promise<void> {
-    await this.broker.startWorkflow(
-      "notifications.reconcileDelivery",
-      input,
-      {
-        source: "workflow",
-        organizationId: input.organizationId,
-        workflowId: DBOS.workflowID ?? `deliver:${input.deliveryId}`,
-        stepId: "notifications.reconcileDelivery",
-        callId: input.deliveryId,
-      }
-    );
   }
 }
 

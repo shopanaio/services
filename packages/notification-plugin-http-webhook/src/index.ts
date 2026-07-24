@@ -212,7 +212,6 @@ export const plugin: NotificationPlugin<typeof configSchema> = {
     notification: {
       channels: ["WEBHOOK"],
       supportsIdempotencyKey: true,
-      supportsStatusLookup: false,
       supportsBatch: false,
     },
   },

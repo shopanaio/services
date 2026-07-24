@@ -30,15 +30,6 @@ export const executeAssigned: TransactionScript<
       `No active provider assigned for notification channel ${params.capability}`
     );
   }
-  if (
-    params.expectedProvider &&
-    (resolved.slot.id !== params.expectedProvider.slotId ||
-      resolved.slot.provider !== params.expectedProvider.providerCode)
-  ) {
-    throw new Error(
-      "Assigned notification provider changed before status reconciliation"
-    );
-  }
   if (resolved.slot.config?.status !== "active") {
     throw new Error("Assigned provider configuration is not active");
   }
@@ -53,23 +44,10 @@ export const executeAssigned: TransactionScript<
     // Delivery owns retry. Apps still applies timeout/rate-limit/circuit-breaker.
     retries: params.operation === "deliver" ? 0 : undefined,
   });
-  const descriptor = services.pluginManager
-    .listManifests()
-    .find((entry) => entry.manifest.code === resolved.slot.provider);
-  const notificationManifest = descriptor?.manifest as
-    | {
-        notification?: {
-          supportsStatusLookup?: boolean;
-        };
-      }
-    | undefined;
-
   return {
     providerCode: resolved.slot.provider,
     slotId: resolved.slot.id,
     assignmentId: resolved.assignment.id,
-    supportsStatusLookup:
-      notificationManifest?.notification?.supportsStatusLookup === true,
     receipt: receipt as
       | Notifications.NotificationDeliveryReceipt
       | Notifications.NotificationProviderTestResult,

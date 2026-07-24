@@ -39,22 +39,6 @@ export type DeliveryExecutionParams =
     }
   | { operation: "prepareRetry"; deliveryId: string }
   | { operation: "cancel"; deliveryId: string }
-  | { operation: "getStatusLookup"; deliveryId: string }
-  | {
-      operation: "reconcileSuccess";
-      deliveryId: string;
-      state: "ACCEPTED" | "DELIVERED";
-      providerCode: string;
-      providerSlotId: string;
-      providerMessageId?: string;
-      responseCode?: string;
-    }
-  | {
-      operation: "reconcileFailure";
-      deliveryId: string;
-      errorCode: string;
-      errorKind?: string;
-    }
   | {
       operation: "recordPreflightFailure";
       deliveryId: string;
@@ -70,24 +54,7 @@ export type DeliveryExecutionResult =
       input: NotificationDeliveryInput;
     }
   | { attemptId: string; attemptNumber: number }
-  | { success: boolean }
-  | {
-      found: true;
-      channel: NotificationDeliveryInput["channel"];
-      currentStatus: "UNKNOWN" | "ACCEPTED";
-      providerMessageId: string;
-      providerCode: string;
-      providerSlotId: string;
-    }
-  | {
-      found: false;
-      reason:
-        | "DELIVERY_NOT_FOUND"
-        | "DELIVERY_NOT_RECONCILABLE"
-        | "PROVIDER_MESSAGE_ID_MISSING"
-        | "PROVIDER_ROUTE_MISSING";
-      status?: string;
-    };
+  | { success: boolean };
 
 export class DeliveryExecutionScript extends BaseScript<
   DeliveryExecutionParams,
@@ -129,50 +96,6 @@ export class DeliveryExecutionScript extends BaseScript<
         return {
           success: await this.repository.deliveries.cancel(params.deliveryId),
         };
-      case "getStatusLookup": {
-        const bundle = await this.repository.deliveries.getBundle(
-          params.deliveryId
-        );
-        if (!bundle) {
-          return { found: false, reason: "DELIVERY_NOT_FOUND" };
-        }
-        if (
-          bundle.delivery.status !== "UNKNOWN" &&
-          bundle.delivery.status !== "ACCEPTED"
-        ) {
-          return {
-            found: false,
-            reason: "DELIVERY_NOT_RECONCILABLE",
-            status: bundle.delivery.status,
-          };
-        }
-        if (!bundle.delivery.providerMessageId) {
-          return {
-            found: false,
-            reason: "PROVIDER_MESSAGE_ID_MISSING",
-          };
-        }
-        if (
-          !bundle.delivery.providerCode ||
-          !bundle.delivery.providerSlotId
-        ) {
-          return { found: false, reason: "PROVIDER_ROUTE_MISSING" };
-        }
-        return {
-          found: true,
-          channel: bundle.delivery.channel,
-          currentStatus: bundle.delivery.status,
-          providerMessageId: bundle.delivery.providerMessageId,
-          providerCode: bundle.delivery.providerCode,
-          providerSlotId: bundle.delivery.providerSlotId,
-        };
-      }
-      case "reconcileSuccess":
-        await this.repository.deliveries.reconcileSuccess(params);
-        return { success: true };
-      case "reconcileFailure":
-        await this.repository.deliveries.reconcileFailure(params);
-        return { success: true };
       case "recordPreflightFailure":
         await this.repository.deliveries.recordPreflightFailure(params);
         return { success: true };

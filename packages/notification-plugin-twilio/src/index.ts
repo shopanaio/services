@@ -56,47 +56,6 @@ class TwilioProvider implements NotificationProvider {
       }
       return { ok: true, providerCode: "twilio" };
     },
-    getStatus: async (input) => {
-      if (!input.providerMessageId) {
-        throw providerError(
-          "VALIDATION",
-          "Twilio provider message ID is required",
-          false
-        );
-      }
-      const response = await this.request(
-        `Messages/${encodeURIComponent(input.providerMessageId)}.json`,
-        { method: "GET" }
-      );
-      const payload = await readJson(response);
-      if (!response.ok) {
-        throw responseError(response, payload);
-      }
-      const status = String(payload.status ?? "");
-      if (["delivered", "read"].includes(status)) {
-        return {
-          state: "DELIVERED",
-          providerCode: "twilio",
-          providerMessageId: input.providerMessageId,
-          deliveredAt: new Date().toISOString(),
-          responseCode: String(response.status),
-        };
-      }
-      if (["failed", "undelivered", "canceled"].includes(status)) {
-        return {
-          state: "REJECTED",
-          providerCode: "twilio",
-          providerMessageId: input.providerMessageId,
-          responseCode: String(payload.error_code ?? response.status),
-        };
-      }
-      return {
-        state: "ACCEPTED",
-        providerCode: "twilio",
-        providerMessageId: input.providerMessageId,
-        responseCode: String(response.status),
-      };
-    },
   };
 
   private async request(path: string, init: RequestInit): Promise<Response> {
@@ -180,7 +139,6 @@ export const plugin: NotificationPlugin<typeof configSchema> = {
     notification: {
       channels: ["SMS"],
       supportsIdempotencyKey: true,
-      supportsStatusLookup: true,
       supportsBatch: false,
     },
   },

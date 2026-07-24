@@ -48,7 +48,6 @@ export type {
   NotificationDeliveryReceipt,
   NotificationProviderTestInput,
   NotificationProviderTestResult,
-  NotificationStatusInput,
   SendTestNotificationParams,
   PreviewNotificationParams,
   PreviewNotificationResult,

@@ -127,7 +127,6 @@ export const plugin: NotificationPlugin<typeof configSchema> = {
     notification: {
       channels: ["EMAIL"],
       supportsIdempotencyKey: false,
-      supportsStatusLookup: false,
       supportsBatch: false,
     },
   },

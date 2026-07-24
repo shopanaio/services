@@ -5,7 +5,6 @@ import type {
   NotificationDeliveryReceipt,
   NotificationProviderTestInput,
   NotificationProviderTestResult,
-  NotificationStatusInput,
 } from "@shopana/broker-types";
 import type { HttpClient } from "./httpClient.js";
 import type { ProviderContextLike } from "./providerContext.js";
@@ -17,7 +16,6 @@ export type {
   NotificationDeliveryReceipt,
   NotificationProviderTestInput,
   NotificationProviderTestResult,
-  NotificationStatusInput,
 } from "@shopana/broker-types";
 
 export type ProviderContext = ProviderContextLike<HttpClient>;
@@ -27,7 +25,6 @@ export interface NotificationPluginManifest extends BasePluginManifest {
   notification: {
     channels: readonly NotificationChannel[];
     supportsIdempotencyKey: boolean;
-    supportsStatusLookup: boolean;
     supportsBatch: boolean;
   };
 }
@@ -40,9 +37,6 @@ export interface NotificationProvider {
     testConnection?(
       input: NotificationProviderTestInput
     ): Promise<NotificationProviderTestResult>;
-    getStatus?(
-      input: NotificationStatusInput
-    ): Promise<NotificationDeliveryReceipt>;
   };
 }
 
