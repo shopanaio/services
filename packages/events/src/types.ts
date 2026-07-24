@@ -16,6 +16,106 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
   actor?: { type: "user" | "service" | "system"; id?: string };
 }
 
+export interface NotificationRecipientSnapshot {
+  recipientId?: string;
+  customerId?: string;
+  userId?: string;
+  email?: string;
+  phone?: string;
+  locale?: string;
+  name?: string;
+}
+
+export interface NotificationSnapshot<TData = Record<string, unknown>> {
+  storeId: string;
+  locale?: string;
+  recipients?: readonly NotificationRecipientSnapshot[];
+  data: TData;
+}
+
+export interface OrderCreatedNotificationData {
+  order: {
+    id: string;
+    number: string;
+    statusUrl?: string;
+    currencyCode: string;
+    totalAmount: number;
+    createdAt: string;
+  };
+  customer?: {
+    id?: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
+  items?: ReadonlyArray<{
+    title: string;
+    quantity: number;
+    unitAmount: number;
+    lineAmount: number;
+  }>;
+  store: {
+    id: string;
+    displayName: string;
+    defaultLocale: string;
+    timezone: string;
+  };
+}
+
+export type NotificationEventType =
+  | "draftOrderInvoiceRequested"
+  | "orderFulfilled"
+  | "localPickupReady"
+  | "localPickupCompleted"
+  | "localDeliveryStarted"
+  | "localDeliveryCompleted"
+  | "localDeliveryMissed"
+  | "giftCardIssued"
+  | "giftCardRecipientAssigned"
+  | "storeCreditIssued"
+  | "orderInvoiceRequested"
+  | "orderEdited"
+  | "orderCancelled"
+  | "orderPaymentReceiptRequested"
+  | "orderRefunded"
+  | "checkoutAbandoned"
+  | "orderStatusLinkRequested"
+  | "checkoutPaymentFailed"
+  | "pendingPaymentFailed"
+  | "pendingPaymentSucceeded"
+  | "paymentReminderDue"
+  | "posCheckoutAbandoned"
+  | "posCartEmailRequested"
+  | "posReceiptRequested"
+  | "posExchangeReceiptRequested"
+  | "shippingTrackingUpdated"
+  | "shipmentOutForDelivery"
+  | "shipmentDelivered"
+  | "returnCreated"
+  | "returnLabelCreated"
+  | "returnRequestReceived"
+  | "returnRequestApproved"
+  | "returnRequestDeclined"
+  | "orderChangeRequestReceived"
+  | "cancellationRequestDeclined"
+  | "customerAccountActivated"
+  | "b2bAccessGranted"
+  | "customerNewLoginDetected"
+  | "orderSalesAttributionEdited"
+  | "draftOrderSubmitted";
+
+export type NotificationDomainEvent<
+  TType extends NotificationEventType = NotificationEventType,
+  TData extends Record<string, unknown> = Record<string, unknown>,
+> = DomainEvent<
+  TType,
+  {
+    storeId: string;
+    notification: NotificationSnapshot<TData>;
+  } & Record<string, unknown>
+>;
+
 export type EmitDispatchOptions =
   | { mode?: "immediate" }
   | {
@@ -356,6 +456,7 @@ export interface OrderCreatedEvent
       customerId: string;
       items: Array<{ productId: string; quantity: number; price: number }>;
       total: number;
+      notification: NotificationSnapshot<OrderCreatedNotificationData>;
     }
   > {}
 
@@ -424,6 +525,7 @@ export type ShopanaEvent =
   | OrderCompletedEvent
   | StoreCreatedEvent
   | StoreDeletedEvent
-  | FileHardDeletedEvent;
+  | FileHardDeletedEvent
+  | NotificationDomainEvent;
 
 export type EventType = ShopanaEvent["eventType"];

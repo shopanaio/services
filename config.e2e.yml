@@ -87,6 +87,14 @@ services:
       <<: *db_default
       schema: null
 
+  notifications:
+    ports:
+      admin_graphql: 11021
+      metrics: 13043
+    db:
+      <<: *db_default
+      schema: null
+
   media:
     ports:
       admin_graphql: 11007

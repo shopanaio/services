@@ -2,6 +2,7 @@ import type { CoreCustomer, CoreStore } from "@shopana/platform-api";
 import type { SlotsRepository } from "@src/infrastructure/repositories/slotsRepository";
 import type { BaseKernelServices, ScriptContext as BaseScriptContext, TransactionScript as BaseTransactionScript } from "@shopana/shared-kernel";
 import type { AppsPluginManager } from "@src/infrastructure/plugins/pluginManager";
+import type { AppsSecretStore } from "@src/infrastructure/secrets/AppsSecretStore";
 
 // Base types for addons
 export type SlotStatus = 'active' | 'inactive' | 'maintenance' | 'deprecated';
@@ -106,6 +107,7 @@ export interface ExternalHttpClient {
 export interface AppsKernelServices extends BaseKernelServices {
   readonly slotsRepository: SlotsRepository;
   readonly pluginManager: AppsPluginManager;
+  readonly secretStore: AppsSecretStore;
 }
 
 /**

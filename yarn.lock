@@ -5996,8 +5996,12 @@ __metadata:
     "@graphql-codegen/cli": "npm:^5.0.2"
     "@graphql-codegen/typescript": "npm:^4.0.8"
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
+    "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/import-plugin-tilda": "npm:0.0.1"
+    "@shopana/notification-plugin-http-webhook": "npm:0.0.1"
+    "@shopana/notification-plugin-smtp": "npm:0.0.1"
+    "@shopana/notification-plugin-twilio": "npm:0.0.1"
     "@shopana/payment-plugin-bank-transfer": "npm:0.0.1"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/plugin-sdk": "npm:*"
@@ -6051,6 +6055,7 @@ __metadata:
     "@shopana/iam-service": "npm:0.0.1"
     "@shopana/listing-service": "npm:0.0.1"
     "@shopana/media-service": "npm:0.0.1"
+    "@shopana/notifications-service": "npm:0.0.1"
     "@shopana/orders-service": "npm:0.0.1"
     "@shopana/payments-service": "npm:0.0.1"
     "@shopana/pricing-service": "npm:0.0.1"
@@ -6067,7 +6072,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/broker-types@npm:*, @shopana/broker-types@workspace:packages/broker-types":
+"@shopana/broker-types@npm:*, @shopana/broker-types@workspace:*, @shopana/broker-types@workspace:packages/broker-types":
   version: 0.0.0-use.local
   resolution: "@shopana/broker-types@workspace:packages/broker-types"
   dependencies:
@@ -6075,7 +6080,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/build-tools@npm:0.0.1, @shopana/build-tools@workspace:packages/build-tools":
+"@shopana/build-tools@npm:0.0.1, @shopana/build-tools@workspace:*, @shopana/build-tools@workspace:packages/build-tools":
   version: 0.0.0-use.local
   resolution: "@shopana/build-tools@workspace:packages/build-tools"
   dependencies:
@@ -6352,7 +6357,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/events@npm:*, @shopana/events@workspace:packages/events":
+"@shopana/events@npm:*, @shopana/events@workspace:*, @shopana/events@workspace:packages/events":
   version: 0.0.0-use.local
   resolution: "@shopana/events@workspace:packages/events"
   dependencies:
@@ -6546,6 +6551,77 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/notification-plugin-http-webhook@npm:0.0.1, @shopana/notification-plugin-http-webhook@workspace:packages/notification-plugin-http-webhook":
+  version: 0.0.0-use.local
+  resolution: "@shopana/notification-plugin-http-webhook@workspace:packages/notification-plugin-http-webhook"
+  dependencies:
+    "@shopana/plugin-sdk": "workspace:*"
+    typescript: "npm:^5.5.4"
+    zod: "npm:^3.23.8"
+  languageName: unknown
+  linkType: soft
+
+"@shopana/notification-plugin-smtp@npm:0.0.1, @shopana/notification-plugin-smtp@workspace:packages/notification-plugin-smtp":
+  version: 0.0.0-use.local
+  resolution: "@shopana/notification-plugin-smtp@workspace:packages/notification-plugin-smtp"
+  dependencies:
+    "@shopana/plugin-sdk": "workspace:*"
+    "@types/nodemailer": "npm:^6.4.17"
+    nodemailer: "npm:^6.10.1"
+    typescript: "npm:^5.5.4"
+    zod: "npm:^3.23.8"
+  languageName: unknown
+  linkType: soft
+
+"@shopana/notification-plugin-twilio@npm:0.0.1, @shopana/notification-plugin-twilio@workspace:packages/notification-plugin-twilio":
+  version: 0.0.0-use.local
+  resolution: "@shopana/notification-plugin-twilio@workspace:packages/notification-plugin-twilio"
+  dependencies:
+    "@shopana/plugin-sdk": "workspace:*"
+    typescript: "npm:^5.5.4"
+    zod: "npm:^3.23.8"
+  languageName: unknown
+  linkType: soft
+
+"@shopana/notifications-service@npm:0.0.1, @shopana/notifications-service@workspace:services/notifications":
+  version: 0.0.0-use.local
+  resolution: "@shopana/notifications-service@workspace:services/notifications"
+  dependencies:
+    "@apollo/server": "npm:^4.11.0"
+    "@apollo/subgraph": "npm:^2.9.0"
+    "@as-integrations/fastify": "npm:^2.1.1"
+    "@graphql-codegen/cli": "npm:^5.0.2"
+    "@graphql-codegen/typescript": "npm:^4.0.8"
+    "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
+    "@nestjs/common": "npm:^10.0.0"
+    "@nestjs/schedule": "npm:^4.1.0"
+    "@shopana/broker-types": "workspace:*"
+    "@shopana/build-tools": "workspace:*"
+    "@shopana/events": "workspace:*"
+    "@shopana/shared-context": "workspace:*"
+    "@shopana/shared-kernel": "workspace:*"
+    "@shopana/shared-service-config": "workspace:*"
+    "@types/node": "npm:^20.14.14"
+    cache-manager: "npm:^7.2.7"
+    cron: "npm:^3.5.0"
+    drizzle-orm: "npm:^0.45.1"
+    fastify: "npm:^4.28.1"
+    graphql: "npm:^16.9.0"
+    graphql-codegen-typescript-validation-schema: "npm:^0.18.1"
+    graphql-tag: "npm:^2.12.6"
+    handlebars: "npm:^4.7.8"
+    node-pg-migrate: "npm:^8.0.4"
+    pino: "npm:^9.3.2"
+    pino-pretty: "npm:^11.2.2"
+    postgres: "npm:^3.4.7"
+    reflect-metadata: "npm:^0.2.2"
+    rxjs: "npm:^7.8.2"
+    tsx: "npm:^4.16.2"
+    typescript: "npm:^5.5.4"
+    zod: "npm:^3.23.8"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/orders-service@npm:0.0.1, @shopana/orders-service@workspace:services/orders":
   version: 0.0.0-use.local
   resolution: "@shopana/orders-service@workspace:services/orders"
@@ -6558,9 +6634,11 @@ __metadata:
     "@event-driven-io/emmett": "npm:^0.38.5"
     "@event-driven-io/emmett-postgresql": "npm:^0.38.5"
     "@event-driven-io/pongo": "npm:^0.17.0-alpha.6"
+    "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/shared-async-context": "npm:0.0.1"
+    "@shopana/shared-kernel": "npm:1.0.0"
     "@shopana/shared-money": "npm:0.0.1"
     "@shopana/shared-service-api": "npm:*"
     "@shopana/shared-service-config": "npm:0.0.1"
@@ -6631,10 +6709,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/plugin-sdk@npm:*, @shopana/plugin-sdk@workspace:packages/plugin-sdk":
+"@shopana/plugin-sdk@npm:*, @shopana/plugin-sdk@workspace:*, @shopana/plugin-sdk@workspace:packages/plugin-sdk":
   version: 0.0.0-use.local
   resolution: "@shopana/plugin-sdk@workspace:packages/plugin-sdk"
   dependencies:
+    "@shopana/broker-types": "workspace:*"
     "@shopana/shared-money": "workspace:*"
     "@types/semver": "npm:^7.7.1"
     bottleneck: "npm:^2.19.5"
@@ -6813,7 +6892,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/shared-context@npm:*, @shopana/shared-context@workspace:packages/shared-context":
+"@shopana/shared-context@npm:*, @shopana/shared-context@workspace:*, @shopana/shared-context@workspace:packages/shared-context":
   version: 0.0.0-use.local
   resolution: "@shopana/shared-context@workspace:packages/shared-context"
   dependencies:
@@ -6836,7 +6915,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/shared-kernel@npm:*, @shopana/shared-kernel@npm:1.0.0, @shopana/shared-kernel@workspace:packages/shared-kernel":
+"@shopana/shared-kernel@npm:*, @shopana/shared-kernel@npm:1.0.0, @shopana/shared-kernel@workspace:*, @shopana/shared-kernel@workspace:packages/shared-kernel":
   version: 0.0.0-use.local
   resolution: "@shopana/shared-kernel@workspace:packages/shared-kernel"
   dependencies:
@@ -6899,7 +6978,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/shared-service-config@npm:*, @shopana/shared-service-config@npm:0.0.1, @shopana/shared-service-config@workspace:packages/shared-service-config":
+"@shopana/shared-service-config@npm:*, @shopana/shared-service-config@npm:0.0.1, @shopana/shared-service-config@workspace:*, @shopana/shared-service-config@workspace:packages/shared-service-config":
   version: 0.0.0-use.local
   resolution: "@shopana/shared-service-config@workspace:packages/shared-service-config"
   dependencies:
@@ -7912,6 +7991,15 @@ __metadata:
   dependencies:
     undici-types: "npm:~6.21.0"
   checksum: 10/66e240c06a94859d0e1dce76b2055501cb9ec386c0028e687479625a2f1cd3dda0b089278b2767044dff51b07beaf439df6b8b3ce99d5cbeacf243988bd7aa86
+  languageName: node
+  linkType: hard
+
+"@types/nodemailer@npm:^6.4.17":
+  version: 6.4.24
+  resolution: "@types/nodemailer@npm:6.4.24"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10/659be5cc6b379ba8d772d8117c67e5d401df97b729e22c41feb5f560637f704e1d6e56556055322dd9d24d91999be74197b11a83b90f14147ac5421d4f9ac1af
   languageName: node
   linkType: hard
 
@@ -10240,6 +10328,16 @@ __metadata:
     "@types/luxon": "npm:~3.4.0"
     luxon: "npm:~3.5.0"
   checksum: 10/267ab1103d35078f6531cf702176cb75f1b35b851333ade754543b97ed4a50e319872735e7f14cc5fdab94100470046653477baf06ed5dc2ddc0e9b699337e0b
+  languageName: node
+  linkType: hard
+
+"cron@npm:^3.5.0":
+  version: 3.5.0
+  resolution: "cron@npm:3.5.0"
+  dependencies:
+    "@types/luxon": "npm:~3.4.0"
+    luxon: "npm:~3.5.0"
+  checksum: 10/0e667d87c9acc162db835439bff2664483f1fcbd471ae30a26c7426c736fa1798d27067cc4d0294d8a27890a1bc6c9deeefe47811cc339f11a8ba8288f51886d
   languageName: node
   linkType: hard
 
@@ -15418,6 +15516,13 @@ __metadata:
   version: 2.0.21
   resolution: "node-releases@npm:2.0.21"
   checksum: 10/5344d634b39d20f47c0d85a1c64567fdb9cf46f7b27ed3d141f752642faab47dae326835c2109636f823758afb16ffbed7b0c0fe6f800ef91cec9f2beb4f2b4a
+  languageName: node
+  linkType: hard
+
+"nodemailer@npm:^6.10.1":
+  version: 6.10.1
+  resolution: "nodemailer@npm:6.10.1"
+  checksum: 10/d9911701641e06143a2deb0bd5deb518310972316c6e6eabc594af24353b0d67867f26cb8d72b0cfa385abef945149ac51ae40a40d2199e1088aef5829e58a3d
   languageName: node
   linkType: hard
 

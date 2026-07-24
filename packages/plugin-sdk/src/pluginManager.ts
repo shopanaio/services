@@ -91,7 +91,15 @@ export class PluginManager<TConfig extends Record<string, unknown>, TContext, TP
   constructor(
     modules: readonly CorePluginModule<TConfig, TContext, TProvider>[],
     private readonly ctxFactory: (meta: { requestId?: string; userAgent?: string }) => TContext,
-    options?: { allowList?: string[]; runner?: ResilienceRunner; coreApiVersion?: string }
+    private readonly options?: {
+      allowList?: string[];
+      runner?: ResilienceRunner;
+      coreApiVersion?: string;
+      secretResolver?: (
+        reference: string,
+        scope?: string
+      ) => Promise<string | undefined>;
+    }
   ) {
     const allowList = new Set((options?.allowList ?? []).map((s) => s.trim()).filter(Boolean));
 
@@ -166,6 +174,62 @@ export class PluginManager<TConfig extends Record<string, unknown>, TContext, TP
     return { substituted: substituteSecrets(config), missing };
   }
 
+  private async resolveSecretsAsync(
+    config: Record<string, unknown>,
+    scope?: string
+  ): Promise<{ substituted: Record<string, unknown>; missing: string[] }> {
+    if (!this.options?.secretResolver) {
+      return this.resolveSecrets(config);
+    }
+
+    const substituted = JSON.parse(JSON.stringify(config)) as Record<
+      string,
+      unknown
+    >;
+    const missing: string[] = [];
+
+    const visit = async (node: unknown, path = ""): Promise<void> => {
+      if (!node || typeof node !== "object") return;
+      if (Array.isArray(node)) {
+        await Promise.all(
+          node.map((value, index) => visit(value, `${path}[${index}]`))
+        );
+        return;
+      }
+
+      await Promise.all(
+        Object.entries(node as Record<string, unknown>).map(
+          async ([key, value]) => {
+            const current = path ? `${path}.${key}` : key;
+            if (
+              value &&
+              typeof value === "object" &&
+              "$secret" in (value as Record<string, unknown>)
+            ) {
+              const reference = String(
+                (value as { $secret: unknown }).$secret
+              );
+              const resolved = await this.options?.secretResolver?.(
+                reference,
+                scope
+              );
+              if (resolved === undefined) {
+                missing.push(`${current} -> ${reference}`);
+              } else {
+                (node as Record<string, unknown>)[key] = resolved;
+              }
+              return;
+            }
+            await visit(value, current);
+          }
+        )
+      );
+    };
+
+    await visit(substituted);
+    return { substituted, missing };
+  }
+
   /**
    * Applies migrations and validates plugin config, returning unified result.
    */
@@ -193,6 +257,7 @@ export class PluginManager<TConfig extends Record<string, unknown>, TContext, TP
     pluginCode: string;
     rawConfig: (TConfig & { configVersion?: string }) | Record<string, unknown>;
     requestMeta?: { requestId?: string; userAgent?: string };
+    secretScope?: string;
   }): Promise<{ provider: TProvider; plugin: CorePlugin<TConfig, TContext, TProvider> }>
   {
     const descriptor = this.findDescriptor(params.pluginCode);
@@ -205,7 +270,10 @@ export class PluginManager<TConfig extends Record<string, unknown>, TContext, TP
       throw e;
     }
 
-    const { substituted, missing } = this.resolveSecrets(params.rawConfig as Record<string, unknown>);
+    const { substituted, missing } = await this.resolveSecretsAsync(
+      params.rawConfig as Record<string, unknown>,
+      params.secretScope
+    );
     if (missing.length > 0) {
       const e: ServiceError = { code: 'CONFIG_ERROR', message: 'Missing secrets', details: { missing } };
       throw e;

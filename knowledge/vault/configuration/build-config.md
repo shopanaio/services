@@ -93,10 +93,10 @@ Files to copy to dist during build:
 | Migrations | Database migrations for runtime execution |
 | Shared references | Common GraphQL types (scalars, directives) |
 
-Catalog, Listing, and IAM migrations are nested under each service's
-`migrations/domains/**`. Their build asset patterns must preserve nested SQL
-files under `dist/migrations/domains/**` because the `node-pg-migrate` runners
-use a recursive glob over that path.
+Catalog, Listing, IAM, and Notifications migrations are nested under each
+service's `migrations/domains/**`. Their build asset patterns must preserve
+nested SQL files under `dist/migrations/domains/**` because the
+`node-pg-migrate` runners use a recursive glob over that path.
 
 ## Why Needed
 

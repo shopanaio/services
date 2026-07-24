@@ -1,0 +1,53 @@
+{
+  "name": "@shopana/notifications-service",
+  "version": "0.0.1",
+  "description": "Durable system notification orchestration service",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./src/notifications.module.ts",
+      "import": "./dist/notifications.module.js",
+      "source": "./src/notifications.module.ts"
+    }
+  },
+  "dependencies": {
+    "@apollo/server": "^4.11.0",
+    "@apollo/subgraph": "^2.9.0",
+    "@as-integrations/fastify": "^2.1.1",
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/schedule": "^4.1.0",
+    "@shopana/broker-types": "workspace:*",
+    "@shopana/events": "workspace:*",
+    "@shopana/shared-context": "workspace:*",
+    "@shopana/shared-kernel": "workspace:*",
+    "@shopana/shared-service-config": "workspace:*",
+    "cache-manager": "^7.2.7",
+    "cron": "^3.5.0",
+    "drizzle-orm": "^0.45.1",
+    "fastify": "^4.28.1",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
+    "handlebars": "^4.7.8",
+    "node-pg-migrate": "^8.0.4",
+    "pino": "^9.3.2",
+    "pino-pretty": "^11.2.2",
+    "postgres": "^3.4.7",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/typescript": "^4.0.8",
+    "@graphql-codegen/typescript-resolvers": "^4.0.9",
+    "@shopana/build-tools": "workspace:*",
+    "@types/node": "^20.14.14",
+    "graphql-codegen-typescript-validation-schema": "^0.18.1",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

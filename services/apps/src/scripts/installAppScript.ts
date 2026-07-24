@@ -76,11 +76,22 @@ export const installAppScript: TransactionScript<
     // This allows multi-domain plugins (e.g., novaposhta with shipping + payment)
     // to share the same provider_config but have separate slots
     for (const domain of domains) {
+      const capabilities =
+        domain === "notifications" &&
+        "notification" in descriptor.manifest
+          ? [
+              ...(
+                descriptor.manifest as typeof descriptor.manifest & {
+                  notification: { channels: string[] };
+                }
+              ).notification.channels,
+            ]
+          : [];
       await slotsRepository.upsertSlot({
         domain,
         storeId,
         provider,
-        capabilities: [],
+        capabilities,
         data: {}, // Configuration shared via provider_configs table
       });
 

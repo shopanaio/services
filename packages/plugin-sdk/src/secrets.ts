@@ -13,7 +13,12 @@ export function maskSecrets(obj: unknown): unknown {
   if (Array.isArray(obj)) return obj.map(maskSecrets);
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
-    if (isSecretRef(v)) out[k] = '***';
+    if (
+      isSecretRef(v) ||
+      /(password|secret|token|api.?key|private.?key)/i.test(k)
+    ) {
+      out[k] = '***';
+    }
     else if (v && typeof v === 'object') out[k] = maskSecrets(v);
     else out[k] = v;
   }

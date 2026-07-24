@@ -11,6 +11,7 @@ import {
   pricingPlugins,
   inventoryPlugins,
   importPlugins,
+  notificationPlugins,
 } from "@src/infrastructure/plugins/registry";
 import type { Logger } from "@shopana/shared-kernel";
 
@@ -29,7 +30,13 @@ export class AppsPluginManager {
     any
   >;
 
-  constructor(private readonly logger: Logger) {
+  constructor(
+    private readonly logger: Logger,
+    secretResolver?: (
+      reference: string,
+      scope?: string
+    ) => Promise<string | undefined>
+  ) {
     this.runner = new ResilienceRunner({
       timeoutMs: pluginTimeoutMs,
       retries: pluginRetries,
@@ -43,6 +50,7 @@ export class AppsPluginManager {
       ...pricingPlugins,
       ...inventoryPlugins,
       ...importPlugins,
+      ...notificationPlugins,
     ] as readonly CorePluginModule<Record<string, unknown>, ShippingSDK.ProviderContext, any>[];
     this.corePM = new CorePluginManager<
       Record<string, unknown>,
@@ -50,6 +58,7 @@ export class AppsPluginManager {
       any
     >(allModules, () => createProviderContext(this.logger), {
       runner: this.runner,
+      secretResolver,
     });
   }
 
@@ -68,11 +77,13 @@ export class AppsPluginManager {
     rawConfig: Record<string, unknown> & { configVersion?: string };
     storeId: string;
     input?: unknown;
+    retries?: number;
   }): Promise<unknown> {
     try {
       const { provider, plugin } = await this.corePM.createProvider({
         pluginCode: params.pluginCode,
         rawConfig: params.rawConfig,
+        secretScope: params.storeId,
       });
 
       const hooks = (plugin as any).hooks ?? {};
@@ -104,12 +115,25 @@ export class AppsPluginManager {
             hooks.onError?.(err, { operation: method });
             throw err;
           }
-        }
+        },
+        params.retries === undefined ? undefined : { retries: params.retries }
       );
     } catch (e) {
       this.logger.error({ error: e }, "Error executing on provider");
       throw e;
     }
+  }
+
+  async validateConfiguration(params: {
+    pluginCode: string;
+    rawConfig: Record<string, unknown> & { configVersion?: string };
+    storeId: string;
+  }): Promise<void> {
+    await this.corePM.createProvider({
+      pluginCode: params.pluginCode,
+      rawConfig: params.rawConfig,
+      secretScope: params.storeId,
+    });
   }
 
   /** Execute operation across all target slots sequentially; collect results and warnings. */

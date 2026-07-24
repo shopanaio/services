@@ -11,7 +11,55 @@ export type {
   ExecuteParams,
   ExecuteWarning,
   ExecuteResult,
+  ExecuteAssignedParams,
+  ExecuteAssignedResult,
+  NotificationProviderRouteStatusParams,
+  NotificationProviderRouteStatusResult,
+  ConfigureNotificationProviderParams,
+  ConfigureNotificationProviderResult,
+  TestNotificationProviderParams,
+  GetMaskedNotificationProviderConfigParams,
+  GetMaskedNotificationProviderConfigResult,
 } from "./apps.js";
+
+// Notifications service actions
+export * as Notifications from "./notifications.js";
+export * as Orders from "./orders.js";
+export {
+  NOTIFICATION_DEFINITION_KEYS,
+} from "./notifications.js";
+export type {
+  NotificationDefinitionKey,
+  NotificationChannel,
+  NotificationAudience,
+  NotificationPurpose,
+  NotificationRecipientSnapshot,
+  NotificationSnapshot,
+  NotificationTemplateVariable,
+  NotificationDefinitionMetadata,
+  EnqueueNotificationParams,
+  EnqueueNotificationResult,
+  RetryNotificationDeliveryParams,
+  CancelNotificationDeliveryParams,
+  NotificationDeliveryInputBase,
+  EmailDeliveryInput,
+  SmsDeliveryInput,
+  WebhookDeliveryInput,
+  IntegrationDeliveryInput,
+  JsonValue,
+  NotificationDeliveryInput,
+  NotificationDeliveryReceipt,
+  NotificationProviderTestInput,
+  NotificationProviderTestResult,
+  NotificationStatusInput,
+  SendTestNotificationParams,
+  PreviewNotificationParams,
+  PreviewNotificationResult,
+  GetNotificationDefinitionParams,
+  GetNotificationTemplateParams,
+  GetNotificationDeliveryParams,
+  ListNotificationDeliveryAttemptsParams,
+} from "./notifications.js";
 
 // Catalog service actions
 export * as Catalog from "./catalog.js";

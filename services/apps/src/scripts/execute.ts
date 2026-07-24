@@ -2,6 +2,7 @@ import { Domain } from '@shopana/plugin-sdk';
 import type { TransactionScript, BaseKernelServices } from '@shopana/shared-kernel';
 import type { SlotsRepository } from '../infrastructure/repositories/slotsRepository';
 import type { AppsPluginManager } from '../infrastructure/plugins/pluginManager';
+import type { AppsSecretStore } from "../infrastructure/secrets/AppsSecretStore";
 
 export interface ExecuteParams {
   domain: Domain;
@@ -18,6 +19,7 @@ export interface ExecuteResult {
 export interface AppsKernelServices extends BaseKernelServices {
   slotsRepository: SlotsRepository;
   pluginManager: AppsPluginManager;
+  secretStore: AppsSecretStore;
 }
 
 export const execute: TransactionScript<ExecuteParams, ExecuteResult, AppsKernelServices> = async (
@@ -25,6 +27,11 @@ export const execute: TransactionScript<ExecuteParams, ExecuteResult, AppsKernel
   services,
 ) => {
   const { domain, operation, provider, params: opParams = {} } = params;
+  if (domain === Domain.NOTIFICATIONS) {
+    throw new Error(
+      "Notification provider side effects require apps.executeAssigned"
+    );
+  }
   const storeId = opParams.storeId as string | undefined;
 
   if (!storeId) {

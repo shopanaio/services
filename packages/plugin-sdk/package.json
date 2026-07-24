@@ -28,6 +28,10 @@
     "./inventory": {
       "types": "./dist/inventory.d.ts",
       "default": "./dist/inventory.js"
+    },
+    "./notifications": {
+      "types": "./dist/notifications.d.ts",
+      "default": "./dist/notifications.js"
     }
   },
   "scripts": {
@@ -36,6 +40,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@shopana/broker-types": "workspace:*",
     "@shopana/shared-money": "workspace:*",
     "bottleneck": "^2.19.5",
     "cockatiel": "^3.2.1",

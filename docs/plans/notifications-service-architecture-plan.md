@@ -1037,7 +1037,7 @@ Default templates хранятся versioned assets в code package. В БД п�
 Unique:
 
 ```text
-(organization_id, source_idempotency_key, definition_key)
+(store_id, source_idempotency_key, definition_key)
 ```
 
 #### `notification_recipients`
@@ -1343,7 +1343,6 @@ services/notifications/
   package.json
   build.config.json
   codegen.ts
-  drizzle.config.ts
   migrations/
     domains/
       0000_foundation/
@@ -1690,7 +1689,7 @@ Notification payload содержит PII и иногда одноразовые
 
 ### Этап 2. Skeleton нового сервиса
 
-1. Создать package/build/codegen/drizzle configs.
+1. Создать package/build/codegen configs.
 2. Создать module/nest service/context/kernel/base script.
 3. Создать domain migrations.
 4. Создать repositories и tenant-safe base repository.

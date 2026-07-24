@@ -1,6 +1,7 @@
 import { Kernel as BaseKernel } from "@shopana/shared-kernel";
 import type { AppsKernelServices, SlotsRepository } from "./types";
 import type { Logger } from "@shopana/shared-kernel";
+import type { AppsSecretStore } from "../infrastructure/secrets/AppsSecretStore.js";
 
 /**
  * Extended kernel for apps microservice
@@ -14,11 +15,13 @@ export class Kernel extends BaseKernel<AppsKernelServices> {
     slotsRepository: SlotsRepository,
     logger: Logger,
     broker: any,
-    pluginManager: any
+    pluginManager: any,
+    secretStore: AppsSecretStore
   ) {
     super(broker, logger, {
       slotsRepository,
       pluginManager,
+      secretStore,
     });
   }
 }

@@ -1,0 +1,411 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: ["@key", "@shareable", "@inaccessible"]
+  )
+
+scalar DateTime
+scalar JSON
+
+type Query {
+  notificationsQuery: NotificationsQuery!
+}
+
+type Mutation {
+  notificationsMutation: NotificationsMutation!
+}
+
+type NotificationsQuery {
+  overview: NotificationOverview!
+  definitions: [NotificationDefinition!]!
+  templateRevisions(
+    key: String!
+    channel: NotificationChannel!
+    locale: String!
+  ): [NotificationTemplateRevision!]!
+  template(
+    key: String!
+    channel: NotificationChannel!
+    locale: String!
+  ): NotificationEffectiveTemplate!
+  staffRecipients: [StaffNotificationRecipient!]!
+  staffSummarySchedule: StaffNotificationSchedule
+  providerRoutes: [NotificationProviderRoute!]!
+  providerConfiguration(channel: NotificationChannel!): NotificationProviderMaskedConfiguration!
+  webhookSubscriptions: [NotificationWebhookSubscription!]!
+  deliveries(limit: Int = 100): [NotificationDelivery!]!
+  deliveryAttempts(deliveryId: ID!): [NotificationDeliveryAttempt!]!
+}
+
+type NotificationsMutation {
+  setDefinitionEnabled(
+    key: String!
+    enabled: Boolean!
+    expectedVersion: Int!
+  ): NotificationDefinitionSetting!
+  setChannelEnabled(input: NotificationChannelSettingInput!): NotificationChannelSetting!
+  createTemplateRevision(input: NotificationTemplateRevisionInput!): NotificationTemplateRevision!
+  activateTemplateRevision(revisionId: ID!, expectedVersion: Int!): NotificationTemplatePointer!
+  preview(input: NotificationPreviewInput!): NotificationPreview!
+  upsertStaffRecipient(input: StaffNotificationRecipientInput!): StaffNotificationRecipient!
+  deleteStaffRecipient(id: ID!): DeletePayload!
+  setStaffSummarySchedule(input: StaffNotificationScheduleInput!): StaffNotificationSchedule!
+  configureProvider(input: NotificationProviderConfigurationInput!): NotificationProviderConfiguration!
+  testProvider(channel: NotificationChannel!, recipient: String): NotificationProviderTestResult!
+  sendTest(input: NotificationTestMessageInput!): NotificationWorkflowPayload!
+  createWebhook(input: NotificationWebhookCreateInput!): NotificationWebhookSecretPayload!
+  updateWebhook(input: NotificationWebhookUpdateInput!): NotificationWebhookSubscription!
+  deleteWebhook(id: ID!): DeletePayload!
+  rotateWebhookSecret(id: ID!, gracePeriodHours: Int = 24): NotificationWebhookSecretPayload!
+  revealWebhookSecret(id: ID!): NotificationWebhookSecretPayload!
+  retryDelivery(deliveryId: ID!, idempotencyKey: String!): NotificationWorkflowPayload!
+  cancelDelivery(deliveryId: ID!): NotificationCancelPayload!
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WEBHOOK
+  INTEGRATION
+}
+
+enum NotificationAudience {
+  CUSTOMER
+  STAFF
+  INTEGRATION
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  RENDERING
+  SENDING
+  ACCEPTED
+  DELIVERED
+  RETRY_SCHEDULED
+  UNKNOWN
+  CANCELLED
+  FAILED_PERMANENT
+  DEAD
+  SKIPPED
+  BLOCKED_NO_PROVIDER
+}
+
+enum NotificationWebhookFormat {
+  JSON
+  XML
+}
+
+enum NotificationWebhookStatus {
+  ACTIVE
+  DISABLED
+}
+
+type NotificationOverview {
+  definitions: [NotificationDefinition!]!
+  staffRecipientCount: Int!
+  webhookCount: Int!
+  recentDeliveryCount: Int!
+  deliveryCounts: [NotificationDeliveryStatusCount!]!
+  queueDepth: Int!
+  oldestPendingAt: DateTime
+}
+
+type NotificationDeliveryStatusCount {
+  status: NotificationDeliveryStatus!
+  count: Int!
+}
+
+type NotificationDefinition {
+  key: String!
+  title: String!
+  audience: NotificationAudience!
+  optional: Boolean!
+  enabled: Boolean!
+  allowedChannels: [NotificationChannel!]!
+  defaultChannels: [NotificationChannel!]!
+  activeChannels: [NotificationChannel!]!
+  variables: [NotificationTemplateVariable!]!
+  version: Int!
+}
+
+type NotificationTemplateVariable {
+  path: String!
+  type: String!
+  required: Boolean!
+  description: String!
+  children: [NotificationTemplateVariable!]
+}
+
+type NotificationDefinitionSetting {
+  definitionKey: String!
+  enabled: Boolean!
+  version: Int!
+  updatedAt: DateTime!
+}
+
+input NotificationChannelSettingInput {
+  key: String!
+  channel: NotificationChannel!
+  enabled: Boolean!
+  expectedVersion: Int!
+  senderName: String
+  senderEmail: String
+  replyTo: String
+}
+
+type NotificationChannelSetting {
+  definitionKey: String!
+  channel: NotificationChannel!
+  enabled: Boolean!
+  senderName: String
+  senderEmail: String
+  replyTo: String
+  version: Int!
+  updatedAt: DateTime!
+}
+
+input NotificationTemplateRevisionInput {
+  key: String!
+  channel: NotificationChannel!
+  locale: String!
+  subjectTemplate: String
+  bodyTemplate: String!
+  plainTextTemplate: String
+}
+
+type NotificationTemplateRevision {
+  id: ID!
+  definitionKey: String!
+  channel: NotificationChannel!
+  locale: String!
+  revision: Int!
+  subjectTemplate: String
+  bodyTemplate: String!
+  plainTextTemplate: String
+  sourceHash: String!
+  validationStatus: String!
+  createdAt: DateTime!
+}
+
+type NotificationTemplatePointer {
+  definitionKey: String!
+  channel: NotificationChannel!
+  locale: String!
+  revisionId: ID!
+  version: Int!
+  updatedAt: DateTime!
+}
+
+type NotificationEffectiveTemplate {
+  key: String!
+  channel: NotificationChannel!
+  locale: String!
+  source: String!
+  subjectTemplate: String
+  bodyTemplate: String!
+  plainTextTemplate: String
+  revisionId: ID
+  revision: Int
+  pointerVersion: Int
+  sourceVersion: String
+}
+
+input NotificationPreviewInput {
+  key: String!
+  channel: NotificationChannel!
+  locale: String
+  data: JSON!
+  subjectTemplate: String
+  bodyTemplate: String
+  plainTextTemplate: String
+}
+
+type NotificationPreview {
+  subject: String
+  html: String
+  text: String!
+  locale: String!
+  warnings: [String!]!
+  sms: NotificationSmsMetrics
+}
+
+type NotificationSmsMetrics {
+  encoding: String!
+  segmentCount: Int!
+  length: Int!
+}
+
+input StaffNotificationRecipientInput {
+  id: ID
+  userId: ID
+  name: String!
+  email: String!
+  locale: String!
+  timezone: String!
+  enabled: Boolean!
+  eventKeys: [String!]!
+}
+
+type StaffNotificationRecipient {
+  id: ID!
+  userId: ID
+  name: String!
+  email: String!
+  locale: String!
+  timezone: String!
+  scope: String!
+  enabled: Boolean!
+  eventKeys: [String!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input StaffNotificationScheduleInput {
+  cron: String!
+  timezone: String!
+  enabled: Boolean!
+  expectedVersion: Int!
+}
+
+type StaffNotificationSchedule {
+  definitionKey: String!
+  cron: String!
+  timezone: String!
+  enabled: Boolean!
+  nextRunAt: DateTime
+  lastRunAt: DateTime
+  version: Int!
+}
+
+type NotificationProviderRoute {
+  channel: NotificationChannel!
+  configured: Boolean!
+  providerCode: String
+  slotId: ID
+  assignmentId: ID
+  status: String
+}
+
+input NotificationProviderConfigurationInput {
+  providerCode: String!
+  channel: NotificationChannel!
+  config: JSON!
+  secretFields: JSON
+  active: Boolean = true
+}
+
+type NotificationProviderConfiguration {
+  providerCode: String!
+  channel: NotificationChannel!
+  slotId: ID!
+  assignmentId: ID!
+  maskedConfig: JSON!
+}
+
+type NotificationProviderMaskedConfiguration {
+  providerCode: String!
+  channel: NotificationChannel!
+  status: String!
+  config: JSON!
+}
+
+type NotificationProviderTestResult {
+  ok: Boolean!
+  providerCode: String!
+  message: String
+}
+
+input NotificationTestMessageInput {
+  channel: NotificationChannel!
+  key: String!
+  recipientId: ID
+  customerId: ID
+  userId: ID
+  email: String
+  phone: String
+  name: String
+  locale: String
+  data: JSON!
+  idempotencyKey: String!
+}
+
+input NotificationWebhookCreateInput {
+  eventType: String!
+  format: NotificationWebhookFormat!
+  url: String!
+  apiVersion: String!
+}
+
+input NotificationWebhookUpdateInput {
+  id: ID!
+  eventType: String
+  format: NotificationWebhookFormat
+  url: String
+  apiVersion: String
+  status: NotificationWebhookStatus
+  expectedVersion: Int!
+}
+
+type NotificationWebhookSubscription {
+  id: ID!
+  eventType: String!
+  format: NotificationWebhookFormat!
+  url: String!
+  apiVersion: String!
+  status: NotificationWebhookStatus!
+  version: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type NotificationWebhookSecretPayload {
+  subscription: NotificationWebhookSubscription
+  secret: String!
+}
+
+type NotificationDelivery {
+  id: ID!
+  occurrenceId: ID!
+  definitionKey: String!
+  sourceEventType: String
+  correlationId: String!
+  channel: NotificationChannel!
+  status: NotificationDeliveryStatus!
+  purpose: String!
+  providerCode: String
+  providerMessageId: String
+  locale: String
+  attemptCount: Int!
+  nextAttemptAt: DateTime
+  lastErrorKind: String
+  lastErrorCode: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type NotificationDeliveryAttempt {
+  id: ID!
+  deliveryId: ID!
+  attemptNumber: Int!
+  providerCode: String
+  providerMessageId: String
+  startedAt: DateTime!
+  finishedAt: DateTime
+  status: String!
+  errorKind: String
+  errorCode: String
+  providerResponseCode: String
+}
+
+type NotificationWorkflowPayload {
+  workflowId: String!
+  accepted: Boolean!
+}
+
+type NotificationCancelPayload {
+  cancelled: Boolean!
+}
+
+type DeletePayload {
+  deleted: Boolean!
+}

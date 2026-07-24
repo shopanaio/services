@@ -211,6 +211,58 @@ export class SlotsRepository {
     return result.id;
   }
 
+  async updateProviderConfigData(params: {
+    storeId: string;
+    providerConfigId: string;
+    data: Record<string, unknown>;
+    status?: "active" | "inactive" | "maintenance" | "deprecated";
+  }): Promise<void> {
+    const update: Record<string, unknown> = {
+      data: this.knex.raw(`?::jsonb`, [JSON.stringify(params.data)]),
+      updated_at: this.knex.raw("now()"),
+    };
+    if (params.status) {
+      update.status = params.status;
+    }
+
+    const query = this.knex
+      .withSchema("platform")
+      .table("provider_configs")
+      .update(update)
+      .where({
+        id: params.providerConfigId,
+        store_id: params.storeId,
+      })
+      .toString();
+    const result = await this.executor.command(rawSql(query));
+    if ((result.rowCount ?? 0) !== 1) {
+      throw new Error("Provider configuration was not found");
+    }
+  }
+
+  async updateSlotCapabilities(params: {
+    storeId: string;
+    slotId: string;
+    capabilities: string[];
+  }): Promise<void> {
+    const query = this.knex
+      .withSchema("platform")
+      .table("slots")
+      .update({
+        capabilities: params.capabilities,
+        updated_at: this.knex.raw("now()"),
+      })
+      .where({
+        id: params.slotId,
+        store_id: params.storeId,
+      })
+      .toString();
+    const result = await this.executor.command(rawSql(query));
+    if ((result.rowCount ?? 0) !== 1) {
+      throw new Error("Slot was not found");
+    }
+  }
+
   /**
    * Creates a new slot or updates an existing one based on the unique key (storeId, domain, provider).
    * Now works with normalized provider_configs structure.
@@ -392,6 +444,74 @@ export class SlotsRepository {
     };
   }
 
+  async upsertAssignment(params: {
+    storeId: string;
+    aggregate: string;
+    aggregateId: string;
+    slotId: string;
+    domain: string;
+    precedence?: number;
+  }): Promise<SlotAssignment> {
+    const current = await this.findAllAssignmentsForAggregate(
+      params.domain,
+      params.storeId,
+      params.aggregate,
+      params.aggregateId,
+      true
+    );
+
+    for (const entry of current) {
+      if (entry.slot.id === params.slotId) {
+        const updated = await this.updateAssignment(
+          entry.assignment.id,
+          params.storeId,
+          {
+            status: "active",
+            precedence: params.precedence ?? 0,
+          }
+        );
+        if (!updated) throw new Error("Failed to update slot assignment");
+        await this.disableOtherAssignments({
+          ...params,
+          keepAssignmentId: updated.id,
+        });
+        return updated;
+      }
+    }
+
+    const created = await this.createAssignment(params);
+    await this.disableOtherAssignments({
+      ...params,
+      keepAssignmentId: created.id,
+    });
+    return created;
+  }
+
+  private async disableOtherAssignments(params: {
+    storeId: string;
+    aggregate: string;
+    aggregateId: string;
+    domain: string;
+    keepAssignmentId: string;
+  }): Promise<void> {
+    const query = this.knex
+      .withSchema("platform")
+      .table("slot_assignments")
+      .update({
+        status: "disabled",
+        updated_at: this.knex.raw("now()"),
+      })
+      .where({
+        store_id: params.storeId,
+        aggregate: params.aggregate,
+        aggregate_id: params.aggregateId,
+        domain: params.domain,
+      })
+      .whereNot({ id: params.keepAssignmentId })
+      .toString();
+    await this.executor.command(rawSql(query));
+  }
+
   /**
    * Updates existing assignment (status or precedence).
    * @param id - Unique identifier of assignment to update.
@@ -451,6 +571,31 @@ export class SlotsRepository {
   // =================================================================
 
   /**
+   * Finds the configured slot for an active assignment regardless of provider
+   * config status. Administrative reads use this method so inactive,
+   * maintenance, and deprecated providers remain visible and testable.
+   */
+  async findAssignedSlotForAggregate(
+    domain: string,
+    storeId: string,
+    aggregate: string,
+    aggregateId: string,
+    capability?: string
+  ): Promise<{ slot: Slot; assignment: SlotAssignment } | null> {
+    const assignments = await this.findAllAssignmentsForAggregate(
+      domain,
+      storeId,
+      aggregate,
+      aggregateId
+    );
+    return (
+      assignments.find(
+        ({ slot }) => !capability || slot.capabilities.includes(capability)
+      ) ?? null
+    );
+  }
+
+  /**
    * Finds one most prioritized active assignment for aggregate.
    * Used to determine which provider should be used at the moment.
    * @param domain - Domain where assignment is searched.
@@ -463,9 +608,10 @@ export class SlotsRepository {
     domain: string,
     storeId: string,
     aggregate: string,
-    aggregateId: string
+    aggregateId: string,
+    capability?: string
   ): Promise<{ slot: Slot; assignment: SlotAssignment } | null> {
-    const query = this.knex
+    let queryBuilder = this.knex
       .select({
         slot_id: "s.id",
         slot_store_id: "s.store_id",
@@ -500,11 +646,19 @@ export class SlotsRepository {
         "sa.aggregate_id": aggregateId,
         "sa.domain": domain,
         "sa.status": "active",
+        "pc.status": "active",
       })
       .orderBy("sa.precedence", "asc")
       .orderBy("sa.updated_at", "desc")
-      .limit(1)
-      .toString();
+      .limit(1);
+
+    if (capability) {
+      queryBuilder = queryBuilder.whereRaw("? = ANY(s.capabilities)", [
+        capability,
+      ]);
+    }
+
+    const query = queryBuilder.toString();
 
     /**
      * Helper type for JOIN query result between slots, provider_configs and assignments.

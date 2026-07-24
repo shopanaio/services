@@ -1,8 +1,16 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { InjectBroker, ServiceBroker } from '@shopana/shared-kernel';
+import {
+  InjectBroker,
+  ServiceBroker,
+  type BrokerCallContext,
+} from '@shopana/shared-kernel';
+import type { Orders } from "@shopana/broker-types";
+import { rawSql } from "@event-driven-io/dumbo";
 import 'reflect-metadata';
 import { App } from './ioc/container';
 import { startServer } from './interfaces/server/server';
+import { dumboPool } from "./infrastructure/db/dumbo.js";
+import { knex } from "./infrastructure/db/knex.js";
 
 @Injectable()
 export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
@@ -23,6 +31,40 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
       return this.app.orderUsecase.getOrderById.execute(params);
     });
 
+    this.broker.register<
+      Orders.GetStoreOrderSummaryParams,
+      Orders.GetStoreOrderSummaryResult
+    >("getStoreOrderSummary", async (params, context) => {
+      this.assertNotificationsCaller(context);
+      const input = params!;
+      const query = knex
+        .withSchema("platform")
+        .from("orders")
+        .where("store_id", input.storeId)
+        .where("currency_code", input.currencyCode)
+        .whereNull("deleted_at")
+        .where("created_at", ">=", input.periodStart)
+        .where("created_at", "<", input.periodEnd)
+        .select(
+          knex.raw("count(*)::int as order_count"),
+          knex.raw("coalesce(sum(grand_total), 0)::bigint as total_amount")
+        )
+        .toString();
+      const result = await dumboPool.execute.query<{
+        order_count: number;
+        total_amount: string;
+      }>(rawSql(query));
+      const row = result.rows[0];
+      return {
+        storeId: input.storeId,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+        orderCount: Number(row?.order_count ?? 0),
+        totalAmount: Number(row?.total_amount ?? 0),
+        currencyCode: input.currencyCode,
+      };
+    });
+
     this.servers = await startServer(this.broker as any);
     this.logger.log('Orders service started');
   }
@@ -35,5 +77,14 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
       ]);
     }
     this.logger.log('Orders service stopped');
+  }
+
+  private assertNotificationsCaller(context: BrokerCallContext): void {
+    if (
+      context.caller.kind !== "action" ||
+      context.caller.service !== "notifications"
+    ) {
+      throw new Error("Order summary caller is not allowed");
+    }
   }
 }

@@ -122,9 +122,60 @@ export const slotAssignments = platformSchema.table(
   ]
 );
 
+export const providerSecrets = platformSchema.table(
+  "provider_secrets",
+  {
+    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    storeId: uuid("store_id").notNull(),
+    providerConfigId: uuid("provider_config_id")
+      .notNull()
+      .references(() => providerConfigs.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 128 }).notNull(),
+    ciphertext: text("ciphertext").notNull(),
+    version: integer("version").notNull().default(1),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("provider_secrets_config_name_key").on(
+      table.providerConfigId,
+      table.name
+    ),
+    index("provider_secrets_store_idx").on(table.storeId),
+  ]
+);
+
+export const providerSecretAuditEvents = platformSchema.table(
+  "provider_secret_audit_events",
+  {
+    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    storeId: uuid("store_id").notNull(),
+    providerConfigId: uuid("provider_config_id")
+      .notNull()
+      .references(() => providerConfigs.id, { onDelete: "cascade" }),
+    secretName: varchar("secret_name", { length: 128 }).notNull(),
+    action: varchar("action", { length: 32 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("provider_secret_audit_store_created_idx").on(
+      table.storeId,
+      table.createdAt
+    ),
+  ]
+);
+
 export type ProviderConfig = typeof providerConfigs.$inferSelect;
 export type NewProviderConfig = typeof providerConfigs.$inferInsert;
 export type Slot = typeof slots.$inferSelect;
 export type NewSlot = typeof slots.$inferInsert;
 export type SlotAssignment = typeof slotAssignments.$inferSelect;
 export type NewSlotAssignment = typeof slotAssignments.$inferInsert;
+export type ProviderSecret = typeof providerSecrets.$inferSelect;
+export type NewProviderSecret = typeof providerSecrets.$inferInsert;

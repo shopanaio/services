@@ -49,6 +49,7 @@ Returns:
         iam: 'Identity and access management',
         listing: 'Product listings and search indexing',
         media: 'File storage and media assets management',
+        notifications: 'Durable system notification orchestration',
         orders: 'Order processing and fulfillment',
         payments: 'Payment providers integration',
         pricing: 'Price calculations and promotions',

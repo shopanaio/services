@@ -115,6 +115,45 @@ export class ResilienceRunner {
     if (err && typeof err === 'object' && (err as any).name === 'BottleneckError') {
       return { code: 'RATE_LIMIT', message: 'Rate limit queue overflow', plugin: meta.pluginCode, operation: meta.operation };
     }
+    if (
+      err &&
+      typeof err === "object" &&
+      "kind" in err &&
+      "safeToRetry" in err
+    ) {
+      const providerError = err as {
+        kind: unknown;
+        message?: unknown;
+        safeToRetry: unknown;
+        acceptedByProvider?: unknown;
+        retryAfterMs?: unknown;
+        providerCode?: unknown;
+      };
+      return {
+        code:
+          providerError.kind === "RATE_LIMIT"
+            ? "RATE_LIMIT"
+            : providerError.kind === "CONFIGURATION" ||
+                providerError.kind === "AUTHENTICATION"
+              ? "CONFIG_ERROR"
+              : providerError.kind === "VALIDATION"
+                ? "VALIDATION_ERROR"
+                : "PLUGIN_ERROR",
+        message:
+          typeof providerError.message === "string"
+            ? providerError.message
+            : "Notification provider error",
+        details: {
+          kind: providerError.kind,
+          safeToRetry: providerError.safeToRetry,
+          acceptedByProvider: providerError.acceptedByProvider,
+          retryAfterMs: providerError.retryAfterMs,
+          providerCode: providerError.providerCode,
+        },
+        plugin: meta.pluginCode,
+        operation: meta.operation,
+      };
+    }
     const maybe = err as Partial<ServiceError> | undefined;
     if (maybe && typeof maybe === 'object' && maybe.code && maybe.message) {
       return {

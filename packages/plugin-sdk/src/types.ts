@@ -10,6 +10,7 @@ export enum Domain {
   PRICING = 'pricing',
   INVENTORY = 'inventory',
   IMPORT = 'import',
+  NOTIFICATIONS = 'notifications',
 }
 
 /**
@@ -46,7 +47,7 @@ export type BasePluginManifest = Readonly<{
   description?: string;
   version: string;
   apiVersionRange: string;
-  domains: string[];
+  domains: readonly string[];
   priority?: number;
 }>;
 
