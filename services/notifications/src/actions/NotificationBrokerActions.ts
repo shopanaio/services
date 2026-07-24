@@ -38,7 +38,6 @@ export class NotificationBrokerActions extends BrokerActions {
     params: Notifications.EnqueueNotificationParams,
     context: BrokerCallContext
   ): Promise<Notifications.EnqueueNotificationResult> {
-    this.assertActionCaller(params.key, context);
     const started = await this.broker.startWorkflow(
       "notifications.enqueue",
       {
@@ -294,16 +293,6 @@ export class NotificationBrokerActions extends BrokerActions {
   ): Promise<Apps.NotificationProviderRouteStatusResult> {
     this.assertInternalCaller(context);
     return this.broker.call("apps.getNotificationProviderRouteStatus", params);
-  }
-
-  private assertActionCaller(
-    key: Notifications.NotificationDefinitionKey,
-    context: BrokerCallContext
-  ): void {
-    if (context.caller.kind !== "action") {
-      throw new Error("Notification enqueue requires an action caller");
-    }
-    this.kernel.definitions.assertActionCaller(key, context.caller.service);
   }
 
   private assertInternalCaller(context: BrokerCallContext): void {

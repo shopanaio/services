@@ -8,6 +8,7 @@ import {
   lte,
   notLike,
   or,
+  sql,
 } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -51,7 +52,7 @@ export class PrivacyRepository extends BaseRepository {
     await this.connection
       .update(notificationRecipients)
       .set({
-        recipientRef: null,
+        recipientRef: sql<string>`'purged:' || ${notificationRecipients.id}::text`,
         customerId: null,
         userId: null,
         emailCiphertext: null,
@@ -119,7 +120,7 @@ export class PrivacyRepository extends BaseRepository {
       await this.connection
         .update(notificationRecipients)
         .set({
-          recipientRef: null,
+          recipientRef: sql<string>`'purged:' || ${notificationRecipients.id}::text`,
           customerId: null,
           userId: null,
           emailCiphertext: null,

@@ -28,7 +28,6 @@ export class NotificationIngestEventWorkflow extends MaterializationWorkflowBase
       throw new Error("NOTIFICATION_REGISTRY_VERSION_MISMATCH");
     }
     const { event } = input;
-    this.kernel.definitions.assertEventProducer(event.eventType, event.source);
     if (event.context.organizationId.length === 0) {
       throw new Error("EVENT_ORGANIZATION_REQUIRED");
     }
@@ -36,19 +35,13 @@ export class NotificationIngestEventWorkflow extends MaterializationWorkflowBase
     if (!snapshot || snapshot.storeId.length === 0) {
       throw new Error("NOTIFICATION_SNAPSHOT_REQUIRED");
     }
-    const store = readStoreSnapshot(snapshot.data);
-    if (store.id !== snapshot.storeId) {
-      throw new Error("NOTIFICATION_STORE_SNAPSHOT_MISMATCH");
-    }
 
     const context = {
       storeId: snapshot.storeId,
       organizationId: event.context.organizationId,
       locale: snapshot.locale,
-      defaultLocale: store.defaultLocale,
+      defaultLocale: snapshot.locale ?? "en",
       requestId: `notification-event-${event.eventId}`,
-      displayName: store.displayName,
-      timezone: store.timezone,
     };
     const result: MaterializationWorkflowResult = {
       occurrenceIds: [],
@@ -94,28 +87,4 @@ export class NotificationIngestEventWorkflow extends MaterializationWorkflowBase
     }
     return result;
   }
-}
-
-function readStoreSnapshot(data: Record<string, unknown>): {
-  id: string;
-  displayName: string;
-  defaultLocale: string;
-  timezone: string;
-} {
-  const store = data.store;
-  if (!store || typeof store !== "object" || Array.isArray(store)) {
-    throw new Error("NOTIFICATION_DATA_STORE_REQUIRED");
-  }
-  const values = store as Record<string, unknown>;
-  for (const key of ["id", "displayName", "defaultLocale", "timezone"]) {
-    if (typeof values[key] !== "string" || values[key].length === 0) {
-      throw new Error(`NOTIFICATION_DATA_STORE_${key.toUpperCase()}_REQUIRED`);
-    }
-  }
-  return values as {
-    id: string;
-    displayName: string;
-    defaultLocale: string;
-    timezone: string;
-  };
 }

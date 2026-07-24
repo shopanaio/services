@@ -10,7 +10,6 @@ import {
   type BrokerCallContext,
 } from "@shopana/shared-kernel";
 import { TemplateDefinitionRegistry } from "../infrastructure/templates/TemplateDefinitionRegistry.js";
-import { Kernel } from "../kernel/Kernel.js";
 import type { NotificationSourceEvent } from "../workflows/types.js";
 
 export interface NotificationHandlerParams {
@@ -73,22 +72,9 @@ export class NotificationIngressService {
     callContext: BrokerCallContext
   ): void {
     const { event } = params;
-    if (
-      callContext.caller.kind !== "event" ||
-      callContext.caller.service !== event.source
-    ) {
+    if (callContext.caller.kind !== "event") {
       throw new NotificationIngressValidationError(
-        "Trusted event caller does not match producer"
-      );
-    }
-    try {
-      Kernel.getInstance().definitions.assertEventProducer(
-        event.eventType,
-        event.source
-      );
-    } catch (error) {
-      throw new NotificationIngressValidationError(
-        error instanceof Error ? error.message : "Event producer is not allowed"
+        "Notification ingress requires a trusted event delivery"
       );
     }
     if (

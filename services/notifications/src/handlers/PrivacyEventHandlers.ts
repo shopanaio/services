@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type {
-  CustomerDeletedEvent,
+  DomainEvent,
   EventHandlerDelivery,
   EventHandlerResponse,
 } from "@shopana/events";
@@ -15,7 +15,7 @@ import { Kernel } from "../kernel/Kernel.js";
 import { PrivacyCleanupScript } from "../scripts/index.js";
 
 interface CustomerDeletedHandlerParams {
-  event: CustomerDeletedEvent;
+  event: DomainEvent<"customerDeleted", Record<string, unknown>>;
   delivery: EventHandlerDelivery;
 }
 
@@ -33,8 +33,6 @@ export class PrivacyEventHandlers extends EventHandlers {
     try {
       if (
         context.caller.kind !== "event" ||
-        context.caller.service !== "customers" ||
-        params.event.source !== "customers" ||
         !params.delivery.idempotencyKey
       ) {
         return {
@@ -46,14 +44,15 @@ export class PrivacyEventHandlers extends EventHandlers {
           },
         };
       }
+      const storeId = readRequiredString(params.event.payload, "storeId");
       const result = await Kernel.getInstance().runScript(
         PrivacyCleanupScript,
         {
           operation: "purgeCustomer",
-          customerId: params.event.payload.customerId,
+          customerId: params.event.subject.id,
         },
         {
-          storeId: params.event.payload.storeId,
+          storeId,
           organizationId: params.event.context.organizationId,
           requestId: params.delivery.idempotencyKey,
         }
@@ -73,4 +72,15 @@ export class PrivacyEventHandlers extends EventHandlers {
       };
     }
   }
+}
+
+function readRequiredString(
+  payload: Record<string, unknown>,
+  key: string
+): string {
+  const value = payload[key];
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Event payload field ${key} is required`);
+  }
+  return value;
 }

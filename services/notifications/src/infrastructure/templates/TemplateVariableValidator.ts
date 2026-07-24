@@ -94,7 +94,9 @@ export class TemplateVariableValidator {
     >();
     const collect = (entries: readonly NotificationTemplateVariable[]) => {
       for (const variable of entries) {
-        if (variable.path.endsWith(".*")) {
+        if (variable.path === "*") {
+          dynamicPrefixes.add("");
+        } else if (variable.path.endsWith(".*")) {
           dynamicPrefixes.add(variable.path.slice(0, -2));
         } else {
           allowedPaths.add(variable.path);
@@ -232,10 +234,10 @@ export class TemplateVariableValidator {
         collection?.type === "PathExpression"
           ? this.resolvePath(collection, scopes)
           : undefined;
-      if (
-        collectionPath &&
-        context.pathTypes.get(collectionPath) !== "ARRAY"
-      ) {
+      const collectionType = collectionPath
+        ? context.pathTypes.get(collectionPath)
+        : undefined;
+      if (collectionPath && collectionType && collectionType !== "ARRAY") {
         context.issues.push(
           issueAt(
             collection,
@@ -332,7 +334,10 @@ export class TemplateVariableValidator {
       !resolved ||
       (!context.allowedPaths.has(resolved) &&
         ![...context.dynamicPrefixes].some(
-          (prefix) => resolved === prefix || resolved.startsWith(`${prefix}.`)
+          (prefix) =>
+            prefix === "" ||
+            resolved === prefix ||
+            resolved.startsWith(`${prefix}.`)
         ))
     ) {
       context.issues.push(
