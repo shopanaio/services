@@ -29,7 +29,6 @@ type NotificationsQuery {
     locale: String!
   ): NotificationEffectiveTemplate!
   staffRecipients: [StaffNotificationRecipient!]!
-  staffSummarySchedule: StaffNotificationSchedule
   providerRoutes: [NotificationProviderRoute!]!
   providerConfiguration(channel: NotificationChannel!): NotificationProviderMaskedConfiguration!
   webhookSubscriptions: [NotificationWebhookSubscription!]!
@@ -49,7 +48,6 @@ type NotificationsMutation {
   preview(input: NotificationPreviewInput!): NotificationPreview!
   upsertStaffRecipient(input: StaffNotificationRecipientInput!): StaffNotificationRecipient!
   deleteStaffRecipient(id: ID!): DeletePayload!
-  setStaffSummarySchedule(input: StaffNotificationScheduleInput!): StaffNotificationSchedule!
   configureProvider(input: NotificationProviderConfigurationInput!): NotificationProviderConfiguration!
   testProvider(channel: NotificationChannel!, recipient: String): NotificationProviderTestResult!
   sendTest(input: NotificationTestMessageInput!): NotificationWorkflowPayload!
@@ -66,13 +64,11 @@ enum NotificationChannel {
   EMAIL
   SMS
   WEBHOOK
-  INTEGRATION
 }
 
 enum NotificationAudience {
   CUSTOMER
   STAFF
-  INTEGRATION
 }
 
 enum NotificationDeliveryStatus {
@@ -258,23 +254,6 @@ type StaffNotificationRecipient {
   eventKeys: [String!]!
   createdAt: DateTime!
   updatedAt: DateTime!
-}
-
-input StaffNotificationScheduleInput {
-  cron: String!
-  timezone: String!
-  enabled: Boolean!
-  expectedVersion: Int!
-}
-
-type StaffNotificationSchedule {
-  definitionKey: String!
-  cron: String!
-  timezone: String!
-  enabled: Boolean!
-  nextRunAt: DateTime
-  lastRunAt: DateTime
-  version: Int!
 }
 
 type NotificationProviderRoute {

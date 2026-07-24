@@ -52,8 +52,6 @@ export const resolvers = {
       }),
     staffRecipients: (_: unknown, __: Args, context: ServiceContext) =>
       run(context, { operation: "staffRecipients" }),
-    staffSummarySchedule: (_: unknown, __: Args, context: ServiceContext) =>
-      run(context, { operation: "staffSchedule" }),
     providerRoutes: (_: unknown, __: Args, context: ServiceContext) =>
       run(context, { operation: "providerRoutes" }),
     providerConfiguration: (
@@ -121,15 +119,6 @@ export const resolvers = {
         operation: "deleteStaffRecipient",
         id: args.id as string,
       }),
-    setStaffSummarySchedule: (
-      _: unknown,
-      args: Args,
-      context: ServiceContext
-    ) =>
-      run(context, {
-        operation: "setStaffSchedule",
-        ...(args.input as object),
-      } as never),
     configureProvider: (_: unknown, args: Args, context: ServiceContext) => {
       const input = args.input as Record<string, unknown>;
       return run(context, {

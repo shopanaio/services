@@ -648,7 +648,6 @@ export type Mutation = {
 
 export enum NotificationAudience {
   Customer = 'CUSTOMER',
-  Integration = 'INTEGRATION',
   Staff = 'STAFF'
 }
 
@@ -659,7 +658,6 @@ export type NotificationCancelPayload = {
 
 export enum NotificationChannel {
   Email = 'EMAIL',
-  Integration = 'INTEGRATION',
   Sms = 'SMS',
   Webhook = 'WEBHOOK'
 }
@@ -985,7 +983,6 @@ export type NotificationsMutation = {
   sendTest: NotificationWorkflowPayload;
   setChannelEnabled: NotificationChannelSetting;
   setDefinitionEnabled: NotificationDefinitionSetting;
-  setStaffSummarySchedule: StaffNotificationSchedule;
   testProvider: NotificationProviderTestResult;
   updateWebhook: NotificationWebhookSubscription;
   upsertStaffRecipient: StaffNotificationRecipient;
@@ -1067,11 +1064,6 @@ export type NotificationsMutationSetDefinitionEnabledArgs = {
 };
 
 
-export type NotificationsMutationSetStaffSummaryScheduleArgs = {
-  input: StaffNotificationScheduleInput;
-};
-
-
 export type NotificationsMutationTestProviderArgs = {
   channel: NotificationChannel;
   recipient?: InputMaybe<Scalars['String']['input']>;
@@ -1096,7 +1088,6 @@ export type NotificationsQuery = {
   providerConfiguration: NotificationProviderMaskedConfiguration;
   providerRoutes: Array<NotificationProviderRoute>;
   staffRecipients: Array<StaffNotificationRecipient>;
-  staffSummarySchedule?: Maybe<StaffNotificationSchedule>;
   template: NotificationEffectiveTemplate;
   templateRevisions: Array<NotificationTemplateRevision>;
   webhookSubscriptions: Array<NotificationWebhookSubscription>;
@@ -1160,24 +1151,6 @@ export type StaffNotificationRecipientInput = {
   name: Scalars['String']['input'];
   timezone: Scalars['String']['input'];
   userId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-export type StaffNotificationSchedule = {
-  __typename?: 'StaffNotificationSchedule';
-  cron: Scalars['String']['output'];
-  definitionKey: Scalars['String']['output'];
-  enabled: Scalars['Boolean']['output'];
-  lastRunAt?: Maybe<Scalars['DateTime']['output']>;
-  nextRunAt?: Maybe<Scalars['DateTime']['output']>;
-  timezone: Scalars['String']['output'];
-  version: Scalars['Int']['output'];
-};
-
-export type StaffNotificationScheduleInput = {
-  cron: Scalars['String']['input'];
-  enabled: Scalars['Boolean']['input'];
-  expectedVersion: Scalars['Int']['input'];
-  timezone: Scalars['String']['input'];
 };
 
 /** Weight measurement units */
@@ -1313,8 +1286,6 @@ export type ResolversTypes = ResolversObject<{
   Query: ResolverTypeWrapper<{}>;
   StaffNotificationRecipient: ResolverTypeWrapper<StaffNotificationRecipient>;
   StaffNotificationRecipientInput: StaffNotificationRecipientInput;
-  StaffNotificationSchedule: ResolverTypeWrapper<StaffNotificationSchedule>;
-  StaffNotificationScheduleInput: StaffNotificationScheduleInput;
   WeightUnit: WeightUnit;
 }>;
 
@@ -1361,8 +1332,6 @@ export type ResolversParentTypes = ResolversObject<{
   Query: {};
   StaffNotificationRecipient: StaffNotificationRecipient;
   StaffNotificationRecipientInput: StaffNotificationRecipientInput;
-  StaffNotificationSchedule: StaffNotificationSchedule;
-  StaffNotificationScheduleInput: StaffNotificationScheduleInput;
 }>;
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
@@ -1614,7 +1583,6 @@ export type NotificationsMutationResolvers<ContextType = ServiceContext, ParentT
   sendTest?: Resolver<ResolversTypes['NotificationWorkflowPayload'], ParentType, ContextType, RequireFields<NotificationsMutationSendTestArgs, 'input'>>;
   setChannelEnabled?: Resolver<ResolversTypes['NotificationChannelSetting'], ParentType, ContextType, RequireFields<NotificationsMutationSetChannelEnabledArgs, 'input'>>;
   setDefinitionEnabled?: Resolver<ResolversTypes['NotificationDefinitionSetting'], ParentType, ContextType, RequireFields<NotificationsMutationSetDefinitionEnabledArgs, 'enabled' | 'expectedVersion' | 'key'>>;
-  setStaffSummarySchedule?: Resolver<ResolversTypes['StaffNotificationSchedule'], ParentType, ContextType, RequireFields<NotificationsMutationSetStaffSummaryScheduleArgs, 'input'>>;
   testProvider?: Resolver<ResolversTypes['NotificationProviderTestResult'], ParentType, ContextType, RequireFields<NotificationsMutationTestProviderArgs, 'channel'>>;
   updateWebhook?: Resolver<ResolversTypes['NotificationWebhookSubscription'], ParentType, ContextType, RequireFields<NotificationsMutationUpdateWebhookArgs, 'input'>>;
   upsertStaffRecipient?: Resolver<ResolversTypes['StaffNotificationRecipient'], ParentType, ContextType, RequireFields<NotificationsMutationUpsertStaffRecipientArgs, 'input'>>;
@@ -1629,7 +1597,6 @@ export type NotificationsQueryResolvers<ContextType = ServiceContext, ParentType
   providerConfiguration?: Resolver<ResolversTypes['NotificationProviderMaskedConfiguration'], ParentType, ContextType, RequireFields<NotificationsQueryProviderConfigurationArgs, 'channel'>>;
   providerRoutes?: Resolver<Array<ResolversTypes['NotificationProviderRoute']>, ParentType, ContextType>;
   staffRecipients?: Resolver<Array<ResolversTypes['StaffNotificationRecipient']>, ParentType, ContextType>;
-  staffSummarySchedule?: Resolver<Maybe<ResolversTypes['StaffNotificationSchedule']>, ParentType, ContextType>;
   template?: Resolver<ResolversTypes['NotificationEffectiveTemplate'], ParentType, ContextType, RequireFields<NotificationsQueryTemplateArgs, 'channel' | 'key' | 'locale'>>;
   templateRevisions?: Resolver<Array<ResolversTypes['NotificationTemplateRevision']>, ParentType, ContextType, RequireFields<NotificationsQueryTemplateRevisionsArgs, 'channel' | 'key' | 'locale'>>;
   webhookSubscriptions?: Resolver<Array<ResolversTypes['NotificationWebhookSubscription']>, ParentType, ContextType>;
@@ -1652,17 +1619,6 @@ export type StaffNotificationRecipientResolvers<ContextType = ServiceContext, Pa
   timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   userId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type StaffNotificationScheduleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StaffNotificationSchedule'] = ResolversParentTypes['StaffNotificationSchedule']> = ResolversObject<{
-  cron?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  definitionKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  lastRunAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  nextRunAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1696,6 +1652,4 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   NotificationsQuery?: NotificationsQueryResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   StaffNotificationRecipient?: StaffNotificationRecipientResolvers<ContextType>;
-  StaffNotificationSchedule?: StaffNotificationScheduleResolvers<ContextType>;
 }>;
-

@@ -1,10 +1,9 @@
-import { and, eq, inArray, lte } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { NotificationDefinitionKey, NotificationRecipientSnapshot } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   staffNotificationRecipientEvents,
   staffNotificationRecipients,
-  staffNotificationSchedules,
 } from "../models/index.js";
 
 export interface StaffRecipientView {
@@ -164,135 +163,4 @@ export class StaffRepository extends BaseRepository {
     }));
   }
 
-  async getSchedule(key: NotificationDefinitionKey) {
-    const rows = await this.connection
-      .select()
-      .from(staffNotificationSchedules)
-      .where(
-        and(
-          eq(staffNotificationSchedules.storeId, this.storeId),
-          eq(staffNotificationSchedules.definitionKey, key)
-        )
-      )
-      .limit(1);
-    return rows[0] ?? null;
-  }
-
-  async setSchedule(input: {
-    organizationId: string;
-    key: NotificationDefinitionKey;
-    cron: string;
-    timezone: string;
-    enabled: boolean;
-    nextRunAt: string | null;
-    expectedVersion: number;
-  }) {
-    const current = await this.getSchedule(input.key);
-    if (!current) {
-      if (input.expectedVersion !== 0) throw new Error("VERSION_CONFLICT");
-      const rows = await this.connection
-        .insert(staffNotificationSchedules)
-        .values({
-          storeId: this.storeId,
-          organizationId: input.organizationId,
-          definitionKey: input.key,
-          cron: input.cron,
-          timezone: input.timezone,
-          enabled: input.enabled,
-          nextRunAt: input.nextRunAt,
-        })
-        .returning();
-      return rows[0]!;
-    }
-    const rows = await this.connection
-      .update(staffNotificationSchedules)
-      .set({
-        cron: input.cron,
-        timezone: input.timezone,
-        enabled: input.enabled,
-        nextRunAt: input.nextRunAt,
-        version: current.version + 1,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(staffNotificationSchedules.storeId, this.storeId),
-          eq(staffNotificationSchedules.definitionKey, input.key),
-          eq(staffNotificationSchedules.version, input.expectedVersion)
-        )
-      )
-      .returning();
-    if (!rows[0]) throw new Error("VERSION_CONFLICT");
-    return rows[0];
-  }
-
-  async findDueSchedules(now: string) {
-    return this.connection
-      .select()
-      .from(staffNotificationSchedules)
-      .where(
-        and(
-          eq(staffNotificationSchedules.enabled, true),
-          lte(staffNotificationSchedules.nextRunAt, now)
-        )
-      );
-  }
-
-  async claimDueSchedule(input: {
-    storeId: string;
-    definitionKey: string;
-    nextRunAt: string;
-    expectedVersion: number;
-  }) {
-    if (!this.txManager.isInTransaction()) {
-      throw new Error("claimDueSchedule requires an active transaction");
-    }
-    const rows = await this.connection
-      .select()
-      .from(staffNotificationSchedules)
-      .where(
-        and(
-          eq(staffNotificationSchedules.storeId, input.storeId),
-          eq(
-            staffNotificationSchedules.definitionKey,
-            input.definitionKey
-          ),
-          eq(staffNotificationSchedules.enabled, true),
-          eq(staffNotificationSchedules.nextRunAt, input.nextRunAt),
-          eq(staffNotificationSchedules.version, input.expectedVersion)
-        )
-      )
-      .limit(1)
-      .for("update", { skipLocked: true });
-    return rows[0] ?? null;
-  }
-
-  async markScheduleDispatched(input: {
-    storeId: string;
-    definitionKey: string;
-    lastRunAt: string;
-    nextRunAt: string;
-    expectedVersion: number;
-  }): Promise<boolean> {
-    const rows = await this.connection
-      .update(staffNotificationSchedules)
-      .set({
-        lastRunAt: input.lastRunAt,
-        nextRunAt: input.nextRunAt,
-        version: input.expectedVersion + 1,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(staffNotificationSchedules.storeId, input.storeId),
-          eq(
-            staffNotificationSchedules.definitionKey,
-            input.definitionKey
-          ),
-          eq(staffNotificationSchedules.version, input.expectedVersion)
-        )
-      )
-      .returning({ storeId: staffNotificationSchedules.storeId });
-    return rows.length === 1;
-  }
 }

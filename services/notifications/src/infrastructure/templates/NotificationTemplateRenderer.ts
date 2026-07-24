@@ -109,15 +109,6 @@ export class NotificationTemplateRenderer {
   }): Promise<RenderedNotification> {
     const definition = this.definitions.get(input.key);
     const data = definition.dataSchema.parse(input.data);
-    if (input.channel === "INTEGRATION") {
-      const text = JSON.stringify(data);
-      return {
-        text,
-        locale: input.recipientLocale ?? input.eventLocale ?? "en",
-        contentHash: hash(text),
-        templateSourceVersion: "structured-v1",
-      };
-    }
     if (input.channel === "WEBHOOK") {
       throw new Error("Webhook envelopes are rendered by the webhook pipeline");
     }

@@ -206,8 +206,7 @@ export class DeliveryRepository extends BaseRepository {
         const missingAddress =
           (channel === "EMAIL" && !email) ||
           (channel === "SMS" && !phone) ||
-          ((channel === "WEBHOOK" || channel === "INTEGRATION") &&
-            !recipient.recipientId);
+          (channel === "WEBHOOK" && !recipient.recipientId);
         const invalidAddress = Boolean(
           (channel === "EMAIL" && email && !isValidEmail(email)) ||
             (channel === "SMS" && phone && !isValidPhone(phone))

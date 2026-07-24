@@ -61,8 +61,6 @@ export class MaterializeNotificationScript extends BaseScript<
     let recipients = [...(params.recipients ?? [])];
     if (definition.recipientPolicy === "STAFF_CONFIGURATION") {
       recipients = await this.repository.staff.resolveRecipients(params.key);
-    } else if (definition.recipientPolicy === "INTEGRATION_ROUTE") {
-      recipients = [{ recipientId: `integration:${params.key}` }];
     }
 
     const channels = await this.resolveChannels(params);

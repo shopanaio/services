@@ -190,39 +190,6 @@ export const staffNotificationRecipientEvents = notificationsSchema.table(
   ]
 );
 
-export const staffNotificationSchedules = notificationsSchema.table(
-  "staff_notification_schedules",
-  {
-    storeId: uuid("store_id").notNull(),
-    organizationId: uuid("organization_id").notNull(),
-    definitionKey: varchar("definition_key", { length: 128 }).notNull(),
-    cron: varchar("cron", { length: 64 }).notNull(),
-    timezone: varchar("timezone", { length: 64 }).notNull(),
-    nextRunAt: timestamp("next_run_at", {
-      withTimezone: true,
-      mode: "string",
-    }),
-    lastRunAt: timestamp("last_run_at", {
-      withTimezone: true,
-      mode: "string",
-    }),
-    enabled: boolean("enabled").notNull().default(false),
-    version: integer("version").notNull().default(1),
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
-  },
-  (table) => [
-    unique("staff_notification_schedule_identity").on(
-      table.storeId,
-      table.definitionKey
-    ),
-    index("staff_notification_schedule_due_idx").on(
-      table.enabled,
-      table.nextRunAt
-    ),
-  ]
-);
-
 export const notificationOccurrences = notificationsSchema.table(
   "notification_occurrences",
   {

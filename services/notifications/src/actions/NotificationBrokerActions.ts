@@ -296,28 +296,6 @@ export class NotificationBrokerActions extends BrokerActions {
     return this.broker.call("apps.getNotificationProviderRouteStatus", params);
   }
 
-  @Action("dispatchStoreOrderSummary")
-  async dispatchStoreOrderSummary(params: {
-    storeId: string;
-    organizationId: string;
-    periodStart: string;
-    periodEnd: string;
-  }, context: BrokerCallContext): Promise<{ workflowId: string; accepted: true }> {
-    this.assertInternalCaller(context);
-    const started = await this.broker.startWorkflow(
-      "notifications.storeOrderSummaryDispatch",
-      params,
-      {
-        source: "content",
-        organizationId: params.organizationId,
-        resourceId: `${params.storeId}:${params.periodStart}:${params.periodEnd}`,
-        operation: "notifications.storeOrderSummaryDispatch",
-        content: params,
-      }
-    );
-    return { workflowId: started.workflowId, accepted: true };
-  }
-
   private assertActionCaller(
     key: Notifications.NotificationDefinitionKey,
     context: BrokerCallContext

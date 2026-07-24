@@ -1,10 +1,10 @@
 CREATE SCHEMA IF NOT EXISTS "notifications";
 
 CREATE TYPE "notifications"."notification_audience" AS ENUM (
-  'CUSTOMER', 'STAFF', 'INTEGRATION'
+  'CUSTOMER', 'STAFF'
 );
 CREATE TYPE "notifications"."notification_channel" AS ENUM (
-  'EMAIL', 'SMS', 'WEBHOOK', 'INTEGRATION'
+  'EMAIL', 'SMS', 'WEBHOOK'
 );
 CREATE TYPE "notifications"."notification_purpose" AS ENUM (
   'BUSINESS', 'TEST'

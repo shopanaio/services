@@ -20,7 +20,6 @@ const RETRY_DELAYS_MS: Record<Notifications.NotificationChannel, number[]> = {
   EMAIL: [60_000, 300_000, 1_800_000, 7_200_000],
   SMS: [60_000, 600_000, 3_600_000],
   WEBHOOK: [60_000, 300_000, 1_800_000, 7_200_000, 28_800_000, 86_400_000],
-  INTEGRATION: [60_000, 300_000, 1_800_000, 7_200_000],
 };
 
 @Injectable()

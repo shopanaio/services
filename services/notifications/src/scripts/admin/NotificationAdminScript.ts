@@ -2,7 +2,6 @@ import type {
   Apps,
   Notifications,
 } from "@shopana/broker-types";
-import { CronTime } from "cron";
 import { z } from "zod";
 import { BaseScript } from "../../kernel/BaseScript.js";
 
@@ -56,7 +55,6 @@ export type NotificationAdminParams =
       input: Omit<Notifications.PreviewNotificationParams, "storeId">;
     }
   | { operation: "staffRecipients" }
-  | { operation: "staffSchedule" }
   | {
       operation: "upsertStaffRecipient";
       input: {
@@ -71,13 +69,6 @@ export type NotificationAdminParams =
       };
     }
   | { operation: "deleteStaffRecipient"; id: string }
-  | {
-      operation: "setStaffSchedule";
-      cron: string;
-      timezone: string;
-      enabled: boolean;
-      expectedVersion: number;
-    }
   | { operation: "providerRoutes" }
   | {
       operation: "providerConfiguration";
@@ -265,8 +256,6 @@ export class NotificationAdminScript extends BaseScript<
         return this.renderer.preview(params.input);
       case "staffRecipients":
         return this.repository.staff.list();
-      case "staffSchedule":
-        return this.repository.staff.getSchedule("staff.order.summary");
       case "upsertStaffRecipient": {
         for (const key of params.input.eventKeys) {
           if (this.definitions.get(key).audience !== "STAFF") {
@@ -295,36 +284,9 @@ export class NotificationAdminScript extends BaseScript<
         }
         return { deleted };
       }
-      case "setStaffSchedule": {
-        const nextRunAt = params.enabled
-          ? new CronTime(params.cron, params.timezone)
-              .getNextDateFrom(new Date(), params.timezone)
-              .toUTC()
-              .toISO()
-          : null;
-        if (params.enabled && !nextRunAt) {
-          throw new Error("SCHEDULE_NEXT_RUN_NOT_RESOLVED");
-        }
-        const schedule = await this.repository.staff.setSchedule({
-          organizationId: this.context.store.organizationId,
-          key: "staff.order.summary",
-          cron: params.cron,
-          timezone: params.timezone,
-          enabled: params.enabled,
-          nextRunAt,
-          expectedVersion: params.expectedVersion,
-        });
-        await this.audit(
-          "staff.schedule.updated",
-          "staffSchedule",
-          "staff.order.summary",
-          { cron: params.cron, timezone: params.timezone, enabled: params.enabled }
-        );
-        return schedule;
-      }
       case "providerRoutes":
         return Promise.all(
-          (["EMAIL", "SMS", "WEBHOOK", "INTEGRATION"] as const).map(
+          (["EMAIL", "SMS", "WEBHOOK"] as const).map(
             (channel) =>
               this.services.broker.call(
                 "apps.getNotificationProviderRouteStatus",
@@ -567,8 +529,7 @@ function permissionFor(params: NotificationAdminParams): {
   }
   if (
     operation.includes("Staff") ||
-    operation === "staffRecipients" ||
-    operation === "staffSchedule"
+    operation === "staffRecipients"
   ) {
     return {
       resource: "notification_recipient",
@@ -578,8 +539,7 @@ function permissionFor(params: NotificationAdminParams): {
           ? params.input.id
             ? "update"
             : "create"
-          : operation === "staffRecipients" ||
-              operation === "staffSchedule"
+          : operation === "staffRecipients"
             ? "read"
             : "update",
     };

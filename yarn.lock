@@ -6603,7 +6603,6 @@ __metadata:
     "@shopana/shared-service-config": "workspace:*"
     "@types/node": "npm:^20.14.14"
     cache-manager: "npm:^7.2.7"
-    cron: "npm:^3.5.0"
     drizzle-orm: "npm:^0.45.1"
     fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
@@ -10328,16 +10327,6 @@ __metadata:
     "@types/luxon": "npm:~3.4.0"
     luxon: "npm:~3.5.0"
   checksum: 10/267ab1103d35078f6531cf702176cb75f1b35b851333ade754543b97ed4a50e319872735e7f14cc5fdab94100470046653477baf06ed5dc2ddc0e9b699337e0b
-  languageName: node
-  linkType: hard
-
-"cron@npm:^3.5.0":
-  version: 3.5.0
-  resolution: "cron@npm:3.5.0"
-  dependencies:
-    "@types/luxon": "npm:~3.4.0"
-    luxon: "npm:~3.5.0"
-  checksum: 10/0e667d87c9acc162db835439bff2664483f1fcbd471ae30a26c7426c736fa1798d27067cc4d0294d8a27890a1bc6c9deeefe47811cc339f11a8ba8288f51886d
   languageName: node
   linkType: hard
 

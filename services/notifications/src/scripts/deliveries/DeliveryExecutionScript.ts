@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import type {
   EmailDeliveryInput,
-  IntegrationDeliveryInput,
   NotificationDeliveryInput,
   NotificationDeliveryReceipt,
   SmsDeliveryInput,
@@ -306,15 +305,7 @@ export class DeliveryExecutionScript extends BaseScript<
       };
       return { claimed: true, channel, input };
     }
-    const input: IntegrationDeliveryInput = {
-      ...base,
-      channel: "INTEGRATION",
-      integrationType: base.notificationKey,
-      payload: JSON.parse(
-        rendered.text
-      ) as IntegrationDeliveryInput["payload"],
-    };
-    return { claimed: true, channel, input };
+    throw new Error(`CHANNEL_NOT_SUPPORTED:${channel}`);
   }
 
   private async recordRendered(

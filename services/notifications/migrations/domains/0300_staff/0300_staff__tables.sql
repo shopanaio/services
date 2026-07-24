@@ -33,23 +33,3 @@ CREATE TABLE "notifications"."staff_notification_recipient_events" (
 CREATE INDEX "staff_notification_recipient_event_lookup_idx"
   ON "notifications"."staff_notification_recipient_events"
   ("store_id", "definition_key", "enabled");
-
-CREATE TABLE "notifications"."staff_notification_schedules" (
-  "store_id" uuid NOT NULL,
-  "organization_id" uuid NOT NULL,
-  "definition_key" varchar(128) NOT NULL,
-  "cron" varchar(64) NOT NULL,
-  "timezone" varchar(64) NOT NULL,
-  "next_run_at" timestamptz,
-  "last_run_at" timestamptz,
-  "enabled" boolean NOT NULL DEFAULT false,
-  "version" integer NOT NULL DEFAULT 1 CHECK ("version" >= 1),
-  "created_at" timestamptz NOT NULL DEFAULT now(),
-  "updated_at" timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT "staff_notification_schedule_identity"
-    UNIQUE ("store_id", "definition_key")
-);
-
-CREATE INDEX "staff_notification_schedule_due_idx"
-  ON "notifications"."staff_notification_schedules"
-  ("enabled", "next_run_at");

@@ -6517,6 +6517,11 @@ export type ApiDateTimeFilter = {
   _neq?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
+export type ApiDeletePayload = {
+  __typename?: 'DeletePayload';
+  deleted: Scalars['Boolean']['output'];
+};
+
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
   /** Centimeter */
@@ -9791,6 +9796,7 @@ export type ApiMutation = {
   /** Listing mutation namespace. */
   listingMutation: ApiListingMutation;
   mediaMutation: ApiMediaMutation;
+  notificationsMutation: ApiNotificationsMutation;
   orderMutation: ApiOrderMutation;
   /** Organization management mutations. */
   organizationMutation: ApiOrganizationMutation;
@@ -9810,6 +9816,482 @@ export type ApiMutation = {
 export type ApiNode = {
   /** The globally unique ID of the object. */
   id: Scalars['ID']['output'];
+};
+
+export enum NotificationAudience {
+  Customer = 'CUSTOMER',
+  Staff = 'STAFF'
+}
+
+export type ApiNotificationCancelPayload = {
+  __typename?: 'NotificationCancelPayload';
+  cancelled: Scalars['Boolean']['output'];
+};
+
+export enum NotificationChannel {
+  Email = 'EMAIL',
+  Sms = 'SMS',
+  Webhook = 'WEBHOOK'
+}
+
+export type ApiNotificationChannelSetting = {
+  __typename?: 'NotificationChannelSetting';
+  channel: NotificationChannel;
+  definitionKey: Scalars['String']['output'];
+  enabled: Scalars['Boolean']['output'];
+  replyTo?: Maybe<Scalars['String']['output']>;
+  senderEmail?: Maybe<Scalars['String']['output']>;
+  senderName?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationChannelSettingInput = {
+  channel: NotificationChannel;
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  key: Scalars['String']['input'];
+  replyTo?: InputMaybe<Scalars['String']['input']>;
+  senderEmail?: InputMaybe<Scalars['String']['input']>;
+  senderName?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationDefinition = {
+  __typename?: 'NotificationDefinition';
+  activeChannels: Array<NotificationChannel>;
+  allowedChannels: Array<NotificationChannel>;
+  audience: NotificationAudience;
+  defaultChannels: Array<NotificationChannel>;
+  enabled: Scalars['Boolean']['output'];
+  key: Scalars['String']['output'];
+  optional: Scalars['Boolean']['output'];
+  title: Scalars['String']['output'];
+  variables: Array<ApiNotificationTemplateVariable>;
+  version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationDefinitionSetting = {
+  __typename?: 'NotificationDefinitionSetting';
+  definitionKey: Scalars['String']['output'];
+  enabled: Scalars['Boolean']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationDelivery = {
+  __typename?: 'NotificationDelivery';
+  attemptCount: Scalars['Int']['output'];
+  channel: NotificationChannel;
+  correlationId: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  definitionKey: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  lastErrorCode?: Maybe<Scalars['String']['output']>;
+  lastErrorKind?: Maybe<Scalars['String']['output']>;
+  locale?: Maybe<Scalars['String']['output']>;
+  nextAttemptAt?: Maybe<Scalars['DateTime']['output']>;
+  occurrenceId: Scalars['ID']['output'];
+  providerCode?: Maybe<Scalars['String']['output']>;
+  providerMessageId?: Maybe<Scalars['String']['output']>;
+  purpose: Scalars['String']['output'];
+  sourceEventType?: Maybe<Scalars['String']['output']>;
+  status: NotificationDeliveryStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiNotificationDeliveryAttempt = {
+  __typename?: 'NotificationDeliveryAttempt';
+  attemptNumber: Scalars['Int']['output'];
+  deliveryId: Scalars['ID']['output'];
+  errorCode?: Maybe<Scalars['String']['output']>;
+  errorKind?: Maybe<Scalars['String']['output']>;
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  providerCode?: Maybe<Scalars['String']['output']>;
+  providerMessageId?: Maybe<Scalars['String']['output']>;
+  providerResponseCode?: Maybe<Scalars['String']['output']>;
+  startedAt: Scalars['DateTime']['output'];
+  status: Scalars['String']['output'];
+};
+
+export enum NotificationDeliveryStatus {
+  Accepted = 'ACCEPTED',
+  BlockedNoProvider = 'BLOCKED_NO_PROVIDER',
+  Cancelled = 'CANCELLED',
+  Dead = 'DEAD',
+  Delivered = 'DELIVERED',
+  FailedPermanent = 'FAILED_PERMANENT',
+  Pending = 'PENDING',
+  Rendering = 'RENDERING',
+  RetryScheduled = 'RETRY_SCHEDULED',
+  Sending = 'SENDING',
+  Skipped = 'SKIPPED',
+  Unknown = 'UNKNOWN'
+}
+
+export type ApiNotificationDeliveryStatusCount = {
+  __typename?: 'NotificationDeliveryStatusCount';
+  count: Scalars['Int']['output'];
+  status: NotificationDeliveryStatus;
+};
+
+export type ApiNotificationEffectiveTemplate = {
+  __typename?: 'NotificationEffectiveTemplate';
+  bodyTemplate: Scalars['String']['output'];
+  channel: NotificationChannel;
+  key: Scalars['String']['output'];
+  locale: Scalars['String']['output'];
+  plainTextTemplate?: Maybe<Scalars['String']['output']>;
+  pointerVersion?: Maybe<Scalars['Int']['output']>;
+  revision?: Maybe<Scalars['Int']['output']>;
+  revisionId?: Maybe<Scalars['ID']['output']>;
+  source: Scalars['String']['output'];
+  sourceVersion?: Maybe<Scalars['String']['output']>;
+  subjectTemplate?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiNotificationOverview = {
+  __typename?: 'NotificationOverview';
+  definitions: Array<ApiNotificationDefinition>;
+  deliveryCounts: Array<ApiNotificationDeliveryStatusCount>;
+  oldestPendingAt?: Maybe<Scalars['DateTime']['output']>;
+  queueDepth: Scalars['Int']['output'];
+  recentDeliveryCount: Scalars['Int']['output'];
+  staffRecipientCount: Scalars['Int']['output'];
+  webhookCount: Scalars['Int']['output'];
+};
+
+export type ApiNotificationPreview = {
+  __typename?: 'NotificationPreview';
+  html?: Maybe<Scalars['String']['output']>;
+  locale: Scalars['String']['output'];
+  sms?: Maybe<ApiNotificationSmsMetrics>;
+  subject?: Maybe<Scalars['String']['output']>;
+  text: Scalars['String']['output'];
+  warnings: Array<Scalars['String']['output']>;
+};
+
+export type ApiNotificationPreviewInput = {
+  bodyTemplate?: InputMaybe<Scalars['String']['input']>;
+  channel: NotificationChannel;
+  data: Scalars['JSON']['input'];
+  key: Scalars['String']['input'];
+  locale?: InputMaybe<Scalars['String']['input']>;
+  plainTextTemplate?: InputMaybe<Scalars['String']['input']>;
+  subjectTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationProviderConfiguration = {
+  __typename?: 'NotificationProviderConfiguration';
+  assignmentId: Scalars['ID']['output'];
+  channel: NotificationChannel;
+  maskedConfig: Scalars['JSON']['output'];
+  providerCode: Scalars['String']['output'];
+  slotId: Scalars['ID']['output'];
+};
+
+export type ApiNotificationProviderConfigurationInput = {
+  active?: InputMaybe<Scalars['Boolean']['input']>;
+  channel: NotificationChannel;
+  config: Scalars['JSON']['input'];
+  providerCode: Scalars['String']['input'];
+  secretFields?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiNotificationProviderMaskedConfiguration = {
+  __typename?: 'NotificationProviderMaskedConfiguration';
+  channel: NotificationChannel;
+  config: Scalars['JSON']['output'];
+  providerCode: Scalars['String']['output'];
+  status: Scalars['String']['output'];
+};
+
+export type ApiNotificationProviderRoute = {
+  __typename?: 'NotificationProviderRoute';
+  assignmentId?: Maybe<Scalars['ID']['output']>;
+  channel: NotificationChannel;
+  configured: Scalars['Boolean']['output'];
+  providerCode?: Maybe<Scalars['String']['output']>;
+  slotId?: Maybe<Scalars['ID']['output']>;
+  status?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiNotificationProviderTestResult = {
+  __typename?: 'NotificationProviderTestResult';
+  message?: Maybe<Scalars['String']['output']>;
+  ok: Scalars['Boolean']['output'];
+  providerCode: Scalars['String']['output'];
+};
+
+export type ApiNotificationSmsMetrics = {
+  __typename?: 'NotificationSmsMetrics';
+  encoding: Scalars['String']['output'];
+  length: Scalars['Int']['output'];
+  segmentCount: Scalars['Int']['output'];
+};
+
+export type ApiNotificationTemplatePointer = {
+  __typename?: 'NotificationTemplatePointer';
+  channel: NotificationChannel;
+  definitionKey: Scalars['String']['output'];
+  locale: Scalars['String']['output'];
+  revisionId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationTemplateRevision = {
+  __typename?: 'NotificationTemplateRevision';
+  bodyTemplate: Scalars['String']['output'];
+  channel: NotificationChannel;
+  createdAt: Scalars['DateTime']['output'];
+  definitionKey: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  locale: Scalars['String']['output'];
+  plainTextTemplate?: Maybe<Scalars['String']['output']>;
+  revision: Scalars['Int']['output'];
+  sourceHash: Scalars['String']['output'];
+  subjectTemplate?: Maybe<Scalars['String']['output']>;
+  validationStatus: Scalars['String']['output'];
+};
+
+export type ApiNotificationTemplateRevisionInput = {
+  bodyTemplate: Scalars['String']['input'];
+  channel: NotificationChannel;
+  key: Scalars['String']['input'];
+  locale: Scalars['String']['input'];
+  plainTextTemplate?: InputMaybe<Scalars['String']['input']>;
+  subjectTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationTemplateVariable = {
+  __typename?: 'NotificationTemplateVariable';
+  children?: Maybe<Array<ApiNotificationTemplateVariable>>;
+  description: Scalars['String']['output'];
+  path: Scalars['String']['output'];
+  required: Scalars['Boolean']['output'];
+  type: Scalars['String']['output'];
+};
+
+export type ApiNotificationTestMessageInput = {
+  channel: NotificationChannel;
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  data: Scalars['JSON']['input'];
+  email?: InputMaybe<Scalars['String']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  key: Scalars['String']['input'];
+  locale?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+  recipientId?: InputMaybe<Scalars['ID']['input']>;
+  userId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiNotificationWebhookCreateInput = {
+  apiVersion: Scalars['String']['input'];
+  eventType: Scalars['String']['input'];
+  format: NotificationWebhookFormat;
+  url: Scalars['String']['input'];
+};
+
+export enum NotificationWebhookFormat {
+  Json = 'JSON',
+  Xml = 'XML'
+}
+
+export type ApiNotificationWebhookSecretPayload = {
+  __typename?: 'NotificationWebhookSecretPayload';
+  secret: Scalars['String']['output'];
+  subscription?: Maybe<ApiNotificationWebhookSubscription>;
+};
+
+export enum NotificationWebhookStatus {
+  Active = 'ACTIVE',
+  Disabled = 'DISABLED'
+}
+
+export type ApiNotificationWebhookSubscription = {
+  __typename?: 'NotificationWebhookSubscription';
+  apiVersion: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  eventType: Scalars['String']['output'];
+  format: NotificationWebhookFormat;
+  id: Scalars['ID']['output'];
+  status: NotificationWebhookStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  url: Scalars['String']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationWebhookUpdateInput = {
+  apiVersion?: InputMaybe<Scalars['String']['input']>;
+  eventType?: InputMaybe<Scalars['String']['input']>;
+  expectedVersion: Scalars['Int']['input'];
+  format?: InputMaybe<NotificationWebhookFormat>;
+  id: Scalars['ID']['input'];
+  status?: InputMaybe<NotificationWebhookStatus>;
+  url?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationWorkflowPayload = {
+  __typename?: 'NotificationWorkflowPayload';
+  accepted: Scalars['Boolean']['output'];
+  workflowId: Scalars['String']['output'];
+};
+
+export type ApiNotificationsMutation = {
+  __typename?: 'NotificationsMutation';
+  activateTemplateRevision: ApiNotificationTemplatePointer;
+  cancelDelivery: ApiNotificationCancelPayload;
+  configureProvider: ApiNotificationProviderConfiguration;
+  createTemplateRevision: ApiNotificationTemplateRevision;
+  createWebhook: ApiNotificationWebhookSecretPayload;
+  deleteStaffRecipient: ApiDeletePayload;
+  deleteWebhook: ApiDeletePayload;
+  preview: ApiNotificationPreview;
+  retryDelivery: ApiNotificationWorkflowPayload;
+  revealWebhookSecret: ApiNotificationWebhookSecretPayload;
+  rotateWebhookSecret: ApiNotificationWebhookSecretPayload;
+  sendTest: ApiNotificationWorkflowPayload;
+  setChannelEnabled: ApiNotificationChannelSetting;
+  setDefinitionEnabled: ApiNotificationDefinitionSetting;
+  testProvider: ApiNotificationProviderTestResult;
+  updateWebhook: ApiNotificationWebhookSubscription;
+  upsertStaffRecipient: ApiStaffNotificationRecipient;
+};
+
+
+export type ApiNotificationsMutationActivateTemplateRevisionArgs = {
+  expectedVersion: Scalars['Int']['input'];
+  revisionId: Scalars['ID']['input'];
+};
+
+
+export type ApiNotificationsMutationCancelDeliveryArgs = {
+  deliveryId: Scalars['ID']['input'];
+};
+
+
+export type ApiNotificationsMutationConfigureProviderArgs = {
+  input: ApiNotificationProviderConfigurationInput;
+};
+
+
+export type ApiNotificationsMutationCreateTemplateRevisionArgs = {
+  input: ApiNotificationTemplateRevisionInput;
+};
+
+
+export type ApiNotificationsMutationCreateWebhookArgs = {
+  input: ApiNotificationWebhookCreateInput;
+};
+
+
+export type ApiNotificationsMutationDeleteStaffRecipientArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiNotificationsMutationDeleteWebhookArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiNotificationsMutationPreviewArgs = {
+  input: ApiNotificationPreviewInput;
+};
+
+
+export type ApiNotificationsMutationRetryDeliveryArgs = {
+  deliveryId: Scalars['ID']['input'];
+  idempotencyKey: Scalars['String']['input'];
+};
+
+
+export type ApiNotificationsMutationRevealWebhookSecretArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiNotificationsMutationRotateWebhookSecretArgs = {
+  gracePeriodHours?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiNotificationsMutationSendTestArgs = {
+  input: ApiNotificationTestMessageInput;
+};
+
+
+export type ApiNotificationsMutationSetChannelEnabledArgs = {
+  input: ApiNotificationChannelSettingInput;
+};
+
+
+export type ApiNotificationsMutationSetDefinitionEnabledArgs = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  key: Scalars['String']['input'];
+};
+
+
+export type ApiNotificationsMutationTestProviderArgs = {
+  channel: NotificationChannel;
+  recipient?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type ApiNotificationsMutationUpdateWebhookArgs = {
+  input: ApiNotificationWebhookUpdateInput;
+};
+
+
+export type ApiNotificationsMutationUpsertStaffRecipientArgs = {
+  input: ApiStaffNotificationRecipientInput;
+};
+
+export type ApiNotificationsQuery = {
+  __typename?: 'NotificationsQuery';
+  definitions: Array<ApiNotificationDefinition>;
+  deliveries: Array<ApiNotificationDelivery>;
+  deliveryAttempts: Array<ApiNotificationDeliveryAttempt>;
+  overview: ApiNotificationOverview;
+  providerConfiguration: ApiNotificationProviderMaskedConfiguration;
+  providerRoutes: Array<ApiNotificationProviderRoute>;
+  staffRecipients: Array<ApiStaffNotificationRecipient>;
+  template: ApiNotificationEffectiveTemplate;
+  templateRevisions: Array<ApiNotificationTemplateRevision>;
+  webhookSubscriptions: Array<ApiNotificationWebhookSubscription>;
+};
+
+
+export type ApiNotificationsQueryDeliveriesArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiNotificationsQueryDeliveryAttemptsArgs = {
+  deliveryId: Scalars['ID']['input'];
+};
+
+
+export type ApiNotificationsQueryProviderConfigurationArgs = {
+  channel: NotificationChannel;
+};
+
+
+export type ApiNotificationsQueryTemplateArgs = {
+  channel: NotificationChannel;
+  key: Scalars['String']['input'];
+  locale: Scalars['String']['input'];
+};
+
+
+export type ApiNotificationsQueryTemplateRevisionsArgs = {
+  channel: NotificationChannel;
+  key: Scalars['String']['input'];
+  locale: Scalars['String']['input'];
 };
 
 /** Result of a single operation in the unified update. */
@@ -12023,6 +12505,7 @@ export type ApiQuery = {
   /** Listing query namespace. */
   listingQuery: ApiListingQuery;
   mediaQuery: ApiMediaQuery;
+  notificationsQuery: ApiNotificationsQuery;
   orderQuery: ApiOrderQuery;
   /** Organization queries namespace. */
   organizationQuery: ApiOrganizationQuery;
@@ -15300,6 +15783,32 @@ export enum SortDirection {
   Desc = 'desc'
 }
 
+export type ApiStaffNotificationRecipient = {
+  __typename?: 'StaffNotificationRecipient';
+  createdAt: Scalars['DateTime']['output'];
+  email: Scalars['String']['output'];
+  enabled: Scalars['Boolean']['output'];
+  eventKeys: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  locale: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  scope: Scalars['String']['output'];
+  timezone: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  userId?: Maybe<Scalars['ID']['output']>;
+};
+
+export type ApiStaffNotificationRecipientInput = {
+  email: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  eventKeys: Array<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  locale: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  timezone: Scalars['String']['input'];
+  userId?: InputMaybe<Scalars['ID']['input']>;
+};
+
 /** A store */
 export type ApiStore = {
   __typename?: 'Store';
@@ -17012,6 +17521,7 @@ export enum Join__Graph {
   IamAdmin = 'IAM_ADMIN',
   ListingAdmin = 'LISTING_ADMIN',
   MediaAdmin = 'MEDIA_ADMIN',
+  NotificationsAdmin = 'NOTIFICATIONS_ADMIN',
   OrdersAdmin = 'ORDERS_ADMIN',
   PricingAdmin = 'PRICING_ADMIN',
   ProjectAdmin = 'PROJECT_ADMIN',

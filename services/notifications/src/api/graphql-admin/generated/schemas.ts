@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationDeliveryStatus, NotificationPreviewInput, NotificationProviderConfigurationInput, NotificationTemplateRevisionInput, NotificationTestMessageInput, NotificationWebhookCreateInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, StaffNotificationRecipientInput, StaffNotificationScheduleInput, WeightUnit } from './types.js'
+import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationDeliveryStatus, NotificationPreviewInput, NotificationProviderConfigurationInput, NotificationTemplateRevisionInput, NotificationTestMessageInput, NotificationWebhookCreateInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, StaffNotificationRecipientInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -121,14 +121,5 @@ export function StaffNotificationRecipientInputSchema(): z.ZodObject<Properties<
     name: z.string(),
     timezone: z.string(),
     userId: z.string().nullish()
-  })
-}
-
-export function StaffNotificationScheduleInputSchema(): z.ZodObject<Properties<StaffNotificationScheduleInput>> {
-  return z.object({
-    cron: z.string(),
-    enabled: z.boolean(),
-    expectedVersion: z.number(),
-    timezone: z.string()
   })
 }

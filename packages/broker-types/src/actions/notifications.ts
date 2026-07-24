@@ -53,12 +53,10 @@ export const NOTIFICATION_DEFINITION_KEYS = [
   "customer.auth.password_reset",
   "customer.auth.account_deletion_confirmation",
   "customer.marketing.confirmation",
-  "staff.order.summary",
   "staff.order.new",
   "staff.order.change_request.new",
   "staff.order.sales_attribution_edited",
   "staff.draft_order.new",
-  "integration.fulfillment.request",
 ] as const;
 
 export type NotificationDefinitionKey =
@@ -67,10 +65,9 @@ export type NotificationDefinitionKey =
 export type NotificationChannel =
   | "EMAIL"
   | "SMS"
-  | "WEBHOOK"
-  | "INTEGRATION";
+  | "WEBHOOK";
 
-export type NotificationAudience = "CUSTOMER" | "STAFF" | "INTEGRATION";
+export type NotificationAudience = "CUSTOMER" | "STAFF";
 export type NotificationPurpose = "BUSINESS" | "TEST";
 
 export interface NotificationRecipientSnapshot {
@@ -187,26 +184,10 @@ export interface WebhookDeliveryInput extends NotificationDeliveryInputBase {
   contentType: "application/json" | "application/xml";
 }
 
-export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { [key: string]: JsonValue };
-
-export interface IntegrationDeliveryInput
-  extends NotificationDeliveryInputBase {
-  channel: "INTEGRATION";
-  integrationType: string;
-  payload: JsonValue;
-}
-
 export type NotificationDeliveryInput =
   | EmailDeliveryInput
   | SmsDeliveryInput
-  | WebhookDeliveryInput
-  | IntegrationDeliveryInput;
+  | WebhookDeliveryInput;
 
 export interface NotificationDeliveryReceipt {
   state: "ACCEPTED" | "DELIVERED" | "REJECTED" | "UNKNOWN";

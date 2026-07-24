@@ -23,7 +23,6 @@
     "@shopana/shared-kernel": "workspace:*",
     "@shopana/shared-service-config": "workspace:*",
     "cache-manager": "^7.2.7",
-    "cron": "^3.5.0",
     "drizzle-orm": "^0.45.1",
     "fastify": "^4.28.1",
     "graphql": "^16.9.0",

@@ -4,11 +4,11 @@ export const notificationsSchema = pgSchema("notifications");
 
 export const notificationAudienceEnum = notificationsSchema.enum(
   "notification_audience",
-  ["CUSTOMER", "STAFF", "INTEGRATION"]
+  ["CUSTOMER", "STAFF"]
 );
 export const notificationChannelEnum = notificationsSchema.enum(
   "notification_channel",
-  ["EMAIL", "SMS", "WEBHOOK", "INTEGRATION"]
+  ["EMAIL", "SMS", "WEBHOOK"]
 );
 export const notificationPurposeEnum = notificationsSchema.enum(
   "notification_purpose",

@@ -24,7 +24,6 @@ export type {
 
 // Notifications service actions
 export * as Notifications from "./notifications.js";
-export * as Orders from "./orders.js";
 export {
   NOTIFICATION_DEFINITION_KEYS,
 } from "./notifications.js";
@@ -45,8 +44,6 @@ export type {
   EmailDeliveryInput,
   SmsDeliveryInput,
   WebhookDeliveryInput,
-  IntegrationDeliveryInput,
-  JsonValue,
   NotificationDeliveryInput,
   NotificationDeliveryReceipt,
   NotificationProviderTestInput,

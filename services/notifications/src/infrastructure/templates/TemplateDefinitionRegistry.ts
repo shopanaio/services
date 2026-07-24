@@ -14,8 +14,7 @@ export type NotificationTrigger =
       eventType: string;
       allowedProducerServices: readonly string[];
     }
-  | { kind: "ACTION"; allowedCallerServices: readonly string[] }
-  | { kind: "SCHEDULE"; scheduleOwner: "notifications" };
+  | { kind: "ACTION"; allowedCallerServices: readonly string[] };
 
 export interface RetentionPolicy {
   snapshotDays: number;
@@ -27,10 +26,7 @@ export interface NotificationDefinition
   title: string;
   triggers: readonly NotificationTrigger[];
   dataSchema: z.ZodType<Record<string, unknown>>;
-  recipientPolicy:
-    | "SNAPSHOT"
-    | "STAFF_CONFIGURATION"
-    | "INTEGRATION_ROUTE";
+  recipientPolicy: "SNAPSHOT" | "STAFF_CONFIGURATION";
   retentionPolicy: RetentionPolicy;
 }
 
@@ -136,17 +132,7 @@ const notificationDataSchema = z
       })
       .strict()
       .optional(),
-    summary: z
-      .object({
-        periodStart: z.string().datetime(),
-        periodEnd: z.string().datetime(),
-        orderCount: z.number().int().nonnegative(),
-        total: moneySchema,
-      })
-      .strict()
-      .optional(),
     message: z.string().max(20_000).optional(),
-    integration: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   })
   .strict();
 
@@ -288,35 +274,7 @@ const variables: readonly NotificationTemplateVariable[] = [
       { path: "return.labelUrl", type: "URL", required: false, description: "Return label URL" },
     ],
   },
-  {
-    path: "summary",
-    type: "STRING",
-    required: false,
-    description: "Order summary snapshot",
-    children: [
-      { path: "summary.periodStart", type: "DATE", required: false, description: "Summary period start" },
-      { path: "summary.periodEnd", type: "DATE", required: false, description: "Summary period end" },
-      { path: "summary.orderCount", type: "NUMBER", required: false, description: "Order count" },
-      { path: "summary.total", type: "MONEY", required: false, description: "Order total" },
-      { path: "summary.total.amount", type: "NUMBER", required: false, description: "Order total in minor units" },
-      { path: "summary.total.currencyCode", type: "STRING", required: false, description: "Order total currency" },
-    ],
-  },
   { path: "message", type: "STRING", required: false, description: "Trusted plain-text staff message" },
-  {
-    path: "integration",
-    type: "STRING",
-    required: false,
-    description: "Structured integration fields",
-    children: [
-      {
-        path: "integration.*",
-        type: "STRING",
-        required: false,
-        description: "Provider-specific scalar integration field",
-      },
-    ],
-  },
 ] as const;
 
 interface ManifestEntry {
@@ -341,10 +299,6 @@ const action = (...allowedCallerServices: string[]): NotificationTrigger => ({
   kind: "ACTION",
   allowedCallerServices,
 });
-const schedule: NotificationTrigger = {
-  kind: "SCHEDULE",
-  scheduleOwner: "notifications",
-};
 
 const manifest = [
   ["customer.order.confirmation", "Order confirmation", orderEvent("orderCreated"), "CUSTOMER", false],
@@ -397,19 +351,17 @@ const manifest = [
   ["customer.auth.password_reset", "Authentication password reset", action("iam"), "CUSTOMER", false],
   ["customer.auth.account_deletion_confirmation", "Account deletion confirmation", action("iam"), "CUSTOMER", false],
   ["customer.marketing.confirmation", "Customer marketing confirmation", action("customers"), "CUSTOMER", true],
-  ["staff.order.summary", "Store order summary", schedule, "STAFF", true],
   ["staff.order.new", "New order", orderEvent("orderCreated"), "STAFF", true],
   ["staff.order.change_request.new", "New change request", orderEvent("orderChangeRequestReceived"), "STAFF", true],
   ["staff.order.sales_attribution_edited", "Sales attribution edited", orderEvent("orderSalesAttributionEdited"), "STAFF", true],
   ["staff.draft_order.new", "New draft order", orderEvent("draftOrderSubmitted"), "STAFF", true],
-  ["integration.fulfillment.request", "Fulfillment request notification", orderEvent("orderFulfilled"), "INTEGRATION", false],
 ] as const satisfies readonly [
   readonly [NotificationDefinitionKey, string, NotificationTrigger, NotificationAudience, boolean],
   ...ReadonlyArray<readonly [NotificationDefinitionKey, string, NotificationTrigger, NotificationAudience, boolean]>,
 ];
 
 export class TemplateDefinitionRegistry {
-  static readonly VERSION = "2026-07-v1";
+  static readonly VERSION = "2026-07-v3";
 
   private readonly definitions: ReadonlyMap<
     NotificationDefinitionKey,
@@ -423,26 +375,21 @@ export class TemplateDefinitionRegistry {
   constructor() {
     const definitions = manifest.map(
       ([key, title, trigger, audience, optional]): NotificationDefinition => {
-        const integration = audience === "INTEGRATION";
         return {
           key,
           title,
           triggers: [trigger],
           audience,
           optional,
-          allowedChannels: integration
-            ? ["EMAIL", "INTEGRATION"]
-            : ["EMAIL", "SMS"],
-          defaultChannels: integration ? ["INTEGRATION"] : ["EMAIL"],
+          allowedChannels: ["EMAIL", "SMS"],
+          defaultChannels: ["EMAIL"],
           dataSchema: notificationDataSchema as z.ZodType<
             Record<string, unknown>
           >,
           recipientPolicy:
             audience === "STAFF"
               ? "STAFF_CONFIGURATION"
-              : integration
-                ? "INTEGRATION_ROUTE"
-                : "SNAPSHOT",
+              : "SNAPSHOT",
           variables,
           retentionPolicy: key.startsWith("customer.auth.")
             ? { snapshotDays: 7, renderedContentHours: 1 }
@@ -514,10 +461,10 @@ export class TemplateDefinitionRegistry {
 
   private assertInvariants(): void {
     if (
-      this.definitions.size !== 56 ||
-      NOTIFICATION_DEFINITION_KEYS.length !== 56
+      this.definitions.size !== 54 ||
+      NOTIFICATION_DEFINITION_KEYS.length !== 54
     ) {
-      throw new Error("Notification registry must contain exactly 56 keys");
+      throw new Error("Notification registry must contain exactly 54 keys");
     }
     for (const key of NOTIFICATION_DEFINITION_KEYS) {
       if (!this.definitions.has(key)) {
