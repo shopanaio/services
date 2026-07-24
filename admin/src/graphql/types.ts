@@ -8183,6 +8183,8 @@ export type ApiFileOrderByInput = {
 export enum FileOrderField {
   /** Sort by altText */
   AltText = 'altText',
+  /** Sort by assetGroupId */
+  AssetGroupId = 'assetGroupId',
   /** Sort by createdAt */
   CreatedAt = 'createdAt',
   /** Sort by durationMs */
@@ -8341,6 +8343,8 @@ export type ApiFileWhereInput = {
   _or?: InputMaybe<Array<ApiFileWhereInput>>;
   /** Filter by altText */
   altText?: InputMaybe<ApiStringFilter>;
+  /** Filter by assetGroupId */
+  assetGroupId?: InputMaybe<ApiIdFilter>;
   /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by durationMs */
@@ -9842,7 +9846,7 @@ export type ApiNotificationChannelSetting = {
   replyTo?: Maybe<Scalars['String']['output']>;
   senderEmail?: Maybe<Scalars['String']['output']>;
   senderName?: Maybe<Scalars['String']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
   version: Scalars['Int']['output'];
 };
 
@@ -10156,7 +10160,13 @@ export enum NotificationWebhookFormat {
 export type ApiNotificationWebhookSecretPayload = {
   __typename?: 'NotificationWebhookSecretPayload';
   secret: Scalars['String']['output'];
-  subscription?: Maybe<ApiNotificationWebhookSubscription>;
+};
+
+export type ApiNotificationWebhookSecretStatus = {
+  __typename?: 'NotificationWebhookSecretStatus';
+  configured: Scalars['Boolean']['output'];
+  rotatedAt?: Maybe<Scalars['DateTime']['output']>;
+  version?: Maybe<Scalars['Int']['output']>;
 };
 
 export enum NotificationWebhookStatus {
@@ -10199,7 +10209,7 @@ export type ApiNotificationsMutation = {
   cancelDelivery: ApiNotificationCancelPayload;
   configureProvider: ApiNotificationProviderConfiguration;
   createTemplateRevision: ApiNotificationTemplateRevision;
-  createWebhook: ApiNotificationWebhookSecretPayload;
+  createWebhook: ApiNotificationWebhookSubscription;
   deleteStaffRecipient: ApiDeletePayload;
   deleteWebhook: ApiDeletePayload;
   preview: ApiNotificationPreview;
@@ -10263,14 +10273,8 @@ export type ApiNotificationsMutationRetryDeliveryArgs = {
 };
 
 
-export type ApiNotificationsMutationRevealWebhookSecretArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
 export type ApiNotificationsMutationRotateWebhookSecretArgs = {
   gracePeriodHours?: InputMaybe<Scalars['Int']['input']>;
-  id: Scalars['ID']['input'];
 };
 
 
@@ -10313,6 +10317,7 @@ export type ApiNotificationsMutationValidateTemplateArgs = {
 
 export type ApiNotificationsQuery = {
   __typename?: 'NotificationsQuery';
+  channelSettings: Array<ApiNotificationChannelSetting>;
   definitions: Array<ApiNotificationDefinition>;
   deliveries: Array<ApiNotificationDelivery>;
   deliveryAttempts: Array<ApiNotificationDeliveryAttempt>;
@@ -10323,7 +10328,13 @@ export type ApiNotificationsQuery = {
   template: ApiNotificationEffectiveTemplate;
   templateRevisions: Array<ApiNotificationTemplateRevision>;
   webhookCapabilities: ApiNotificationWebhookCapabilities;
+  webhookSecretStatus: ApiNotificationWebhookSecretStatus;
   webhookSubscriptions: Array<ApiNotificationWebhookSubscription>;
+};
+
+
+export type ApiNotificationsQueryChannelSettingsArgs = {
+  key: Scalars['String']['input'];
 };
 
 

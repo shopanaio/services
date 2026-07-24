@@ -18,6 +18,7 @@ type Mutation {
 type NotificationsQuery {
   overview: NotificationOverview!
   definitions: [NotificationDefinition!]!
+  channelSettings(key: String!): [NotificationChannelSetting!]!
   templateRevisions(
     key: String!
     channel: NotificationChannel!
@@ -32,6 +33,7 @@ type NotificationsQuery {
   providerRoutes: [NotificationProviderRoute!]!
   providerConfiguration(channel: NotificationChannel!): NotificationProviderMaskedConfiguration!
   webhookCapabilities: NotificationWebhookCapabilities!
+  webhookSecretStatus: NotificationWebhookSecretStatus!
   webhookSubscriptions: [NotificationWebhookSubscription!]!
   deliveries(limit: Int = 100): [NotificationDelivery!]!
   deliveryAttempts(deliveryId: ID!): [NotificationDeliveryAttempt!]!
@@ -53,11 +55,11 @@ type NotificationsMutation {
   configureProvider(input: NotificationProviderConfigurationInput!): NotificationProviderConfiguration!
   testProvider(channel: NotificationChannel!, recipient: String): NotificationProviderTestResult!
   sendTest(input: NotificationTestMessageInput!): NotificationWorkflowPayload!
-  createWebhook(input: NotificationWebhookCreateInput!): NotificationWebhookSecretPayload!
+  createWebhook(input: NotificationWebhookCreateInput!): NotificationWebhookSubscription!
   updateWebhook(input: NotificationWebhookUpdateInput!): NotificationWebhookSubscription!
   deleteWebhook(id: ID!): DeletePayload!
-  rotateWebhookSecret(id: ID!, gracePeriodHours: Int = 24): NotificationWebhookSecretPayload!
-  revealWebhookSecret(id: ID!): NotificationWebhookSecretPayload!
+  rotateWebhookSecret(gracePeriodHours: Int = 24): NotificationWebhookSecretPayload!
+  revealWebhookSecret: NotificationWebhookSecretPayload!
   retryDelivery(deliveryId: ID!, idempotencyKey: String!): NotificationWorkflowPayload!
   cancelDelivery(deliveryId: ID!): NotificationCancelPayload!
 }
@@ -159,7 +161,7 @@ type NotificationChannelSetting {
   senderEmail: String
   replyTo: String
   version: Int!
-  updatedAt: DateTime!
+  updatedAt: DateTime
 }
 
 input NotificationTemplateRevisionInput {
@@ -389,8 +391,13 @@ type NotificationWebhookSubscription {
 }
 
 type NotificationWebhookSecretPayload {
-  subscription: NotificationWebhookSubscription
   secret: String!
+}
+
+type NotificationWebhookSecretStatus {
+  configured: Boolean!
+  version: Int
+  rotatedAt: DateTime
 }
 
 type NotificationDelivery {

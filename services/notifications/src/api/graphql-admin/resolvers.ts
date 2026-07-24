@@ -36,6 +36,11 @@ export const resolvers = {
       run(context, { operation: "overview" }),
     definitions: (_: unknown, __: Args, context: ServiceContext) =>
       run(context, { operation: "definitions" }),
+    channelSettings: (_: unknown, args: Args, context: ServiceContext) =>
+      run(context, {
+        operation: "channelSettings",
+        key: args.key as never,
+      }),
     templateRevisions: (_: unknown, args: Args, context: ServiceContext) =>
       run(context, {
         operation: "templateRevisions",
@@ -65,6 +70,8 @@ export const resolvers = {
       }),
     webhookCapabilities: (_: unknown, __: Args, context: ServiceContext) =>
       run(context, { operation: "webhookCapabilities" }),
+    webhookSecretStatus: (_: unknown, __: Args, context: ServiceContext) =>
+      run(context, { operation: "webhookSecretStatus" }),
     webhookSubscriptions: (_: unknown, __: Args, context: ServiceContext) =>
       run(context, { operation: "webhooks" }),
     deliveries: (_: unknown, args: Args, context: ServiceContext) =>
@@ -182,14 +189,10 @@ export const resolvers = {
     rotateWebhookSecret: (_: unknown, args: Args, context: ServiceContext) =>
       run(context, {
         operation: "rotateWebhookSecret",
-        id: args.id as string,
         gracePeriodHours: args.gracePeriodHours as number | undefined,
       }),
-    revealWebhookSecret: (_: unknown, args: Args, context: ServiceContext) =>
-      run(context, {
-        operation: "revealWebhookSecret",
-        id: args.id as string,
-      }),
+    revealWebhookSecret: (_: unknown, __: Args, context: ServiceContext) =>
+      run(context, { operation: "revealWebhookSecret" }),
     retryDelivery: (_: unknown, args: Args, context: ServiceContext) =>
       run(context, {
         operation: "retryDelivery",

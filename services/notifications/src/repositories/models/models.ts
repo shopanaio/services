@@ -390,14 +390,11 @@ export const webhookSubscriptions = notificationsSchema.table(
   ]
 );
 
-export const webhookSecretVersions = notificationsSchema.table(
-  "webhook_secret_versions",
+export const webhookStoreSecretVersions = notificationsSchema.table(
+  "webhook_store_secret_versions",
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
-    subscriptionId: uuid("subscription_id")
-      .notNull()
-      .references(() => webhookSubscriptions.id, { onDelete: "cascade" }),
     version: integer("version").notNull(),
     secretCiphertext: text("secret_ciphertext").notNull(),
     active: boolean("active").notNull().default(true),
@@ -409,13 +406,12 @@ export const webhookSecretVersions = notificationsSchema.table(
     createdAt: createdAt(),
   },
   (table) => [
-    unique("webhook_secret_version_identity").on(
-      table.subscriptionId,
+    unique("webhook_store_secret_version_identity").on(
+      table.storeId,
       table.version
     ),
-    index("webhook_secret_active_idx").on(
+    index("webhook_store_secret_active_idx").on(
       table.storeId,
-      table.subscriptionId,
       table.active
     ),
   ]
@@ -458,3 +454,5 @@ export type NotificationDelivery = typeof notificationDeliveries.$inferSelect;
 export type NotificationDeliveryAttempt =
   typeof notificationDeliveryAttempts.$inferSelect;
 export type WebhookSubscription = typeof webhookSubscriptions.$inferSelect;
+export type WebhookStoreSecretVersion =
+  typeof webhookStoreSecretVersions.$inferSelect;

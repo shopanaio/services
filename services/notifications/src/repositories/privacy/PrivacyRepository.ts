@@ -15,7 +15,7 @@ import {
   notificationDeliveries,
   notificationOccurrences,
   notificationRecipients,
-  webhookSecretVersions,
+  webhookStoreSecretVersions,
 } from "../models/index.js";
 
 const RETENTION_BATCH_SIZE = 500;
@@ -196,14 +196,17 @@ export class PrivacyRepository extends BaseRepository {
     }
 
     const expiredSecrets = await this.connection
-      .delete(webhookSecretVersions)
+      .delete(webhookStoreSecretVersions)
       .where(
         and(
-          eq(webhookSecretVersions.active, false),
-          lte(webhookSecretVersions.graceExpiresAt, new Date().toISOString())
+          eq(webhookStoreSecretVersions.active, false),
+          lte(
+            webhookStoreSecretVersions.graceExpiresAt,
+            new Date().toISOString()
+          )
         )
       )
-      .returning({ id: webhookSecretVersions.id });
+      .returning({ id: webhookStoreSecretVersions.id });
 
     return {
       occurrencesPurged: occurrenceIds.length,

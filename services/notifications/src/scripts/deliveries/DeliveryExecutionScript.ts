@@ -144,7 +144,6 @@ export class DeliveryExecutionScript extends BaseScript<
           ? JSON.stringify(envelope)
           : toXml(envelope);
       const signature = await this.repository.webhooks.sign(
-        subscription.id,
         createdAt,
         deliveryId,
         body

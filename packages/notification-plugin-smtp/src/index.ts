@@ -15,6 +15,7 @@ export const configSchema = z
     password: z.string().optional(),
     fromEmail: z.string().email(),
     fromName: z.string().optional(),
+    replyToEmail: z.string().email().optional(),
   })
   .strict();
 
@@ -63,7 +64,7 @@ class SmtpProvider implements NotificationProvider {
             address: recipient.email,
             name: recipient.name ?? "",
           })),
-          replyTo: input.replyTo,
+          replyTo: input.replyTo ?? this.config.replyToEmail,
           subject: input.subject,
           html: input.html,
           text: input.text,

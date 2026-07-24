@@ -4,7 +4,7 @@ import { isIP } from "node:net";
 import { and, desc, eq } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  webhookSecretVersions,
+  webhookStoreSecretVersions,
   webhookSubscriptions,
 } from "../models/index.js";
 
@@ -64,8 +64,8 @@ export class WebhookRepository extends BaseRepository {
         apiVersion: input.apiVersion,
       })
       .returning();
-    const secret = await this.rotateSecret(id, input.createdBy, 0);
-    return { subscription: rows[0]!, secret };
+    await this.ensureSecret(input.createdBy);
+    return rows[0]!;
   }
 
   async update(input: {
@@ -114,40 +114,52 @@ export class WebhookRepository extends BaseRepository {
     return rows.length === 1;
   }
 
+  async getSecretStatus(): Promise<{
+    configured: boolean;
+    version: number | null;
+    rotatedAt: string | null;
+  }> {
+    const current = (
+      await this.connection
+        .select()
+        .from(webhookStoreSecretVersions)
+        .where(
+          and(
+            eq(webhookStoreSecretVersions.storeId, this.storeId),
+            eq(webhookStoreSecretVersions.active, true)
+          )
+        )
+        .orderBy(desc(webhookStoreSecretVersions.version))
+        .limit(1)
+    )[0];
+    return {
+      configured: current !== undefined,
+      version: current?.version ?? null,
+      rotatedAt: current?.createdAt ?? null,
+    };
+  }
+
+  async ensureSecret(createdBy?: string): Promise<void> {
+    const status = await this.getSecretStatus();
+    if (!status.configured) {
+      await this.rotateSecret(createdBy, 0);
+    }
+  }
+
   async rotateSecret(
-    subscriptionId: string,
     createdBy?: string,
     gracePeriodHours = 24
   ): Promise<string> {
-    const subscription = (
-      await this.connection
-        .select()
-        .from(webhookSubscriptions)
-        .where(
-          and(
-            eq(webhookSubscriptions.storeId, this.storeId),
-            eq(webhookSubscriptions.id, subscriptionId)
-          )
-        )
-        .limit(1)
-    )[0];
-    if (!subscription) throw new Error("WEBHOOK_NOT_FOUND");
-
-    const current = await this.connection
+    const versions = await this.connection
       .select()
-      .from(webhookSecretVersions)
-      .where(
-        and(
-          eq(webhookSecretVersions.storeId, this.storeId),
-          eq(webhookSecretVersions.subscriptionId, subscriptionId),
-          eq(webhookSecretVersions.active, true)
-        )
-      )
-      .orderBy(desc(webhookSecretVersions.version));
+      .from(webhookStoreSecretVersions)
+      .where(eq(webhookStoreSecretVersions.storeId, this.storeId))
+      .orderBy(desc(webhookStoreSecretVersions.version));
+    const current = versions.filter((entry) => entry.active);
     const now = Date.now();
     if (current.length > 0) {
       await this.connection
-        .update(webhookSecretVersions)
+        .update(webhookStoreSecretVersions)
         .set({
           active: false,
           graceExpiresAt: new Date(
@@ -156,19 +168,17 @@ export class WebhookRepository extends BaseRepository {
         })
         .where(
           and(
-            eq(webhookSecretVersions.storeId, this.storeId),
-            eq(webhookSecretVersions.subscriptionId, subscriptionId),
-            eq(webhookSecretVersions.active, true)
+            eq(webhookStoreSecretVersions.storeId, this.storeId),
+            eq(webhookStoreSecretVersions.active, true)
           )
         );
     }
 
     const secret = randomBytes(32).toString("base64url");
-    await this.connection.insert(webhookSecretVersions).values({
+    await this.connection.insert(webhookStoreSecretVersions).values({
       id: await this.generateUuidV7(),
       storeId: this.storeId,
-      subscriptionId,
-      version: (current[0]?.version ?? 0) + 1,
+      version: (versions[0]?.version ?? 0) + 1,
       secretCiphertext: this.protection.encrypt(secret),
       active: true,
       createdBy,
@@ -176,18 +186,13 @@ export class WebhookRepository extends BaseRepository {
     return secret;
   }
 
-  async getSigningSecrets(subscriptionId: string): Promise<string[]> {
+  async getSigningSecrets(): Promise<string[]> {
     const now = new Date().toISOString();
     const rows = await this.connection
       .select()
-      .from(webhookSecretVersions)
-      .where(
-        and(
-          eq(webhookSecretVersions.storeId, this.storeId),
-          eq(webhookSecretVersions.subscriptionId, subscriptionId)
-        )
-      )
-      .orderBy(desc(webhookSecretVersions.version));
+      .from(webhookStoreSecretVersions)
+      .where(eq(webhookStoreSecretVersions.storeId, this.storeId))
+      .orderBy(desc(webhookStoreSecretVersions.version));
     return rows
       .filter(
         (row) =>
@@ -197,18 +202,17 @@ export class WebhookRepository extends BaseRepository {
       .map((row) => this.protection.decrypt(row.secretCiphertext));
   }
 
-  async revealSecret(subscriptionId: string): Promise<string> {
+  async revealSecret(): Promise<string> {
     const rows = await this.connection
       .select()
-      .from(webhookSecretVersions)
+      .from(webhookStoreSecretVersions)
       .where(
         and(
-          eq(webhookSecretVersions.storeId, this.storeId),
-          eq(webhookSecretVersions.subscriptionId, subscriptionId),
-          eq(webhookSecretVersions.active, true)
+          eq(webhookStoreSecretVersions.storeId, this.storeId),
+          eq(webhookStoreSecretVersions.active, true)
         )
       )
-      .orderBy(desc(webhookSecretVersions.version))
+      .orderBy(desc(webhookStoreSecretVersions.version))
       .limit(1);
     const current = rows[0];
     if (!current) throw new Error("WEBHOOK_SIGNING_SECRET_NOT_FOUND");
@@ -216,12 +220,11 @@ export class WebhookRepository extends BaseRepository {
   }
 
   async sign(
-    subscriptionId: string,
     timestamp: string,
     deliveryId: string,
     body: string
   ): Promise<string> {
-    const secret = (await this.getSigningSecrets(subscriptionId))[0];
+    const secret = (await this.getSigningSecrets())[0];
     if (!secret) throw new Error("WEBHOOK_SIGNING_SECRET_NOT_FOUND");
     return createHmac("sha256", secret)
       .update(`${timestamp}.${deliveryId}.${body}`)

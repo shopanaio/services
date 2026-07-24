@@ -13,6 +13,10 @@ export type NotificationAdminParams =
   | { operation: "overview" }
   | { operation: "definitions" }
   | {
+      operation: "channelSettings";
+      key: Notifications.NotificationDefinitionKey;
+    }
+  | {
       operation: "setDefinitionEnabled";
       key: Notifications.NotificationDefinitionKey;
       enabled: boolean;
@@ -105,6 +109,7 @@ export type NotificationAdminParams =
       >;
     }
   | { operation: "webhookCapabilities" }
+  | { operation: "webhookSecretStatus" }
   | { operation: "webhooks" }
   | {
       operation: "createWebhook";
@@ -126,10 +131,9 @@ export type NotificationAdminParams =
   | { operation: "deleteWebhook"; id: string }
   | {
       operation: "rotateWebhookSecret";
-      id: string;
       gracePeriodHours?: number;
     }
-  | { operation: "revealWebhookSecret"; id: string }
+  | { operation: "revealWebhookSecret" }
   | { operation: "deliveries"; limit?: number }
   | { operation: "deliveryAttempts"; deliveryId: string }
   | {
@@ -175,6 +179,24 @@ export class NotificationAdminScript extends BaseScript<
           this.repository.settings.listChannelSettings(),
         ]);
         return this.effectiveDefinitions(settings, channels);
+      }
+      case "channelSettings": {
+        const definition = this.definitions.get(params.key);
+        const settings =
+          await this.repository.settings.listChannelSettings(params.key);
+        return definition.allowedChannels.map((channel) => {
+          const setting = settings.find((entry) => entry.channel === channel);
+          return setting ?? {
+            definitionKey: params.key,
+            channel,
+            enabled: definition.defaultChannels.includes(channel),
+            senderName: null,
+            senderEmail: null,
+            replyTo: null,
+            version: 0,
+            updatedAt: null,
+          };
+        });
       }
       case "setDefinitionEnabled": {
         const definition = this.definitions.get(params.key);
@@ -374,6 +396,8 @@ export class NotificationAdminScript extends BaseScript<
           })),
           apiVersions: WEBHOOK_API_VERSIONS,
         };
+      case "webhookSecretStatus":
+        return this.repository.webhooks.getSecretStatus();
       case "webhooks":
         return this.repository.webhooks.list();
       case "createWebhook": {
@@ -385,7 +409,7 @@ export class NotificationAdminScript extends BaseScript<
         await this.audit(
           "webhook.created",
           "webhook",
-          result.subscription.id,
+          result.id,
           { eventType: params.eventType, format: params.format }
         );
         return result;
@@ -419,16 +443,23 @@ export class NotificationAdminScript extends BaseScript<
       }
       case "rotateWebhookSecret": {
         const secret = await this.repository.webhooks.rotateSecret(
-          params.id,
           actorId,
           params.gracePeriodHours
         );
-        await this.audit("webhook.secret.rotated", "webhook", params.id);
+        await this.audit(
+          "webhook.secret.rotated",
+          "webhookSecret",
+          this.context.store.id
+        );
         return { secret };
       }
       case "revealWebhookSecret": {
-        const secret = await this.repository.webhooks.revealSecret(params.id);
-        await this.audit("webhook.secret.revealed", "webhook", params.id);
+        const secret = await this.repository.webhooks.revealSecret();
+        await this.audit(
+          "webhook.secret.revealed",
+          "webhookSecret",
+          this.context.store.id
+        );
         return { secret };
       }
       case "deliveries":
@@ -571,7 +602,8 @@ function permissionFor(params: NotificationAdminParams): {
   if (
     operation.includes("Webhook") ||
     operation === "webhooks" ||
-    operation === "webhookCapabilities"
+    operation === "webhookCapabilities" ||
+    operation === "webhookSecretStatus"
   ) {
     return {
       resource: "notification_webhook",
@@ -584,7 +616,8 @@ function permissionFor(params: NotificationAdminParams): {
           : operation === "deleteWebhook"
             ? "delete"
             : operation === "webhooks" ||
-                operation === "webhookCapabilities"
+                operation === "webhookCapabilities" ||
+                operation === "webhookSecretStatus"
               ? "read"
               : "update",
     };
@@ -623,7 +656,9 @@ function permissionFor(params: NotificationAdminParams): {
   return {
     resource: "notification_settings",
     action:
-      operation === "overview" || operation === "definitions"
+      operation === "overview" ||
+      operation === "definitions" ||
+      operation === "channelSettings"
         ? "read"
         : "update",
   };

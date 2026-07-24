@@ -271,7 +271,6 @@ export class NotificationBrokerActions extends BrokerActions {
   @Action("rotateWebhookSecret")
   async rotateWebhookSecret(params: {
     storeId: string;
-    subscriptionId: string;
     actorId?: string;
     gracePeriodHours?: number;
   }, context: BrokerCallContext): Promise<{ secret: string }> {
@@ -279,7 +278,6 @@ export class NotificationBrokerActions extends BrokerActions {
     const store = await this.getStore(params.storeId);
     return this.withStore(store, async () => ({
       secret: await this.kernel.repository.webhooks.rotateSecret(
-        params.subscriptionId,
         params.actorId,
         params.gracePeriodHours
       ),

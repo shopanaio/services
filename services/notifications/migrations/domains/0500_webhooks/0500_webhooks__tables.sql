@@ -16,22 +16,19 @@ CREATE TABLE "notifications"."webhook_subscriptions" (
 CREATE INDEX "webhook_subscription_store_status_idx"
   ON "notifications"."webhook_subscriptions" ("store_id", "status");
 
-CREATE TABLE "notifications"."webhook_secret_versions" (
+CREATE TABLE "notifications"."webhook_store_secret_versions" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
-  "subscription_id" uuid NOT NULL
-    REFERENCES "notifications"."webhook_subscriptions"("id")
-    ON DELETE CASCADE,
   "version" integer NOT NULL CHECK ("version" >= 1),
   "secret_ciphertext" text NOT NULL,
   "active" boolean NOT NULL DEFAULT true,
   "grace_expires_at" timestamptz,
   "created_by" uuid,
   "created_at" timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT "webhook_secret_version_identity"
-    UNIQUE ("subscription_id", "version")
+  CONSTRAINT "webhook_store_secret_version_identity"
+    UNIQUE ("store_id", "version")
 );
 
-CREATE INDEX "webhook_secret_active_idx"
-  ON "notifications"."webhook_secret_versions"
-  ("store_id", "subscription_id", "active");
+CREATE INDEX "webhook_store_secret_active_idx"
+  ON "notifications"."webhook_store_secret_versions"
+  ("store_id", "active");
