@@ -9,6 +9,7 @@ import { PathParamsProvider } from "./path-params-context";
 import { modulesContext } from "./modules-context";
 import type { ParamData } from "path-to-regexp";
 import { ModalStack } from "@/layouts/modals";
+import { AdminAppsHostProvider } from "@/domains/apps";
 import "@/layouts/filters/components/relation-control/register";
 
 // Initialize modules on client side (module-level, runs once)
@@ -131,8 +132,10 @@ export function ClientLayoutResolver({
   return (
     <ModuleProvider sidebarItems={sidebarItems} getModalStackItems={getModalStackItems}>
       <PathParamsProvider pathParams={pathParams}>
-        <DomainLayout>{children}</DomainLayout>
-        <ModalStack />
+        <AdminAppsHostProvider>
+          <DomainLayout>{children}</DomainLayout>
+          <ModalStack />
+        </AdminAppsHostProvider>
       </PathParamsProvider>
     </ModuleProvider>
   );

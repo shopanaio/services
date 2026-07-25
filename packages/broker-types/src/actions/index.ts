@@ -20,6 +20,15 @@ export type {
   TestNotificationProviderParams,
   GetMaskedNotificationProviderConfigParams,
   GetMaskedNotificationProviderConfigResult,
+  AppInstallationStatus,
+  AppLifecycleAcceptedResult,
+  InstallAppParams,
+  UpdateAppParams,
+  SuspendAppParams,
+  ResumeAppParams,
+  UninstallAppParams,
+  ExecuteCapabilityParams,
+  ExecuteCapabilityResult,
 } from "./apps.js";
 
 // Notifications service actions

@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@shopana/admin-app-sdk": [
+        "./src/domains/apps/sdk/index.ts"
       ]
     }
   },

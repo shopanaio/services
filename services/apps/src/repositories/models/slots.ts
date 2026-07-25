@@ -5,11 +5,13 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { platformSchema } from "./schema";
+import { appInstallations } from "./installations";
 
 export const slotStatus = platformSchema.enum("slot_status", [
   "active",
@@ -65,8 +67,16 @@ export const slots = platformSchema.table(
     domain: varchar("domain", { length: 255 }).notNull(),
     provider: varchar("provider", { length: 255 }).notNull(),
     providerConfigId: uuid("provider_config_id")
-      .notNull()
       .references(() => providerConfigs.id, { onDelete: "cascade" }),
+    status: slotStatus("status").notNull().default("active"),
+    installationId: uuid("installation_id").references(
+      () => appInstallations.id,
+      { onDelete: "cascade" },
+    ),
+    capability: varchar("capability", { length: 128 }),
+    operationContract: varchar("operation_contract", { length: 128 }),
+    targetAppCode: varchar("target_app_code", { length: 128 }),
+    targetAction: varchar("target_action", { length: 128 }),
     capabilities: text("capabilities")
       .array()
       .notNull()
@@ -84,8 +94,22 @@ export const slots = platformSchema.table(
       table.domain,
       table.provider
     ),
+    uniqueIndex("slots_installation_capability_operation_key")
+      .on(
+        table.installationId,
+        table.capability,
+        table.operationContract,
+      )
+      .where(sql`${table.installationId} is not null`),
     index("idx_slots_store_domain").on(table.storeId, table.domain),
     index("idx_slots_provider_config").on(table.providerConfigId),
+    index("slots_installation_idx").on(table.installationId),
+    index("slots_capability_route_idx").on(
+      table.storeId,
+      table.capability,
+      table.operationContract,
+      table.status,
+    ),
   ]
 );
 

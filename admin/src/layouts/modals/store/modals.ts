@@ -8,7 +8,14 @@ interface IModalStackState {
    * Push a new item onto the modal stack
    * @returns uuid of the created item
    */
-  push: (type: string, payload?: IModalStackPayload) => string;
+  push: (
+    type: string,
+    payload?: IModalStackPayload,
+    options?: {
+      owner?: string;
+      onRemoved?: (reason: "closed" | "owner-disposed") => void;
+    },
+  ) => string;
 
   /**
    * Pop an item from the modal stack by uuid
@@ -20,6 +27,11 @@ interface IModalStackState {
    * Clear all items from the modal stack
    */
   clear: () => void;
+
+  /**
+   * Close every modal owned by one dynamic Admin App.
+   */
+  closeByOwner: (owner: string) => void;
 
   /**
    * Set dirty state for an item
@@ -50,7 +62,7 @@ interface IModalStackState {
 export const useModalStackStore = create<IModalStackState>((set, get) => ({
   items: [],
 
-  push: (type, payload = {}) => {
+  push: (type, payload = {}, options) => {
     const uuid = crypto.randomUUID();
 
     set((state) => ({
@@ -60,6 +72,8 @@ export const useModalStackStore = create<IModalStackState>((set, get) => ({
           uuid,
           type: type as string,
           payload,
+          owner: options?.owner,
+          onRemoved: options?.onRemoved,
           isDirty: false,
         },
       ],
@@ -69,6 +83,12 @@ export const useModalStackStore = create<IModalStackState>((set, get) => ({
   },
 
   pop: (uuid) => {
+    const items = get().items;
+    const itemIdx = uuid
+      ? items.findIndex((item) => item.uuid === uuid)
+      : items.length - 1;
+    const removed = itemIdx < 0 ? [] : items.slice(itemIdx);
+
     set((state) => {
       // If no uuid provided, pop the top item
       if (!uuid) {
@@ -81,10 +101,22 @@ export const useModalStackStore = create<IModalStackState>((set, get) => ({
       if (itemIdx === -1) return state;
       return { items: state.items.slice(0, itemIdx) };
     });
+
+    removed.forEach((item) => item.onRemoved?.("closed"));
   },
 
   clear: () => {
+    const removed = get().items;
     set({ items: [] });
+    removed.forEach((item) => item.onRemoved?.("closed"));
+  },
+
+  closeByOwner: (owner) => {
+    const removed = get().items.filter((item) => item.owner === owner);
+    set((state) => ({
+      items: state.items.filter((item) => item.owner !== owner),
+    }));
+    removed.forEach((item) => item.onRemoved?.("owner-disposed"));
   },
 
   setDirty: (uuid, isDirty) => {

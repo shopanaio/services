@@ -7,8 +7,14 @@ import { AppsRuntimeHost } from './runtime/AppsRuntimeHost.js';
 import { AppsRuntimeRouter } from './runtime/AppsRuntimeRouter.js';
 import {
   APP_INSTALLATION_CONTEXT_PROVIDER,
-  UnavailableAppInstallationContextProvider,
+  DatabaseAppInstallationContextProvider,
 } from './runtime/AppInstallationContextProvider.js';
+import { AppSecretResolverFactory } from './runtime/AppSecretResolverFactory.js';
+import { AppInstallationsRepository } from './control-plane/AppInstallationsRepository.js';
+import { AppInstallationSecretStore } from './control-plane/AppInstallationSecretStore.js';
+import { AppLifecycleService } from './control-plane/AppLifecycleService.js';
+import { AppInstallationLifecycleWorkflow } from './control-plane/AppInstallationLifecycleWorkflow.js';
+import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'apps' })],
@@ -18,12 +24,22 @@ import {
     AppRuntimeRegistry,
     AppsRuntimeRouter,
     AppsRuntimeHost,
-    UnavailableAppInstallationContextProvider,
+    AppInstallationsRepository,
+    AppInstallationSecretStore,
+    DatabaseAppInstallationContextProvider,
+    AppSecretResolverFactory,
+    AppLifecycleService,
+    AppInstallationLifecycleWorkflow,
+    AppsPlatformActions,
     {
       provide: APP_INSTALLATION_CONTEXT_PROVIDER,
-      useExisting: UnavailableAppInstallationContextProvider,
+      useExisting: DatabaseAppInstallationContextProvider,
     },
   ],
-  exports: [AppRuntimeRegistry, AppsRuntimeRouter],
+  exports: [
+    AppRuntimeRegistry,
+    AppsRuntimeRouter,
+    AppInstallationsRepository,
+  ],
 })
 export class AppsModule {}

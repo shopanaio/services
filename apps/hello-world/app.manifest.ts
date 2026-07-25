@@ -8,6 +8,11 @@ export const helloWorldManifest = defineAppManifest({
   description:
     "Minimal bundled Shopana App used to validate the hosted App runtime.",
   lifecycle: {
+    installWorkflow: "install",
+    updateWorkflow: "update",
+    suspendAction: "suspend",
+    resumeAction: "resume",
+    uninstallWorkflow: "uninstall",
     healthAction: "health",
   },
   permissions: [],

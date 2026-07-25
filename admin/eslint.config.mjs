@@ -18,6 +18,19 @@ const eslintConfig = defineConfig([
     rules: {
       "react-hooks/preserve-manual-memoization": "off",
       "@next/next/no-img-element": "off",
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@shopana/admin-app-sdk"],
+              allowTypeImports: true,
+              message:
+                "The internal Admin Apps SDK alias is compile-time only. Use import type.",
+            },
+          ],
+        },
+      ],
     },
   },
 ]);

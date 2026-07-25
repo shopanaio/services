@@ -26,6 +26,7 @@
     "@editorjs/paragraph": "^2.11.7",
     "@editorjs/quote": "^2.7.6",
     "@hookform/resolvers": "^5.2.2",
+    "@module-federation/enhanced": "2.8.0",
     "@monaco-editor/react": "4.6.0",
     "@types/apollo-upload-client": "^19.0.0",
     "@types/dagre": "^0.7.53",

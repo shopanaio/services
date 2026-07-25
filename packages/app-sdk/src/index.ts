@@ -75,6 +75,50 @@ export interface AppWorkflowInvocation<TInput> {
   readonly input: TInput;
 }
 
+export type AppInstallationStatus =
+  | "PENDING_CONSENT"
+  | "INSTALLING"
+  | "ACTIVE"
+  | "INSTALL_FAILED"
+  | "SUSPENDING"
+  | "SUSPENDED"
+  | "RESUMING"
+  | "UPDATING"
+  | "UPDATE_FAILED"
+  | "UNINSTALLING"
+  | "UNINSTALLED"
+  | "UNINSTALL_FAILED";
+
+export type AppLifecycleOperationType =
+  | "INSTALL"
+  | "UPDATE"
+  | "SUSPEND"
+  | "RESUME"
+  | "UNINSTALL";
+
+export interface AppInstallInput {
+  readonly version: string;
+  readonly configuration: Readonly<Record<string, unknown>>;
+}
+
+export interface AppUpdateInput {
+  readonly previousVersion: string;
+  readonly targetVersion: string;
+  readonly configuration: Readonly<Record<string, unknown>>;
+}
+
+export interface AppSuspendInput {
+  readonly installationId: string;
+}
+
+export interface AppResumeInput {
+  readonly installationId: string;
+}
+
+export interface AppUninstallInput {
+  readonly version: string;
+}
+
 export interface AppExecutionContextAccessor {
   current(): Readonly<AppExecutionContext>;
 }

@@ -1,3 +1,5 @@
+import { AppsManagementPage } from "@/domains/apps";
+
 export default function SystemAppsPage() {
-  return null;
+  return <AppsManagementPage />;
 }

@@ -15,6 +15,13 @@
       "when": 1784916058507,
       "tag": "0001_aspiring_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784990607764,
+      "tag": "0002_strong_stature",
+      "breakpoints": true
     }
   ]
 }

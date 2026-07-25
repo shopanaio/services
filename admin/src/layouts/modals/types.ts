@@ -17,7 +17,9 @@ export interface IModalStackItem<T extends IModalStackPayload = IModalStackPaylo
   uuid: string;
   type: string;
   payload: T;
+  owner?: string;
   isDirty?: boolean;
+  onRemoved?: (reason: "closed" | "owner-disposed") => void;
 }
 
 /**
@@ -46,6 +48,7 @@ export type ModalStackComponent<T extends IModalStackPayload = IModalStackPayloa
  */
 export interface IModalStackDefinition<T extends IModalStackPayload = IModalStackPayload> {
   type: string;
+  owner?: string;
   component: ModalStackComponent<T>;
   /** Whether to show close confirmation when dirty */
   confirmOnDirtyClose?: boolean;
@@ -59,6 +62,8 @@ export interface IModalStackDefinition<T extends IModalStackPayload = IModalStac
 export interface IModalStackPushOptions<T extends IModalStackPayload = IModalStackPayload> {
   type: string;
   payload?: T;
+  owner?: string;
+  onRemoved?: (reason: "closed" | "owner-disposed") => void;
 }
 
 /**

@@ -62,6 +62,19 @@ class ModalStackRegistry {
     return result;
   }
 
+  unregisterByOwner(owner: string): void {
+    let changed = false;
+    for (const [type, definition] of this.registry) {
+      if (definition.owner === owner) {
+        this.registry.delete(type);
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.notifyListeners();
+    }
+  }
+
   /**
    * Get a modal stack item definition by type
    */

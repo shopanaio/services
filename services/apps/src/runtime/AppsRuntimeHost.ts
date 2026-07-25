@@ -9,7 +9,6 @@ import {
   AppManifestSchema,
   type AppDeploymentConfig,
   type AppInstallationContextProvider,
-  type AppSecretResolver,
   type ShopanaAppDefinition,
 } from "@shopana/app-sdk";
 import {
@@ -24,16 +23,11 @@ import { AppRuntimeRegistry } from "./AppRuntimeRegistry.js";
 import { bundledApps } from "./bundled-apps.js";
 import { APP_INSTALLATION_CONTEXT_PROVIDER } from "./AppInstallationContextProvider.js";
 import { getExternallyRoutableActions } from "./AppManifestContracts.js";
+import { AppSecretResolverFactory } from "./AppSecretResolverFactory.js";
 
 interface AppsServiceConfig {
   readonly applications?: Record<string, Partial<AppDeploymentConfig>>;
 }
-
-const unavailableSecrets: AppSecretResolver = {
-  async resolve(): Promise<never> {
-    throw new Error("App secret resolver is not available yet");
-  },
-};
 
 @Injectable()
 export class AppsRuntimeHost
@@ -47,6 +41,7 @@ export class AppsRuntimeHost
     @InjectBroker("apps") private readonly broker: ServiceBroker,
     private readonly brokerFactory: AppBrokerFacadeFactory,
     private readonly registry: AppRuntimeRegistry,
+    private readonly secretResolverFactory: AppSecretResolverFactory,
     @Inject(APP_INSTALLATION_CONTEXT_PROVIDER)
     private readonly installations: AppInstallationContextProvider,
   ) {}
@@ -154,7 +149,7 @@ export class AppsRuntimeHost
       logger: new Logger(`App:${appCode}`),
       installations: this.installations,
       executionContext: contextRunner,
-      secrets: unavailableSecrets,
+      secrets: this.secretResolverFactory.create(appCode, contextRunner),
     });
     const runtime = this.registry.register({
       definition,

@@ -10,6 +10,7 @@ import {
 import { LuX as CloseOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
+import { AdminAppExtensionPoint } from "@/domains/apps";
 import { OrderPaper as Paper, OrderPaperHeader as PaperHeader } from "../../components/legacy/order-paper";
 import type { OrderModalPayload } from "../../modals";
 import {
@@ -203,6 +204,7 @@ export function OrderModal() {
         name="order-editor"
         title={order ? `Order #${order.orderNumber}` : "New order"}
         onClose={pop}
+        extra={order ? <AdminAppExtensionPoint point="orders.details.header.actions" context={{ orderId: order.id }} /> : null}
         submitButtonProps={isEdit ? null : { children: "Create", onClick: handleSubmit(submitOrder), loading: saving, disabled: saving || !isValid }}
       />}
     >
@@ -213,7 +215,7 @@ export function OrderModal() {
           {order
             ? order.status === OrderStatus.Draft
               ? <DraftFulfillment order={order} refetch={refresh} />
-              : order.fulfillments.map((fulfillment) => <ActiveFulfillment key={fulfillment.id} order={order} fulfillment={fulfillment} parent={fulfillment.parentId ? order.fulfillments.find((item) => item.id === fulfillment.parentId) ?? null : null} refetch={refresh} />)
+              : order.fulfillments.map((fulfillment) => <div key={fulfillment.id}><AdminAppExtensionPoint point="orders.details.fulfillment.actions" context={{ orderId: order.id, fulfillmentId: fulfillment.id }} /><ActiveFulfillment order={order} fulfillment={fulfillment} parent={fulfillment.parentId ? order.fulfillments.find((item) => item.id === fulfillment.parentId) ?? null : null} refetch={refresh} /><AdminAppExtensionPoint point="orders.details.fulfillment.after" context={{ orderId: order.id, fulfillmentId: fulfillment.id }} /></div>)
             : renderProducts()}
 
           {order ? <PaymentSummary order={order} refetch={refresh} /> : <Paper><PaperHeader title="Payment" /><Descriptions bordered size="small" column={1} items={[{ key: "subtotal", label: "Subtotal", children: <OrderPrice amount={0} /> }, { key: "discount", label: "Discount", children: <Typography.Text type="secondary">Not set</Typography.Text> }, { key: "shipping", label: "Shipping", children: <Typography.Text type="secondary">Not set</Typography.Text> }, { key: "total", label: <Typography.Text strong>Total</Typography.Text>, children: <Typography.Text strong><OrderPrice amount={0} /></Typography.Text> }]} /></Paper>}
@@ -222,6 +224,7 @@ export function OrderModal() {
             <PaperHeader title="Quick note" actions={!editingNote && order ? <Button icon={<EditOutlined />} onClick={() => setEditingNote(true)} /> : null} />
             {editingNote ? <><Input.TextArea autoFocus autoSize={{ minRows: 2, maxRows: 6 }} value={note} onChange={(event) => setNote(event.target.value)} maxLength={2000} /><Typography.Text type="secondary">The note is not visible to the customer</Typography.Text><Flex gap="small" style={{ marginTop: 16 }}><Button type="primary" loading={noteMutation.loading} onClick={saveNote}>Save</Button><Button onClick={() => { setEditingNote(false); setNote(order?.adminNote ?? ""); }}>Cancel</Button></Flex></> : <Typography.Text className={styles.note} type={order?.adminNote ? undefined : "secondary"} italic={!order?.adminNote} onClick={() => order && setEditingNote(true)}>{order?.adminNote || "Leave a quick note"}</Typography.Text>}
           </Paper>
+          {order ? <AdminAppExtensionPoint point="orders.details.primary.after" context={{ orderId: order.id }} /> : null}
 
           <section className={styles.timelineSection}>
             <Typography.Title level={5} className={styles.timelineTitle}>Timeline</Typography.Title>
@@ -256,6 +259,7 @@ export function OrderModal() {
             <div style={{ marginTop: 12 }}><Typography.Text type="secondary">Shipping address</Typography.Text><br /><Typography.Text className={styles.address}>{addressText(order?.shippingAddress ?? null)}</Typography.Text></div>
             {!order ? <Controller name="shippingMethodId" control={control} render={({ field }) => <Select {...field} options={[{ value: "standard", label: "Standard" }, { value: "express", label: "Express" }]} style={{ width: "100%", marginTop: 12 }} />} /> : null}
           </Paper>
+          {order ? <AdminAppExtensionPoint point="orders.details.shipping.after" context={{ orderId: order.id, fulfillmentId: order.fulfillments[0]?.id }} /> : null}
 
           <Paper>
             <PaperHeader title="Payment details" actions={order ? <Button icon={<EditOutlined />} onClick={() => paymentDetailsModal.push({ orderId: order.id, expectedVersion: order.version, onSaved: refresh })} /> : null} />
@@ -263,11 +267,13 @@ export function OrderModal() {
             <div style={{ marginTop: 12 }}><Typography.Text type="secondary">Invoice address</Typography.Text><br /><Typography.Text className={styles.address}>{addressSame ? "Same as shipping address" : addressText(order?.billingAddress ?? null)}</Typography.Text></div>
             {!order ? <Controller name="paymentMethodId" control={control} render={({ field }) => <Select {...field} options={[{ value: "card", label: "Credit card" }, { value: "cod", label: "Cash on delivery" }]} style={{ width: "100%", marginTop: 12 }} />} /> : null}
           </Paper>
+          {order ? <AdminAppExtensionPoint point="orders.details.payment.after" context={{ orderId: order.id, paymentId: order.paymentItem?.id }} /> : null}
 
           <Paper>
             <PaperHeader title="Tags" />
             <Controller name="tags" control={control} render={({ field }) => <Select {...field} mode="tags" open={false} style={{ width: "100%" }} onBlur={async () => { field.onBlur(); if (!order) return; const result = await tagsMutation.updateOrderTags({ id: order.id, expectedVersion: order.version, tags: field.value }); if (result.order) await refresh(); }} />} />
           </Paper>
+          {order ? <AdminAppExtensionPoint point="orders.details.sidebar.after" context={{ orderId: order.id }} /> : null}
         </div>
       </div>
     </ModalLayout>

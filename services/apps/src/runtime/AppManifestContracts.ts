@@ -21,6 +21,18 @@ export function getExternallyRoutableActions(
   return actions;
 }
 
+export function getExternallyRoutableWorkflows(
+  manifest: AppManifest,
+): ReadonlySet<string> {
+  return new Set(
+    [
+      manifest.lifecycle.installWorkflow,
+      manifest.lifecycle.updateWorkflow,
+      manifest.lifecycle.uninstallWorkflow,
+    ].filter((name): name is string => Boolean(name)),
+  );
+}
+
 export function assertAppOutboundContractAllowed(
   manifest: AppManifest,
   qualifiedContract: string,

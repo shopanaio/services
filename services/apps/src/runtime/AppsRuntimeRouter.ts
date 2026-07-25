@@ -1,7 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type {
+  AppDurableContextRef,
   AppInstallationContextProvider,
   AppInvocationContextRef,
+  AppWorkflowInvocation,
+  AppIdempotencyContext,
+  AppWorkflowStartOptions,
 } from "@shopana/app-sdk";
 import {
   InjectBroker,
@@ -11,6 +15,7 @@ import { AppRuntimeRegistry } from "./AppRuntimeRegistry.js";
 import { APP_INSTALLATION_CONTEXT_PROVIDER } from "./AppInstallationContextProvider.js";
 import {
   getExternallyRoutableActions,
+  getExternallyRoutableWorkflows,
   restrictGrantedScopes,
 } from "./AppManifestContracts.js";
 
@@ -79,5 +84,96 @@ export class AppsRuntimeRouter {
         ),
       }),
     );
+  }
+
+  async runWorkflow<TResult = unknown, TInput = unknown>(
+    appCode: string,
+    workflow: string,
+    input: TInput,
+    contextRef: Readonly<AppInvocationContextRef>,
+    idempotency: AppIdempotencyContext,
+    options?: AppWorkflowStartOptions,
+  ): Promise<TResult> {
+    const runtime = this.registry.get(appCode);
+    if (!runtime || runtime.status !== "READY") {
+      throw new Error(`App runtime "${appCode}" is not ready`);
+    }
+    if (!contextRef.installationId || !contextRef.operationId) {
+      throw new Error(
+        "App lifecycle workflow requires installation and operation references",
+      );
+    }
+    const localWorkflow = workflow.trim();
+    if (
+      !localWorkflow ||
+      localWorkflow.includes(".") ||
+      !getExternallyRoutableWorkflows(
+        runtime.definition.manifest,
+      ).has(localWorkflow)
+    ) {
+      throw new Error(
+        `App workflow "${localWorkflow}" is not declared as a lifecycle contract`,
+      );
+    }
+
+    const context = await this.resolveContext(
+      appCode,
+      runtime.definition.manifest.version,
+      contextRef,
+    );
+    const durableContext: AppDurableContextRef = Object.freeze({
+      schemaVersion: 1,
+      appCode: context.appCode,
+      installationId: context.installationId,
+      organizationId: context.organizationId,
+      storeId: context.storeId,
+      appVersion: context.appVersion,
+      operationId: context.operationId,
+      actor: context.actor,
+      correlationId: context.correlationId,
+    });
+    const invocation: AppWorkflowInvocation<TInput> = Object.freeze({
+      context: durableContext,
+      input,
+    });
+    return this.broker.runWorkflow<
+      TResult,
+      AppWorkflowInvocation<TInput>
+    >(
+      `apps.${appCode}.${localWorkflow}`,
+      invocation,
+      idempotency,
+      options,
+    );
+  }
+
+  private async resolveContext(
+    appCode: string,
+    appVersion: string,
+    contextRef: Readonly<AppInvocationContextRef>,
+  ) {
+    const context = await this.installations.resolve({
+      appCode,
+      installationId: contextRef.installationId,
+      appVersion,
+      operationId: contextRef.operationId,
+    });
+    if (
+      context.appCode !== appCode ||
+      context.appVersion !== appVersion ||
+      context.installationId !== contextRef.installationId ||
+      !context.organizationId ||
+      !context.storeId
+    ) {
+      throw new Error("Resolved App installation context is invalid");
+    }
+    return Object.freeze({
+      ...context,
+      correlationId: contextRef.correlationId ?? context.correlationId,
+      grantedScopes: restrictGrantedScopes(
+        this.registry.get(appCode)!.definition.manifest,
+        context.grantedScopes,
+      ),
+    });
   }
 }
