@@ -720,6 +720,7 @@ Registry является compile-time code.
 - `ServiceConfig`;
 - logger factory;
 - secret resolver;
+- App context runner и durable context rehydrator;
 - runtime registry storage;
 - GraphQL server factories.
 
@@ -793,6 +794,7 @@ for (const definition of bundledApps) {
     databaseClient,
     logger: loggerFactory.create({ service: "apps", appCode }),
     installations: installationContextProvider,
+    executionContext: appContextAccessor.scope(appCode),
     secrets: appSecretResolver.scope(appCode),
   });
 
@@ -816,9 +818,23 @@ interface AppHostContext {
   readonly databaseClient: DatabaseClient;
   readonly logger: Logger;
   readonly installations: AppInstallationContextProvider;
+  readonly executionContext: AppExecutionContextAccessor;
   readonly secrets: AppSecretResolver;
 }
 ```
+
+`AppExecutionContextAccessor` является read-only API:
+
+```typescript
+interface AppExecutionContextAccessor {
+  current(): Readonly<AppExecutionContext>;
+}
+```
+
+Он возвращает context текущей action/workflow activation и бросает typed
+ошибку вне host-owned execution scope. Accessor не предоставляет API создания
+или замены context; возвращённое значение нельзя кэшировать и использовать за
+пределами текущей activation.
 
 Broker передаётся как готовый facade над broker service `apps`, привязанный к
 `appCode`.
@@ -966,23 +982,82 @@ interface AppExecutionContext {
   storeId: string;
   appVersion: string;
   grantedScopes: readonly string[];
+  operationId?: string;
   actor?: {
     type: "USER" | "SERVICE" | "SYSTEM";
     id?: string;
   };
+  correlationId?: string;
 }
 ```
 
-Context распространяется через AsyncLocalStorage и добавляется в trusted
-`BrokerCallContext`.
+`AppExecutionContext` является полностью разрешённым request-local context.
+`apps-service` строит его из control-plane records непосредственно перед
+выполнением action или GraphQL resolver.
 
-Для этого `BrokerCallContext` расширяется optional полем `app`, а
-`ServiceBroker` при создании call context читает только host-owned context
-accessor. App input не сливается с trusted context. При вложенных core calls
-App provenance сохраняется отдельно от непосредственного
-`caller.service`.
+Для обычной in-process цепочки context переносится через host-owned
+`AsyncLocalStorage`. `BrokerCallContext` расширяется optional полем `app`, а
+`ServiceBroker` при создании call context читает только read-only accessor.
+App input не сливается с trusted context. При вложенных core calls App
+provenance сохраняется отдельно от непосредственного `caller.service`.
 
-### 12.5. Context creation
+ALS не является durable storage, authority source или частью workflow
+protocol. Нельзя рассчитывать, что ALS сохранится после DBOS sleep, retry,
+replay, queue handoff или process restart.
+
+### 12.5. Durable workflow context
+
+Каждый App workflow получает внутреннюю host-owned оболочку:
+
+```typescript
+interface AppDurableContextRef {
+  schemaVersion: 1;
+  appCode: string;
+  installationId: string;
+  organizationId: string;
+  storeId: string;
+  appVersion: string;
+  operationId?: string;
+  actor?: {
+    type: "USER" | "SERVICE" | "SYSTEM";
+    id?: string;
+  };
+  correlationId?: string;
+}
+
+interface AppWorkflowInvocation<TInput> {
+  context: AppDurableContextRef;
+  input: TInput;
+}
+```
+
+Эта оболочка:
+
+- создаётся только `apps-service`, а не GraphQL caller или App;
+- сохраняется DBOS как часть workflow input;
+- содержит stable identity и audit provenance;
+- не содержит `grantedScopes` как authority snapshot;
+- не передаётся App как пользовательский business input.
+
+Перед каждым workflow entry/replay `AppWorkflowRegistrar`:
+
+1. читает `AppDurableContextRef`;
+2. загружает installation и lifecycle operation из control plane;
+3. проверяет совпадение `appCode`, organization, store и target version;
+4. проверяет, что текущий installation state допускает эту operation;
+5. получает актуальные granted scopes и runtime manifest;
+6. строит новый `AppExecutionContext`;
+7. выполняет workflow activation внутри host-owned ALS scope.
+
+Таким образом, persisted ref восстанавливает identity, но не заменяет
+повторную авторизацию. Suspend, scope revoke или uninstall учитываются после
+recovery.
+
+`AppBroker.runWorkflow()` принимает только business input и idempotency.
+Facade сам создаёт `AppWorkflowInvocation`, используя текущий trusted context.
+App не может передать или переопределить `AppDurableContextRef`.
+
+### 12.6. Context creation
 
 Создавать App context может только:
 
@@ -992,7 +1067,11 @@ App provenance сохраняется отдельно от непосредст
 
 App input не может задавать trusted context.
 
-### 12.6. Reserved namespaces
+Для workflow источником context после первого durable boundary всегда является
+`AppDurableContextRef` плюс повторное разрешение control-plane state, а не
+сохранившийся ALS store.
+
+### 12.7. Reserved namespaces
 
 App не задаёт broker service name. Manifest задаёт только `appCode`.
 
@@ -1234,7 +1313,8 @@ App владеет App-specific install/update/uninstall logic.
 2. Пользователь подтверждает consent.
 3. Control plane создаёт installation в `INSTALLING`.
 4. Сохраняется manifest snapshot.
-5. `apps-service` создаёт trusted App execution context.
+5. `apps-service` создаёт `AppDurableContextRef` из installation и lifecycle
+   operation.
 6. Через `AppBroker` facade запускается:
 
 ```text
@@ -1250,17 +1330,16 @@ apps.tilda-import.install
 
 ```typescript
 interface AppInstallInput {
-  installationId: string;
-  organizationId: string;
-  storeId: string;
   version: string;
   configuration: Record<string, unknown>;
-  grantedScopes: readonly string[];
 }
 ```
 
-Target `appCode` и lifecycle contract не принимаются от GraphQL caller. Они
-разрешаются bundled registry по installation.
+DBOS фактически получает внутренний
+`AppWorkflowInvocation<AppInstallInput>`. Installation identity, target
+`appCode`, scopes и lifecycle contract не принимаются из business input
+GraphQL caller. Они разрешаются `apps-service`, помещаются в durable context
+ref и повторно проверяются при workflow entry/replay.
 
 ### 16.4. Suspend
 
@@ -1528,9 +1607,22 @@ Workflow и saga регистрируются через App SDK registrar, ко
 полный App namespace в DBOS registry и возвращает cleanup handle host-у. Raw
 `WorkflowRegistry` App не получает.
 
+Registrar также оборачивает каждый workflow в durable context boundary:
+
+- внешний App business input отделён от `AppDurableContextRef`;
+- ref сохраняется вместе с DBOS input;
+- при каждом entry/replay context повторно разрешается через control plane;
+- workflow code запускается только внутри восстановленного
+  `AppExecutionContext`;
+- отсутствие, несовпадение или отозванные полномочия завершают activation
+  контролируемой non-retryable ошибкой.
+
 ### 19.4. Sagas
 
-App sagas используют тот же DBOS runtime и могут вызывать core actions.
+App sagas используют тот же DBOS runtime и тот же durable context boundary.
+Каждая compensation activation повторно разрешает installation context с
+lifecycle policy, допускающей cleanup для `UNINSTALLING` и failure states.
+После восстановления context saga может вызывать core actions.
 
 ### 19.5. Calling core services
 
@@ -1873,11 +1965,27 @@ Stable key:
 organizationId + installationId + operation + targetVersion
 ```
 
-### 24.4. Capability idempotency
+### 24.4. Durable context recovery
+
+Workflow correctness не зависит от сохранения process-local ALS state.
+
+После retry, replay, queue handoff или process restart:
+
+1. DBOS восстанавливает `AppWorkflowInvocation`;
+2. host валидирует `AppDurableContextRef`;
+3. control plane повторно разрешает installation, operation и scopes;
+4. host создаёт новый `AppExecutionContext`;
+5. только затем запускается App workflow code.
+
+Persisted scope snapshots не используются как authority. Если installation
+больше не допускает операцию, workflow получает typed non-retryable context
+error либо переходит в разрешённую lifecycle compensation policy.
+
+### 24.5. Capability idempotency
 
 Side-effect contracts требуют domain idempotency key.
 
-### 24.5. Retry ownership
+### 24.6. Retry ownership
 
 - lifecycle — `apps-service`;
 - App workflow — App;
@@ -1970,6 +2078,9 @@ services/apps/src/
 │   └── AppGraphQLHost.ts
 ├── lifecycle/
 ├── capabilities/
+├── execution-context/
+│   ├── AppContextRunner.ts
+│   └── AppDurableContextRehydrator.ts
 ├── installations/
 ├── repositories/
 ├── secrets/
@@ -1985,6 +2096,8 @@ packages/
 │   ├── runtime/
 │   ├── registration/
 │   ├── execution-context/
+│   │   ├── durable-context/
+│   │   └── context-runner/
 │   └── graphql/
 └── app-contracts/
 ```
@@ -2153,7 +2266,7 @@ Compatibility path не сохраняется.
 - `AppBroker` contract;
 - `AppBrokerFacadeFactory` над `@InjectBroker("apps")`;
 - namespace qualification;
-- trusted App context и allowlists;
+- request-local App context runner и allowlists;
 - duplicate protection и cleanup.
 
 Критерий:
@@ -2166,6 +2279,8 @@ Compatibility path не сохраняется.
 - manifest;
 - definition;
 - host context;
+- `AppDurableContextRef` и `AppWorkflowInvocation`;
+- durable context rehydrator;
 - explicit action/workflow registration;
 - runtime states;
 - startup rollback;
@@ -2195,6 +2310,9 @@ Compatibility path не сохраняется.
 
 - install/update/suspend/resume/uninstall;
 - App workflow dispatch;
+- persisted host-owned context ref;
+- context rehydration при entry/replay;
+- актуальная scope/state validation после recovery;
 - retries/compensation.
 
 ### Этап 6. Capability routing
@@ -2334,7 +2452,10 @@ App package предоставляет SDL/resolvers.
 
 - install;
 - duplicate request;
-- process restart;
+- process restart после durable boundary;
+- DBOS replay восстанавливает context из `AppDurableContextRef`;
+- изменённые scopes/state повторно проверяются после recovery;
+- отсутствие ALS state до rehydration не влияет на workflow;
 - suspend/resume;
 - update;
 - uninstall one store while another remains active.
@@ -2344,6 +2465,8 @@ App package предоставляет SDL/resolvers.
 - downstream видит `caller.service = apps`;
 - конкретный App виден в trusted `context.app.appCode`;
 - missing installation context rejected;
+- forged durable context в business input игнорируется/rejected;
+- несовпадение durable ref и control-plane installation rejected;
 - cross-store rejected;
 - undeclared action rejected.
 
@@ -2374,11 +2497,14 @@ App package предоставляет SDL/resolvers.
 14. Migration tooling обнаруживает `apps/*`.
 15. Installation отделена от slot.
 16. Lifecycle принадлежит `apps-service`.
-17. App может предоставить отдельный Federation subgraph.
-18. Subgraph server запускает `apps-service`.
-19. Tilda работает из `apps/tilda-import`.
-20. Добавление Tilda не меняет bootstrap.
-21. Legacy Tilda plugin execution удалён.
+17. DBOS сохраняет host-owned `AppDurableContextRef` вместе с workflow input.
+18. Workflow entry/replay повторно разрешает installation state и scopes до
+    выполнения App code.
+19. App может предоставить отдельный Federation subgraph.
+20. Subgraph server запускает `apps-service`.
+21. Tilda работает из `apps/tilda-import`.
+22. Добавление Tilda не меняет bootstrap.
+23. Legacy Tilda plugin execution удалён.
 
 ## 33. Отклонённые альтернативы
 
