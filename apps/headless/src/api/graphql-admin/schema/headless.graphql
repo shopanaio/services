@@ -1,0 +1,265 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: ["@key", "@shareable"]
+  )
+
+"""An ISO 8601 date-time string."""
+scalar DateTime
+
+"""An object with a globally unique ID."""
+interface Node {
+  """The globally unique ID of the object."""
+  id: ID!
+}
+
+"""A user-facing mutation error."""
+interface UserError {
+  """A human-readable error message."""
+  message: String!
+
+  """The input path associated with the error."""
+  field: [String!]
+
+  """A stable machine-readable error code."""
+  code: String
+}
+
+"""A generic user-facing mutation error."""
+type GenericUserError implements UserError @shareable {
+  message: String!
+  field: [String!]
+  code: String
+}
+
+"""Whether a credential is safe for public clients or restricted to servers."""
+enum StorefrontCredentialKind {
+  PUBLIC
+  PRIVATE
+}
+
+"""Lifecycle state of a storefront credential."""
+enum StorefrontCredentialStatus {
+  ACTIVE
+  REVOKED
+}
+
+"""The Storefront API permissions granted to a Headless storefront."""
+type StorefrontAccessPolicy {
+  """Immutable, sorted Storefront permission handles."""
+  permissions: [String!]!
+
+  """Optimistic concurrency revision."""
+  revision: Int!
+
+  """When the policy or its grants were last changed."""
+  updatedAt: DateTime!
+}
+
+"""Credential metadata. Private plaintext is never exposed by this type."""
+type StorefrontCredential implements Node @key(fields: "id") {
+  id: ID!
+  kind: StorefrontCredentialKind!
+  status: StorefrontCredentialStatus!
+  label: String
+
+  """A redacted suffix suitable for identifying the credential."""
+  tokenHint: String!
+
+  createdAt: DateTime!
+  lastUsedAt: DateTime
+  revokedAt: DateTime
+}
+
+"""Plaintext credentials returned only by the initial create mutation."""
+type StorefrontInitialCredentials {
+  publicAccessToken: String!
+  privateAccessToken: String!
+}
+
+"""Lifecycle state of a Headless storefront connection."""
+enum HeadlessStorefrontConnectionStatus {
+  ACTIVE
+  SUSPENDED
+  DISCONNECTED
+}
+
+"""An independent custom storefront owned by the Headless App installation."""
+type HeadlessStorefrontConnection implements Node @key(fields: "id") {
+  id: ID!
+  displayName: String!
+  status: HeadlessStorefrontConnectionStatus!
+  storefrontAccessPolicy: StorefrontAccessPolicy
+
+  """The repeat-readable public token, subject to Admin authorization."""
+  publicAccessToken: String
+
+  """Credential metadata without recoverable private token values."""
+  storefrontCredentials: [StorefrontCredential!]!
+
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Input for creating a private credential for an existing storefront."""
+input StorefrontPrivateCredentialCreateInput {
+  connectionId: ID!
+  label: String!
+
+  """A unique client-generated ID, reused only when retrying this request."""
+  clientMutationId: String!
+}
+
+"""Input for creating a Headless storefront connection."""
+input HeadlessStorefrontCreateInput {
+  displayName: String!
+
+  """A unique client-generated ID, reused only when retrying this request."""
+  clientMutationId: String!
+}
+
+"""Input for a lifecycle action on an existing Headless storefront."""
+input HeadlessStorefrontActionInput {
+  connectionId: ID!
+
+  """A unique client-generated ID, reused only when retrying this request."""
+  clientMutationId: String!
+}
+
+"""Input for changing a Headless storefront display name."""
+input HeadlessStorefrontUpdateInput {
+  connectionId: ID!
+  displayName: String!
+
+  """A unique client-generated ID, reused only when retrying this request."""
+  clientMutationId: String!
+}
+
+"""Input for revoking an existing private storefront credential."""
+input StorefrontCredentialRevokeInput {
+  credentialId: ID!
+
+  """A unique client-generated ID, reused only when retrying this request."""
+  clientMutationId: String!
+}
+
+"""Input for replacing the complete Storefront permission grant set."""
+input StorefrontAccessPolicyUpdateInput {
+  connectionId: ID!
+  permissions: [String!]!
+  expectedRevision: Int!
+
+  """A unique client-generated ID, reused only when retrying this request."""
+  clientMutationId: String!
+}
+
+"""Payload returned after creating a Headless storefront."""
+type HeadlessStorefrontCreatePayload {
+  connection: HeadlessStorefrontConnection
+
+  """Whether an earlier request with the same client mutation ID was reused."""
+  duplicate: Boolean!
+
+  """Present only for the first successful execution."""
+  initialStorefrontCredentials: StorefrontInitialCredentials
+
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload returned after creating a private storefront credential."""
+type StorefrontPrivateCredentialCreatePayload {
+  credential: StorefrontCredential
+
+  """Plaintext returned only for the first successful execution."""
+  privateAccessToken: String
+
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload returned after revoking a private storefront credential."""
+type StorefrontCredentialPayload {
+  credential: StorefrontCredential
+
+  """Whether an earlier request with the same client mutation ID was reused."""
+  duplicate: Boolean!
+
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload returned after updating a storefront access policy."""
+type StorefrontAccessPolicyPayload {
+  policy: StorefrontAccessPolicy
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload returned after changing a Headless storefront."""
+type HeadlessStorefrontPayload {
+  connection: HeadlessStorefrontConnection
+
+  """Whether an earlier request with the same client mutation ID was reused."""
+  duplicate: Boolean!
+
+  userErrors: [GenericUserError!]!
+}
+
+extend type Query {
+  """Headless App queries for the active installation."""
+  headlessAppQuery: HeadlessAppQuery!
+}
+
+extend type Mutation {
+  """Headless App mutations for the active installation."""
+  headlessAppMutation: HeadlessAppMutation!
+}
+
+"""Headless App query namespace."""
+type HeadlessAppQuery {
+  """List Headless storefronts owned by the active installation."""
+  headlessStorefrontConnections: [HeadlessStorefrontConnection!]!
+
+  """Get a Headless storefront by its global ID."""
+  headlessStorefrontConnection(id: ID!): HeadlessStorefrontConnection
+}
+
+"""Headless App mutation namespace."""
+type HeadlessAppMutation {
+  """Create a storefront, its default policy, and its initial credentials."""
+  headlessStorefrontCreate(
+    input: HeadlessStorefrontCreateInput!
+  ): HeadlessStorefrontCreatePayload!
+
+  """Change the display name of an existing storefront."""
+  headlessStorefrontUpdate(
+    input: HeadlessStorefrontUpdateInput!
+  ): HeadlessStorefrontPayload!
+
+  """Temporarily suspend Storefront API access for a storefront."""
+  headlessStorefrontSuspend(
+    input: HeadlessStorefrontActionInput!
+  ): HeadlessStorefrontPayload!
+
+  """Resume Storefront API access for a suspended storefront."""
+  headlessStorefrontResume(
+    input: HeadlessStorefrontActionInput!
+  ): HeadlessStorefrontPayload!
+
+  """Permanently disconnect a storefront and revoke its credentials."""
+  headlessStorefrontDisconnect(
+    input: HeadlessStorefrontActionInput!
+  ): HeadlessStorefrontPayload!
+
+  """Create an additional private credential for safe rotation."""
+  storefrontPrivateCredentialCreate(
+    input: StorefrontPrivateCredentialCreateInput!
+  ): StorefrontPrivateCredentialCreatePayload!
+
+  """Revoke a private credential."""
+  storefrontCredentialRevoke(
+    input: StorefrontCredentialRevokeInput!
+  ): StorefrontCredentialPayload!
+
+  """Replace the complete permission grant set using optimistic concurrency."""
+  storefrontAccessPolicyUpdate(
+    input: StorefrontAccessPolicyUpdateInput!
+  ): StorefrontAccessPolicyPayload!
+}

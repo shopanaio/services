@@ -12,7 +12,9 @@ export default defineApp({
     admin: {
       schema: "./graphql/admin/hello-world.graphql",
       handlers: {
-        "Query.helloWorldGreeting": appGraphQL.action("hello"),
+        "Query.helloWorldAppQuery": appGraphQL.handler(() => ({})),
+        "HelloWorldAppQuery.helloWorldGreeting":
+          appGraphQL.action("hello"),
       },
     },
   },
