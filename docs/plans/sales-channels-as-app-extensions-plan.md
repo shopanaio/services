@@ -17,7 +17,7 @@ channels:
 - одна installation может создать один или несколько channel connections;
 - Admin обнаруживает sales-channel Apps по manifest;
 - Admin получает реальные channels из persisted connections текущего store;
-- bundled `shopana-online-store` создаёт системный Online Store channel;
+- bundled `shopana-online-store` предоставляет Online Store specification;
 - first-party и third-party channels используют один connection contract;
 - lifecycle App и lifecycle connection остаются раздельными;
 - legacy enum типов и строковый channel code удаляются.
@@ -32,7 +32,6 @@ channels:
 - `services/apps`;
 - bundled App `apps/online-store`;
 - Apps Admin GraphQL;
-- Admin frontend;
 - удаление legacy sales-channel models из Project Service.
 
 План не добавляет другие commerce-контексты, API credentials, product
@@ -152,12 +151,15 @@ Store
 12. Ошибка connection не переводит installation в failed state.
 13. Disconnect является terminal lifecycle state, а не physical delete.
 14. Online Store использует тот же connection aggregate.
-15. Online Store создаётся системным bootstrap workflow.
-16. Online Store не использует legacy channel type enum.
-17. Tenant scope всегда берётся из trusted request/App context.
-18. Lifecycle mutation имеет idempotency key.
-19. Manifest update не меняет specification старого connection молча.
-20. Legacy uppercase channel code не сохраняется как identity.
+15. Online Store App не устанавливается при создании store.
+16. Online Store connection не создаётся при установке App.
+17. Установка App и создание connection выполняются отдельными явными Admin
+    GraphQL mutations.
+18. Online Store не использует legacy channel type enum.
+19. Tenant scope всегда берётся из trusted request/App context.
+20. Lifecycle mutation имеет idempotency key.
+21. Manifest update не меняет specification старого connection молча.
+22. Legacy uppercase channel code не сохраняется как identity.
 
 ## Текущее состояние
 
@@ -633,16 +635,7 @@ apps.salesChannels.resolveConnection
 apps.salesChannels.listConnections
 apps.salesChannels.invokeConnection
 apps.salesChannels.getSpecification
-apps.salesChannels.resolveOnlineStore
 ```
-
-`resolveOnlineStore`:
-
-- принимает trusted store context;
-- находит active installation `shopana-online-store`;
-- находит active connection specification `online-store`;
-- возвращает connection UUID;
-- не возвращает legacy uppercase code.
 
 ## Apps Admin GraphQL
 
@@ -808,150 +801,35 @@ services/apps/package.json
 
 Online Store App:
 
-- является required bundled App;
-- устанавливается system actor-ом;
+- является доступной bundled App;
+- устанавливается только явной App install mutation;
 - имеет specification `online-store`;
 - разрешает только один non-terminal connection на store;
 - не требует external account;
-- создаёт connection `Online Store`;
+- connection `Online Store` создаётся только после отдельной явной Admin
+  GraphQL mutation;
 - использует общий lifecycle contract;
 - не имеет специального enum type;
 - не создаёт дополнительных commerce-context entities.
 
-### Store bootstrap
-
-DBOS workflow:
+### Explicit Online Store flow
 
 ```text
-Store created
+App install mutation
   → install shopana-online-store
+  → отдельная Admin GraphQL connection create mutation
   → create Online Store connection
-  → activate connection
+  → lifecycle operation activates connection
 ```
 
-Шаги:
+Правила:
 
-1. Проверить наличие active/non-terminal installation.
-2. Если installation отсутствует, установить App system actor-ом.
-3. Resolve specification `online-store`.
-4. Проверить existing non-terminal connection.
-5. Создать connection idempotently.
-6. Выполнить Online Store connect action.
-7. Перевести connection в `ACTIVE`.
-8. Emit activated event.
-
-Deterministic IDs:
-
-```text
-installation workflow:
-apps:install:shopana-online-store:<store-id>
-
-connection workflow:
-apps:channel:online-store:<store-id>
-```
-
-Повтор bootstrap не создаёт duplicate installation или connection.
-
-### Online Store lifecycle
-
-- App required: manual uninstall запрещён обычному store admin.
-- Connection required: manual disconnect запрещён, пока store active.
-- Suspend разрешается только platform/system operation.
+- создание store само по себе ничего не устанавливает;
+- установка App сама по себе не создаёт connection;
+- повторная install mutation обрабатывается существующей App idempotency;
+- второй non-terminal Online Store connection отклоняется;
+- disconnect и uninstall используют общие lifecycle mutations;
 - Health проверяет runtime availability.
-- Store deletion выполняет controlled disconnect/uninstall отдельным system
-  workflow.
-
-## Admin frontend
-
-### Navigation
-
-```text
-Sales channels
-  ├── Apps
-  └── Connections
-```
-
-Online Store всегда отображается среди connections после успешного store
-bootstrap.
-
-### Apps page
-
-Показывает:
-
-- App name;
-- installation status;
-- specifications;
-- number of connections;
-- install/update actions для optional Apps.
-
-Required Online Store:
-
-- помечается `Built-in`;
-- не показывает uninstall action;
-- показывает connection status и health.
-
-### Connections page
-
-Columns:
-
-- display name;
-- App;
-- specification;
-- external account label;
-- status;
-- effective active;
-- health;
-- updated at.
-
-Actions:
-
-- create;
-- continue setup;
-- update;
-- suspend;
-- resume;
-- disconnect;
-- retry failed operation.
-
-Недоступные actions скрываются или disabled по App/system policy.
-
-### Create connection flow
-
-1. Получить installed Apps с `SALES_CHANNEL` extension.
-2. Выбрать App.
-3. Выбрать specification.
-4. Ввести display name.
-5. Если требуется, передать external account metadata через App-owned setup.
-6. Создать `DRAFT` connection.
-7. Запустить lifecycle operation.
-8. Показывать operation progress.
-9. После success обновить connections list.
-
-### Module structure
-
-```text
-admin/src/domains/sales-channels/
-  apps/
-    graphql/
-    hooks/
-    components/
-    page/
-  connections/
-    graphql/
-    hooks/
-    mappers/
-    components/
-    modals/
-    page/
-```
-
-Следовать `knowledge/vault/patterns/admin-graphql-layer.md`:
-
-- generated API types импортировать из `@/graphql/types`;
-- не создавать API-output view models;
-- GraphQL operations размещать module-local;
-- mutation hooks возвращают `userErrors`;
-- cache/refetch policy находится в hooks.
 
 ## Security
 
@@ -965,7 +843,6 @@ admin/src/domains/sales-channels/
 - [ ] Runtime action существует в manifest snapshot.
 - [ ] Typed global IDs декодируются по ожидаемому entity type.
 - [ ] Disconnect не выполняет destructive cascade в других contexts.
-- [ ] Required Online Store нельзя удалить обычной Admin mutation.
 - [ ] Logs/events не содержат arbitrary configuration.
 
 ## Implementation phases
@@ -975,7 +852,7 @@ admin/src/domains/sales-channels/
 1. Зафиксировать термины.
 2. Зафиксировать Apps ownership connection control plane.
 3. Зафиксировать отсутствие обязательных дополнительных сущностей.
-4. Зафиксировать Online Store как bundled required App.
+4. Зафиксировать Online Store как bundled App с явной установкой.
 5. Зафиксировать global ID namespaces и events.
 
 Exit criteria:
@@ -1071,37 +948,19 @@ Exit criteria:
 2. Добавить manifest.
 3. Реализовать lifecycle actions.
 4. Зарегистрировать bundled App.
-5. Реализовать store bootstrap workflow.
-6. Создать один Online Store connection.
-7. Добавить required/system policy.
-8. Добавить `resolveOnlineStore` broker action.
+5. Подключить обычную App install mutation.
+6. Подключить обычную connection create mutation.
+7. Ограничить specification одним non-terminal connection.
 
 Exit criteria:
 
-- новый store получает Online Store App;
-- создаётся ровно один Online Store connection;
-- bootstrap idempotent;
-- Online Store active после bootstrap;
-- обычный Admin не может удалить required App/connection.
+- создание store не устанавливает Online Store;
+- App устанавливается только явной mutation;
+- connection создаётся только явной mutation;
+- второй non-terminal Online Store connection отклоняется;
+- disconnect и uninstall используют общий lifecycle.
 
-### Phase 6. Admin UI
-
-1. Добавить sales-channel Apps page.
-2. Добавить connections page.
-3. Добавить connection detail.
-4. Добавить create/update lifecycle flows.
-5. Добавить operation progress.
-6. Добавить Built-in Online Store presentation.
-7. Добавить policy-aware actions.
-
-Exit criteria:
-
-- Apps находятся через manifest extension;
-- реальные channels читаются из connections;
-- Online Store отображается как Built-in;
-- App install и connection create различаются.
-
-### Phase 7. Legacy cleanup
+### Phase 6. Legacy cleanup
 
 Удалить:
 
@@ -1128,7 +987,7 @@ services/project/src/repositories/models/marketSalesChannel.ts
 - compatibility views;
 - mapping по uppercase code;
 - dual write;
-- automatic compatibility adapter.
+- compatibility adapter, автоматически создающий legacy channel.
 
 ## Verification
 
@@ -1141,11 +1000,11 @@ services/project/src/repositories/models/marketSalesChannel.ts
 
 Сценарии:
 
-1. Создать новый store.
-2. Проверить automatic install Online Store App.
-3. Проверить automatic Online Store connection.
-4. Повторить bootstrap и убедиться в отсутствии duplicates.
-5. Получить sales-channel Apps через extension filter.
+1. Создать новый store и проверить, что Online Store App не установлена.
+2. Получить sales-channel Apps через extension filter.
+3. Явно установить Online Store App.
+4. Проверить отсутствие connection сразу после install.
+5. Явно создать Online Store connection.
 6. Получить connections текущего store.
 7. Попробовать создать второй Online Store connection и получить user error.
 8. Установить optional sales-channel App.
@@ -1153,14 +1012,13 @@ services/project/src/repositories/models/marketSalesChannel.ts
 10. Проверить independent lifecycle connections.
 11. Проверить cross-store isolation.
 12. Проверить cross-App ownership.
-13. Проверить suspend/resume optional App.
-14. Проверить disconnect optional connection.
+13. Проверить suspend/resume App.
+14. Проверить disconnect connection.
 15. Проверить App update compatibility.
-16. Проверить controlled uninstall optional App.
-17. Проверить запрет manual uninstall Online Store.
-18. Проверить GraphQL federation composition.
-19. Применить migrations на пустой database.
-20. Выполнить build затронутых packages/services.
+16. Проверить controlled uninstall App.
+17. Проверить GraphQL federation composition.
+18. Применить migrations на пустой database.
+19. Выполнить build затронутых packages/services.
 
 ## Acceptance criteria
 
@@ -1176,12 +1034,12 @@ services/project/src/repositories/models/marketSalesChannel.ts
 ### Online Store
 
 - [ ] Online Store реализован bundled App.
-- [ ] App required для каждого active store.
-- [ ] Создаётся один connection `Online Store`.
-- [ ] Bootstrap idempotent.
+- [ ] App устанавливается только явной mutation.
+- [ ] Для Online Store можно создать не более одного non-terminal connection.
+- [ ] Connection создаётся только явной mutation.
 - [ ] Нет специального channel type enum.
 - [ ] Нет external account requirement.
-- [ ] Обычный Admin не может удалить built-in channel.
+- [ ] Disconnect и uninstall используют общие lifecycle mutations.
 
 ### Apps
 
@@ -1198,7 +1056,6 @@ services/project/src/repositories/models/marketSalesChannel.ts
 - [ ] Connections tenant-scoped.
 - [ ] GraphQL использует typed global IDs.
 - [ ] Admin разделяет installation и connection.
-- [ ] Online Store отображается как Built-in.
 - [ ] Lifecycle operation status виден Admin.
 
 ### Cleanup
@@ -1218,7 +1075,6 @@ services/project/src/repositories/models/marketSalesChannel.ts
 | Использовать mutable manifest | App update меняет старый connection | Immutable snapshot |
 | Хранить channel в Project | Дублируется App lifecycle | Apps ownership |
 | Физически удалять connection | Теряется lifecycle history | Terminal disconnect |
-| Разрешить удалить Online Store | Store остаётся без built-in channel | Required system policy |
 | Не проверять tenant scope | Cross-store access | Context-scoped repositories |
 | Оставить uppercase code identity | Коллизии multiple connections | UUID connection ID |
 
@@ -1228,11 +1084,11 @@ services/project/src/repositories/models/marketSalesChannel.ts
 
 1. Sales-channel Apps обнаруживаются по manifest extension.
 2. App installation может иметь несколько connections.
-3. Новый store автоматически получает bundled Online Store App.
-4. Для store создаётся один active Online Store connection.
+3. Online Store App устанавливается только явной mutation.
+4. Online Store connection создаётся только явной mutation.
 5. Online Store использует общий connection lifecycle.
 6. Optional App создаёт независимые connections.
-7. Admin показывает Apps и connections как разные сущности.
+7. Admin GraphQL предоставляет Apps и connections как разные сущности.
 8. Legacy Project SalesChannel model полностью удалена.
 9. Admin schema успешно композируется.
 10. Migrations применяются на пустой database.
