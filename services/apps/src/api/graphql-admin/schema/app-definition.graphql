@@ -14,6 +14,17 @@ enum AppRuntimeHealthStatus {
   UNHEALTHY
 }
 
+"""A discoverable extension contributed by a bundled App."""
+enum AppExtensionKind {
+  SALES_CHANNEL
+}
+
+"""Filters for bundled App discovery."""
+input AppDefinitionWhereInput {
+  extensionKinds: [AppExtensionKind!]
+  installed: Boolean
+}
+
 """The health check result for a bundled App runtime."""
 type AppRuntimeHealth {
   status: AppRuntimeHealthStatus!
@@ -77,6 +88,9 @@ type AppDefinition {
 
   """GraphQL surfaces declared by the bundled manifest."""
   graphql: AppGraphQLSurfaces!
+
+  """Extension kinds declared by the bundled manifest."""
+  extensionKinds: [AppExtensionKind!]!
 
   """Whether this App has a non-terminal installation in the current store."""
   installed: Boolean!

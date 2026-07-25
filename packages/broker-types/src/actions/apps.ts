@@ -38,29 +38,37 @@ export interface InstallAppParams {
 
 export interface UpdateAppParams {
   installationId: string;
+  storeId: string;
   configuration?: Record<string, unknown>;
   expectedConfigurationVersion?: number;
   grantedScopes?: string[];
   secrets?: Record<string, string>;
   idempotencyKey: string;
+  userId?: string;
   correlationId?: string;
 }
 
 export interface SuspendAppParams {
   installationId: string;
+  storeId: string;
   idempotencyKey: string;
+  userId?: string;
   correlationId?: string;
 }
 
 export interface ResumeAppParams {
   installationId: string;
+  storeId: string;
   idempotencyKey: string;
+  userId?: string;
   correlationId?: string;
 }
 
 export interface UninstallAppParams {
   installationId: string;
+  storeId: string;
   idempotencyKey: string;
+  userId?: string;
   correlationId?: string;
 }
 

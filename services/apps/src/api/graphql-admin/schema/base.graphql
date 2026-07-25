@@ -27,7 +27,7 @@ type AppsQuery {
   appDefinition(code: String!): AppDefinition
 
   """List bundled Apps available to the current store."""
-  availableApps: [AppDefinition!]!
+  availableApps(where: AppDefinitionWhereInput): [AppDefinition!]!
 
   """Get an App installation by its global ID."""
   appInstallation(id: ID!): AppInstallation

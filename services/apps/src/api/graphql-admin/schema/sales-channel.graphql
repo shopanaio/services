@@ -20,6 +20,8 @@ type SalesChannelSpecificationDefinition {
   id: ID
   handle: String!
   label: String!
+  allowMultipleConnections: Boolean!
+  requiresExternalAccount: Boolean!
   definition: JSON!
 }
 

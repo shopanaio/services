@@ -12,7 +12,7 @@ export interface BrokerAppContext {
   readonly grantedScopes: readonly string[];
   readonly operationId?: string;
   readonly actor?: {
-    readonly type: "USER" | "SERVICE" | "SYSTEM";
+    readonly type: "USER" | "APP" | "SERVICE" | "SYSTEM";
     readonly id?: string;
   };
   readonly correlationId?: string;

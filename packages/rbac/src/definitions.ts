@@ -113,6 +113,11 @@ export const Resources = {
       displayName: "Search",
       description: "Store search management",
     },
+    "store.apps": {
+      actions: Actions,
+      displayName: "Apps",
+      description: "Store App installations and sales channels",
+    },
   },
 } as const;
 
@@ -179,6 +184,7 @@ export const Roles = {
       { resource: "store.orders", action: "admin" },
       { resource: "store.reviews", action: "admin" },
       { resource: "store.search", action: "admin" },
+      { resource: "store.apps", action: "admin" },
     ],
   },
 } as const satisfies RoleDefinitions;

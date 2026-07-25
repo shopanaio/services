@@ -1,4 +1,10 @@
-import { and, desc, eq } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+} from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type {
   AppLifecycleOperationStatus,
@@ -53,6 +59,55 @@ export class SalesChannelOperationRepository extends BaseRepository {
       .where(eq(appSalesChannelOperations.id, id))
       .limit(1);
     return rows[0] ? mapOperation(rows[0]) : null;
+  }
+
+  async findByIdForStore(
+    id: string,
+  ): Promise<SalesChannelOperationRecord | null> {
+    const rows = await this.connection
+      .select(getTableColumns(appSalesChannelOperations))
+      .from(appSalesChannelOperations)
+      .innerJoin(
+        appSalesChannelConnections,
+        eq(
+          appSalesChannelConnections.id,
+          appSalesChannelOperations.connectionId,
+        ),
+      )
+      .where(
+        and(
+          eq(appSalesChannelConnections.storeId, this.storeId),
+          eq(appSalesChannelOperations.id, id),
+        ),
+      )
+      .limit(1);
+    return rows[0] ? mapOperation(rows[0]) : null;
+  }
+
+  async getByIdsForStore(
+    ids: readonly string[],
+  ): Promise<SalesChannelOperationRecord[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.connection
+      .select(getTableColumns(appSalesChannelOperations))
+      .from(appSalesChannelOperations)
+      .innerJoin(
+        appSalesChannelConnections,
+        eq(
+          appSalesChannelConnections.id,
+          appSalesChannelOperations.connectionId,
+        ),
+      )
+      .where(
+        and(
+          eq(appSalesChannelConnections.storeId, this.storeId),
+          inArray(
+            appSalesChannelOperations.id,
+            [...new Set(ids)],
+          ),
+        ),
+      );
+    return rows.map(mapOperation);
   }
 
   async findByIdempotency(

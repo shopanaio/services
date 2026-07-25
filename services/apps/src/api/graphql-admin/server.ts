@@ -23,6 +23,7 @@ import type { AppLifecycleService } from "../../control-plane/AppLifecycleServic
 import type { Repository } from "../../repositories/Repository.js";
 import type { AppRuntimeRegistry } from "../../runtime/AppRuntimeRegistry.js";
 import type { SalesChannelLifecycleService } from "../../sales-channels/control-plane/SalesChannelLifecycleService.js";
+import { Loader } from "../../loaders/Loader.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
@@ -119,6 +120,7 @@ export async function startServer(serverConfig: ServerConfig) {
           lifecycle: serverConfig.lifecycle,
           runtimes: serverConfig.runtimes,
           salesChannelLifecycle: serverConfig.salesChannelLifecycle,
+          loaders: new Loader(serverConfig.repository),
           store: request.store,
           user: request.user,
         });

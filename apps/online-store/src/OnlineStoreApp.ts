@@ -1,6 +1,7 @@
 import type {
   AppHostContext,
   AppRuntimeHealth,
+  SalesChannelConnectInput,
   ShopanaApp,
 } from "@shopana/app-sdk";
 

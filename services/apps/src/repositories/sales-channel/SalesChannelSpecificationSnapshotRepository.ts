@@ -1,4 +1,10 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+} from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type {
   SalesChannelSpecificationSnapshotRecord,
@@ -150,6 +156,32 @@ export class SalesChannelSpecificationSnapshotRepository extends BaseRepository 
       .from(appSalesChannelSpecificationSnapshots)
       .where(
         inArray(appSalesChannelSpecificationSnapshots.id, [...new Set(ids)]),
+      );
+    return rows.map(mapSnapshot);
+  }
+
+  async getByIdsForStore(
+    ids: readonly string[],
+  ): Promise<SalesChannelSpecificationSnapshotRecord[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.connection
+      .select(getTableColumns(appSalesChannelSpecificationSnapshots))
+      .from(appSalesChannelSpecificationSnapshots)
+      .innerJoin(
+        appInstallations,
+        eq(
+          appInstallations.id,
+          appSalesChannelSpecificationSnapshots.installationId,
+        ),
+      )
+      .where(
+        and(
+          eq(appInstallations.storeId, this.storeId),
+          inArray(
+            appSalesChannelSpecificationSnapshots.id,
+            [...new Set(ids)],
+          ),
+        ),
       );
     return rows.map(mapSnapshot);
   }

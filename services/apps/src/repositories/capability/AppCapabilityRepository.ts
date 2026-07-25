@@ -103,6 +103,44 @@ export class AppCapabilityRepository extends BaseRepository {
       );
   }
 
+  async listByInstallationIdsForStore(
+    installationIds: readonly string[],
+  ): Promise<AppCapabilityBindingRecord[]> {
+    if (installationIds.length === 0) return [];
+    return this.connection
+      .select({
+        id: appBindings.id,
+        installationId: appBindings.installationId,
+        storeId: appBindings.storeId,
+        capability: appBindings.capability,
+        operation: appBindings.operationContract,
+        targetAppCode: appBindings.targetAppCode,
+        targetAction: appBindings.targetAction,
+        status: appBindings.status,
+        precedence: appBindingAssignments.precedence,
+        assignmentStatus: appBindingAssignments.status,
+      })
+      .from(appBindings)
+      .leftJoin(
+        appBindingAssignments,
+        eq(appBindingAssignments.slotId, appBindings.id),
+      )
+      .where(
+        and(
+          eq(appBindings.storeId, this.storeId),
+          inArray(
+            appBindings.installationId,
+            [...new Set(installationIds)],
+          ),
+        ),
+      )
+      .orderBy(
+        asc(appBindings.installationId),
+        asc(appBindings.capability),
+        asc(appBindings.operationContract),
+      );
+  }
+
   async findByIdForStore(
     id: string,
   ): Promise<AppCapabilityBindingRecord | null> {

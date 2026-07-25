@@ -41,6 +41,7 @@ interface BeginInstallInput {
 
 interface BeginExistingOperationInput {
   readonly installationId: string;
+  readonly storeId: string;
   readonly type: Exclude<AppLifecycleOperationType, "INSTALL">;
   readonly expectedStatuses: readonly AppInstallationStatus[];
   readonly transitionStatus: AppInstallationStatus;
@@ -171,8 +172,9 @@ export class AppInstallationStore {
   ): Promise<BegunLifecycleOperation> {
     return this.repository.runInTransaction(async () => {
       const installation =
-        await this.repository.installation.lockById(
+        await this.repository.installation.lockByIdAndStore(
           input.installationId,
+          input.storeId,
         );
       if (!installation) {
         throw new Error(
@@ -284,6 +286,13 @@ export class AppInstallationStore {
     return this.repository.installation.findById(id);
   }
 
+  findByIdAndStore(
+    id: string,
+    storeId: string,
+  ): Promise<AppInstallationRecord | null> {
+    return this.repository.installation.findByIdAndStore(id, storeId);
+  }
+
   findOperationById(
     id: string,
   ): Promise<AppLifecycleOperationRecord | null> {
@@ -345,7 +354,7 @@ export class AppInstallationStore {
   }): Promise<AppInstallationRecord> {
     return this.repository.runInTransaction(async () => {
       const installation =
-        await this.repository.installation.updateConfiguration({
+        await this.repository.installation.updateConfigurationForStore({
           id: input.installationId,
           expectedVersion: input.expectedConfigurationVersion,
           configuration: input.configuration,

@@ -136,12 +136,19 @@ export class AppInstallationRepository extends BaseRepository {
   async findByIdForStore(
     id: string,
   ): Promise<AppInstallationRecord | null> {
+    return this.findByIdAndStore(id, this.storeId);
+  }
+
+  async findByIdAndStore(
+    id: string,
+    storeId: string,
+  ): Promise<AppInstallationRecord | null> {
     const rows = await this.connection
       .select()
       .from(appInstallations)
       .where(
         and(
-          eq(appInstallations.storeId, this.storeId),
+          eq(appInstallations.storeId, storeId),
           eq(appInstallations.id, id),
         ),
       )
@@ -182,12 +189,19 @@ export class AppInstallationRepository extends BaseRepository {
   async lockByIdForStore(
     id: string,
   ): Promise<AppInstallationRecord | null> {
+    return this.lockByIdAndStore(id, this.storeId);
+  }
+
+  async lockByIdAndStore(
+    id: string,
+    storeId: string,
+  ): Promise<AppInstallationRecord | null> {
     const rows = await this.connection
       .select()
       .from(appInstallations)
       .where(
         and(
-          eq(appInstallations.storeId, this.storeId),
+          eq(appInstallations.storeId, storeId),
           eq(appInstallations.id, id),
         ),
       )
@@ -237,6 +251,23 @@ export class AppInstallationRepository extends BaseRepository {
     appCode: string,
   ): Promise<AppInstallationRecord | null> {
     return this.findNonTerminalByStoreAndApp(this.storeId, appCode);
+  }
+
+  async getNonTerminalByAppCodesForStore(
+    appCodes: readonly string[],
+  ): Promise<AppInstallationRecord[]> {
+    if (appCodes.length === 0) return [];
+    const rows = await this.connection
+      .select()
+      .from(appInstallations)
+      .where(
+        and(
+          eq(appInstallations.storeId, this.storeId),
+          inArray(appInstallations.appCode, [...new Set(appCodes)]),
+          ne(appInstallations.status, "UNINSTALLED"),
+        ),
+      );
+    return rows.map(mapInstallation);
   }
 
   listByStore(

@@ -3,6 +3,7 @@ import {
   asc,
   eq,
   getTableColumns,
+  inArray,
   isNull,
   notInArray,
 } from "drizzle-orm";
@@ -102,6 +103,35 @@ export class AppInstallationScopeRepository extends BaseRepository {
         ),
       )
       .orderBy(asc(appInstallationScopes.scope));
+  }
+
+  async listByInstallationIdsForStore(
+    installationIds: readonly string[],
+  ): Promise<AppInstallationScopeRecord[]> {
+    if (installationIds.length === 0) return [];
+    return this.connection
+      .select(getTableColumns(appInstallationScopes))
+      .from(appInstallationScopes)
+      .innerJoin(
+        appInstallations,
+        eq(
+          appInstallations.id,
+          appInstallationScopes.installationId,
+        ),
+      )
+      .where(
+        and(
+          eq(appInstallations.storeId, this.storeId),
+          inArray(
+            appInstallationScopes.installationId,
+            [...new Set(installationIds)],
+          ),
+        ),
+      )
+      .orderBy(
+        asc(appInstallationScopes.installationId),
+        asc(appInstallationScopes.scope),
+      );
   }
 
   async replace(

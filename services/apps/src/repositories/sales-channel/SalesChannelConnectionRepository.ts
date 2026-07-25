@@ -1,4 +1,10 @@
 import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type {
   SalesChannelConnectionRecord,
@@ -12,6 +18,32 @@ import {
   appInstallations,
   type SalesChannelConnectionModel,
 } from "../models/index.js";
+
+export const salesChannelConnectionRelayQuery = createRelayQuery(
+  createQuery(appSalesChannelConnections)
+    .include(["id"])
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "salesChannelConnection", tieBreaker: "id" },
+);
+
+export type SalesChannelConnectionRelayInput = InferRelayInput<
+  typeof salesChannelConnectionRelayQuery
+>;
+
+export interface SalesChannelConnectionConnectionInput {
+  readonly first?: number | null;
+  readonly after?: string | null;
+  readonly last?: number | null;
+  readonly before?: string | null;
+  readonly installationId?: string;
+}
+
+export interface SalesChannelConnectionConnectionResult {
+  readonly edges: Array<{ cursor: string; nodeId: string }>;
+  readonly pageInfo: PageInfo;
+  readonly totalCount: number;
+}
 
 export class SalesChannelConnectionRepository extends BaseRepository {
   constructor(
@@ -242,6 +274,29 @@ export class SalesChannelConnectionRepository extends BaseRepository {
     return rows.map(mapConnection);
   }
 
+  async listByInstallationIdsForStore(
+    installationIds: readonly string[],
+  ): Promise<SalesChannelConnectionRecord[]> {
+    if (installationIds.length === 0) return [];
+    const rows = await this.connection
+      .select()
+      .from(appSalesChannelConnections)
+      .where(
+        and(
+          eq(appSalesChannelConnections.storeId, this.storeId),
+          inArray(
+            appSalesChannelConnections.installationId,
+            [...new Set(installationIds)],
+          ),
+        ),
+      )
+      .orderBy(
+        appSalesChannelConnections.installationId,
+        desc(appSalesChannelConnections.updatedAt),
+      );
+    return rows.map(mapConnection);
+  }
+
   async getByIdsForStore(
     ids: readonly string[],
   ): Promise<SalesChannelConnectionRecord[]> {
@@ -256,6 +311,50 @@ export class SalesChannelConnectionRepository extends BaseRepository {
         ),
       );
     return rows.map(mapConnection);
+  }
+
+  async getConnection(
+    input: SalesChannelConnectionConnectionInput,
+  ): Promise<SalesChannelConnectionConnectionResult> {
+    const where: SalesChannelConnectionRelayInput["where"] = {
+      storeId: { _eq: this.storeId },
+      ...(input.installationId
+        ? { installationId: { _eq: input.installationId } }
+        : {}),
+    };
+    const relayInput: SalesChannelConnectionRelayInput = {
+      first:
+        input.first == null && input.last == null
+          ? 20
+          : input.first,
+      after: input.after,
+      last: input.last,
+      before: input.before,
+      where,
+      orderBy: [
+        { field: "updatedAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      salesChannelConnectionRelayQuery.execute(
+        this.connection,
+        relayInput,
+      ),
+      salesChannelConnectionRelayQuery.count(this.connection, {
+        where,
+      }),
+    ]);
+
+    return {
+      edges: result.edges.map(({ cursor, node }) => ({
+        cursor,
+        nodeId: node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
   }
 
   async resolveActive(id: string, storeId?: string) {

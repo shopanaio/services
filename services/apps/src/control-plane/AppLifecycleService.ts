@@ -65,6 +65,7 @@ export class AppLifecycleService {
     this.assertPlatformCaller(context);
     const installation = await this.requireInstallation(
       params.installationId,
+      params.storeId,
     );
     const runtime = this.requireRuntime(installation.appCode);
     const manifest = runtime.definition.manifest;
@@ -74,6 +75,7 @@ export class AppLifecycleService {
         : this.validateGrantedScopes(manifest, params.grantedScopes);
     const begun = await this.installations.beginExistingOperation({
       installationId: installation.id,
+      storeId: params.storeId,
       type: "UPDATE",
       expectedStatuses: [
         "ACTIVE",
@@ -83,7 +85,7 @@ export class AppLifecycleService {
       transitionStatus: "UPDATING",
       targetVersion: manifest.version,
       idempotencyKey: required(params.idempotencyKey, "idempotencyKey"),
-      actor: actorFromContext(context),
+      actor: actorFromContext(context, params.userId),
       correlationId: params.correlationId,
       configuration: params.configuration,
       expectedConfigurationVersion: params.expectedConfigurationVersion,
@@ -159,16 +161,18 @@ export class AppLifecycleService {
     this.assertPlatformCaller(context);
     const installation = await this.requireInstallation(
       params.installationId,
+      params.storeId,
     );
     const runtime = this.requireRuntime(installation.appCode);
     const begun = await this.installations.beginExistingOperation({
       installationId: installation.id,
+      storeId: params.storeId,
       type,
       expectedStatuses,
       transitionStatus,
       targetVersion: runtime.definition.manifest.version,
       idempotencyKey: required(params.idempotencyKey, "idempotencyKey"),
-      actor: actorFromContext(context),
+      actor: actorFromContext(context, params.userId),
       correlationId: params.correlationId,
     });
     return this.startLifecycle(begun, broker);
@@ -244,9 +248,13 @@ export class AppLifecycleService {
     return runtime;
   }
 
-  private async requireInstallation(installationId: string) {
-    const installation = await this.installations.findById(
+  private async requireInstallation(
+    installationId: string,
+    storeId: string,
+  ) {
+    const installation = await this.installations.findByIdAndStore(
       required(installationId, "installationId"),
+      required(storeId, "storeId"),
     );
     if (!installation) {
       throw new Error(`App installation "${installationId}" not found`);
