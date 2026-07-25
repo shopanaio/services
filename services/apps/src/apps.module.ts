@@ -33,9 +33,6 @@ import { SalesChannelLifecycleWorkflow } from './sales-channels/control-plane/Sa
 import { SalesChannelPlatformActions } from './sales-channels/control-plane/SalesChannelPlatformActions.js';
 import { SalesChannelSpecificationService } from './sales-channels/control-plane/SalesChannelSpecificationService.js';
 import { SalesChannelRuntimeRouter } from './sales-channels/runtime/SalesChannelRuntimeRouter.js';
-import { OnlineStoreBootstrapWorkflow } from './sales-channels/control-plane/OnlineStoreBootstrapWorkflow.js';
-import { OnlineStoreDeprovisionWorkflow } from './sales-channels/control-plane/OnlineStoreDeprovisionWorkflow.js';
-import { OnlineStoreEventHandlers } from './sales-channels/control-plane/OnlineStoreEventHandlers.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'apps' })],
@@ -64,9 +61,6 @@ import { OnlineStoreEventHandlers } from './sales-channels/control-plane/OnlineS
     SalesChannelLifecycleWorkflow,
     SalesChannelRuntimeRouter,
     SalesChannelPlatformActions,
-    OnlineStoreBootstrapWorkflow,
-    OnlineStoreDeprovisionWorkflow,
-    OnlineStoreEventHandlers,
     AppGraphQLServerFactory,
     AppSubgraphHost,
     AppSubgraphRegistry,

@@ -22,7 +22,6 @@ export type {
   ResolveSalesChannelConnectionParams,
   ListSalesChannelConnectionsParams,
   InvokeSalesChannelConnectionParams,
-  ResolveOnlineStoreParams,
   GetSalesChannelSpecificationParams,
   SalesChannelSpecificationResult,
 } from "./apps.js";

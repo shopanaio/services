@@ -51,9 +51,6 @@ type AppPermission {
 
 """A bundled App that can be installed in a store."""
 type AppDefinition {
-  """Whether every active store must keep this bundled App installed."""
-  required: Boolean!
-
   """Stable manifest code used to identify the App."""
   code: String!
 

@@ -92,38 +92,6 @@ export class SalesChannelPlatformActions extends BrokerActions {
     );
   }
 
-  @Action("apps.salesChannels.resolveOnlineStore")
-  async resolveOnlineStore(
-    params: Apps.ResolveOnlineStoreParams,
-    context: BrokerCallContext,
-  ): Promise<{ connectionId: string } | null> {
-    assertTrustedCaller(context);
-    const connections =
-      await this.repository.salesChannelConnection.listByStore(
-        required(params.storeId, "storeId"),
-        ["ACTIVE"],
-      );
-    for (const connection of connections) {
-      const installation = await this.repository.installation.findById(
-        connection.installationId,
-      );
-      if (
-        installation?.appCode !== "shopana-online-store" ||
-        installation.status !== "ACTIVE"
-      ) {
-        continue;
-      }
-      const specification =
-        await this.repository.salesChannelSpecification.findById(
-          connection.specificationSnapshotId,
-        );
-      if (specification?.handle === "online-store") {
-        return { connectionId: connection.id };
-      }
-    }
-    return null;
-  }
-
   @Action("apps.salesChannels.getSpecification")
   async getSpecification(
     params: Apps.GetSalesChannelSpecificationParams,
@@ -152,19 +120,6 @@ export class SalesChannelPlatformActions extends BrokerActions {
     };
   }
 
-  @Action("apps.salesChannels.resolveConnectionDetails")
-  async resolveConnectionDetails(
-    params: Apps.ResolveSalesChannelConnectionParams,
-    context: BrokerCallContext,
-  ): Promise<{ specificationId: string } | null> {
-    const resolved = await this.resolveConnection(params, context);
-    if (!resolved) return null;
-    const connection =
-      await this.repository.salesChannelConnection.findById(resolved.id);
-    return connection
-      ? { specificationId: connection.specificationSnapshotId }
-      : null;
-  }
 }
 
 function assertTrustedCaller(context: BrokerCallContext): void {

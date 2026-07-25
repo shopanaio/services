@@ -17,7 +17,6 @@ export class SalesChannelLifecycleService {
       readonly userId?: string;
       readonly correlationId?: string;
       readonly trustedStoreId?: string;
-      readonly workflowId?: string;
     },
     broker: ServiceBroker,
   ): Promise<SalesChannelLifecycleAccepted> {
@@ -31,7 +30,6 @@ export class SalesChannelLifecycleService {
         ? { type: "USER", id: input.userId }
         : { type: "SYSTEM" },
       correlationId: input.correlationId,
-      workflowId: input.workflowId,
       trustedStoreId: input.trustedStoreId,
     });
     return this.start(begun, undefined, broker);
@@ -71,13 +69,12 @@ export class SalesChannelLifecycleService {
     );
   }
 
-  async suspend(
+  suspend(
     connectionId: string,
     clientMutationId: string,
     broker: ServiceBroker,
     userId?: string,
   ) {
-    await this.assertManualActionAllowed(connectionId, "suspend", userId);
     return this.begin(
       {
         connectionId,
@@ -110,14 +107,13 @@ export class SalesChannelLifecycleService {
     );
   }
 
-  async disconnect(
+  disconnect(
     connectionId: string,
     clientMutationId: string,
     broker: ServiceBroker,
     userId?: string,
     trustedStoreId?: string,
   ) {
-    await this.assertManualActionAllowed(connectionId, "disconnect", userId);
     return this.begin(
       {
         connectionId,
@@ -137,24 +133,6 @@ export class SalesChannelLifecycleService {
       },
       broker,
     );
-  }
-
-  private async assertManualActionAllowed(
-    connectionId: string,
-    action: "suspend" | "disconnect",
-    userId?: string,
-  ): Promise<void> {
-    if (!userId) return;
-    const connection = await this.store.findByIdForStore(connectionId);
-    if (!connection) return;
-    const installation = await this.store.findInstallation(
-      connection.installationId,
-    );
-    if (installation?.appCode === "shopana-online-store") {
-      throw new Error(
-        `Built-in Online Store connection cannot be ${action}ed manually`,
-      );
-    }
   }
 
   private async begin(

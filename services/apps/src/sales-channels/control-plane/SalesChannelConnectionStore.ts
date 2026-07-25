@@ -31,7 +31,6 @@ export class SalesChannelConnectionStore {
     readonly idempotencyKey: string;
     readonly actor: SalesChannelActor;
     readonly correlationId?: string;
-    readonly workflowId?: string;
     readonly trustedStoreId?: string;
   }): Promise<BegunSalesChannelOperation> {
     return this.repository.runInTransaction(async () => {
@@ -131,13 +130,11 @@ export class SalesChannelConnectionStore {
         connectionId: connection.id,
         type: "CONNECT",
         idempotencyKey: input.idempotencyKey,
-        workflowId:
-          input.workflowId ??
-          workflowId(
-            connection.id,
-            "CONNECT",
-            input.idempotencyKey,
-          ),
+        workflowId: workflowId(
+          connection.id,
+          "CONNECT",
+          input.idempotencyKey,
+        ),
         actorType: input.actor.type,
         actorId: input.actor.id,
         correlationId: input.correlationId,
@@ -270,10 +267,6 @@ export class SalesChannelConnectionStore {
 
   findOperation(id: string): Promise<SalesChannelOperationRecord | null> {
     return this.repository.salesChannelOperation.findById(id);
-  }
-
-  findInstallation(id: string) {
-    return this.repository.installation.findById(id);
   }
 
   listByInstallation(

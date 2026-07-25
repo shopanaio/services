@@ -11,9 +11,6 @@ import type {
 import { AppsType } from "./AppsType.js";
 
 export class AppDefinitionResolver extends AppsType<ShopanaAppDefinition> {
-  required() {
-    return this.$ctx.runtimes.isRequired(this.$props.manifest.code);
-  }
   code() { return this.$props.manifest.code; }
   version() { return this.$props.manifest.version; }
   displayName() { return this.$props.manifest.displayName; }

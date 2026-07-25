@@ -155,7 +155,6 @@ export class AppsRuntimeHost
 
     const hostContext = {
       broker: appBroker,
-      config,
       databaseClient: this.databaseClient,
       logger: new Logger(`App:${appCode}`),
       installations: this.installations,

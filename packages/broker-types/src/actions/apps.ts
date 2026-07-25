@@ -34,8 +34,6 @@ export interface InstallAppParams {
   installedByUserId?: string;
   idempotencyKey: string;
   correlationId?: string;
-  system?: boolean;
-  workflowId?: string;
 }
 
 export interface UpdateAppParams {
@@ -64,8 +62,6 @@ export interface UninstallAppParams {
   installationId: string;
   idempotencyKey: string;
   correlationId?: string;
-  system?: boolean;
-  workflowId?: string;
 }
 
 export interface ExecuteCapabilityParams {
@@ -128,10 +124,6 @@ export interface InvokeSalesChannelConnectionParams {
     | "health";
   input?: unknown;
   correlationId?: string;
-}
-
-export interface ResolveOnlineStoreParams {
-  storeId: string;
 }
 
 export interface GetSalesChannelSpecificationParams {

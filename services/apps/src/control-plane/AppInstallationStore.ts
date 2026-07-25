@@ -37,7 +37,6 @@ interface BeginInstallInput {
   readonly idempotencyKey: string;
   readonly actor: ActorInput;
   readonly correlationId?: string;
-  readonly workflowId?: string;
 }
 
 interface BeginExistingOperationInput {
@@ -53,7 +52,6 @@ interface BeginExistingOperationInput {
   readonly expectedConfigurationVersion?: number;
   readonly grantedScopes?: readonly string[];
   readonly snapshot?: AppManifestSnapshot;
-  readonly workflowId?: string;
 }
 
 export interface BegunLifecycleOperation {
@@ -133,7 +131,6 @@ export class AppInstallationStore {
           idempotencyKey: input.idempotencyKey,
           actor: input.actor,
           correlationId: input.correlationId,
-          workflowId: input.workflowId,
         });
         return { installation, operation, duplicate: false };
       }
@@ -164,7 +161,6 @@ export class AppInstallationStore {
         idempotencyKey: input.idempotencyKey,
         actor: input.actor,
         correlationId: input.correlationId,
-        workflowId: input.workflowId,
       });
       return { installation, operation, duplicate: false };
     });
@@ -269,7 +265,6 @@ export class AppInstallationStore {
         idempotencyKey: input.idempotencyKey,
         actor: input.actor,
         correlationId: input.correlationId,
-        workflowId: input.workflowId,
       });
 
       if (input.type === "SUSPEND" || input.type === "UNINSTALL") {
@@ -598,7 +593,6 @@ export class AppInstallationStore {
     readonly idempotencyKey: string;
     readonly actor: ActorInput;
     readonly correlationId?: string;
-    readonly workflowId?: string;
   }): Promise<AppLifecycleOperationRecord> {
     return this.repository.lifecycleOperation.create({
       installationId: input.installationId,
@@ -606,14 +600,12 @@ export class AppInstallationStore {
       targetVersion: input.targetVersion,
       previousInstallationStatus: input.previousInstallationStatus,
       idempotencyKey: input.idempotencyKey,
-      workflowId:
-        input.workflowId ??
-        lifecycleWorkflowId(
-          input.installationId,
-          input.type,
-          input.targetVersion,
-          input.idempotencyKey,
-        ),
+      workflowId: lifecycleWorkflowId(
+        input.installationId,
+        input.type,
+        input.targetVersion,
+        input.idempotencyKey,
+      ),
       actorType: input.actor.type,
       actorId: input.actor.id,
       correlationId: input.correlationId,
