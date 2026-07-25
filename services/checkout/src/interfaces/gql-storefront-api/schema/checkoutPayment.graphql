@@ -1,5 +1,5 @@
 """
-Payment flow for the method, aligned with payment-plugin-sdk.
+Payment flow for the method.
 """
 enum PaymentFlow {
   """
@@ -52,7 +52,7 @@ type CheckoutPaymentMethod {
 }
 
 """
-Constraints for payment method availability (from payment-plugin-sdk).
+Constraints for payment method availability.
 """
 type CheckoutPaymentMethodConstraints {
   """

@@ -3400,7 +3400,7 @@ export type ReferenceResolver<TResult, TReference, TContext> = (
       type NullableCheck<T, S> = Maybe<T> extends T ? Maybe<ListCheck<NonNullable<T>, S>> : ListCheck<T, S>;
       type ListCheck<T, S> = T extends (infer U)[] ? NullableCheck<U, S>[] : GraphQLRecursivePick<T, S>;
       export type GraphQLRecursivePick<T, S> = { [K in keyof T & keyof S]: ScalarCheck<T[K], S[K]> };
-
+    
 
 export type ResolverWithResolve<TResult, TParent, TContext, TArgs> = {
   resolve: ResolverFn<TResult, TParent, TContext, TArgs>;
@@ -3470,6 +3470,7 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
   Node: ( Customer ) | ( CustomerAddress ) | ( CustomerConsent ) | ( CustomerConsentEvent ) | ( CustomerDataRequest ) | ( CustomerGroup ) | ( CustomerGroupMembership ) | ( CustomerMerge ) | ( CustomerMonetaryStatistics ) | ( CustomerSegment ) | ( CustomerSegmentMembership ) | ( CustomerTag ) | ( CustomerTagAssignment ) | ( CustomerTaxExemption ) | ( CustomerTaxIdentifier );
   UserError: ( GenericUserError );
 }>;
+
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
@@ -4721,3 +4722,4 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Query?: QueryResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
 }>;
+

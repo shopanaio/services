@@ -1,5 +1,5 @@
 # Auto-generated GraphQL types. Do not edit manually.
-# Generated at: 2026-01-16T06:33:00.014Z
+# Generated at: 2026-07-25T15:24:01.907Z
 
 # ---- File ----
 
@@ -13,6 +13,8 @@ input FileWhereInput {
   _not: FileWhereInput
   """Filter by id"""
   id: IDFilter
+  """Filter by assetGroupId"""
+  assetGroupId: IDFilter
   """Filter by provider"""
   provider: StringFilter
   """Filter by url"""
@@ -51,6 +53,8 @@ input FileWhereInput {
 enum FileOrderField {
   """Sort by id"""
   id
+  """Sort by assetGroupId"""
+  assetGroupId
   """Sort by provider"""
   provider
   """Sort by url"""

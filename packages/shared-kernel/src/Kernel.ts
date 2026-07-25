@@ -11,7 +11,7 @@ import type {
  *
  * Implements minimal kernel architecture that provides basic services
  * for transaction scripts:
- * - Broker for inter-service communication (calls to apps.execute, etc.)
+ * - Broker for inter-service communication (calls to hosted App capabilities, etc.)
  * - Logging infrastructure
  * - Script context support for request tracking
  * - Automatic transaction management (if repository with txManager is provided)

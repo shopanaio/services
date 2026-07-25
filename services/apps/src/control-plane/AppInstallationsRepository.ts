@@ -683,7 +683,6 @@ export class AppInstallationsRepository {
       )) {
         const routeKey = capabilityRouteKey(capability.key, operation);
         declaredRoutes.add(routeKey);
-        const providerKey = `${manifest.code}:${capability.key}:${operation}`;
         const current = await trx("platform.slots")
           .where({
             installation_id: installationId,
@@ -695,10 +694,7 @@ export class AppInstallationsRepository {
         if (current) {
           slotId = String(current.id);
           await trx("platform.slots").where({ id: slotId }).update({
-            domain: capability.key,
-            provider: providerKey,
             status: "active",
-            capabilities: [capability.key],
             target_app_code: manifest.code,
             target_action: targetAction,
             updated_at: this.database.fn.now(),
@@ -707,16 +703,12 @@ export class AppInstallationsRepository {
           const [slot] = await trx("platform.slots")
             .insert({
               store_id: installation.store_id,
-              domain: capability.key,
-              provider: providerKey,
-              provider_config_id: null,
               status: "active",
               installation_id: installationId,
               capability: capability.key,
               operation_contract: operation,
               target_app_code: manifest.code,
               target_action: targetAction,
-              capabilities: [capability.key],
             })
             .returning("id");
           slotId = String(slot.id);

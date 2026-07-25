@@ -2,13 +2,10 @@ import {
   ApolloMutation,
   ZodResolver,
 } from "@shopana/type-resolver";
-import { z } from "zod";
 import {
   NotificationChannelSetEnabledScript,
   NotificationDefinitionSetEnabledScript,
   NotificationPreviewScript,
-  NotificationProviderConfigureScript,
-  NotificationProviderTestScript,
   NotificationSendTestScript,
   NotificationTemplateUpdateScript,
   NotificationWebhookCreateScript,
@@ -22,8 +19,6 @@ import {
   NotificationChannelSettingInputSchema,
   NotificationDefinitionSetEnabledInputSchema,
   NotificationPreviewInputSchema,
-  NotificationProviderConfigurationInputSchema,
-  NotificationProviderTestInputSchema,
   NotificationTemplateUpdateInputSchema,
   NotificationTestMessageInputSchema,
   NotificationWebhookCreateInputSchema,
@@ -33,7 +28,6 @@ import {
   StaffRecipientDeleteInputSchema,
 } from "./generated/schemas.js";
 import type {
-  NotificationsMutationConfigureProviderArgs,
   NotificationsMutationCreateWebhookArgs,
   NotificationsMutationDeleteStaffRecipientArgs,
   NotificationsMutationDeleteWebhookArgs,
@@ -41,14 +35,12 @@ import type {
   NotificationsMutationSendTestArgs,
   NotificationsMutationSetChannelEnabledArgs,
   NotificationsMutationSetDefinitionEnabledArgs,
-  NotificationsMutationTestProviderArgs,
   NotificationsMutationUpdateTemplateArgs,
   NotificationsMutationUpdateWebhookArgs,
   NotificationsMutationUpsertStaffRecipientArgs,
 } from "./generated/types.js";
 import {
   optional,
-  optionalStringRecord,
   toDefinitionKey,
   toDomainChannel,
   toDomainWebhookFormat,
@@ -213,50 +205,6 @@ export class NotificationsMutationResolver extends NotificationsType<
     });
     return {
       deletedStaffRecipientId: result.deletedStaffRecipientId ?? null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  @ZodResolver(
-    NotificationProviderConfigurationInputSchema().extend({
-      secretFields: z.record(z.string()).nullish(),
-    })
-  )
-  async configureProvider(
-    args: NotificationsMutationConfigureProviderArgs
-  ) {
-    const result = await this.$ctx.kernel.runScript(
-      NotificationProviderConfigureScript,
-      {
-        providerCode: args.input.providerCode,
-        channel: toDomainChannel(args.input.channel),
-        config: args.input.config,
-        secretFields: optionalStringRecord(args.input.secretFields),
-        status: args.input.active === false ? "inactive" : "active",
-      }
-    );
-    return {
-      configuration: result.configuration
-        ? {
-            ...result.configuration,
-            channel: toGraphQLChannel(result.configuration.channel),
-          }
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  @ZodResolver(NotificationProviderTestInputSchema())
-  async testProvider(args: NotificationsMutationTestProviderArgs) {
-    const result = await this.$ctx.kernel.runScript(
-      NotificationProviderTestScript,
-      {
-        channel: toDomainChannel(args.input.channel),
-        recipient: optional(args.input.recipient),
-      }
-    );
-    return {
-      testResult: result.testResult ?? null,
       userErrors: result.userErrors,
     };
   }

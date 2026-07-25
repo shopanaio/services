@@ -5,7 +5,7 @@ import {
 import { Money } from "@shopana/shared-money";
 import { CheckoutState } from "@src/domain/checkout/types";
 import { CheckoutReadModelAdapter } from "./checkoutReadModelAdapter";
-import type { PaymentFlow } from "@shopana/plugin-sdk/payment";
+import type { PaymentFlow } from "@shopana/shared-service-api";
 
 export type CheckoutDeliveryAddressRow = {
   id: string;

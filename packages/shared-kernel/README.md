@@ -57,15 +57,15 @@ export const getData: TransactionScript<GetDataParams, GetDataResult> =
     const { broker, logger } = services;
 
     try {
-      const result = await broker.call("apps.execute", {
-        domain: "mydomain",
+      const result = await broker.call("apps.executeCapability", {
+        storeId: params.storeId,
+        capability: "mydomain",
         operation: "list",
-        params: { storeId: params.storeId },
+        input: {},
       });
 
       return {
         items: result.data || [],
-        warnings: result.warnings,
       };
     } catch (error) {
       logger.error({ error }, "getData failed");

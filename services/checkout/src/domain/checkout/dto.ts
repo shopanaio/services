@@ -2,13 +2,13 @@ import { Money } from "@shopana/shared-money";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/plugin-sdk/shipping";
+} from "@shopana/shared-service-api";
 import type {
   CheckoutLineCostSnapshot,
   CheckoutTotalsSnapshot,
 } from "@src/domain/checkout/cost";
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
-import { PaymentFlow } from "@shopana/plugin-sdk/payment";
+import { PaymentFlow } from "@shopana/shared-service-api";
 import { ChildPriceType } from "./types";
 
 type CheckoutMetadataDto = {

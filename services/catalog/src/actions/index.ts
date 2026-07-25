@@ -105,7 +105,7 @@ export class CatalogBrokerActions extends BrokerActions {
   }
 
   /**
-   * Action: getOffers - retrieves inventory offers through plugins
+   * Action: getOffers - retrieves inventory offers through an App capability.
    */
   @Action("getOffers")
   async getOffers(params: GetOffersParams): Promise<GetOffersResult> {

@@ -8,18 +8,6 @@ export type { EntityRef, UserError, AssetOwnerType } from "../shared.js";
 // Apps service actions
 export * as Apps from "./apps.js";
 export type {
-  ExecuteParams,
-  ExecuteWarning,
-  ExecuteResult,
-  ExecuteAssignedParams,
-  ExecuteAssignedResult,
-  NotificationProviderRouteStatusParams,
-  NotificationProviderRouteStatusResult,
-  ConfigureNotificationProviderParams,
-  ConfigureNotificationProviderResult,
-  TestNotificationProviderParams,
-  GetMaskedNotificationProviderConfigParams,
-  GetMaskedNotificationProviderConfigResult,
   AppInstallationStatus,
   AppLifecycleAcceptedResult,
   InstallAppParams,
@@ -53,8 +41,6 @@ export type {
   WebhookDeliveryInput,
   NotificationDeliveryInput,
   NotificationDeliveryReceipt,
-  NotificationProviderTestInput,
-  NotificationProviderTestResult,
   SendTestNotificationParams,
   PreviewNotificationParams,
   PreviewNotificationResult,

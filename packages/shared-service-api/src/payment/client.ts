@@ -1,9 +1,9 @@
 import type { BrokerLike } from "../broker";
-import type { PaymentMethod } from "@shopana/plugin-sdk/payment";
 import type {
   PaymentApiClient,
   GetPaymentMethodsInput,
-  GetPaymentMethodsResponse
+  GetPaymentMethodsResponse,
+  PaymentMethod,
 } from "./types";
 
 export class PaymentClient implements PaymentApiClient {

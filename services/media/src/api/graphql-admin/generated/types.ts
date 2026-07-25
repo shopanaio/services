@@ -318,6 +318,8 @@ export type FileOrderByInput = {
 export enum FileOrderField {
   /** Sort by altText */
   AltText = 'altText',
+  /** Sort by assetGroupId */
+  AssetGroupId = 'assetGroupId',
   /** Sort by createdAt */
   CreatedAt = 'createdAt',
   /** Sort by durationMs */
@@ -476,6 +478,8 @@ export type FileWhereInput = {
   _or?: InputMaybe<Array<FileWhereInput>>;
   /** Filter by altText */
   altText?: InputMaybe<StringFilter>;
+  /** Filter by assetGroupId */
+  assetGroupId?: InputMaybe<IdFilter>;
   /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
   /** Filter by durationMs */

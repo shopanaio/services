@@ -7,9 +7,12 @@
  * ```typescript
  * import type { Apps, Media, IAM } from "@shopana/broker-types";
  *
- * const result = await broker.call<Apps.ExecuteResult, Apps.ExecuteParams>(
- *   "apps.execute",
- *   { domain: "inventory", operation: "getOffers", params }
+ * const result = await broker.call<
+ *   Apps.ExecuteCapabilityResult,
+ *   Apps.ExecuteCapabilityParams
+ * >(
+ *   "apps.executeCapability",
+ *   { storeId, capability: "inventory", operation: "getOffers", input }
  * );
  * ```
  */

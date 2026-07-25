@@ -24,8 +24,6 @@ type NotificationsQuery {
     locale: String!
   ): NotificationEffectiveTemplate!
   staffRecipients: [StaffNotificationRecipient!]!
-  providerRoutes: [NotificationProviderRoute!]!
-  providerConfiguration(channel: NotificationChannel!): NotificationProviderMaskedConfiguration!
   webhookCapabilities: NotificationWebhookCapabilities!
   webhookSubscriptions: [NotificationWebhookSubscription!]!
 }
@@ -37,8 +35,6 @@ type NotificationsMutation {
   preview(input: NotificationPreviewInput!): NotificationPreviewPayload!
   upsertStaffRecipient(input: StaffNotificationRecipientInput!): StaffRecipientUpsertPayload!
   deleteStaffRecipient(input: StaffRecipientDeleteInput!): StaffRecipientDeletePayload!
-  configureProvider(input: NotificationProviderConfigurationInput!): NotificationProviderConfigurePayload!
-  testProvider(input: NotificationProviderTestInput!): NotificationProviderTestPayload!
   sendTest(input: NotificationTestMessageInput!): NotificationSendTestPayload!
   createWebhook(input: NotificationWebhookCreateInput!): NotificationWebhookCreatePayload!
   updateWebhook(input: NotificationWebhookUpdateInput!): NotificationWebhookUpdatePayload!
@@ -242,62 +238,9 @@ type StaffNotificationRecipient {
   updatedAt: DateTime!
 }
 
-type NotificationProviderRoute {
-  channel: NotificationChannel!
-  configured: Boolean!
-  providerCode: String
-  slotId: ID
-  assignmentId: ID
-  status: String
-}
-
-input NotificationProviderConfigurationInput {
-  providerCode: String!
-  channel: NotificationChannel!
-  config: JSON!
-  secretFields: JSON
-  active: Boolean = true
-}
-
-input NotificationProviderTestInput {
-  channel: NotificationChannel!
-  recipient: String
-}
-
-type NotificationProviderConfigurePayload {
-  configuration: NotificationProviderConfiguration
-  userErrors: [GenericUserError!]!
-}
-
-type NotificationProviderTestPayload {
-  testResult: NotificationProviderTestResult
-  userErrors: [GenericUserError!]!
-}
-
 type NotificationSendTestPayload {
   workflow: NotificationWorkflowPayload
   userErrors: [GenericUserError!]!
-}
-
-type NotificationProviderConfiguration {
-  providerCode: String!
-  channel: NotificationChannel!
-  slotId: ID!
-  assignmentId: ID!
-  maskedConfig: JSON!
-}
-
-type NotificationProviderMaskedConfiguration {
-  providerCode: String!
-  channel: NotificationChannel!
-  status: String!
-  config: JSON!
-}
-
-type NotificationProviderTestResult {
-  ok: Boolean!
-  providerCode: String!
-  message: String
 }
 
 input NotificationTestMessageInput {

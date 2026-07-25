@@ -7,9 +7,9 @@ import type {
   DeliveryGroup,
   GetPaymentMethodsInput,
   GetPaymentMethodsResponse,
+  ShippingMethod,
 } from "./types";
-import type { ShippingMethod } from "@shopana/plugin-sdk/shipping";
-import type { PaymentMethod } from "@shopana/plugin-sdk/payment";
+import type { PaymentMethod } from "../payment/types.js";
 
 export class ShippingClient implements ShippingApiClient {
   private readonly broker: BrokerLike;

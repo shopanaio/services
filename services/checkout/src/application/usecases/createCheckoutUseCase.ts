@@ -9,8 +9,8 @@ import { v7 as uuidv7 } from "uuid";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/plugin-sdk/shipping";
-import { PaymentFlow } from "@shopana/plugin-sdk/payment";
+} from "@shopana/shared-service-api";
+import { PaymentFlow } from "@shopana/shared-service-api";
 // Payment types will be resolved at runtime through the API
 
 export interface CreateCheckoutUseCaseDependencies

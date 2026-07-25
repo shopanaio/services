@@ -1,5 +1,21 @@
 import { Money } from "@shopana/shared-money";
-import { Discount, DiscountType } from "@shopana/plugin-sdk/pricing";
+
+export enum DiscountType {
+  PERCENTAGE = "percentage",
+  FIXED = "fixed",
+}
+
+export type DiscountCondition = Readonly<{
+  minAmount?: Money;
+}>;
+
+export type Discount = Readonly<{
+  code: string;
+  type: DiscountType;
+  value: number | Money;
+  provider: string;
+  conditions?: DiscountCondition;
+}>;
 
 /**
  * Response for discount validation

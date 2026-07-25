@@ -2,9 +2,9 @@ import { Money } from "@shopana/shared-money";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/plugin-sdk/shipping";
+} from "@shopana/shared-service-api";
 import { AppliedDiscountSnapshot } from "./discount";
-import { PaymentFlow } from "@shopana/plugin-sdk/payment";
+import { PaymentFlow } from "@shopana/shared-service-api";
 
 /**
  * Price adjustment type for child items in a bundle.

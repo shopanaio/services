@@ -2,9 +2,7 @@ import { request } from "graphql-request";
 import type { ForwardHeaders } from "./port";
 
 /**
- * Simple GraphQL request helper for direct Core Apps GraphQL API access
- * This is kept for backward compatibility with plugins that need to query
- * the Core Apps GraphQL API directly (not context service)
+ * Simple GraphQL request helper for direct platform GraphQL API access.
  */
 export async function gqlRequest<T>(
   config: { getCoreAppsGraphqlUrl(): string },

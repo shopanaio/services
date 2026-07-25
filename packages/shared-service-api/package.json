@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@shopana/checkout-sdk": "*",
-    "@shopana/plugin-sdk": "*",
     "@shopana/shared-money": "*"
   },
   "devDependencies": {

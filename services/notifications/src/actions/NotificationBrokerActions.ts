@@ -1,8 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type {
-  Apps,
-  Notifications,
-} from "@shopana/broker-types";
+import type { Notifications } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
 import {
   Action,
@@ -63,14 +60,6 @@ export class NotificationBrokerActions extends BrokerActions {
     context: BrokerCallContext
   ): Promise<Notifications.EnqueueNotificationResult> {
     this.assertInternalCaller(context);
-    const route =
-      await this.broker.call<Apps.NotificationProviderRouteStatusResult>(
-        "apps.getNotificationProviderRouteStatus",
-        { storeId: params.storeId, channel: params.channel }
-      );
-    if (!route.configured || route.status !== "active") {
-      throw new Error(`No active provider configured for ${params.channel}`);
-    }
     const started = await this.broker.startWorkflow(
       "notifications.enqueue",
       {
@@ -217,15 +206,6 @@ export class NotificationBrokerActions extends BrokerActions {
     return this.withStore(store, () =>
       this.kernel.repository.deliveries.listAttempts(params.deliveryId)
     );
-  }
-
-  @Action("getProviderRouteStatus")
-  getProviderRouteStatus(
-    params: Apps.NotificationProviderRouteStatusParams,
-    context: BrokerCallContext
-  ): Promise<Apps.NotificationProviderRouteStatusResult> {
-    this.assertInternalCaller(context);
-    return this.broker.call("apps.getNotificationProviderRouteStatus", params);
   }
 
   private assertInternalCaller(context: BrokerCallContext): void {

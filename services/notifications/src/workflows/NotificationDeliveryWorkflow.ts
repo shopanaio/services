@@ -68,14 +68,14 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
           channel: claimed.channel,
           delivery: claimed.input,
         });
-        const receipt = execution.receipt as Notifications.NotificationDeliveryReceipt;
+        const receipt = execution.receipt;
         if (receipt.state === "ACCEPTED" || receipt.state === "DELIVERED") {
           await this.stepScript(input, {
             operation: "recordSuccess",
             deliveryId: input.deliveryId,
             attemptId: attempt.attemptId,
             providerCode: execution.providerCode,
-            providerSlotId: execution.slotId,
+            providerSlotId: execution.installationId,
             receipt,
           });
           return { status: receipt.state };
@@ -83,7 +83,7 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
         if (receipt.state === "UNKNOWN") {
           await this.recordUnknown(input, attempt.attemptId, {
             providerCode: execution.providerCode,
-            providerSlotId: execution.slotId,
+            providerSlotId: execution.installationId,
             providerMessageId: receipt.providerMessageId,
           });
           return { status: "UNKNOWN" };
@@ -96,7 +96,7 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
           errorKind: "PERMANENT",
           errorCode: receipt.responseCode ?? "PROVIDER_REJECTED",
           providerCode: execution.providerCode,
-          providerSlotId: execution.slotId,
+          providerSlotId: execution.installationId,
         });
         return { status: "FAILED_PERMANENT" };
       } catch (error) {
@@ -167,19 +167,27 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
     storeId: string;
     channel: Notifications.NotificationChannel;
     delivery: Notifications.NotificationDeliveryInput;
-  }): Promise<Apps.ExecuteAssignedResult> {
-    return this.broker.call("apps.executeAssigned", {
+  }): Promise<{
+    providerCode: string;
+    installationId: string;
+    receipt: Notifications.NotificationDeliveryReceipt;
+  }> {
+    return this.broker
+      .call<Apps.ExecuteCapabilityResult>("apps.executeCapability", {
       storeId: input.storeId,
-      domain: "notifications",
-      capability: input.channel,
+      capability: "notifications",
       operation: "deliver",
-      assignment: {
-        aggregate: "notifications",
-        aggregateId: input.channel,
+      input: {
+        channel: input.channel,
+        delivery: input.delivery,
       },
-      input: input.delivery,
-      idempotencyKey: input.delivery.idempotencyKey,
-    } satisfies Apps.ExecuteAssignedParams);
+      correlationId: input.delivery.idempotencyKey,
+    } satisfies Apps.ExecuteCapabilityParams)
+      .then((result) => ({
+        providerCode: result.appCode,
+        installationId: result.installationId,
+        receipt: result.data as Notifications.NotificationDeliveryReceipt,
+      }));
   }
 
   private async recordUnknown(
@@ -259,7 +267,7 @@ function classifyProviderError(error: unknown): {
     diagnostics: {
       code,
       kind,
-      plugin: value.plugin,
+      appCode: value.appCode,
       operation: value.operation,
     },
   };

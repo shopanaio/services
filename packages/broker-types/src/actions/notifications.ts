@@ -187,17 +187,6 @@ export interface NotificationDeliveryReceipt {
   retryAfterMs?: number;
 }
 
-export interface NotificationProviderTestInput {
-  channel: NotificationChannel;
-  recipient?: string;
-}
-
-export interface NotificationProviderTestResult {
-  ok: boolean;
-  providerCode: string;
-  message?: string;
-}
-
 export interface SendTestNotificationParams {
   storeId: string;
   organizationId: string;

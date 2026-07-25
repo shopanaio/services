@@ -2010,7 +2010,7 @@ export type ReferenceResolver<TResult, TReference, TContext> = (
       type NullableCheck<T, S> = Maybe<T> extends T ? Maybe<ListCheck<NonNullable<T>, S>> : ListCheck<T, S>;
       type ListCheck<T, S> = T extends (infer U)[] ? NullableCheck<U, S>[] : GraphQLRecursivePick<T, S>;
       export type GraphQLRecursivePick<T, S> = { [K in keyof T & keyof S]: ScalarCheck<T[K], S[K]> };
-
+    
 
 export type ResolverWithResolve<TResult, TParent, TContext, TArgs> = {
   resolve: ResolverFn<TResult, TParent, TContext, TArgs>;
@@ -2079,6 +2079,7 @@ export type ResolversUnionTypes<_RefType extends Record<string, unknown>> = Reso
   DiscountCatalogTarget: ( Category ) | ( Product ) | ( Variant );
   DiscountRule: ( DiscountAmountOffRule ) | ( DiscountBuyXGetYRule ) | ( DiscountFreeShippingRule );
 }>;
+
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   Node: ( Category ) | ( Customer ) | ( Omit<Discount, 'codes' | 'combinations' | 'rule' | 'targetSelections'> & { codes: _RefType['DiscountCodeConnection'], combinations: Array<_RefType['DiscountCombination']>, rule?: Maybe<_RefType['DiscountRule']>, targetSelections: Array<_RefType['DiscountTargetSelection']> } ) | ( Omit<DiscountCode, 'discount'> & { discount: _RefType['Discount'] } ) | ( Omit<DiscountExternalReference, 'discount'> & { discount: _RefType['Discount'] } ) | ( Omit<DiscountRedemption, 'discount' | 'discountCode'> & { discount: _RefType['Discount'], discountCode?: Maybe<_RefType['DiscountCode']> } ) | ( DiscountRedemptionAllocation ) | ( Omit<DiscountUsageReservation, 'discount' | 'discountCode'> & { discount: _RefType['Discount'], discountCode?: Maybe<_RefType['DiscountCode']> } ) | ( Product ) | ( Variant );
@@ -2861,3 +2862,4 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   UserError?: UserErrorResolvers<ContextType>;
   Variant?: VariantResolvers<ContextType>;
 }>;
+

@@ -14,7 +14,7 @@ import type {
   CheckoutPaymentMethod,
   CheckoutTagRow,
 } from "@src/application/read/checkoutReadRepository";
-import { PaymentFlow } from "@shopana/plugin-sdk/payment";
+import { PaymentFlow } from "@shopana/shared-service-api";
 
 export class CheckoutReadRepository implements CheckoutReadPort {
   private readonly execute: SQLExecutor;

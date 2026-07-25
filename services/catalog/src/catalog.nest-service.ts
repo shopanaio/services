@@ -12,22 +12,17 @@ import {
   type DatabaseClient,
 } from "@shopana/shared-kernel";
 import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
-import {
-  getServiceConfig,
-  buildS3Config,
-} from "@shopana/shared-service-config";
+import { getServiceConfig } from "@shopana/shared-service-config";
 import type { FastifyInstance } from "fastify";
 import { startServer } from "./api/graphql-admin/server";
 import { Kernel } from "./kernel/Kernel";
 
 const { service } = getServiceConfig("catalog");
-import { InventoryObjectStorage } from "./storage";
 
 @Injectable()
 export class CatalogNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CatalogNestService.name);
   private kernel!: Kernel;
-  private storageGateway!: InventoryObjectStorage;
   private graphqlServer: FastifyInstance | null = null;
 
   constructor(
@@ -41,20 +36,6 @@ export class CatalogNestService implements OnModuleInit, OnModuleDestroy {
 
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
-
-    const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
-    this.storageGateway = new InventoryObjectStorage(
-      storageConfig
-        ? {
-            endpoint: storageConfig.endpoint,
-            accessKey: storageConfig.credentials.accessKeyId,
-            secretKey: storageConfig.credentials.secretAccessKey,
-            bucket: storageConfig.bucket,
-            region: storageConfig.region,
-            pathStyle: storageConfig.forcePathStyle,
-          }
-        : null!
-    );
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,

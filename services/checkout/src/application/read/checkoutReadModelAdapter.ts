@@ -2,8 +2,11 @@ import { CheckoutState, CheckoutLineItemState, CheckoutDeliveryGroup as DomainCh
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
 import { CheckoutReadView, CheckoutDeliveryGroup, CheckoutPromoCode, CheckoutDeliveryAddress, CheckoutDeliveryMethod, CheckoutTag } from "./checkoutReadRepository";
 import { CheckoutLineItemReadView } from "./checkoutLineItemsReadRepository";
-import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/plugin-sdk/shipping";
-import { DiscountType } from "@shopana/plugin-sdk/pricing";
+import {
+  DeliveryMethodType,
+  ShippingPaymentModel,
+  DiscountType,
+} from "@shopana/shared-service-api";
 
 /**
  * Adapter for converting data from read model to CheckoutState domain model format

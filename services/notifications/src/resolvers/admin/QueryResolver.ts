@@ -1,9 +1,7 @@
-import type { Apps } from "@shopana/broker-types";
 import { ApolloQuery } from "@shopana/type-resolver";
 import { WEBHOOK_API_VERSIONS } from "../../infrastructure/webhooks/WebhookCapabilities.js";
 import type {
   NotificationsQueryChannelSettingsArgs,
-  NotificationsQueryProviderConfigurationArgs,
   NotificationsQueryTemplateArgs,
 } from "./generated/types.js";
 import {
@@ -91,42 +89,6 @@ export class NotificationsQueryResolver extends NotificationsType<
     return Promise.all(
       recipients.map((recipient) => this.resolvers.staffRecipient(recipient))
     );
-  }
-
-  async providerRoutes() {
-    const services = this.$ctx.kernel.getServices();
-    const routes = await Promise.all(
-      (["EMAIL", "SMS", "WEBHOOK"] as const).map((channel) =>
-        services.broker.call<
-          Apps.NotificationProviderRouteStatusResult,
-          Apps.NotificationProviderRouteStatusParams
-        >("apps.getNotificationProviderRouteStatus", {
-          storeId: this.$ctx.store.id,
-          channel,
-        })
-      )
-    );
-    return routes.map((route) => ({
-      ...route,
-      channel: toGraphQLChannel(route.channel),
-    }));
-  }
-
-  async providerConfiguration(
-    args: NotificationsQueryProviderConfigurationArgs
-  ) {
-    const services = this.$ctx.kernel.getServices();
-    const configuration = await services.broker.call<
-      Apps.GetMaskedNotificationProviderConfigResult,
-      Apps.GetMaskedNotificationProviderConfigParams
-    >("apps.getMaskedNotificationProviderConfig", {
-      storeId: this.$ctx.store.id,
-      channel: toDomainChannel(args.channel),
-    });
-    return {
-      ...configuration,
-      channel: toGraphQLChannel(configuration.channel),
-    };
   }
 
   webhookCapabilities() {

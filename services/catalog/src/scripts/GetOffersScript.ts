@@ -1,30 +1,33 @@
 import { BaseScript, type UserError } from "../kernel/BaseScript.js";
-import type { inventory as Inventory } from "@shopana/plugin-sdk";
+import type {
+  GetOffersInput,
+  InventoryOffer,
+} from "@shopana/shared-service-api";
 
-export interface GetOffersParams extends Inventory.GetOffersInput {
+export interface GetOffersParams extends GetOffersInput {
   storeId: string;
   requestId: string;
   userAgent?: string;
 }
 
 export interface GetOffersResult {
-  offers: Inventory.InventoryOffer[];
+  offers: InventoryOffer[];
   warnings?: Array<{ code: string; message: string }>;
   fallbackSource?: string;
 }
 
 export class GetOffersScript extends BaseScript<GetOffersParams, GetOffersResult> {
   protected async execute(params: GetOffersParams): Promise<GetOffersResult> {
-    // Delegate to `apps.execute` for domain inventory
-    const result = (await this.services.broker.call("apps.execute", {
-      domain: "inventory",
+    // Route inventory work through the installed hosted App capability.
+    const result = (await this.services.broker.call("apps.executeCapability", {
+      storeId: params.storeId,
+      capability: "inventory",
       operation: "getOffers",
-      params,
-    })) as { data: Inventory.InventoryOffer[]; warnings?: Array<{ code: string; message: string }> };
+      input: params,
+    })) as { data: InventoryOffer[] };
 
     return {
       offers: result.data,
-      warnings: result.warnings,
       fallbackSource: undefined,
     };
   }

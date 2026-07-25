@@ -15,11 +15,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@src/*": ["src/*"],
-      "@shopana/plugin-sdk": ["../../packages/plugin-sdk/dist"],
-      "@shopana/plugin-sdk/*": ["../../packages/plugin-sdk/dist/*"],
-      "@shopana/payment-plugin-bank-transfer": ["../../packages/payment-plugin-bank-transfer/dist"],
-      "@shopana/payment-plugin-bank-transfer/*": ["../../packages/payment-plugin-bank-transfer/dist/*"]
+      "@src/*": ["src/*"]
     }
   },
   "include": ["src"]

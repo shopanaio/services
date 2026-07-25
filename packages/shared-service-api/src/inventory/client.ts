@@ -3,7 +3,7 @@ import type { InventoryApiClient, GetOffersResponse } from "./types";
 import type {
   GetOffersInput,
   InventoryOffer,
-} from "@shopana/plugin-sdk/inventory";
+} from "./types.js";
 
 export class InventoryClient implements InventoryApiClient {
   private readonly broker: BrokerLike;

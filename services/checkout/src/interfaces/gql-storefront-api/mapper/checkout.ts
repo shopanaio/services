@@ -11,10 +11,10 @@ import type { CheckoutReadView } from "@src/application/read/checkoutReadReposit
 import { mapCheckoutLineReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkoutLine";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { encodeGlobalIdByType } from "@src/interfaces/gql-storefront-api/idCodec";
-import { PaymentFlow } from "@shopana/plugin-sdk/payment";
+import { PaymentFlow } from "@shopana/shared-service-api";
 
 /**
- * Maps PaymentFlow from payment-plugin-sdk to ApiPaymentFlow for GraphQL API.
+ * Maps PaymentFlow to ApiPaymentFlow for GraphQL API.
  */
 function mapPaymentFlowToApi(flow: PaymentFlow): ApiPaymentFlow {
   switch (flow) {

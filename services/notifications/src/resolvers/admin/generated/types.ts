@@ -762,65 +762,6 @@ export type NotificationPreviewPayload = {
   userErrors: Array<GenericUserError>;
 };
 
-export type NotificationProviderConfiguration = {
-  __typename?: 'NotificationProviderConfiguration';
-  assignmentId: Scalars['ID']['output'];
-  channel: NotificationChannel;
-  maskedConfig: Scalars['JSON']['output'];
-  providerCode: Scalars['String']['output'];
-  slotId: Scalars['ID']['output'];
-};
-
-export type NotificationProviderConfigurationInput = {
-  active?: InputMaybe<Scalars['Boolean']['input']>;
-  channel: NotificationChannel;
-  config: Scalars['JSON']['input'];
-  providerCode: Scalars['String']['input'];
-  secretFields?: InputMaybe<Scalars['JSON']['input']>;
-};
-
-export type NotificationProviderConfigurePayload = {
-  __typename?: 'NotificationProviderConfigurePayload';
-  configuration: Maybe<NotificationProviderConfiguration>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type NotificationProviderMaskedConfiguration = {
-  __typename?: 'NotificationProviderMaskedConfiguration';
-  channel: NotificationChannel;
-  config: Scalars['JSON']['output'];
-  providerCode: Scalars['String']['output'];
-  status: Scalars['String']['output'];
-};
-
-export type NotificationProviderRoute = {
-  __typename?: 'NotificationProviderRoute';
-  assignmentId: Maybe<Scalars['ID']['output']>;
-  channel: NotificationChannel;
-  configured: Scalars['Boolean']['output'];
-  providerCode: Maybe<Scalars['String']['output']>;
-  slotId: Maybe<Scalars['ID']['output']>;
-  status: Maybe<Scalars['String']['output']>;
-};
-
-export type NotificationProviderTestInput = {
-  channel: NotificationChannel;
-  recipient?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type NotificationProviderTestPayload = {
-  __typename?: 'NotificationProviderTestPayload';
-  testResult: Maybe<NotificationProviderTestResult>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type NotificationProviderTestResult = {
-  __typename?: 'NotificationProviderTestResult';
-  message: Maybe<Scalars['String']['output']>;
-  ok: Scalars['Boolean']['output'];
-  providerCode: Scalars['String']['output'];
-};
-
 export type NotificationSendTestPayload = {
   __typename?: 'NotificationSendTestPayload';
   userErrors: Array<GenericUserError>;
@@ -974,7 +915,6 @@ export type NotificationWorkflowPayload = {
 
 export type NotificationsMutation = {
   __typename?: 'NotificationsMutation';
-  configureProvider: NotificationProviderConfigurePayload;
   createWebhook: NotificationWebhookCreatePayload;
   deleteStaffRecipient: StaffRecipientDeletePayload;
   deleteWebhook: NotificationWebhookDeletePayload;
@@ -983,15 +923,9 @@ export type NotificationsMutation = {
   sendTest: NotificationSendTestPayload;
   setChannelEnabled: NotificationChannelSetEnabledPayload;
   setDefinitionEnabled: NotificationDefinitionSetEnabledPayload;
-  testProvider: NotificationProviderTestPayload;
   updateTemplate: NotificationTemplateUpdatePayload;
   updateWebhook: NotificationWebhookUpdatePayload;
   upsertStaffRecipient: StaffRecipientUpsertPayload;
-};
-
-
-export type NotificationsMutationConfigureProviderArgs = {
-  input: NotificationProviderConfigurationInput;
 };
 
 
@@ -1030,11 +964,6 @@ export type NotificationsMutationSetDefinitionEnabledArgs = {
 };
 
 
-export type NotificationsMutationTestProviderArgs = {
-  input: NotificationProviderTestInput;
-};
-
-
 export type NotificationsMutationUpdateTemplateArgs = {
   input: NotificationTemplateUpdateInput;
 };
@@ -1053,8 +982,6 @@ export type NotificationsQuery = {
   __typename?: 'NotificationsQuery';
   channelSettings: Array<NotificationChannelSetting>;
   definitions: Array<NotificationDefinition>;
-  providerConfiguration: NotificationProviderMaskedConfiguration;
-  providerRoutes: Array<NotificationProviderRoute>;
   staffRecipients: Array<StaffNotificationRecipient>;
   template: NotificationEffectiveTemplate;
   webhookCapabilities: NotificationWebhookCapabilities;
@@ -1064,11 +991,6 @@ export type NotificationsQuery = {
 
 export type NotificationsQueryChannelSettingsArgs = {
   key: Scalars['String']['input'];
-};
-
-
-export type NotificationsQueryProviderConfigurationArgs = {
-  channel: NotificationChannel;
 };
 
 
@@ -1243,14 +1165,6 @@ export type ResolversTypes = ResolversObject<{
   NotificationPreview: ResolverTypeWrapper<NotificationPreview>;
   NotificationPreviewInput: NotificationPreviewInput;
   NotificationPreviewPayload: ResolverTypeWrapper<NotificationPreviewPayload>;
-  NotificationProviderConfiguration: ResolverTypeWrapper<NotificationProviderConfiguration>;
-  NotificationProviderConfigurationInput: NotificationProviderConfigurationInput;
-  NotificationProviderConfigurePayload: ResolverTypeWrapper<NotificationProviderConfigurePayload>;
-  NotificationProviderMaskedConfiguration: ResolverTypeWrapper<NotificationProviderMaskedConfiguration>;
-  NotificationProviderRoute: ResolverTypeWrapper<NotificationProviderRoute>;
-  NotificationProviderTestInput: NotificationProviderTestInput;
-  NotificationProviderTestPayload: ResolverTypeWrapper<NotificationProviderTestPayload>;
-  NotificationProviderTestResult: ResolverTypeWrapper<NotificationProviderTestResult>;
   NotificationSendTestPayload: ResolverTypeWrapper<NotificationSendTestPayload>;
   NotificationSmsMetrics: ResolverTypeWrapper<NotificationSmsMetrics>;
   NotificationTemplateUpdateInput: NotificationTemplateUpdateInput;
@@ -1305,14 +1219,6 @@ export type ResolversParentTypes = ResolversObject<{
   NotificationPreview: NotificationPreview;
   NotificationPreviewInput: NotificationPreviewInput;
   NotificationPreviewPayload: NotificationPreviewPayload;
-  NotificationProviderConfiguration: NotificationProviderConfiguration;
-  NotificationProviderConfigurationInput: NotificationProviderConfigurationInput;
-  NotificationProviderConfigurePayload: NotificationProviderConfigurePayload;
-  NotificationProviderMaskedConfiguration: NotificationProviderMaskedConfiguration;
-  NotificationProviderRoute: NotificationProviderRoute;
-  NotificationProviderTestInput: NotificationProviderTestInput;
-  NotificationProviderTestPayload: NotificationProviderTestPayload;
-  NotificationProviderTestResult: NotificationProviderTestResult;
   NotificationSendTestPayload: NotificationSendTestPayload;
   NotificationSmsMetrics: NotificationSmsMetrics;
   NotificationTemplateUpdateInput: NotificationTemplateUpdateInput;
@@ -1438,52 +1344,6 @@ export type NotificationPreviewPayloadResolvers<ContextType = ServiceContext, Pa
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type NotificationProviderConfigurationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['NotificationProviderConfiguration'] = ResolversParentTypes['NotificationProviderConfiguration']> = ResolversObject<{
-  assignmentId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  channel?: Resolver<ResolversTypes['NotificationChannel'], ParentType, ContextType>;
-  maskedConfig?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
-  providerCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  slotId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type NotificationProviderConfigurePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['NotificationProviderConfigurePayload'] = ResolversParentTypes['NotificationProviderConfigurePayload']> = ResolversObject<{
-  configuration?: Resolver<Maybe<ResolversTypes['NotificationProviderConfiguration']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type NotificationProviderMaskedConfigurationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['NotificationProviderMaskedConfiguration'] = ResolversParentTypes['NotificationProviderMaskedConfiguration']> = ResolversObject<{
-  channel?: Resolver<ResolversTypes['NotificationChannel'], ParentType, ContextType>;
-  config?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
-  providerCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  status?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type NotificationProviderRouteResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['NotificationProviderRoute'] = ResolversParentTypes['NotificationProviderRoute']> = ResolversObject<{
-  assignmentId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  channel?: Resolver<ResolversTypes['NotificationChannel'], ParentType, ContextType>;
-  configured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  providerCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  slotId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  status?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type NotificationProviderTestPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['NotificationProviderTestPayload'] = ResolversParentTypes['NotificationProviderTestPayload']> = ResolversObject<{
-  testResult?: Resolver<Maybe<ResolversTypes['NotificationProviderTestResult']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type NotificationProviderTestResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['NotificationProviderTestResult'] = ResolversParentTypes['NotificationProviderTestResult']> = ResolversObject<{
-  message?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  ok?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  providerCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type NotificationSendTestPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['NotificationSendTestPayload'] = ResolversParentTypes['NotificationSendTestPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   workflow?: Resolver<Maybe<ResolversTypes['NotificationWorkflowPayload']>, ParentType, ContextType>;
@@ -1575,7 +1435,6 @@ export type NotificationWorkflowPayloadResolvers<ContextType = ServiceContext, P
 }>;
 
 export type NotificationsMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['NotificationsMutation'] = ResolversParentTypes['NotificationsMutation']> = ResolversObject<{
-  configureProvider?: Resolver<ResolversTypes['NotificationProviderConfigurePayload'], ParentType, ContextType, RequireFields<NotificationsMutationConfigureProviderArgs, 'input'>>;
   createWebhook?: Resolver<ResolversTypes['NotificationWebhookCreatePayload'], ParentType, ContextType, RequireFields<NotificationsMutationCreateWebhookArgs, 'input'>>;
   deleteStaffRecipient?: Resolver<ResolversTypes['StaffRecipientDeletePayload'], ParentType, ContextType, RequireFields<NotificationsMutationDeleteStaffRecipientArgs, 'input'>>;
   deleteWebhook?: Resolver<ResolversTypes['NotificationWebhookDeletePayload'], ParentType, ContextType, RequireFields<NotificationsMutationDeleteWebhookArgs, 'input'>>;
@@ -1584,7 +1443,6 @@ export type NotificationsMutationResolvers<ContextType = ServiceContext, ParentT
   sendTest?: Resolver<ResolversTypes['NotificationSendTestPayload'], ParentType, ContextType, RequireFields<NotificationsMutationSendTestArgs, 'input'>>;
   setChannelEnabled?: Resolver<ResolversTypes['NotificationChannelSetEnabledPayload'], ParentType, ContextType, RequireFields<NotificationsMutationSetChannelEnabledArgs, 'input'>>;
   setDefinitionEnabled?: Resolver<ResolversTypes['NotificationDefinitionSetEnabledPayload'], ParentType, ContextType, RequireFields<NotificationsMutationSetDefinitionEnabledArgs, 'input'>>;
-  testProvider?: Resolver<ResolversTypes['NotificationProviderTestPayload'], ParentType, ContextType, RequireFields<NotificationsMutationTestProviderArgs, 'input'>>;
   updateTemplate?: Resolver<ResolversTypes['NotificationTemplateUpdatePayload'], ParentType, ContextType, RequireFields<NotificationsMutationUpdateTemplateArgs, 'input'>>;
   updateWebhook?: Resolver<ResolversTypes['NotificationWebhookUpdatePayload'], ParentType, ContextType, RequireFields<NotificationsMutationUpdateWebhookArgs, 'input'>>;
   upsertStaffRecipient?: Resolver<ResolversTypes['StaffRecipientUpsertPayload'], ParentType, ContextType, RequireFields<NotificationsMutationUpsertStaffRecipientArgs, 'input'>>;
@@ -1594,8 +1452,6 @@ export type NotificationsMutationResolvers<ContextType = ServiceContext, ParentT
 export type NotificationsQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['NotificationsQuery'] = ResolversParentTypes['NotificationsQuery']> = ResolversObject<{
   channelSettings?: Resolver<Array<ResolversTypes['NotificationChannelSetting']>, ParentType, ContextType, RequireFields<NotificationsQueryChannelSettingsArgs, 'key'>>;
   definitions?: Resolver<Array<ResolversTypes['NotificationDefinition']>, ParentType, ContextType>;
-  providerConfiguration?: Resolver<ResolversTypes['NotificationProviderMaskedConfiguration'], ParentType, ContextType, RequireFields<NotificationsQueryProviderConfigurationArgs, 'channel'>>;
-  providerRoutes?: Resolver<Array<ResolversTypes['NotificationProviderRoute']>, ParentType, ContextType>;
   staffRecipients?: Resolver<Array<ResolversTypes['StaffNotificationRecipient']>, ParentType, ContextType>;
   template?: Resolver<ResolversTypes['NotificationEffectiveTemplate'], ParentType, ContextType, RequireFields<NotificationsQueryTemplateArgs, 'channel' | 'key' | 'locale'>>;
   webhookCapabilities?: Resolver<ResolversTypes['NotificationWebhookCapabilities'], ParentType, ContextType>;
@@ -1654,12 +1510,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   NotificationEffectiveTemplate?: NotificationEffectiveTemplateResolvers<ContextType>;
   NotificationPreview?: NotificationPreviewResolvers<ContextType>;
   NotificationPreviewPayload?: NotificationPreviewPayloadResolvers<ContextType>;
-  NotificationProviderConfiguration?: NotificationProviderConfigurationResolvers<ContextType>;
-  NotificationProviderConfigurePayload?: NotificationProviderConfigurePayloadResolvers<ContextType>;
-  NotificationProviderMaskedConfiguration?: NotificationProviderMaskedConfigurationResolvers<ContextType>;
-  NotificationProviderRoute?: NotificationProviderRouteResolvers<ContextType>;
-  NotificationProviderTestPayload?: NotificationProviderTestPayloadResolvers<ContextType>;
-  NotificationProviderTestResult?: NotificationProviderTestResultResolvers<ContextType>;
   NotificationSendTestPayload?: NotificationSendTestPayloadResolvers<ContextType>;
   NotificationSmsMetrics?: NotificationSmsMetricsResolvers<ContextType>;
   NotificationTemplateUpdatePayload?: NotificationTemplateUpdatePayloadResolvers<ContextType>;

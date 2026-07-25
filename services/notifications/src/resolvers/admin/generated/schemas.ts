@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationDefinitionSetEnabledInput, NotificationPreviewInput, NotificationProviderConfigurationInput, NotificationProviderTestInput, NotificationTemplateUpdateInput, NotificationTestMessageInput, NotificationWebhookApiStability, NotificationWebhookCreateInput, NotificationWebhookDeleteInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, StaffNotificationRecipientInput, StaffRecipientDeleteInput, WeightUnit } from './types.js'
+import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationDefinitionSetEnabledInput, NotificationPreviewInput, NotificationTemplateUpdateInput, NotificationTestMessageInput, NotificationWebhookApiStability, NotificationWebhookCreateInput, NotificationWebhookDeleteInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, StaffNotificationRecipientInput, StaffRecipientDeleteInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -58,23 +58,6 @@ export function NotificationPreviewInputSchema(): z.ZodObject<Properties<Notific
     locale: z.string().nullish(),
     plainTextTemplate: z.string().nullish(),
     subjectTemplate: z.string().nullish()
-  })
-}
-
-export function NotificationProviderConfigurationInputSchema(): z.ZodObject<Properties<NotificationProviderConfigurationInput>> {
-  return z.object({
-    active: z.boolean().default(true).nullish(),
-    channel: NotificationChannelSchema,
-    config: z.record(z.unknown()),
-    providerCode: z.string(),
-    secretFields: z.record(z.unknown()).nullish()
-  })
-}
-
-export function NotificationProviderTestInputSchema(): z.ZodObject<Properties<NotificationProviderTestInput>> {
-  return z.object({
-    channel: NotificationChannelSchema,
-    recipient: z.string().nullish()
   })
 }
 

@@ -4,7 +4,8 @@ import type {
   PricingEvaluateDiscountsInput,
 } from "@shopana/shared-service-api";
 import { Money } from "@shopana/shared-money";
-import { Discount, DiscountType } from "@shopana/plugin-sdk/pricing";
+import type { Discount } from "@shopana/shared-service-api";
+import { DiscountType } from "@shopana/shared-service-api";
 import { CheckoutLineItemState } from "@src/domain/checkout/types";
 
 export type CheckoutLineItemCost = Readonly<{

@@ -1,22 +1,8 @@
-import { dumbo } from '@event-driven-io/dumbo';
 import knex from 'knex';
 import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
 
 const { service } = getServiceConfig("apps");
 const databaseUrl = service.db ? buildDatabaseUrl(service.db) : "";
-
-/**
- * Database connections initialization
- *
- * Using existing tools:
- * - Dumbo for event sourcing
- * - Knex for regular SQL queries
- */
-
-// Dumbo pool for event sourcing
-export const dumboPool = dumbo({
-  connectionString: databaseUrl
-});
 
 // Knex for regular SQL operations
 export const knexInstance = knex({
@@ -44,8 +30,5 @@ export async function checkDatabaseConnection(): Promise<boolean> {
 
 // Graceful shutdown
 export async function closeDatabaseConnections() {
-  await Promise.all([
-    knexInstance.destroy()
-    // dumboPool doesn't require explicit closing
-  ]);
+  await knexInstance.destroy();
 }

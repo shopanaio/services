@@ -780,7 +780,7 @@ export type ApiCheckoutPaymentMethod = {
   provider: ApiCheckoutPaymentProvider;
 };
 
-/** Constraints for payment method availability (from payment-plugin-sdk). */
+/** Constraints for payment method availability. */
 export type ApiCheckoutPaymentMethodConstraints = {
   __typename?: 'CheckoutPaymentMethodConstraints';
   /**
@@ -2015,7 +2015,7 @@ export enum ApiNotificationSeverity {
   Warning = 'WARNING'
 }
 
-/** Payment flow for the method, aligned with payment-plugin-sdk. */
+/** Payment flow for the method. */
 export enum ApiPaymentFlow {
   /** Customer pays offline via provider (QR code, display code, etc). */
   Offline = 'OFFLINE',

@@ -31,7 +31,6 @@ Shared libraries used across services:
 
 - `@shopana/cli` — Development CLI tooling
 - `@shopana/build-tools` — ESBuild configuration
-- `@shopana/plugin-sdk` — Plugin development SDK
 - `@shopana/drizzle-query` — Drizzle ORM query helpers with Relay pagination
 - `@shopana/shared-kernel` — Domain primitives and utilities
 - `@shopana/platform-api` — Platform API client
@@ -174,7 +173,7 @@ yarn shopana schema build         # Export + compose (full schema build)
 services/
 ├── packages/           # Shared libraries
 │   ├── cli/            # Shopana CLI
-│   ├── plugin-sdk/     # Plugin development SDK
+│   ├── app-sdk/        # Hosted Apps SDK
 │   ├── drizzle-query/  # Query builder with Relay
 │   └── shared-*/       # Shared utilities
 ├── services/           # Microservices

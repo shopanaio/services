@@ -1,7 +1,6 @@
 import type { TransactionScript } from "@shopana/shared-kernel";
-import type { ShippingMethod } from "@shopana/plugin-sdk/shipping";
+import type { ShippingMethod } from "@shopana/shared-service-api";
 import { transformMethodCodes } from "../utils/transformMethods";
-import { Domain } from "@shopana/plugin-sdk";
 
 // Parameters for getting all shipping methods
 export interface GetShippingMethodsParams {
@@ -27,15 +26,14 @@ export const shippingMethods: TransactionScript<
   const { broker, logger } = services;
 
   try {
-    // Execute apps.execute to get shipping methods via centralized plugin manager
-    const result = await broker.call("apps.execute", {
-      domain: Domain.SHIPPING,
+    const result = await broker.call("apps.executeCapability", {
+      storeId,
+      capability: "shipping",
       operation: "list",
-      params: { storeId },
-    }) as { data?: unknown; warnings?: Array<{ code: string; message: string }> };
+      input: { storeId },
+    }) as { data?: unknown };
 
     const methods = (result.data as ShippingMethod[]) || [];
-    const warnings = result.warnings || [];
 
     if (methods.length === 0) {
       logger.warn({ storeId }, "No shipping methods returned");
@@ -44,7 +42,6 @@ export const shippingMethods: TransactionScript<
     // Return result with transformed codes
     return {
       methods: transformMethodCodes(methods),
-      warnings: warnings.length > 0 ? warnings : undefined,
     };
   } catch (error) {
     logger.error({ error }, "shippingMethods failed");

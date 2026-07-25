@@ -1,4 +1,4 @@
-import type { ShippingMethod } from "@shopana/plugin-sdk/shipping";
+import type { ShippingMethod } from "@shopana/shared-service-api";
 
 /**
  * Returns shipping methods unchanged preserving separation of provider and code.

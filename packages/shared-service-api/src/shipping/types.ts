@@ -1,5 +1,17 @@
-import { ShippingMethod } from "@shopana/plugin-sdk/shipping";
-import type { PaymentMethod } from "@shopana/plugin-sdk/payment";
+import {
+  DeliveryMethodType,
+  ShippingPaymentModel,
+} from "@shopana/checkout-sdk";
+import type { PaymentMethod } from "../payment/types.js";
+
+export { DeliveryMethodType, ShippingPaymentModel };
+
+export type ShippingMethod = Readonly<{
+  code: string;
+  provider: string;
+  deliveryMethodType: DeliveryMethodType;
+  shippingPaymentModel: ShippingPaymentModel;
+}>;
 
 /**
  * Raw response shape returned by the shipping service for list methods endpoints.
@@ -36,7 +48,7 @@ export interface ShippingApiClient {
   ): Promise<DeliveryGroup[]>;
 
   /**
-   * Fetch payment methods exposed by shipping plugins (if supported).
+   * Fetch payment methods exposed by the shipping service.
    */
   getPaymentMethods(input: GetPaymentMethodsInput): Promise<PaymentMethod[]>;
 }
@@ -94,7 +106,7 @@ export type GetPaymentMethodsResponse = Readonly<{
 }>;
 
 /**
- * Input for getting payment methods from shipping service (proxied to plugins).
+ * Input for getting payment methods from the shipping service.
  */
 export type GetPaymentMethodsInput = Readonly<{
   storeId: string;

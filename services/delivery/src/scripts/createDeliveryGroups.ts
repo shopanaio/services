@@ -1,5 +1,5 @@
 import type { TransactionScript } from "@shopana/shared-kernel";
-import { ShippingMethod } from "@shopana/plugin-sdk/shipping";
+import type { ShippingMethod } from "@shopana/shared-service-api";
 import { shippingMethods } from "./shippingMethods";
 
 export interface CreateDeliveryGroupsParams {
