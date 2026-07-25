@@ -11,7 +11,6 @@ export class NotificationChannelSettingsQueryScript extends BaseAdminScript<
   protected async execute(
     params: Pick<NotificationDefinitionSetEnabledParams, "key">
   ): Promise<NotificationChannelSettingView[]> {
-    await this.authorize("notification_settings", "read");
     const definition = this.definitions.get(params.key);
     const settings =
       await this.repository.settings.listChannelSettings(params.key);

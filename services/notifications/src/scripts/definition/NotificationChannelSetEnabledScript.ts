@@ -14,7 +14,6 @@ export class NotificationChannelSetEnabledScript extends BaseAdminScript<
   protected async execute(
     params: NotificationChannelSetEnabledParams
   ): Promise<NotificationChannelSettingWriteView> {
-    await this.authorize("notification_settings", "update");
     const definition = this.definitions.get(params.key);
     if (!definition.allowedChannels.includes(params.channel)) {
       throw new Error("CHANNEL_NOT_ALLOWED");

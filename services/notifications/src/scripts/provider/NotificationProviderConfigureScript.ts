@@ -12,7 +12,6 @@ export class NotificationProviderConfigureScript extends BaseAdminScript<
   protected async execute(
     params: NotificationProviderConfigureParams
   ): Promise<NotificationProviderConfigureResult> {
-    await this.authorize("notification_provider", "configure");
     const result = await this.services.broker.call<
       Apps.ConfigureNotificationProviderResult,
       Apps.ConfigureNotificationProviderParams

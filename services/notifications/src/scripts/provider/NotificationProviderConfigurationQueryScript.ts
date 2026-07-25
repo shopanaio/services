@@ -12,7 +12,6 @@ export class NotificationProviderConfigurationQueryScript extends BaseAdminScrip
   protected async execute(
     params: NotificationProviderConfigurationQueryParams
   ): Promise<NotificationProviderConfigurationView> {
-    await this.authorize("notification_provider", "read");
     return this.services.broker.call<
       Apps.GetMaskedNotificationProviderConfigResult,
       Apps.GetMaskedNotificationProviderConfigParams

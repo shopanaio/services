@@ -16,7 +16,6 @@ export class NotificationWebhookCreateScript extends BaseAdminScript<
   protected async execute(
     params: NotificationWebhookCreateParams
   ): Promise<NotificationWebhookView> {
-    await this.authorize("notification_webhook", "create");
     if (this.definitions.forEvent(params.eventType).length === 0) {
       throw new Error("UNSUPPORTED_WEBHOOK_EVENT");
     }

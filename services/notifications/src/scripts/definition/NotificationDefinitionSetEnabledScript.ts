@@ -13,7 +13,6 @@ export class NotificationDefinitionSetEnabledScript extends BaseAdminScript<
   protected async execute(
     params: NotificationDefinitionSetEnabledParams
   ): Promise<NotificationDefinitionSettingView> {
-    await this.authorize("notification_settings", "update");
     const definition = this.definitions.get(params.key);
     if (!definition.optional && !params.enabled) {
       throw new Error("MANDATORY_NOTIFICATION_CANNOT_BE_DISABLED");

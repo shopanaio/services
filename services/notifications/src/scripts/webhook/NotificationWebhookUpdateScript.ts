@@ -16,7 +16,6 @@ export class NotificationWebhookUpdateScript extends BaseAdminScript<
   protected async execute(
     params: NotificationWebhookUpdateParams
   ): Promise<NotificationWebhookView> {
-    await this.authorize("notification_webhook", "update");
     if (
       params.eventType &&
       this.definitions.forEvent(params.eventType).length === 0

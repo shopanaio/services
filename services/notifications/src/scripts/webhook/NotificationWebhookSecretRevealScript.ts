@@ -8,7 +8,6 @@ export class NotificationWebhookSecretRevealScript extends BaseAdminScript<
 > {
   @Transactional()
   protected async execute(): Promise<NotificationWebhookSecretResult> {
-    await this.authorize("notification_webhook", "reveal_secret");
     const secret = await this.repository.webhooks.revealSecret();
     await this.audit(
       "webhook.secret.revealed",

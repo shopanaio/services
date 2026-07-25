@@ -7,7 +7,6 @@ export class NotificationWebhookCapabilitiesQueryScript extends BaseAdminScript<
   NotificationWebhookCapabilitiesView
 > {
   protected async execute(): Promise<NotificationWebhookCapabilitiesView> {
-    await this.authorize("notification_webhook", "read");
     return {
       events: this.definitions.listEventTypes().map((eventType) => ({
         eventType,

@@ -6,7 +6,6 @@ export class NotificationDefinitionsQueryScript extends BaseAdminScript<
   NotificationDefinitionView[]
 > {
   protected async execute(): Promise<NotificationDefinitionView[]> {
-    await this.authorize("notification_settings", "read");
     const [settings, channels] = await Promise.all([
       this.repository.settings.listDefinitionSettings(),
       this.repository.settings.listChannelSettings(),

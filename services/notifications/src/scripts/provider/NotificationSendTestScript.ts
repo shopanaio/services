@@ -12,7 +12,6 @@ export class NotificationSendTestScript extends BaseAdminScript<
   protected async execute(
     params: NotificationSendTestParams
   ): Promise<NotificationSendTestResult> {
-    await this.authorize("notification_provider", "test");
     return this.services.broker.call<
       Notifications.EnqueueNotificationResult,
       Notifications.SendTestNotificationParams

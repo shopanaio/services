@@ -6,7 +6,6 @@ export class NotificationWebhooksQueryScript extends BaseAdminScript<
   NotificationWebhookListView
 > {
   protected async execute(): Promise<NotificationWebhookListView> {
-    await this.authorize("notification_webhook", "read");
     return this.repository.webhooks.list();
   }
 }

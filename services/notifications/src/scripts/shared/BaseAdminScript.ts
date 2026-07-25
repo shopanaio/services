@@ -6,7 +6,6 @@ const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   CHANNEL_DOES_NOT_SUPPORT_TEMPLATES:
     "The selected channel does not support templates",
   CHANNEL_NOT_ALLOWED: "The selected notification channel is not allowed",
-  FORBIDDEN: "You are not allowed to perform this operation",
   MANDATORY_NOTIFICATION_CANNOT_BE_DISABLED:
     "Mandatory notifications cannot be disabled",
   NOT_A_STAFF_NOTIFICATION:
@@ -24,18 +23,6 @@ export abstract class BaseAdminScript<TParams, TResult> extends BaseScript<
   TParams,
   TResult
 > {
-  protected async authorize(resource: string, action: string): Promise<void> {
-    const allowed = await this.authProvider.authorize({
-      organizationId: this.context.store.organizationId,
-      organizationName: this.context.store.name,
-      resource,
-      action,
-    });
-    if (!allowed) {
-      throw new KernelError(ERROR_MESSAGES.FORBIDDEN!, "FORBIDDEN");
-    }
-  }
-
   protected audit(
     action: string,
     entityType: string,

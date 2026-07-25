@@ -10,7 +10,6 @@ export class NotificationWebhookDeleteScript extends BaseAdminScript<
   protected async execute(params: {
     id: string;
   }): Promise<NotificationWebhookDeleteResult> {
-    await this.authorize("notification_webhook", "delete");
     const deleted = await this.repository.webhooks.delete(params.id);
     if (deleted) {
       await this.audit("webhook.deleted", "webhook", params.id);

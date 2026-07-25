@@ -7,7 +7,6 @@ export class NotificationProviderRoutesQueryScript extends BaseAdminScript<
   NotificationProviderRoutesView
 > {
   protected async execute(): Promise<NotificationProviderRoutesView> {
-    await this.authorize("notification_provider", "read");
     return Promise.all(
       (["EMAIL", "SMS", "WEBHOOK"] as const).map((channel) =>
         this.services.broker.call<

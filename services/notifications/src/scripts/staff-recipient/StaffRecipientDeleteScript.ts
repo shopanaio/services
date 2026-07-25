@@ -10,7 +10,6 @@ export class StaffRecipientDeleteScript extends BaseAdminScript<
   protected async execute(params: {
     id: string;
   }): Promise<StaffRecipientDeleteResult> {
-    await this.authorize("notification_recipient", "delete");
     const deleted = await this.repository.staff.delete(params.id);
     if (deleted) {
       await this.audit(

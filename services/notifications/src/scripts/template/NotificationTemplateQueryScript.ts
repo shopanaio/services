@@ -11,7 +11,6 @@ export class NotificationTemplateQueryScript extends BaseAdminScript<
   protected async execute(
     params: NotificationTemplateQueryParams
   ): Promise<NotificationEffectiveTemplateView> {
-    await this.authorize("notification_template", "read");
     return this.renderer.getEffectiveTemplate(params);
   }
 }

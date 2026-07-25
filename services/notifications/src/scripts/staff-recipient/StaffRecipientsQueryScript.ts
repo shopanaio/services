@@ -6,7 +6,6 @@ export class StaffRecipientsQueryScript extends BaseAdminScript<
   StaffRecipientListView
 > {
   protected async execute(): Promise<StaffRecipientListView> {
-    await this.authorize("notification_recipient", "read");
     return this.repository.staff.list();
   }
 }

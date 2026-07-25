@@ -14,7 +14,6 @@ export class NotificationTemplateUpdateScript extends BaseAdminScript<
   protected async execute(
     params: NotificationTemplateUpdateParams
   ): Promise<NotificationEffectiveTemplateView> {
-    await this.authorize("notification_template", "update");
     if (params.channel !== "EMAIL" && params.channel !== "SMS") {
       throw new Error("CHANNEL_DOES_NOT_SUPPORT_TEMPLATES");
     }

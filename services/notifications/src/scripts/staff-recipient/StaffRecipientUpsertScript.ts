@@ -13,10 +13,6 @@ export class StaffRecipientUpsertScript extends BaseAdminScript<
   protected async execute(
     params: StaffRecipientUpsertParams
   ): Promise<StaffRecipientWriteView> {
-    await this.authorize(
-      "notification_recipient",
-      params.id ? "update" : "create"
-    );
     for (const key of params.eventKeys) {
       if (this.definitions.get(key).audience !== "STAFF") {
         throw new Error(`NOT_A_STAFF_NOTIFICATION:${key}`);
