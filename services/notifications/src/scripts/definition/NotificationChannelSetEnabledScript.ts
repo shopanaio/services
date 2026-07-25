@@ -1,14 +1,23 @@
 import { z } from "zod";
-import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  recordAdminAudit,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 import type {
   NotificationChannelSetEnabledParams,
   NotificationChannelSettingWriteView,
 } from "./dto/index.js";
 
-export class NotificationChannelSetEnabledScript extends BaseAdminMutationScript<
+export interface NotificationChannelSetEnabledResult {
+  setting?: NotificationChannelSettingWriteView;
+  userErrors: AdminUserError[];
+}
+
+export class NotificationChannelSetEnabledScript extends BaseScript<
   NotificationChannelSetEnabledParams,
-  NotificationChannelSettingWriteView
+  NotificationChannelSetEnabledResult
 > {
   @Transactional()
   protected async execute(
@@ -36,10 +45,18 @@ export class NotificationChannelSetEnabledScript extends BaseAdminMutationScript
     }
     const setting =
       await this.repository.settings.setChannelEnabled(params);
-    await this.audit("channel.setting.updated", "definition", params.key, {
-      channel: params.channel,
-      enabled: params.enabled,
-    });
-    return this.success(setting);
+    await recordAdminAudit(
+      this.repository,
+      this.context.user.id,
+      "channel.setting.updated",
+      "definition",
+      params.key,
+      { channel: params.channel, enabled: params.enabled }
+    );
+    return { setting, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): NotificationChannelSetEnabledResult {
+    return { setting: undefined, userErrors: adminUserErrors(error) };
   }
 }

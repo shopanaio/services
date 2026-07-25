@@ -54,8 +54,6 @@ import {
   toDomainWebhookFormat,
   toDomainWebhookStatus,
   toGraphQLChannel,
-  toGraphQLEffectiveTemplate,
-  toGraphQLWebhook,
 } from "./mappers.js";
 import { NotificationsType } from "./NotificationsType.js";
 
@@ -82,7 +80,11 @@ export class NotificationsMutationResolver extends NotificationsType<
       }
     );
     return {
-      setting: result.data ?? null,
+      setting: result.setting
+        ? await this.resolvers.notificationDefinitionSetting(
+            toDefinitionKey(result.setting.definitionKey)
+          )
+        : null,
       userErrors: result.userErrors,
     };
   }
@@ -102,11 +104,11 @@ export class NotificationsMutationResolver extends NotificationsType<
       }
     );
     return {
-      setting: result.data
-        ? {
-            ...result.data,
-            channel: toGraphQLChannel(result.data.channel),
-          }
+      setting: result.setting
+        ? await this.resolvers.notificationChannelSetting({
+            key: toDefinitionKey(result.setting.definitionKey),
+            channel: result.setting.channel,
+          })
         : null,
       userErrors: result.userErrors,
     };
@@ -127,8 +129,12 @@ export class NotificationsMutationResolver extends NotificationsType<
       }
     );
     return {
-      template: result.data
-        ? toGraphQLEffectiveTemplate(result.data)
+      template: result.template
+        ? await this.resolvers.notificationEffectiveTemplate({
+            key: result.template.key,
+            channel: result.template.channel,
+            locale: result.template.locale,
+          })
         : null,
       userErrors: result.userErrors,
     };
@@ -146,7 +152,7 @@ export class NotificationsMutationResolver extends NotificationsType<
       plainTextTemplate: optional(args.input.plainTextTemplate),
     });
     return {
-      preview: result.data ?? null,
+      preview: result.preview ?? null,
       userErrors: result.userErrors,
     };
   }
@@ -166,7 +172,9 @@ export class NotificationsMutationResolver extends NotificationsType<
       eventKeys: args.input.eventKeys.map(toDefinitionKey),
     });
     return {
-      recipient: result.data ?? null,
+      recipient: result.recipient
+        ? await this.resolvers.staffRecipient(result.recipient)
+        : null,
       userErrors: result.userErrors,
     };
   }
@@ -179,9 +187,7 @@ export class NotificationsMutationResolver extends NotificationsType<
       id: args.input.id,
     });
     return {
-      deletedStaffRecipientId: result.data?.deleted
-        ? args.input.id
-        : null,
+      deletedStaffRecipientId: result.deletedStaffRecipientId ?? null,
       userErrors: result.userErrors,
     };
   }
@@ -205,10 +211,10 @@ export class NotificationsMutationResolver extends NotificationsType<
       }
     );
     return {
-      configuration: result.data
+      configuration: result.configuration
         ? {
-            ...result.data,
-            channel: toGraphQLChannel(result.data.channel),
+            ...result.configuration,
+            channel: toGraphQLChannel(result.configuration.channel),
           }
         : null,
       userErrors: result.userErrors,
@@ -225,7 +231,7 @@ export class NotificationsMutationResolver extends NotificationsType<
       }
     );
     return {
-      testResult: result.data ?? null,
+      testResult: result.testResult ?? null,
       userErrors: result.userErrors,
     };
   }
@@ -249,7 +255,7 @@ export class NotificationsMutationResolver extends NotificationsType<
       idempotencyKey: args.input.idempotencyKey,
     });
     return {
-      workflow: result.data ?? null,
+      workflow: result.workflow ?? null,
       userErrors: result.userErrors,
     };
   }
@@ -266,7 +272,9 @@ export class NotificationsMutationResolver extends NotificationsType<
       }
     );
     return {
-      webhook: result.data ? toGraphQLWebhook(result.data) : null,
+      webhook: result.webhook
+        ? await this.resolvers.webhook(result.webhook.id)
+        : null,
       userErrors: result.userErrors,
     };
   }
@@ -290,7 +298,9 @@ export class NotificationsMutationResolver extends NotificationsType<
       }
     );
     return {
-      webhook: result.data ? toGraphQLWebhook(result.data) : null,
+      webhook: result.webhook
+        ? await this.resolvers.webhook(result.webhook.id)
+        : null,
       userErrors: result.userErrors,
     };
   }
@@ -302,7 +312,7 @@ export class NotificationsMutationResolver extends NotificationsType<
       { id: args.input.id }
     );
     return {
-      deletedWebhookId: result.data?.deleted ? args.input.id : null,
+      deletedWebhookId: result.deletedWebhookId ?? null,
       userErrors: result.userErrors,
     };
   }
@@ -313,7 +323,7 @@ export class NotificationsMutationResolver extends NotificationsType<
       {}
     );
     return {
-      secret: result.data?.secret ?? null,
+      secret: result.secret ?? null,
       userErrors: result.userErrors,
     };
   }

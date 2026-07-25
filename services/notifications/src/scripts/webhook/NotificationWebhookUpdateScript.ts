@@ -1,16 +1,25 @@
 import {
   isSupportedWebhookApiVersion,
 } from "../../infrastructure/webhooks/WebhookCapabilities.js";
-import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  recordAdminAudit,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 import type {
   NotificationWebhookUpdateParams,
   NotificationWebhookView,
 } from "./dto/index.js";
 
-export class NotificationWebhookUpdateScript extends BaseAdminMutationScript<
+export interface NotificationWebhookUpdateResult {
+  webhook?: NotificationWebhookView;
+  userErrors: AdminUserError[];
+}
+
+export class NotificationWebhookUpdateScript extends BaseScript<
   NotificationWebhookUpdateParams,
-  NotificationWebhookView
+  NotificationWebhookUpdateResult
 > {
   @Transactional()
   protected async execute(
@@ -29,10 +38,18 @@ export class NotificationWebhookUpdateScript extends BaseAdminMutationScript<
       throw new Error("UNSUPPORTED_WEBHOOK_API_VERSION");
     }
     const webhook = await this.repository.webhooks.update(params);
-    await this.audit("webhook.updated", "webhook", params.id, {
-      version: webhook.version,
-      status: webhook.status,
-    });
-    return this.success(webhook);
+    await recordAdminAudit(
+      this.repository,
+      this.context.user.id,
+      "webhook.updated",
+      "webhook",
+      params.id,
+      { version: webhook.version, status: webhook.status }
+    );
+    return { webhook, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): NotificationWebhookUpdateResult {
+    return { webhook: undefined, userErrors: adminUserErrors(error) };
   }
 }

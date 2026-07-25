@@ -1,9 +1,17 @@
 import { KernelError } from "@shopana/shared-kernel";
-import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
-import type { NotificationWebhookDeleteResult } from "./dto/index.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  recordAdminAudit,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 
-export class NotificationWebhookDeleteScript extends BaseAdminMutationScript<
+export interface NotificationWebhookDeleteResult {
+  deletedWebhookId?: string;
+  userErrors: AdminUserError[];
+}
+
+export class NotificationWebhookDeleteScript extends BaseScript<
   { id: string },
   NotificationWebhookDeleteResult
 > {
@@ -16,7 +24,20 @@ export class NotificationWebhookDeleteScript extends BaseAdminMutationScript<
         "WEBHOOK_NOT_FOUND"
       );
     }
-    await this.audit("webhook.deleted", "webhook", params.id);
-    return this.success({ deleted: true });
+    await recordAdminAudit(
+      this.repository,
+      this.context.user.id,
+      "webhook.deleted",
+      "webhook",
+      params.id
+    );
+    return { deletedWebhookId: params.id, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): NotificationWebhookDeleteResult {
+    return {
+      deletedWebhookId: undefined,
+      userErrors: adminUserErrors(error),
+    };
   }
 }

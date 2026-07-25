@@ -1,16 +1,32 @@
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 import type {
   NotificationPreviewParams,
   NotificationPreviewView,
 } from "./dto/index.js";
 
-export class NotificationPreviewScript extends BaseAdminMutationScript<
+export interface NotificationPreviewResult {
+  preview?: NotificationPreviewView;
+  userErrors: AdminUserError[];
+}
+
+export class NotificationPreviewScript extends BaseScript<
   NotificationPreviewParams,
-  NotificationPreviewView
+  NotificationPreviewResult
 > {
   protected async execute(
     params: NotificationPreviewParams
   ) {
-    return this.success(await this.renderer.preview(params));
+    return {
+      preview: await this.renderer.preview(params),
+      userErrors: [],
+    };
+  }
+
+  protected handleError(error: unknown): NotificationPreviewResult {
+    return { preview: undefined, userErrors: adminUserErrors(error) };
   }
 }

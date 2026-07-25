@@ -4,16 +4,13 @@ import type {
   NotificationDefinitionKey,
   NotificationTemplateVariable,
 } from "@shopana/broker-types";
-import type { NotificationEffectiveTemplateView } from "../../scripts/template/dto/index.js";
 import {
   NotificationAudience,
   NotificationChannel,
   NotificationWebhookApiStability,
   NotificationWebhookFormat,
   NotificationWebhookStatus,
-  type NotificationEffectiveTemplate,
   type NotificationTemplateVariable as GraphQLNotificationTemplateVariable,
-  type NotificationWebhookSubscription,
 } from "./generated/types.js";
 
 export function toDefinitionKey(value: string): NotificationDefinitionKey {
@@ -66,32 +63,6 @@ export function toDomainWebhookStatus(
   return value === NotificationWebhookStatus.Active ? "ACTIVE" : "DISABLED";
 }
 
-export function toGraphQLWebhook(
-  webhook: {
-    id: string;
-    eventType: string;
-    format: "JSON" | "XML";
-    url: string;
-    apiVersion: string;
-    status: "ACTIVE" | "DISABLED";
-    version: number;
-    createdAt: string;
-    updatedAt: string;
-  }
-): NotificationWebhookSubscription {
-  return {
-    ...webhook,
-    format:
-      webhook.format === "JSON"
-        ? NotificationWebhookFormat.Json
-        : NotificationWebhookFormat.Xml,
-    status:
-      webhook.status === "ACTIVE"
-        ? NotificationWebhookStatus.Active
-        : NotificationWebhookStatus.Disabled,
-  };
-}
-
 export function toGraphQLWebhookStability(
   value: "UNSTABLE" | "STABLE" | "DEPRECATED"
 ): NotificationWebhookApiStability {
@@ -103,24 +74,6 @@ export function toGraphQLWebhookStability(
     case "DEPRECATED":
       return NotificationWebhookApiStability.Deprecated;
   }
-}
-
-export function toGraphQLEffectiveTemplate(
-  template: NotificationEffectiveTemplateView
-): NotificationEffectiveTemplate {
-  return {
-    key: template.key,
-    channel: toGraphQLChannel(template.channel),
-    locale: template.locale,
-    source: template.source,
-    subjectTemplate: template.subjectTemplate ?? null,
-    bodyTemplate: template.bodyTemplate,
-    plainTextTemplate: template.plainTextTemplate ?? null,
-    revisionId: template.revisionId ?? null,
-    revision: template.revision ?? null,
-    pointerVersion: template.pointerVersion ?? null,
-    sourceVersion: template.sourceVersion ?? null,
-  };
 }
 
 export function toGraphQLTemplateVariable(

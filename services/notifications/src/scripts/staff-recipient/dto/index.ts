@@ -20,7 +20,3 @@ export type StaffRecipientListView = StaffRecipientView[];
 export type StaffRecipientWriteView = Awaited<
   ReturnType<StaffRepository["upsert"]>
 >;
-
-export interface StaffRecipientDeleteResult {
-  deleted: boolean;
-}

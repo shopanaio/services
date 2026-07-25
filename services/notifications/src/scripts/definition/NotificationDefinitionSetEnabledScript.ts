@@ -1,13 +1,22 @@
-import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  recordAdminAudit,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 import type {
   NotificationDefinitionSetEnabledParams,
   NotificationDefinitionSettingView,
 } from "./dto/index.js";
 
-export class NotificationDefinitionSetEnabledScript extends BaseAdminMutationScript<
+export interface NotificationDefinitionSetEnabledResult {
+  setting?: NotificationDefinitionSettingView;
+  userErrors: AdminUserError[];
+}
+
+export class NotificationDefinitionSetEnabledScript extends BaseScript<
   NotificationDefinitionSetEnabledParams,
-  NotificationDefinitionSettingView
+  NotificationDefinitionSetEnabledResult
 > {
   @Transactional()
   protected async execute(
@@ -21,10 +30,18 @@ export class NotificationDefinitionSetEnabledScript extends BaseAdminMutationScr
       ...params,
       updatedBy: this.context.user.id,
     });
-    await this.audit("definition.setting.updated", "definition", params.key, {
-      enabled: params.enabled,
-      version: setting.version,
-    });
-    return this.success(setting);
+    await recordAdminAudit(
+      this.repository,
+      this.context.user.id,
+      "definition.setting.updated",
+      "definition",
+      params.key,
+      { enabled: params.enabled, version: setting.version }
+    );
+    return { setting, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): NotificationDefinitionSetEnabledResult {
+    return { setting: undefined, userErrors: adminUserErrors(error) };
   }
 }

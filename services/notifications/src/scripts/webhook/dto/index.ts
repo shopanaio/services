@@ -30,11 +30,3 @@ export interface NotificationWebhookCapabilitiesView {
   events: Array<{ eventType: string; title: string }>;
   apiVersions: typeof WEBHOOK_API_VERSIONS;
 }
-
-export interface NotificationWebhookDeleteResult {
-  deleted: boolean;
-}
-
-export interface NotificationWebhookSecretResult {
-  secret: string;
-}

@@ -1,13 +1,22 @@
-import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  recordAdminAudit,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 import type {
   StaffRecipientUpsertParams,
   StaffRecipientWriteView,
 } from "./dto/index.js";
 
-export class StaffRecipientUpsertScript extends BaseAdminMutationScript<
+export interface StaffRecipientUpsertResult {
+  recipient?: StaffRecipientWriteView;
+  userErrors: AdminUserError[];
+}
+
+export class StaffRecipientUpsertScript extends BaseScript<
   StaffRecipientUpsertParams,
-  StaffRecipientWriteView
+  StaffRecipientUpsertResult
 > {
   @Transactional()
   protected async execute(
@@ -19,12 +28,18 @@ export class StaffRecipientUpsertScript extends BaseAdminMutationScript<
       }
     }
     const recipient = await this.repository.staff.upsert(params);
-    await this.audit(
+    await recordAdminAudit(
+      this.repository,
+      this.context.user.id,
       params.id ? "staff.recipient.updated" : "staff.recipient.created",
       "staffRecipient",
       recipient.id,
       { eventKeys: recipient.eventKeys, enabled: recipient.enabled }
     );
-    return this.success(recipient);
+    return { recipient, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): StaffRecipientUpsertResult {
+    return { recipient: undefined, userErrors: adminUserErrors(error) };
   }
 }

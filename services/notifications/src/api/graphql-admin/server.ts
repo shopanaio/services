@@ -18,6 +18,7 @@ import {
 import { ResolverError } from "@shopana/type-resolver";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
+import { normalizeAdminError } from "../../scripts/shared/adminScriptSupport.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
@@ -46,15 +47,14 @@ export async function startServer(config: { port: number }) {
   );
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
-    // @ts-expect-error Class-based type-resolver root resolvers are Apollo-compatible at runtime.
+    // @ts-expect-error
     schema: buildSubgraphSchema([{ typeDefs: schema, resolvers }]),
     plugins: [
       fastifyApolloDrainPlugin(app),
       ApolloServerPluginInlineTraceDisabled(),
     ],
     formatError: (formattedError, error) => {
-      const graphQLError = unwrapTypeResolverGraphQLError(error);
-      if (!graphQLError) return formattedError;
+      const graphQLError = normalizeAdminGraphQLError(error);
       return {
         ...formattedError,
         message: graphQLError.message,
@@ -98,12 +98,22 @@ export async function startServer(config: { port: number }) {
   return app;
 }
 
-function unwrapTypeResolverGraphQLError(error: unknown): GraphQLError | null {
+function normalizeAdminGraphQLError(error: unknown): GraphQLError {
   let current = unwrapResolverError(error);
   while (current instanceof ResolverError) {
     current = current.originalError;
   }
-  return current instanceof GraphQLError ? current : null;
+  if (current instanceof GraphQLError) return current;
+
+  const normalized = normalizeAdminError(current);
+  return new GraphQLError(normalized.message, {
+    extensions: {
+      code: normalized.code,
+      ...(normalized.details === undefined
+        ? {}
+        : { details: normalized.details }),
+    },
+  });
 }
 
 function readHeader(

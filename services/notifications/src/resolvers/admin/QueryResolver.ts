@@ -1,14 +1,6 @@
+import type { Apps } from "@shopana/broker-types";
 import { ApolloQuery } from "@shopana/type-resolver";
-import {
-  NotificationChannelSettingsQueryScript,
-  NotificationDefinitionsQueryScript,
-  NotificationProviderConfigurationQueryScript,
-  NotificationProviderRoutesQueryScript,
-  NotificationTemplateQueryScript,
-  NotificationWebhookCapabilitiesQueryScript,
-  NotificationWebhooksQueryScript,
-  StaffRecipientsQueryScript,
-} from "../../scripts/index.js";
+import { WEBHOOK_API_VERSIONS } from "../../infrastructure/webhooks/WebhookCapabilities.js";
 import type {
   NotificationsQueryChannelSettingsArgs,
   NotificationsQueryProviderConfigurationArgs,
@@ -17,15 +9,10 @@ import type {
 import {
   toDefinitionKey,
   toDomainChannel,
-  toGraphQLAudience,
   toGraphQLChannel,
-  toGraphQLEffectiveTemplate,
-  toGraphQLTemplateVariable,
-  toGraphQLWebhook,
   toGraphQLWebhookStability,
 } from "./mappers.js";
 import { NotificationsType } from "./NotificationsType.js";
-import { runQueryScript } from "./runQueryScript.js";
 
 @ApolloQuery
 export class QueryResolver extends NotificationsType<Record<string, never>> {
@@ -38,55 +25,71 @@ export class NotificationsQueryResolver extends NotificationsType<
   Record<string, never>
 > {
   async definitions() {
-    const definitions = await runQueryScript(
-      this.$ctx,
-      NotificationDefinitionsQueryScript,
-      {}
+    const definitions = this.$ctx.kernel.definitions.list();
+    const [settings, channels] = await Promise.all([
+      this.$ctx.kernel.repository.settings.listDefinitionSettings(),
+      this.$ctx.kernel.repository.settings.listChannelSettings(),
+    ]);
+    const settingByKey = new Map(
+      settings.map((setting) => [setting.definitionKey, setting])
     );
-    return definitions.map((definition) => ({
-      ...definition,
-      audience: toGraphQLAudience(definition.audience),
-      allowedChannels: definition.allowedChannels.map(toGraphQLChannel),
-      defaultChannels: definition.defaultChannels.map(toGraphQLChannel),
-      activeChannels: definition.activeChannels.map(toGraphQLChannel),
-      variables: definition.variables.map(toGraphQLTemplateVariable),
-    }));
+    const channelsByKey = new Map(
+      definitions.map((definition) => [
+        definition.key,
+        channels.filter(
+          (channel) => channel.definitionKey === definition.key
+        ),
+      ])
+    );
+
+    return Promise.all(
+      definitions.map((definition) =>
+        this.resolvers.notificationDefinition({
+          definition,
+          setting: settingByKey.get(definition.key) ?? null,
+          channels: channelsByKey.get(definition.key) ?? [],
+        })
+      )
+    );
   }
 
   async channelSettings(args: NotificationsQueryChannelSettingsArgs) {
-    const settings = await runQueryScript(
-      this.$ctx,
-      NotificationChannelSettingsQueryScript,
-      { key: toDefinitionKey(args.key) }
+    const key = toDefinitionKey(args.key);
+    const definition = this.$ctx.kernel.definitions.get(key);
+    return Promise.all(
+      definition.allowedChannels.map((channel) =>
+        this.resolvers.notificationChannelSetting({ key, channel })
+      )
     );
-    return settings.map((setting) => ({
-      ...setting,
-      channel: toGraphQLChannel(setting.channel),
-    }));
   }
 
   async template(args: NotificationsQueryTemplateArgs) {
-    const template = await runQueryScript(
-      this.$ctx,
-      NotificationTemplateQueryScript,
-      {
-        key: toDefinitionKey(args.key),
-        channel: toDomainChannel(args.channel),
-        locale: args.locale,
-      }
-    );
-    return toGraphQLEffectiveTemplate(template);
+    return this.resolvers.notificationEffectiveTemplate({
+      key: toDefinitionKey(args.key),
+      channel: toDomainChannel(args.channel),
+      locale: args.locale,
+    });
   }
 
-  staffRecipients() {
-    return runQueryScript(this.$ctx, StaffRecipientsQueryScript, {});
+  async staffRecipients() {
+    const recipients = await this.$ctx.kernel.repository.staff.list();
+    return Promise.all(
+      recipients.map((recipient) => this.resolvers.staffRecipient(recipient))
+    );
   }
 
   async providerRoutes() {
-    const routes = await runQueryScript(
-      this.$ctx,
-      NotificationProviderRoutesQueryScript,
-      {}
+    const services = this.$ctx.kernel.getServices();
+    const routes = await Promise.all(
+      (["EMAIL", "SMS", "WEBHOOK"] as const).map((channel) =>
+        services.broker.call<
+          Apps.NotificationProviderRouteStatusResult,
+          Apps.NotificationProviderRouteStatusParams
+        >("apps.getNotificationProviderRouteStatus", {
+          storeId: this.$ctx.store.id,
+          channel,
+        })
+      )
     );
     return routes.map((route) => ({
       ...route,
@@ -97,26 +100,27 @@ export class NotificationsQueryResolver extends NotificationsType<
   async providerConfiguration(
     args: NotificationsQueryProviderConfigurationArgs
   ) {
-    const configuration = await runQueryScript(
-      this.$ctx,
-      NotificationProviderConfigurationQueryScript,
-      { channel: toDomainChannel(args.channel) }
-    );
+    const services = this.$ctx.kernel.getServices();
+    const configuration = await services.broker.call<
+      Apps.GetMaskedNotificationProviderConfigResult,
+      Apps.GetMaskedNotificationProviderConfigParams
+    >("apps.getMaskedNotificationProviderConfig", {
+      storeId: this.$ctx.store.id,
+      channel: toDomainChannel(args.channel),
+    });
     return {
       ...configuration,
       channel: toGraphQLChannel(configuration.channel),
     };
   }
 
-  async webhookCapabilities() {
-    const capabilities = await runQueryScript(
-      this.$ctx,
-      NotificationWebhookCapabilitiesQueryScript,
-      {}
-    );
+  webhookCapabilities() {
     return {
-      events: capabilities.events,
-      apiVersions: capabilities.apiVersions.map((version) => ({
+      events: this.$ctx.kernel.definitions.listEventTypes().map((eventType) => ({
+        eventType,
+        title: humanizeEventType(eventType),
+      })),
+      apiVersions: WEBHOOK_API_VERSIONS.map((version) => ({
         ...version,
         stability: toGraphQLWebhookStability(version.stability),
       })),
@@ -124,11 +128,19 @@ export class NotificationsQueryResolver extends NotificationsType<
   }
 
   async webhookSubscriptions() {
-    const webhooks = await runQueryScript(
-      this.$ctx,
-      NotificationWebhooksQueryScript,
-      {}
+    const webhooks = await this.$ctx.kernel.repository.webhooks.list();
+    return Promise.all(
+      webhooks.map((webhook) => this.resolvers.webhook(webhook.id))
     );
-    return webhooks.map(toGraphQLWebhook);
   }
+}
+
+function humanizeEventType(value: string): string {
+  const words = value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim();
+  return words.length === 0
+    ? value
+    : words[0]!.toUpperCase() + words.slice(1);
 }

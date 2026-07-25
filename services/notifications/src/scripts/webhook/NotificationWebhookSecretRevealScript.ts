@@ -1,19 +1,32 @@
-import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
-import type { NotificationWebhookSecretResult } from "./dto/index.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  recordAdminAudit,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
+export interface NotificationWebhookSecretRevealResult {
+  secret?: string;
+  userErrors: AdminUserError[];
+}
 
-export class NotificationWebhookSecretRevealScript extends BaseAdminMutationScript<
+export class NotificationWebhookSecretRevealScript extends BaseScript<
   Record<string, never>,
-  NotificationWebhookSecretResult
+  NotificationWebhookSecretRevealResult
 > {
   @Transactional()
   protected async execute() {
     const secret = await this.repository.webhooks.revealSecret();
-    await this.audit(
+    await recordAdminAudit(
+      this.repository,
+      this.context.user.id,
       "webhook.secret.revealed",
       "webhookSecret",
       this.context.store.id
     );
-    return this.success({ secret });
+    return { secret, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): NotificationWebhookSecretRevealResult {
+    return { secret: undefined, userErrors: adminUserErrors(error) };
   }
 }

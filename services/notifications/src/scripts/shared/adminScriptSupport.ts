@@ -3,7 +3,7 @@ import {
   KernelError,
 } from "@shopana/shared-kernel";
 import { ZodError } from "zod";
-import { BaseScript } from "../../kernel/BaseScript.js";
+import type { Repository } from "../../repositories/Repository.js";
 
 const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   CHANNEL_DOES_NOT_SUPPORT_TEMPLATES:
@@ -43,49 +43,21 @@ export interface AdminUserError {
   code?: string;
 }
 
-export interface AdminMutationResult<TData> {
-  data?: TData;
-  userErrors: AdminUserError[];
-}
-
-export abstract class BaseAdminScript<TParams, TResult> extends BaseScript<
-  TParams,
-  TResult
-> {
-  protected audit(
-    action: string,
-    entityType: string,
-    entityId: string,
-    payload?: Record<string, unknown>
-  ): Promise<void> {
-    return this.repository.audit.record({
-      action,
-      entityType,
-      entityId,
-      actorId: this.context.user.id,
-      payload,
-    });
-  }
-
-  protected handleError(error: unknown): TResult {
-    throw normalizeAdminError(error);
-  }
-}
-
-export abstract class BaseAdminMutationScript<
-  TParams,
-  TData,
-> extends BaseAdminScript<TParams, AdminMutationResult<TData>> {
-  protected success(data: TData): AdminMutationResult<TData> {
-    return { data, userErrors: [] };
-  }
-
-  protected handleError(error: unknown): AdminMutationResult<TData> {
-    return {
-      data: undefined,
-      userErrors: adminUserErrors(error),
-    };
-  }
+export function recordAdminAudit(
+  repository: Repository,
+  actorId: string,
+  action: string,
+  entityType: string,
+  entityId: string,
+  payload?: Record<string, unknown>
+): Promise<void> {
+  return repository.audit.record({
+    action,
+    entityType,
+    entityId,
+    actorId,
+    payload,
+  });
 }
 
 export function adminUserErrors(error: unknown): AdminUserError[] {

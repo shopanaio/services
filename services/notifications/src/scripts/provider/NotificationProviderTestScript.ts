@@ -1,13 +1,22 @@
 import type { Apps, Notifications } from "@shopana/broker-types";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 import type {
   NotificationProviderTestParams,
   NotificationProviderTestResult,
 } from "./dto/index.js";
 
-export class NotificationProviderTestScript extends BaseAdminMutationScript<
+export interface NotificationProviderTestScriptResult {
+  testResult?: NotificationProviderTestResult;
+  userErrors: AdminUserError[];
+}
+
+export class NotificationProviderTestScript extends BaseScript<
   NotificationProviderTestParams,
-  NotificationProviderTestResult
+  NotificationProviderTestScriptResult
 > {
   protected async execute(
     params: NotificationProviderTestParams
@@ -23,6 +32,10 @@ export class NotificationProviderTestScript extends BaseAdminMutationScript<
         recipient: params.recipient,
       },
     });
-    return this.success(result);
+    return { testResult: result, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): NotificationProviderTestScriptResult {
+    return { testResult: undefined, userErrors: adminUserErrors(error) };
   }
 }

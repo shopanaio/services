@@ -1,9 +1,17 @@
 import { KernelError } from "@shopana/shared-kernel";
-import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
-import type { StaffRecipientDeleteResult } from "./dto/index.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  recordAdminAudit,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 
-export class StaffRecipientDeleteScript extends BaseAdminMutationScript<
+export interface StaffRecipientDeleteResult {
+  deletedStaffRecipientId?: string;
+  userErrors: AdminUserError[];
+}
+
+export class StaffRecipientDeleteScript extends BaseScript<
   { id: string },
   StaffRecipientDeleteResult
 > {
@@ -16,11 +24,20 @@ export class StaffRecipientDeleteScript extends BaseAdminMutationScript<
         "STAFF_RECIPIENT_NOT_FOUND"
       );
     }
-    await this.audit(
+    await recordAdminAudit(
+      this.repository,
+      this.context.user.id,
       "staff.recipient.deleted",
       "staffRecipient",
       params.id
     );
-    return this.success({ deleted: true });
+    return { deletedStaffRecipientId: params.id, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): StaffRecipientDeleteResult {
+    return {
+      deletedStaffRecipientId: undefined,
+      userErrors: adminUserErrors(error),
+    };
   }
 }

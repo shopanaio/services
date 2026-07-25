@@ -1,16 +1,25 @@
 import {
   isSupportedWebhookApiVersion,
 } from "../../infrastructure/webhooks/WebhookCapabilities.js";
-import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  recordAdminAudit,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 import type {
   NotificationWebhookCreateParams,
   NotificationWebhookView,
 } from "./dto/index.js";
 
-export class NotificationWebhookCreateScript extends BaseAdminMutationScript<
+export interface NotificationWebhookCreateResult {
+  webhook?: NotificationWebhookView;
+  userErrors: AdminUserError[];
+}
+
+export class NotificationWebhookCreateScript extends BaseScript<
   NotificationWebhookCreateParams,
-  NotificationWebhookView
+  NotificationWebhookCreateResult
 > {
   @Transactional()
   protected async execute(
@@ -26,10 +35,18 @@ export class NotificationWebhookCreateScript extends BaseAdminMutationScript<
       ...params,
       createdBy: this.context.user.id,
     });
-    await this.audit("webhook.created", "webhook", webhook.id, {
-      eventType: params.eventType,
-      format: params.format,
-    });
-    return this.success(webhook);
+    await recordAdminAudit(
+      this.repository,
+      this.context.user.id,
+      "webhook.created",
+      "webhook",
+      webhook.id,
+      { eventType: params.eventType, format: params.format }
+    );
+    return { webhook, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): NotificationWebhookCreateResult {
+    return { webhook: undefined, userErrors: adminUserErrors(error) };
   }
 }

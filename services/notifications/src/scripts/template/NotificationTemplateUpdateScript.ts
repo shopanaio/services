@@ -1,14 +1,23 @@
 import { KernelError } from "@shopana/shared-kernel";
-import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import {
+  adminUserErrors,
+  recordAdminAudit,
+  type AdminUserError,
+} from "../shared/adminScriptSupport.js";
 import type {
   NotificationEffectiveTemplateView,
   NotificationTemplateUpdateParams,
 } from "./dto/index.js";
 
-export class NotificationTemplateUpdateScript extends BaseAdminMutationScript<
+export interface NotificationTemplateUpdateResult {
+  template?: NotificationEffectiveTemplateView;
+  userErrors: AdminUserError[];
+}
+
+export class NotificationTemplateUpdateScript extends BaseScript<
   NotificationTemplateUpdateParams,
-  NotificationEffectiveTemplateView
+  NotificationTemplateUpdateResult
 > {
   @Transactional()
   protected async execute(
@@ -39,13 +48,27 @@ export class NotificationTemplateUpdateScript extends BaseAdminMutationScript<
       expectedVersion: params.expectedVersion,
       updatedBy: this.context.user.id,
     });
-    await this.audit("template.updated", "templateRevision", revision.id, {
-      key: params.key,
-      channel: params.channel,
-      locale: params.locale,
-      revision: revision.revision,
-      pointerVersion: pointer.version,
-    });
-    return this.success(await this.renderer.getEffectiveTemplate(params));
+    await recordAdminAudit(
+      this.repository,
+      this.context.user.id,
+      "template.updated",
+      "templateRevision",
+      revision.id,
+      {
+        key: params.key,
+        channel: params.channel,
+        locale: params.locale,
+        revision: revision.revision,
+        pointerVersion: pointer.version,
+      }
+    );
+    return {
+      template: await this.renderer.getEffectiveTemplate(params),
+      userErrors: [],
+    };
+  }
+
+  protected handleError(error: unknown): NotificationTemplateUpdateResult {
+    return { template: undefined, userErrors: adminUserErrors(error) };
   }
 }
