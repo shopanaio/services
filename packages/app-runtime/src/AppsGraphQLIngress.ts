@@ -96,7 +96,11 @@ export class AppsGraphQLIngress {
   ): Headers {
     const headers = new Headers();
     for (const [name, rawValue] of Object.entries(request.headers)) {
-      if (hopByHopHeaders.has(name.toLowerCase()) || rawValue === undefined) {
+      const normalizedName = name.toLowerCase();
+      if (
+        hopByHopHeaders.has(normalizedName) ||
+        rawValue === undefined
+      ) {
         continue;
       }
       headers.set(name, Array.isArray(rawValue) ? rawValue.join(",") : rawValue);

@@ -7,9 +7,6 @@ export const gatewayConfig = defineConfig({
         authorization: request.headers.get("authorization"),
         "x-store-name": request.headers.get("x-store-name"),
         "x-organization-id": request.headers.get("x-organization-id"),
-        "x-shopana-app-installation-id": request.headers.get(
-          "x-shopana-app-installation-id",
-        ),
         "x-api-key": request.headers.get("x-api-key"),
         "user-agent": request.headers.get("user-agent"),
         "x-forwarded-for": request.headers.get("x-forwarded-for"),

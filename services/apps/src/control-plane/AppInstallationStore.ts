@@ -290,6 +290,16 @@ export class AppInstallationStore {
     return this.repository.installation.findByIdAndStore(id, storeId);
   }
 
+  findNonTerminalByStoreAndApp(
+    storeId: string,
+    appCode: string,
+  ): Promise<AppInstallationRecord | null> {
+    return this.repository.installation.findNonTerminalByStoreAndApp(
+      storeId,
+      appCode,
+    );
+  }
+
   findOperationById(
     id: string,
   ): Promise<AppLifecycleOperationRecord | null> {

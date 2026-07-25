@@ -269,6 +269,12 @@ export interface AppContextResolutionReference {
   readonly operationId?: string;
 }
 
+export interface ActiveAppContextResolutionReference {
+  readonly appCode: string;
+  readonly storeName: string;
+  readonly appVersion: string;
+}
+
 export interface AppInvocationContextRef {
   readonly installationId: string;
   readonly operationId?: string;
@@ -278,6 +284,9 @@ export interface AppInvocationContextRef {
 export interface AppInstallationContextProvider {
   resolve(
     reference: Readonly<AppContextResolutionReference>,
+  ): Promise<Readonly<AppExecutionContext>>;
+  resolveActive(
+    reference: Readonly<ActiveAppContextResolutionReference>,
   ): Promise<Readonly<AppExecutionContext>>;
 }
 

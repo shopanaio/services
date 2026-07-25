@@ -145,15 +145,14 @@ export class AppGraphQLServerFactory {
     host: AppHostContext,
     request: FastifyRequest,
   ): Promise<RuntimeGraphQLContext> {
-    const installationId =
-      request.headers["x-shopana-app-installation-id"];
-    if (typeof installationId !== "string" || !installationId) {
+    const storeName = request.headers["x-store-name"];
+    if (typeof storeName !== "string" || !storeName) {
       return { host };
     }
 
-    const app = await host.installations.resolve({
+    const app = await host.installations.resolveActive({
       appCode: hosted.definition.manifest.code,
-      installationId,
+      storeName,
       appVersion: hosted.definition.manifest.version,
     });
     const organizationId = request.headers["x-organization-id"];

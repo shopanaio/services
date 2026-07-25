@@ -1,11 +1,18 @@
 import { Injectable } from "@nestjs/common";
 import type {
+  ActiveAppContextResolutionReference,
   AppContextResolutionReference,
   AppExecutionContext,
   AppInstallationContextProvider,
   AppInstallationStatus,
 } from "@shopana/app-sdk";
+import type { GetCurrentStoreResult } from "@shopana/shared-context";
+import {
+  InjectBroker,
+  type ServiceBroker,
+} from "@shopana/shared-kernel";
 import { AppInstallationStore } from "../control-plane/AppInstallationStore.js";
+import type { AppInstallationRecord } from "../control-plane/types.js";
 
 export const APP_INSTALLATION_CONTEXT_PROVIDER = Symbol(
   "APP_INSTALLATION_CONTEXT_PROVIDER",
@@ -17,6 +24,7 @@ export class DatabaseAppInstallationContextProvider
 {
   constructor(
     private readonly installations: AppInstallationStore,
+    @InjectBroker("apps") private readonly broker: ServiceBroker,
   ) {}
 
   async resolve(
@@ -34,6 +42,44 @@ export class DatabaseAppInstallationContextProvider
       throw new Error("App installation does not belong to this App");
     }
 
+    return this.createContext(installation, reference);
+  }
+
+  async resolveActive(
+    reference: Readonly<ActiveAppContextResolutionReference>,
+  ): Promise<Readonly<AppExecutionContext>> {
+    const storeResult = await this.broker.call<
+      GetCurrentStoreResult,
+      { name: string }
+    >("project.getCurrentStore", { name: reference.storeName });
+    const store = storeResult?.store;
+    if (!store) {
+      throw new Error(`Store "${reference.storeName}" not found`);
+    }
+
+    const installation =
+      await this.installations.findNonTerminalByStoreAndApp(
+        store.id,
+        reference.appCode,
+      );
+    if (!installation || installation.status !== "ACTIVE") {
+      throw new Error(
+        `Active App installation for "${reference.appCode}" was not found`,
+      );
+    }
+    if (installation.organizationId !== store.organizationId) {
+      throw new Error("App installation organization mismatch");
+    }
+
+    return this.createContext(installation, reference);
+  }
+
+  private async createContext(
+    installation: AppInstallationRecord,
+    reference: Readonly<
+      AppContextResolutionReference | ActiveAppContextResolutionReference
+    >,
+  ): Promise<Readonly<AppExecutionContext>> {
     const effectiveVersion =
       installation.targetVersion ?? installation.installedVersion;
     if (effectiveVersion !== reference.appVersion) {
@@ -44,9 +90,11 @@ export class DatabaseAppInstallationContextProvider
 
     let actor: AppExecutionContext["actor"] = { type: "SYSTEM" };
     let correlationId: string | undefined;
-    if (reference.operationId) {
+    const operationId =
+      "operationId" in reference ? reference.operationId : undefined;
+    if (operationId) {
       const operation = await this.installations.findOperationById(
-        reference.operationId,
+        operationId,
       );
       if (
         !operation ||
@@ -83,7 +131,7 @@ export class DatabaseAppInstallationContextProvider
       storeId: installation.storeId,
       appVersion: reference.appVersion,
       grantedScopes,
-      operationId: reference.operationId,
+      operationId,
       actor,
       correlationId,
     });
