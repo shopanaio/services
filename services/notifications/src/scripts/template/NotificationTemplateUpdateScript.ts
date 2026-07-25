@@ -1,19 +1,19 @@
 import { KernelError } from "@shopana/shared-kernel";
 import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminScript } from "../shared/BaseAdminScript.js";
+import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
 import type {
   NotificationEffectiveTemplateView,
   NotificationTemplateUpdateParams,
 } from "./dto/index.js";
 
-export class NotificationTemplateUpdateScript extends BaseAdminScript<
+export class NotificationTemplateUpdateScript extends BaseAdminMutationScript<
   NotificationTemplateUpdateParams,
   NotificationEffectiveTemplateView
 > {
   @Transactional()
   protected async execute(
     params: NotificationTemplateUpdateParams
-  ): Promise<NotificationEffectiveTemplateView> {
+  ) {
     if (params.channel !== "EMAIL" && params.channel !== "SMS") {
       throw new Error("CHANNEL_DOES_NOT_SUPPORT_TEMPLATES");
     }
@@ -46,6 +46,6 @@ export class NotificationTemplateUpdateScript extends BaseAdminScript<
       revision: revision.revision,
       pointerVersion: pointer.version,
     });
-    return this.renderer.getEffectiveTemplate(params);
+    return this.success(await this.renderer.getEffectiveTemplate(params));
   }
 }

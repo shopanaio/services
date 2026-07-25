@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationPreviewInput, NotificationProviderConfigurationInput, NotificationTemplateUpdateInput, NotificationTestMessageInput, NotificationWebhookApiStability, NotificationWebhookCreateInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, StaffNotificationRecipientInput, WeightUnit } from './types.js'
+import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationDefinitionSetEnabledInput, NotificationPreviewInput, NotificationProviderConfigurationInput, NotificationProviderTestInput, NotificationTemplateUpdateInput, NotificationTestMessageInput, NotificationWebhookApiStability, NotificationWebhookCreateInput, NotificationWebhookDeleteInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, StaffNotificationRecipientInput, StaffRecipientDeleteInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -41,6 +41,14 @@ export function NotificationChannelSettingInputSchema(): z.ZodObject<Properties<
   })
 }
 
+export function NotificationDefinitionSetEnabledInputSchema(): z.ZodObject<Properties<NotificationDefinitionSetEnabledInput>> {
+  return z.object({
+    enabled: z.boolean(),
+    expectedVersion: z.number(),
+    key: z.string()
+  })
+}
+
 export function NotificationPreviewInputSchema(): z.ZodObject<Properties<NotificationPreviewInput>> {
   return z.object({
     bodyTemplate: z.string().nullish(),
@@ -60,6 +68,13 @@ export function NotificationProviderConfigurationInputSchema(): z.ZodObject<Prop
     config: z.record(z.unknown()),
     providerCode: z.string(),
     secretFields: z.record(z.unknown()).nullish()
+  })
+}
+
+export function NotificationProviderTestInputSchema(): z.ZodObject<Properties<NotificationProviderTestInput>> {
+  return z.object({
+    channel: NotificationChannelSchema,
+    recipient: z.string().nullish()
   })
 }
 
@@ -100,6 +115,12 @@ export function NotificationWebhookCreateInputSchema(): z.ZodObject<Properties<N
   })
 }
 
+export function NotificationWebhookDeleteInputSchema(): z.ZodObject<Properties<NotificationWebhookDeleteInput>> {
+  return z.object({
+    id: z.string()
+  })
+}
+
 export function NotificationWebhookUpdateInputSchema(): z.ZodObject<Properties<NotificationWebhookUpdateInput>> {
   return z.object({
     apiVersion: z.string().nullish(),
@@ -122,5 +143,11 @@ export function StaffNotificationRecipientInputSchema(): z.ZodObject<Properties<
     name: z.string(),
     timezone: z.string(),
     userId: z.string().nullish()
+  })
+}
+
+export function StaffRecipientDeleteInputSchema(): z.ZodObject<Properties<StaffRecipientDeleteInput>> {
+  return z.object({
+    id: z.string()
   })
 }

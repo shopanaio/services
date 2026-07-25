@@ -1,18 +1,18 @@
 import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminScript } from "../shared/BaseAdminScript.js";
+import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
 import type {
   NotificationDefinitionSetEnabledParams,
   NotificationDefinitionSettingView,
 } from "./dto/index.js";
 
-export class NotificationDefinitionSetEnabledScript extends BaseAdminScript<
+export class NotificationDefinitionSetEnabledScript extends BaseAdminMutationScript<
   NotificationDefinitionSetEnabledParams,
   NotificationDefinitionSettingView
 > {
   @Transactional()
   protected async execute(
     params: NotificationDefinitionSetEnabledParams
-  ): Promise<NotificationDefinitionSettingView> {
+  ) {
     const definition = this.definitions.get(params.key);
     if (!definition.optional && !params.enabled) {
       throw new Error("MANDATORY_NOTIFICATION_CANNOT_BE_DISABLED");
@@ -25,6 +25,6 @@ export class NotificationDefinitionSetEnabledScript extends BaseAdminScript<
       enabled: params.enabled,
       version: setting.version,
     });
-    return setting;
+    return this.success(setting);
   }
 }

@@ -1,18 +1,18 @@
 import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminScript } from "../shared/BaseAdminScript.js";
+import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
 import type {
   StaffRecipientUpsertParams,
   StaffRecipientWriteView,
 } from "./dto/index.js";
 
-export class StaffRecipientUpsertScript extends BaseAdminScript<
+export class StaffRecipientUpsertScript extends BaseAdminMutationScript<
   StaffRecipientUpsertParams,
   StaffRecipientWriteView
 > {
   @Transactional()
   protected async execute(
     params: StaffRecipientUpsertParams
-  ): Promise<StaffRecipientWriteView> {
+  ) {
     for (const key of params.eventKeys) {
       if (this.definitions.get(key).audience !== "STAFF") {
         throw new Error(`NOT_A_STAFF_NOTIFICATION:${key}`);
@@ -25,6 +25,6 @@ export class StaffRecipientUpsertScript extends BaseAdminScript<
       recipient.id,
       { eventKeys: recipient.eventKeys, enabled: recipient.enabled }
     );
-    return recipient;
+    return this.success(recipient);
   }
 }

@@ -1,17 +1,17 @@
 import type { Apps } from "@shopana/broker-types";
-import { BaseAdminScript } from "../shared/BaseAdminScript.js";
+import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
 import type {
   NotificationProviderConfigureParams,
   NotificationProviderConfigureResult,
 } from "./dto/index.js";
 
-export class NotificationProviderConfigureScript extends BaseAdminScript<
+export class NotificationProviderConfigureScript extends BaseAdminMutationScript<
   NotificationProviderConfigureParams,
   NotificationProviderConfigureResult
 > {
   protected async execute(
     params: NotificationProviderConfigureParams
-  ): Promise<NotificationProviderConfigureResult> {
+  ) {
     const result = await this.services.broker.call<
       Apps.ConfigureNotificationProviderResult,
       Apps.ConfigureNotificationProviderParams
@@ -25,6 +25,6 @@ export class NotificationProviderConfigureScript extends BaseAdminScript<
       params.channel,
       { providerCode: params.providerCode, channel: params.channel }
     );
-    return result;
+    return this.success(result);
   }
 }

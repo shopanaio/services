@@ -1,19 +1,19 @@
 import { z } from "zod";
 import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminScript } from "../shared/BaseAdminScript.js";
+import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
 import type {
   NotificationChannelSetEnabledParams,
   NotificationChannelSettingWriteView,
 } from "./dto/index.js";
 
-export class NotificationChannelSetEnabledScript extends BaseAdminScript<
+export class NotificationChannelSetEnabledScript extends BaseAdminMutationScript<
   NotificationChannelSetEnabledParams,
   NotificationChannelSettingWriteView
 > {
   @Transactional()
   protected async execute(
     params: NotificationChannelSetEnabledParams
-  ): Promise<NotificationChannelSettingWriteView> {
+  ) {
     const definition = this.definitions.get(params.key);
     if (!definition.allowedChannels.includes(params.channel)) {
       throw new Error("CHANNEL_NOT_ALLOWED");
@@ -25,10 +25,14 @@ export class NotificationChannelSetEnabledScript extends BaseAdminScript<
       throw new Error("SENDER_SETTINGS_REQUIRE_EMAIL_CHANNEL");
     }
     if (params.senderEmail) {
-      z.string().email().parse(params.senderEmail);
+      z.object({ senderEmail: z.string().email() }).parse({
+        senderEmail: params.senderEmail,
+      });
     }
     if (params.replyTo) {
-      z.string().email().parse(params.replyTo);
+      z.object({ replyTo: z.string().email() }).parse({
+        replyTo: params.replyTo,
+      });
     }
     const setting =
       await this.repository.settings.setChannelEnabled(params);
@@ -36,6 +40,6 @@ export class NotificationChannelSetEnabledScript extends BaseAdminScript<
       channel: params.channel,
       enabled: params.enabled,
     });
-    return setting;
+    return this.success(setting);
   }
 }

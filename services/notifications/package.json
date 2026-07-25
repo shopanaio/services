@@ -22,6 +22,7 @@
     "@shopana/shared-context": "workspace:*",
     "@shopana/shared-kernel": "workspace:*",
     "@shopana/shared-service-config": "workspace:*",
+    "@shopana/type-resolver": "workspace:*",
     "cache-manager": "^7.2.7",
     "drizzle-orm": "^0.45.1",
     "fastify": "^4.28.1",

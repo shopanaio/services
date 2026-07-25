@@ -31,23 +31,31 @@ type NotificationsQuery {
 }
 
 type NotificationsMutation {
-  setDefinitionEnabled(
-    key: String!
-    enabled: Boolean!
-    expectedVersion: Int!
-  ): NotificationDefinitionSetting!
-  setChannelEnabled(input: NotificationChannelSettingInput!): NotificationChannelSetting!
-  updateTemplate(input: NotificationTemplateUpdateInput!): NotificationEffectiveTemplate!
-  preview(input: NotificationPreviewInput!): NotificationPreview!
-  upsertStaffRecipient(input: StaffNotificationRecipientInput!): StaffNotificationRecipient!
-  deleteStaffRecipient(id: ID!): DeletePayload!
-  configureProvider(input: NotificationProviderConfigurationInput!): NotificationProviderConfiguration!
-  testProvider(channel: NotificationChannel!, recipient: String): NotificationProviderTestResult!
-  sendTest(input: NotificationTestMessageInput!): NotificationWorkflowPayload!
-  createWebhook(input: NotificationWebhookCreateInput!): NotificationWebhookSubscription!
-  updateWebhook(input: NotificationWebhookUpdateInput!): NotificationWebhookSubscription!
-  deleteWebhook(id: ID!): DeletePayload!
+  setDefinitionEnabled(input: NotificationDefinitionSetEnabledInput!): NotificationDefinitionSetEnabledPayload!
+  setChannelEnabled(input: NotificationChannelSettingInput!): NotificationChannelSetEnabledPayload!
+  updateTemplate(input: NotificationTemplateUpdateInput!): NotificationTemplateUpdatePayload!
+  preview(input: NotificationPreviewInput!): NotificationPreviewPayload!
+  upsertStaffRecipient(input: StaffNotificationRecipientInput!): StaffRecipientUpsertPayload!
+  deleteStaffRecipient(input: StaffRecipientDeleteInput!): StaffRecipientDeletePayload!
+  configureProvider(input: NotificationProviderConfigurationInput!): NotificationProviderConfigurePayload!
+  testProvider(input: NotificationProviderTestInput!): NotificationProviderTestPayload!
+  sendTest(input: NotificationTestMessageInput!): NotificationSendTestPayload!
+  createWebhook(input: NotificationWebhookCreateInput!): NotificationWebhookCreatePayload!
+  updateWebhook(input: NotificationWebhookUpdateInput!): NotificationWebhookUpdatePayload!
+  deleteWebhook(input: NotificationWebhookDeleteInput!): NotificationWebhookDeletePayload!
   revealWebhookSecret: NotificationWebhookSecretPayload!
+}
+
+interface UserError {
+  message: String!
+  field: [String!]
+  code: String
+}
+
+type GenericUserError implements UserError @shareable {
+  message: String!
+  field: [String!]
+  code: String
 }
 
 enum NotificationChannel {
@@ -99,6 +107,17 @@ type NotificationDefinitionSetting {
   updatedAt: DateTime!
 }
 
+input NotificationDefinitionSetEnabledInput {
+  key: String!
+  enabled: Boolean!
+  expectedVersion: Int!
+}
+
+type NotificationDefinitionSetEnabledPayload {
+  setting: NotificationDefinitionSetting
+  userErrors: [GenericUserError!]!
+}
+
 input NotificationChannelSettingInput {
   key: String!
   channel: NotificationChannel!
@@ -107,6 +126,11 @@ input NotificationChannelSettingInput {
   senderName: String
   senderEmail: String
   replyTo: String
+}
+
+type NotificationChannelSetEnabledPayload {
+  setting: NotificationChannelSetting
+  userErrors: [GenericUserError!]!
 }
 
 type NotificationChannelSetting {
@@ -128,6 +152,11 @@ input NotificationTemplateUpdateInput {
   bodyTemplate: String!
   plainTextTemplate: String
   expectedVersion: Int!
+}
+
+type NotificationTemplateUpdatePayload {
+  template: NotificationEffectiveTemplate
+  userErrors: [GenericUserError!]!
 }
 
 type NotificationEffectiveTemplate {
@@ -154,6 +183,11 @@ input NotificationPreviewInput {
   plainTextTemplate: String
 }
 
+type NotificationPreviewPayload {
+  preview: NotificationPreview
+  userErrors: [GenericUserError!]!
+}
+
 type NotificationPreview {
   subject: String
   html: String
@@ -178,6 +212,20 @@ input StaffNotificationRecipientInput {
   timezone: String!
   enabled: Boolean!
   eventKeys: [String!]!
+}
+
+input StaffRecipientDeleteInput {
+  id: ID!
+}
+
+type StaffRecipientUpsertPayload {
+  recipient: StaffNotificationRecipient
+  userErrors: [GenericUserError!]!
+}
+
+type StaffRecipientDeletePayload {
+  deletedStaffRecipientId: ID
+  userErrors: [GenericUserError!]!
 }
 
 type StaffNotificationRecipient {
@@ -209,6 +257,26 @@ input NotificationProviderConfigurationInput {
   config: JSON!
   secretFields: JSON
   active: Boolean = true
+}
+
+input NotificationProviderTestInput {
+  channel: NotificationChannel!
+  recipient: String
+}
+
+type NotificationProviderConfigurePayload {
+  configuration: NotificationProviderConfiguration
+  userErrors: [GenericUserError!]!
+}
+
+type NotificationProviderTestPayload {
+  testResult: NotificationProviderTestResult
+  userErrors: [GenericUserError!]!
+}
+
+type NotificationSendTestPayload {
+  workflow: NotificationWorkflowPayload
+  userErrors: [GenericUserError!]!
 }
 
 type NotificationProviderConfiguration {
@@ -285,6 +353,25 @@ input NotificationWebhookUpdateInput {
   expectedVersion: Int!
 }
 
+input NotificationWebhookDeleteInput {
+  id: ID!
+}
+
+type NotificationWebhookCreatePayload {
+  webhook: NotificationWebhookSubscription
+  userErrors: [GenericUserError!]!
+}
+
+type NotificationWebhookUpdatePayload {
+  webhook: NotificationWebhookSubscription
+  userErrors: [GenericUserError!]!
+}
+
+type NotificationWebhookDeletePayload {
+  deletedWebhookId: ID
+  userErrors: [GenericUserError!]!
+}
+
 type NotificationWebhookSubscription {
   id: ID!
   eventType: String!
@@ -298,14 +385,11 @@ type NotificationWebhookSubscription {
 }
 
 type NotificationWebhookSecretPayload {
-  secret: String!
+  secret: String
+  userErrors: [GenericUserError!]!
 }
 
 type NotificationWorkflowPayload {
   workflowId: String!
   accepted: Boolean!
-}
-
-type DeletePayload {
-  deleted: Boolean!
 }

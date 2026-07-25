@@ -1,4 +1,5 @@
 import { ApolloServer } from "@apollo/server";
+import { unwrapResolverError } from "@apollo/server/errors";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
@@ -8,15 +9,17 @@ import fastify from "fastify";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { GraphQLError } from "graphql";
 import { gql } from "graphql-tag";
 import {
   getServiceConfig,
   isDevelopment,
 } from "@shopana/shared-service-config";
+import { ResolverError } from "@shopana/type-resolver";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
-import { resolvers } from "./resolvers.js";
+import { resolvers } from "./resolvers/index.js";
 
 const { global } = getServiceConfig("notifications");
 
@@ -43,11 +46,24 @@ export async function startServer(config: { port: number }) {
   );
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
+    // @ts-expect-error Class-based type-resolver root resolvers are Apollo-compatible at runtime.
     schema: buildSubgraphSchema([{ typeDefs: schema, resolvers }]),
     plugins: [
       fastifyApolloDrainPlugin(app),
       ApolloServerPluginInlineTraceDisabled(),
     ],
+    formatError: (formattedError, error) => {
+      const graphQLError = unwrapTypeResolverGraphQLError(error);
+      if (!graphQLError) return formattedError;
+      return {
+        ...formattedError,
+        message: graphQLError.message,
+        extensions: {
+          ...formattedError.extensions,
+          ...graphQLError.extensions,
+        },
+      };
+    },
   });
   await apollo.start();
   await app.register(async (instance) => {
@@ -80,6 +96,14 @@ export async function startServer(config: { port: number }) {
   }));
   await app.listen({ port: config.port, host: "0.0.0.0" });
   return app;
+}
+
+function unwrapTypeResolverGraphQLError(error: unknown): GraphQLError | null {
+  let current = unwrapResolverError(error);
+  while (current instanceof ResolverError) {
+    current = current.originalError;
+  }
+  return current instanceof GraphQLError ? current : null;
 }
 
 function readHeader(

@@ -2,20 +2,20 @@ import {
   isSupportedWebhookApiVersion,
 } from "../../infrastructure/webhooks/WebhookCapabilities.js";
 import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminScript } from "../shared/BaseAdminScript.js";
+import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
 import type {
   NotificationWebhookUpdateParams,
   NotificationWebhookView,
 } from "./dto/index.js";
 
-export class NotificationWebhookUpdateScript extends BaseAdminScript<
+export class NotificationWebhookUpdateScript extends BaseAdminMutationScript<
   NotificationWebhookUpdateParams,
   NotificationWebhookView
 > {
   @Transactional()
   protected async execute(
     params: NotificationWebhookUpdateParams
-  ): Promise<NotificationWebhookView> {
+  ) {
     if (
       params.eventType &&
       this.definitions.forEvent(params.eventType).length === 0
@@ -33,6 +33,6 @@ export class NotificationWebhookUpdateScript extends BaseAdminScript<
       version: webhook.version,
       status: webhook.status,
     });
-    return webhook;
+    return this.success(webhook);
   }
 }

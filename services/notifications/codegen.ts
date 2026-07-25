@@ -7,12 +7,18 @@ const config: CodegenConfig = {
     "src/api/graphql-admin/schema/*.graphql",
   ],
   generates: {
-    "src/api/graphql-admin/generated/types.ts": {
+    "src/resolvers/admin/generated/types.ts": {
       plugins: ["typescript", "typescript-resolvers"],
       config: {
         useIndexSignature: true,
         federation: true,
         contextType: "../../../context/types.js#ServiceContext",
+        avoidOptionals: {
+          field: true,
+          inputValue: false,
+          object: false,
+          defaultValue: false,
+        },
         scalars: {
           DateTime: "string",
           Email: "string",
@@ -21,7 +27,7 @@ const config: CodegenConfig = {
         },
       },
     },
-    "src/api/graphql-admin/generated/schemas.ts": {
+    "src/resolvers/admin/generated/schemas.ts": {
       plugins: ["graphql-codegen-typescript-validation-schema"],
       config: {
         schema: "zod",

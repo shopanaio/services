@@ -1,18 +1,18 @@
 import type { Apps, Notifications } from "@shopana/broker-types";
-import { BaseAdminScript } from "../shared/BaseAdminScript.js";
+import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
 import type {
   NotificationProviderTestParams,
   NotificationProviderTestResult,
 } from "./dto/index.js";
 
-export class NotificationProviderTestScript extends BaseAdminScript<
+export class NotificationProviderTestScript extends BaseAdminMutationScript<
   NotificationProviderTestParams,
   NotificationProviderTestResult
 > {
   protected async execute(
     params: NotificationProviderTestParams
-  ): Promise<NotificationProviderTestResult> {
-    return this.services.broker.call<
+  ) {
+    const result = await this.services.broker.call<
       Notifications.NotificationProviderTestResult,
       Apps.TestNotificationProviderParams
     >("apps.testNotificationProvider", {
@@ -23,5 +23,6 @@ export class NotificationProviderTestScript extends BaseAdminScript<
         recipient: params.recipient,
       },
     });
+    return this.success(result);
   }
 }

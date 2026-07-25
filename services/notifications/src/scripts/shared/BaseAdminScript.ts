@@ -1,4 +1,7 @@
-import { KernelError } from "@shopana/shared-kernel";
+import {
+  AuthorizationError,
+  KernelError,
+} from "@shopana/shared-kernel";
 import { ZodError } from "zod";
 import { BaseScript } from "../../kernel/BaseScript.js";
 
@@ -16,8 +19,34 @@ const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   UNSUPPORTED_WEBHOOK_API_VERSION: "Webhook API version is not supported",
   UNSUPPORTED_WEBHOOK_EVENT: "Webhook event is not supported",
   VERSION_CONFLICT: "The resource was changed by another request",
+  WEBHOOK_NOT_FOUND: "Webhook subscription was not found",
   WEBHOOK_SIGNING_SECRET_NOT_FOUND: "Webhook signing secret was not found",
 };
+
+const ERROR_FIELDS: Readonly<Record<string, string[]>> = {
+  CHANNEL_DOES_NOT_SUPPORT_TEMPLATES: ["channel"],
+  CHANNEL_NOT_ALLOWED: ["channel"],
+  INVALID_NOTIFICATION_DEFINITION: ["key"],
+  MANDATORY_NOTIFICATION_CANNOT_BE_DISABLED: ["enabled"],
+  NOT_A_STAFF_NOTIFICATION: ["eventKeys"],
+  SENDER_SETTINGS_REQUIRE_EMAIL_CHANNEL: ["channel"],
+  STAFF_RECIPIENT_NOT_FOUND: ["id"],
+  UNSUPPORTED_WEBHOOK_API_VERSION: ["apiVersion"],
+  UNSUPPORTED_WEBHOOK_EVENT: ["eventType"],
+  VERSION_CONFLICT: ["expectedVersion"],
+  WEBHOOK_NOT_FOUND: ["id"],
+};
+
+export interface AdminUserError {
+  message: string;
+  field?: string[];
+  code?: string;
+}
+
+export interface AdminMutationResult<TData> {
+  data?: TData;
+  userErrors: AdminUserError[];
+}
 
 export abstract class BaseAdminScript<TParams, TResult> extends BaseScript<
   TParams,
@@ -38,9 +67,53 @@ export abstract class BaseAdminScript<TParams, TResult> extends BaseScript<
     });
   }
 
-  protected handleError(error: unknown): never {
+  protected handleError(error: unknown): TResult {
     throw normalizeAdminError(error);
   }
+}
+
+export abstract class BaseAdminMutationScript<
+  TParams,
+  TData,
+> extends BaseAdminScript<TParams, AdminMutationResult<TData>> {
+  protected success(data: TData): AdminMutationResult<TData> {
+    return { data, userErrors: [] };
+  }
+
+  protected handleError(error: unknown): AdminMutationResult<TData> {
+    return {
+      data: undefined,
+      userErrors: adminUserErrors(error),
+    };
+  }
+}
+
+export function adminUserErrors(error: unknown): AdminUserError[] {
+  if (error instanceof AuthorizationError) {
+    return error.errors.map((item) => ({
+      message: item.message,
+      code: item.code ?? undefined,
+      field: item.field ?? undefined,
+    }));
+  }
+
+  const normalized = normalizeAdminError(error);
+  const issues = readIssues(normalized.details);
+  if (issues.length > 0) {
+    return issues.map((issue) => ({
+      message: issue.message,
+      code: issue.code ?? normalized.code,
+      field: issue.field,
+    }));
+  }
+
+  return [
+    {
+      message: normalized.message,
+      code: normalized.code,
+      field: ERROR_FIELDS[normalized.code],
+    },
+  ];
 }
 
 export function normalizeAdminError(error: unknown): KernelError {
@@ -56,6 +129,13 @@ export function normalizeAdminError(error: unknown): KernelError {
   }
 
   if (error instanceof Error) {
+    if (error.message.startsWith("Unknown notification definition")) {
+      return new KernelError(
+        "Unknown notification definition",
+        "INVALID_NOTIFICATION_DEFINITION",
+        { field: ["key"] }
+      );
+    }
     const [code] = error.message.split(":", 1);
     if (code && ERROR_MESSAGES[code]) {
       return new KernelError(ERROR_MESSAGES[code], code, {
@@ -68,4 +148,48 @@ export function normalizeAdminError(error: unknown): KernelError {
     "Notification administration operation failed",
     "INTERNAL_ERROR"
   );
+}
+
+function readIssues(
+  details: unknown
+): Array<{ message: string; code?: string; field?: string[] }> {
+  if (
+    !details ||
+    typeof details !== "object" ||
+    !("issues" in details) ||
+    !Array.isArray(details.issues)
+  ) {
+    return [];
+  }
+
+  return details.issues.flatMap((issue) => {
+    if (!issue || typeof issue !== "object") return [];
+    const message =
+      "message" in issue && typeof issue.message === "string"
+        ? issue.message
+        : "Notification input is invalid";
+    const code =
+      "code" in issue && typeof issue.code === "string"
+        ? issue.code
+        : undefined;
+    const field = readIssueField(issue);
+    return [{ message, code, field }];
+  });
+}
+
+function readIssueField(issue: object): string[] | undefined {
+  if ("field" in issue) {
+    if (Array.isArray(issue.field)) {
+      return issue.field.map(String);
+    }
+    if (typeof issue.field === "string") {
+      const templateField: Readonly<Record<string, string>> = {
+        SUBJECT: "subjectTemplate",
+        BODY: "bodyTemplate",
+        PLAIN_TEXT: "plainTextTemplate",
+      };
+      return [templateField[issue.field] ?? issue.field];
+    }
+  }
+  return undefined;
 }

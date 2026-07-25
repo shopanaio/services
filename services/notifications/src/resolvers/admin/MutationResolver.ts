@@ -1,0 +1,320 @@
+import {
+  ApolloMutation,
+  ZodResolver,
+} from "@shopana/type-resolver";
+import { z } from "zod";
+import {
+  NotificationChannelSetEnabledScript,
+  NotificationDefinitionSetEnabledScript,
+  NotificationPreviewScript,
+  NotificationProviderConfigureScript,
+  NotificationProviderTestScript,
+  NotificationSendTestScript,
+  NotificationTemplateUpdateScript,
+  NotificationWebhookCreateScript,
+  NotificationWebhookDeleteScript,
+  NotificationWebhookSecretRevealScript,
+  NotificationWebhookUpdateScript,
+  StaffRecipientDeleteScript,
+  StaffRecipientUpsertScript,
+} from "../../scripts/index.js";
+import {
+  NotificationChannelSettingInputSchema,
+  NotificationDefinitionSetEnabledInputSchema,
+  NotificationPreviewInputSchema,
+  NotificationProviderConfigurationInputSchema,
+  NotificationProviderTestInputSchema,
+  NotificationTemplateUpdateInputSchema,
+  NotificationTestMessageInputSchema,
+  NotificationWebhookCreateInputSchema,
+  NotificationWebhookDeleteInputSchema,
+  NotificationWebhookUpdateInputSchema,
+  StaffNotificationRecipientInputSchema,
+  StaffRecipientDeleteInputSchema,
+} from "./generated/schemas.js";
+import type {
+  NotificationsMutationConfigureProviderArgs,
+  NotificationsMutationCreateWebhookArgs,
+  NotificationsMutationDeleteStaffRecipientArgs,
+  NotificationsMutationDeleteWebhookArgs,
+  NotificationsMutationPreviewArgs,
+  NotificationsMutationSendTestArgs,
+  NotificationsMutationSetChannelEnabledArgs,
+  NotificationsMutationSetDefinitionEnabledArgs,
+  NotificationsMutationTestProviderArgs,
+  NotificationsMutationUpdateTemplateArgs,
+  NotificationsMutationUpdateWebhookArgs,
+  NotificationsMutationUpsertStaffRecipientArgs,
+} from "./generated/types.js";
+import {
+  optional,
+  optionalStringRecord,
+  toDefinitionKey,
+  toDomainChannel,
+  toDomainWebhookFormat,
+  toDomainWebhookStatus,
+  toGraphQLChannel,
+  toGraphQLEffectiveTemplate,
+  toGraphQLWebhook,
+} from "./mappers.js";
+import { NotificationsType } from "./NotificationsType.js";
+
+@ApolloMutation
+export class MutationResolver extends NotificationsType<Record<string, never>> {
+  notificationsMutation() {
+    return new NotificationsMutationResolver({}, this.$ctx);
+  }
+}
+
+export class NotificationsMutationResolver extends NotificationsType<
+  Record<string, never>
+> {
+  @ZodResolver(NotificationDefinitionSetEnabledInputSchema())
+  async setDefinitionEnabled(
+    args: NotificationsMutationSetDefinitionEnabledArgs
+  ) {
+    const result = await this.$ctx.kernel.runScript(
+      NotificationDefinitionSetEnabledScript,
+      {
+        key: toDefinitionKey(args.input.key),
+        enabled: args.input.enabled,
+        expectedVersion: args.input.expectedVersion,
+      }
+    );
+    return {
+      setting: result.data ?? null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(NotificationChannelSettingInputSchema())
+  async setChannelEnabled(args: NotificationsMutationSetChannelEnabledArgs) {
+    const result = await this.$ctx.kernel.runScript(
+      NotificationChannelSetEnabledScript,
+      {
+        key: toDefinitionKey(args.input.key),
+        channel: toDomainChannel(args.input.channel),
+        enabled: args.input.enabled,
+        expectedVersion: args.input.expectedVersion,
+        senderName: optional(args.input.senderName),
+        senderEmail: optional(args.input.senderEmail),
+        replyTo: optional(args.input.replyTo),
+      }
+    );
+    return {
+      setting: result.data
+        ? {
+            ...result.data,
+            channel: toGraphQLChannel(result.data.channel),
+          }
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(NotificationTemplateUpdateInputSchema())
+  async updateTemplate(args: NotificationsMutationUpdateTemplateArgs) {
+    const result = await this.$ctx.kernel.runScript(
+      NotificationTemplateUpdateScript,
+      {
+        key: toDefinitionKey(args.input.key),
+        channel: toDomainChannel(args.input.channel),
+        locale: args.input.locale,
+        subjectTemplate: optional(args.input.subjectTemplate),
+        bodyTemplate: args.input.bodyTemplate,
+        plainTextTemplate: optional(args.input.plainTextTemplate),
+        expectedVersion: args.input.expectedVersion,
+      }
+    );
+    return {
+      template: result.data
+        ? toGraphQLEffectiveTemplate(result.data)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(NotificationPreviewInputSchema())
+  async preview(args: NotificationsMutationPreviewArgs) {
+    const result = await this.$ctx.kernel.runScript(NotificationPreviewScript, {
+      key: toDefinitionKey(args.input.key),
+      channel: toDomainChannel(args.input.channel),
+      locale: optional(args.input.locale),
+      data: args.input.data,
+      subjectTemplate: optional(args.input.subjectTemplate),
+      bodyTemplate: optional(args.input.bodyTemplate),
+      plainTextTemplate: optional(args.input.plainTextTemplate),
+    });
+    return {
+      preview: result.data ?? null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(StaffNotificationRecipientInputSchema())
+  async upsertStaffRecipient(
+    args: NotificationsMutationUpsertStaffRecipientArgs
+  ) {
+    const result = await this.$ctx.kernel.runScript(StaffRecipientUpsertScript, {
+      id: optional(args.input.id),
+      userId: optional(args.input.userId),
+      name: args.input.name,
+      email: args.input.email,
+      locale: args.input.locale,
+      timezone: args.input.timezone,
+      enabled: args.input.enabled,
+      eventKeys: args.input.eventKeys.map(toDefinitionKey),
+    });
+    return {
+      recipient: result.data ?? null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(StaffRecipientDeleteInputSchema())
+  async deleteStaffRecipient(
+    args: NotificationsMutationDeleteStaffRecipientArgs
+  ) {
+    const result = await this.$ctx.kernel.runScript(StaffRecipientDeleteScript, {
+      id: args.input.id,
+    });
+    return {
+      deletedStaffRecipientId: result.data?.deleted
+        ? args.input.id
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(
+    NotificationProviderConfigurationInputSchema().extend({
+      secretFields: z.record(z.string()).nullish(),
+    })
+  )
+  async configureProvider(
+    args: NotificationsMutationConfigureProviderArgs
+  ) {
+    const result = await this.$ctx.kernel.runScript(
+      NotificationProviderConfigureScript,
+      {
+        providerCode: args.input.providerCode,
+        channel: toDomainChannel(args.input.channel),
+        config: args.input.config,
+        secretFields: optionalStringRecord(args.input.secretFields),
+        status: args.input.active === false ? "inactive" : "active",
+      }
+    );
+    return {
+      configuration: result.data
+        ? {
+            ...result.data,
+            channel: toGraphQLChannel(result.data.channel),
+          }
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(NotificationProviderTestInputSchema())
+  async testProvider(args: NotificationsMutationTestProviderArgs) {
+    const result = await this.$ctx.kernel.runScript(
+      NotificationProviderTestScript,
+      {
+        channel: toDomainChannel(args.input.channel),
+        recipient: optional(args.input.recipient),
+      }
+    );
+    return {
+      testResult: result.data ?? null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(NotificationTestMessageInputSchema())
+  async sendTest(args: NotificationsMutationSendTestArgs) {
+    const result = await this.$ctx.kernel.runScript(NotificationSendTestScript, {
+      channel: toDomainChannel(args.input.channel),
+      key: toDefinitionKey(args.input.key),
+      recipient: {
+        recipientId: optional(args.input.recipientId),
+        customerId: optional(args.input.customerId),
+        userId: optional(args.input.userId),
+        email: optional(args.input.email),
+        phone: optional(args.input.phone),
+        name: optional(args.input.name),
+        locale: optional(args.input.locale),
+      },
+      locale: optional(args.input.locale),
+      data: args.input.data,
+      idempotencyKey: args.input.idempotencyKey,
+    });
+    return {
+      workflow: result.data ?? null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(NotificationWebhookCreateInputSchema())
+  async createWebhook(args: NotificationsMutationCreateWebhookArgs) {
+    const result = await this.$ctx.kernel.runScript(
+      NotificationWebhookCreateScript,
+      {
+        eventType: args.input.eventType,
+        format: toDomainWebhookFormat(args.input.format),
+        url: args.input.url,
+        apiVersion: args.input.apiVersion,
+      }
+    );
+    return {
+      webhook: result.data ? toGraphQLWebhook(result.data) : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(NotificationWebhookUpdateInputSchema())
+  async updateWebhook(args: NotificationsMutationUpdateWebhookArgs) {
+    const result = await this.$ctx.kernel.runScript(
+      NotificationWebhookUpdateScript,
+      {
+        id: args.input.id,
+        eventType: optional(args.input.eventType),
+        format: args.input.format
+          ? toDomainWebhookFormat(args.input.format)
+          : undefined,
+        url: optional(args.input.url),
+        apiVersion: optional(args.input.apiVersion),
+        status: args.input.status
+          ? toDomainWebhookStatus(args.input.status)
+          : undefined,
+        expectedVersion: args.input.expectedVersion,
+      }
+    );
+    return {
+      webhook: result.data ? toGraphQLWebhook(result.data) : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(NotificationWebhookDeleteInputSchema())
+  async deleteWebhook(args: NotificationsMutationDeleteWebhookArgs) {
+    const result = await this.$ctx.kernel.runScript(
+      NotificationWebhookDeleteScript,
+      { id: args.input.id }
+    );
+    return {
+      deletedWebhookId: result.data?.deleted ? args.input.id : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async revealWebhookSecret() {
+    const result = await this.$ctx.kernel.runScript(
+      NotificationWebhookSecretRevealScript,
+      {}
+    );
+    return {
+      secret: result.data?.secret ?? null,
+      userErrors: result.userErrors,
+    };
+  }
+}

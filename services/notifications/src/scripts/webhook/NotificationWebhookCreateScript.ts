@@ -2,20 +2,20 @@ import {
   isSupportedWebhookApiVersion,
 } from "../../infrastructure/webhooks/WebhookCapabilities.js";
 import { Transactional } from "../../kernel/BaseScript.js";
-import { BaseAdminScript } from "../shared/BaseAdminScript.js";
+import { BaseAdminMutationScript } from "../shared/BaseAdminScript.js";
 import type {
   NotificationWebhookCreateParams,
   NotificationWebhookView,
 } from "./dto/index.js";
 
-export class NotificationWebhookCreateScript extends BaseAdminScript<
+export class NotificationWebhookCreateScript extends BaseAdminMutationScript<
   NotificationWebhookCreateParams,
   NotificationWebhookView
 > {
   @Transactional()
   protected async execute(
     params: NotificationWebhookCreateParams
-  ): Promise<NotificationWebhookView> {
+  ) {
     if (this.definitions.forEvent(params.eventType).length === 0) {
       throw new Error("UNSUPPORTED_WEBHOOK_EVENT");
     }
@@ -30,6 +30,6 @@ export class NotificationWebhookCreateScript extends BaseAdminScript<
       eventType: params.eventType,
       format: params.format,
     });
-    return webhook;
+    return this.success(webhook);
   }
 }

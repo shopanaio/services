@@ -6517,11 +6517,6 @@ export type ApiDateTimeFilter = {
   _neq?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
-export type ApiDeletePayload = {
-  __typename?: 'DeletePayload';
-  deleted: Scalars['Boolean']['output'];
-};
-
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
   /** Centimeter */
@@ -9829,6 +9824,12 @@ export enum NotificationChannel {
   Webhook = 'WEBHOOK'
 }
 
+export type ApiNotificationChannelSetEnabledPayload = {
+  __typename?: 'NotificationChannelSetEnabledPayload';
+  setting?: Maybe<ApiNotificationChannelSetting>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiNotificationChannelSetting = {
   __typename?: 'NotificationChannelSetting';
   channel: NotificationChannel;
@@ -9863,6 +9864,18 @@ export type ApiNotificationDefinition = {
   title: Scalars['String']['output'];
   variables: Array<ApiNotificationTemplateVariable>;
   version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationDefinitionSetEnabledInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  key: Scalars['String']['input'];
+};
+
+export type ApiNotificationDefinitionSetEnabledPayload = {
+  __typename?: 'NotificationDefinitionSetEnabledPayload';
+  setting?: Maybe<ApiNotificationDefinitionSetting>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiNotificationDefinitionSetting = {
@@ -9908,6 +9921,12 @@ export type ApiNotificationPreviewInput = {
   subjectTemplate?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type ApiNotificationPreviewPayload = {
+  __typename?: 'NotificationPreviewPayload';
+  preview?: Maybe<ApiNotificationPreview>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiNotificationProviderConfiguration = {
   __typename?: 'NotificationProviderConfiguration';
   assignmentId: Scalars['ID']['output'];
@@ -9923,6 +9942,12 @@ export type ApiNotificationProviderConfigurationInput = {
   config: Scalars['JSON']['input'];
   providerCode: Scalars['String']['input'];
   secretFields?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiNotificationProviderConfigurePayload = {
+  __typename?: 'NotificationProviderConfigurePayload';
+  configuration?: Maybe<ApiNotificationProviderConfiguration>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiNotificationProviderMaskedConfiguration = {
@@ -9943,11 +9968,28 @@ export type ApiNotificationProviderRoute = {
   status?: Maybe<Scalars['String']['output']>;
 };
 
+export type ApiNotificationProviderTestInput = {
+  channel: NotificationChannel;
+  recipient?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationProviderTestPayload = {
+  __typename?: 'NotificationProviderTestPayload';
+  testResult?: Maybe<ApiNotificationProviderTestResult>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiNotificationProviderTestResult = {
   __typename?: 'NotificationProviderTestResult';
   message?: Maybe<Scalars['String']['output']>;
   ok: Scalars['Boolean']['output'];
   providerCode: Scalars['String']['output'];
+};
+
+export type ApiNotificationSendTestPayload = {
+  __typename?: 'NotificationSendTestPayload';
+  userErrors: Array<ApiGenericUserError>;
+  workflow?: Maybe<ApiNotificationWorkflowPayload>;
 };
 
 export type ApiNotificationSmsMetrics = {
@@ -9965,6 +10007,12 @@ export type ApiNotificationTemplateUpdateInput = {
   locale: Scalars['String']['input'];
   plainTextTemplate?: InputMaybe<Scalars['String']['input']>;
   subjectTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationTemplateUpdatePayload = {
+  __typename?: 'NotificationTemplateUpdatePayload';
+  template?: Maybe<ApiNotificationEffectiveTemplate>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiNotificationTemplateVariable = {
@@ -10016,6 +10064,22 @@ export type ApiNotificationWebhookCreateInput = {
   url: Scalars['String']['input'];
 };
 
+export type ApiNotificationWebhookCreatePayload = {
+  __typename?: 'NotificationWebhookCreatePayload';
+  userErrors: Array<ApiGenericUserError>;
+  webhook?: Maybe<ApiNotificationWebhookSubscription>;
+};
+
+export type ApiNotificationWebhookDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiNotificationWebhookDeletePayload = {
+  __typename?: 'NotificationWebhookDeletePayload';
+  deletedWebhookId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiNotificationWebhookEvent = {
   __typename?: 'NotificationWebhookEvent';
   eventType: Scalars['String']['output'];
@@ -10029,7 +10093,8 @@ export enum NotificationWebhookFormat {
 
 export type ApiNotificationWebhookSecretPayload = {
   __typename?: 'NotificationWebhookSecretPayload';
-  secret: Scalars['String']['output'];
+  secret?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 export enum NotificationWebhookStatus {
@@ -10060,6 +10125,12 @@ export type ApiNotificationWebhookUpdateInput = {
   url?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type ApiNotificationWebhookUpdatePayload = {
+  __typename?: 'NotificationWebhookUpdatePayload';
+  userErrors: Array<ApiGenericUserError>;
+  webhook?: Maybe<ApiNotificationWebhookSubscription>;
+};
+
 export type ApiNotificationWorkflowPayload = {
   __typename?: 'NotificationWorkflowPayload';
   accepted: Scalars['Boolean']['output'];
@@ -10068,19 +10139,19 @@ export type ApiNotificationWorkflowPayload = {
 
 export type ApiNotificationsMutation = {
   __typename?: 'NotificationsMutation';
-  configureProvider: ApiNotificationProviderConfiguration;
-  createWebhook: ApiNotificationWebhookSubscription;
-  deleteStaffRecipient: ApiDeletePayload;
-  deleteWebhook: ApiDeletePayload;
-  preview: ApiNotificationPreview;
+  configureProvider: ApiNotificationProviderConfigurePayload;
+  createWebhook: ApiNotificationWebhookCreatePayload;
+  deleteStaffRecipient: ApiStaffRecipientDeletePayload;
+  deleteWebhook: ApiNotificationWebhookDeletePayload;
+  preview: ApiNotificationPreviewPayload;
   revealWebhookSecret: ApiNotificationWebhookSecretPayload;
-  sendTest: ApiNotificationWorkflowPayload;
-  setChannelEnabled: ApiNotificationChannelSetting;
-  setDefinitionEnabled: ApiNotificationDefinitionSetting;
-  testProvider: ApiNotificationProviderTestResult;
-  updateTemplate: ApiNotificationEffectiveTemplate;
-  updateWebhook: ApiNotificationWebhookSubscription;
-  upsertStaffRecipient: ApiStaffNotificationRecipient;
+  sendTest: ApiNotificationSendTestPayload;
+  setChannelEnabled: ApiNotificationChannelSetEnabledPayload;
+  setDefinitionEnabled: ApiNotificationDefinitionSetEnabledPayload;
+  testProvider: ApiNotificationProviderTestPayload;
+  updateTemplate: ApiNotificationTemplateUpdatePayload;
+  updateWebhook: ApiNotificationWebhookUpdatePayload;
+  upsertStaffRecipient: ApiStaffRecipientUpsertPayload;
 };
 
 
@@ -10095,12 +10166,12 @@ export type ApiNotificationsMutationCreateWebhookArgs = {
 
 
 export type ApiNotificationsMutationDeleteStaffRecipientArgs = {
-  id: Scalars['ID']['input'];
+  input: ApiStaffRecipientDeleteInput;
 };
 
 
 export type ApiNotificationsMutationDeleteWebhookArgs = {
-  id: Scalars['ID']['input'];
+  input: ApiNotificationWebhookDeleteInput;
 };
 
 
@@ -10120,15 +10191,12 @@ export type ApiNotificationsMutationSetChannelEnabledArgs = {
 
 
 export type ApiNotificationsMutationSetDefinitionEnabledArgs = {
-  enabled: Scalars['Boolean']['input'];
-  expectedVersion: Scalars['Int']['input'];
-  key: Scalars['String']['input'];
+  input: ApiNotificationDefinitionSetEnabledInput;
 };
 
 
 export type ApiNotificationsMutationTestProviderArgs = {
-  channel: NotificationChannel;
-  recipient?: InputMaybe<Scalars['String']['input']>;
+  input: ApiNotificationProviderTestInput;
 };
 
 
@@ -15688,6 +15756,22 @@ export type ApiStaffNotificationRecipientInput = {
   name: Scalars['String']['input'];
   timezone: Scalars['String']['input'];
   userId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiStaffRecipientDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiStaffRecipientDeletePayload = {
+  __typename?: 'StaffRecipientDeletePayload';
+  deletedStaffRecipientId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiStaffRecipientUpsertPayload = {
+  __typename?: 'StaffRecipientUpsertPayload';
+  recipient?: Maybe<ApiStaffNotificationRecipient>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** A store */
