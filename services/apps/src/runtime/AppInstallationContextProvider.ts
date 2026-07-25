@@ -5,7 +5,7 @@ import type {
   AppInstallationContextProvider,
   AppInstallationStatus,
 } from "@shopana/app-sdk";
-import { AppInstallationsRepository } from "../control-plane/AppInstallationsRepository.js";
+import { AppInstallationRepository } from "../repositories/installation/AppInstallationRepository.js";
 
 export const APP_INSTALLATION_CONTEXT_PROVIDER = Symbol(
   "APP_INSTALLATION_CONTEXT_PROVIDER",
@@ -16,7 +16,7 @@ export class DatabaseAppInstallationContextProvider
   implements AppInstallationContextProvider
 {
   constructor(
-    private readonly installations: AppInstallationsRepository,
+    private readonly installations: AppInstallationRepository,
   ) {}
 
   async resolve(

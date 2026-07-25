@@ -1,6 +1,14 @@
 import { Module } from '@nestjs/common';
-import { BrokerModule } from '@shopana/shared-kernel';
+import {
+  BrokerModule,
+  DATABASE_CLIENT,
+  type DatabaseClient,
+} from '@shopana/shared-kernel';
 import { AppsNestService } from './apps.nest-service';
+import { createDatabase } from './infrastructure/db/database.js';
+import { Repository } from './repositories/Repository.js';
+import { AppInstallationRepository } from './repositories/installation/AppInstallationRepository.js';
+import { AppInstallationSecretRepository } from './repositories/secret/AppInstallationSecretRepository.js';
 import { AppBrokerFacadeFactory } from './runtime/AppBrokerFacadeFactory.js';
 import { AppRuntimeRegistry } from './runtime/AppRuntimeRegistry.js';
 import { AppsRuntimeHost } from './runtime/AppsRuntimeHost.js';
@@ -10,7 +18,6 @@ import {
   DatabaseAppInstallationContextProvider,
 } from './runtime/AppInstallationContextProvider.js';
 import { AppSecretResolverFactory } from './runtime/AppSecretResolverFactory.js';
-import { AppInstallationsRepository } from './control-plane/AppInstallationsRepository.js';
 import { AppInstallationSecretStore } from './control-plane/AppInstallationSecretStore.js';
 import { AppLifecycleService } from './control-plane/AppLifecycleService.js';
 import { AppInstallationLifecycleWorkflow } from './control-plane/AppInstallationLifecycleWorkflow.js';
@@ -24,7 +31,22 @@ import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
     AppRuntimeRegistry,
     AppsRuntimeRouter,
     AppsRuntimeHost,
-    AppInstallationsRepository,
+    {
+      provide: Repository,
+      inject: [DATABASE_CLIENT],
+      useFactory: (client: DatabaseClient) =>
+        Repository.create({ db: createDatabase(client) }),
+    },
+    {
+      provide: AppInstallationRepository,
+      inject: [Repository],
+      useFactory: (repository: Repository) => repository.installation,
+    },
+    {
+      provide: AppInstallationSecretRepository,
+      inject: [Repository],
+      useFactory: (repository: Repository) => repository.secret,
+    },
     AppInstallationSecretStore,
     DatabaseAppInstallationContextProvider,
     AppSecretResolverFactory,
@@ -39,7 +61,8 @@ import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
   exports: [
     AppRuntimeRegistry,
     AppsRuntimeRouter,
-    AppInstallationsRepository,
+    Repository,
+    AppInstallationRepository,
   ],
 })
 export class AppsModule {}

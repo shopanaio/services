@@ -7,7 +7,7 @@ import {
   ServiceBroker,
   type BrokerCallContext,
 } from "@shopana/shared-kernel";
-import { AppInstallationsRepository } from "./AppInstallationsRepository.js";
+import { AppInstallationRepository } from "../repositories/installation/AppInstallationRepository.js";
 import { AppLifecycleService } from "./AppLifecycleService.js";
 import { AppsRuntimeRouter } from "../runtime/AppsRuntimeRouter.js";
 
@@ -16,7 +16,7 @@ export class AppsPlatformActions extends BrokerActions {
   constructor(
     @InjectBroker("apps") broker: ServiceBroker,
     private readonly lifecycle: AppLifecycleService,
-    private readonly installations: AppInstallationsRepository,
+    private readonly installations: AppInstallationRepository,
     private readonly router: AppsRuntimeRouter,
   ) {
     super(broker);

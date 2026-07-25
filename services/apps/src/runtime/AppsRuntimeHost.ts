@@ -12,11 +12,12 @@ import {
   type ShopanaAppDefinition,
 } from "@shopana/app-sdk";
 import {
+  DATABASE_CLIENT,
   InjectBroker,
+  type DatabaseClient,
   type ServiceBroker,
 } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
-import { knexInstance } from "../infrastructure/db/database.js";
 import { AppBrokerFacadeFactory } from "./AppBrokerFacadeFactory.js";
 import { AppContextRunner } from "./AppContextRunner.js";
 import { AppRuntimeRegistry } from "./AppRuntimeRegistry.js";
@@ -39,6 +40,8 @@ export class AppsRuntimeHost
 
   constructor(
     @InjectBroker("apps") private readonly broker: ServiceBroker,
+    @Inject(DATABASE_CLIENT)
+    private readonly databaseClient: DatabaseClient,
     private readonly brokerFactory: AppBrokerFacadeFactory,
     private readonly registry: AppRuntimeRegistry,
     private readonly secretResolverFactory: AppSecretResolverFactory,
@@ -145,7 +148,7 @@ export class AppsRuntimeHost
     const app = definition.create({
       broker: appBroker,
       config,
-      databaseClient: knexInstance,
+      databaseClient: this.databaseClient,
       logger: new Logger(`App:${appCode}`),
       installations: this.installations,
       executionContext: contextRunner,

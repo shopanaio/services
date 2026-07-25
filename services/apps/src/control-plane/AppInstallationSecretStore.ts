@@ -5,15 +5,16 @@ import {
   randomBytes,
 } from "node:crypto";
 import { Injectable } from "@nestjs/common";
-import type { Knex } from "knex";
 import { getServiceConfig } from "@shopana/shared-service-config";
-import { knexInstance } from "../infrastructure/db/database.js";
+import { AppInstallationSecretRepository } from "../repositories/secret/AppInstallationSecretRepository.js";
 
 @Injectable()
 export class AppInstallationSecretStore {
   private readonly key: Buffer;
 
-  constructor(private readonly database: Knex = knexInstance) {
+  constructor(
+    private readonly repository: AppInstallationSecretRepository,
+  ) {
     const { global } = getServiceConfig("apps");
     const masterKey =
       process.env.APPS_SECRET_MASTER_KEY ??
@@ -30,30 +31,15 @@ export class AppInstallationSecretStore {
     installationId: string,
     secrets: Readonly<Record<string, string>>,
   ): Promise<void> {
-    await this.database.transaction(async (trx) => {
-      for (const [name, value] of Object.entries(secrets)) {
-        const normalizedName = name.trim();
-        if (!normalizedName || normalizedName.length > 128) {
-          throw new Error("App installation secret name is invalid");
-        }
-        await trx("platform.app_installation_secrets")
-          .insert({
-            installation_id: installationId,
-            name: normalizedName,
-            ciphertext: this.encrypt(value),
-            revoked_at: null,
-          })
-          .onConflict(["installation_id", "name"])
-          .merge({
-            ciphertext: this.encrypt(value),
-            version: this.database.raw(
-              "app_installation_secrets.version + 1",
-            ),
-            revoked_at: null,
-            updated_at: this.database.fn.now(),
-          });
+    const encrypted: Record<string, string> = {};
+    for (const [name, value] of Object.entries(secrets)) {
+      const normalizedName = name.trim();
+      if (!normalizedName || normalizedName.length > 128) {
+        throw new Error("App installation secret name is invalid");
       }
-    });
+      encrypted[normalizedName] = this.encrypt(value);
+    }
+    await this.repository.setMany(installationId, encrypted);
   }
 
   async resolve(
@@ -61,39 +47,25 @@ export class AppInstallationSecretStore {
     appCode: string,
     name: string,
   ): Promise<string> {
-    const row = await this.database
-      .select({
-        ciphertext: "s.ciphertext",
-        installation_status: "i.status",
-        app_code: "i.app_code",
-      })
-      .from({ s: "platform.app_installation_secrets" })
-      .join(
-        { i: "platform.app_installations" },
-        "i.id",
-        "s.installation_id",
-      )
-      .where({
-        "s.installation_id": installationId,
-        "s.name": name,
-        "i.app_code": appCode,
-      })
-      .whereNull("s.revoked_at")
-      .first();
-    if (!row || row.app_code !== appCode) {
+    const row = await this.repository.resolve(
+      installationId,
+      appCode,
+      name,
+    );
+    if (!row || row.appCode !== appCode) {
       throw new Error(
         `App installation secret "${name}" is not available`,
       );
     }
     if (
-      row.installation_status === "UNINSTALLED" ||
-      row.installation_status === "UNINSTALLING"
+      row.installationStatus === "UNINSTALLED" ||
+      row.installationStatus === "UNINSTALLING"
     ) {
       throw new Error(
         `App installation secret "${name}" has been revoked`,
       );
     }
-    return this.decrypt(String(row.ciphertext));
+    return this.decrypt(row.ciphertext);
   }
 
   private encrypt(value: string): string {

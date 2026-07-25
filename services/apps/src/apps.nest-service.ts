@@ -1,22 +1,19 @@
 import {
   Injectable,
   Logger,
-  OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
-import { knexInstance } from "./infrastructure/db/database.js";
+import { sql } from "drizzle-orm";
+import { Repository } from "./repositories/Repository.js";
 
 @Injectable()
-export class AppsNestService implements OnModuleInit, OnModuleDestroy {
+export class AppsNestService implements OnModuleInit {
   private readonly logger = new Logger(AppsNestService.name);
 
-  async onModuleInit() {
-    await knexInstance.raw("SELECT 1");
-    this.logger.log("Apps service started");
-  }
+  constructor(private readonly repository: Repository) {}
 
-  async onModuleDestroy() {
-    await knexInstance.destroy();
-    this.logger.log("Apps service stopped");
+  async onModuleInit() {
+    await this.repository.db.execute(sql`SELECT 1`);
+    this.logger.log("Apps service started");
   }
 }
