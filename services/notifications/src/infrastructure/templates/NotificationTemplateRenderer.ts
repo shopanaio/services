@@ -233,7 +233,9 @@ export class NotificationTemplateRenderer {
     channel: NotificationChannel;
     locale: string;
   }) {
-    return (await this.getEffectiveTemplates([input]))[0]!;
+    const result = (await this.getEffectiveTemplates([input]))[0]!;
+    if (result instanceof Error) throw result;
+    return result;
   }
 
   async getEffectiveTemplates(
@@ -243,20 +245,22 @@ export class NotificationTemplateRenderer {
       locale: string;
     }[]
   ) {
-    for (const input of inputs) {
-      if (input.channel !== "EMAIL" && input.channel !== "SMS") {
-        throw new Error("CHANNEL_DOES_NOT_SUPPORT_TEMPLATES");
-      }
-    }
-
-    const lookupKeys = inputs.flatMap((input) =>
-      unique([input.locale, "en"]).map((locale) => ({
-        key: input.key,
-        channel: input.channel,
-        locale,
-      }))
+    const supportedInputs = inputs.filter(
+      (
+        input
+      ): input is {
+        key: NotificationDefinitionKey;
+        channel: Extract<NotificationChannel, "EMAIL" | "SMS">;
+        locale: string;
+      } => input.channel === "EMAIL" || input.channel === "SMS"
     );
-    const activeTemplates = await this.templates.findActiveMany(lookupKeys);
+    const lookupKeys = supportedInputs.flatMap((input) =>
+      unique([input.locale, "en"]).map((locale) => ({ ...input, locale }))
+    );
+    const activeTemplates =
+      lookupKeys.length === 0
+        ? []
+        : await this.templates.findActiveMany(lookupKeys);
     const activeByTemplateId = new Map(
       activeTemplates.map((active) => [
         templateId(
@@ -269,25 +273,32 @@ export class NotificationTemplateRenderer {
     );
 
     return inputs.map((input) => {
-      const selected = this.selectTemplate(
-        input.key,
-        input.channel as Extract<NotificationChannel, "EMAIL" | "SMS">,
-        unique([input.locale, "en"]),
-        activeByTemplateId
-      );
-      return {
-        key: input.key,
-        channel: input.channel,
-        locale: selected.locale,
-        source: selected.templateRevisionId ? "REVISION" : "DEFAULT",
-        subjectTemplate: selected.subjectTemplate,
-        bodyTemplate: selected.bodyTemplate,
-        plainTextTemplate: selected.plainTextTemplate,
-        revisionId: selected.templateRevisionId,
-        revision: selected.templateRevision,
-        pointerVersion: selected.pointerVersion,
-        sourceVersion: selected.templateSourceVersion,
-      };
+      try {
+        if (input.channel !== "EMAIL" && input.channel !== "SMS") {
+          throw new Error("CHANNEL_DOES_NOT_SUPPORT_TEMPLATES");
+        }
+        const selected = this.selectTemplate(
+          input.key,
+          input.channel,
+          unique([input.locale, "en"]),
+          activeByTemplateId
+        );
+        return {
+          key: input.key,
+          channel: input.channel,
+          locale: selected.locale,
+          source: selected.templateRevisionId ? "REVISION" : "DEFAULT",
+          subjectTemplate: selected.subjectTemplate,
+          bodyTemplate: selected.bodyTemplate,
+          plainTextTemplate: selected.plainTextTemplate,
+          revisionId: selected.templateRevisionId,
+          revision: selected.templateRevision,
+          pointerVersion: selected.pointerVersion,
+          sourceVersion: selected.templateSourceVersion,
+        };
+      } catch (error) {
+        return error instanceof Error ? error : new Error(String(error));
+      }
     });
   }
 
