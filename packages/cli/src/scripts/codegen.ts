@@ -6,25 +6,17 @@
  */
 
 import { execSync } from "child_process";
-import { existsSync, readdirSync } from "fs";
+import { existsSync } from "fs";
 import { join } from "path";
 import { findRootDir } from "../utils.js";
+import { discoverProjectUnits, findProjectUnit } from "../project-units.js";
 
 const rootDir = findRootDir();
 
 function findServicesWithCodegen(): string[] {
-  const servicesDir = join(rootDir, "services");
-
-  if (!existsSync(servicesDir)) {
-    return [];
-  }
-
-  return readdirSync(servicesDir, { withFileTypes: true })
-    .filter((dirent) => dirent.isDirectory())
-    .filter((dirent) =>
-      existsSync(join(servicesDir, dirent.name, "codegen.ts"))
-    )
-    .map((dirent) => dirent.name);
+  return discoverProjectUnits()
+    .filter((unit) => existsSync(join(unit.path, "codegen.ts")))
+    .map((unit) => unit.name);
 }
 
 interface CodegenResult {
@@ -34,12 +26,13 @@ interface CodegenResult {
 }
 
 async function runCodegenForService(service: string): Promise<CodegenResult> {
-  const servicePath = join(rootDir, "services", service);
+  const unit = findProjectUnit(service);
+  const servicePath = unit?.path ?? "";
   const codegenConfig = join(servicePath, "codegen.ts");
   const filterGenerator = join(servicePath, "scripts", "generate-filters.ts");
 
-  if (!existsSync(servicePath)) {
-    return { service, success: false, error: "service not found" };
+  if (!unit || !existsSync(servicePath)) {
+    return { service, success: false, error: "project unit not found" };
   }
 
   if (!existsSync(codegenConfig)) {

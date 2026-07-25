@@ -19,6 +19,7 @@ export {
 } from "./broker/ActionRegistry";
 export {
   type BrokerCaller,
+  type BrokerAppContext,
   type BrokerCallContext,
 } from "./broker/BrokerCallContext";
 export {

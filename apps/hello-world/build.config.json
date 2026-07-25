@@ -1,0 +1,16 @@
+{
+  "entryPoint": "src/index.ts",
+  "outFile": "dist/index.js",
+  "migrations": {
+    "path": "dist/migrations",
+    "type": "node-pg-migrate",
+    "schema": "app_hello_world",
+    "table": "pgmigrations"
+  },
+  "assets": [
+    {
+      "include": "migrations/**/*",
+      "outDir": "dist/migrations"
+    }
+  ]
+}

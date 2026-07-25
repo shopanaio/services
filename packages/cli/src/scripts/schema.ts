@@ -7,16 +7,16 @@
  */
 
 import { buildSubgraphSchema, printSubgraphSchema } from "@apollo/subgraph";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { glob } from "glob";
 import { gql } from "graphql-tag";
 import { join } from "path";
 import { execSync } from "child_process";
 import { findRootDir } from "../utils.js";
+import { discoverProjectUnits } from "../project-units.js";
 
 const rootDir = findRootDir();
 const federationDir = join(rootDir, "infra", "federation");
-const servicesDir = join(rootDir, "services");
 
 type SchemaType = "admin" | "storefront";
 
@@ -42,14 +42,8 @@ interface SubgraphConfig {
 function discoverSubgraphs(): SubgraphConfig[] {
   const subgraphs: SubgraphConfig[] = [];
 
-  // Node.js services - read from build.config.json
-  if (!existsSync(servicesDir)) return subgraphs;
-
-  const entries = readdirSync(servicesDir, { withFileTypes: true });
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-
-    const servicePath = join(servicesDir, entry.name);
+  for (const unit of discoverProjectUnits()) {
+    const servicePath = unit.path;
     const configPath = join(servicePath, "build.config.json");
 
     if (!existsSync(configPath)) continue;
@@ -61,8 +55,8 @@ function discoverSubgraphs(): SubgraphConfig[] {
       // Add admin subgraph if defined
       if (config.graphql.admin && config.graphql.admin.length > 0) {
         subgraphs.push({
-          name: `${entry.name}-admin`,
-          service: entry.name,
+          name: `${unit.kind === "app" ? `apps-${unit.name}` : unit.name}-admin`,
+          service: unit.name,
           type: "admin",
           patterns: config.graphql.admin,
           servicePath,
@@ -72,15 +66,15 @@ function discoverSubgraphs(): SubgraphConfig[] {
       // Add storefront subgraph if defined
       if (config.graphql.storefront && config.graphql.storefront.length > 0) {
         subgraphs.push({
-          name: `${entry.name}-storefront`,
-          service: entry.name,
+          name: `${unit.kind === "app" ? `apps-${unit.name}` : unit.name}-storefront`,
+          service: unit.name,
           type: "storefront",
           patterns: config.graphql.storefront,
           servicePath,
         });
       }
     } catch {
-      console.warn(`⚠️  ${entry.name}: invalid build.config.json`);
+      console.warn(`⚠️  ${unit.name}: invalid build.config.json`);
     }
   }
 

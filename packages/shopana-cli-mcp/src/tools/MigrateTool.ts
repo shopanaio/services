@@ -8,9 +8,15 @@ const execAsync = promisify(exec);
 
 const MigrateToolSchema = z.object({
   service: z
-    .enum(MIGRATION_SERVICE_NAMES)
+    .string()
+    .min(1)
     .optional()
     .describe(`Migrate specific service only. Available: ${formatServiceNames(MIGRATION_SERVICE_NAMES)}`),
+  app: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('Migrate a specific hosted App from apps/*'),
   workingDir: z
     .string()
     .optional()
@@ -34,12 +40,18 @@ Note: Make sure the database is running before executing migrations.`;
   schema = MigrateToolSchema;
 
   async execute(input: z.infer<typeof MigrateToolSchema>) {
-    const { service, workingDir } = input;
+    const { service, app, workingDir } = input;
+
+    if (service && app) {
+      throw new Error('Choose either service or app');
+    }
 
     let command = 'yarn shopana db migrate';
 
     if (service) {
       command += ` -s ${service}`;
+    } else if (app) {
+      command += ` --app ${app}`;
     }
 
     try {

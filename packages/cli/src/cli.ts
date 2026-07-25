@@ -14,10 +14,12 @@ import {
   schemaComposeCommand,
   schemaExportCommand,
 } from "./commands/schema.js";
-import { discoverServices } from "./scripts/build-services.js";
+import { discoverProjectUnits } from "./project-units.js";
 
 const program = new Command();
-const buildServiceNames = discoverServices().join(", ");
+const buildServiceNames = discoverProjectUnits()
+  .map((unit) => `${unit.kind}:${unit.name}`)
+  .join(", ");
 
 program.name("shopana").description("Shopana development CLI").version("0.1.0");
 
@@ -27,7 +29,7 @@ program
   .description("Build packages and services")
   .option(
     "-s, --service <services...>",
-    `Build specific service(s). Available: ${buildServiceNames}`
+    `Build specific service(s) or App(s). Available: ${buildServiceNames}`
   )
   .option("-p, --packages", "Build only packages")
   .option("--parallel", "Build services in parallel")
@@ -52,6 +54,7 @@ db.command("generate")
 db.command("migrate")
   .description("Run database migrations")
   .option("-s, --service <service>", "Migrate specific service only")
+  .option("-a, --app <app>", "Migrate specific hosted App only")
   .action(migrateCommand);
 
 // Codegen command

@@ -26,6 +26,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const FEDERATION_ROOT = resolve(__dirname, "..");
 const PROJECT_ROOT = resolve(FEDERATION_ROOT, "../.."); // Root of services monorepo
 const SERVICES_ROOT = resolve(PROJECT_ROOT, "services");
+const APPS_ROOT = resolve(PROJECT_ROOT, "apps");
 
 // Schema types that can be defined in build.config.json
 type SchemaType = "admin" | "storefront";
@@ -172,16 +173,23 @@ async function main() {
 
   const allResults: SubgraphResult[] = [];
 
-  // Discover and process all Node.js services
-  if (existsSync(SERVICES_ROOT)) {
-    const entries = readdirSync(SERVICES_ROOT, { withFileTypes: true });
+  // Discover and process all services and hosted Apps.
+  for (const root of [
+    { path: SERVICES_ROOT, prefix: "" },
+    { path: APPS_ROOT, prefix: "apps-" },
+  ]) {
+    if (!existsSync(root.path)) continue;
+    const entries = readdirSync(root.path, { withFileTypes: true });
     const serviceDirs = entries
       .filter((e) => e.isDirectory())
       .map((e) => e.name);
 
     for (const serviceName of serviceDirs) {
-      const servicePath = join(SERVICES_ROOT, serviceName);
-      const serviceResults = await processService(serviceName, servicePath);
+      const servicePath = join(root.path, serviceName);
+      const serviceResults = await processService(
+        `${root.prefix}${serviceName}`,
+        servicePath,
+      );
       allResults.push(...serviceResults);
     }
   }

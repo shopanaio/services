@@ -11,6 +11,7 @@ const ListServicesToolSchema = z.object({
 });
 
 interface ServiceInfo {
+  kind: 'service' | 'app';
   name: string;
   path: string;
   hasDbGenerate: boolean;
@@ -46,47 +47,57 @@ This is useful to understand the project structure and what operations are avail
 
   async execute(input: z.infer<typeof ListServicesToolSchema>) {
     const workingDir = input.workingDir || process.cwd();
-    const servicesDir = join(workingDir, 'services');
-
     try {
-      const entries = await readdir(servicesDir);
       const services: ServiceInfo[] = [];
       let adminFrontend: AdminFrontendInfo | undefined;
 
-      for (const entry of entries) {
-        const servicePath = join(servicesDir, entry);
-        const stats = await stat(servicePath);
-
-        if (!stats.isDirectory()) continue;
-
-        const packageJsonPath = join(servicePath, 'package.json');
-
+      for (const root of [
+        { path: join(workingDir, 'services'), kind: 'service' as const },
+        { path: join(workingDir, 'apps'), kind: 'app' as const },
+      ]) {
+        let entries: string[];
         try {
-          const packageJson = JSON.parse(
-            await readFile(packageJsonPath, 'utf-8')
-          );
-
-          const scripts = packageJson.scripts || {};
-
-          services.push({
-            name: entry,
-            path: servicePath,
-            hasDbGenerate: !!scripts['db:generate'],
-            hasDbMigrate: !!scripts['db:migrate'],
-            hasBuild: !!scripts['build'],
-            hasCodegen: !!scripts['codegen'],
-            description: packageJson.description
-          });
+          entries = await readdir(root.path);
         } catch {
-          // No package.json or invalid
-          services.push({
-            name: entry,
-            path: servicePath,
-            hasDbGenerate: false,
-            hasDbMigrate: false,
-            hasBuild: false,
-            hasCodegen: false
-          });
+          continue;
+        }
+
+        for (const entry of entries) {
+          const servicePath = join(root.path, entry);
+          const stats = await stat(servicePath);
+
+          if (!stats.isDirectory()) continue;
+
+          const packageJsonPath = join(servicePath, 'package.json');
+
+          try {
+            const packageJson = JSON.parse(
+              await readFile(packageJsonPath, 'utf-8')
+            );
+
+            const scripts = packageJson.scripts || {};
+
+            services.push({
+              kind: root.kind,
+              name: entry,
+              path: servicePath,
+              hasDbGenerate: !!scripts['db:generate'],
+              hasDbMigrate: !!scripts['db:migrate'],
+              hasBuild: !!scripts['build'],
+              hasCodegen: !!scripts['codegen'],
+              description: packageJson.description
+            });
+          } catch {
+            services.push({
+              kind: root.kind,
+              name: entry,
+              path: servicePath,
+              hasDbGenerate: false,
+              hasDbMigrate: false,
+              hasBuild: false,
+              hasCodegen: false
+            });
+          }
         }
       }
 

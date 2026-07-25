@@ -8,9 +8,9 @@ const execAsync = promisify(exec);
 
 const BuildToolSchema = z.object({
   services: z
-    .array(z.enum(BUILD_SERVICE_NAMES))
+    .array(z.string().min(1))
     .optional()
-    .describe(`Specific service(s) to build. Available: ${formatServiceNames(BUILD_SERVICE_NAMES)}`),
+    .describe(`Specific service(s) or hosted App(s) to build. Services: ${formatServiceNames(BUILD_SERVICE_NAMES)}`),
   packagesOnly: z
     .boolean()
     .optional()
@@ -37,7 +37,7 @@ Examples:
 - Build specific services: { "services": ["checkout", "orders"] }
 - Build in parallel: { "parallel": true }
 
-Available services: ${formatServiceNames(BUILD_SERVICE_NAMES)}`;
+Available services are discovered dynamically; hosted Apps under apps/* are also accepted.`;
 
   schema = BuildToolSchema;
 

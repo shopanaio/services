@@ -4,12 +4,12 @@ import { execa } from "execa";
 import { findRootDir } from "../utils.js";
 import {
   buildServices,
-  discoverServices,
-  getServicesDir,
   printSummary,
 } from "../scripts/build-services.js";
-import { existsSync } from "fs";
-import { join } from "path";
+import {
+  discoverProjectUnits,
+  type ProjectUnit,
+} from "../project-units.js";
 
 interface BuildOptions {
   service?: string[];
@@ -30,12 +30,11 @@ async function typeCheckService(serviceName: string, servicePath: string): Promi
   }
 }
 
-async function typeCheck(rootDir: string, servicesToCheck: string[]): Promise<boolean> {
-  const spinner = ora(`Type checking ${servicesToCheck.length} service(s)...`).start();
-  const servicesDir = getServicesDir();
+async function typeCheck(unitsToCheck: ProjectUnit[]): Promise<boolean> {
+  const spinner = ora(`Type checking ${unitsToCheck.length} project unit(s)...`).start();
 
   const results = await Promise.all(
-    servicesToCheck.map(name => typeCheckService(name, join(servicesDir, name)))
+    unitsToCheck.map((unit) => typeCheckService(unit.name, unit.path))
   );
 
   const failed = results.filter(r => !r.success);
@@ -61,56 +60,95 @@ export async function buildCommand(options: BuildOptions) {
   console.log(chalk.cyan("\n🔨 Shopana Build\n"));
 
   // Determine services to process
-  const allServices = discoverServices();
-  let servicesToProcess = allServices;
+  const allUnits = discoverProjectUnits();
+  const allNames = allUnits.map((unit) => unit.name);
+  let unitsToProcess = allUnits;
 
   if (options.service && options.service.length > 0) {
-    const invalid = options.service.filter((s) => !allServices.includes(s));
+    const invalid = options.service.filter((name) => !allNames.includes(name));
     if (invalid.length > 0) {
-      console.error(chalk.red(`\n❌ Unknown service(s): ${invalid.join(", ")}`));
-      console.error(chalk.gray(`   Available: ${allServices.join(", ")}`));
+      console.error(chalk.red(`\n❌ Unknown project unit(s): ${invalid.join(", ")}`));
+      console.error(chalk.gray(`   Available: ${allNames.join(", ")}`));
       process.exit(1);
     }
-    servicesToProcess = options.service;
+    unitsToProcess = allUnits.filter((unit) =>
+      options.service!.includes(unit.name),
+    );
+
+    // apps-service statically imports every bundled App definition.
+    if (
+      unitsToProcess.some(
+        (unit) => unit.kind === "service" && unit.name === "apps",
+      )
+    ) {
+      const selectedNames = new Set(
+        unitsToProcess.map((unit) => `${unit.kind}:${unit.name}`),
+      );
+      for (const app of allUnits.filter((unit) => unit.kind === "app")) {
+        if (!selectedNames.has(`app:${app.name}`)) {
+          unitsToProcess.push(app);
+        }
+      }
+    }
   }
 
-  // Type check first for every service build.
-  if (!options.packages) {
-    const passed = await typeCheck(rootDir, servicesToProcess);
+  // Packages must exist before Apps and services resolve workspace declarations.
+  const packagesSpinner = ora("Building packages...").start();
+  try {
+    await execa("node", ["packages/esbuild.js"], {
+      cwd: rootDir,
+      stdio: "pipe",
+    });
+    packagesSpinner.succeed("Packages built");
+  } catch (error) {
+    packagesSpinner.fail("Packages build failed");
+    console.error(chalk.red((error as Error).message));
+    process.exit(1);
+  }
+
+  if (options.packages) {
+    console.log(chalk.green("\n✅ Build complete!\n"));
+    return;
+  }
+
+  const stages = [
+    {
+      label: "Apps",
+      units: unitsToProcess.filter((unit) => unit.kind === "app"),
+    },
+    {
+      label: "services",
+      units: unitsToProcess.filter(
+        (unit) => unit.kind === "service" && unit.name !== "bootstrap",
+      ),
+    },
+    {
+      label: "bootstrap",
+      units: unitsToProcess.filter(
+        (unit) => unit.kind === "service" && unit.name === "bootstrap",
+      ),
+    },
+  ];
+
+  for (const stage of stages) {
+    if (stage.units.length === 0) continue;
+
+    const passed = await typeCheck(stage.units);
     if (!passed) {
       process.exit(1);
     }
-  }
 
-  // Build packages first (unless only services requested)
-  if (!options.service || options.packages) {
-    const packagesSpinner = ora("Building packages...").start();
-
-    try {
-      await execa("node", ["packages/esbuild.js"], {
-        cwd: rootDir,
-        stdio: "pipe",
-      });
-      packagesSpinner.succeed("Packages built");
-    } catch (error) {
-      packagesSpinner.fail("Packages build failed");
-      console.error(chalk.red((error as Error).message));
-      process.exit(1);
-    }
-  }
-
-  // Build services
-  if (!options.packages) {
     console.log(
-      chalk.gray(`\nBuilding ${servicesToProcess.length} service(s)${options.parallel ? " (parallel)" : ""}...`)
+      chalk.gray(
+        `\nBuilding ${stage.units.length} ${stage.label}${options.parallel ? " (parallel)" : ""}...`,
+      ),
     );
-
-    const results = await buildServices(servicesToProcess, options.parallel);
-
+    const results = await buildServices(
+      stage.units.map((unit) => unit.name),
+      options.parallel,
+    );
     printSummary(results);
-
-    const failed = results.filter((r) => !r.success);
-    if (failed.length > 0) {
+    if (results.some((result) => !result.success)) {
       process.exit(1);
     }
   }

@@ -37,6 +37,10 @@ services:
       metrics: 13033
     db:
       <<: *db_default
+    applications:
+      hello-world:
+        enabled: true
+        required: true
 
   checkout:
     ports:

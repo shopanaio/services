@@ -5984,6 +5984,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@shopana/app-hello-world@workspace:*, @shopana/app-hello-world@workspace:apps/hello-world":
+  version: 0.0.0-use.local
+  resolution: "@shopana/app-hello-world@workspace:apps/hello-world"
+  dependencies:
+    "@shopana/app-sdk": "workspace:*"
+    "@types/node": "npm:^22.7.4"
+    typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
+"@shopana/app-sdk@workspace:*, @shopana/app-sdk@workspace:packages/app-sdk":
+  version: 0.0.0-use.local
+  resolution: "@shopana/app-sdk@workspace:packages/app-sdk"
+  dependencies:
+    "@types/node": "npm:^22.7.4"
+    typescript: "npm:^5.5.4"
+    zod: "npm:^3.23.8"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/apps-service@npm:0.0.1, @shopana/apps-service@workspace:services/apps":
   version: 0.0.0-use.local
   resolution: "@shopana/apps-service@workspace:services/apps"
@@ -5996,6 +6016,8 @@ __metadata:
     "@graphql-codegen/cli": "npm:^5.0.2"
     "@graphql-codegen/typescript": "npm:^4.0.8"
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
+    "@shopana/app-hello-world": "workspace:*"
+    "@shopana/app-sdk": "workspace:*"
     "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/import-plugin-tilda": "npm:0.0.1"

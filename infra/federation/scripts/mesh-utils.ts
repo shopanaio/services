@@ -13,6 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const FEDERATION_ROOT = resolve(__dirname, "..");
 const PROJECT_ROOT = resolve(FEDERATION_ROOT, "../..");
 const SERVICES_ROOT = resolve(PROJECT_ROOT, "services");
+const APPS_ROOT = resolve(PROJECT_ROOT, "apps");
 
 type MeshType = "admin" | "storefront";
 
@@ -25,7 +26,12 @@ interface ServiceConfig {
 }
 
 interface GlobalConfig {
-  services: Record<string, ServiceConfig>;
+  services: Record<
+    string,
+    ServiceConfig & {
+      applications?: Record<string, ServiceConfig & { enabled?: boolean }>;
+    }
+  >;
 }
 
 interface BuildConfig {
@@ -72,30 +78,42 @@ function discoverSubgraphs(meshType: MeshType): Subgraph[] {
     throw new Error(`Services directory not found at ${SERVICES_ROOT}`);
   }
 
-  const entries = readdirSync(SERVICES_ROOT, { withFileTypes: true });
-  const serviceDirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
-
   const portKey = meshType === "admin" ? "admin_graphql" : "storefront_graphql";
 
-  for (const serviceName of serviceDirs) {
-    const servicePath = join(SERVICES_ROOT, serviceName);
-    const buildConfig = loadBuildConfig(servicePath);
+  for (const root of [
+    { path: SERVICES_ROOT, kind: "service" as const },
+    { path: APPS_ROOT, kind: "app" as const },
+  ]) {
+    if (!existsSync(root.path)) continue;
+    const units = readdirSync(root.path, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
 
-    if (!buildConfig?.graphql?.[meshType]) {
-      continue;
-    }
+    for (const unitName of units) {
+      const unitPath = join(root.path, unitName);
+      const buildConfig = loadBuildConfig(unitPath);
 
-    const serviceConfig = globalConfig.services?.[serviceName];
-    const port =
-      serviceConfig?.ports?.[portKey] ??
-      (meshType === "admin" ? serviceConfig?.ports?.iam_http : undefined);
+      if (!buildConfig?.graphql?.[meshType]) {
+        continue;
+      }
 
-    if (port) {
-      subgraphs.push({
-        name: `${serviceName}-${meshType}`,
-        port,
-        schemaFile: `./schema/${serviceName}-${meshType}.graphql`,
-      });
+      const serviceConfig =
+        root.kind === "app"
+          ? globalConfig.services?.apps?.applications?.[unitName]
+          : globalConfig.services?.[unitName];
+      const port =
+        serviceConfig?.ports?.[portKey] ??
+        (meshType === "admin" ? serviceConfig?.ports?.iam_http : undefined);
+      const subgraphName =
+        root.kind === "app" ? `apps-${unitName}` : unitName;
+
+      if (port && serviceConfig?.enabled !== false) {
+        subgraphs.push({
+          name: `${subgraphName}-${meshType}`,
+          port,
+          schemaFile: `./schema/${subgraphName}-${meshType}.graphql`,
+        });
+      }
     }
   }
 

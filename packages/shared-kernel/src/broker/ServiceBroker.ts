@@ -4,7 +4,10 @@ import {
   ActionRegistry,
   type ActionMetadata,
 } from './ActionRegistry';
-import type { BrokerCallContext } from './BrokerCallContext.js';
+import type {
+  BrokerAppContext,
+  BrokerCallContext,
+} from './BrokerCallContext.js';
 import {
   WORKFLOW_REGISTRY,
   type WorkflowRegistry,
@@ -60,6 +63,28 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   /**
+   * Calls an action with host-owned App provenance.
+   * This API is intended for the apps-service facade, not App packages.
+   */
+  async callAsApp<TResult = unknown, TParams = unknown>(
+    action: string,
+    params: TParams | undefined,
+    app: Readonly<BrokerAppContext>,
+  ): Promise<TResult> {
+    if (this.options.serviceName !== 'apps') {
+      throw new Error('Only apps service can create App broker calls');
+    }
+    const context = this.createCallContext(
+      {
+        kind: 'action',
+        service: this.options.serviceName,
+      },
+      app,
+    );
+    return this.invoke<TResult, TParams>(action, params, context);
+  }
+
+  /**
    * Dispatch an event handler with the persisted event producer as caller.
    * Only the events service may create event caller contexts.
    */
@@ -100,8 +125,24 @@ export class ServiceBroker implements OnModuleDestroy {
 
   private createCallContext(
     caller: BrokerCallContext['caller'],
+    app?: Readonly<BrokerAppContext>,
   ): BrokerCallContext {
-    return Object.freeze({ caller: Object.freeze(caller) });
+    return Object.freeze({
+      caller: Object.freeze(caller),
+      ...(app ? { app: Object.freeze(app) } : {}),
+    });
+  }
+
+  /**
+   * Deregisters one action owned by a hosted component.
+   */
+  deregister(action: string): void {
+    const qualifiedAction = this.assertFullyQualified(action);
+    if (!this.localActions.has(qualifiedAction)) {
+      return;
+    }
+    this.registry.deregister(qualifiedAction);
+    this.localActions.delete(qualifiedAction);
   }
 
   /**

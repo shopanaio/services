@@ -10,14 +10,21 @@ import { existsSync, watch } from "fs";
 import { join } from "path";
 import { findRootDir } from "../utils.js";
 import {
+  buildProjectUnit,
   buildService,
   buildServices,
   discoverServices,
   getServicesDir,
 } from "./build-services.js";
+import {
+  discoverProjectUnits,
+  findProjectUnit,
+  type ProjectUnit,
+} from "../project-units.js";
 
 const rootDir = findRootDir();
 const servicesDir = getServicesDir();
+const appUnits = discoverProjectUnits().filter((unit) => unit.kind === "app");
 
 // Find services with build.config.json (exclude bootstrap)
 const services = discoverServices().filter(
@@ -39,6 +46,20 @@ async function rebuildService(service: string): Promise<boolean> {
 
   rebuilding.set(service, false);
   return result.success;
+}
+
+async function rebuildApp(unit: ProjectUnit): Promise<boolean> {
+  const key = `app:${unit.name}`;
+  if (rebuilding.get(key)) return false;
+  rebuilding.set(key, true);
+
+  const appResult = await buildProjectUnit(unit);
+  const hostResult = appResult.success
+    ? await buildService("apps")
+    : { success: false };
+
+  rebuilding.set(key, false);
+  return appResult.success && hostResult.success;
 }
 
 function startBootstrap() {
@@ -72,6 +93,12 @@ function scheduleRestart() {
 
 export async function runDev(singleService?: string) {
   if (singleService) {
+    const unit = findProjectUnit(singleService);
+    if (unit?.kind === "app") {
+      throw new Error(
+        `App "${singleService}" is hosted by apps-service; run "shopana dev" instead`,
+      );
+    }
     // Run single service in dev mode
     console.log(`\n🚀 Starting ${singleService} service\n`);
 
@@ -91,7 +118,11 @@ export async function runDev(singleService?: string) {
 
   // Full bootstrap mode - quiet build
   const startTime = Date.now();
-  await buildServices(services, true, { quiet: true });
+  await buildServices(
+    [...appUnits.map((unit) => unit.name), ...services],
+    true,
+    { quiet: true },
+  );
   await buildService("bootstrap", { quiet: true });
   const duration = Date.now() - startTime;
 
@@ -114,6 +145,26 @@ export async function runDev(singleService?: string) {
       const built = await rebuildService(service);
       if (built) scheduleRestart();
     });
+  }
+
+  for (const app of appUnits) {
+    const srcDirs = [join(app.path, "src"), join(app.path, "app.manifest.ts")];
+    for (const source of srcDirs) {
+      if (!existsSync(source)) continue;
+      watch(source, { recursive: true }, async (_event, filename) => {
+        const changedFile = filename ?? source;
+        if (
+          changedFile.endsWith(".test.ts") ||
+          changedFile.endsWith(".spec.ts")
+        ) {
+          return;
+        }
+        if (!/\.(ts|js|json|graphql)$/.test(changedFile)) return;
+
+        const built = await rebuildApp(app);
+        if (built) scheduleRestart();
+      });
+    }
   }
 
   // Watch bootstrap

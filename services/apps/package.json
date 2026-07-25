@@ -18,6 +18,8 @@
     "@as-integrations/fastify": "^2.1.0",
     "@event-driven-io/dumbo": "^0.13.0-alpha.6",
     "@event-driven-io/pongo": "^0.17.0-alpha.6",
+    "@shopana/app-hello-world": "workspace:*",
+    "@shopana/app-sdk": "workspace:*",
     "@shopana/broker-types": "workspace:*",
     "@shopana/import-plugin-tilda": "0.0.1",
     "@shopana/notification-plugin-http-webhook": "0.0.1",

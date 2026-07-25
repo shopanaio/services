@@ -6,17 +6,22 @@
  * Reads database config from config.yml (same as services)
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { load as yamlLoad } from "js-yaml";
 import { findRootDir } from "../utils.js";
+import {
+  discoverProjectUnits,
+  findProjectUnit,
+  type ProjectUnitKind,
+} from "../project-units.js";
 
 const rootDir = findRootDir();
-const servicesDir = join(rootDir, "services");
-
 interface MigrationsConfig {
   path: string;
   type: "drizzle" | "node-pg-migrate" | "typeorm" | "prisma";
+  schema?: string;
+  table?: string;
 }
 
 interface BuildConfig {
@@ -27,6 +32,8 @@ interface BuildConfig {
 
 interface ServiceMigrationConfig {
   name: string;
+  kind: ProjectUnitKind;
+  unitPath: string;
   path: string;
   type: "drizzle" | "node-pg-migrate" | "typeorm" | "prisma";
   migrationsSchema?: string;
@@ -86,16 +93,17 @@ function readBuildConfig(servicePath: string): BuildConfig | null {
 function discoverMigratableServices(): ServiceMigrationConfig[] {
   const services: ServiceMigrationConfig[] = [];
 
-  for (const name of readdirSync(servicesDir)) {
-    const servicePath = join(servicesDir, name);
-    if (!statSync(servicePath).isDirectory()) continue;
-
-    const buildConfig = readBuildConfig(servicePath);
+  for (const unit of discoverProjectUnits()) {
+    const buildConfig = readBuildConfig(unit.path);
     if (buildConfig?.migrations?.path && buildConfig?.migrations?.type) {
       services.push({
-        name,
+        name: unit.name,
+        kind: unit.kind,
+        unitPath: unit.path,
         path: buildConfig.migrations.path,
         type: buildConfig.migrations.type,
+        migrationsSchema: buildConfig.migrations.schema,
+        migrationsTable: buildConfig.migrations.table,
       });
     }
   }
@@ -138,6 +146,13 @@ function getServiceDatabaseUrl(serviceName: string): string | null {
   }
 
   return null;
+}
+
+function getProjectUnitDatabaseUrl(
+  name: string,
+  kind: ProjectUnitKind,
+): string | null {
+  return getServiceDatabaseUrl(kind === "app" ? "apps" : name);
 }
 
 interface MigrationResult {
@@ -196,8 +211,7 @@ async function migrateService(
   config: ServiceMigrationConfig,
   databaseUrl: string
 ): Promise<MigrationResult> {
-  const serviceDir = join(servicesDir, serviceName);
-  const fullMigrationsPath = join(serviceDir, config.path);
+  const fullMigrationsPath = join(config.unitPath, config.path);
 
   if (!existsSync(fullMigrationsPath)) {
     return {
@@ -262,24 +276,32 @@ function getDatabaseUrl(serviceName?: string): string {
 /**
  * Run migrations for specific service
  */
-export async function runMigration(serviceName: string): Promise<boolean> {
-  const servicePath = join(servicesDir, serviceName);
-  const buildConfig = readBuildConfig(servicePath);
+export async function runMigration(
+  serviceName: string,
+  kind: ProjectUnitKind = "service",
+): Promise<boolean> {
+  const unit = findProjectUnit(serviceName, kind);
+  const buildConfig = unit ? readBuildConfig(unit.path) : null;
 
   if (!buildConfig?.migrations?.path || !buildConfig?.migrations?.type) {
-    console.error(`\n❌ Service "${serviceName}" does not have migrations configured in build.config.json`);
+    console.error(`\n❌ ${kind} "${serviceName}" does not have migrations configured in build.config.json`);
     return false;
   }
 
-  const databaseUrl = getDatabaseUrl(serviceName);
+  const databaseUrl =
+    getProjectUnitDatabaseUrl(serviceName, kind) ?? getDatabaseUrl();
 
   console.log(`\n📦 Migrating ${serviceName}...`);
   console.log(`   Database: ${databaseUrl.replace(/:[^:@]+@/, ":***@")}`);
 
   const config: ServiceMigrationConfig = {
     name: serviceName,
+    kind,
+    unitPath: unit!.path,
     path: buildConfig.migrations.path,
     type: buildConfig.migrations.type,
+    migrationsSchema: buildConfig.migrations.schema,
+    migrationsTable: buildConfig.migrations.table,
   };
 
   const result = await migrateService(serviceName, config, databaseUrl);
@@ -314,7 +336,8 @@ export async function runAllMigrations(): Promise<boolean> {
   const results: MigrationResult[] = [];
 
   for (const service of migratableServices) {
-    const databaseUrl = getDatabaseUrl(service.name);
+    const databaseUrl =
+      getProjectUnitDatabaseUrl(service.name, service.kind) ?? getDatabaseUrl();
     console.log(`📦 Migrating ${service.name}...`);
 
     const result = await migrateService(service.name, service, databaseUrl);
@@ -345,5 +368,13 @@ export async function runAllMigrations(): Promise<boolean> {
  * List available services for migration
  */
 export function listMigratableServices(): string[] {
-  return discoverMigratableServices().map((s) => s.name);
+  return discoverMigratableServices()
+    .filter((unit) => unit.kind === "service")
+    .map((unit) => unit.name);
+}
+
+export function listMigratableApps(): string[] {
+  return discoverMigratableServices()
+    .filter((unit) => unit.kind === "app")
+    .map((unit) => unit.name);
 }

@@ -8,9 +8,10 @@ const execAsync = promisify(exec);
 
 const CodegenToolSchema = z.object({
   service: z
-    .enum(CODEGEN_SERVICE_NAMES)
+    .string()
+    .min(1)
     .optional()
-    .describe(`Generate types for specific service only. Available: ${formatServiceNames(CODEGEN_SERVICE_NAMES)}`),
+    .describe(`Generate types for a specific service or hosted App. Services: ${formatServiceNames(CODEGEN_SERVICE_NAMES)}`),
   workingDir: z
     .string()
     .optional()
@@ -27,7 +28,7 @@ Examples:
 - Generate for all services: {}
 - Generate for specific service: { "service": "checkout" }
 
-Available services: ${formatServiceNames(CODEGEN_SERVICE_NAMES)}`;
+Available project units are discovered dynamically from services/* and apps/*.`;
 
   schema = CodegenToolSchema;
 

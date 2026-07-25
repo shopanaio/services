@@ -12,8 +12,6 @@ import {
 } from "@shopana/build-tools/esbuild";
 import {
   existsSync,
-  readdirSync,
-  statSync,
   mkdirSync,
   copyFileSync,
   readFileSync,
@@ -22,6 +20,11 @@ import {
 import { join, dirname, relative } from "path";
 import { glob } from "glob";
 import { findRootDir } from "../utils.js";
+import {
+  discoverProjectUnits,
+  findProjectUnit,
+  type ProjectUnit,
+} from "../project-units.js";
 
 interface AssetConfig {
   include: string;
@@ -75,20 +78,9 @@ function readBuildConfig(servicePath: string, serviceName: string): BuildConfig 
  * Discover all services in the services directory
  */
 export function discoverServices(): string[] {
-  const servicesDir = getServicesDir();
-  const services: string[] = [];
-
-  for (const name of readdirSync(servicesDir)) {
-    const servicePath = join(servicesDir, name);
-    if (!statSync(servicePath).isDirectory()) continue;
-
-    const packageJsonPath = join(servicePath, "package.json");
-    if (!existsSync(packageJsonPath)) continue;
-
-    services.push(name);
-  }
-
-  return services.sort();
+  return discoverProjectUnits()
+    .filter((unit) => unit.kind === "service")
+    .map((unit) => unit.name);
 }
 
 interface BuildOptions {
@@ -136,9 +128,12 @@ async function copyAssets(servicePath: string, assets?: AssetConfig[], quiet?: b
 /**
  * Build a single service
  */
-export async function buildService(serviceName: string, options?: BuildOptions): Promise<BuildResult> {
-  const servicesDir = getServicesDir();
-  const servicePath = join(servicesDir, serviceName);
+export async function buildProjectUnit(
+  unit: ProjectUnit,
+  options?: BuildOptions,
+): Promise<BuildResult> {
+  const serviceName = unit.name;
+  const servicePath = unit.path;
   const startTime = Date.now();
   const quiet = options?.quiet;
 
@@ -195,6 +190,21 @@ export async function buildService(serviceName: string, options?: BuildOptions):
   }
 }
 
+export async function buildService(
+  serviceName: string,
+  options?: BuildOptions,
+): Promise<BuildResult> {
+  const unit = findProjectUnit(serviceName);
+  if (!unit) {
+    return {
+      name: serviceName,
+      success: false,
+      error: "Project unit not found",
+    };
+  }
+  return buildProjectUnit(unit, options);
+}
+
 /**
  * Build multiple services
  */
@@ -203,13 +213,30 @@ export async function buildServices(
   parallel: boolean = false,
   options?: BuildOptions
 ): Promise<BuildResult[]> {
-  if (parallel) {
-    return Promise.all(services.map(s => buildService(s, options)));
-  }
-
+  const units = services
+    .map((name) => findProjectUnit(name))
+    .filter((unit): unit is ProjectUnit => Boolean(unit));
+  const appUnits = units.filter((unit) => unit.kind === "app");
+  const serviceUnits = units.filter(
+    (unit) => unit.kind === "service" && unit.name !== "bootstrap",
+  );
+  const bootstrapUnits = units.filter(
+    (unit) => unit.kind === "service" && unit.name === "bootstrap",
+  );
   const results: BuildResult[] = [];
-  for (const service of services) {
-    results.push(await buildService(service, options));
+
+  for (const group of [appUnits, serviceUnits, bootstrapUnits]) {
+    if (parallel) {
+      results.push(
+        ...(await Promise.all(
+          group.map((unit) => buildProjectUnit(unit, options)),
+        )),
+      );
+    } else {
+      for (const unit of group) {
+        results.push(await buildProjectUnit(unit, options));
+      }
+    }
   }
   return results;
 }
