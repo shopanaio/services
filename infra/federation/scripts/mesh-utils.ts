@@ -43,7 +43,7 @@ interface BuildConfig {
 
 interface Subgraph {
   name: string;
-  port: number;
+  endpoint: string;
   schemaFile: string;
 }
 
@@ -102,15 +102,20 @@ function discoverSubgraphs(meshType: MeshType): Subgraph[] {
           ? globalConfig.services?.apps?.applications?.[unitName]
           : globalConfig.services?.[unitName];
       const port =
-        serviceConfig?.ports?.[portKey] ??
-        (meshType === "admin" ? serviceConfig?.ports?.iam_http : undefined);
+        root.kind === "app"
+          ? globalConfig.services?.apps?.ports?.[portKey]
+          : serviceConfig?.ports?.[portKey] ??
+            (meshType === "admin" ? serviceConfig?.ports?.iam_http : undefined);
       const subgraphName =
         root.kind === "app" ? `apps-${unitName}` : unitName;
 
       if (port && serviceConfig?.enabled !== false) {
         subgraphs.push({
           name: `${subgraphName}-${meshType}`,
-          port,
+          endpoint:
+            root.kind === "app"
+              ? `http://localhost:${port}/subgraphs/${unitName}/graphql`
+              : `http://localhost:${port}/graphql`,
           schemaFile: `./schema/${subgraphName}-${meshType}.graphql`,
         });
       }
@@ -125,7 +130,7 @@ export function buildSubgraphs(meshType: MeshType) {
 
   return subgraphs.map((sg) => ({
     sourceHandler: loadGraphQLHTTPSubgraph(sg.name, {
-      endpoint: `http://localhost:${sg.port}/graphql`,
+      endpoint: sg.endpoint,
       source: sg.schemaFile,
     }),
   }));

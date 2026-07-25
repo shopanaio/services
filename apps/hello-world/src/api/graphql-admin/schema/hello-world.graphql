@@ -1,0 +1,8 @@
+type HelloWorldGreeting {
+  message: String!
+  appCode: String!
+}
+
+type Query {
+  helloWorldGreeting: HelloWorldGreeting!
+}

@@ -21,6 +21,9 @@ import { AppInstallationStore } from './control-plane/AppInstallationStore.js';
 import { AppLifecycleService } from './control-plane/AppLifecycleService.js';
 import { AppInstallationLifecycleWorkflow } from './control-plane/AppInstallationLifecycleWorkflow.js';
 import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
+import { AppSubgraphHost } from './graphql/AppSubgraphHost.js';
+import { AppSubgraphRegistry } from './graphql/AppSubgraphRegistry.js';
+import { AppsGraphQLIngress } from './graphql/AppsGraphQLIngress.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'apps' })],
@@ -43,6 +46,9 @@ import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
     AppLifecycleService,
     AppInstallationLifecycleWorkflow,
     AppsPlatformActions,
+    AppSubgraphHost,
+    AppSubgraphRegistry,
+    AppsGraphQLIngress,
     {
       provide: APP_INSTALLATION_CONTEXT_PROVIDER,
       useExisting: DatabaseAppInstallationContextProvider,
@@ -53,6 +59,7 @@ import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
     AppsRuntimeRouter,
     Repository,
     AppInstallationStore,
+    AppSubgraphRegistry,
   ],
 })
 export class AppsModule {}

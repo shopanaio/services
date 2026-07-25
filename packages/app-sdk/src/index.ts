@@ -123,6 +123,14 @@ export interface AppExecutionContextAccessor {
   current(): Readonly<AppExecutionContext>;
 }
 
+export interface AppExecutionContextManager
+  extends AppExecutionContextAccessor {
+  run<TResult>(
+    context: Readonly<AppExecutionContext>,
+    callback: () => TResult,
+  ): TResult;
+}
+
 export interface AppLogger {
   debug(message: string, ...optionalParams: unknown[]): void;
   log(message: string, ...optionalParams: unknown[]): void;
@@ -250,7 +258,7 @@ export interface AppHostContext {
   readonly databaseClient: unknown;
   readonly logger: AppLogger;
   readonly installations: AppInstallationContextProvider;
-  readonly executionContext: AppExecutionContextAccessor;
+  readonly executionContext: AppExecutionContextManager;
   readonly secrets: AppSecretResolver;
 }
 
@@ -273,9 +281,23 @@ export interface ShopanaApp {
   health(): Promise<AppRuntimeHealth>;
 }
 
+export interface AppGraphQLServer {
+  listen(options: {
+    readonly host: string;
+    readonly port: number;
+  }): Promise<string>;
+  close(): Promise<void>;
+}
+
+export interface AppGraphQLSurfaceDefinition {
+  createServer(
+    host: AppHostContext,
+  ): Promise<AppGraphQLServer> | AppGraphQLServer;
+}
+
 export interface AppGraphQLDefinition {
-  readonly admin?: boolean;
-  readonly storefront?: boolean;
+  readonly admin?: AppGraphQLSurfaceDefinition;
+  readonly storefront?: AppGraphQLSurfaceDefinition;
 }
 
 export interface ShopanaAppDefinition {

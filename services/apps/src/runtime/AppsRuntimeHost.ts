@@ -25,6 +25,7 @@ import { bundledApps } from "./bundled-apps.js";
 import { APP_INSTALLATION_CONTEXT_PROVIDER } from "./AppInstallationContextProvider.js";
 import { getExternallyRoutableActions } from "./AppManifestContracts.js";
 import { AppSecretResolverFactory } from "./AppSecretResolverFactory.js";
+import { AppSubgraphHost } from "../graphql/AppSubgraphHost.js";
 
 interface AppsServiceConfig {
   readonly applications?: Record<string, Partial<AppDeploymentConfig>>;
@@ -45,6 +46,7 @@ export class AppsRuntimeHost
     private readonly brokerFactory: AppBrokerFacadeFactory,
     private readonly registry: AppRuntimeRegistry,
     private readonly secretResolverFactory: AppSecretResolverFactory,
+    private readonly subgraphHost: AppSubgraphHost,
     @Inject(APP_INSTALLATION_CONTEXT_PROVIDER)
     private readonly installations: AppInstallationContextProvider,
   ) {}
@@ -99,6 +101,7 @@ export class AppsRuntimeHost
       const appCode = runtime.definition.manifest.code;
       try {
         if (runtime.status === "READY" || runtime.status === "STARTING") {
+          await this.subgraphHost.stop(appCode);
           await runtime.app.stop();
         }
       } catch (error) {
@@ -145,7 +148,7 @@ export class AppsRuntimeHost
     });
     this.contextRunners.set(appCode, contextRunner);
 
-    const app = definition.create({
+    const hostContext = {
       broker: appBroker,
       config,
       databaseClient: this.databaseClient,
@@ -153,7 +156,8 @@ export class AppsRuntimeHost
       installations: this.installations,
       executionContext: contextRunner,
       secrets: this.secretResolverFactory.create(appCode, contextRunner),
-    });
+    } satisfies Parameters<ShopanaAppDefinition["create"]>[0];
+    const app = definition.create(hostContext);
     const runtime = this.registry.register({
       definition,
       app,
@@ -164,6 +168,7 @@ export class AppsRuntimeHost
     await app.register();
     this.validateRegisteredContracts(definition);
     await app.start();
+    await this.subgraphHost.start(definition, hostContext);
     runtime.status = "READY";
     this.logger.log(`App "${appCode}" is ready`);
   }
@@ -176,6 +181,7 @@ export class AppsRuntimeHost
     const runtime = this.registry.get(appCode);
     if (runtime) {
       try {
+        await this.subgraphHost.stop(appCode);
         await runtime.app.stop();
       } catch (stopError) {
         this.logger.error(`Failed to stop App "${appCode}"`, stopError);
@@ -259,6 +265,7 @@ export class AppsRuntimeHost
         (runtime.status === "READY" || runtime.status === "STARTING")
       ) {
         try {
+          await this.subgraphHost.stop(appCode);
           await runtime.app.stop();
         } catch (error) {
           this.logger.error(`Failed to stop App "${appCode}"`, error);
