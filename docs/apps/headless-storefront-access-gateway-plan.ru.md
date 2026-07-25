@@ -16,9 +16,9 @@ Store
       -> 0..N private credentials
 ```
 
-- Source of truth для installation и channel: Apps Service.
-- Source of truth для storefront access policy и credentials: bundled
-  Headless App.
+- Source of truth для installation: Apps Service.
+- Source of truth для Headless storefront connections, access policy и
+  credentials: bundled Headless App.
 - Публичная точка входа: Storefront Hive Gateway.
 - Проверка credential: один раз до GraphQL query planning.
 - Доверенный storefront context: короткоживущий подписанный JWS, создаваемый
