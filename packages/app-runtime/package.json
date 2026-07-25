@@ -1,0 +1,29 @@
+{
+  "name": "@shopana/app-runtime",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "source": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@apollo/server": "^4.11.0",
+    "@apollo/subgraph": "^2.9.0",
+    "@as-integrations/fastify": "^2.1.1",
+    "@nestjs/common": "^10.0.0",
+    "@shopana/app-sdk": "workspace:*",
+    "fastify": "^4.28.1",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "typescript": "^5.5.4"
+  }
+}

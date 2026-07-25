@@ -26,7 +26,7 @@ const packagesRoot = isCalledFromPackage ? dirname(callerDir) : __dirname;
  */
 function getPackages() {
   const packagesDir = __dirname;
-  return readdirSync(packagesDir)
+  const packageDirs = readdirSync(packagesDir)
     .filter((name) => {
       const packagePath = join(packagesDir, name);
       return (
@@ -35,6 +35,46 @@ function getPackages() {
       );
     })
     .map((name) => join(packagesDir, name));
+
+  const packagesByName = new Map(
+    packageDirs.map((packageDir) => {
+      const packageJson = JSON.parse(
+        readFileSync(join(packageDir, "package.json"), "utf-8")
+      );
+      return [packageJson.name, { packageDir, packageJson }];
+    })
+  );
+  const ordered = [];
+  const visiting = new Set();
+  const visited = new Set();
+
+  function visit(packageName) {
+    if (visited.has(packageName)) return;
+    if (visiting.has(packageName)) {
+      throw new Error(`Circular workspace package dependency at ${packageName}`);
+    }
+    const current = packagesByName.get(packageName);
+    if (!current) return;
+    visiting.add(packageName);
+    const dependencies = {
+      ...current.packageJson.dependencies,
+      ...current.packageJson.peerDependencies,
+    };
+    for (const dependencyName of Object.keys(dependencies)) {
+      if (packagesByName.has(dependencyName)) {
+        visit(dependencyName);
+      }
+    }
+    visiting.delete(packageName);
+    visited.add(packageName);
+    ordered.push(current.packageDir);
+  }
+
+  for (const packageName of packagesByName.keys()) {
+    visit(packageName);
+  }
+
+  return ordered;
 }
 
 /**

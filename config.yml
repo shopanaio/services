@@ -42,6 +42,7 @@ services:
   apps:
     ports:
       admin_graphql: 10001
+      app_admin_graphql: 10022
       metrics: 3033
     db:
       <<: *db_default

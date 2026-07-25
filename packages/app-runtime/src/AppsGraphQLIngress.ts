@@ -1,25 +1,13 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from "@nestjs/common";
-import { getServiceConfig } from "@shopana/shared-service-config";
+import { Injectable, Logger } from "@nestjs/common";
 import fastify, {
   type FastifyInstance,
   type FastifyRequest,
 } from "fastify";
-import {
-  AppSubgraphRegistry,
-  type AppGraphQLSurface,
-} from "./AppSubgraphRegistry.js";
-
-interface AppsServiceConfig {
-  readonly ports?: {
-    readonly admin_graphql?: number;
-    readonly storefront_graphql?: number;
-  };
-}
+import { AppSubgraphRegistry } from "./AppSubgraphRegistry.js";
+import type {
+  AppGraphQLSurface,
+  AppsGraphQLIngressPorts,
+} from "./types.js";
 
 const hopByHopHeaders = new Set([
   "connection",
@@ -35,20 +23,18 @@ const hopByHopHeaders = new Set([
 ]);
 
 @Injectable()
-export class AppsGraphQLIngress implements OnModuleInit, OnModuleDestroy {
+export class AppsGraphQLIngress {
   private readonly logger = new Logger(AppsGraphQLIngress.name);
   private readonly servers = new Map<AppGraphQLSurface, FastifyInstance>();
 
   constructor(private readonly registry: AppSubgraphRegistry) {}
 
-  async onModuleInit(): Promise<void> {
-    const { service } = getServiceConfig("apps");
-    const config = service as AppsServiceConfig;
-    await this.startSurface("admin", config.ports?.admin_graphql);
-    await this.startSurface("storefront", config.ports?.storefront_graphql);
+  async start(ports: AppsGraphQLIngressPorts): Promise<void> {
+    await this.startSurface("admin", ports.admin);
+    await this.startSurface("storefront", ports.storefront);
   }
 
-  async onModuleDestroy(): Promise<void> {
+  async stop(): Promise<void> {
     for (const server of [...this.servers.values()].reverse()) {
       await server.close();
     }
@@ -66,7 +52,6 @@ export class AppsGraphQLIngress implements OnModuleInit, OnModuleDestroy {
     const app = fastify({
       disableRequestLogging: true,
     });
-
     app.all<{
       Params: { appCode: string };
     }>("/subgraphs/:appCode/graphql", async (request, reply) => {
@@ -84,27 +69,22 @@ export class AppsGraphQLIngress implements OnModuleInit, OnModuleDestroy {
         headers: this.buildHeaders(request, runtime.appCode, surface),
         body: this.buildBody(request),
       });
-
       response.headers.forEach((value, name) => {
         if (!hopByHopHeaders.has(name.toLowerCase())) {
           reply.header(name, value);
         }
       });
-
-      const body = Buffer.from(await response.arrayBuffer());
-      return reply.code(response.status).send(body);
+      return reply
+        .code(response.status)
+        .send(Buffer.from(await response.arrayBuffer()));
     });
-
     app.get("/healthz", async () => ({
       status: "ok",
       service: "apps",
       surface,
     }));
 
-    await app.listen({
-      host: "0.0.0.0",
-      port,
-    });
+    await app.listen({ host: "0.0.0.0", port });
     this.servers.set(surface, app);
     this.logger.log(`Apps ${surface} GraphQL ingress started on port ${port}`);
   }
@@ -133,8 +113,11 @@ export class AppsGraphQLIngress implements OnModuleInit, OnModuleDestroy {
     if (request.body === undefined || request.body === null) {
       return undefined;
     }
-    if (typeof request.body === "string" || Buffer.isBuffer(request.body)) {
+    if (typeof request.body === "string") {
       return request.body;
+    }
+    if (Buffer.isBuffer(request.body)) {
+      return request.body.toString("utf8");
     }
     return JSON.stringify(request.body);
   }

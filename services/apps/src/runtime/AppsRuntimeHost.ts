@@ -12,6 +12,10 @@ import {
   type ShopanaAppDefinition,
 } from "@shopana/app-sdk";
 import {
+  AppSubgraphHost,
+  type HostedAppDefinition,
+} from "@shopana/app-runtime";
+import {
   DATABASE_CLIENT,
   InjectBroker,
   type DatabaseClient,
@@ -25,7 +29,6 @@ import { bundledApps } from "./bundled-apps.js";
 import { APP_INSTALLATION_CONTEXT_PROVIDER } from "./AppInstallationContextProvider.js";
 import { getExternallyRoutableActions } from "./AppManifestContracts.js";
 import { AppSecretResolverFactory } from "./AppSecretResolverFactory.js";
-import { AppSubgraphHost } from "../graphql/AppSubgraphHost.js";
 
 interface AppsServiceConfig {
   readonly applications?: Record<string, Partial<AppDeploymentConfig>>;
@@ -64,10 +67,11 @@ export class AppsRuntimeHost
       return;
     }
 
-    this.validateDefinitions(bundledApps);
+    this.validateDefinitions(bundledApps.map(({ definition }) => definition));
 
     try {
-      for (const definition of bundledApps) {
+      for (const hosted of bundledApps) {
+        const { definition } = hosted;
         const config = this.resolveConfig(definition);
         if (!config.enabled) {
           this.logger.log(`Skipping disabled App "${definition.manifest.code}"`);
@@ -75,7 +79,7 @@ export class AppsRuntimeHost
         }
 
         try {
-          await this.startDefinition(definition, config);
+          await this.startDefinition(hosted, config);
         } catch (error) {
           await this.failDefinition(definition, error);
           if (config.required) {
@@ -133,9 +137,10 @@ export class AppsRuntimeHost
   }
 
   private async startDefinition(
-    definition: ShopanaAppDefinition,
+    hosted: HostedAppDefinition,
     config: AppDeploymentConfig,
   ): Promise<void> {
+    const { definition } = hosted;
     const appCode = definition.manifest.code;
     const contextRunner = new AppContextRunner();
     const appBroker = this.brokerFactory.create({
@@ -168,7 +173,7 @@ export class AppsRuntimeHost
     await app.register();
     this.validateRegisteredContracts(definition);
     await app.start();
-    await this.subgraphHost.start(definition, hostContext);
+    await this.subgraphHost.start(hosted, hostContext);
     runtime.status = "READY";
     this.logger.log(`App "${appCode}" is ready`);
   }

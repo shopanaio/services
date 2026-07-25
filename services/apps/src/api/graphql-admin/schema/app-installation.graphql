@@ -1,0 +1,195 @@
+"""Lifecycle state of an App installation."""
+enum AppInstallationStatus {
+  PENDING_CONSENT
+  INSTALLING
+  ACTIVE
+  INSTALL_FAILED
+  SUSPENDING
+  SUSPENDED
+  RESUMING
+  UPDATING
+  UPDATE_FAILED
+  UNINSTALLING
+  UNINSTALLED
+  UNINSTALL_FAILED
+}
+
+"""Persisted health state of an App installation."""
+enum AppInstallationHealthStatus {
+  UNKNOWN
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+}
+
+"""State of a capability route owned by an installation."""
+enum AppCapabilityBindingStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  DEPRECATED
+}
+
+"""State of the route assignment used to resolve a capability."""
+enum AppCapabilityAssignmentStatus {
+  ACTIVE
+  DISABLED
+}
+
+"""A permission grant recorded for an App installation."""
+type AppInstallationScope {
+  scope: String!
+  grantedAt: DateTime!
+  revokedAt: DateTime
+  granted: Boolean!
+}
+
+"""A concrete capability route contributed by an installed App."""
+type AppCapabilityBinding implements Node @key(fields: "id") {
+  id: ID!
+  capability: String!
+  operation: String!
+  targetAppCode: String!
+  targetAction: String!
+  status: AppCapabilityBindingStatus!
+  precedence: Int
+  assignmentStatus: AppCapabilityAssignmentStatus
+}
+
+"""The latest persisted App installation failure."""
+type AppInstallationError {
+  code: String!
+  message: String!
+}
+
+"""A bundled App installed in the current store."""
+type AppInstallation implements Node @key(fields: "id") {
+  id: ID!
+  appCode: String!
+  status: AppInstallationStatus!
+  installedVersion: String
+  targetVersion: String
+  manifestHash: String
+  configuration: JSON!
+  configurationVersion: Int!
+  healthStatus: AppInstallationHealthStatus!
+  lastError: AppInstallationError
+  installedByUserId: ID
+  scopes: [AppInstallationScope!]!
+  capabilities: [AppCapabilityBinding!]!
+  lifecycleOperations(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): AppLifecycleOperationConnection!
+  manifestSnapshots(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): AppManifestSnapshotConnection!
+  installedAt: DateTime
+  suspendedAt: DateTime
+  uninstalledAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""A Relay connection of App installations."""
+type AppInstallationConnection {
+  edges: [AppInstallationEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+"""An edge in an App installation connection."""
+type AppInstallationEdge {
+  node: AppInstallation!
+  cursor: String!
+}
+
+"""Filter conditions for App installations."""
+input AppInstallationWhereInput {
+  appCodes: [String!]
+  statuses: [AppInstallationStatus!]
+  healthStatuses: [AppInstallationHealthStatus!]
+}
+
+"""Fields available for sorting App installations."""
+enum AppInstallationOrderField {
+  APP_CODE
+  STATUS
+  CREATED_AT
+  UPDATED_AT
+}
+
+enum AppOrderDirection {
+  ASC
+  DESC
+}
+
+"""Sort order for App installations."""
+input AppInstallationOrderByInput {
+  field: AppInstallationOrderField!
+  direction: AppOrderDirection!
+}
+
+"""A write-only secret supplied during install or update."""
+input AppSecretInput {
+  name: String!
+  value: String!
+}
+
+"""Input for installing a bundled App in the current store."""
+input AppInstallInput {
+  appCode: String!
+  configuration: JSON
+  grantedScopes: [String!]
+  secrets: [AppSecretInput!]
+
+  """A unique client-generated ID, reused only when retrying this request."""
+  clientMutationId: String!
+}
+
+"""Input for updating an App installation."""
+input AppUpdateInput {
+  installationId: ID!
+  configuration: JSON
+
+  """Required when configuration is changed."""
+  expectedConfigurationVersion: Int
+
+  """Replaces the granted scopes when provided."""
+  grantedScopes: [String!]
+
+  """Sets or rotates the named secrets without returning their values."""
+  secrets: [AppSecretInput!]
+
+  """A unique client-generated ID, reused only when retrying this request."""
+  clientMutationId: String!
+}
+
+"""Input for changing installation configuration without a lifecycle update."""
+input AppConfigureInput {
+  installationId: ID!
+  expectedConfigurationVersion: Int!
+  configuration: JSON!
+
+  """Replaces the granted scopes when provided."""
+  grantedScopes: [String!]
+}
+
+"""Input for a lifecycle action on an existing installation."""
+input AppInstallationActionInput {
+  installationId: ID!
+
+  """A unique client-generated ID, reused only when retrying this request."""
+  clientMutationId: String!
+}
+
+"""Payload returned after changing installation configuration."""
+type AppConfigurePayload {
+  installation: AppInstallation
+  userErrors: [GenericUserError!]!
+}

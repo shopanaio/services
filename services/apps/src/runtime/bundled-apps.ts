@@ -1,6 +1,9 @@
 import helloWorld from "@shopana/app-hello-world";
-import type { ShopanaAppDefinition } from "@shopana/app-sdk";
+import type { HostedAppDefinition } from "@shopana/app-runtime";
 
 export const bundledApps = [
-  helloWorld,
-] satisfies readonly ShopanaAppDefinition[];
+  {
+    definition: helloWorld,
+    moduleUrl: import.meta.resolve("@shopana/app-hello-world"),
+  },
+] satisfies readonly HostedAppDefinition[];

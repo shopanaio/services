@@ -189,6 +189,11 @@ export enum GlobalIdEntity {
   ReviewContentRevision = "ReviewContentRevision",
   ReviewModerationSignal = "ReviewModerationSignal",
   ReviewContentExternalReference = "ReviewContentExternalReference",
+  // Apps
+  AppInstallation = "AppInstallation",
+  AppCapabilityBinding = "AppCapabilityBinding",
+  AppLifecycleOperation = "AppLifecycleOperation",
+  AppManifestSnapshot = "AppManifestSnapshot",
   // Project
   Store = "Store",
 }

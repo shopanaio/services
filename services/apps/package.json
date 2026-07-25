@@ -13,14 +13,23 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@apollo/server": "^4.11.0",
+    "@apollo/subgraph": "^2.9.0",
+    "@as-integrations/fastify": "^2.1.1",
     "@shopana/app-hello-world": "workspace:*",
+    "@shopana/app-runtime": "workspace:*",
     "@shopana/app-sdk": "workspace:*",
     "@shopana/broker-types": "workspace:*",
+    "@shopana/shared-context": "*",
+    "@shopana/shared-graphql-guid": "*",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-config": "0.0.1",
+    "@shopana/type-resolver": "*",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.45.1",
     "fastify": "^4.28.1",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
     "postgres": "^3.4.7",
     "zod": "^3.23.8"
   },

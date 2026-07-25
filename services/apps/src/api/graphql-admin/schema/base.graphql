@@ -1,0 +1,67 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@requires"
+      "@provides"
+      "@external"
+      "@shareable"
+      "@override"
+      "@inaccessible"
+    ]
+  )
+
+extend type Query {
+  """Apps control-plane queries for the current store."""
+  appsQuery: AppsQuery!
+}
+
+extend type Mutation {
+  """Apps control-plane mutations for the current store."""
+  appsMutation: AppsMutation!
+}
+
+type AppsQuery {
+  """Get a bundled App definition by its stable code."""
+  appDefinition(code: String!): AppDefinition
+
+  """List bundled Apps available to the current store."""
+  availableApps: [AppDefinition!]!
+
+  """Get an App installation by its global ID."""
+  appInstallation(id: ID!): AppInstallation
+
+  """List App installations for the current store."""
+  appInstallations(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: AppInstallationWhereInput
+    orderBy: [AppInstallationOrderByInput!]
+  ): AppInstallationConnection!
+
+  """Get a lifecycle operation by its global ID."""
+  appLifecycleOperation(id: ID!): AppLifecycleOperation
+}
+
+type AppsMutation {
+  """Install a bundled App in the current store."""
+  appInstall(input: AppInstallInput!): AppLifecyclePayload!
+
+  """Update an installed App to the bundled target version."""
+  appUpdate(input: AppUpdateInput!): AppLifecyclePayload!
+
+  """Update installation configuration and granted scopes."""
+  appConfigure(input: AppConfigureInput!): AppConfigurePayload!
+
+  """Temporarily disable an active App installation."""
+  appSuspend(input: AppInstallationActionInput!): AppLifecyclePayload!
+
+  """Resume a suspended App installation."""
+  appResume(input: AppInstallationActionInput!): AppLifecyclePayload!
+
+  """Uninstall an App from the current store."""
+  appUninstall(input: AppInstallationActionInput!): AppLifecyclePayload!
+}

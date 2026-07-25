@@ -281,24 +281,68 @@ export interface ShopanaApp {
   health(): Promise<AppRuntimeHealth>;
 }
 
-export interface AppGraphQLServer {
-  listen(options: {
-    readonly host: string;
-    readonly port: number;
-  }): Promise<string>;
-  close(): Promise<void>;
+export interface AppGraphQLHandlerContext {
+  readonly app: Readonly<AppExecutionContext>;
+  readonly host: AppHostContext;
 }
 
-export interface AppGraphQLSurfaceDefinition {
-  createServer(
-    host: AppHostContext,
-  ): Promise<AppGraphQLServer> | AppGraphQLServer;
+export type AppGraphQLFieldHandler<
+  TParent = unknown,
+  TArgs = Record<string, unknown>,
+  TResult = unknown,
+> = (
+  parent: TParent,
+  args: TArgs,
+  context: AppGraphQLHandlerContext,
+) => Promise<TResult> | TResult;
+
+export type AppGraphQLHandlerDefinition =
+  | {
+      readonly kind: "action";
+      readonly action: string;
+    }
+  | {
+      readonly kind: "handler";
+      readonly handler: AppGraphQLFieldHandler;
+    };
+
+export interface AppGraphQLModuleDefinition {
+  /**
+   * Schema asset path relative to the built App module entry point.
+   */
+  readonly schema: string;
+  /**
+   * Resolver mapping using "Type.field" keys.
+   */
+  readonly handlers: Readonly<Record<string, AppGraphQLHandlerDefinition>>;
 }
 
 export interface AppGraphQLDefinition {
-  readonly admin?: AppGraphQLSurfaceDefinition;
-  readonly storefront?: AppGraphQLSurfaceDefinition;
+  readonly admin?: AppGraphQLModuleDefinition;
+  readonly storefront?: AppGraphQLModuleDefinition;
 }
+
+export const appGraphQL = Object.freeze({
+  action(action: string): AppGraphQLHandlerDefinition {
+    const normalized = action.trim();
+    if (!normalized || normalized.includes(".")) {
+      throw new Error("App GraphQL action must be a non-empty local name");
+    }
+    return Object.freeze({
+      kind: "action" as const,
+      action: normalized,
+    });
+  },
+
+  handler(
+    handler: AppGraphQLFieldHandler,
+  ): AppGraphQLHandlerDefinition {
+    return Object.freeze({
+      kind: "handler" as const,
+      handler,
+    });
+  },
+});
 
 export interface ShopanaAppDefinition {
   readonly manifest: AppManifest;

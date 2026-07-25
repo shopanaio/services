@@ -1,0 +1,86 @@
+"""Runtime state of a bundled App."""
+enum AppRuntimeStatus {
+  REGISTERED
+  STARTING
+  READY
+  FAILED
+  STOPPED
+}
+
+"""Health reported by a ready App runtime."""
+enum AppRuntimeHealthStatus {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+}
+
+"""The health check result for a bundled App runtime."""
+type AppRuntimeHealth {
+  status: AppRuntimeHealthStatus!
+  message: String
+}
+
+"""GraphQL surfaces contributed by an App."""
+type AppGraphQLSurfaces {
+  admin: Boolean!
+  storefront: Boolean!
+}
+
+"""One operation exposed by an App capability."""
+type AppCapabilityOperation {
+  """The operation name used by platform callers."""
+  name: String!
+
+  """The App action that implements the operation."""
+  action: String!
+}
+
+"""A capability declared by an App manifest."""
+type AppCapabilityDefinition {
+  key: String!
+  operations: [AppCapabilityOperation!]!
+}
+
+"""A permission requested by an App manifest."""
+type AppPermission {
+  scope: String!
+
+  """Whether the permission is granted to the current installation."""
+  granted: Boolean!
+}
+
+"""A bundled App that can be installed in a store."""
+type AppDefinition {
+  """Stable manifest code used to identify the App."""
+  code: String!
+
+  """Bundled semantic version."""
+  version: String!
+
+  """Human-readable App name."""
+  displayName: String!
+
+  """Human-readable App description."""
+  description: String!
+
+  """Current process-local runtime state."""
+  runtimeStatus: AppRuntimeStatus!
+
+  """Current runtime health, when the runtime can be checked."""
+  runtimeHealth: AppRuntimeHealth!
+
+  """Permissions requested by the bundled manifest."""
+  permissions: [AppPermission!]!
+
+  """Capabilities declared by the bundled manifest."""
+  capabilities: [AppCapabilityDefinition!]!
+
+  """GraphQL surfaces declared by the bundled manifest."""
+  graphql: AppGraphQLSurfaces!
+
+  """Whether this App has a non-terminal installation in the current store."""
+  installed: Boolean!
+
+  """The current store installation, when one exists."""
+  installation: AppInstallation
+}

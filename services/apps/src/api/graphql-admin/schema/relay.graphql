@@ -1,0 +1,39 @@
+"""An object with a globally unique ID."""
+interface Node {
+  """The globally unique ID of the object."""
+  id: ID!
+}
+
+"""Pagination metadata for a Relay connection."""
+type PageInfo @shareable {
+  """Whether more items exist after the current page."""
+  hasNextPage: Boolean!
+
+  """Whether more items exist before the current page."""
+  hasPreviousPage: Boolean!
+
+  """The cursor of the first edge in the current page."""
+  startCursor: String
+
+  """The cursor of the last edge in the current page."""
+  endCursor: String
+}
+
+"""A user-facing mutation error."""
+interface UserError {
+  """A human-readable error message."""
+  message: String!
+
+  """The input path associated with the error."""
+  field: [String!]
+
+  """A stable machine-readable error code."""
+  code: String
+}
+
+"""A generic user-facing mutation error."""
+type GenericUserError implements UserError @shareable {
+  message: String!
+  field: [String!]
+  code: String
+}

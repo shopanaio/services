@@ -1,0 +1,95 @@
+"""Type of an App lifecycle operation."""
+enum AppLifecycleOperationType {
+  INSTALL
+  UPDATE
+  SUSPEND
+  RESUME
+  UNINSTALL
+}
+
+"""Execution state of an App lifecycle operation."""
+enum AppLifecycleOperationStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+"""Actor that initiated an App lifecycle operation."""
+enum AppLifecycleActorType {
+  USER
+  SERVICE
+  SYSTEM
+}
+
+"""A durable App lifecycle operation."""
+type AppLifecycleOperation implements Node @key(fields: "id") {
+  id: ID!
+  installation: AppInstallation!
+  type: AppLifecycleOperationType!
+  status: AppLifecycleOperationStatus!
+  targetVersion: String!
+  previousInstallationStatus: AppInstallationStatus
+  workflowId: String!
+  actorType: AppLifecycleActorType!
+  actorId: String
+  correlationId: String
+  error: AppLifecycleOperationError
+  startedAt: DateTime
+  completedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Failure recorded for an App lifecycle operation."""
+type AppLifecycleOperationError {
+  code: String!
+  message: String!
+}
+
+"""A Relay connection of lifecycle operations."""
+type AppLifecycleOperationConnection {
+  edges: [AppLifecycleOperationEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+"""An edge in an App lifecycle operation connection."""
+type AppLifecycleOperationEdge {
+  node: AppLifecycleOperation!
+  cursor: String!
+}
+
+"""An immutable manifest snapshot used by a lifecycle operation."""
+type AppManifestSnapshot implements Node @key(fields: "id") {
+  id: ID!
+  appCode: String!
+  version: String!
+  manifestHash: String!
+  manifest: JSON!
+  createdAt: DateTime!
+}
+
+"""A Relay connection of App manifest snapshots."""
+type AppManifestSnapshotConnection {
+  edges: [AppManifestSnapshotEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+"""An edge in an App manifest snapshot connection."""
+type AppManifestSnapshotEdge {
+  node: AppManifestSnapshot!
+  cursor: String!
+}
+
+"""Payload returned after accepting a lifecycle operation."""
+type AppLifecyclePayload {
+  installation: AppInstallation
+  operation: AppLifecycleOperation
+
+  """Whether an earlier request with the same client mutation ID was reused."""
+  duplicate: Boolean!
+
+  userErrors: [GenericUserError!]!
+}

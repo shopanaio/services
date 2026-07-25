@@ -1,5 +1,11 @@
 import { Module } from '@nestjs/common';
 import {
+  AppGraphQLServerFactory,
+  AppsGraphQLIngress,
+  AppSubgraphHost,
+  AppSubgraphRegistry,
+} from '@shopana/app-runtime';
+import {
   BrokerModule,
   DATABASE_CLIENT,
   type DatabaseClient,
@@ -21,9 +27,6 @@ import { AppInstallationStore } from './control-plane/AppInstallationStore.js';
 import { AppLifecycleService } from './control-plane/AppLifecycleService.js';
 import { AppInstallationLifecycleWorkflow } from './control-plane/AppInstallationLifecycleWorkflow.js';
 import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
-import { AppSubgraphHost } from './graphql/AppSubgraphHost.js';
-import { AppSubgraphRegistry } from './graphql/AppSubgraphRegistry.js';
-import { AppsGraphQLIngress } from './graphql/AppsGraphQLIngress.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'apps' })],
@@ -46,6 +49,7 @@ import { AppsGraphQLIngress } from './graphql/AppsGraphQLIngress.js';
     AppLifecycleService,
     AppInstallationLifecycleWorkflow,
     AppsPlatformActions,
+    AppGraphQLServerFactory,
     AppSubgraphHost,
     AppSubgraphRegistry,
     AppsGraphQLIngress,

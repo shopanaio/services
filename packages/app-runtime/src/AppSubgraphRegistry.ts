@@ -1,14 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import type { AppGraphQLServer } from "@shopana/app-sdk";
-
-export type AppGraphQLSurface = "admin" | "storefront";
-
-export interface AppSubgraphRuntime {
-  readonly appCode: string;
-  readonly surface: AppGraphQLSurface;
-  readonly origin: string;
-  readonly server: AppGraphQLServer;
-}
+import type {
+  AppGraphQLSurface,
+  AppSubgraphRuntime,
+} from "./types.js";
 
 @Injectable()
 export class AppSubgraphRegistry {
