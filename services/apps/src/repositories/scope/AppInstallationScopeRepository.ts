@@ -2,13 +2,17 @@ import {
   and,
   asc,
   eq,
+  getTableColumns,
   isNull,
   notInArray,
 } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
-import { appInstallationScopes } from "../models/index.js";
+import {
+  appInstallationScopes,
+  appInstallations,
+} from "../models/index.js";
 
 export interface AppInstallationScopeRecord {
   readonly id: string;
@@ -42,6 +46,30 @@ export class AppInstallationScopeRepository extends BaseRepository {
     return Object.freeze(rows.map((row) => row.scope));
   }
 
+  async listGrantedForStore(
+    installationId: string,
+  ): Promise<readonly string[]> {
+    const rows = await this.connection
+      .select({ scope: appInstallationScopes.scope })
+      .from(appInstallationScopes)
+      .innerJoin(
+        appInstallations,
+        eq(
+          appInstallations.id,
+          appInstallationScopes.installationId,
+        ),
+      )
+      .where(
+        and(
+          eq(appInstallations.storeId, this.storeId),
+          eq(appInstallationScopes.installationId, installationId),
+          isNull(appInstallationScopes.revokedAt),
+        ),
+      )
+      .orderBy(asc(appInstallationScopes.scope));
+    return Object.freeze(rows.map((row) => row.scope));
+  }
+
   async listByInstallation(
     installationId: string,
   ): Promise<AppInstallationScopeRecord[]> {
@@ -50,6 +78,28 @@ export class AppInstallationScopeRepository extends BaseRepository {
       .from(appInstallationScopes)
       .where(
         eq(appInstallationScopes.installationId, installationId),
+      )
+      .orderBy(asc(appInstallationScopes.scope));
+  }
+
+  async listByInstallationForStore(
+    installationId: string,
+  ): Promise<AppInstallationScopeRecord[]> {
+    return this.connection
+      .select(getTableColumns(appInstallationScopes))
+      .from(appInstallationScopes)
+      .innerJoin(
+        appInstallations,
+        eq(
+          appInstallations.id,
+          appInstallationScopes.installationId,
+        ),
+      )
+      .where(
+        and(
+          eq(appInstallations.storeId, this.storeId),
+          eq(appInstallationScopes.installationId, installationId),
+        ),
       )
       .orderBy(asc(appInstallationScopes.scope));
   }

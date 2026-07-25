@@ -1,16 +1,54 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+} from "drizzle-orm";
 import type {
   AppInstallationStatus,
   AppLifecycleOperationType,
 } from "@shopana/app-sdk";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { AppLifecycleOperationRecord } from "../../control-plane/types.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
 import {
+  appInstallations,
   appLifecycleOperations,
   type AppLifecycleOperationModel,
 } from "../models/index.js";
+
+export const appLifecycleOperationRelayQuery = createRelayQuery(
+  createQuery(appLifecycleOperations)
+    .include(["id"])
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "appLifecycleOperation", tieBreaker: "id" },
+);
+
+export type AppLifecycleOperationRelayInput = InferRelayInput<
+  typeof appLifecycleOperationRelayQuery
+>;
+
+export interface AppLifecycleOperationConnectionInput {
+  readonly first?: number | null;
+  readonly after?: string | null;
+  readonly last?: number | null;
+  readonly before?: string | null;
+}
+
+export interface AppLifecycleOperationConnectionResult {
+  readonly edges: Array<{ cursor: string; nodeId: string }>;
+  readonly pageInfo: PageInfo;
+  readonly totalCount: number;
+}
 
 export interface CreateLifecycleOperationInput {
   readonly installationId: string;
@@ -41,6 +79,54 @@ export class AppLifecycleOperationRepository extends BaseRepository {
       .where(eq(appLifecycleOperations.id, id))
       .limit(1);
     return rows[0] ? mapOperation(rows[0]) : null;
+  }
+
+  async findByIdForStore(
+    id: string,
+  ): Promise<AppLifecycleOperationRecord | null> {
+    const rows = await this.connection
+      .select(getTableColumns(appLifecycleOperations))
+      .from(appLifecycleOperations)
+      .innerJoin(
+        appInstallations,
+        eq(
+          appInstallations.id,
+          appLifecycleOperations.installationId,
+        ),
+      )
+      .where(
+        and(
+          eq(appInstallations.storeId, this.storeId),
+          eq(appLifecycleOperations.id, id),
+        ),
+      )
+      .limit(1);
+    return rows[0] ? mapOperation(rows[0]) : null;
+  }
+
+  async getByIdsForStore(
+    ids: readonly string[],
+  ): Promise<AppLifecycleOperationRecord[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const rows = await this.connection
+      .select(getTableColumns(appLifecycleOperations))
+      .from(appLifecycleOperations)
+      .innerJoin(
+        appInstallations,
+        eq(
+          appInstallations.id,
+          appLifecycleOperations.installationId,
+        ),
+      )
+      .where(
+        and(
+          eq(appInstallations.storeId, this.storeId),
+          inArray(appLifecycleOperations.id, [...new Set(ids)]),
+        ),
+      );
+    return rows.map(mapOperation);
   }
 
   async lockById(
@@ -112,6 +198,52 @@ export class AppLifecycleOperationRepository extends BaseRepository {
     return rows.map(mapOperation);
   }
 
+  async getConnection(
+    installationId: string,
+    input: AppLifecycleOperationConnectionInput,
+  ): Promise<AppLifecycleOperationConnectionResult> {
+    if (!(await this.installationBelongsToCurrentStore(installationId))) {
+      return emptyConnection();
+    }
+
+    const where: AppLifecycleOperationRelayInput["where"] = {
+      installationId: { _eq: installationId },
+    };
+    const relayInput: AppLifecycleOperationRelayInput = {
+      first:
+        input.first == null && input.last == null
+          ? 20
+          : input.first,
+      after: input.after,
+      last: input.last,
+      before: input.before,
+      where,
+      orderBy: [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      appLifecycleOperationRelayQuery.execute(
+        this.connection,
+        relayInput,
+      ),
+      appLifecycleOperationRelayQuery.count(this.connection, {
+        where,
+      }),
+    ]);
+
+    return {
+      edges: result.edges.map(({ cursor, node }) => ({
+        cursor,
+        nodeId: node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
   async create(
     input: CreateLifecycleOperationInput,
   ): Promise<AppLifecycleOperationRecord> {
@@ -178,6 +310,35 @@ export class AppLifecycleOperationRepository extends BaseRepository {
       })
       .where(eq(appLifecycleOperations.id, id));
   }
+
+  private async installationBelongsToCurrentStore(
+    installationId: string,
+  ): Promise<boolean> {
+    const rows = await this.connection
+      .select({ id: appInstallations.id })
+      .from(appInstallations)
+      .where(
+        and(
+          eq(appInstallations.storeId, this.storeId),
+          eq(appInstallations.id, installationId),
+        ),
+      )
+      .limit(1);
+    return rows.length === 1;
+  }
+}
+
+function emptyConnection(): AppLifecycleOperationConnectionResult {
+  return {
+    edges: [],
+    pageInfo: {
+      hasNextPage: false,
+      hasPreviousPage: false,
+      startCursor: null,
+      endCursor: null,
+    },
+    totalCount: 0,
+  };
 }
 
 function mapOperation(

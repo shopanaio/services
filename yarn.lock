@@ -7208,6 +7208,7 @@ __metadata:
     "@shopana/app-sdk": "workspace:*"
     "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "npm:0.0.1"
+    "@shopana/drizzle-query": "npm:*"
     "@shopana/shared-context": "npm:*"
     "@shopana/shared-graphql-guid": "npm:*"
     "@shopana/shared-kernel": "npm:*"

@@ -70,6 +70,102 @@ export class AppCapabilityRepository extends BaseRepository {
       );
   }
 
+  async listByInstallationForStore(
+    installationId: string,
+  ): Promise<AppCapabilityBindingRecord[]> {
+    return this.connection
+      .select({
+        id: appBindings.id,
+        installationId: appBindings.installationId,
+        storeId: appBindings.storeId,
+        capability: appBindings.capability,
+        operation: appBindings.operationContract,
+        targetAppCode: appBindings.targetAppCode,
+        targetAction: appBindings.targetAction,
+        status: appBindings.status,
+        precedence: appBindingAssignments.precedence,
+        assignmentStatus: appBindingAssignments.status,
+      })
+      .from(appBindings)
+      .leftJoin(
+        appBindingAssignments,
+        eq(appBindingAssignments.slotId, appBindings.id),
+      )
+      .where(
+        and(
+          eq(appBindings.storeId, this.storeId),
+          eq(appBindings.installationId, installationId),
+        ),
+      )
+      .orderBy(
+        asc(appBindings.capability),
+        asc(appBindings.operationContract),
+      );
+  }
+
+  async findByIdForStore(
+    id: string,
+  ): Promise<AppCapabilityBindingRecord | null> {
+    const rows = await this.connection
+      .select({
+        id: appBindings.id,
+        installationId: appBindings.installationId,
+        storeId: appBindings.storeId,
+        capability: appBindings.capability,
+        operation: appBindings.operationContract,
+        targetAppCode: appBindings.targetAppCode,
+        targetAction: appBindings.targetAction,
+        status: appBindings.status,
+        precedence: appBindingAssignments.precedence,
+        assignmentStatus: appBindingAssignments.status,
+      })
+      .from(appBindings)
+      .leftJoin(
+        appBindingAssignments,
+        eq(appBindingAssignments.slotId, appBindings.id),
+      )
+      .where(
+        and(
+          eq(appBindings.storeId, this.storeId),
+          eq(appBindings.id, id),
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async getByIdsForStore(
+    ids: readonly string[],
+  ): Promise<AppCapabilityBindingRecord[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    return this.connection
+      .select({
+        id: appBindings.id,
+        installationId: appBindings.installationId,
+        storeId: appBindings.storeId,
+        capability: appBindings.capability,
+        operation: appBindings.operationContract,
+        targetAppCode: appBindings.targetAppCode,
+        targetAction: appBindings.targetAction,
+        status: appBindings.status,
+        precedence: appBindingAssignments.precedence,
+        assignmentStatus: appBindingAssignments.status,
+      })
+      .from(appBindings)
+      .leftJoin(
+        appBindingAssignments,
+        eq(appBindingAssignments.slotId, appBindings.id),
+      )
+      .where(
+        and(
+          eq(appBindings.storeId, this.storeId),
+          inArray(appBindings.id, [...new Set(ids)]),
+        ),
+      );
+  }
+
   async resolveRoute(
     storeId: string,
     capability: string,
