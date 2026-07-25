@@ -10,7 +10,7 @@
 ```text
 Store
   -> Headless AppInstallation
-    -> 0..N SalesChannelConnection
+    -> 0..N HeadlessStorefrontConnection
       -> StorefrontAccessPolicy
       -> 1 public credential
       -> 0..N private credentials
@@ -26,9 +26,13 @@ Store
 - Customer authentication не входит в storefront credential и остаётся
   отдельным протоколом IAM.
 
-Этот документ продолжает решения из:
+Документ использует общий App installation/runtime contract, но Headless
+storefront connections не являются generic `SalesChannelConnection` Apps
+Service и не зависят от их реализации. Headless App владеет ими самостоятельно.
 
-- `docs/plans/sales-channels-as-app-extensions-plan.md`;
+Релевантные документы:
+
+- `docs/apps/sales-channels-as-app-extensions-plan.md`;
 - `knowledge/vault/architecture/multi-tenancy.md`;
 - `knowledge/vault/configuration/federation-config.md`;
 - `knowledge/vault/patterns/federation.md`;
@@ -77,8 +81,8 @@ Product publication, cart/order attribution и customer auth упоминают�
 
 | Термин | Значение |
 | --- | --- |
-| `Headless App` | First-party App, объявляющая custom storefront sales-channel specification |
-| `Headless storefront` | Один `SalesChannelConnection` Headless App |
+| `Headless App` | First-party App, владеющая custom storefront connections и Storefront API access |
+| `Headless storefront` | Один app-owned `HeadlessStorefrontConnection` |
 | `Storefront credential` | Opaque bearer token, идентифицирующий connection и access mode |
 | `Public credential` | Токен, который разрешено использовать в browser/mobile client |
 | `Private credential` | Секретный токен для BFF, SSR, build worker или другого backend |
@@ -98,7 +102,6 @@ Public/private credentials не являются асимметричной кр
 ```text
 apps/online-store
   code: shopana-online-store
-  specification: online-store
 ```
 
 Headless реализуется новой bundled App:
@@ -106,24 +109,22 @@ Headless реализуется новой bundled App:
 ```text
 apps/headless
   code: shopana-headless
-  specification: headless-storefront
 ```
 
 Обе Apps могут быть установлены в одном store одновременно. Они имеют разные
-installations, specification snapshots, connections и lifecycle:
+installations и независимые domain models:
 
 ```text
 Store
   ├── Online Store AppInstallation
-  │     └── Online Store SalesChannelConnection
+  │     └── Online Store-owned state
   └── Headless AppInstallation
-        ├── Website EU SalesChannelConnection
-        └── Mobile App SalesChannelConnection
+        ├── Website EU HeadlessStorefrontConnection
+        └── Mobile App HeadlessStorefrontConnection
 ```
 
-Storefront credentials этого плана создаются только для specification с
-`storefrontApi.enabled == true`. Существующая Online Store specification не
-получает этот блок автоматически и не затрагивается credential provisioning.
+Storefront credentials этого плана создаются только Headless App. Существующая
+Online Store App не затрагивается connection или credential provisioning.
 
 ### 5.2. Один connection равен одному storefront/channel
 
@@ -145,7 +146,8 @@ Headless AppInstallation
 - собственную cart/order attribution;
 - независимый lifecycle.
 
-`allowMultipleConnections` для Headless specification равен `true`.
+Multiple connections являются Headless-owned domain invariant и не требуют
+generic `allowMultipleConnections` contract Apps Service.
 
 ### 5.3. Credentials принадлежат connection
 
@@ -160,7 +162,7 @@ Canonical owner:
 
 ```text
 StorefrontCredential.connectionId
-  -> SalesChannelConnection.id
+  -> HeadlessStorefrontConnection.id
 ```
 
 ### 5.4. Headless App — storefront access authority
@@ -170,12 +172,13 @@ StorefrontCredential.connectionId
 Apps Service владеет только platform-generic entities:
 
 - Headless App installation;
-- sales-channel specification snapshot;
-- sales-channel connection;
-- installation и connection lifecycle.
+- installation lifecycle;
+- App runtime hosting и trusted installation resolution.
 
-Bundled Headless App владеет всем, что относится к Storefront API access:
+Bundled Headless App владеет:
 
+- Headless storefront connection;
+- connection create/update/suspend/resume/disconnect lifecycle;
 - access policy;
 - credential persistence;
 - create/rotate/revoke;
@@ -184,12 +187,12 @@ Bundled Headless App владеет всем, что относится к Store
 - Admin GraphQL для credentials и permissions;
 - internal resolution endpoint.
 
-Storefront-access модели, repositories, migrations, resolvers и internal server
-не добавляются в `services/apps`. Headless использует предоставленные App
-runtime `databaseClient`, broker, execution context и secrets. Если runtime
-недостаёт generic hosting primitive, расширяется `packages/app-sdk` или
-`packages/app-runtime`, но Headless-specific domain code остаётся в
-`apps/headless`.
+Connection и storefront-access models, repositories, migrations, resolvers и
+internal server не добавляются в `services/apps`. Headless использует
+предоставленные App runtime `databaseClient`, broker, execution context и
+secrets. Если runtime недостаёт generic hosting primitive, расширяется
+`packages/app-sdk` или `packages/app-runtime`, но Headless-specific domain code
+остаётся в `apps/headless`.
 
 Gateway не читает таблицы Headless App напрямую.
 
@@ -313,46 +316,6 @@ export const headlessManifest = defineAppManifest({
   },
   permissions: [],
   capabilities: [],
-  extensions: {
-    salesChannels: {
-      specifications: [
-        {
-          handle: "headless-storefront",
-          label: "Custom storefront",
-          connection: {
-            allowMultipleConnections: true,
-            requiresExternalAccount: false,
-          },
-          storefrontApi: {
-            enabled: true,
-            availablePermissions: [
-              "storefront.catalog.read",
-              "storefront.inventory.read",
-              "storefront.content.read",
-              "storefront.metaobjects.read",
-              "storefront.cart.read",
-              "storefront.cart.write",
-              "storefront.customer.write",
-            ],
-            defaultPermissions: [
-              "storefront.catalog.read",
-              "storefront.inventory.read",
-              "storefront.cart.read",
-              "storefront.cart.write",
-            ],
-          },
-          operations: {
-            connect: "channelConnect",
-            update: "channelUpdate",
-            suspend: "channelSuspend",
-            resume: "channelResume",
-            disconnect: "channelDisconnect",
-            health: "channelHealth",
-          },
-        },
-      ],
-    },
-  },
   graphql: {
     admin: true,
     storefront: true,
@@ -360,13 +323,14 @@ export const headlessManifest = defineAppManifest({
 });
 ```
 
-### 7.2. App SDK contract
+### 7.2. Headless-owned connection contract
 
-Расширить `SalesChannelSpecification` optional-блоком:
+Generic `SalesChannelSpecification` и `SalesChannelConnection` Apps Service для
+Headless не используются. Headless App определяет собственный immutable
+permission catalog:
 
 ```ts
-interface StorefrontApiSpecification {
-  readonly enabled: true;
+interface HeadlessStorefrontPermissionCatalog {
   readonly availablePermissions: readonly string[];
   readonly defaultPermissions: readonly string[];
 }
@@ -379,29 +343,25 @@ Validation:
 2. `defaultPermissions` являются подмножеством `availablePermissions`.
 3. Все permissions существуют в Headless-owned Storefront Permission Catalog.
 4. Дубликаты запрещены.
-5. `storefrontApi` нельзя объявить без sales-channel specification.
-6. Manifest не содержит token values, hashes, pepper или signing keys.
+5. Manifest не содержит connections, token values, hashes, pepper или signing
+   keys.
 
-Permission Catalog принадлежит `apps/headless`, а не core Apps Service.
-`packages/app-sdk` проверяет только форму, subset и дубликаты generic manifest
-contract; Headless App при registration/start семантически проверяет handles
-против собственного catalog. Manifest только выбирает допустимое подмножество.
+Permission Catalog и connection contract принадлежат `apps/headless`, а не
+core Apps Service или `packages/app-sdk`. Headless App семантически валидирует
+catalog при registration/start.
 
 ### 7.3. Runtime lifecycle
 
-Credential lifecycle является responsibility самой Headless App.
+Connection и credential lifecycle являются responsibility самой Headless App.
 
-`channelConnect` валидирует Headless configuration и возвращает безопасную
-нормализованную конфигурацию. Он не передаёт plaintext credentials через DBOS
-workflow input/result.
+Headless Admin mutations создают, обновляют, suspend/resume и disconnect
+Headless storefront connections. Create connection в одной Headless-owned
+transaction создаёт connection, default policy, public credential и initial
+private credential.
 
-После активации connection Headless Admin mutation идемпотентно создаёт policy
-и initial credentials. `channelDisconnect` и uninstall handlers отзывают
-credentials в Headless-owned storage.
-
-Core Apps Service не знает о token format, policy grants или credential
-lifecycle. Effective access появляется только после успешных activation и
-Headless provisioning.
+При suspend/uninstall App installation Headless lifecycle handlers блокируют
+все её connections. Core Apps Service не знает о Headless connection format,
+token format, policy grants или credential lifecycle.
 
 ## 8. Token format и cryptography
 
@@ -503,6 +463,11 @@ app_storefront_credential_kind:
 app_storefront_credential_status:
   ACTIVE
   REVOKED
+
+app_headless_storefront_connection_status:
+  ACTIVE
+  SUSPENDED
+  DISCONNECTED
 ```
 
 Отдельный `PENDING` не нужен. Effective access всегда вычисляется как:
@@ -513,15 +478,46 @@ AND connection.status == ACTIVE
 AND installation.status == ACTIVE
 ```
 
-Provisioning для `CONNECTING` connection отклоняется. Credential создаётся
-только после `ACTIVE`, а resolver повторно проверяет status на каждом request.
+Connection, policy и initial credentials создаются одной transaction.
+Resolver повторно проверяет connection и installation status на каждом request.
 
-### 9.2. Access policy
+### 9.2. Headless storefront connections
+
+```text
+app_shopana_headless.storefront_connections
+───────────────────────────────────────────
+id                         uuidv7 PK
+installation_id            uuid not null FK apps.app_installations
+organization_id            uuid not null
+store_id                   uuid not null
+display_name               varchar(255) not null
+status                     enum not null
+created_by_id              varchar(255) nullable
+created_at                 timestamptz not null
+updated_at                 timestamptz not null
+suspended_at               timestamptz nullable
+disconnected_at            timestamptz nullable
+```
+
+Constraints и indexes:
+
+```text
+index (installation_id, status)
+index (store_id, status)
+index (organization_id, status)
+```
+
+`installation_id` ссылается на generic App installation, но сама connection
+принадлежит Headless App и хранится только в `app_shopana_headless`.
+Connection нельзя читать только по `id`: repository всегда одновременно
+проверяет trusted `store_id` и `installation_id`.
+
+### 9.3. Access policy
 
 ```text
 app_shopana_headless.storefront_access_policies
 ───────────────────────────────────────────────
-connection_id       uuid PK/FK apps.app_sales_channel_connections
+connection_id       uuid PK/FK app_shopana_headless.storefront_connections
 organization_id     uuid not null
 store_id            uuid not null
 revision            integer not null default 1
@@ -542,7 +538,7 @@ PK (connection_id, permission)
 `organization_id` и `store_id` дублируются намеренно для tenant-safe indexes и
 defense-in-depth ownership checks.
 
-### 9.3. Credentials
+### 9.4. Credentials
 
 ```text
 app_shopana_headless.storefront_credentials
@@ -550,7 +546,7 @@ app_shopana_headless.storefront_credentials
 id                         uuidv7 PK
 organization_id            uuid not null
 store_id                   uuid not null
-connection_id              uuid not null FK apps.app_sales_channel_connections
+connection_id              uuid not null FK app_shopana_headless.storefront_connections
 kind                       enum not null
 status                     enum not null
 kid                        varchar(64) not null
@@ -605,14 +601,15 @@ index (store_id, status)
 index (organization_id, status)
 ```
 
-### 9.4. Migration layout
+### 9.5. Migration layout
 
 Добавить migrations в package Headless App:
 
 ```text
 apps/headless/migrations/
-  001_storefront_access_policy.*
-  002_storefront_credentials.*
+  001_storefront_connections.*
+  002_storefront_access_policy.*
+  003_storefront_credentials.*
 ```
 
 Migrations используют отдельную App-owned schema `app_shopana_headless` и
@@ -632,6 +629,7 @@ apps/headless/
   src/
     storefront-access/
       control-plane/
+        HeadlessStorefrontConnectionService.ts
         StorefrontAccessPolicyService.ts
         StorefrontCredentialService.ts
         StorefrontCredentialCrypto.ts
@@ -641,6 +639,7 @@ apps/headless/
         StorefrontAccessInternalServer.ts
         StorefrontAccessRateLimitIdentity.ts
       repositories/
+        HeadlessStorefrontConnectionRepository.ts
         StorefrontAccessPolicyRepository.ts
         StorefrontCredentialRepository.ts
         models/
@@ -674,20 +673,42 @@ Responsibilities:
 - получить policy;
 - заменить полный grant set;
 - проверить optimistic `revision`;
-- проверить grant по platform catalog и specification snapshot;
-- не принимать permissions вне текущего Headless specification;
+- проверить grant по Headless-owned catalog;
+- не принимать permissions вне текущего Headless catalog;
 - выдавать immutable sorted permission list.
 
 Update является полной заменой. Пустой список разрешён, но такой storefront
 получает только schema-level поля, явно помеченные как без permission, если они
 существуют.
 
-### 10.4. `StorefrontCredentialService`
+### 10.4. `HeadlessStorefrontConnectionService`
 
 Control-plane methods:
 
 ```ts
-provisionInitialCredentials(input): Promise<{
+createConnection(input): Promise<{
+  connection: HeadlessStorefrontConnectionRecord;
+  publicAccessToken: string;
+  privateAccessToken: string;
+}>;
+
+updateConnection(input): Promise<HeadlessStorefrontConnectionRecord>;
+listConnections(): Promise<readonly HeadlessStorefrontConnectionRecord[]>;
+suspendConnection(input): Promise<HeadlessStorefrontConnectionRecord>;
+resumeConnection(input): Promise<HeadlessStorefrontConnectionRecord>;
+disconnectConnection(input): Promise<HeadlessStorefrontConnectionRecord>;
+```
+
+Все methods используют trusted installation/store из server-side Admin
+context. Client input не содержит `installationId`, `storeId` или
+`organizationId`.
+
+### 10.5. `StorefrontCredentialService`
+
+Control-plane methods:
+
+```ts
+createInitialCredentials(input): Promise<{
   publicAccessToken: string;
   privateAccessToken: string;
   publicCredential: StorefrontCredentialRecord;
@@ -709,9 +730,9 @@ listCredentials(connectionId): Promise<StorefrontCredentialRecord[]>;
 Invariants:
 
 1. Connection принадлежит current trusted store.
-2. Specification имеет `storefrontApi.enabled`.
-3. Initial provisioning идемпотентно создаёт ровно один public credential.
-4. Повторный provision request не создаёт новый public token.
+2. Connection принадлежит current Headless App installation.
+3. Connection create идемпотентно создаёт ровно один public credential.
+4. Повторный create request не создаёт новый public token.
 5. Private plaintext не возвращается при duplicate idempotency request.
 6. Public credential нельзя revoke обычной revoke mutation.
 7. Private credential можно revoke независимо.
@@ -720,40 +741,36 @@ Invariants:
 9. Credential другого store выглядит как not found.
 10. Token values не попадают в operation/audit payload.
 
-### 10.5. Initial provisioning transaction
+### 10.6. Connection create transaction
 
-Core `salesChannelConnectionCreate` не расширяется credential-specific
-поведением. Он создаёт connection и запускает существующий lifecycle workflow.
+Headless App не вызывает generic `salesChannelConnectionCreate`.
 
-После успешного `channelConnect` Admin flow вызывает Headless-owned mutation
-`headlessStorefrontAccessProvision`. В одной App-owned transaction она:
+Headless-owned mutation `headlessStorefrontCreate` в одной App-owned
+transaction:
 
-1. Через generic `apps.salesChannels.resolveConnection` проверяет connection,
-   installation, app ownership и статус `ACTIVE`.
-2. Создаёт default access policy.
-3. Создаёт public credential.
-4. Создаёт initial private credential.
-5. Commit.
-6. Возвращает оба plaintext только из текущего mutation result.
+1. Получает trusted active Headless installation и store из server-side Admin
+   context.
+2. Создаёт `HeadlessStorefrontConnection` со статусом `ACTIVE`.
+3. Создаёт default access policy.
+4. Создаёт public credential.
+5. Создаёт initial private credential.
+6. Commit.
+7. Возвращает connection и оба plaintext только из текущего mutation result.
 
-В UI это один create-storefront flow: activation завершается автоматическим
-provision request. Core Apps GraphQL payload при этом не знает о credentials.
-
-До успешного provisioning credential отсутствует. После provisioning resolver
-всё равно проверяет `connection.status == ACTIVE`.
+Core Apps GraphQL и Apps Service не участвуют в создании connection и не знают
+о credentials.
 
 Если клиент потерял response:
 
 - public token доступен через query;
 - initial private token восстановить нельзя;
-- после активации connection пользователь создаёт новый private token;
+- пользователь создаёт новый private token;
 - потерянный initial private credential затем отзывается по ID/hint.
 
-Если connect завершился ошибкой, provisioning не запускается. После successful
-retry UI вызывает ту же idempotent Headless mutation; новый public token
-создаётся только если provisioning ещё не был committed.
+Повтор с тем же idempotency key возвращает существующую connection без
+повторного раскрытия private plaintext.
 
-### 10.6. Disconnect и uninstall
+### 10.7. Disconnect и uninstall
 
 Physical delete credentials запрещён.
 
@@ -764,9 +781,8 @@ connection.status != ACTIVE
 or installation.status != ACTIVE
 ```
 
-После terminal `DISCONNECTED` Headless App при lifecycle callback дополнительно
-переводит все active credentials connection в `REVOKED`, чтобы audit state явно
-отражал закрытие.
+Headless `disconnectConnection` в одной transaction переводит connection в
+`DISCONNECTED` и все её active credentials в `REVOKED`.
 
 App uninstall:
 
@@ -812,24 +828,34 @@ type StorefrontInitialCredentials {
   privateAccessToken: String!
 }
 
-extend type SalesChannelConnection {
+enum HeadlessStorefrontConnectionStatus {
+  ACTIVE
+  SUSPENDED
+  DISCONNECTED
+}
+
+type HeadlessStorefrontConnection implements Node @key(fields: "id") {
+  id: ID!
+  displayName: String!
+  status: HeadlessStorefrontConnectionStatus!
   storefrontAccessPolicy: StorefrontAccessPolicy
   publicAccessToken: String
   storefrontCredentials: [StorefrontCredential!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 ```
 
-`publicAccessToken` возвращается только если specification поддерживает
-Storefront API и caller имеет соответствующее Admin permission.
+`publicAccessToken` возвращается только если caller имеет соответствующее Admin
+permission.
 
-### 11.2. Initial provisioning payload
+### 11.2. Connection create payload
 
-Core `SalesChannelLifecyclePayload` не изменяется. Headless App публикует
-собственный payload:
+Headless App публикует собственный payload:
 
 ```graphql
-type HeadlessStorefrontAccessProvisionPayload {
-  connection: SalesChannelConnection
+type HeadlessStorefrontCreatePayload {
+  connection: HeadlessStorefrontConnection
   duplicate: Boolean!
   initialStorefrontCredentials: StorefrontInitialCredentials
   userErrors: [GenericUserError!]!
@@ -838,7 +864,7 @@ type HeadlessStorefrontAccessProvisionPayload {
 
 `initialStorefrontCredentials`:
 
-- заполнен только при первом успешном provision request;
+- заполнен только при первом успешном create request;
 - `null` при duplicate replay;
 - не сохраняется в GraphQL cache автоматически;
 - Admin UI сразу показывает private-token warning.
@@ -852,8 +878,19 @@ input StorefrontPrivateCredentialCreateInput {
   clientMutationId: String!
 }
 
-input HeadlessStorefrontAccessProvisionInput {
+input HeadlessStorefrontCreateInput {
+  displayName: String!
+  clientMutationId: String!
+}
+
+input HeadlessStorefrontActionInput {
   connectionId: ID!
+  clientMutationId: String!
+}
+
+input HeadlessStorefrontUpdateInput {
+  connectionId: ID!
+  displayName: String!
   clientMutationId: String!
 }
 
@@ -886,10 +923,37 @@ type StorefrontAccessPolicyPayload {
   userErrors: [GenericUserError!]!
 }
 
+type HeadlessStorefrontPayload {
+  connection: HeadlessStorefrontConnection
+  duplicate: Boolean!
+  userErrors: [GenericUserError!]!
+}
+
+extend type AppsQuery {
+  headlessStorefrontConnections: [HeadlessStorefrontConnection!]!
+  headlessStorefrontConnection(id: ID!): HeadlessStorefrontConnection
+}
+
 extend type AppsMutation {
-  headlessStorefrontAccessProvision(
-    input: HeadlessStorefrontAccessProvisionInput!
-  ): HeadlessStorefrontAccessProvisionPayload!
+  headlessStorefrontCreate(
+    input: HeadlessStorefrontCreateInput!
+  ): HeadlessStorefrontCreatePayload!
+
+  headlessStorefrontUpdate(
+    input: HeadlessStorefrontUpdateInput!
+  ): HeadlessStorefrontPayload!
+
+  headlessStorefrontSuspend(
+    input: HeadlessStorefrontActionInput!
+  ): HeadlessStorefrontPayload!
+
+  headlessStorefrontResume(
+    input: HeadlessStorefrontActionInput!
+  ): HeadlessStorefrontPayload!
+
+  headlessStorefrontDisconnect(
+    input: HeadlessStorefrontActionInput!
+  ): HeadlessStorefrontPayload!
 
   storefrontPrivateCredentialCreate(
     input: StorefrontPrivateCredentialCreateInput!
@@ -911,6 +975,11 @@ Headless App объявляет и проверяет собственные Adm
 
 ```text
 headless.storefront-access.read
+headless.storefront-connection.create
+headless.storefront-connection.update
+headless.storefront-connection.suspend
+headless.storefront-connection.resume
+headless.storefront-connection.disconnect
 headless.storefront-access.permissions.update
 headless.storefront-access.private-token.create
 headless.storefront-access.private-token.revoke
@@ -922,19 +991,20 @@ Resolvers:
 2. Берут trusted `organizationId` и `storeId` из проверенного Admin context.
 3. Декодируют Global ID.
 4. Проверяют Admin action.
-5. Разрешают connection через generic Apps broker contract одновременно по
-   `connectionId` и trusted `storeId`.
-6. Получают `installationId` только из разрешённого connection и проверяют,
-   что installation принадлежит `shopana-headless`, тому же store и имеет
-   допустимый lifecycle status.
-7. Создают Headless operation context server-side.
-8. Повторно проверяют ownership в Headless repository.
+5. Для create через generic Apps installation contract находят active
+   `shopana-headless` installation trusted store.
+6. Для остальных операций разрешают connection только через Headless-owned
+   repository одновременно по `connectionId`, trusted `storeId` и найденному
+   `installationId`.
+7. Проверяют допустимый installation и connection lifecycle status.
+8. Создают Headless operation context server-side.
 9. Вызывают Headless domain service.
 10. Возвращают `userErrors` для ожидаемых domain failures.
 
 Admin API не принимает installation identity через клиентские headers.
-Такие headers удаляются на Gateway/Apps ingress. Installation для credential
-operations всегда выводится server-side из tenant-scoped connection.
+Такие headers удаляются на Gateway/Apps ingress. Installation определяется
+server-side по trusted store и, для операций над существующим storefront,
+cross-check с tenant-scoped Headless connection.
 
 Secret values не помещаются в exception text.
 
@@ -1048,10 +1118,11 @@ Endpoint не возвращает token, digest, ciphertext или token hint.
 8. Вычислить HMAC с `credential.pepperVersion`.
 9. Сравнить digest constant-time.
 10. Проверить `credential.status == ACTIVE`.
-11. Восстановить trusted App execution context по сохранённому
-    `installationId`.
-12. Через generic Apps broker contract разрешить connection и проверить
-    effective active installation/connection.
+11. Загрузить Headless-owned connection по `credential.connectionId` и
+    проверить `connection.status == ACTIVE`.
+12. Через generic Apps installation contract проверить, что
+    `connection.installationId` принадлежит active `shopana-headless`
+    installation того же store и organization.
 13. Разрешить store selector через Project Service broker contract.
 14. Проверить `resolvedStore.id == credential.storeId == connection.storeId`.
 15. Загрузить policy grants.
@@ -1575,15 +1646,14 @@ Headless
 Flow:
 
 1. User задаёт display name.
-2. Admin вызывает `salesChannelConnectionCreate`.
-3. UI показывает lifecycle progress.
-4. После `ACTIVE` UI автоматически вызывает
-   `headlessStorefrontAccessProvision`.
-5. Если `initialStorefrontCredentials` присутствует:
+2. Admin вызывает Headless-owned `headlessStorefrontCreate`.
+3. Headless App одной transaction создаёт connection, policy и initial
+   credentials.
+4. Если `initialStorefrontCredentials` присутствует:
    - public token можно скопировать;
    - private token показывается в warning panel;
    - UI сообщает, что private token нельзя будет получить повторно.
-6. Если response потерян, public token остаётся доступен, а для private token
+5. Если response потерян, public token остаётся доступен, а для private token
    используется rotation.
 
 ### 20.2. Token card
@@ -1611,7 +1681,7 @@ localStorage или URL.
 
 ### 20.3. Permissions
 
-- checkbox list из specification/catalog;
+- checkbox list из Headless permission catalog;
 - risk description;
 - полная замена набора;
 - optimistic `revision`;
@@ -1643,13 +1713,12 @@ localStorage или URL.
 
 ## 22. Failure scenarios
 
-### 22.1. Connection create workflow failed
+### 22.1. Connection create transaction failed
 
-- Credentials persisted.
+- Connection, policy и credentials не persisted.
 - Effective access отсутствует.
-- Admin видит `CONNECT_FAILED`.
-- Retry connection operation не создаёт новый public token.
-- После successful activation credentials начинают работать.
+- Retry с тем же idempotency key безопасно повторяет create.
+- Partial connection без policy/credentials не появляется.
 
 ### 22.2. Initial private token response потерян
 
@@ -1708,8 +1777,7 @@ Exit criteria:
 - Создать новый package `apps/headless`.
 - Добавить новый manifest `shopana-headless`.
 - Добавить package в существующий bundled App discovery/registration.
-- Установить `allowMultipleConnections: true`.
-- Добавить `storefrontApi` manifest contract.
+- Добавить Headless-owned connection contract.
 - Добавить Headless-owned permission catalog и semantic validation.
 - Добавить Headless-owned Admin/storefront GraphQL modules и internal HTTP
   lifecycle declaration.
@@ -1719,15 +1787,16 @@ Exit criteria:
 
 Exit criteria:
 
-- Headless App обнаруживается как sales-channel App;
-- installation поддерживает несколько connections;
+- Headless App обнаруживается как bundled App;
+- Headless repository поддерживает несколько connections одной installation;
 - Online Store продолжает обнаруживаться и работать независимо;
 - Headless и Online Store могут быть установлены одновременно.
 
 ### Phase 2. Persistence и crypto
 
 - Добавить `apps/headless/migrations` для schema `app_shopana_headless`.
-- Добавить Headless-owned models и records/types.
+- Добавить Headless-owned connection, policy и credential models/types.
+- Реализовать connection repository и lifecycle service.
 - Реализовать repositories поверх `host.databaseClient`.
 - Реализовать credential crypto внутри Headless App.
 - Реализовать access policy service внутри Headless App.
@@ -1747,14 +1816,15 @@ Exit criteria:
 - Добавить SDL в Headless Admin GraphQL subgraph.
 - Реализовать Headless resolvers и payloads.
 - Добавить Headless Admin actions.
-- Добавить idempotent `headlessStorefrontAccessProvision`.
+- Добавить idempotent `headlessStorefrontCreate`.
+- Добавить connection list/update/suspend/resume/disconnect.
 - Добавить optimistic policy update.
 - Добавить private create/revoke.
 - Обновить composed/generated GraphQL types через штатный codegen.
 
 Exit criteria:
 
-- provision возвращает initial credentials только один раз;
+- create возвращает initial credentials только один раз;
 - public token доступен повторно;
 - private metadata доступна без secret;
 - permissions обновляются по revision.
@@ -1893,7 +1963,7 @@ Exit criteria:
 
 ### Lifecycle
 
-- Provisioning для `CONNECTING` connection отклоняется.
+- Connection create атомарно создаёт policy и initial credentials.
 - `ACTIVE` работает.
 - `SUSPENDED` не работает.
 - После `RESUME` снова работает.
@@ -1979,8 +2049,9 @@ admin/src/domains/apps/**
 config.yml
 ```
 
-`services/apps` сохраняет generic installation/connection platform и не
-получает Headless-specific persistence, crypto, GraphQL или internal endpoint.
+`services/apps` сохраняет generic App installation/runtime platform и не
+получает Headless-specific connection persistence, crypto, GraphQL или
+internal endpoint.
 Допустимы только отдельно обоснованные generic App runtime contracts, если они
 одинаково применимы к любой bundled App.
 
@@ -1993,9 +2064,9 @@ Generated outputs изменяются только соответствующи
 1. `shopana-headless` добавлена как отдельная first-party custom storefront
    App, а `shopana-online-store` не изменена.
 2. Core `services/apps` не содержит Headless-specific access domain.
-3. Одна installation создаёт несколько storefront connections.
-4. Каждый connection через Headless provisioning получает один public и
-   initial private credential.
+3. Одна installation имеет несколько Headless-owned storefront connections.
+4. Каждый connection при Headless create получает один public и initial
+   private credential.
 5. Public token повторно доступен Admin UI.
 6. Private secret возвращается только один раз.
 7. Private rotation поддерживает overlap без downtime.
