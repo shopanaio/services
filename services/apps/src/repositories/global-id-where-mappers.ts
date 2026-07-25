@@ -23,8 +23,3 @@ function createGlobalIdWhereFieldMapper(
 
 export const decodeAppInstallationGlobalId =
   createGlobalIdWhereFieldMapper(GlobalIdEntity.AppInstallation);
-
-export const decodeSalesChannelConnectionGlobalId =
-  createGlobalIdWhereFieldMapper(
-    GlobalIdEntity.SalesChannelConnection,
-  );

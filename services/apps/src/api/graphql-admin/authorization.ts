@@ -23,8 +23,6 @@ const actionByOperation = {
 /**
  * Authorizes an Apps admin operation in the current store domain.
  *
- * Sales-channel management is part of the App control plane and uses the
- * configure operation.
  */
 export async function assertAppsAuthorized(
   provider: AuthProvider,

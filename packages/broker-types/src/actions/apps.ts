@@ -76,8 +76,15 @@ export interface ExecuteCapabilityParams {
   storeId: string;
   capability: string;
   operation: string;
+  target?: CapabilityTarget;
   input?: unknown;
   correlationId?: string;
+}
+
+export interface CapabilityTarget {
+  aggregate: string;
+  aggregateId: string;
+  domain: string;
 }
 
 export interface ExecuteCapabilityResult {
@@ -86,64 +93,25 @@ export interface ExecuteCapabilityResult {
   data: unknown;
 }
 
-export type SalesChannelConnectionStatus =
-  | "DRAFT"
-  | "CONNECTING"
-  | "ACTIVE"
-  | "CONNECT_FAILED"
-  | "UPDATING"
-  | "UPDATE_FAILED"
-  | "SUSPENDING"
-  | "SUSPENDED"
-  | "RESUMING"
-  | "DISCONNECTING"
-  | "DISCONNECTED"
-  | "DISCONNECT_FAILED";
-
-export interface ResolvedSalesChannelConnection {
-  id: string;
-  organizationId: string;
+export interface AssignCapabilityParams {
   storeId: string;
   installationId: string;
-  appCode: string;
-  appVersion: string;
-  specificationHandle: string;
-  status: "ACTIVE";
+  capability: string;
+  target: CapabilityTarget;
+  precedence?: number;
 }
 
-export interface ResolveSalesChannelConnectionParams {
-  connectionId: string;
-  storeId?: string;
+export interface AssignCapabilityResult {
+  assignmentIds: string[];
 }
 
-export interface ListSalesChannelConnectionsParams {
+export interface UnassignCapabilityParams {
   storeId: string;
-  installationId?: string;
+  installationId: string;
+  capability: string;
+  target: CapabilityTarget;
 }
 
-export interface InvokeSalesChannelConnectionParams {
-  connectionId: string;
-  contract:
-    | "connect"
-    | "update"
-    | "disconnect"
-    | "suspend"
-    | "resume"
-    | "health";
-  input?: unknown;
-  correlationId?: string;
-}
-
-export interface GetSalesChannelSpecificationParams {
-  specificationId: string;
-  storeId?: string;
-}
-
-export interface SalesChannelSpecificationResult {
-  id: string;
-  appCode: string;
-  appVersion: string;
-  handle: string;
-  label: string;
-  definition: Record<string, unknown>;
+export interface UnassignCapabilityResult {
+  removed: number;
 }

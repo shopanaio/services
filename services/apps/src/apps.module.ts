@@ -27,12 +27,6 @@ import { AppInstallationStore } from './control-plane/AppInstallationStore.js';
 import { AppLifecycleService } from './control-plane/AppLifecycleService.js';
 import { AppInstallationLifecycleWorkflow } from './control-plane/AppInstallationLifecycleWorkflow.js';
 import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
-import { SalesChannelConnectionStore } from './sales-channels/control-plane/SalesChannelConnectionStore.js';
-import { SalesChannelLifecycleService } from './sales-channels/control-plane/SalesChannelLifecycleService.js';
-import { SalesChannelLifecycleWorkflow } from './sales-channels/control-plane/SalesChannelLifecycleWorkflow.js';
-import { SalesChannelPlatformActions } from './sales-channels/control-plane/SalesChannelPlatformActions.js';
-import { SalesChannelSpecificationService } from './sales-channels/control-plane/SalesChannelSpecificationService.js';
-import { SalesChannelRuntimeRouter } from './sales-channels/runtime/SalesChannelRuntimeRouter.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'apps' })],
@@ -55,12 +49,6 @@ import { SalesChannelRuntimeRouter } from './sales-channels/runtime/SalesChannel
     AppLifecycleService,
     AppInstallationLifecycleWorkflow,
     AppsPlatformActions,
-    SalesChannelConnectionStore,
-    SalesChannelSpecificationService,
-    SalesChannelLifecycleService,
-    SalesChannelLifecycleWorkflow,
-    SalesChannelRuntimeRouter,
-    SalesChannelPlatformActions,
     AppGraphQLServerFactory,
     AppSubgraphHost,
     AppSubgraphRegistry,
@@ -75,9 +63,6 @@ import { SalesChannelRuntimeRouter } from './sales-channels/runtime/SalesChannel
     AppsRuntimeRouter,
     Repository,
     AppInstallationStore,
-    SalesChannelConnectionStore,
-    SalesChannelLifecycleService,
-    SalesChannelRuntimeRouter,
     AppSubgraphRegistry,
   ],
 })

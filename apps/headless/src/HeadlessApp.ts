@@ -6,14 +6,17 @@ import type {
   AppResumeInput,
   AppUninstallInput,
   AppUpdateInput,
-  SalesChannelActionInput,
-  SalesChannelConnectInput,
-  SalesChannelConnectResult,
-  SalesChannelUpdateInput,
-  SalesChannelUpdateResult,
   ShopanaApp,
 } from "@shopana/app-sdk";
-import { HEADLESS_STOREFRONT_SPECIFICATION_HANDLE } from "../app.manifest.js";
+
+interface SalesChannelCapabilityInput {
+  readonly salesChannelId: string;
+  readonly configuration?: Readonly<Record<string, unknown>>;
+}
+
+interface SalesChannelCapabilityResult {
+  readonly configuration: Readonly<Record<string, never>>;
+}
 
 type InstallationLifecycleResult = Readonly<{
   status: "installed" | "updated" | "uninstalled";
@@ -30,7 +33,7 @@ export class HeadlessApp implements ShopanaApp {
 
   register(): void {
     this.registerInstallationLifecycle();
-    this.registerSalesChannelLifecycle();
+    this.registerSalesChannelCapability();
   }
 
   start(): void {
@@ -94,49 +97,49 @@ export class HeadlessApp implements ShopanaApp {
     this.host.broker.register("health", () => this.health());
   }
 
-  private registerSalesChannelLifecycle(): void {
+  private registerSalesChannelCapability(): void {
     this.host.broker.register<
-      SalesChannelConnectInput,
-      SalesChannelConnectResult
+      SalesChannelCapabilityInput,
+      SalesChannelCapabilityResult
     >("channelConnect", (input) => {
       const channel = requireHeadlessChannel(input);
       return {
         configuration: normalizeHeadlessConfiguration(
-          channel.configuration,
+          channel.configuration ?? {},
         ),
       };
     });
     this.host.broker.register<
-      SalesChannelUpdateInput,
-      SalesChannelUpdateResult
+      SalesChannelCapabilityInput,
+      SalesChannelCapabilityResult
     >("channelUpdate", (input) => {
       const channel = requireHeadlessChannel(input);
       return {
         configuration: normalizeHeadlessConfiguration(
-          channel.configuration,
+          channel.configuration ?? {},
         ),
       };
     });
-    this.host.broker.register<SalesChannelActionInput, void>(
+    this.host.broker.register<SalesChannelCapabilityInput, void>(
       "channelDisconnect",
       (input) => {
         requireHeadlessChannel(input);
       },
     );
-    this.host.broker.register<SalesChannelActionInput, void>(
+    this.host.broker.register<SalesChannelCapabilityInput, void>(
       "channelSuspend",
       (input) => {
         requireHeadlessChannel(input);
       },
     );
-    this.host.broker.register<SalesChannelActionInput, void>(
+    this.host.broker.register<SalesChannelCapabilityInput, void>(
       "channelResume",
       (input) => {
         requireHeadlessChannel(input);
       },
     );
     this.host.broker.register<
-      SalesChannelActionInput,
+      SalesChannelCapabilityInput,
       AppRuntimeHealth
     >("channelHealth", (input) => {
       requireHeadlessChannel(input);
@@ -145,23 +148,14 @@ export class HeadlessApp implements ShopanaApp {
   }
 }
 
-function requireHeadlessChannel<
-  TInput extends
-    | SalesChannelConnectInput
-    | SalesChannelUpdateInput
-    | SalesChannelActionInput,
->(input: TInput | undefined): TInput {
+function requireHeadlessChannel<TInput extends SalesChannelCapabilityInput>(
+  input: TInput | undefined,
+): TInput {
   if (!input) {
     throw new Error("Headless sales-channel input is required");
   }
-  if (
-    input.specificationHandle !==
-    HEADLESS_STOREFRONT_SPECIFICATION_HANDLE
-  ) {
-    throw new Error("Unsupported sales-channel specification");
-  }
-  if (!input.connectionId.trim()) {
-    throw new Error("Headless sales-channel connectionId is required");
+  if (!input.salesChannelId.trim()) {
+    throw new Error("Headless salesChannelId is required");
   }
   return input;
 }

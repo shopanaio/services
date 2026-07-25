@@ -32,6 +32,10 @@ export const appBindings = appsSchema.table(
       .notNull()
       .references(() => appInstallations.id, { onDelete: "cascade" }),
     capability: varchar("capability", { length: 128 }).notNull(),
+    assignmentMode: varchar("assignment_mode", { length: 16 })
+      .$type<"store" | "resource">()
+      .notNull()
+      .default("store"),
     operationContract: varchar("operation_contract", {
       length: 128,
     }).notNull(),
@@ -92,6 +96,13 @@ export const appBindingAssignments = appsSchema.table(
       table.precedence,
     ),
     index("idx_slot_assignments_slot").on(table.slotId),
+    uniqueIndex("slot_assignments_target_slot_key").on(
+      table.storeId,
+      table.aggregate,
+      table.aggregateId,
+      table.domain,
+      table.slotId,
+    ),
   ],
 );
 

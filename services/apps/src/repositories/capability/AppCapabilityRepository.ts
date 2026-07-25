@@ -11,6 +11,7 @@ import type { AppManifest } from "@shopana/app-sdk";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type {
   AppInstallationRecord,
+  CapabilityRouteTarget,
   ResolvedCapabilityRoute,
 } from "../../control-plane/types.js";
 import type { Database } from "../../infrastructure/db/database.js";
@@ -26,6 +27,7 @@ export interface AppCapabilityBindingRecord {
   readonly installationId: string;
   readonly storeId: string;
   readonly capability: string;
+  readonly assignmentMode: "store" | "resource";
   readonly operation: string;
   readonly targetAppCode: string;
   readonly targetAction: string;
@@ -51,6 +53,7 @@ export class AppCapabilityRepository extends BaseRepository {
         installationId: appBindings.installationId,
         storeId: appBindings.storeId,
         capability: appBindings.capability,
+        assignmentMode: appBindings.assignmentMode,
         operation: appBindings.operationContract,
         targetAppCode: appBindings.targetAppCode,
         targetAction: appBindings.targetAction,
@@ -79,6 +82,7 @@ export class AppCapabilityRepository extends BaseRepository {
         installationId: appBindings.installationId,
         storeId: appBindings.storeId,
         capability: appBindings.capability,
+        assignmentMode: appBindings.assignmentMode,
         operation: appBindings.operationContract,
         targetAppCode: appBindings.targetAppCode,
         targetAction: appBindings.targetAction,
@@ -113,6 +117,7 @@ export class AppCapabilityRepository extends BaseRepository {
         installationId: appBindings.installationId,
         storeId: appBindings.storeId,
         capability: appBindings.capability,
+        assignmentMode: appBindings.assignmentMode,
         operation: appBindings.operationContract,
         targetAppCode: appBindings.targetAppCode,
         targetAction: appBindings.targetAction,
@@ -150,6 +155,7 @@ export class AppCapabilityRepository extends BaseRepository {
         installationId: appBindings.installationId,
         storeId: appBindings.storeId,
         capability: appBindings.capability,
+        assignmentMode: appBindings.assignmentMode,
         operation: appBindings.operationContract,
         targetAppCode: appBindings.targetAppCode,
         targetAction: appBindings.targetAction,
@@ -184,6 +190,7 @@ export class AppCapabilityRepository extends BaseRepository {
         installationId: appBindings.installationId,
         storeId: appBindings.storeId,
         capability: appBindings.capability,
+        assignmentMode: appBindings.assignmentMode,
         operation: appBindings.operationContract,
         targetAppCode: appBindings.targetAppCode,
         targetAction: appBindings.targetAction,
@@ -208,7 +215,14 @@ export class AppCapabilityRepository extends BaseRepository {
     storeId: string,
     capability: string,
     operation: string,
+    target?: CapabilityRouteTarget,
   ): Promise<ResolvedCapabilityRoute | null> {
+    const assignmentTarget = target ?? {
+      aggregate: "apps",
+      aggregateId: capabilityRouteKey(capability, operation),
+      domain: capability,
+    };
+    const assignmentMode = target ? "resource" : "store";
     const rows = await this.connection
       .select({
         installationId: appInstallations.id,
@@ -232,14 +246,18 @@ export class AppCapabilityRepository extends BaseRepository {
       .where(
         and(
           eq(appBindingAssignments.storeId, storeId),
-          eq(appBindingAssignments.aggregate, "apps"),
+          eq(
+            appBindingAssignments.aggregate,
+            assignmentTarget.aggregate,
+          ),
           eq(
             appBindingAssignments.aggregateId,
-            capabilityRouteKey(capability, operation),
+            assignmentTarget.aggregateId,
           ),
-          eq(appBindingAssignments.domain, capability),
+          eq(appBindingAssignments.domain, assignmentTarget.domain),
           eq(appBindingAssignments.status, "active"),
           eq(appBindings.status, "active"),
+          eq(appBindings.assignmentMode, assignmentMode),
           eq(appBindings.capability, capability),
           eq(appBindings.operationContract, operation),
           eq(appInstallations.status, "ACTIVE"),
@@ -262,6 +280,115 @@ export class AppCapabilityRepository extends BaseRepository {
     };
   }
 
+  async assignResource(input: {
+    readonly storeId: string;
+    readonly installationId: string;
+    readonly capability: string;
+    readonly target: CapabilityRouteTarget;
+    readonly precedence: number;
+  }): Promise<string[]> {
+    const slots = await this.connection
+      .select({ id: appBindings.id })
+      .from(appBindings)
+      .innerJoin(
+        appInstallations,
+        eq(appInstallations.id, appBindings.installationId),
+      )
+      .where(
+        and(
+          eq(appBindings.storeId, input.storeId),
+          eq(appBindings.installationId, input.installationId),
+          eq(appBindings.capability, input.capability),
+          eq(appBindings.assignmentMode, "resource"),
+          eq(appBindings.status, "active"),
+          eq(appInstallations.status, "ACTIVE"),
+        ),
+      );
+    if (slots.length === 0) {
+      throw new Error(
+        `No active resource-scoped slots for capability "${input.capability}"`,
+      );
+    }
+
+    const assignmentIds: string[] = [];
+    for (const slot of slots) {
+      const rows = await this.connection
+        .insert(appBindingAssignments)
+        .values({
+          storeId: input.storeId,
+          aggregate: input.target.aggregate,
+          aggregateId: input.target.aggregateId,
+          slotId: slot.id,
+          domain: input.target.domain,
+          precedence: input.precedence,
+          status: "active",
+        })
+        .onConflictDoUpdate({
+          target: [
+            appBindingAssignments.storeId,
+            appBindingAssignments.aggregate,
+            appBindingAssignments.aggregateId,
+            appBindingAssignments.domain,
+            appBindingAssignments.slotId,
+          ],
+          set: {
+            precedence: input.precedence,
+            status: "active",
+            updatedAt: new Date().toISOString(),
+          },
+        })
+        .returning({ id: appBindingAssignments.id });
+      if (rows[0]) {
+        assignmentIds.push(rows[0].id);
+      }
+    }
+    return assignmentIds;
+  }
+
+  async unassignResource(input: {
+    readonly storeId: string;
+    readonly installationId: string;
+    readonly capability: string;
+    readonly target: CapabilityRouteTarget;
+  }): Promise<number> {
+    const slots = await this.connection
+      .select({ id: appBindings.id })
+      .from(appBindings)
+      .where(
+        and(
+          eq(appBindings.storeId, input.storeId),
+          eq(appBindings.installationId, input.installationId),
+          eq(appBindings.capability, input.capability),
+          eq(appBindings.assignmentMode, "resource"),
+        ),
+      );
+    if (slots.length === 0) {
+      return 0;
+    }
+    const removed = await this.connection
+      .delete(appBindingAssignments)
+      .where(
+        and(
+          eq(appBindingAssignments.storeId, input.storeId),
+          eq(
+            appBindingAssignments.aggregate,
+            input.target.aggregate,
+          ),
+          eq(
+            appBindingAssignments.aggregateId,
+            input.target.aggregateId,
+          ),
+          eq(appBindingAssignments.domain, input.target.domain),
+          inArray(
+            appBindingAssignments.slotId,
+            slots.map((slot) => slot.id),
+          ),
+        ),
+      )
+      .returning({ id: appBindingAssignments.id });
+    return removed.length;
+  }
+
   async sync(
     installation: AppInstallationRecord,
     manifest: AppManifest,
@@ -271,6 +398,8 @@ export class AppCapabilityRepository extends BaseRepository {
       for (const [operation, targetAction] of Object.entries(
         capability.operations,
       )) {
+        const assignmentMode =
+          capability.assignmentMode ?? "store";
         const routeKey = capabilityRouteKey(capability.key, operation);
         declaredRoutes.add(routeKey);
         const currentRows = await this.connection
@@ -289,10 +418,16 @@ export class AppCapabilityRepository extends BaseRepository {
 
         if (current) {
           slotId = current.id;
+          if (current.assignmentMode !== assignmentMode) {
+            await this.connection
+              .delete(appBindingAssignments)
+              .where(eq(appBindingAssignments.slotId, slotId));
+          }
           await this.connection
             .update(appBindings)
             .set({
               status: "active",
+              assignmentMode,
               targetAppCode: manifest.code,
               targetAction,
               updatedAt: new Date().toISOString(),
@@ -306,6 +441,7 @@ export class AppCapabilityRepository extends BaseRepository {
               status: "active",
               installationId: installation.id,
               capability: capability.key,
+              assignmentMode,
               operationContract: operation,
               targetAppCode: manifest.code,
               targetAction,
@@ -315,6 +451,10 @@ export class AppCapabilityRepository extends BaseRepository {
             throw new Error("App capability slot was not created");
           }
           slotId = rows[0].id;
+        }
+
+        if (assignmentMode === "resource") {
+          continue;
         }
 
         const assignmentScope = and(

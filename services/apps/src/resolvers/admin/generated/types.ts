@@ -22,6 +22,12 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
+/** How a capability is selected for execution. */
+export enum AppCapabilityAssignmentMode {
+  Resource = 'RESOURCE',
+  Store = 'STORE'
+}
+
 /** State of the route assignment used to resolve a capability. */
 export enum AppCapabilityAssignmentStatus {
   Active = 'ACTIVE',
@@ -31,6 +37,7 @@ export enum AppCapabilityAssignmentStatus {
 /** A concrete capability route contributed by an installed App. */
 export type AppCapabilityBinding = Node & {
   __typename?: 'AppCapabilityBinding';
+  assignmentMode: AppCapabilityAssignmentMode;
   assignmentStatus: Maybe<AppCapabilityAssignmentStatus>;
   capability: Scalars['String']['output'];
   id: Scalars['ID']['output'];
@@ -52,6 +59,7 @@ export enum AppCapabilityBindingStatus {
 /** A capability declared by an App manifest. */
 export type AppCapabilityDefinition = {
   __typename?: 'AppCapabilityDefinition';
+  assignmentMode: AppCapabilityAssignmentMode;
   key: Scalars['String']['output'];
   operations: Array<AppCapabilityOperation>;
 };
@@ -92,8 +100,6 @@ export type AppDefinition = {
   description: Scalars['String']['output'];
   /** Human-readable App name. */
   displayName: Scalars['String']['output'];
-  /** Extension kinds declared by the bundled manifest. */
-  extensionKinds: Array<AppExtensionKind>;
   /** GraphQL surfaces declared by the bundled manifest. */
   graphql: AppGraphQlSurfaces;
   /** The current store installation, when one exists. */
@@ -106,21 +112,14 @@ export type AppDefinition = {
   runtimeHealth: AppRuntimeHealth;
   /** Current process-local runtime state. */
   runtimeStatus: AppRuntimeStatus;
-  salesChannelSpecifications: Array<SalesChannelSpecificationDefinition>;
   /** Bundled semantic version. */
   version: Scalars['String']['output'];
 };
 
 /** Filters for bundled App discovery. */
 export type AppDefinitionWhereInput = {
-  extensionKinds?: InputMaybe<Array<AppExtensionKind>>;
   installed?: InputMaybe<Scalars['Boolean']['input']>;
 };
-
-/** A discoverable extension contributed by a bundled App. */
-export enum AppExtensionKind {
-  SalesChannel = 'SALES_CHANNEL'
-}
 
 /** GraphQL surfaces contributed by an App. */
 export type AppGraphQlSurfaces = {
@@ -156,7 +155,6 @@ export type AppInstallation = Node & {
   lifecycleOperations: AppLifecycleOperationConnection;
   manifestHash: Maybe<Scalars['String']['output']>;
   manifestSnapshots: AppManifestSnapshotConnection;
-  salesChannelConnections: SalesChannelConnectionConnection;
   scopes: Array<AppInstallationScope>;
   status: AppInstallationStatus;
   suspendedAt: Maybe<Scalars['DateTime']['output']>;
@@ -181,17 +179,6 @@ export type AppInstallationManifestSnapshotsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-/** A bundled App installed in the current store. */
-export type AppInstallationSalesChannelConnectionsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<SalesChannelConnectionOrderByInput>>;
-  where?: InputMaybe<SalesChannelConnectionWhereInput>;
 };
 
 /** Input for a lifecycle action on an existing installation. */
@@ -497,11 +484,6 @@ export type AppsMutation = {
   appUninstall: AppLifecyclePayload;
   /** Update an installed App to the bundled target version. */
   appUpdate: AppLifecyclePayload;
-  salesChannelConnectionCreate: SalesChannelLifecyclePayload;
-  salesChannelConnectionDisconnect: SalesChannelLifecyclePayload;
-  salesChannelConnectionResume: SalesChannelLifecyclePayload;
-  salesChannelConnectionSuspend: SalesChannelLifecyclePayload;
-  salesChannelConnectionUpdate: SalesChannelLifecyclePayload;
 };
 
 
@@ -534,31 +516,6 @@ export type AppsMutationAppUpdateArgs = {
   input: AppUpdateInput;
 };
 
-
-export type AppsMutationSalesChannelConnectionCreateArgs = {
-  input: SalesChannelConnectionCreateInput;
-};
-
-
-export type AppsMutationSalesChannelConnectionDisconnectArgs = {
-  input: SalesChannelConnectionActionInput;
-};
-
-
-export type AppsMutationSalesChannelConnectionResumeArgs = {
-  input: SalesChannelConnectionActionInput;
-};
-
-
-export type AppsMutationSalesChannelConnectionSuspendArgs = {
-  input: SalesChannelConnectionActionInput;
-};
-
-
-export type AppsMutationSalesChannelConnectionUpdateArgs = {
-  input: SalesChannelConnectionUpdateInput;
-};
-
 export type AppsQuery = {
   __typename?: 'AppsQuery';
   /** Get a bundled App definition by its stable code. */
@@ -571,9 +528,6 @@ export type AppsQuery = {
   appLifecycleOperation: Maybe<AppLifecycleOperation>;
   /** List bundled Apps available to the current store. */
   availableApps: Array<AppDefinition>;
-  salesChannelConnection: Maybe<SalesChannelConnection>;
-  salesChannelConnections: SalesChannelConnectionConnection;
-  salesChannelSpecification: Maybe<SalesChannelSpecification>;
 };
 
 
@@ -604,26 +558,6 @@ export type AppsQueryAppLifecycleOperationArgs = {
 
 export type AppsQueryAvailableAppsArgs = {
   where?: InputMaybe<AppDefinitionWhereInput>;
-};
-
-
-export type AppsQuerySalesChannelConnectionArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type AppsQuerySalesChannelConnectionsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<SalesChannelConnectionOrderByInput>>;
-  where?: InputMaybe<SalesChannelConnectionWhereInput>;
-};
-
-
-export type AppsQuerySalesChannelSpecificationArgs = {
-  id: Scalars['ID']['input'];
 };
 
 /** Filter operators for Boolean fields */
@@ -1387,205 +1321,6 @@ export type Query = {
   appsQuery: AppsQuery;
 };
 
-export type SalesChannelConnection = Node & {
-  __typename?: 'SalesChannelConnection';
-  configuration: Scalars['JSON']['output'];
-  configurationVersion: Scalars['Int']['output'];
-  connectedAt: Maybe<Scalars['DateTime']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  disconnectedAt: Maybe<Scalars['DateTime']['output']>;
-  displayName: Scalars['String']['output'];
-  effectiveActive: Scalars['Boolean']['output'];
-  externalAccountId: Maybe<Scalars['String']['output']>;
-  externalAccountLabel: Maybe<Scalars['String']['output']>;
-  healthStatus: SalesChannelHealthStatus;
-  id: Scalars['ID']['output'];
-  installation: AppInstallation;
-  lastError: Maybe<AppInstallationError>;
-  specification: SalesChannelSpecification;
-  status: SalesChannelConnectionStatus;
-  suspendedAt: Maybe<Scalars['DateTime']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-export type SalesChannelConnectionActionInput = {
-  clientMutationId: Scalars['String']['input'];
-  connectionId: Scalars['ID']['input'];
-};
-
-export type SalesChannelConnectionConnection = {
-  __typename?: 'SalesChannelConnectionConnection';
-  edges: Array<SalesChannelConnectionEdge>;
-  pageInfo: PageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type SalesChannelConnectionCreateInput = {
-  clientMutationId: Scalars['String']['input'];
-  configuration?: InputMaybe<Scalars['JSON']['input']>;
-  displayName: Scalars['String']['input'];
-  installationId: Scalars['ID']['input'];
-  specificationId: Scalars['ID']['input'];
-};
-
-export type SalesChannelConnectionEdge = {
-  __typename?: 'SalesChannelConnectionEdge';
-  cursor: Scalars['String']['output'];
-  node: SalesChannelConnection;
-};
-
-/** Ordering configuration for SalesChannelConnection */
-export type SalesChannelConnectionOrderByInput = {
-  /** Sort direction */
-  direction: SortDirection;
-  /** Field to order by */
-  field: SalesChannelConnectionOrderField;
-};
-
-/** Fields available for sorting SalesChannelConnection */
-export enum SalesChannelConnectionOrderField {
-  /** Sort by configurationVersion */
-  ConfigurationVersion = 'configurationVersion',
-  /** Sort by connectedAt */
-  ConnectedAt = 'connectedAt',
-  /** Sort by createdAt */
-  CreatedAt = 'createdAt',
-  /** Sort by disconnectedAt */
-  DisconnectedAt = 'disconnectedAt',
-  /** Sort by displayName */
-  DisplayName = 'displayName',
-  /** Sort by externalAccountId */
-  ExternalAccountId = 'externalAccountId',
-  /** Sort by externalAccountLabel */
-  ExternalAccountLabel = 'externalAccountLabel',
-  /** Sort by healthStatus */
-  HealthStatus = 'healthStatus',
-  /** Sort by id */
-  Id = 'id',
-  /** Sort by status */
-  Status = 'status',
-  /** Sort by suspendedAt */
-  SuspendedAt = 'suspendedAt',
-  /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt'
-}
-
-export enum SalesChannelConnectionStatus {
-  Active = 'ACTIVE',
-  Connecting = 'CONNECTING',
-  ConnectFailed = 'CONNECT_FAILED',
-  Disconnected = 'DISCONNECTED',
-  Disconnecting = 'DISCONNECTING',
-  DisconnectFailed = 'DISCONNECT_FAILED',
-  Draft = 'DRAFT',
-  Resuming = 'RESUMING',
-  Suspended = 'SUSPENDED',
-  Suspending = 'SUSPENDING',
-  UpdateFailed = 'UPDATE_FAILED',
-  Updating = 'UPDATING'
-}
-
-export type SalesChannelConnectionUpdateInput = {
-  clientMutationId: Scalars['String']['input'];
-  configuration: Scalars['JSON']['input'];
-  connectionId: Scalars['ID']['input'];
-  displayName?: InputMaybe<Scalars['String']['input']>;
-  expectedConfigurationVersion: Scalars['Int']['input'];
-  targetSpecificationId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-/** Filter conditions for SalesChannelConnection */
-export type SalesChannelConnectionWhereInput = {
-  /** Logical AND of multiple conditions */
-  _and?: InputMaybe<Array<SalesChannelConnectionWhereInput>>;
-  /** Negate the condition */
-  _not?: InputMaybe<SalesChannelConnectionWhereInput>;
-  /** Logical OR of multiple conditions */
-  _or?: InputMaybe<Array<SalesChannelConnectionWhereInput>>;
-  /** Filter by configurationVersion */
-  configurationVersion?: InputMaybe<IntFilter>;
-  /** Filter by connectedAt */
-  connectedAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by createdAt */
-  createdAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by disconnectedAt */
-  disconnectedAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by displayName */
-  displayName?: InputMaybe<StringFilter>;
-  /** Filter by externalAccountId */
-  externalAccountId?: InputMaybe<StringFilter>;
-  /** Filter by externalAccountLabel */
-  externalAccountLabel?: InputMaybe<StringFilter>;
-  /** Filter by healthStatus */
-  healthStatus?: InputMaybe<StringFilter>;
-  /** Filter by id */
-  id?: InputMaybe<IdFilter>;
-  /** Filter by status */
-  status?: InputMaybe<StringFilter>;
-  /** Filter by suspendedAt */
-  suspendedAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by updatedAt */
-  updatedAt?: InputMaybe<DateTimeFilter>;
-};
-
-export enum SalesChannelHealthStatus {
-  Degraded = 'DEGRADED',
-  Healthy = 'HEALTHY',
-  Unhealthy = 'UNHEALTHY',
-  Unknown = 'UNKNOWN'
-}
-
-export type SalesChannelLifecyclePayload = {
-  __typename?: 'SalesChannelLifecyclePayload';
-  connection: Maybe<SalesChannelConnection>;
-  duplicate: Scalars['Boolean']['output'];
-  operation: Maybe<SalesChannelOperation>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type SalesChannelOperation = Node & {
-  __typename?: 'SalesChannelOperation';
-  completedAt: Maybe<Scalars['DateTime']['output']>;
-  connection: SalesChannelConnection;
-  createdAt: Scalars['DateTime']['output'];
-  error: Maybe<AppLifecycleOperationError>;
-  id: Scalars['ID']['output'];
-  startedAt: Maybe<Scalars['DateTime']['output']>;
-  status: AppLifecycleOperationStatus;
-  type: SalesChannelOperationType;
-  updatedAt: Scalars['DateTime']['output'];
-  workflowId: Scalars['String']['output'];
-};
-
-export enum SalesChannelOperationType {
-  Connect = 'CONNECT',
-  Disconnect = 'DISCONNECT',
-  Resume = 'RESUME',
-  Suspend = 'SUSPEND',
-  Update = 'UPDATE'
-}
-
-export type SalesChannelSpecification = Node & {
-  __typename?: 'SalesChannelSpecification';
-  appCode: Scalars['String']['output'];
-  appVersion: Scalars['String']['output'];
-  createdAt: Scalars['DateTime']['output'];
-  definition: Scalars['JSON']['output'];
-  handle: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  label: Scalars['String']['output'];
-};
-
-export type SalesChannelSpecificationDefinition = {
-  __typename?: 'SalesChannelSpecificationDefinition';
-  allowMultipleConnections: Scalars['Boolean']['output'];
-  definition: Scalars['JSON']['output'];
-  handle: Scalars['String']['output'];
-  id: Maybe<Scalars['ID']['output']>;
-  label: Scalars['String']['output'];
-  requiresExternalAccount: Scalars['Boolean']['output'];
-};
-
 /** Sort direction */
 export enum SortDirection {
   Asc = 'asc',
@@ -1728,12 +1463,13 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( AppCapabilityBinding ) | ( AppInstallation ) | ( AppLifecycleOperation ) | ( AppManifestSnapshot ) | ( SalesChannelConnection ) | ( SalesChannelOperation ) | ( SalesChannelSpecification );
+  Node: ( AppCapabilityBinding ) | ( AppInstallation ) | ( AppLifecycleOperation ) | ( AppManifestSnapshot );
   UserError: ( GenericUserError );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
+  AppCapabilityAssignmentMode: AppCapabilityAssignmentMode;
   AppCapabilityAssignmentStatus: AppCapabilityAssignmentStatus;
   AppCapabilityBinding: ResolverTypeWrapper<AppCapabilityBinding>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
@@ -1747,7 +1483,6 @@ export type ResolversTypes = ResolversObject<{
   AppDefinition: ResolverTypeWrapper<AppDefinition>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   AppDefinitionWhereInput: AppDefinitionWhereInput;
-  AppExtensionKind: AppExtensionKind;
   AppGraphQLSurfaces: ResolverTypeWrapper<AppGraphQlSurfaces>;
   AppInstallInput: AppInstallInput;
   AppInstallation: ResolverTypeWrapper<AppInstallation>;
@@ -1796,22 +1531,6 @@ export type ResolversTypes = ResolversObject<{
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Query: ResolverTypeWrapper<{}>;
-  SalesChannelConnection: ResolverTypeWrapper<SalesChannelConnection>;
-  SalesChannelConnectionActionInput: SalesChannelConnectionActionInput;
-  SalesChannelConnectionConnection: ResolverTypeWrapper<SalesChannelConnectionConnection>;
-  SalesChannelConnectionCreateInput: SalesChannelConnectionCreateInput;
-  SalesChannelConnectionEdge: ResolverTypeWrapper<SalesChannelConnectionEdge>;
-  SalesChannelConnectionOrderByInput: SalesChannelConnectionOrderByInput;
-  SalesChannelConnectionOrderField: SalesChannelConnectionOrderField;
-  SalesChannelConnectionStatus: SalesChannelConnectionStatus;
-  SalesChannelConnectionUpdateInput: SalesChannelConnectionUpdateInput;
-  SalesChannelConnectionWhereInput: SalesChannelConnectionWhereInput;
-  SalesChannelHealthStatus: SalesChannelHealthStatus;
-  SalesChannelLifecyclePayload: ResolverTypeWrapper<SalesChannelLifecyclePayload>;
-  SalesChannelOperation: ResolverTypeWrapper<SalesChannelOperation>;
-  SalesChannelOperationType: SalesChannelOperationType;
-  SalesChannelSpecification: ResolverTypeWrapper<SalesChannelSpecification>;
-  SalesChannelSpecificationDefinition: ResolverTypeWrapper<SalesChannelSpecificationDefinition>;
   SortDirection: SortDirection;
   StringFilter: StringFilter;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
@@ -1868,24 +1587,13 @@ export type ResolversParentTypes = ResolversObject<{
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   PageInfo: PageInfo;
   Query: {};
-  SalesChannelConnection: SalesChannelConnection;
-  SalesChannelConnectionActionInput: SalesChannelConnectionActionInput;
-  SalesChannelConnectionConnection: SalesChannelConnectionConnection;
-  SalesChannelConnectionCreateInput: SalesChannelConnectionCreateInput;
-  SalesChannelConnectionEdge: SalesChannelConnectionEdge;
-  SalesChannelConnectionOrderByInput: SalesChannelConnectionOrderByInput;
-  SalesChannelConnectionUpdateInput: SalesChannelConnectionUpdateInput;
-  SalesChannelConnectionWhereInput: SalesChannelConnectionWhereInput;
-  SalesChannelLifecyclePayload: SalesChannelLifecyclePayload;
-  SalesChannelOperation: SalesChannelOperation;
-  SalesChannelSpecification: SalesChannelSpecification;
-  SalesChannelSpecificationDefinition: SalesChannelSpecificationDefinition;
   StringFilter: StringFilter;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
 }>;
 
 export type AppCapabilityBindingResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppCapabilityBinding'] = ResolversParentTypes['AppCapabilityBinding']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['AppCapabilityBinding']>, { __typename: 'AppCapabilityBinding' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  assignmentMode?: Resolver<ResolversTypes['AppCapabilityAssignmentMode'], ParentType, ContextType>;
   assignmentStatus?: Resolver<Maybe<ResolversTypes['AppCapabilityAssignmentStatus']>, ParentType, ContextType>;
   capability?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -1898,6 +1606,7 @@ export type AppCapabilityBindingResolvers<ContextType = ServiceContext, ParentTy
 }>;
 
 export type AppCapabilityDefinitionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppCapabilityDefinition'] = ResolversParentTypes['AppCapabilityDefinition']> = ResolversObject<{
+  assignmentMode?: Resolver<ResolversTypes['AppCapabilityAssignmentMode'], ParentType, ContextType>;
   key?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   operations?: Resolver<Array<ResolversTypes['AppCapabilityOperation']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1920,14 +1629,12 @@ export type AppDefinitionResolvers<ContextType = ServiceContext, ParentType exte
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   description?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  extensionKinds?: Resolver<Array<ResolversTypes['AppExtensionKind']>, ParentType, ContextType>;
   graphql?: Resolver<ResolversTypes['AppGraphQLSurfaces'], ParentType, ContextType>;
   installation?: Resolver<Maybe<ResolversTypes['AppInstallation']>, ParentType, ContextType>;
   installed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   permissions?: Resolver<Array<ResolversTypes['AppPermission']>, ParentType, ContextType>;
   runtimeHealth?: Resolver<ResolversTypes['AppRuntimeHealth'], ParentType, ContextType>;
   runtimeStatus?: Resolver<ResolversTypes['AppRuntimeStatus'], ParentType, ContextType>;
-  salesChannelSpecifications?: Resolver<Array<ResolversTypes['SalesChannelSpecificationDefinition']>, ParentType, ContextType>;
   version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1954,7 +1661,6 @@ export type AppInstallationResolvers<ContextType = ServiceContext, ParentType ex
   lifecycleOperations?: Resolver<ResolversTypes['AppLifecycleOperationConnection'], ParentType, ContextType, Partial<AppInstallationLifecycleOperationsArgs>>;
   manifestHash?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   manifestSnapshots?: Resolver<ResolversTypes['AppManifestSnapshotConnection'], ParentType, ContextType, Partial<AppInstallationManifestSnapshotsArgs>>;
-  salesChannelConnections?: Resolver<ResolversTypes['SalesChannelConnectionConnection'], ParentType, ContextType, Partial<AppInstallationSalesChannelConnectionsArgs>>;
   scopes?: Resolver<Array<ResolversTypes['AppInstallationScope']>, ParentType, ContextType>;
   status?: Resolver<ResolversTypes['AppInstallationStatus'], ParentType, ContextType>;
   suspendedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
@@ -2081,11 +1787,6 @@ export type AppsMutationResolvers<ContextType = ServiceContext, ParentType exten
   appSuspend?: Resolver<ResolversTypes['AppLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationAppSuspendArgs, 'input'>>;
   appUninstall?: Resolver<ResolversTypes['AppLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationAppUninstallArgs, 'input'>>;
   appUpdate?: Resolver<ResolversTypes['AppLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationAppUpdateArgs, 'input'>>;
-  salesChannelConnectionCreate?: Resolver<ResolversTypes['SalesChannelLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationSalesChannelConnectionCreateArgs, 'input'>>;
-  salesChannelConnectionDisconnect?: Resolver<ResolversTypes['SalesChannelLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationSalesChannelConnectionDisconnectArgs, 'input'>>;
-  salesChannelConnectionResume?: Resolver<ResolversTypes['SalesChannelLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationSalesChannelConnectionResumeArgs, 'input'>>;
-  salesChannelConnectionSuspend?: Resolver<ResolversTypes['SalesChannelLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationSalesChannelConnectionSuspendArgs, 'input'>>;
-  salesChannelConnectionUpdate?: Resolver<ResolversTypes['SalesChannelLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationSalesChannelConnectionUpdateArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2095,9 +1796,6 @@ export type AppsQueryResolvers<ContextType = ServiceContext, ParentType extends 
   appInstallations?: Resolver<ResolversTypes['AppInstallationConnection'], ParentType, ContextType, Partial<AppsQueryAppInstallationsArgs>>;
   appLifecycleOperation?: Resolver<Maybe<ResolversTypes['AppLifecycleOperation']>, ParentType, ContextType, RequireFields<AppsQueryAppLifecycleOperationArgs, 'id'>>;
   availableApps?: Resolver<Array<ResolversTypes['AppDefinition']>, ParentType, ContextType, Partial<AppsQueryAvailableAppsArgs>>;
-  salesChannelConnection?: Resolver<Maybe<ResolversTypes['SalesChannelConnection']>, ParentType, ContextType, RequireFields<AppsQuerySalesChannelConnectionArgs, 'id'>>;
-  salesChannelConnections?: Resolver<ResolversTypes['SalesChannelConnectionConnection'], ParentType, ContextType, Partial<AppsQuerySalesChannelConnectionsArgs>>;
-  salesChannelSpecification?: Resolver<Maybe<ResolversTypes['SalesChannelSpecification']>, ParentType, ContextType, RequireFields<AppsQuerySalesChannelSpecificationArgs, 'id'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2121,7 +1819,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'AppCapabilityBinding' | 'AppInstallation' | 'AppLifecycleOperation' | 'AppManifestSnapshot' | 'SalesChannelConnection' | 'SalesChannelOperation' | 'SalesChannelSpecification', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'AppCapabilityBinding' | 'AppInstallation' | 'AppLifecycleOperation' | 'AppManifestSnapshot', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -2135,86 +1833,6 @@ export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends R
 
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   appsQuery?: Resolver<ResolversTypes['AppsQuery'], ParentType, ContextType>;
-}>;
-
-export type SalesChannelConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SalesChannelConnection'] = ResolversParentTypes['SalesChannelConnection']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['SalesChannelConnection']>, { __typename: 'SalesChannelConnection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  configuration?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
-  configurationVersion?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  connectedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  disconnectedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  effectiveActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  externalAccountId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  externalAccountLabel?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  healthStatus?: Resolver<ResolversTypes['SalesChannelHealthStatus'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  installation?: Resolver<ResolversTypes['AppInstallation'], ParentType, ContextType>;
-  lastError?: Resolver<Maybe<ResolversTypes['AppInstallationError']>, ParentType, ContextType>;
-  specification?: Resolver<ResolversTypes['SalesChannelSpecification'], ParentType, ContextType>;
-  status?: Resolver<ResolversTypes['SalesChannelConnectionStatus'], ParentType, ContextType>;
-  suspendedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type SalesChannelConnectionConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SalesChannelConnectionConnection'] = ResolversParentTypes['SalesChannelConnectionConnection']> = ResolversObject<{
-  edges?: Resolver<Array<ResolversTypes['SalesChannelConnectionEdge']>, ParentType, ContextType>;
-  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
-  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type SalesChannelConnectionEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SalesChannelConnectionEdge'] = ResolversParentTypes['SalesChannelConnectionEdge']> = ResolversObject<{
-  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  node?: Resolver<ResolversTypes['SalesChannelConnection'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type SalesChannelLifecyclePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SalesChannelLifecyclePayload'] = ResolversParentTypes['SalesChannelLifecyclePayload']> = ResolversObject<{
-  connection?: Resolver<Maybe<ResolversTypes['SalesChannelConnection']>, ParentType, ContextType>;
-  duplicate?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  operation?: Resolver<Maybe<ResolversTypes['SalesChannelOperation']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type SalesChannelOperationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SalesChannelOperation'] = ResolversParentTypes['SalesChannelOperation']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['SalesChannelOperation']>, { __typename: 'SalesChannelOperation' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  completedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  connection?: Resolver<ResolversTypes['SalesChannelConnection'], ParentType, ContextType>;
-  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['AppLifecycleOperationError']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  startedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  status?: Resolver<ResolversTypes['AppLifecycleOperationStatus'], ParentType, ContextType>;
-  type?: Resolver<ResolversTypes['SalesChannelOperationType'], ParentType, ContextType>;
-  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  workflowId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type SalesChannelSpecificationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SalesChannelSpecification'] = ResolversParentTypes['SalesChannelSpecification']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['SalesChannelSpecification']>, { __typename: 'SalesChannelSpecification' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  appCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  appVersion?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  definition?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
-  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type SalesChannelSpecificationDefinitionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SalesChannelSpecificationDefinition'] = ResolversParentTypes['SalesChannelSpecificationDefinition']> = ResolversObject<{
-  allowMultipleConnections?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  definition?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
-  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  id?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  requiresExternalAccount?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserError'] = ResolversParentTypes['UserError']> = ResolversObject<{
@@ -2255,13 +1873,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Node?: NodeResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
-  SalesChannelConnection?: SalesChannelConnectionResolvers<ContextType>;
-  SalesChannelConnectionConnection?: SalesChannelConnectionConnectionResolvers<ContextType>;
-  SalesChannelConnectionEdge?: SalesChannelConnectionEdgeResolvers<ContextType>;
-  SalesChannelLifecyclePayload?: SalesChannelLifecyclePayloadResolvers<ContextType>;
-  SalesChannelOperation?: SalesChannelOperationResolvers<ContextType>;
-  SalesChannelSpecification?: SalesChannelSpecificationResolvers<ContextType>;
-  SalesChannelSpecificationDefinition?: SalesChannelSpecificationDefinitionResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
 }>;
 

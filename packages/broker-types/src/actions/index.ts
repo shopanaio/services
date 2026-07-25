@@ -17,13 +17,11 @@ export type {
   UninstallAppParams,
   ExecuteCapabilityParams,
   ExecuteCapabilityResult,
-  SalesChannelConnectionStatus,
-  ResolvedSalesChannelConnection,
-  ResolveSalesChannelConnectionParams,
-  ListSalesChannelConnectionsParams,
-  InvokeSalesChannelConnectionParams,
-  GetSalesChannelSpecificationParams,
-  SalesChannelSpecificationResult,
+  CapabilityTarget,
+  AssignCapabilityParams,
+  AssignCapabilityResult,
+  UnassignCapabilityParams,
+  UnassignCapabilityResult,
 } from "./apps.js";
 
 // Notifications service actions

@@ -80,6 +80,7 @@ export class AppsPlatformActions extends BrokerActions {
       params.storeId,
       params.capability,
       params.operation,
+      params.target ? normalizeTarget(params.target) : undefined,
     );
     if (!route) {
       throw new Error(
@@ -101,4 +102,66 @@ export class AppsPlatformActions extends BrokerActions {
       data,
     };
   }
+
+  @Action("assignCapability")
+  async assignCapability(
+    params: Apps.AssignCapabilityParams,
+    context: BrokerCallContext,
+  ): Promise<Apps.AssignCapabilityResult> {
+    assertPlatformCaller(context);
+    const target = normalizeTarget(params.target);
+    const assignmentIds =
+      await this.installations.assignCapabilityResource({
+        storeId: required(params.storeId, "storeId"),
+        installationId: required(
+          params.installationId,
+          "installationId",
+        ),
+        capability: required(params.capability, "capability"),
+        target,
+        precedence: params.precedence ?? 0,
+      });
+    return { assignmentIds };
+  }
+
+  @Action("unassignCapability")
+  async unassignCapability(
+    params: Apps.UnassignCapabilityParams,
+    context: BrokerCallContext,
+  ): Promise<Apps.UnassignCapabilityResult> {
+    assertPlatformCaller(context);
+    const removed =
+      await this.installations.unassignCapabilityResource({
+        storeId: required(params.storeId, "storeId"),
+        installationId: required(
+          params.installationId,
+          "installationId",
+        ),
+        capability: required(params.capability, "capability"),
+        target: normalizeTarget(params.target),
+      });
+    return { removed };
+  }
+}
+
+function assertPlatformCaller(context: BrokerCallContext): void {
+  if (context.caller.kind !== "action" || context.app) {
+    throw new Error("Capability assignments require a platform caller");
+  }
+}
+
+function normalizeTarget(target: Apps.CapabilityTarget) {
+  return {
+    aggregate: required(target?.aggregate, "target.aggregate"),
+    aggregateId: required(target?.aggregateId, "target.aggregateId"),
+    domain: required(target?.domain, "target.domain"),
+  };
+}
+
+function required(value: string | undefined, field: string): string {
+  const normalized = value?.trim();
+  if (!normalized) {
+    throw new Error(`${field} is required`);
+  }
+  return normalized;
 }

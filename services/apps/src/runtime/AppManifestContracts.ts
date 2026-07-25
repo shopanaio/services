@@ -18,16 +18,6 @@ export function getExternallyRoutableActions(
       actions.add(action);
     }
   }
-  if (manifest.schemaVersion === 2) {
-    for (const specification of
-      manifest.extensions.salesChannels?.specifications ?? []) {
-      for (const action of Object.values(specification.operations)) {
-        if (action) {
-          actions.add(action);
-        }
-      }
-    }
-  }
   return actions;
 }
 

@@ -24,7 +24,6 @@ export const helloWorldManifest = defineAppManifest({
       },
     },
   ],
-  extensions: {},
   graphql: {
     admin: true,
     storefront: false,

@@ -16,6 +16,7 @@ import type {
   AppInstallationRecord,
   AppLifecycleOperationRecord,
   AppManifestSnapshot,
+  CapabilityRouteTarget,
   ResolvedCapabilityRoute,
 } from "./types.js";
 import { snapshotManifest } from "./manifest.js";
@@ -250,10 +251,6 @@ export class AppInstallationStore {
         );
       }
       if (input.snapshot) {
-        await this.assertSalesChannelUpdateCompatible(
-          installation.id,
-          input.snapshot,
-        );
         await this.repository.manifestSnapshot.save(
           input.installationId,
           input.snapshot,
@@ -428,10 +425,6 @@ export class AppInstallationStore {
           update.installedAt = new Date().toISOString();
           update.healthStatus = "HEALTHY";
           await this.repository.capability.sync(installation, manifest);
-          await this.projectSalesChannelSpecifications(
-            installation.id,
-            snapshotManifest(manifest),
-          );
           break;
         case "UPDATE":
           nextStatus =
@@ -441,10 +434,6 @@ export class AppInstallationStore {
           update.installedVersion = operation.targetVersion;
           update.manifestHash = snapshotManifest(manifest).hash;
           await this.repository.capability.sync(installation, manifest);
-          await this.projectSalesChannelSpecifications(
-            installation.id,
-            snapshotManifest(manifest),
-          );
           if (nextStatus === "SUSPENDED") {
             await this.repository.capability.setEnabled(
               installation.id,
@@ -536,62 +525,37 @@ export class AppInstallationStore {
     storeId: string,
     capability: string,
     operation: string,
+    target?: CapabilityRouteTarget,
   ): Promise<ResolvedCapabilityRoute | null> {
     return this.repository.capability.resolveRoute(
       storeId,
       capability,
       operation,
+      target,
     );
   }
 
-  async prepareSalesChannelUpdate(
-    installationId: string,
-    manifest: AppManifest,
-  ): Promise<
-    ReadonlyArray<{
-      connectionId: string;
-      targetSpecificationId: string;
-      configuration: Readonly<Record<string, unknown>>;
-      configurationVersion: number;
-    }>
-  > {
-    const snapshot = snapshotManifest(manifest);
-    await this.projectSalesChannelSpecifications(installationId, snapshot);
-    const connections =
-      await this.repository.salesChannelConnection.listByInstallation(
-        installationId,
-        false,
-      );
-    const targets =
-      manifest.schemaVersion === 2
-        ? await this.repository.salesChannelSpecification.listByInstallation(
-            installationId,
-            manifest.version,
-          )
-        : [];
-    const targetByHandle = new Map(targets.map((item) => [item.handle, item]));
-    const updates = [];
-    for (const connection of connections) {
-      const current =
-        await this.repository.salesChannelSpecification.findById(
-          connection.specificationSnapshotId,
-        );
-      const target = current
-        ? targetByHandle.get(current.handle)
-        : undefined;
-      if (!target) {
-        throw new Error(
-          `Sales channel specification for connection "${connection.id}" is unavailable in App version "${manifest.version}"`,
-        );
-      }
-      updates.push({
-        connectionId: connection.id,
-        targetSpecificationId: target.id,
-        configuration: connection.configuration,
-        configurationVersion: connection.configurationVersion,
-      });
-    }
-    return updates;
+  assignCapabilityResource(input: {
+    readonly storeId: string;
+    readonly installationId: string;
+    readonly capability: string;
+    readonly target: CapabilityRouteTarget;
+    readonly precedence: number;
+  }): Promise<string[]> {
+    return this.repository.runInTransaction(() =>
+      this.repository.capability.assignResource(input),
+    );
+  }
+
+  unassignCapabilityResource(input: {
+    readonly storeId: string;
+    readonly installationId: string;
+    readonly capability: string;
+    readonly target: CapabilityRouteTarget;
+  }): Promise<number> {
+    return this.repository.runInTransaction(() =>
+      this.repository.capability.unassignResource(input),
+    );
   }
 
   private createOperation(input: {
@@ -621,70 +585,6 @@ export class AppInstallationStore {
     });
   }
 
-  private async projectSalesChannelSpecifications(
-    installationId: string,
-    snapshot: AppManifestSnapshot,
-  ): Promise<void> {
-    if (snapshot.manifest.schemaVersion !== 2) {
-      return;
-    }
-    for (const specification of
-      snapshot.manifest.extensions.salesChannels?.specifications ?? []) {
-      const definition = specification as unknown as Record<string, unknown>;
-      await this.repository.salesChannelSpecification.save({
-        installationId,
-        appCode: snapshot.manifest.code,
-        appVersion: snapshot.manifest.version,
-        manifestHash: snapshot.hash,
-        handle: specification.handle,
-        label: specification.label,
-        definition,
-        definitionHash: createHash("sha256")
-          .update(JSON.stringify(canonicalize(definition)))
-          .digest("hex"),
-      });
-    }
-  }
-
-  private async assertSalesChannelUpdateCompatible(
-    installationId: string,
-    snapshot: AppManifestSnapshot,
-  ): Promise<void> {
-    const activeConnections =
-      await this.repository.salesChannelConnection.listByInstallation(
-        installationId,
-        false,
-      );
-    if (activeConnections.length === 0) {
-      return;
-    }
-    const nextSpecifications =
-      snapshot.manifest.schemaVersion === 2
-        ? snapshot.manifest.extensions.salesChannels?.specifications ?? []
-        : [];
-    const byHandle = new Map(
-      nextSpecifications.map((specification) => [
-        specification.handle,
-        specification,
-      ]),
-    );
-    const affected: string[] = [];
-    for (const connection of activeConnections) {
-      const current =
-        await this.repository.salesChannelSpecification.findById(
-          connection.specificationSnapshotId,
-        );
-      const next = current ? byHandle.get(current.handle) : undefined;
-      if (!current || !next || !isCompatibleSpecification(current.definition, next)) {
-        affected.push(connection.id);
-      }
-    }
-    if (affected.length > 0) {
-      throw new Error(
-        `App update has removed or changed incompatible sales channel specifications used by connections: ${affected.join(", ")}`,
-      );
-    }
-  }
 }
 
 function lifecycleWorkflowId(
@@ -729,32 +629,4 @@ function normalizeError(error: unknown): {
     code: "APP_LIFECYCLE_ERROR",
     message: String(error),
   };
-}
-
-function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, entry]) => [key, canonicalize(entry)]),
-    );
-  }
-  return value;
-}
-
-function isCompatibleSpecification(
-  current: Readonly<Record<string, unknown>>,
-  next: Readonly<Record<string, unknown>>,
-): boolean {
-  const compatibilityFields = (
-    value: Readonly<Record<string, unknown>>,
-  ) => ({
-    handle: value.handle,
-    connection: value.connection,
-  });
-  return (
-    JSON.stringify(canonicalize(compatibilityFields(current))) ===
-    JSON.stringify(canonicalize(compatibilityFields(next)))
-  );
 }

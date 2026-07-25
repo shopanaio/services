@@ -2,9 +2,6 @@ import DataLoader from "dataloader";
 import type {
   AppInstallationRecord,
   AppLifecycleOperationRecord,
-  SalesChannelConnectionRecord,
-  SalesChannelOperationRecord,
-  SalesChannelSpecificationSnapshotRecord,
 } from "../control-plane/types.js";
 import type { AppCapabilityBindingRecord } from "../repositories/capability/AppCapabilityRepository.js";
 import type { AppManifestSnapshotRecord } from "../repositories/manifest/AppManifestSnapshotRepository.js";
@@ -62,18 +59,6 @@ export class Loader {
     string,
     AppCapabilityBindingRecord | null
   >;
-  readonly salesChannelSpecification: DataLoader<
-    string,
-    SalesChannelSpecificationSnapshotRecord | null
-  >;
-  readonly salesChannelConnection: DataLoader<
-    string,
-    SalesChannelConnectionRecord | null
-  >;
-  readonly salesChannelOperation: DataLoader<
-    string,
-    SalesChannelOperationRecord | null
-  >;
   readonly scopesByInstallation: DataLoader<
     string,
     readonly AppInstallationScopeRecord[]
@@ -81,10 +66,6 @@ export class Loader {
   readonly capabilityBindingsByInstallation: DataLoader<
     string,
     readonly AppCapabilityBindingRecord[]
-  >;
-  readonly salesChannelConnectionsByInstallation: DataLoader<
-    string,
-    readonly SalesChannelConnectionRecord[]
   >;
 
   constructor(repository: Repository) {
@@ -111,28 +92,12 @@ export class Loader {
     this.capabilityBinding = createEntityLoader((ids) =>
       repository.capability.getByIdsForStore(ids),
     );
-    this.salesChannelSpecification = createEntityLoader((ids) =>
-      repository.salesChannelSpecification.getByIdsForStore(ids),
-    );
-    this.salesChannelConnection = createEntityLoader((ids) =>
-      repository.salesChannelConnection.getByIdsForStore(ids),
-    );
-    this.salesChannelOperation = createEntityLoader((ids) =>
-      repository.salesChannelOperation.getByIdsForStore(ids),
-    );
     this.scopesByInstallation = createRelationLoader(
       (ids) => repository.scope.listByInstallationIdsForStore(ids),
       (row) => row.installationId,
     );
     this.capabilityBindingsByInstallation = createRelationLoader(
       (ids) => repository.capability.listByInstallationIdsForStore(ids),
-      (row) => row.installationId,
-    );
-    this.salesChannelConnectionsByInstallation = createRelationLoader(
-      (ids) =>
-        repository.salesChannelConnection.listByInstallationIdsForStore(
-          ids,
-        ),
       (row) => row.installationId,
     );
   }

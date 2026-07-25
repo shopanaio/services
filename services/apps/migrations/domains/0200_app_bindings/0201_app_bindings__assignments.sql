@@ -31,3 +31,12 @@ CREATE INDEX "idx_slot_assignments_resolve"
 
 CREATE INDEX "idx_slot_assignments_slot"
   ON "apps"."slot_assignments" ("slot_id");
+
+CREATE UNIQUE INDEX "slot_assignments_target_slot_key"
+  ON "apps"."slot_assignments" (
+    "store_id",
+    "aggregate",
+    "aggregate_id",
+    "domain",
+    "slot_id"
+  );

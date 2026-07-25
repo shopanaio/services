@@ -17,8 +17,6 @@ import { AppInstallationStore } from "./AppInstallationStore.js";
 import type { AppLifecycleWorkflowInput } from "./types.js";
 import { AppRuntimeRegistry } from "../runtime/AppRuntimeRegistry.js";
 import { AppsRuntimeRouter } from "../runtime/AppsRuntimeRouter.js";
-import { SalesChannelConnectionStore } from "../sales-channels/control-plane/SalesChannelConnectionStore.js";
-import { SalesChannelLifecycleService } from "../sales-channels/control-plane/SalesChannelLifecycleService.js";
 
 @Injectable()
 export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
@@ -30,8 +28,6 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
     private readonly installations: AppInstallationStore,
     private readonly runtimes: AppRuntimeRegistry,
     private readonly router: AppsRuntimeRouter,
-    private readonly channelConnections: SalesChannelConnectionStore,
-    private readonly channelLifecycle: SalesChannelLifecycleService,
   ) {
     super(broker);
   }
@@ -133,30 +129,6 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
             { workflowId: `${operation.workflowId}:app` },
           );
         }
-        const connectionUpdates =
-          await this.installations.prepareSalesChannelUpdate(
-            installation.id,
-            manifest,
-          );
-        for (const connection of connectionUpdates) {
-          const accepted = await this.channelLifecycle.update(
-            {
-              connectionId: connection.connectionId,
-              configuration: connection.configuration,
-              expectedConfigurationVersion:
-                connection.configurationVersion,
-              targetSpecificationId:
-                connection.targetSpecificationId,
-              clientMutationId: `app-update:${operation.id}:${connection.connectionId}`,
-              correlationId: operation.correlationId ?? undefined,
-            },
-            this.broker,
-          );
-          await this.broker
-            .getWorkflowRegistry()
-            .retrieve(accepted.workflowId)
-            .getResult();
-        }
         return;
       }
       case "SUSPEND": {
@@ -184,11 +156,6 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
         return;
       }
       case "UNINSTALL": {
-        await this.disconnectSalesChannels(
-          installation.id,
-          installation.storeId,
-          operation.id,
-        );
         const workflow = manifest.lifecycle.uninstallWorkflow;
         if (workflow) {
           await this.router.runWorkflow<void, AppUninstallInput>(
@@ -204,29 +171,6 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
           );
         }
       }
-    }
-  }
-
-  @WorkflowStep()
-  private async disconnectSalesChannels(
-    installationId: string,
-    storeId: string,
-    operationId: string,
-  ): Promise<void> {
-    const connections =
-      await this.channelConnections.listByInstallation(installationId, false);
-    for (const connection of connections) {
-      const accepted = await this.channelLifecycle.disconnect(
-        connection.id,
-        `app-uninstall:${operationId}:${connection.id}`,
-        this.broker,
-        undefined,
-        storeId,
-      );
-      await this.broker
-        .getWorkflowRegistry()
-        .retrieve(accepted.workflowId)
-        .getResult();
     }
   }
 

@@ -1,7 +1,6 @@
 import type {
   AppHostContext,
   AppRuntimeHealth,
-  SalesChannelConnectInput,
   ShopanaApp,
 } from "@shopana/app-sdk";
 
@@ -15,10 +14,7 @@ export class OnlineStoreApp implements ShopanaApp {
     this.host.broker.register("suspend", () => ({ status: "suspended" }));
     this.host.broker.register("resume", () => ({ status: "active" }));
     this.host.broker.register("health", () => this.health());
-    this.host.broker.register<SalesChannelConnectInput>(
-      "channelConnect",
-      () => ({}),
-    );
+    this.host.broker.register("channelConnect", () => ({}));
     this.host.broker.register("channelUpdate", () => ({}));
     this.host.broker.register("channelDisconnect", () => undefined);
     this.host.broker.register("channelSuspend", () => undefined);

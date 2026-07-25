@@ -48,6 +48,7 @@ type AppInstallationScope {
 type AppCapabilityBinding implements Node @key(fields: "id") {
   id: ID!
   capability: String!
+  assignmentMode: AppCapabilityAssignmentMode!
   operation: String!
   targetAppCode: String!
   targetAction: String!

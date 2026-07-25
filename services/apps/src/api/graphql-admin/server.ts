@@ -22,7 +22,6 @@ import type { AppInstallationStore } from "../../control-plane/AppInstallationSt
 import type { AppLifecycleService } from "../../control-plane/AppLifecycleService.js";
 import type { Repository } from "../../repositories/Repository.js";
 import type { AppRuntimeRegistry } from "../../runtime/AppRuntimeRegistry.js";
-import type { SalesChannelLifecycleService } from "../../sales-channels/control-plane/SalesChannelLifecycleService.js";
 import { Loader } from "../../loaders/Loader.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
@@ -36,7 +35,6 @@ export interface ServerConfig {
   installations: AppInstallationStore;
   lifecycle: AppLifecycleService;
   runtimes: AppRuntimeRegistry;
-  salesChannelLifecycle: SalesChannelLifecycleService;
 }
 
 function getHeaderValue(
@@ -79,7 +77,6 @@ export async function startServer(serverConfig: ServerConfig) {
     "app-definition.graphql",
     "app-installation.graphql",
     "app-lifecycle.graphql",
-    "sales-channel.graphql",
   ];
   const modules = schemaFiles.map((file) => ({
     typeDefs: gql(
@@ -119,7 +116,6 @@ export async function startServer(serverConfig: ServerConfig) {
           installations: serverConfig.installations,
           lifecycle: serverConfig.lifecycle,
           runtimes: serverConfig.runtimes,
-          salesChannelLifecycle: serverConfig.salesChannelLifecycle,
           loaders: new Loader(serverConfig.repository),
           store: request.store,
           user: request.user,

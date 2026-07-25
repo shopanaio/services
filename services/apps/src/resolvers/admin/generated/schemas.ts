@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppConfigureInput, AppDefinitionWhereInput, AppExtensionKind, AppInstallInput, AppInstallationActionInput, AppInstallationHealthStatus, AppInstallationOrderByInput, AppInstallationOrderField, AppInstallationStatus, AppInstallationWhereInput, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppUpdateInput, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, SalesChannelConnectionActionInput, SalesChannelConnectionCreateInput, SalesChannelConnectionOrderByInput, SalesChannelConnectionOrderField, SalesChannelConnectionStatus, SalesChannelConnectionUpdateInput, SalesChannelConnectionWhereInput, SalesChannelHealthStatus, SalesChannelOperationType, SortDirection, StringFilter, WeightUnit } from './types.js'
+import { AppCapabilityAssignmentMode, AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppConfigureInput, AppDefinitionWhereInput, AppInstallInput, AppInstallationActionInput, AppInstallationHealthStatus, AppInstallationOrderByInput, AppInstallationOrderField, AppInstallationStatus, AppInstallationWhereInput, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppUpdateInput, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -11,11 +11,11 @@ export const isDefinedNonNullAny = (v: any): v is definedNonNullAny => v !== und
 
 export const definedNonNullAnySchema = z.any().refine((v) => isDefinedNonNullAny(v));
 
+export const AppCapabilityAssignmentModeSchema = z.nativeEnum(AppCapabilityAssignmentMode);
+
 export const AppCapabilityAssignmentStatusSchema = z.nativeEnum(AppCapabilityAssignmentStatus);
 
 export const AppCapabilityBindingStatusSchema = z.nativeEnum(AppCapabilityBindingStatus);
-
-export const AppExtensionKindSchema = z.nativeEnum(AppExtensionKind);
 
 export const AppInstallationHealthStatusSchema = z.nativeEnum(AppInstallationHealthStatus);
 
@@ -39,14 +39,6 @@ export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
 
-export const SalesChannelConnectionOrderFieldSchema = z.nativeEnum(SalesChannelConnectionOrderField);
-
-export const SalesChannelConnectionStatusSchema = z.nativeEnum(SalesChannelConnectionStatus);
-
-export const SalesChannelHealthStatusSchema = z.nativeEnum(SalesChannelHealthStatus);
-
-export const SalesChannelOperationTypeSchema = z.nativeEnum(SalesChannelOperationType);
-
 export const SortDirectionSchema = z.nativeEnum(SortDirection);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
@@ -62,7 +54,6 @@ export function AppConfigureInputSchema(): z.ZodObject<Properties<AppConfigureIn
 
 export function AppDefinitionWhereInputSchema(): z.ZodObject<Properties<AppDefinitionWhereInput>> {
   return z.object({
-    extensionKinds: z.array(AppExtensionKindSchema).nullish(),
     installed: z.boolean().nullish()
   })
 }
@@ -195,61 +186,6 @@ export function IntFilterSchema(): z.ZodObject<Properties<IntFilter>> {
     _lte: z.number().nullish(),
     _neq: z.number().nullish(),
     _notIn: z.array(z.number()).nullish()
-  })
-}
-
-export function SalesChannelConnectionActionInputSchema(): z.ZodObject<Properties<SalesChannelConnectionActionInput>> {
-  return z.object({
-    clientMutationId: z.string(),
-    connectionId: z.string()
-  })
-}
-
-export function SalesChannelConnectionCreateInputSchema(): z.ZodObject<Properties<SalesChannelConnectionCreateInput>> {
-  return z.object({
-    clientMutationId: z.string(),
-    configuration: z.record(z.unknown()).nullish(),
-    displayName: z.string(),
-    installationId: z.string(),
-    specificationId: z.string()
-  })
-}
-
-export function SalesChannelConnectionOrderByInputSchema(): z.ZodObject<Properties<SalesChannelConnectionOrderByInput>> {
-  return z.object({
-    direction: SortDirectionSchema,
-    field: SalesChannelConnectionOrderFieldSchema
-  })
-}
-
-export function SalesChannelConnectionUpdateInputSchema(): z.ZodObject<Properties<SalesChannelConnectionUpdateInput>> {
-  return z.object({
-    clientMutationId: z.string(),
-    configuration: z.record(z.unknown()),
-    connectionId: z.string(),
-    displayName: z.string().nullish(),
-    expectedConfigurationVersion: z.number(),
-    targetSpecificationId: z.string().nullish()
-  })
-}
-
-export function SalesChannelConnectionWhereInputSchema(): z.ZodObject<Properties<SalesChannelConnectionWhereInput>> {
-  return z.object({
-    _and: z.array(z.lazy(() => SalesChannelConnectionWhereInputSchema())).nullish(),
-    _not: z.lazy(() => SalesChannelConnectionWhereInputSchema().nullish()),
-    _or: z.array(z.lazy(() => SalesChannelConnectionWhereInputSchema())).nullish(),
-    configurationVersion: z.lazy(() => IntFilterSchema().nullish()),
-    connectedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    disconnectedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    displayName: z.lazy(() => StringFilterSchema().nullish()),
-    externalAccountId: z.lazy(() => StringFilterSchema().nullish()),
-    externalAccountLabel: z.lazy(() => StringFilterSchema().nullish()),
-    healthStatus: z.lazy(() => StringFilterSchema().nullish()),
-    id: z.lazy(() => IdFilterSchema().nullish()),
-    status: z.lazy(() => StringFilterSchema().nullish()),
-    suspendedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
   })
 }
 

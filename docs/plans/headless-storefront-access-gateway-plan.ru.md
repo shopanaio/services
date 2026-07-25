@@ -521,7 +521,7 @@ Provisioning для `CONNECTING` connection отклоняется. Credential �
 ```text
 app_shopana_headless.storefront_access_policies
 ───────────────────────────────────────────────
-connection_id       uuid PK/FK app_sales_channel_connections
+connection_id       uuid PK/FK apps.app_sales_channel_connections
 organization_id     uuid not null
 store_id            uuid not null
 revision            integer not null default 1
@@ -550,7 +550,7 @@ app_shopana_headless.storefront_credentials
 id                         uuidv7 PK
 organization_id            uuid not null
 store_id                   uuid not null
-connection_id              uuid not null FK app_sales_channel_connections
+connection_id              uuid not null FK apps.app_sales_channel_connections
 kind                       enum not null
 status                     enum not null
 kid                        varchar(64) not null

@@ -15,28 +15,19 @@ export const onlineStoreManifest = defineAppManifest({
     healthAction: "health",
   },
   permissions: [],
-  capabilities: [],
-  extensions: {
-    salesChannels: {
-      specifications: [
-        {
-          handle: "online-store",
-          label: "Online Store",
-          connection: {
-            allowMultipleConnections: false,
-            requiresExternalAccount: false,
-          },
-          operations: {
-            connect: "channelConnect",
-            update: "channelUpdate",
-            suspend: "channelSuspend",
-            resume: "channelResume",
-            disconnect: "channelDisconnect",
-            health: "channelHealth",
-          },
-        },
-      ],
+  capabilities: [
+    {
+      key: "sales-channel",
+      assignmentMode: "resource",
+      operations: {
+        connect: "channelConnect",
+        update: "channelUpdate",
+        suspend: "channelSuspend",
+        resume: "channelResume",
+        disconnect: "channelDisconnect",
+        health: "channelHealth",
+      },
     },
-  },
+  ],
   graphql: { admin: true, storefront: true },
 });

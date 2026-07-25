@@ -6,6 +6,7 @@ CREATE TABLE "apps"."slots" (
   "status" "apps"."slot_status" DEFAULT 'active' NOT NULL,
   "installation_id" uuid NOT NULL,
   "capability" varchar(128) NOT NULL,
+  "assignment_mode" varchar(16) DEFAULT 'store' NOT NULL,
   "operation_contract" varchar(128) NOT NULL,
   "target_app_code" varchar(128) NOT NULL,
   "target_action" varchar(128) NOT NULL,

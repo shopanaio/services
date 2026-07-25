@@ -3,12 +3,11 @@ import { z } from "zod";
 const appCodePattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const semverPattern =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
-const extensionHandlePattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-const localOperationPattern = /^[a-z][A-Za-z0-9]*$/;
 
 const AppCapabilitySchema = z
   .object({
     key: z.string().min(1),
+    assignmentMode: z.enum(["store", "resource"]).optional(),
     operations: z.record(z.string().min(1)),
   })
   .strict();
@@ -30,36 +29,6 @@ const AppGraphQLManifestSchema = z
     storefront: z.boolean().default(false),
   })
   .strict();
-
-const SalesChannelOperationContractsSchema = z
-  .object({
-    connect: z.string().regex(localOperationPattern).optional(),
-    update: z.string().regex(localOperationPattern).optional(),
-    suspend: z.string().regex(localOperationPattern).optional(),
-    resume: z.string().regex(localOperationPattern).optional(),
-    disconnect: z.string().regex(localOperationPattern).optional(),
-    health: z.string().regex(localOperationPattern).optional(),
-  })
-  .strict();
-
-const SalesChannelSpecificationSchema = z
-  .object({
-    handle: z.string().regex(extensionHandlePattern),
-    label: z.string().trim().min(1),
-    description: z.string().trim().min(1).optional(),
-    icon: z.string().min(1).optional(),
-    connection: z
-      .object({
-        allowMultipleConnections: z.boolean(),
-        requiresExternalAccount: z.boolean(),
-      })
-      .strict(),
-    operations: SalesChannelOperationContractsSchema,
-  })
-  .strict()
-  .superRefine((specification, ctx) => {
-    assertNoCredentialFields(specification, ctx, []);
-  });
 
 const AppManifestV1Schema = z
   .object({
@@ -88,32 +57,6 @@ export const AppManifestV2Schema = z
     lifecycle: AppLifecycleSchema.default({}),
     permissions: z.array(z.string().min(1)).default([]),
     capabilities: z.array(AppCapabilitySchema).default([]),
-    extensions: z
-      .object({
-        salesChannels: z
-          .object({
-            specifications: z
-              .array(SalesChannelSpecificationSchema)
-              .min(1)
-              .superRefine((specifications, ctx) => {
-                const seen = new Set<string>();
-                specifications.forEach((specification, index) => {
-                  if (seen.has(specification.handle)) {
-                    ctx.addIssue({
-                      code: z.ZodIssueCode.custom,
-                      message: `Duplicate sales channel specification handle "${specification.handle}"`,
-                      path: [index, "handle"],
-                    });
-                  }
-                  seen.add(specification.handle);
-                });
-              }),
-          })
-          .strict()
-          .optional(),
-      })
-      .strict()
-      .default({}),
     graphql: AppGraphQLManifestSchema.default({
       admin: false,
       storefront: false,
@@ -128,12 +71,6 @@ export const AppManifestSchema = z.discriminatedUnion("schemaVersion", [
 
 export type AppManifest = z.infer<typeof AppManifestSchema>;
 export type AppManifestV2 = z.infer<typeof AppManifestV2Schema>;
-export type SalesChannelSpecification = z.infer<
-  typeof SalesChannelSpecificationSchema
->;
-export type SalesChannelOperationContracts = z.infer<
-  typeof SalesChannelOperationContractsSchema
->;
 
 export function defineAppManifest(input: AppManifestV2): AppManifestV2 {
   return Object.freeze(AppManifestV2Schema.parse(input));
@@ -152,11 +89,6 @@ export interface AppExecutionContext {
     readonly id?: string;
   };
   readonly correlationId?: string;
-  readonly extension?: {
-    readonly kind: "sales-channel";
-    readonly instanceId: string;
-    readonly specificationHandle: string;
-  };
 }
 
 export interface AppDurableContextRef {
@@ -169,7 +101,6 @@ export interface AppDurableContextRef {
   readonly operationId?: string;
   readonly actor?: AppExecutionContext["actor"];
   readonly correlationId?: string;
-  readonly extension?: AppExecutionContext["extension"];
 }
 
 export interface AppWorkflowInvocation<TInput> {
@@ -219,29 +150,6 @@ export interface AppResumeInput {
 
 export interface AppUninstallInput {
   readonly version: string;
-}
-
-export interface SalesChannelConnectInput {
-  readonly connectionId: string;
-  readonly specificationHandle: string;
-  readonly configuration: Readonly<Record<string, unknown>>;
-}
-
-export interface SalesChannelConnectResult {
-  readonly externalAccountId?: string;
-  readonly externalAccountLabel?: string;
-  readonly configuration?: Readonly<Record<string, unknown>>;
-}
-
-export interface SalesChannelUpdateInput extends SalesChannelConnectInput {
-  readonly previousConfigurationVersion: number;
-}
-
-export type SalesChannelUpdateResult = SalesChannelConnectResult;
-
-export interface SalesChannelActionInput {
-  readonly connectionId: string;
-  readonly specificationHandle: string;
 }
 
 export interface AppExecutionContextAccessor {
@@ -480,33 +388,4 @@ export function defineApp(
 ): ShopanaAppDefinition {
   AppManifestSchema.parse(definition.manifest);
   return Object.freeze(definition);
-}
-
-const forbiddenCredentialKey =
-  /(?:credential|secret|token|api[-_]?key|password|private[-_]?key)/i;
-
-function assertNoCredentialFields(
-  value: unknown,
-  ctx: z.RefinementCtx,
-  path: readonly (string | number)[],
-): void {
-  if (Array.isArray(value)) {
-    value.forEach((entry, index) =>
-      assertNoCredentialFields(entry, ctx, [...path, index]),
-    );
-    return;
-  }
-  if (!value || typeof value !== "object") {
-    return;
-  }
-  for (const [key, entry] of Object.entries(value)) {
-    if (forbiddenCredentialKey.test(key)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Sales channel specification cannot contain credential field "${key}"`,
-        path: [...path, key],
-      });
-    }
-    assertNoCredentialFields(entry, ctx, [...path, key]);
-  }
 }
