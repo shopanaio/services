@@ -7,8 +7,6 @@ import {
 import { AppsNestService } from './apps.nest-service';
 import { createDatabase } from './infrastructure/db/database.js';
 import { Repository } from './repositories/Repository.js';
-import { AppInstallationRepository } from './repositories/installation/AppInstallationRepository.js';
-import { AppInstallationSecretRepository } from './repositories/secret/AppInstallationSecretRepository.js';
 import { AppBrokerFacadeFactory } from './runtime/AppBrokerFacadeFactory.js';
 import { AppRuntimeRegistry } from './runtime/AppRuntimeRegistry.js';
 import { AppsRuntimeHost } from './runtime/AppsRuntimeHost.js';
@@ -19,6 +17,7 @@ import {
 } from './runtime/AppInstallationContextProvider.js';
 import { AppSecretResolverFactory } from './runtime/AppSecretResolverFactory.js';
 import { AppInstallationSecretStore } from './control-plane/AppInstallationSecretStore.js';
+import { AppInstallationStore } from './control-plane/AppInstallationStore.js';
 import { AppLifecycleService } from './control-plane/AppLifecycleService.js';
 import { AppInstallationLifecycleWorkflow } from './control-plane/AppInstallationLifecycleWorkflow.js';
 import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
@@ -37,16 +36,7 @@ import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
       useFactory: (client: DatabaseClient) =>
         Repository.create({ db: createDatabase(client) }),
     },
-    {
-      provide: AppInstallationRepository,
-      inject: [Repository],
-      useFactory: (repository: Repository) => repository.installation,
-    },
-    {
-      provide: AppInstallationSecretRepository,
-      inject: [Repository],
-      useFactory: (repository: Repository) => repository.secret,
-    },
+    AppInstallationStore,
     AppInstallationSecretStore,
     DatabaseAppInstallationContextProvider,
     AppSecretResolverFactory,
@@ -62,7 +52,7 @@ import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
     AppRuntimeRegistry,
     AppsRuntimeRouter,
     Repository,
-    AppInstallationRepository,
+    AppInstallationStore,
   ],
 })
 export class AppsModule {}

@@ -11,16 +11,16 @@ import type {
 } from "@shopana/shared-kernel";
 import { AppInstallationSecretStore } from "./AppInstallationSecretStore.js";
 import {
-  AppInstallationRepository,
+  AppInstallationStore,
   type BegunLifecycleOperation,
-} from "../repositories/installation/AppInstallationRepository.js";
+} from "./AppInstallationStore.js";
 import { snapshotManifest } from "./manifest.js";
 import { AppRuntimeRegistry } from "../runtime/AppRuntimeRegistry.js";
 
 @Injectable()
 export class AppLifecycleService {
   constructor(
-    private readonly installations: AppInstallationRepository,
+    private readonly installations: AppInstallationStore,
     private readonly secrets: AppInstallationSecretStore,
     private readonly runtimes: AppRuntimeRegistry,
   ) {}

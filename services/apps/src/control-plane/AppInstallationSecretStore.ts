@@ -6,14 +6,14 @@ import {
 } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { getServiceConfig } from "@shopana/shared-service-config";
-import { AppInstallationSecretRepository } from "../repositories/secret/AppInstallationSecretRepository.js";
+import { Repository } from "../repositories/Repository.js";
 
 @Injectable()
 export class AppInstallationSecretStore {
   private readonly key: Buffer;
 
   constructor(
-    private readonly repository: AppInstallationSecretRepository,
+    private readonly repository: Repository,
   ) {
     const { global } = getServiceConfig("apps");
     const masterKey =
@@ -39,7 +39,7 @@ export class AppInstallationSecretStore {
       }
       encrypted[normalizedName] = this.encrypt(value);
     }
-    await this.repository.setMany(installationId, encrypted);
+    await this.repository.secret.setMany(installationId, encrypted);
   }
 
   async resolve(
@@ -47,7 +47,7 @@ export class AppInstallationSecretStore {
     appCode: string,
     name: string,
   ): Promise<string> {
-    const row = await this.repository.resolve(
+    const row = await this.repository.secret.resolve(
       installationId,
       appCode,
       name,

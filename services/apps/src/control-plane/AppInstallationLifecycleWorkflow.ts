@@ -13,7 +13,7 @@ import {
   Workflow,
   WorkflowStep,
 } from "@shopana/shared-kernel";
-import { AppInstallationRepository } from "../repositories/installation/AppInstallationRepository.js";
+import { AppInstallationStore } from "./AppInstallationStore.js";
 import type { AppLifecycleWorkflowInput } from "./types.js";
 import { AppRuntimeRegistry } from "../runtime/AppRuntimeRegistry.js";
 import { AppsRuntimeRouter } from "../runtime/AppsRuntimeRouter.js";
@@ -25,7 +25,7 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
 > {
   constructor(
     @InjectBroker("apps") broker: ServiceBroker,
-    private readonly installations: AppInstallationRepository,
+    private readonly installations: AppInstallationStore,
     private readonly runtimes: AppRuntimeRegistry,
     private readonly router: AppsRuntimeRouter,
   ) {

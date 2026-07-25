@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
@@ -78,5 +78,42 @@ export class AppInstallationSecretRepository extends BaseRepository {
       .limit(1);
 
     return rows[0] ?? null;
+  }
+
+  async listActiveNames(
+    installationId: string,
+  ): Promise<readonly string[]> {
+    const rows = await this.connection
+      .select({ name: appInstallationSecrets.name })
+      .from(appInstallationSecrets)
+      .where(
+        and(
+          eq(
+            appInstallationSecrets.installationId,
+            installationId,
+          ),
+          isNull(appInstallationSecrets.revokedAt),
+        ),
+      )
+      .orderBy(asc(appInstallationSecrets.name));
+    return Object.freeze(rows.map((row) => row.name));
+  }
+
+  async revokeAll(installationId: string): Promise<void> {
+    await this.connection
+      .update(appInstallationSecrets)
+      .set({
+        revokedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(
+            appInstallationSecrets.installationId,
+            installationId,
+          ),
+          isNull(appInstallationSecrets.revokedAt),
+        ),
+      );
   }
 }
