@@ -1,4 +1,4 @@
-# План: Sales Channels как App extensions и Headless storefronts
+# План: Sales Channels как Apps
 
 ## Статус
 
@@ -6,7 +6,6 @@
 - Тип: архитектурный и implementation plan.
 - Стратегия: clean cutover без backward compatibility, backfill и dual write.
 - Основная модель: `AppDefinition -> AppInstallation -> SalesChannelConnection`.
-- Headless-модель: `SalesChannelConnection -> IAM Storefront API Client -> public/private credentials`.
 
 ## Цель
 
@@ -15,14 +14,13 @@ channels:
 
 - App объявляет поддержку sales channels через versioned manifest extension;
 - App устанавливается один раз для store;
-- одна installation может создать несколько независимых channel connections;
-- Admin обнаруживает sales-channel Apps по manifest, а реальные каналы — по
-  persisted connections текущего store;
-- bundled Headless App позволяет создавать несколько custom storefronts;
-- каждый Headless storefront получает собственные public/private Storefront API
-  credentials;
-- lifecycle App, connection и credential не смешиваются;
-- first-party и third-party channels используют один connection contract.
+- одна installation может создать один или несколько channel connections;
+- Admin обнаруживает sales-channel Apps по manifest;
+- Admin получает реальные channels из persisted connections текущего store;
+- bundled `shopana-online-store` создаёт системный Online Store channel;
+- first-party и third-party channels используют один connection contract;
+- lifecycle App и lifecycle connection остаются раздельными;
+- legacy enum типов и строковый channel code удаляются.
 
 ## Scope
 
@@ -31,134 +29,89 @@ channels:
 - `packages/app-sdk`;
 - `packages/app-runtime`;
 - `packages/broker-types`;
-- `packages/shared-context`;
 - `services/apps`;
-- `services/iam`;
-- Storefront GraphQL Gateway и trusted storefront context;
-- bundled App `apps/headless`;
-- Apps/IAM Admin GraphQL;
+- bundled App `apps/online-store`;
+- Apps Admin GraphQL;
 - Admin frontend;
-- удаление legacy `sales_channel` и `market_sales_channel` из Project Service.
+- удаление legacy sales-channel models из Project Service.
 
-План не включает:
+План не добавляет другие commerce-контексты, API credentials, product
+distribution, feed synchronization, billing, analytics или attribution.
 
-- Markets и Channel Markets;
-- Catalog, Publication и Product Feed;
-- синхронизацию товаров с внешними marketplaces;
-- buyer-specific commercial context;
-- аналитику и attribution;
-- billing и commissions;
-- customer authentication;
-- автоматическое создание региональных сущностей;
-- compatibility adapters для строкового channel code.
+## Shopify reference model
 
-Перечисленные области должны проектироваться отдельно после стабилизации
-connection и credential contracts.
+### App объявляет sales channel через extension
 
-## Что подтверждено Shopify
-
-### App становится sales channel через extension
-
-Shopify требует добавить Channel config extension в App. Extension объявляет
-channel specifications, а не создаёт merchant connection сама по себе:
+Shopify App становится sales channel через Channel config extension. Extension
+содержит channel specifications:
 
 - [Start building a sales channel app](https://shopify.dev/docs/apps/build/sales-channels/start-building)
 - [Channel config extension](https://shopify.dev/docs/apps/build/sales-channels/channel-config-extension)
 
-Следствие для Shopana:
+Для Shopana:
 
 ```text
 App manifest
   └── extensions.salesChannels.specifications
 ```
 
-### Channel connection создаётся после установки App
+### Connection создаётся отдельно от App installation
 
-Shopify App вызывает `channelCreate` после подключения merchant к внешнему
-account. Input содержит `accountId`, `accountName`, `handle` и
-`specificationHandle`; Market/Catalog identifiers там отсутствуют:
+После установки App и подключения внешнего account App вызывает
+`channelCreate`. Mutation получает specification и account identity, а
+результатом является отдельный Channel:
 
 - [Shopify `channelCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/channelCreate)
 - [Managing channel connections](https://shopify.dev/docs/apps/build/sales-channels/channel-connections)
 
-Следствие:
+Для Shopana:
 
 ```text
 AppInstallation != SalesChannelConnection
 ```
 
-и:
+### Одна App может иметь несколько connections
 
-```text
-AppInstallation
-  └── 0..N SalesChannelConnections
-```
-
-### App может создать несколько channels
-
-Одна sales-channel App может управлять несколькими connections, включая разные
-regions или seller accounts:
+Shopify поддерживает несколько channel connections для одной App:
 
 - [Multi-channel support for sales channel apps](https://shopify.dev/changelog/multi-channel-support-for-sales-channel-apps)
 - [Shopify `Channel`](https://shopify.dev/docs/api/admin-graphql/latest/objects/Channel)
 
-Следствие: `appCode` или `installationId` нельзя использовать как channel
-identity.
-
-### Headless channel создаёт несколько storefronts
-
-Shopify Headless channel является местом создания custom storefronts. Каждый
-storefront получает public и private Storefront API tokens:
-
-- [Building with the Storefront API](https://shopify.dev/docs/storefronts/headless/building-with-the-storefront-api)
-- [Getting started with the Storefront API](https://shopify.dev/docs/storefronts/headless/building-with-the-storefront-api/getting-started)
-- [Manage the Headless channel](https://shopify.dev/docs/storefronts/headless/building-with-the-storefront-api/manage-headless-channels)
-
-Следствие для Shopana:
+Для Shopana:
 
 ```text
-Headless AppInstallation
-  ├── Connection "Main website"
-  └── Connection "Mobile app"
+AppInstallation
+  ├── SalesChannelConnection
+  └── SalesChannelConnection
 ```
 
-Каждый connection является отдельным Headless storefront.
+`appCode` и `installationId` поэтому не являются channel identity.
 
-### Public и private tokens имеют разные threat models
+## Локальное архитектурное решение Shopana
 
-Shopify определяет:
-
-- public token — для browser/mobile client;
-- private token — только для server-side context;
-- private token нельзя помещать в client bundle;
-- private token поддерживает rotation;
-- server-side buyer-driven запрос должен передавать buyer IP.
-
-Источник:
-
-- [Shopify API authentication](https://shopify.dev/docs/api/usage/authentication)
-
-Следствие: это не криптографическая public/private key pair, а два типа access
-credentials.
-
-## Что намеренно не выводится из Shopify
-
-Публичная документация не раскрывает внутренние границы микросервисов Shopify.
-Поэтому размещение Shopana connection control plane в Apps Service — локальное
-архитектурное решение, основанное на уже существующих компонентах:
+Публичная документация Shopify не раскрывает внутренние границы их сервисов.
+Размещение connection control plane в Apps Service — решение Shopana,
+основанное на уже существующих компонентах:
 
 - App installation lifecycle;
 - manifest snapshots;
 - permissions;
-- secrets;
-- runtime registry;
+- App runtime registry;
 - DBOS workflows;
-- App execution context.
+- App execution context;
+- Admin GraphQL.
 
-Если domain существенно вырастет, модуль sales channels можно вынести в
-отдельный service без изменения внешнего GraphQL contract.
+Apps Service владеет только:
 
-## Исправленная domain model
+```text
+AppDefinition
+AppInstallation
+SalesChannelSpecification
+SalesChannelConnection
+SalesChannel lifecycle operations
+```
+
+## Domain model
 
 ```text
 AppDefinition
@@ -170,28 +123,20 @@ Store
   └── AppInstallation
         ├── SalesChannelConnection
         └── SalesChannelConnection
-
-Headless SalesChannelConnection
-  └── IAM StorefrontApiClient
-        ├── PUBLIC credential
-        ├── PRIVATE credential v1
-        └── PRIVATE credential v2
 ```
 
 ### Термины
 
-| Термин | Значение | Владелец |
-| --- | --- | --- |
-| `AppDefinition` | Bundled App и её текущий manifest | Apps |
-| `AppInstallation` | Установка App в конкретный store | Apps |
-| `SalesChannelExtension` | Manifest declaration поддержки channels | App manifest |
-| `SalesChannelSpecification` | Versioned шаблон connection | Apps |
-| `SalesChannelConnection` | Конкретный подключённый channel/storefront | Apps |
-| `StorefrontApiClient` | IAM subject Headless storefront | IAM |
-| `StorefrontCredential` | Public/private token | IAM |
-| `StorefrontGrant` | Разрешение credential/client | IAM |
+| Термин | Значение |
+| --- | --- |
+| `AppDefinition` | Bundled App и её manifest |
+| `AppInstallation` | Установка App в конкретный store |
+| `SalesChannelExtension` | Manifest declaration поддержки channels |
+| `SalesChannelSpecification` | Versioned шаблон channel connection |
+| `SalesChannelConnection` | Конкретный канал текущего store |
+| `SalesChannelOperation` | Durable lifecycle operation connection |
 
-## Архитектурные инварианты
+## Инварианты
 
 1. App installation и channel connection — разные entities.
 2. Одна installation имеет `0..N` connections.
@@ -199,26 +144,26 @@ Headless SalesChannelConnection
 4. Connection ID — UUIDv7 и единственная platform identity канала.
 5. `appCode`, specification handle и display name не являются connection ID.
 6. App без sales-channel extension не может создавать connections.
-7. Connection всегда ссылается на immutable specification snapshot.
-8. App может читать и изменять только собственные connections.
-9. Connection не требует Market, ChannelMarket, Catalog или Publication.
+7. Connection ссылается на immutable specification snapshot.
+8. App может управлять только connections своей installation.
+9. Connection существует без дополнительных обязательных сущностей.
 10. Generic capability slot не используется для enumeration connections.
-11. App suspend делает connections runtime-недоступными, не уничтожая их state.
+11. App suspend делает connections runtime-недоступными, не уничтожая state.
 12. Ошибка connection не переводит installation в failed state.
-13. Headless connection соответствует одному custom storefront.
-14. Storefront credentials принадлежат IAM, а не Apps configuration.
-15. Public token имеет только unauthenticated/storefront scopes.
-16. Private token показывается один раз и никогда не возвращается list/query API.
-17. Raw tokens не передаются downstream subgraphs.
-18. Token определяет store и connection; клиент не выбирает tenant header-ом.
-19. Customer identity не выводится из Storefront credential.
-20. Disconnect connection отзывает связанные storefront credentials.
+13. Disconnect является terminal lifecycle state, а не physical delete.
+14. Online Store использует тот же connection aggregate.
+15. Online Store создаётся системным bootstrap workflow.
+16. Online Store не использует legacy channel type enum.
+17. Tenant scope всегда берётся из trusted request/App context.
+18. Lifecycle mutation имеет idempotency key.
+19. Manifest update не меняет specification старого connection молча.
+20. Legacy uppercase channel code не сохраняется как identity.
 
-## Текущее состояние Shopana
+## Текущее состояние
 
-### Legacy SalesChannel в Project
+### Legacy Project model
 
-`services/project/src/repositories/models/salesChannel.ts` хранит:
+`services/project/src/repositories/models/salesChannel.ts` сейчас хранит:
 
 - `id`;
 - `storeId`;
@@ -230,99 +175,64 @@ Headless SalesChannelConnection
 - soft-delete timestamps.
 
 `services/project/src/repositories/models/marketSalesChannel.ts` создаёт
-локальную связь с Market.
+дополнительную legacy association.
 
 Проблемы:
 
-- closed enum требует изменения платформы для нового provider;
+- closed enum требует изменения core platform для нового provider;
 - lifecycle дублирует App installation lifecycle;
-- строковый code не выражает несколько accounts одной App;
-- Project не владеет App runtime и specification;
-- один `sales_channel` не разделяет App, installation и connection.
+- один code не выражает несколько accounts одной App;
+- Project не владеет App runtime;
+- одна строка смешивает definition, installation и connection;
+- `isDefault` смешивает channel identity и внешнюю policy.
 
 ### Apps Platform
 
 Apps Service уже имеет:
 
 - strict Zod manifest v1;
-- App runtime registry;
-- installation lifecycle;
+- runtime registry;
+- App installation lifecycle;
 - manifest snapshots;
-- granted scopes;
-- encrypted installation secrets;
+- scopes;
 - DBOS lifecycle operations;
-- runtime action routing;
+- runtime routing;
 - Admin GraphQL.
 
-Эти компоненты расширяются новым изолированным sales-channels module.
+Новая модель расширяет эту платформу изолированным sales-channels module.
 
-### Generic capability router
+### Почему не generic capability
 
-Текущие `slots` и `slot_assignments` выбирают одну реализацию для
-`capability + operation` и деактивируют конкурирующие routes.
+Текущие `slots` и `slot_assignments` выбирают одну реализацию
+`capability + operation` и деактивируют конкурирующие assignments.
 
-Sales channels имеют cardinality `MANY`:
+Sales channels должны работать одновременно:
 
 ```text
 Online Store
-Headless Main Website
-Headless Mobile App
-Amazon seller A
-Amazon seller B
+External channel A
+External channel B
+Second account of External channel A
 ```
 
-Поэтому connection разрешается по `connectionId`, а не через global capability
+Поэтому connection разрешается по `connectionId`, а не через global provider
 selection.
-
-### Storefront middleware
-
-`packages/shared-context/src/storefrontContextMiddleware.ts` сейчас:
-
-- требует `x-store-name`;
-- требует `x-api-key`;
-- не валидирует API key;
-- оставляет customer lookup как TODO.
-
-Эта схема должна быть заменена trusted token resolution через IAM.
-
-### Legacy Project API keys
-
-`project.api_key` нельзя переиспользовать для Headless:
-
-- ключ store-wide, а не connection-scoped;
-- нет public/private distinction;
-- нет storefront grants;
-- repository/scripts не реализованы;
-- GraphQL model возвращает поле `key`;
-- отсутствует безопасная rotation model.
-
-Legacy Project API keys остаются отдельной задачей и не становятся Storefront
-credentials.
 
 ## Manifest contract v2
 
-### Почему нужна версия 2
+### Причина новой версии
 
 Текущий manifest strict и принимает только `schemaVersion: 1`. Extension model
-меняет семантику App, поэтому новые Apps должны использовать manifest v2.
-
-Поддержка чтения v1 может оставаться только для уже существующей bundled
-`hello-world` App на время одного code cutover. Новые creation APIs v1 не
-добавляются.
+является breaking contract и добавляется как `schemaVersion: 2`.
 
 ### Contract
 
 ```ts
-type SalesChannelDeliveryMode =
-  | "STOREFRONT_API"
-  | "EXTERNAL_PLATFORM";
-
 interface SalesChannelSpecification {
   readonly handle: string;
   readonly label: string;
   readonly description?: string;
   readonly icon?: string;
-  readonly deliveryMode: SalesChannelDeliveryMode;
   readonly connection: {
     readonly allowMultipleConnections: boolean;
     readonly requiresExternalAccount: boolean;
@@ -345,22 +255,15 @@ interface AppExtensions {
 }
 ```
 
-`STOREFRONT_API` означает, что connection потребляет Shopana Storefront API.
-Этот plan реализует такой mode для bundled Headless App.
-
-`EXTERNAL_PLATFORM` резервирует connection type для внешнего provider, но его
-data distribution contract в этот plan не входит.
-
-### Headless manifest
+### Online Store manifest
 
 ```ts
-export const headlessManifest = defineAppManifest({
+export const onlineStoreManifest = defineAppManifest({
   schemaVersion: 2,
-  code: "shopana-headless",
+  code: "shopana-online-store",
   version: "1.0.0",
-  displayName: "Headless",
-  description:
-    "Create custom storefronts powered by the Storefront API.",
+  displayName: "Online Store",
+  description: "Shopana first-party online storefront channel.",
   lifecycle: {
     installWorkflow: "install",
     updateWorkflow: "update",
@@ -375,20 +278,19 @@ export const headlessManifest = defineAppManifest({
     salesChannels: {
       specifications: [
         {
-          handle: "headless-storefront",
-          label: "Headless storefront",
-          deliveryMode: "STOREFRONT_API",
+          handle: "online-store",
+          label: "Online Store",
           connection: {
-            allowMultipleConnections: true,
+            allowMultipleConnections: false,
             requiresExternalAccount: false,
           },
           operations: {
-            connect: "storefrontConnect",
-            update: "storefrontUpdate",
-            suspend: "storefrontSuspend",
-            resume: "storefrontResume",
-            disconnect: "storefrontDisconnect",
-            health: "storefrontHealth",
+            connect: "channelConnect",
+            update: "channelUpdate",
+            suspend: "channelSuspend",
+            resume: "channelResume",
+            disconnect: "channelDisconnect",
+            health: "channelHealth",
           },
         },
       ],
@@ -396,7 +298,7 @@ export const headlessManifest = defineAppManifest({
   },
   graphql: {
     admin: true,
-    storefront: false,
+    storefront: true,
   },
 });
 ```
@@ -408,18 +310,16 @@ Manifest validator проверяет:
 - `handle` соответствует `^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`;
 - handles уникальны внутри App version;
 - label не пустой;
-- delivery mode известен;
-- operation names являются local names без чужого prefix;
-- все declared operations зарегистрированы runtime;
-- Headless specification имеет `STOREFRONT_API`;
-- specification не содержит merchant secrets;
-- обычная App может не иметь `salesChannels`.
+- operation names являются local names;
+- все declared operations зарегистрированы App runtime;
+- specification не содержит installation-specific configuration;
+- specification не содержит credentials;
+- обычная App может не иметь sales-channel extension;
+- `allowMultipleConnections = false` применяется как database/domain invariant.
 
-## Apps persistence
+## Specification snapshots
 
-### Specification snapshots
-
-Полный manifest уже snapshot-ится Apps Service. Для connection lookup нужна
+Полный manifest уже snapshot-ится Apps Service. Для connection нужна
 query-friendly immutable projection:
 
 ```text
@@ -432,7 +332,6 @@ app_version           varchar
 manifest_hash         varchar
 handle                varchar
 label                 varchar
-delivery_mode         enum
 definition            jsonb
 definition_hash       varchar
 created_at            timestamptz
@@ -447,7 +346,9 @@ index  (installation_id, handle)
 
 Snapshot создаётся при успешном App install/update.
 
-### Connections
+Connection не ссылается на mutable current manifest.
+
+## SalesChannelConnection persistence
 
 ```text
 platform.app_sales_channel_connections
@@ -507,17 +408,27 @@ index (installation_id, status, id)
 index (specification_snapshot_id)
 ```
 
-Для specifications с `allowMultipleConnections = false`:
+Для `allowMultipleConnections = false`:
 
 ```text
 unique (store_id, installation_id, specification_snapshot_id)
 where status <> 'DISCONNECTED'
 ```
 
-Для `allowMultipleConnections = true` допускается несколько connections. Уникальность
-внешнего account валидируется только когда `externalAccountId` присутствует.
+Для multiple connections и external accounts:
 
-### Connection operations
+```text
+unique (
+  store_id,
+  installation_id,
+  specification_snapshot_id,
+  external_account_id
+)
+where status <> 'DISCONNECTED'
+  and external_account_id is not null
+```
+
+## Lifecycle operations
 
 ```text
 platform.app_sales_channel_operations
@@ -541,7 +452,7 @@ created_at                 timestamptz
 updated_at                 timestamptz
 ```
 
-Operation types:
+Types:
 
 ```text
 CONNECT
@@ -589,7 +500,30 @@ services/apps/src/sales-channels/
     admin/
 ```
 
-### Exact-connection routing
+### `SalesChannelSpecificationService`
+
+Responsibilities:
+
+- извлекать specifications из manifest v2;
+- валидировать contracts;
+- создавать immutable snapshots;
+- находить snapshot по installation + handle;
+- проверять совместимость App update;
+- запрещать silent reassignment connection.
+
+### `SalesChannelConnectionStore`
+
+Responsibilities:
+
+- tenant-scoped create/read/update;
+- optimistic `configurationVersion`;
+- lifecycle row locks;
+- operation idempotency;
+- ownership checks;
+- external account metadata;
+- terminal disconnect без physical delete.
+
+### Exact-connection runtime router
 
 ```ts
 invokeForConnection<TResult, TInput>(
@@ -610,13 +544,13 @@ Router:
 1. Загружает connection tenant-scoped.
 2. Загружает installation.
 3. Проверяет installation status.
-4. Загружает immutable specification snapshot.
+4. Загружает specification snapshot.
 5. Получает declared target action.
 6. Проверяет App runtime code/version.
-7. Создаёт trusted App context.
-8. Вызывает runtime только App-владельца connection.
+7. Создаёт trusted App execution context.
+8. Вызывает только App-владельца connection.
 
-`AppExecutionContext` расширяется:
+`AppExecutionContext` расширить:
 
 ```ts
 interface AppExecutionContext {
@@ -631,38 +565,94 @@ interface AppExecutionContext {
 
 ### Effective availability
 
-Connection обслуживает runtime request только если:
+Connection доступен только если:
 
 ```text
 installation.status == ACTIVE
 AND connection.status == ACTIVE
 ```
 
-App suspend не переписывает persisted status всех connections. После resume
-connections возвращают effective availability без потери своего lifecycle
-state.
+App suspend не переписывает statuses всех connections. Он делает их временно
+runtime-недоступными.
 
-### Uninstall
+### App update
 
-App uninstall:
+1. Сохранить новый manifest snapshot.
+2. Создать новые specification snapshots.
+3. Найти connections installation.
+4. Проверить наличие прежнего handle.
+5. Проверить compatibility contract.
+6. Выполнить explicit connection UPDATE operation.
+7. Переключить snapshot только после успешного operation.
 
-1. Запрещает новые connection operations.
-2. Запускает controlled disconnect non-terminal connections.
-3. Дожидается terminal results либо фиксирует uninstall failure.
-4. Emit-ит connection disconnected events.
-5. Не выполняет физический delete connection records.
+Удаление handle при наличии active connections блокирует App update до явного
+disconnect или migration policy.
+
+### App uninstall
+
+1. Запретить новые connection operations.
+2. Запустить controlled disconnect всех non-terminal connections.
+3. Дождаться terminal results.
+4. При failure оставить App uninstall в recoverable failed state.
+5. Не удалять connection records каскадом.
+
+## Events и broker contracts
+
+Events:
+
+```text
+apps.sales-channel.connection.created.v1
+apps.sales-channel.connection.activated.v1
+apps.sales-channel.connection.updated.v1
+apps.sales-channel.connection.suspended.v1
+apps.sales-channel.connection.resumed.v1
+apps.sales-channel.connection.disconnected.v1
+apps.sales-channel.connection.health-changed.v1
+```
+
+Envelope:
+
+```ts
+interface SalesChannelConnectionEvent {
+  readonly eventId: string;
+  readonly occurredAt: string;
+  readonly organizationId: string;
+  readonly storeId: string;
+  readonly connectionId: string;
+  readonly installationId: string;
+  readonly appCode: string;
+  readonly specificationHandle: string;
+  readonly correlationId?: string;
+}
+```
+
+Broker actions:
+
+```text
+apps.salesChannels.resolveConnection
+apps.salesChannels.listConnections
+apps.salesChannels.invokeConnection
+apps.salesChannels.getSpecification
+apps.salesChannels.resolveOnlineStore
+```
+
+`resolveOnlineStore`:
+
+- принимает trusted store context;
+- находит active installation `shopana-online-store`;
+- находит active connection specification `online-store`;
+- возвращает connection UUID;
+- не возвращает legacy uppercase code.
 
 ## Apps Admin GraphQL
 
-### Discovery
+### Discovery sales-channel Apps
 
-Sales-channel App определяется только наличием manifest extension:
+App определяется как sales-channel App только по manifest:
 
 ```text
 manifest.extensions.salesChannels.specifications.length > 0
 ```
-
-Добавить:
 
 ```graphql
 enum AppExtensionKind {
@@ -681,7 +671,7 @@ extend type AppsQuery {
 }
 ```
 
-Запрос доступных sales-channel Apps:
+Запрос:
 
 ```graphql
 query AvailableSalesChannelApps {
@@ -701,28 +691,25 @@ query AvailableSalesChannelApps {
       salesChannelSpecifications {
         handle
         label
-        deliveryMode
+        allowMultipleConnections
+        requiresExternalAccount
       }
     }
   }
 }
 ```
 
-### Connection types
+### GraphQL types
 
 ```graphql
-enum SalesChannelDeliveryMode {
-  STOREFRONT_API
-  EXTERNAL_PLATFORM
-}
-
 type SalesChannelSpecification {
   id: ID!
   appCode: String!
   appVersion: String!
   handle: String!
   label: String!
-  deliveryMode: SalesChannelDeliveryMode!
+  allowMultipleConnections: Boolean!
+  requiresExternalAccount: Boolean!
 }
 
 type SalesChannelConnection implements Node @key(fields: "id") {
@@ -787,454 +774,92 @@ salesChannelConnectionResume
 salesChannelConnectionDisconnect
 ```
 
-Lifecycle mutations возвращают connection и durable operation. Inputs содержат
-`clientMutationId`; configuration updates — `expectedConfigurationVersion`.
+Lifecycle mutations возвращают connection и durable operation.
 
-`storeId`, `organizationId` и `appCode` не принимаются из client input.
+Inputs:
 
-## Bundled Headless App
+- содержат `clientMutationId`;
+- configuration update содержит `expectedConfigurationVersion`;
+- не принимают `storeId`;
+- не принимают `organizationId`;
+- не принимают произвольный `appCode`.
+
+## Bundled Online Store App
 
 Создать:
 
 ```text
-apps/headless/
+apps/online-store/
   app.manifest.ts
   package.json
   build.config.json
   tsconfig.json
   src/
-    HeadlessApp.ts
+    OnlineStoreApp.ts
     index.ts
 ```
 
-Headless App:
+Зарегистрировать App в:
 
-- объявляет specification `headless-storefront`;
+```text
+services/apps/src/runtime/bundled-apps.ts
+services/apps/package.json
+```
+
+Online Store App:
+
+- является required bundled App;
+- устанавливается system actor-ом;
+- имеет specification `online-store`;
+- разрешает только один non-terminal connection на store;
 - не требует external account;
-- поддерживает несколько connections;
-- не хранит API credentials;
-- lifecycle actions координируют только connection state;
-- provisioning credentials делегируется IAM.
+- создаёт connection `Online Store`;
+- использует общий lifecycle contract;
+- не имеет специального enum type;
+- не создаёт дополнительных commerce-context entities.
 
-Одна installation:
+### Store bootstrap
 
-```text
-Headless
-  ├── Main website
-  ├── Mobile application
-  └── Partner portal
-```
-
-Каждый connection является отдельным Storefront API authorization subject.
-
-## IAM Storefront API model
-
-### Storefront clients
+DBOS workflow:
 
 ```text
-iam.storefront_api_clients
-──────────────────────────
-id                       uuidv7 PK
-organization_id          uuid
-store_id                 uuid
-channel_connection_id    uuid
-name                     varchar(255)
-status                   ACTIVE | SUSPENDED | REVOKED
-allowed_origins          text[]
-created_by_user_id       uuid nullable
-created_at               timestamptz
-updated_at               timestamptz
-suspended_at             timestamptz nullable
-revoked_at               timestamptz nullable
-```
-
-Ограничения:
-
-```text
-unique (channel_connection_id)
-index  (store_id, status, id)
-```
-
-`channel_connection_id` не имеет database FK к Apps Service.
-
-### Credentials
-
-```text
-iam.storefront_api_credentials
-──────────────────────────────
-id                       uuidv7 PK
-client_id                uuid FK storefront_api_clients
-type                     PUBLIC | PRIVATE
-token_prefix             varchar
-token_hash               varchar
-token_last_four          varchar(4)
-status                   ACTIVE | REVOKED | EXPIRED
-expires_at               timestamptz nullable
-last_used_at             timestamptz nullable
-created_at               timestamptz
-revoked_at               timestamptz nullable
-```
-
-Один client может иметь:
-
-- один или несколько public credentials;
-- несколько private credentials во время rotation overlap;
-- только явно active credentials.
-
-### Grants
-
-```text
-iam.storefront_api_grants
-─────────────────────────
-client_id
-scope
-granted_at
-revoked_at
-```
-
-Начальный scope vocabulary:
-
-```text
-unauthenticated:products:read
-unauthenticated:collections:read
-unauthenticated:search:read
-unauthenticated:content:read
-unauthenticated:customer-auth:write
-```
-
-Фактическое включение scope в schema выполняется только вместе с
-соответствующей resolver policy.
-
-### Token format
-
-```text
-PUBLIC:
-shp_sf_pub_<credential-id>_<random-secret>
-
-PRIVATE:
-shp_sf_prv_<credential-id>_<random-secret>
-```
-
-Требования:
-
-- random secret содержит минимум 256 бит entropy;
-- credential ID позволяет indexed lookup;
-- в основной credential row хранится только keyed hash;
-- hash вычисляется как HMAC-SHA-256 с platform-managed pepper;
-- constant-time comparison;
-- public token может повторно отображаться только из отдельного encrypted
-  representation;
-- private token после one-time reveal не имеет долговременного recoverable
-  plaintext;
-- logs содержат только credential ID/prefix/last four.
-
-### One-time private reveal
-
-Async provisioning не должен помещать private token в DBOS operation payload
-или event.
-
-Добавить:
-
-```text
-iam.storefront_credential_reveals
-─────────────────────────────────
-id
-credential_id
-ciphertext
-expires_at
-consumed_at
-created_at
-```
-
-Flow:
-
-1. IAM генерирует private token.
-2. Сохраняет HMAC в credential row.
-3. Временно сохраняет token encrypted в reveal row.
-4. Возвращает opaque `revealId`.
-5. Authorized Admin вызывает consume mutation.
-6. IAM возвращает private token один раз.
-7. Reveal помечается consumed и ciphertext уничтожается/очищается.
-8. Expired reveal нельзя восстановить; создаётся новый credential.
-
-Public token можно показывать повторно только authorized store admins.
-
-## Headless storefront provisioning workflow
-
-Создание Headless storefront — durable orchestration:
-
-```text
-Admin
-  → create Headless connection
-  → Apps connection ACTIVE
-  → IAM client provision
-  → public credential create
-  → private credential create
-  → one-time reveal available
+Store created
+  → install shopana-online-store
+  → create Online Store connection
+  → activate connection
 ```
 
 Шаги:
 
-1. Проверить installed active Headless App.
-2. Resolve `headless-storefront` specification.
-3. Создать `DRAFT` connection idempotently.
-4. Выполнить Headless App connect action.
-5. Перевести connection в `ACTIVE`.
-6. Emit `apps.sales-channel.connection.activated.v1`.
-7. IAM consumer создаёт client idempotently по `connectionId`.
-8. IAM создаёт initial public/private credentials.
-9. IAM сохраняет private one-time reveal.
-10. Admin polling получает provisioning status и `revealId`.
+1. Проверить наличие active/non-terminal installation.
+2. Если installation отсутствует, установить App system actor-ом.
+3. Resolve specification `online-store`.
+4. Проверить existing non-terminal connection.
+5. Создать connection idempotently.
+6. Выполнить Online Store connect action.
+7. Перевести connection в `ACTIVE`.
+8. Emit activated event.
 
-Если IAM provisioning упал:
-
-- connection остаётся `ACTIVE`;
-- storefront credential state показывается как `PROVISION_FAILED`;
-- retry использует тот же provisioning idempotency key;
-- duplicate client/credentials не создаются;
-- connection lifecycle не откатывается из-за временной IAM ошибки.
-
-Это разделяет:
+Deterministic IDs:
 
 ```text
-Connection работает как platform entity
-Credential provisioning временно не завершён
+installation workflow:
+apps:install:shopana-online-store:<store-id>
+
+connection workflow:
+apps:channel:online-store:<store-id>
 ```
 
-## IAM Admin GraphQL
+Повтор bootstrap не создаёт duplicate installation или connection.
 
-IAM расширяет federated connection:
+### Online Store lifecycle
 
-```graphql
-extend type SalesChannelConnection @key(fields: "id") {
-  id: ID! @external
-  storefrontApiClient: StorefrontApiClient
-}
-
-type StorefrontApiClient implements Node @key(fields: "id") {
-  id: ID!
-  channelConnectionId: ID!
-  name: String!
-  status: StorefrontApiClientStatus!
-  allowedOrigins: [String!]!
-  grants: [StorefrontApiGrant!]!
-  credentials: [StorefrontApiCredential!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-type StorefrontApiCredential implements Node @key(fields: "id") {
-  id: ID!
-  type: StorefrontApiCredentialType!
-  prefix: String!
-  lastFour: String!
-  status: StorefrontApiCredentialStatus!
-  expiresAt: DateTime
-  lastUsedAt: DateTime
-  createdAt: DateTime!
-  publicToken: String
-}
-```
-
-`publicToken` возвращается только authorized Admin и только для PUBLIC
-credential. PRIVATE value отсутствует в query schema.
-
-Mutations:
-
-```text
-storefrontPublicCredentialCreate
-storefrontPrivateCredentialRotate
-storefrontCredentialRevoke
-storefrontCredentialRevealConsume
-storefrontApiClientGrantsUpdate
-storefrontApiClientAllowedOriginsUpdate
-```
-
-Private rotation:
-
-```text
-private-v1 ACTIVE
-  → private-v1 ACTIVE + private-v2 ACTIVE
-  → deploy new token
-  → revoke private-v1
-```
-
-## Credential validation
-
-### Headers
-
-Public request:
-
-```http
-X-Shopana-Storefront-Access-Token: shp_sf_pub_...
-```
-
-Private request:
-
-```http
-Shopana-Storefront-Private-Token: shp_sf_prv_...
-Shopana-Storefront-Buyer-IP: 203.0.113.10
-```
-
-Правила:
-
-- нельзя передавать public и private headers одновременно;
-- private token запрещён из untrusted browser context;
-- buyer IP обязателен для private buyer-driven request;
-- `x-store-name` не определяет tenant;
-- если hostname/store hint присутствует, он только проверяется на совпадение.
-
-### Validation contract
-
-```ts
-interface ValidateStorefrontCredentialInput {
-  readonly token: string;
-  readonly type: "PUBLIC" | "PRIVATE";
-  readonly buyerIp?: string;
-  readonly origin?: string;
-}
-
-interface ValidateStorefrontCredentialResult {
-  readonly credentialId: string;
-  readonly clientId: string;
-  readonly credentialType: "PUBLIC" | "PRIVATE";
-  readonly organizationId: string;
-  readonly storeId: string;
-  readonly channelConnectionId: string;
-  readonly scopes: readonly string[];
-}
-```
-
-IAM проверяет:
-
-1. Token prefix/type.
-2. Credential lookup.
-3. HMAC в constant time.
-4. Credential status и expiration.
-5. Client status.
-6. Allowed origin для public request, если configured.
-7. Grants.
-8. Connection status через cached Apps projection или broker.
-9. Rate-limit subject.
-10. Обновляет `lastUsedAt` асинхронно, не блокируя request.
-
-### Trusted storefront context
-
-```ts
-interface StorefrontRequestContext {
-  readonly organizationId: string;
-  readonly storeId: string;
-  readonly channelConnectionId: string;
-  readonly credential: {
-    readonly id: string;
-    readonly clientId: string;
-    readonly type: "PUBLIC" | "PRIVATE";
-  };
-  readonly scopes: readonly string[];
-  readonly buyerIp?: string;
-}
-```
-
-Raw token не включается в context и не пересылается subgraphs.
-
-## Storefront Gateway integration
-
-Gateway является единственной внешней точкой credential validation:
-
-```text
-Browser / Server
-  → Storefront Gateway
-  → IAM validate
-  → trusted StorefrontRequestContext
-  → federated subgraphs
-```
-
-Обновить shared middleware:
-
-1. Удалить обязательность `x-api-key`.
-2. Parse public/private headers.
-3. Вызвать IAM validation.
-4. Resolve store из validation result.
-5. Вложить trusted connection identity.
-6. Передать scopes в GraphQL authorization context.
-7. Не логировать raw headers.
-
-Introspection/service composition path остаётся отдельным trusted mode.
-
-Rate limiting:
-
-- public: credential + buyer IP;
-- private buyer-driven: credential + forwarded buyer IP;
-- private machine-driven: credential;
-- отдельный complexity budget;
-- rejected origin/token не достигает subgraphs.
-
-## Disconnect и revoke
-
-Connection disconnect:
-
-1. Apps завершает connection lifecycle.
-2. Emit `apps.sales-channel.connection.disconnected.v1`.
-3. IAM consumer находит client по connection ID.
-4. Переводит client в `REVOKED`.
-5. Отзывает все active credentials.
-6. Очищает unconsumed reveal ciphertext.
-7. Новые Storefront API requests получают unauthorized.
-
-Suspend:
-
-- App/connection suspend делает client effectively unavailable;
-- credentials можно не переписывать массово;
-- validation проверяет current/effective connection state;
-- explicit credential revoke остаётся terminal.
-
-## Events и broker contracts
-
-Apps events:
-
-```text
-apps.sales-channel.connection.created.v1
-apps.sales-channel.connection.activated.v1
-apps.sales-channel.connection.updated.v1
-apps.sales-channel.connection.suspended.v1
-apps.sales-channel.connection.resumed.v1
-apps.sales-channel.connection.disconnected.v1
-```
-
-Envelope:
-
-```ts
-interface SalesChannelConnectionEvent {
-  readonly eventId: string;
-  readonly occurredAt: string;
-  readonly organizationId: string;
-  readonly storeId: string;
-  readonly connectionId: string;
-  readonly installationId: string;
-  readonly appCode: string;
-  readonly specificationHandle: string;
-  readonly correlationId?: string;
-}
-```
-
-Apps broker:
-
-```text
-apps.salesChannels.resolveConnection
-apps.salesChannels.listConnections
-apps.salesChannels.invokeConnection
-apps.salesChannels.getSpecification
-```
-
-IAM broker:
-
-```text
-iam.storefrontClients.provision
-iam.storefrontCredentials.validate
-iam.storefrontCredentials.revokeByConnection
-```
-
-Events и broker results не содержат token values.
+- App required: manual uninstall запрещён обычному store admin.
+- Connection required: manual disconnect запрещён, пока store active.
+- Suspend разрешается только platform/system operation.
+- Health проверяет runtime availability.
+- Store deletion выполняет controlled disconnect/uninstall отдельным system
+  workflow.
 
 ## Admin frontend
 
@@ -1246,34 +871,24 @@ Sales channels
   └── Connections
 ```
 
-Headless App detail:
-
-```text
-Headless
-  ├── Main website
-  ├── Mobile application
-  └── Add storefront
-```
+Online Store всегда отображается среди connections после успешного store
+bootstrap.
 
 ### Apps page
-
-Запрашивает:
-
-```graphql
-availableApps(
-  where: {
-    extensionKinds: [SALES_CHANNEL]
-  }
-)
-```
 
 Показывает:
 
 - App name;
-- install state;
-- available specifications;
-- delivery mode;
-- number of connections.
+- installation status;
+- specifications;
+- number of connections;
+- install/update actions для optional Apps.
+
+Required Online Store:
+
+- помечается `Built-in`;
+- не показывает uninstall action;
+- показывает connection status и health.
 
 ### Connections page
 
@@ -1282,11 +897,10 @@ Columns:
 - display name;
 - App;
 - specification;
-- delivery mode;
-- connection status;
+- external account label;
+- status;
 - effective active;
 - health;
-- credential provisioning status для Headless;
 - updated at.
 
 Actions:
@@ -1297,27 +911,21 @@ Actions:
 - suspend;
 - resume;
 - disconnect;
-- retry failed lifecycle/provisioning operation.
+- retry failed operation.
 
-### Headless storefront detail
+Недоступные actions скрываются или disabled по App/system policy.
 
-Sections:
+### Create connection flow
 
-1. Connection identity/status.
-2. Storefront API endpoint.
-3. Public credentials.
-4. Private credentials metadata.
-5. One-time reveal.
-6. Scopes.
-7. Allowed origins.
-8. Rotation/revoke actions.
-
-Private token:
-
-- показывается в one-time modal;
-- не сохраняется в UI state дольше modal lifetime;
-- не пишется в URL, localStorage, analytics или notification;
-- после закрытия повторно не запрашивается.
+1. Получить installed Apps с `SALES_CHANNEL` extension.
+2. Выбрать App.
+3. Выбрать specification.
+4. Ввести display name.
+5. Если требуется, передать external account metadata через App-owned setup.
+6. Создать `DRAFT` connection.
+7. Запустить lifecycle operation.
+8. Показывать operation progress.
+9. После success обновить connections list.
 
 ### Module structure
 
@@ -1326,6 +934,7 @@ admin/src/domains/sales-channels/
   apps/
     graphql/
     hooks/
+    components/
     page/
   connections/
     graphql/
@@ -1334,53 +943,48 @@ admin/src/domains/sales-channels/
     components/
     modals/
     page/
-  headless/
-    graphql/
-    hooks/
-    mappers/
-    components/
-    modals/
 ```
 
-Следовать `knowledge/vault/patterns/admin-graphql-layer.md`: generated API types
-импортируются напрямую из `@/graphql/types`; output view models не создаются.
+Следовать `knowledge/vault/patterns/admin-graphql-layer.md`:
 
-## Security checklist
+- generated API types импортировать из `@/graphql/types`;
+- не создавать API-output view models;
+- GraphQL operations размещать module-local;
+- mutation hooks возвращают `userErrors`;
+- cache/refetch policy находится в hooks.
 
-- [ ] Connection queries tenant-scoped.
+## Security
+
+- [ ] Все connection queries tenant-scoped.
 - [ ] Store/organization IDs не принимаются из mutation input.
-- [ ] App может управлять только своими connections.
-- [ ] Headless client связан ровно с одним connection.
-- [ ] Public credential не имеет privileged scopes.
-- [ ] Private token не возвращается query API.
-- [ ] Private reveal one-time и TTL-limited.
-- [ ] Token hashes используют platform pepper.
-- [ ] Token comparison constant-time.
-- [ ] Raw tokens отсутствуют в logs/events/traces.
-- [ ] Allowed origins применяются только как дополнительная защита.
-- [ ] Token определяет tenant и connection.
-- [ ] Downstream получает только trusted context.
-- [ ] Disconnect отзывает все credentials.
-- [ ] Rotation допускает контролируемый overlap.
-- [ ] Customer identity не выводится из storefront token.
+- [ ] App context совпадает с connection installation.
+- [ ] App не может читать connection другой App.
+- [ ] Specification принадлежит manifest installation.
+- [ ] Configuration не содержит platform secrets.
+- [ ] External account metadata не является credential storage.
+- [ ] Runtime action существует в manifest snapshot.
+- [ ] Typed global IDs декодируются по ожидаемому entity type.
+- [ ] Disconnect не выполняет destructive cascade в других contexts.
+- [ ] Required Online Store нельзя удалить обычной Admin mutation.
+- [ ] Logs/events не содержат arbitrary configuration.
 
 ## Implementation phases
 
-### Phase 0. Contract correction
+### Phase 0. Contract
 
-1. Зафиксировать термины и ownership.
-2. Удалить из base design обязательные Markets, publications и feeds.
-3. Зафиксировать delivery modes.
-4. Зафиксировать typed global ID namespaces.
-5. Зафиксировать clean-cutover policy.
+1. Зафиксировать термины.
+2. Зафиксировать Apps ownership connection control plane.
+3. Зафиксировать отсутствие обязательных дополнительных сущностей.
+4. Зафиксировать Online Store как bundled required App.
+5. Зафиксировать global ID namespaces и events.
 
 Exit criteria:
 
-- connection существует без дополнительных commerce context entities;
-- Headless credential model отделена от Apps secrets;
-- документация не приписывает Shopify неподтверждённый ownership.
+- installation, specification и connection не объединены;
+- Online Store использует общий connection aggregate;
+- generic capability slot не используется для channels.
 
-### Phase 1. App manifest v2
+### Phase 1. Manifest v2
 
 Изменить:
 
@@ -1395,55 +999,58 @@ services/apps/src/runtime/AppsRuntimeHost.ts
 
 1. Добавить manifest v2.
 2. Добавить `extensions.salesChannels`.
-3. Добавить delivery modes.
-4. Добавить validation.
-5. Добавить runtime action verification.
-6. Расширить App execution context.
-7. Перевести hello-world manifest на v2.
+3. Добавить specification validation.
+4. Добавить runtime action verification.
+5. Расширить App execution context.
+6. Перевести hello-world manifest на v2.
 
 Exit criteria:
 
-- duplicate specification handle отклоняется;
+- duplicate handle отклоняется;
 - обычная App работает без extension;
-- undeclared operation не запускается;
+- undeclared action отклоняется;
 - manifest hash учитывает extension.
 
 ### Phase 2. Apps persistence
 
-1. Добавить specification snapshots.
-2. Добавить connections.
-3. Добавить lifecycle operations.
-4. Добавить tenant-scoped repositories.
-5. Добавить optimistic configuration version.
-6. Добавить operation idempotency.
-7. Добавить typed global IDs.
+1. Добавить specification snapshot model.
+2. Добавить connection model.
+3. Добавить lifecycle operation model.
+4. Добавить repositories.
+5. Добавить tenant scopes.
+6. Добавить idempotency.
+7. Добавить optimistic configuration version.
+8. Добавить typed global IDs.
 
 Exit criteria:
 
-- одна installation имеет несколько connections;
+- одна installation может иметь несколько connections;
+- single-connection specification защищена constraint/domain validation;
 - cross-store lookup запрещён;
-- idempotent retry возвращает existing operation;
 - disconnected record сохраняется.
 
-### Phase 3. Lifecycle и runtime routing
+### Phase 3. Lifecycle и routing
 
-1. Реализовать lifecycle service/workflow.
-2. Реализовать exact-connection router.
-3. Связать App suspend/resume/uninstall.
-4. Добавить events.
-5. Добавить broker contracts.
-6. Добавить health.
+1. Реализовать specification service.
+2. Реализовать connection store.
+3. Реализовать DBOS lifecycle workflow.
+4. Реализовать exact-connection router.
+5. Связать App suspend/resume/update/uninstall.
+6. Добавить events.
+7. Добавить broker contracts.
+8. Добавить health.
 
 Exit criteria:
 
-- connections маршрутизируются независимо;
-- concurrent channel Apps не деактивируют друг друга;
-- connection failure не меняет installation в failed;
+- connections одной App независимы;
+- разные channel Apps работают одновременно;
+- connection failure не ломает installation;
+- App update проверяет specification compatibility;
 - uninstall controlled-disconnects connections.
 
 ### Phase 4. Apps Admin GraphQL
 
-1. Добавить extension discovery filter.
+1. Добавить extension discovery.
 2. Добавить specification types.
 3. Добавить connection Relay queries.
 4. Добавить lifecycle mutations.
@@ -1454,81 +1061,47 @@ Exit criteria:
 Exit criteria:
 
 - Admin различает App и connection;
-- store ID не передаётся клиентом;
-- list/totalCount используют единый tenant scope;
-- lifecycle mutation возвращает durable operation.
+- tenant ID не приходит из client input;
+- list и totalCount используют одинаковый scope;
+- lifecycle mutation возвращает operation.
 
-### Phase 5. Bundled Headless App
+### Phase 5. Bundled Online Store
 
-1. Создать `apps/headless`.
-2. Зарегистрировать bundled App.
-3. Реализовать connection lifecycle actions.
-4. Разрешить несколько storefront connections.
-5. Добавить Headless-specific Admin metadata.
-
-Exit criteria:
-
-- Headless устанавливается один раз;
-- merchant создаёт несколько storefronts;
-- connection не создаёт Market или другую commerce context entity;
-- App не хранит Storefront API tokens.
-
-### Phase 6. IAM storefront clients
-
-1. Добавить client/credential/grant/reveal tables.
-2. Добавить repositories.
-3. Добавить provisioning service.
-4. Добавить public/private generation.
-5. Добавить one-time reveal.
-6. Добавить rotation/revoke.
-7. Добавить Admin GraphQL.
-8. Добавить audit events.
+1. Создать `apps/online-store`.
+2. Добавить manifest.
+3. Реализовать lifecycle actions.
+4. Зарегистрировать bundled App.
+5. Реализовать store bootstrap workflow.
+6. Создать один Online Store connection.
+7. Добавить required/system policy.
+8. Добавить `resolveOnlineStore` broker action.
 
 Exit criteria:
 
-- каждый Headless connection имеет один client;
-- public token доступен authorized Admin;
-- private token выдаётся один раз;
-- rotation имеет overlap;
-- DB не хранит постоянный private plaintext.
+- новый store получает Online Store App;
+- создаётся ровно один Online Store connection;
+- bootstrap idempotent;
+- Online Store active после bootstrap;
+- обычный Admin не может удалить required App/connection.
 
-### Phase 7. Storefront Gateway authentication
-
-1. Добавить IAM validation broker action.
-2. Обновить shared storefront middleware.
-3. Добавить public/private headers.
-4. Убрать `x-api-key` как storefront credential.
-5. Перестать доверять `x-store-name` для tenant resolution.
-6. Добавить trusted context.
-7. Добавить scope enforcement plumbing.
-8. Добавить rate limiting и complexity budget.
-
-Exit criteria:
-
-- public и private token валидируются;
-- raw token не достигает subgraph;
-- tenant/connection разрешаются из credential;
-- revoked/disconnected token отклоняется.
-
-### Phase 8. Admin UI
+### Phase 6. Admin UI
 
 1. Добавить sales-channel Apps page.
 2. Добавить connections page.
-3. Добавить create/update/disconnect flows.
-4. Добавить Headless storefront detail.
-5. Добавить public credential management.
-6. Добавить one-time private reveal.
-7. Добавить rotation/revoke.
-8. Добавить scopes/origins UI.
+3. Добавить connection detail.
+4. Добавить create/update lifecycle flows.
+5. Добавить operation progress.
+6. Добавить Built-in Online Store presentation.
+7. Добавить policy-aware actions.
 
 Exit criteria:
 
-- Admin находит Apps через manifest extension;
-- Admin видит реальные channels через connections;
-- private token не сохраняется клиентом;
-- lifecycle и credential provisioning показываются отдельно.
+- Apps находятся через manifest extension;
+- реальные channels читаются из connections;
+- Online Store отображается как Built-in;
+- App install и connection create различаются.
 
-### Phase 9. Legacy cleanup
+### Phase 7. Legacy cleanup
 
 Удалить:
 
@@ -1543,8 +1116,8 @@ services/project/src/repositories/models/marketSalesChannel.ts
 
 Также:
 
-1. Удалить exports legacy models.
-2. Удалить legacy GraphQL, scripts и repositories, если существуют.
+1. Удалить legacy exports.
+2. Удалить legacy GraphQL/scripts/repositories, если существуют.
 3. Перегенерировать migrations штатным механизмом.
 4. Перегенерировать GraphQL types.
 5. Проверить отсутствие fixed channel type enums.
@@ -1555,7 +1128,7 @@ services/project/src/repositories/models/marketSalesChannel.ts
 - compatibility views;
 - mapping по uppercase code;
 - dual write;
-- automatic App-installation-to-connection adapter.
+- automatic compatibility adapter.
 
 ## Verification
 
@@ -1568,111 +1141,99 @@ services/project/src/repositories/models/marketSalesChannel.ts
 
 Сценарии:
 
-1. Установить Headless App.
-2. Создать Main Website connection.
-3. Создать Mobile App connection той же installation.
-4. Проверить independent connection lifecycle.
-5. Проверить Admin discovery по extension.
-6. Provision public/private credentials.
-7. Consume private reveal один раз.
-8. Повторный reveal отклоняется.
-9. Выполнить запрос public token.
-10. Выполнить server-side запрос private token.
-11. Проверить wrong origin.
-12. Проверить expired/revoked token.
-13. Проверить cross-store token isolation.
-14. Rotate private token с overlap.
-15. Revoke старый private token.
-16. Suspend connection.
-17. Resume connection.
-18. Disconnect connection и проверить revoke всех credentials.
-19. Suspend/resume Headless App с несколькими connections.
-20. Uninstall Headless App и проверить controlled disconnect.
-21. Проверить отсутствие raw token в logs/events/traces.
-22. Проверить GraphQL federation composition.
-23. Применить migrations на пустой database.
-24. Выполнить build затронутых packages/services.
+1. Создать новый store.
+2. Проверить automatic install Online Store App.
+3. Проверить automatic Online Store connection.
+4. Повторить bootstrap и убедиться в отсутствии duplicates.
+5. Получить sales-channel Apps через extension filter.
+6. Получить connections текущего store.
+7. Попробовать создать второй Online Store connection и получить user error.
+8. Установить optional sales-channel App.
+9. Создать два connections для multi-connection specification.
+10. Проверить independent lifecycle connections.
+11. Проверить cross-store isolation.
+12. Проверить cross-App ownership.
+13. Проверить suspend/resume optional App.
+14. Проверить disconnect optional connection.
+15. Проверить App update compatibility.
+16. Проверить controlled uninstall optional App.
+17. Проверить запрет manual uninstall Online Store.
+18. Проверить GraphQL federation composition.
+19. Применить migrations на пустой database.
+20. Выполнить build затронутых packages/services.
 
 ## Acceptance criteria
 
+### Architecture
+
+- [ ] Sales-channel App определяется по manifest extension.
+- [ ] App installation и connection разделены.
+- [ ] Одна installation поддерживает несколько connections.
+- [ ] Connection identity — UUID.
+- [ ] Connection не требует дополнительных обязательных entities.
+- [ ] Generic capability router не выбирает channel.
+
+### Online Store
+
+- [ ] Online Store реализован bundled App.
+- [ ] App required для каждого active store.
+- [ ] Создаётся один connection `Online Store`.
+- [ ] Bootstrap idempotent.
+- [ ] Нет специального channel type enum.
+- [ ] Нет external account requirement.
+- [ ] Обычный Admin не может удалить built-in channel.
+
 ### Apps
 
-- [ ] Manifest v2 поддерживает sales-channel extension.
-- [ ] Sales-channel Apps обнаруживаются по extension, не enum/type.
-- [ ] Installation и connection разделены.
-- [ ] Одна installation поддерживает несколько connections.
-- [ ] Connection ссылается на immutable specification.
-- [ ] Exact-connection router не использует global provider selection.
+- [ ] Specification immutable и versioned.
 - [ ] Connection lifecycle durable и idempotent.
+- [ ] App update проверяет compatibility.
+- [ ] App suspend влияет на effective availability.
+- [ ] App uninstall controlled-disconnects connections.
+- [ ] App управляет только своими connections.
 
-### Headless
+### API и Admin
 
-- [ ] Headless — bundled sales-channel App.
-- [ ] Один Headless connection соответствует одному storefront.
-- [ ] Storefront создаётся без Market/ChannelMarket.
-- [ ] Несколько storefronts принадлежат одной installation.
-- [ ] Headless App не хранит API token values.
-
-### IAM
-
-- [ ] Один Storefront API client связан с одним Headless connection.
-- [ ] Поддерживаются PUBLIC и PRIVATE credentials.
-- [ ] Private token выдаётся только one-time reveal.
-- [ ] Token hashes защищены platform pepper.
-- [ ] Поддерживаются grants, origins, expiration, revoke и rotation.
-- [ ] Disconnect отзывает credentials.
-
-### Gateway
-
-- [ ] Credential определяет store и connection.
-- [ ] `x-store-name` не является source of truth.
-- [ ] Raw token не передаётся downstream.
-- [ ] Public/private policies различаются.
-- [ ] Trusted context содержит connection identity и scopes.
-
-### Admin
-
-- [ ] Apps list фильтруется по `SALES_CHANNEL` extension.
-- [ ] Connections отображаются отдельно от installations.
-- [ ] Headless storefront показывает credential metadata.
-- [ ] Private token отсутствует в query responses.
-- [ ] Rotation/revoke доступны с явным confirmation.
+- [ ] Discovery фильтрует Apps по `SALES_CHANNEL`.
+- [ ] Connections tenant-scoped.
+- [ ] GraphQL использует typed global IDs.
+- [ ] Admin разделяет installation и connection.
+- [ ] Online Store отображается как Built-in.
+- [ ] Lifecycle operation status виден Admin.
 
 ### Cleanup
 
-- [ ] Legacy SalesChannel tables и enums удалены.
-- [ ] Нет uppercase channel code identity.
-- [ ] Нет обязательного ChannelMarket.
-- [ ] Нет обязательной Publication или ProductFeed.
+- [ ] Legacy sales-channel tables удалены.
+- [ ] Legacy association удалена.
+- [ ] Closed channel type enum удалён.
+- [ ] Uppercase channel code не используется как identity.
 - [ ] Нет backfill, compatibility или dual write.
 
 ## Риски
 
 | Риск | Последствие | Мера |
 | --- | --- | --- |
-| Считать installation каналом | Нельзя создать несколько storefronts/accounts | Отдельный connection aggregate |
+| Считать installation каналом | Нельзя создать несколько accounts | Отдельный connection |
 | Использовать generic capability slot | Channels деактивируют друг друга | Exact-connection router |
-| Хранить token в Apps JSON | Утечка через API/logs | IAM credential store |
-| Возвращать private token query API | Повторная компрометация | One-time reveal |
-| Доверять store header | Cross-tenant spoofing | Resolve tenant из credential |
-| Хранить обычный token hash без pepper | Offline lookup attack | HMAC с platform pepper |
-| Делать IAM failure App failure | Нестабильный distributed lifecycle | Отдельный provisioning status/retry |
-| Смешать customer и storefront identity | Ошибочная авторизация buyer | Раздельные auth contexts |
-| Добавить Markets без требования | Лишний bounded-context coupling | Исключить из base plan |
-| Добавить feeds для Headless | Ненужная синхронизация данных | `STOREFRONT_API` delivery mode |
+| Использовать mutable manifest | App update меняет старый connection | Immutable snapshot |
+| Хранить channel в Project | Дублируется App lifecycle | Apps ownership |
+| Физически удалять connection | Теряется lifecycle history | Terminal disconnect |
+| Разрешить удалить Online Store | Store остаётся без built-in channel | Required system policy |
+| Не проверять tenant scope | Cross-store access | Context-scoped repositories |
+| Оставить uppercase code identity | Коллизии multiple connections | UUID connection ID |
 
 ## Definition of done
 
 Работа завершена, когда:
 
-1. Admin находит sales-channel Apps по manifest extension.
-2. Headless App устанавливается в store.
-3. Merchant создаёт несколько Headless storefront connections.
-4. Каждый storefront имеет IAM-managed public/private credentials.
-5. Storefront Gateway разрешает store и connection только из credential.
-6. Private token поддерживает one-time reveal и rotation.
-7. Disconnect отзывает все credentials storefront.
-8. Connection lifecycle не требует Market, Catalog, Publication или Feed.
-9. Legacy Project SalesChannel model полностью удалена.
-10. Admin schema композируется, migrations применяются на пустой database, а
-    затронутые packages/services успешно собираются через `shopana-cli`.
+1. Sales-channel Apps обнаруживаются по manifest extension.
+2. App installation может иметь несколько connections.
+3. Новый store автоматически получает bundled Online Store App.
+4. Для store создаётся один active Online Store connection.
+5. Online Store использует общий connection lifecycle.
+6. Optional App создаёт независимые connections.
+7. Admin показывает Apps и connections как разные сущности.
+8. Legacy Project SalesChannel model полностью удалена.
+9. Admin schema успешно композируется.
+10. Migrations применяются на пустой database.
+11. Затронутые packages/services успешно собираются через `shopana-cli`.

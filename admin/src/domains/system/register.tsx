@@ -57,6 +57,50 @@ registerModule({
 });
 
 registerModule({
+  key: "sales-channels",
+  domain: "system",
+  sidebar: {
+    label: "Sales channels",
+    icon: <ApiOutlined />,
+    order: 3,
+  },
+  items: [
+    {
+      key: "sales-channel-connections",
+      path: "/:orgName/:storeName/sales-channels/connections",
+      sidebar: { label: "Connections", icon: null, order: 1 },
+      component: dynamic(
+        () => import("@/domains/sales-channels/connections/page/page"),
+      ),
+    },
+    {
+      key: "sales-channel-markets",
+      path: "/:orgName/:storeName/sales-channels/markets",
+      sidebar: { label: "Markets", icon: null, order: 2 },
+      component: dynamic(
+        () => import("@/domains/sales-channels/markets/page/page"),
+      ),
+    },
+    {
+      key: "sales-channel-publications",
+      path: "/:orgName/:storeName/sales-channels/publications",
+      sidebar: { label: "Publications", icon: null, order: 3 },
+      component: dynamic(
+        () => import("@/domains/sales-channels/publications/page/page"),
+      ),
+    },
+    {
+      key: "sales-channel-sync",
+      path: "/:orgName/:storeName/sales-channels/sync-activity",
+      sidebar: { label: "Sync activity", icon: null, order: 4 },
+      component: dynamic(
+        () => import("@/domains/sales-channels/sync-activity/page/page"),
+      ),
+    },
+  ],
+});
+
+registerModule({
   key: "system-access",
   domain: "system",
   items: [

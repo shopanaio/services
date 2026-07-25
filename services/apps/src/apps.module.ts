@@ -27,6 +27,15 @@ import { AppInstallationStore } from './control-plane/AppInstallationStore.js';
 import { AppLifecycleService } from './control-plane/AppLifecycleService.js';
 import { AppInstallationLifecycleWorkflow } from './control-plane/AppInstallationLifecycleWorkflow.js';
 import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
+import { SalesChannelConnectionStore } from './sales-channels/control-plane/SalesChannelConnectionStore.js';
+import { SalesChannelLifecycleService } from './sales-channels/control-plane/SalesChannelLifecycleService.js';
+import { SalesChannelLifecycleWorkflow } from './sales-channels/control-plane/SalesChannelLifecycleWorkflow.js';
+import { SalesChannelPlatformActions } from './sales-channels/control-plane/SalesChannelPlatformActions.js';
+import { SalesChannelSpecificationService } from './sales-channels/control-plane/SalesChannelSpecificationService.js';
+import { SalesChannelRuntimeRouter } from './sales-channels/runtime/SalesChannelRuntimeRouter.js';
+import { OnlineStoreBootstrapWorkflow } from './sales-channels/control-plane/OnlineStoreBootstrapWorkflow.js';
+import { OnlineStoreDeprovisionWorkflow } from './sales-channels/control-plane/OnlineStoreDeprovisionWorkflow.js';
+import { OnlineStoreEventHandlers } from './sales-channels/control-plane/OnlineStoreEventHandlers.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'apps' })],
@@ -49,6 +58,15 @@ import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
     AppLifecycleService,
     AppInstallationLifecycleWorkflow,
     AppsPlatformActions,
+    SalesChannelConnectionStore,
+    SalesChannelSpecificationService,
+    SalesChannelLifecycleService,
+    SalesChannelLifecycleWorkflow,
+    SalesChannelRuntimeRouter,
+    SalesChannelPlatformActions,
+    OnlineStoreBootstrapWorkflow,
+    OnlineStoreDeprovisionWorkflow,
+    OnlineStoreEventHandlers,
     AppGraphQLServerFactory,
     AppSubgraphHost,
     AppSubgraphRegistry,
@@ -63,6 +81,9 @@ import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
     AppsRuntimeRouter,
     Repository,
     AppInstallationStore,
+    SalesChannelConnectionStore,
+    SalesChannelLifecycleService,
+    SalesChannelRuntimeRouter,
     AppSubgraphRegistry,
   ],
 })

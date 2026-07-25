@@ -167,6 +167,7 @@ export class AppsRuntimeHost
       definition,
       app,
       broker: appBroker,
+      config,
     });
 
     runtime.status = "STARTING";

@@ -17,6 +17,7 @@
     "@apollo/subgraph": "^2.9.0",
     "@as-integrations/fastify": "^2.1.1",
     "@shopana/app-hello-world": "workspace:*",
+    "@shopana/app-online-store": "workspace:*",
     "@shopana/app-runtime": "workspace:*",
     "@shopana/app-sdk": "workspace:*",
     "@shopana/broker-types": "workspace:*",

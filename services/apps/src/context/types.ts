@@ -4,6 +4,7 @@ import type { AppInstallationStore } from "../control-plane/AppInstallationStore
 import type { AppLifecycleService } from "../control-plane/AppLifecycleService.js";
 import type { Repository } from "../repositories/Repository.js";
 import type { AppRuntimeRegistry } from "../runtime/AppRuntimeRegistry.js";
+import type { SalesChannelLifecycleService } from "../sales-channels/control-plane/SalesChannelLifecycleService.js";
 
 export interface ServiceContextOptions {
   requestId: string;
@@ -12,6 +13,7 @@ export interface ServiceContextOptions {
   installations: AppInstallationStore;
   lifecycle: AppLifecycleService;
   runtimes: AppRuntimeRegistry;
+  salesChannelLifecycle: SalesChannelLifecycleService;
   store?: ContextStore;
   user?: ContextUser;
 }
@@ -26,6 +28,7 @@ export class ServiceContext {
   readonly installations: AppInstallationStore;
   readonly lifecycle: AppLifecycleService;
   readonly runtimes: AppRuntimeRegistry;
+  readonly salesChannelLifecycle: SalesChannelLifecycleService;
 
   private readonly currentStore?: ContextStore;
   private readonly currentUser?: ContextUser;
@@ -37,6 +40,7 @@ export class ServiceContext {
     this.installations = options.installations;
     this.lifecycle = options.lifecycle;
     this.runtimes = options.runtimes;
+    this.salesChannelLifecycle = options.salesChannelLifecycle;
     this.currentStore = options.store;
     this.currentUser = options.user;
   }

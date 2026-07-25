@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type {
   AppBroker,
+  AppDeploymentConfig,
   AppRuntimeHealth,
   AppRuntimeStatus,
   ShopanaApp,
@@ -11,6 +12,7 @@ export interface AppRuntimeRecord {
   readonly definition: ShopanaAppDefinition;
   readonly app: ShopanaApp;
   readonly broker: AppBroker;
+  readonly config: AppDeploymentConfig;
   status: AppRuntimeStatus;
   error?: Error;
 }
@@ -51,6 +53,10 @@ export class AppRuntimeRegistry {
       };
     }
     return runtime.app.health();
+  }
+
+  isRequired(appCode: string): boolean {
+    return this.records.get(appCode)?.config.required === true;
   }
 
   remove(appCode: string): void {

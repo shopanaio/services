@@ -194,6 +194,9 @@ export enum GlobalIdEntity {
   AppCapabilityBinding = "AppCapabilityBinding",
   AppLifecycleOperation = "AppLifecycleOperation",
   AppManifestSnapshot = "AppManifestSnapshot",
+  SalesChannelSpecification = "SalesChannelSpecification",
+  SalesChannelConnection = "SalesChannelConnection",
+  SalesChannelOperation = "SalesChannelOperation",
   // Project
   Store = "Store",
 }

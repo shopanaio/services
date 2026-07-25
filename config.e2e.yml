@@ -41,6 +41,9 @@ services:
       hello-world:
         enabled: true
         required: true
+      shopana-online-store:
+        enabled: true
+        required: true
 
   checkout:
     ports:

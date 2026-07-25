@@ -1,0 +1,20 @@
+{
+  "name": "@shopana/app-online-store",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "source": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@shopana/app-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "typescript": "^5.5.4"
+  }
+}

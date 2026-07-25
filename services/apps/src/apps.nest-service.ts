@@ -17,6 +17,7 @@ import { AppInstallationStore } from "./control-plane/AppInstallationStore.js";
 import { AppLifecycleService } from "./control-plane/AppLifecycleService.js";
 import { Repository } from "./repositories/Repository.js";
 import { AppRuntimeRegistry } from "./runtime/AppRuntimeRegistry.js";
+import { SalesChannelLifecycleService } from "./sales-channels/control-plane/SalesChannelLifecycleService.js";
 
 interface AppsServiceConfig {
   readonly ports?: {
@@ -38,6 +39,7 @@ export class AppsNestService implements OnModuleInit, OnModuleDestroy {
     private readonly lifecycle: AppLifecycleService,
     private readonly runtimes: AppRuntimeRegistry,
     private readonly graphqlIngress: AppsGraphQLIngress,
+    private readonly salesChannelLifecycle: SalesChannelLifecycleService,
   ) {}
 
   async onModuleInit() {
@@ -50,6 +52,7 @@ export class AppsNestService implements OnModuleInit, OnModuleDestroy {
       installations: this.installations,
       lifecycle: this.lifecycle,
       runtimes: this.runtimes,
+      salesChannelLifecycle: this.salesChannelLifecycle,
     });
     await this.graphqlIngress.start({
       admin: service.ports?.app_admin_graphql,

@@ -47,8 +47,11 @@ export class AppLifecycleService {
       snapshot: snapshotManifest(manifest),
       installedByUserId: params.installedByUserId,
       idempotencyKey: required(params.idempotencyKey, "idempotencyKey"),
-      actor: actorFromContext(context, params.installedByUserId),
+      actor: params.system
+        ? { type: "SYSTEM" }
+        : actorFromContext(context, params.installedByUserId),
       correlationId: params.correlationId,
+      workflowId: params.workflowId,
     });
     await this.persistSecrets(
       begun,
@@ -129,6 +132,17 @@ export class AppLifecycleService {
     context: BrokerCallContext,
     broker: ServiceBroker,
   ): Promise<Apps.AppLifecycleAcceptedResult> {
+    const installation = await this.requireInstallation(
+      params.installationId,
+    );
+    if (
+      this.runtimes.isRequired(installation.appCode) &&
+      params.system !== true
+    ) {
+      throw new Error(
+        `Required App "${installation.appCode}" cannot be uninstalled manually`,
+      );
+    }
     return this.beginSimpleOperation(
       params,
       context,
@@ -168,8 +182,13 @@ export class AppLifecycleService {
       transitionStatus,
       targetVersion: runtime.definition.manifest.version,
       idempotencyKey: required(params.idempotencyKey, "idempotencyKey"),
-      actor: actorFromContext(context),
+      actor:
+        "system" in params && params.system
+          ? { type: "SYSTEM" }
+          : actorFromContext(context),
       correlationId: params.correlationId,
+      workflowId:
+        "workflowId" in params ? params.workflowId : undefined,
     });
     return this.startLifecycle(begun, broker);
   }
@@ -178,11 +197,7 @@ export class AppLifecycleService {
     begun: BegunLifecycleOperation,
     broker: ServiceBroker,
   ): Promise<Apps.AppLifecycleAcceptedResult> {
-    if (
-      !begun.duplicate ||
-      begun.operation.status === "PENDING" ||
-      begun.operation.status === "RUNNING"
-    ) {
+    if (!begun.duplicate) {
       try {
         await broker.startWorkflow(
           "apps.installationLifecycle",

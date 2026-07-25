@@ -116,4 +116,5 @@ export class AppInstallationSecretRepository extends BaseRepository {
         ),
       );
   }
+
 }

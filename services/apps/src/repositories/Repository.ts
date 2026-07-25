@@ -6,6 +6,9 @@ import { AppLifecycleOperationRepository } from "./lifecycle/AppLifecycleOperati
 import { AppManifestSnapshotRepository } from "./manifest/AppManifestSnapshotRepository.js";
 import { AppInstallationScopeRepository } from "./scope/AppInstallationScopeRepository.js";
 import { AppInstallationSecretRepository } from "./secret/AppInstallationSecretRepository.js";
+import { SalesChannelConnectionRepository } from "./sales-channel/SalesChannelConnectionRepository.js";
+import { SalesChannelOperationRepository } from "./sales-channel/SalesChannelOperationRepository.js";
+import { SalesChannelSpecificationSnapshotRepository } from "./sales-channel/SalesChannelSpecificationSnapshotRepository.js";
 
 export interface RepositoryConfig {
   readonly db: Database;
@@ -20,6 +23,9 @@ export class Repository {
   public readonly scope: AppInstallationScopeRepository;
   public readonly secret: AppInstallationSecretRepository;
   public readonly capability: AppCapabilityRepository;
+  public readonly salesChannelConnection: SalesChannelConnectionRepository;
+  public readonly salesChannelOperation: SalesChannelOperationRepository;
+  public readonly salesChannelSpecification: SalesChannelSpecificationSnapshotRepository;
   public readonly txManager: TransactionManager<Database>;
 
   public get db(): Database {
@@ -33,6 +39,9 @@ export class Repository {
     scope: AppInstallationScopeRepository,
     secret: AppInstallationSecretRepository,
     capability: AppCapabilityRepository,
+    salesChannelConnection: SalesChannelConnectionRepository,
+    salesChannelOperation: SalesChannelOperationRepository,
+    salesChannelSpecification: SalesChannelSpecificationSnapshotRepository,
     txManager: TransactionManager<Database>,
   ) {
     this.installation = installation;
@@ -41,6 +50,9 @@ export class Repository {
     this.scope = scope;
     this.secret = secret;
     this.capability = capability;
+    this.salesChannelConnection = salesChannelConnection;
+    this.salesChannelOperation = salesChannelOperation;
+    this.salesChannelSpecification = salesChannelSpecification;
     this.txManager = txManager;
   }
 
@@ -70,6 +82,19 @@ export class Repository {
       config.db,
       txManager,
     );
+    const salesChannelConnection = new SalesChannelConnectionRepository(
+      config.db,
+      txManager,
+    );
+    const salesChannelOperation = new SalesChannelOperationRepository(
+      config.db,
+      txManager,
+    );
+    const salesChannelSpecification =
+      new SalesChannelSpecificationSnapshotRepository(
+        config.db,
+        txManager,
+      );
 
     return new Repository(
       installation,
@@ -78,6 +103,9 @@ export class Repository {
       scope,
       secret,
       capability,
+      salesChannelConnection,
+      salesChannelOperation,
+      salesChannelSpecification,
       txManager,
     );
   }

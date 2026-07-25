@@ -1,7 +1,7 @@
 import { defineAppManifest } from "@shopana/app-sdk";
 
 export const helloWorldManifest = defineAppManifest({
-  schemaVersion: 1,
+  schemaVersion: 2,
   code: "hello-world",
   version: "0.0.1",
   displayName: "Hello World",
@@ -24,6 +24,7 @@ export const helloWorldManifest = defineAppManifest({
       },
     },
   ],
+  extensions: {},
   graphql: {
     admin: true,
     storefront: false,
