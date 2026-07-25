@@ -1,9 +1,9 @@
-# Архитектура Apps Shopana, размещённых в `apps-service`
+# Backend-архитектура Apps Shopana, размещённых в `apps-service`
 
-Статус: целевой план реализации
+Статус: целевой backend-план реализации
 Дата: 2026-07-25
 Область: `apps/*`, `services/apps`, `services/bootstrap`, service broker,
-DBOS, migrations, GraphQL Federation, Admin
+DBOS, migrations, GraphQL Federation
 Язык документа: русский
 
 ## Содержание
@@ -30,21 +30,20 @@ DBOS, migrations, GraphQL Federation, Admin
 20. [Capability routing и slots](#20-capability-routing-и-slots)
 21. [Events и installation-aware handlers](#21-events-и-installation-aware-handlers)
 22. [GraphQL Federation](#22-graphql-federation)
-23. [Frontend App в Admin через iframe](#23-frontend-app-в-admin-через-iframe)
-24. [IAM и авторизация](#24-iam-и-авторизация)
-25. [GraphQL API control plane](#25-graphql-api-control-plane)
-26. [Надёжность и idempotency](#26-надёжность-и-idempotency)
-27. [Observability и audit](#27-observability-и-audit)
-28. [Целевая структура кода](#28-целевая-структура-кода)
-29. [Изменения build, CLI и Federation tooling](#29-изменения-build-cli-и-federation-tooling)
-30. [Переход от текущей реализации](#30-переход-от-текущей-реализации)
-31. [Этапы реализации](#31-этапы-реализации)
-32. [Pilot: Tilda Import App](#32-pilot-tilda-import-app)
-33. [Проверка реализации](#33-проверка-реализации)
-34. [Критерии готовности](#34-критерии-готовности)
-35. [Отклонённые альтернативы](#35-отклонённые-альтернативы)
-36. [Принятые default decisions](#36-принятые-default-decisions)
-37. [Связанные файлы](#37-связанные-файлы)
+23. [IAM и авторизация](#23-iam-и-авторизация)
+24. [GraphQL API control plane](#24-graphql-api-control-plane)
+25. [Надёжность и idempotency](#25-надёжность-и-idempotency)
+26. [Observability и audit](#26-observability-и-audit)
+27. [Целевая структура кода](#27-целевая-структура-кода)
+28. [Изменения build, CLI и Federation tooling](#28-изменения-build-cli-и-federation-tooling)
+29. [Переход от текущей реализации](#29-переход-от-текущей-реализации)
+30. [Этапы реализации](#30-этапы-реализации)
+31. [Pilot: Tilda Import App](#31-pilot-tilda-import-app)
+32. [Проверка реализации](#32-проверка-реализации)
+33. [Критерии готовности](#33-критерии-готовности)
+34. [Отклонённые альтернативы](#34-отклонённые-альтернативы)
+35. [Принятые default decisions](#35-принятые-default-decisions)
+36. [Связанные файлы](#36-связанные-файлы)
 
 ## 1. Резюме решения
 
@@ -74,7 +73,7 @@ BootstrapModule
 - владельцем bundled App registry;
 - владельцем AppBroker facades;
 - владельцем запуска и остановки App instances;
-- владельцем App GraphQL и UI hosts;
+- владельцем App GraphQL hosts;
 - маршрутизатором lifecycle, capabilities и events.
 
 При старте `apps-service`:
@@ -86,7 +85,7 @@ BootstrapModule
 5. передаёт этот broker facade и host dependencies App;
 6. регистрирует App instance в `AppRuntimeRegistry`;
 7. вызывает App hooks регистрации actions, handlers, workflows и sagas;
-8. при необходимости запускает для App GraphQL subgraph и Admin UI server;
+8. при необходимости запускает для App GraphQL subgraph;
 9. публикует App в runtime catalog.
 
 App не импортируется в `BootstrapModule`, не добавляет Nest module в bootstrap
@@ -112,8 +111,7 @@ Bootstrap
 - может вызывать actions/workflows core services;
 - имеет собственный config внутри `config.services.apps.applications`;
 - владеет собственной PostgreSQL schema и Catalog-style migrations;
-- может предоставлять отдельный Federation subgraph;
-- имеет собственный Admin frontend, открываемый через iframe.
+- может предоставлять отдельный Federation subgraph.
 
 Installation остаётся store-scoped control-plane entity. App package и App
 runtime instance существуют на уровне deployment, а install/suspend/uninstall
@@ -137,8 +135,7 @@ Bootstrap не знает:
 - package каждого App;
 - App manifests;
 - App lifecycle contracts;
-- App GraphQL schemas;
-- App UI assets.
+- App GraphQL schemas.
 
 Добавление нового App не изменяет:
 
@@ -155,7 +152,7 @@ Bootstrap не знает:
 - какой AppBroker facade передать App;
 - какой config принадлежит App;
 - какие actions/workflows App должен зарегистрировать;
-- какие GraphQL/UI surfaces нужно поднять;
+- какие GraphQL surfaces нужно поднять;
 - какие installations активны.
 
 Добавление App изменяет registry и dependencies `services/apps`, но не
@@ -172,7 +169,6 @@ interface ShopanaAppDefinition {
   manifest: AppManifest;
   create(host: AppHostContext): ShopanaApp;
   graphql?: AppGraphQLDefinition;
-  adminUi?: AppAdminUiDefinition;
 }
 ```
 
@@ -256,7 +252,6 @@ services:
         enabled: true
         ports:
           admin_graphql: 10101
-          admin_ui: 11101
         max_concurrent_imports: 2
 ```
 
@@ -304,18 +299,6 @@ App handlers не участвуют в этом core lookup. Они регис�
 `apps.<appCode>.<eventType>` и разрешаются через installation-aware action
 `apps.resolveEventHandlers`.
 
-### 3.8. Admin уже имеет необходимые точки расширения
-
-Существуют:
-
-- route `/system/integrations/apps`;
-- module registry;
-- catch-all routing;
-- `useDynamicSidebarStore`.
-
-Нужно заменить mock Apps data на control-plane GraphQL и добавить generic
-iframe App Shell.
-
 ## 4. Термины
 
 ### 4.1. App
@@ -330,7 +313,6 @@ App имеет:
 - broker contracts;
 - собственные данные и migrations;
 - optional GraphQL;
-- optional Admin frontend;
 - installations.
 
 ### 4.2. App package
@@ -347,8 +329,7 @@ App имеет:
 - workflows/sagas;
 - repositories/models;
 - migrations;
-- GraphQL schemas/resolvers;
-- Admin frontend.
+- GraphQL schemas/resolvers.
 
 ### 4.3. Hosted App
 
@@ -375,7 +356,7 @@ Shopana core service с `serviceName = "apps"`.
 - App registry owner;
 - installation control plane;
 - capability router;
-- App GraphQL/UI host manager.
+- App GraphQL host manager.
 
 ### 4.5. App definition
 
@@ -384,7 +365,6 @@ Shopana core service с `serviceName = "apps"`.
 - manifest;
 - factory;
 - GraphQL contribution;
-- UI contribution;
 - build/runtime metadata.
 
 ### 4.6. App instance
@@ -407,7 +387,6 @@ Installation имеет:
 - secrets;
 - capability bindings;
 - event subscriptions;
-- UI extensions;
 - lifecycle history.
 
 ### 4.8. App broker
@@ -444,10 +423,6 @@ Store-specific configuration, которой владеет `apps-service`.
 Типизированная возможность App, вызываемая платформой через
 `apps.executeCapability`.
 
-### 4.12. UI extension
-
-Декларативный navigation/page entry App в основном Admin.
-
 ## 5. Цели
 
 1. Хранить Apps отдельно от core services в top-level `apps/*`.
@@ -461,10 +436,9 @@ Store-specific configuration, которой владеет `apps-service`.
    `config.services.apps.applications[appCode]`.
 9. Дать App собственную PostgreSQL schema и Catalog-style migrations.
 10. Разрешить App публиковать Federation GraphQL.
-11. Дать App собственный iframe frontend.
-12. Оставить lifecycle installations в `apps-service`.
-13. Сделать capability и event routing installation-aware.
-14. Сделать добавление App повторяемым и изолированным от bootstrap.
+11. Оставить lifecycle installations в `apps-service`.
+12. Сделать capability и event routing installation-aware.
+13. Сделать добавление App повторяемым и изолированным от bootstrap.
 
 ## 6. Что не входит в целевую модель
 
@@ -477,7 +451,6 @@ Store-specific configuration, которой владеет `apps-service`.
 - remote HTTP transport между `apps-service` и backend App;
 - OAuth `client_credentials` между App и core services;
 - tenant-specific supergraph;
-- загрузка App React code в основной Admin tree;
 - per-store DB/schema;
 - backward compatibility со старым `InstalledApp = Slot`;
 - backfill старой plugin model.
@@ -577,7 +550,6 @@ flowchart TB
       AppsBroker["Injected ServiceBroker (apps)"]
       BrokerFactory["AppBrokerFacadeFactory"]
       GraphQLHost["AppGraphQLHost"]
-      UiHost["AppUiHost"]
 
       subgraph HostedApps["Hosted App instances"]
         Tilda["Tilda Import App"]
@@ -588,7 +560,6 @@ flowchart TB
       RuntimeHost --> BrokerFactory
       AppsBroker --> BrokerFactory
       RuntimeHost --> GraphQLHost
-      RuntimeHost --> UiHost
       BrokerFactory --> Tilda
       BrokerFactory --> ERP
     end
@@ -654,7 +625,6 @@ services/bootstrap
     "packages/shopana/*",
     "services/*",
     "apps/*",
-    "apps/*/admin",
     "infra/federation",
     "workflows"
   ]
@@ -681,10 +651,6 @@ apps/tilda-import/
 │   ├── scripts/
 │   ├── repositories/
 │   └── graphql/
-└── admin/
-    ├── package.json
-    ├── src/
-    └── dist/
 ```
 
 ### 9.3. Package export
@@ -696,7 +662,6 @@ export default defineApp({
   manifest: tildaImportManifest,
   create: (host) => new TildaImportApp(host),
   graphql: tildaImportGraphQL,
-  adminUi: tildaImportAdminUi,
 });
 ```
 
@@ -748,7 +713,6 @@ subgraph name:   apps-tilda-import-admin
 - App instance creation;
 - actions/handlers/workflows registration;
 - GraphQL host creation;
-- UI host creation;
 - runtime health;
 - graceful shutdown.
 
@@ -775,7 +739,7 @@ Registry является compile-time code.
 - logger factory;
 - secret resolver;
 - runtime registry storage;
-- GraphQL/UI server factories.
+- GraphQL server factories.
 
 ### 10.4. Host startup
 
@@ -790,7 +754,7 @@ Startup выполняется в `OnApplicationBootstrap`, когда shared in
 6. call `register()`;
 7. validate registered contracts;
 8. start App instance;
-9. start GraphQL/UI surfaces;
+9. start GraphQL surfaces;
 10. mark App runtime ready.
 
 `apps-service` control-plane GraphQL readiness не публикуется до завершения
@@ -801,7 +765,7 @@ Startup выполняется в `OnApplicationBootstrap`, когда shared in
 В обратном порядке:
 
 1. прекратить новые App invocations;
-2. закрыть UI/GraphQL servers;
+2. закрыть GraphQL servers;
 3. вызвать `app.stop()`;
 4. дождаться in-flight calls в пределах timeout;
 5. deregister App actions/workflows;
@@ -1106,19 +1070,6 @@ export const tildaImportManifest = defineAppManifest({
     admin: true,
     storefront: false,
   },
-  adminUi: {
-    entryPath: "/embedded",
-    extensions: [
-      {
-        key: "imports",
-        type: "NAVIGATION",
-        location: "APPS",
-        label: "Tilda imports",
-        path: "/imports",
-        order: 100,
-      },
-    ],
-  },
 });
 ```
 
@@ -1147,7 +1098,6 @@ GraphQL. Она хранит:
 - capabilities;
 - permissions;
 - event versions;
-- UI paths;
 - GraphQL ports.
 
 После `register()` дополнительно проверяется:
@@ -1194,8 +1144,6 @@ services:
         required: true
         ports:
           admin_graphql: 10101
-          admin_ui: 11101
-        public_ui_origin: http://localhost:11101
         max_concurrent_imports: 2
         source_download_timeout_ms: 30000
 ```
@@ -1224,7 +1172,7 @@ App package не выбирает произвольный config key.
 - сопоставляет `manifest.code` с ключом `applications`;
 - валидирует App config собственной схемой manifest/definition;
 - передаёт App только его секцию;
-- использует её для GraphQL/UI host и runtime limits.
+- использует её для GraphQL host и runtime limits.
 
 ### 14.4. `enabled` и `required`
 
@@ -1240,7 +1188,6 @@ App package не выбирает произвольный config key.
 Deployment config:
 
 - ports;
-- origins;
 - resource limits;
 - shared upstream settings.
 
@@ -1296,7 +1243,7 @@ Runtime state не хранится как installation status.
 - открыть App-owned non-GraphQL resources;
 - сообщить health.
 
-GraphQL/UI servers предпочтительно создаёт host, а не сам App, чтобы
+GraphQL servers предпочтительно создаёт host, а не сам App, чтобы
 унифицировать context, logging и shutdown.
 
 ### 15.4. `stop()`
@@ -1313,7 +1260,7 @@ App владеет App-specific install/update/uninstall logic.
 
 ### 16.2. Install
 
-1. Admin запрашивает definition и permissions.
+1. Control plane принимает install request и определяет definition/permissions.
 2. Пользователь подтверждает consent.
 3. Control plane создаёт installation в `INSTALLING`.
 4. Сохраняется manifest snapshot.
@@ -1326,7 +1273,7 @@ apps.tilda-import.install
 
 7. App создаёт tenant rows в своей schema.
 8. App может вызвать core services через broker.
-9. Control plane создаёт slots, subscriptions и extensions.
+9. Control plane создаёт slots и subscriptions.
 10. Installation становится `ACTIVE`.
 
 ### 16.3. Install workflow input
@@ -1347,11 +1294,10 @@ Target `appCode` и lifecycle contract не принимаются от GraphQL 
 
 ### 16.4. Suspend
 
-1. отключить новые UI sessions;
-2. отключить capability routes;
-3. pause event subscriptions;
-4. вызвать App suspend action;
-5. перевести installation в `SUSPENDED`.
+1. отключить capability routes;
+2. pause event subscriptions;
+3. вызвать App suspend action;
+4. перевести installation в `SUSPENDED`.
 
 App instance остаётся `READY`.
 
@@ -1374,15 +1320,15 @@ runtime `apps-service` обновляет installations:
 2. запрашивает новый consent при scope expansion;
 3. запускает App update workflow;
 4. обновляет tenant data/config;
-5. пересоздаёт bindings/subscriptions/extensions;
+5. пересоздаёт bindings/subscriptions;
 6. сохраняет новый snapshot;
 7. обновляет installed version.
 
 ### 16.7. Uninstall
 
 1. installation становится `UNINSTALLING`;
-2. UI/events/capabilities блокируются сразу;
-3. отзываются sessions/secrets;
+2. events/capabilities блокируются сразу;
+3. отзываются installation secrets;
 4. запускается App uninstall workflow;
 5. App очищает tenant-owned data;
 6. control plane удаляет active bindings;
@@ -1452,10 +1398,8 @@ stateDiagram-v2
 - `app_installation_manifest_snapshots`;
 - `app_installation_scopes`;
 - `app_installation_secrets`;
-- `app_installation_extensions`;
 - `app_event_subscriptions`;
 - `app_lifecycle_operations`;
-- `app_launch_sessions`.
 
 ### 17.4. Runtime definitions
 
@@ -1885,98 +1829,9 @@ TildaImportJob
 TildaImportSource
 ```
 
-## 23. Frontend App в Admin через iframe
+## 23. IAM и авторизация
 
-### 23.1. Source ownership
-
-```text
-apps/tilda-import/admin/
-```
-
-Frontend имеет собственный package/build и не входит в основной Admin bundle.
-
-### 23.2. Hosting
-
-App definition предоставляет UI assets metadata.
-`AppUiHost` внутри `apps-service` обслуживает assets на App-specific port или
-validated origin.
-
-```yaml
-services:
-  apps:
-    applications:
-      tilda-import:
-        ports:
-          admin_ui: 11101
-        public_ui_origin: http://localhost:11101
-```
-
-### 23.3. Generic App Shell
-
-Основной Admin route:
-
-```text
-/:orgName/:storeName/apps/:appCode/:extensionPath*
-```
-
-Shell:
-
-1. получает installation/extension;
-2. создаёт launch session;
-3. загружает iframe;
-4. выполняет bridge handshake;
-5. передаёт route/theme/locale;
-6. показывает App errors.
-
-### 23.4. Launch session
-
-`apps-service` создаёт one-time short-lived launch code, связанный с:
-
-- installation;
-- user;
-- store;
-- extension/path;
-- exact origin;
-- nonce.
-
-Admin bearer token не передаётся в iframe URL.
-
-### 23.5. Sandbox
-
-```html
-<iframe
-  sandbox="allow-scripts allow-forms allow-same-origin"
-  referrerpolicy="no-referrer"
-/>
-```
-
-Iframe origin отличается от Admin origin.
-
-### 23.6. App Bridge
-
-Разрешённые operations:
-
-- `READY`;
-- `INIT`;
-- `NAVIGATE`;
-- `RESIZE`;
-- `SET_TITLE`;
-- `SHOW_TOAST`;
-- `OPEN_CONFIRM`;
-- theme/locale updates.
-
-Messages versioned, schema-validated и проверяют exact origin.
-
-### 23.7. Dynamic navigation
-
-`apps-service` возвращает active UI extensions.
-Admin загружает их в `useDynamicSidebarStore`.
-
-Sidebar ведёт в App Shell, а не прямо на внешний origin.
-
-## 24. IAM и авторизация
-
-### 24.1. Backend identity
+### 23.1. Backend identity
 
 App backend не использует OAuth token для in-process calls.
 
@@ -1992,7 +1847,7 @@ app.storeId = ...
 `caller.service` определяет доверенный platform service. `app.appCode`
 определяет конкретный App внутри `apps-service`.
 
-### 24.2. Effective permissions
+### 23.2. Effective permissions
 
 Для user operation:
 
@@ -2003,7 +1858,7 @@ manifest requested scopes
 ∩ current store
 ```
 
-### 24.3. Core action enforcement
+### 23.3. Core action enforcement
 
 Core broker action проверяет:
 
@@ -2013,7 +1868,7 @@ Core broker action проверяет:
 - scope;
 - resource policy.
 
-### 24.4. App entrypoint guard
+### 23.4. App entrypoint guard
 
 Каждый tenant entrypoint проверяет:
 
@@ -2024,14 +1879,14 @@ Core broker action проверяет:
 - required scopes;
 - manifest declaration.
 
-### 24.5. Trusted-code boundary
+### 23.5. Trusted-code boundary
 
 AppBroker facade и permissions не создают process sandbox.
 Bundled Apps проходят repository code review.
 
-## 25. GraphQL API control plane
+## 24. GraphQL API control plane
 
-### 25.1. Definitions
+### 24.1. Definitions
 
 Available Apps возвращаются из bundled runtime registry:
 
@@ -2048,7 +1903,7 @@ type AppDefinition {
 }
 ```
 
-### 25.2. Installations
+### 24.2. Installations
 
 ```graphql
 type AppInstallation {
@@ -2061,23 +1916,21 @@ type AppInstallation {
   configurationVersion: Int!
   scopes: [AppInstallationScope!]!
   capabilities: [AppCapabilityBinding!]!
-  extensions: [AppUiExtension!]!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 ```
 
-### 25.3. Queries
+### 24.3. Queries
 
 - available Apps;
 - runtime health;
 - installed Apps;
 - installation;
 - lifecycle operation;
-- install/update preview;
-- UI extensions.
+- install/update preview.
 
-### 25.4. Mutations
+### 24.4. Mutations
 
 - install prepare/confirm;
 - update prepare/confirm;
@@ -2085,16 +1938,15 @@ type AppInstallation {
 - resume;
 - configure;
 - retry;
-- uninstall;
-- launch create.
+- uninstall.
 
-### 25.5. Payloads
+### 24.5. Payloads
 
 Boolean mutations заменяются payload + `userErrors`.
 
-## 26. Надёжность и idempotency
+## 25. Надёжность и idempotency
 
-### 26.1. Shared failure domain
+### 25.1. Shared failure domain
 
 Все Apps работают в процессе bootstrap внутри `apps-service`.
 
@@ -2114,7 +1966,7 @@ App может повлиять на platform process через:
 - runtime health;
 - registration rollback.
 
-### 26.2. Runtime isolation
+### 25.2. Runtime isolation
 
 App имеет отдельные:
 
@@ -2122,12 +1974,12 @@ App имеет отдельные:
 - config;
 - logger;
 - DB schema;
-- servers;
+- GraphQL servers;
 - health state.
 
 Но не имеет OS/process isolation.
 
-### 26.3. Lifecycle idempotency
+### 25.3. Lifecycle idempotency
 
 Stable key:
 
@@ -2135,26 +1987,26 @@ Stable key:
 organizationId + installationId + operation + targetVersion
 ```
 
-### 26.4. Event idempotency
+### 25.4. Event idempotency
 
 ```text
 installationId + eventId
 ```
 
-### 26.5. Capability idempotency
+### 25.5. Capability idempotency
 
 Side-effect contracts требуют domain idempotency key.
 
-### 26.6. Retry ownership
+### 25.6. Retry ownership
 
 - lifecycle — `apps-service`;
 - App workflow — App;
 - event delivery — Events;
 - upstream I/O — workflow step.
 
-## 27. Observability и audit
+## 26. Observability и audit
 
-### 27.1. Runtime health
+### 26.1. Runtime health
 
 Для каждого bundled App:
 
@@ -2162,11 +2014,11 @@ Side-effect contracts требуют domain idempotency key.
 - version;
 - broker health;
 - registered actions/workflows;
-- GraphQL/UI server health;
+- GraphQL server health;
 - DB schema health;
 - last startup error.
 
-### 27.2. Structured context
+### 26.2. Structured context
 
 - app code;
 - version;
@@ -2175,21 +2027,20 @@ Side-effect contracts требуют domain idempotency key.
 - action/workflow/event;
 - request/correlation id.
 
-### 27.3. Metrics
+### 26.3. Metrics
 
 Host:
 
 - registration/start duration;
 - runtime failures;
-- App servers;
+- App GraphQL servers;
 - in-flight calls.
 
 Control plane:
 
 - installations by state;
 - lifecycle duration;
-- version drift;
-- launch failures.
+- version drift.
 
 App:
 
@@ -2197,19 +2048,18 @@ App:
 - queue depth;
 - dependency errors.
 
-### 27.4. Audit
+### 26.4. Audit
 
 - runtime registered/failed;
 - installation lifecycle;
 - permissions/config changes;
-- launch sessions;
 - capability invocation metadata.
 
 Secrets не логируются.
 
-## 28. Целевая структура кода
+## 27. Целевая структура кода
 
-### 28.1. Top-level Apps
+### 27.1. Top-level Apps
 
 ```text
 apps/
@@ -2225,11 +2075,10 @@ apps/
 │   │   ├── workflows/
 │   │   ├── repositories/
 │   │   └── graphql/
-│   └── admin/
 └── erp-sync/
 ```
 
-### 28.2. `services/apps`
+### 27.2. `services/apps`
 
 ```text
 services/apps/src/
@@ -2240,8 +2089,7 @@ services/apps/src/
 │   ├── AppsRuntimeHost.ts
 │   ├── AppBrokerFacadeFactory.ts
 │   ├── AppRuntimeRegistry.ts
-│   ├── AppGraphQLHost.ts
-│   └── AppUiHost.ts
+│   └── AppGraphQLHost.ts
 ├── lifecycle/
 ├── capabilities/
 ├── events/
@@ -2251,7 +2099,7 @@ services/apps/src/
 └── api/graphql-admin/
 ```
 
-### 28.3. Shared packages
+### 27.3. Shared packages
 
 ```text
 packages/
@@ -2261,13 +2109,12 @@ packages/
 │   ├── registration/
 │   ├── execution-context/
 │   └── graphql/
-├── app-contracts/
-└── app-bridge/
+└── app-contracts/
 ```
 
-## 29. Изменения build, CLI и Federation tooling
+## 28. Изменения build, CLI и Federation tooling
 
-### 29.1. Unified project unit discovery
+### 28.1. Unified project unit discovery
 
 Ввести единый discovery:
 
@@ -2287,21 +2134,20 @@ type ProjectUnit =
 - Federation composition;
 - MCP service/app listing.
 
-### 29.2. Build order
+### 28.2. Build order
 
 1. shared packages;
 2. App packages;
-3. App frontends;
-4. core services, включая `services/apps`;
-5. Federation schemas;
-6. bootstrap.
+3. core services, включая `services/apps`;
+4. Federation schemas;
+5. bootstrap.
 
-### 29.3. `apps-service` dependency build
+### 28.3. `apps-service` dependency build
 
 App packages должны быть собраны до `services/apps`, поскольку bundled registry
 импортирует их definitions.
 
-### 29.4. Dev watch
+### 28.4. Dev watch
 
 Изменение `apps/<code>/src`:
 
@@ -2311,21 +2157,21 @@ App packages должны быть собраны до `services/apps`, поск
 
 Bootstrap source/dependencies вручную не изменяются.
 
-### 29.5. Migrations
+### 28.5. Migrations
 
 Migration CLI принимает `appCode` через `--app` и разрешает его в `apps/*`.
 
-### 29.6. Codegen
+### 28.6. Codegen
 
 GraphQL App участвует в codegen как project unit kind `app`.
 
-### 29.7. Federation
+### 28.7. Federation
 
 Schema discovery сканирует `apps/*/build.config.json`.
 Mesh port берёт из
 `config.services.apps.applications[appCode].ports`.
 
-### 29.8. MCP tools
+### 28.8. MCP tools
 
 Hardcoded списки Apps не подходят для растущего `apps/*`.
 
@@ -2336,7 +2182,7 @@ Hardcoded списки Apps не подходят для растущего `app
 - поддержка build/migrate/codegen App;
 - отображение host `apps`.
 
-### 29.9. App generator
+### 28.9. App generator
 
 ```text
 shopana app create <code>
@@ -2349,15 +2195,14 @@ shopana app create <code>
 - actions/workflows skeleton;
 - Catalog-style migrations;
 - optional GraphQL;
-- optional Admin frontend;
 - config template;
 - dependency и registry entry в `services/apps`.
 
 Не изменяет bootstrap.
 
-## 30. Переход от текущей реализации
+## 29. Переход от текущей реализации
 
-### 30.1. Что сохраняется
+### 29.1. Что сохраняется
 
 - `AppsModule` в bootstrap;
 - `services/apps` package;
@@ -2366,10 +2211,9 @@ shopana app create <code>
 - secret store;
 - DBOS;
 - shared broker;
-- Apps GraphQL control plane;
-- Admin dynamic sidebar.
+- Apps GraphQL control plane.
 
-### 30.2. Что заменяется
+### 29.2. Что заменяется
 
 | Сейчас | Цель |
 |---|---|
@@ -2382,9 +2226,8 @@ shopana app create <code>
 | InstalledApp = slot | отдельная installation |
 | provider config как App state | App schema + installation config |
 | нет App subgraph host | AppGraphQLHost внутри `apps-service` |
-| нет App frontend host | AppUiHost + iframe |
 
-### 30.3. Что не меняется в bootstrap
+### 29.3. Что не меняется в bootstrap
 
 Bootstrap продолжает импортировать только:
 
@@ -2394,17 +2237,16 @@ import { AppsModule } from "@shopana/apps-service";
 
 Ни Tilda, ни любой другой App не появляется в bootstrap source.
 
-### 30.4. Что удаляется
+### 29.4. Что удаляется
 
 - direct provider execution из `apps-service`;
 - old InstalledApp GraphQL;
 - Boolean install/uninstall;
 - domain guessing;
 - arbitrary operation ids;
-- Apps mock store;
 - plugin config migrations как App data migration.
 
-### 30.5. Provider migration
+### 29.5. Provider migration
 
 Для каждого provider:
 
@@ -2417,7 +2259,7 @@ import { AppsModule } from "@shopana/apps-service";
 
 Compatibility path не сохраняется.
 
-## 31. Этапы реализации
+## 30. Этапы реализации
 
 ### Этап 0. Зафиксировать hosted App contract
 
@@ -2470,7 +2312,7 @@ Compatibility path не сохраняется.
 - snapshots;
 - scopes/secrets;
 - operations;
-- extensions/subscriptions;
+- subscriptions;
 - slots link.
 
 ### Этап 5. Durable installation lifecycle
@@ -2501,52 +2343,33 @@ Compatibility path не сохраняется.
 - installation guard;
 - composition.
 
-### Этап 9. Admin control plane
-
-- real GraphQL hooks;
-- catalog;
-- consent;
-- lifecycle;
-- diagnostics.
-
-### Этап 10. App UI host
-
-- frontend build;
-- static host;
-- launch sessions;
-- iframe shell;
-- bridge;
-- dynamic navigation.
-
-### Этап 11. Tilda pilot
+### Этап 9. Tilda pilot
 
 - `apps/tilda-import`;
 - App registration in `services/apps`;
 - migrations;
 - workflows;
-- GraphQL;
-- UI.
+- GraphQL.
 
-### Этап 12. Legacy cleanup
+### Этап 10. Legacy cleanup
 
 - remove Tilda plugin;
 - remove old App execution;
 - remove obsolete GraphQL/data model.
 
-## 32. Pilot: Tilda Import App
+## 31. Pilot: Tilda Import App
 
-### 32.1. Layout
+### 31.1. Layout
 
 ```text
 apps/tilda-import/
 ├── app.manifest.ts
 ├── src/
 ├── migrations/domains/
-├── build.config.json
-└── admin/
+└── build.config.json
 ```
 
-### 32.2. Registration
+### 31.2. Registration
 
 `services/apps` импортирует:
 
@@ -2556,7 +2379,7 @@ import tildaImport from "@shopana/app-tilda-import";
 
 Bootstrap не изменяется.
 
-### 32.3. Broker
+### 31.3. Broker
 
 `AppsRuntimeHost` получает `@InjectBroker("apps")`, создаёт AppBroker facade с:
 
@@ -2567,7 +2390,7 @@ namespace = apps.tilda-import
 
 и передаёт его `TildaImportApp`. Новый `ServiceBroker` не создаётся.
 
-### 32.4. Contracts
+### 31.4. Contracts
 
 Actions:
 
@@ -2587,7 +2410,7 @@ Workflows:
 - `uninstall`;
 - `runImport`.
 
-### 32.5. Database
+### 31.5. Database
 
 Schema:
 
@@ -2605,25 +2428,14 @@ Tables:
 - cursors;
 - processed events.
 
-### 32.6. Federation
+### 31.6. Federation
 
 App package предоставляет SDL/resolvers.
 `apps-service` запускает subgraph на App config port.
 
-### 32.7. UI
+## 32. Проверка реализации
 
-`apps/tilda-import/admin` предоставляет:
-
-- Imports;
-- Import details;
-- Sources;
-- Settings.
-
-`AppUiHost` обслуживает frontend, Admin открывает его через iframe.
-
-## 33. Проверка реализации
-
-### 33.1. Dependency boundaries
+### 32.1. Dependency boundaries
 
 Проверить:
 
@@ -2632,7 +2444,7 @@ App package предоставляет SDL/resolvers.
 - App не импортирует core repositories;
 - App не получает Nest application context.
 
-### 33.2. Registration
+### 32.2. Registration
 
 - shared broker service identity `apps`;
 - unique namespace на App;
@@ -2642,16 +2454,15 @@ App package предоставляет SDL/resolvers.
 - runtime health;
 - graceful stop.
 
-### 33.3. Build
+### 32.3. Build
 
 - App package build;
-- App frontend build;
 - `apps-service` build;
 - bootstrap build без direct App dependency;
 - Federation composition;
 - App migrations.
 
-### 33.4. Installation lifecycle
+### 32.4. Installation lifecycle
 
 - install;
 - duplicate request;
@@ -2660,7 +2471,7 @@ App package предоставляет SDL/resolvers.
 - update;
 - uninstall one store while another remains active.
 
-### 33.5. Broker security
+### 32.5. Broker security
 
 - downstream видит `caller.service = apps`;
 - конкретный App виден в trusted `context.app.appCode`;
@@ -2668,14 +2479,14 @@ App package предоставляет SDL/resolvers.
 - cross-store rejected;
 - undeclared action rejected.
 
-### 33.6. Events
+### 32.6. Events
 
 - active store delivery;
 - store without installation;
 - suspended/uninstalled App;
 - duplicate/retry.
 
-### 33.7. Federation
+### 32.7. Federation
 
 - schema discovered from `apps/*`;
 - port resolved from `services.apps.applications`;
@@ -2683,16 +2494,7 @@ App package предоставляет SDL/resolvers.
 - resolver installation guard;
 - successful supergraph composition.
 
-### 33.8. UI
-
-- App assets hosted by `apps-service`;
-- iframe launch;
-- origin checks;
-- deep links;
-- sidebar cleanup;
-- no Admin token/DOM access.
-
-## 34. Критерии готовности
+## 33. Критерии готовности
 
 1. Apps находятся в top-level `apps/*`.
 2. Bootstrap не импортирует конкретные Apps.
@@ -2714,45 +2516,42 @@ App package предоставляет SDL/resolvers.
 17. Events installation-aware.
 18. App может предоставить отдельный Federation subgraph.
 19. Subgraph server запускает `apps-service`.
-20. App frontend находится в App package.
-21. UI server запускает `apps-service`.
-22. Admin открывает UI через sandboxed iframe.
-23. Tilda работает из `apps/tilda-import`.
-24. Добавление Tilda не меняет bootstrap.
-25. Legacy Tilda plugin execution удалён.
+20. Tilda работает из `apps/tilda-import`.
+21. Добавление Tilda не меняет bootstrap.
+22. Legacy Tilda plugin execution удалён.
 
-## 35. Отклонённые альтернативы
+## 34. Отклонённые альтернативы
 
-### 35.1. Подключать App напрямую в bootstrap
+### 34.1. Подключать App напрямую в bootstrap
 
 Отклонено.
 
 Bootstrap должен зависеть только от `AppsModule`. App registry и hosting
 принадлежат `apps-service`.
 
-### 35.2. Размещать Apps в `services/app-*`
+### 34.2. Размещать Apps в `services/app-*`
 
 Отклонено.
 
 Apps располагаются в отдельной top-level `apps/*`, чтобы не смешивать hosted
 Apps с platform services.
 
-### 35.3. Передавать App raw `ServiceBroker`
+### 34.3. Передавать App raw `ServiceBroker`
 
 Отклонено. Apps используют общий broker service `apps`, но получают
 ограниченный `AppBroker` facade, который фиксирует `appCode`, namespace,
 allowlists и cleanup ownership.
 
-### 35.4. Создавать App Nest module в bootstrap
+### 34.4. Создавать App Nest module в bootstrap
 
 Отклонено. App использует explicit runtime factory/registration contract.
 
-### 35.5. Remote App backend
+### 34.5. Remote App backend
 
 Отклонено для этой модели. Backend App находится в общем процессе и вызывает
 broker напрямую.
 
-### 35.6. Aggregating all App GraphQL в один `apps` subgraph
+### 34.6. Aggregating all App GraphQL в один `apps` subgraph
 
 Не является default.
 
@@ -2765,19 +2564,15 @@ broker напрямую.
 
 Hosting при этом остаётся внутри `apps-service`.
 
-### 35.7. Динамический filesystem package loading
+### 34.7. Динамический filesystem package loading
 
 Отклонено. Registry статический и проверяемый build-ом.
 
-### 35.8. Применять migrations при tenant install
+### 34.8. Применять migrations при tenant install
 
 Отклонено. Migrations применяются deployment pipeline.
 
-### 35.9. Загружать App frontend в основной React tree
-
-Отклонено. Используется iframe.
-
-## 36. Принятые default decisions
+## 35. Принятые default decisions
 
 - Apps directory: `apps/*`.
 - App package не является bootstrap Nest module.
@@ -2796,12 +2591,9 @@ Hosting при этом остаётся внутри `apps-service`.
 - App GraphQL schema принадлежит App package.
 - App GraphQL server запускает `apps-service`.
 - Federation static per platform release.
-- App UI принадлежит App package.
-- App UI server запускает `apps-service`.
-- Admin использует iframe.
 - Tilda Import является reference App.
 
-## 37. Связанные файлы
+## 36. Связанные файлы
 
 ### Текущая реализация
 
@@ -2829,10 +2621,7 @@ Hosting при этом остаётся внутри `apps-service`.
 - `packages/cli/src/scripts/migrate.ts`;
 - `packages/cli/src/scripts/schema.ts`;
 - `infra/federation/scripts/mesh-utils.ts`;
-- `config.yml`;
-- `admin/src/domains/system/apps/`;
-- `admin/src/domains/system/register.tsx`;
-- `admin/src/layouts/app/components/sidebar/dynamic-sidebar-store.ts`.
+- `config.yml`.
 
 ### Knowledge base
 
@@ -2846,5 +2635,4 @@ Hosting при этом остаётся внутри `apps-service`.
 - `knowledge/vault/packages/shared-kernel/base-classes.md`;
 - `knowledge/vault/packages/shared-kernel/nestjs-modules.md`;
 - `knowledge/vault/packages/dbos/workflows.md`;
-- `knowledge/vault/patterns/federation.md`;
-- `knowledge/vault/patterns/admin-graphql-layer.md`.
+- `knowledge/vault/patterns/federation.md`.
