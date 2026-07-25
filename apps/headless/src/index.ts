@@ -14,6 +14,7 @@ export type {
   StorefrontApiConfiguration,
 } from "../app.manifest.js";
 export { HeadlessApp } from "./HeadlessApp.js";
+export * from "./storefront-access/repositories/index.js";
 
 export default defineApp({
   manifest: headlessManifest,

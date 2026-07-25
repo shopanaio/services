@@ -8,6 +8,7 @@ import type {
   AppUpdateInput,
   ShopanaApp,
 } from "@shopana/app-sdk";
+import { HeadlessStorefrontRepository } from "./storefront-access/repositories/index.js";
 
 interface SalesChannelCapabilityInput {
   readonly salesChannelId: string;
@@ -29,7 +30,13 @@ type InstallationStateResult = Readonly<{
 }>;
 
 export class HeadlessApp implements ShopanaApp {
-  constructor(private readonly host: AppHostContext) {}
+  readonly repository: HeadlessStorefrontRepository;
+
+  constructor(private readonly host: AppHostContext) {
+    this.repository = HeadlessStorefrontRepository.create(
+      host.databaseClient,
+    );
+  }
 
   register(): void {
     this.registerInstallationLifecycle();

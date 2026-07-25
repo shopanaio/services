@@ -11,7 +11,9 @@
     }
   },
   "dependencies": {
-    "@shopana/app-sdk": "workspace:*"
+    "@shopana/app-sdk": "workspace:*",
+    "@shopana/shared-kernel": "workspace:*",
+    "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",

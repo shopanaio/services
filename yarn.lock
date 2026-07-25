@@ -7156,7 +7156,9 @@ __metadata:
   resolution: "@shopana/app-headless@workspace:apps/headless"
   dependencies:
     "@shopana/app-sdk": "workspace:*"
+    "@shopana/shared-kernel": "workspace:*"
     "@types/node": "npm:^22.7.4"
+    drizzle-orm: "npm:^0.45.1"
     typescript: "npm:^5.5.4"
   languageName: unknown
   linkType: soft
