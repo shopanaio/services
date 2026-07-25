@@ -130,18 +130,6 @@ export interface EnqueueNotificationResult {
   accepted: true;
 }
 
-export interface RetryNotificationDeliveryParams {
-  storeId: string;
-  organizationId: string;
-  deliveryId: string;
-  idempotencyKey: string;
-}
-
-export interface CancelNotificationDeliveryParams {
-  storeId: string;
-  deliveryId: string;
-}
-
 export interface NotificationDeliveryInputBase {
   deliveryId: string;
   idempotencyKey: string;

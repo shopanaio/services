@@ -1,4 +1,4 @@
-import { and, desc, eq, max } from "drizzle-orm";
+import { and, eq, max } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import type {
   NotificationChannel,
@@ -165,22 +165,4 @@ export class TemplateRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async listRevisions(
-    key: NotificationDefinitionKey,
-    channel: NotificationChannel,
-    locale: string
-  ) {
-    return this.connection
-      .select()
-      .from(notificationTemplateRevisions)
-      .where(
-        and(
-          eq(notificationTemplateRevisions.storeId, this.storeId),
-          eq(notificationTemplateRevisions.definitionKey, key),
-          eq(notificationTemplateRevisions.channel, channel),
-          eq(notificationTemplateRevisions.locale, locale)
-        )
-      )
-      .orderBy(desc(notificationTemplateRevisions.revision));
-  }
 }

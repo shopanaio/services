@@ -16,14 +16,8 @@ type Mutation {
 }
 
 type NotificationsQuery {
-  overview: NotificationOverview!
   definitions: [NotificationDefinition!]!
   channelSettings(key: String!): [NotificationChannelSetting!]!
-  templateRevisions(
-    key: String!
-    channel: NotificationChannel!
-    locale: String!
-  ): [NotificationTemplateRevision!]!
   template(
     key: String!
     channel: NotificationChannel!
@@ -33,10 +27,7 @@ type NotificationsQuery {
   providerRoutes: [NotificationProviderRoute!]!
   providerConfiguration(channel: NotificationChannel!): NotificationProviderMaskedConfiguration!
   webhookCapabilities: NotificationWebhookCapabilities!
-  webhookSecretStatus: NotificationWebhookSecretStatus!
   webhookSubscriptions: [NotificationWebhookSubscription!]!
-  deliveries(limit: Int = 100): [NotificationDelivery!]!
-  deliveryAttempts(deliveryId: ID!): [NotificationDeliveryAttempt!]!
 }
 
 type NotificationsMutation {
@@ -46,9 +37,7 @@ type NotificationsMutation {
     expectedVersion: Int!
   ): NotificationDefinitionSetting!
   setChannelEnabled(input: NotificationChannelSettingInput!): NotificationChannelSetting!
-  createTemplateRevision(input: NotificationTemplateRevisionInput!): NotificationTemplateRevision!
-  activateTemplateRevision(revisionId: ID!, expectedVersion: Int!): NotificationTemplatePointer!
-  validateTemplate(input: NotificationTemplateValidationInput!): NotificationTemplateValidation!
+  updateTemplate(input: NotificationTemplateUpdateInput!): NotificationEffectiveTemplate!
   preview(input: NotificationPreviewInput!): NotificationPreview!
   upsertStaffRecipient(input: StaffNotificationRecipientInput!): StaffNotificationRecipient!
   deleteStaffRecipient(id: ID!): DeletePayload!
@@ -58,10 +47,7 @@ type NotificationsMutation {
   createWebhook(input: NotificationWebhookCreateInput!): NotificationWebhookSubscription!
   updateWebhook(input: NotificationWebhookUpdateInput!): NotificationWebhookSubscription!
   deleteWebhook(id: ID!): DeletePayload!
-  rotateWebhookSecret(gracePeriodHours: Int = 24): NotificationWebhookSecretPayload!
   revealWebhookSecret: NotificationWebhookSecretPayload!
-  retryDelivery(deliveryId: ID!, idempotencyKey: String!): NotificationWorkflowPayload!
-  cancelDelivery(deliveryId: ID!): NotificationCancelPayload!
 }
 
 enum NotificationChannel {
@@ -75,21 +61,6 @@ enum NotificationAudience {
   STAFF
 }
 
-enum NotificationDeliveryStatus {
-  PENDING
-  RENDERING
-  SENDING
-  ACCEPTED
-  DELIVERED
-  RETRY_SCHEDULED
-  UNKNOWN
-  CANCELLED
-  FAILED_PERMANENT
-  DEAD
-  SKIPPED
-  BLOCKED_NO_PROVIDER
-}
-
 enum NotificationWebhookFormat {
   JSON
   XML
@@ -98,21 +69,6 @@ enum NotificationWebhookFormat {
 enum NotificationWebhookStatus {
   ACTIVE
   DISABLED
-}
-
-type NotificationOverview {
-  definitions: [NotificationDefinition!]!
-  staffRecipientCount: Int!
-  webhookCount: Int!
-  recentDeliveryCount: Int!
-  deliveryCounts: [NotificationDeliveryStatusCount!]!
-  queueDepth: Int!
-  oldestPendingAt: DateTime
-}
-
-type NotificationDeliveryStatusCount {
-  status: NotificationDeliveryStatus!
-  count: Int!
 }
 
 type NotificationDefinition {
@@ -164,63 +120,14 @@ type NotificationChannelSetting {
   updatedAt: DateTime
 }
 
-input NotificationTemplateRevisionInput {
+input NotificationTemplateUpdateInput {
   key: String!
   channel: NotificationChannel!
   locale: String!
   subjectTemplate: String
   bodyTemplate: String!
   plainTextTemplate: String
-}
-
-type NotificationTemplateRevision {
-  id: ID!
-  definitionKey: String!
-  channel: NotificationChannel!
-  locale: String!
-  revision: Int!
-  subjectTemplate: String
-  bodyTemplate: String!
-  plainTextTemplate: String
-  sourceHash: String!
-  validationStatus: String!
-  createdAt: DateTime!
-}
-
-type NotificationTemplatePointer {
-  definitionKey: String!
-  channel: NotificationChannel!
-  locale: String!
-  revisionId: ID!
-  version: Int!
-  updatedAt: DateTime!
-}
-
-enum NotificationTemplateSourceField {
-  SUBJECT
-  BODY
-  PLAIN_TEXT
-}
-
-input NotificationTemplateValidationInput {
-  key: String!
-  channel: NotificationChannel!
-  subjectTemplate: String
-  bodyTemplate: String!
-  plainTextTemplate: String
-}
-
-type NotificationTemplateValidation {
-  valid: Boolean!
-  issues: [NotificationTemplateValidationIssue!]!
-}
-
-type NotificationTemplateValidationIssue {
-  field: NotificationTemplateSourceField!
-  line: Int!
-  column: Int!
-  code: String!
-  message: String!
+  expectedVersion: Int!
 }
 
 type NotificationEffectiveTemplate {
@@ -394,53 +301,9 @@ type NotificationWebhookSecretPayload {
   secret: String!
 }
 
-type NotificationWebhookSecretStatus {
-  configured: Boolean!
-  version: Int
-  rotatedAt: DateTime
-}
-
-type NotificationDelivery {
-  id: ID!
-  occurrenceId: ID!
-  definitionKey: String!
-  sourceEventType: String
-  correlationId: String!
-  channel: NotificationChannel!
-  status: NotificationDeliveryStatus!
-  purpose: String!
-  providerCode: String
-  providerMessageId: String
-  locale: String
-  attemptCount: Int!
-  nextAttemptAt: DateTime
-  lastErrorKind: String
-  lastErrorCode: String
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-type NotificationDeliveryAttempt {
-  id: ID!
-  deliveryId: ID!
-  attemptNumber: Int!
-  providerCode: String
-  providerMessageId: String
-  startedAt: DateTime!
-  finishedAt: DateTime
-  status: String!
-  errorKind: String
-  errorCode: String
-  providerResponseCode: String
-}
-
 type NotificationWorkflowPayload {
   workflowId: String!
   accepted: Boolean!
-}
-
-type NotificationCancelPayload {
-  cancelled: Boolean!
 }
 
 type DeletePayload {

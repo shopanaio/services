@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 
 export type PrivacyCleanupParams = {
   operation: "purgeCustomer";
@@ -9,6 +9,7 @@ export class PrivacyCleanupScript extends BaseScript<
   PrivacyCleanupParams,
   { occurrencesPurged: number }
 > {
+  @Transactional()
   protected async execute(
     params: PrivacyCleanupParams
   ): Promise<{ occurrencesPurged: number }> {

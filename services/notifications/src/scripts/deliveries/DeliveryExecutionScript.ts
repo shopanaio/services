@@ -38,7 +38,6 @@ export type DeliveryExecutionParams =
       diagnostics?: Record<string, unknown>;
     }
   | { operation: "prepareRetry"; deliveryId: string }
-  | { operation: "cancel"; deliveryId: string }
   | {
       operation: "recordPreflightFailure";
       deliveryId: string;
@@ -91,10 +90,6 @@ export class DeliveryExecutionScript extends BaseScript<
           success: await this.repository.deliveries.prepareRetry(
             params.deliveryId
           ),
-        };
-      case "cancel":
-        return {
-          success: await this.repository.deliveries.cancel(params.deliveryId),
         };
       case "recordPreflightFailure":
         await this.repository.deliveries.recordPreflightFailure(params);

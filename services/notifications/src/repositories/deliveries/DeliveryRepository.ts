@@ -1,6 +1,5 @@
 import {
   and,
-  asc,
   desc,
   eq,
   inArray,
@@ -548,46 +547,6 @@ export class DeliveryRepository extends BaseRepository {
     return rows.length === 1;
   }
 
-  async cancel(deliveryId: string): Promise<boolean> {
-    const rows = await this.connection
-      .update(notificationDeliveries)
-      .set({ status: "CANCELLED", updatedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(notificationDeliveries.storeId, this.storeId),
-          eq(notificationDeliveries.id, deliveryId),
-          inArray(notificationDeliveries.status, [
-            "PENDING",
-            "RETRY_SCHEDULED",
-          ])
-        )
-      )
-      .returning({
-        id: notificationDeliveries.id,
-        occurrenceId: notificationDeliveries.occurrenceId,
-      });
-    if (rows[0]) await this.refreshOccurrenceStatus(rows[0].occurrenceId);
-    return rows.length === 1;
-  }
-
-  async listDeliveries(limit = 100) {
-    return this.connection
-      .select({
-        delivery: notificationDeliveries,
-        definitionKey: notificationOccurrences.definitionKey,
-        sourceEventType: notificationOccurrences.sourceEventType,
-        correlationId: notificationOccurrences.correlationId,
-      })
-      .from(notificationDeliveries)
-      .innerJoin(
-        notificationOccurrences,
-        eq(notificationOccurrences.id, notificationDeliveries.occurrenceId)
-      )
-      .where(eq(notificationDeliveries.storeId, this.storeId))
-      .orderBy(desc(notificationDeliveries.createdAt))
-      .limit(Math.min(Math.max(limit, 1), 500));
-  }
-
   async listAttempts(deliveryId: string) {
     return this.connection
       .select()
@@ -599,46 +558,6 @@ export class DeliveryRepository extends BaseRepository {
         )
       )
       .orderBy(desc(notificationDeliveryAttempts.attemptNumber));
-  }
-
-  async getOperationalSnapshot() {
-    const activeStatuses = [
-      "PENDING",
-      "RENDERING",
-      "SENDING",
-      "RETRY_SCHEDULED",
-      "UNKNOWN",
-      "BLOCKED_NO_PROVIDER",
-    ] as const;
-    const activeStatusSet = new Set<string>(activeStatuses);
-    const [counts, oldest] = await Promise.all([
-      this.connection
-        .select({
-          status: notificationDeliveries.status,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(notificationDeliveries)
-        .where(eq(notificationDeliveries.storeId, this.storeId))
-        .groupBy(notificationDeliveries.status),
-      this.connection
-        .select({ createdAt: notificationDeliveries.createdAt })
-        .from(notificationDeliveries)
-        .where(
-          and(
-            eq(notificationDeliveries.storeId, this.storeId),
-            inArray(notificationDeliveries.status, activeStatuses)
-          )
-        )
-        .orderBy(asc(notificationDeliveries.createdAt))
-        .limit(1),
-    ]);
-    return {
-      counts,
-      queueDepth: counts
-        .filter(({ status }) => activeStatusSet.has(status))
-        .reduce((total, entry) => total + Number(entry.count), 0),
-      oldestPendingAt: oldest[0]?.createdAt ?? null,
-    };
   }
 
   private async refreshOccurrenceStatus(occurrenceId: string): Promise<void> {

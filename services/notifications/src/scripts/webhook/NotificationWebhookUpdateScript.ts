@@ -1,0 +1,39 @@
+import {
+  isSupportedWebhookApiVersion,
+} from "../../infrastructure/webhooks/WebhookCapabilities.js";
+import { Transactional } from "../../kernel/BaseScript.js";
+import { BaseAdminScript } from "../shared/BaseAdminScript.js";
+import type {
+  NotificationWebhookUpdateParams,
+  NotificationWebhookView,
+} from "./dto/index.js";
+
+export class NotificationWebhookUpdateScript extends BaseAdminScript<
+  NotificationWebhookUpdateParams,
+  NotificationWebhookView
+> {
+  @Transactional()
+  protected async execute(
+    params: NotificationWebhookUpdateParams
+  ): Promise<NotificationWebhookView> {
+    await this.authorize("notification_webhook", "update");
+    if (
+      params.eventType &&
+      this.definitions.forEvent(params.eventType).length === 0
+    ) {
+      throw new Error("UNSUPPORTED_WEBHOOK_EVENT");
+    }
+    if (
+      params.apiVersion &&
+      !isSupportedWebhookApiVersion(params.apiVersion)
+    ) {
+      throw new Error("UNSUPPORTED_WEBHOOK_API_VERSION");
+    }
+    const webhook = await this.repository.webhooks.update(params);
+    await this.audit("webhook.updated", "webhook", params.id, {
+      version: webhook.version,
+      status: webhook.status,
+    });
+    return webhook;
+  }
+}

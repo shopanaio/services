@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationDeliveryStatus, NotificationPreviewInput, NotificationProviderConfigurationInput, NotificationTemplateRevisionInput, NotificationTemplateSourceField, NotificationTemplateValidationInput, NotificationTestMessageInput, NotificationWebhookApiStability, NotificationWebhookCreateInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, StaffNotificationRecipientInput, WeightUnit } from './types.js'
+import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationPreviewInput, NotificationProviderConfigurationInput, NotificationTemplateUpdateInput, NotificationTestMessageInput, NotificationWebhookApiStability, NotificationWebhookCreateInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, StaffNotificationRecipientInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -20,10 +20,6 @@ export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
 export const NotificationAudienceSchema = z.nativeEnum(NotificationAudience);
 
 export const NotificationChannelSchema = z.nativeEnum(NotificationChannel);
-
-export const NotificationDeliveryStatusSchema = z.nativeEnum(NotificationDeliveryStatus);
-
-export const NotificationTemplateSourceFieldSchema = z.nativeEnum(NotificationTemplateSourceField);
 
 export const NotificationWebhookApiStabilitySchema = z.nativeEnum(NotificationWebhookApiStability);
 
@@ -67,22 +63,13 @@ export function NotificationProviderConfigurationInputSchema(): z.ZodObject<Prop
   })
 }
 
-export function NotificationTemplateRevisionInputSchema(): z.ZodObject<Properties<NotificationTemplateRevisionInput>> {
+export function NotificationTemplateUpdateInputSchema(): z.ZodObject<Properties<NotificationTemplateUpdateInput>> {
   return z.object({
     bodyTemplate: z.string(),
     channel: NotificationChannelSchema,
+    expectedVersion: z.number(),
     key: z.string(),
     locale: z.string(),
-    plainTextTemplate: z.string().nullish(),
-    subjectTemplate: z.string().nullish()
-  })
-}
-
-export function NotificationTemplateValidationInputSchema(): z.ZodObject<Properties<NotificationTemplateValidationInput>> {
-  return z.object({
-    bodyTemplate: z.string(),
-    channel: NotificationChannelSchema,
-    key: z.string(),
     plainTextTemplate: z.string().nullish(),
     subjectTemplate: z.string().nullish()
   })

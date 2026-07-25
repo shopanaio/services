@@ -8183,8 +8183,6 @@ export type ApiFileOrderByInput = {
 export enum FileOrderField {
   /** Sort by altText */
   AltText = 'altText',
-  /** Sort by assetGroupId */
-  AssetGroupId = 'assetGroupId',
   /** Sort by createdAt */
   CreatedAt = 'createdAt',
   /** Sort by durationMs */
@@ -8343,8 +8341,6 @@ export type ApiFileWhereInput = {
   _or?: InputMaybe<Array<ApiFileWhereInput>>;
   /** Filter by altText */
   altText?: InputMaybe<ApiStringFilter>;
-  /** Filter by assetGroupId */
-  assetGroupId?: InputMaybe<ApiIdFilter>;
   /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by durationMs */
@@ -9827,11 +9823,6 @@ export enum NotificationAudience {
   Staff = 'STAFF'
 }
 
-export type ApiNotificationCancelPayload = {
-  __typename?: 'NotificationCancelPayload';
-  cancelled: Scalars['Boolean']['output'];
-};
-
 export enum NotificationChannel {
   Email = 'EMAIL',
   Sms = 'SMS',
@@ -9882,63 +9873,6 @@ export type ApiNotificationDefinitionSetting = {
   version: Scalars['Int']['output'];
 };
 
-export type ApiNotificationDelivery = {
-  __typename?: 'NotificationDelivery';
-  attemptCount: Scalars['Int']['output'];
-  channel: NotificationChannel;
-  correlationId: Scalars['String']['output'];
-  createdAt: Scalars['DateTime']['output'];
-  definitionKey: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  lastErrorCode?: Maybe<Scalars['String']['output']>;
-  lastErrorKind?: Maybe<Scalars['String']['output']>;
-  locale?: Maybe<Scalars['String']['output']>;
-  nextAttemptAt?: Maybe<Scalars['DateTime']['output']>;
-  occurrenceId: Scalars['ID']['output'];
-  providerCode?: Maybe<Scalars['String']['output']>;
-  providerMessageId?: Maybe<Scalars['String']['output']>;
-  purpose: Scalars['String']['output'];
-  sourceEventType?: Maybe<Scalars['String']['output']>;
-  status: NotificationDeliveryStatus;
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-export type ApiNotificationDeliveryAttempt = {
-  __typename?: 'NotificationDeliveryAttempt';
-  attemptNumber: Scalars['Int']['output'];
-  deliveryId: Scalars['ID']['output'];
-  errorCode?: Maybe<Scalars['String']['output']>;
-  errorKind?: Maybe<Scalars['String']['output']>;
-  finishedAt?: Maybe<Scalars['DateTime']['output']>;
-  id: Scalars['ID']['output'];
-  providerCode?: Maybe<Scalars['String']['output']>;
-  providerMessageId?: Maybe<Scalars['String']['output']>;
-  providerResponseCode?: Maybe<Scalars['String']['output']>;
-  startedAt: Scalars['DateTime']['output'];
-  status: Scalars['String']['output'];
-};
-
-export enum NotificationDeliveryStatus {
-  Accepted = 'ACCEPTED',
-  BlockedNoProvider = 'BLOCKED_NO_PROVIDER',
-  Cancelled = 'CANCELLED',
-  Dead = 'DEAD',
-  Delivered = 'DELIVERED',
-  FailedPermanent = 'FAILED_PERMANENT',
-  Pending = 'PENDING',
-  Rendering = 'RENDERING',
-  RetryScheduled = 'RETRY_SCHEDULED',
-  Sending = 'SENDING',
-  Skipped = 'SKIPPED',
-  Unknown = 'UNKNOWN'
-}
-
-export type ApiNotificationDeliveryStatusCount = {
-  __typename?: 'NotificationDeliveryStatusCount';
-  count: Scalars['Int']['output'];
-  status: NotificationDeliveryStatus;
-};
-
 export type ApiNotificationEffectiveTemplate = {
   __typename?: 'NotificationEffectiveTemplate';
   bodyTemplate: Scalars['String']['output'];
@@ -9952,17 +9886,6 @@ export type ApiNotificationEffectiveTemplate = {
   source: Scalars['String']['output'];
   sourceVersion?: Maybe<Scalars['String']['output']>;
   subjectTemplate?: Maybe<Scalars['String']['output']>;
-};
-
-export type ApiNotificationOverview = {
-  __typename?: 'NotificationOverview';
-  definitions: Array<ApiNotificationDefinition>;
-  deliveryCounts: Array<ApiNotificationDeliveryStatusCount>;
-  oldestPendingAt?: Maybe<Scalars['DateTime']['output']>;
-  queueDepth: Scalars['Int']['output'];
-  recentDeliveryCount: Scalars['Int']['output'];
-  staffRecipientCount: Scalars['Int']['output'];
-  webhookCount: Scalars['Int']['output'];
 };
 
 export type ApiNotificationPreview = {
@@ -10034,67 +9957,14 @@ export type ApiNotificationSmsMetrics = {
   segmentCount: Scalars['Int']['output'];
 };
 
-export type ApiNotificationTemplatePointer = {
-  __typename?: 'NotificationTemplatePointer';
-  channel: NotificationChannel;
-  definitionKey: Scalars['String']['output'];
-  locale: Scalars['String']['output'];
-  revisionId: Scalars['ID']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  version: Scalars['Int']['output'];
-};
-
-export type ApiNotificationTemplateRevision = {
-  __typename?: 'NotificationTemplateRevision';
-  bodyTemplate: Scalars['String']['output'];
-  channel: NotificationChannel;
-  createdAt: Scalars['DateTime']['output'];
-  definitionKey: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  locale: Scalars['String']['output'];
-  plainTextTemplate?: Maybe<Scalars['String']['output']>;
-  revision: Scalars['Int']['output'];
-  sourceHash: Scalars['String']['output'];
-  subjectTemplate?: Maybe<Scalars['String']['output']>;
-  validationStatus: Scalars['String']['output'];
-};
-
-export type ApiNotificationTemplateRevisionInput = {
+export type ApiNotificationTemplateUpdateInput = {
   bodyTemplate: Scalars['String']['input'];
   channel: NotificationChannel;
+  expectedVersion: Scalars['Int']['input'];
   key: Scalars['String']['input'];
   locale: Scalars['String']['input'];
   plainTextTemplate?: InputMaybe<Scalars['String']['input']>;
   subjectTemplate?: InputMaybe<Scalars['String']['input']>;
-};
-
-export enum NotificationTemplateSourceField {
-  Body = 'BODY',
-  PlainText = 'PLAIN_TEXT',
-  Subject = 'SUBJECT'
-}
-
-export type ApiNotificationTemplateValidation = {
-  __typename?: 'NotificationTemplateValidation';
-  issues: Array<ApiNotificationTemplateValidationIssue>;
-  valid: Scalars['Boolean']['output'];
-};
-
-export type ApiNotificationTemplateValidationInput = {
-  bodyTemplate: Scalars['String']['input'];
-  channel: NotificationChannel;
-  key: Scalars['String']['input'];
-  plainTextTemplate?: InputMaybe<Scalars['String']['input']>;
-  subjectTemplate?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiNotificationTemplateValidationIssue = {
-  __typename?: 'NotificationTemplateValidationIssue';
-  code: Scalars['String']['output'];
-  column: Scalars['Int']['output'];
-  field: NotificationTemplateSourceField;
-  line: Scalars['Int']['output'];
-  message: Scalars['String']['output'];
 };
 
 export type ApiNotificationTemplateVariable = {
@@ -10162,13 +10032,6 @@ export type ApiNotificationWebhookSecretPayload = {
   secret: Scalars['String']['output'];
 };
 
-export type ApiNotificationWebhookSecretStatus = {
-  __typename?: 'NotificationWebhookSecretStatus';
-  configured: Scalars['Boolean']['output'];
-  rotatedAt?: Maybe<Scalars['DateTime']['output']>;
-  version?: Maybe<Scalars['Int']['output']>;
-};
-
 export enum NotificationWebhookStatus {
   Active = 'ACTIVE',
   Disabled = 'DISABLED'
@@ -10205,45 +10068,24 @@ export type ApiNotificationWorkflowPayload = {
 
 export type ApiNotificationsMutation = {
   __typename?: 'NotificationsMutation';
-  activateTemplateRevision: ApiNotificationTemplatePointer;
-  cancelDelivery: ApiNotificationCancelPayload;
   configureProvider: ApiNotificationProviderConfiguration;
-  createTemplateRevision: ApiNotificationTemplateRevision;
   createWebhook: ApiNotificationWebhookSubscription;
   deleteStaffRecipient: ApiDeletePayload;
   deleteWebhook: ApiDeletePayload;
   preview: ApiNotificationPreview;
-  retryDelivery: ApiNotificationWorkflowPayload;
   revealWebhookSecret: ApiNotificationWebhookSecretPayload;
-  rotateWebhookSecret: ApiNotificationWebhookSecretPayload;
   sendTest: ApiNotificationWorkflowPayload;
   setChannelEnabled: ApiNotificationChannelSetting;
   setDefinitionEnabled: ApiNotificationDefinitionSetting;
   testProvider: ApiNotificationProviderTestResult;
+  updateTemplate: ApiNotificationEffectiveTemplate;
   updateWebhook: ApiNotificationWebhookSubscription;
   upsertStaffRecipient: ApiStaffNotificationRecipient;
-  validateTemplate: ApiNotificationTemplateValidation;
-};
-
-
-export type ApiNotificationsMutationActivateTemplateRevisionArgs = {
-  expectedVersion: Scalars['Int']['input'];
-  revisionId: Scalars['ID']['input'];
-};
-
-
-export type ApiNotificationsMutationCancelDeliveryArgs = {
-  deliveryId: Scalars['ID']['input'];
 };
 
 
 export type ApiNotificationsMutationConfigureProviderArgs = {
   input: ApiNotificationProviderConfigurationInput;
-};
-
-
-export type ApiNotificationsMutationCreateTemplateRevisionArgs = {
-  input: ApiNotificationTemplateRevisionInput;
 };
 
 
@@ -10264,17 +10106,6 @@ export type ApiNotificationsMutationDeleteWebhookArgs = {
 
 export type ApiNotificationsMutationPreviewArgs = {
   input: ApiNotificationPreviewInput;
-};
-
-
-export type ApiNotificationsMutationRetryDeliveryArgs = {
-  deliveryId: Scalars['ID']['input'];
-  idempotencyKey: Scalars['String']['input'];
-};
-
-
-export type ApiNotificationsMutationRotateWebhookSecretArgs = {
-  gracePeriodHours?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -10301,6 +10132,11 @@ export type ApiNotificationsMutationTestProviderArgs = {
 };
 
 
+export type ApiNotificationsMutationUpdateTemplateArgs = {
+  input: ApiNotificationTemplateUpdateInput;
+};
+
+
 export type ApiNotificationsMutationUpdateWebhookArgs = {
   input: ApiNotificationWebhookUpdateInput;
 };
@@ -10310,25 +10146,15 @@ export type ApiNotificationsMutationUpsertStaffRecipientArgs = {
   input: ApiStaffNotificationRecipientInput;
 };
 
-
-export type ApiNotificationsMutationValidateTemplateArgs = {
-  input: ApiNotificationTemplateValidationInput;
-};
-
 export type ApiNotificationsQuery = {
   __typename?: 'NotificationsQuery';
   channelSettings: Array<ApiNotificationChannelSetting>;
   definitions: Array<ApiNotificationDefinition>;
-  deliveries: Array<ApiNotificationDelivery>;
-  deliveryAttempts: Array<ApiNotificationDeliveryAttempt>;
-  overview: ApiNotificationOverview;
   providerConfiguration: ApiNotificationProviderMaskedConfiguration;
   providerRoutes: Array<ApiNotificationProviderRoute>;
   staffRecipients: Array<ApiStaffNotificationRecipient>;
   template: ApiNotificationEffectiveTemplate;
-  templateRevisions: Array<ApiNotificationTemplateRevision>;
   webhookCapabilities: ApiNotificationWebhookCapabilities;
-  webhookSecretStatus: ApiNotificationWebhookSecretStatus;
   webhookSubscriptions: Array<ApiNotificationWebhookSubscription>;
 };
 
@@ -10338,29 +10164,12 @@ export type ApiNotificationsQueryChannelSettingsArgs = {
 };
 
 
-export type ApiNotificationsQueryDeliveriesArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type ApiNotificationsQueryDeliveryAttemptsArgs = {
-  deliveryId: Scalars['ID']['input'];
-};
-
-
 export type ApiNotificationsQueryProviderConfigurationArgs = {
   channel: NotificationChannel;
 };
 
 
 export type ApiNotificationsQueryTemplateArgs = {
-  channel: NotificationChannel;
-  key: Scalars['String']['input'];
-  locale: Scalars['String']['input'];
-};
-
-
-export type ApiNotificationsQueryTemplateRevisionsArgs = {
   channel: NotificationChannel;
   key: Scalars['String']['input'];
   locale: Scalars['String']['input'];

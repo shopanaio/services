@@ -13,10 +13,6 @@ import {
 } from "@shopana/shared-kernel";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Kernel } from "../kernel/Kernel.js";
-import {
-  DeliveryExecutionScript,
-  type DeliveryExecutionResult,
-} from "../scripts/index.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -58,52 +54,6 @@ export class NotificationBrokerActions extends BrokerActions {
       }
     );
     return { workflowId: started.workflowId, accepted: true };
-  }
-
-  @Action("retryDelivery")
-  async retryDelivery(
-    params: Notifications.RetryNotificationDeliveryParams,
-    context: BrokerCallContext
-  ): Promise<{ workflowId: string; accepted: boolean }> {
-    this.assertInternalCaller(context);
-    const store = await this.getStore(params.storeId);
-    const prepared = await this.withStore(store, () =>
-      this.kernel.runScript(DeliveryExecutionScript, {
-        operation: "prepareRetry",
-        deliveryId: params.deliveryId,
-      })
-    );
-    if (!("success" in prepared) || !prepared.success) {
-      return { workflowId: "", accepted: false };
-    }
-    const started = await this.broker.startWorkflow(
-      "notifications.deliver",
-      toDeliveryContext(store, params.organizationId, params.deliveryId),
-      {
-        source: "content",
-        organizationId: params.organizationId,
-        resourceId: params.deliveryId,
-        operation: `notifications.retryDelivery:${params.idempotencyKey}`,
-        content: params,
-      }
-    );
-    return { workflowId: started.workflowId, accepted: true };
-  }
-
-  @Action("cancelDelivery")
-  async cancelDelivery(
-    params: Notifications.CancelNotificationDeliveryParams,
-    context: BrokerCallContext
-  ): Promise<{ cancelled: boolean }> {
-    this.assertInternalCaller(context);
-    const store = await this.getStore(params.storeId);
-    const result = await this.withStore(store, () =>
-      this.kernel.runScript(DeliveryExecutionScript, {
-        operation: "cancel",
-        deliveryId: params.deliveryId,
-      })
-    );
-    return { cancelled: "success" in result && result.success };
   }
 
   @Action("sendTest")
@@ -268,22 +218,6 @@ export class NotificationBrokerActions extends BrokerActions {
     );
   }
 
-  @Action("rotateWebhookSecret")
-  async rotateWebhookSecret(params: {
-    storeId: string;
-    actorId?: string;
-    gracePeriodHours?: number;
-  }, context: BrokerCallContext): Promise<{ secret: string }> {
-    this.assertInternalCaller(context);
-    const store = await this.getStore(params.storeId);
-    return this.withStore(store, async () => ({
-      secret: await this.kernel.repository.webhooks.rotateSecret(
-        params.actorId,
-        params.gracePeriodHours
-      ),
-    }));
-  }
-
   @Action("getProviderRouteStatus")
   getProviderRouteStatus(
     params: Apps.NotificationProviderRouteStatusParams,
@@ -329,20 +263,4 @@ export class NotificationBrokerActions extends BrokerActions {
       operation
     );
   }
-}
-
-function toDeliveryContext(
-  store: ContextStore,
-  organizationId: string,
-  deliveryId: string
-) {
-  return {
-    storeId: store.id,
-    organizationId,
-    deliveryId,
-    defaultLocale: store.defaultLocale,
-    locale: store.defaultLocale,
-    displayName: store.displayName,
-    timezone: store.timezone,
-  };
 }

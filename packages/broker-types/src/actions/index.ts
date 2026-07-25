@@ -38,8 +38,6 @@ export type {
   NotificationDefinitionMetadata,
   EnqueueNotificationParams,
   EnqueueNotificationResult,
-  RetryNotificationDeliveryParams,
-  CancelNotificationDeliveryParams,
   NotificationDeliveryInputBase,
   EmailDeliveryInput,
   SmsDeliveryInput,
