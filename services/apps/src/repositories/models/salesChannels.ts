@@ -11,9 +11,9 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { appInstallations } from "./installations.js";
-import { platformSchema } from "./schema.js";
+import { appsSchema } from "./schema.js";
 
-export const salesChannelConnectionStatus = platformSchema.enum(
+export const salesChannelConnectionStatus = appsSchema.enum(
   "app_sales_channel_connection_status",
   [
     "DRAFT",
@@ -31,22 +31,22 @@ export const salesChannelConnectionStatus = platformSchema.enum(
   ],
 );
 
-export const salesChannelHealthStatus = platformSchema.enum(
+export const salesChannelHealthStatus = appsSchema.enum(
   "app_sales_channel_health_status",
   ["UNKNOWN", "HEALTHY", "DEGRADED", "UNHEALTHY"],
 );
 
-export const salesChannelOperationType = platformSchema.enum(
+export const salesChannelOperationType = appsSchema.enum(
   "app_sales_channel_operation_type",
   ["CONNECT", "UPDATE", "SUSPEND", "RESUME", "DISCONNECT"],
 );
 
-export const salesChannelOperationStatus = platformSchema.enum(
+export const salesChannelOperationStatus = appsSchema.enum(
   "app_sales_channel_operation_status",
   ["PENDING", "RUNNING", "SUCCEEDED", "FAILED"],
 );
 
-export const appSalesChannelSpecificationSnapshots = platformSchema.table(
+export const appSalesChannelSpecificationSnapshots = appsSchema.table(
   "app_sales_channel_specification_snapshots",
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
@@ -83,7 +83,7 @@ export const appSalesChannelSpecificationSnapshots = platformSchema.table(
   ],
 );
 
-export const appSalesChannelConnections = platformSchema.table(
+export const appSalesChannelConnections = appsSchema.table(
   "app_sales_channel_connections",
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
@@ -167,7 +167,7 @@ export const appSalesChannelConnections = platformSchema.table(
   ],
 );
 
-export const appSalesChannelOperations = platformSchema.table(
+export const appSalesChannelOperations = appsSchema.table(
   "app_sales_channel_operations",
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),

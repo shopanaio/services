@@ -10,9 +10,9 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { platformSchema } from "./schema";
+import { appsSchema } from "./schema";
 
-export const appInstallationStatus = platformSchema.enum(
+export const appInstallationStatus = appsSchema.enum(
   "app_installation_status",
   [
     "PENDING_CONSENT",
@@ -30,22 +30,22 @@ export const appInstallationStatus = platformSchema.enum(
   ],
 );
 
-export const appInstallationHealthStatus = platformSchema.enum(
+export const appInstallationHealthStatus = appsSchema.enum(
   "app_installation_health_status",
   ["UNKNOWN", "HEALTHY", "DEGRADED", "UNHEALTHY"],
 );
 
-export const appLifecycleOperationType = platformSchema.enum(
+export const appLifecycleOperationType = appsSchema.enum(
   "app_lifecycle_operation_type",
   ["INSTALL", "UPDATE", "SUSPEND", "RESUME", "UNINSTALL"],
 );
 
-export const appLifecycleOperationStatus = platformSchema.enum(
+export const appLifecycleOperationStatus = appsSchema.enum(
   "app_lifecycle_operation_status",
   ["PENDING", "RUNNING", "SUCCEEDED", "FAILED"],
 );
 
-export const appInstallations = platformSchema.table(
+export const appInstallations = appsSchema.table(
   "app_installations",
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
@@ -108,7 +108,7 @@ export const appInstallations = platformSchema.table(
   ],
 );
 
-export const appInstallationManifestSnapshots = platformSchema.table(
+export const appInstallationManifestSnapshots = appsSchema.table(
   "app_installation_manifest_snapshots",
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
@@ -138,7 +138,7 @@ export const appInstallationManifestSnapshots = platformSchema.table(
   ],
 );
 
-export const appInstallationScopes = platformSchema.table(
+export const appInstallationScopes = appsSchema.table(
   "app_installation_scopes",
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
@@ -168,7 +168,7 @@ export const appInstallationScopes = platformSchema.table(
   ],
 );
 
-export const appInstallationSecrets = platformSchema.table(
+export const appInstallationSecrets = appsSchema.table(
   "app_installation_secrets",
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
@@ -206,7 +206,7 @@ export const appInstallationSecrets = platformSchema.table(
   ],
 );
 
-export const appLifecycleOperations = platformSchema.table(
+export const appLifecycleOperations = appsSchema.table(
   "app_lifecycle_operations",
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),

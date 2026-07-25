@@ -193,13 +193,14 @@ migrations/
 
 ### Handwritten Migration Exceptions
 
-Catalog, Listing, IAM, and Notifications use Drizzle models as the runtime
+Apps, Catalog, Listing, IAM, and Notifications use Drizzle models as the runtime
 schema/query contract, but their migrations are handwritten PostgreSQL SQL
 executed by `node-pg-migrate`.
 
 Their migration files live under:
 
 ```text
+services/apps/migrations/domains/**/*.sql
 services/catalog/migrations/domains/**/*.sql
 services/listing/migrations/domains/**/*.sql
 services/iam/migrations/domains/**/*.sql
@@ -207,12 +208,12 @@ services/notifications/migrations/domains/**/*.sql
 ```
 
 The runners use glob mode and keep tracking in the service schema's
-`pgmigrations` table (`catalog.pgmigrations`, `listing.pgmigrations`,
-`iam.pgmigrations`, or `notifications.pgmigrations`). Do not use the Drizzle
-migrator or Drizzle migration generation for these services. Add a handwritten
-SQL migration in the owning domain folder with a globally unique basename.
-Catalog additionally requires updating its model-derived inventory under
-`services/catalog/docs/`.
+`pgmigrations` table (`apps.pgmigrations`, `catalog.pgmigrations`,
+`listing.pgmigrations`, `iam.pgmigrations`, or
+`notifications.pgmigrations`). Do not use the Drizzle migrator or Drizzle
+migration generation for these services. Add a handwritten SQL migration in
+the owning domain folder with a globally unique basename. Catalog additionally
+requires updating its model-derived inventory under `services/catalog/docs/`.
 
 ### Migration Key Constraint Rule
 

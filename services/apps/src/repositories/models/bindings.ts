@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -6,25 +7,25 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { platformSchema } from "./schema";
+import { appsSchema } from "./schema";
 import { appInstallations } from "./installations";
 
-export const appBindingStatus = platformSchema.enum("slot_status", [
+export const appBindingStatus = appsSchema.enum("slot_status", [
   "active",
   "inactive",
   "maintenance",
   "deprecated",
 ]);
 
-export const appBindingAssignmentStatus = platformSchema.enum(
+export const appBindingAssignmentStatus = appsSchema.enum(
   "slot_assignment_status",
   ["active", "disabled"],
 );
 
-export const appBindings = platformSchema.table(
+export const appBindings = appsSchema.table(
   "slots",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     status: appBindingStatus("status").notNull().default("active"),
     installationId: uuid("installation_id")
@@ -59,10 +60,10 @@ export const appBindings = platformSchema.table(
   ],
 );
 
-export const appBindingAssignments = platformSchema.table(
+export const appBindingAssignments = appsSchema.table(
   "slot_assignments",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     aggregate: varchar("aggregate", { length: 255 }).notNull(),
     aggregateId: varchar("aggregate_id", { length: 255 }).notNull(),
