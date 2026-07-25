@@ -88,6 +88,20 @@ export class AppGraphQLServerFactory {
         );
       }
       resolvers[typeName] ??= {};
+      if (fieldName === "__resolveReference") {
+        resolvers[typeName][fieldName] = (
+          reference: unknown,
+          context: RuntimeGraphQLContext,
+        ) =>
+          this.executeHandler(
+            hosted,
+            handler,
+            reference,
+            {},
+            context,
+          );
+        continue;
+      }
       resolvers[typeName][fieldName] = (
         parent: unknown,
         args: Record<string, unknown>,

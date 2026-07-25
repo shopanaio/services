@@ -194,6 +194,8 @@ export enum GlobalIdEntity {
   AppCapabilityBinding = "AppCapabilityBinding",
   AppLifecycleOperation = "AppLifecycleOperation",
   AppManifestSnapshot = "AppManifestSnapshot",
+  HeadlessStorefrontConnection = "HeadlessStorefrontConnection",
+  StorefrontCredential = "StorefrontCredential",
   // Project
   Store = "Store",
 }
