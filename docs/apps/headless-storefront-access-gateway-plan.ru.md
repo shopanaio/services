@@ -919,13 +919,22 @@ headless.storefront-access.private-token.revoke
 Resolvers:
 
 1. Выполняются в Headless Admin GraphQL subgraph.
-2. Берут trusted installation/store из App execution context.
+2. Берут trusted `organizationId` и `storeId` из проверенного Admin context.
 3. Декодируют Global ID.
 4. Проверяют Admin action.
-5. Разрешают connection через generic Apps broker contract.
-6. Повторно проверяют ownership в Headless repository.
-7. Вызывают Headless domain service.
-8. Возвращают `userErrors` для ожидаемых domain failures.
+5. Разрешают connection через generic Apps broker contract одновременно по
+   `connectionId` и trusted `storeId`.
+6. Получают `installationId` только из разрешённого connection и проверяют,
+   что installation принадлежит `shopana-headless`, тому же store и имеет
+   допустимый lifecycle status.
+7. Создают Headless operation context server-side.
+8. Повторно проверяют ownership в Headless repository.
+9. Вызывают Headless domain service.
+10. Возвращают `userErrors` для ожидаемых domain failures.
+
+Admin API не принимает installation identity через клиентские headers.
+Такие headers удаляются на Gateway/Apps ingress. Installation для credential
+operations всегда выводится server-side из tenant-scoped connection.
 
 Secret values не помещаются в exception text.
 
