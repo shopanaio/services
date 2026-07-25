@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppConfigureInput, AppDefinitionWhereInput, AppExtensionKind, AppInstallInput, AppInstallationActionInput, AppInstallationHealthStatus, AppInstallationOrderByInput, AppInstallationOrderField, AppInstallationStatus, AppInstallationWhereInput, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppOrderDirection, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppUpdateInput, CurrencyCode, DimensionUnit, LocaleCode, SalesChannelConnectionActionInput, SalesChannelConnectionCreateInput, SalesChannelConnectionStatus, SalesChannelConnectionUpdateInput, SalesChannelHealthStatus, SalesChannelOperationType, WeightUnit } from './types.js'
+import { AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppConfigureInput, AppDefinitionWhereInput, AppExtensionKind, AppInstallInput, AppInstallationActionInput, AppInstallationHealthStatus, AppInstallationOrderByInput, AppInstallationOrderField, AppInstallationStatus, AppInstallationWhereInput, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppUpdateInput, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, SalesChannelConnectionActionInput, SalesChannelConnectionCreateInput, SalesChannelConnectionOrderByInput, SalesChannelConnectionOrderField, SalesChannelConnectionStatus, SalesChannelConnectionUpdateInput, SalesChannelConnectionWhereInput, SalesChannelHealthStatus, SalesChannelOperationType, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -29,8 +29,6 @@ export const AppLifecycleOperationStatusSchema = z.nativeEnum(AppLifecycleOperat
 
 export const AppLifecycleOperationTypeSchema = z.nativeEnum(AppLifecycleOperationType);
 
-export const AppOrderDirectionSchema = z.nativeEnum(AppOrderDirection);
-
 export const AppRuntimeHealthStatusSchema = z.nativeEnum(AppRuntimeHealthStatus);
 
 export const AppRuntimeStatusSchema = z.nativeEnum(AppRuntimeStatus);
@@ -41,11 +39,15 @@ export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
 
+export const SalesChannelConnectionOrderFieldSchema = z.nativeEnum(SalesChannelConnectionOrderField);
+
 export const SalesChannelConnectionStatusSchema = z.nativeEnum(SalesChannelConnectionStatus);
 
 export const SalesChannelHealthStatusSchema = z.nativeEnum(SalesChannelHealthStatus);
 
 export const SalesChannelOperationTypeSchema = z.nativeEnum(SalesChannelOperationType);
+
+export const SortDirectionSchema = z.nativeEnum(SortDirection);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
 
@@ -84,16 +86,29 @@ export function AppInstallationActionInputSchema(): z.ZodObject<Properties<AppIn
 
 export function AppInstallationOrderByInputSchema(): z.ZodObject<Properties<AppInstallationOrderByInput>> {
   return z.object({
-    direction: AppOrderDirectionSchema,
+    direction: SortDirectionSchema,
     field: AppInstallationOrderFieldSchema
   })
 }
 
 export function AppInstallationWhereInputSchema(): z.ZodObject<Properties<AppInstallationWhereInput>> {
   return z.object({
-    appCodes: z.array(z.string()).nullish(),
-    healthStatuses: z.array(AppInstallationHealthStatusSchema).nullish(),
-    statuses: z.array(AppInstallationStatusSchema).nullish()
+    _and: z.array(z.lazy(() => AppInstallationWhereInputSchema())).nullish(),
+    _not: z.lazy(() => AppInstallationWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => AppInstallationWhereInputSchema())).nullish(),
+    appCode: z.lazy(() => StringFilterSchema().nullish()),
+    configurationVersion: z.lazy(() => IntFilterSchema().nullish()),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    healthStatus: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    installedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    installedVersion: z.lazy(() => StringFilterSchema().nullish()),
+    manifestHash: z.lazy(() => StringFilterSchema().nullish()),
+    status: z.lazy(() => StringFilterSchema().nullish()),
+    suspendedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    targetVersion: z.lazy(() => StringFilterSchema().nullish()),
+    uninstalledAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
   })
 }
 
@@ -115,6 +130,74 @@ export function AppUpdateInputSchema(): z.ZodObject<Properties<AppUpdateInput>> 
   })
 }
 
+export function BooleanFilterSchema(): z.ZodObject<Properties<BooleanFilter>> {
+  return z.object({
+    _eq: z.boolean().nullish(),
+    _is: z.boolean().nullish(),
+    _isNot: z.boolean().nullish(),
+    _neq: z.boolean().nullish()
+  })
+}
+
+export function DateTimeFilterSchema(): z.ZodObject<Properties<DateTimeFilter>> {
+  return z.object({
+    _between: z.array(z.string()).nullish(),
+    _eq: z.string().nullish(),
+    _gt: z.string().nullish(),
+    _gte: z.string().nullish(),
+    _in: z.array(z.string()).nullish(),
+    _is: z.boolean().nullish(),
+    _isNot: z.boolean().nullish(),
+    _lt: z.string().nullish(),
+    _lte: z.string().nullish(),
+    _neq: z.string().nullish(),
+    _notIn: z.array(z.string()).nullish()
+  })
+}
+
+export function FloatFilterSchema(): z.ZodObject<Properties<FloatFilter>> {
+  return z.object({
+    _between: z.array(z.number()).nullish(),
+    _eq: z.number().nullish(),
+    _gt: z.number().nullish(),
+    _gte: z.number().nullish(),
+    _in: z.array(z.number()).nullish(),
+    _is: z.boolean().nullish(),
+    _isNot: z.boolean().nullish(),
+    _lt: z.number().nullish(),
+    _lte: z.number().nullish(),
+    _neq: z.number().nullish(),
+    _notIn: z.array(z.number()).nullish()
+  })
+}
+
+export function IdFilterSchema(): z.ZodObject<Properties<IdFilter>> {
+  return z.object({
+    _eq: z.string().nullish(),
+    _in: z.array(z.string()).nullish(),
+    _is: z.boolean().nullish(),
+    _isNot: z.boolean().nullish(),
+    _neq: z.string().nullish(),
+    _notIn: z.array(z.string()).nullish()
+  })
+}
+
+export function IntFilterSchema(): z.ZodObject<Properties<IntFilter>> {
+  return z.object({
+    _between: z.array(z.number()).nullish(),
+    _eq: z.number().nullish(),
+    _gt: z.number().nullish(),
+    _gte: z.number().nullish(),
+    _in: z.array(z.number()).nullish(),
+    _is: z.boolean().nullish(),
+    _isNot: z.boolean().nullish(),
+    _lt: z.number().nullish(),
+    _lte: z.number().nullish(),
+    _neq: z.number().nullish(),
+    _notIn: z.array(z.number()).nullish()
+  })
+}
+
 export function SalesChannelConnectionActionInputSchema(): z.ZodObject<Properties<SalesChannelConnectionActionInput>> {
   return z.object({
     clientMutationId: z.string(),
@@ -132,6 +215,13 @@ export function SalesChannelConnectionCreateInputSchema(): z.ZodObject<Propertie
   })
 }
 
+export function SalesChannelConnectionOrderByInputSchema(): z.ZodObject<Properties<SalesChannelConnectionOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: SalesChannelConnectionOrderFieldSchema
+  })
+}
+
 export function SalesChannelConnectionUpdateInputSchema(): z.ZodObject<Properties<SalesChannelConnectionUpdateInput>> {
   return z.object({
     clientMutationId: z.string(),
@@ -140,5 +230,44 @@ export function SalesChannelConnectionUpdateInputSchema(): z.ZodObject<Propertie
     displayName: z.string().nullish(),
     expectedConfigurationVersion: z.number(),
     targetSpecificationId: z.string().nullish()
+  })
+}
+
+export function SalesChannelConnectionWhereInputSchema(): z.ZodObject<Properties<SalesChannelConnectionWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => SalesChannelConnectionWhereInputSchema())).nullish(),
+    _not: z.lazy(() => SalesChannelConnectionWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => SalesChannelConnectionWhereInputSchema())).nullish(),
+    configurationVersion: z.lazy(() => IntFilterSchema().nullish()),
+    connectedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    disconnectedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    displayName: z.lazy(() => StringFilterSchema().nullish()),
+    externalAccountId: z.lazy(() => StringFilterSchema().nullish()),
+    externalAccountLabel: z.lazy(() => StringFilterSchema().nullish()),
+    healthStatus: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    status: z.lazy(() => StringFilterSchema().nullish()),
+    suspendedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
+  })
+}
+
+export function StringFilterSchema(): z.ZodObject<Properties<StringFilter>> {
+  return z.object({
+    _contains: z.string().nullish(),
+    _containsi: z.string().nullish(),
+    _endsWith: z.string().nullish(),
+    _endsWithi: z.string().nullish(),
+    _eq: z.string().nullish(),
+    _in: z.array(z.string()).nullish(),
+    _is: z.boolean().nullish(),
+    _isNot: z.boolean().nullish(),
+    _neq: z.string().nullish(),
+    _notContains: z.string().nullish(),
+    _notContainsi: z.string().nullish(),
+    _notIn: z.array(z.string()).nullish(),
+    _startsWith: z.string().nullish(),
+    _startsWithi: z.string().nullish()
   })
 }

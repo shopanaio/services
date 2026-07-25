@@ -17,6 +17,7 @@ import type { TransactionManager } from "@shopana/shared-kernel";
 import type { AppInstallationRecord } from "../../control-plane/types.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
+import { decodeAppInstallationGlobalId } from "../global-id-where-mappers.js";
 import {
   appInstallations,
   type AppInstallationModel,
@@ -25,6 +26,9 @@ import {
 export const appInstallationRelayQuery = createRelayQuery(
   createQuery(appInstallations)
     .include(["id"])
+    .mapWhereFields({
+      id: decodeAppInstallationGlobalId,
+    })
     .maxLimit(100)
     .defaultLimit(20),
   { name: "appInstallation", tieBreaker: "id" },
@@ -34,33 +38,7 @@ export type AppInstallationRelayInput = InferRelayInput<
   typeof appInstallationRelayQuery
 >;
 
-export interface AppInstallationConnectionWhereInput {
-  readonly appCodes?: readonly string[] | null;
-  readonly statuses?: readonly AppInstallationStatus[] | null;
-  readonly healthStatuses?:
-    | readonly AppInstallationModel["healthStatus"][]
-    | null;
-}
-
-export type AppInstallationOrderField =
-  | "APP_CODE"
-  | "STATUS"
-  | "CREATED_AT"
-  | "UPDATED_AT";
-
-export interface AppInstallationOrderByInput {
-  readonly field: AppInstallationOrderField;
-  readonly direction: "ASC" | "DESC";
-}
-
-export interface AppInstallationConnectionInput {
-  readonly first?: number | null;
-  readonly after?: string | null;
-  readonly last?: number | null;
-  readonly before?: string | null;
-  readonly where?: AppInstallationConnectionWhereInput | null;
-  readonly orderBy?: readonly AppInstallationOrderByInput[] | null;
-}
+export type AppInstallationConnectionInput = AppInstallationRelayInput;
 
 export interface AppInstallationConnectionResult {
   readonly edges: Array<{ cursor: string; nodeId: string }>;
@@ -293,17 +271,22 @@ export class AppInstallationRepository extends BaseRepository {
   async getConnection(
     input: AppInstallationConnectionInput,
   ): Promise<AppInstallationConnectionResult> {
-    const where = toRelayWhere(this.storeId, input.where);
+    const { where: inputWhere, orderBy, ...pagination } = input;
+    const where: AppInstallationRelayInput["where"] = {
+      _and: [
+        { storeId: { _eq: this.storeId } },
+        ...(inputWhere ? [inputWhere] : []),
+      ],
+    };
     const relayInput: AppInstallationRelayInput = {
+      ...pagination,
       first:
-        input.first == null && input.last == null
-          ? 20
-          : input.first,
-      after: input.after,
-      last: input.last,
-      before: input.before,
+        input.first == null && input.last == null ? 20 : input.first,
       where,
-      orderBy: toRelayOrder(input.orderBy),
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
     };
 
     const [result, totalCount] = await Promise.all([
@@ -449,52 +432,6 @@ export class AppInstallationRepository extends BaseRepository {
       .orderBy(desc(appInstallations.createdAt));
     return rows.map(mapInstallation);
   }
-}
-
-function toRelayWhere(
-  storeId: string,
-  input: AppInstallationConnectionWhereInput | null | undefined,
-): AppInstallationRelayInput["where"] {
-  const conditions: NonNullable<
-    AppInstallationRelayInput["where"]
-  >[] = [{ storeId: { _eq: storeId } }];
-
-  if (input?.appCodes && input.appCodes.length > 0) {
-    conditions.push({ appCode: { _in: [...input.appCodes] } });
-  }
-  if (input?.statuses && input.statuses.length > 0) {
-    conditions.push({ status: { _in: [...input.statuses] } });
-  }
-  if (input?.healthStatuses && input.healthStatuses.length > 0) {
-    conditions.push({
-      healthStatus: { _in: [...input.healthStatuses] },
-    });
-  }
-
-  return { _and: conditions };
-}
-
-function toRelayOrder(
-  input: readonly AppInstallationOrderByInput[] | null | undefined,
-): NonNullable<AppInstallationRelayInput["orderBy"]> {
-  if (!input || input.length === 0) {
-    return [
-      { field: "createdAt", direction: "desc" },
-      { field: "id", direction: "desc" },
-    ];
-  }
-
-  const fieldMap = {
-    APP_CODE: "appCode",
-    STATUS: "status",
-    CREATED_AT: "createdAt",
-    UPDATED_AT: "updatedAt",
-  } as const;
-
-  return input.map(({ field, direction }) => ({
-    field: fieldMap[field],
-    direction: direction.toLowerCase() as "asc" | "desc",
-  }));
 }
 
 function mapInstallation(

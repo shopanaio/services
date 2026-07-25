@@ -77,6 +77,8 @@ extend type AppsQuery {
     after: String
     last: Int
     before: String
+    where: SalesChannelConnectionWhereInput
+    orderBy: [SalesChannelConnectionOrderByInput!]
   ): SalesChannelConnectionConnection!
 }
 
@@ -90,6 +92,8 @@ extend type AppInstallation {
     after: String
     last: Int
     before: String
+    where: SalesChannelConnectionWhereInput
+    orderBy: [SalesChannelConnectionOrderByInput!]
   ): SalesChannelConnectionConnection!
 }
 

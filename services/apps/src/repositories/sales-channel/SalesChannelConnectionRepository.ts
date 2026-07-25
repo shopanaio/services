@@ -13,6 +13,7 @@ import type {
 } from "../../control-plane/types.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
+import { decodeSalesChannelConnectionGlobalId } from "../global-id-where-mappers.js";
 import {
   appSalesChannelConnections,
   appInstallations,
@@ -22,6 +23,9 @@ import {
 export const salesChannelConnectionRelayQuery = createRelayQuery(
   createQuery(appSalesChannelConnections)
     .include(["id"])
+    .mapWhereFields({
+      id: decodeSalesChannelConnectionGlobalId,
+    })
     .maxLimit(100)
     .defaultLimit(20),
   { name: "salesChannelConnection", tieBreaker: "id" },
@@ -31,13 +35,10 @@ export type SalesChannelConnectionRelayInput = InferRelayInput<
   typeof salesChannelConnectionRelayQuery
 >;
 
-export interface SalesChannelConnectionConnectionInput {
-  readonly first?: number | null;
-  readonly after?: string | null;
-  readonly last?: number | null;
-  readonly before?: string | null;
-  readonly installationId?: string;
-}
+export type SalesChannelConnectionConnectionInput =
+  SalesChannelConnectionRelayInput & {
+    readonly installationId?: string;
+  };
 
 export interface SalesChannelConnectionConnectionResult {
   readonly edges: Array<{ cursor: string; nodeId: string }>;
@@ -316,22 +317,29 @@ export class SalesChannelConnectionRepository extends BaseRepository {
   async getConnection(
     input: SalesChannelConnectionConnectionInput,
   ): Promise<SalesChannelConnectionConnectionResult> {
+    const {
+      installationId,
+      where: inputWhere,
+      orderBy,
+      ...pagination
+    } = input;
     const where: SalesChannelConnectionRelayInput["where"] = {
-      storeId: { _eq: this.storeId },
-      ...(input.installationId
-        ? { installationId: { _eq: input.installationId } }
-        : {}),
+      _and: [
+        { storeId: { _eq: this.storeId } },
+        ...(installationId
+          ? [{ installationId: { _eq: installationId } }]
+          : []),
+        ...(inputWhere ? [inputWhere] : []),
+      ],
     };
     const relayInput: SalesChannelConnectionRelayInput = {
+      ...pagination,
       first:
         input.first == null && input.last == null
           ? 20
           : input.first,
-      after: input.after,
-      last: input.last,
-      before: input.before,
       where,
-      orderBy: [
+      orderBy: orderBy ?? [
         { field: "updatedAt", direction: "desc" },
         { field: "id", direction: "desc" },
       ],

@@ -5,6 +5,7 @@ const config: CodegenConfig = {
   schema: [
     "../../packages/shared-references/graphql/*.graphql",
     "src/api/graphql-admin/schema/*.graphql",
+    "src/api/graphql-admin/schema/__generated__/*.graphql",
   ],
   generates: {
     "src/resolvers/admin/generated/types.ts": {

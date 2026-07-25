@@ -109,32 +109,6 @@ type AppInstallationEdge {
   cursor: String!
 }
 
-"""Filter conditions for App installations."""
-input AppInstallationWhereInput {
-  appCodes: [String!]
-  statuses: [AppInstallationStatus!]
-  healthStatuses: [AppInstallationHealthStatus!]
-}
-
-"""Fields available for sorting App installations."""
-enum AppInstallationOrderField {
-  APP_CODE
-  STATUS
-  CREATED_AT
-  UPDATED_AT
-}
-
-enum AppOrderDirection {
-  ASC
-  DESC
-}
-
-"""Sort order for App installations."""
-input AppInstallationOrderByInput {
-  field: AppInstallationOrderField!
-  direction: AppOrderDirection!
-}
-
 """A write-only secret supplied during install or update."""
 input AppSecretInput {
   name: String!

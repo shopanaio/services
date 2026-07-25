@@ -190,6 +190,8 @@ export type AppInstallationSalesChannelConnectionsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<SalesChannelConnectionOrderByInput>>;
+  where?: InputMaybe<SalesChannelConnectionWhereInput>;
 };
 
 /** Input for a lifecycle action on an existing installation. */
@@ -229,18 +231,42 @@ export enum AppInstallationHealthStatus {
   Unknown = 'UNKNOWN'
 }
 
-/** Sort order for App installations. */
+/** Ordering configuration for AppInstallation */
 export type AppInstallationOrderByInput = {
-  direction: AppOrderDirection;
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
   field: AppInstallationOrderField;
 };
 
-/** Fields available for sorting App installations. */
+/** Fields available for sorting AppInstallation */
 export enum AppInstallationOrderField {
-  AppCode = 'APP_CODE',
-  CreatedAt = 'CREATED_AT',
-  Status = 'STATUS',
-  UpdatedAt = 'UPDATED_AT'
+  /** Sort by appCode */
+  AppCode = 'appCode',
+  /** Sort by configurationVersion */
+  ConfigurationVersion = 'configurationVersion',
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by healthStatus */
+  HealthStatus = 'healthStatus',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by installedAt */
+  InstalledAt = 'installedAt',
+  /** Sort by installedVersion */
+  InstalledVersion = 'installedVersion',
+  /** Sort by manifestHash */
+  ManifestHash = 'manifestHash',
+  /** Sort by status */
+  Status = 'status',
+  /** Sort by suspendedAt */
+  SuspendedAt = 'suspendedAt',
+  /** Sort by targetVersion */
+  TargetVersion = 'targetVersion',
+  /** Sort by uninstalledAt */
+  UninstalledAt = 'uninstalledAt',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt'
 }
 
 /** A permission grant recorded for an App installation. */
@@ -268,11 +294,40 @@ export enum AppInstallationStatus {
   Updating = 'UPDATING'
 }
 
-/** Filter conditions for App installations. */
+/** Filter conditions for AppInstallation */
 export type AppInstallationWhereInput = {
-  appCodes?: InputMaybe<Array<Scalars['String']['input']>>;
-  healthStatuses?: InputMaybe<Array<AppInstallationHealthStatus>>;
-  statuses?: InputMaybe<Array<AppInstallationStatus>>;
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<AppInstallationWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<AppInstallationWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<AppInstallationWhereInput>>;
+  /** Filter by appCode */
+  appCode?: InputMaybe<StringFilter>;
+  /** Filter by configurationVersion */
+  configurationVersion?: InputMaybe<IntFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by healthStatus */
+  healthStatus?: InputMaybe<StringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by installedAt */
+  installedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by installedVersion */
+  installedVersion?: InputMaybe<StringFilter>;
+  /** Filter by manifestHash */
+  manifestHash?: InputMaybe<StringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<StringFilter>;
+  /** Filter by suspendedAt */
+  suspendedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by targetVersion */
+  targetVersion?: InputMaybe<StringFilter>;
+  /** Filter by uninstalledAt */
+  uninstalledAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
 /** Actor that initiated an App lifecycle operation. */
@@ -376,11 +431,6 @@ export type AppManifestSnapshotEdge = {
   cursor: Scalars['String']['output'];
   node: AppManifestSnapshot;
 };
-
-export enum AppOrderDirection {
-  Asc = 'ASC',
-  Desc = 'DESC'
-}
 
 /** A permission requested by an App manifest. */
 export type AppPermission = {
@@ -567,11 +617,25 @@ export type AppsQuerySalesChannelConnectionsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<SalesChannelConnectionOrderByInput>>;
+  where?: InputMaybe<SalesChannelConnectionWhereInput>;
 };
 
 
 export type AppsQuerySalesChannelSpecificationArgs = {
   id: Scalars['ID']['input'];
+};
+
+/** Filter operators for Boolean fields */
+export type BooleanFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 /** Currency codes according to ISO 4217 */
@@ -900,6 +964,32 @@ export enum CurrencyCode {
   Zwl = 'ZWL'
 }
 
+/** Filter operators for DateTime fields */
+export type DateTimeFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than (after) */
+  _gt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than or equal (on or after) */
+  _gte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than (before) */
+  _lt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Less than or equal (on or before) */
+  _lte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+};
+
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
   /** Centimeter */
@@ -914,12 +1004,80 @@ export enum DimensionUnit {
   Mm = 'mm'
 }
 
+/** Filter operators for Float fields */
+export type FloatFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than */
+  _gt?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than or equal */
+  _gte?: InputMaybe<Scalars['Float']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than */
+  _lt?: InputMaybe<Scalars['Float']['input']>;
+  /** Less than or equal */
+  _lte?: InputMaybe<Scalars['Float']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Float']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
+};
+
 /** A generic user-facing mutation error. */
 export type GenericUserError = UserError & {
   __typename?: 'GenericUserError';
   code: Maybe<Scalars['String']['output']>;
   field: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
+};
+
+/** Filter operators for ID fields */
+export type IdFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['ID']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['ID']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+/** Filter operators for Int fields */
+export type IntFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Int']['input']>;
+  /** Greater than */
+  _gt?: InputMaybe<Scalars['Int']['input']>;
+  /** Greater than or equal */
+  _gte?: InputMaybe<Scalars['Int']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than */
+  _lt?: InputMaybe<Scalars['Int']['input']>;
+  /** Less than or equal */
+  _lte?: InputMaybe<Scalars['Int']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Int']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
@@ -1276,6 +1434,42 @@ export type SalesChannelConnectionEdge = {
   node: SalesChannelConnection;
 };
 
+/** Ordering configuration for SalesChannelConnection */
+export type SalesChannelConnectionOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: SalesChannelConnectionOrderField;
+};
+
+/** Fields available for sorting SalesChannelConnection */
+export enum SalesChannelConnectionOrderField {
+  /** Sort by configurationVersion */
+  ConfigurationVersion = 'configurationVersion',
+  /** Sort by connectedAt */
+  ConnectedAt = 'connectedAt',
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by disconnectedAt */
+  DisconnectedAt = 'disconnectedAt',
+  /** Sort by displayName */
+  DisplayName = 'displayName',
+  /** Sort by externalAccountId */
+  ExternalAccountId = 'externalAccountId',
+  /** Sort by externalAccountLabel */
+  ExternalAccountLabel = 'externalAccountLabel',
+  /** Sort by healthStatus */
+  HealthStatus = 'healthStatus',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by status */
+  Status = 'status',
+  /** Sort by suspendedAt */
+  SuspendedAt = 'suspendedAt',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt'
+}
+
 export enum SalesChannelConnectionStatus {
   Active = 'ACTIVE',
   Connecting = 'CONNECTING',
@@ -1298,6 +1492,40 @@ export type SalesChannelConnectionUpdateInput = {
   displayName?: InputMaybe<Scalars['String']['input']>;
   expectedConfigurationVersion: Scalars['Int']['input'];
   targetSpecificationId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+/** Filter conditions for SalesChannelConnection */
+export type SalesChannelConnectionWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<SalesChannelConnectionWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<SalesChannelConnectionWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<SalesChannelConnectionWhereInput>>;
+  /** Filter by configurationVersion */
+  configurationVersion?: InputMaybe<IntFilter>;
+  /** Filter by connectedAt */
+  connectedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by disconnectedAt */
+  disconnectedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by displayName */
+  displayName?: InputMaybe<StringFilter>;
+  /** Filter by externalAccountId */
+  externalAccountId?: InputMaybe<StringFilter>;
+  /** Filter by externalAccountLabel */
+  externalAccountLabel?: InputMaybe<StringFilter>;
+  /** Filter by healthStatus */
+  healthStatus?: InputMaybe<StringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by status */
+  status?: InputMaybe<StringFilter>;
+  /** Filter by suspendedAt */
+  suspendedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
 export enum SalesChannelHealthStatus {
@@ -1356,6 +1584,44 @@ export type SalesChannelSpecificationDefinition = {
   id: Maybe<Scalars['ID']['output']>;
   label: Scalars['String']['output'];
   requiresExternalAccount: Scalars['Boolean']['output'];
+};
+
+/** Sort direction */
+export enum SortDirection {
+  Asc = 'asc',
+  Desc = 'desc'
+}
+
+/** Filter operators for String fields */
+export type StringFilter = {
+  /** Contains substring (case-sensitive) */
+  _contains?: InputMaybe<Scalars['String']['input']>;
+  /** Contains substring (case-insensitive) */
+  _containsi?: InputMaybe<Scalars['String']['input']>;
+  /** Ends with (case-sensitive) */
+  _endsWith?: InputMaybe<Scalars['String']['input']>;
+  /** Ends with (case-insensitive) */
+  _endsWithi?: InputMaybe<Scalars['String']['input']>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['String']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['String']['input']>;
+  /** Does not contain substring (case-sensitive) */
+  _notContains?: InputMaybe<Scalars['String']['input']>;
+  /** Does not contain substring (case-insensitive) */
+  _notContainsi?: InputMaybe<Scalars['String']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Starts with (case-sensitive) */
+  _startsWith?: InputMaybe<Scalars['String']['input']>;
+  /** Starts with (case-insensitive) */
+  _startsWithi?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** A user-facing mutation error. */
@@ -1506,7 +1772,6 @@ export type ResolversTypes = ResolversObject<{
   AppManifestSnapshot: ResolverTypeWrapper<AppManifestSnapshot>;
   AppManifestSnapshotConnection: ResolverTypeWrapper<AppManifestSnapshotConnection>;
   AppManifestSnapshotEdge: ResolverTypeWrapper<AppManifestSnapshotEdge>;
-  AppOrderDirection: AppOrderDirection;
   AppPermission: ResolverTypeWrapper<AppPermission>;
   AppRuntimeHealth: ResolverTypeWrapper<AppRuntimeHealth>;
   AppRuntimeHealthStatus: AppRuntimeHealthStatus;
@@ -1515,10 +1780,16 @@ export type ResolversTypes = ResolversObject<{
   AppUpdateInput: AppUpdateInput;
   AppsMutation: ResolverTypeWrapper<AppsMutation>;
   AppsQuery: ResolverTypeWrapper<AppsQuery>;
+  BooleanFilter: BooleanFilter;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DateTimeFilter: DateTimeFilter;
   DimensionUnit: DimensionUnit;
+  FloatFilter: FloatFilter;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
+  IDFilter: IdFilter;
+  IntFilter: IntFilter;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
   Mutation: ResolverTypeWrapper<{}>;
@@ -1530,14 +1801,19 @@ export type ResolversTypes = ResolversObject<{
   SalesChannelConnectionConnection: ResolverTypeWrapper<SalesChannelConnectionConnection>;
   SalesChannelConnectionCreateInput: SalesChannelConnectionCreateInput;
   SalesChannelConnectionEdge: ResolverTypeWrapper<SalesChannelConnectionEdge>;
+  SalesChannelConnectionOrderByInput: SalesChannelConnectionOrderByInput;
+  SalesChannelConnectionOrderField: SalesChannelConnectionOrderField;
   SalesChannelConnectionStatus: SalesChannelConnectionStatus;
   SalesChannelConnectionUpdateInput: SalesChannelConnectionUpdateInput;
+  SalesChannelConnectionWhereInput: SalesChannelConnectionWhereInput;
   SalesChannelHealthStatus: SalesChannelHealthStatus;
   SalesChannelLifecyclePayload: ResolverTypeWrapper<SalesChannelLifecyclePayload>;
   SalesChannelOperation: ResolverTypeWrapper<SalesChannelOperation>;
   SalesChannelOperationType: SalesChannelOperationType;
   SalesChannelSpecification: ResolverTypeWrapper<SalesChannelSpecification>;
   SalesChannelSpecificationDefinition: ResolverTypeWrapper<SalesChannelSpecificationDefinition>;
+  SortDirection: SortDirection;
+  StringFilter: StringFilter;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   WeightUnit: WeightUnit;
 }>;
@@ -1579,8 +1855,14 @@ export type ResolversParentTypes = ResolversObject<{
   AppUpdateInput: AppUpdateInput;
   AppsMutation: AppsMutation;
   AppsQuery: AppsQuery;
+  BooleanFilter: BooleanFilter;
   DateTime: Scalars['DateTime']['output'];
+  DateTimeFilter: DateTimeFilter;
+  FloatFilter: FloatFilter;
+  Float: Scalars['Float']['output'];
   GenericUserError: GenericUserError;
+  IDFilter: IdFilter;
+  IntFilter: IntFilter;
   JSON: Scalars['JSON']['output'];
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
@@ -1591,11 +1873,14 @@ export type ResolversParentTypes = ResolversObject<{
   SalesChannelConnectionConnection: SalesChannelConnectionConnection;
   SalesChannelConnectionCreateInput: SalesChannelConnectionCreateInput;
   SalesChannelConnectionEdge: SalesChannelConnectionEdge;
+  SalesChannelConnectionOrderByInput: SalesChannelConnectionOrderByInput;
   SalesChannelConnectionUpdateInput: SalesChannelConnectionUpdateInput;
+  SalesChannelConnectionWhereInput: SalesChannelConnectionWhereInput;
   SalesChannelLifecyclePayload: SalesChannelLifecyclePayload;
   SalesChannelOperation: SalesChannelOperation;
   SalesChannelSpecification: SalesChannelSpecification;
   SalesChannelSpecificationDefinition: SalesChannelSpecificationDefinition;
+  StringFilter: StringFilter;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
 }>;
 
