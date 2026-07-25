@@ -4,7 +4,8 @@
 
 - Статус документа: proposed.
 - Версия решения: v1.
-- Область: Admin UI, `services/apps`, hosted Apps из `apps/*`, App build pipeline.
+- Область: Admin UI, `services/apps`, backend hosted Apps из `apps/*`,
+  hosted App UI из `admin/src/domains/apps/<appCode>`, App build pipeline.
 - Admin runtime: Next.js App Router + Turbopack host.
 - Remote runtime: client-only Module Federation modules.
 - UI stack: React, Ant Design, `antd-style`, `@ant-design/cssinjs`, AG Grid.
@@ -230,6 +231,12 @@ admin/src/domains/apps/
 │     ├─ admin-app-page.tsx
 │     ├─ admin-modal-layout.tsx
 │     └─ types.ts
+├─ <appCode>/
+│  ├─ module-federation.config.ts
+│  └─ src/
+│     ├─ page.tsx
+│     ├─ modals/
+│     └─ extensions/
 └─ test-support/
 ```
 
@@ -239,7 +246,9 @@ admin/src/domains/apps/
 - internal files `runtime/*` и `sdk/*` не импортируются напрямую;
 - `apps/index.ts` экспортирует только host components и extension point
   contracts, необходимые core Admin;
-- remote App не импортирует runtime implementations из `admin/src`;
+- hosted App UI импортирует из Apps SDK только type-only contract alias и не
+  импортирует `runtime/*` или другие internal Admin domains;
+- core Admin не импортирует source конкретного hosted App напрямую;
 - public SDK contracts не содержат types из внутренних Admin domains;
 - generated GraphQL API types импортируются напрямую из
   `@/graphql/types`, согласно Admin GraphQL conventions.
@@ -344,36 +353,46 @@ remote component props.
 
 ## 7. App source layout
 
-Admin UI source располагается рядом с backend App:
+Backend source App остаётся в `apps/<appCode>`:
 
 ```text
 apps/nova-poshta/
 ├─ app.manifest.ts
 ├─ build.config.json
 ├─ package.json
-├─ src/
-│  ├─ index.ts
-│  ├─ NovaPoshtaApp.ts
-│  ├─ actions/
-│  ├─ workflows/
-│  └─ graphql/
-└─ admin/
-   ├─ module-federation.config.ts
-   └─ src/
-      ├─ page.tsx
-      ├─ modals/
-      │  └─ shipment-create-modal.tsx
-      └─ extensions/
-         ├─ order-shipment-panel.tsx
-         └─ create-shipment-action.tsx
+└─ src/
+   ├─ index.ts
+   ├─ NovaPoshtaApp.ts
+   ├─ actions/
+   ├─ workflows/
+   └─ graphql/
 ```
 
-Source paths используются только App producer build.
-
-Admin runtime никогда не получает:
+Admin UI source этого App является частью Admin Apps domain:
 
 ```text
-apps/nova-poshta/admin/src/page.tsx
+admin/src/domains/apps/nova-poshta/
+├─ module-federation.config.ts
+└─ src/
+   ├─ page.tsx
+   ├─ modals/
+   │  └─ shipment-create-modal.tsx
+   └─ extensions/
+      ├─ order-shipment-panel.tsx
+      └─ create-shipment-action.tsx
+```
+
+Связь backend и UI определяется единым `appCode + version`. App generator
+создаёт backend source и Admin UI source в двух соответствующих roots.
+
+Физическое расположение UI внутри Admin repository не означает статический
+импорт в Admin host. Source конкретного App используется только отдельным App
+UI producer build. Core Admin и runtime registries не импортируют его напрямую.
+
+Browser runtime никогда не получает filesystem source path:
+
+```text
+admin/src/domains/apps/nova-poshta/src/page.tsx
 ```
 
 Он получает только:
@@ -1128,7 +1147,7 @@ Remote failure не должна:
 
 1. shared packages;
 2. backend App packages;
-3. App Admin UI producers;
+3. App Admin UI producers из `admin/src/domains/apps/<appCode>`;
 4. generated bundled App registry и artifact metadata;
 5. core services, включая `services/apps`;
 6. GraphQL schema export/composition;
@@ -1278,7 +1297,7 @@ props.
 
 ### Этап 8. App build integration
 
-1. Добавить `admin/` source unit в App generator.
+1. Добавить source unit `admin/src/domains/apps/<appCode>` в App generator.
 2. Добавить MF producer build в unified App tooling.
 3. Генерировать `admin-ui.artifact.json`.
 4. Добавить App UI validator.
@@ -1359,7 +1378,10 @@ props.
 
 ### Discovery
 
-- Admin не содержит App source paths.
+- Admin host, runtime descriptors и bundled registry не содержат filesystem
+  source paths конкретных Apps.
+- Hosted App UI source находится в
+  `admin/src/domains/apps/<appCode>`.
 - Admin не содержит hardcoded production remote URLs.
 - `services/apps` возвращает immutable manifest URL.
 - Descriptor соответствует общей App version и installation.
@@ -1375,7 +1397,7 @@ props.
 | Installation lifecycle | `services/apps` control plane |
 | App GraphQL schema/resolvers | App package |
 | GraphQL hosting и guards | `services/apps` |
-| Admin UI source | `apps/<appCode>/admin` |
+| Admin UI source | `admin/src/domains/apps/<appCode>` |
 | Admin UI artifact build | App build tooling |
 | Browser asset hosting metadata | bundled App registry + deployment config |
 | Apps management UI | `admin/src/domains/apps/management` |
