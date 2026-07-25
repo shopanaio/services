@@ -2,6 +2,7 @@ import "reflect-metadata";
 
 export const EVENT_HANDLER_METADATA_KEY = Symbol("broker:eventHandler");
 export const BATCH_EVENT_HANDLER_METADATA_KEY = Symbol("broker:batchEventHandler");
+export const CATCH_ALL_EVENT_TYPE = "*";
 
 export interface EventHandlerMetadata {
   eventType: string;
@@ -14,9 +15,13 @@ export interface EventHandlerMetadata {
 
 export type BatchEventHandlerMetadata = EventHandlerMetadata;
 
+export interface EventHandlerOptions {
+  retry?: Partial<EventHandlerMetadata["retryPolicy"]>;
+}
+
 export function EventHandler(
   eventType: string,
-  options: { retry?: Partial<EventHandlerMetadata["retryPolicy"]> } = {}
+  options: EventHandlerOptions = {}
 ): MethodDecorator {
   return function (
     target: object,
@@ -37,9 +42,15 @@ export function EventHandler(
   };
 }
 
+export function CatchAllEventHandler(
+  options: EventHandlerOptions = {}
+): MethodDecorator {
+  return EventHandler(CATCH_ALL_EVENT_TYPE, options);
+}
+
 export function BatchEventHandler(
   eventType: string,
-  options: { retry?: Partial<EventHandlerMetadata["retryPolicy"]> } = {}
+  options: EventHandlerOptions = {}
 ): MethodDecorator {
   return function (
     target: object,

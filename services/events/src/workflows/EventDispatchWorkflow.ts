@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
+  CATCH_ALL_EVENT_TYPE,
   Workflow,
   InjectBroker,
   ServiceBroker,
@@ -127,7 +128,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
 
       const singleHandlers = await this.getAvailableHandlers(firstRecord.eventType);
       const batchHandlers = await this.getAvailableBatchHandlers(firstRecord.eventType);
-      const singleOnlyHandlers = excludeBatchHandledServices(
+      const singleOnlyHandlers = excludeBatchHandledActions(
         singleHandlers,
         batchHandlers,
       );
@@ -209,9 +210,9 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     const handlers: HandlerInfo[] = [];
 
     for (const serviceName of serviceNames) {
-      const action = `${serviceName}.${eventType}`;
-
-      if (this.broker.hasAction(action)) {
+      for (const subscribedEventType of getSubscribedEventTypes(eventType)) {
+        const action = `${serviceName}.${subscribedEventType}`;
+        if (!this.broker.hasAction(action)) continue;
         const metadata = this.broker.getActionMetadata(action);
         const retryPolicy = metadata?.retryPolicy ?? {
           maxAttempts: 3,
@@ -234,9 +235,10 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     const handlers: HandlerInfo[] = [];
 
     for (const serviceName of serviceNames) {
-      const action = `${serviceName}.${eventType}${BATCH_EVENT_ACTION_SUFFIX}`;
-
-      if (this.broker.hasAction(action)) {
+      for (const subscribedEventType of getSubscribedEventTypes(eventType)) {
+        const action =
+          `${serviceName}.${subscribedEventType}${BATCH_EVENT_ACTION_SUFFIX}`;
+        if (!this.broker.hasAction(action)) continue;
         const metadata = this.broker.getActionMetadata(action);
         const retryPolicy = metadata?.retryPolicy ?? {
           maxAttempts: 3,
@@ -461,17 +463,25 @@ function groupBatchJobs(
   return groups;
 }
 
-function excludeBatchHandledServices(
+function excludeBatchHandledActions(
   individualHandlers: readonly HandlerInfo[],
   batchHandlers: readonly HandlerInfo[],
 ): HandlerInfo[] {
-  const batchServiceNames = new Set(
-    batchHandlers.map((handler) => handler.serviceName),
+  const batchHandledActions = new Set(
+    batchHandlers.map((handler) =>
+      handler.action.slice(0, -BATCH_EVENT_ACTION_SUFFIX.length),
+    ),
   );
 
   return individualHandlers.filter(
-    (handler) => !batchServiceNames.has(handler.serviceName),
+    (handler) => !batchHandledActions.has(handler.action),
   );
+}
+
+function getSubscribedEventTypes(eventType: string): string[] {
+  return eventType === CATCH_ALL_EVENT_TYPE
+    ? [eventType]
+    : [eventType, CATCH_ALL_EVENT_TYPE];
 }
 
 function normalizeFailedEventIds(

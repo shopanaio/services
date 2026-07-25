@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type {
+  DomainEvent,
   EventHandlerDelivery,
   EventHandlerResponse,
 } from "@shopana/events";
@@ -13,7 +14,7 @@ import { TemplateDefinitionRegistry } from "../infrastructure/templates/Template
 import type { NotificationSourceEvent } from "../workflows/types.js";
 
 export interface NotificationHandlerParams {
-  event: NotificationSourceEvent;
+  event: DomainEvent<string, Record<string, unknown>>;
   delivery: EventHandlerDelivery;
 }
 
@@ -28,23 +29,23 @@ export class NotificationIngressService {
     callContext: BrokerCallContext
   ): Promise<EventHandlerResponse<{ workflowId: string }>> {
     try {
-      this.validate(params, callContext);
+      const event = this.validate(params, callContext);
       const started = await this.broker.startWorkflow(
         "notifications.ingestEvent",
         {
-          event: params.event,
+          event,
           delivery: params.delivery,
           registryVersion: TemplateDefinitionRegistry.VERSION,
         },
         {
           source: "content",
-          organizationId: params.event.context.organizationId,
-          resourceId: params.event.eventId,
+          organizationId: event.context.organizationId,
+          resourceId: event.eventId,
           operation: `notifications.ingestEvent:${TemplateDefinitionRegistry.VERSION}`,
           content: {
-            eventId: params.event.eventId,
-            eventType: params.event.eventType,
-            source: params.event.source,
+            eventId: event.eventId,
+            eventType: event.eventType,
+            source: event.source,
           },
         }
       );
@@ -70,17 +71,20 @@ export class NotificationIngressService {
   private validate(
     params: NotificationHandlerParams,
     callContext: BrokerCallContext
-  ): void {
+  ): NotificationSourceEvent {
     const { event } = params;
     if (callContext.caller.kind !== "event") {
       throw new NotificationIngressValidationError(
         "Notification ingress requires a trusted event delivery"
       );
     }
+    const notification = event.payload.notification;
     if (
       !event.context?.organizationId ||
-      !event.payload?.notification?.storeId ||
-      !event.payload.notification.data
+      !isRecord(notification) ||
+      typeof notification.storeId !== "string" ||
+      notification.storeId.length === 0 ||
+      !isRecord(notification.data)
     ) {
       throw new NotificationIngressValidationError(
         "Notification event snapshot is incomplete"
@@ -91,7 +95,12 @@ export class NotificationIngressService {
         "Event handler delivery metadata is required"
       );
     }
+    return event as NotificationSourceEvent;
   }
 }
 
 class NotificationIngressValidationError extends Error {}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}

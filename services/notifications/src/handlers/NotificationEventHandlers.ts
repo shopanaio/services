@@ -5,7 +5,7 @@ import type {
   EventHandlerResponse,
 } from "@shopana/events";
 import {
-  EventHandler,
+  CatchAllEventHandler,
   EventHandlers,
   InjectBroker,
   ServiceBroker,
@@ -13,21 +13,43 @@ import {
 } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
 import { PrivacyCleanupScript } from "../scripts/index.js";
+import { NotificationIngressService } from "./NotificationIngressService.js";
 
-interface CustomerDeletedHandlerParams {
-  event: DomainEvent<"customerDeleted", Record<string, unknown>>;
+interface CatchAllEventHandlerParams {
+  event: DomainEvent<string, Record<string, unknown>>;
   delivery: EventHandlerDelivery;
 }
 
 @Injectable()
-export class PrivacyEventHandlers extends EventHandlers {
-  constructor(@InjectBroker("notifications") broker: ServiceBroker) {
+export class NotificationEventHandlers extends EventHandlers {
+  constructor(
+    @InjectBroker("notifications") broker: ServiceBroker,
+    private readonly ingress: NotificationIngressService
+  ) {
     super(broker);
   }
 
-  @EventHandler("customerDeleted", { retry: { maxAttempts: 5 } })
-  async customerDeleted(
-    params: CustomerDeletedHandlerParams,
+  @CatchAllEventHandler({ retry: { maxAttempts: 5 } })
+  async handleEvent(
+    params: CatchAllEventHandlerParams,
+    context: BrokerCallContext
+  ): Promise<EventHandlerResponse<unknown>> {
+    if (params.event.eventType === "customerDeleted") {
+      return this.cleanupCustomer(params, context);
+    }
+
+    if (
+      Kernel.getInstance().definitions.forEvent(params.event.eventType)
+        .length === 0
+    ) {
+      return { success: true };
+    }
+
+    return this.ingress.enqueue(params, context);
+  }
+
+  private async cleanupCustomer(
+    params: CatchAllEventHandlerParams,
     context: BrokerCallContext
   ): Promise<EventHandlerResponse<{ occurrencesPurged: number }>> {
     try {

@@ -104,6 +104,8 @@ export {
   ACTION_METADATA_KEY,
   BatchEventHandler,
   BATCH_EVENT_HANDLER_METADATA_KEY,
+  CatchAllEventHandler,
+  CATCH_ALL_EVENT_TYPE,
   EventHandler,
   EVENT_HANDLER_METADATA_KEY,
   type UserError,
@@ -117,6 +119,7 @@ export {
   type ActionDecoratorMetadata,
   type BatchEventHandlerMetadata,
   type EventHandlerMetadata,
+  type EventHandlerOptions,
 } from "./decorators";
 
 // Workflow decorators and base class from @shopana/dbos

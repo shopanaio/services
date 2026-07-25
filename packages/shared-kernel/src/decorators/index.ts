@@ -21,10 +21,13 @@ export {
 export {
   BatchEventHandler,
   BATCH_EVENT_HANDLER_METADATA_KEY,
+  CatchAllEventHandler,
+  CATCH_ALL_EVENT_TYPE,
   EventHandler,
   EVENT_HANDLER_METADATA_KEY,
   type BatchEventHandlerMetadata,
   type EventHandlerMetadata,
+  type EventHandlerOptions,
 } from "./EventHandler.js";
 
 // Workflow decorators are now exported from @shopana/dbos
