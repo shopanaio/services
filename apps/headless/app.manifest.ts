@@ -2,33 +2,122 @@ import { defineAppManifest } from "@shopana/app-sdk";
 
 export const HEADLESS_STOREFRONT_CAPABILITY = "sales-channel";
 
-export const HEADLESS_STOREFRONT_AVAILABLE_PERMISSIONS = [
-  "storefront.catalog.read",
-  "storefront.inventory.read",
-  "storefront.content.read",
-  "storefront.metaobjects.read",
-  "storefront.cart.read",
-  "storefront.cart.write",
-  "storefront.customer.write",
+export type HeadlessStorefrontPermissionAction = "read" | "write";
+export type HeadlessStorefrontPermissionRisk =
+  | "LOW"
+  | "MEDIUM"
+  | "HIGH";
+
+export interface HeadlessStorefrontPermissionDefinition {
+  readonly handle: string;
+  readonly resource: string;
+  readonly action: HeadlessStorefrontPermissionAction;
+  readonly label: string;
+  readonly description: string;
+  readonly risk: HeadlessStorefrontPermissionRisk;
+}
+
+export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
+  {
+    handle: "storefront.catalog.read",
+    resource: "catalog",
+    action: "read",
+    label: "Read catalog",
+    description:
+      "View published products, variants, categories, bundles, prices, and storefront publication data.",
+    risk: "LOW",
+  },
+  {
+    handle: "storefront.inventory.read",
+    resource: "inventory",
+    action: "read",
+    label: "Read inventory",
+    description:
+      "View storefront availability for published products and variants.",
+    risk: "LOW",
+  },
+  {
+    handle: "storefront.checkout.read",
+    resource: "checkout",
+    action: "read",
+    label: "Read checkouts",
+    description:
+      "View buyer-owned carts and their checkout state.",
+    risk: "MEDIUM",
+  },
+  {
+    handle: "storefront.checkout.write",
+    resource: "checkout",
+    action: "write",
+    label: "Write checkouts",
+    description:
+      "Create carts and update their lines, buyer identity, addresses, delivery, payment, promotions, and checkout state.",
+    risk: "HIGH",
+  },
+  {
+    handle: "storefront.customer.read",
+    resource: "customer",
+    action: "read",
+    label: "Read customer",
+    description:
+      "View the authenticated customer's profile, addresses, and marketing preferences.",
+    risk: "HIGH",
+  },
+  {
+    handle: "storefront.customer.write",
+    resource: "customer",
+    action: "write",
+    label: "Write customer",
+    description:
+      "Update the authenticated customer's profile, addresses, and marketing preferences.",
+    risk: "HIGH",
+  },
+  {
+    handle: "storefront.order.read",
+    resource: "order",
+    action: "read",
+    label: "Read orders",
+    description:
+      "View the authenticated customer's order history and order details.",
+    risk: "HIGH",
+  },
+  {
+    handle: "storefront.order.write",
+    resource: "order",
+    action: "write",
+    label: "Write orders",
+    description:
+      "Create an order from a buyer-owned checkout.",
+    risk: "HIGH",
+  },
 ] as const;
+
+export type HeadlessStorefrontPermission =
+  (typeof HEADLESS_STOREFRONT_PERMISSION_CATALOG)[number]["handle"];
+
+export const HEADLESS_STOREFRONT_AVAILABLE_PERMISSIONS = Object.freeze(
+  HEADLESS_STOREFRONT_PERMISSION_CATALOG.map(
+    ({ handle }) => handle,
+  ),
+) satisfies readonly HeadlessStorefrontPermission[];
 
 export const HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS = [
   "storefront.catalog.read",
   "storefront.inventory.read",
-  "storefront.cart.read",
-  "storefront.cart.write",
+  "storefront.checkout.read",
+  "storefront.checkout.write",
+  "storefront.order.write",
 ] as const satisfies readonly HeadlessStorefrontPermission[];
 
-export type HeadlessStorefrontPermission =
-  (typeof HEADLESS_STOREFRONT_AVAILABLE_PERMISSIONS)[number];
-
 export interface StorefrontApiConfiguration {
+  readonly permissions: readonly HeadlessStorefrontPermissionDefinition[];
   readonly availablePermissions: readonly HeadlessStorefrontPermission[];
   readonly defaultPermissions: readonly HeadlessStorefrontPermission[];
 }
 
 export const headlessStorefrontApi =
   validateStorefrontApiConfiguration({
+    permissions: HEADLESS_STOREFRONT_PERMISSION_CATALOG,
     availablePermissions: HEADLESS_STOREFRONT_AVAILABLE_PERMISSIONS,
     defaultPermissions: HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
   });
@@ -73,6 +162,7 @@ function validateStorefrontApiConfiguration(
 ): StorefrontApiConfiguration {
   const permissionPattern =
     /^[a-z][a-z0-9]*(?:[.:_-][a-z0-9]+)*$/;
+  const definitions = [...input.permissions];
   const available = [...input.availablePermissions];
   const defaults = [...input.defaultPermissions];
 
@@ -87,7 +177,41 @@ function validateStorefrontApiConfiguration(
     permissionPattern,
   );
 
-  const availableSet = new Set(available);
+  const definitionHandles = new Set<string>();
+  for (const definition of definitions) {
+    if (
+      definition.handle !==
+      `storefront.${definition.resource}.${definition.action}`
+    ) {
+      throw new Error(
+        `Storefront permission "${definition.handle}" does not match its resource and action`,
+      );
+    }
+    if (!definition.label.trim() || !definition.description.trim()) {
+      throw new Error(
+        `Storefront permission "${definition.handle}" requires label and description`,
+      );
+    }
+    if (definitionHandles.has(definition.handle)) {
+      throw new Error(
+        `Duplicate storefront permission definition "${definition.handle}"`,
+      );
+    }
+    definitionHandles.add(definition.handle);
+  }
+
+  const availableSet = new Set<string>(available);
+  if (
+    definitionHandles.size !== availableSet.size ||
+    [...definitionHandles].some(
+      (permission) => !availableSet.has(permission),
+    )
+  ) {
+    throw new Error(
+      "Storefront permission definitions and available permissions must match",
+    );
+  }
+
   for (const permission of defaults) {
     if (!availableSet.has(permission)) {
       throw new Error(
@@ -97,6 +221,7 @@ function validateStorefrontApiConfiguration(
   }
 
   return Object.freeze({
+    permissions: Object.freeze(definitions),
     availablePermissions: Object.freeze(available),
     defaultPermissions: Object.freeze(defaults),
   });

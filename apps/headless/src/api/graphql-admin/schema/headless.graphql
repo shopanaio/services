@@ -44,6 +44,34 @@ enum StorefrontCredentialStatus {
   REVOKED
 }
 
+"""Risk level shown when an administrator grants a Storefront permission."""
+enum HeadlessStorefrontPermissionRisk {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+"""A permission available to a Headless storefront connection."""
+type HeadlessStorefrontPermissionDefinition {
+  """Canonical permission scope stored in the access policy."""
+  handle: String!
+
+  """Protected Storefront API resource."""
+  resource: String!
+
+  """Supported resource action: read or write."""
+  action: String!
+
+  """Human-readable permission label."""
+  label: String!
+
+  """What granting this permission allows the storefront to do."""
+  description: String!
+
+  """Risk level used by Admin UI when presenting the permission."""
+  risk: HeadlessStorefrontPermissionRisk!
+}
+
 """The Storefront API permissions granted to a Headless storefront."""
 type StorefrontAccessPolicy {
   """Immutable, sorted Storefront permission handles."""
@@ -214,6 +242,9 @@ extend type Mutation {
 
 """Headless App query namespace."""
 type HeadlessAppQuery {
+  """Permission catalog used to render the Headless access policy editor."""
+  headlessStorefrontPermissionCatalog: [HeadlessStorefrontPermissionDefinition!]!
+
   """List Headless storefronts owned by the active installation."""
   headlessStorefrontConnections: [HeadlessStorefrontConnection!]!
 

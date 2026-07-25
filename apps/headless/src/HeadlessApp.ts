@@ -8,6 +8,7 @@ import type {
   AppUpdateInput,
   ShopanaApp,
 } from "@shopana/app-sdk";
+import { HEADLESS_STOREFRONT_PERMISSION_CATALOG } from "../app.manifest.js";
 import { HeadlessStorefrontRepository } from "./storefront-access/repositories/index.js";
 
 interface SalesChannelCapabilityInput {
@@ -41,6 +42,10 @@ export class HeadlessApp implements ShopanaApp {
   register(): void {
     this.registerInstallationLifecycle();
     this.registerSalesChannelCapability();
+    this.host.broker.register(
+      "permissionCatalog",
+      () => HEADLESS_STOREFRONT_PERMISSION_CATALOG,
+    );
   }
 
   start(): void {
