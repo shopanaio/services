@@ -33,6 +33,21 @@ export class NotificationsQueryResolver extends NotificationsType<
     const settingByKey = new Map(
       settings.map((setting) => [setting.definitionKey, setting])
     );
+    for (const setting of settings) {
+      this.$ctx.loaders.definitionSetting.prime(
+        toDefinitionKey(setting.definitionKey),
+        setting
+      );
+    }
+    for (const channel of channels) {
+      this.$ctx.loaders.channelSetting.prime(
+        {
+          key: toDefinitionKey(channel.definitionKey),
+          channel: channel.channel,
+        },
+        channel
+      );
+    }
     const channelsByKey = new Map(
       definitions.map((definition) => [
         definition.key,
@@ -129,6 +144,9 @@ export class NotificationsQueryResolver extends NotificationsType<
 
   async webhookSubscriptions() {
     const webhooks = await this.$ctx.kernel.repository.webhooks.list();
+    for (const webhook of webhooks) {
+      this.$ctx.loaders.webhook.prime(webhook.id, webhook);
+    }
     return Promise.all(
       webhooks.map((webhook) => this.resolvers.webhook(webhook.id))
     );

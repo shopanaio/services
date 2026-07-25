@@ -1,4 +1,4 @@
-import { and, eq, max } from "drizzle-orm";
+import { and, eq, max, or } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import type {
   NotificationChannel,
@@ -163,6 +163,42 @@ export class TemplateRepository extends BaseRepository {
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  async findActiveMany(
+    keys: readonly {
+      key: NotificationDefinitionKey;
+      channel: NotificationChannel;
+      locale: string;
+    }[]
+  ) {
+    return this.connection
+      .select({
+        revision: notificationTemplateRevisions,
+        pointerVersion: notificationTemplateActiveRevisions.version,
+      })
+      .from(notificationTemplateActiveRevisions)
+      .innerJoin(
+        notificationTemplateRevisions,
+        eq(
+          notificationTemplateRevisions.id,
+          notificationTemplateActiveRevisions.revisionId
+        )
+      )
+      .where(
+        and(
+          eq(notificationTemplateActiveRevisions.storeId, this.storeId),
+          or(
+            ...keys.map(({ key, channel, locale }) =>
+              and(
+                eq(notificationTemplateActiveRevisions.definitionKey, key),
+                eq(notificationTemplateActiveRevisions.channel, channel),
+                eq(notificationTemplateActiveRevisions.locale, locale)
+              )
+            )
+          )
+        )
+      );
   }
 
 }

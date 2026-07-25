@@ -12,10 +12,7 @@ export class NotificationDefinitionSettingResolver extends NotificationsType<
   NotificationDefinitionSetting
 > {
   async $preload() {
-    const setting =
-      await this.$ctx.kernel.repository.settings.getDefinitionSetting(
-        this.$props
-      );
+    const setting = await this.$ctx.loaders.definitionSetting.load(this.$props);
     if (!setting) {
       throw new PreloadNotFoundError(
         `Notification definition setting ${this.$props} not found`

@@ -24,6 +24,7 @@
     "@shopana/shared-service-config": "workspace:*",
     "@shopana/type-resolver": "workspace:*",
     "cache-manager": "^7.2.7",
+    "dataloader": "^2.2.3",
     "drizzle-orm": "^0.45.1",
     "fastify": "^4.28.1",
     "graphql": "^16.9.0",

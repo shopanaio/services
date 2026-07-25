@@ -14,7 +14,9 @@ interface NotificationChannelSettingInput {
 
 type NotificationChannelSettingData = {
   definition: ReturnType<TemplateDefinitionRegistry["get"]>;
-  setting: Awaited<ReturnType<SettingsRepository["getChannelSetting"]>>;
+  setting:
+    | Awaited<ReturnType<SettingsRepository["getChannelSetting"]>>
+    | null;
 };
 
 export class NotificationChannelSettingResolver extends NotificationsType<
@@ -23,11 +25,7 @@ export class NotificationChannelSettingResolver extends NotificationsType<
 > {
   async $preload() {
     const definition = this.$ctx.kernel.definitions.get(this.$props.key);
-    const setting =
-      await this.$ctx.kernel.repository.settings.getChannelSetting(
-        this.$props.key,
-        this.$props.channel
-      );
+    const setting = await this.$ctx.loaders.channelSetting.load(this.$props);
     return { definition, setting };
   }
 

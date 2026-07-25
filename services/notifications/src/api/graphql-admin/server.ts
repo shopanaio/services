@@ -18,6 +18,7 @@ import {
 import { ResolverError } from "@shopana/type-resolver";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
+import { Loader } from "../../loaders/Loader.js";
 import { normalizeAdminError } from "../../scripts/shared/adminScriptSupport.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
@@ -76,6 +77,7 @@ export async function startServer(config: { port: number }) {
             readHeader(request.headers["x-idempotency-key"]) ??
             String(request.id),
           kernel,
+          loaders: new Loader(kernel.repository, kernel.renderer),
           store: request.store,
           user: request.user,
           locale: request.store?.defaultLocale,

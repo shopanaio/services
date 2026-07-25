@@ -79,6 +79,12 @@ export class NotificationsMutationResolver extends NotificationsType<
         expectedVersion: args.input.expectedVersion,
       }
     );
+    if (result.setting) {
+      const key = toDefinitionKey(result.setting.definitionKey);
+      this.$ctx.loaders.definitionSetting
+        .clear(key)
+        .prime(key, result.setting);
+    }
     return {
       setting: result.setting
         ? await this.resolvers.notificationDefinitionSetting(
@@ -103,6 +109,15 @@ export class NotificationsMutationResolver extends NotificationsType<
         replyTo: optional(args.input.replyTo),
       }
     );
+    if (result.setting) {
+      const key = {
+        key: toDefinitionKey(result.setting.definitionKey),
+        channel: result.setting.channel,
+      };
+      this.$ctx.loaders.channelSetting
+        .clear(key)
+        .prime(key, result.setting);
+    }
     return {
       setting: result.setting
         ? await this.resolvers.notificationChannelSetting({
@@ -128,6 +143,16 @@ export class NotificationsMutationResolver extends NotificationsType<
         expectedVersion: args.input.expectedVersion,
       }
     );
+    if (result.template) {
+      const key = {
+        key: result.template.key,
+        channel: result.template.channel,
+        locale: result.template.locale,
+      };
+      this.$ctx.loaders.effectiveTemplate
+        .clear(key)
+        .prime(key, result.template);
+    }
     return {
       template: result.template
         ? await this.resolvers.notificationEffectiveTemplate({
@@ -271,6 +296,11 @@ export class NotificationsMutationResolver extends NotificationsType<
         apiVersion: args.input.apiVersion,
       }
     );
+    if (result.webhook) {
+      this.$ctx.loaders.webhook
+        .clear(result.webhook.id)
+        .prime(result.webhook.id, result.webhook);
+    }
     return {
       webhook: result.webhook
         ? await this.resolvers.webhook(result.webhook.id)
@@ -297,6 +327,11 @@ export class NotificationsMutationResolver extends NotificationsType<
         expectedVersion: args.input.expectedVersion,
       }
     );
+    if (result.webhook) {
+      this.$ctx.loaders.webhook
+        .clear(result.webhook.id)
+        .prime(result.webhook.id, result.webhook);
+    }
     return {
       webhook: result.webhook
         ? await this.resolvers.webhook(result.webhook.id)
@@ -311,6 +346,9 @@ export class NotificationsMutationResolver extends NotificationsType<
       NotificationWebhookDeleteScript,
       { id: args.input.id }
     );
+    if (result.deletedWebhookId) {
+      this.$ctx.loaders.webhook.clear(result.deletedWebhookId);
+    }
     return {
       deletedWebhookId: result.deletedWebhookId ?? null,
       userErrors: result.userErrors,

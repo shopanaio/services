@@ -30,6 +30,10 @@ export interface RenderedNotification {
   sms?: { encoding: "GSM_7" | "UCS_2"; segmentCount: number; length: number };
 }
 
+type ActiveTemplate = NonNullable<
+  Awaited<ReturnType<TemplateRepository["findActive"]>>
+>;
+
 export type TemplateSourceField = "SUBJECT" | "BODY" | "PLAIN_TEXT";
 
 export interface StructuredTemplateValidationIssue
@@ -229,27 +233,62 @@ export class NotificationTemplateRenderer {
     channel: NotificationChannel;
     locale: string;
   }) {
-    if (input.channel !== "EMAIL" && input.channel !== "SMS") {
-      throw new Error("CHANNEL_DOES_NOT_SUPPORT_TEMPLATES");
+    return (await this.getEffectiveTemplates([input]))[0]!;
+  }
+
+  async getEffectiveTemplates(
+    inputs: readonly {
+      key: NotificationDefinitionKey;
+      channel: NotificationChannel;
+      locale: string;
+    }[]
+  ) {
+    for (const input of inputs) {
+      if (input.channel !== "EMAIL" && input.channel !== "SMS") {
+        throw new Error("CHANNEL_DOES_NOT_SUPPORT_TEMPLATES");
+      }
     }
-    const selected = await this.resolveTemplate(
-      input.key,
-      input.channel,
-      unique([input.locale, "en"])
+
+    const lookupKeys = inputs.flatMap((input) =>
+      unique([input.locale, "en"]).map((locale) => ({
+        key: input.key,
+        channel: input.channel,
+        locale,
+      }))
     );
-    return {
-      key: input.key,
-      channel: input.channel,
-      locale: selected.locale,
-      source: selected.templateRevisionId ? "REVISION" : "DEFAULT",
-      subjectTemplate: selected.subjectTemplate,
-      bodyTemplate: selected.bodyTemplate,
-      plainTextTemplate: selected.plainTextTemplate,
-      revisionId: selected.templateRevisionId,
-      revision: selected.templateRevision,
-      pointerVersion: selected.pointerVersion,
-      sourceVersion: selected.templateSourceVersion,
-    };
+    const activeTemplates = await this.templates.findActiveMany(lookupKeys);
+    const activeByTemplateId = new Map(
+      activeTemplates.map((active) => [
+        templateId(
+          active.revision.definitionKey as NotificationDefinitionKey,
+          active.revision.channel,
+          active.revision.locale
+        ),
+        active,
+      ])
+    );
+
+    return inputs.map((input) => {
+      const selected = this.selectTemplate(
+        input.key,
+        input.channel as Extract<NotificationChannel, "EMAIL" | "SMS">,
+        unique([input.locale, "en"]),
+        activeByTemplateId
+      );
+      return {
+        key: input.key,
+        channel: input.channel,
+        locale: selected.locale,
+        source: selected.templateRevisionId ? "REVISION" : "DEFAULT",
+        subjectTemplate: selected.subjectTemplate,
+        bodyTemplate: selected.bodyTemplate,
+        plainTextTemplate: selected.plainTextTemplate,
+        revisionId: selected.templateRevisionId,
+        revision: selected.templateRevision,
+        pointerVersion: selected.pointerVersion,
+        sourceVersion: selected.templateSourceVersion,
+      };
+    });
   }
 
   private renderSources(input: {
@@ -318,8 +357,30 @@ export class NotificationTemplateRenderer {
     channel: Extract<NotificationChannel, "EMAIL" | "SMS">,
     locales: string[]
   ) {
+    const activeTemplates = await this.templates.findActiveMany(
+      locales.map((locale) => ({ key, channel, locale }))
+    );
+    const activeByTemplateId = new Map(
+      activeTemplates.map((active) => [
+        templateId(
+          active.revision.definitionKey as NotificationDefinitionKey,
+          active.revision.channel,
+          active.revision.locale
+        ),
+        active,
+      ])
+    );
+    return this.selectTemplate(key, channel, locales, activeByTemplateId);
+  }
+
+  private selectTemplate(
+    key: NotificationDefinitionKey,
+    channel: Extract<NotificationChannel, "EMAIL" | "SMS">,
+    locales: string[],
+    activeByTemplateId: ReadonlyMap<string, ActiveTemplate>
+  ) {
     for (const locale of locales) {
-      const active = await this.templates.findActive(key, channel, locale);
+      const active = activeByTemplateId.get(templateId(key, channel, locale));
       if (active) {
         return {
           locale,

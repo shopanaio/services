@@ -6601,8 +6601,10 @@ __metadata:
     "@shopana/shared-context": "workspace:*"
     "@shopana/shared-kernel": "workspace:*"
     "@shopana/shared-service-config": "workspace:*"
+    "@shopana/type-resolver": "workspace:*"
     "@types/node": "npm:^20.14.14"
     cache-manager: "npm:^7.2.7"
+    dataloader: "npm:^2.2.3"
     drizzle-orm: "npm:^0.45.1"
     fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
@@ -7012,7 +7014,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/type-resolver@npm:*, @shopana/type-resolver@workspace:packages/type-resolver":
+"@shopana/type-resolver@npm:*, @shopana/type-resolver@workspace:*, @shopana/type-resolver@workspace:packages/type-resolver":
   version: 0.0.0-use.local
   resolution: "@shopana/type-resolver@workspace:packages/type-resolver"
   dependencies:

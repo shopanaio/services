@@ -1,7 +1,7 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { resolve4, resolve6 } from "node:dns/promises";
 import { isIP } from "node:net";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   webhookStoreSecretVersions,
@@ -42,6 +42,18 @@ export class WebhookRepository extends BaseRepository {
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  async getByIds(ids: readonly string[]) {
+    return this.connection
+      .select()
+      .from(webhookSubscriptions)
+      .where(
+        and(
+          eq(webhookSubscriptions.storeId, this.storeId),
+          inArray(webhookSubscriptions.id, [...ids])
+        )
+      );
   }
 
   async create(input: {

@@ -10,7 +10,7 @@ export class NotificationEffectiveTemplateResolver extends NotificationsType<
   NotificationEffectiveTemplateView
 > {
   $preload() {
-    return this.$ctx.kernel.renderer.getEffectiveTemplate(this.$props);
+    return this.$ctx.loaders.effectiveTemplate.load(this.$props);
   }
 
   key() {

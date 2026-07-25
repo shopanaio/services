@@ -13,6 +13,7 @@ import {
 } from "@shopana/shared-kernel";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Kernel } from "../kernel/Kernel.js";
+import { Loader } from "../loaders/Loader.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -257,6 +258,7 @@ export class NotificationBrokerActions extends BrokerActions {
       new ServiceContext({
         requestId: `notification-broker-${Date.now()}`,
         kernel: this.kernel,
+        loaders: new Loader(this.kernel.repository, this.kernel.renderer),
         store,
         locale: store.defaultLocale,
       }),

@@ -16,6 +16,7 @@ import { createDatabase, type Database } from "../infrastructure/db/database.js"
 import { DataProtectionService } from "../infrastructure/secrets/DataProtectionService.js";
 import { NotificationTemplateRenderer } from "../infrastructure/templates/NotificationTemplateRenderer.js";
 import { TemplateDefinitionRegistry } from "../infrastructure/templates/TemplateDefinitionRegistry.js";
+import { Loader } from "../loaders/Loader.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
 import type {
@@ -113,6 +114,7 @@ export class Kernel extends BaseKernel<NotificationKernelServices> {
       const serviceContext = new ServiceContext({
         requestId: context.requestId ?? `workflow-${Date.now()}`,
         kernel: this,
+        loaders: new Loader(this.repository, this.renderer),
         locale: context.locale,
         store: {
           id: context.storeId,

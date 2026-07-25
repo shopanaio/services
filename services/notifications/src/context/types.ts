@@ -1,9 +1,11 @@
 import type { ContextStore, ContextUser } from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
+import type { Loader } from "../loaders/Loader.js";
 
 export interface ServiceContextOptions {
   requestId: string;
   kernel: Kernel;
+  loaders: Loader;
   store?: ContextStore;
   user?: ContextUser;
   locale?: string;
@@ -12,6 +14,7 @@ export interface ServiceContextOptions {
 export class ServiceContext {
   readonly requestId: string;
   readonly kernel: Kernel;
+  readonly loaders: Loader;
   readonly locale?: string;
   private readonly storeValue?: ContextStore;
   private readonly userValue?: ContextUser;
@@ -19,6 +22,7 @@ export class ServiceContext {
   constructor(options: ServiceContextOptions) {
     this.requestId = options.requestId;
     this.kernel = options.kernel;
+    this.loaders = options.loaders;
     this.storeValue = options.store;
     this.userValue = options.user;
     this.locale = options.locale;

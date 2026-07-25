@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import type { NotificationChannel, NotificationDefinitionKey } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -26,6 +26,18 @@ export class SettingsRepository extends BaseRepository {
       .select()
       .from(notificationDefinitionSettings)
       .where(eq(notificationDefinitionSettings.storeId, this.storeId));
+  }
+
+  async getDefinitionSettings(keys: readonly NotificationDefinitionKey[]) {
+    return this.connection
+      .select()
+      .from(notificationDefinitionSettings)
+      .where(
+        and(
+          eq(notificationDefinitionSettings.storeId, this.storeId),
+          inArray(notificationDefinitionSettings.definitionKey, [...keys])
+        )
+      );
   }
 
   async setDefinitionEnabled(input: {
@@ -97,6 +109,30 @@ export class SettingsRepository extends BaseRepository {
       .select()
       .from(notificationChannelSettings)
       .where(where);
+  }
+
+  async getChannelSettings(
+    keys: readonly {
+      key: NotificationDefinitionKey;
+      channel: NotificationChannel;
+    }[]
+  ) {
+    return this.connection
+      .select()
+      .from(notificationChannelSettings)
+      .where(
+        and(
+          eq(notificationChannelSettings.storeId, this.storeId),
+          or(
+            ...keys.map(({ key, channel }) =>
+              and(
+                eq(notificationChannelSettings.definitionKey, key),
+                eq(notificationChannelSettings.channel, channel)
+              )
+            )
+          )
+        )
+      );
   }
 
   async setChannelEnabled(input: {

@@ -15,7 +15,7 @@ export class NotificationWebhookResolver extends NotificationsType<
   NotificationWebhook
 > {
   async $preload() {
-    const webhook = await this.$ctx.kernel.repository.webhooks.find(this.$props);
+    const webhook = await this.$ctx.loaders.webhook.load(this.$props);
     if (!webhook) {
       throw new PreloadNotFoundError(
         `Notification webhook ${this.$props} not found`
