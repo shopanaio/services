@@ -64,7 +64,8 @@ Store
 - Analytics warehouse и отчёты по каналам.
 - CDN authentication.
 - Поддержка legacy `x-api-key`.
-- Сохранение совместимости с `shopana-online-store`.
+- Изменение manifest, runtime, lifecycle или UI существующей
+  `shopana-online-store`.
 
 Product publication, cart/order attribution и customer auth упоминаются только
 в объёме контрактов, которые Headless access должен предоставить последующим
@@ -88,20 +89,39 @@ Public/private credentials не являются асимметричной кр
 
 ## 5. Архитектурные решения
 
-### 5.1. Не создавать одновременно Online Store и Headless
+### 5.1. Online Store и Headless являются независимыми Apps
 
-На текущем этапе Shopana является headless-платформой и не имеет hosted theme
-runtime. Существующая bundled App `apps/online-store` заменяется на Headless App:
+Существующая bundled App `apps/online-store` остаётся без изменений:
 
 ```text
-apps/online-store  ->  apps/headless
-shopana-online-store  ->  shopana-headless
-online-store specification  ->  headless-storefront specification
+apps/online-store
+  code: shopana-online-store
+  specification: online-store
 ```
 
-Backward-compatible alias не создаётся. Если в будущем появятся Shopana-hosted
-themes и managed storefront runtime, отдельный `Online Store` будет добавлен
-как новая App с другой семантикой.
+Headless реализуется новой bundled App:
+
+```text
+apps/headless
+  code: shopana-headless
+  specification: headless-storefront
+```
+
+Обе Apps могут быть установлены в одном store одновременно. Они имеют разные
+installations, specification snapshots, connections и lifecycle:
+
+```text
+Store
+  ├── Online Store AppInstallation
+  │     └── Online Store SalesChannelConnection
+  └── Headless AppInstallation
+        ├── Website EU SalesChannelConnection
+        └── Mobile App SalesChannelConnection
+```
+
+Storefront credentials этого плана создаются только для specification с
+`storefrontApi.enabled == true`. Существующая Online Store specification не
+получает этот блок автоматически и не затрагивается credential provisioning.
 
 ### 5.2. Один connection равен одному storefront/channel
 
@@ -1608,23 +1628,25 @@ localStorage или URL.
 Exit criteria:
 
 - нет открытых решений, меняющих persistence или public API;
-- Online Store compatibility явно не требуется.
+- Online Store явно остаётся отдельной неизменяемой App вне scope.
 
-### Phase 1. Headless App clean cutover
+### Phase 1. Добавить отдельную Headless App
 
-- Перенести `apps/online-store` в `apps/headless`.
-- Переименовать package exports и manifest.
-- Обновить Apps Service dependency/runtime registration.
+- Создать новый package `apps/headless`.
+- Добавить новый manifest `shopana-headless`.
+- Добавить Headless dependency/runtime registration в Apps Service рядом с
+  существующей Online Store App.
 - Установить `allowMultipleConnections: true`.
 - Добавить `storefrontApi` manifest contract.
 - Добавить platform permission catalog и validation.
-- Удалить старые Online Store identifiers.
+- Не менять `apps/online-store`, её package code, manifest или registration.
 
 Exit criteria:
 
 - Headless App обнаруживается как sales-channel App;
 - installation поддерживает несколько connections;
-- старый App code нигде не используется.
+- Online Store продолжает обнаруживаться и работать независимо;
+- Headless и Online Store могут быть установлены одновременно.
 
 ### Phase 2. Persistence и crypto
 
@@ -1743,7 +1765,7 @@ Exit criteria:
 
 ### Phase 9. Admin UI
 
-- Переименовать Online Store UI в Headless.
+- Добавить отдельный Headless UI, не переименовывая Online Store UI.
 - Добавить storefront connections list.
 - Добавить create storefront flow.
 - Добавить initial secret warning.
@@ -1886,7 +1908,8 @@ Generated outputs изменяются только соответствующи
 
 Реализация завершена, когда:
 
-1. `shopana-headless` является единственной first-party custom storefront App.
+1. `shopana-headless` добавлена как отдельная first-party custom storefront
+   App, а `shopana-online-store` не изменена.
 2. Одна installation создаёт несколько storefront connections.
 3. Каждый connection получает один public и initial private credential.
 4. Public token повторно доступен Admin UI.
@@ -1904,4 +1927,3 @@ Generated outputs изменяются только соответствующи
 16. Legacy `x-api-key` storefront contract удалён.
 17. Logs/events/traces не содержат secret values.
 18. Build и schema composition проходят штатным Shopana CLI workflow.
-
