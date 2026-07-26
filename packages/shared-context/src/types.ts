@@ -28,9 +28,15 @@ export interface ContextUser {
  */
 export interface ContextCustomer {
   id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  language: string | null;
+  isVerified: boolean;
+  isBlocked: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**

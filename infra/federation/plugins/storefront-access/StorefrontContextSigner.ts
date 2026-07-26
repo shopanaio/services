@@ -6,6 +6,7 @@ import {
 import {
   STOREFRONT_CONTEXT_AUDIENCE,
   STOREFRONT_CONTEXT_ISSUER,
+  type ContextCustomer,
   type ResolvedStorefrontAccessContext,
 } from "@shopana/shared-context";
 
@@ -34,8 +35,16 @@ export class StorefrontContextSigner {
   sign(
     context: ResolvedStorefrontAccessContext,
     requestId: string,
+    customer: ContextCustomer | null,
+    customerCacheUntil?: Date,
   ): string {
     const now = Math.floor(Date.now() / 1000);
+    const expiresAt = customerCacheUntil
+      ? Math.min(now + 60, Math.floor(customerCacheUntil.getTime() / 1_000))
+      : now + 60;
+    if (expiresAt <= now) {
+      throw new Error("Storefront customer context has expired");
+    }
     const header = encode({ alg: "EdDSA", kid: this.kid, typ: "JWT" });
     const payload = encode({
       iss: STOREFRONT_CONTEXT_ISSUER,
@@ -43,7 +52,7 @@ export class StorefrontContextSigner {
       sub: `credential:${context.access.credentialId}`,
       jti: requestId,
       iat: now,
-      exp: now + 60,
+      exp: expiresAt,
       organizationId: context.store.organizationId,
       store: context.store,
       storefront: {
@@ -54,6 +63,7 @@ export class StorefrontContextSigner {
         permissions: context.access.permissions,
         policyRevision: context.access.policyRevision,
       },
+      customer,
     });
     const input = `${header}.${payload}`;
     const signature = sign(null, Buffer.from(input, "ascii"), this.key);

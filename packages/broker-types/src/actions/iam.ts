@@ -142,6 +142,23 @@ export interface ServiceLinkedApplicationAuthSettingsResult {
   errorCode?: string;
 }
 
+export interface ValidateServiceLinkedApplicationTokenParams {
+  applicationId: string;
+  organizationId: string;
+  linkedOwner: ServiceLinkedOwnerInput;
+  token: string;
+}
+
+export type ValidateServiceLinkedApplicationTokenResult =
+  | {
+      active: true;
+      userId: string;
+      cacheUntil: string;
+    }
+  | {
+      active: false;
+    };
+
 // ============================================================================
 // Authorization Actions
 // ============================================================================

@@ -15,7 +15,11 @@ type GatewayType = "admin" | "storefront";
 
 interface GatewayConfig {
   admin: { port: number; access_resolver_url?: string };
-  storefront: { port: number; access_resolver_url?: string };
+  storefront: {
+    port: number;
+    access_resolver_url?: string;
+    customer_context_resolver_url?: string;
+  };
 }
 
 interface Config {
@@ -101,6 +105,8 @@ export async function runGateway(options: GatewayOptions) {
       processes.push(startGateway("storefront", port, federationDir, {
         STOREFRONT_ACCESS_RESOLVER_URL:
           config.gateway.storefront.access_resolver_url,
+        STOREFRONT_CUSTOMER_CONTEXT_RESOLVER_URL:
+          config.gateway.storefront.customer_context_resolver_url,
       }));
     }
 

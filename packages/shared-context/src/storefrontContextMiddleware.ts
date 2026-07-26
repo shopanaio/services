@@ -42,7 +42,7 @@ export function buildStorefrontContextMiddleware(
       const claims = verifier.verify(raw);
       request.store = claims.store;
       request.storefrontAccess = claims.storefront;
-      request.customer = null;
+      request.customer = claims.customer;
     } catch {
       return reply.status(401).send({
         data: null,

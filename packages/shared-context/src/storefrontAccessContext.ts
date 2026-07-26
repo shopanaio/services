@@ -3,7 +3,7 @@ import {
   verify as verifySignature,
   type KeyObject,
 } from "node:crypto";
-import type { ContextStore } from "./types.js";
+import type { ContextCustomer, ContextStore } from "./types.js";
 import {
   isStorefrontPermission,
   type StorefrontPermission,
@@ -45,6 +45,7 @@ export interface StorefrontContextClaims {
   readonly organizationId: string;
   readonly store: ContextStore;
   readonly storefront: ContextStorefrontAccess;
+  readonly customer: ContextCustomer | null;
 }
 
 export class StorefrontContextVerifier {
@@ -144,12 +145,14 @@ function validateClaims(
     value.exp - value.iat > 65 ||
     typeof value.organizationId !== "string" ||
     !isRecord(value.store) ||
-    !isRecord(value.storefront)
+    !isRecord(value.storefront) ||
+    (value.customer !== null && !isRecord(value.customer))
   ) {
     throw new Error("Invalid storefront context claims");
   }
   const store = value.store;
   const access = value.storefront;
+  const customer = value.customer;
   const permissions = access.permissions;
   if (
     !hasStrings(store, [
@@ -173,6 +176,23 @@ function validateClaims(
   ) {
     throw new Error("Invalid storefront context claims");
   }
+  if (
+    customer !== null &&
+    (
+      !hasStrings(customer, ["id", "createdAt", "updatedAt"]) ||
+      !hasNullableStrings(customer, [
+        "email",
+        "firstName",
+        "lastName",
+        "phone",
+        "language",
+      ]) ||
+      typeof customer.isVerified !== "boolean" ||
+      typeof customer.isBlocked !== "boolean"
+    )
+  ) {
+    throw new Error("Invalid storefront context claims");
+  }
   return Object.freeze({
     ...(value as unknown as StorefrontContextClaims),
     store: Object.freeze({
@@ -183,6 +203,9 @@ function validateClaims(
       ...(access as unknown as ContextStorefrontAccess),
       permissions: Object.freeze([...(permissions as StorefrontPermission[])]),
     }),
+    customer: customer
+      ? Object.freeze({ ...(customer as unknown as ContextCustomer) })
+      : null,
   });
 }
 
@@ -214,5 +237,14 @@ function hasStrings(
 ): boolean {
   return keys.every(
     (key) => typeof value[key] === "string" && Boolean(value[key]),
+  );
+}
+
+function hasNullableStrings(
+  value: Record<string, unknown>,
+  keys: readonly string[],
+): boolean {
+  return keys.every(
+    (key) => value[key] === null || typeof value[key] === "string",
   );
 }

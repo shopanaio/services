@@ -21,6 +21,7 @@ import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
+import { storefrontCustomerContextHttpPlugin } from "../http/storefront-customer-context/index.js";
 
 const { global } = getServiceConfig("customers");
 
@@ -178,6 +179,11 @@ export async function startServer(serverConfig: ServerConfig) {
     });
   });
 
+  await app.register(storefrontCustomerContextHttpPlugin, {
+    kernel: kernel!,
+    serviceToken: requiredEnvironment("STOREFRONT_RESOLVER_INTERNAL_TOKEN"),
+  });
+
   app.get("/", async (_request, reply) =>
     reply.send({
       status: "ok",
@@ -192,6 +198,12 @@ export async function startServer(serverConfig: ServerConfig) {
 
   await app.listen({ port: serverConfig.port, host: "0.0.0.0" });
   return app;
+}
+
+function requiredEnvironment(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required`);
+  return value;
 }
 
 function unwrapTypeResolverGraphQLError(error: unknown): GraphQLError | null {

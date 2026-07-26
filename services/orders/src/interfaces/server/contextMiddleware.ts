@@ -3,6 +3,7 @@ import { type CoreCustomer, type CoreStore, type FetchContextHeaders, createCore
 import {
   STOREFRONT_CONTEXT_HEADER,
   StorefrontContextVerifier,
+  type ContextCustomer,
   type ContextStorefrontAccess,
 } from "@shopana/shared-context";
 import { setContext } from "@src/context/index.js";
@@ -59,11 +60,13 @@ export function buildCoreContextMiddleware(
         const claims = verifier.verify(raw);
         request.store = toCoreStore(claims.store);
         request.storefrontAccess = claims.storefront;
-        request.customer = null;
+        request.customer = claims.customer
+          ? toCoreCustomer(claims.customer)
+          : null;
         setContext({
           apiKey: claims.storefront.credentialId,
           store: request.store,
-          customer: null,
+          customer: request.customer,
           user: null,
         });
         return;
@@ -102,6 +105,21 @@ export function buildCoreContextMiddleware(
         .status(401)
         .send({ data: null, errors: [{ message: "Unauthorized" }] });
     }
+  };
+}
+
+function toCoreCustomer(customer: ContextCustomer): CoreCustomer {
+  return {
+    id: customer.id,
+    email: customer.email ?? "",
+    firstName: customer.firstName ?? "",
+    lastName: customer.lastName ?? "",
+    phone: customer.phone,
+    language: customer.language,
+    isVerified: customer.isVerified,
+    isBlocked: customer.isBlocked,
+    createdAt: customer.createdAt,
+    updatedAt: customer.updatedAt,
   };
 }
 

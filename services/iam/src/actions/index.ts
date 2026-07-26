@@ -22,7 +22,10 @@ import { CreateRolesScript } from "../scripts/organization/CreateRolesScript.js"
 import {
   IAM_SERVICE_LINKED_RESOURCE_KIND,
 } from "../service-linked/resources.js";
-import { normalizeApplicationAuthOrigin } from "../auth/applicationAuthConfiguration.js";
+import {
+  createApplicationResource,
+  normalizeApplicationAuthOrigin,
+} from "../auth/applicationAuthConfiguration.js";
 import {
   getCurrentUserInputSchema,
   type GetCurrentUserParams,
@@ -194,6 +197,13 @@ const updateServiceLinkedApplicationAuthSettingsInputSchema =
       }
     });
 
+const validateServiceLinkedApplicationTokenInputSchema =
+  getServiceLinkedApplicationAuthSettingsInputSchema
+    .extend({
+      token: z.string().min(1).max(16_384),
+    })
+    .strict();
+
 type AllocateApplicationIdParams = z.infer<typeof allocateApplicationIdInputSchema>;
 type AllocateApplicationIdResult = {
   success: boolean;
@@ -240,6 +250,18 @@ type ServiceLinkedApplicationAuthSettingsResult = {
   error?: string;
   errorCode?: string;
 };
+type ValidateServiceLinkedApplicationTokenParams = z.infer<
+  typeof validateServiceLinkedApplicationTokenInputSchema
+>;
+type ValidateServiceLinkedApplicationTokenResult =
+  | {
+      active: true;
+      userId: string;
+      cacheUntil: string;
+    }
+  | {
+      active: false;
+    };
 
 /**
  * IAM broker actions registered with @Action decorator.
@@ -659,6 +681,34 @@ export class IamBrokerActions extends BrokerActions {
         error: error instanceof Error ? error.message : "Failed to update auth settings",
         errorCode: errorCode(error) ?? "INTERNAL_ERROR",
       };
+    }
+  }
+
+  /**
+   * Validate a customer OAuth access token only for the service that owns the
+   * service-linked store application. The expected audience is IAM-derived.
+   */
+  @Action("validateServiceLinkedApplicationToken")
+  @ZodSchema(validateServiceLinkedApplicationTokenInputSchema)
+  async validateServiceLinkedApplicationToken(
+    params: ValidateServiceLinkedApplicationTokenParams,
+    actionContext: BrokerCallContext,
+  ): Promise<ValidateServiceLinkedApplicationTokenResult> {
+    try {
+      await this.assertServiceLinkedApplicationOwner(params, actionContext);
+      const result = await this.kernel.applicationTokenValidation.validate({
+        token: params.token,
+        expectedApplicationId: params.applicationId,
+        expectedAudience: createApplicationResource(params.applicationId),
+      });
+      if (!result.active) return { active: false };
+      return {
+        active: true,
+        userId: result.userId,
+        cacheUntil: result.cacheUntil.toISOString(),
+      };
+    } catch {
+      return { active: false };
     }
   }
 

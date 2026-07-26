@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { GraphQLError } from "graphql";
 import { createWebSocketRequest } from "../WebSocketRequest.js";
 import { StorefrontAccessClient } from "./StorefrontAccessClient.js";
+import { StorefrontCustomerContextClient } from "./StorefrontCustomerContextClient.js";
 import { StorefrontContextSigner } from "./StorefrontContextSigner.js";
 import {
   parseRequestId,
@@ -41,6 +42,11 @@ export function createStorefrontAccessPlugin() {
   const signer = new StorefrontContextSigner(
     required("STOREFRONT_CONTEXT_ACTIVE_KID"),
     required("STOREFRONT_CONTEXT_PRIVATE_KEY"),
+  );
+  const customerClient = new StorefrontCustomerContextClient(
+    required("STOREFRONT_CUSTOMER_CONTEXT_RESOLVER_URL"),
+    required("STOREFRONT_RESOLVER_INTERNAL_TOKEN"),
+    Number(process.env.STOREFRONT_CUSTOMER_CONTEXT_RESOLVE_TIMEOUT_MS ?? 1_000),
   );
   const generatedRequestIds = new WeakMap<Request, string>();
   const contexts = new WeakMap<Request, string>();
@@ -116,7 +122,29 @@ export function createStorefrontAccessPlugin() {
         "Invalid storefront credential",
       );
     }
-    return signer.sign(context, requestId);
+    const customerToken = parseCustomerAccessToken(request);
+    if (!customerToken) {
+      return signer.sign(context, requestId, null);
+    }
+    const customerContext = await customerClient.resolve({
+      accessToken: customerToken,
+      storeId: context.store.id,
+      organizationId: context.store.organizationId,
+      requestId,
+    });
+    if (!customerContext) {
+      throw requestError(
+        401,
+        "STOREFRONT_CUSTOMER_INVALID",
+        "Invalid storefront customer credential",
+      );
+    }
+    return signer.sign(
+      context,
+      requestId,
+      customerContext.customer,
+      customerContext.cacheUntil,
+    );
   }
 
   return {
@@ -126,6 +154,31 @@ export function createStorefrontAccessPlugin() {
       return contexts.get(request);
     },
   };
+}
+
+function parseCustomerAccessToken(request: Request): string | undefined {
+  const value = request.headers.get("authorization")?.trim();
+  if (!value) return undefined;
+  if (
+    value.includes(",") ||
+    !value.startsWith("Bearer ") ||
+    value.length > 16_391
+  ) {
+    throw requestError(
+      401,
+      "STOREFRONT_CUSTOMER_INVALID",
+      "Invalid storefront customer credential",
+    );
+  }
+  const token = value.slice(7).trim();
+  if (!token) {
+    throw requestError(
+      401,
+      "STOREFRONT_CUSTOMER_INVALID",
+      "Invalid storefront customer credential",
+    );
+  }
+  return token;
 }
 
 function required(name: string): string {

@@ -198,12 +198,20 @@ export class CustomerRepository extends BaseRepository {
 
   @ReadOnly()
   async findByIamPrincipalId(iamPrincipalId: string): Promise<Customer | null> {
+    return this.findByStoreAndIamPrincipalId(this.storeId, iamPrincipalId);
+  }
+
+  @ReadOnly()
+  async findByStoreAndIamPrincipalId(
+    storeId: string,
+    iamPrincipalId: string,
+  ): Promise<Customer | null> {
     const rows = await this.connection
       .select()
       .from(customer)
       .where(
         and(
-          eq(customer.storeId, this.storeId),
+          eq(customer.storeId, storeId),
           eq(customer.iamPrincipalId, iamPrincipalId),
           isNull(customer.deletedAt)
         )
