@@ -50,6 +50,7 @@ export async function setupApplicationAdminScope(api: Api): Promise<ApplicationA
     displayName: 'Application Admin Foreign E2E',
   });
   const foreignApplication = await createApplication(api, foreignOrganization.id, 'foreign');
+  api.session.organizationId = organization.id;
   return {
     organizationId: organization.id,
     rawOrganizationId: decodeGlobalId(organization.id).id,

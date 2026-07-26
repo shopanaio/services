@@ -773,6 +773,24 @@ export class ApplicationAuthAdminManagementService {
             "Authentication method requires email delivery configuration"
           );
         }
+        const resultingPasswordSignIn =
+          value.methodId === "password"
+            ? capabilities.includes("sign_in")
+            : scope.configuration.passwordSignInEnabled;
+        const resultingEmailOtpSignIn =
+          value.methodId === "email_otp"
+            ? capabilities.includes("sign_in")
+            : scope.configuration.emailOtpSignInEnabled;
+        if (
+          scope.configuration.realmEnabled &&
+          !resultingPasswordSignIn &&
+          !resultingEmailOtpSignIn
+        ) {
+          throw new ApplicationAuthAdminManagementError(
+            "The last available sign-in method cannot be disabled",
+            "LAST_LOGIN_METHOD"
+          );
+        }
         const updated = await this.repository.updateAuthMethod({
           applicationId: scope.applicationId,
           methodId: value.methodId,
@@ -1468,13 +1486,19 @@ function mergeBranding(
 }
 
 function normalizeOrigins(values: readonly string[]): string[] {
-  const origins = values.map((origin) =>
-    normalizeApplicationAuthOrigin(origin, { allowInsecureLocalhost: true })
-  );
-  if (new Set(origins).size !== origins.length) {
-    throw invalidInput("Trusted origins must be unique");
+  try {
+    return [
+      ...new Set(
+        values.map((origin) =>
+          normalizeApplicationAuthOrigin(origin, {
+            allowInsecureLocalhost: true,
+          })
+        )
+      ),
+    ].sort();
+  } catch {
+    throw invalidInput("Trusted origins must be valid exact origins");
   }
-  return origins.sort();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1610,12 +1634,7 @@ function normalizeManagementError(
       }
     );
   }
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505"
-  ) {
+  if (hasErrorCode(error, "23505")) {
     return new ApplicationAuthAdminManagementError(
       "An application with this name already exists",
       "DUPLICATE_VALUE"
@@ -1625,6 +1644,17 @@ function normalizeManagementError(
     "Application realm operation failed",
     "INTERNAL_ERROR"
   );
+}
+
+function hasErrorCode(error: unknown, expectedCode: string): boolean {
+  const visited = new Set<unknown>();
+  let current = error;
+  while (typeof current === "object" && current !== null && !visited.has(current)) {
+    visited.add(current);
+    if ("code" in current && current.code === expectedCode) return true;
+    current = "cause" in current ? current.cause : null;
+  }
+  return false;
 }
 
 function auditReason(

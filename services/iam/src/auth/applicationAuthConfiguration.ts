@@ -307,6 +307,7 @@ export function normalizeApplicationAuthOrigin(
   if (
     url.username ||
     url.password ||
+    url.hostname.includes("*") ||
     url.search ||
     url.hash ||
     (url.pathname !== "" && url.pathname !== "/")

@@ -85,11 +85,12 @@ test.describe('Application Admin API - applications and auth configuration', () 
   test('APP-ADM-003: same application name can exist in different organizations without leaking ownership', async ({
     api,
   }) => {
-    const foreign = await createApplication(api, scope.foreignOrganizationId, 'same-name', {
-      name: scope.applicationA.name,
-    });
     const localList = await listApplications(api, scope.organizationId, {
       where: { search: scope.applicationA.name },
+    });
+    api.session.organizationId = scope.foreignOrganizationId;
+    const foreign = await createApplication(api, scope.foreignOrganizationId, 'same-name', {
+      name: scope.applicationA.name,
     });
     const foreignList = await listApplications(api, scope.foreignOrganizationId, {
       where: { search: scope.applicationA.name },
@@ -127,9 +128,11 @@ test.describe('Application Admin API - applications and auth configuration', () 
       displayName: 'Needle Archived Realm',
     });
     await archiveApplication(api, archived);
+    api.session.organizationId = scope.foreignOrganizationId;
     await createApplication(api, scope.foreignOrganizationId, 'foreign-search', {
       displayName: 'Needle Active Realm',
     });
+    api.session.organizationId = scope.organizationId;
 
     const connection = await listApplications(api, scope.organizationId, {
       where: { status: ['ACTIVE'], search: 'needle active' },
@@ -228,12 +231,21 @@ test.describe('Application Admin API - applications and auth configuration', () 
     api,
     request,
   }) => {
+    await updateAuth(api, scope.applicationA, {
+      emailVerificationRequired: false,
+      trustedOrigins: [IAM_BASE_URL],
+    });
     await updateAuthMethod(api, scope.applicationA, 'password', ['SIGN_IN']);
     const enabled = await setRealmEnabled(api, scope.applicationA, true);
     const before = await request.get(
       `${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/.well-known/openid-configuration`,
     );
-    const archived = await archiveApplication(api, scope.applicationA);
+    const enabledConfiguration = required(enabled.configuration, 'enabled realm');
+    const archived = await archiveApplication(
+      api,
+      scope.applicationA,
+      enabledConfiguration.revision,
+    );
     const after = await request.get(
       `${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/.well-known/openid-configuration`,
     );
@@ -245,7 +257,10 @@ test.describe('Application Admin API - applications and auth configuration', () 
 
     expect(enabled.userErrors).toHaveLength(0);
     expect(before.ok()).toBe(true);
-    expect(archived.application).toMatchObject({ status: 'ARCHIVED', revision: 2 });
+    expect(archived.application).toMatchObject({
+      status: 'ARCHIVED',
+      revision: enabledConfiguration.revision + 1,
+    });
     expect(after.status()).toBe(404);
     expect(row?.realmEnabled).toBe(false);
   });

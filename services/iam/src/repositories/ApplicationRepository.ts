@@ -46,7 +46,24 @@ export const applicationRelayQuery = createRelayQuery(
     .include(["id"])
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "application", tieBreaker: "id" }
+  {
+    name: "application",
+    tieBreaker: "id",
+    seekTransforms: {
+      createdAt: {
+        encode: (value) =>
+          value instanceof Date ? value.toISOString() : value,
+        decode: (value) =>
+          typeof value === "string" ? new Date(value) : value,
+      },
+      updatedAt: {
+        encode: (value) =>
+          value instanceof Date ? value.toISOString() : value,
+        decode: (value) =>
+          typeof value === "string" ? new Date(value) : value,
+      },
+    },
+  }
 );
 
 export type ApplicationRelayInput = InferRelayInput<
