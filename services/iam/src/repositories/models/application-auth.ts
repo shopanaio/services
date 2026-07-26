@@ -208,6 +208,9 @@ export const applicationVerification = iamSchema.table(
       table.applicationId,
       table.identifier
     ),
+    uniqueIndex("idx_application_verification_password_reset_user")
+      .on(table.applicationId, table.value)
+      .where(sql`${table.identifier} LIKE 'reset-password:%'`),
     index("idx_application_verification_expires_at").on(table.expiresAt),
   ]
 );

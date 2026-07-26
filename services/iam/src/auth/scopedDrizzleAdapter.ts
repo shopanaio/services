@@ -234,6 +234,17 @@ function createScopedCustomAdapter(
         scope.kind === "application" &&
         getDefaultModelName(model) === "jwks";
 
+      const isApplicationPasswordResetVerification = (
+        model: string,
+        data: Record<string, any>
+      ): boolean =>
+        scope.kind === "application" &&
+        getDefaultModelName(model) === "verification" &&
+        typeof data.identifier === "string" &&
+        data.identifier.startsWith("reset-password:") &&
+        typeof data.value === "string" &&
+        data.value.length > 0;
+
       const isApplicationOauthClientModel = (model: string): boolean =>
         scope.kind === "application" &&
         getDefaultModelName(model) === "oauthClient";
@@ -867,10 +878,25 @@ function createScopedCustomAdapter(
             scopeData(model, data, "create")
           );
           await assertApplicationWriteAllowed(model, values, "create");
-          const rows = await connection
-            .insert(schemaModel)
-            .values(values)
-            .returning();
+          const insert = connection.insert(schemaModel).values(values);
+          const rows = isApplicationPasswordResetVerification(model, values)
+            ? await insert
+                .onConflictDoUpdate({
+                  target: [
+                    applicationVerification.applicationId,
+                    applicationVerification.value,
+                  ],
+                  targetWhere: sql`${applicationVerification.identifier} LIKE 'reset-password:%'`,
+                  set: {
+                    id: values.id,
+                    identifier: values.identifier,
+                    expiresAt: values.expiresAt,
+                    createdAt: values.createdAt,
+                    updatedAt: values.updatedAt,
+                  },
+                })
+                .returning()
+            : await insert.returning();
           const created = rows[0];
           if (!created) {
             throw new BetterAuthError(`Failed to create auth model "${model}"`);

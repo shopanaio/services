@@ -145,7 +145,7 @@ test.describe('Application password auth — delivery and observability', () => 
     });
   });
 
-  test('parallel reset requests leave at most one active verification artifact', async ({
+  test('parallel reset requests leave exactly one active verification artifact', async ({
     api,
     request,
   }) => {
@@ -162,7 +162,7 @@ test.describe('Application password auth — delivery and observability', () => 
         from iam.application_verification
         where application_id = ${realm.applicationId}
       `;
-      expect(rows.length).toBeLessThanOrEqual(1);
+      expect(rows).toHaveLength(1);
       expect(JSON.stringify(rows)).not.toContain(email);
     });
   });
