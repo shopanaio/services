@@ -21,7 +21,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — email verification', () => {
-  test('PWD-VERIFY-001: a valid link verifies only its target user and is consumed once', async ({
+  test('a valid link verifies only its target user and is consumed once', async ({
     api,
     request,
   }) => {
@@ -38,7 +38,7 @@ test.describe('Application password auth — email verification', () => {
     expect(await verificationCount(realms.a.applicationId, token)).toBe(0);
   });
 
-  test('PWD-VERIFY-002: verification link replay cannot change state or create authorization', async ({
+  test('verification link replay cannot change state or create authorization', async ({
     api,
     request,
   }) => {
@@ -56,7 +56,7 @@ test.describe('Application password auth — email verification', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-VERIFY-003: expired verification link leaves the user unverified', async ({
+  test('expired verification link leaves the user unverified', async ({
     api,
     request,
   }) => {
@@ -74,7 +74,7 @@ test.describe('Application password auth — email verification', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-VERIFY-004: tampered verification link fails closed', async ({ api, request }) => {
+  test('tampered verification link fails closed', async ({ api, request }) => {
     const realm = await createVerificationRealm(api, request);
     const email = uniqueEmail('tampered');
     await signUpExpectingVerification(request, realm, email);
@@ -88,7 +88,7 @@ test.describe('Application password auth — email verification', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-VERIFY-005: verification token from application A is rejected in B', async ({
+  test('verification token from application A is rejected in B', async ({
     api,
     request,
   }) => {
@@ -107,7 +107,7 @@ test.describe('Application password auth — email verification', () => {
     await expectRealmState(realms.b, beforeB);
   });
 
-  test('PWD-VERIFY-006: foreign client or authorization context cannot capture verification', async ({
+  test('foreign client or authorization context cannot capture verification', async ({
     api,
     request,
   }) => {
@@ -128,7 +128,7 @@ test.describe('Application password auth — email verification', () => {
     await expectRealmState(realms.b, beforeB);
   });
 
-  test('PWD-VERIFY-007: verification resend follows the configured link rotation contract', async ({
+  test('verification resend follows the configured link rotation contract', async ({
     api,
     request,
   }) => {
@@ -149,7 +149,7 @@ test.describe('Application password auth — email verification', () => {
     expect(await verificationCount(realm.applicationId, secondToken)).toBe(1);
   });
 
-  test('PWD-VERIFY-008: verification of an already verified user is safe and non-destructive', async ({
+  test('verification of an already verified user is safe and non-destructive', async ({
     api,
     request,
   }) => {
@@ -170,7 +170,7 @@ test.describe('Application password auth — email verification', () => {
     expect(after.application_session).toBe(before.application_session);
   });
 
-  test('PWD-VERIFY-009: unverified user cannot receive a full session or tokens when verification is required', async ({
+  test('unverified user cannot receive a full session or tokens when verification is required', async ({
     api,
     request,
   }) => {
@@ -186,7 +186,7 @@ test.describe('Application password auth — email verification', () => {
     await expectNoAuthorizedArtifacts(realm.applicationId);
   });
 
-  test('PWD-VERIFY-010: verified user passes the verification gate on subsequent signin', async ({
+  test('verified user passes the verification gate on subsequent signin', async ({
     api,
     request,
   }) => {
@@ -203,7 +203,7 @@ test.describe('Application password auth — email verification', () => {
     expect(applicationCookie(signin, realm)).toContain(realm.applicationId);
   });
 
-  test('PWD-VERIFY-011: capture delivery uses only the target realm email verification purpose and template', async ({
+  test('capture delivery uses only the target realm email verification purpose and template', async ({
     api,
     request,
   }) => {
@@ -231,7 +231,7 @@ test.describe('Application password auth — email verification', () => {
     });
   });
 
-  test('PWD-VERIFY-012: verification links and tokens are absent from errors, telemetry, and browser storage', async ({
+  test('verification links and tokens are absent from errors, telemetry, and browser storage', async ({
     api,
     request,
   }) => {

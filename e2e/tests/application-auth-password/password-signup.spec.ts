@@ -17,7 +17,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — signup', () => {
-  test('PWD-SIGNUP-001: valid signup creates a user and password account only in the target realm', async ({
+  test('valid signup creates a user and password account only in the target realm', async ({
     api,
     request,
   }) => {
@@ -42,13 +42,13 @@ test.describe('Application password auth — signup', () => {
     });
   });
 
-  test('PWD-SIGNUP-002: minimum allowed password length is accepted', async ({ api, request }) => {
+  test('minimum allowed password length is accepted', async ({ api, request }) => {
     const realm = await createRealm(api, request);
     const response = await expectSignUp(request, realm, uniqueEmail(), minimumPassword);
     expect(response.ok()).toBe(true);
   });
 
-  test('PWD-SIGNUP-003: password below the minimum creates no identity state', async ({
+  test('password below the minimum creates no identity state', async ({
     api,
     request,
   }) => {
@@ -60,7 +60,7 @@ test.describe('Application password auth — signup', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-SIGNUP-004: password above the maximum is rejected without truncation', async ({
+  test('password above the maximum is rejected without truncation', async ({
     api,
     request,
   }) => {
@@ -73,7 +73,7 @@ test.describe('Application password auth — signup', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-SIGNUP-005: missing required fields create no partial state', async ({
+  test('missing required fields create no partial state', async ({
     api,
     request,
   }) => {
@@ -102,7 +102,7 @@ test.describe('Application password auth — signup', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-SIGNUP-006: malformed email is rejected before identity creation', async ({
+  test('malformed email is rejected before identity creation', async ({
     api,
     request,
   }) => {
@@ -115,7 +115,7 @@ test.describe('Application password auth — signup', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-SIGNUP-007: equivalent normalized emails cannot create duplicates in one realm', async ({
+  test('equivalent normalized emails cannot create duplicates in one realm', async ({
     api,
     request,
   }) => {
@@ -131,7 +131,7 @@ test.describe('Application password auth — signup', () => {
     });
   });
 
-  test('PWD-SIGNUP-008: duplicate email does not create a second user or disclose account details', async ({
+  test('duplicate email does not create a second user or disclose account details', async ({
     api,
     request,
   }) => {
@@ -145,7 +145,7 @@ test.describe('Application password auth — signup', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-SIGNUP-009: the same email creates independent users in applications A and B', async ({
+  test('the same email creates independent users in applications A and B', async ({
     api,
     request,
   }) => {
@@ -164,7 +164,7 @@ test.describe('Application password auth — signup', () => {
     expect(userA!.id).not.toBe(userB!.id);
   });
 
-  test('PWD-SIGNUP-010: the same email stays isolated across applications in one organization', async ({
+  test('the same email stays isolated across applications in one organization', async ({
     api,
     request,
   }) => {
@@ -182,7 +182,7 @@ test.describe('Application password auth — signup', () => {
     expect(userA!.id).not.toBe(userA2!.id);
   });
 
-  test('PWD-SIGNUP-011: foreign application or client context cannot receive signup state', async ({
+  test('foreign application or client context cannot receive signup state', async ({
     api,
     request,
   }) => {
@@ -200,7 +200,7 @@ test.describe('Application password auth — signup', () => {
     await expectRealmState(realms.b, beforeB);
   });
 
-  test('PWD-SIGNUP-012: repeated identical signup does not duplicate users, accounts, or sessions', async ({
+  test('repeated identical signup does not duplicate users, accounts, or sessions', async ({
     api,
     request,
   }) => {
@@ -217,7 +217,7 @@ test.describe('Application password auth — signup', () => {
     });
   });
 
-  test('PWD-SIGNUP-013: concurrent signup creates exactly one consistent identity per realm', async ({
+  test('concurrent signup creates exactly one consistent identity per realm', async ({
     api,
     request,
   }) => {
@@ -234,7 +234,7 @@ test.describe('Application password auth — signup', () => {
     });
   });
 
-  test('PWD-SIGNUP-014: required verification prevents a full session or tokens before verification', async ({
+  test('required verification prevents a full session or tokens before verification', async ({
     api,
     request,
   }) => {
@@ -251,7 +251,7 @@ test.describe('Application password auth — signup', () => {
     });
   });
 
-  test('PWD-SIGNUP-015: optional verification does not weaken OAuth and PKCE requirements', async ({
+  test('optional verification does not weaken OAuth and PKCE requirements', async ({
     api,
     request,
   }) => {
@@ -267,7 +267,7 @@ test.describe('Application password auth — signup', () => {
     expect(await countForRealm(realm, 'application_authorization_context')).toBe(0);
   });
 
-  test('PWD-SIGNUP-016: verification delivery failure cannot grant a full authorized session', async ({
+  test('verification delivery failure cannot grant a full authorized session', async ({
     api,
     request,
   }) => {

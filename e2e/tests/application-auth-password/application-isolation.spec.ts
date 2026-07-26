@@ -56,7 +56,7 @@ const isolationTables = [
 type IsolationTable = (typeof isolationTables)[number];
 
 test.describe('Application password auth — application isolation', () => {
-  test('PWD-ISO-001: user identifier substitution cannot cross application boundaries', async ({
+  test('user identifier substitution cannot cross application boundaries', async ({
     api,
     request,
   }) => {
@@ -80,7 +80,7 @@ test.describe('Application password auth — application isolation', () => {
     });
   });
 
-  test('PWD-ISO-002: password account identifier substitution cannot cross application boundaries', async ({
+  test('password account identifier substitution cannot cross application boundaries', async ({
     api,
     request,
   }) => {
@@ -107,7 +107,7 @@ test.describe('Application password auth — application isolation', () => {
     });
   });
 
-  test('PWD-ISO-003: session identifier and cookie substitution cannot cross application boundaries', async ({
+  test('session identifier and cookie substitution cannot cross application boundaries', async ({
     api,
     request,
   }) => {
@@ -124,7 +124,7 @@ test.describe('Application password auth — application isolation', () => {
     await expectRealmCounts(realms, before);
   });
 
-  test('PWD-ISO-004: verification and reset artifacts cannot cross application boundaries', async ({
+  test('verification and reset artifacts cannot cross application boundaries', async ({
     api,
     request,
   }) => {
@@ -150,7 +150,7 @@ test.describe('Application password auth — application isolation', () => {
     await expectRealmCounts(realms, before);
   });
 
-  test('PWD-ISO-005: authorization context cannot be read or continued in another application', async ({
+  test('authorization context cannot be read or continued in another application', async ({
     api,
     request,
   }) => {
@@ -171,7 +171,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(await contextCounts(realms)).toEqual(before);
   });
 
-  test('PWD-ISO-006: authorization code cannot be exchanged in another application or client', async ({
+  test('authorization code cannot be exchanged in another application or client', async ({
     api,
     request,
   }) => {
@@ -195,7 +195,7 @@ test.describe('Application password auth — application isolation', () => {
     await expectRealmCounts(realms, before);
   });
 
-  test('PWD-ISO-007: access token A is inactive for expected application or audience B', async ({
+  test('access token A is inactive for expected application or audience B', async ({
     api,
     request,
   }) => {
@@ -213,7 +213,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(await response.json()).toMatchObject({ active: false });
   });
 
-  test('PWD-ISO-008: refresh family cannot be used or revoked from another application', async ({
+  test('refresh family cannot be used or revoked from another application', async ({
     api,
     request,
   }) => {
@@ -246,7 +246,7 @@ test.describe('Application password auth — application isolation', () => {
     await expectRealmCounts(realms, before);
   });
 
-  test('PWD-ISO-009: consent cannot transfer scopes or approval to another realm or client', async ({
+  test('consent cannot transfer scopes or approval to another realm or client', async ({
     api,
     request,
   }) => {
@@ -272,7 +272,7 @@ test.describe('Application password auth — application isolation', () => {
     });
   });
 
-  test('PWD-ISO-010: OAuth client cannot be substituted across application issuers', async ({
+  test('OAuth client cannot be substituted across application issuers', async ({
     api,
     request,
   }) => {
@@ -289,7 +289,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(await contextCount(realms.b)).toBe(0);
   });
 
-  test('PWD-ISO-011: signing key cannot sign or validate another application issuer', async ({
+  test('signing key cannot sign or validate another application issuer', async ({
     api,
     request,
   }) => {
@@ -312,7 +312,7 @@ test.describe('Application password auth — application isolation', () => {
     );
   });
 
-  test('PWD-ISO-012: canonical resource is unique and rejected outside its application', async ({
+  test('canonical resource is unique and rejected outside its application', async ({
     api,
     request,
   }) => {
@@ -330,7 +330,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(await contextCount(realms.b)).toBe(0);
   });
 
-  test('PWD-ISO-013: route, client, context, and token application disagreement fails closed', async ({
+  test('route, client, context, and token application disagreement fails closed', async ({
     api,
     request,
   }) => {
@@ -352,7 +352,7 @@ test.describe('Application password auth — application isolation', () => {
     await expectRealmCounts(realms, before);
   });
 
-  test('PWD-ISO-014: positive and negative auth caches are application-scoped', async ({
+  test('positive and negative auth caches are application-scoped', async ({
     api,
     request,
   }) => {
@@ -366,7 +366,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(applicationCookie(response, realms.b.applicationId)).toContain(realms.b.applicationId);
   });
 
-  test('PWD-ISO-015: identity rate limits are realm-scoped while explicit IP limits remain global as designed', async ({
+  test('identity rate limits are realm-scoped while explicit IP limits remain global as designed', async ({
     api,
     request,
   }) => {
@@ -385,7 +385,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(b.headers()['retry-after']).toBeUndefined();
   });
 
-  test('PWD-ISO-016: delivery uses only target-application profile, template, and branding', async ({
+  test('delivery uses only target-application profile, template, and branding', async ({
     api,
     request,
   }) => {
@@ -425,7 +425,7 @@ test.describe('Application password auth — application isolation', () => {
     });
   });
 
-  test('PWD-ISO-017: audit bindings never mix actors or artifacts from different realms', async ({
+  test('audit bindings never mix actors or artifacts from different realms', async ({
     api,
     request,
   }) => {
@@ -456,7 +456,7 @@ test.describe('Application password auth — application isolation', () => {
     });
   });
 
-  test('PWD-ISO-018: all isolation rules hold between applications in the same organization', async ({
+  test('all isolation rules hold between applications in the same organization', async ({
     api,
     request,
   }) => {
@@ -474,7 +474,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(await contextCount(realms.a2)).toBe(0);
   });
 
-  test('PWD-ISO-019: repository or cache failure cannot trigger an unscoped permissive fallback', async ({
+  test('repository or cache failure cannot trigger an unscoped permissive fallback', async ({
     api,
     request,
   }) => {
@@ -497,7 +497,7 @@ test.describe('Application password auth — application isolation', () => {
     });
   });
 
-  test('PWD-ISO-020: parallel activity in A and B never leaks cookies, contexts, codes, tokens, keys, or email payloads', async ({
+  test('parallel activity in A and B never leaks cookies, contexts, codes, tokens, keys, or email payloads', async ({
     api,
     request,
   }) => {

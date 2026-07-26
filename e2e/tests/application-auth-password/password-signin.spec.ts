@@ -21,7 +21,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — signin', () => {
-  test('PWD-SIGNIN-001: valid credentials create a session only in the target application', async ({
+  test('valid credentials create a session only in the target application', async ({
     api,
     request,
   }) => {
@@ -38,7 +38,7 @@ test.describe('Application password auth — signin', () => {
     await expectRealmState(realms.b, beforeB);
   });
 
-  test('PWD-SIGNIN-002: wrong password creates no session, code, or token', async ({
+  test('wrong password creates no session, code, or token', async ({
     api,
     request,
   }) => {
@@ -50,7 +50,7 @@ test.describe('Application password auth — signin', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-SIGNIN-003: unknown email is indistinguishable from a wrong password by public contract', async ({
+  test('unknown email is indistinguishable from a wrong password by public contract', async ({
     api,
     request,
   }) => {
@@ -66,7 +66,7 @@ test.describe('Application password auth — signin', () => {
     expect(await unknown.json()).toEqual(invalidCredentials);
   });
 
-  test('PWD-SIGNIN-004: email normalization cannot duplicate identity or bypass rate limits', async ({
+  test('email normalization cannot duplicate identity or bypass rate limits', async ({
     api,
     request,
   }) => {
@@ -81,7 +81,7 @@ test.describe('Application password auth — signin', () => {
     });
   });
 
-  test('PWD-SIGNIN-005: application A credentials cannot authenticate the same email in B', async ({
+  test('application A credentials cannot authenticate the same email in B', async ({
     api,
     request,
   }) => {
@@ -96,7 +96,7 @@ test.describe('Application password auth — signin', () => {
     await expectRealmState(realms.b, beforeB);
   });
 
-  test('PWD-SIGNIN-006: matching credentials in A and B create independent sessions', async ({
+  test('matching credentials in A and B create independent sessions', async ({
     api,
     request,
   }) => {
@@ -117,7 +117,7 @@ test.describe('Application password auth — signin', () => {
     expect(cookieB).not.toContain(realms.a.applicationId);
   });
 
-  test('PWD-SIGNIN-007: blocked user cannot create a new session', async ({ api, request }) => {
+  test('blocked user cannot create a new session', async ({ api, request }) => {
     const realm = await createRealm(api, request);
     const email = uniqueEmail();
     await expectSignUp(request, realm, email);
@@ -129,7 +129,7 @@ test.describe('Application password auth — signin', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-SIGNIN-008: blocking a user during signin prevents authorization completion', async ({
+  test('blocking a user during signin prevents authorization completion', async ({
     api,
     request,
   }) => {
@@ -147,7 +147,7 @@ test.describe('Application password auth — signin', () => {
     });
   });
 
-  test('PWD-SIGNIN-009: live client, application, and organization disable stops an in-flight flow', async ({
+  test('live client, application, and organization disable stops an in-flight flow', async ({
     api,
     request,
   }) => {
@@ -164,7 +164,7 @@ test.describe('Application password auth — signin', () => {
     });
   });
 
-  test('PWD-SIGNIN-010: malformed credential payload fails without reflecting secrets', async ({
+  test('malformed credential payload fails without reflecting secrets', async ({
     api,
     request,
   }) => {
@@ -182,7 +182,7 @@ test.describe('Application password auth — signin', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-SIGNIN-011: duplicate credential or context fields are rejected as ambiguous', async ({
+  test('duplicate credential or context fields are rejected as ambiguous', async ({
     api,
     request,
   }) => {
@@ -204,7 +204,7 @@ test.describe('Application password auth — signin', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-SIGNIN-012: repeated form submission cannot reuse a context or create uncontrolled sessions', async ({
+  test('repeated form submission cannot reuse a context or create uncontrolled sessions', async ({
     api,
     request,
   }) => {
@@ -222,7 +222,7 @@ test.describe('Application password auth — signin', () => {
     });
   });
 
-  test('PWD-SIGNIN-013: standalone signin can create only a session and never OAuth tokens directly', async ({
+  test('standalone signin can create only a session and never OAuth tokens directly', async ({
     api,
     request,
   }) => {
@@ -240,7 +240,7 @@ test.describe('Application password auth — signin', () => {
     });
   });
 
-  test('PWD-SIGNIN-014: platform admin session is not accepted as an application user session', async ({
+  test('platform admin session is not accepted as an application user session', async ({
     api,
     request,
   }) => {

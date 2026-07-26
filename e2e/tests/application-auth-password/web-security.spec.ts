@@ -16,7 +16,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — browser and transport security', () => {
-  test('PWD-WEB-001: CSRF protects signup, signin, reset, consent, and logout forms', async ({
+  test('CSRF protects signup, signin, reset, consent, and logout forms', async ({
     api,
     request,
   }) => {
@@ -37,7 +37,7 @@ test.describe('Application password auth — browser and transport security', ()
     await expectRealmState(realm, before);
   });
 
-  test('PWD-WEB-002: origin enforcement accepts only exact configured origins', async ({
+  test('origin enforcement accepts only exact configured origins', async ({
     api,
     request,
   }) => {
@@ -53,7 +53,7 @@ test.describe('Application password auth — browser and transport security', ()
     expect(rejected.headers()['access-control-allow-origin']).toBeUndefined();
   });
 
-  test('PWD-WEB-003: Host header poisoning cannot alter canonical URLs or cookie realm', async ({
+  test('Host header poisoning cannot alter canonical URLs or cookie realm', async ({
     api,
     request,
   }) => {
@@ -67,7 +67,7 @@ test.describe('Application password auth — browser and transport security', ()
     expect(response.headers()['set-cookie'] ?? '').not.toContain('attacker.invalid');
   });
 
-  test('PWD-WEB-004: untrusted proxy headers cannot alter URLs or bypass IP limits', async ({
+  test('untrusted proxy headers cannot alter URLs or bypass IP limits', async ({
     api,
     request,
   }) => {
@@ -90,7 +90,7 @@ test.describe('Application password auth — browser and transport security', ()
     );
   });
 
-  test('PWD-WEB-005: path encoding and normalization tricks cannot bypass default-deny routing', async ({
+  test('path encoding and normalization tricks cannot bypass default-deny routing', async ({
     api,
     request,
   }) => {
@@ -113,7 +113,7 @@ test.describe('Application password auth — browser and transport security', ()
     await expectRealmState(realm, before);
   });
 
-  test('PWD-WEB-006: unsupported content type, charset, encoding, and malformed forms fail early', async ({
+  test('unsupported content type, charset, encoding, and malformed forms fail early', async ({
     api,
     request,
   }) => {
@@ -135,7 +135,7 @@ test.describe('Application password auth — browser and transport security', ()
     await expectRealmState(realm, before);
   });
 
-  test('PWD-WEB-007: oversized auth body fails before credential or token processing', async ({
+  test('oversized auth body fails before credential or token processing', async ({
     api,
     request,
   }) => {
@@ -152,7 +152,7 @@ test.describe('Application password auth — browser and transport security', ()
     await expectRealmState(realm, before);
   });
 
-  test('PWD-WEB-008: hosted UI returns the complete required security header policy', async ({
+  test('hosted UI returns the complete required security header policy', async ({
     api,
     request,
   }) => {
@@ -168,7 +168,7 @@ test.describe('Application password auth — browser and transport security', ()
     expect(headers['permissions-policy']).toBeTruthy();
   });
 
-  test('PWD-WEB-009: hosted auth pages cannot be embedded by an external frame', async ({
+  test('hosted auth pages cannot be embedded by an external frame', async ({
     api,
     request,
   }) => {
@@ -183,7 +183,7 @@ test.describe('Application password auth — browser and transport security', ()
     ).toBe(true);
   });
 
-  test('PWD-WEB-010: branding values cannot inject markup, script, CSS, or form destinations', async ({
+  test('branding values cannot inject markup, script, CSS, or form destinations', async ({
     api,
     request,
   }) => {
@@ -212,7 +212,7 @@ test.describe('Application password auth — browser and transport security', ()
     expect(html).not.toContain('background:url');
   });
 
-  test('PWD-WEB-011: credentials and OAuth artifacts never enter browser storage', async ({
+  test('credentials and OAuth artifacts never enter browser storage', async ({
     api,
     page,
     request,
@@ -254,7 +254,7 @@ test.describe('Application password auth — browser and transport security', ()
     expect(storage.session).not.toContain(password);
   });
 
-  test('PWD-WEB-012: credentials, tokens, and verifier never leak through URL history or referrer', async ({
+  test('credentials, tokens, and verifier never leak through URL history or referrer', async ({
     api,
     request,
   }) => {
@@ -270,7 +270,7 @@ test.describe('Application password auth — browser and transport security', ()
     expectSecretFree(await response.text(), [secret]);
   });
 
-  test('PWD-WEB-013: auth HTML, forms, and errors are not cached', async ({ api, request }) => {
+  test('auth HTML, forms, and errors are not cached', async ({ api, request }) => {
     const realm = await createRealm(api, request);
     const responses = await Promise.all([
       request.get(endpoint(realm, '/login'), { headers: { accept: 'text/html' } }),
@@ -285,7 +285,7 @@ test.describe('Application password auth — browser and transport security', ()
     }
   });
 
-  test('PWD-WEB-014: CORS never combines credential access with wildcard origins', async ({
+  test('CORS never combines credential access with wildcard origins', async ({
     api,
     request,
   }) => {
@@ -303,7 +303,7 @@ test.describe('Application password auth — browser and transport security', ()
     }
   });
 
-  test('PWD-WEB-015: public application session cannot access internal Admin GraphQL', async ({
+  test('public application session cannot access internal Admin GraphQL', async ({
     api,
     request,
   }) => {
@@ -322,7 +322,7 @@ test.describe('Application password auth — browser and transport security', ()
     expect(body.errors).toBeTruthy();
   });
 
-  test('PWD-WEB-016: only approved metadata paths are publicly reachable', async ({
+  test('only approved metadata paths are publicly reachable', async ({
     api,
     request,
   }) => {
@@ -342,7 +342,7 @@ test.describe('Application password auth — browser and transport security', ()
     expect(denied.every((response) => response.status() === 404)).toBe(true);
   });
 
-  test('PWD-WEB-017: error rendering escapes user-controlled values and prevents reflected XSS', async ({
+  test('error rendering escapes user-controlled values and prevents reflected XSS', async ({
     api,
     request,
   }) => {
@@ -358,7 +358,7 @@ test.describe('Application password auth — browser and transport security', ()
     expect(html).not.toContain('onerror=');
   });
 
-  test('PWD-WEB-018: unknown locale falls back without loading external executable content', async ({
+  test('unknown locale falls back without loading external executable content', async ({
     api,
     request,
   }) => {

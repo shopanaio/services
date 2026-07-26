@@ -20,7 +20,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — live validation', () => {
-  test('PWD-LIVE-001: token is active only when every cryptographic and live-state binding matches', async ({
+  test('token is active only when every cryptographic and live-state binding matches', async ({
     api,
     request,
     page,
@@ -34,7 +34,7 @@ test.describe('Application password auth — live validation', () => {
     );
   });
 
-  test('PWD-LIVE-002: block makes artifacts inactive and unblock does not revive revoked artifacts', async ({
+  test('block makes artifacts inactive and unblock does not revive revoked artifacts', async ({
     api,
     request,
     page,
@@ -49,7 +49,7 @@ test.describe('Application password auth — live validation', () => {
     expect(await introspect(request, realm, token)).toMatchObject({ active: false });
   });
 
-  test('PWD-LIVE-003: session revoke makes bound token inactive according to policy', async ({
+  test('session revoke makes bound token inactive according to policy', async ({
     api,
     request,
     page,
@@ -64,7 +64,7 @@ test.describe('Application password auth — live validation', () => {
     expect(await introspect(request, realm, token)).toMatchObject({ active: false });
   });
 
-  test('PWD-LIVE-004: client disable invalidates only that client artifacts', async ({
+  test('client disable invalidates only that client artifacts', async ({
     api,
     request,
   }) => {
@@ -85,7 +85,7 @@ test.describe('Application password auth — live validation', () => {
     });
   });
 
-  test('PWD-LIVE-005: application disable invalidates its realm without deleting users', async ({
+  test('application disable invalidates its realm without deleting users', async ({
     api,
     request,
   }) => {
@@ -107,7 +107,7 @@ test.describe('Application password auth — live validation', () => {
     });
   });
 
-  test('PWD-LIVE-006: organization disable invalidates child realms without affecting other organizations', async ({
+  test('organization disable invalidates child realms without affecting other organizations', async ({
     api,
     request,
   }) => {
@@ -130,7 +130,7 @@ test.describe('Application password auth — live validation', () => {
     expect(other.ok()).toBe(true);
   });
 
-  test('PWD-LIVE-007: token family revoke preserves unrelated families according to policy', async ({
+  test('token family revoke preserves unrelated families according to policy', async ({
     api,
     request,
   }) => {
@@ -149,7 +149,7 @@ test.describe('Application password auth — live validation', () => {
     ).toMatchObject({ active: false });
   });
 
-  test('PWD-LIVE-008: revision fallback enforces invalidation when the event is lost', async ({
+  test('revision fallback enforces invalidation when the event is lost', async ({
     api,
     request,
   }) => {
@@ -165,7 +165,7 @@ test.describe('Application password auth — live validation', () => {
     expect(response.status()).toBeGreaterThanOrEqual(400);
   });
 
-  test('PWD-LIVE-009: database or cache timeout returns inactive outside allowed cache TTL', async ({
+  test('database or cache timeout returns inactive outside allowed cache TTL', async ({
     api,
     request,
   }) => {
@@ -174,7 +174,7 @@ test.describe('Application password auth — live validation', () => {
     expect(result).toEqual({ active: false });
   });
 
-  test('PWD-LIVE-010: unknown signing or encryption key version fails closed', async ({
+  test('unknown signing or encryption key version fails closed', async ({
     api,
     request,
   }) => {
@@ -188,7 +188,7 @@ test.describe('Application password auth — live validation', () => {
     expect(await introspect(request, realm, token)).toEqual({ active: false });
   });
 
-  test('PWD-LIVE-011: token missing a mandatory claim is inactive', async ({ api, request }) => {
+  test('token missing a mandatory claim is inactive', async ({ api, request }) => {
     const realm = await createRealm(api, request);
     for (const claims of [
       { aud: realm.resource, sub: crypto.randomUUID() },
@@ -199,7 +199,7 @@ test.describe('Application password auth — live validation', () => {
     }
   });
 
-  test('PWD-LIVE-012: userless or non-application actor token is inactive', async ({
+  test('userless or non-application actor token is inactive', async ({
     api,
     request,
   }) => {
@@ -213,7 +213,7 @@ test.describe('Application password auth — live validation', () => {
     expect(await introspect(request, realm, token)).toEqual({ active: false });
   });
 
-  test('PWD-LIVE-013: expected application or audience mismatch is inactive despite valid signature', async ({
+  test('expected application or audience mismatch is inactive despite valid signature', async ({
     api,
     request,
   }) => {
@@ -227,7 +227,7 @@ test.describe('Application password auth — live validation', () => {
     expect(await introspect(request, realms.b, token)).toEqual({ active: false });
   });
 
-  test('PWD-LIVE-014: external introspection response hides internal reason and tenant details', async ({
+  test('external introspection response hides internal reason and tenant details', async ({
     api,
     request,
   }) => {

@@ -21,7 +21,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — public boundary', () => {
-  test('PWD-BOUND-001: active realm exposes only enabled password capabilities', async ({
+  test('active realm exposes only enabled password capabilities', async ({
     api,
     request,
   }) => {
@@ -36,7 +36,7 @@ test.describe('Application password auth — public boundary', () => {
     expect(html).not.toMatch(/email.?otp|google|facebook|passkey/iu);
   });
 
-  test('PWD-BOUND-002: disabled signup is absent from UI and direct HTTP contract', async ({
+  test('disabled signup is absent from UI and direct HTTP contract', async ({
     api,
     request,
   }) => {
@@ -53,7 +53,7 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-BOUND-003: disabled signin cannot create an application session', async ({
+  test('disabled signin cannot create an application session', async ({
     api,
     request,
   }) => {
@@ -68,7 +68,7 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-BOUND-004: disabled reset has no UI, delivery, or verification side effect', async ({
+  test('disabled reset has no UI, delivery, or verification side effect', async ({
     api,
     request,
   }) => {
@@ -90,7 +90,7 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-BOUND-005: signup enabled with signin disabled creates no session', async ({
+  test('signup enabled with signin disabled creates no session', async ({
     api,
     request,
   }) => {
@@ -106,7 +106,7 @@ test.describe('Application password auth — public boundary', () => {
     });
   });
 
-  test('PWD-BOUND-006: signin enabled with signup disabled authenticates only existing users', async ({
+  test('signin enabled with signup disabled authenticates only existing users', async ({
     api,
     request,
   }) => {
@@ -124,7 +124,7 @@ test.describe('Application password auth — public boundary', () => {
     expect(signup.status()).toBe(404);
   });
 
-  test('PWD-BOUND-007: closed registration blocks new users server-side', async ({
+  test('closed registration blocks new users server-side', async ({
     api,
     request,
   }) => {
@@ -137,7 +137,7 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-BOUND-008: closed registration preserves allowed signin and reset for existing users', async ({
+  test('closed registration preserves allowed signin and reset for existing users', async ({
     api,
     request,
   }) => {
@@ -154,7 +154,7 @@ test.describe('Application password auth — public boundary', () => {
     expect(await countForRealm(realm, 'application_user')).toBe(1);
   });
 
-  test('PWD-BOUND-009: unknown auth path fails before auth processing', async ({ api, request }) => {
+  test('unknown auth path fails before auth processing', async ({ api, request }) => {
     const realm = await createRealm(api, request);
     const before = await realmState(realm);
     const response = await request.post(endpoint(realm, '/not-a-real-auth-operation'), {
@@ -165,7 +165,7 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-BOUND-010: known path with a disallowed HTTP method fails without side effects', async ({
+  test('known path with a disallowed HTTP method fails without side effects', async ({
     api,
     request,
   }) => {
@@ -178,7 +178,7 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-BOUND-011: application sessions cannot access OAuth client management endpoints', async ({
+  test('application sessions cannot access OAuth client management endpoints', async ({
     api,
     request,
   }) => {
@@ -195,7 +195,7 @@ test.describe('Application password auth — public boundary', () => {
     }
   });
 
-  test('PWD-BOUND-012: disabled OTP and social endpoints remain unreachable', async ({
+  test('disabled OTP and social endpoints remain unreachable', async ({
     api,
     request,
   }) => {
@@ -217,7 +217,7 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-BOUND-013: disabled application stops all auth flows without deleting auth rows', async ({
+  test('disabled application stops all auth flows without deleting auth rows', async ({
     api,
     request,
   }) => {
@@ -236,7 +236,7 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-BOUND-014: disabled organization stops auth flows for its application realms', async ({
+  test('disabled organization stops auth flows for its application realms', async ({
     api,
     request,
   }) => {
@@ -257,7 +257,7 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-BOUND-015: invalid or unknown application identifier fails without realm disclosure', async ({
+  test('invalid or unknown application identifier fails without realm disclosure', async ({
     request,
   }) => {
     const paths = [

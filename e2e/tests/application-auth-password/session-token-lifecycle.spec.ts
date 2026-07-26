@@ -27,7 +27,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — session and token lifecycle', () => {
-  test('PWD-SESS-001: signin cookie has required security and target-realm attributes', async ({
+  test('signin cookie has required security and target-realm attributes', async ({
     api,
     request,
   }) => {
@@ -42,7 +42,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(headers).toMatch(/Path=\/auth\/applications\//iu);
   });
 
-  test('PWD-SESS-002: cookie A cannot authenticate or mutate a session in B', async ({
+  test('cookie A cannot authenticate or mutate a session in B', async ({
     api,
     request,
   }) => {
@@ -57,7 +57,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(await sessionCount(realms.b.applicationId)).toBe(0);
   });
 
-  test('PWD-SESS-003: sessions in A and B coexist and revoke independently', async ({
+  test('sessions in A and B coexist and revoke independently', async ({
     api,
     request,
   }) => {
@@ -76,7 +76,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(await sessionCount(realms.b.applicationId)).toBeGreaterThan(0);
   });
 
-  test('PWD-SESS-004: expired session cannot continue authorization or pass live validation', async ({
+  test('expired session cannot continue authorization or pass live validation', async ({
     api,
     request,
   }) => {
@@ -90,7 +90,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(response.ok()).toBe(false);
   });
 
-  test('PWD-SESS-005: revoked session becomes inactive within the contract SLA', async ({
+  test('revoked session becomes inactive within the contract SLA', async ({
     api,
     request,
   }) => {
@@ -108,7 +108,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(performance.now() - startedAt).toBeLessThan(1_000);
   });
 
-  test('PWD-SESS-006: user block revokes only target-application sessions', async ({
+  test('user block revokes only target-application sessions', async ({
     api,
     request,
   }) => {
@@ -127,7 +127,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(await sessionCount(realms.b.applicationId)).toBe(beforeB);
   });
 
-  test('PWD-SESS-007: realm secret rotation revokes only target-realm security artifacts', async ({
+  test('realm secret rotation revokes only target-realm security artifacts', async ({
     api,
     request,
   }) => {
@@ -144,7 +144,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(await sessionCount(realms.b.applicationId)).toBe(beforeB);
   });
 
-  test('PWD-SESS-008: refresh preserves the original user, issuer, resource, client, and scopes', async ({
+  test('refresh preserves the original user, issuer, resource, client, and scopes', async ({
     api,
     request,
     page,
@@ -164,7 +164,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(newClaims.scope).toBe(oldClaims.scope);
   });
 
-  test('PWD-SESS-009: refresh token rotation rejects the previously used token', async ({
+  test('refresh token rotation rejects the previously used token', async ({
     api,
     request,
     page,
@@ -180,7 +180,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     await expectOAuthError(await refresh(request, realm, tokens.refresh_token));
   });
 
-  test('PWD-SESS-010: refresh replay cannot issue a token and follows family revocation policy', async ({
+  test('refresh replay cannot issue a token and follows family revocation policy', async ({
     api,
     request,
     page,
@@ -195,7 +195,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     await expectOAuthError(await refresh(request, realm, rotated.refresh_token));
   });
 
-  test('PWD-SESS-011: refresh token A cannot be used through issuer or client B', async ({
+  test('refresh token A cannot be used through issuer or client B', async ({
     api,
     request,
   }) => {
@@ -210,7 +210,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(await accessTokenCount(realms.b.applicationId)).toBe(0);
   });
 
-  test('PWD-SESS-012: refresh without exact resource fails without consuming the valid token', async ({
+  test('refresh without exact resource fails without consuming the valid token', async ({
     api,
     request,
     page,
@@ -228,7 +228,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(await refresh(request, realm, tokens.refresh_token)).toBeOK();
   });
 
-  test('PWD-SESS-013: disabled client, realm, organization, or user cannot refresh', async ({
+  test('disabled client, realm, organization, or user cannot refresh', async ({
     api,
     request,
   }) => {
@@ -251,7 +251,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(disabledRealm.status()).toBe(404);
   });
 
-  test('PWD-SESS-014: revocation disables refresh without affecting another realm', async ({
+  test('revocation disables refresh without affecting another realm', async ({
     api,
     request,
   }) => {
@@ -268,7 +268,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(await sessionCount(realms.b.applicationId)).toBe(0);
   });
 
-  test('PWD-SESS-015: end-session redirects only to a registered post-logout URI', async ({
+  test('end-session redirects only to a registered post-logout URI', async ({
     api,
     request,
   }) => {
@@ -280,7 +280,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(response.headers()['location'] ?? '').not.toContain('attacker.invalid');
   });
 
-  test('PWD-SESS-016: foreign post-logout URI cannot redirect or terminate another realm session', async ({
+  test('foreign post-logout URI cannot redirect or terminate another realm session', async ({
     api,
     request,
   }) => {
@@ -296,7 +296,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(await sessionCount(realms.a.applicationId)).toBe(before);
   });
 
-  test('PWD-SESS-017: logout in A preserves the active session in B', async ({
+  test('logout in A preserves the active session in B', async ({
     api,
     request,
   }) => {
@@ -314,7 +314,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(await sessionCount(realms.b.applicationId)).toBe(beforeB);
   });
 
-  test('PWD-SESS-018: multiple Set-Cookie headers remain independent through the transport bridge', async ({
+  test('multiple Set-Cookie headers remain independent through the transport bridge', async ({
     api,
     request,
   }) => {

@@ -22,7 +22,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — OAuth Authorization Code', () => {
-  test('PWD-OAUTH-001: public client completes password signin and Authorization Code with S256 PKCE', async ({
+  test('public client completes password signin and Authorization Code with S256 PKCE', async ({
     api,
     request,
     page,
@@ -39,7 +39,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(tokens.token_type).toMatch(/^Bearer$/iu);
   });
 
-  test('PWD-OAUTH-002: confidential client requires both client authentication and S256 PKCE', async ({
+  test('confidential client requires both client authentication and S256 PKCE', async ({
     api,
     request,
   }) => {
@@ -71,7 +71,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(authenticated.status()).not.toBe(401);
   });
 
-  test('PWD-OAUTH-003: missing PKCE challenge cannot produce an authorization code', async ({
+  test('missing PKCE challenge cannot produce an authorization code', async ({
     api,
     request,
   }) => {
@@ -83,7 +83,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await authorizationContextCount(realm.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-004: PKCE method other than S256 is rejected', async ({ api, request }) => {
+  test('PKCE method other than S256 is rejected', async ({ api, request }) => {
     const realm = await createRealm(api, request);
     const response = await beginAuthorization(request, realm, {
       codeChallengeMethod: 'plain',
@@ -92,7 +92,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await authorizationContextCount(realm.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-005: missing or invalid verifier cannot exchange the code', async ({
+  test('missing or invalid verifier cannot exchange the code', async ({
     api,
     request,
   }) => {
@@ -110,7 +110,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     }
   });
 
-  test('PWD-OAUTH-006: authorization code replay is rejected', async ({
+  test('authorization code replay is rejected', async ({
     api,
     request,
     page,
@@ -127,7 +127,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     await expectOAuthError(replay);
   });
 
-  test('PWD-OAUTH-007: code from A cannot be exchanged through issuer or client B', async ({
+  test('code from A cannot be exchanged through issuer or client B', async ({
     api,
     request,
   }) => {
@@ -145,7 +145,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await accessTokenCount(realms.b.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-008: client A cannot authorize through issuer B', async ({ api, request }) => {
+  test('client A cannot authorize through issuer B', async ({ api, request }) => {
     const realms = await createRealmMatrix(api, request);
     const response = await beginAuthorization(request, realms.b, {
       clientId: realms.a.clientId,
@@ -154,7 +154,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await authorizationContextCount(realms.b.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-009: redirect URI requires an exact registered match', async ({
+  test('redirect URI requires an exact registered match', async ({
     api,
     request,
   }) => {
@@ -170,7 +170,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await authorizationContextCount(realm.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-010: authorization errors never redirect to an untrusted URI', async ({
+  test('authorization errors never redirect to an untrusted URI', async ({
     api,
     request,
   }) => {
@@ -182,7 +182,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(response.headers()['location'] ?? '').not.toContain('attacker.invalid');
   });
 
-  test('PWD-OAUTH-011: state is preserved and mismatch is rejected by the client flow', async ({
+  test('state is preserved and mismatch is rejected by the client flow', async ({
     api,
     request,
   }) => {
@@ -199,7 +199,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     });
   });
 
-  test('PWD-OAUTH-012: ID token nonce is bound to the authorization request', async ({
+  test('ID token nonce is bound to the authorization request', async ({
     api,
     request,
     page,
@@ -212,7 +212,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(decodeJwt(tokens.id_token).nonce).toBe(nonce);
   });
 
-  test('PWD-OAUTH-013: authorize, exchange, and refresh require the exact canonical resource', async ({
+  test('authorize, exchange, and refresh require the exact canonical resource', async ({
     api,
     request,
   }) => {
@@ -232,7 +232,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     await expectOAuthError(exchange, 'invalid_target');
   });
 
-  test('PWD-OAUTH-014: missing, empty, duplicate, or foreign resource returns invalid_target', async ({
+  test('missing, empty, duplicate, or foreign resource returns invalid_target', async ({
     api,
     request,
   }) => {
@@ -254,7 +254,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     }
   });
 
-  test('PWD-OAUTH-015: resource A cannot produce an audience through issuer or client B', async ({
+  test('resource A cannot produce an audience through issuer or client B', async ({
     api,
     request,
   }) => {
@@ -269,7 +269,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await accessTokenCount(realms.b.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-016: tokens contain only granted and approved scopes and claims', async ({
+  test('tokens contain only granted and approved scopes and claims', async ({
     api,
     request,
     page,
@@ -284,7 +284,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(new Set(String(access.scope).split(' '))).toEqual(new Set(['openid', 'email']));
   });
 
-  test('PWD-OAUTH-017: unknown scope cannot silently expand privileges', async ({
+  test('unknown scope cannot silently expand privileges', async ({
     api,
     request,
   }) => {
@@ -296,7 +296,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await authorizationContextCount(realm.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-018: client_credentials never issues a userless token', async ({
+  test('client_credentials never issues a userless token', async ({
     api,
     request,
   }) => {
@@ -310,7 +310,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await accessTokenCount(realm.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-019: password and implicit grants are unavailable', async ({
+  test('password and implicit grants are unavailable', async ({
     api,
     request,
   }) => {
@@ -327,7 +327,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     }
   });
 
-  test('PWD-OAUTH-020: ID token has valid signature, issuer, audience, subject, times, nonce, and email claims', async ({
+  test('ID token has valid signature, issuer, audience, subject, times, nonce, and email claims', async ({
     api,
     request,
     page,
@@ -348,7 +348,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(Number(claims.exp)).toBeGreaterThan(Number(claims.iat));
   });
 
-  test('PWD-OAUTH-021: access token has exact realm, resource, user, client, scope, and actor claims', async ({
+  test('access token has exact realm, resource, user, client, scope, and actor claims', async ({
     api,
     request,
     page,
@@ -365,7 +365,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(String(claims.scope)).toContain('openid');
   });
 
-  test('PWD-OAUTH-022: tokens contain no password secrets, provider tokens, or platform roles', async ({
+  test('tokens contain no password secrets, provider tokens, or platform roles', async ({
     api,
     request,
     page,
@@ -379,7 +379,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(serialized).not.toMatch(/provider_token|platform_role|client_secret/iu);
   });
 
-  test('PWD-OAUTH-023: JWKS from issuer A cannot validate a token as issuer B', async ({
+  test('JWKS from issuer A cannot validate a token as issuer B', async ({
     api,
     request,
   }) => {
@@ -393,7 +393,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await jwksA.json()).not.toEqual(await jwksB.json());
   });
 
-  test('PWD-OAUTH-024: consent is bound to exact user, application, client, scopes, and resource', async ({
+  test('consent is bound to exact user, application, client, scopes, and resource', async ({
     api,
     request,
   }) => {
@@ -418,7 +418,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     });
   });
 
-  test('PWD-OAUTH-025: expired authorization context cannot issue a code', async ({
+  test('expired authorization context cannot issue a code', async ({
     api,
     request,
   }) => {
@@ -442,7 +442,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await accessTokenCount(realm.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-026: authorization context is single-use', async ({ api, request }) => {
+  test('authorization context is single-use', async ({ api, request }) => {
     const realm = await createRealm(api, request);
     await beginAuthorization(request, realm);
     await withDb(
@@ -460,7 +460,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(response.status()).toBeGreaterThanOrEqual(400);
   });
 
-  test('PWD-OAUTH-027: context substitution across browser, client, or application is rejected', async ({
+  test('context substitution across browser, client, or application is rejected', async ({
     api,
     request,
   }) => {
@@ -479,7 +479,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await accessTokenCount(realms.b.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-028: application or client disable after code issuance prevents token exchange', async ({
+  test('application or client disable after code issuance prevents token exchange', async ({
     api,
     request,
   }) => {
@@ -497,7 +497,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await accessTokenCount(realm.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-029: user block after code issuance prevents token exchange', async ({
+  test('user block after code issuance prevents token exchange', async ({
     api,
     request,
   }) => {
@@ -517,7 +517,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await accessTokenCount(realm.applicationId)).toBe(0);
   });
 
-  test('PWD-OAUTH-030: ambiguous or malformed protocol request cannot issue tokens', async ({
+  test('ambiguous or malformed protocol request cannot issue tokens', async ({
     api,
     request,
   }) => {

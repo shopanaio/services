@@ -16,7 +16,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — delivery and observability', () => {
-  test('PWD-OBS-001: signin events have correct realm and outcome without raw credentials', async ({
+  test('signin events have correct realm and outcome without raw credentials', async ({
     api,
     request,
   }) => {
@@ -32,7 +32,7 @@ test.describe('Application password auth — delivery and observability', () => 
     });
   });
 
-  test('PWD-OBS-002: reset and verification events contain no recipient, link, token, or payload', async ({
+  test('reset and verification events contain no recipient, link, token, or payload', async ({
     api,
     request,
   }) => {
@@ -45,7 +45,7 @@ test.describe('Application password auth — delivery and observability', () => 
     expect(response.headers()['location'] ?? '').not.toContain(email);
   });
 
-  test('PWD-OBS-003: protocol failure events record only a safe reason category', async ({
+  test('protocol failure events record only a safe reason category', async ({
     api,
     request,
   }) => {
@@ -64,7 +64,7 @@ test.describe('Application password auth — delivery and observability', () => 
     expectSecretFree(await response.text(), [code]);
   });
 
-  test('PWD-OBS-004: cross-tenant rejection emits a safe security signal', async ({
+  test('cross-tenant rejection emits a safe security signal', async ({
     api,
     request,
   }) => {
@@ -87,7 +87,7 @@ test.describe('Application password auth — delivery and observability', () => 
     ]);
   });
 
-  test('PWD-OBS-005: rate-limit telemetry contains no raw identity or secret labels', async ({
+  test('rate-limit telemetry contains no raw identity or secret labels', async ({
     api,
     request,
   }) => {
@@ -103,7 +103,7 @@ test.describe('Application password auth — delivery and observability', () => 
     expectSecretFree(await limited!.text(), [email, password, 'Wrong-password-123!']);
   });
 
-  test('PWD-OBS-006: error responses contain no stack, SQL, hash, secret, or tenant configuration', async ({
+  test('error responses contain no stack, SQL, hash, secret, or tenant configuration', async ({
     api,
     request,
   }) => {
@@ -116,7 +116,7 @@ test.describe('Application password auth — delivery and observability', () => 
     expect(body).not.toMatch(/stack|node_modules|select\s|postgres|password_hash/iu);
   });
 
-  test('PWD-OBS-007: logs, traces, and metrics contain no password, code, token, cookie, link, or client secret', async ({
+  test('logs, traces, and metrics contain no password, code, token, cookie, link, or client secret', async ({
     api,
     request,
   }) => {
@@ -144,7 +144,7 @@ test.describe('Application password auth — delivery and observability', () => 
     );
   });
 
-  test('PWD-OBS-008: verification and reset use distinct server-controlled purposes and templates', async ({
+  test('verification and reset use distinct server-controlled purposes and templates', async ({
     api,
     request,
   }) => {
@@ -166,7 +166,7 @@ test.describe('Application password auth — delivery and observability', () => 
     });
   });
 
-  test('PWD-OBS-009: delivery idempotency prevents uncontrolled duplicates without PII keys', async ({
+  test('delivery idempotency prevents uncontrolled duplicates without PII keys', async ({
     api,
     request,
   }) => {
@@ -188,7 +188,7 @@ test.describe('Application password auth — delivery and observability', () => 
     });
   });
 
-  test('PWD-OBS-010: observability sink failure follows contract without exposing secrets', async ({
+  test('observability sink failure follows contract without exposing secrets', async ({
     api,
     request,
   }) => {

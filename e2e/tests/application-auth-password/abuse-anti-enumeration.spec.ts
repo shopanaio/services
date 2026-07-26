@@ -18,7 +18,7 @@ import {
 const wrongPassword = 'Wrong-password-123!';
 
 test.describe('Application password auth — abuse and anti-enumeration', () => {
-  test('PWD-ABUSE-001: password signin identity limit follows the safe baseline', async ({
+  test('password signin identity limit follows the safe baseline', async ({
     api,
     request,
   }) => {
@@ -35,7 +35,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses[5]!.status()).toBe(429);
   });
 
-  test('PWD-ABUSE-002: password signin IP limit covers attempts distributed across emails', async ({
+  test('password signin IP limit covers attempts distributed across emails', async ({
     api,
     request,
   }) => {
@@ -51,7 +51,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses.at(-1)!.headers()['retry-after']).toBeTruthy();
   });
 
-  test('PWD-ABUSE-003: email normalization variants cannot bypass identity limits', async ({
+  test('email normalization variants cannot bypass identity limits', async ({
     api,
     request,
   }) => {
@@ -76,7 +76,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses.at(-1)!.status()).toBe(429);
   });
 
-  test('PWD-ABUSE-004: identity limiter key is realm-scoped and contains no raw email', async ({
+  test('identity limiter key is realm-scoped and contains no raw email', async ({
     api,
     request,
   }) => {
@@ -96,7 +96,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expectSecretFree(await foreign.text(), [email]);
   });
 
-  test('PWD-ABUSE-005: shared limiter enforces one baseline across IAM replicas', async ({
+  test('shared limiter enforces one baseline across IAM replicas', async ({
     api,
     request,
   }) => {
@@ -112,7 +112,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses.filter((response) => response.status() === 429)).toHaveLength(5);
   });
 
-  test('PWD-ABUSE-006: password reset identity hourly limit is enforced', async ({
+  test('password reset identity hourly limit is enforced', async ({
     api,
     request,
   }) => {
@@ -128,7 +128,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses[3]!.status()).toBe(429);
   });
 
-  test('PWD-ABUSE-007: password reset IP/hour and identity/day windows are enforced', async ({
+  test('password reset IP/hour and identity/day windows are enforced', async ({
     api,
     request,
   }) => {
@@ -143,7 +143,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses.some((response) => response.status() === 429)).toBe(true);
   });
 
-  test('PWD-ABUSE-008: limited response is generic and provides the approved Retry-After', async ({
+  test('limited response is generic and provides the approved Retry-After', async ({
     api,
     request,
   }) => {
@@ -161,7 +161,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expectSecretFree(await limited.text(), [email, wrongPassword]);
   });
 
-  test('PWD-ABUSE-009: unavailable limiter makes reset fail closed without delivery', async ({
+  test('unavailable limiter makes reset fail closed without delivery', async ({
     api,
     request,
   }) => {
@@ -178,7 +178,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     });
   });
 
-  test('PWD-ABUSE-010: unavailable limiter never creates unlimited permissive signin', async ({
+  test('unavailable limiter never creates unlimited permissive signin', async ({
     api,
     request,
   }) => {
@@ -194,7 +194,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses.every((response) => !response.ok())).toBe(true);
   });
 
-  test('PWD-ABUSE-011: existing and absent identities have equivalent public failure contracts', async ({
+  test('existing and absent identities have equivalent public failure contracts', async ({
     api,
     request,
   }) => {
@@ -212,7 +212,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(await absent.json()).toEqual(invalidCredentials);
   });
 
-  test('PWD-ABUSE-012: existing and absent identities have no stable material timing distinction', async ({
+  test('existing and absent identities have no stable material timing distinction', async ({
     api,
     request,
   }) => {
@@ -229,7 +229,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(Math.abs(existingMedian - absentMedian)).toBeLessThan(250);
   });
 
-  test('PWD-ABUSE-013: blocked, disabled, and unverified state is not over-disclosed', async ({
+  test('blocked, disabled, and unverified state is not over-disclosed', async ({
     api,
     request,
   }) => {
@@ -255,7 +255,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(await responses[2]!.json()).toEqual(invalidCredentials);
   });
 
-  test('PWD-ABUSE-014: parallel brute force cannot exceed limits through races', async ({
+  test('parallel brute force cannot exceed limits through races', async ({
     api,
     request,
   }) => {
@@ -271,7 +271,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses.filter((response) => response.status() === 429)).toHaveLength(45);
   });
 
-  test('PWD-ABUSE-015: successful signin cannot reset independent abuse counters as a bypass', async ({
+  test('successful signin cannot reset independent abuse counters as a bypass', async ({
     api,
     request,
   }) => {

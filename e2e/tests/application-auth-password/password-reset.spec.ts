@@ -26,7 +26,7 @@ import {
 const newPassword = 'Reset-password-456!';
 
 test.describe('Application password auth — password reset', () => {
-  test('PWD-RESET-001: existing user reset request creates only a target-realm one-time flow', async ({
+  test('existing user reset request creates only a target-realm one-time flow', async ({
     api,
     request,
   }) => {
@@ -44,7 +44,7 @@ test.describe('Application password auth — password reset', () => {
     });
   });
 
-  test('PWD-RESET-002: unknown email returns a generic response and creates no user', async ({
+  test('unknown email returns a generic response and creates no user', async ({
     api,
     request,
   }) => {
@@ -63,7 +63,7 @@ test.describe('Application password auth — password reset', () => {
     expect(after.application_session).toBe(before.application_session);
   });
 
-  test('PWD-RESET-003: the same email receives realm-specific reset links in A and B', async ({
+  test('the same email receives realm-specific reset links in A and B', async ({
     api,
     request,
   }) => {
@@ -88,7 +88,7 @@ test.describe('Application password auth — password reset', () => {
     expect(await completePasswordReset(request, realms.b, tokenB, newPassword)).toBeOK();
   });
 
-  test('PWD-RESET-004: reset token A cannot be consumed in application B', async ({
+  test('reset token A cannot be consumed in application B', async ({
     api,
     request,
   }) => {
@@ -108,7 +108,7 @@ test.describe('Application password auth — password reset', () => {
     await expectInvalidSignIn(request, realms.a, email, newPassword);
   });
 
-  test('PWD-RESET-005: successful reset disables the old password only in the target realm', async ({
+  test('successful reset disables the old password only in the target realm', async ({
     api,
     request,
   }) => {
@@ -130,7 +130,7 @@ test.describe('Application password auth — password reset', () => {
     await expectInvalidSignIn(request, realms.b, email, newPassword);
   });
 
-  test('PWD-RESET-006: reset link replay cannot change the password again', async ({
+  test('reset link replay cannot change the password again', async ({
     api,
     request,
   }) => {
@@ -153,7 +153,7 @@ test.describe('Application password auth — password reset', () => {
     await expectInvalidSignIn(request, realm, email, 'Replay-password-789!');
   });
 
-  test('PWD-RESET-007: expired reset link leaves password and sessions unchanged', async ({
+  test('expired reset link leaves password and sessions unchanged', async ({
     api,
     request,
   }) => {
@@ -174,7 +174,7 @@ test.describe('Application password auth — password reset', () => {
     expect(cookie).toContain(realm.applicationId);
   });
 
-  test('PWD-RESET-008: tampered reset link fails closed without user or token disclosure', async ({
+  test('tampered reset link fails closed without user or token disclosure', async ({
     api,
     request,
   }) => {
@@ -192,7 +192,7 @@ test.describe('Application password auth — password reset', () => {
     await expectRealmState(realm, before);
   });
 
-  test('PWD-RESET-009: new password violating policy cannot complete reset', async ({
+  test('new password violating policy cannot complete reset', async ({
     api,
     request,
   }) => {
@@ -210,7 +210,7 @@ test.describe('Application password auth — password reset', () => {
     expect(await resetTokenCount(realm.applicationId, token)).toBe(1);
   });
 
-  test('PWD-RESET-010: reuse of the old password follows the approved password policy', async ({
+  test('reuse of the old password follows the approved password policy', async ({
     api,
     request,
   }) => {
@@ -226,7 +226,7 @@ test.describe('Application password auth — password reset', () => {
     expect(await signIn(request, realm, email, defaultPassword)).toBeOK();
   });
 
-  test('PWD-RESET-011: concurrent link consumption has exactly one successful outcome', async ({
+  test('concurrent link consumption has exactly one successful outcome', async ({
     api,
     request,
   }) => {
@@ -253,7 +253,7 @@ test.describe('Application password auth — password reset', () => {
     expect(working).toHaveLength(1);
   });
 
-  test('PWD-RESET-012: repeated reset request follows the approved link rotation contract', async ({
+  test('repeated reset request follows the approved link rotation contract', async ({
     api,
     request,
   }) => {
@@ -271,7 +271,7 @@ test.describe('Application password auth — password reset', () => {
     expect(await resetTokenCount(realm.applicationId, second)).toBe(1);
   });
 
-  test('PWD-RESET-013: reset cannot unblock a user or grant a session', async ({
+  test('reset cannot unblock a user or grant a session', async ({
     api,
     request,
   }) => {
@@ -292,7 +292,7 @@ test.describe('Application password auth — password reset', () => {
     });
   });
 
-  test('PWD-RESET-014: closed registration still permits reset for an existing user', async ({
+  test('closed registration still permits reset for an existing user', async ({
     api,
     request,
   }) => {
@@ -310,7 +310,7 @@ test.describe('Application password auth — password reset', () => {
     expect(await signIn(request, realm, email, newPassword)).toBeOK();
   });
 
-  test('PWD-RESET-015: disabled application or organization invalidates issued reset links', async ({
+  test('disabled application or organization invalidates issued reset links', async ({
     api,
     request,
   }) => {
@@ -330,7 +330,7 @@ test.describe('Application password auth — password reset', () => {
     });
   });
 
-  test('PWD-RESET-016: reset revokes required target-realm sessions without affecting other realms', async ({
+  test('reset revokes required target-realm sessions without affecting other realms', async ({
     api,
     request,
   }) => {
@@ -351,7 +351,7 @@ test.describe('Application password auth — password reset', () => {
     expect(applicationCookie(sessionB, realms.b)).toContain(realms.b.applicationId);
   });
 
-  test('PWD-RESET-017: capture delivery uses only the target-realm password reset purpose and template', async ({
+  test('capture delivery uses only the target-realm password reset purpose and template', async ({
     api,
     request,
   }) => {
@@ -378,7 +378,7 @@ test.describe('Application password auth — password reset', () => {
     });
   });
 
-  test('PWD-RESET-018: delivery timeout or rejection returns a generic fail-closed response', async ({
+  test('delivery timeout or rejection returns a generic fail-closed response', async ({
     api,
     request,
   }) => {
@@ -397,7 +397,7 @@ test.describe('Application password auth — password reset', () => {
     expect(after.application_session).toBe(before.application_session);
   });
 
-  test('PWD-RESET-019: reset email, link, token, and password never leak to telemetry or browser storage', async ({
+  test('reset email, link, token, and password never leak to telemetry or browser storage', async ({
     api,
     request,
   }) => {

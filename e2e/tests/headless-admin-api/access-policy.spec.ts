@@ -22,7 +22,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
     await installHeadless(api);
   });
 
-  test('HDL-POL-001..003: catalog is the complete canonical permission contract', async ({
+  test('catalog is the complete canonical permission contract', async ({
     api,
   }) => {
     const response = await api.admin.query('headless-admin-api/PermissionCatalog', {});
@@ -43,7 +43,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
     }
   });
 
-  test('HDL-POL-004..007: defaults are sorted and replacement normalizes the complete grant set', async ({
+  test('defaults are sorted and replacement normalizes the complete grant set', async ({
     api,
     request,
   }) => {
@@ -96,7 +96,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
     expectForbidden(protectedRead);
   });
 
-  test('HDL-POL-008..011: invalid or stale revisions preserve grants and success increments once', async ({
+  test('invalid or stale revisions preserve grants and success increments once', async ({
     api,
   }) => {
     const created = await createStorefront(api);
@@ -130,7 +130,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
     await expectPolicy(api, created.connection.id, exact.policy!);
   });
 
-  test('HDL-POL-012: concurrent replacements at one revision have one winner', async ({ api }) => {
+  test('concurrent replacements at one revision have one winner', async ({ api }) => {
     const created = await createStorefront(api);
     const revision = created.connection.storefrontAccessPolicy.revision;
     const candidates = [
@@ -154,7 +154,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
     await expectPolicy(api, created.connection.id, successful[0]!.policy!);
   });
 
-  test('HDL-POL-013: public and all private credentials observe the same policy', async ({
+  test('public and all private credentials observe the same policy', async ({
     api,
     request,
   }) => {
@@ -197,7 +197,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
     }
   });
 
-  test('HDL-POL-014: sibling connection grants are independent', async ({ api }) => {
+  test('sibling connection grants are independent', async ({ api }) => {
     const first = await createStorefront(api, 'First storefront');
     const sibling = await createStorefront(api, 'Sibling storefront');
 
@@ -211,7 +211,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
     await expectPolicy(api, sibling.connection.id, sibling.connection.storefrontAccessPolicy);
   });
 
-  test('HDL-POL-015: a foreign connection cannot change either store', async ({ api }) => {
+  test('a foreign connection cannot change either store', async ({ api }) => {
     const firstStore = api.session.project;
     const first = await createStorefront(api, 'First store');
 
@@ -237,7 +237,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
     api.session.project = foreignStore;
   });
 
-  test('HDL-POL-016..020: the next request enforces the exact verified grant set', async ({
+  test('the next request enforces the exact verified grant set', async ({
     api,
     request,
   }) => {
