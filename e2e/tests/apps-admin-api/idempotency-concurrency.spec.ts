@@ -29,6 +29,14 @@ test.describe('Apps Admin API - idempotency and concurrency', () => {
     expect(new Set(payloads.map(({ operation }) => operation!.id)).size).toBe(1);
     expect(new Set(payloads.map(({ operation }) => operation!.workflowId)).size).toBe(1);
     expect(payloads[0].operation!.workflowId).not.toContain(clientMutationId);
+    await expect
+      .poll(async () => {
+        const operation = await api.admin.query('apps-admin-api/AppLifecycleOperation', {
+          variables: { id: payloads[0].operation!.id },
+        });
+        return operation.data.appsQuery.appLifecycleOperation?.status;
+      })
+      .toBe('SUCCEEDED');
   });
 
   test('APPS-IDEM-004 APPS-IDEM-005: update and actions return the original operation on retry', async ({
@@ -144,14 +152,23 @@ test.describe('Apps Admin API - idempotency and concurrency', () => {
       ({ data }) => data.appsMutation.appInstall.userErrors.length === 0,
     )!;
     const id = accepted.data.appsMutation.appInstall.installation!.id;
+    const operationId = accepted.data.appsMutation.appInstall.operation!.id;
     await expect
       .poll(async () => {
-        const current = await api.admin.query('apps-admin-api/AppInstallation', {
-          variables: { id },
-        });
-        return current.data.appsQuery.appInstallation?.status;
+        const [current, operation] = await Promise.all([
+          api.admin.query('apps-admin-api/AppInstallation', {
+            variables: { id },
+          }),
+          api.admin.query('apps-admin-api/AppLifecycleOperation', {
+            variables: { id: operationId },
+          }),
+        ]);
+        return {
+          installation: current.data.appsQuery.appInstallation?.status,
+          operation: operation.data.appsQuery.appLifecycleOperation?.status,
+        };
       })
-      .toBe('ACTIVE');
+      .toEqual({ installation: 'ACTIVE', operation: 'SUCCEEDED' });
 
     const mutationId = crypto.randomUUID();
     const suspends = await Promise.all(
@@ -180,7 +197,9 @@ test.describe('Apps Admin API - idempotency and concurrency', () => {
         },
       },
     });
-    expect(failed.data.appsMutation.appInstall.userErrors.length).toBeGreaterThan(0);
+    expect(failed.data.appsMutation.appInstall.userErrors).toEqual([
+      expect.objectContaining({ code: 'INVALID_INPUT' }),
+    ]);
     const retry = await api.admin.mutation('apps-admin-api/AppInstall', {
       variables: {
         input: { appCode: 'hello-world', clientMutationId },

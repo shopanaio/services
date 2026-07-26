@@ -165,14 +165,25 @@ test.describe('Apps Admin API - installation queries', () => {
         after: firstPage.data.appsQuery.appInstallations.pageInfo.endCursor,
       },
     });
-    expect(
-      new Set(
-        [
-          ...firstPage.data.appsQuery.appInstallations.edges,
-          ...secondPage.data.appsQuery.appInstallations.edges,
-        ].map(({ node }) => node.id),
-      ),
-    ).toEqual(new Set(ids));
+    const firstPageIds = firstPage.data.appsQuery.appInstallations.edges.map(
+      ({ node }) => node.id,
+    );
+    const secondPageIds = secondPage.data.appsQuery.appInstallations.edges.map(
+      ({ node }) => node.id,
+    );
+    expect(firstPageIds).toEqual([...ids].reverse().slice(0, 2));
+    expect(secondPageIds).toEqual([...ids].reverse().slice(2));
+    expect([...firstPageIds, ...secondPageIds]).toEqual([...ids].reverse());
+    expect(firstPage.data.appsQuery.appInstallations.pageInfo).toMatchObject({
+      hasNextPage: true,
+      hasPreviousPage: false,
+    });
+    expect(secondPage.data.appsQuery.appInstallations.pageInfo).toMatchObject({
+      hasNextPage: false,
+      hasPreviousPage: true,
+    });
+    expect(firstPage.data.appsQuery.appInstallations.totalCount).toBe(ids.length);
+    expect(secondPage.data.appsQuery.appInstallations.totalCount).toBe(ids.length);
   });
 
   test('APPS-QUERY-011..014: filters, ordering, count, and invalid cursors are safe', async ({

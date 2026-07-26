@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import type { ApiFixtures } from '@fixtures/api/api';
+import { readQuery } from '@fixtures/api/types';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import { decodeGlobalId } from '@utils/globalid';
+
+type Api = ApiFixtures['api'];
 
 test.describe('Apps Admin API - RBAC and store isolation', () => {
   test.beforeEach(async ({ api }) => {
@@ -10,7 +14,12 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
 
   test('APPS-SEC-001 APPS-SEC-011 APPS-SEC-012: Admin tenant authentication is required', async ({
     api,
+    request,
   }) => {
+    const owner = {
+      accessToken: api.session.tenant.accessToken!,
+      userId: api.session.tenant.userId!,
+    };
     api.session.clearSession();
     const query = await api.admin.query('apps-admin-api/AvailableApps', {
       variables: { where: null },
@@ -25,13 +34,28 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
     expect(query.errors?.length).toBeGreaterThan(0);
     expect(mutation.errors?.length).toBeGreaterThan(0);
 
-    api.session.scope = 'customer';
-    api.session.apiKey = 'invalid-storefront-credential';
-    const storefront = await api.admin.query('apps-admin-api/AvailableApps', {
-      variables: { where: null },
-      throwOnError: false,
+    api.session.tenant.accessToken = owner.accessToken;
+    api.session.tenant.userId = owner.userId;
+    const storefrontToken = await createStorefrontCredential(api);
+    const graphqlUrl = process.env.ADMIN_GRAPHQL_URL;
+    if (!graphqlUrl) {
+      throw new Error('ADMIN_GRAPHQL_URL environment variable is not set');
+    }
+    const storefrontResponse = await request.post(graphqlUrl, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Organization-Id': api.session.organizationId!,
+        'X-Store-Name': api.session.project.name,
+        'x-shopana-storefront-access-token': storefrontToken,
+      },
+      data: {
+        query: readQuery('apps-admin-api/AvailableApps'),
+        variables: { where: null },
+      },
     });
+    const storefront = await storefrontResponse.json();
     expect(storefront.errors?.length).toBeGreaterThan(0);
+    expect(storefront.data?.appsQuery?.availableApps).toBeUndefined();
   });
 
   test('APPS-SEC-002..005 APPS-SEC-014: read, write, and admin permissions enforce exact boundaries', async ({
@@ -82,31 +106,77 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
       const install = await api.admin.mutation('apps-admin-api/AppInstall', {
         variables: {
           input: {
-            appCode: action === 'read' ? 'hello-world' : 'shopana-headless',
+            appCode: action === 'admin' ? 'shopana-headless' : 'hello-world',
             clientMutationId: crypto.randomUUID(),
           },
         },
       });
       if (action === 'read') {
-        expect(install.data.appsMutation.appInstall.userErrors).toMatchObject([
-          { code: 'FORBIDDEN' },
-        ]);
+        expect(install.data.appsMutation.appInstall).toMatchObject({
+          installation: null,
+          operation: null,
+          userErrors: [
+            expect.objectContaining({
+              code: 'FORBIDDEN',
+              field: null,
+            }),
+          ],
+        });
       } else {
         expect(install.data.appsMutation.appInstall.userErrors).toEqual([]);
+        const installationId =
+          install.data.appsMutation.appInstall.installation!.id;
+        await expect
+          .poll(async () => {
+            const current = await api.admin.query('apps-admin-api/AppInstallation', {
+              variables: { id: installationId },
+            });
+            return current.data.appsQuery.appInstallation?.status;
+          })
+          .toBe('ACTIVE');
+        const before = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id: installationId },
+        });
+        const operationCountBefore =
+          before.data.appsQuery.appInstallation!.lifecycleOperations.totalCount;
         const uninstall = await api.admin.mutation('apps-admin-api/AppUninstall', {
           variables: {
             input: {
-              installationId: install.data.appsMutation.appInstall.installation!.id,
+              installationId,
               clientMutationId: crypto.randomUUID(),
             },
           },
         });
         if (action === 'write') {
-          expect(uninstall.data.appsMutation.appUninstall.userErrors).toMatchObject([
-            { code: 'FORBIDDEN' },
-          ]);
+          expect(uninstall.data.appsMutation.appUninstall).toMatchObject({
+            installation: null,
+            operation: null,
+            userErrors: [
+              expect.objectContaining({
+                code: 'FORBIDDEN',
+                field: null,
+              }),
+            ],
+          });
+          const after = await api.admin.query('apps-admin-api/AppInstallation', {
+            variables: { id: installationId },
+          });
+          expect(after.data.appsQuery.appInstallation).toMatchObject({
+            status: 'ACTIVE',
+            lifecycleOperations: {
+              totalCount: operationCountBefore,
+            },
+          });
         } else {
           expect(uninstall.data.appsMutation.appUninstall.userErrors).toEqual([]);
+          await expect
+            .poll(async () => {
+              const current = await api.admin.query('apps-admin-api/AppInstallation', {
+                variables: { id: installationId },
+              });
+              return current.data.appsQuery.appInstallation?.status;
+            })
+            .toBe('UNINSTALLED');
         }
       }
       api.session.tenant.accessToken = owner.accessToken;
@@ -151,7 +221,11 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
         },
       },
     });
-    expect(denied.data.appsMutation.appUninstall.operation).toBeNull();
+    expect(denied.data.appsMutation.appUninstall).toMatchObject({
+      installation: null,
+      operation: null,
+      userErrors: [expect.objectContaining({ code: 'NOT_FOUND' })],
+    });
     api.session.organizationId = firstOrganizationId;
     api.session.project = firstStore;
   });
@@ -168,8 +242,16 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
           input: { installationId, clientMutationId: crypto.randomUUID() },
         },
       });
-      expect(response.data.appsMutation.appUninstall.operation).toBeNull();
-      expect(response.data.appsMutation.appUninstall.userErrors.length).toBeGreaterThan(0);
+      expect(response.data.appsMutation.appUninstall).toMatchObject({
+        installation: null,
+        operation: null,
+        userErrors: [
+          expect.objectContaining({
+            code: 'INVALID_INPUT',
+            field: ['input', 'installationId'],
+          }),
+        ],
+      });
       expect(JSON.stringify(response.data.appsMutation.appUninstall.userErrors)).not.toMatch(
         /(?:stack|select\s|postgres|node_modules|\/Users\/|organization_id|store_id)/iu,
       );
@@ -180,3 +262,38 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
     expect(connection.data.appsQuery.appInstallations.totalCount).toBe(0);
   });
 });
+
+async function createStorefrontCredential(api: Api): Promise<string> {
+  const installed = await api.admin.mutation('apps-admin-api/AppInstall', {
+    variables: {
+      input: {
+        appCode: 'shopana-headless',
+        clientMutationId: crypto.randomUUID(),
+      },
+    },
+  });
+  const installation = installed.data.appsMutation.appInstall.installation;
+  expect(installed.data.appsMutation.appInstall.userErrors).toEqual([]);
+  expect(installation).not.toBeNull();
+  await expect
+    .poll(async () => {
+      const current = await api.admin.query('apps-admin-api/AppInstallation', {
+        variables: { id: installation!.id },
+      });
+      return current.data.appsQuery.appInstallation?.status;
+    })
+    .toBe('ACTIVE');
+
+  const created = await api.admin.mutation('headless-admin-api/StorefrontCreate', {
+    variables: {
+      input: {
+        displayName: 'Apps Admin boundary credential',
+        clientMutationId: crypto.randomUUID(),
+      },
+    },
+  });
+  const payload = created.data.headlessAppMutation.headlessStorefrontCreate;
+  expect(payload.userErrors).toEqual([]);
+  expect(payload.initialStorefrontCredentials).not.toBeNull();
+  return payload.initialStorefrontCredentials!.publicAccessToken;
+}

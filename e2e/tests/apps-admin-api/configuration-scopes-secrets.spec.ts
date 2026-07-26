@@ -43,7 +43,9 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
       },
     });
     expect(stale.data.appsMutation.appConfigure.installation).toBeNull();
-    expect(stale.data.appsMutation.appConfigure.userErrors.length).toBeGreaterThan(0);
+    expect(stale.data.appsMutation.appConfigure.userErrors).toEqual([
+      expect.objectContaining({ code: 'CONFLICT' }),
+    ]);
 
     const concurrent = await Promise.all([
       api.admin.mutation('apps-admin-api/AppConfigure', {
@@ -94,7 +96,16 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
         },
       },
     });
-    expect(missingVersion.data.appsMutation.appUpdate.operation).toBeNull();
+    expect(missingVersion.data.appsMutation.appUpdate).toMatchObject({
+      installation: null,
+      operation: null,
+      userErrors: [
+        expect.objectContaining({
+          code: 'INVALID_INPUT',
+          field: ['input', 'expectedConfigurationVersion'],
+        }),
+      ],
+    });
     const rejectedScope = await api.admin.mutation('apps-admin-api/AppConfigure', {
       variables: {
         input: {
@@ -105,7 +116,10 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
         },
       },
     });
-    expect(rejectedScope.data.appsMutation.appConfigure.installation).toBeNull();
+    expect(rejectedScope.data.appsMutation.appConfigure).toMatchObject({
+      installation: null,
+      userErrors: [expect.objectContaining({ code: 'INVALID_SCOPE' })],
+    });
     const revoked = await api.admin.mutation('apps-admin-api/AppConfigure', {
       variables: {
         input: {
@@ -192,7 +206,9 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
       installation: null,
       operation: null,
     });
-    expect(invalid.data.appsMutation.appInstall.userErrors.length).toBeGreaterThan(0);
+    expect(invalid.data.appsMutation.appInstall.userErrors).toEqual([
+      expect.objectContaining({ code: 'INVALID_INPUT' }),
+    ]);
   });
 
   test('APPS-CONF-017 APPS-CONF-019: rotation and uninstall never expose secret material', async ({

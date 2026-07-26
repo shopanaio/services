@@ -49,7 +49,11 @@ test.describe('Apps Admin API - installation lifecycle', () => {
   test('APPS-LIFE-004 APPS-LIFE-005 APPS-LIFE-025: invalid installs and transitions create no operation', async ({
     api,
   }) => {
-    for (const appCode of ['', 'unknown-app', 'shopana-online-store']) {
+    for (const [appCode, expectedCode] of [
+      ['', 'INVALID_INPUT'],
+      ['unknown-app', 'APP_INSTALL_FAILED'],
+      ['shopana-online-store', 'APP_INSTALL_FAILED'],
+    ] as const) {
       const response = await api.admin.mutation('apps-admin-api/AppInstall', {
         variables: {
           input: { appCode, clientMutationId: crypto.randomUUID() },
@@ -60,7 +64,9 @@ test.describe('Apps Admin API - installation lifecycle', () => {
         operation: null,
         duplicate: false,
       });
-      expect(response.data.appsMutation.appInstall.userErrors.length).toBeGreaterThan(0);
+      expect(response.data.appsMutation.appInstall.userErrors).toEqual([
+        expect.objectContaining({ code: expectedCode }),
+      ]);
     }
 
     const installed = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -82,7 +88,11 @@ test.describe('Apps Admin API - installation lifecycle', () => {
         input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
       },
     });
-    expect(duplicateInstall.data.appsMutation.appInstall.operation).toBeNull();
+    expect(duplicateInstall.data.appsMutation.appInstall).toMatchObject({
+      installation: null,
+      operation: null,
+      userErrors: [expect.objectContaining({ code: 'ALREADY_EXISTS' })],
+    });
     const invalidResume = await api.admin.mutation('apps-admin-api/AppResume', {
       variables: {
         input: {
@@ -91,7 +101,11 @@ test.describe('Apps Admin API - installation lifecycle', () => {
         },
       },
     });
-    expect(invalidResume.data.appsMutation.appResume.operation).toBeNull();
+    expect(invalidResume.data.appsMutation.appResume).toMatchObject({
+      installation: null,
+      operation: null,
+      userErrors: [expect.objectContaining({ code: 'INVALID_STATE' })],
+    });
   });
 
   test('APPS-LIFE-006 APPS-LIFE-026: stores own independent installations and reject foreign IDs', async ({
@@ -121,7 +135,11 @@ test.describe('Apps Admin API - installation lifecycle', () => {
         },
       },
     });
-    expect(foreign.data.appsMutation.appUpdate.operation).toBeNull();
+    expect(foreign.data.appsMutation.appUpdate).toMatchObject({
+      installation: null,
+      operation: null,
+      userErrors: [expect.objectContaining({ code: 'NOT_FOUND' })],
+    });
     api.session.project = firstStore;
   });
 
@@ -137,7 +155,9 @@ test.describe('Apps Admin API - installation lifecycle', () => {
         },
       },
     });
-    expect(failed.data.appsMutation.appInstall.userErrors.length).toBeGreaterThan(0);
+    expect(failed.data.appsMutation.appInstall.userErrors).toEqual([
+      expect.objectContaining({ code: 'INVALID_INPUT' }),
+    ]);
     const connection = await api.admin.query('apps-admin-api/AppInstallations', {
       variables: { first: 20, where: { appCode: { _eq: 'hello-world' } } },
     });

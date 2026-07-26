@@ -104,28 +104,13 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
       .toMatchObject({ status: 'UNINSTALLED', capabilities: [] });
   });
 
-  test('APPS-RUN-007: capability state from another store never participates locally', async ({
-    api,
-  }) => {
-    const first = await api.admin.mutation('apps-admin-api/AppInstall', {
-      variables: {
-        input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
-      },
-    });
-    await api.session.setupProject({ displayName: 'Second Store' });
-    const second = await api.admin.mutation('apps-admin-api/AppInstall', {
-      variables: {
-        input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
-      },
-    });
-    expect(second.data.appsMutation.appInstall.installation!.id).not.toBe(
-      first.data.appsMutation.appInstall.installation!.id,
-    );
-    const foreign = await api.admin.query('apps-admin-api/AppInstallation', {
-      variables: { id: first.data.appsMutation.appInstall.installation!.id },
-    });
-    expect(foreign.data.appsQuery.appInstallation).toBeNull();
-  });
+  test.fixme(
+    'APPS-RUN-007: resource assignments cannot create cross-store precedence',
+    () => {
+      // A READY bundled App with assignmentMode RESOURCE is required to exercise this contract.
+      // shopana-online-store is the only resource-mode definition and is intentionally FAILED in e2e.
+    },
+  );
 
   test('APPS-RUN-009..014: workflow and secret metadata remain server-owned and redacted', async ({
     api,
