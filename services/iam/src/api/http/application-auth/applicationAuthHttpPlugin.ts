@@ -222,6 +222,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         raw,
         contentEncoding: request.headers["content-encoding"],
       });
+      assertSupportedOAuthGrantType(normalizedPath, raw);
       if (hostedUi.isRoute(request.method, normalizedPath)) {
         try {
           if (
@@ -935,6 +936,27 @@ async function assertRefreshGrantLiveState(input: {
       400,
       "invalid_grant",
       "Refresh token is invalid or inactive"
+    );
+  }
+}
+
+function assertSupportedOAuthGrantType(
+  normalizedPath: string,
+  raw: RawApplicationAuthRequest
+): void {
+  if (normalizedPath !== "/oauth2/token" || !raw.body) return;
+  const form = requireOAuthProtocolForm(raw);
+  const grantType = optionalSingleParameter(form, "grant_type", 64);
+  if (
+    grantType &&
+    grantType !== "authorization_code" &&
+    grantType !== "client_credentials" &&
+    grantType !== "refresh_token"
+  ) {
+    throw new ApplicationAuthBoundaryError(
+      400,
+      "unsupported_grant_type",
+      "OAuth grant type is unsupported"
     );
   }
 }

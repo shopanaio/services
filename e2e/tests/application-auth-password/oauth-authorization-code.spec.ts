@@ -57,15 +57,16 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
       redirect_uri: redirectUri(realm),
       resource: realm.resource,
     });
-    expect(response.status()).toBe(401);
+    await expectOAuthError(response, 'invalid_client');
+    const authenticatedAuthorization = await obtainAuthorizationCode(page, realm, email);
     const authenticated = await tokenRequest(
       request,
       realm,
       {
         grant_type: 'authorization_code',
-        code: authorization.code,
+        code: authenticatedAuthorization.code,
         client_id: realm.clientId,
-        code_verifier: authorization.verifier,
+        code_verifier: authenticatedAuthorization.verifier,
         redirect_uri: redirectUri(realm),
         resource: realm.resource,
       },
@@ -86,7 +87,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     const url = new URL(authorizeUrl(realm));
     url.searchParams.delete('code_challenge');
     const response = await request.get(url.toString(), { maxRedirects: 0 });
-    expect(response.status()).toBeGreaterThanOrEqual(400);
+    expectAuthorizationErrorRedirect(response, realm, 'invalid_request', 'callback');
     expect(await authorizationContextCount(realm.applicationId)).toBe(0);
   });
 
@@ -181,7 +182,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
       `${redirectUri(realm)}?extra=1`,
     ]) {
       const response = await beginAuthorization(request, realm, { redirectUri: redirect });
-      expect(response.status()).toBeGreaterThanOrEqual(400);
+      expectAuthorizationErrorRedirect(response, realm, 'invalid_redirect', 'local');
     }
     expect(await authorizationContextCount(realm.applicationId)).toBe(0);
   });
@@ -194,7 +195,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     const response = await beginAuthorization(request, realm, {
       redirectUri: 'https://attacker.invalid/callback',
     });
-    expect(response.status()).toBeGreaterThanOrEqual(400);
+    expectAuthorizationErrorRedirect(response, realm, 'invalid_redirect', 'local');
     expect(response.headers()['location'] ?? '').not.toContain('attacker.invalid');
   });
 
@@ -204,8 +205,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
   }) => {
     const realm = await createRealm(api, request);
     const state = crypto.randomUUID();
-    const response = await beginAuthorization(request, realm, { state });
-    expect(response.status()).toBeLessThan(400);
+    await openAuthorizationLogin(request, realm, { state });
     await withDb(async (sql) => {
       const [context] = await sql<{ state: string }[]>`
         select state from iam.application_authorization_context
@@ -345,7 +345,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     const response = await beginAuthorization(request, realm, {
       scope: 'openid email platform:admin',
     });
-    expect(response.status()).toBeGreaterThanOrEqual(400);
+    expectAuthorizationErrorRedirect(response, realm, 'invalid_scope', 'callback');
     expect(await authorizationContextCount(realm.applicationId)).toBe(0);
   });
 
@@ -464,7 +464,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     const realms = await createRealmMatrix(api, request);
     const email = uniqueEmail('consent');
     await expectSignUp(request, realms.a, email);
-    await beginAuthorization(request, realms.a, { scope: 'openid email' });
+    await openAuthorizationLogin(request, realms.a, { scope: 'openid email' });
     await withDb(async (sql) => {
       const rows = await sql`
         select application_id, client_id, scopes, resource
@@ -487,8 +487,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     request,
   }) => {
     const realm = await createRealm(api, request);
-    const response = await beginAuthorization(request, realm);
-    expect(response.status()).toBeLessThan(400);
+    const { cookie } = await openAuthorizationLogin(request, realm);
     await withDb(
       (sql) => sql`
         update iam.application_authorization_context
@@ -497,9 +496,8 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
         where application_id = ${realm.applicationId}
       `,
     );
-    const continuation = await request.post(endpoint(realm, '/oauth2/continue'), {
-      headers: formHeaders(),
-      form: {},
+    const continuation = await request.get(endpoint(realm, '/login'), {
+      headers: { cookie },
       maxRedirects: 0,
     });
     expect(continuation.status()).toBeGreaterThanOrEqual(400);
@@ -508,7 +506,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
 
   test('authorization context is single-use', async ({ api, request }) => {
     const realm = await createRealm(api, request);
-    await beginAuthorization(request, realm);
+    const { cookie } = await openAuthorizationLogin(request, realm);
     await withDb(
       (sql) => sql`
         update iam.application_authorization_context
@@ -516,27 +514,21 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
         where application_id = ${realm.applicationId}
       `,
     );
-    const response = await request.post(endpoint(realm, '/oauth2/continue'), {
-      headers: formHeaders(),
-      form: {},
+    const response = await request.get(endpoint(realm, '/login'), {
+      headers: { cookie },
       maxRedirects: 0,
     });
     expect(response.status()).toBeGreaterThanOrEqual(400);
   });
 
-  test('context substitution across browser, client, or application is rejected', async ({
+  test('authorization context cookie cannot be substituted across applications', async ({
     api,
     request,
   }) => {
     const realms = await createRealmMatrix(api, request);
-    const response = await beginAuthorization(request, realms.a);
-    const contextCookie = response
-      .headersArray()
-      .find(({ name }) => name.toLowerCase() === 'set-cookie')?.value;
-    expect(contextCookie).toBeTruthy();
-    const substituted = await request.post(endpoint(realms.b, '/oauth2/continue'), {
-      headers: { ...formHeaders(), cookie: contextCookie! },
-      form: {},
+    const { cookie } = await openAuthorizationLogin(request, realms.a);
+    const substituted = await request.get(endpoint(realms.b, '/login'), {
+      headers: { cookie },
       maxRedirects: 0,
     });
     expect(substituted.status()).toBeGreaterThanOrEqual(400);
@@ -597,6 +589,44 @@ interface TokenResponse {
   id_token: string;
   refresh_token: string;
   token_type: string;
+}
+
+async function openAuthorizationLogin(
+  request: Parameters<typeof tokenRequest>[0],
+  realm: Parameters<typeof authorizeUrl>[0],
+  overrides: Parameters<typeof beginAuthorization>[2] = {},
+): Promise<{ cookie: string }> {
+  const authorization = await beginAuthorization(request, realm, overrides);
+  expect(authorization.status()).toBe(302);
+  const location = authorization.headers()['location'];
+  expect(location).toBeTruthy();
+  const capture = await request.get(new URL(location!, endpoint(realm, '')).toString(), {
+    maxRedirects: 0,
+  });
+  expect(capture.status()).toBe(303);
+  const setCookie = capture
+    .headersArray()
+    .find(({ name }) => name.toLowerCase() === 'set-cookie')?.value;
+  expect(setCookie).toBeTruthy();
+  return { cookie: setCookie!.split(';', 1)[0]! };
+}
+
+function expectAuthorizationErrorRedirect(
+  response: Awaited<ReturnType<typeof beginAuthorization>>,
+  realm: Parameters<typeof authorizeUrl>[0],
+  error: string,
+  target: 'callback' | 'local',
+): void {
+  expect(response.status()).toBe(302);
+  const location = response.headers()['location'];
+  expect(location).toBeTruthy();
+  const url = new URL(location!, endpoint(realm, ''));
+  expect(url.searchParams.get('error')).toBe(error);
+  expect(url.pathname).toBe(
+    target === 'callback'
+      ? new URL(redirectUri(realm)).pathname
+      : `/auth/applications/${realm.applicationId}/error`,
+  );
 }
 
 async function obtainAuthorizationCode(
