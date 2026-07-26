@@ -609,6 +609,7 @@ export async function copyPasswordIdentity(
 }
 
 export async function setClientDisabled(api: Api, realm: Realm, disabled: boolean): Promise<void> {
+  api.session.organizationId = composeGlobalId('Organization', realm.organizationId);
   const revision = await withDb(async (sql) => {
     const [row] = await sql<{ revision: number }[]>`
       select revision from iam.application_oauth_client

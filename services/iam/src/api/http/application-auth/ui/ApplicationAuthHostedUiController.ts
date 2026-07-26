@@ -2027,7 +2027,9 @@ async function sendHtml(
       "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' https: data:; style-src 'self'",
     "content-language": runtime.defaultLocale,
     "x-content-type-options": "nosniff",
-    "referrer-policy": "same-origin",
+    "referrer-policy": "no-referrer",
+    "permissions-policy":
+      "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
   });
   await reply
     .type("text/html; charset=utf-8")

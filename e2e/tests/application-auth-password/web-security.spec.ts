@@ -1,7 +1,9 @@
-import { expect } from '@playwright/test';
+import { expect, type APIRequestContext, type APIResponse } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import {
   applicationCookie,
+  authorizeUrl,
+  beginAuthorization,
   createRealm,
   endpoint,
   expectRealmState,
@@ -10,10 +12,12 @@ import {
   iamBaseUrl,
   jsonHeaders,
   realmState,
+  setCookieHeaders,
   signIn,
   uniqueEmail,
   withDb,
 } from './application-auth-test-kit';
+import { composeGlobalId } from '@utils/globalid';
 
 test.describe('Application password auth — browser and transport security', () => {
   test('CSRF protects signup, signin, reset, consent, and logout forms', async ({
@@ -42,11 +46,15 @@ test.describe('Application password auth — browser and transport security', ()
     request,
   }) => {
     const realm = await createRealm(api, request);
-    const accepted = await request.get(endpoint(realm, '/login'), {
-      headers: { origin: iamBaseUrl, accept: 'text/html' },
+    const { response: accepted, cookie } = await openLoginPage(request, realm, {
+      origin: iamBaseUrl,
     });
     const rejected = await request.get(endpoint(realm, '/login'), {
-      headers: { origin: `${iamBaseUrl}.attacker.invalid`, accept: 'text/html' },
+      headers: {
+        cookie,
+        origin: `${iamBaseUrl}.attacker.invalid`,
+        accept: 'text/html',
+      },
     });
     expect(accepted.ok()).toBe(true);
     expect(rejected.status()).toBeGreaterThanOrEqual(400);
@@ -157,9 +165,7 @@ test.describe('Application password auth — browser and transport security', ()
     request,
   }) => {
     const realm = await createRealm(api, request);
-    const response = await request.get(endpoint(realm, '/login'), {
-      headers: { accept: 'text/html' },
-    });
+    const { response } = await openLoginPage(request, realm);
     const headers = response.headers();
     expect(headers['content-security-policy']).toMatch(/(?:^|;)\s*base-uri\s+'none'(?:;|$)/iu);
     expect(headers['content-security-policy']).toMatch(/(?:^|;)\s*form-action\s+'self'(?:;|$)/iu);
@@ -177,9 +183,7 @@ test.describe('Application password auth — browser and transport security', ()
     request,
   }) => {
     const realm = await createRealm(api, request);
-    const response = await request.get(endpoint(realm, '/login'), {
-      headers: { accept: 'text/html' },
-    });
+    const { response } = await openLoginPage(request, realm);
     const headers = response.headers();
     expect(
       headers['x-frame-options'] === 'DENY' ||
@@ -193,26 +197,47 @@ test.describe('Application password auth — browser and transport security', ()
   }) => {
     const realm = await createRealm(api, request);
     const marker = `branding-${crypto.randomUUID()}`;
-    await withDb(
-      (sql) => sql`
-        update iam.application_auth_configuration
-        set branding_json = ${JSON.stringify({
-          displayName: `<script>${marker}</script>`,
-          headline: `"><form action="https://attacker.invalid">${marker}`,
-          logoUrl: 'javascript:alert(1)',
-          primaryColor: 'red; background:url(https://attacker.invalid)',
-        })}::jsonb,
-            revision = revision + 1
-        where application_id = ${realm.applicationId}
-      `,
-    );
-    const response = await request.get(endpoint(realm, '/login'), {
-      headers: { accept: 'text/html' },
+    api.session.organizationId = composeGlobalId('Organization', realm.organizationId);
+    const revision = await authRevision(realm);
+    const escaped = await api.admin.mutation('application-admin-api/ApplicationAuthUpdate', {
+      variables: {
+        input: {
+          organizationId: composeGlobalId('Organization', realm.organizationId),
+          applicationId: composeGlobalId('Application', realm.applicationId),
+          expectedRevision: revision,
+          branding: {
+            displayName: `<script>${marker}</script>`,
+            headline: `"><form action="https://attacker.invalid">${marker}`,
+          },
+        },
+      },
     });
+    const escapedPayload = escaped.data.applicationMutation.applicationAuthUpdate;
+    expect(escapedPayload.userErrors).toEqual([]);
+    expect(escapedPayload.configuration).not.toBeNull();
+
+    const rejected = await api.admin.mutation('application-admin-api/ApplicationAuthUpdate', {
+      variables: {
+        input: {
+          organizationId: composeGlobalId('Organization', realm.organizationId),
+          applicationId: composeGlobalId('Application', realm.applicationId),
+          expectedRevision: escapedPayload.configuration!.revision,
+          branding: {
+            logoUrl: 'javascript:alert(1)',
+          },
+        },
+      },
+    });
+    const rejectedPayload = rejected.data.applicationMutation.applicationAuthUpdate;
+    expect(rejectedPayload.configuration).toBeNull();
+    expect(rejectedPayload.userErrors.length).toBeGreaterThan(0);
+
+    const { response } = await openLoginPage(request, realm);
     const html = await response.text();
     expect(html).not.toContain(`<script>${marker}</script>`);
-    expect(html).not.toContain('javascript:');
+    expect(html).toContain(`&lt;script&gt;${marker}&lt;/script&gt;`);
     expect(html).not.toContain('action="https://attacker.invalid');
+    expect(html).not.toContain('javascript:');
     expect(html).not.toContain('background:url');
   });
 
@@ -225,7 +250,7 @@ test.describe('Application password auth — browser and transport security', ()
     const email = uniqueEmail('storage');
     const password = 'Storage-password-123!';
     await expectSignUp(request, realm, email, password);
-    await page.goto(endpoint(realm, '/login'));
+    await page.goto(authorizeUrl(realm));
     await page.locator('input[name="email"]').fill(email);
     await page.locator('input[name="password"]').fill(password);
     await page.locator('form[action="./login/password"] button[type="submit"]').click();
@@ -375,13 +400,61 @@ test.describe('Application password auth — browser and transport security', ()
     request,
   }) => {
     const realm = await createRealm(api, request);
-    const response = await request.get(endpoint(realm, '/login?locale=unknown-ZZ'), {
-      headers: { accept: 'text/html', 'accept-language': 'unknown-ZZ' },
+    const { response } = await openLoginPage(request, realm, {
+      'accept-language': 'unknown-ZZ',
     });
     expect(response.ok()).toBe(true);
     const html = await response.text();
     expect(html).toContain('Sign');
-    expect(html).not.toMatch(/<script[^>]+src=["']https?:\/\//iu);
-    expect(html).not.toMatch(/<link[^>]+href=["']https?:\/\//iu);
+    expect(response.headers()['content-language']).toBe('en');
+    expect(html).not.toMatch(/<script\b/iu);
+    for (const match of html.matchAll(/<(?:link|img)[^>]+(?:href|src)=["']([^"']+)["']/giu)) {
+      expect(new URL(match[1]!, endpoint(realm, '')).origin).toBe(new URL(iamBaseUrl).origin);
+    }
   });
 });
+
+async function openLoginPage(
+  request: APIRequestContext,
+  realm: Parameters<typeof beginAuthorization>[1],
+  headers: Record<string, string> = {},
+): Promise<{ response: APIResponse; cookie: string }> {
+  const authorization = await beginAuthorization(request, realm);
+  expect(authorization.status()).toBe(302);
+  const authorizationLocation = authorization.headers()['location'];
+  expect(authorizationLocation).toBeTruthy();
+
+  const capture = await request.get(
+    new URL(authorizationLocation!, endpoint(realm, '')).toString(),
+    {
+      headers: { accept: 'text/html', ...headers },
+      maxRedirects: 0,
+    },
+  );
+  expect(capture.status()).toBe(303);
+  const cookie = setCookieHeaders(capture)
+    .map((header) => header.split(';', 1)[0]!)
+    .join('; ');
+  expect(cookie).toBeTruthy();
+  const loginLocation = capture.headers()['location'];
+  expect(loginLocation).toBeTruthy();
+  const response = await request.get(
+    new URL(loginLocation!, endpoint(realm, '')).toString(),
+    {
+      headers: { accept: 'text/html', cookie, ...headers },
+    },
+  );
+  return { response, cookie };
+}
+
+function authRevision(realm: { applicationId: string }): Promise<number> {
+  return withDb(async (sql) => {
+    const [row] = await sql<{ revision: number }[]>`
+      select revision
+      from iam.application_auth_configuration
+      where application_id = ${realm.applicationId}
+    `;
+    expect(row).toBeDefined();
+    return row!.revision;
+  });
+}

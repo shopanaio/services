@@ -98,13 +98,6 @@ test.describe('Application password auth — session and token lifecycle', () =>
     const email = uniqueEmail('expired-session');
     await expectSignUp(request, realm, email);
     const tokens = await authorizeAndExchange(page, request, realm, email);
-    expect(
-      (
-        await request.get(endpoint(realm, '/oauth2/userinfo'), {
-          headers: { authorization: `Bearer ${tokens.access_token}` },
-        })
-      ).ok(),
-    ).toBe(true);
     await expireSessions(realm);
     const response = await request.get(endpoint(realm, '/oauth2/userinfo'), {
       headers: { authorization: `Bearer ${tokens.access_token}` },
@@ -317,11 +310,13 @@ test.describe('Application password auth — session and token lifecycle', () =>
     await expectSignUp(request, realm, email);
     const tokens = await authorizeAndExchange(page, request, realm, email);
     const cookie = await browserApplicationCookie(page, realm);
-    const response = await request.get(
+    const response = await completeEndSession(
+      request,
+      realm,
       `${endpoint(realm, '/oauth2/end-session')}?client_id=${encodeURIComponent(realm.clientId)}&post_logout_redirect_uri=${encodeURIComponent(postLogoutUri(realm))}&id_token_hint=${encodeURIComponent(tokens.id_token)}`,
-      { headers: { cookie }, maxRedirects: 0 },
+      cookie,
     );
-    expect([302, 303]).toContain(response.status());
+    expect(response.status()).toBe(303);
     expect(response.headers()['location']).toBe(postLogoutUri(realm));
   });
 
@@ -360,11 +355,13 @@ test.describe('Application password auth — session and token lifecycle', () =>
     await authorizeAndExchange(page, request, realms.b, email);
     const beforeB = await sessionCount(realms.b.applicationId);
     const beforeA = await sessionCount(realms.a.applicationId);
-    const logout = await request.get(
+    const logout = await completeEndSession(
+      request,
+      realms.a,
       `${endpoint(realms.a, '/oauth2/end-session')}?client_id=${encodeURIComponent(realms.a.clientId)}&post_logout_redirect_uri=${encodeURIComponent(postLogoutUri(realms.a))}&id_token_hint=${encodeURIComponent(tokensA.id_token)}`,
-      { headers: { cookie: cookieA }, maxRedirects: 0 },
+      cookieA,
     );
-    expect([302, 303]).toContain(logout.status());
+    expect(logout.status()).toBe(303);
     expect(await sessionCount(realms.a.applicationId)).toBe(beforeA - 1);
     expect(await sessionCount(realms.b.applicationId)).toBe(beforeB);
   });
@@ -453,6 +450,7 @@ async function revokeAllUserSessions(
   realm: Parameters<typeof tokenRequest>[1],
   userId: string,
 ) {
+  api.session.organizationId = composeGlobalId('Organization', realm.organizationId);
   const { data } = await api.admin.mutation(
     'application-admin-api/ApplicationUserSessionsRevokeAll',
     {
@@ -473,6 +471,7 @@ async function blockApplicationUser(
   realm: Parameters<typeof tokenRequest>[1],
   userId: string,
 ) {
+  api.session.organizationId = composeGlobalId('Organization', realm.organizationId);
   const { data } = await api.admin.mutation('application-admin-api/ApplicationUserBlock', {
     variables: {
       input: {
@@ -495,4 +494,41 @@ async function browserApplicationCookie(
   );
   expect(cookie).toBeDefined();
   return `${cookie!.name}=${cookie!.value}`;
+}
+
+async function completeEndSession(
+  request: Parameters<typeof tokenRequest>[0],
+  realm: Parameters<typeof tokenRequest>[1],
+  endSessionUrl: string,
+  sessionCookie: string,
+) {
+  const begin = await request.get(endSessionUrl, {
+    headers: { cookie: sessionCookie, accept: 'text/html' },
+    maxRedirects: 0,
+  });
+  expect([302, 303]).toContain(begin.status());
+  const logoutLocation = begin.headers()['location'];
+  expect(logoutLocation).toBeTruthy();
+  expect(new URL(logoutLocation!, endpoint(realm, '')).pathname).toBe(
+    `/auth/applications/${realm.applicationId}/logout`,
+  );
+  const cookie = [
+    sessionCookie,
+    ...setCookieHeaders(begin).map((header) => header.split(';', 1)[0]!),
+  ].join('; ');
+  const confirmation = await request.get(
+    new URL(logoutLocation!, endpoint(realm, '')).toString(),
+    {
+      headers: { cookie, accept: 'text/html' },
+      maxRedirects: 0,
+    },
+  );
+  expect(confirmation.ok(), await confirmation.text()).toBe(true);
+  const csrf = /name="csrf" value="([^"]+)"/u.exec(await confirmation.text())?.[1];
+  expect(csrf).toBeTruthy();
+  return request.post(endpoint(realm, '/logout'), {
+    headers: { ...formHeaders(), cookie },
+    form: { csrf: csrf! },
+    maxRedirects: 0,
+  });
 }

@@ -289,6 +289,13 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
           authorizationHeader: request.headers.authorization,
         });
       }
+      if (normalizedPath === "/oauth2/userinfo") {
+        await assertUserInfoLiveState({
+          kernel: options.kernel,
+          runtime,
+          authorizationHeader: request.headers.authorization,
+        });
+      }
 
       const fetchRequest = createApplicationAuthFetchRequest({
         request,
@@ -945,6 +952,33 @@ async function assertRefreshGrantLiveState(input: {
       400,
       "invalid_grant",
       "Refresh token is invalid or inactive"
+    );
+  }
+}
+
+async function assertUserInfoLiveState(input: {
+  kernel: Kernel;
+  runtime: ApplicationAuthFactoryRuntime;
+  authorizationHeader: string | undefined;
+}): Promise<void> {
+  const match = /^Bearer ([^\s]+)$/iu.exec(input.authorizationHeader ?? "");
+  if (!match) {
+    throw new ApplicationAuthBoundaryError(
+      401,
+      "invalid_token",
+      "Access token is invalid or inactive"
+    );
+  }
+  const result = await input.kernel.applicationTokenValidation.validateAccessToken({
+    token: match[1]!,
+    expectedApplicationId: input.runtime.applicationId,
+    expectedAudience: input.runtime.resource,
+  });
+  if (!result.active) {
+    throw new ApplicationAuthBoundaryError(
+      401,
+      "invalid_token",
+      "Access token is invalid or inactive"
     );
   }
 }
