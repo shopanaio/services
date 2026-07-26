@@ -10,7 +10,7 @@ type Query {
   The customer identity is resolved from trusted request context rather than
   from a customer ID or access token supplied as a GraphQL argument.
   """
-  customer: Customer!
+  customer: Customer
 }
 
 type Mutation {
