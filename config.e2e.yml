@@ -34,6 +34,8 @@ services:
   apps:
     ports:
       admin_graphql: 11001
+      app_admin_graphql: 11022
+      app_storefront_graphql: 11023
       metrics: 13033
     db:
       <<: *db_default
@@ -43,7 +45,12 @@ services:
         required: true
       shopana-online-store:
         enabled: true
+        required: false
+      shopana-headless:
+        enabled: true
         required: true
+        internal:
+          port: 11093
 
   checkout:
     ports:

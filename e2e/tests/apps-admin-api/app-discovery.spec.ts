@@ -192,7 +192,9 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     await expect(getAppDefinition(api, 'unknown-app')).resolves.toBeNull();
   });
 
-  test('APPS-DISC-004..008: projects manifest and healthy runtime metadata', async ({ api }) => {
+  test('APPS-DISC-004 APPS-DISC-006..008: projects bundled manifest metadata', async ({
+    api,
+  }) => {
     const definitions = await getAvailableApps(api);
 
     expect(
@@ -216,14 +218,35 @@ test.describe('Apps Admin API - bundled App discovery', () => {
         }),
       ),
     ).toEqual(bundledApps);
+  });
 
-    for (const definition of definitions) {
-      expect(definition.runtimeStatus).toBe('READY');
-      expect(definition.runtimeHealth).toEqual({
-        status: 'HEALTHY',
-        message: null,
+  test('APPS-DISC-005 APPS-DISC-014: exposes healthy and failed runtimes without internals', async ({
+    api,
+  }) => {
+    const definitions = await getAvailableApps(api);
+    const byCode = new Map(definitions.map((definition) => [definition.code, definition]));
+
+    for (const code of ['hello-world', 'shopana-headless']) {
+      expect(byCode.get(code)).toMatchObject({
+        runtimeStatus: 'READY',
+        runtimeHealth: {
+          status: 'HEALTHY',
+          message: null,
+        },
       });
     }
+
+    const failedRuntime = byCode.get('shopana-online-store');
+    expect(failedRuntime).toMatchObject({
+      runtimeStatus: 'FAILED',
+      runtimeHealth: {
+        status: 'UNHEALTHY',
+        message: 'App runtime status is FAILED',
+      },
+    });
+    expect(failedRuntime?.runtimeHealth.message).not.toMatch(
+      /(?:stack|at\s+\w|config|password|secret|token|\/Users\/|node_modules)/iu,
+    );
   });
 
   test('APPS-DISC-009 APPS-DISC-010: filters definitions by current installation state', async ({

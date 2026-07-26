@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import net from "node:net";
 import { dirname, join, resolve } from "node:path";
@@ -26,6 +27,11 @@ const children = [];
 let ready = false;
 let shuttingDown = false;
 
+const adminContextKeys = generateSigningKeys("e2e-admin");
+const storefrontContextKeys = generateSigningKeys("e2e-storefront");
+const adminResolverToken = randomBytes(32).toString("base64url");
+const storefrontResolverToken = randomBytes(32).toString("base64url");
+
 function appendNodeOption(option) {
   const current = process.env.NODE_OPTIONS ?? "";
   return current.split(/\s+/).includes(option)
@@ -37,7 +43,37 @@ const baseEnv = {
   ...process.env,
   CONFIG_FILE: configFile,
   NODE_OPTIONS: appendNodeOption("--experimental-transform-types"),
+  ADMIN_CONTEXT_RESOLVER_URL: "http://127.0.0.1:11010",
+  ADMIN_CONTEXT_RESOLVER_INTERNAL_TOKEN: adminResolverToken,
+  ADMIN_CONTEXT_ACTIVE_KID: adminContextKeys.kid,
+  ADMIN_CONTEXT_PRIVATE_KEY: adminContextKeys.privateKey,
+  ADMIN_CONTEXT_PUBLIC_KEYS: JSON.stringify({
+    [adminContextKeys.kid]: adminContextKeys.publicKey,
+  }),
+  STOREFRONT_ACCESS_RESOLVER_URL: "http://127.0.0.1:11093",
+  STOREFRONT_CUSTOMER_CONTEXT_RESOLVER_URL: "http://127.0.0.1:11013",
+  STOREFRONT_RESOLVER_INTERNAL_TOKEN: storefrontResolverToken,
+  STOREFRONT_CONTEXT_ACTIVE_KID: storefrontContextKeys.kid,
+  STOREFRONT_CONTEXT_PRIVATE_KEY: storefrontContextKeys.privateKey,
+  STOREFRONT_CONTEXT_PUBLIC_KEYS: JSON.stringify({
+    [storefrontContextKeys.kid]: storefrontContextKeys.publicKey,
+  }),
 };
+
+function generateSigningKeys(kid) {
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  return {
+    kid,
+    privateKey: privateKey.export({
+      type: "pkcs8",
+      format: "pem",
+    }),
+    publicKey: publicKey.export({
+      type: "spki",
+      format: "pem",
+    }),
+  };
+}
 
 function readConfig() {
   if (!existsSync(configPath)) {
@@ -59,6 +95,12 @@ function servicePorts(config) {
     }
     if (service?.ports?.storefront_graphql) {
       ports.push(service.ports.storefront_graphql);
+    }
+    if (service?.ports?.app_admin_graphql) {
+      ports.push(service.ports.app_admin_graphql);
+    }
+    if (service?.ports?.app_storefront_graphql) {
+      ports.push(service.ports.app_storefront_graphql);
     }
   }
 
@@ -303,7 +345,7 @@ async function main() {
       "-p",
       String(adminGatewayPort),
       "-c",
-      "gateway.config.ts",
+      "gateway-admin.config.ts",
     ],
     { cwd: federationDir },
   );
@@ -317,7 +359,7 @@ async function main() {
       "-p",
       String(storefrontGatewayPort),
       "-c",
-      "gateway.config.ts",
+      "gateway-storefront.config.ts",
     ],
     { cwd: federationDir },
   );

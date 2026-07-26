@@ -17,10 +17,11 @@ export type Scalars = {
   BigInt: { input: any; output: any; }
   /** Calendar date in ISO 8601 YYYY-MM-DD form. */
   Date: { input: any; output: any; }
-  /** ISO 8601 date-time string */
+  /** An ISO 8601 date-time string. */
   DateTime: { input: string; output: string; }
   /** Valid email address */
   Email: { input: string; output: string; }
+  /** An arbitrary JSON value. */
   JSON: { input: object; output: object; }
   /** Unix timestamp in milliseconds */
   Timestamp: { input: string; output: string; }
@@ -111,11 +112,441 @@ export type ApiApiKeyRevokeInput = {
   id: Scalars['ID']['input'];
 };
 
-export type ApiApp = {
-  __typename?: 'App';
-  code: Scalars['String']['output'];
-  meta?: Maybe<Scalars['JSON']['output']>;
+/** How a capability is selected for execution. */
+export type AppCapabilityAssignmentMode =
+  | 'RESOURCE'
+  | 'STORE';
+
+/** State of the route assignment used to resolve a capability. */
+export type AppCapabilityAssignmentStatus =
+  | 'ACTIVE'
+  | 'DISABLED';
+
+/** A concrete capability route contributed by an installed App. */
+export type ApiAppCapabilityBinding = ApiNode & {
+  __typename?: 'AppCapabilityBinding';
+  assignmentMode: AppCapabilityAssignmentMode;
+  assignmentStatus?: Maybe<AppCapabilityAssignmentStatus>;
+  capability: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  operation: Scalars['String']['output'];
+  precedence?: Maybe<Scalars['Int']['output']>;
+  status: AppCapabilityBindingStatus;
+  targetAction: Scalars['String']['output'];
+  targetAppCode: Scalars['String']['output'];
+};
+
+/** State of a capability route owned by an installation. */
+export type AppCapabilityBindingStatus =
+  | 'ACTIVE'
+  | 'DEPRECATED'
+  | 'INACTIVE'
+  | 'MAINTENANCE';
+
+/** A capability declared by an App manifest. */
+export type ApiAppCapabilityDefinition = {
+  __typename?: 'AppCapabilityDefinition';
+  assignmentMode: AppCapabilityAssignmentMode;
+  key: Scalars['String']['output'];
+  operations: Array<ApiAppCapabilityOperation>;
+};
+
+/** One operation exposed by an App capability. */
+export type ApiAppCapabilityOperation = {
+  __typename?: 'AppCapabilityOperation';
+  /** The App action that implements the operation. */
+  action: Scalars['String']['output'];
+  /** The operation name used by platform callers. */
   name: Scalars['String']['output'];
+};
+
+/** Input for changing installation configuration without a lifecycle update. */
+export type ApiAppConfigureInput = {
+  configuration: Scalars['JSON']['input'];
+  expectedConfigurationVersion: Scalars['Int']['input'];
+  /** Replaces the granted scopes when provided. */
+  grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
+  installationId: Scalars['ID']['input'];
+};
+
+/** Payload returned after changing installation configuration. */
+export type ApiAppConfigurePayload = {
+  __typename?: 'AppConfigurePayload';
+  installation?: Maybe<ApiAppInstallation>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A bundled App that can be installed in a store. */
+export type ApiAppDefinition = {
+  __typename?: 'AppDefinition';
+  /** Capabilities declared by the bundled manifest. */
+  capabilities: Array<ApiAppCapabilityDefinition>;
+  /** Stable manifest code used to identify the App. */
+  code: Scalars['String']['output'];
+  /** Human-readable App description. */
+  description: Scalars['String']['output'];
+  /** Human-readable App name. */
+  displayName: Scalars['String']['output'];
+  /** GraphQL surfaces declared by the bundled manifest. */
+  graphql: ApiAppGraphQlSurfaces;
+  /** The current store installation, when one exists. */
+  installation?: Maybe<ApiAppInstallation>;
+  /** Whether this App has a non-terminal installation in the current store. */
+  installed: Scalars['Boolean']['output'];
+  /** Permissions requested by the bundled manifest. */
+  permissions: Array<ApiAppPermission>;
+  /** Current runtime health, when the runtime can be checked. */
+  runtimeHealth: ApiAppRuntimeHealth;
+  /** Current process-local runtime state. */
+  runtimeStatus: AppRuntimeStatus;
+  /** Bundled semantic version. */
+  version: Scalars['String']['output'];
+};
+
+/** Filters for bundled App discovery. */
+export type ApiAppDefinitionWhereInput = {
+  installed?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** GraphQL surfaces contributed by an App. */
+export type ApiAppGraphQlSurfaces = {
+  __typename?: 'AppGraphQLSurfaces';
+  admin: Scalars['Boolean']['output'];
+  storefront: Scalars['Boolean']['output'];
+};
+
+/** Input for installing a bundled App in the current store. */
+export type ApiAppInstallInput = {
+  appCode: Scalars['String']['input'];
+  /** A unique client-generated ID, reused only when retrying this request. */
+  clientMutationId: Scalars['String']['input'];
+  configuration?: InputMaybe<Scalars['JSON']['input']>;
+  grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
+  secrets?: InputMaybe<Array<ApiAppSecretInput>>;
+};
+
+/** A bundled App installed in the current store. */
+export type ApiAppInstallation = ApiNode & {
+  __typename?: 'AppInstallation';
+  appCode: Scalars['String']['output'];
+  capabilities: Array<ApiAppCapabilityBinding>;
+  configuration: Scalars['JSON']['output'];
+  configurationVersion: Scalars['Int']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  healthStatus: AppInstallationHealthStatus;
+  id: Scalars['ID']['output'];
+  installedAt?: Maybe<Scalars['DateTime']['output']>;
+  installedByUserId?: Maybe<Scalars['ID']['output']>;
+  installedVersion?: Maybe<Scalars['String']['output']>;
+  lastError?: Maybe<ApiAppInstallationError>;
+  lifecycleOperations: ApiAppLifecycleOperationConnection;
+  manifestHash?: Maybe<Scalars['String']['output']>;
+  manifestSnapshots: ApiAppManifestSnapshotConnection;
+  scopes: Array<ApiAppInstallationScope>;
+  status: AppInstallationStatus;
+  suspendedAt?: Maybe<Scalars['DateTime']['output']>;
+  targetVersion?: Maybe<Scalars['String']['output']>;
+  uninstalledAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** A bundled App installed in the current store. */
+export type ApiAppInstallationLifecycleOperationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** A bundled App installed in the current store. */
+export type ApiAppInstallationManifestSnapshotsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** Input for a lifecycle action on an existing installation. */
+export type ApiAppInstallationActionInput = {
+  /** A unique client-generated ID, reused only when retrying this request. */
+  clientMutationId: Scalars['String']['input'];
+  installationId: Scalars['ID']['input'];
+};
+
+/** A Relay connection of App installations. */
+export type ApiAppInstallationConnection = {
+  __typename?: 'AppInstallationConnection';
+  edges: Array<ApiAppInstallationEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An edge in an App installation connection. */
+export type ApiAppInstallationEdge = {
+  __typename?: 'AppInstallationEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiAppInstallation;
+};
+
+/** The latest persisted App installation failure. */
+export type ApiAppInstallationError = {
+  __typename?: 'AppInstallationError';
+  code: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+};
+
+/** Persisted health state of an App installation. */
+export type AppInstallationHealthStatus =
+  | 'DEGRADED'
+  | 'HEALTHY'
+  | 'UNHEALTHY'
+  | 'UNKNOWN';
+
+/** Ordering configuration for AppInstallation */
+export type ApiAppInstallationOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: AppInstallationOrderField;
+};
+
+/** Fields available for sorting AppInstallation */
+export type AppInstallationOrderField =
+  /** Sort by appCode */
+  | 'appCode'
+  /** Sort by configurationVersion */
+  | 'configurationVersion'
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by healthStatus */
+  | 'healthStatus'
+  /** Sort by id */
+  | 'id'
+  /** Sort by installedAt */
+  | 'installedAt'
+  /** Sort by installedVersion */
+  | 'installedVersion'
+  /** Sort by manifestHash */
+  | 'manifestHash'
+  /** Sort by status */
+  | 'status'
+  /** Sort by suspendedAt */
+  | 'suspendedAt'
+  /** Sort by targetVersion */
+  | 'targetVersion'
+  /** Sort by uninstalledAt */
+  | 'uninstalledAt'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
+/** A permission grant recorded for an App installation. */
+export type ApiAppInstallationScope = {
+  __typename?: 'AppInstallationScope';
+  granted: Scalars['Boolean']['output'];
+  grantedAt: Scalars['DateTime']['output'];
+  revokedAt?: Maybe<Scalars['DateTime']['output']>;
+  scope: Scalars['String']['output'];
+};
+
+/** Lifecycle state of an App installation. */
+export type AppInstallationStatus =
+  | 'ACTIVE'
+  | 'INSTALLING'
+  | 'INSTALL_FAILED'
+  | 'PENDING_CONSENT'
+  | 'RESUMING'
+  | 'SUSPENDED'
+  | 'SUSPENDING'
+  | 'UNINSTALLED'
+  | 'UNINSTALLING'
+  | 'UNINSTALL_FAILED'
+  | 'UPDATE_FAILED'
+  | 'UPDATING';
+
+/** Filter conditions for AppInstallation */
+export type ApiAppInstallationWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiAppInstallationWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiAppInstallationWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiAppInstallationWhereInput>>;
+  /** Filter by appCode */
+  appCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by configurationVersion */
+  configurationVersion?: InputMaybe<ApiIntFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by healthStatus */
+  healthStatus?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by installedAt */
+  installedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by installedVersion */
+  installedVersion?: InputMaybe<ApiStringFilter>;
+  /** Filter by manifestHash */
+  manifestHash?: InputMaybe<ApiStringFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by suspendedAt */
+  suspendedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by targetVersion */
+  targetVersion?: InputMaybe<ApiStringFilter>;
+  /** Filter by uninstalledAt */
+  uninstalledAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** Actor that initiated an App lifecycle operation. */
+export type AppLifecycleActorType =
+  | 'SERVICE'
+  | 'SYSTEM'
+  | 'USER';
+
+/** A durable App lifecycle operation. */
+export type ApiAppLifecycleOperation = ApiNode & {
+  __typename?: 'AppLifecycleOperation';
+  actorId?: Maybe<Scalars['String']['output']>;
+  actorType: AppLifecycleActorType;
+  completedAt?: Maybe<Scalars['DateTime']['output']>;
+  correlationId?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  error?: Maybe<ApiAppLifecycleOperationError>;
+  id: Scalars['ID']['output'];
+  installation: ApiAppInstallation;
+  previousInstallationStatus?: Maybe<AppInstallationStatus>;
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: AppLifecycleOperationStatus;
+  targetVersion: Scalars['String']['output'];
+  type: AppLifecycleOperationType;
+  updatedAt: Scalars['DateTime']['output'];
+  workflowId: Scalars['String']['output'];
+};
+
+/** A Relay connection of lifecycle operations. */
+export type ApiAppLifecycleOperationConnection = {
+  __typename?: 'AppLifecycleOperationConnection';
+  edges: Array<ApiAppLifecycleOperationEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An edge in an App lifecycle operation connection. */
+export type ApiAppLifecycleOperationEdge = {
+  __typename?: 'AppLifecycleOperationEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiAppLifecycleOperation;
+};
+
+/** Failure recorded for an App lifecycle operation. */
+export type ApiAppLifecycleOperationError = {
+  __typename?: 'AppLifecycleOperationError';
+  code: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+};
+
+/** Execution state of an App lifecycle operation. */
+export type AppLifecycleOperationStatus =
+  | 'FAILED'
+  | 'PENDING'
+  | 'RUNNING'
+  | 'SUCCEEDED';
+
+/** Type of an App lifecycle operation. */
+export type AppLifecycleOperationType =
+  | 'INSTALL'
+  | 'RESUME'
+  | 'SUSPEND'
+  | 'UNINSTALL'
+  | 'UPDATE';
+
+/** Payload returned after accepting a lifecycle operation. */
+export type ApiAppLifecyclePayload = {
+  __typename?: 'AppLifecyclePayload';
+  /** Whether an earlier request with the same client mutation ID was reused. */
+  duplicate: Scalars['Boolean']['output'];
+  installation?: Maybe<ApiAppInstallation>;
+  operation?: Maybe<ApiAppLifecycleOperation>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** An immutable manifest snapshot used by a lifecycle operation. */
+export type ApiAppManifestSnapshot = ApiNode & {
+  __typename?: 'AppManifestSnapshot';
+  appCode: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  manifest: Scalars['JSON']['output'];
+  manifestHash: Scalars['String']['output'];
+  version: Scalars['String']['output'];
+};
+
+/** A Relay connection of App manifest snapshots. */
+export type ApiAppManifestSnapshotConnection = {
+  __typename?: 'AppManifestSnapshotConnection';
+  edges: Array<ApiAppManifestSnapshotEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An edge in an App manifest snapshot connection. */
+export type ApiAppManifestSnapshotEdge = {
+  __typename?: 'AppManifestSnapshotEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiAppManifestSnapshot;
+};
+
+/** A permission requested by an App manifest. */
+export type ApiAppPermission = {
+  __typename?: 'AppPermission';
+  /** Whether the permission is granted to the current installation. */
+  granted: Scalars['Boolean']['output'];
+  scope: Scalars['String']['output'];
+};
+
+/** The health check result for a bundled App runtime. */
+export type ApiAppRuntimeHealth = {
+  __typename?: 'AppRuntimeHealth';
+  message?: Maybe<Scalars['String']['output']>;
+  status: AppRuntimeHealthStatus;
+};
+
+/** Health reported by a ready App runtime. */
+export type AppRuntimeHealthStatus =
+  | 'DEGRADED'
+  | 'HEALTHY'
+  | 'UNHEALTHY';
+
+/** Runtime state of a bundled App. */
+export type AppRuntimeStatus =
+  | 'FAILED'
+  | 'READY'
+  | 'REGISTERED'
+  | 'STARTING'
+  | 'STOPPED';
+
+/** A write-only secret supplied during install or update. */
+export type ApiAppSecretInput = {
+  name: Scalars['String']['input'];
+  value: Scalars['String']['input'];
+};
+
+/** Input for updating an App installation. */
+export type ApiAppUpdateInput = {
+  /** A unique client-generated ID, reused only when retrying this request. */
+  clientMutationId: Scalars['String']['input'];
+  configuration?: InputMaybe<Scalars['JSON']['input']>;
+  /** Required when configuration is changed. */
+  expectedConfigurationVersion?: InputMaybe<Scalars['Int']['input']>;
+  /** Replaces the granted scopes when provided. */
+  grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
+  installationId: Scalars['ID']['input'];
+  /** Sets or rotates the named secrets without returning their values. */
+  secrets?: InputMaybe<Array<ApiAppSecretInput>>;
 };
 
 /** An organization-owned application authentication realm. */
@@ -1121,28 +1552,92 @@ export type ApiApplicationWhereInput = {
 
 export type ApiAppsMutation = {
   __typename?: 'AppsMutation';
-  /** Install app */
-  install: Scalars['Boolean']['output'];
-  /** Uninstall app */
-  uninstall: Scalars['Boolean']['output'];
+  /** Update installation configuration and granted scopes. */
+  appConfigure: ApiAppConfigurePayload;
+  /** Install a bundled App in the current store. */
+  appInstall: ApiAppLifecyclePayload;
+  /** Resume a suspended App installation. */
+  appResume: ApiAppLifecyclePayload;
+  /** Temporarily disable an active App installation. */
+  appSuspend: ApiAppLifecyclePayload;
+  /** Uninstall an App from the current store. */
+  appUninstall: ApiAppLifecyclePayload;
+  /** Update an installed App to the bundled target version. */
+  appUpdate: ApiAppLifecyclePayload;
 };
 
 
-export type ApiAppsMutationInstallArgs = {
-  code: Scalars['String']['input'];
+export type ApiAppsMutationAppConfigureArgs = {
+  input: ApiAppConfigureInput;
 };
 
 
-export type ApiAppsMutationUninstallArgs = {
-  code: Scalars['String']['input'];
+export type ApiAppsMutationAppInstallArgs = {
+  input: ApiAppInstallInput;
+};
+
+
+export type ApiAppsMutationAppResumeArgs = {
+  input: ApiAppInstallationActionInput;
+};
+
+
+export type ApiAppsMutationAppSuspendArgs = {
+  input: ApiAppInstallationActionInput;
+};
+
+
+export type ApiAppsMutationAppUninstallArgs = {
+  input: ApiAppInstallationActionInput;
+};
+
+
+export type ApiAppsMutationAppUpdateArgs = {
+  input: ApiAppUpdateInput;
 };
 
 export type ApiAppsQuery = {
   __typename?: 'AppsQuery';
-  /** Get list of available apps for installation */
-  apps: Array<ApiApp>;
-  /** Get list of installed apps */
-  installedApps: Array<ApiInstalledApp>;
+  /** Get a bundled App definition by its stable code. */
+  appDefinition?: Maybe<ApiAppDefinition>;
+  /** Get an App installation by its global ID. */
+  appInstallation?: Maybe<ApiAppInstallation>;
+  /** List App installations for the current store. */
+  appInstallations: ApiAppInstallationConnection;
+  /** Get a lifecycle operation by its global ID. */
+  appLifecycleOperation?: Maybe<ApiAppLifecycleOperation>;
+  /** List bundled Apps available to the current store. */
+  availableApps: Array<ApiAppDefinition>;
+};
+
+
+export type ApiAppsQueryAppDefinitionArgs = {
+  code: Scalars['String']['input'];
+};
+
+
+export type ApiAppsQueryAppInstallationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiAppsQueryAppInstallationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiAppInstallationOrderByInput>>;
+  where?: InputMaybe<ApiAppInstallationWhereInput>;
+};
+
+
+export type ApiAppsQueryAppLifecycleOperationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiAppsQueryAvailableAppsArgs = {
+  where?: InputMaybe<ApiAppDefinitionWhereInput>;
 };
 
 export type ApiAuthMutation = {
@@ -4062,6 +4557,26 @@ export type ApiCustomerAccountStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerAccountStatus>>;
 };
 
+export type ApiCustomerAccountsSettings = {
+  __typename?: 'CustomerAccountsSettings';
+  methods: Array<ApiCustomerAuthenticationMethodSettings>;
+  providers: Array<ApiCustomerAuthenticationProviderSettings>;
+  realmEnabled: Scalars['Boolean']['output'];
+  registrationMode: Scalars['String']['output'];
+  revision: Scalars['Int']['output'];
+};
+
+export type ApiCustomerAccountsSettingsUpdateInput = {
+  enabledMethods: Array<CustomerAuthenticationMethod>;
+  expectedRevision: Scalars['Int']['input'];
+};
+
+export type ApiCustomerAccountsSettingsUpdatePayload = {
+  __typename?: 'CustomerAccountsSettingsUpdatePayload';
+  settings?: Maybe<ApiCustomerAccountsSettings>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiCustomerAddress = ApiNode & {
   __typename?: 'CustomerAddress';
   address1: Scalars['String']['output'];
@@ -4275,6 +4790,29 @@ export type ApiCustomerAssignmentSourceFilter = {
   _in?: InputMaybe<Array<CustomerAssignmentSource>>;
   _neq?: InputMaybe<CustomerAssignmentSource>;
   _notIn?: InputMaybe<Array<CustomerAssignmentSource>>;
+};
+
+export type CustomerAuthenticationMethod =
+  | 'EMAIL_OTP'
+  | 'PASSWORD'
+  | 'PHONE_OTP';
+
+export type ApiCustomerAuthenticationMethodSettings = {
+  __typename?: 'CustomerAuthenticationMethodSettings';
+  configured: Scalars['Boolean']['output'];
+  enabled: Scalars['Boolean']['output'];
+  method: CustomerAuthenticationMethod;
+};
+
+export type CustomerAuthenticationProvider =
+  | 'FACEBOOK'
+  | 'GOOGLE';
+
+export type ApiCustomerAuthenticationProviderSettings = {
+  __typename?: 'CustomerAuthenticationProviderSettings';
+  configured: Scalars['Boolean']['output'];
+  enabled: Scalars['Boolean']['output'];
+  provider: CustomerAuthenticationProvider;
 };
 
 /** Company fields in the unified customer update. */
@@ -6043,6 +6581,8 @@ export type ApiCustomerWhereInput = {
 /** Store-scoped customer commands. */
 export type ApiCustomersMutation = {
   __typename?: 'CustomersMutation';
+  /** Replace the enabled customer authentication methods for the current store. */
+  customerAccountsSettingsUpdate: ApiCustomerAccountsSettingsUpdatePayload;
   customerCreate: ApiCustomerCreatePayload;
   customerDataRequestCreate: ApiCustomerDataRequestCreatePayload;
   customerDataRequestDelete: ApiCustomerDataRequestDeletePayload;
@@ -6062,6 +6602,12 @@ export type ApiCustomersMutation = {
   customerTagUpdate: ApiCustomerTagUpdatePayload;
   /** Unified customer profile update with optimistic locking. */
   customerUpdate: ApiCustomerUpdatePayload;
+};
+
+
+/** Store-scoped customer commands. */
+export type ApiCustomersMutationCustomerAccountsSettingsUpdateArgs = {
+  input: ApiCustomerAccountsSettingsUpdateInput;
 };
 
 
@@ -6185,6 +6731,8 @@ export type ApiCustomersMutationCustomerUpdateArgs = {
 export type ApiCustomersQuery = {
   __typename?: 'CustomersQuery';
   customer?: Maybe<ApiCustomer>;
+  /** Authentication settings for customer accounts in the current store. */
+  customerAccountsSettings?: Maybe<ApiCustomerAccountsSettings>;
   customerAddress?: Maybe<ApiCustomerAddress>;
   customerByEmail?: Maybe<ApiCustomer>;
   customerConsent?: Maybe<ApiCustomerConsent>;
@@ -8013,6 +8561,8 @@ export type ApiFileOrderByInput = {
 export type FileOrderField =
   /** Sort by altText */
   | 'altText'
+  /** Sort by assetGroupId */
+  | 'assetGroupId'
   /** Sort by createdAt */
   | 'createdAt'
   /** Sort by durationMs */
@@ -8169,6 +8719,8 @@ export type ApiFileWhereInput = {
   _or?: InputMaybe<Array<ApiFileWhereInput>>;
   /** Filter by altText */
   altText?: InputMaybe<ApiStringFilter>;
+  /** Filter by assetGroupId */
+  assetGroupId?: InputMaybe<ApiIdFilter>;
   /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by durationMs */
@@ -8229,7 +8781,7 @@ export type ApiFloatFilter = {
   _notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
 };
 
-/** A generic user error type for mutation responses. */
+/** A generic user-facing mutation error. */
 export type ApiGenericUserError = ApiUserError & {
   __typename?: 'GenericUserError';
   /** Machine-readable error code */
@@ -8237,6 +8789,190 @@ export type ApiGenericUserError = ApiUserError & {
   /** Path to the field that caused the error */
   field?: Maybe<Array<Scalars['String']['output']>>;
   /** Human-readable error message */
+  message: Scalars['String']['output'];
+};
+
+/** Headless App mutation namespace. */
+export type ApiHeadlessAppMutation = {
+  __typename?: 'HeadlessAppMutation';
+  /** Create a storefront, its default policy, and its initial credentials. */
+  headlessStorefrontCreate: ApiHeadlessStorefrontCreatePayload;
+  /** Permanently disconnect a storefront and revoke its credentials. */
+  headlessStorefrontDisconnect: ApiHeadlessStorefrontPayload;
+  /** Resume Storefront API access for a suspended storefront. */
+  headlessStorefrontResume: ApiHeadlessStorefrontPayload;
+  /** Temporarily suspend Storefront API access for a storefront. */
+  headlessStorefrontSuspend: ApiHeadlessStorefrontPayload;
+  /** Change the display name of an existing storefront. */
+  headlessStorefrontUpdate: ApiHeadlessStorefrontPayload;
+  /** Replace the complete permission grant set using optimistic concurrency. */
+  storefrontAccessPolicyUpdate: ApiStorefrontAccessPolicyPayload;
+  /** Revoke a private credential. */
+  storefrontCredentialRevoke: ApiStorefrontCredentialPayload;
+  /** Create an additional private credential for safe rotation. */
+  storefrontPrivateCredentialCreate: ApiStorefrontPrivateCredentialCreatePayload;
+};
+
+
+/** Headless App mutation namespace. */
+export type ApiHeadlessAppMutationHeadlessStorefrontCreateArgs = {
+  input: ApiHeadlessStorefrontCreateInput;
+};
+
+
+/** Headless App mutation namespace. */
+export type ApiHeadlessAppMutationHeadlessStorefrontDisconnectArgs = {
+  input: ApiHeadlessStorefrontActionInput;
+};
+
+
+/** Headless App mutation namespace. */
+export type ApiHeadlessAppMutationHeadlessStorefrontResumeArgs = {
+  input: ApiHeadlessStorefrontActionInput;
+};
+
+
+/** Headless App mutation namespace. */
+export type ApiHeadlessAppMutationHeadlessStorefrontSuspendArgs = {
+  input: ApiHeadlessStorefrontActionInput;
+};
+
+
+/** Headless App mutation namespace. */
+export type ApiHeadlessAppMutationHeadlessStorefrontUpdateArgs = {
+  input: ApiHeadlessStorefrontUpdateInput;
+};
+
+
+/** Headless App mutation namespace. */
+export type ApiHeadlessAppMutationStorefrontAccessPolicyUpdateArgs = {
+  input: ApiStorefrontAccessPolicyUpdateInput;
+};
+
+
+/** Headless App mutation namespace. */
+export type ApiHeadlessAppMutationStorefrontCredentialRevokeArgs = {
+  input: ApiStorefrontCredentialRevokeInput;
+};
+
+
+/** Headless App mutation namespace. */
+export type ApiHeadlessAppMutationStorefrontPrivateCredentialCreateArgs = {
+  input: ApiStorefrontPrivateCredentialCreateInput;
+};
+
+/** Headless App query namespace. */
+export type ApiHeadlessAppQuery = {
+  __typename?: 'HeadlessAppQuery';
+  /** Get a Headless storefront by its global ID. */
+  headlessStorefrontConnection?: Maybe<ApiHeadlessStorefrontConnection>;
+  /** List Headless storefronts owned by the active installation. */
+  headlessStorefrontConnections: Array<ApiHeadlessStorefrontConnection>;
+  /** Permission catalog used to render the Headless access policy editor. */
+  headlessStorefrontPermissionCatalog: Array<ApiHeadlessStorefrontPermissionDefinition>;
+};
+
+
+/** Headless App query namespace. */
+export type ApiHeadlessAppQueryHeadlessStorefrontConnectionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+/** Input for a lifecycle action on an existing Headless storefront. */
+export type ApiHeadlessStorefrontActionInput = {
+  /** A unique client-generated ID, reused only when retrying this request. */
+  clientMutationId: Scalars['String']['input'];
+  connectionId: Scalars['ID']['input'];
+};
+
+/** An independent custom storefront owned by the Headless App installation. */
+export type ApiHeadlessStorefrontConnection = ApiNode & {
+  __typename?: 'HeadlessStorefrontConnection';
+  createdAt: Scalars['DateTime']['output'];
+  displayName: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  /** The repeat-readable public token, subject to Admin authorization. */
+  publicAccessToken?: Maybe<Scalars['String']['output']>;
+  status: HeadlessStorefrontConnectionStatus;
+  storefrontAccessPolicy?: Maybe<ApiStorefrontAccessPolicy>;
+  /** Credential metadata without recoverable private token values. */
+  storefrontCredentials: Array<ApiStorefrontCredential>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Lifecycle state of a Headless storefront connection. */
+export type HeadlessStorefrontConnectionStatus =
+  | 'ACTIVE'
+  | 'DISCONNECTED'
+  | 'SUSPENDED';
+
+/** Input for creating a Headless storefront connection. */
+export type ApiHeadlessStorefrontCreateInput = {
+  /** A unique client-generated ID, reused only when retrying this request. */
+  clientMutationId: Scalars['String']['input'];
+  displayName: Scalars['String']['input'];
+};
+
+/** Payload returned after creating a Headless storefront. */
+export type ApiHeadlessStorefrontCreatePayload = {
+  __typename?: 'HeadlessStorefrontCreatePayload';
+  connection?: Maybe<ApiHeadlessStorefrontConnection>;
+  /** Whether an earlier request with the same client mutation ID was reused. */
+  duplicate: Scalars['Boolean']['output'];
+  /** Present only for the first successful execution. */
+  initialStorefrontCredentials?: Maybe<ApiStorefrontInitialCredentials>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Payload returned after changing a Headless storefront. */
+export type ApiHeadlessStorefrontPayload = {
+  __typename?: 'HeadlessStorefrontPayload';
+  connection?: Maybe<ApiHeadlessStorefrontConnection>;
+  /** Whether an earlier request with the same client mutation ID was reused. */
+  duplicate: Scalars['Boolean']['output'];
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A permission available to a Headless storefront connection. */
+export type ApiHeadlessStorefrontPermissionDefinition = {
+  __typename?: 'HeadlessStorefrontPermissionDefinition';
+  /** Supported resource action: read or write. */
+  action: Scalars['String']['output'];
+  /** What granting this permission allows the storefront to do. */
+  description: Scalars['String']['output'];
+  /** Canonical permission scope stored in the access policy. */
+  handle: Scalars['String']['output'];
+  /** Human-readable permission label. */
+  label: Scalars['String']['output'];
+  /** Protected Storefront API resource. */
+  resource: Scalars['String']['output'];
+  /** Risk level used by Admin UI when presenting the permission. */
+  risk: HeadlessStorefrontPermissionRisk;
+};
+
+/** Risk level shown when an administrator grants a Storefront permission. */
+export type HeadlessStorefrontPermissionRisk =
+  | 'HIGH'
+  | 'LOW'
+  | 'MEDIUM';
+
+/** Input for changing a Headless storefront display name. */
+export type ApiHeadlessStorefrontUpdateInput = {
+  /** A unique client-generated ID, reused only when retrying this request. */
+  clientMutationId: Scalars['String']['input'];
+  connectionId: Scalars['ID']['input'];
+  displayName: Scalars['String']['input'];
+};
+
+/** Hello World App queries. */
+export type ApiHelloWorldAppQuery = {
+  __typename?: 'HelloWorldAppQuery';
+  helloWorldGreeting: ApiHelloWorldGreeting;
+};
+
+export type ApiHelloWorldGreeting = {
+  __typename?: 'HelloWorldGreeting';
+  appCode: Scalars['String']['output'];
   message: Scalars['String']['output'];
 };
 
@@ -8254,17 +8990,6 @@ export type ApiIdFilter = {
   _neq?: InputMaybe<Scalars['ID']['input']>;
   /** Not in array */
   _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
-};
-
-export type ApiInstalledApp = {
-  __typename?: 'InstalledApp';
-  appCode: Scalars['String']['output'];
-  baseURL: Scalars['String']['output'];
-  domain: Scalars['String']['output'];
-  enabled: Scalars['Boolean']['output'];
-  id: Scalars['String']['output'];
-  meta?: Maybe<Scalars['JSON']['output']>;
-  storeID: Scalars['String']['output'];
 };
 
 /** Filter operators for Int fields */
@@ -9605,6 +10330,7 @@ export type ApiMutation = {
   __typename?: 'Mutation';
   /** Application realm management mutations. */
   applicationMutation: ApiApplicationMutation;
+  /** Apps control-plane mutations for the current store. */
   appsMutation: ApiAppsMutation;
   /** Authentication mutations. */
   authMutation: ApiAuthMutation;
@@ -9612,11 +10338,14 @@ export type ApiMutation = {
   catalogMutation: ApiCatalogMutation;
   /** Customers Admin mutation namespace. */
   customersMutation: ApiCustomersMutation;
+  /** Headless App mutations for the active installation. */
+  headlessAppMutation: ApiHeadlessAppMutation;
   /** Inventory mutation namespace for warehouse, stock, and inventory item operations */
   inventoryMutation: ApiInventoryMutation;
   /** Listing mutation namespace. */
   listingMutation: ApiListingMutation;
   mediaMutation: ApiMediaMutation;
+  notificationsMutation: ApiNotificationsMutation;
   orderMutation: ApiOrderMutation;
   /** Organization management mutations. */
   organizationMutation: ApiOrganizationMutation;
@@ -9632,10 +10361,357 @@ export type ApiMutation = {
   userMutation: ApiUserMutation;
 };
 
-/** The Node interface is implemented by all types that have a globally unique ID. */
+/** An object with a globally unique ID. */
 export type ApiNode = {
   /** The globally unique ID of the object. */
   id: Scalars['ID']['output'];
+};
+
+export type NotificationAudience =
+  | 'CUSTOMER'
+  | 'STAFF';
+
+export type NotificationChannel =
+  | 'EMAIL'
+  | 'SMS'
+  | 'WEBHOOK';
+
+export type ApiNotificationChannelSetEnabledPayload = {
+  __typename?: 'NotificationChannelSetEnabledPayload';
+  setting?: Maybe<ApiNotificationChannelSetting>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiNotificationChannelSetting = {
+  __typename?: 'NotificationChannelSetting';
+  channel: NotificationChannel;
+  definitionKey: Scalars['String']['output'];
+  enabled: Scalars['Boolean']['output'];
+  replyTo?: Maybe<Scalars['String']['output']>;
+  senderEmail?: Maybe<Scalars['String']['output']>;
+  senderName?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationChannelSettingInput = {
+  channel: NotificationChannel;
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  key: Scalars['String']['input'];
+  replyTo?: InputMaybe<Scalars['String']['input']>;
+  senderEmail?: InputMaybe<Scalars['String']['input']>;
+  senderName?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationDefinition = {
+  __typename?: 'NotificationDefinition';
+  activeChannels: Array<NotificationChannel>;
+  allowedChannels: Array<NotificationChannel>;
+  audience: NotificationAudience;
+  defaultChannels: Array<NotificationChannel>;
+  enabled: Scalars['Boolean']['output'];
+  key: Scalars['String']['output'];
+  optional: Scalars['Boolean']['output'];
+  title: Scalars['String']['output'];
+  variables: Array<ApiNotificationTemplateVariable>;
+  version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationDefinitionSetEnabledInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  key: Scalars['String']['input'];
+};
+
+export type ApiNotificationDefinitionSetEnabledPayload = {
+  __typename?: 'NotificationDefinitionSetEnabledPayload';
+  setting?: Maybe<ApiNotificationDefinitionSetting>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiNotificationDefinitionSetting = {
+  __typename?: 'NotificationDefinitionSetting';
+  definitionKey: Scalars['String']['output'];
+  enabled: Scalars['Boolean']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationEffectiveTemplate = {
+  __typename?: 'NotificationEffectiveTemplate';
+  bodyTemplate: Scalars['String']['output'];
+  channel: NotificationChannel;
+  key: Scalars['String']['output'];
+  locale: Scalars['String']['output'];
+  plainTextTemplate?: Maybe<Scalars['String']['output']>;
+  pointerVersion?: Maybe<Scalars['Int']['output']>;
+  revision?: Maybe<Scalars['Int']['output']>;
+  revisionId?: Maybe<Scalars['ID']['output']>;
+  source: Scalars['String']['output'];
+  sourceVersion?: Maybe<Scalars['String']['output']>;
+  subjectTemplate?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiNotificationPreview = {
+  __typename?: 'NotificationPreview';
+  html?: Maybe<Scalars['String']['output']>;
+  locale: Scalars['String']['output'];
+  sms?: Maybe<ApiNotificationSmsMetrics>;
+  subject?: Maybe<Scalars['String']['output']>;
+  text: Scalars['String']['output'];
+  warnings: Array<Scalars['String']['output']>;
+};
+
+export type ApiNotificationPreviewInput = {
+  bodyTemplate?: InputMaybe<Scalars['String']['input']>;
+  channel: NotificationChannel;
+  data: Scalars['JSON']['input'];
+  key: Scalars['String']['input'];
+  locale?: InputMaybe<Scalars['String']['input']>;
+  plainTextTemplate?: InputMaybe<Scalars['String']['input']>;
+  subjectTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationPreviewPayload = {
+  __typename?: 'NotificationPreviewPayload';
+  preview?: Maybe<ApiNotificationPreview>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiNotificationSendTestPayload = {
+  __typename?: 'NotificationSendTestPayload';
+  userErrors: Array<ApiGenericUserError>;
+  workflow?: Maybe<ApiNotificationWorkflowPayload>;
+};
+
+export type ApiNotificationSmsMetrics = {
+  __typename?: 'NotificationSmsMetrics';
+  encoding: Scalars['String']['output'];
+  length: Scalars['Int']['output'];
+  segmentCount: Scalars['Int']['output'];
+};
+
+export type ApiNotificationTemplateUpdateInput = {
+  bodyTemplate: Scalars['String']['input'];
+  channel: NotificationChannel;
+  expectedVersion: Scalars['Int']['input'];
+  key: Scalars['String']['input'];
+  locale: Scalars['String']['input'];
+  plainTextTemplate?: InputMaybe<Scalars['String']['input']>;
+  subjectTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationTemplateUpdatePayload = {
+  __typename?: 'NotificationTemplateUpdatePayload';
+  template?: Maybe<ApiNotificationEffectiveTemplate>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiNotificationTemplateVariable = {
+  __typename?: 'NotificationTemplateVariable';
+  children?: Maybe<Array<ApiNotificationTemplateVariable>>;
+  description: Scalars['String']['output'];
+  path: Scalars['String']['output'];
+  required: Scalars['Boolean']['output'];
+  type: Scalars['String']['output'];
+};
+
+export type ApiNotificationTestMessageInput = {
+  channel: NotificationChannel;
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  data: Scalars['JSON']['input'];
+  email?: InputMaybe<Scalars['String']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  key: Scalars['String']['input'];
+  locale?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+  recipientId?: InputMaybe<Scalars['ID']['input']>;
+  userId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type NotificationWebhookApiStability =
+  | 'DEPRECATED'
+  | 'STABLE'
+  | 'UNSTABLE';
+
+export type ApiNotificationWebhookApiVersion = {
+  __typename?: 'NotificationWebhookApiVersion';
+  isDefault: Scalars['Boolean']['output'];
+  stability: NotificationWebhookApiStability;
+  version: Scalars['String']['output'];
+};
+
+export type ApiNotificationWebhookCapabilities = {
+  __typename?: 'NotificationWebhookCapabilities';
+  apiVersions: Array<ApiNotificationWebhookApiVersion>;
+  events: Array<ApiNotificationWebhookEvent>;
+};
+
+export type ApiNotificationWebhookCreateInput = {
+  apiVersion: Scalars['String']['input'];
+  eventType: Scalars['String']['input'];
+  format: NotificationWebhookFormat;
+  url: Scalars['String']['input'];
+};
+
+export type ApiNotificationWebhookCreatePayload = {
+  __typename?: 'NotificationWebhookCreatePayload';
+  userErrors: Array<ApiGenericUserError>;
+  webhook?: Maybe<ApiNotificationWebhookSubscription>;
+};
+
+export type ApiNotificationWebhookDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiNotificationWebhookDeletePayload = {
+  __typename?: 'NotificationWebhookDeletePayload';
+  deletedWebhookId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiNotificationWebhookEvent = {
+  __typename?: 'NotificationWebhookEvent';
+  eventType: Scalars['String']['output'];
+  title: Scalars['String']['output'];
+};
+
+export type NotificationWebhookFormat =
+  | 'JSON'
+  | 'XML';
+
+export type ApiNotificationWebhookSecretPayload = {
+  __typename?: 'NotificationWebhookSecretPayload';
+  secret?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type NotificationWebhookStatus =
+  | 'ACTIVE'
+  | 'DISABLED';
+
+export type ApiNotificationWebhookSubscription = {
+  __typename?: 'NotificationWebhookSubscription';
+  apiVersion: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  eventType: Scalars['String']['output'];
+  format: NotificationWebhookFormat;
+  id: Scalars['ID']['output'];
+  status: NotificationWebhookStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  url: Scalars['String']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type ApiNotificationWebhookUpdateInput = {
+  apiVersion?: InputMaybe<Scalars['String']['input']>;
+  eventType?: InputMaybe<Scalars['String']['input']>;
+  expectedVersion: Scalars['Int']['input'];
+  format?: InputMaybe<NotificationWebhookFormat>;
+  id: Scalars['ID']['input'];
+  status?: InputMaybe<NotificationWebhookStatus>;
+  url?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiNotificationWebhookUpdatePayload = {
+  __typename?: 'NotificationWebhookUpdatePayload';
+  userErrors: Array<ApiGenericUserError>;
+  webhook?: Maybe<ApiNotificationWebhookSubscription>;
+};
+
+export type ApiNotificationWorkflowPayload = {
+  __typename?: 'NotificationWorkflowPayload';
+  accepted: Scalars['Boolean']['output'];
+  workflowId: Scalars['String']['output'];
+};
+
+export type ApiNotificationsMutation = {
+  __typename?: 'NotificationsMutation';
+  createWebhook: ApiNotificationWebhookCreatePayload;
+  deleteStaffRecipient: ApiStaffRecipientDeletePayload;
+  deleteWebhook: ApiNotificationWebhookDeletePayload;
+  preview: ApiNotificationPreviewPayload;
+  revealWebhookSecret: ApiNotificationWebhookSecretPayload;
+  sendTest: ApiNotificationSendTestPayload;
+  setChannelEnabled: ApiNotificationChannelSetEnabledPayload;
+  setDefinitionEnabled: ApiNotificationDefinitionSetEnabledPayload;
+  updateTemplate: ApiNotificationTemplateUpdatePayload;
+  updateWebhook: ApiNotificationWebhookUpdatePayload;
+  upsertStaffRecipient: ApiStaffRecipientUpsertPayload;
+};
+
+
+export type ApiNotificationsMutationCreateWebhookArgs = {
+  input: ApiNotificationWebhookCreateInput;
+};
+
+
+export type ApiNotificationsMutationDeleteStaffRecipientArgs = {
+  input: ApiStaffRecipientDeleteInput;
+};
+
+
+export type ApiNotificationsMutationDeleteWebhookArgs = {
+  input: ApiNotificationWebhookDeleteInput;
+};
+
+
+export type ApiNotificationsMutationPreviewArgs = {
+  input: ApiNotificationPreviewInput;
+};
+
+
+export type ApiNotificationsMutationSendTestArgs = {
+  input: ApiNotificationTestMessageInput;
+};
+
+
+export type ApiNotificationsMutationSetChannelEnabledArgs = {
+  input: ApiNotificationChannelSettingInput;
+};
+
+
+export type ApiNotificationsMutationSetDefinitionEnabledArgs = {
+  input: ApiNotificationDefinitionSetEnabledInput;
+};
+
+
+export type ApiNotificationsMutationUpdateTemplateArgs = {
+  input: ApiNotificationTemplateUpdateInput;
+};
+
+
+export type ApiNotificationsMutationUpdateWebhookArgs = {
+  input: ApiNotificationWebhookUpdateInput;
+};
+
+
+export type ApiNotificationsMutationUpsertStaffRecipientArgs = {
+  input: ApiStaffNotificationRecipientInput;
+};
+
+export type ApiNotificationsQuery = {
+  __typename?: 'NotificationsQuery';
+  channelSettings: Array<ApiNotificationChannelSetting>;
+  definitions: Array<ApiNotificationDefinition>;
+  staffRecipients: Array<ApiStaffNotificationRecipient>;
+  template: ApiNotificationEffectiveTemplate;
+  webhookCapabilities: ApiNotificationWebhookCapabilities;
+  webhookSubscriptions: Array<ApiNotificationWebhookSubscription>;
+};
+
+
+export type ApiNotificationsQueryChannelSettingsArgs = {
+  key: Scalars['String']['input'];
+};
+
+
+export type ApiNotificationsQueryTemplateArgs = {
+  channel: NotificationChannel;
+  key: Scalars['String']['input'];
+  locale: Scalars['String']['input'];
 };
 
 /** Result of a single operation in the unified update. */
@@ -10118,16 +11194,16 @@ export type ApiOwnershipTransferPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** Information about pagination in a connection. */
+/** Pagination metadata for a Relay connection. */
 export type ApiPageInfo = {
   __typename?: 'PageInfo';
-  /** When paginating forwards, the cursor to continue. */
+  /** The cursor of the last edge in the current page. */
   endCursor?: Maybe<Scalars['String']['output']>;
-  /** When paginating forwards, are there more items? */
+  /** Whether more items exist after the current page. */
   hasNextPage: Scalars['Boolean']['output'];
-  /** When paginating backwards, are there more items? */
+  /** Whether more items exist before the current page. */
   hasPreviousPage: Scalars['Boolean']['output'];
-  /** When paginating backwards, the cursor to continue. */
+  /** The cursor of the first edge in the current page. */
   startCursor?: Maybe<Scalars['String']['output']>;
 };
 
@@ -11822,16 +12898,22 @@ export type ApiQuery = {
   __typename?: 'Query';
   /** Application realm management queries. */
   applicationQuery: ApiApplicationQuery;
+  /** Apps control-plane queries for the current store. */
   appsQuery: ApiAppsQuery;
   /** Catalog query namespace for product, variant, category, and collection operations */
   catalogQuery: ApiCatalogQuery;
   /** Customers Admin query namespace. */
   customersQuery: ApiCustomersQuery;
+  /** Headless App queries for the active installation. */
+  headlessAppQuery: ApiHeadlessAppQuery;
+  /** Hello World App query namespace. */
+  helloWorldAppQuery: ApiHelloWorldAppQuery;
   /** Inventory query namespace for warehouse, stock, and inventory item operations */
   inventoryQuery: ApiInventoryQuery;
   /** Listing query namespace. */
   listingQuery: ApiListingQuery;
   mediaQuery: ApiMediaQuery;
+  notificationsQuery: ApiNotificationsQuery;
   orderQuery: ApiOrderQuery;
   /** Organization queries namespace. */
   organizationQuery: ApiOrganizationQuery;
@@ -15068,6 +16150,48 @@ export type SortDirection =
   | 'asc'
   | 'desc';
 
+export type ApiStaffNotificationRecipient = {
+  __typename?: 'StaffNotificationRecipient';
+  createdAt: Scalars['DateTime']['output'];
+  email: Scalars['String']['output'];
+  enabled: Scalars['Boolean']['output'];
+  eventKeys: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  locale: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  scope: Scalars['String']['output'];
+  timezone: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  userId?: Maybe<Scalars['ID']['output']>;
+};
+
+export type ApiStaffNotificationRecipientInput = {
+  email: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  eventKeys: Array<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  locale: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  timezone: Scalars['String']['input'];
+  userId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiStaffRecipientDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiStaffRecipientDeletePayload = {
+  __typename?: 'StaffRecipientDeletePayload';
+  deletedStaffRecipientId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiStaffRecipientUpsertPayload = {
+  __typename?: 'StaffRecipientUpsertPayload';
+  recipient?: Maybe<ApiStaffNotificationRecipient>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 /** A store */
 export type ApiStore = {
   __typename?: 'Store';
@@ -15097,6 +16221,8 @@ export type ApiStore = {
   email?: Maybe<Scalars['String']['output']>;
   /** Unique identifier of the store */
   id: Scalars['ID']['output'];
+  /** All configured languages, including inactive drafts */
+  languageSettings: Array<ApiLocale>;
   /** List of enabled locale codes for the store */
   locales: Array<LocaleCode>;
   /** Membership info (resolved from IAM by domain) */
@@ -15211,7 +16337,6 @@ export type ApiStoreCurrencySettings = {
   currencyDisplay: CurrencyDisplay;
   currencySign: CurrencySign;
   grouping: CurrencyGrouping;
-  locale: LocaleCode;
   maximumFractionDigits: Scalars['Int']['output'];
   minimumFractionDigits: Scalars['Int']['output'];
   roundingMode: CurrencyRoundingMode;
@@ -15224,7 +16349,6 @@ export type ApiStoreCurrencySettingsUpdateInput = {
   currencyDisplay: CurrencyDisplay;
   currencySign: CurrencySign;
   grouping: CurrencyGrouping;
-  locale: LocaleCode;
   maximumFractionDigits: Scalars['Int']['input'];
   minimumFractionDigits: Scalars['Int']['input'];
   roundingMode: CurrencyRoundingMode;
@@ -15430,6 +16554,97 @@ export type ApiStoreUpdatePayload = {
   store?: Maybe<ApiStore>;
   /** Aggregated errors from all operations */
   userErrors: Array<ApiUserError>;
+};
+
+/** The Storefront API permissions granted to a Headless storefront. */
+export type ApiStorefrontAccessPolicy = {
+  __typename?: 'StorefrontAccessPolicy';
+  /** Immutable, sorted Storefront permission handles. */
+  permissions: Array<Scalars['String']['output']>;
+  /** Optimistic concurrency revision. */
+  revision: Scalars['Int']['output'];
+  /** When the policy or its grants were last changed. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Payload returned after updating a storefront access policy. */
+export type ApiStorefrontAccessPolicyPayload = {
+  __typename?: 'StorefrontAccessPolicyPayload';
+  policy?: Maybe<ApiStorefrontAccessPolicy>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for replacing the complete Storefront permission grant set. */
+export type ApiStorefrontAccessPolicyUpdateInput = {
+  /** A unique client-generated ID, reused only when retrying this request. */
+  clientMutationId: Scalars['String']['input'];
+  connectionId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  permissions: Array<Scalars['String']['input']>;
+};
+
+/** Credential metadata. Private plaintext is never exposed by this type. */
+export type ApiStorefrontCredential = ApiNode & {
+  __typename?: 'StorefrontCredential';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  kind: StorefrontCredentialKind;
+  label?: Maybe<Scalars['String']['output']>;
+  lastUsedAt?: Maybe<Scalars['DateTime']['output']>;
+  revokedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: StorefrontCredentialStatus;
+  /** A redacted suffix suitable for identifying the credential. */
+  tokenHint: Scalars['String']['output'];
+};
+
+/** Whether a credential is safe for public clients or restricted to servers. */
+export type StorefrontCredentialKind =
+  | 'PRIVATE'
+  | 'PUBLIC';
+
+/** Payload returned after revoking a private storefront credential. */
+export type ApiStorefrontCredentialPayload = {
+  __typename?: 'StorefrontCredentialPayload';
+  credential?: Maybe<ApiStorefrontCredential>;
+  /** Whether an earlier request with the same client mutation ID was reused. */
+  duplicate: Scalars['Boolean']['output'];
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for revoking an existing private storefront credential. */
+export type ApiStorefrontCredentialRevokeInput = {
+  /** A unique client-generated ID, reused only when retrying this request. */
+  clientMutationId: Scalars['String']['input'];
+  credentialId: Scalars['ID']['input'];
+};
+
+/** Lifecycle state of a storefront credential. */
+export type StorefrontCredentialStatus =
+  | 'ACTIVE'
+  | 'REVOKED';
+
+/** Plaintext credentials returned only by the initial create mutation. */
+export type ApiStorefrontInitialCredentials = {
+  __typename?: 'StorefrontInitialCredentials';
+  privateAccessToken: Scalars['String']['output'];
+  publicAccessToken: Scalars['String']['output'];
+};
+
+/** Input for creating a private credential for an existing storefront. */
+export type ApiStorefrontPrivateCredentialCreateInput = {
+  /** A unique client-generated ID, reused only when retrying this request. */
+  clientMutationId: Scalars['String']['input'];
+  connectionId: Scalars['ID']['input'];
+  label: Scalars['String']['input'];
+};
+
+/** Payload returned after creating a private storefront credential. */
+export type ApiStorefrontPrivateCredentialCreatePayload = {
+  __typename?: 'StorefrontPrivateCredentialCreatePayload';
+  credential?: Maybe<ApiStorefrontCredential>;
+  /** Plaintext returned only for the first successful execution. */
+  privateAccessToken?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Filter operators for String fields */
@@ -15639,13 +16854,13 @@ export type ApiUser = {
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
-/** A generic user error interface for mutation responses. */
+/** A user-facing mutation error. */
 export type ApiUserError = {
-  /** An error code for programmatic handling. */
+  /** A stable machine-readable error code. */
   code?: Maybe<Scalars['String']['output']>;
-  /** The path to the input field that caused the error. */
+  /** The input path associated with the error. */
   field?: Maybe<Array<Scalars['String']['output']>>;
-  /** The error message. */
+  /** A human-readable error message. */
   message: Scalars['String']['output'];
 };
 
@@ -16762,11 +17977,14 @@ export type ApiWidgetQueryReviewsArgs = {
 
 export type Join__Graph =
   | 'APPS_ADMIN'
+  | 'APPS_HEADLESS_ADMIN'
+  | 'APPS_HELLO_WORLD_ADMIN'
   | 'CATALOG_ADMIN'
   | 'CUSTOMERS_ADMIN'
   | 'IAM_ADMIN'
   | 'LISTING_ADMIN'
   | 'MEDIA_ADMIN'
+  | 'NOTIFICATIONS_ADMIN'
   | 'ORDERS_ADMIN'
   | 'PRICING_ADMIN'
   | 'PROJECT_ADMIN'
