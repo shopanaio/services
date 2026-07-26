@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import type { GatewayPlugin } from "@graphql-hive/gateway";
 import { StorefrontAccessClient } from "./StorefrontAccessClient.js";
 import { StorefrontContextSigner } from "./StorefrontContextSigner.js";
-import { StorefrontAccessRateLimiter } from "./StorefrontAccessRateLimiter.js";
 import {
   parseStorefrontRequest,
   requestError,
@@ -19,7 +18,6 @@ export function createStorefrontAccessPlugin() {
     required("STOREFRONT_CONTEXT_PRIVATE_KEY"),
   );
   const signedContexts = new WeakMap<Request, string>();
-  const rateLimiter = new StorefrontAccessRateLimiter();
   const plugin: GatewayPlugin = {
     async onRequest({ request, fetchAPI, endResponse }) {
       if (new URL(request.url).pathname === "/health") return;
@@ -37,13 +35,6 @@ export function createStorefrontAccessPlugin() {
             401,
             "STOREFRONT_CREDENTIAL_INVALID",
             "Invalid storefront credential",
-          );
-        }
-        if (!rateLimiter.consume(context, parsed.buyerIp)) {
-          throw requestError(
-            429,
-            "STOREFRONT_RATE_LIMITED",
-            "Storefront request rate limit exceeded",
           );
         }
         signedContexts.set(request, signer.sign(context, requestId));
