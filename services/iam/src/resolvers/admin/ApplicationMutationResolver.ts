@@ -240,7 +240,7 @@ export class ApplicationMutationResolver extends IAMType<
           defaultLocale:
             input.defaultLocale == null
               ? undefined
-              : (input.defaultLocale as "en" | "uk" | "ru"),
+              : (input.defaultLocale as "en"),
           trustedOrigins: input.trustedOrigins ?? undefined,
           emailDelivery: input.emailDelivery ?? undefined,
           expectedRevision: input.expectedRevision,

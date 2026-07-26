@@ -217,7 +217,7 @@ const authUpdateSchema = scopeSchema
       .max(2592000)
       .optional(),
     branding: authBrandingPatchSchema.optional(),
-    defaultLocale: z.enum(["en", "uk", "ru"]).optional(),
+    defaultLocale: z.literal("en").optional(),
     trustedOrigins: z.array(z.string().min(1).max(2048)).max(100).optional(),
     emailDelivery: emailDeliverySchema.optional(),
     expectedRevision: revisionSchema,
@@ -400,7 +400,7 @@ export class ApplicationAuthAdminManagementService {
         origin: string;
         redirectUri: string;
         postLogoutRedirectUri: string;
-        defaultLocale: "en" | "uk" | "ru";
+        defaultLocale: "en";
       };
     } = {}
   ): Promise<ApplicationMutationResult> {

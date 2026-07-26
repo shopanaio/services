@@ -60,7 +60,7 @@ export interface CreateAdminApplicationInput {
     origin: string;
     redirectUri: string;
     postLogoutRedirectUri: string;
-    defaultLocale: "en" | "uk" | "ru";
+    defaultLocale: "en";
     clientId: string;
     actorId: string;
   };

@@ -82,7 +82,7 @@ export type CreateApplicationParams = {
     origin: string;
     redirectUri: string;
     postLogoutRedirectUri: string;
-    defaultLocale: "en" | "uk" | "ru";
+    defaultLocale: "en";
   };
 } & ResourceManagementInput;
 

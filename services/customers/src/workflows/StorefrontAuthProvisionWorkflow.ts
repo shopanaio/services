@@ -96,7 +96,7 @@ export class StorefrontAuthProvisionWorkflow extends BrokerWorkflows<
       description: `Store application for ${input.displayName}`,
       applicationAuth: {
         ...resolveStorefrontAuthUrls(input.name),
-        defaultLocale: toApplicationAuthLocale(input.defaultLocale),
+        defaultLocale: "en",
       },
       managementMode: "service",
       linkedOwner: {
@@ -113,8 +113,4 @@ export class StorefrontAuthProvisionWorkflow extends BrokerWorkflows<
       );
     }
   }
-}
-
-function toApplicationAuthLocale(locale: string): "en" | "uk" | "ru" {
-  return locale === "uk" || locale === "ru" ? locale : "en";
 }

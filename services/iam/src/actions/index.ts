@@ -77,7 +77,7 @@ const applicationAuthBootstrapInputSchema = z
     origin: z.string().url().max(2048),
     redirectUri: z.string().url().max(2048),
     postLogoutRedirectUri: z.string().url().max(2048),
-    defaultLocale: z.enum(["en", "uk", "ru"]),
+    defaultLocale: z.literal("en"),
   })
   .strict()
   .superRefine((value, ctx) => {

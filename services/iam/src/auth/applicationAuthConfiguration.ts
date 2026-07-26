@@ -25,7 +25,7 @@ export const APPLICATION_AUTH_TTL = {
   authorizationContext: 10 * 60,
 } as const;
 
-export const APPLICATION_AUTH_UI_LOCALES = ["en", "uk", "ru"] as const;
+export const APPLICATION_AUTH_UI_LOCALES = ["en"] as const;
 export type ApplicationAuthUiLocale =
   (typeof APPLICATION_AUTH_UI_LOCALES)[number];
 
