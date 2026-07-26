@@ -482,7 +482,7 @@ export class ApplicationAuthHostedUiController {
       "password-signup",
       singleFormValue(form, "csrf", 16, 1024)
     );
-    await this.kernel.applicationAuthRateLimiter.assertPasswordSignIn({
+    await this.kernel.applicationAuthRateLimiter.assertPasswordSignUp({
       applicationId: input.runtime.applicationId,
       normalizedEmail: email,
       ip: input.request.ip,

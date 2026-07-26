@@ -806,16 +806,27 @@ async function assertApplicationAuthRateLimit(input: {
     });
     return;
   }
-  if (
-    input.normalizedPath === "/sign-in/email" ||
-    input.normalizedPath === "/sign-up/email"
-  ) {
+  if (input.normalizedPath === "/sign-in/email") {
     if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
     const email = parseJsonBody(input.raw.body).email;
     if (typeof email !== "string" || email.length > 320) {
       throw new ApplicationAuthRequestError("Email is invalid");
     }
     await input.kernel.applicationAuthRateLimiter.assertPasswordSignIn({
+      applicationId: input.runtime.applicationId,
+      normalizedEmail: email.trim().toLowerCase(),
+      ip: input.request.ip,
+      secret,
+    });
+    return;
+  }
+  if (input.normalizedPath === "/sign-up/email") {
+    if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    const email = parseJsonBody(input.raw.body).email;
+    if (typeof email !== "string" || email.length > 320) {
+      throw new ApplicationAuthRequestError("Email is invalid");
+    }
+    await input.kernel.applicationAuthRateLimiter.assertPasswordSignUp({
       applicationId: input.runtime.applicationId,
       normalizedEmail: email.trim().toLowerCase(),
       ip: input.request.ip,

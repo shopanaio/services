@@ -363,7 +363,11 @@ function createCommonOptions(
       },
     },
     rateLimit: {
-      enabled: true,
+      // Application auth is protected by ApplicationAuthRateLimiter, whose
+      // buckets are application-scoped and backed by the configured atomic
+      // port. Better Auth's process-global IP/path buckets would otherwise
+      // merge independent application realms and double-consume requests.
+      enabled: scope.kind !== "application",
       window: 60,
       max: 100,
     },

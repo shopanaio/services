@@ -265,7 +265,6 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     }
     expect((await signIn(request, realm, email)).ok()).toBe(true);
 
-    expect((await signIn(request, realm, email, wrongPassword)).status()).toBe(401);
     expect((await signIn(request, realm, email, wrongPassword)).status()).toBe(429);
   });
 });

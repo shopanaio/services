@@ -116,6 +116,23 @@ export class ApplicationAuthRateLimiter {
     );
   }
 
+  async assertPasswordSignUp(input: {
+    applicationId: string;
+    normalizedEmail: string;
+    ip: string;
+    secret: string;
+  }): Promise<void> {
+    const identity = digest(input.secret, input.normalizedEmail);
+    const ip = digest(input.secret, input.ip);
+    await this.consume(
+      [
+        bucket(input, "password-signup:identity", `${identity}:${ip}`, 5, 60),
+        bucket(input, "password-signup:ip", ip, 30, 15 * 60),
+      ],
+      "required"
+    );
+  }
+
   async assertPasswordReset(input: {
     applicationId: string;
     normalizedEmail: string;
