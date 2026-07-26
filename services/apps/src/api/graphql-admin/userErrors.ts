@@ -51,6 +51,7 @@ function inferCode(message: string, fallbackCode: string): string {
   if (normalized.includes("cannot ")) return "INVALID_STATE";
   if (normalized.includes("undeclared scope")) return "INVALID_SCOPE";
   if (normalized.includes("required")) return "INVALID_INPUT";
+  if (normalized.includes("invalid")) return "INVALID_INPUT";
   return fallbackCode;
 }
 
@@ -59,7 +60,7 @@ function inferField(
   fieldPrefix: readonly string[],
 ): readonly string[] | null {
   const match = message.match(
-    /^(appCode|installationId|connectionId|specificationId|clientMutationId) is required$/,
+    /^(appCode|installationId|connectionId|specificationId|clientMutationId|expectedConfigurationVersion) is (?:required|invalid)(?: .*)?$/,
   );
   return match?.[1] ? [...fieldPrefix, match[1]] : null;
 }

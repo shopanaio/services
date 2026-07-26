@@ -13,6 +13,10 @@ import {
 } from "@shopana/shared-graphql-guid";
 import type { ServiceContext } from "../../context/types.js";
 import { AuthProvider } from "../../kernel/Authorizable.js";
+import {
+  getResolverRegistry,
+  type ResolverRegistry,
+} from "./ResolverRegistry.js";
 
 export { Cache };
 
@@ -28,6 +32,10 @@ export abstract class AppsType<TValue, TData = unknown>
   static executor = createExecutor<ServiceContext>({
     middleware: [createAuthorizationMiddleware()],
   });
+
+  protected get resolvers(): ResolverRegistry {
+    return getResolverRegistry(this.$ctx);
+  }
 
   protected getCache(): CacheStore {
     return {} as CacheStore;
