@@ -24,6 +24,18 @@ export class StorefrontAuthConfigurationRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  async findByApplicationId(
+    applicationId: string,
+  ): Promise<StorefrontAuthConfiguration | null> {
+    const rows = await this.connection
+      .select()
+      .from(storefrontAuthConfiguration)
+      .where(eq(storefrontAuthConfiguration.applicationId, applicationId))
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
   async createIfAbsent(input: {
     storeId: string;
     organizationId: string;

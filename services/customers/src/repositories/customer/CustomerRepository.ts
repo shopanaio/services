@@ -221,6 +221,23 @@ export class CustomerRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async findByIamPrincipalIdIncludingDeleted(
+    iamPrincipalId: string,
+  ): Promise<Customer | null> {
+    const rows = await this.connection
+      .select()
+      .from(customer)
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          eq(customer.iamPrincipalId, iamPrincipalId),
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
   async getByIds(ids: readonly string[]): Promise<Customer[]> {
     if (ids.length === 0) return [];
     return this.connection
@@ -256,6 +273,70 @@ export class CustomerRepository extends BaseRepository {
     };
     const rows = await this.connection.insert(customer).values(row).returning();
     return rows[0];
+  }
+
+  async createIfAbsent(data: CustomerCreateData): Promise<Customer | null> {
+    const id = await this.generateUuidV7();
+    const now = new Date().toISOString();
+    const email = data.email?.trim() || null;
+    const row: NewCustomer = {
+      ...data,
+      id,
+      storeId: this.storeId,
+      email,
+      normalizedEmail: email ? normalizeEmail(email) : null,
+      accountStatus: data.accountStatus ?? "GUEST",
+      emailVerified: data.emailVerified ?? false,
+      phoneVerified: data.phoneVerified ?? false,
+      source: data.source ?? "unknown",
+      revision: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+    const rows = await this.connection
+      .insert(customer)
+      .values(row)
+      .onConflictDoNothing()
+      .returning();
+    return rows[0] ?? null;
+  }
+
+  async claimIamPrincipal(
+    id: string,
+    data: {
+      iamPrincipalId: string;
+      email: string;
+      emailVerified: boolean;
+      firstName: string | null;
+      lastName: string | null;
+    },
+  ): Promise<Customer | null> {
+    const rows = await this.connection
+      .update(customer)
+      .set({
+        iamPrincipalId: data.iamPrincipalId,
+        accountStatus: "REGISTERED",
+        email: data.email.trim(),
+        normalizedEmail: normalizeEmail(data.email),
+        emailVerified: data.emailVerified,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        updatedAt: new Date().toISOString(),
+        revision: sql`${customer.revision} + 1`,
+      })
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          eq(customer.id, id),
+          isNull(customer.iamPrincipalId),
+          isNull(customer.deletedAt),
+          eq(customer.lifecycleStatus, "ACTIVE"),
+          inArray(customer.accountStatus, ["GUEST", "INVITED"]),
+        ),
+      )
+      .returning();
+    return rows[0] ?? null;
   }
 
   async update(

@@ -7625,6 +7625,7 @@ __metadata:
     "@nestjs/cache-manager": "npm:^3.0.1"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/drizzle-query": "npm:*"
+    "@shopana/events": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/rbac": "npm:*"
     "@shopana/shared-kernel": "npm:*"

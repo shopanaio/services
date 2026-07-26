@@ -207,6 +207,13 @@ const validateServiceLinkedApplicationTokenInputSchema =
     })
     .strict();
 
+const getServiceLinkedApplicationUserInputSchema =
+  getServiceLinkedApplicationAuthSettingsInputSchema
+    .extend({
+      userId: z.string().trim().min(1).max(128),
+    })
+    .strict();
+
 type AllocateApplicationIdParams = z.infer<typeof allocateApplicationIdInputSchema>;
 type AllocateApplicationIdResult = {
   success: boolean;
@@ -264,6 +271,24 @@ type ValidateServiceLinkedApplicationTokenResult =
     }
   | {
       active: false;
+    };
+type GetServiceLinkedApplicationUserParams = z.infer<
+  typeof getServiceLinkedApplicationUserInputSchema
+>;
+type GetServiceLinkedApplicationUserResult =
+  | {
+      found: true;
+      user: {
+        id: string;
+        status: "active" | "blocked";
+        email: string;
+        emailVerified: boolean;
+        firstName: string | null;
+        lastName: string | null;
+      };
+    }
+  | {
+      found: false;
     };
 
 /**
@@ -714,6 +739,35 @@ export class IamBrokerActions extends BrokerActions {
     } catch {
       return { active: false };
     }
+  }
+
+  /**
+   * Hydrate the minimal application-user identity projection for the service
+   * that owns the service-linked application.
+   */
+  @Action("getServiceLinkedApplicationUser")
+  @ZodSchema(getServiceLinkedApplicationUserInputSchema)
+  async getServiceLinkedApplicationUser(
+    params: GetServiceLinkedApplicationUserParams,
+    actionContext: BrokerCallContext,
+  ): Promise<GetServiceLinkedApplicationUserResult> {
+    await this.assertServiceLinkedApplicationOwner(params, actionContext);
+    const user = await this.kernel.repository.applicationUser
+      .forApplication(params.applicationId)
+      .find(params.userId);
+    if (!user) return { found: false };
+
+    return {
+      found: true,
+      user: {
+        id: user.id,
+        status: user.status,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+    };
   }
 
   private async assertServiceLinkedApplicationOwner(

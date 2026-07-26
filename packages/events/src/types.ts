@@ -276,6 +276,15 @@ export interface CustomerCreatedEvent
     }
   > {}
 
+export interface ApplicationUserCreatedEvent
+  extends DomainEvent<
+    "applicationUserCreated",
+    {
+      applicationId: string;
+      applicationUserId: string;
+    }
+  > {}
+
 export interface CustomerDeletedEvent
   extends DomainEvent<
     "customerDeleted",
@@ -503,6 +512,7 @@ export type ShopanaEvent =
   | ProductCreatedEvent
   | ProductDeletedEvent
   | ProductUpdatedEvent
+  | ApplicationUserCreatedEvent
   | CustomerCreatedEvent
   | CustomerDeletedEvent
   | CustomerUpdatedEvent

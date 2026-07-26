@@ -22,6 +22,7 @@ import {
   CustomerTagUpdateWorkflow,
 } from "./CustomerEntityUpdateWorkflows.js";
 import { CustomerUpdateWorkflow } from "./CustomerUpdateWorkflow.js";
+import { CustomerProvisionFromIamWorkflow } from "./CustomerProvisionFromIamWorkflow.js";
 import { StorefrontAuthProvisionWorkflow } from "./StorefrontAuthProvisionWorkflow.js";
 import { StorefrontAuthDeprovisionWorkflow } from "./StorefrontAuthDeprovisionWorkflow.js";
 
@@ -43,6 +44,7 @@ export const workflows = [
   CustomerMergeDeleteWorkflow,
   CustomerDataRequestDeleteWorkflow,
   CustomerUpdateWorkflow,
+  CustomerProvisionFromIamWorkflow,
   CustomerDeleteWorkflow,
   StorefrontAuthProvisionWorkflow,
   StorefrontAuthDeprovisionWorkflow,
@@ -54,6 +56,7 @@ export * from "./CustomerEntityCreateWorkflows.js";
 export * from "./CustomerEntityDeleteWorkflows.js";
 export * from "./CustomerEntityUpdateWorkflows.js";
 export { CustomerUpdateWorkflow } from "./CustomerUpdateWorkflow.js";
+export * from "./CustomerProvisionFromIamWorkflow.js";
 export * from "./StorefrontAuthProvisionWorkflow.js";
 export * from "./StorefrontAuthDeprovisionWorkflow.js";
 export * from "./dto/index.js";

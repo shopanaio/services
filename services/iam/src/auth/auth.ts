@@ -20,6 +20,7 @@ import {
   type ApplicationAuthEmailDeliveryPort,
 } from "../services/ApplicationAuthEmailDeliveryPort.js";
 import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
+import type { ApplicationUserLifecyclePort } from "../services/ApplicationUserLifecyclePort.js";
 import type { ApplicationAuthLiveStateInvalidationBus } from "../events/application-auth/index.js";
 import { assertApplicationId, type AuthAdapterScope } from "./AuthScope.js";
 import type { EffectiveApplicationAuthPolicy } from "./applicationAuthConfiguration.js";
@@ -110,6 +111,7 @@ export function createApplicationAuth(
     secrets: ApplicationAuthSecretService;
     emailDelivery?: ApplicationAuthEmailDeliveryPort;
     liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus;
+    applicationUserLifecycle?: ApplicationUserLifecyclePort;
   }
 ) {
   const db = getDatabase();
@@ -248,6 +250,40 @@ export function createApplicationAuth(
     onAPIError: {
       errorURL: `${basePath}/error`,
     },
+    ...(security.applicationUserLifecycle
+      ? {
+          databaseHooks: {
+            account: {
+              create: {
+                after: async (account: { userId: string }) => {
+                  await security.applicationUserLifecycle!.provisioningRequired({
+                    applicationId,
+                    organizationId: config.organizationId,
+                    applicationUserId: requireLifecycleUserId(
+                      account.userId,
+                      "account",
+                    ),
+                  });
+                },
+              },
+            },
+            session: {
+              create: {
+                after: async (session: Record<string, unknown>) => {
+                  await security.applicationUserLifecycle!.provisioningRequired({
+                    applicationId,
+                    organizationId: config.organizationId,
+                    applicationUserId: requireLifecycleUserId(
+                      session.userId,
+                      "session",
+                    ),
+                  });
+                },
+              },
+            },
+          },
+        }
+      : {}),
     disabledPaths: ["/token"],
     emailAndPassword: {
       enabled: passwordEnabled,
@@ -285,6 +321,16 @@ export function createApplicationAuth(
     ),
     plugins,
   });
+}
+
+function requireLifecycleUserId(
+  value: unknown,
+  model: "account" | "session",
+): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Application auth ${model} lifecycle user is invalid`);
+  }
+  return value;
 }
 
 function createCommonOptions(

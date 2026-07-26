@@ -159,6 +159,29 @@ export type ValidateServiceLinkedApplicationTokenResult =
       active: false;
     };
 
+export interface GetServiceLinkedApplicationUserParams {
+  applicationId: string;
+  organizationId: string;
+  linkedOwner: ServiceLinkedOwnerInput;
+  userId: string;
+}
+
+export type GetServiceLinkedApplicationUserResult =
+  | {
+      found: true;
+      user: {
+        id: string;
+        status: "active" | "blocked";
+        email: string;
+        emailVerified: boolean;
+        firstName: string | null;
+        lastName: string | null;
+      };
+    }
+  | {
+      found: false;
+    };
+
 // ============================================================================
 // Authorization Actions
 // ============================================================================

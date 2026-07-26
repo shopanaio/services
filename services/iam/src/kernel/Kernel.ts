@@ -1,4 +1,8 @@
-import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
+import {
+  Kernel as BaseKernel,
+  consoleLogger,
+  hashContent,
+} from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
 import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
@@ -192,6 +196,31 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       {
         emailDelivery: options.applicationAuthEmailDelivery,
         liveStateInvalidation: applicationAuthLiveStateInvalidation,
+        applicationUserLifecycle: {
+          async provisioningRequired(input) {
+            try {
+              await broker.startWorkflow(
+                "iam.applicationUserCreatedEvent",
+                input,
+                {
+                  source: "content",
+                  resourceId: `${input.applicationId}:${input.applicationUserId}`,
+                  operation: "applicationUserCreatedEvent",
+                  contentHash: hashContent(input),
+                },
+              );
+            } catch (error) {
+              consoleLogger.error(
+                {
+                  applicationId: input.applicationId,
+                  applicationUserId: input.applicationUserId,
+                  error,
+                },
+                "Application user provisioning workflow could not be started",
+              );
+            }
+          },
+        },
         publicBaseUrl: applicationAuthPublicBaseUrl,
       }
     );

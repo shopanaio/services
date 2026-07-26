@@ -7,6 +7,7 @@ import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.
 import type { ApplicationAuthEmailDeliveryPort } from "../services/ApplicationAuthEmailDeliveryPort.js";
 import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
 import type { ApplicationAuthLiveStateInvalidationBus } from "../events/application-auth/index.js";
+import type { ApplicationUserLifecyclePort } from "../services/ApplicationUserLifecyclePort.js";
 import {
   type ApplicationAuthMutableConfiguration,
   type ApplicationAuthUiLocale,
@@ -72,6 +73,7 @@ export interface ApplicationAuthFactoryRuntime {
 export interface ApplicationAuthFactoryOptions {
   emailDelivery?: ApplicationAuthEmailDeliveryPort;
   liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus;
+  applicationUserLifecycle?: ApplicationUserLifecyclePort;
   publicBaseUrl?: string | (() => string | undefined);
   revisionCheckIntervalMs?: number;
   hardTtlMs?: number;
@@ -236,6 +238,7 @@ export class ApplicationAuthFactory {
       secrets: this.secrets,
       emailDelivery: this.options.emailDelivery,
       liveStateInvalidation: this.options.liveStateInvalidation,
+      applicationUserLifecycle: this.options.applicationUserLifecycle,
     });
     const enabledSocialProviders = configuration.providers.map(
       ({ provider }) => provider

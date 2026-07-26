@@ -8,6 +8,7 @@ import {
   OrganizationDeleteSaga,
   UserUpdateProfileSaga,
 } from "./sagas/index.js";
+import { ApplicationUserCreatedEventWorkflow } from "./workflows/index.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "iam" })],
@@ -17,6 +18,7 @@ import {
     OrganizationUpdateSaga,
     OrganizationDeleteSaga,
     UserUpdateProfileSaga,
+    ApplicationUserCreatedEventWorkflow,
     IamNestService,
   ],
 })

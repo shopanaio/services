@@ -1,6 +1,11 @@
 import type { IAM } from "@shopana/broker-types";
 import type { ContextCustomer } from "@shopana/shared-context";
+import { hashContent } from "@shopana/shared-kernel";
 import type { Kernel } from "../../../kernel/Kernel.js";
+import type { Customer } from "../../../repositories/models/index.js";
+import type {
+  CustomerProvisionFromIamWorkflowInput,
+} from "../../../workflows/CustomerProvisionFromIamWorkflow.js";
 
 export interface StorefrontCustomerContextResolveInput {
   readonly accessToken: string;
@@ -43,11 +48,22 @@ export class StorefrontCustomerContextResolver {
     });
     if (!validation.active) return null;
 
-    const customer =
+    let customer =
       await this.kernel.repository.customer.findByStoreAndIamPrincipalId(
         input.storeId,
         validation.userId,
       );
+    if (
+      !customer ||
+      !customer.emailVerified ||
+      customer.accountStatus !== "REGISTERED"
+    ) {
+      customer = await this.provisionFromValidatedIdentity({
+        input,
+        configuration,
+        applicationUserId: validation.userId,
+      });
+    }
     if (
       !customer ||
       customer.lifecycleStatus !== "ACTIVE" ||
@@ -71,5 +87,59 @@ export class StorefrontCustomerContextResolver {
       }),
       cacheUntil: validation.cacheUntil,
     });
+  }
+
+  private async provisionFromValidatedIdentity(params: {
+    input: StorefrontCustomerContextResolveInput;
+    configuration: {
+      applicationId: string;
+      organizationId: string;
+      storeId: string;
+    };
+    applicationUserId: string;
+  }): Promise<Customer | null> {
+    const identity = await this.kernel.getServices().broker.call<
+      IAM.GetServiceLinkedApplicationUserResult,
+      IAM.GetServiceLinkedApplicationUserParams
+    >("iam.getServiceLinkedApplicationUser", {
+      applicationId: params.configuration.applicationId,
+      organizationId: params.configuration.organizationId,
+      linkedOwner: {
+        linkedOwnerType: "store",
+        linkedOwnerId: params.input.storeId,
+      },
+      userId: params.applicationUserId,
+    });
+    if (!identity.found || identity.user.status !== "active") return null;
+
+    const workflowInput: CustomerProvisionFromIamWorkflowInput = {
+      params: {
+        iamPrincipalId: identity.user.id,
+        email: identity.user.email,
+        emailVerified: identity.user.emailVerified,
+        firstName: identity.user.firstName,
+        lastName: identity.user.lastName,
+      },
+      context: {
+        storeId: params.input.storeId,
+        organizationId: params.input.organizationId,
+        requestId: params.input.requestId,
+      },
+    };
+    await this.kernel.getServices().broker.runWorkflow(
+      "customers.customerProvisionFromIam",
+      workflowInput,
+      {
+        source: "content",
+        resourceId: `${params.input.storeId}:${identity.user.id}`,
+        operation: "customerProvisionFromIamReadRepair",
+        contentHash: hashContent(workflowInput.params),
+      },
+    );
+
+    return this.kernel.repository.customer.findByStoreAndIamPrincipalId(
+      params.input.storeId,
+      identity.user.id,
+    );
   }
 }
