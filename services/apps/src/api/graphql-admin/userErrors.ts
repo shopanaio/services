@@ -48,8 +48,8 @@ function inferCode(message: string, fallbackCode: string): string {
   if (normalized.includes("not found")) return "NOT_FOUND";
   if (normalized.includes("version conflict")) return "CONFLICT";
   if (normalized.includes("already")) return "ALREADY_EXISTS";
-  if (normalized.includes("cannot ")) return "INVALID_STATE";
   if (normalized.includes("undeclared scope")) return "INVALID_SCOPE";
+  if (normalized.includes("cannot ")) return "INVALID_STATE";
   if (normalized.includes("required")) return "INVALID_INPUT";
   if (normalized.includes("invalid")) return "INVALID_INPUT";
   return fallbackCode;
