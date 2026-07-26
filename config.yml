@@ -34,6 +34,7 @@ gateway:
     port: 4001
   storefront:
     port: 4000
+    access_resolver_url: http://127.0.0.1:10093
 
 # ═══════════════════════════════════════════════════════════════════
 # SERVICES
@@ -43,6 +44,7 @@ services:
     ports:
       admin_graphql: 10001
       app_admin_graphql: 10022
+      app_storefront_graphql: 10023
       metrics: 3033
     db:
       <<: *db_default
@@ -53,6 +55,11 @@ services:
       shopana-online-store:
         enabled: true
         required: true
+      shopana-headless:
+        enabled: true
+        required: true
+        internal:
+          port: 10093
 
   checkout:
     ports:

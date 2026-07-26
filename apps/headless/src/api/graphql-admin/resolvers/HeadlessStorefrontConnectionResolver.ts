@@ -54,6 +54,13 @@ export class HeadlessStorefrontConnectionResolver extends HeadlessType<
     );
   }
 
+  publicAccessToken() {
+    return this.$ctx.credentials.getPublicAccessToken(
+      this.scope,
+      this.$props,
+    );
+  }
+
   createdAt() {
     return this.requiredData("createdAt");
   }

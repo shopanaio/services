@@ -7,13 +7,38 @@ import {
   // Field resolvers
   userOrders,
 } from "./order/index";
+import {
+  requireStorefrontPermission,
+  STOREFRONT_PERMISSIONS,
+} from "@shopana/shared-context";
+import type { GraphQLContext } from "../context";
 
 const orderResolvers = {
   Query: {
-    orderQuery: (_parent: unknown) => ({}),
+    orderQuery: (
+      _parent: unknown,
+      _args: unknown,
+      context: GraphQLContext,
+    ) => {
+      requireStorefrontPermission(
+        context.storefrontAccess,
+        STOREFRONT_PERMISSIONS.ORDER_READ,
+      );
+      return {};
+    },
   },
   Mutation: {
-    orderMutation: (_parent: unknown) => ({}),
+    orderMutation: (
+      _parent: unknown,
+      _args: unknown,
+      context: GraphQLContext,
+    ) => {
+      requireStorefrontPermission(
+        context.storefrontAccess,
+        STOREFRONT_PERMISSIONS.ORDER_WRITE,
+      );
+      return {};
+    },
   },
   OrderQuery: {
     order,

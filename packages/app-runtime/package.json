@@ -16,6 +16,7 @@
     "@as-integrations/fastify": "^2.1.1",
     "@nestjs/common": "^10.0.0",
     "@shopana/app-sdk": "workspace:*",
+    "@shopana/shared-context": "workspace:*",
     "fastify": "^4.28.1",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",

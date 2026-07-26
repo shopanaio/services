@@ -4,6 +4,9 @@
   "graphql": {
     "admin": [
       "src/api/graphql-admin/schema/**/*.graphql"
+    ],
+    "storefront": [
+      "src/api/graphql-storefront/schema/**/*.graphql"
     ]
   },
   "migrations": {
@@ -16,6 +19,10 @@
     {
       "include": "src/api/graphql-admin/schema/**/*.graphql",
       "outDir": "dist/graphql/admin"
+    },
+    {
+      "include": "src/api/graphql-storefront/schema/**/*.graphql",
+      "outDir": "dist/graphql/storefront"
     },
     {
       "include": "migrations/**/*",

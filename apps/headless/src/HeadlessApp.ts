@@ -8,17 +8,22 @@ import type {
   AppUpdateInput,
   ShopanaApp,
 } from "@shopana/app-sdk";
-import { HEADLESS_STOREFRONT_PERMISSION_CATALOG } from "../app.manifest.js";
+import {
+  HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
+  HEADLESS_STOREFRONT_PERMISSION_CATALOG,
+  headlessManifest,
+} from "../app.manifest.js";
+import {
+  HeadlessStorefrontConnectionService,
+  StorefrontAccessPolicyService,
+  StorefrontCredentialCrypto,
+  StorefrontCredentialService,
+} from "./storefront-access/control-plane/index.js";
+import {
+  StorefrontAccessInternalServer,
+  StorefrontCredentialResolver,
+} from "./storefront-access/data-plane/index.js";
 import { HeadlessStorefrontRepository } from "./storefront-access/repositories/index.js";
-
-interface SalesChannelCapabilityInput {
-  readonly salesChannelId: string;
-  readonly configuration?: Readonly<Record<string, unknown>>;
-}
-
-interface SalesChannelCapabilityResult {
-  readonly configuration: Readonly<Record<string, never>>;
-}
 
 type InstallationLifecycleResult = Readonly<{
   status: "installed" | "updated" | "uninstalled";
@@ -32,27 +37,59 @@ type InstallationStateResult = Readonly<{
 
 export class HeadlessApp implements ShopanaApp {
   readonly repository: HeadlessStorefrontRepository;
+  readonly crypto: StorefrontCredentialCrypto;
+  readonly policies: StorefrontAccessPolicyService;
+  readonly credentials: StorefrontCredentialService;
+  readonly connections: HeadlessStorefrontConnectionService;
+  private readonly internalServer: StorefrontAccessInternalServer;
 
   constructor(private readonly host: AppHostContext) {
     this.repository = HeadlessStorefrontRepository.create(
       host.databaseClient,
     );
+    this.crypto = StorefrontCredentialCrypto.fromEnvironment();
+    this.policies = new StorefrontAccessPolicyService(this.repository);
+    this.credentials = new StorefrontCredentialService(
+      this.repository,
+      this.crypto,
+    );
+    this.connections = new HeadlessStorefrontConnectionService(
+      this.repository,
+      this.policies,
+      this.credentials,
+      HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
+    );
+    const internal = host.config.internal as
+      | { readonly port?: unknown }
+      | undefined;
+    this.internalServer = new StorefrontAccessInternalServer(
+      new StorefrontCredentialResolver(
+        this.repository,
+        this.crypto,
+        host,
+        headlessManifest.version,
+      ),
+      Number(internal?.port),
+      requireEnvironment("STOREFRONT_RESOLVER_INTERNAL_TOKEN"),
+      host.logger,
+    );
   }
 
   register(): void {
     this.registerInstallationLifecycle();
-    this.registerSalesChannelCapability();
     this.host.broker.register(
       "permissionCatalog",
       () => HEADLESS_STOREFRONT_PERMISSION_CATALOG,
     );
   }
 
-  start(): void {
+  async start(): Promise<void> {
+    await this.internalServer.start();
     this.host.logger.log("Headless App started");
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
+    await this.internalServer.stop();
     this.host.logger.log("Headless App stopped");
   }
 
@@ -80,8 +117,17 @@ export class HeadlessApp implements ShopanaApp {
       },
     });
     this.host.broker.registerWorkflow("uninstall", {
-      run: (input: unknown): InstallationLifecycleResult => {
+      run: async (input: unknown): Promise<InstallationLifecycleResult> => {
         const uninstall = input as AppUninstallInput;
+        const app = this.host.executionContext.current();
+        await this.connections.disconnectAll(
+          {
+            installationId: app.installationId,
+            organizationId: app.organizationId,
+            storeId: app.storeId,
+          },
+          app.actor ?? { type: "SYSTEM" },
+        );
         return {
           status: "uninstalled",
           version: uninstall.version,
@@ -109,91 +155,10 @@ export class HeadlessApp implements ShopanaApp {
     this.host.broker.register("health", () => this.health());
   }
 
-  private registerSalesChannelCapability(): void {
-    this.host.broker.register<
-      SalesChannelCapabilityInput,
-      SalesChannelCapabilityResult
-    >("channelConnect", (input) => {
-      const channel = requireHeadlessChannel(input);
-      return {
-        configuration: normalizeHeadlessConfiguration(
-          channel.configuration ?? {},
-        ),
-      };
-    });
-    this.host.broker.register<
-      SalesChannelCapabilityInput,
-      SalesChannelCapabilityResult
-    >("channelUpdate", (input) => {
-      const channel = requireHeadlessChannel(input);
-      return {
-        configuration: normalizeHeadlessConfiguration(
-          channel.configuration ?? {},
-        ),
-      };
-    });
-    this.host.broker.register<SalesChannelCapabilityInput, void>(
-      "channelDisconnect",
-      (input) => {
-        requireHeadlessChannel(input);
-      },
-    );
-    this.host.broker.register<SalesChannelCapabilityInput, void>(
-      "channelSuspend",
-      (input) => {
-        requireHeadlessChannel(input);
-      },
-    );
-    this.host.broker.register<SalesChannelCapabilityInput, void>(
-      "channelResume",
-      (input) => {
-        requireHeadlessChannel(input);
-      },
-    );
-    this.host.broker.register<
-      SalesChannelCapabilityInput,
-      AppRuntimeHealth
-    >("channelHealth", (input) => {
-      requireHeadlessChannel(input);
-      return { status: "healthy" };
-    });
-  }
 }
 
-function requireHeadlessChannel<TInput extends SalesChannelCapabilityInput>(
-  input: TInput | undefined,
-): TInput {
-  if (!input) {
-    throw new Error("Headless sales-channel input is required");
-  }
-  if (!input.salesChannelId.trim()) {
-    throw new Error("Headless salesChannelId is required");
-  }
-  return input;
-}
-
-function normalizeHeadlessConfiguration(
-  configuration: Readonly<Record<string, unknown>>,
-): Readonly<Record<string, never>> {
-  if (!isPlainObject(configuration)) {
-    throw new Error(
-      "Headless sales-channel configuration must be an object",
-    );
-  }
-  if (Object.keys(configuration).length > 0) {
-    throw new Error(
-      "Headless sales-channel configuration does not accept fields",
-    );
-  }
-  return Object.freeze({});
-}
-
-function isPlainObject(
-  value: unknown,
-): value is Readonly<Record<string, unknown>> {
-  if (value === null || typeof value !== "object") {
-    return false;
-  }
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+function requireEnvironment(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required`);
+  return value;
 }

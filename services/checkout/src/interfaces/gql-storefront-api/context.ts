@@ -1,4 +1,5 @@
 import type { CoreCustomer, CoreStore, CoreUser } from "@shopana/platform-api";
+import type { ContextStorefrontAccess } from "@shopana/shared-context";
 
 /**
  * GraphQL context for checkout service
@@ -14,6 +15,7 @@ export type GraphQLContext = {
    * API key.
    */
   apiKey: string;
+  storefrontAccess: ContextStorefrontAccess;
   /**
    * Current store. Required for all operations.
    */

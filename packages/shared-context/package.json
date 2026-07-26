@@ -25,7 +25,8 @@
   "license": "ISC",
   "dependencies": {
     "@shopana/shared-kernel": "*",
-    "fastify": "^4.26.0"
+    "fastify": "^4.26.0",
+    "graphql": "^16.9.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",

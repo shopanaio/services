@@ -22,6 +22,29 @@ const hopByHopHeaders = new Set([
   "upgrade",
 ]);
 
+const adminForwardHeaders = new Set([
+  "accept",
+  "authorization",
+  "content-type",
+  "traceparent",
+  "tracestate",
+  "user-agent",
+  "x-organization-id",
+  "x-request-id",
+  "x-store-name",
+]);
+
+const storefrontForwardHeaders = new Set([
+  "accept",
+  "authorization",
+  "content-type",
+  "traceparent",
+  "tracestate",
+  "user-agent",
+  "x-request-id",
+  "x-shopana-storefront-context",
+]);
+
 @Injectable()
 export class AppsGraphQLIngress {
   private readonly logger = new Logger(AppsGraphQLIngress.name);
@@ -99,6 +122,10 @@ export class AppsGraphQLIngress {
       const normalizedName = name.toLowerCase();
       if (
         hopByHopHeaders.has(normalizedName) ||
+        !(surface === "admin"
+          ? adminForwardHeaders
+          : storefrontForwardHeaders
+        ).has(normalizedName) ||
         rawValue === undefined
       ) {
         continue;

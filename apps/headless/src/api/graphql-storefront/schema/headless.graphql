@@ -1,0 +1,10 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: ["@shareable"]
+  )
+
+extend type Query {
+  """Confirms that the request carries verified Headless storefront access."""
+  headlessStorefrontAccess: Boolean! @shareable
+}

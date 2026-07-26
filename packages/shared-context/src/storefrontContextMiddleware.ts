@@ -1,114 +1,55 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { ServiceBroker } from "@shopana/shared-kernel";
-import type {
-  ContextStore,
-  ContextCustomer,
-  GetCurrentStoreResult,
-} from "./types.js";
+import type { ContextStore, ContextCustomer } from "./types.js";
+import {
+  STOREFRONT_CONTEXT_HEADER,
+  StorefrontContextVerifier,
+  type ContextStorefrontAccess,
+} from "./storefrontAccessContext.js";
 
 declare module "fastify" {
   interface FastifyRequest {
     store?: ContextStore;
+    storefrontAccess?: ContextStorefrontAccess;
     customer: ContextCustomer | null;
   }
 }
 
-function headerIsTrue(value: unknown): boolean {
-  if (typeof value === "string") return value.toLowerCase() === "true";
-  if (typeof value === "boolean") return value === true;
-  return false;
-}
-
-/**
- * Checks if request is a GraphQL introspection query
- */
-function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
-  const isGraphqlPath =
-    typeof request.url === "string" && request.url.startsWith("/graphql");
-  if (!isGraphqlPath) return false;
-
-  if (request.headers["user-agent"]?.includes("rover")) {
-    return true;
-  }
-
-  const interpolationHeader =
-    request.headers["x-interpolation"] ?? request.headers["X-Interpolation"];
-  return headerIsTrue(interpolationHeader);
-}
-
 export interface StorefrontContextMiddlewareOptions {
-  /** Service name for logging */
-  serviceName?: string;
-  /** Whether x-api-key header is required */
-  requireApiKey?: boolean;
+  readonly serviceName?: string;
+  readonly verifier?: StorefrontContextVerifier;
 }
 
-/**
- * Build storefront context middleware using broker calls.
- * Requires x-store-name and x-api-key headers for storefront API.
- *
- * Sets request.store and request.customer from:
- * - broker.call("project.getCurrentStore", { name })
- * - Customer lookup via API key (TODO: implement)
- */
 export function buildStorefrontContextMiddleware(
-  broker: ServiceBroker,
-  options: StorefrontContextMiddlewareOptions = {}
+  _legacyBroker?: unknown,
+  options: StorefrontContextMiddlewareOptions = {},
 ) {
-  const serviceName = options.serviceName ?? "SERVICE";
-  const requireApiKey = options.requireApiKey ?? true;
-
+  const verifier = options.verifier ?? new StorefrontContextVerifier();
   return async function storefrontContextMiddleware(
     request: FastifyRequest,
-    reply: FastifyReply
+    reply: FastifyReply,
   ) {
-    if (isGraphqlIntrospectionRequest(request)) {
-      return;
-    }
-
-    const storeName = request.headers["x-store-name"] as string | undefined;
-    const apiKey = request.headers["x-api-key"] as string | undefined;
-
-    if (!storeName) {
-      return reply.status(400).send({
-        data: null,
-        errors: [{ message: "Missing x-store-name header" }],
-      });
-    }
-
-    if (requireApiKey && !apiKey) {
+    const raw = request.headers[STOREFRONT_CONTEXT_HEADER];
+    if (typeof raw !== "string" || !raw) {
       return reply.status(401).send({
         data: null,
-        errors: [{ message: "Missing x-api-key header" }],
+        errors: [{
+          message: "Verified storefront context is required",
+          extensions: { code: "UNAUTHENTICATED" },
+        }],
       });
     }
-
     try {
-      // Get store via broker
-      const storeResult = await broker.call<
-        GetCurrentStoreResult,
-        { name: string }
-      >("project.getCurrentStore", { name: storeName });
-
-      if (!storeResult?.store) {
-        return reply.status(404).send({
-          data: null,
-          errors: [
-            {
-              message:
-                storeResult?.userErrors?.[0]?.message || "Store not found",
-            },
-          ],
-        });
-      }
-
-      request.store = storeResult.store;
-      request.customer = null; // TODO: Implement customer lookup via API key
-    } catch (error) {
-      console.error(`[${serviceName}] Context loading failed:`, error);
-      return reply.status(500).send({
+      const claims = verifier.verify(raw);
+      request.store = claims.store;
+      request.storefrontAccess = claims.storefront;
+      request.customer = null;
+    } catch {
+      return reply.status(401).send({
         data: null,
-        errors: [{ message: "Context loading failed" }],
+        errors: [{
+          message: "Invalid storefront context",
+          extensions: { code: "UNAUTHENTICATED" },
+        }],
       });
     }
   };

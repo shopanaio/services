@@ -18,6 +18,7 @@ import {
 import { resolvers as adminResolvers } from "@src/interfaces/gql-admin-api/resolvers";
 import { resolvers as storefrontResolvers } from "@src/interfaces/gql-storefront-api/resolvers";
 import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
+import type { GraphQLContext as StorefrontGraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import type { GrpcConfigPort } from "@shopana/platform-api";
 import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddleware";
 
@@ -178,7 +179,7 @@ export async function startServer(broker: ServiceBroker) {
     })),
   ];
 
-  const storefrontApollo = new ApolloServer<GraphQLContext>({
+  const storefrontApollo = new ApolloServer<StorefrontGraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(storefrontModules),
     plugins: [
@@ -193,7 +194,7 @@ export async function startServer(broker: ServiceBroker) {
   await storefrontApp.register(async function (graphqlInstance) {
     await graphqlInstance.addHook(
       "preHandler",
-      buildCoreContextMiddleware(grpcConfig),
+      buildCoreContextMiddleware(grpcConfig, true),
     );
 
     await graphqlInstance.register(fastifyApollo(storefrontApollo), {
@@ -201,11 +202,12 @@ export async function startServer(broker: ServiceBroker) {
       context: async (request, _reply) => {
         const ctx = {
           requestId: request.id as string,
-          apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
+          apiKey: request.storefrontAccess!.credentialId,
           store: request.store,
           user: null,
           customer: request.customer,
-        } satisfies GraphQLContext;
+          storefrontAccess: request.storefrontAccess!,
+        } satisfies StorefrontGraphQLContext;
         return ctx;
       },
     });

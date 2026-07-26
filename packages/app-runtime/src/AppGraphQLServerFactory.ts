@@ -18,6 +18,10 @@ import fastify, {
 } from "fastify";
 import { GraphQLError } from "graphql";
 import { gql } from "graphql-tag";
+import {
+  STOREFRONT_CONTEXT_HEADER,
+  StorefrontContextVerifier,
+} from "@shopana/shared-context";
 import type {
   AppGraphQLSurface,
   HostedAppDefinition,
@@ -62,7 +66,7 @@ export class AppGraphQLServerFactory {
     await app.register(fastifyApollo(apollo), {
       path: "/graphql",
       context: async (request) =>
-        this.createContext(hosted, host, request),
+        this.createContext(hosted, host, request, surface),
     });
 
     app.get("/healthz", async () => ({
@@ -144,7 +148,27 @@ export class AppGraphQLServerFactory {
     hosted: HostedAppDefinition,
     host: AppHostContext,
     request: FastifyRequest,
+    surface: AppGraphQLSurface,
   ): Promise<RuntimeGraphQLContext> {
+    if (surface === "storefront") {
+      const raw = request.headers[STOREFRONT_CONTEXT_HEADER];
+      if (typeof raw !== "string") return { host };
+      const claims = new StorefrontContextVerifier().verify(raw);
+      const app = await host.installations.resolve({
+        appCode: hosted.definition.manifest.code,
+        installationId: claims.storefront.installationId,
+        appVersion: hosted.definition.manifest.version,
+      });
+      if (
+        app.storeId !== claims.store.id ||
+        app.organizationId !== claims.organizationId
+      ) {
+        throw new GraphQLError("App installation storefront mismatch", {
+          extensions: { code: "APP_INSTALLATION_CONTEXT_MISMATCH" },
+        });
+      }
+      return { app, host };
+    }
     const storeName = request.headers["x-store-name"];
     if (typeof storeName !== "string" || !storeName) {
       return { host };

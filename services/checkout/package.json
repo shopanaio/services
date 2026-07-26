@@ -16,6 +16,7 @@
     "@dinero.js/calculator-bigint": "^2.0.0-alpha.2",
     "@event-driven-io/dumbo": "^0.13.0-alpha.6",
     "@shopana/platform-api": "0.0.1",
+    "@shopana/shared-context": "*",
     "@shopana/shared-graphql-guid": "0.0.1",
     "@shopana/shared-money": "0.0.1",
     "@shopana/shared-service-api": "*",

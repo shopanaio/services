@@ -19,3 +19,5 @@ export {
   buildStorefrontContextMiddleware,
   type StorefrontContextMiddlewareOptions,
 } from "./storefrontContextMiddleware.js";
+export * from "./storefrontPermissions.js";
+export * from "./storefrontAccessContext.js";

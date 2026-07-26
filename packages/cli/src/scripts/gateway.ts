@@ -15,7 +15,7 @@ type GatewayType = "admin" | "storefront";
 
 interface GatewayConfig {
   admin: { port: number };
-  storefront: { port: number };
+  storefront: { port: number; access_resolver_url?: string };
 }
 
 interface Config {
@@ -38,7 +38,8 @@ function loadConfig(): Config {
 function startGateway(
   type: GatewayType,
   port: number,
-  federationDir: string
+  federationDir: string,
+  environment?: NodeJS.ProcessEnv,
 ): ChildProcess {
   const supergraphFile = `supergraph-${type}.graphql`;
   const supergraphPath = join(federationDir, supergraphFile);
@@ -60,12 +61,13 @@ function startGateway(
       "-p",
       String(port),
       "-c",
-      "gateway.config.ts",
+      `gateway-${type}.config.ts`,
     ],
     {
       cwd: federationDir,
       stdio: "inherit",
       shell: true,
+      env: { ...process.env, ...environment },
     }
   );
 
@@ -96,7 +98,10 @@ export async function runGateway(options: GatewayOptions) {
   try {
     if (startStorefront) {
       const port = config.gateway.storefront.port;
-      processes.push(startGateway("storefront", port, federationDir));
+      processes.push(startGateway("storefront", port, federationDir, {
+        STOREFRONT_ACCESS_RESOLVER_URL:
+          config.gateway.storefront.access_resolver_url,
+      }));
     }
 
     if (startAdmin) {

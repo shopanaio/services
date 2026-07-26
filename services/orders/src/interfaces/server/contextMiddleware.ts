@@ -1,11 +1,17 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { type CoreCustomer, type CoreStore, type FetchContextHeaders, createCoreContextClient, type GrpcConfigPort } from "@shopana/platform-api";
+import {
+  STOREFRONT_CONTEXT_HEADER,
+  StorefrontContextVerifier,
+  type ContextStorefrontAccess,
+} from "@shopana/shared-context";
 import { setContext } from "@src/context/index.js";
 
 declare module "fastify" {
   interface FastifyRequest {
     store: CoreStore;
     customer: CoreCustomer | null;
+    storefrontAccess?: ContextStorefrontAccess;
   }
 }
 
@@ -35,18 +41,34 @@ function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
 /**
  * Build core context middleware using gRPC client
  */
-export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
+export function buildCoreContextMiddleware(
+  grpcConfig: GrpcConfigPort,
+  storefront = false,
+) {
   const contextClient = createCoreContextClient({ config: grpcConfig });
+  const verifier = storefront ? new StorefrontContextVerifier() : null;
 
   return async function coreContextMiddleware(
     request: FastifyRequest,
     reply: FastifyReply
   ) {
-    if (isGraphqlIntrospectionRequest(request)) {
-      return;
-    }
-
     try {
+      if (verifier) {
+        const raw = request.headers[STOREFRONT_CONTEXT_HEADER];
+        if (typeof raw !== "string") throw new Error("missing context");
+        const claims = verifier.verify(raw);
+        request.store = toCoreStore(claims.store);
+        request.storefrontAccess = claims.storefront;
+        request.customer = null;
+        setContext({
+          apiKey: claims.storefront.credentialId,
+          store: request.store,
+          customer: null,
+          user: null,
+        });
+        return;
+      }
+      if (isGraphqlIntrospectionRequest(request)) return;
       const headers: FetchContextHeaders = {
         authorization: request.headers.authorization,
         "x-api-key": request.headers["x-api-key"] as string | undefined,
@@ -80,5 +102,25 @@ export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
         .status(401)
         .send({ data: null, errors: [{ message: "Unauthorized" }] });
     }
+  };
+}
+
+function toCoreStore(store: import("@shopana/shared-context").ContextStore): CoreStore {
+  return {
+    id: store.id,
+    name: store.name,
+    email: store.email ?? "",
+    phoneNumber: "",
+    country: "",
+    timezone: store.timezone,
+    currency: store.currencyCode,
+    currencies: [{
+      code: store.currencyCode,
+      exchangeRate: 1,
+      isActive: true,
+    }],
+    locale: store.defaultLocale,
+    locales: store.locales.map((code) => ({ code, isActive: true })),
+    stockStatuses: [],
   };
 }

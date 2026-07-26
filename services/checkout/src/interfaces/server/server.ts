@@ -115,14 +115,14 @@ export async function startServer(broker: ServiceBroker) {
         // Simplified context - only essential fields
         const ctx = {
           requestId: request.id as string,
-          apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
+          apiKey: request.storefrontAccess.credentialId,
           store: request.store,
           user: null,
           customer: request.customer,
+          storefrontAccess: request.storefrontAccess,
           ip: request.ip,
           headers: {
             // expose only a safe subset for hashing
-            "x-api-key": request.headers["x-api-key"] as string | undefined,
             authorization: request.headers["authorization"] as
               | string
               | undefined,

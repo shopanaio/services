@@ -21,6 +21,7 @@
     "@shopana/broker-types": "workspace:*",
     "@shopana/platform-api": "0.0.1",
     "@shopana/shared-async-context": "0.0.1",
+    "@shopana/shared-context": "*",
     "@shopana/shared-kernel": "1.0.0",
     "@shopana/shared-money": "0.0.1",
     "@shopana/shared-service-api": "*",

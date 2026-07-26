@@ -1,4 +1,4 @@
-import { and, asc, eq, exists } from "drizzle-orm";
+import { and, asc, eq, exists, inArray } from "drizzle-orm";
 import { BaseRepository } from "./BaseRepository.js";
 import {
   headlessStorefrontConnections,
@@ -211,6 +211,27 @@ export class StorefrontCredentialRepository extends BaseRepository {
     return rows[0] ? mapCredential(rows[0].credential) : null;
   }
 
+  async setPublicTokenCiphertext(
+    scope: HeadlessStorefrontScope,
+    credentialId: string,
+    ciphertext: string,
+  ): Promise<StorefrontCredentialRecord | null> {
+    const rows = await this.connection
+      .update(storefrontCredentials)
+      .set({ publicTokenCiphertext: ciphertext })
+      .where(
+        and(
+          eq(storefrontCredentials.id, credentialId),
+          eq(storefrontCredentials.kind, "PUBLIC"),
+          eq(storefrontCredentials.organizationId, scope.organizationId),
+          eq(storefrontCredentials.storeId, scope.storeId),
+          this.credentialConnectionIsOwned(scope),
+        ),
+      )
+      .returning();
+    return rows[0] ? mapCredential(rows[0]) : null;
+  }
+
   async revokePrivate(
     scope: HeadlessStorefrontScope,
     input: RevokeStorefrontCredentialInput,
@@ -276,14 +297,15 @@ export class StorefrontCredentialRepository extends BaseRepository {
     return Object.freeze(rows.map(mapCredential));
   }
 
-  async markAuthenticatedCredentialUsed(
-    credentialId: string,
+  async markAuthenticatedCredentialsUsed(
+    credentialIds: readonly string[],
     usedAt: string,
   ): Promise<void> {
+    if (credentialIds.length === 0) return;
     await this.connection
       .update(storefrontCredentials)
       .set({ lastUsedAt: usedAt })
-      .where(eq(storefrontCredentials.id, credentialId));
+      .where(inArray(storefrontCredentials.id, [...credentialIds]));
   }
 
   private async connectionIsOwned(

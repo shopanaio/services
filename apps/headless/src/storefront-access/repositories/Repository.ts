@@ -4,11 +4,13 @@ import type { HeadlessDatabase } from "./database.js";
 import { HeadlessStorefrontConnectionRepository } from "./HeadlessStorefrontConnectionRepository.js";
 import { StorefrontAccessPolicyRepository } from "./StorefrontAccessPolicyRepository.js";
 import { StorefrontCredentialRepository } from "./StorefrontCredentialRepository.js";
+import { StorefrontMutationIdempotencyRepository } from "./StorefrontMutationIdempotencyRepository.js";
 
 export class HeadlessStorefrontRepository {
   readonly connection: HeadlessStorefrontConnectionRepository;
   readonly accessPolicy: StorefrontAccessPolicyRepository;
   readonly credential: StorefrontCredentialRepository;
+  readonly idempotency: StorefrontMutationIdempotencyRepository;
   readonly txManager: TransactionManager<HeadlessDatabase>;
 
   private constructor(database: HeadlessDatabase) {
@@ -22,6 +24,10 @@ export class HeadlessStorefrontRepository {
       this.txManager,
     );
     this.credential = new StorefrontCredentialRepository(
+      database,
+      this.txManager,
+    );
+    this.idempotency = new StorefrontMutationIdempotencyRepository(
       database,
       this.txManager,
     );

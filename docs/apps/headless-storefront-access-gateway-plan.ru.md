@@ -1014,41 +1014,31 @@ extend type AppsMutation {
 ```
 
 `headlessStorefrontPermissionCatalog` строится server-side из
-Headless-owned definitions, защищён `headless.storefront-access.read` и
-возвращает definitions в стабильном порядке. Admin frontend использует этот
-query для permission editor и не содержит fallback/hardcoded catalog.
+Headless-owned definitions и возвращает definitions в стабильном порядке.
+Admin frontend использует этот query для permission editor и не содержит
+fallback/hardcoded catalog.
 
 ### 11.4. Admin authorization
 
-Headless App объявляет и проверяет собственные Admin resources/actions:
-
-```text
-headless.storefront-access.read
-headless.storefront-connection.create
-headless.storefront-connection.update
-headless.storefront-connection.suspend
-headless.storefront-connection.resume
-headless.storefront-connection.disconnect
-headless.storefront-access.permissions.update
-headless.storefront-access.private-token.create
-headless.storefront-access.private-token.revoke
-```
+Headless App не выполняет собственные Admin permission checks и не использует
+App installation `grantedScopes` для авторизации Admin GraphQL. Admin
+authentication и authorization выполняются общим Admin API контуром до вызова
+App subgraph.
 
 Resolvers:
 
 1. Выполняются в Headless Admin GraphQL subgraph.
 2. Берут trusted `organizationId` и `storeId` из проверенного Admin context.
 3. Декодируют Global ID.
-4. Проверяют Admin action.
-5. Для create через generic Apps installation contract находят active
+4. Для create через generic Apps installation contract находят active
    `shopana-headless` installation trusted store.
-6. Для остальных операций разрешают connection только через Headless-owned
+5. Для остальных операций разрешают connection только через Headless-owned
    repository одновременно по `connectionId`, trusted `storeId` и найденному
    `installationId`.
-7. Проверяют допустимый installation и connection lifecycle status.
-8. Создают Headless operation context server-side.
-9. Вызывают Headless domain service.
-10. Возвращают `userErrors` для ожидаемых domain failures.
+6. Проверяют допустимый installation и connection lifecycle status.
+7. Создают Headless operation context server-side.
+8. Вызывают Headless domain service.
+9. Возвращают `userErrors` для ожидаемых domain failures.
 
 Admin API не принимает installation identity через клиентские headers.
 Такие headers удаляются на Gateway/Apps ingress. Installation определяется
@@ -1114,10 +1104,6 @@ Request:
 {
   "token": "shpna_sfpub_v1_...",
   "accessMode": "PUBLIC",
-  "storeSelector": {
-    "kind": "NAME",
-    "value": "acme-fashion"
-  },
   "buyerIp": "203.0.113.42",
   "requestId": "..."
 }
@@ -1172,19 +1158,15 @@ Endpoint не возвращает token, digest, ciphertext или token hint.
 12. Через generic Apps installation contract проверить, что
     `connection.installationId` принадлежит active `shopana-headless`
     installation того же store и organization.
-13. Разрешить store selector через Project Service broker contract.
+13. Загрузить store через Project Service broker contract по
+    `credential.storeId`.
 14. Проверить `resolvedStore.id == credential.storeId == connection.storeId`.
 15. Загрузить policy grants.
 16. Вернуть immutable context.
 17. Best-effort зарегистрировать credential usage без блокировки response.
 
-Store selector поддерживает:
-
-- production hostname/custom domain;
-- `x-store-name` только как явно разрешённый development/API selector.
-
-Клиентское значение selector никогда не становится trusted `storeId` без
-resolution и cross-check.
+Store выбирается только по verified credential. Store selector и
+`x-store-name` в Storefront API не поддерживаются.
 
 ### 12.5. Error contract
 
@@ -1270,15 +1252,14 @@ Storefront plugin выполняется в раннем HTTP request hook до 
 query planning:
 
 1. Стереть все входящие internal headers.
-2. Извлечь store selector.
-3. Извлечь credential и mode.
-4. Разрешить безопасный buyer IP.
-5. Вызвать Headless App internal resolver с timeout.
-6. Получить verified context.
-7. Применить rate-limit identity.
-8. Выпустить internal JWS.
-9. Сохранить context в request-scoped plugin state.
-10. Передать JWS subgraphs через controlled `propagateHeaders`.
+2. Извлечь credential и mode.
+3. Разрешить безопасный buyer IP.
+4. Вызвать Headless App internal resolver с timeout.
+5. Получить verified context.
+6. Применить rate-limit identity.
+7. Выпустить internal JWS.
+8. Сохранить context в request-scoped plugin state.
+9. Передать JWS subgraphs через controlled `propagateHeaders`.
 
 Во время реализации точный hook выбирается из API установленной версии
 `@graphql-hive/gateway`; contract этого раздела важнее конкретного имени hook.
@@ -1789,7 +1770,7 @@ Admin GraphQL возвращает canonical handle, label, description и risk 
 2. Raw credentials не попадают в subgraphs.
 3. Gateway не доверяет client-provided internal headers.
 4. Subgraphs не доверяют unsigned store/channel headers.
-5. Store из hostname/selector проверяется против credential store.
+5. Store определяется только по verified credential.
 6. Credential другого store возвращает generic invalid error.
 7. Connection и installation должны быть `ACTIVE`.
 8. Public и private credentials имеют одинаковую permission policy.

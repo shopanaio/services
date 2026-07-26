@@ -31,13 +31,38 @@ import {
   checkoutDeliveryRecipientsUpdate,
   checkoutLinesReplace,
 } from "./checkout/index";
+import {
+  requireStorefrontPermission,
+  STOREFRONT_PERMISSIONS,
+} from "@shopana/shared-context";
+import type { GraphQLContext } from "../context";
 
 const checkoutResolvers = {
   Query: {
-    checkoutQuery: (_parent: unknown) => ({}),
+    checkoutQuery: (
+      _parent: unknown,
+      _args: unknown,
+      context: GraphQLContext,
+    ) => {
+      requireStorefrontPermission(
+        context.storefrontAccess,
+        STOREFRONT_PERMISSIONS.CHECKOUT_READ,
+      );
+      return {};
+    },
   },
   Mutation: {
-    checkoutMutation: (_parent: unknown) => ({}),
+    checkoutMutation: (
+      _parent: unknown,
+      _args: unknown,
+      context: GraphQLContext,
+    ) => {
+      requireStorefrontPermission(
+        context.storefrontAccess,
+        STOREFRONT_PERMISSIONS.CHECKOUT_WRITE,
+      );
+      return {};
+    },
   },
   CheckoutQuery: {
     checkout,

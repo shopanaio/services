@@ -30,4 +30,5 @@ export abstract class HeadlessType<TValue, TData = unknown>
   protected decodeId(globalId: string, type: GlobalIdType): string {
     return decodeGlobalIdByType(globalId, type);
   }
+
 }

@@ -8,12 +8,12 @@ import { HeadlessApp } from "./HeadlessApp.js";
 import {
   createHeadlessResolverContext,
   HeadlessStorefrontConnectionResolver,
+  MutationResolver,
   QueryResolver,
   StorefrontCredentialResolver,
 } from "./api/graphql-admin/resolvers/index.js";
 
 export {
-  HEADLESS_STOREFRONT_CAPABILITY,
   HEADLESS_STOREFRONT_AVAILABLE_PERMISSIONS,
   HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
   HEADLESS_STOREFRONT_PERMISSION_CATALOG,
@@ -43,6 +43,13 @@ export default defineApp({
               {},
               createHeadlessResolverContext(context),
             ).headlessAppQuery(),
+        ),
+        "Mutation.headlessAppMutation": appGraphQL.handler(
+          (_parent, _args, context) =>
+            new MutationResolver(
+              {},
+              createHeadlessResolverContext(context),
+            ).headlessAppMutation(),
         ),
         "HeadlessStorefrontConnection.__resolveReference":
           appGraphQL.handler((parent, _args, context) => {
@@ -82,6 +89,12 @@ export default defineApp({
               return null;
             }
           }),
+      },
+    },
+    storefront: {
+      schema: "./graphql/storefront/headless.graphql",
+      handlers: {
+        "Query.headlessStorefrontAccess": appGraphQL.handler(() => true),
       },
     },
   },

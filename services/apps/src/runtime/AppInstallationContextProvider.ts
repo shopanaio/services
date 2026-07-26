@@ -102,7 +102,7 @@ export class DatabaseAppInstallationContextProvider
         (operation.status !== "PENDING" && operation.status !== "RUNNING")
       ) {
         throw new Error(
-          `App lifecycle operation "${reference.operationId}" is not active`,
+          `App lifecycle operation "${operationId}" is not active`,
         );
       }
       const allowedStatuses = operationAllowedStatuses(operation.type);

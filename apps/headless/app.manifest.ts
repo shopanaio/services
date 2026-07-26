@@ -1,6 +1,9 @@
 import { defineAppManifest } from "@shopana/app-sdk";
-
-export const HEADLESS_STOREFRONT_CAPABILITY = "sales-channel";
+import {
+  STOREFRONT_PERMISSIONS,
+  STOREFRONT_PERMISSION_VALUES,
+  type StorefrontPermission,
+} from "@shopana/shared-context";
 
 export type HeadlessStorefrontPermissionAction = "read" | "write";
 export type HeadlessStorefrontPermissionRisk =
@@ -9,7 +12,7 @@ export type HeadlessStorefrontPermissionRisk =
   | "HIGH";
 
 export interface HeadlessStorefrontPermissionDefinition {
-  readonly handle: string;
+  readonly handle: StorefrontPermission;
   readonly resource: string;
   readonly action: HeadlessStorefrontPermissionAction;
   readonly label: string;
@@ -19,7 +22,7 @@ export interface HeadlessStorefrontPermissionDefinition {
 
 export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
   {
-    handle: "storefront.catalog.read",
+    handle: STOREFRONT_PERMISSIONS.CATALOG_READ,
     resource: "catalog",
     action: "read",
     label: "Read catalog",
@@ -28,7 +31,7 @@ export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
     risk: "LOW",
   },
   {
-    handle: "storefront.inventory.read",
+    handle: STOREFRONT_PERMISSIONS.INVENTORY_READ,
     resource: "inventory",
     action: "read",
     label: "Read inventory",
@@ -37,7 +40,7 @@ export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
     risk: "LOW",
   },
   {
-    handle: "storefront.checkout.read",
+    handle: STOREFRONT_PERMISSIONS.CHECKOUT_READ,
     resource: "checkout",
     action: "read",
     label: "Read checkouts",
@@ -46,7 +49,7 @@ export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
     risk: "MEDIUM",
   },
   {
-    handle: "storefront.checkout.write",
+    handle: STOREFRONT_PERMISSIONS.CHECKOUT_WRITE,
     resource: "checkout",
     action: "write",
     label: "Write checkouts",
@@ -55,7 +58,7 @@ export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
     risk: "HIGH",
   },
   {
-    handle: "storefront.customer.read",
+    handle: STOREFRONT_PERMISSIONS.CUSTOMER_READ,
     resource: "customer",
     action: "read",
     label: "Read customer",
@@ -64,7 +67,7 @@ export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
     risk: "HIGH",
   },
   {
-    handle: "storefront.customer.write",
+    handle: STOREFRONT_PERMISSIONS.CUSTOMER_WRITE,
     resource: "customer",
     action: "write",
     label: "Write customer",
@@ -73,7 +76,7 @@ export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
     risk: "HIGH",
   },
   {
-    handle: "storefront.order.read",
+    handle: STOREFRONT_PERMISSIONS.ORDER_READ,
     resource: "order",
     action: "read",
     label: "Read orders",
@@ -82,7 +85,7 @@ export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
     risk: "HIGH",
   },
   {
-    handle: "storefront.order.write",
+    handle: STOREFRONT_PERMISSIONS.ORDER_WRITE,
     resource: "order",
     action: "write",
     label: "Write orders",
@@ -92,21 +95,18 @@ export const HEADLESS_STOREFRONT_PERMISSION_CATALOG = [
   },
 ] as const;
 
-export type HeadlessStorefrontPermission =
-  (typeof HEADLESS_STOREFRONT_PERMISSION_CATALOG)[number]["handle"];
+export type HeadlessStorefrontPermission = StorefrontPermission;
 
 export const HEADLESS_STOREFRONT_AVAILABLE_PERMISSIONS = Object.freeze(
-  HEADLESS_STOREFRONT_PERMISSION_CATALOG.map(
-    ({ handle }) => handle,
-  ),
+  STOREFRONT_PERMISSION_VALUES,
 ) satisfies readonly HeadlessStorefrontPermission[];
 
 export const HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS = [
-  "storefront.catalog.read",
-  "storefront.inventory.read",
-  "storefront.checkout.read",
-  "storefront.checkout.write",
-  "storefront.order.write",
+  STOREFRONT_PERMISSIONS.CATALOG_READ,
+  STOREFRONT_PERMISSIONS.INVENTORY_READ,
+  STOREFRONT_PERMISSIONS.CHECKOUT_READ,
+  STOREFRONT_PERMISSIONS.CHECKOUT_WRITE,
+  STOREFRONT_PERMISSIONS.ORDER_WRITE,
 ] as const satisfies readonly HeadlessStorefrontPermission[];
 
 export interface StorefrontApiConfiguration {
@@ -136,21 +136,8 @@ export const headlessManifest = defineAppManifest({
     uninstallWorkflow: "uninstall",
     healthAction: "health",
   },
-  permissions: [],
-  capabilities: [
-    {
-      key: HEADLESS_STOREFRONT_CAPABILITY,
-      assignmentMode: "resource",
-      operations: {
-        connect: "channelConnect",
-        update: "channelUpdate",
-        suspend: "channelSuspend",
-        resume: "channelResume",
-        disconnect: "channelDisconnect",
-        health: "channelHealth",
-      },
-    },
-  ],
+  permissions: ["project.getStoreById"],
+  capabilities: [],
   graphql: {
     admin: true,
     storefront: true,
