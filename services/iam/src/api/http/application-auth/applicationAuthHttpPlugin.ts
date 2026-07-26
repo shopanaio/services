@@ -53,6 +53,14 @@ const ALLOWED_CORS_REQUEST_HEADERS = new Set([
   "content-type",
   "x-request-id",
 ]);
+const NORMALIZED_EMAIL_JSON_ROUTES = new Set([
+  "/email-otp/send-verification-otp",
+  "/request-password-reset",
+  "/send-verification-email",
+  "/sign-in/email",
+  "/sign-in/email-otp",
+  "/sign-up/email",
+]);
 const EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS = 250;
 
 class ApplicationAuthBoundaryError extends Error {
@@ -154,7 +162,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
     exposeHeadRoute: false,
     bodyLimit: APPLICATION_AUTH_BODY_LIMIT,
     handler: async (request, reply) => {
-      const raw = readRawApplicationAuthRequest(request);
+      let raw = readRawApplicationAuthRequest(request);
       const applicationId = parseCanonicalApplicationId(
         request.params.applicationId
       );
@@ -222,6 +230,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         raw,
         contentEncoding: request.headers["content-encoding"],
       });
+      raw = normalizeApplicationAuthEmailBody(normalizedPath, raw);
       assertSupportedOAuthGrantType(normalizedPath, raw);
       if (hostedUi.isRoute(request.method, normalizedPath)) {
         try {
@@ -1129,11 +1138,33 @@ function readBasicClientId(header: string | undefined): string | null {
 }
 
 function parseApplicationAuthEmail(value: unknown): string {
-  const parsed = z.string().email().max(320).safeParse(value);
+  const parsed = z.string().trim().email().max(320).safeParse(value);
   if (!parsed.success) {
     throw new ApplicationAuthRequestError("Email is invalid");
   }
   return parsed.data.toLowerCase();
+}
+
+function normalizeApplicationAuthEmailBody(
+  normalizedPath: string,
+  raw: RawApplicationAuthRequest
+): RawApplicationAuthRequest {
+  if (!raw.body || !NORMALIZED_EMAIL_JSON_ROUTES.has(normalizedPath)) {
+    return raw;
+  }
+  const body = parseJsonBody(raw.body);
+  if (typeof body.email !== "string") return raw;
+
+  return {
+    ...raw,
+    body: Buffer.from(
+      JSON.stringify({
+        ...body,
+        email: body.email.trim().toLowerCase(),
+      }),
+      "utf8"
+    ),
+  };
 }
 
 async function waitForEmailOtpGenericResponseFloor(
