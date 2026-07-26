@@ -94,7 +94,7 @@ export async function createRealm(
   suffix = 'realm',
   policy: RealmPolicy = {},
 ): Promise<Realm> {
-  if (!organizationGlobalId) {
+  if (!organizationGlobalId && !api.session.accessToken) {
     await api.session.setupUser();
   }
   const organization =

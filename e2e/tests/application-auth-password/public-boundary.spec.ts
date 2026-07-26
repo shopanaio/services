@@ -28,9 +28,7 @@ test.describe('Application password auth — public boundary', () => {
     request,
   }) => {
     const realm = await createRealm(api, request);
-    const response = await request.get(endpoint(realm, '/login'), {
-      headers: { accept: 'text/html' },
-    });
+    const response = await openLoginPage(request, realm);
     expect(response.ok()).toBe(true);
     const html = await response.text();
     expect(html).toContain('password');
@@ -45,12 +43,11 @@ test.describe('Application password auth — public boundary', () => {
     const realm = await createRealm(api, request, undefined, 'no-signup', {
       passwordSignUpEnabled: false,
     });
-    const before = await realmState(realm);
-    const [page, direct] = await Promise.all([
-      request.get(endpoint(realm, '/login'), { headers: { accept: 'text/html' } }),
-      signUp(request, realm, uniqueEmail()),
-    ]);
+    const page = await openLoginPage(request, realm);
+    expect(page.ok(), await page.text()).toBe(true);
     expect(await page.text()).not.toContain('signup');
+    const before = await realmState(realm);
+    const direct = await signUp(request, realm, uniqueEmail());
     expect(direct.status()).toBe(404);
     await expectRealmState(realm, before);
   });
@@ -77,16 +74,17 @@ test.describe('Application password auth — public boundary', () => {
     const realm = await createRealm(api, request, undefined, 'no-reset', {
       passwordResetEnabled: false,
     });
+    const page = await openLoginPage(request, realm);
+    expect(page.ok(), await page.text()).toBe(true);
+    expect(await page.text()).not.toMatch(/forgot|reset/iu);
     const before = await realmState(realm);
-    const [page, requestReset, complete] = await Promise.all([
-      request.get(endpoint(realm, '/login'), { headers: { accept: 'text/html' } }),
+    const [requestReset, complete] = await Promise.all([
       requestPasswordReset(request, realm, uniqueEmail()),
       request.post(endpoint(realm, '/reset-password'), {
         headers: jsonHeaders(),
         data: { token: crypto.randomUUID(), newPassword: 'Another-password-123!' },
       }),
     ]);
-    expect(await page.text()).not.toMatch(/forgot|reset/iu);
     expect(requestReset.status()).toBe(404);
     expect(complete.status()).toBe(404);
     await expectRealmState(realm, before);
@@ -157,12 +155,14 @@ test.describe('Application password auth — public boundary', () => {
     expect(applicationCookie(response, realm)).toContain(realm.applicationId);
     expect(await requestPasswordReset(request, realm, email)).toBeOK();
     const token = await withDb(async (sql) => {
-      const [row] = await sql<{ value: string }[]>`
-        select value from iam.application_verification
+      const [row] = await sql<{ identifier: string }[]>`
+        select identifier from iam.application_verification
         where application_id = ${realm.applicationId}
+          and identifier like 'reset-password:%'
         order by created_at desc limit 1
       `;
-      return row!.value;
+      expect(row).toBeDefined();
+      return row!.identifier.slice('reset-password:'.length);
     });
     expect(
       await completePasswordReset(request, realm, token, 'Closed-reset-password-456!'),
@@ -293,11 +293,44 @@ test.describe('Application password auth — public boundary', () => {
     ];
     const responses = await Promise.all(paths.map((url) => request.get(url)));
     expect(responses.map((response) => response.status())).toEqual([404, 404]);
-    const bodies = await Promise.all(responses.map((response) => response.text()));
-    expect(bodies[0]).toBe(bodies[1]);
-    expect(bodies.join(' ')).not.toMatch(/organization|configuration|database|realm/iu);
+    const bodies = await Promise.all(
+      responses.map(async (response) => (await response.json()) as {
+        error: string;
+        error_description: string;
+        request_id: string;
+      }),
+    );
+    expect(bodies.map(({ request_id: _requestId, ...body }) => body)).toEqual([
+      {
+        error: 'not_found',
+        error_description: 'Application auth endpoint was not found',
+      },
+      {
+        error: 'not_found',
+        error_description: 'Application auth endpoint was not found',
+      },
+    ]);
+    expect(bodies[0]!.request_id).toBeTruthy();
+    expect(bodies[1]!.request_id).toBeTruthy();
+    expect(bodies[0]!.request_id).not.toBe(bodies[1]!.request_id);
+    expect(JSON.stringify(bodies)).not.toMatch(
+      /organization|configuration|database|realm/iu,
+    );
   });
 });
+
+async function openLoginPage(
+  request: Parameters<typeof beginAuthorization>[0],
+  realm: Parameters<typeof beginAuthorization>[1],
+) {
+  const authorization = await beginAuthorization(request, realm);
+  expect(authorization.status()).toBe(302);
+  const location = authorization.headers()['location'];
+  expect(location).toBeTruthy();
+  return request.get(new URL(location!, endpoint(realm, '')).toString(), {
+    headers: { accept: 'text/html' },
+  });
+}
 
 async function countForRealm(
   realm: { applicationId: string },
