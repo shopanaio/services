@@ -73,6 +73,10 @@ export class AppInstallationStore {
     input: BeginInstallInput,
   ): Promise<BegunLifecycleOperation> {
     return this.repository.runInTransaction(async () => {
+      await this.repository.installation.lockInstallSlot(
+        input.storeId,
+        input.appCode,
+      );
       const current =
         await this.repository.installation.findNonTerminalByStoreAndAppForUpdate(
           input.storeId,

@@ -4,6 +4,7 @@ import {
   eq,
   inArray,
   ne,
+  sql,
   type SQL,
 } from "drizzle-orm";
 import type { AppInstallationStatus } from "@shopana/app-sdk";
@@ -97,6 +98,16 @@ export class AppInstallationRepository extends BaseRepository {
     txManager: TransactionManager<Database>,
   ) {
     super(db, txManager);
+  }
+
+  async lockInstallSlot(
+    storeId: string,
+    appCode: string,
+  ): Promise<void> {
+    const lockKey = `apps:installation:${storeId}:${appCode}`;
+    await this.connection.execute(sql`
+      SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))
+    `);
   }
 
   async findById(id: string): Promise<AppInstallationRecord | null> {
