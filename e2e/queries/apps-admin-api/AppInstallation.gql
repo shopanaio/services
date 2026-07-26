@@ -1,0 +1,9 @@
+query AppsAppInstallation($id: ID!) {
+  appsQuery {
+    appInstallation(id: $id) {
+      id
+      appCode
+      status
+    }
+  }
+}

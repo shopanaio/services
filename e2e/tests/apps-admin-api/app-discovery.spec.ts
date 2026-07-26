@@ -1,70 +1,11 @@
 import type { ApiFixtures } from '@fixtures/api/api';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-
-type AppDefinition = {
-  code: string;
-  version: string;
-  displayName: string;
-  description: string;
-  runtimeStatus: string;
-  runtimeHealth: {
-    status: string;
-    message: string | null;
-  };
-  permissions: {
-    scope: string;
-    granted: boolean;
-  }[];
-  capabilities: {
-    key: string;
-    assignmentMode: string;
-    operations: {
-      name: string;
-      action: string;
-    }[];
-  }[];
-  graphql: {
-    admin: boolean;
-    storefront: boolean;
-  };
-  installed: boolean;
-  installation: {
-    id: string;
-    appCode: string;
-    status: string;
-  } | null;
-};
-
-type AvailableAppsData = {
-  appsQuery: {
-    availableApps: AppDefinition[];
-  };
-};
-
-type AppDefinitionData = {
-  appsQuery: {
-    appDefinition: AppDefinition | null;
-  };
-};
-
-type AppLifecyclePayload = {
-  installation: {
-    id: string;
-    appCode: string;
-    status: string;
-  } | null;
-  operation: {
-    id: string;
-    status: string;
-  } | null;
-  duplicate: boolean;
-  userErrors: {
-    code: string | null;
-    message: string;
-    field: string[] | null;
-  }[];
-};
+import type {
+  ApiAppDefinition,
+  ApiAppInstallation,
+  ApiAppLifecyclePayload,
+} from '@codegen/admin-gql';
 
 const bundledApps = [
   {
@@ -118,31 +59,39 @@ const bundledApps = [
 async function getAvailableApps(
   api: ApiFixtures['api'],
   installed?: boolean,
-): Promise<AppDefinition[]> {
+): Promise<ApiAppDefinition[]> {
   const response = await api.admin.query('apps-admin-api/AvailableApps', {
     variables: {
       where: installed === undefined ? null : { installed },
     },
   });
-  const data = response.data as unknown as AvailableAppsData;
-  return data.appsQuery.availableApps;
+  return response.data.appsQuery.availableApps;
 }
 
 async function getAppDefinition(
   api: ApiFixtures['api'],
   code: string,
-): Promise<AppDefinition | null> {
+): Promise<ApiAppDefinition | null> {
   const response = await api.admin.query('apps-admin-api/AppDefinition', {
     variables: { code },
   });
-  const data = response.data as unknown as AppDefinitionData;
-  return data.appsQuery.appDefinition;
+  return response.data.appsQuery.appDefinition ?? null;
+}
+
+async function getAppInstallation(
+  api: ApiFixtures['api'],
+  id: string,
+): Promise<ApiAppInstallation | null> {
+  const response = await api.admin.query('apps-admin-api/AppInstallation', {
+    variables: { id },
+  });
+  return response.data.appsQuery.appInstallation ?? null;
 }
 
 async function installApp(
   api: ApiFixtures['api'],
   appCode: string,
-): Promise<NonNullable<AppLifecyclePayload['installation']>> {
+): Promise<NonNullable<ApiAppLifecyclePayload['installation']>> {
   const response = await api.admin.mutation('apps-admin-api/AppInstall', {
     variables: {
       input: {
@@ -151,10 +100,7 @@ async function installApp(
       },
     },
   });
-  const data = response.data as unknown as {
-    appsMutation: { appInstall: AppLifecyclePayload };
-  };
-  const payload = data.appsMutation.appInstall;
+  const payload = response.data.appsMutation.appInstall;
 
   expect(payload.userErrors).toEqual([]);
   expect(payload.duplicate).toBe(false);
@@ -188,6 +134,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
       code: 'hello-world',
     });
     await expect(getAppDefinition(api, 'HELLO-WORLD')).resolves.toBeNull();
+    await expect(getAppDefinition(api, ' hello-world ')).resolves.toBeNull();
     await expect(getAppDefinition(api, '')).resolves.toBeNull();
     await expect(getAppDefinition(api, 'unknown-app')).resolves.toBeNull();
   });
@@ -323,12 +270,14 @@ test.describe('Apps Admin API - bundled App discovery', () => {
         },
       },
     });
-    const data = response.data as unknown as {
-      appsMutation: { appUninstall: AppLifecyclePayload };
-    };
+    const payload = response.data.appsMutation.appUninstall;
 
-    expect(data.appsMutation.appUninstall.userErrors).toEqual([]);
-    expect(data.appsMutation.appUninstall.operation).not.toBeNull();
+    expect(payload.userErrors).toEqual([]);
+    expect(payload.operation).not.toBeNull();
+
+    await expect
+      .poll(async () => (await getAppInstallation(api, installation.id))?.status)
+      .toBe('UNINSTALLED');
 
     await expect
       .poll(async () => getAppDefinition(api, 'hello-world'))

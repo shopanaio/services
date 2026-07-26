@@ -1,6 +1,7 @@
 export type GraphQLFileName =
   | 'apps-admin-api/AppDefinition'
   | 'apps-admin-api/AppInstall'
+  | 'apps-admin-api/AppInstallation'
   | 'apps-admin-api/AppUninstall'
   | 'apps-admin-api/AvailableApps'
   | 'bundle-api/BundleGroup'

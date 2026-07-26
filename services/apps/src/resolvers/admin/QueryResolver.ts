@@ -30,7 +30,7 @@ export class QueryResolver extends AppsType<Record<string, never>> {
 })
 export class AppsQueryResolver extends AppsType<Record<string, never>> {
   appDefinition(args: AppsQueryAppDefinitionArgs) {
-    const appCode = args.code.trim();
+    const appCode = args.code;
     return appCode && this.$ctx.runtimes.get(appCode)
       ? this.resolvers.appDefinition(appCode)
       : null;
