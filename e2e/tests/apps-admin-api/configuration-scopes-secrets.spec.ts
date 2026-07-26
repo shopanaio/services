@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { createHash } from 'node:crypto';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 
@@ -265,5 +266,104 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
         return response.data.appsQuery.appInstallation?.status;
       })
       .toBe('UNINSTALLED');
+  });
+
+  test('APPS-CONF-022: runtime observes rotation and loses secret access after uninstall', async ({
+    api,
+  }) => {
+    const name = 'runtime-token';
+    const firstValue = `first-${crypto.randomUUID()}`;
+    const secondValue = `second-${crypto.randomUUID()}`;
+    const digest = (value: string) =>
+      createHash('sha256').update(value).digest('hex');
+    const runtimeDigest = (response: { data: unknown }) =>
+      (
+        response.data as {
+          helloWorldAppQuery: {
+            helloWorldSecretDigest: { sha256: string };
+          };
+        }
+      ).helloWorldAppQuery.helloWorldSecretDigest.sha256;
+
+    const install = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: {
+          appCode: 'hello-world',
+          secrets: [{ name, value: firstValue }],
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
+    });
+    const id = install.data.appsMutation.appInstall.installation!.id;
+    await expect
+      .poll(async () => {
+        const response = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id },
+        });
+        return response.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('ACTIVE');
+
+    const beforeRotation = await api.admin.query(
+      'hello-world-admin-api/SecretDigest',
+      { variables: { name } },
+    );
+    expect(runtimeDigest(beforeRotation)).toBe(digest(firstValue));
+
+    await api.admin.mutation('apps-admin-api/AppUpdate', {
+      variables: {
+        input: {
+          installationId: id,
+          secrets: [{ name, value: secondValue }],
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
+    });
+    await expect
+      .poll(async () => {
+        const response = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id },
+        });
+        return response.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('ACTIVE');
+
+    const afterRotation = await api.admin.query(
+      'hello-world-admin-api/SecretDigest',
+      { variables: { name } },
+    );
+    expect(runtimeDigest(afterRotation)).toBe(digest(secondValue));
+    expect(JSON.stringify(afterRotation.data)).not.toContain(
+      digest(firstValue),
+    );
+
+    await api.admin.mutation('apps-admin-api/AppUninstall', {
+      variables: {
+        input: {
+          installationId: id,
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
+    });
+    await expect
+      .poll(async () => {
+        const response = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id },
+        });
+        return response.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('UNINSTALLED');
+
+    const afterUninstall = await api.admin.query(
+      'hello-world-admin-api/SecretDigest',
+      {
+        variables: { name },
+        throwOnError: false,
+      },
+    );
+    expect(afterUninstall.errors?.length).toBeGreaterThan(0);
+    expect(JSON.stringify(afterUninstall)).not.toMatch(
+      new RegExp(`${firstValue}|${secondValue}`, 'u'),
+    );
   });
 });

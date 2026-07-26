@@ -96,6 +96,7 @@ export type GraphQLFileName =
   | 'headless-admin-api/StorefrontAccessProbe'
   | 'headless-admin-api/StorefrontConnection'
   | 'headless-admin-api/StorefrontCreate'
+  | 'hello-world-admin-api/SecretDigest'
   | 'iam-api/MemberAccessRemove'
   | 'iam-api/MemberInvite'
   | 'iam-api/MemberRemove'

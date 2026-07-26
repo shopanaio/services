@@ -3,6 +3,10 @@ type HelloWorldGreeting {
   appCode: String!
 }
 
+type HelloWorldSecretDigest {
+  sha256: String!
+}
+
 extend type Query {
   """Hello World App query namespace."""
   helloWorldAppQuery: HelloWorldAppQuery!
@@ -11,4 +15,5 @@ extend type Query {
 """Hello World App queries."""
 type HelloWorldAppQuery {
   helloWorldGreeting: HelloWorldGreeting!
+  helloWorldSecretDigest(name: String!): HelloWorldSecretDigest!
 }
