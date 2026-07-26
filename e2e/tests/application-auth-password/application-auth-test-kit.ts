@@ -51,7 +51,7 @@ export const adminGraphqlUrl =
   process.env.ADMIN_GRAPHQL_URL ?? 'http://127.0.0.1:14001/graphql';
 export const iamBaseUrl = process.env.IAM_HTTP_URL ?? 'http://127.0.0.1:11010';
 export const defaultPassword = 'Application-password-123!';
-export const minimumPassword = '12345678';
+export const minimumPassword = '1234567890';
 export const invalidCredentials = {
   error: 'invalid_credentials',
   error_description: 'Email or password is invalid',

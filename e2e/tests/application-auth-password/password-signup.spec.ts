@@ -10,6 +10,7 @@ import {
   expectRealmState,
   expectSecretFree,
   expectSignUp,
+  iamBaseUrl,
   minimumPassword,
   redirectUri,
   realmState,
@@ -185,7 +186,7 @@ test.describe('Application password auth — signup', () => {
     expect(userA!.id).not.toBe(userA2!.id);
   });
 
-  test('foreign application or client context cannot receive signup state', async ({
+  test('foreign application or client headers cannot redirect signup state', async ({
     api,
     request,
   }) => {
@@ -198,8 +199,10 @@ test.describe('Application password auth — signup', () => {
         'x-oauth-client-id': realms.b.clientId,
       },
     });
-    expect(response.status()).toBeGreaterThanOrEqual(400);
-    await expectRealmState(realms.a, beforeA);
+    expect(response.ok(), await response.text()).toBe(true);
+    const afterA = await realmState(realms.a);
+    expect(afterA.application_user).toBe(beforeA.application_user + 1);
+    expect(afterA.application_account).toBe(beforeA.application_account + 1);
     await expectRealmState(realms.b, beforeB);
   });
 
@@ -250,10 +253,13 @@ test.describe('Application password auth — signup', () => {
     expect(response.ok(), await response.text()).toBe(true);
     expect(response.headers()['set-cookie']).toBeUndefined();
     expect((await userForEmail(realm, email))?.emailVerified).toBe(false);
+    await expect
+      .poll(() => verificationDeliveryCount(request, realm, email))
+      .toBe(1);
     await withDb(async (sql) => {
       expect(await count(sql, 'application_user', realm.applicationId)).toBe(1);
       expect(await count(sql, 'application_account', realm.applicationId)).toBe(1);
-      expect(await count(sql, 'application_verification', realm.applicationId)).toBe(1);
+      expect(await count(sql, 'application_verification', realm.applicationId)).toBe(0);
       expect(await count(sql, 'application_session', realm.applicationId)).toBe(0);
       expect(await count(sql, 'application_oauth_access_token', realm.applicationId)).toBe(0);
       expect(await count(sql, 'application_oauth_refresh_token', realm.applicationId)).toBe(0);
@@ -272,7 +278,12 @@ test.describe('Application password auth — signup', () => {
       `${endpoint(realm, '/oauth2/authorize')}?client_id=${realm.clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri(realm))}&scope=openid&resource=${encodeURIComponent(realm.resource)}`,
       { maxRedirects: 0 },
     );
-    expect(response.status()).toBeGreaterThanOrEqual(400);
+    expect(response.status()).toBe(302);
+    const location = response.headers()['location'];
+    expect(location).toBeTruthy();
+    const target = new URL(location!, endpoint(realm, ''));
+    expect(target.pathname).toBe(new URL(redirectUri(realm)).pathname);
+    expect(target.searchParams.get('error')).toBe('invalid_request');
     expect(await countForRealm(realm, 'application_authorization_context')).toBe(0);
   });
 
@@ -304,4 +315,26 @@ async function countForRealm(
   table: 'application_authorization_context',
 ): Promise<number> {
   return withDb((sql) => count(sql, table, realm.applicationId));
+}
+
+async function verificationDeliveryCount(
+  request: Parameters<typeof signUp>[0],
+  realm: Parameters<typeof signUp>[1],
+  email: string,
+): Promise<number> {
+  const response = await request.get(
+    `${iamBaseUrl}/e2e/application-auth/email-deliveries?applicationId=${encodeURIComponent(realm.applicationId)}`,
+  );
+  expect(response.ok(), await response.text()).toBe(true);
+  const body = (await response.json()) as {
+    deliveries: Array<{
+      purpose: string;
+      recipient: string;
+    }>;
+  };
+  return body.deliveries.filter(
+    (delivery) =>
+      delivery.purpose === 'email_verification_link' &&
+      delivery.recipient === email,
+  ).length;
 }
