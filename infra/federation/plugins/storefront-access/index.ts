@@ -2,6 +2,9 @@ import type {
   GatewayConfig,
   GatewayPlugin,
 } from "@graphql-hive/gateway";
+import { randomUUID } from "node:crypto";
+import { GraphQLError } from "graphql";
+import { createWebSocketRequest } from "../WebSocketRequest.js";
 import { StorefrontAccessClient } from "./StorefrontAccessClient.js";
 import { StorefrontContextSigner } from "./StorefrontContextSigner.js";
 import {
@@ -15,6 +18,18 @@ type RequestIdConfig = Exclude<
   GatewayConfig["requestId"],
   boolean | undefined
 >;
+
+const STOREFRONT_WEBSOCKET_HEADERS = new Set([
+  "authorization",
+  "shopana-storefront-buyer-ip",
+  "shopana-storefront-private-token",
+  "traceparent",
+  "tracestate",
+  "user-agent",
+  STOREFRONT_REQUEST_ID_HEADER,
+  "x-forwarded-for",
+  "x-shopana-storefront-access-token",
+]);
 
 export function createStorefrontAccessPlugin() {
   const client = new StorefrontAccessClient(
@@ -40,26 +55,10 @@ export function createStorefrontAccessPlugin() {
     async onRequest({ request, fetchAPI, endResponse }) {
       if (new URL(request.url).pathname === "/health") return;
       try {
-        const parsed = parseStorefrontRequest(request);
-        const requestId =
-          parseRequestId(request) ?? generatedRequestIds.get(request);
-        if (!requestId) {
-          throw new Error("Gateway request ID is unavailable");
-        }
-        const context = await client.resolve({
-          token: parsed.token,
-          accessMode: parsed.mode,
-          buyerIp: parsed.buyerIp,
-          requestId,
-        });
-        if (!context) {
-          throw requestError(
-            401,
-            "STOREFRONT_CREDENTIAL_INVALID",
-            "Invalid storefront credential",
-          );
-        }
-        contexts.set(request, signer.sign(context, requestId));
+        contexts.set(
+          request,
+          await resolveRequest(request, generatedRequestIds.get(request)),
+        );
       } catch (error) {
         const known = error as {
           status?: number;
@@ -76,7 +75,49 @@ export function createStorefrontAccessPlugin() {
         }));
       }
     },
+    async onContextBuilding({ context, extendContext }) {
+      if (context.request) return;
+
+      try {
+        const request = createWebSocketRequest(
+          context.connectionParams,
+          STOREFRONT_WEBSOCKET_HEADERS,
+        );
+        const requestId = parseRequestId(request) ?? randomUUID();
+        request.headers.set(STOREFRONT_REQUEST_ID_HEADER, requestId);
+        contexts.set(request, await resolveRequest(request, requestId));
+        extendContext({ request });
+      } catch (error) {
+        throw websocketError(error, "STOREFRONT_ACCESS_UNAVAILABLE");
+      }
+    },
   };
+
+  async function resolveRequest(
+    request: Request,
+    fallbackRequestId: string | undefined,
+  ): Promise<string> {
+    const parsed = parseStorefrontRequest(request);
+    const requestId = parseRequestId(request) ?? fallbackRequestId;
+    if (!requestId) {
+      throw new Error("Gateway request ID is unavailable");
+    }
+    const context = await client.resolve({
+      token: parsed.token,
+      accessMode: parsed.mode,
+      buyerIp: parsed.buyerIp,
+      requestId,
+    });
+    if (!context) {
+      throw requestError(
+        401,
+        "STOREFRONT_CREDENTIAL_INVALID",
+        "Invalid storefront credential",
+      );
+    }
+    return signer.sign(context, requestId);
+  }
+
   return {
     plugin,
     requestId,
@@ -90,4 +131,10 @@ function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is required`);
   return value;
+}
+
+function websocketError(error: unknown, fallbackCode: string): GraphQLError {
+  const known = error as { code?: string };
+  const code = known.code ?? fallbackCode;
+  return new GraphQLError(code, { extensions: { code } });
 }

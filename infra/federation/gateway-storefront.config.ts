@@ -5,9 +5,7 @@ import { createStorefrontAccessPlugin } from "./plugins/storefront-access/index.
 const storefrontAccess = createStorefrontAccessPlugin();
 
 export const gatewayConfig = defineConfig({
-  // Storefront subscriptions are not exposed yet. Keeping the default
-  // WebSocket server enabled would bypass the HTTP access plugin.
-  disableWebsockets: true,
+  disableWebsockets: false,
   maxTokens: 1_000,
   maxDepth: 12,
   blockFieldSuggestions: true,

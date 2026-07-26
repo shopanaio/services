@@ -2,18 +2,31 @@ import type {
   GatewayConfig,
   GatewayPlugin,
 } from "@graphql-hive/gateway";
+import { randomUUID } from "node:crypto";
+import { GraphQLError } from "graphql";
+import { createWebSocketRequest } from "../WebSocketRequest.js";
 import { AdminContextClient } from "./AdminContextClient.js";
 import { AdminContextSigner } from "./AdminContextSigner.js";
 import {
   ADMIN_REQUEST_ID_HEADER,
   parseAdminRequest,
   parseAdminRequestId,
+  requestError,
 } from "./AdminRequestHeaders.js";
 
 type RequestIdConfig = Exclude<
   GatewayConfig["requestId"],
   boolean | undefined
 >;
+
+const ADMIN_WEBSOCKET_HEADERS = new Set([
+  "authorization",
+  "traceparent",
+  "tracestate",
+  "user-agent",
+  ADMIN_REQUEST_ID_HEADER,
+  "x-store-name",
+]);
 
 export function createAdminContextPlugin() {
   const client = new AdminContextClient(
@@ -39,25 +52,12 @@ export function createAdminContextPlugin() {
     async onRequest({ request, fetchAPI, endResponse }) {
       if (new URL(request.url).pathname === "/health") return;
       try {
-        const parsed = parseAdminRequest(request);
-        if (!parsed.accessToken) return;
-        const requestId =
-          parseAdminRequestId(request) ?? generatedRequestIds.get(request);
-        if (!requestId) {
-          throw new Error("Gateway request ID is unavailable");
-        }
-        const context = await client.resolve({
-          accessToken: parsed.accessToken,
-          ...(parsed.storeName ? { storeName: parsed.storeName } : {}),
-          requestId,
-        });
-        if (!context) {
-          throw Object.assign(new Error("Invalid admin access context"), {
-            status: 401,
-            code: "ADMIN_CONTEXT_INVALID",
-          });
-        }
-        contexts.set(request, signer.sign(context, requestId));
+        const signedContext = await resolveRequest(
+          request,
+          generatedRequestIds.get(request),
+          false,
+        );
+        if (signedContext) contexts.set(request, signedContext);
       } catch (error) {
         const known = error as {
           status?: number;
@@ -74,7 +74,61 @@ export function createAdminContextPlugin() {
         }));
       }
     },
+    async onContextBuilding({ context, extendContext }) {
+      if (context.request) return;
+
+      try {
+        const request = createWebSocketRequest(
+          context.connectionParams,
+          ADMIN_WEBSOCKET_HEADERS,
+        );
+        const requestId = parseAdminRequestId(request) ?? randomUUID();
+        request.headers.set(ADMIN_REQUEST_ID_HEADER, requestId);
+        const signedContext = await resolveRequest(request, requestId, true);
+        if (!signedContext) {
+          throw new Error("Admin WebSocket context is unavailable");
+        }
+        contexts.set(request, signedContext);
+        extendContext({ request });
+      } catch (error) {
+        throw websocketError(error, "ADMIN_CONTEXT_UNAVAILABLE");
+      }
+    },
   };
+
+  async function resolveRequest(
+    request: Request,
+    fallbackRequestId: string | undefined,
+    requireAccessToken: boolean,
+  ): Promise<string | undefined> {
+    const parsed = parseAdminRequest(request);
+    if (!parsed.accessToken) {
+      if (!requireAccessToken) return undefined;
+      throw requestError(
+        401,
+        "ADMIN_ACCESS_TOKEN_REQUIRED",
+        "An admin access token is required",
+      );
+    }
+    const requestId = parseAdminRequestId(request) ?? fallbackRequestId;
+    if (!requestId) {
+      throw new Error("Gateway request ID is unavailable");
+    }
+    const context = await client.resolve({
+      accessToken: parsed.accessToken,
+      ...(parsed.storeName ? { storeName: parsed.storeName } : {}),
+      requestId,
+    });
+    if (!context) {
+      throw requestError(
+        401,
+        "ADMIN_CONTEXT_INVALID",
+        "Invalid admin access context",
+      );
+    }
+    return signer.sign(context, requestId);
+  }
+
   return {
     plugin,
     requestId,
@@ -88,4 +142,10 @@ function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is required`);
   return value;
+}
+
+function websocketError(error: unknown, fallbackCode: string): GraphQLError {
+  const known = error as { code?: string };
+  const code = known.code ?? fallbackCode;
+  return new GraphQLError(code, { extensions: { code } });
 }

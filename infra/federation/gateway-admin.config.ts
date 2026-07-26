@@ -5,6 +5,7 @@ import { createAdminContextPlugin } from "./plugins/admin-context/index.js";
 const adminContext = createAdminContextPlugin();
 
 export const gatewayConfig = defineConfig({
+  disableWebsockets: false,
   requestId: adminContext.requestId,
   plugins: () => [adminContext.plugin],
   propagateHeaders: {
