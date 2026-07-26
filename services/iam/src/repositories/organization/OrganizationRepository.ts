@@ -182,6 +182,7 @@ export class OrganizationRepository extends BaseRepository {
   @Transactional()
   async delete(id: string): Promise<boolean> {
     const now = new Date();
+    const applicationNow = now.toISOString();
     const result = await this.connection
       .update(organization)
       .set({ deletedAt: now, updatedAt: now })
@@ -194,7 +195,7 @@ export class OrganizationRepository extends BaseRepository {
 
     await this.connection
       .update(application)
-      .set({ deletedAt: now, updatedAt: now })
+      .set({ deletedAt: applicationNow, updatedAt: applicationNow })
       .where(
         and(
           eq(application.organizationId, id),

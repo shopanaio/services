@@ -591,10 +591,16 @@ export const applicationOauthClient = iamSchema.table(
     userId: text("user_id").references(() => applicationUser.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    })
       .notNull()
       .defaultNow(),
     name: text("name"),
@@ -632,7 +638,10 @@ export const applicationOauthClient = iamSchema.table(
     createdBy: text("created_by").notNull(),
     updatedBy: text("updated_by").notNull(),
     revision: integer("revision").notNull().default(1),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
   },
   (table) => [
     uniqueIndex("idx_application_oauth_client_client_id").on(table.clientId),

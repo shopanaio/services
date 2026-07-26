@@ -93,9 +93,9 @@ export interface ManagedApplicationOAuthClient {
   disabled: boolean;
   archived: boolean;
   revision: number;
-  createdAt: Date;
-  updatedAt: Date;
-  archivedAt: Date | null;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
   createdBy: string;
   updatedBy: string;
 }
@@ -606,7 +606,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
           ? { enableEndSession: patch.enableEndSession }
           : {}),
         updatedBy: input.actorId,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
         revision: sql`${applicationOauthClient.revision} + 1`,
       })
       .where(
@@ -634,7 +634,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
       .set({
         disabled: !input.enabled,
         updatedBy: input.actorId,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
         revision: sql`${applicationOauthClient.revision} + 1`,
       })
       .where(
@@ -662,7 +662,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
       .set({
         skipConsent: input.skipConsent,
         updatedBy: input.actorId,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
         revision: sql`${applicationOauthClient.revision} + 1`,
       })
       .where(
@@ -690,7 +690,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
       .set({
         clientSecret: input.clientSecretHash,
         updatedBy: input.actorId,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
         revision: sql`${applicationOauthClient.revision} + 1`,
       })
       .where(
@@ -713,7 +713,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
     expectedRevision: number;
     actorId: string;
   }): Promise<ManagedApplicationOAuthClient | null> {
-    const now = new Date();
+    const now = new Date().toISOString();
     const [updated] = await this.connection
       .update(applicationOauthClient)
       .set({

@@ -1,0 +1,42 @@
+query ApplicationAdminApplicationOAuthClient(
+  $organizationId: ID!
+  $applicationId: ID!
+  $clientId: String!
+) {
+  applicationQuery {
+    application(organizationId: $organizationId, id: $applicationId) {
+      id
+      oauthClient(clientId: $clientId) {
+        ...ApplicationAdminSingleOAuthClientFields
+      }
+    }
+  }
+}
+
+fragment ApplicationAdminSingleOAuthClientFields on ApplicationOAuthClient {
+  id
+  organizationId
+  applicationId
+  clientId
+  name
+  clientType
+  environment
+  redirectUris
+  postLogoutRedirectUris
+  resources
+  grantTypes
+  responseTypes
+  tokenEndpointAuthMethod
+  requirePkce
+  enableEndSession
+  skipConsent
+  disabled
+  archived
+  protocolPolicyVersion
+  revision
+  createdAt
+  updatedAt
+  archivedAt
+  createdBy
+  updatedBy
+}

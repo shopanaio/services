@@ -57,13 +57,22 @@ export const application = iamSchema.table(
     /** Human-readable application name */
     displayName: varchar("display_name", { length: 256 }).notNull(),
     description: text("description"),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    })
       .notNull()
       .defaultNow(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
   },
   (table) => [
     index("idx_application_org").on(table.organizationId),

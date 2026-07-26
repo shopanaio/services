@@ -2,6 +2,7 @@ import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import {
   IAM_BASE_URL,
+  createOrganizationMember,
   createOAuthClient,
   getOAuthClient,
   listOAuthClients,
@@ -13,6 +14,7 @@ import {
   serializedWithoutSecrets,
   setRealmEnabled,
   setupApplicationAdminScope,
+  updateAuth,
   updateAuthMethod,
   type ApplicationAdminScope,
   type Sql,
@@ -250,6 +252,7 @@ test.describe('Application Admin API - OAuth client management', () => {
           clientType: 'CONFIDENTIAL',
           environment: 'PRODUCTION',
           redirectUris: ['https://filter.example.test/callback'],
+          postLogoutRedirectUris: ['https://filter.example.test/logout'],
         })
       ).client,
       'filter client',
@@ -260,6 +263,7 @@ test.describe('Application Admin API - OAuth client management', () => {
       clientType: 'CONFIDENTIAL',
       environment: 'PRODUCTION',
       redirectUris: ['https://foreign.example.test/callback'],
+      postLogoutRedirectUris: ['https://foreign.example.test/logout'],
     });
     const connection = await listOAuthClients(api, scope.applicationA, {
       where: {
@@ -383,10 +387,14 @@ test.describe('Application Admin API - OAuth client management', () => {
     });
   });
 
-  test('APP-OAUTH-014: client disable prevents authorize, token exchange, refresh, and introspection active state', async ({
+  test('APP-OAUTH-014: client disable prevents authorize, token exchange, refresh, and introspection authentication', async ({
     api,
     request,
   }) => {
+    await updateAuth(api, scope.applicationA, {
+      emailVerificationRequired: false,
+      trustedOrigins: [IAM_BASE_URL],
+    });
     await updateAuthMethod(api, scope.applicationA, 'password', ['SIGN_IN']);
     await setRealmEnabled(api, scope.applicationA, true);
     const created = required(
@@ -416,6 +424,30 @@ test.describe('Application Admin API - OAuth client management', () => {
       )}`,
       { maxRedirects: 0 },
     );
+    const exchange = await request.post(
+      `${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/oauth2/token`,
+      {
+        form: {
+          grant_type: 'authorization_code',
+          code: `disabled-${crypto.randomUUID()}`,
+          code_verifier: 'v'.repeat(64),
+          client_id: created.clientId,
+          redirect_uri: required(created.redirectUris[0], 'OAuth redirect URI'),
+          resource: scope.applicationA.resource,
+        },
+      },
+    );
+    const refresh = await request.post(
+      `${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/oauth2/token`,
+      {
+        form: {
+          grant_type: 'refresh_token',
+          refresh_token: `disabled-${crypto.randomUUID()}`,
+          client_id: created.clientId,
+          resource: scope.applicationA.resource,
+        },
+      },
+    );
     const introspect = await request.post(
       `${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/oauth2/introspect`,
       {
@@ -424,7 +456,9 @@ test.describe('Application Admin API - OAuth client management', () => {
     );
 
     expect(authorize.status()).toBeGreaterThanOrEqual(400);
-    expect(await introspect.json()).toMatchObject({ active: false });
+    expect(exchange.status()).toBeGreaterThanOrEqual(400);
+    expect(refresh.status()).toBeGreaterThanOrEqual(400);
+    expect(await introspect.json()).toMatchObject({ error: 'invalid_client' });
   });
 
   test('APP-OAUTH-015: client re-enable restores only the client state and does not revive revoked sessions or token families', async ({
@@ -748,8 +782,10 @@ test.describe('Application Admin API - OAuth client management', () => {
       'confidential client',
     );
     const ownerToken = api.session.tenant.accessToken;
-    const outsider = await api.admin.user.create();
-    api.session.tenant.accessToken = outsider.accessToken;
+    const member = await createOrganizationMember(api, scope.organizationId, {
+      permissions: [{ resource: 'org.applications', action: 'read' }],
+    });
+    api.session.tenant.accessToken = member.accessToken;
     try {
       const list = await api.admin.query('application-admin-api/ApplicationOAuthClients', {
         variables: {

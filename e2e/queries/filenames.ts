@@ -10,6 +10,7 @@ export type GraphQLFileName =
   | 'application-admin-api/ApplicationAuthRealmEnabledSet'
   | 'application-admin-api/ApplicationAuthUpdate'
   | 'application-admin-api/ApplicationCreate'
+  | 'application-admin-api/ApplicationOAuthClient'
   | 'application-admin-api/ApplicationOAuthClientArchive'
   | 'application-admin-api/ApplicationOAuthClientCreate'
   | 'application-admin-api/ApplicationOAuthClientEnabledSet'

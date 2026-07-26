@@ -56,9 +56,9 @@ export interface ApplicationOAuthClient {
   disabled: boolean;
   archived: boolean;
   revision: number;
-  createdAt: Date;
-  updatedAt: Date;
-  archivedAt: Date | null;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
   createdBy: string;
   updatedBy: string;
 }
@@ -1081,18 +1081,18 @@ export class ApplicationOAuthClientManagementService {
     environment: ManagedApplicationOAuthClientEnvironment,
     kind: "redirect" | "post_logout"
   ): string[] {
-    const normalized = values.map((value) =>
-      normalizeOAuthClientUri(
-        value,
-        environment,
-        this.allowedMobileSchemes,
-        kind
-      )
-    );
-    if (new Set(normalized).size !== normalized.length) {
-      throw uriError(kind, "OAuth client URIs must be unique");
-    }
-    return normalized;
+    return [
+      ...new Set(
+        values.map((value) =>
+          normalizeOAuthClientUri(
+            value,
+            environment,
+            this.allowedMobileSchemes,
+            kind
+          )
+        )
+      ),
+    ];
   }
 
   private project(

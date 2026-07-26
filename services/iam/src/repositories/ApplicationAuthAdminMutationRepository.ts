@@ -358,7 +358,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     if (revision === null) return null;
     const rows = await this.connection
       .update(application)
-      .set({ ...input.patch, updatedAt: new Date() })
+      .set({ ...input.patch, updatedAt: new Date().toISOString() })
       .where(
         and(
           eq(application.id, input.applicationId),
@@ -383,7 +383,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       { realmEnabled: false }
     );
     if (revision === null) return null;
-    const now = new Date();
+    const now = new Date().toISOString();
     const rows = await this.connection
       .update(application)
       .set({ deletedAt: now, updatedAt: now })

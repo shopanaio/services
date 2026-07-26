@@ -36,9 +36,9 @@ export interface ApplicationAdminRecord {
   status: ApplicationLifecycleStatus;
   resource: string;
   revision: number;
-  createdAt: Date;
-  updatedAt: Date;
-  archivedAt: Date | null;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
 }
 
 export const applicationRelayQuery = createRelayQuery(
@@ -46,24 +46,7 @@ export const applicationRelayQuery = createRelayQuery(
     .include(["id"])
     .maxLimit(100)
     .defaultLimit(20),
-  {
-    name: "application",
-    tieBreaker: "id",
-    seekTransforms: {
-      createdAt: {
-        encode: (value) =>
-          value instanceof Date ? value.toISOString() : value,
-        decode: (value) =>
-          typeof value === "string" ? new Date(value) : value,
-      },
-      updatedAt: {
-        encode: (value) =>
-          value instanceof Date ? value.toISOString() : value,
-        decode: (value) =>
-          typeof value === "string" ? new Date(value) : value,
-      },
-    },
-  }
+  { name: "application", tieBreaker: "id" }
 );
 
 export type ApplicationRelayInput = InferRelayInput<
@@ -101,9 +84,9 @@ type ApplicationAdminRow = {
   description: string | null;
   resource: string;
   revision: number;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
 };
 
 export class ApplicationRepository extends BaseRepository {

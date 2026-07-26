@@ -445,7 +445,6 @@ export async function listOAuthClients(
     variables: {
       organizationId: application.organizationId,
       applicationId: application.id,
-      clientId: '',
       first: 20,
       ...variables,
     },
@@ -454,7 +453,7 @@ export async function listOAuthClients(
 }
 
 export async function getOAuthClient(api: Api, application: ApplicationRef, clientId: string) {
-  const { data } = await api.admin.query('application-admin-api/ApplicationOAuthClients', {
+  const { data } = await api.admin.query('application-admin-api/ApplicationOAuthClient', {
     variables: {
       organizationId: application.organizationId,
       applicationId: application.id,
