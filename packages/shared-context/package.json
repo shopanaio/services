@@ -24,6 +24,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@shopana/rbac": "*",
     "@shopana/shared-kernel": "*",
     "fastify": "^4.26.0",
     "graphql": "^16.9.0"

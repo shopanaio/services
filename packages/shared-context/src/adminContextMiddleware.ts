@@ -1,34 +1,17 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { ServiceBroker } from "@shopana/shared-kernel";
-import type {
-  ContextStore,
-  ContextUser,
-  GetCurrentUserResult,
-  GetCurrentStoreResult,
-} from "./types.js";
+import type { ContextStore, ContextUser } from "./types.js";
+import {
+  ADMIN_CONTEXT_HEADER,
+  AdminContextVerifier,
+  type AdminContextClaims,
+} from "./adminAccessContext.js";
 
 declare module "fastify" {
   interface FastifyRequest {
     store?: ContextStore;
     user: ContextUser;
+    adminContext?: AdminContextClaims;
   }
-}
-
-function headerIsTrue(value: unknown): boolean {
-  if (typeof value === "string") return value.toLowerCase() === "true";
-  if (typeof value === "boolean") return value === true;
-  return false;
-}
-
-/**
- * Checks if request is a GraphQL introspection query
- */
-function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
-
-
-  const interpolationHeader =
-    request.headers["x-interpolation"] ?? request.headers["X-Interpolation"];
-  return headerIsTrue(interpolationHeader);
 }
 
 export interface AdminContextMiddlewareOptions {
@@ -38,103 +21,61 @@ export interface AdminContextMiddlewareOptions {
   requireStore?: boolean;
   /** Whether authorization header is required (default: true) */
   requireAuth?: boolean;
+  /** Optional verifier override, primarily for isolated service configuration. */
+  verifier?: AdminContextVerifier;
 }
 
 /**
- * Build admin context middleware using broker calls.
- * Requires x-store-name and authorization headers for admin API.
- *
- * Sets request.store and request.user from:
- * - broker.call("iam.getCurrentUser", { accessToken })
- * - broker.call("project.getCurrentStore", { name })
+ * Build admin context middleware using the short-lived JWS issued by the
+ * Admin Gateway. No IAM or Project calls are made from the subgraph.
  */
 export function buildAdminContextMiddleware(
-  broker: ServiceBroker,
+  _legacyBroker?: unknown,
   options: AdminContextMiddlewareOptions = {}
 ) {
-  const serviceName = options.serviceName ?? "SERVICE";
   const requireStore = options.requireStore ?? true;
   const requireAuth = options.requireAuth ?? true;
+  const verifier = options.verifier ?? new AdminContextVerifier();
 
   return async function adminContextMiddleware(
     request: FastifyRequest,
     reply: FastifyReply
   ) {
-    if (isGraphqlIntrospectionRequest(request)) {
-      return;
-    }
-
-    const storeName = request.headers["x-store-name"] as string | undefined;
-    const authorization = request.headers.authorization;
-
-    if (requireStore && !storeName) {
-      return reply.status(400).send({
-        data: null,
-        errors: [{ message: "Missing x-store-name header" }],
-      });
-    }
-
-    if (!authorization?.startsWith("Bearer ")) {
+    const raw = request.headers[ADMIN_CONTEXT_HEADER];
+    if (typeof raw !== "string" || !raw) {
       if (requireAuth) {
         return reply.status(401).send({
           data: null,
-          errors: [{ message: "Missing or invalid authorization header" }],
+          errors: [{
+            message: "Verified admin context is required",
+            extensions: { code: "UNAUTHENTICATED" },
+          }],
         });
       }
-      // Auth not required, continue without user context
       return;
     }
 
-    const accessToken = authorization.slice(7);
-
     try {
-      // Get user
-      const userResult = await broker.call<
-        GetCurrentUserResult,
-        { accessToken: string }
-      >("iam.getCurrentUser", { accessToken });
-
-      if (!userResult?.user) {
-        if (requireAuth) {
-          return reply.status(401).send({
-            data: null,
-            errors: [
-              { message: userResult?.userErrors?.[0]?.message || "Unauthorized" },
-            ],
-          });
-        }
-        // Auth not required, continue without user context
-        return;
+      const claims = verifier.verify(raw);
+      if (requireStore && !claims.store) {
+        return reply.status(400).send({
+          data: null,
+          errors: [{
+            message: "Verified admin store context is required",
+            extensions: { code: "BAD_REQUEST" },
+          }],
+        });
       }
-
-      request.user = userResult.user;
-
-      // Get store if provided
-      if (storeName) {
-        const storeResult = await broker.call<
-          GetCurrentStoreResult,
-          { name: string }
-        >("project.getCurrentStore", { name: storeName });
-
-        if (!storeResult?.store) {
-          return reply.status(404).send({
-            data: null,
-            errors: [
-              {
-                message:
-                  storeResult?.userErrors?.[0]?.message || "Store not found",
-              },
-            ],
-          });
-        }
-
-        request.store = storeResult.store;
-      }
-    } catch (error) {
-      console.error(`[${serviceName}] Context loading failed:`, error);
-      return reply.status(500).send({
+      request.adminContext = claims;
+      request.user = claims.user;
+      request.store = claims.store ?? undefined;
+    } catch {
+      return reply.status(401).send({
         data: null,
-        errors: [{ message: "Context loading failed" }],
+        errors: [{
+          message: "Invalid admin context",
+          extensions: { code: "UNAUTHENTICATED" },
+        }],
       });
     }
   };

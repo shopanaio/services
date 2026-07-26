@@ -32,6 +32,7 @@ shared:
 gateway:
   admin:
     port: 4001
+    access_resolver_url: http://127.0.0.1:10010
   storefront:
     port: 4000
     access_resolver_url: http://127.0.0.1:10093

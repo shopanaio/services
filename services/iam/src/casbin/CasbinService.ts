@@ -561,6 +561,21 @@ export class CasbinService {
   }
 
   /**
+   * Get policies for a specific role in a specific domain.
+   * Policy format: [role, domain, resource, action]
+   */
+  async getPoliciesForRoleInDomain(
+    organizationId: string,
+    role: string,
+    domain: Domain
+  ): Promise<string[][]> {
+    const enforcer = await this.getEnforcer(organizationId);
+    // fieldIndex 0 = role, the next filtered field is domain
+    const ROLE_FIELD_INDEX = 0;
+    return enforcer.getFilteredPolicy(ROLE_FIELD_INDEX, role, domain);
+  }
+
+  /**
    * Get grouped policies for a role.
    * Aggregates policies by resource with actions as array.
    */

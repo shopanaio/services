@@ -3,6 +3,7 @@ import { isDevelopment } from "@shopana/shared-service-config";
 import type { GlobalConfig } from "@shopana/shared-service-config";
 import { adminGraphqlPlugin } from "../graphql-admin/server.js";
 import type { Kernel } from "../../kernel/Kernel.js";
+import { adminContextHttpPlugin } from "./admin-context/index.js";
 import { applicationAuthHttpPlugin } from "./application-auth/applicationAuthHttpPlugin.js";
 import type { IamHttpRuntimeConfiguration } from "./iamHttpConfiguration.js";
 
@@ -43,6 +44,12 @@ export async function startIamHttpServer(
     kernel: options.kernel,
     publicBaseUrl: options.http.publicBaseUrl,
   });
+  await app.register(adminContextHttpPlugin, {
+    kernel: options.kernel,
+    serviceToken: requiredEnvironment(
+      "ADMIN_CONTEXT_RESOLVER_INTERNAL_TOKEN",
+    ),
+  });
   await app.register(adminGraphqlPlugin, {
     kernel: options.kernel,
     rootApp: app,
@@ -61,4 +68,10 @@ export async function startIamHttpServer(
 
   await app.listen({ port: options.http.port, host: "0.0.0.0" });
   return app;
+}
+
+function requiredEnvironment(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required`);
+  return value;
 }

@@ -13,6 +13,7 @@ export {
   buildAdminContextMiddleware,
   type AdminContextMiddlewareOptions,
 } from "./adminContextMiddleware.js";
+export * from "./adminAccessContext.js";
 
 // Storefront context middleware (for Checkout, Orders, etc.)
 export {

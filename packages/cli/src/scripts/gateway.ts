@@ -14,7 +14,7 @@ import { findRootDir } from "../utils.js";
 type GatewayType = "admin" | "storefront";
 
 interface GatewayConfig {
-  admin: { port: number };
+  admin: { port: number; access_resolver_url?: string };
   storefront: { port: number; access_resolver_url?: string };
 }
 
@@ -106,7 +106,10 @@ export async function runGateway(options: GatewayOptions) {
 
     if (startAdmin) {
       const port = config.gateway.admin.port;
-      processes.push(startGateway("admin", port, federationDir));
+      processes.push(startGateway("admin", port, federationDir, {
+        ADMIN_CONTEXT_RESOLVER_URL:
+          config.gateway.admin.access_resolver_url,
+      }));
     }
 
     // Handle graceful shutdown

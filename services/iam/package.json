@@ -25,6 +25,7 @@
     "@shopana/drizzle-query": "*",
     "@shopana/platform-api": "0.0.1",
     "@shopana/rbac": "*",
+    "@shopana/shared-context": "*",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-config": "*",
     "@shopana/type-resolver": "*",
