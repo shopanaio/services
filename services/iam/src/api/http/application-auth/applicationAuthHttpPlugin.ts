@@ -947,9 +947,16 @@ async function applyApplicationTokenIntrospection(input: {
   response: Response;
 }): Promise<Response> {
   if (!input.response.ok) {
-    return input.response.status >= 500
-      ? replaceJsonResponse(input.response, 200, { active: false })
-      : input.response;
+    if (input.response.status >= 500) {
+      return replaceJsonResponse(input.response, 200, { active: false });
+    }
+    if (input.response.status === 400) {
+      const form = requireOAuthProtocolForm(input.raw);
+      if (optionalSingleParameter(form, "token", 16 * 1024)) {
+        return replaceJsonResponse(input.response, 200, { active: false });
+      }
+    }
+    return input.response;
   }
   let pluginResult: unknown;
   try {

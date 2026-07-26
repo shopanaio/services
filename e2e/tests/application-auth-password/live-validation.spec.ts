@@ -6,7 +6,6 @@ import { composeGlobalId } from '@utils/globalid';
 import {
   authorizeUrl,
   createRealm,
-  createRealmMatrix,
   defaultPassword,
   endpoint,
   expectSignUp,
@@ -19,6 +18,17 @@ import {
   userForEmail,
   withDb,
 } from './application-auth-test-kit';
+import type { Realm } from './application-auth-test-kit';
+
+interface AuthenticatedRealm extends Realm {
+  clientSecret: string;
+}
+
+interface AuthenticatedRealmMatrix {
+  a: AuthenticatedRealm;
+  a2: AuthenticatedRealm;
+  b: AuthenticatedRealm;
+}
 
 test.describe('Application password auth — live validation', () => {
   test('token is active only when every cryptographic and live-state binding matches', async ({
@@ -26,7 +36,7 @@ test.describe('Application password auth — live validation', () => {
     request,
     page,
   }) => {
-    const realm = await createRealm(api, request);
+    const realm = await createAuthenticatedRealm(api, request);
     const email = uniqueEmail('active');
     await expectSignUp(request, realm, email);
     const token = await issueAccessToken(page, request, realm, email);
@@ -40,7 +50,7 @@ test.describe('Application password auth — live validation', () => {
     request,
     page,
   }) => {
-    const realm = await createRealm(api, request);
+    const realm = await createAuthenticatedRealm(api, request);
     const email = uniqueEmail('block');
     await expectSignUp(request, realm, email);
     const token = await issueAccessToken(page, request, realm, email);
@@ -57,7 +67,7 @@ test.describe('Application password auth — live validation', () => {
     request,
     page,
   }) => {
-    const realm = await createRealm(api, request);
+    const realm = await createAuthenticatedRealm(api, request);
     const email = uniqueEmail('session-revoke');
     await expectSignUp(request, realm, email);
     const token = await issueAccessToken(page, request, realm, email);
@@ -76,7 +86,7 @@ test.describe('Application password auth — live validation', () => {
     request,
     page,
   }) => {
-    const realms = await createRealmMatrix(api, request);
+    const realms = await createAuthenticatedRealmMatrix(api, request);
     const emailA = uniqueEmail('client-a');
     const emailB = uniqueEmail('client-b');
     await expectSignUp(request, realms.a, emailA);
@@ -85,6 +95,7 @@ test.describe('Application password auth — live validation', () => {
     const tokenB = await issueAccessToken(page, request, realms.b, emailB);
     expect(await introspect(request, realms.a, tokenA)).toMatchObject({ active: true });
     expect(await introspect(request, realms.b, tokenB)).toMatchObject({ active: true });
+    api.session.organizationId = composeGlobalId('Organization', realms.a.organizationId);
     await setClientDisabled(api, realms.a, true);
     expect(await introspect(request, realms.a, tokenA)).toEqual({ active: false });
     expect(await introspect(request, realms.b, tokenB)).toMatchObject({ active: true });
@@ -102,15 +113,15 @@ test.describe('Application password auth — live validation', () => {
     request,
     page,
   }) => {
-    const realm = await createRealm(api, request);
+    const realm = await createAuthenticatedRealm(api, request);
     const email = uniqueEmail('realm-disable');
     await expectSignUp(request, realm, email);
     const token = await issueAccessToken(page, request, realm, email);
     expect(await introspect(request, realm, token)).toMatchObject({ active: true });
     await updatePolicy(realm, { realmEnabled: false });
     const response = await request.post(endpoint(realm, '/oauth2/introspect'), {
-      headers: formHeaders(),
-      form: { token, client_id: realm.clientId },
+      headers: authenticatedFormHeaders(realm),
+      form: { token },
     });
     expect(response.status()).toBe(404);
     await withDb(async (sql) => {
@@ -127,7 +138,7 @@ test.describe('Application password auth — live validation', () => {
     request,
     page,
   }) => {
-    const realms = await createRealmMatrix(api, request);
+    const realms = await createAuthenticatedRealmMatrix(api, request);
     const emailA = uniqueEmail('organization-a');
     const emailB = uniqueEmail('organization-b');
     await expectSignUp(request, realms.a, emailA);
@@ -143,8 +154,8 @@ test.describe('Application password auth — live validation', () => {
       `,
     );
     const disabled = await request.post(endpoint(realms.a, '/oauth2/introspect'), {
-      headers: formHeaders(),
-      form: { token: tokenA, client_id: realms.a.clientId },
+      headers: authenticatedFormHeaders(realms.a),
+      form: { token: tokenA },
     });
     expect(disabled.status()).toBe(404);
     expect(await introspect(request, realms.b, tokenB)).toMatchObject({ active: true });
@@ -155,7 +166,7 @@ test.describe('Application password auth — live validation', () => {
     request,
     page,
   }) => {
-    const realm = await createRealm(api, request);
+    const realm = await createAuthenticatedRealm(api, request);
     const emailA = uniqueEmail('family-a');
     const emailB = uniqueEmail('family-b');
     await expectSignUp(request, realm, emailA);
@@ -165,11 +176,10 @@ test.describe('Application password auth — live validation', () => {
     expect(await introspect(request, realm, familyA.access_token)).toMatchObject({ active: true });
     expect(await introspect(request, realm, familyB.access_token)).toMatchObject({ active: true });
     const revoke = await request.post(endpoint(realm, '/oauth2/revoke'), {
-      headers: formHeaders(),
+      headers: authenticatedFormHeaders(realm),
       form: {
         token: familyA.refresh_token,
         token_type_hint: 'refresh_token',
-        client_id: realm.clientId,
       },
     });
     expect(revoke.ok(), await revoke.text()).toBe(true);
@@ -195,7 +205,7 @@ test.describe('Application password auth — live validation', () => {
     api,
     request,
   }) => {
-    const realm = await createRealm(api, request);
+    const realm = await createAuthenticatedRealm(api, request);
     const token = unsignedJwt({
       iss: endpoint(realm, ''),
       aud: realm.resource,
@@ -224,7 +234,7 @@ test.describe('Application password auth — live validation', () => {
     request,
     page,
   }) => {
-    const realms = await createRealmMatrix(api, request);
+    const realms = await createAuthenticatedRealmMatrix(api, request);
     const email = uniqueEmail('audience-mismatch');
     await expectSignUp(request, realms.a, email);
     const token = await issueAccessToken(page, request, realms.a, email);
@@ -236,7 +246,7 @@ test.describe('Application password auth — live validation', () => {
     api,
     request,
   }) => {
-    const realm = await createRealm(api, request);
+    const realm = await createAuthenticatedRealm(api, request);
     const result = await introspect(request, realm, `invalid-${crypto.randomUUID()}`);
     expect(result).toEqual({ active: false });
     expect(JSON.stringify(result)).not.toMatch(
@@ -247,15 +257,14 @@ test.describe('Application password auth — live validation', () => {
 
 async function introspect(
   request: Parameters<typeof tokenRequest>[0],
-  realm: Parameters<typeof tokenRequest>[1],
+  realm: AuthenticatedRealm,
   token: string,
 ): Promise<Record<string, unknown>> {
   const response = await request.post(endpoint(realm, '/oauth2/introspect'), {
-    headers: formHeaders(),
+    headers: authenticatedFormHeaders(realm),
     form: {
       token,
       token_type_hint: 'access_token',
-      client_id: realm.clientId,
     },
   });
   expect(response.ok(), await response.text()).toBe(true);
@@ -265,7 +274,7 @@ async function introspect(
 async function issueAccessToken(
   page: Page,
   request: Parameters<typeof tokenRequest>[0],
-  realm: Parameters<typeof tokenRequest>[1],
+  realm: AuthenticatedRealm,
   email: string,
 ): Promise<string> {
   return (await issueTokens(page, request, realm, email)).access_token;
@@ -274,7 +283,7 @@ async function issueAccessToken(
 async function issueTokens(
   page: Page,
   request: Parameters<typeof tokenRequest>[0],
-  realm: Parameters<typeof tokenRequest>[1],
+  realm: AuthenticatedRealm,
   email: string,
 ): Promise<{ access_token: string; refresh_token: string }> {
   const verifier = crypto.randomUUID().replaceAll('-', '').repeat(2);
@@ -289,14 +298,19 @@ async function issueTokens(
   }
   await page.waitForURL((url) => url.searchParams.has('code'));
   const code = new URL(page.url()).searchParams.get('code');
-  const response = await tokenRequest(request, realm, {
-    grant_type: 'authorization_code',
-    code: code!,
-    client_id: realm.clientId,
-    redirect_uri: redirectUri(realm),
-    code_verifier: verifier,
-    resource: realm.resource,
-  });
+  const response = await tokenRequest(
+    request,
+    realm,
+    {
+      grant_type: 'authorization_code',
+      code: code!,
+      client_id: realm.clientId,
+      redirect_uri: redirectUri(realm),
+      code_verifier: verifier,
+      resource: realm.resource,
+    },
+    { authorization: basicClientAuthorization(realm) },
+  );
   expect(response.ok(), await response.text()).toBe(true);
   return (await response.json()) as { access_token: string; refresh_token: string };
 }
@@ -307,6 +321,78 @@ function unsignedJwt(claims: Record<string, unknown>, kid = 'e2e-invalid'): stri
   );
   const payload = Buffer.from(JSON.stringify(claims)).toString('base64url');
   return `${header}.${payload}.invalid-signature`;
+}
+
+async function createAuthenticatedRealm(
+  api: Parameters<typeof createRealm>[0],
+  request: Parameters<typeof tokenRequest>[0],
+): Promise<AuthenticatedRealm> {
+  return addConfidentialClient(api, await createRealm(api, request));
+}
+
+async function createAuthenticatedRealmMatrix(
+  api: Parameters<typeof createRealm>[0],
+  request: Parameters<typeof tokenRequest>[0],
+): Promise<AuthenticatedRealmMatrix> {
+  await api.session.setupUser();
+  const organizationA = await api.session.setupOrganization({
+    displayName: `Live validation organization A ${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const a = await createRealm(api, request, organizationA.id, 'a');
+  const authenticatedA = await addConfidentialClient(api, a);
+  const a2 = await createRealm(api, request, organizationA.id, 'a2');
+  const authenticatedA2 = await addConfidentialClient(api, a2);
+  const organizationB = await api.session.setupOrganization({
+    displayName: `Live validation organization B ${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const b = await createRealm(api, request, organizationB.id, 'b');
+  const authenticatedB = await addConfidentialClient(api, b);
+  return {
+    a: authenticatedA,
+    a2: authenticatedA2,
+    b: authenticatedB,
+  };
+}
+
+async function addConfidentialClient(
+  api: Parameters<typeof createRealm>[0],
+  realm: Realm,
+): Promise<AuthenticatedRealm> {
+  const { data } = await api.admin.mutation('application-admin-api/ApplicationOAuthClientCreate', {
+    variables: {
+      input: {
+        organizationId: composeGlobalId('Organization', realm.organizationId),
+        applicationId: composeGlobalId('Application', realm.applicationId),
+        name: `live-validation-${crypto.randomUUID()}`,
+        clientType: 'CONFIDENTIAL',
+        environment: 'DEVELOPMENT',
+        redirectUris: [redirectUri(realm)],
+        postLogoutRedirectUris: [],
+        enableEndSession: false,
+        skipConsent: false,
+      },
+    },
+  });
+  const payload = data.applicationMutation.applicationOAuthClientCreate;
+  expect(payload.userErrors).toEqual([]);
+  expect(payload.client).not.toBeNull();
+  expect(payload.clientSecret).toEqual(expect.any(String));
+  return {
+    ...realm,
+    clientId: payload.client!.clientId,
+    clientSecret: payload.clientSecret!,
+  };
+}
+
+function basicClientAuthorization(realm: AuthenticatedRealm): string {
+  return `Basic ${Buffer.from(`${realm.clientId}:${realm.clientSecret}`).toString('base64')}`;
+}
+
+function authenticatedFormHeaders(realm: AuthenticatedRealm): Record<string, string> {
+  return {
+    ...formHeaders(),
+    authorization: basicClientAuthorization(realm),
+  };
 }
 
 function applicationUserInput(
