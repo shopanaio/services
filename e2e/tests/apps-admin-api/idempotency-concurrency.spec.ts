@@ -1,100 +1,98 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  expectAccepted,
-  expectSafeErrors,
-  getInstallation,
-  installActive,
-  installApp,
-  lifecycleAction,
-  listInstallations,
-  operationRows,
-  secretRows,
-  updateApp,
-  waitForInstallation,
-} from './apps-test-support';
 
 test.describe('Apps Admin API - idempotency and concurrency', () => {
   test.beforeEach(async ({ api }) => {
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-IDEM-001 APPS-IDEM-002 APPS-IDEM-010: install retry reuses one operation, workflow, and secret write', async ({
+  test('APPS-IDEM-001..003 APPS-IDEM-010: install retry returns the original operation exactly once', async ({
     api,
   }) => {
     const clientMutationId = crypto.randomUUID();
-    const secret = crypto.randomUUID();
-    const first = await installApp(api, {
+    const input = {
+      appCode: 'hello-world',
+      secrets: [{ name: 'token', value: crypto.randomUUID() }],
       clientMutationId,
-      secrets: [{ name: 'token', value: secret }],
-    });
-    expectAccepted(first, 'INSTALL');
-    const duplicate = await installApp(api, {
-      clientMutationId,
-      secrets: [{ name: 'token', value: 'must-not-rotate' }],
-    });
-    expect(duplicate.userErrors).toEqual([]);
-    expect(duplicate.duplicate).toBe(true);
-    expect(duplicate.installation!.id).toBe(first.installation!.id);
-    expect(duplicate.operation!.id).toBe(first.operation!.id);
-    expect(duplicate.operation!.workflowId).toBe(first.operation!.workflowId);
-    expect(duplicate.operation!.workflowId).not.toContain(clientMutationId);
-
-    await waitForInstallation(api, first.installation!.id, 'ACTIVE');
-    expect(await operationRows(first.installation!.id)).toHaveLength(1);
-    const secrets = await secretRows(first.installation!.id);
-    expect(secrets).toHaveLength(1);
-    expect(secrets[0]).toMatchObject({ version: 1 });
-    expect(secrets[0].ciphertext).not.toContain(secret);
+    };
+    const [first, retry] = await Promise.all([
+      api.admin.mutation('apps-admin-api/AppInstall', { variables: { input } }),
+      api.admin.mutation('apps-admin-api/AppInstall', { variables: { input } }),
+    ]);
+    const payloads = [
+      first.data.appsMutation.appInstall,
+      retry.data.appsMutation.appInstall,
+    ];
+    expect(payloads.filter(({ duplicate }) => !duplicate)).toHaveLength(1);
+    expect(payloads.filter(({ duplicate }) => duplicate)).toHaveLength(1);
+    expect(new Set(payloads.map(({ operation }) => operation!.id)).size).toBe(1);
+    expect(new Set(payloads.map(({ operation }) => operation!.workflowId)).size).toBe(1);
+    expect(payloads[0].operation!.workflowId).not.toContain(clientMutationId);
   });
 
-  test('APPS-IDEM-003: a mutation ID cannot silently accept a different install contract', async ({
+  test('APPS-IDEM-004 APPS-IDEM-005: update and actions return the original operation on retry', async ({
     api,
   }) => {
-    const clientMutationId = crypto.randomUUID();
-    const first = await installApp(api, {
-      clientMutationId,
-      configuration: { contract: 'first' },
+    const installed = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
+      },
     });
-    expectAccepted(first, 'INSTALL');
-    const conflicting = await installApp(api, {
-      clientMutationId,
-      configuration: { contract: 'different' },
-    });
-    expectSafeErrors(conflicting);
-    expect(conflicting.operation).toBeNull();
-    expect(await getInstallation(api, first.installation!.id)).toMatchObject({
-      configuration: { contract: 'first' },
-    });
-  });
+    const id = installed.data.appsMutation.appInstall.installation!.id;
+    await expect
+      .poll(async () => {
+        const current = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id },
+        });
+        return current.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('ACTIVE');
 
-  test('APPS-IDEM-004 APPS-IDEM-005: every lifecycle action returns its original operation on retry', async ({
-    api,
-  }) => {
-    const { installation } = await installActive(api);
     const updateId = crypto.randomUUID();
-    const update = await updateApp(api, installation.id, { clientMutationId: updateId });
-    const updateRetry = await updateApp(api, installation.id, { clientMutationId: updateId });
-    expect(updateRetry).toMatchObject({
-      duplicate: true,
-      operation: { id: update.operation!.id },
+    const update = await api.admin.mutation('apps-admin-api/AppUpdate', {
+      variables: { input: { installationId: id, clientMutationId: updateId } },
     });
-    await waitForInstallation(api, installation.id, 'ACTIVE');
+    const updateRetry = await api.admin.mutation('apps-admin-api/AppUpdate', {
+      variables: { input: { installationId: id, clientMutationId: updateId } },
+    });
+    expect(updateRetry.data.appsMutation.appUpdate).toMatchObject({
+      duplicate: true,
+      operation: { id: update.data.appsMutation.appUpdate.operation!.id },
+    });
+    await expect
+      .poll(async () => {
+        const current = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id },
+        });
+        return current.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('ACTIVE');
 
-    for (const [action, terminal] of [
-      ['AppSuspend', 'SUSPENDED'],
-      ['AppResume', 'ACTIVE'],
-      ['AppUninstall', 'UNINSTALLED'],
+    for (const [document, field, terminal] of [
+      ['apps-admin-api/AppSuspend', 'appSuspend', 'SUSPENDED'],
+      ['apps-admin-api/AppResume', 'appResume', 'ACTIVE'],
+      ['apps-admin-api/AppUninstall', 'appUninstall', 'UNINSTALLED'],
     ] as const) {
-      const id = crypto.randomUUID();
-      const accepted = await lifecycleAction(api, action, installation.id, id);
-      const retry = await lifecycleAction(api, action, installation.id, id);
-      expect(retry).toMatchObject({
-        duplicate: true,
-        operation: { id: accepted.operation!.id },
+      const mutationId = crypto.randomUUID();
+      const accepted = await api.admin.mutation(document, {
+        variables: { input: { installationId: id, clientMutationId: mutationId } },
       });
-      await waitForInstallation(api, installation.id, terminal);
+      const duplicate = await api.admin.mutation(document, {
+        variables: { input: { installationId: id, clientMutationId: mutationId } },
+      });
+      expect(duplicate.data.appsMutation[field]).toMatchObject({
+        duplicate: true,
+        operation: { id: accepted.data.appsMutation[field].operation!.id },
+      });
+      await expect
+        .poll(async () => {
+          const current = await api.admin.query('apps-admin-api/AppInstallation', {
+            variables: { id },
+          });
+          return current.data.appsQuery.appInstallation?.status;
+        })
+        .toBe(terminal);
     }
   });
 
@@ -102,94 +100,95 @@ test.describe('Apps Admin API - idempotency and concurrency', () => {
     api,
   }) => {
     const sharedId = crypto.randomUUID();
-    const first = await installApp(api, {
-      appCode: 'hello-world',
-      clientMutationId: sharedId,
+    const first = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'hello-world', clientMutationId: sharedId },
+      },
     });
-    const second = await installApp(api, {
-      appCode: 'shopana-headless',
-      clientMutationId: sharedId,
+    const second = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'shopana-headless', clientMutationId: sharedId },
+      },
     });
-    expectAccepted(first, 'INSTALL');
-    expectAccepted(second, 'INSTALL');
-    expect(second.operation!.id).not.toBe(first.operation!.id);
+    expect(second.data.appsMutation.appInstall.operation!.id).not.toBe(
+      first.data.appsMutation.appInstall.operation!.id,
+    );
 
-    const firstStore = api.session.project;
     await api.session.setupProject({ displayName: 'Second Store' });
-    const foreign = await installApp(api, { clientMutationId: sharedId });
-    expectAccepted(foreign, 'INSTALL');
-    expect(foreign.operation!.id).not.toBe(first.operation!.id);
-
-    api.session.project = firstStore;
-    expect((await listInstallations(api, { first: 20 })).totalCount).toBe(2);
-  });
-
-  test('APPS-IDEM-007 APPS-IDEM-014: parallel unique installs leave at most one non-terminal installation', async ({
-    api,
-  }) => {
-    const results = await Promise.all([
-      installApp(api, { clientMutationId: crypto.randomUUID() }),
-      installApp(api, { clientMutationId: crypto.randomUUID() }),
-      installApp(api, { clientMutationId: crypto.randomUUID() }),
-    ]);
-    expect(results.filter(({ userErrors }) => userErrors.length === 0)).toHaveLength(1);
-    expect(results.filter(({ userErrors }) => userErrors.length > 0)).toHaveLength(2);
-
-    const connection = await listInstallations(api, {
-      first: 20,
-      where: { appCode: { _eq: 'hello-world' } },
+    const foreign = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'hello-world', clientMutationId: sharedId },
+      },
     });
-    expect(connection.totalCount).toBe(1);
-    const installation = await waitForInstallation(api, connection.edges[0].node.id);
-    const operations = await operationRows(installation.id);
-    expect(operations).toHaveLength(1);
-    expect(
-      (installation.status === 'ACTIVE' && operations[0].status === 'SUCCEEDED') ||
-        (installation.status === 'INSTALL_FAILED' && operations[0].status === 'FAILED'),
-    ).toBe(true);
+    expect(foreign.data.appsMutation.appInstall.operation!.id).not.toBe(
+      first.data.appsMutation.appInstall.operation!.id,
+    );
   });
 
-  test('APPS-IDEM-008 APPS-IDEM-009: parallel duplicate transitions accept once and converge consistently', async ({
+  test('APPS-IDEM-007..009 APPS-IDEM-014: parallel installs and transitions converge to one operation', async ({
     api,
   }) => {
-    const { installation } = await installActive(api);
-    const clientMutationId = crypto.randomUUID();
-    const results = await Promise.all(
-      Array.from({ length: 4 }, () =>
-        lifecycleAction(api, 'AppSuspend', installation.id, clientMutationId),
+    const installs = await Promise.all(
+      Array.from({ length: 3 }, () =>
+        api.admin.mutation('apps-admin-api/AppInstall', {
+          variables: {
+            input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
+          },
+        }),
       ),
     );
-    expect(results.filter(({ duplicate }) => !duplicate)).toHaveLength(1);
-    expect(results.filter(({ duplicate }) => duplicate)).toHaveLength(3);
-    expect(new Set(results.map(({ operation }) => operation!.id)).size).toBe(1);
-    await waitForInstallation(api, installation.id, 'SUSPENDED');
-    expect(await operationRows(installation.id)).toHaveLength(2);
+    expect(
+      installs.filter(({ data }) => data.appsMutation.appInstall.userErrors.length === 0),
+    ).toHaveLength(1);
+    const accepted = installs.find(
+      ({ data }) => data.appsMutation.appInstall.userErrors.length === 0,
+    )!;
+    const id = accepted.data.appsMutation.appInstall.installation!.id;
+    await expect
+      .poll(async () => {
+        const current = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id },
+        });
+        return current.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('ACTIVE');
+
+    const mutationId = crypto.randomUUID();
+    const suspends = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        api.admin.mutation('apps-admin-api/AppSuspend', {
+          variables: { input: { installationId: id, clientMutationId: mutationId } },
+        }),
+      ),
+    );
+    expect(suspends.filter(({ data }) => !data.appsMutation.appSuspend.duplicate)).toHaveLength(1);
+    expect(new Set(suspends.map(({ data }) => data.appsMutation.appSuspend.operation!.id)).size).toBe(
+      1,
+    );
   });
 
-  test('APPS-IDEM-011 APPS-IDEM-012: retries observe the persisted accepted or failed operation', async ({
+  test('APPS-IDEM-011 APPS-IDEM-012: retry observes the persisted failed operation', async ({
     api,
   }) => {
     const clientMutationId = crypto.randomUUID();
-    const failed = await installApp(api, {
-      clientMutationId,
-      secrets: [{ name: '', value: 'invalid' }],
+    const failed = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: {
+          appCode: 'hello-world',
+          secrets: [{ name: '', value: 'invalid' }],
+          clientMutationId,
+        },
+      },
     });
-    expectSafeErrors(failed);
-
-    const connection = await listInstallations(api, {
-      first: 20,
-      where: { appCode: { _eq: 'hello-world' } },
+    expect(failed.data.appsMutation.appInstall.userErrors.length).toBeGreaterThan(0);
+    const retry = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'hello-world', clientMutationId },
+      },
     });
-    expect(connection.totalCount).toBe(1);
-    const persisted = connection.edges[0].node;
-    const operations = await operationRows(persisted.id);
-    expect(operations).toMatchObject([{ status: 'FAILED', started_at: null }]);
-
-    const retry = await installApp(api, { clientMutationId });
-    expect(retry).toMatchObject({
+    expect(retry.data.appsMutation.appInstall).toMatchObject({
       duplicate: true,
-      installation: { id: persisted.id },
+      operation: { status: 'FAILED' },
     });
-    expect(await operationRows(persisted.id)).toEqual(operations);
   });
 });

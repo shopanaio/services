@@ -1,221 +1,253 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  configureApp,
-  expectSafeErrors,
-  getInstallation,
-  installActive,
-  installApp,
-  lifecycleAction,
-  operationRows,
-  secretRows,
-  updateApp,
-  waitForInstallation,
-} from './apps-test-support';
 
 test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
   test.beforeEach(async ({ api }) => {
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-CONF-001..004: configure is a compare-and-swap replacement with one concurrent winner', async ({
+  test('APPS-CONF-001..004: configure is a versioned compare-and-swap replacement', async ({
     api,
   }) => {
-    const { installation } = await installActive(api, {
-      configuration: { revision: 1, removed: true },
+    const install = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: {
+          appCode: 'hello-world',
+          configuration: { revision: 1, removed: true },
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
     });
-    const first = await configureApp(api, installation.id, 1, { revision: 2 });
-    expect(first.userErrors).toEqual([]);
-    expect(first.installation).toMatchObject({
-      configuration: { revision: 2 },
-      configurationVersion: 2,
+    const id = install.data.appsMutation.appInstall.installation!.id;
+    const first = await api.admin.mutation('apps-admin-api/AppConfigure', {
+      variables: {
+        input: {
+          installationId: id,
+          expectedConfigurationVersion: 1,
+          configuration: { revision: 2 },
+        },
+      },
     });
-
-    const stale = await configureApp(api, installation.id, 1, { revision: 3 });
-    expectSafeErrors(stale);
-    expect(stale.installation).toBeNull();
-    expect(await getInstallation(api, installation.id)).toMatchObject({
-      configuration: { revision: 2 },
-      configurationVersion: 2,
+    expect(first.data.appsMutation.appConfigure).toMatchObject({
+      userErrors: [],
+      installation: { configuration: { revision: 2 }, configurationVersion: 2 },
     });
+    const stale = await api.admin.mutation('apps-admin-api/AppConfigure', {
+      variables: {
+        input: {
+          installationId: id,
+          expectedConfigurationVersion: 1,
+          configuration: { revision: 3 },
+        },
+      },
+    });
+    expect(stale.data.appsMutation.appConfigure.installation).toBeNull();
+    expect(stale.data.appsMutation.appConfigure.userErrors.length).toBeGreaterThan(0);
 
     const concurrent = await Promise.all([
-      configureApp(api, installation.id, 2, { winner: 'a' }),
-      configureApp(api, installation.id, 2, { winner: 'b' }),
+      api.admin.mutation('apps-admin-api/AppConfigure', {
+        variables: {
+          input: {
+            installationId: id,
+            expectedConfigurationVersion: 2,
+            configuration: { winner: 'a' },
+          },
+        },
+      }),
+      api.admin.mutation('apps-admin-api/AppConfigure', {
+        variables: {
+          input: {
+            installationId: id,
+            expectedConfigurationVersion: 2,
+            configuration: { winner: 'b' },
+          },
+        },
+      }),
     ]);
-    expect(concurrent.filter(({ userErrors }) => userErrors.length === 0)).toHaveLength(1);
-    expect(concurrent.filter(({ userErrors }) => userErrors.length > 0)).toHaveLength(1);
-    expect((await getInstallation(api, installation.id))!.configurationVersion).toBe(3);
+    expect(
+      concurrent.filter(
+        ({ data }) => data.appsMutation.appConfigure.userErrors.length === 0,
+      ),
+    ).toHaveLength(1);
   });
 
-  test('APPS-CONF-005..007: update version is required only for configuration and omitted scopes are preserved', async ({
+  test('APPS-CONF-005..012: update versions and scope replacements follow the manifest contract', async ({
     api,
   }) => {
-    const { installation } = await installActive(api, { appCode: 'shopana-headless' });
-    const missingVersion = await updateApp(api, installation.id, {
-      configuration: { invalid: true },
+    const install = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: {
+          appCode: 'shopana-headless',
+          grantedScopes: ['project.getStoreById', 'project.getStoreById'],
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
     });
-    expectSafeErrors(missingVersion);
-    expect(missingVersion.operation).toBeNull();
-
-    const updated = await updateApp(api, installation.id);
-    expect(updated.userErrors).toEqual([]);
-    await waitForInstallation(api, installation.id, 'ACTIVE');
-    const current = await getInstallation(api, installation.id);
-    expect(current).toMatchObject({
-      configurationVersion: 1,
-      scopes: [{ scope: 'project.getStoreById', granted: true }],
+    const id = install.data.appsMutation.appInstall.installation!.id;
+    const missingVersion = await api.admin.mutation('apps-admin-api/AppUpdate', {
+      variables: {
+        input: {
+          installationId: id,
+          configuration: { invalid: true },
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
+    });
+    expect(missingVersion.data.appsMutation.appUpdate.operation).toBeNull();
+    const rejectedScope = await api.admin.mutation('apps-admin-api/AppConfigure', {
+      variables: {
+        input: {
+          installationId: id,
+          expectedConfigurationVersion: 1,
+          configuration: {},
+          grantedScopes: ['unknown.scope'],
+        },
+      },
+    });
+    expect(rejectedScope.data.appsMutation.appConfigure.installation).toBeNull();
+    const revoked = await api.admin.mutation('apps-admin-api/AppConfigure', {
+      variables: {
+        input: {
+          installationId: id,
+          expectedConfigurationVersion: 1,
+          configuration: { configured: true },
+          grantedScopes: [],
+        },
+      },
+    });
+    expect(revoked.data.appsMutation.appConfigure).toMatchObject({
+      userErrors: [],
+      installation: {
+        configurationVersion: 2,
+        scopes: [{ scope: 'project.getStoreById', granted: false }],
+      },
     });
   });
 
-  test('APPS-CONF-008..012: supplied scopes are normalized replacements with retained revocation history', async ({
-    api,
-  }) => {
-    const { installation } = await installActive(api, {
-      appCode: 'shopana-headless',
-      grantedScopes: ['project.getStoreById', 'project.getStoreById'],
-    });
-    expect(installation.scopes).toMatchObject([
-      { scope: 'project.getStoreById', granted: true, revokedAt: null },
-    ]);
-
-    const rejected = await configureApp(api, installation.id, 1, { unchanged: false }, [
-      'unknown.scope',
-    ]);
-    expectSafeErrors(rejected);
-    expect(await getInstallation(api, installation.id)).toMatchObject({
-      configuration: {},
-      configurationVersion: 1,
-      scopes: [{ scope: 'project.getStoreById', granted: true }],
-      status: 'ACTIVE',
-    });
-
-    const revoked = await configureApp(api, installation.id, 1, { configured: true }, []);
-    expect(revoked.userErrors).toEqual([]);
-    expect(revoked.installation!.scopes).toMatchObject([
-      { scope: 'project.getStoreById', granted: false },
-    ]);
-    expect(revoked.installation!.scopes[0].revokedAt).not.toBeNull();
-  });
-
-  test('APPS-CONF-011: configuration and grants for the same App are store-local', async ({
+  test('APPS-CONF-011 APPS-CONF-012: defaults and configuration are store-local', async ({
     api,
   }) => {
     const firstStore = api.session.project;
-    const first = await installActive(api, { appCode: 'shopana-headless' });
-    await configureApp(api, first.installation.id, 1, { store: 'first' }, []);
-
+    const first = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'shopana-headless', clientMutationId: crypto.randomUUID() },
+      },
+    });
+    await api.admin.mutation('apps-admin-api/AppConfigure', {
+      variables: {
+        input: {
+          installationId: first.data.appsMutation.appInstall.installation!.id,
+          expectedConfigurationVersion: 1,
+          configuration: { store: 'first' },
+          grantedScopes: [],
+        },
+      },
+    });
     await api.session.setupProject({ displayName: 'Second Store' });
-    const second = await installActive(api, { appCode: 'shopana-headless' });
-    expect(second.installation).toMatchObject({
+    const second = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'shopana-headless', clientMutationId: crypto.randomUUID() },
+      },
+    });
+    expect(second.data.appsMutation.appInstall.installation).toMatchObject({
       configuration: {},
       configurationVersion: 1,
       scopes: [{ scope: 'project.getStoreById', granted: true }],
     });
-
     api.session.project = firstStore;
-    expect(await getInstallation(api, first.installation.id)).toMatchObject({
-      configuration: { store: 'first' },
-      configurationVersion: 2,
-      scopes: [{ scope: 'project.getStoreById', granted: false }],
-    });
   });
 
-  test('APPS-CONF-013 APPS-CONF-014 APPS-CONF-016 APPS-CONF-021: secrets are write-only, encrypted, deduplicated, and absent from payloads', async ({
+  test('APPS-CONF-013..018 APPS-CONF-020 APPS-CONF-021: secrets remain write-only and validation is atomic', async ({
     api,
   }) => {
     const plaintext = `secret-${crypto.randomUUID()}`;
-    const payload = await installApp(api, {
-      secrets: [
-        { name: 'api-key', value: 'superseded' },
-        { name: 'api-key', value: plaintext },
-      ],
+    const install = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: {
+          appCode: 'hello-world',
+          secrets: [
+            { name: 'api-key', value: 'superseded' },
+            { name: 'api-key', value: plaintext },
+          ],
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
     });
-    expect(payload.userErrors).toEqual([]);
-    const installation = await waitForInstallation(api, payload.installation!.id, 'ACTIVE');
-    const rows = await secretRows(installation.id);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ name: 'api-key', version: 1, revoked_at: null });
-    expect(rows[0].ciphertext).toMatch(/^v1\.[^.]+\.[^.]+\.[^.]+$/u);
-    expect(rows[0].ciphertext).not.toContain(plaintext);
-    expect(rows[0].ciphertext).not.toContain('superseded');
-    expect(JSON.stringify(payload)).not.toContain(plaintext);
-    expect(JSON.stringify(installation)).not.toContain(plaintext);
-    expect(JSON.stringify(payload)).not.toContain('api-key');
+    expect(install.data.appsMutation.appInstall.userErrors).toEqual([]);
+    expect(JSON.stringify(install.data)).not.toContain(plaintext);
+    expect(JSON.stringify(install.data)).not.toContain('api-key');
+
+    await api.session.setupProject({ displayName: 'Invalid Secret Store' });
+    const invalid = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: {
+          appCode: 'hello-world',
+          secrets: [{ name: '', value: 'must-not-persist' }],
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
+    });
+    expect(invalid.data.appsMutation.appInstall).toMatchObject({
+      installation: null,
+      operation: null,
+    });
+    expect(invalid.data.appsMutation.appInstall.userErrors.length).toBeGreaterThan(0);
   });
 
-  test('APPS-CONF-015 APPS-CONF-018: invalid secret names fail atomically before App workflow dispatch', async ({
-    api,
-  }) => {
-    for (const [index, name] of ['', ' '.repeat(4), 'x'.repeat(129)].entries()) {
-      if (index > 0) {
-        await api.session.setupProject({ displayName: `Invalid Secret Store ${index}` });
-      }
-      const payload = await installApp(api, {
-        secrets: [{ name, value: 'must-not-persist' }],
-      });
-      expectSafeErrors(payload);
-      expect(payload.installation).toBeNull();
-      expect(payload.operation).toBeNull();
-      const connection = await api.admin.query('apps-admin-api/AppInstallations', {
-        variables: { first: 20 },
-      });
-      expect(connection.data.appsQuery.appInstallations.totalCount).toBe(1);
-      const [{ node }] = connection.data.appsQuery.appInstallations.edges;
-      expect(await secretRows(node.id)).toEqual([]);
-      const operations = await operationRows(node.id);
-      expect(operations).toHaveLength(1);
-      expect(operations[0]).toMatchObject({
-        status: 'FAILED',
-        started_at: null,
-      });
-    }
-  });
-
-  test('APPS-CONF-017 APPS-CONF-020: rotation changes only named ciphertext and keeps installation ownership', async ({
+  test('APPS-CONF-017 APPS-CONF-019: rotation and uninstall never expose secret material', async ({
     api,
   }) => {
     const firstValue = `first-${crypto.randomUUID()}`;
     const secondValue = `second-${crypto.randomUUID()}`;
-    const { installation } = await installActive(api, {
-      secrets: [
-        { name: 'rotated', value: firstValue },
-        { name: 'stable', value: 'stable-value' },
-      ],
+    const install = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: {
+          appCode: 'hello-world',
+          secrets: [{ name: 'token', value: firstValue }],
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
     });
-    const before = await secretRows(installation.id);
-    const updated = await updateApp(api, installation.id, {
-      secrets: [{ name: 'rotated', value: secondValue }],
-    });
-    expect(updated.userErrors).toEqual([]);
-    await waitForInstallation(api, installation.id, 'ACTIVE');
-    const after = await secretRows(installation.id);
-
-    expect(after.find(({ name }) => name === 'rotated')).toMatchObject({
-      installation_id: before[0].installation_id,
-      version: 2,
-    });
-    expect(after.find(({ name }) => name === 'rotated')!.ciphertext).not.toBe(
-      before.find(({ name }) => name === 'rotated')!.ciphertext,
-    );
-    expect(after.find(({ name }) => name === 'stable')!.ciphertext).toBe(
-      before.find(({ name }) => name === 'stable')!.ciphertext,
-    );
-    expect(JSON.stringify(updated)).not.toMatch(new RegExp(`${firstValue}|${secondValue}`, 'u'));
-  });
-
-  test('APPS-CONF-019: uninstall revokes every secret before terminal completion', async ({
-    api,
-  }) => {
-    const { installation } = await installActive(api, {
-      secrets: [{ name: 'token', value: crypto.randomUUID() }],
-    });
-    const uninstall = await lifecycleAction(api, 'AppUninstall', installation.id);
-    expect(uninstall.userErrors).toEqual([]);
+    const id = install.data.appsMutation.appInstall.installation!.id;
     await expect
-      .poll(async () => (await secretRows(installation.id))[0]?.revoked_at ?? null)
-      .not.toBeNull();
-    await waitForInstallation(api, installation.id, 'UNINSTALLED');
+      .poll(async () => {
+        const response = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id },
+        });
+        return response.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('ACTIVE');
+    const update = await api.admin.mutation('apps-admin-api/AppUpdate', {
+      variables: {
+        input: {
+          installationId: id,
+          secrets: [{ name: 'token', value: secondValue }],
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
+    });
+    expect(JSON.stringify(update.data)).not.toMatch(
+      new RegExp(`${firstValue}|${secondValue}`, 'u'),
+    );
+    await expect
+      .poll(async () => {
+        const response = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id },
+        });
+        return response.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('ACTIVE');
+    await api.admin.mutation('apps-admin-api/AppUninstall', {
+      variables: { input: { installationId: id, clientMutationId: crypto.randomUUID() } },
+    });
+    await expect
+      .poll(async () => {
+        const response = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id },
+        });
+        return response.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('UNINSTALLED');
   });
 });

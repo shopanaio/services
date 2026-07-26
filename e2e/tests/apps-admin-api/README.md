@@ -13,10 +13,8 @@ The suites follow the current GraphQL schema and Apps lifecycle implementation:
 - Admin RBAC and store isolation;
 - runtime capabilities, workflow traceability, failures, and observability.
 
-The shared `apps-test-support.ts` helpers drive Admin GraphQL, wait for durable lifecycle
-completion, and inspect Apps persistence where a public response cannot establish an invariant (for
-example secret encryption and operation cardinality). Cases verify `userErrors`, durable
-installation and lifecycle state, workflow side effects, and absence of changes in another store.
-Secret cases also verify persistence redaction without printing plaintext values.
+The suites use the existing Admin API fixture directly. Cases verify `userErrors`, installation and
+lifecycle state, workflow side effects, and absence of changes in another store. Secret cases
+verify that GraphQL responses never expose submitted plaintext values.
 
 The Headless App-owned storefront API is covered separately in `e2e/tests/headless-admin-api`.

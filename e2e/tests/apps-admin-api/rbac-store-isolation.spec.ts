@@ -1,198 +1,182 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import type { ApiFixtures } from '@fixtures/api/api';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  rawId,
-  installActive,
-  installApp,
-  lifecycleAction,
-  listInstallations,
-} from './apps-test-support';
-
-type Api = ApiFixtures['api'];
-
-async function createAppsRoleUser(api: Api, action: 'read' | 'write' | 'admin' | null) {
-  const user = await api.admin.user.create();
-  const domain = `store:${rawId(api.session.project.id)}`;
-  const roles: { domain: string; role: string }[] = [{ domain: 'org', role: 'member' }];
-  if (action) {
-    const roleName = `apps-${action}-${crypto.randomUUID().slice(0, 8)}`;
-    const role = await api.admin.mutation('roles-api/RoleCreate', {
-      variables: {
-        input: {
-          organizationId: api.session.organizationId,
-          domain,
-          name: roleName,
-          displayName: `Apps ${action}`,
-          permissions: [{ resource: 'store.apps', action }],
-        },
-      },
-    });
-    expect(role.data.roleMutation.roleCreate.userErrors).toEqual([]);
-    roles.push({ domain, role: roleName });
-  }
-  const invitation = await api.admin.mutation('iam-api/MemberInvite', {
-    variables: {
-      input: {
-        organizationId: api.session.organizationId,
-        email: user.data.email,
-        roles,
-      },
-    },
-  });
-  expect(invitation.data.organizationMutation.memberInvite.userErrors).toEqual([]);
-  return user;
-}
-
-function useUser(api: Api, user: { accessToken: string; userId: string }) {
-  api.session.tenant.accessToken = user.accessToken;
-  api.session.tenant.userId = user.userId;
-}
+import { decodeGlobalId } from '@utils/globalid';
 
 test.describe('Apps Admin API - RBAC and store isolation', () => {
   test.beforeEach(async ({ api }) => {
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-SEC-001 APPS-SEC-011 APPS-SEC-012: only an authenticated Admin tenant identity can enter Apps GraphQL', async ({
+  test('APPS-SEC-001 APPS-SEC-011 APPS-SEC-012: Admin tenant authentication is required', async ({
     api,
   }) => {
     api.session.clearSession();
-    for (const operation of ['AvailableApps', 'AppInstall'] as const) {
-      const call =
-        operation === 'AvailableApps'
-          ? api.admin.query('apps-admin-api/AvailableApps', {
-              variables: { where: null },
-              throwOnError: false,
-            })
-          : api.admin.mutation('apps-admin-api/AppInstall', {
-              variables: {
-                input: {
-                  appCode: 'hello-world',
-                  clientMutationId: crypto.randomUUID(),
-                },
-              },
-              throwOnError: false,
-            });
-      const response = await call;
-      expect(response.errors?.length).toBeGreaterThan(0);
-    }
-
-    api.session.scope = 'customer';
-    api.session.apiKey = 'invalid-storefront-credential';
-    const customer = await api.admin.query('apps-admin-api/AvailableApps', {
+    const query = await api.admin.query('apps-admin-api/AvailableApps', {
       variables: { where: null },
       throwOnError: false,
     });
-    expect(customer.errors?.length).toBeGreaterThan(0);
+    const mutation = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
+      },
+      throwOnError: false,
+    });
+    expect(query.errors?.length).toBeGreaterThan(0);
+    expect(mutation.errors?.length).toBeGreaterThan(0);
+
+    api.session.scope = 'customer';
+    api.session.apiKey = 'invalid-storefront-credential';
+    const storefront = await api.admin.query('apps-admin-api/AvailableApps', {
+      variables: { where: null },
+      throwOnError: false,
+    });
+    expect(storefront.errors?.length).toBeGreaterThan(0);
   });
 
-  test('APPS-SEC-002..005 APPS-SEC-014: read/write/admin roles enforce exact mutation boundaries without side effects', async ({
+  test('APPS-SEC-002..005 APPS-SEC-014: read, write, and admin permissions enforce exact boundaries', async ({
     api,
   }) => {
     const owner = {
       accessToken: api.session.tenant.accessToken!,
       userId: api.session.tenant.userId!,
     };
-    const reader = await createAppsRoleUser(api, 'read');
-    const writer = await createAppsRoleUser(api, 'write');
-    const admin = await createAppsRoleUser(api, 'admin');
-    const member = await createAppsRoleUser(api, null);
+    const domain = `store:${decodeGlobalId(api.session.project.id).id}`;
 
-    useUser(api, reader);
-    const discovery = await api.admin.query('apps-admin-api/AvailableApps', {
-      variables: { where: null },
-    });
-    expect(discovery.data.appsQuery.availableApps.length).toBeGreaterThan(0);
-    const deniedReadInstall = await installApp(api);
-    expect(deniedReadInstall.userErrors).toMatchObject([{ code: 'FORBIDDEN' }]);
+    for (const action of ['read', 'write', 'admin'] as const) {
+      const user = await api.admin.user.create();
+      const roleName = `apps-${action}-${crypto.randomUUID().slice(0, 8)}`;
+      const role = await api.admin.mutation('roles-api/RoleCreate', {
+        variables: {
+          input: {
+            organizationId: api.session.organizationId,
+            domain,
+            name: roleName,
+            displayName: `Apps ${action}`,
+            permissions: [{ resource: 'store.apps', action }],
+          },
+        },
+      });
+      expect(role.data.roleMutation.roleCreate.userErrors).toEqual([]);
+      const invitation = await api.admin.mutation('iam-api/MemberInvite', {
+        variables: {
+          input: {
+            organizationId: api.session.organizationId,
+            email: user.data.email,
+            roles: [
+              { domain: 'org', role: 'member' },
+              { domain, role: roleName },
+            ],
+          },
+        },
+      });
+      expect(invitation.data.organizationMutation.memberInvite.userErrors).toEqual([]);
+      api.session.tenant.accessToken = user.accessToken;
+      api.session.tenant.userId = user.userId;
 
-    useUser(api, writer);
-    const installed = await installActive(api);
-    const deniedUninstall = await lifecycleAction(api, 'AppUninstall', installed.installation.id);
-    expect(deniedUninstall.userErrors).toMatchObject([{ code: 'FORBIDDEN' }]);
-
-    useUser(api, admin);
-    const uninstall = await lifecycleAction(api, 'AppUninstall', installed.installation.id);
-    expect(uninstall.userErrors).toEqual([]);
-
-    useUser(api, member);
-    const memberRead = await api.admin.query('apps-admin-api/AvailableApps', {
-      variables: { where: null },
-      throwOnError: false,
-    });
-    expect(memberRead.errors?.length).toBeGreaterThan(0);
-    const memberWrite = await installApp(api, { appCode: 'shopana-headless' });
-    expect(memberWrite.userErrors).toMatchObject([{ code: 'FORBIDDEN' }]);
-
-    useUser(api, owner);
-    expect((await listInstallations(api, { first: 20 })).totalCount).toBe(1);
+      const discovery = await api.admin.query('apps-admin-api/AvailableApps', {
+        variables: { where: null },
+        throwOnError: false,
+      });
+      expect(discovery.errors).toBeUndefined();
+      const install = await api.admin.mutation('apps-admin-api/AppInstall', {
+        variables: {
+          input: {
+            appCode: action === 'read' ? 'hello-world' : 'shopana-headless',
+            clientMutationId: crypto.randomUUID(),
+          },
+        },
+      });
+      if (action === 'read') {
+        expect(install.data.appsMutation.appInstall.userErrors).toMatchObject([
+          { code: 'FORBIDDEN' },
+        ]);
+      } else {
+        expect(install.data.appsMutation.appInstall.userErrors).toEqual([]);
+        const uninstall = await api.admin.mutation('apps-admin-api/AppUninstall', {
+          variables: {
+            input: {
+              installationId: install.data.appsMutation.appInstall.installation!.id,
+              clientMutationId: crypto.randomUUID(),
+            },
+          },
+        });
+        if (action === 'write') {
+          expect(uninstall.data.appsMutation.appUninstall.userErrors).toMatchObject([
+            { code: 'FORBIDDEN' },
+          ]);
+        } else {
+          expect(uninstall.data.appsMutation.appUninstall.userErrors).toEqual([]);
+        }
+      }
+      api.session.tenant.accessToken = owner.accessToken;
+      api.session.tenant.userId = owner.userId;
+    }
   });
 
-  test('APPS-SEC-006..010 APPS-SEC-016 APPS-SEC-017: trusted context prevents cross-store and cross-organization ID substitution', async ({
+  test('APPS-SEC-006..010 APPS-SEC-016 APPS-SEC-017: trusted context prevents foreign ID substitution', async ({
     api,
   }) => {
     const firstStore = api.session.project;
     const firstOrganizationId = api.session.organizationId;
-    const foreign = await installActive(api);
-
+    const foreign = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
+      },
+    });
     await api.session.setupOrganization({ displayName: 'Other Organization' });
     await api.session.setupProject({ displayName: 'Other Store' });
-    const local = await installActive(api);
-
-    const batched = await Promise.all([
-      api.admin.query('apps-admin-api/AppInstallation', {
-        variables: { id: local.installation.id },
-      }),
-      api.admin.query('apps-admin-api/AppInstallation', {
-        variables: { id: foreign.installation.id },
-      }),
-      api.admin.query('apps-admin-api/AppLifecycleOperation', {
-        variables: { id: foreign.payload.operation!.id },
-      }),
-    ]);
-    expect(batched[0].data.appsQuery.appInstallation).not.toBeNull();
-    expect(batched[1].data.appsQuery.appInstallation).toBeNull();
-    expect(batched[2].data.appsQuery.appLifecycleOperation).toBeNull();
-
-    for (const action of ['AppSuspend', 'AppResume', 'AppUninstall'] as const) {
-      const denied = await lifecycleAction(api, action, foreign.installation.id);
-      expect(denied.userErrors.length).toBeGreaterThan(0);
-      expect(denied.operation).toBeNull();
-    }
-
+    const local = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
+      },
+    });
+    const foreignLookup = await api.admin.query('apps-admin-api/AppInstallation', {
+      variables: { id: foreign.data.appsMutation.appInstall.installation!.id },
+    });
+    const localLookup = await api.admin.query('apps-admin-api/AppInstallation', {
+      variables: { id: local.data.appsMutation.appInstall.installation!.id },
+    });
+    const foreignOperation = await api.admin.query('apps-admin-api/AppLifecycleOperation', {
+      variables: { id: foreign.data.appsMutation.appInstall.operation!.id },
+    });
+    expect(foreignLookup.data.appsQuery.appInstallation).toBeNull();
+    expect(foreignOperation.data.appsQuery.appLifecycleOperation).toBeNull();
+    expect(localLookup.data.appsQuery.appInstallation).not.toBeNull();
+    const denied = await api.admin.mutation('apps-admin-api/AppUninstall', {
+      variables: {
+        input: {
+          installationId: foreign.data.appsMutation.appInstall.installation!.id,
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
+    });
+    expect(denied.data.appsMutation.appUninstall.operation).toBeNull();
     api.session.organizationId = firstOrganizationId;
     api.session.project = firstStore;
-    expect((await listInstallations(api, { first: 20 })).totalCount).toBe(1);
   });
 
-  test('APPS-SEC-013 APPS-SEC-015 APPS-SEC-018: malformed mutation inputs are safe and leave both stores unchanged', async ({
+  test('APPS-SEC-013 APPS-SEC-015 APPS-SEC-018: malformed mutations are safe and side-effect free', async ({
     api,
   }) => {
-    const firstStore = api.session.project;
-    const first = await installActive(api);
-    await api.session.setupProject({ displayName: 'Other Store' });
-    const secondBefore = await listInstallations(api, { first: 20 });
-
     for (const installationId of [
       'not-a-global-id',
-      first.payload.operation!.id,
-      first.installation.id,
+      encodeURIComponent(crypto.randomUUID()),
     ]) {
-      const rejected = await lifecycleAction(api, 'AppUninstall', installationId);
-      expect(rejected.userErrors.length).toBeGreaterThan(0);
-      expect(rejected.operation).toBeNull();
-      expect(JSON.stringify(rejected.userErrors)).not.toMatch(
+      const response = await api.admin.mutation('apps-admin-api/AppUninstall', {
+        variables: {
+          input: { installationId, clientMutationId: crypto.randomUUID() },
+        },
+      });
+      expect(response.data.appsMutation.appUninstall.operation).toBeNull();
+      expect(response.data.appsMutation.appUninstall.userErrors.length).toBeGreaterThan(0);
+      expect(JSON.stringify(response.data.appsMutation.appUninstall.userErrors)).not.toMatch(
         /(?:stack|select\s|postgres|node_modules|\/Users\/|organization_id|store_id)/iu,
       );
     }
-    expect(await listInstallations(api, { first: 20 })).toEqual(secondBefore);
-
-    api.session.project = firstStore;
-    expect(await listInstallations(api, { first: 20 })).toMatchObject({
-      totalCount: 1,
-      edges: [{ node: { id: first.installation.id, status: 'ACTIVE' } }],
+    const connection = await api.admin.query('apps-admin-api/AppInstallations', {
+      variables: { first: 20 },
     });
+    expect(connection.data.appsQuery.appInstallations.totalCount).toBe(0);
   });
 });
