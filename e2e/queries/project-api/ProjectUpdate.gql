@@ -16,8 +16,74 @@ mutation StoreUpdate(
         revision
         name
         displayName
+        status
         email
         timezone
+        locales
+        defaultLocale
+        currencyCode
+        defaultWeightUnit
+        defaultDimensionUnit
+        contactDetails {
+          name
+          slug
+          email
+          phoneNumbers
+        }
+        address {
+          companyName
+          countryCode
+          addressLine1
+          addressLine2
+          city
+          administrativeArea
+          postalCode
+        }
+        brand {
+          defaultLogo {
+            id
+          }
+          squareLogo {
+            id
+          }
+          coverImage {
+            id
+          }
+          primaryColor
+          secondaryColor
+          slogan
+          shortDescription
+          socialLinks {
+            platform
+            url
+          }
+        }
+        orderProcessing {
+          orderNumberPrefix
+          orderNumberSuffix
+          requireCheckoutConfirmation
+          automaticFulfillmentMode
+          automaticallyArchiveOrders
+        }
+        defaults {
+          unitSystem
+          defaultWeightUnit
+          defaultDimensionUnit
+          timezone
+        }
+        currencySettings {
+          currencyCode
+          currencyDisplay
+          currencySign
+          grouping
+          signDisplay
+          minimumFractionDigits
+          maximumFractionDigits
+          roundingMode
+          trailingZeroDisplay
+        }
+        createdAt
+        updatedAt
       }
       operationResults {
         type

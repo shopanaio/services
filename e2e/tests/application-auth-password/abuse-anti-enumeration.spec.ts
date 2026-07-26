@@ -2,9 +2,9 @@ import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import {
   configureDelivery,
-  count,
   createRealm,
   createRealmMatrix,
+  endpoint,
   expectSecretFree,
   expectSignUp,
   invalidCredentials,
@@ -12,7 +12,6 @@ import {
   setUserState,
   signIn,
   uniqueEmail,
-  withDb,
 } from './application-auth-test-kit';
 
 const wrongPassword = 'Wrong-password-123!';
@@ -76,7 +75,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses.at(-1)!.status()).toBe(429);
   });
 
-  test('identity limiter key is realm-scoped and contains no raw email', async ({
+  test('identity limiter quota is realm-scoped', async ({
     api,
     request,
   }) => {
@@ -93,23 +92,20 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     const foreign = await signIn(request, realms.b, email, wrongPassword);
 
     expect(foreign.status()).toBe(401);
-    expectSecretFree(await foreign.text(), [email]);
   });
 
-  test('shared limiter enforces one baseline across IAM replicas', async ({
-    api,
-    request,
-  }) => {
-    const realm = await createRealm(api, request);
-    const email = uniqueEmail('shared');
-    await expectSignUp(request, realm, email);
-
-    const responses = await Promise.all(
-      Array.from({ length: 10 }, () => signIn(request, realm, email, wrongPassword)),
+  test('identity limiter backend key contains no raw email', async () => {
+    test.fixme(
+      true,
+      'E2E runtime needs a queryable rate-limit adapter capture to inspect backend keys',
     );
+  });
 
-    expect(responses.filter((response) => response.status() === 401)).toHaveLength(5);
-    expect(responses.filter((response) => response.status() === 429)).toHaveLength(5);
+  test('shared limiter enforces one baseline across IAM replicas', async () => {
+    test.fixme(
+      true,
+      'The current E2E runtime starts one IAM instance and cannot route attempts across replicas',
+    );
   });
 
   test('password reset identity hourly limit is enforced', async ({
@@ -128,7 +124,7 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expect(responses[3]!.status()).toBe(429);
   });
 
-  test('password reset IP/hour and identity/day windows are enforced', async ({
+  test('password reset IP/hour window is enforced across identities', async ({
     api,
     request,
   }) => {
@@ -141,6 +137,10 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     }
 
     expect(responses.some((response) => response.status() === 429)).toBe(true);
+  });
+
+  test('password reset identity/day window remains enforced after hourly rollover', async () => {
+    test.fixme(true, 'E2E runtime needs an injectable limiter clock to cross window boundaries');
   });
 
   test('limited response is generic and provides the approved Retry-After', async ({
@@ -161,37 +161,12 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     expectSecretFree(await limited.text(), [email, wrongPassword]);
   });
 
-  test('unavailable limiter makes reset fail closed without delivery', async ({
-    api,
-    request,
-  }) => {
-    const realm = await createRealm(api, request, undefined, 'reset-no-delivery', {
-      passwordResetEnabled: true,
-    });
-    const email = uniqueEmail('unavailable-reset');
-    const response = await requestPasswordReset(request, realm, email);
-
-    expect(response.status()).toBeGreaterThanOrEqual(500);
-    expect(response.headers()['set-cookie']).toBeUndefined();
-    await withDb(async (sql) => {
-      expect(await count(sql, 'application_verification', realm.applicationId)).toBe(0);
-    });
+  test('unavailable limiter makes reset fail closed without delivery', async () => {
+    test.fixme(true, 'E2E runtime needs a controllable rate-limit adapter failure');
   });
 
-  test('unavailable limiter never creates unlimited permissive signin', async ({
-    api,
-    request,
-  }) => {
-    const realm = await createRealm(api, request);
-    const email = uniqueEmail('no-permissive');
-    await expectSignUp(request, realm, email);
-
-    const responses = await Promise.all(
-      Array.from({ length: 20 }, () => signIn(request, realm, email, wrongPassword)),
-    );
-
-    expect(responses.some((response) => response.status() === 429)).toBe(true);
-    expect(responses.every((response) => !response.ok())).toBe(true);
+  test('unavailable limiter never creates unlimited permissive signin', async () => {
+    test.fixme(true, 'E2E runtime needs a controllable rate-limit adapter failure');
   });
 
   test('existing and absent identities have equivalent public failure contracts', async ({
@@ -217,16 +192,23 @@ test.describe('Application password auth — abuse and anti-enumeration', () => 
     request,
   }) => {
     const realm = await createRealm(api, request);
-    const existing = uniqueEmail('timing-existing');
-    const absent = uniqueEmail('timing-absent');
-    await expectSignUp(request, realm, existing);
-
-    const existingDurations = await measureSignin(request, realm, existing, 3);
-    const absentDurations = await measureSignin(request, realm, absent, 3);
+    const existing = Array.from({ length: 10 }, () => uniqueEmail('timing-existing'));
+    const absent = Array.from({ length: 10 }, () => uniqueEmail('timing-absent'));
+    await Promise.all(existing.map((email) => expectSignUp(request, realm, email)));
+    await request.get(endpoint(realm, '/login'));
+    const existingDurations: number[] = [];
+    const absentDurations: number[] = [];
+    for (let index = 0; index < existing.length; index += 1) {
+      existingDurations.push(await measureSignin(request, realm, existing[index]!, 1).then(first));
+      absentDurations.push(await measureSignin(request, realm, absent[index]!, 1).then(first));
+    }
     const existingMedian = median(existingDurations);
     const absentMedian = median(absentDurations);
 
-    expect(Math.abs(existingMedian - absentMedian)).toBeLessThan(250);
+    expect(Math.abs(existingMedian - absentMedian)).toBeLessThan(50);
+    expect(Math.max(existingMedian, absentMedian) / Math.min(existingMedian, absentMedian)).toBeLessThan(
+      1.2,
+    );
   });
 
   test('blocked, disabled, and unverified state is not over-disclosed', async ({
@@ -316,4 +298,8 @@ async function measureSignin(
 
 function median(values: number[]): number {
   return [...values].sort((left, right) => left - right)[Math.floor(values.length / 2)]!;
+}
+
+function first(values: number[]): number {
+  return values[0]!;
 }

@@ -16,7 +16,7 @@ import {
 } from './application-auth-test-kit';
 
 test.describe('Application password auth — delivery and observability', () => {
-  test('signin events have correct realm and outcome without raw credentials', async ({
+  test('signin failure response contains no raw credentials or foreign-realm side effect', async ({
     api,
     request,
   }) => {
@@ -32,7 +32,7 @@ test.describe('Application password auth — delivery and observability', () => 
     });
   });
 
-  test('reset and verification events contain no recipient, link, token, or payload', async ({
+  test('reset response contains no recipient, link, token, or payload', async ({
     api,
     request,
   }) => {
@@ -45,7 +45,7 @@ test.describe('Application password auth — delivery and observability', () => 
     expect(response.headers()['location'] ?? '').not.toContain(email);
   });
 
-  test('protocol failure events record only a safe reason category', async ({
+  test('protocol failure response exposes only a safe OAuth error', async ({
     api,
     request,
   }) => {
@@ -64,7 +64,7 @@ test.describe('Application password auth — delivery and observability', () => 
     expectSecretFree(await response.text(), [code]);
   });
 
-  test('cross-tenant rejection emits a safe security signal', async ({
+  test('cross-tenant rejection response does not disclose either tenant artifact', async ({
     api,
     request,
   }) => {
@@ -87,7 +87,7 @@ test.describe('Application password auth — delivery and observability', () => 
     ]);
   });
 
-  test('rate-limit telemetry contains no raw identity or secret labels', async ({
+  test('rate-limit response contains no raw identity or credential', async ({
     api,
     request,
   }) => {
@@ -116,35 +116,14 @@ test.describe('Application password auth — delivery and observability', () => 
     expect(body).not.toMatch(/stack|node_modules|select\s|postgres|password_hash/iu);
   });
 
-  test('logs, traces, and metrics contain no password, code, token, cookie, link, or client secret', async ({
-    api,
-    request,
-  }) => {
-    const realm = await createRealm(api, request);
-    const secrets = [
-      `password-${crypto.randomUUID()}`,
-      `code-${crypto.randomUUID()}`,
-      `token-${crypto.randomUUID()}`,
-      `cookie-${crypto.randomUUID()}`,
-    ];
-    const response = await request.post(endpoint(realm, '/oauth2/token'), {
-      headers: { ...formHeaders(), cookie: `session=${secrets[3]}` },
-      form: {
-        grant_type: 'password',
-        password: secrets[0],
-        code: secrets[1],
-        refresh_token: secrets[2],
-        client_id: realm.clientId,
-        resource: realm.resource,
-      },
-    });
-    expectSecretFree(await response.text(), secrets);
-    expect(response.headers()['location'] ?? '').not.toMatch(
-      new RegExp(secrets.map(escapeRegExp).join('|'), 'u'),
+  test('logs, traces, and metrics contain no password, code, token, cookie, link, or client secret', async () => {
+    test.fixme(
+      true,
+      'E2E runtime needs queryable log, trace, and metric capture sinks before this contract is observable',
     );
   });
 
-  test('verification and reset use distinct server-controlled purposes and templates', async ({
+  test('delivery profile configures distinct server-controlled templates', async ({
     api,
     request,
   }) => {
@@ -166,7 +145,7 @@ test.describe('Application password auth — delivery and observability', () => 
     });
   });
 
-  test('delivery idempotency prevents uncontrolled duplicates without PII keys', async ({
+  test('parallel reset requests leave at most one active verification artifact', async ({
     api,
     request,
   }) => {
@@ -188,16 +167,11 @@ test.describe('Application password auth — delivery and observability', () => 
     });
   });
 
-  test('observability sink failure follows contract without exposing secrets', async ({
-    api,
-    request,
-  }) => {
-    const realm = await createRealm(api, request);
-    const secret = `sink-secret-${crypto.randomUUID()}`;
-    const response = await signIn(request, realm, uniqueEmail('sink'), secret);
-    expect(response.status()).toBe(401);
-    expectSecretFree(await response.text(), [secret]);
-    expect(response.headers()['set-cookie']).toBeUndefined();
+  test('observability sink failure follows contract without exposing secrets', async () => {
+    test.fixme(
+      true,
+      'E2E runtime needs a controllable operational audit sink and durable failure counter',
+    );
   });
 });
 
@@ -210,8 +184,4 @@ async function deliveryRealm(
   });
   await configureDelivery(realm, 'observability');
   return realm;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }

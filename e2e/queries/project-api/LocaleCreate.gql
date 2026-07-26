@@ -1,0 +1,16 @@
+mutation LocaleCreate($input: LocaleCreateInput!) {
+  storeMutation {
+    localeCreate(input: $input) {
+      locale {
+        code
+        name
+        isActive
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

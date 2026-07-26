@@ -351,7 +351,7 @@ test.describe('Application password auth — password reset', () => {
     expect(applicationCookie(sessionB, realms.b)).toContain(realms.b.applicationId);
   });
 
-  test('capture delivery uses only the target-realm password reset purpose and template', async ({
+  test('target realm has an isolated password-reset delivery profile and artifact', async ({
     api,
     request,
   }) => {
@@ -397,7 +397,7 @@ test.describe('Application password auth — password reset', () => {
     expect(after.application_session).toBe(before.application_session);
   });
 
-  test('reset email, link, token, and password never leak to telemetry or browser storage', async ({
+  test('reset token and password do not leak through the public response, redirect, or cookies', async ({
     api,
     request,
   }) => {

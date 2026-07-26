@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
+import { composeGlobalId } from '@utils/globalid';
 import {
   authorizeUrl,
   createRealm,
@@ -12,10 +13,10 @@ import {
   formHeaders,
   redirectUri,
   setClientDisabled,
-  setUserState,
   tokenRequest,
   uniqueEmail,
   updatePolicy,
+  userForEmail,
   withDb,
 } from './application-auth-test-kit';
 
@@ -43,9 +44,11 @@ test.describe('Application password auth — live validation', () => {
     const email = uniqueEmail('block');
     await expectSignUp(request, realm, email);
     const token = await issueAccessToken(page, request, realm, email);
-    await setUserState(realm, email, { status: 'blocked' });
+    const user = await userForEmail(realm, email);
+    expect(user).not.toBeNull();
+    await setApplicationUserStatus(api, realm, user!.id, 'block');
     expect(await introspect(request, realm, token)).toMatchObject({ active: false });
-    await setUserState(realm, email, { status: 'active' });
+    await setApplicationUserStatus(api, realm, user!.id, 'unblock');
     expect(await introspect(request, realm, token)).toMatchObject({ active: false });
   });
 
@@ -58,24 +61,33 @@ test.describe('Application password auth — live validation', () => {
     const email = uniqueEmail('session-revoke');
     await expectSignUp(request, realm, email);
     const token = await issueAccessToken(page, request, realm, email);
-    await withDb(
-      (sql) => sql`delete from iam.application_session where application_id = ${realm.applicationId}`,
+    const user = await userForEmail(realm, email);
+    expect(user).not.toBeNull();
+    const { data } = await api.admin.mutation(
+      'application-admin-api/ApplicationUserSessionsRevokeAll',
+      { variables: { input: applicationUserInput(realm, user!.id) } },
     );
+    expect(data.applicationMutation.applicationUserSessionsRevokeAll.userErrors).toEqual([]);
     expect(await introspect(request, realm, token)).toMatchObject({ active: false });
   });
 
   test('client disable invalidates only that client artifacts', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
-    await setClientDisabled(realms.a, true);
-    expect(
-      await introspect(request, realms.a, `token-a-${crypto.randomUUID()}`),
-    ).toMatchObject({ active: false });
-    expect(
-      await introspect(request, realms.b, `token-b-${crypto.randomUUID()}`),
-    ).toMatchObject({ active: false });
+    const emailA = uniqueEmail('client-a');
+    const emailB = uniqueEmail('client-b');
+    await expectSignUp(request, realms.a, emailA);
+    await expectSignUp(request, realms.b, emailB);
+    const tokenA = await issueAccessToken(page, request, realms.a, emailA);
+    const tokenB = await issueAccessToken(page, request, realms.b, emailB);
+    expect(await introspect(request, realms.a, tokenA)).toMatchObject({ active: true });
+    expect(await introspect(request, realms.b, tokenB)).toMatchObject({ active: true });
+    await setClientDisabled(api, realms.a, true);
+    expect(await introspect(request, realms.a, tokenA)).toEqual({ active: false });
+    expect(await introspect(request, realms.b, tokenB)).toMatchObject({ active: true });
     await withDb(async (sql) => {
       const [clientB] = await sql<{ disabled: boolean }[]>`
         select disabled from iam.application_oauth_client
@@ -88,14 +100,17 @@ test.describe('Application password auth — live validation', () => {
   test('application disable invalidates its realm without deleting users', async ({
     api,
     request,
+    page,
   }) => {
     const realm = await createRealm(api, request);
     const email = uniqueEmail('realm-disable');
     await expectSignUp(request, realm, email);
+    const token = await issueAccessToken(page, request, realm, email);
+    expect(await introspect(request, realm, token)).toMatchObject({ active: true });
     await updatePolicy(realm, { realmEnabled: false });
     const response = await request.post(endpoint(realm, '/oauth2/introspect'), {
       headers: formHeaders(),
-      form: { token: `token-${crypto.randomUUID()}`, client_id: realm.clientId },
+      form: { token, client_id: realm.clientId },
     });
     expect(response.status()).toBe(404);
     await withDb(async (sql) => {
@@ -110,8 +125,17 @@ test.describe('Application password auth — live validation', () => {
   test('organization disable invalidates child realms without affecting other organizations', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
+    const emailA = uniqueEmail('organization-a');
+    const emailB = uniqueEmail('organization-b');
+    await expectSignUp(request, realms.a, emailA);
+    await expectSignUp(request, realms.b, emailB);
+    const tokenA = await issueAccessToken(page, request, realms.a, emailA);
+    const tokenB = await issueAccessToken(page, request, realms.b, emailB);
+    expect(await introspect(request, realms.a, tokenA)).toMatchObject({ active: true });
+    expect(await introspect(request, realms.b, tokenB)).toMatchObject({ active: true });
     await withDb(
       (sql) => sql`
         update iam.organization set deleted_at = now()
@@ -120,58 +144,51 @@ test.describe('Application password auth — live validation', () => {
     );
     const disabled = await request.post(endpoint(realms.a, '/oauth2/introspect'), {
       headers: formHeaders(),
-      form: { token: `a-${crypto.randomUUID()}`, client_id: realms.a.clientId },
-    });
-    const other = await request.post(endpoint(realms.b, '/oauth2/introspect'), {
-      headers: formHeaders(),
-      form: { token: `b-${crypto.randomUUID()}`, client_id: realms.b.clientId },
+      form: { token: tokenA, client_id: realms.a.clientId },
     });
     expect(disabled.status()).toBe(404);
-    expect(other.ok()).toBe(true);
+    expect(await introspect(request, realms.b, tokenB)).toMatchObject({ active: true });
   });
 
   test('token family revoke preserves unrelated families according to policy', async ({
     api,
     request,
+    page,
   }) => {
-    const realms = await createRealmMatrix(api, request);
-    const revoke = await request.post(endpoint(realms.a, '/oauth2/revoke'), {
+    const realm = await createRealm(api, request);
+    const emailA = uniqueEmail('family-a');
+    const emailB = uniqueEmail('family-b');
+    await expectSignUp(request, realm, emailA);
+    await expectSignUp(request, realm, emailB);
+    const familyA = await issueTokens(page, request, realm, emailA);
+    const familyB = await issueTokens(page, request, realm, emailB);
+    expect(await introspect(request, realm, familyA.access_token)).toMatchObject({ active: true });
+    expect(await introspect(request, realm, familyB.access_token)).toMatchObject({ active: true });
+    const revoke = await request.post(endpoint(realm, '/oauth2/revoke'), {
       headers: formHeaders(),
       form: {
-        token: `family-a-${crypto.randomUUID()}`,
+        token: familyA.refresh_token,
         token_type_hint: 'refresh_token',
-        client_id: realms.a.clientId,
+        client_id: realm.clientId,
       },
     });
-    expect([200, 400]).toContain(revoke.status());
-    expect(
-      await introspect(request, realms.b, `family-b-${crypto.randomUUID()}`),
-    ).toMatchObject({ active: false });
+    expect(revoke.ok(), await revoke.text()).toBe(true);
+    expect(await introspect(request, realm, familyA.access_token)).toEqual({ active: false });
+    expect(await introspect(request, realm, familyB.access_token)).toMatchObject({ active: true });
   });
 
-  test('revision fallback enforces invalidation when the event is lost', async ({
-    api,
-    request,
-  }) => {
-    const realm = await createRealm(api, request);
-    await request.get(endpoint(realm, '/.well-known/openid-configuration'));
-    await setClientDisabled(realm, true);
-    const response = await tokenRequest(request, realm, {
-      grant_type: 'refresh_token',
-      refresh_token: `revision-${crypto.randomUUID()}`,
-      client_id: realm.clientId,
-      resource: realm.resource,
-    });
-    expect(response.status()).toBeGreaterThanOrEqual(400);
+  test('revision fallback enforces invalidation when the event is lost', async () => {
+    test.fixme(
+      true,
+      'E2E runtime needs a controllable invalidation transport to drop one event and observe the 30s revision fallback',
+    );
   });
 
-  test('database or cache timeout returns inactive outside allowed cache TTL', async ({
-    api,
-    request,
-  }) => {
-    const realm = await createRealm(api, request);
-    const result = await introspect(request, realm, `unknown-${crypto.randomUUID()}`);
-    expect(result).toEqual({ active: false });
+  test('database or cache timeout returns inactive outside allowed cache TTL', async () => {
+    test.fixme(
+      true,
+      'E2E runtime needs controllable validation repository/cache failures and an injectable clock',
+    );
   });
 
   test('unknown signing or encryption key version fails closed', async ({
@@ -188,42 +205,30 @@ test.describe('Application password auth — live validation', () => {
     expect(await introspect(request, realm, token)).toEqual({ active: false });
   });
 
-  test('token missing a mandatory claim is inactive', async ({ api, request }) => {
-    const realm = await createRealm(api, request);
-    for (const claims of [
-      { aud: realm.resource, sub: crypto.randomUUID() },
-      { iss: endpoint(realm, ''), sub: crypto.randomUUID() },
-      { iss: endpoint(realm, ''), aud: realm.resource },
-    ]) {
-      expect(await introspect(request, realm, unsignedJwt(claims))).toEqual({ active: false });
-    }
+  test('token missing a mandatory claim is inactive', async () => {
+    test.fixme(
+      true,
+      'A signed E2E token factory is required; unsigned tokens only exercise signature rejection',
+    );
   });
 
-  test('userless or non-application actor token is inactive', async ({
-    api,
-    request,
-  }) => {
-    const realm = await createRealm(api, request);
-    const token = unsignedJwt({
-      iss: endpoint(realm, ''),
-      aud: realm.resource,
-      actor_type: 'platform_admin',
-      exp: Math.floor(Date.now() / 1000) + 600,
-    });
-    expect(await introspect(request, realm, token)).toEqual({ active: false });
+  test('userless or non-application actor token is inactive', async () => {
+    test.fixme(
+      true,
+      'A signed E2E token factory is required to reach actor/sub validation after signature verification',
+    );
   });
 
   test('expected application or audience mismatch is inactive despite valid signature', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
-    const token = unsignedJwt({
-      iss: endpoint(realms.a, ''),
-      aud: realms.a.resource,
-      sub: crypto.randomUUID(),
-      exp: Math.floor(Date.now() / 1000) + 600,
-    });
+    const email = uniqueEmail('audience-mismatch');
+    await expectSignUp(request, realms.a, email);
+    const token = await issueAccessToken(page, request, realms.a, email);
+    expect(await introspect(request, realms.a, token)).toMatchObject({ active: true });
     expect(await introspect(request, realms.b, token)).toEqual({ active: false });
   });
 
@@ -263,8 +268,18 @@ async function issueAccessToken(
   realm: Parameters<typeof tokenRequest>[1],
   email: string,
 ): Promise<string> {
+  return (await issueTokens(page, request, realm, email)).access_token;
+}
+
+async function issueTokens(
+  page: Page,
+  request: Parameters<typeof tokenRequest>[0],
+  realm: Parameters<typeof tokenRequest>[1],
+  email: string,
+): Promise<{ access_token: string; refresh_token: string }> {
   const verifier = crypto.randomUUID().replaceAll('-', '').repeat(2);
   const challenge = createHash('sha256').update(verifier).digest('base64url');
+  await page.context().clearCookies();
   await page.goto(authorizeUrl(realm, { codeChallenge: challenge }));
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(defaultPassword);
@@ -283,7 +298,7 @@ async function issueAccessToken(
     resource: realm.resource,
   });
   expect(response.ok(), await response.text()).toBe(true);
-  return ((await response.json()) as { access_token: string }).access_token;
+  return (await response.json()) as { access_token: string; refresh_token: string };
 }
 
 function unsignedJwt(claims: Record<string, unknown>, kid = 'e2e-invalid'): string {
@@ -292,4 +307,35 @@ function unsignedJwt(claims: Record<string, unknown>, kid = 'e2e-invalid'): stri
   );
   const payload = Buffer.from(JSON.stringify(claims)).toString('base64url');
   return `${header}.${payload}.invalid-signature`;
+}
+
+function applicationUserInput(
+  realm: Parameters<typeof tokenRequest>[1],
+  userId: string,
+): { organizationId: string; applicationId: string; userId: string } {
+  return {
+    organizationId: composeGlobalId('Organization', realm.organizationId),
+    applicationId: composeGlobalId('Application', realm.applicationId),
+    userId: composeGlobalId('ApplicationUser', userId),
+  };
+}
+
+async function setApplicationUserStatus(
+  api: Parameters<typeof createRealm>[0],
+  realm: Parameters<typeof tokenRequest>[1],
+  userId: string,
+  action: 'block' | 'unblock',
+): Promise<void> {
+  const variables = { input: applicationUserInput(realm, userId) };
+  if (action === 'block') {
+    const { data } = await api.admin.mutation('application-admin-api/ApplicationUserBlock', {
+      variables,
+    });
+    expect(data.applicationMutation.applicationUserBlock.userErrors).toEqual([]);
+    return;
+  }
+  const { data } = await api.admin.mutation('application-admin-api/ApplicationUserUnblock', {
+    variables,
+  });
+  expect(data.applicationMutation.applicationUserUnblock.userErrors).toEqual([]);
 }

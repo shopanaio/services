@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import type { APIRequestContext, APIResponse } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import type { ApiFixtures } from '@fixtures/api/api';
@@ -116,37 +118,54 @@ test.describe('Application password auth — application isolation', () => {
     const cookie = applicationCookie(signup, realms.a.applicationId);
     const before = await realmCounts(realms);
 
-    const response = await request.get(endpoint(realms.b, '/oauth2/userinfo'), {
-      headers: { cookie },
+    const local = await request.get(endpoint(realms.a, '/account/connections'), {
+      headers: { cookie, accept: 'text/html' },
+      maxRedirects: 0,
+    });
+    const response = await request.get(endpoint(realms.b, '/account/connections'), {
+      headers: { cookie, accept: 'text/html' },
+      maxRedirects: 0,
     });
 
+    expect(local.ok(), await local.text()).toBe(true);
     expect(response.ok()).toBe(false);
     await expectRealmCounts(realms, before);
   });
 
-  test('verification and reset artifacts cannot cross application boundaries', async ({
+  test('password-reset artifacts cannot cross application boundaries', async ({
     api,
     request,
   }) => {
     const realms = await createRealmMatrix(api, request);
-    const token = crypto.randomUUID();
-    await withDb(
-      (sql) => sql`
-      insert into iam.application_verification
-        (id, application_id, identifier, value, expires_at)
-      values
-        (${crypto.randomUUID()}, ${realms.a.applicationId}, ${`reset:${uniqueEmail()}`},
-         ${token}, now() + interval '15 minutes')
-    `,
-    );
+    const email = uniqueEmail();
+    await Promise.all([
+      enablePasswordReset(realms.a),
+      enablePasswordReset(realms.b),
+      configurePresentation(realms.a, 'Reset A', 'reset-a'),
+      configurePresentation(realms.b, 'Reset B', 'reset-b'),
+    ]);
+    await expectSignUp(request, realms.a, email);
+    const requestReset = await request.post(endpoint(realms.a, '/request-password-reset'), {
+      headers: jsonHeaders(),
+      data: { email, redirectTo: endpoint(realms.a, '/password/reset') },
+    });
+    expect(requestReset.ok(), await requestReset.text()).toBe(true);
+    const token = await withDb(async (sql) => {
+      const [row] = await sql<{ value: string }[]>`
+        select value from iam.application_verification
+        where application_id = ${realms.a.applicationId}
+        order by created_at desc limit 1
+      `;
+      return row!.value;
+    });
     const before = await realmCounts(realms);
 
-    const response = await request.get(
-      `${endpoint(realms.b, '/reset-password')}/${encodeURIComponent(token)}`,
-      { maxRedirects: 0 },
-    );
+    const response = await request.post(endpoint(realms.b, '/reset-password'), {
+      headers: jsonHeaders(),
+      data: { token, newPassword: 'Foreign-reset-password-456!' },
+    });
 
-    expect(response.status()).toBe(404);
+    expect(response.status()).toBeGreaterThanOrEqual(400);
     await expectRealmCounts(realms, before);
   });
 
@@ -174,36 +193,49 @@ test.describe('Application password auth — application isolation', () => {
   test('authorization code cannot be exchanged in another application or client', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
+    const email = uniqueEmail();
+    await expectSignUp(request, realms.a, email);
+    const authorization = await obtainAuthorizationCode(page, realms.a, email);
     const before = await realmCounts(realms);
-    const code = `code-a-${crypto.randomUUID()}`;
 
     const response = await request.post(endpoint(realms.b, '/oauth2/token'), {
       headers: formHeaders(),
       form: {
         grant_type: 'authorization_code',
-        code,
+        code: authorization.code,
         client_id: realms.a.clientId,
         redirect_uri: redirectUri(realms.a),
-        code_verifier: 'v'.repeat(64),
+        code_verifier: authorization.verifier,
         resource: realms.a.resource,
       },
     });
 
     await expectOAuthFailure(response);
     await expectRealmCounts(realms, before);
+    const validExchange = await exchangeAuthorizationCode(
+      request,
+      realms.a,
+      authorization,
+    );
+    expect(validExchange.ok(), await validExchange.text()).toBe(true);
   });
 
   test('access token A is inactive for expected application or audience B', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
+    const email = uniqueEmail();
+    await expectSignUp(request, realms.a, email);
+    const tokens = await issueTokens(page, request, realms.a, email);
     const response = await request.post(endpoint(realms.b, '/oauth2/introspect'), {
       headers: formHeaders(),
       form: {
-        token: `access-a-${crypto.randomUUID()}`,
+        token: tokens.access_token,
         token_type_hint: 'access_token',
         client_id: realms.b.clientId,
       },
@@ -216,34 +248,45 @@ test.describe('Application password auth — application isolation', () => {
   test('refresh family cannot be used or revoked from another application', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
-    const token = `refresh-a-${crypto.randomUUID()}`;
+    const email = uniqueEmail();
+    await expectSignUp(request, realms.a, email);
+    const tokens = await issueTokens(page, request, realms.a, email);
     const before = await realmCounts(realms);
 
-    const [refresh, revoke] = await Promise.all([
-      request.post(endpoint(realms.b, '/oauth2/token'), {
-        headers: formHeaders(),
-        form: {
-          grant_type: 'refresh_token',
-          refresh_token: token,
-          client_id: realms.a.clientId,
-          resource: realms.a.resource,
-        },
-      }),
-      request.post(endpoint(realms.b, '/oauth2/revoke'), {
-        headers: formHeaders(),
-        form: {
-          token,
-          token_type_hint: 'refresh_token',
-          client_id: realms.a.clientId,
-        },
-      }),
-    ]);
+    const refresh = await request.post(endpoint(realms.b, '/oauth2/token'), {
+      headers: formHeaders(),
+      form: {
+        grant_type: 'refresh_token',
+        refresh_token: tokens.refresh_token,
+        client_id: realms.a.clientId,
+        resource: realms.a.resource,
+      },
+    });
+    const revoke = await request.post(endpoint(realms.b, '/oauth2/revoke'), {
+      headers: formHeaders(),
+      form: {
+        token: tokens.refresh_token,
+        token_type_hint: 'refresh_token',
+        client_id: realms.a.clientId,
+      },
+    });
 
     await expectOAuthFailure(refresh);
     expect([200, 400, 401]).toContain(revoke.status());
     await expectRealmCounts(realms, before);
+    const validRefresh = await request.post(endpoint(realms.a, '/oauth2/token'), {
+      headers: formHeaders(),
+      form: {
+        grant_type: 'refresh_token',
+        refresh_token: tokens.refresh_token,
+        client_id: realms.a.clientId,
+        resource: realms.a.resource,
+      },
+    });
+    expect(validRefresh.ok(), await validRefresh.text()).toBe(true);
   });
 
   test('consent cannot transfer scopes or approval to another realm or client', async ({
@@ -289,7 +332,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(await contextCount(realms.b)).toBe(0);
   });
 
-  test('signing key cannot sign or validate another application issuer', async ({
+  test('applications publish distinct signing keys', async ({
     api,
     request,
   }) => {
@@ -330,7 +373,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(await contextCount(realms.b)).toBe(0);
   });
 
-  test('route, client, context, and token application disagreement fails closed', async ({
+  test('route, client, redirect, and resource disagreement fails closed', async ({
     api,
     request,
   }) => {
@@ -366,7 +409,7 @@ test.describe('Application password auth — application isolation', () => {
     expect(applicationCookie(response, realms.b.applicationId)).toContain(realms.b.applicationId);
   });
 
-  test('identity rate limits are realm-scoped while explicit IP limits remain global as designed', async ({
+  test('identity rate limits are realm-scoped', async ({
     api,
     request,
   }) => {
@@ -374,18 +417,18 @@ test.describe('Application password auth — application isolation', () => {
     const email = uniqueEmail();
     await expectSignUp(request, realms.a, email);
 
-    const [a, b] = await Promise.all([
-      signIn(request, realms.a, email, 'wrong-password'),
-      signIn(request, realms.b, email, 'wrong-password'),
-    ]);
+    const attemptsA = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      attemptsA.push(await signIn(request, realms.a, email, 'wrong-password'));
+    }
+    const b = await signIn(request, realms.b, email, 'wrong-password');
 
-    expect(a.status()).toBe(401);
-    expect(b.status()).toBe(401);
-    expect(a.headers()['retry-after']).toBeUndefined();
+    expect(attemptsA.at(-1)!.status()).toBe(429);
     expect(b.headers()['retry-after']).toBeUndefined();
+    expect(b.status()).toBe(401);
   });
 
-  test('delivery uses only target-application profile, template, and branding', async ({
+  test('branding and configured delivery profiles remain application-scoped', async ({
     api,
     request,
   }) => {
@@ -425,7 +468,7 @@ test.describe('Application password auth — application isolation', () => {
     });
   });
 
-  test('audit bindings never mix actors or artifacts from different realms', async ({
+  test('administrative provisioning audits retain the correct realm and actor bindings', async ({
     api,
     request,
   }) => {
@@ -467,37 +510,27 @@ test.describe('Application password auth — application isolation', () => {
     const cookie = applicationCookie(signup, realms.a.applicationId);
 
     await expectInvalidSignIn(request, realms.a2, email, password);
-    const userinfo = await request.get(endpoint(realms.a2, '/oauth2/userinfo'), {
-      headers: { cookie: cookie.replace(realms.a.applicationId, realms.a2.applicationId) },
+    const local = await request.get(endpoint(realms.a, '/account/connections'), {
+      headers: { cookie, accept: 'text/html' },
+      maxRedirects: 0,
     });
-    expect(userinfo.ok()).toBe(false);
+    const foreign = await request.get(endpoint(realms.a2, '/account/connections'), {
+      headers: { cookie: cookie.replace(realms.a.applicationId, realms.a2.applicationId) },
+      maxRedirects: 0,
+    });
+    expect(local.ok(), await local.text()).toBe(true);
+    expect(foreign.ok()).toBe(false);
     expect(await contextCount(realms.a2)).toBe(0);
   });
 
-  test('repository or cache failure cannot trigger an unscoped permissive fallback', async ({
-    api,
-    request,
-  }) => {
-    const realms = await createRealmMatrix(api, request);
-    await expectSignUp(request, realms.a, uniqueEmail());
-    const unknownApplication = crypto.randomUUID();
-
-    const response = await request.post(
-      `${iamBaseUrl}/auth/applications/${unknownApplication}/sign-in/email`,
-      {
-        headers: jsonHeaders(),
-        data: { email: uniqueEmail(), password },
-      },
+  test('repository or cache failure cannot trigger an unscoped permissive fallback', async () => {
+    test.fixme(
+      true,
+      'E2E runtime needs controllable scoped repository and cache failures',
     );
-
-    expect(response.status()).toBe(404);
-    await withDb(async (sql) => {
-      expect(await count(sql, 'application_user', realms.a.applicationId)).toBe(1);
-      expect(await count(sql, 'application_user', unknownApplication)).toBe(0);
-    });
   });
 
-  test('parallel activity in A and B never leaks cookies, contexts, codes, tokens, keys, or email payloads', async ({
+  test('parallel activity in A and B keeps cookies and authorization contexts isolated', async ({
     api,
     request,
   }) => {
@@ -592,7 +625,7 @@ async function createRealm(
   const applicationId = decodeGlobalId(applicationGlobalId).id;
   const organizationId = decodeGlobalId(organizationGlobalId).id;
   const resource = payload!.application!.resource;
-  const clientId = `e2e_${suffix}_${crypto.randomUUID().replaceAll('-', '')}`;
+  const provisionalRealm = { applicationId, clientId: '', organizationId, resource };
   await withDb(async (sql) => {
     await sql`
       update iam.application_auth_configuration
@@ -611,31 +644,30 @@ async function createRealm(
       values (${applicationId}, ${iamBaseUrl})
       on conflict (application_id, origin) do nothing
     `;
-    await sql`
-      insert into iam.application_oauth_client (
-        id, application_id, client_id, name, redirect_uris, post_logout_redirect_uris,
-        token_endpoint_auth_method, public, require_pkce, resource_audience,
-        environment, created_by, updated_by, metadata
-      )
-      values (
-        ${crypto.randomUUID()}, ${applicationId}, ${clientId}, ${`Isolation ${suffix}`},
-        ${sql.array([redirectUri({ applicationId } as Realm)])},
-        ${sql.array([`${iamBaseUrl}/signed-out`])}, 'none', true, true, ${resource},
-        'development', ${api.session.user.userId!}, ${api.session.user.userId!},
-        ${JSON.stringify({
-          shopana_application_id: applicationId,
-          shopana_client_id: clientId,
-          shopana_resource: resource,
-          shopana_protocol_policy_version: 1,
-        })}::jsonb
-      )
-    `;
   });
+  const { data } = await api.admin.mutation('application-admin-api/ApplicationOAuthClientCreate', {
+    variables: {
+      input: {
+        organizationId: organizationGlobalId,
+        applicationId: applicationGlobalId,
+        name: `Isolation ${suffix}`,
+        clientType: 'PUBLIC',
+        environment: 'DEVELOPMENT',
+        redirectUris: [redirectUri(provisionalRealm)],
+        postLogoutRedirectUris: [
+          `${iamBaseUrl}/e2e/oauth/signed-out/${provisionalRealm.applicationId}`,
+        ],
+        enableEndSession: true,
+        skipConsent: false,
+      },
+    },
+  });
+  const clientPayload = data.applicationMutation.applicationOAuthClientCreate;
+  expect(clientPayload.userErrors).toEqual([]);
+  expect(clientPayload.client).not.toBeNull();
   return {
-    applicationId,
-    clientId,
-    organizationId,
-    resource,
+    ...provisionalRealm,
+    clientId: clientPayload.client!.clientId,
   };
 }
 
@@ -688,7 +720,7 @@ function beginAuthorization(request: APIRequestContext, realm: Realm): Promise<A
 
 function authorizeUrl(
   realm: Realm,
-  overrides: { clientId?: string; resource?: string } = {},
+  overrides: { clientId?: string; resource?: string; codeChallenge?: string } = {},
 ): string {
   const params = new URLSearchParams({
     client_id: overrides.clientId ?? realm.clientId,
@@ -697,11 +729,72 @@ function authorizeUrl(
     scope: 'openid profile email offline_access',
     state: crypto.randomUUID(),
     nonce: crypto.randomUUID(),
-    code_challenge: 'A'.repeat(43),
+    code_challenge: overrides.codeChallenge ?? 'A'.repeat(43),
     code_challenge_method: 'S256',
     resource: overrides.resource ?? realm.resource,
   });
   return `${endpoint(realm, '/oauth2/authorize')}?${params}`;
+}
+
+interface AuthorizationResult {
+  code: string;
+  verifier: string;
+}
+
+interface TokenSet {
+  access_token: string;
+  refresh_token: string;
+}
+
+async function obtainAuthorizationCode(
+  page: Page,
+  realm: Realm,
+  email: string,
+): Promise<AuthorizationResult> {
+  const verifier = crypto.randomUUID().replaceAll('-', '').repeat(2);
+  const challenge = createHash('sha256').update(verifier).digest('base64url');
+  await page.context().clearCookies();
+  await page.goto(authorizeUrl(realm, { codeChallenge: challenge }));
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill(password);
+  await page.locator('form[action="./login/password"] button[type="submit"]').click();
+  if (await page.locator('form[action="./consent"]').isVisible().catch(() => false)) {
+    await page.locator('button[name="decision"][value="allow"]').click();
+  }
+  await page.waitForURL((url) => url.searchParams.has('code'));
+  const code = new URL(page.url()).searchParams.get('code');
+  expect(code).toBeTruthy();
+  return { code: code!, verifier };
+}
+
+function exchangeAuthorizationCode(
+  request: APIRequestContext,
+  realm: Realm,
+  authorization: AuthorizationResult,
+): Promise<APIResponse> {
+  return request.post(endpoint(realm, '/oauth2/token'), {
+    headers: formHeaders(),
+    form: {
+      grant_type: 'authorization_code',
+      code: authorization.code,
+      client_id: realm.clientId,
+      redirect_uri: redirectUri(realm),
+      code_verifier: authorization.verifier,
+      resource: realm.resource,
+    },
+  });
+}
+
+async function issueTokens(
+  page: Page,
+  request: APIRequestContext,
+  realm: Realm,
+  email: string,
+): Promise<TokenSet> {
+  const authorization = await obtainAuthorizationCode(page, realm, email);
+  const response = await exchangeAuthorizationCode(request, realm, authorization);
+  expect(response.ok(), await response.text()).toBe(true);
+  return response.json() as Promise<TokenSet>;
 }
 
 function endpoint(realm: Pick<Realm, 'applicationId'>, path: string): string {
@@ -893,4 +986,16 @@ async function configurePresentation(
         updated_at = now()
     `;
   });
+}
+
+async function enablePasswordReset(realm: Realm): Promise<void> {
+  await withDb(
+    (sql) => sql`
+      update iam.application_auth_configuration
+      set password_reset_enabled = true,
+          revision = revision + 1,
+          updated_at = now()
+      where application_id = ${realm.applicationId}
+    `,
+  );
 }

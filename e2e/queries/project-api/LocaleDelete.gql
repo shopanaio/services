@@ -1,0 +1,12 @@
+mutation LocaleDelete($input: LocaleDeleteInput!) {
+  storeMutation {
+    localeDelete(input: $input) {
+      deletedLocaleCode
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

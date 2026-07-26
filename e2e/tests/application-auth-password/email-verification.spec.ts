@@ -203,7 +203,7 @@ test.describe('Application password auth — email verification', () => {
     expect(applicationCookie(signin, realm)).toContain(realm.applicationId);
   });
 
-  test('capture delivery uses only the target realm email verification purpose and template', async ({
+  test('target realm has an isolated email-verification delivery profile and artifact', async ({
     api,
     request,
   }) => {
@@ -231,7 +231,7 @@ test.describe('Application password auth — email verification', () => {
     });
   });
 
-  test('verification links and tokens are absent from errors, telemetry, and browser storage', async ({
+  test('verification token is absent from the public error response, redirect, and cookies', async ({
     api,
     request,
   }) => {

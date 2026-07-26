@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
+import { composeGlobalId } from '@utils/globalid';
 import {
   applicationCookie,
   authorizeUrl,
@@ -23,6 +24,7 @@ import {
   tokenRequest,
   uniqueEmail,
   updatePolicy,
+  userForEmail,
   withDb,
 } from './application-auth-test-kit';
 
@@ -39,7 +41,10 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(headers).toContain(`shopana_application_${realm.applicationId}`);
     expect(headers).toMatch(/HttpOnly/iu);
     expect(headers).toMatch(/SameSite=(?:Lax|Strict)/iu);
-    expect(headers).toMatch(/Path=\/auth\/applications\//iu);
+    expect(headers).toContain(`Path=/auth/applications/${realm.applicationId}`);
+    if (endpoint(realm, '').startsWith('https://')) {
+      expect(headers).toMatch(/(?:^|;\s*)Secure(?:;|$)/imu);
+    }
   });
 
   test('cookie A cannot authenticate or mutate a session in B', async ({
@@ -50,9 +55,15 @@ test.describe('Application password auth — session and token lifecycle', () =>
     const email = uniqueEmail('foreign-cookie');
     const signup = await expectSignUp(request, realms.a, email);
     const cookie = applicationCookie(signup, realms.a);
-    const response = await request.get(endpoint(realms.b, '/oauth2/userinfo'), {
-      headers: { cookie },
+    const local = await request.get(endpoint(realms.a, '/account/connections'), {
+      headers: { cookie, accept: 'text/html' },
+      maxRedirects: 0,
     });
+    const response = await request.get(endpoint(realms.b, '/account/connections'), {
+      headers: { cookie },
+      maxRedirects: 0,
+    });
+    expect(local.ok(), await local.text()).toBe(true);
     expect(response.ok()).toBe(false);
     expect(await sessionCount(realms.b.applicationId)).toBe(0);
   });
@@ -69,9 +80,11 @@ test.describe('Application password auth — session and token lifecycle', () =>
     ]);
     expect(await sessionCount(realms.a.applicationId)).toBeGreaterThan(0);
     expect(await sessionCount(realms.b.applicationId)).toBeGreaterThan(0);
-    await withDb(
-      (sql) => sql`delete from iam.application_session where application_id = ${realms.a.applicationId}`,
-    );
+    const userA = await userForEmail(realms.a, email);
+    expect(userA).not.toBeNull();
+    const payload = await revokeAllUserSessions(api, realms.a, userA!.id);
+    expect(payload.userErrors).toEqual([]);
+    expect(payload.revokedCount).toBeGreaterThan(0);
     expect(await sessionCount(realms.a.applicationId)).toBe(0);
     expect(await sessionCount(realms.b.applicationId)).toBeGreaterThan(0);
   });
@@ -79,13 +92,22 @@ test.describe('Application password auth — session and token lifecycle', () =>
   test('expired session cannot continue authorization or pass live validation', async ({
     api,
     request,
+    page,
   }) => {
     const realm = await createRealm(api, request);
-    const signup = await expectSignUp(request, realm);
-    const cookie = applicationCookie(signup, realm);
+    const email = uniqueEmail('expired-session');
+    await expectSignUp(request, realm, email);
+    const tokens = await authorizeAndExchange(page, request, realm, email);
+    expect(
+      (
+        await request.get(endpoint(realm, '/oauth2/userinfo'), {
+          headers: { authorization: `Bearer ${tokens.access_token}` },
+        })
+      ).ok(),
+    ).toBe(true);
     await expireSessions(realm);
     const response = await request.get(endpoint(realm, '/oauth2/userinfo'), {
-      headers: { cookie },
+      headers: { authorization: `Bearer ${tokens.access_token}` },
     });
     expect(response.ok()).toBe(false);
   });
@@ -93,16 +115,26 @@ test.describe('Application password auth — session and token lifecycle', () =>
   test('revoked session becomes inactive within the contract SLA', async ({
     api,
     request,
+    page,
   }) => {
     const realm = await createRealm(api, request);
-    const signup = await expectSignUp(request, realm);
-    const cookie = applicationCookie(signup, realm);
-    await withDb(
-      (sql) => sql`delete from iam.application_session where application_id = ${realm.applicationId}`,
-    );
+    const email = uniqueEmail('revoke-sla');
+    await expectSignUp(request, realm, email);
+    const tokens = await authorizeAndExchange(page, request, realm, email);
+    expect(
+      (
+        await request.get(endpoint(realm, '/oauth2/userinfo'), {
+          headers: { authorization: `Bearer ${tokens.access_token}` },
+        })
+      ).ok(),
+    ).toBe(true);
+    const user = await userForEmail(realm, email);
+    expect(user).not.toBeNull();
     const startedAt = performance.now();
+    const payload = await revokeAllUserSessions(api, realm, user!.id);
+    expect(payload.userErrors).toEqual([]);
     const response = await request.get(endpoint(realm, '/oauth2/userinfo'), {
-      headers: { cookie },
+      headers: { authorization: `Bearer ${tokens.access_token}` },
     });
     expect(response.ok()).toBe(false);
     expect(performance.now() - startedAt).toBeLessThan(1_000);
@@ -119,29 +151,20 @@ test.describe('Application password auth — session and token lifecycle', () =>
       expectSignUp(request, realms.b, email),
     ]);
     const beforeB = await sessionCount(realms.b.applicationId);
-    await setUserState(realms.a, email, { status: 'blocked' });
-    await withDb(
-      (sql) => sql`delete from iam.application_session where application_id = ${realms.a.applicationId}`,
-    );
+    const userA = await userForEmail(realms.a, email);
+    expect(userA).not.toBeNull();
+    const payload = await blockApplicationUser(api, realms.a, userA!.id);
+    expect(payload.userErrors).toEqual([]);
+    expect(payload.user?.status).toBe('BLOCKED');
     expect(await sessionCount(realms.a.applicationId)).toBe(0);
     expect(await sessionCount(realms.b.applicationId)).toBe(beforeB);
   });
 
-  test('realm secret rotation revokes only target-realm security artifacts', async ({
-    api,
-    request,
-  }) => {
-    const realms = await createRealmMatrix(api, request);
-    await Promise.all([expectSignUp(request, realms.a), expectSignUp(request, realms.b)]);
-    const beforeB = await sessionCount(realms.b.applicationId);
-    await withDb(
-      (sql) => sql`
-        update iam.application_auth_configuration
-        set revision = revision + 1
-        where application_id = ${realms.a.applicationId}
-      `,
+  test('realm secret rotation revokes only target-realm security artifacts', async () => {
+    test.fixme(
+      true,
+      'No supported E2E management boundary currently exposes realm-secret rotation',
     );
-    expect(await sessionCount(realms.b.applicationId)).toBe(beforeB);
   });
 
   test('refresh preserves the original user, issuer, resource, client, and scopes', async ({
@@ -198,16 +221,21 @@ test.describe('Application password auth — session and token lifecycle', () =>
   test('refresh token A cannot be used through issuer or client B', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
+    const email = uniqueEmail('foreign-refresh');
+    await expectSignUp(request, realms.a, email);
+    const tokens = await authorizeAndExchange(page, request, realms.a, email);
     const response = await tokenRequest(request, realms.b, {
       grant_type: 'refresh_token',
-      refresh_token: `realm-a-${crypto.randomUUID()}`,
+      refresh_token: tokens.refresh_token,
       client_id: realms.a.clientId,
       resource: realms.a.resource,
     });
     await expectOAuthError(response);
     expect(await accessTokenCount(realms.b.applicationId)).toBe(0);
+    expect(await refresh(request, realms.a, tokens.refresh_token)).toBeOK();
   });
 
   test('refresh without exact resource fails without consuming the valid token', async ({
@@ -231,65 +259,85 @@ test.describe('Application password auth — session and token lifecycle', () =>
   test('disabled client, realm, organization, or user cannot refresh', async ({
     api,
     request,
+    page,
   }) => {
-    const realm = await createRealm(api, request);
-    await setClientDisabled(realm, true);
-    const response = await tokenRequest(request, realm, {
-      grant_type: 'refresh_token',
-      refresh_token: `disabled-${crypto.randomUUID()}`,
-      client_id: realm.clientId,
-      resource: realm.resource,
-    });
-    await expectOAuthError(response);
-    await updatePolicy(realm, { realmEnabled: false });
-    const disabledRealm = await tokenRequest(request, realm, {
-      grant_type: 'refresh_token',
-      refresh_token: `disabled-realm-${crypto.randomUUID()}`,
-      client_id: realm.clientId,
-      resource: realm.resource,
-    });
-    expect(disabledRealm.status()).toBe(404);
+    const realms = await createRealmMatrix(api, request);
+    const clientEmail = uniqueEmail('disabled-client');
+    const realmEmail = uniqueEmail('disabled-realm');
+    const userEmail = uniqueEmail('blocked-user');
+    await expectSignUp(request, realms.a, clientEmail);
+    await expectSignUp(request, realms.a2, realmEmail);
+    await expectSignUp(request, realms.b, userEmail);
+    const clientTokens = await authorizeAndExchange(page, request, realms.a, clientEmail);
+    const realmTokens = await authorizeAndExchange(page, request, realms.a2, realmEmail);
+    const userTokens = await authorizeAndExchange(page, request, realms.b, userEmail);
+
+    await setClientDisabled(api, realms.a, true);
+    await expectOAuthError(await refresh(request, realms.a, clientTokens.refresh_token));
+
+    await updatePolicy(realms.a2, { realmEnabled: false });
+    expect((await refresh(request, realms.a2, realmTokens.refresh_token)).status()).toBe(404);
+
+    await setUserState(realms.b, userEmail, { status: 'blocked' });
+    await expectOAuthError(await refresh(request, realms.b, userTokens.refresh_token));
   });
 
   test('revocation disables refresh without affecting another realm', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
+    const emailA = uniqueEmail('revoke-a');
+    const emailB = uniqueEmail('revoke-b');
+    await expectSignUp(request, realms.a, emailA);
+    await expectSignUp(request, realms.b, emailB);
+    const tokensA = await authorizeAndExchange(page, request, realms.a, emailA);
+    const tokensB = await authorizeAndExchange(page, request, realms.b, emailB);
     const revoke = await request.post(endpoint(realms.a, '/oauth2/revoke'), {
       headers: formHeaders(),
       form: {
-        token: `refresh-a-${crypto.randomUUID()}`,
+        token: tokensA.refresh_token,
         token_type_hint: 'refresh_token',
         client_id: realms.a.clientId,
       },
     });
-    expect([200, 400]).toContain(revoke.status());
-    expect(await sessionCount(realms.b.applicationId)).toBe(0);
+    expect(revoke.ok(), await revoke.text()).toBe(true);
+    await expectOAuthError(await refresh(request, realms.a, tokensA.refresh_token));
+    expect(await refresh(request, realms.b, tokensB.refresh_token)).toBeOK();
   });
 
   test('end-session redirects only to a registered post-logout URI', async ({
     api,
     request,
+    page,
   }) => {
     const realm = await createRealm(api, request);
+    const email = uniqueEmail('end-session');
+    await expectSignUp(request, realm, email);
+    const tokens = await authorizeAndExchange(page, request, realm, email);
+    const cookie = await browserApplicationCookie(page, realm);
     const response = await request.get(
-      `${endpoint(realm, '/oauth2/end-session')}?client_id=${encodeURIComponent(realm.clientId)}&post_logout_redirect_uri=${encodeURIComponent(postLogoutUri(realm))}&id_token_hint=invalid`,
-      { maxRedirects: 0 },
+      `${endpoint(realm, '/oauth2/end-session')}?client_id=${encodeURIComponent(realm.clientId)}&post_logout_redirect_uri=${encodeURIComponent(postLogoutUri(realm))}&id_token_hint=${encodeURIComponent(tokens.id_token)}`,
+      { headers: { cookie }, maxRedirects: 0 },
     );
-    expect(response.headers()['location'] ?? '').not.toContain('attacker.invalid');
+    expect([302, 303]).toContain(response.status());
+    expect(response.headers()['location']).toBe(postLogoutUri(realm));
   });
 
   test('foreign post-logout URI cannot redirect or terminate another realm session', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
-    const signup = await expectSignUp(request, realms.a);
-    const cookie = applicationCookie(signup, realms.a);
+    const email = uniqueEmail('foreign-logout');
+    await expectSignUp(request, realms.a, email);
+    const tokens = await authorizeAndExchange(page, request, realms.a, email);
+    const cookie = await browserApplicationCookie(page, realms.a);
     const before = await sessionCount(realms.a.applicationId);
     const response = await request.get(
-      `${endpoint(realms.a, '/oauth2/end-session')}?client_id=${encodeURIComponent(realms.a.clientId)}&post_logout_redirect_uri=${encodeURIComponent(postLogoutUri(realms.b))}&id_token_hint=invalid`,
+      `${endpoint(realms.a, '/oauth2/end-session')}?client_id=${encodeURIComponent(realms.a.clientId)}&post_logout_redirect_uri=${encodeURIComponent(postLogoutUri(realms.b))}&id_token_hint=${encodeURIComponent(tokens.id_token)}`,
       { headers: { cookie }, maxRedirects: 0 },
     );
     expect(response.headers()['location'] ?? '').not.toContain(realms.b.applicationId);
@@ -299,6 +347,7 @@ test.describe('Application password auth — session and token lifecycle', () =>
   test('logout in A preserves the active session in B', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
     const email = uniqueEmail('logout');
@@ -306,11 +355,17 @@ test.describe('Application password auth — session and token lifecycle', () =>
       expectSignUp(request, realms.a, email),
       expectSignUp(request, realms.b, email),
     ]);
+    const tokensA = await authorizeAndExchange(page, request, realms.a, email);
+    const cookieA = await browserApplicationCookie(page, realms.a);
+    await authorizeAndExchange(page, request, realms.b, email);
     const beforeB = await sessionCount(realms.b.applicationId);
-    await withDb(
-      (sql) => sql`delete from iam.application_session where application_id = ${realms.a.applicationId}`,
+    const beforeA = await sessionCount(realms.a.applicationId);
+    const logout = await request.get(
+      `${endpoint(realms.a, '/oauth2/end-session')}?client_id=${encodeURIComponent(realms.a.clientId)}&post_logout_redirect_uri=${encodeURIComponent(postLogoutUri(realms.a))}&id_token_hint=${encodeURIComponent(tokensA.id_token)}`,
+      { headers: { cookie: cookieA }, maxRedirects: 0 },
     );
-    expect(await sessionCount(realms.a.applicationId)).toBe(0);
+    expect([302, 303]).toContain(logout.status());
+    expect(await sessionCount(realms.a.applicationId)).toBe(beforeA - 1);
     expect(await sessionCount(realms.b.applicationId)).toBe(beforeB);
   });
 
@@ -342,6 +397,7 @@ async function authorizeAndExchange(
 ): Promise<TokenSet> {
   const verifier = crypto.randomUUID().replaceAll('-', '').repeat(2);
   const challenge = createHash('sha256').update(verifier).digest('base64url');
+  await page.context().clearCookies();
   await page.goto(authorizeUrl(realm, { codeChallenge: challenge }));
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(defaultPassword);
@@ -390,4 +446,53 @@ function sessionCount(applicationId: string): Promise<number> {
 
 function accessTokenCount(applicationId: string): Promise<number> {
   return withDb((sql) => count(sql, 'application_oauth_access_token', applicationId));
+}
+
+async function revokeAllUserSessions(
+  api: Parameters<typeof createRealm>[0],
+  realm: Parameters<typeof tokenRequest>[1],
+  userId: string,
+) {
+  const { data } = await api.admin.mutation(
+    'application-admin-api/ApplicationUserSessionsRevokeAll',
+    {
+      variables: {
+        input: {
+          organizationId: composeGlobalId('Organization', realm.organizationId),
+          applicationId: composeGlobalId('Application', realm.applicationId),
+          userId: composeGlobalId('ApplicationUser', userId),
+        },
+      },
+    },
+  );
+  return data.applicationMutation.applicationUserSessionsRevokeAll;
+}
+
+async function blockApplicationUser(
+  api: Parameters<typeof createRealm>[0],
+  realm: Parameters<typeof tokenRequest>[1],
+  userId: string,
+) {
+  const { data } = await api.admin.mutation('application-admin-api/ApplicationUserBlock', {
+    variables: {
+      input: {
+        organizationId: composeGlobalId('Organization', realm.organizationId),
+        applicationId: composeGlobalId('Application', realm.applicationId),
+        userId: composeGlobalId('ApplicationUser', userId),
+      },
+    },
+  });
+  return data.applicationMutation.applicationUserBlock;
+}
+
+async function browserApplicationCookie(
+  page: Page,
+  realm: Parameters<typeof tokenRequest>[1],
+): Promise<string> {
+  const cookies = await page.context().cookies();
+  const cookie = cookies.find(({ name }) =>
+    name.includes(`shopana_application_${realm.applicationId}`),
+  );
+  expect(cookie).toBeDefined();
+  return `${cookie!.name}=${cookie!.value}`;
 }

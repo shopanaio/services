@@ -1,0 +1,12 @@
+mutation LocaleSetDefault($input: LocaleSetDefaultInput!) {
+  storeMutation {
+    localeSetDefault(input: $input) {
+      success
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

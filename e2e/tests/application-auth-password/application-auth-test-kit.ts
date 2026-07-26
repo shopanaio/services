@@ -1,7 +1,7 @@
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
-import { decodeGlobalId } from '@utils/globalid';
+import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
 import postgres from 'postgres';
 
 export type Api = ApiFixtures['api'];
@@ -140,10 +140,9 @@ export async function createRealm(
   const applicationId = decodeGlobalId(payload!.application!.id).id;
   const organizationId = decodeGlobalId(organization).id;
   const resource = payload!.application!.resource;
-  const clientId = `e2e_${suffix}_${crypto.randomUUID().replaceAll('-', '')}`;
-  const realm = { applicationId, clientId, organizationId, resource };
+  const provisionalRealm = { applicationId, clientId: '', organizationId, resource };
 
-  await updatePolicy(realm, {
+  await updatePolicy(provisionalRealm, {
     realmEnabled: true,
     registrationMode: 'open',
     passwordSignUpEnabled: true,
@@ -160,27 +159,29 @@ export async function createRealm(
       values (${applicationId}, ${iamBaseUrl})
       on conflict (application_id, origin) do nothing
     `;
-    await sql`
-      insert into iam.application_oauth_client (
-        id, application_id, client_id, name, redirect_uris, post_logout_redirect_uris,
-        token_endpoint_auth_method, public, require_pkce, resource_audience,
-        environment, created_by, updated_by, metadata
-      )
-      values (
-        ${crypto.randomUUID()}, ${applicationId}, ${clientId}, ${`Password ${suffix}`},
-        ${sql.array([redirectUri(realm)])}, ${sql.array([postLogoutUri(realm)])},
-        'none', true, true, ${resource}, 'development',
-        ${api.session.user.userId!}, ${api.session.user.userId!},
-        ${JSON.stringify({
-          shopana_application_id: applicationId,
-          shopana_client_id: clientId,
-          shopana_resource: resource,
-          shopana_protocol_policy_version: 1,
-        })}::jsonb
-      )
-    `;
   });
-  return realm;
+  const { data } = await api.admin.mutation('application-admin-api/ApplicationOAuthClientCreate', {
+    variables: {
+      input: {
+        organizationId: organization,
+        applicationId: payload!.application!.id,
+        name: `Password ${suffix}`,
+        clientType: 'PUBLIC',
+        environment: 'DEVELOPMENT',
+        redirectUris: [redirectUri(provisionalRealm)],
+        postLogoutRedirectUris: [postLogoutUri(provisionalRealm)],
+        enableEndSession: true,
+        skipConsent: false,
+      },
+    },
+  });
+  const clientPayload = data.applicationMutation.applicationOAuthClientCreate;
+  expect(clientPayload.userErrors).toEqual([]);
+  expect(clientPayload.client).not.toBeNull();
+  return {
+    ...provisionalRealm,
+    clientId: clientPayload.client!.clientId,
+  };
 }
 
 export async function updatePolicy(realm: Realm, policy: RealmPolicy): Promise<void> {
@@ -607,14 +608,31 @@ export async function copyPasswordIdentity(
   });
 }
 
-export async function setClientDisabled(realm: Realm, disabled: boolean): Promise<void> {
-  await withDb(
-    (sql) => sql`
-      update iam.application_oauth_client
-      set disabled = ${disabled}, revision = revision + 1, updated_at = now()
+export async function setClientDisabled(api: Api, realm: Realm, disabled: boolean): Promise<void> {
+  const revision = await withDb(async (sql) => {
+    const [row] = await sql<{ revision: number }[]>`
+      select revision from iam.application_oauth_client
       where application_id = ${realm.applicationId} and client_id = ${realm.clientId}
-    `,
+    `;
+    return row!.revision;
+  });
+  const { data } = await api.admin.mutation(
+    'application-admin-api/ApplicationOAuthClientEnabledSet',
+    {
+      variables: {
+        input: {
+          organizationId: composeGlobalId('Organization', realm.organizationId),
+          applicationId: composeGlobalId('Application', realm.applicationId),
+          clientId: realm.clientId,
+          enabled: !disabled,
+          expectedRevision: revision,
+        },
+      },
+    },
   );
+  const payload = data.applicationMutation.applicationOAuthClientEnabledSet;
+  expect(payload.userErrors).toEqual([]);
+  expect(payload.client?.disabled).toBe(disabled);
 }
 
 export async function expireSessions(realm: Realm): Promise<void> {

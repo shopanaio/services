@@ -2,6 +2,7 @@ query Stores($organizationId: ID!) {
   storeQuery {
     stores(organizationId: $organizationId) {
       id
+      revision
       name
       displayName
       status
@@ -12,6 +13,76 @@ query Stores($organizationId: ID!) {
       currencyCode
       defaultWeightUnit
       defaultDimensionUnit
+      organization {
+        id
+      }
+      membership {
+        domain
+        organizationId
+      }
+      languageSettings {
+        code
+        name
+        isActive
+      }
+      contactDetails {
+        name
+        slug
+        email
+        phoneNumbers
+      }
+      address {
+        companyName
+        countryCode
+        addressLine1
+        addressLine2
+        city
+        administrativeArea
+        postalCode
+      }
+      brand {
+        defaultLogo {
+          id
+        }
+        squareLogo {
+          id
+        }
+        coverImage {
+          id
+        }
+        primaryColor
+        secondaryColor
+        slogan
+        shortDescription
+        socialLinks {
+          platform
+          url
+        }
+      }
+      orderProcessing {
+        orderNumberPrefix
+        orderNumberSuffix
+        requireCheckoutConfirmation
+        automaticFulfillmentMode
+        automaticallyArchiveOrders
+      }
+      defaults {
+        unitSystem
+        defaultWeightUnit
+        defaultDimensionUnit
+        timezone
+      }
+      currencySettings {
+        currencyCode
+        currencyDisplay
+        currencySign
+        grouping
+        signDisplay
+        minimumFractionDigits
+        maximumFractionDigits
+        roundingMode
+        trailingZeroDisplay
+      }
       createdAt
       updatedAt
     }

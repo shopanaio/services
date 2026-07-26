@@ -2,13 +2,16 @@ import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import {
   count,
+  configureDelivery,
   createRealm,
   createRealmMatrix,
   defaultPassword,
+  endpoint,
   expectRealmState,
   expectSecretFree,
   expectSignUp,
   minimumPassword,
+  redirectUri,
   realmState,
   signUp,
   uniqueEmail,
@@ -86,12 +89,12 @@ test.describe('Application password auth — signup', () => {
       { email: uniqueEmail(), password: defaultPassword },
     ]) {
       const response = await request.post(
-        `http://127.0.0.1:11010/auth/applications/${realm.applicationId}/sign-up/email`,
+        endpoint(realm, '/sign-up/email'),
         {
           headers: {
             accept: 'application/json',
             'content-type': 'application/json',
-            origin: 'http://127.0.0.1:11010',
+            origin: new URL(endpoint(realm, '')).origin,
           },
           data: body,
         },
@@ -241,10 +244,16 @@ test.describe('Application password auth — signup', () => {
     const realm = await createRealm(api, request, undefined, 'verify-required', {
       emailVerificationRequired: true,
     });
-    const response = await signUp(request, realm, uniqueEmail());
-    expect(response.status()).toBeGreaterThanOrEqual(400);
+    await configureDelivery(realm, 'verify-required');
+    const email = uniqueEmail('verify-required');
+    const response = await signUp(request, realm, email);
+    expect(response.ok(), await response.text()).toBe(true);
     expect(response.headers()['set-cookie']).toBeUndefined();
+    expect((await userForEmail(realm, email))?.emailVerified).toBe(false);
     await withDb(async (sql) => {
+      expect(await count(sql, 'application_user', realm.applicationId)).toBe(1);
+      expect(await count(sql, 'application_account', realm.applicationId)).toBe(1);
+      expect(await count(sql, 'application_verification', realm.applicationId)).toBe(1);
       expect(await count(sql, 'application_session', realm.applicationId)).toBe(0);
       expect(await count(sql, 'application_oauth_access_token', realm.applicationId)).toBe(0);
       expect(await count(sql, 'application_oauth_refresh_token', realm.applicationId)).toBe(0);
@@ -260,7 +269,7 @@ test.describe('Application password auth — signup', () => {
     });
     await expectSignUp(request, realm);
     const response = await request.get(
-      `http://127.0.0.1:11010/auth/applications/${realm.applicationId}/oauth2/authorize?client_id=${realm.clientId}&response_type=code&redirect_uri=${encodeURIComponent(`http://127.0.0.1:11010/e2e/oauth/callback/${realm.applicationId}`)}&scope=openid&resource=${encodeURIComponent(realm.resource)}`,
+      `${endpoint(realm, '/oauth2/authorize')}?client_id=${realm.clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri(realm))}&scope=openid&resource=${encodeURIComponent(realm.resource)}`,
       { maxRedirects: 0 },
     );
     expect(response.status()).toBeGreaterThanOrEqual(400);
@@ -274,7 +283,8 @@ test.describe('Application password auth — signup', () => {
     const realm = await createRealm(api, request, undefined, 'delivery-failure', {
       emailVerificationRequired: true,
     });
-    const response = await signUp(request, realm, uniqueEmail());
+    const email = uniqueEmail('delivery-failure');
+    const response = await signUp(request, realm, email);
     expect(response.status()).toBeGreaterThanOrEqual(500);
     expect(response.headers()['set-cookie']).toBeUndefined();
     await withDb(async (sql) => {
@@ -282,6 +292,10 @@ test.describe('Application password auth — signup', () => {
       expect(await count(sql, 'application_oauth_access_token', realm.applicationId)).toBe(0);
       expect(await count(sql, 'application_oauth_refresh_token', realm.applicationId)).toBe(0);
     });
+    const user = await userForEmail(realm, email);
+    if (user) {
+      expect(user.emailVerified).toBe(false);
+    }
   });
 });
 

@@ -161,9 +161,13 @@ test.describe('Application password auth — browser and transport security', ()
       headers: { accept: 'text/html' },
     });
     const headers = response.headers();
-    expect(headers['content-security-policy']).toBeTruthy();
+    expect(headers['content-security-policy']).toMatch(/(?:^|;)\s*base-uri\s+'none'(?:;|$)/iu);
+    expect(headers['content-security-policy']).toMatch(/(?:^|;)\s*form-action\s+'self'(?:;|$)/iu);
+    expect(headers['content-security-policy']).toMatch(
+      /(?:^|;)\s*frame-ancestors\s+'none'(?:;|$)/iu,
+    );
     expect(headers['x-content-type-options']).toBe('nosniff');
-    expect(headers['referrer-policy']).toBeTruthy();
+    expect(headers['referrer-policy']).toBe('no-referrer');
     expect(headers['cache-control']).toMatch(/no-store/iu);
     expect(headers['permissions-policy']).toBeTruthy();
   });
@@ -212,7 +216,7 @@ test.describe('Application password auth — browser and transport security', ()
     expect(html).not.toContain('background:url');
   });
 
-  test('credentials and OAuth artifacts never enter browser storage', async ({
+  test('hosted password form does not persist credentials in browser storage or readable cookies', async ({
     api,
     page,
     request,
@@ -220,17 +224,12 @@ test.describe('Application password auth — browser and transport security', ()
     const realm = await createRealm(api, request);
     const email = uniqueEmail('storage');
     const password = 'Storage-password-123!';
+    await expectSignUp(request, realm, email, password);
     await page.goto(endpoint(realm, '/login'));
-    await page.evaluate(
-      ({ emailValue, passwordValue }) => {
-        localStorage.setItem('sentinel', 'safe');
-        sessionStorage.setItem('sentinel', 'safe');
-        document.body.dataset.email = emailValue;
-        document.body.dataset.password = passwordValue;
-      },
-      { emailValue: email, passwordValue: password },
-    );
-    const storage = await page.evaluate(() => ({
+    await page.locator('input[name="email"]').fill(email);
+    await page.locator('input[name="password"]').fill(password);
+    await page.locator('form[action="./login/password"] button[type="submit"]').click();
+    const storage = await page.evaluate(async () => ({
       local: JSON.stringify(
         Object.fromEntries(
           Array.from({ length: localStorage.length }, (_, index) => {
@@ -247,14 +246,20 @@ test.describe('Application password auth — browser and transport security', ()
           }),
         ),
       ),
+      indexedDbDatabases: JSON.stringify(await indexedDB.databases()),
+      readableCookies: document.cookie,
     }));
     expect(storage.local).not.toContain(email);
     expect(storage.local).not.toContain(password);
     expect(storage.session).not.toContain(email);
     expect(storage.session).not.toContain(password);
+    expect(storage.indexedDbDatabases).not.toContain(email);
+    expect(storage.indexedDbDatabases).not.toContain(password);
+    expect(storage.readableCookies).not.toContain(email);
+    expect(storage.readableCookies).not.toContain(password);
   });
 
-  test('credentials, tokens, and verifier never leak through URL history or referrer', async ({
+  test('direct signin response does not reflect credentials or verifier into redirect headers', async ({
     api,
     request,
   }) => {
@@ -268,6 +273,13 @@ test.describe('Application password auth — browser and transport security', ()
     expect(response.headers()['location'] ?? '').not.toContain(secret);
     expect(response.headers()['referrer'] ?? '').not.toContain(secret);
     expectSecretFree(await response.text(), [secret]);
+  });
+
+  test('OAuth artifacts do not remain in browser history, referrer, storage, or readable cookies', async () => {
+    test.fixme(
+      true,
+      'E2E runtime needs a callback client that exchanges the code and exposes post-callback browser state',
+    );
   });
 
   test('auth HTML, forms, and errors are not cached', async ({ api, request }) => {

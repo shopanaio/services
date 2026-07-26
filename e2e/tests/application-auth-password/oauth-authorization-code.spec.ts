@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, createPublicKey, verify as verifySignature } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
@@ -42,15 +42,18 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
   test('confidential client requires both client authentication and S256 PKCE', async ({
     api,
     request,
+    page,
   }) => {
-    const realm = await createRealm(api, request);
-    const secret = `client-secret-${crypto.randomUUID()}`;
-    await makeClientConfidential(realm.applicationId, realm.clientId, secret);
+    const baseRealm = await createRealm(api, request);
+    const { realm, secret } = await createConfidentialClient(api, baseRealm);
+    const email = uniqueEmail('oauth-confidential');
+    await expectSignUp(request, realm, email);
+    const authorization = await obtainAuthorizationCode(page, realm, email);
     const response = await tokenRequest(request, realm, {
       grant_type: 'authorization_code',
-      code: `invalid-${crypto.randomUUID()}`,
+      code: authorization.code,
       client_id: realm.clientId,
-      code_verifier: 'v'.repeat(64),
+      code_verifier: authorization.verifier,
       redirect_uri: redirectUri(realm),
       resource: realm.resource,
     });
@@ -60,15 +63,19 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
       realm,
       {
         grant_type: 'authorization_code',
-        code: `invalid-${crypto.randomUUID()}`,
+        code: authorization.code,
         client_id: realm.clientId,
-        code_verifier: 'v'.repeat(64),
+        code_verifier: authorization.verifier,
         redirect_uri: redirectUri(realm),
         resource: realm.resource,
       },
       { authorization: `Basic ${Buffer.from(`${realm.clientId}:${secret}`).toString('base64')}` },
     );
-    expect(authenticated.status()).not.toBe(401);
+    expect(authenticated.ok(), await authenticated.text()).toBe(true);
+    const tokens = (await authenticated.json()) as TokenResponse;
+    expect(tokens.access_token).toBeTruthy();
+    expect(tokens.id_token).toBeTruthy();
+    expect(tokens.refresh_token).toBeTruthy();
   });
 
   test('missing PKCE challenge cannot produce an authorization code', async ({
@@ -95,12 +102,16 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
   test('missing or invalid verifier cannot exchange the code', async ({
     api,
     request,
+    page,
   }) => {
     const realm = await createRealm(api, request);
+    const email = uniqueEmail('invalid-verifier');
+    await expectSignUp(request, realm, email);
     for (const verifier of ['', 'short', 'wrong'.repeat(12)]) {
+      const authorization = await obtainAuthorizationCode(page, realm, email);
       const response = await tokenRequest(request, realm, {
         grant_type: 'authorization_code',
-        code: `invalid-${crypto.randomUUID()}`,
+        code: authorization.code,
         client_id: realm.clientId,
         redirect_uri: redirectUri(realm),
         code_verifier: verifier,
@@ -130,19 +141,24 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
   test('code from A cannot be exchanged through issuer or client B', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
+    const email = uniqueEmail('cross-realm-code');
+    await expectSignUp(request, realms.a, email);
+    const authorization = await obtainAuthorizationCode(page, realms.a, email);
     const response = await tokenRequest(request, realms.b, {
       grant_type: 'authorization_code',
-      code: `code-a-${crypto.randomUUID()}`,
+      code: authorization.code,
       client_id: realms.a.clientId,
       redirect_uri: redirectUri(realms.a),
-      code_verifier: 'v'.repeat(64),
+      code_verifier: authorization.verifier,
       resource: realms.a.resource,
     });
     await expectOAuthError(response);
     expect(await accessTokenCount(realms.a.applicationId)).toBe(0);
     expect(await accessTokenCount(realms.b.applicationId)).toBe(0);
+    expect((await exchangeCode(request, realms.a, authorization)).ok()).toBe(true);
   });
 
   test('client A cannot authorize through issuer B', async ({ api, request }) => {
@@ -182,7 +198,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(response.headers()['location'] ?? '').not.toContain('attacker.invalid');
   });
 
-  test('state is preserved and mismatch is rejected by the client flow', async ({
+  test('authorization response preserves the exact client state', async ({
     api,
     request,
   }) => {
@@ -215,21 +231,45 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
   test('authorize, exchange, and refresh require the exact canonical resource', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
     const authorize = await beginAuthorization(request, realms.a, {
       resource: realms.b.resource,
     });
     expect(authorize.status()).toBeGreaterThanOrEqual(400);
+    const email = uniqueEmail('canonical-resource');
+    await expectSignUp(request, realms.a, email);
+    const authorization = await obtainAuthorizationCode(page, realms.a, email);
     const exchange = await tokenRequest(request, realms.a, {
       grant_type: 'authorization_code',
-      code: `invalid-${crypto.randomUUID()}`,
+      code: authorization.code,
       client_id: realms.a.clientId,
       redirect_uri: redirectUri(realms.a),
-      code_verifier: 'v'.repeat(64),
+      code_verifier: authorization.verifier,
       resource: realms.b.resource,
     });
     await expectOAuthError(exchange, 'invalid_target');
+    const validExchange = await exchangeCode(request, realms.a, authorization);
+    expect(validExchange.ok(), await validExchange.text()).toBe(true);
+    const tokens = (await validExchange.json()) as TokenResponse;
+    const foreignRefresh = await tokenRequest(request, realms.a, {
+      grant_type: 'refresh_token',
+      refresh_token: tokens.refresh_token,
+      client_id: realms.a.clientId,
+      resource: realms.b.resource,
+    });
+    await expectOAuthError(foreignRefresh, 'invalid_target');
+    expect(
+      (
+        await tokenRequest(request, realms.a, {
+          grant_type: 'refresh_token',
+          refresh_token: tokens.refresh_token,
+          client_id: realms.a.clientId,
+          resource: realms.a.resource,
+        })
+      ).ok(),
+    ).toBe(true);
   });
 
   test('missing, empty, duplicate, or foreign resource returns invalid_target', async ({
@@ -257,16 +297,29 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
   test('resource A cannot produce an audience through issuer or client B', async ({
     api,
     request,
+    page,
   }) => {
     const realms = await createRealmMatrix(api, request);
+    const email = uniqueEmail('foreign-resource-refresh');
+    await expectSignUp(request, realms.b, email);
+    const tokens = await completeAuthorizationCodeFlow(page, request, realms.b, email);
     const response = await tokenRequest(request, realms.b, {
       grant_type: 'refresh_token',
-      refresh_token: `refresh-${crypto.randomUUID()}`,
+      refresh_token: tokens.refresh_token,
       client_id: realms.b.clientId,
       resource: realms.a.resource,
     });
     await expectOAuthError(response, 'invalid_target');
-    expect(await accessTokenCount(realms.b.applicationId)).toBe(0);
+    expect(
+      (
+        await tokenRequest(request, realms.b, {
+          grant_type: 'refresh_token',
+          refresh_token: tokens.refresh_token,
+          client_id: realms.b.clientId,
+          resource: realms.b.resource,
+        })
+      ).ok(),
+    ).toBe(true);
   });
 
   test('tokens contain only granted and approved scopes and claims', async ({
@@ -337,6 +390,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     await expectSignUp(request, realm, email);
     const nonce = crypto.randomUUID();
     const tokens = await completeAuthorizationCodeFlow(page, request, realm, email, { nonce });
+    await verifyJwtWithRealmJwks(request, realm, tokens.id_token);
     const claims = decodeJwt(tokens.id_token);
     expect(claims).toMatchObject({
       iss: endpoint(realm, ''),
@@ -357,12 +411,22 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     const email = uniqueEmail('access-claims');
     await expectSignUp(request, realm, email);
     const tokens = await completeAuthorizationCodeFlow(page, request, realm, email);
+    await verifyJwtWithRealmJwks(request, realm, tokens.access_token);
     const claims = decodeJwt(tokens.access_token);
-    expect(claims.iss).toBe(endpoint(realm, ''));
-    expect(claims.aud).toBe(realm.resource);
-    expect(claims.client_id ?? claims.azp).toBe(realm.clientId);
-    expect(claims.sub).toBeTruthy();
-    expect(String(claims.scope)).toContain('openid');
+    expect(claims).toMatchObject({
+      iss: endpoint(realm, ''),
+      aud: realm.resource,
+      application_id: realm.applicationId,
+      actor_type: 'application_user',
+      client_id: realm.clientId,
+      azp: realm.clientId,
+    });
+    expect(claims.sub).toEqual(expect.any(String));
+    expect(claims.sid).toEqual(expect.any(String));
+    expect(claims.token_family_id).toEqual(expect.any(String));
+    expect(new Set(String(claims.scope).split(' '))).toEqual(
+      new Set(['openid', 'profile', 'email', 'offline_access']),
+    );
   });
 
   test('tokens contain no password secrets, provider tokens, or platform roles', async ({
@@ -379,7 +443,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(serialized).not.toMatch(/provider_token|platform_role|client_secret/iu);
   });
 
-  test('JWKS from issuer A cannot validate a token as issuer B', async ({
+  test('application issuers publish distinct JWKS sets', async ({
     api,
     request,
   }) => {
@@ -393,7 +457,7 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await jwksA.json()).not.toEqual(await jwksB.json());
   });
 
-  test('consent is bound to exact user, application, client, scopes, and resource', async ({
+  test('authorization context binds application, client, scopes, and resource', async ({
     api,
     request,
   }) => {
@@ -479,20 +543,17 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
     expect(await accessTokenCount(realms.b.applicationId)).toBe(0);
   });
 
-  test('application or client disable after code issuance prevents token exchange', async ({
+  test('client disable after code issuance prevents token exchange', async ({
     api,
     request,
+    page,
   }) => {
     const realm = await createRealm(api, request);
-    await setClientDisabled(realm, true);
-    const response = await tokenRequest(request, realm, {
-      grant_type: 'authorization_code',
-      code: `issued-before-disable-${crypto.randomUUID()}`,
-      client_id: realm.clientId,
-      redirect_uri: redirectUri(realm),
-      code_verifier: 'v'.repeat(64),
-      resource: realm.resource,
-    });
+    const email = uniqueEmail('disabled-after-code');
+    await expectSignUp(request, realm, email);
+    const authorization = await obtainAuthorizationCode(page, realm, email);
+    await setClientDisabled(api, realm, true);
+    const response = await exchangeCode(request, realm, authorization);
     await expectOAuthError(response);
     expect(await accessTokenCount(realm.applicationId)).toBe(0);
   });
@@ -500,19 +561,14 @@ test.describe('Application password auth — OAuth Authorization Code', () => {
   test('user block after code issuance prevents token exchange', async ({
     api,
     request,
+    page,
   }) => {
     const realm = await createRealm(api, request);
     const email = uniqueEmail('blocked-code');
     await expectSignUp(request, realm, email);
+    const authorization = await obtainAuthorizationCode(page, realm, email);
     await setUserState(realm, email, { status: 'blocked' });
-    const response = await tokenRequest(request, realm, {
-      grant_type: 'authorization_code',
-      code: `issued-before-block-${crypto.randomUUID()}`,
-      client_id: realm.clientId,
-      redirect_uri: redirectUri(realm),
-      code_verifier: 'v'.repeat(64),
-      resource: realm.resource,
-    });
+    const response = await exchangeCode(request, realm, authorization);
     await expectOAuthError(response);
     expect(await accessTokenCount(realm.applicationId)).toBe(0);
   });
@@ -551,6 +607,7 @@ async function obtainAuthorizationCode(
 ): Promise<AuthorizationResult> {
   const verifier = crypto.randomUUID().replaceAll('-', '').repeat(2);
   const challenge = createHash('sha256').update(verifier).digest('base64url');
+  await page.context().clearCookies();
   await page.goto(
     authorizeUrl(realm, {
       codeChallenge: challenge,
@@ -607,6 +664,37 @@ function decodeJwt(token: string): Record<string, unknown> {
   >;
 }
 
+async function verifyJwtWithRealmJwks(
+  request: Parameters<typeof tokenRequest>[0],
+  realm: Parameters<typeof tokenRequest>[1],
+  token: string,
+): Promise<void> {
+  const [encodedHeader, encodedPayload, encodedSignature] = token.split('.');
+  expect(encodedHeader).toBeTruthy();
+  expect(encodedPayload).toBeTruthy();
+  expect(encodedSignature).toBeTruthy();
+  const header = JSON.parse(Buffer.from(encodedHeader!, 'base64url').toString('utf8')) as {
+    alg: string;
+    kid: string;
+  };
+  expect(header.alg).toBe('EdDSA');
+  expect(header.kid).toEqual(expect.any(String));
+  const response = await request.get(endpoint(realm, '/jwks'));
+  expect(response.ok(), await response.text()).toBe(true);
+  const jwks = (await response.json()) as { keys: Array<JsonWebKey & { kid?: string }> };
+  const jwk = jwks.keys.find((candidate) => candidate.kid === header.kid);
+  expect(jwk, `JWKS key ${header.kid}`).toBeDefined();
+  const key = createPublicKey({ key: jwk!, format: 'jwk' });
+  expect(
+    verifySignature(
+      null,
+      Buffer.from(`${encodedHeader}.${encodedPayload}`),
+      key,
+      Buffer.from(encodedSignature!, 'base64url'),
+    ),
+  ).toBe(true);
+}
+
 async function authorizationContextCount(applicationId: string): Promise<number> {
   return withDb((sql) => count(sql, 'application_authorization_context', applicationId));
 }
@@ -615,19 +703,35 @@ async function accessTokenCount(applicationId: string): Promise<number> {
   return withDb((sql) => count(sql, 'application_oauth_access_token', applicationId));
 }
 
-async function makeClientConfidential(
-  applicationId: string,
-  clientId: string,
-  secret: string,
-): Promise<void> {
-  await withDb(
-    (sql) => sql`
-      update iam.application_oauth_client
-      set public = false,
-          client_secret = ${secret},
-          token_endpoint_auth_method = 'client_secret_basic',
-          revision = revision + 1
-      where application_id = ${applicationId} and client_id = ${clientId}
-    `,
-  );
+async function createConfidentialClient(
+  api: Parameters<typeof createRealm>[0],
+  realm: Parameters<typeof tokenRequest>[1],
+): Promise<{ realm: Parameters<typeof tokenRequest>[1]; secret: string }> {
+  const { data } = await api.admin.mutation('application-admin-api/ApplicationOAuthClientCreate', {
+    variables: {
+      input: {
+        organizationId: Buffer.from(
+          `gid://shopana/Organization/${realm.organizationId}`,
+        ).toString('base64'),
+        applicationId: Buffer.from(
+          `gid://shopana/Application/${realm.applicationId}`,
+        ).toString('base64'),
+        name: `confidential-${crypto.randomUUID()}`,
+        clientType: 'CONFIDENTIAL',
+        environment: 'DEVELOPMENT',
+        redirectUris: [redirectUri(realm)],
+        postLogoutRedirectUris: [],
+        enableEndSession: false,
+        skipConsent: false,
+      },
+    },
+  });
+  const payload = data.applicationMutation.applicationOAuthClientCreate;
+  expect(payload.userErrors).toEqual([]);
+  expect(payload.client).not.toBeNull();
+  expect(payload.clientSecret).toEqual(expect.any(String));
+  return {
+    realm: { ...realm, clientId: payload.client!.clientId },
+    secret: payload.clientSecret!,
+  };
 }

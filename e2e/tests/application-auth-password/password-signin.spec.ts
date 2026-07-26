@@ -6,6 +6,7 @@ import {
   count,
   createRealm,
   createRealmMatrix,
+  endpoint,
   expectInvalidSignIn,
   expectRealmState,
   expectSecretFree,
@@ -147,7 +148,7 @@ test.describe('Application password auth — signin', () => {
     });
   });
 
-  test('live client, application, and organization disable stops an in-flight flow', async ({
+  test('live application disable stops an in-flight flow', async ({
     api,
     request,
   }) => {
@@ -173,7 +174,7 @@ test.describe('Application password auth — signin', () => {
     const before = await realmState(realm);
     for (const data of [null, [], { email: 7, password: secret }, { email: uniqueEmail() }]) {
       const response = await request.post(
-        `http://127.0.0.1:11010/auth/applications/${realm.applicationId}/sign-in/email`,
+        endpoint(realm, '/sign-in/email'),
         { headers: jsonHeaders(), data: JSON.stringify(data) },
       );
       expect(response.status()).toBeGreaterThanOrEqual(400);
@@ -190,12 +191,12 @@ test.describe('Application password auth — signin', () => {
     const before = await realmState(realm);
     const body = `email=${encodeURIComponent(uniqueEmail())}&email=${encodeURIComponent(uniqueEmail())}&password=a&password=b`;
     const response = await request.post(
-      `http://127.0.0.1:11010/auth/applications/${realm.applicationId}/sign-in/email`,
+      endpoint(realm, '/sign-in/email'),
       {
         headers: {
           accept: 'application/json',
           'content-type': 'application/x-www-form-urlencoded',
-          origin: 'http://127.0.0.1:11010',
+          origin: new URL(endpoint(realm, '')).origin,
         },
         data: body,
       },
@@ -204,7 +205,7 @@ test.describe('Application password auth — signin', () => {
     await expectRealmState(realm, before);
   });
 
-  test('repeated form submission cannot reuse a context or create uncontrolled sessions', async ({
+  test('parallel standalone signin creates only bounded sessions and no OAuth tokens', async ({
     api,
     request,
   }) => {
@@ -248,11 +249,11 @@ test.describe('Application password auth — signin', () => {
     const before = await realmState(realm);
     const [userinfo, consent] = await Promise.all([
       request.get(
-        `http://127.0.0.1:11010/auth/applications/${realm.applicationId}/oauth2/userinfo`,
+        endpoint(realm, '/oauth2/userinfo'),
         { headers: { authorization: `Bearer ${api.session.accessToken}` } },
       ),
       request.post(
-        `http://127.0.0.1:11010/auth/applications/${realm.applicationId}/oauth2/consent`,
+        endpoint(realm, '/oauth2/consent'),
         {
           headers: {
             ...jsonHeaders(),

@@ -3,6 +3,8 @@ import { test } from '@fixtures/base.extend';
 import {
   applicationCookie,
   beginAuthorization,
+  completePasswordReset,
+  configureDelivery,
   copyPasswordIdentity,
   count,
   createRealm,
@@ -144,13 +146,28 @@ test.describe('Application password auth — public boundary', () => {
     const source = await createRealm(api, request);
     const realm = await createRealm(api, request, undefined, 'closed-existing', {
       registrationMode: 'disabled',
+      passwordResetEnabled: true,
     });
+    await configureDelivery(realm, 'closed-existing');
     const email = uniqueEmail();
     await expectSignUp(request, source, email);
     await copyPasswordIdentity(source, realm, email);
     const response = await signIn(request, realm, email);
     expect(response.ok(), await response.text()).toBe(true);
     expect(applicationCookie(response, realm)).toContain(realm.applicationId);
+    expect(await requestPasswordReset(request, realm, email)).toBeOK();
+    const token = await withDb(async (sql) => {
+      const [row] = await sql<{ value: string }[]>`
+        select value from iam.application_verification
+        where application_id = ${realm.applicationId}
+        order by created_at desc limit 1
+      `;
+      return row!.value;
+    });
+    expect(
+      await completePasswordReset(request, realm, token, 'Closed-reset-password-456!'),
+    ).toBeOK();
+    expect(await signIn(request, realm, email, 'Closed-reset-password-456!')).toBeOK();
     expect(await countForRealm(realm, 'application_user')).toBe(1);
   });
 
@@ -217,17 +234,21 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('disabled application stops all auth flows without deleting auth rows', async ({
+  test('disabled application stops hosted, authorize, signin, and reset flows without deleting rows', async ({
     api,
     request,
   }) => {
-    const realm = await createRealm(api, request);
+    const realm = await createRealm(api, request, undefined, 'disabled-realm', {
+      passwordResetEnabled: true,
+    });
+    await configureDelivery(realm, 'disabled-realm');
     const email = uniqueEmail();
     await expectSignUp(request, realm, email);
     const before = await realmState(realm);
     await updatePolicy(realm, { realmEnabled: false });
     const responses = await Promise.all([
       request.get(endpoint(realm, '/login')),
+      request.get(endpoint(realm, '/.well-known/openid-configuration')),
       beginAuthorization(request, realm),
       signIn(request, realm, email),
       requestPasswordReset(request, realm, email),
@@ -236,11 +257,14 @@ test.describe('Application password auth — public boundary', () => {
     await expectRealmState(realm, before);
   });
 
-  test('disabled organization stops auth flows for its application realms', async ({
+  test('disabled organization stops hosted, authorize, signin, and reset flows', async ({
     api,
     request,
   }) => {
-    const realm = await createRealm(api, request);
+    const realm = await createRealm(api, request, undefined, 'disabled-organization', {
+      passwordResetEnabled: true,
+    });
+    await configureDelivery(realm, 'disabled-organization');
     const before = await realmState(realm);
     await withDb(
       (sql) => sql`
@@ -248,12 +272,15 @@ test.describe('Application password auth — public boundary', () => {
         where id = ${realm.organizationId}
       `,
     );
-    const [login, authorize, signin] = await Promise.all([
+    const [login, authorize, signin, reset] = await Promise.all([
       request.get(endpoint(realm, '/login')),
       beginAuthorization(request, realm),
       signIn(request, realm, uniqueEmail()),
+      requestPasswordReset(request, realm, uniqueEmail()),
     ]);
-    expect([login.status(), authorize.status(), signin.status()]).toEqual([404, 404, 404]);
+    expect([login.status(), authorize.status(), signin.status(), reset.status()]).toEqual([
+      404, 404, 404, 404,
+    ]);
     await expectRealmState(realm, before);
   });
 
