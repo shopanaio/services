@@ -65,7 +65,7 @@ export const appInstallations = appsSchema.table(
     configurationVersion: integer("configuration_version")
       .notNull()
       .default(1),
-    installedByUserId: uuid("installed_by_user_id"),
+    installedByUserId: varchar("installed_by_user_id", { length: 128 }),
     healthStatus: appInstallationHealthStatus("health_status")
       .notNull()
       .default("UNKNOWN"),

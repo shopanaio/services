@@ -19,6 +19,13 @@ import {
   restrictGrantedScopes,
 } from "./AppManifestContracts.js";
 
+export interface PreparedAppWorkflowInvocation {
+  readonly workflowName: string;
+  readonly invocation: AppWorkflowInvocation<unknown>;
+  readonly idempotency: AppIdempotencyContext;
+  readonly options?: AppWorkflowStartOptions;
+}
+
 @Injectable()
 export class AppsRuntimeRouter {
   constructor(
@@ -95,6 +102,25 @@ export class AppsRuntimeRouter {
     idempotency: AppIdempotencyContext,
     options?: AppWorkflowStartOptions,
   ): Promise<TResult> {
+    const prepared = await this.prepareWorkflow(
+      appCode,
+      workflow,
+      input,
+      contextRef,
+      idempotency,
+      options,
+    );
+    return this.runPreparedWorkflow<TResult>(prepared);
+  }
+
+  async prepareWorkflow<TInput = unknown>(
+    appCode: string,
+    workflow: string,
+    input: TInput,
+    contextRef: Readonly<AppInvocationContextRef>,
+    idempotency: AppIdempotencyContext,
+    options?: AppWorkflowStartOptions,
+  ): Promise<PreparedAppWorkflowInvocation> {
     const runtime = this.registry.get(appCode);
     if (!runtime || runtime.status !== "READY") {
       throw new Error(`App runtime "${appCode}" is not ready`);
@@ -137,14 +163,22 @@ export class AppsRuntimeRouter {
       context: durableContext,
       input,
     });
-    return this.broker.runWorkflow<
-      TResult,
-      AppWorkflowInvocation<TInput>
-    >(
-      `apps.${appCode}.${localWorkflow}`,
+    return Object.freeze({
+      workflowName: `apps.${appCode}.${localWorkflow}`,
       invocation,
       idempotency,
       options,
+    });
+  }
+
+  runPreparedWorkflow<TResult = unknown>(
+    prepared: PreparedAppWorkflowInvocation,
+  ): Promise<TResult> {
+    return this.broker.runWorkflow<TResult, AppWorkflowInvocation<unknown>>(
+      prepared.workflowName,
+      prepared.invocation,
+      prepared.idempotency,
+      prepared.options,
     );
   }
 

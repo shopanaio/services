@@ -17,6 +17,7 @@ import { AppInstallationStore } from "./AppInstallationStore.js";
 import type { AppLifecycleWorkflowInput } from "./types.js";
 import { AppRuntimeRegistry } from "../runtime/AppRuntimeRegistry.js";
 import { AppsRuntimeRouter } from "../runtime/AppsRuntimeRouter.js";
+import type { PreparedAppWorkflowInvocation } from "../runtime/AppsRuntimeRouter.js";
 
 @Injectable()
 export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
@@ -43,7 +44,10 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
   ): Promise<{ installationId: string; status: string }> {
     await this.markRunning(input.operationId);
     try {
-      await this.dispatchAppLifecycle(input);
+      const childWorkflow = await this.dispatchAppLifecycle(input);
+      if (childWorkflow) {
+        await this.router.runPreparedWorkflow(childWorkflow);
+      }
       const installation = await this.complete(input.operationId);
       return {
         installationId: installation.id,
@@ -63,7 +67,7 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
   @WorkflowStep()
   private async dispatchAppLifecycle(
     input: AppLifecycleWorkflowInput,
-  ): Promise<void> {
+  ): Promise<PreparedAppWorkflowInvocation | null> {
     const operation = await this.installations.findOperationById(
       input.operationId,
     );
@@ -101,7 +105,7 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
       case "INSTALL": {
         const workflow = manifest.lifecycle.installWorkflow;
         if (workflow) {
-          await this.router.runWorkflow<void, AppInstallInput>(
+          return this.router.prepareWorkflow<AppInstallInput>(
             manifest.code,
             workflow,
             {
@@ -113,12 +117,12 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
             { workflowId: `${operation.workflowId}:app` },
           );
         }
-        return;
+        return null;
       }
       case "UPDATE": {
         const workflow = manifest.lifecycle.updateWorkflow;
         if (workflow) {
-          await this.router.runWorkflow<void, AppUpdateInput>(
+          return this.router.prepareWorkflow<AppUpdateInput>(
             manifest.code,
             workflow,
             {
@@ -132,7 +136,7 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
             { workflowId: `${operation.workflowId}:app` },
           );
         }
-        return;
+        return null;
       }
       case "SUSPEND": {
         const action = manifest.lifecycle.suspendAction;
@@ -144,7 +148,7 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
             contextRef,
           );
         }
-        return;
+        return null;
       }
       case "RESUME": {
         const action = manifest.lifecycle.resumeAction;
@@ -156,12 +160,12 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
             contextRef,
           );
         }
-        return;
+        return null;
       }
       case "UNINSTALL": {
         const workflow = manifest.lifecycle.uninstallWorkflow;
         if (workflow) {
-          await this.router.runWorkflow<void, AppUninstallInput>(
+          return this.router.prepareWorkflow<AppUninstallInput>(
             manifest.code,
             workflow,
             {
@@ -173,6 +177,7 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
             { workflowId: `${operation.workflowId}:app` },
           );
         }
+        return null;
       }
     }
   }
