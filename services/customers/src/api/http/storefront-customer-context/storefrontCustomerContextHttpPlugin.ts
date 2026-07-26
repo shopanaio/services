@@ -28,7 +28,7 @@ export const storefrontCustomerContextHttpPlugin: FastifyPluginAsync<
 
   instance.post(
     "/internal/storefront-customer-context/resolve",
-    { config: { bodyLimit: 32_768 } },
+    { bodyLimit: 32_768 },
     async (request, reply) => {
       if (!authorized(request.headers.authorization, options.serviceToken)) {
         return reply.code(401).send({ code: "UNAUTHORIZED" });

@@ -696,11 +696,12 @@ export class IamBrokerActions extends BrokerActions {
   ): Promise<ValidateServiceLinkedApplicationTokenResult> {
     try {
       await this.assertServiceLinkedApplicationOwner(params, actionContext);
-      const result = await this.kernel.applicationTokenValidation.validate({
-        token: params.token,
-        expectedApplicationId: params.applicationId,
-        expectedAudience: createApplicationResource(params.applicationId),
-      });
+      const result =
+        await this.kernel.applicationTokenValidation.validateAccessToken({
+          token: params.token,
+          expectedApplicationId: params.applicationId,
+          expectedAudience: createApplicationResource(params.applicationId),
+        });
       if (!result.active) return { active: false };
       return {
         active: true,

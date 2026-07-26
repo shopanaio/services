@@ -191,6 +191,21 @@ export class ApplicationTokenValidationService {
     return result;
   }
 
+  /**
+   * Resource-server validation for Bearer access tokens. Refresh tokens are
+   * opaque in v1 and must never authenticate a protected resource request.
+   */
+  async validateAccessToken(
+    input: ValidateApplicationTokenInput
+  ): Promise<ApplicationTokenValidationResult> {
+    const now = this.now();
+    const boundary = validateBoundary(input);
+    if (!boundary.success || !looksLikeJwt(boundary.data.token)) {
+      return this.inactive("malformed", now);
+    }
+    return this.validate(boundary.data);
+  }
+
   async validateRefreshGrant(
     input: ApplicationRefreshGrantValidationInput
   ): Promise<ApplicationTokenValidationResult> {
