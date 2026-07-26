@@ -1,6 +1,6 @@
+import type { ResolvedStorefrontAccessContext } from "@shopana/shared-context";
 import {
   parseResolvedStorefrontAccessContext,
-  type ResolvedStorefrontAccessContext,
 } from "./types.js";
 
 export class StorefrontAccessClient {

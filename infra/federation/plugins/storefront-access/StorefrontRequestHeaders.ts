@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 const PUBLIC_HEADER = "x-shopana-storefront-access-token";
 const PRIVATE_HEADER = "shopana-storefront-private-token";
 const BUYER_IP_HEADER = "shopana-storefront-buyer-ip";
+export const STOREFRONT_REQUEST_ID_HEADER = "x-request-id";
 
 export function parseStorefrontRequest(request: Request): {
   readonly token: string;
@@ -51,7 +52,7 @@ export function parseStorefrontRequest(request: Request): {
 }
 
 export function parseRequestId(request: Request): string | undefined {
-  const requestId = singleHeader(request, "x-request-id");
+  const requestId = singleHeader(request, STOREFRONT_REQUEST_ID_HEADER);
   if (requestId && requestId.length > 255) {
     throw requestError(
       400,

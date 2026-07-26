@@ -1,17 +1,20 @@
-import { randomUUID } from "node:crypto";
-import type { GatewayPlugin } from "@graphql-hive/gateway";
+import type {
+  GatewayConfig,
+  GatewayPlugin,
+} from "@graphql-hive/gateway";
 import { StorefrontAccessClient } from "./StorefrontAccessClient.js";
 import { StorefrontContextSigner } from "./StorefrontContextSigner.js";
 import {
   parseRequestId,
   parseStorefrontRequest,
   requestError,
+  STOREFRONT_REQUEST_ID_HEADER,
 } from "./StorefrontRequestHeaders.js";
 
-interface StorefrontRequestState {
-  readonly context: string;
-  readonly requestId: string;
-}
+type RequestIdConfig = Exclude<
+  GatewayConfig["requestId"],
+  boolean | undefined
+>;
 
 export function createStorefrontAccessPlugin() {
   const client = new StorefrontAccessClient(
@@ -23,13 +26,26 @@ export function createStorefrontAccessPlugin() {
     required("STOREFRONT_CONTEXT_ACTIVE_KID"),
     required("STOREFRONT_CONTEXT_PRIVATE_KEY"),
   );
-  const requestStates = new WeakMap<Request, StorefrontRequestState>();
+  const generatedRequestIds = new WeakMap<Request, string>();
+  const contexts = new WeakMap<Request, string>();
+  const requestId: RequestIdConfig = {
+    headerName: STOREFRONT_REQUEST_ID_HEADER,
+    generateRequestId({ request, fetchAPI }) {
+      const value = fetchAPI.crypto.randomUUID();
+      generatedRequestIds.set(request, value);
+      return value;
+    },
+  };
   const plugin: GatewayPlugin = {
     async onRequest({ request, fetchAPI, endResponse }) {
       if (new URL(request.url).pathname === "/health") return;
       try {
         const parsed = parseStorefrontRequest(request);
-        const requestId = parseRequestId(request) ?? randomUUID();
+        const requestId =
+          parseRequestId(request) ?? generatedRequestIds.get(request);
+        if (!requestId) {
+          throw new Error("Gateway request ID is unavailable");
+        }
         const context = await client.resolve({
           token: parsed.token,
           accessMode: parsed.mode,
@@ -43,10 +59,7 @@ export function createStorefrontAccessPlugin() {
             "Invalid storefront credential",
           );
         }
-        requestStates.set(request, {
-          context: signer.sign(context, requestId),
-          requestId,
-        });
+        contexts.set(request, signer.sign(context, requestId));
       } catch (error) {
         const known = error as {
           status?: number;
@@ -66,11 +79,9 @@ export function createStorefrontAccessPlugin() {
   };
   return {
     plugin,
+    requestId,
     contextFor(request: Request): string | undefined {
-      return requestStates.get(request)?.context;
-    },
-    requestIdFor(request: Request): string | undefined {
-      return requestStates.get(request)?.requestId;
+      return contexts.get(request);
     },
   };
 }

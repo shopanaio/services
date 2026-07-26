@@ -23,6 +23,18 @@ export interface ContextStorefrontAccess {
   readonly policyRevision: number;
 }
 
+export interface ResolvedStorefrontAccessContext {
+  readonly store: ContextStore;
+  readonly access: {
+    readonly connectionId: string;
+    readonly installationId: string;
+    readonly credentialId: string;
+    readonly mode: "PUBLIC" | "PRIVATE";
+    readonly permissions: readonly StorefrontPermission[];
+    readonly policyRevision: number;
+  };
+}
+
 export interface StorefrontContextClaims {
   readonly iss: typeof STOREFRONT_CONTEXT_ISSUER;
   readonly aud: typeof STOREFRONT_CONTEXT_AUDIENCE;

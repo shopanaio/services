@@ -4,6 +4,7 @@ import type {
 } from "@shopana/app-sdk";
 import type {
   ContextStore,
+  ResolvedStorefrontAccessContext,
   StorefrontPermission,
 } from "@shopana/shared-context";
 import type {
@@ -17,18 +18,6 @@ export interface StorefrontAccessResolveInput {
   readonly accessMode: "PUBLIC" | "PRIVATE";
   readonly buyerIp?: string;
   readonly requestId: string;
-}
-
-export interface ResolvedStorefrontAccessContext {
-  readonly store: ContextStore;
-  readonly access: {
-    readonly connectionId: string;
-    readonly installationId: string;
-    readonly credentialId: string;
-    readonly mode: "PUBLIC" | "PRIVATE";
-    readonly permissions: readonly StorefrontPermission[];
-    readonly policyRevision: number;
-  };
 }
 
 export class StorefrontCredentialResolver {

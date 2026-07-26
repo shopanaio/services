@@ -6,8 +6,8 @@ import {
 import {
   STOREFRONT_CONTEXT_AUDIENCE,
   STOREFRONT_CONTEXT_ISSUER,
+  type ResolvedStorefrontAccessContext,
 } from "@shopana/shared-context";
-import type { ResolvedStorefrontAccessContext } from "./types.js";
 
 export class StorefrontContextSigner {
   private readonly key: KeyObject;
