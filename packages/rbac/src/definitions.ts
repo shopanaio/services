@@ -88,30 +88,10 @@ export const Resources = {
       displayName: "Access",
       description: "Member permissions in store",
     },
-    "store.inventory": {
+    "store.data": {
       actions: Actions,
-      displayName: "Inventory",
-      description: "Store inventory management",
-    },
-    "store.orders": {
-      actions: Actions,
-      displayName: "Orders",
-      description: "Store order management",
-    },
-    "store.listing": {
-      actions: Actions,
-      displayName: "Listing",
-      description: "Store listing management",
-    },
-    "store.reviews": {
-      actions: Actions,
-      displayName: "Reviews",
-      description: "Store reviews management",
-    },
-    "store.search": {
-      actions: Actions,
-      displayName: "Search",
-      description: "Store search management",
+      displayName: "Data",
+      description: "Store data management",
     },
     "store.apps": {
       actions: Actions,
@@ -170,20 +150,14 @@ export const Roles = {
     ],
     manager: [
       { resource: "store.profile", action: "write" },
-      { resource: "store.inventory", action: "write" },
-      { resource: "store.listing", action: "write" },
-      { resource: "store.orders", action: "write" },
+      { resource: "store.data", action: "write" },
     ],
     admin: [
       { resource: "store.profile", action: "write" }, // write (not admin - delete requires org permission)
       { resource: "store.members", action: "admin" },
       { resource: "store.roles", action: "admin" },
       { resource: "store.access", action: "admin" },
-      { resource: "store.inventory", action: "admin" },
-      { resource: "store.listing", action: "admin" },
-      { resource: "store.orders", action: "admin" },
-      { resource: "store.reviews", action: "admin" },
-      { resource: "store.search", action: "admin" },
+      { resource: "store.data", action: "admin" },
       { resource: "store.apps", action: "admin" },
     ],
   },

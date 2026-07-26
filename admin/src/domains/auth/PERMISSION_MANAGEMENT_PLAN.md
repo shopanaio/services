@@ -160,7 +160,7 @@ export type PermissionResource =
   | 'org.billing'
   | 'store.settings'
   | 'store.products'
-  | 'store.orders'
+  | 'store.data'
   | 'store.customers'
   | string; // Allow custom resources
 

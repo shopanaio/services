@@ -136,6 +136,7 @@ describe("validateDomainPermissions", () => {
         "store.members",
         "store.roles",
         "store.access",
+        "store.data",
       ];
 
       it.each(validStoreResources)("should accept valid store resource: %s", (resource) => {

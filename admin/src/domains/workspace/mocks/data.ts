@@ -51,24 +51,21 @@ const adminPermissions: ApiRolePermission[] = [
   { __typename: "RolePermission", resource: "org.profile", actions: ["read", "write"] },
   { __typename: "RolePermission", resource: "org.members", actions: ["read", "write"] },
   { __typename: "RolePermission", resource: "store.products", actions: ["read", "write", "admin"] },
-  { __typename: "RolePermission", resource: "store.orders", actions: ["read", "write", "admin"] },
-  { __typename: "RolePermission", resource: "store.inventory", actions: ["read", "write", "admin"] },
+  { __typename: "RolePermission", resource: "store.data", actions: ["read", "write", "admin"] },
 ];
 
 const editorPermissions: ApiRolePermission[] = [
   { __typename: "RolePermission", resource: "org.profile", actions: ["read"] },
   { __typename: "RolePermission", resource: "org.members", actions: ["read"] },
   { __typename: "RolePermission", resource: "store.products", actions: ["read", "write"] },
-  { __typename: "RolePermission", resource: "store.orders", actions: ["read"] },
-  { __typename: "RolePermission", resource: "store.inventory", actions: ["read", "write"] },
+  { __typename: "RolePermission", resource: "store.data", actions: ["read", "write"] },
 ];
 
 const viewerPermissions: ApiRolePermission[] = [
   { __typename: "RolePermission", resource: "org.profile", actions: ["read"] },
   { __typename: "RolePermission", resource: "org.members", actions: ["read"] },
   { __typename: "RolePermission", resource: "store.products", actions: ["read"] },
-  { __typename: "RolePermission", resource: "store.orders", actions: ["read"] },
-  { __typename: "RolePermission", resource: "store.inventory", actions: ["read"] },
+  { __typename: "RolePermission", resource: "store.data", actions: ["read"] },
 ];
 
 // Roles mock data
