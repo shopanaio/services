@@ -6,11 +6,15 @@ import type { Kernel } from "../../kernel/Kernel.js";
 import { adminContextHttpPlugin } from "./admin-context/index.js";
 import { applicationAuthHttpPlugin } from "./application-auth/applicationAuthHttpPlugin.js";
 import type { IamHttpRuntimeConfiguration } from "./iamHttpConfiguration.js";
+import type { ApplicationAuthEmailDeliveryRequest } from "../../services/ApplicationAuthEmailDeliveryPort.js";
 
 export interface IamHttpServerOptions {
   kernel: Kernel;
   global: GlobalConfig;
   http: IamHttpRuntimeConfiguration;
+  e2eEmailDelivery?: {
+    list(applicationId: string): readonly ApplicationAuthEmailDeliveryRequest[];
+  };
 }
 
 /** Create the single IAM listener and register transport siblings. */
@@ -65,6 +69,19 @@ export async function startIamHttpServer(
   app.get("/healthz", async (_request, reply) =>
     reply.send({ status: "ok", service: "iam" })
   );
+  if (options.e2eEmailDelivery) {
+    app.get<{
+      Querystring: { applicationId?: string };
+    }>("/e2e/application-auth/email-deliveries", async (request, reply) => {
+      const applicationId = request.query.applicationId?.trim();
+      if (!applicationId) {
+        return reply.code(400).send({ error: "applicationId is required" });
+      }
+      return reply.send({
+        deliveries: options.e2eEmailDelivery!.list(applicationId),
+      });
+    });
+  }
 
   await app.listen({ port: options.http.port, host: "0.0.0.0" });
   return app;

@@ -82,16 +82,19 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     this.logger.debug("IAM onModuleInit started");
 
     const http = resolveIamHttpRuntimeConfiguration({ service, global });
+    const e2eEmailDelivery =
+      !this.applicationAuthEmailDelivery &&
+      global.environment === "development" &&
+      process.env.IAM_E2E_EMAIL_DELIVERY === "true"
+        ? new E2EApplicationAuthEmailDelivery()
+        : undefined;
     const applicationAuthRateLimit =
       this.applicationAuthRateLimit ??
       (global.environment === "development"
         ? new InMemoryApplicationAuthRateLimitAdapter()
         : undefined);
     const applicationAuthEmailDelivery =
-      this.applicationAuthEmailDelivery ??
-      (process.env.IAM_E2E_EMAIL_DELIVERY === "true"
-        ? e2eApplicationAuthEmailDelivery
-        : undefined);
+      this.applicationAuthEmailDelivery ?? e2eEmailDelivery;
     if (!this.applicationAuthRateLimit && applicationAuthRateLimit) {
       this.logger.warn(
         "Using single-process application auth rate limiting in development"
@@ -122,6 +125,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       kernel: this.kernel,
       global,
       http,
+      e2eEmailDelivery,
     });
     this.logger.debug("IAM HTTP server started");
   }
@@ -139,11 +143,22 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
   }
 }
 
-const e2eApplicationAuthEmailDelivery: ApplicationAuthEmailDeliveryPort = {
+class E2EApplicationAuthEmailDelivery
+  implements ApplicationAuthEmailDeliveryPort
+{
+  private readonly requests: ApplicationAuthEmailDeliveryRequest[] = [];
+
   async enqueue(request: ApplicationAuthEmailDeliveryRequest) {
+    this.requests.push(structuredClone(request));
     return {
       accepted: true,
       messageId: `e2e:${request.idempotencyKey}`,
     };
-  },
-};
+  }
+
+  list(applicationId: string): readonly ApplicationAuthEmailDeliveryRequest[] {
+    return this.requests
+      .filter((request) => request.applicationId === applicationId)
+      .map((request) => structuredClone(request));
+  }
+}
