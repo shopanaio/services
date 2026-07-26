@@ -1,0 +1,25 @@
+import { definePendingContractSuite } from './contract-case';
+
+definePendingContractSuite('Apps Admin API - configuration, scopes, and secrets', [
+  ['APPS-CONF-001', 'appConfigure replaces configuration and increments configurationVersion exactly once'],
+  ['APPS-CONF-002', 'appConfigure requires the current expectedConfigurationVersion'],
+  ['APPS-CONF-003', 'stale configuration version returns a conflict without changing configuration or scopes'],
+  ['APPS-CONF-004', 'concurrent configuration writes with one version produce exactly one success'],
+  ['APPS-CONF-005', 'appUpdate requires expectedConfigurationVersion whenever configuration is supplied'],
+  ['APPS-CONF-006', 'update without configuration does not require or increment configurationVersion'],
+  ['APPS-CONF-007', 'omitted grantedScopes preserves the existing grant set'],
+  ['APPS-CONF-008', 'provided grantedScopes fully replaces grants with normalized unique manifest scopes'],
+  ['APPS-CONF-009', 'unknown or undeclared scope is rejected without changing grants or lifecycle state'],
+  ['APPS-CONF-010', 'empty grantedScopes revokes every grant while retaining historical grant metadata'],
+  ['APPS-CONF-011', 'scope changes in one installation never affect the same App in another store'],
+  ['APPS-CONF-012', 'install defaults granted scopes to the permissions declared by the bundled manifest'],
+  ['APPS-CONF-013', 'install and update secrets are write-only and absent from every GraphQL query and payload'],
+  ['APPS-CONF-014', 'secret values are encrypted at rest and can be resolved only by the owning App installation'],
+  ['APPS-CONF-015', 'secret name validation rejects blank or oversized names without partial persistence'],
+  ['APPS-CONF-016', 'duplicate secret names have one deterministic value and never create duplicate secret rows'],
+  ['APPS-CONF-017', 'secret rotation changes only named secrets and never returns old or new plaintext'],
+  ['APPS-CONF-018', 'secret write failure makes the lifecycle operation fail without starting the App workflow'],
+  ['APPS-CONF-019', 'uninstall makes all installation secrets unavailable before workflow completion'],
+  ['APPS-CONF-020', 'secret ciphertext cannot be copied to another installation or resolved under another App code'],
+  ['APPS-CONF-021', 'configuration and error payloads never reflect submitted secret names and values unsafely'],
+] as const);

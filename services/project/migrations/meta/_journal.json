@@ -50,6 +50,13 @@
       "when": 1785009217744,
       "tag": "0006_tired_centennial",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785079711097,
+      "tag": "0007_heavy_mockingbird",
+      "breakpoints": true
     }
   ]
 }

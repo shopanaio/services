@@ -1,0 +1,25 @@
+import { definePendingContractSuite } from './contract-case';
+
+definePendingContractSuite('Notifications Admin API - RBAC, isolation, and audit', [
+  ['NTF-SEC-001', 'platform authentication is required for notificationsQuery and notificationsMutation'],
+  ['NTF-SEC-002', 'notification read permission allows definitions, settings, templates, recipients, and webhook queries'],
+  ['NTF-SEC-003', 'notification write permission is required for settings, templates, recipients, tests, and webhooks'],
+  ['NTF-SEC-004', 'secret reveal requires the approved higher-privilege Admin action'],
+  ['NTF-SEC-005', 'member without Notifications permission cannot read configuration or execute mutations'],
+  ['NTF-SEC-006', 'authorization uses trusted Admin subject, organization, and store domain'],
+  ['NTF-SEC-007', 'client headers cannot substitute store, organization, actor, request, or recipient scope'],
+  ['NTF-SEC-008', 'customer and application-user credentials cannot authorize Notifications Admin GraphQL'],
+  ['NTF-SEC-009', 'definition settings and channel settings are isolated by store'],
+  ['NTF-SEC-010', 'template revisions and active pointers are isolated by store'],
+  ['NTF-SEC-011', 'staff recipients and event assignments are isolated by store'],
+  ['NTF-SEC-012', 'webhooks and signing secret versions are isolated by store'],
+  ['NTF-SEC-013', 'delivery and idempotency state are isolated by organization and store'],
+  ['NTF-SEC-014', 'mixed local and foreign IDs in one request cannot prime a cross-store DataLoader result'],
+  ['NTF-SEC-015', 'authorization denial creates no persistence, workflow, delivery, or audit side effect'],
+  ['NTF-AUD-001', 'every successful administrative write records actor, action, entity, store, and timestamp'],
+  ['NTF-AUD-002', 'audit persistence participates in the mutation transaction'],
+  ['NTF-AUD-003', 'audit failure makes the administrative mutation fail closed without state change'],
+  ['NTF-AUD-004', 'audit payloads are action-specific and never copy raw GraphQL variables'],
+  ['NTF-AUD-005', 'audit records exclude recipient email, phone, rendered body, webhook secret, and provider credentials'],
+  ['NTF-AUD-006', 'request IDs correlate mutation, workflow, and audit without exposing idempotency secrets'],
+] as const);

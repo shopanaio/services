@@ -1,0 +1,26 @@
+import { definePendingContractSuite } from './contract-case';
+
+definePendingContractSuite('Project Settings Admin API - brand and media', [
+  ['PRJ-BRAND-001', 'brand update persists three optional media references, colors, copy, and social links'],
+  ['PRJ-BRAND-002', 'brand query returns documented colors and empty assets when no row exists'],
+  ['PRJ-BRAND-003', 'primary and secondary colors require exact six-digit hexadecimal values'],
+  ['PRJ-BRAND-004', 'slogan and short description are trimmed, nullable, and length-bounded'],
+  ['PRJ-BRAND-005', 'social platform code is normalized and restricted to the supported safe format'],
+  ['PRJ-BRAND-006', 'social links accept only valid HTTP or HTTPS URLs'],
+  ['PRJ-BRAND-007', 'duplicate social platform entries are rejected without replacing prior links'],
+  ['PRJ-BRAND-008', 'social link list enforces its maximum and preserves submitted order'],
+  ['PRJ-BRAND-009', 'brand media fields accept only File global IDs'],
+  ['PRJ-BRAND-010', 'malformed or type-confused media ID maps to the exact brand field'],
+  ['PRJ-BRAND-011', 'valid active Media file is linked to the store with the correct field role'],
+  ['PRJ-BRAND-012', 'missing Media file returns MEDIA_FILE_NOT_FOUND and restores previous brand state'],
+  ['PRJ-BRAND-013', 'inactive Media file returns MEDIA_FILE_INACTIVE and restores previous brand state'],
+  ['PRJ-BRAND-014', 'replacing a logo links the new file before unlinking the old file'],
+  ['PRJ-BRAND-015', 'clearing a logo removes its Media reference without affecting other brand files'],
+  ['PRJ-BRAND-016', 'unchanged media reference is not linked or unlinked redundantly'],
+  ['PRJ-BRAND-017', 'Media link failure compensates database brand and all earlier links'],
+  ['PRJ-BRAND-018', 'Media unlink failure restores previous database and reference state'],
+  ['PRJ-BRAND-019', 'foreign-store Media ownership cannot be attached through a valid File ID'],
+  ['PRJ-BRAND-020', 'brand update in Store A never changes Store B Media back-references'],
+  ['PRJ-BRAND-021', 'brand errors and telemetry contain IDs and safe codes but no storage credentials'],
+  ['PRJ-BRAND-022', 'brand File federation references resolve consistently after update and compensation'],
+] as const);

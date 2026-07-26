@@ -39,9 +39,6 @@ type StoreQuery {
 
   """Get the current store from context"""
   currentStore: Store
-
-  """Get all API keys for the current store"""
-  apiKeys: [ApiKey!]!
 }
 
 """Mutations for store management"""
@@ -70,12 +67,4 @@ type StoreMutation {
   localeDelete(input: LocaleDeleteInput!): LocaleDeletePayload!
   """Set the default locale for the store"""
   localeSetDefault(input: LocaleSetDefaultInput!): LocaleUpdatePayload!
-
-  # API Key mutations
-  """Create a new API key for programmatic access"""
-  apiKeyCreate(input: ApiKeyCreateInput!): ApiKeyCreatePayload!
-  """Revoke an API key (soft delete)"""
-  apiKeyRevoke(input: ApiKeyRevokeInput!): ApiKeyActionPayload!
-  """Permanently delete an API key"""
-  apiKeyDelete(input: ApiKeyDeleteInput!): ApiKeyDeletePayload!
 }

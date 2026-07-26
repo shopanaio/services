@@ -1,0 +1,26 @@
+import { definePendingContractSuite } from './contract-case';
+
+definePendingContractSuite('Notifications Admin API - templates', [
+  ['NTF-TPL-001', 'template query returns the effective template for exact key, channel, and locale'],
+  ['NTF-TPL-002', 'effective template identifies bundled versus store revision source accurately'],
+  ['NTF-TPL-003', 'template locale fallback follows the store default and definition source contract'],
+  ['NTF-TPL-004', 'updateTemplate creates an immutable revision and activates it atomically'],
+  ['NTF-TPL-005', 'first template override requires expectedVersion zero'],
+  ['NTF-TPL-006', 'successful template update increments pointerVersion and revision'],
+  ['NTF-TPL-007', 'stale template expectedVersion returns VERSION_CONFLICT and preserves the active revision'],
+  ['NTF-TPL-008', 'parallel template updates with one pointer version produce exactly one active revision'],
+  ['NTF-TPL-009', 'failed activation cannot leave an invalid revision effective'],
+  ['NTF-TPL-010', 'EMAIL template supports subject, HTML body, and optional plain-text body'],
+  ['NTF-TPL-011', 'SMS template supports body and does not acquire email-only subject behavior'],
+  ['NTF-TPL-012', 'WEBHOOK channel rejects template update with CHANNEL_DOES_NOT_SUPPORT_TEMPLATES'],
+  ['NTF-TPL-013', 'unknown definition or disallowed channel cannot create a revision'],
+  ['NTF-TPL-014', 'unknown template variable returns INVALID_TEMPLATE with the precise source field'],
+  ['NTF-TPL-015', 'malformed Handlebars syntax returns INVALID_TEMPLATE without changing the active pointer'],
+  ['NTF-TPL-016', 'unsupported helpers, unsafe paths, or excessive nesting are rejected'],
+  ['NTF-TPL-017', 'required template variables are validated against the registered definition contract'],
+  ['NTF-TPL-018', 'equivalent source update produces a traceable new revision without overwriting history'],
+  ['NTF-TPL-019', 'template override in Store A does not affect Store B effective template'],
+  ['NTF-TPL-020', 'template response and audit expose revision metadata but not rendered recipient PII'],
+  ['NTF-TPL-021', 'successful update writes one safe template.updated audit record'],
+  ['NTF-TPL-022', 'failed validation writes no active revision or success audit record'],
+] as const);

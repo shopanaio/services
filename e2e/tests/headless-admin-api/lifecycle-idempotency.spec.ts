@@ -1,0 +1,27 @@
+import { definePendingContractSuite } from './contract-case';
+
+definePendingContractSuite('Headless Admin API - lifecycle and idempotency', [
+  ['HDL-LIFE-001', 'ACTIVE connection accepts valid public and private Storefront credentials'],
+  ['HDL-LIFE-002', 'headlessStorefrontSuspend changes ACTIVE connection to SUSPENDED'],
+  ['HDL-LIFE-003', 'SUSPENDED connection credentials are rejected without being physically deleted'],
+  ['HDL-LIFE-004', 'headlessStorefrontResume changes SUSPENDED connection back to ACTIVE'],
+  ['HDL-LIFE-005', 'resume restores existing non-revoked credentials and current policy only'],
+  ['HDL-LIFE-006', 'invalid suspend or resume transition returns userErrors without changing state'],
+  ['HDL-LIFE-007', 'headlessStorefrontDisconnect changes connection to DISCONNECTED and revokes all credentials atomically'],
+  ['HDL-LIFE-008', 'DISCONNECTED connection cannot be resumed, updated, or receive new credentials'],
+  ['HDL-LIFE-009', 'disconnect preserves connection, credential, policy, and audit history'],
+  ['HDL-LIFE-010', 'suspended generic Headless installation blocks every owned connection'],
+  ['HDL-LIFE-011', 'resumed installation restores only ACTIVE Headless connections'],
+  ['HDL-LIFE-012', 'Headless App uninstall controlled-disconnects connections and revokes their credentials'],
+  ['HDL-LIFE-013', 'failed operation on one connection never changes another connection lifecycle'],
+  ['HDL-IDEM-001', 'duplicate connection create returns the original connection with duplicate true'],
+  ['HDL-IDEM-002', 'duplicate connection create creates no additional policy or credential rows'],
+  ['HDL-IDEM-003', 'duplicate connection create never reveals the initial private plaintext again'],
+  ['HDL-IDEM-004', 'duplicate connection create preserves repeat-readable public token recovery'],
+  ['HDL-IDEM-005', 'duplicate private credential create does not create another credential or re-reveal plaintext'],
+  ['HDL-IDEM-006', 'duplicate suspend, resume, disconnect, or revoke is deterministic and non-destructive'],
+  ['HDL-IDEM-007', 'clientMutationId cannot be reused for a different mutation contract'],
+  ['HDL-IDEM-008', 'parallel connection create attempts with one mutation ID produce one complete connection'],
+  ['HDL-IDEM-009', 'parallel disconnect and credential create resolve without an active orphan credential'],
+  ['HDL-IDEM-010', 'idempotency identity is scoped to trusted installation and store'],
+] as const);

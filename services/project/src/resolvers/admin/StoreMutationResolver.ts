@@ -12,9 +12,6 @@ import { StoreCreateScript } from "../../scripts/store/StoreCreateScript.js";
 import { StoreDeleteScript } from "../../scripts/store/StoreDeleteScript.js";
 import { LocaleSetDefaultScript } from "../../scripts/locale/LocaleSetDefaultScript.js";
 import { LocaleCreateScript, LocaleDeleteScript } from "../../scripts/locale/index.js";
-import { ApiKeyCreateScript } from "../../scripts/apiKey/ApiKeyCreateScript.js";
-import { ApiKeyRevokeScript } from "../../scripts/apiKey/ApiKeyRevokeScript.js";
-import { ApiKeyDeleteScript } from "../../scripts/apiKey/ApiKeyDeleteScript.js";
 import type {
   StoreUpdateOperation,
   StoreUpdateSagaInput,
@@ -46,9 +43,6 @@ import type {
   LocaleSetDefaultInput,
   LocaleCreateInput,
   LocaleDeleteInput,
-  ApiKeyCreateInput,
-  ApiKeyRevokeInput,
-  ApiKeyDeleteInput,
   UnitSystem as ApiUnitSystem,
 } from "../../api/graphql-admin/generated/types.js";
 import {
@@ -67,9 +61,6 @@ import {
   LocaleSetDefaultInputSchema,
   LocaleCreateInputSchema,
   LocaleDeleteInputSchema,
-  ApiKeyCreateInputSchema,
-  ApiKeyRevokeInputSchema,
-  ApiKeyDeleteInputSchema,
 } from "../../api/graphql-admin/generated/schemas.js";
 
 const automaticFulfillmentModeMap: Record<
@@ -612,52 +603,6 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
     return {
       success: result.success,
-      userErrors: result.userErrors,
-    };
-  }
-
-  // ==================== API Key Mutations ====================
-
-  @ZodResolver(ApiKeyCreateInputSchema())
-  async apiKeyCreate(args: { input: ApiKeyCreateInput }) {
-    const store = await this.getCurrentStore();
-    const result = await this.$ctx.kernel.runScript(ApiKeyCreateScript, {
-      storeId: store.id,
-      name: args.input.name,
-      createdById: this.$ctx.user!.id,
-      dueDate: args.input.dueDate ? new Date(args.input.dueDate) : undefined,
-    });
-
-    return {
-      apiKey: result.apiKey ?? null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  @ZodResolver(ApiKeyRevokeInputSchema())
-  async apiKeyRevoke(args: { input: ApiKeyRevokeInput }) {
-    const id = decodeGlobalIdByType(args.input.id, GlobalIdEntity.ApiKey);
-    const result = await this.$ctx.kernel.runScript(ApiKeyRevokeScript, {
-      id,
-    });
-
-    return {
-      success: result.success,
-      userErrors: result.userErrors,
-    };
-  }
-
-  @ZodResolver(ApiKeyDeleteInputSchema())
-  async apiKeyDelete(args: { input: ApiKeyDeleteInput }) {
-    const id = decodeGlobalIdByType(args.input.id, GlobalIdEntity.ApiKey);
-    const result = await this.$ctx.kernel.runScript(ApiKeyDeleteScript, {
-      id,
-    });
-
-    return {
-      deletedApiKeyId: result.deletedApiKeyId
-        ? encodeGlobalIdByType(result.deletedApiKeyId, GlobalIdEntity.ApiKey)
-        : null,
       userErrors: result.userErrors,
     };
   }

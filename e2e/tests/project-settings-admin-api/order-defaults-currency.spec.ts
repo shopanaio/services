@@ -1,0 +1,28 @@
+import { definePendingContractSuite } from './contract-case';
+
+definePendingContractSuite('Project Settings Admin API - order, defaults, and currency settings', [
+  ['PRJ-ORDER-001', 'order processing update persists prefix, suffix, confirmation, fulfillment, and archive behavior'],
+  ['PRJ-ORDER-002', 'order prefix and suffix enforce supported lengths and reject control characters'],
+  ['PRJ-ORDER-003', 'nullable order suffix can be cleared without changing the prefix'],
+  ['PRJ-ORDER-004', 'automatic fulfillment enum maps exactly to durable domain values'],
+  ['PRJ-ORDER-005', 'order processing defaults are stable when no settings row exists'],
+  ['PRJ-ORDER-006', 'order update affects subsequent order processing without mutating historical orders'],
+  ['PRJ-DEF-001', 'defaults update persists unit system, weight unit, dimension unit, and timezone together'],
+  ['PRJ-DEF-002', 'metric and imperial unit systems accept only schema-declared unit enums'],
+  ['PRJ-DEF-003', 'timezone requires a valid bounded IANA timezone identifier'],
+  ['PRJ-DEF-004', 'invalid timezone or unit maps to its nested defaults field'],
+  ['PRJ-DEF-005', 'default changes are visible to newly created domain data at the documented boundary'],
+  ['PRJ-DEF-006', 'default changes do not rewrite existing product dimensions, weights, or timestamps'],
+  ['PRJ-CUR-001', 'currency settings update persists store currency and all formatting properties atomically'],
+  ['PRJ-CUR-002', 'currency display, sign, grouping, sign display, rounding, and trailing-zero enums round-trip exactly'],
+  ['PRJ-CUR-003', 'minimum and maximum fraction digits accept supported integer boundaries'],
+  ['PRJ-CUR-004', 'minimum fraction digits cannot exceed maximum fraction digits'],
+  ['PRJ-CUR-005', 'negative, non-integer, or oversized fraction digits are rejected'],
+  ['PRJ-CUR-006', 'currency settings query returns stable defaults when no formatting row exists'],
+  ['PRJ-CUR-007', 'currency update changes the canonical store currency used by downstream price display'],
+  ['PRJ-CUR-008', 'currency update does not convert or rewrite existing monetary amounts'],
+  ['PRJ-CUR-009', 'failed formatting validation changes neither currencyCode nor formatting row'],
+  ['PRJ-CUR-010', 'order, defaults, and currency sections can be updated in one revisioned mutation'],
+  ['PRJ-CUR-011', 'failure in one requested section is represented by its own operation result'],
+  ['PRJ-CUR-012', 'all regional settings remain isolated between stores and organizations'],
+] as const);

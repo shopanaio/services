@@ -1,0 +1,21 @@
+mutation AppsAppInstall($input: AppInstallInput!) {
+  appsMutation {
+    appInstall(input: $input) {
+      installation {
+        id
+        appCode
+        status
+      }
+      operation {
+        id
+        status
+      }
+      duplicate
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

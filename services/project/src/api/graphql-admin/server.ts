@@ -84,7 +84,6 @@ export async function startServer(serverConfig: ServerConfig) {
     "project.graphql",
     "storeSettings.graphql",
     "locale.graphql",
-    "apiKey.graphql",
   ];
 
   const modules = schemaFiles.map((file) => ({

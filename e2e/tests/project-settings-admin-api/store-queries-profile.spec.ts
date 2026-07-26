@@ -1,0 +1,26 @@
+import { definePendingContractSuite } from './contract-case';
+
+definePendingContractSuite('Project Settings Admin API - store queries and profile', [
+  ['PRJ-QUERY-001', 'stores accepts an Organization global ID and returns only non-deleted owned stores'],
+  ['PRJ-QUERY-002', 'organization-level store.profile read access returns every store in the organization'],
+  ['PRJ-QUERY-003', 'selected-store read access without organization access returns only that selected store'],
+  ['PRJ-QUERY-004', 'unauthenticated or unauthorized stores query returns an empty list without existence disclosure'],
+  ['PRJ-QUERY-005', 'malformed or type-confused organization global ID fails safely before repository access'],
+  ['PRJ-QUERY-006', 'organization selector cannot expose stores from an organization absent from trusted Admin context'],
+  ['PRJ-QUERY-007', 'currentStore resolves the store selected by the verified Admin context'],
+  ['PRJ-QUERY-008', 'currentStore returns null when no trusted store is selected'],
+  ['PRJ-QUERY-009', 'client-supplied store name header cannot replace the trusted Admin store claim'],
+  ['PRJ-QUERY-010', 'currentStore returns null for a deleted or unknown trusted store name'],
+  ['PRJ-QUERY-011', 'Store global ID uses the expected Store entity type'],
+  ['PRJ-QUERY-012', 'Store exposes organization federation reference and store-scoped membership reference'],
+  ['PRJ-QUERY-013', 'Store profile exposes slug, display name, status, timezone, email, and revision'],
+  ['PRJ-QUERY-014', 'Store locales contains only active language codes'],
+  ['PRJ-QUERY-015', 'Store languageSettings contains active and inactive configured languages'],
+  ['PRJ-QUERY-016', 'language display names are deterministic and fall back safely to the locale code'],
+  ['PRJ-QUERY-017', 'Store defaults project canonical unit, weight, dimension, and timezone values'],
+  ['PRJ-QUERY-018', 'Store settings return documented defaults when optional settings rows do not exist'],
+  ['PRJ-QUERY-019', 'Store brand returns File federation references with correctly typed global IDs'],
+  ['PRJ-QUERY-020', 'Store phone numbers and social links preserve persisted deterministic order'],
+  ['PRJ-QUERY-021', 'Store TypePolicy returns null rather than fields when store.profile read is denied'],
+  ['PRJ-QUERY-022', 'batched profile and settings resolution never mixes data from different stores'],
+] as const);

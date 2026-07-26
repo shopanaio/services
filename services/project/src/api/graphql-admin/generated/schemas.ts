@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ApiKeyCreateInput, ApiKeyDeleteInput, ApiKeyRevokeInput, AutomaticFulfillmentMode, CurrencyCode, CurrencyDisplay, CurrencyGrouping, CurrencyRoundingMode, CurrencySign, CurrencySignDisplay, CurrencyTrailingZeroDisplay, DimensionUnit, LocaleCode, LocaleCreateInput, LocaleDeleteInput, LocaleSetDefaultInput, StoreAddressUpdateInput, StoreBrandUpdateInput, StoreContactDetailsUpdateInput, StoreCreateInput, StoreCurrencySettingsUpdateInput, StoreDefaultsUpdateInput, StoreDeleteInput, StoreOrderProcessingUpdateInput, StoreSocialLinkInput, StoreStatus, StoreUpdateInput, StoreUpdateOperationType, UnitSystem, WeightUnit } from './types.js'
+import { AutomaticFulfillmentMode, CurrencyCode, CurrencyDisplay, CurrencyGrouping, CurrencyRoundingMode, CurrencySign, CurrencySignDisplay, CurrencyTrailingZeroDisplay, DimensionUnit, LocaleCode, LocaleCreateInput, LocaleDeleteInput, LocaleSetDefaultInput, StoreAddressUpdateInput, StoreBrandUpdateInput, StoreContactDetailsUpdateInput, StoreCreateInput, StoreCurrencySettingsUpdateInput, StoreDefaultsUpdateInput, StoreDeleteInput, StoreOrderProcessingUpdateInput, StoreSocialLinkInput, StoreStatus, StoreUpdateInput, StoreUpdateOperationType, UnitSystem, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -38,25 +38,6 @@ export const StoreUpdateOperationTypeSchema = z.nativeEnum(StoreUpdateOperationT
 export const UnitSystemSchema = z.nativeEnum(UnitSystem);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
-
-export function ApiKeyCreateInputSchema(): z.ZodObject<Properties<ApiKeyCreateInput>> {
-  return z.object({
-    dueDate: z.string().nullish(),
-    name: z.string()
-  })
-}
-
-export function ApiKeyDeleteInputSchema(): z.ZodObject<Properties<ApiKeyDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
-export function ApiKeyRevokeInputSchema(): z.ZodObject<Properties<ApiKeyRevokeInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
 
 export function LocaleCreateInputSchema(): z.ZodObject<Properties<LocaleCreateInput>> {
   return z.object({

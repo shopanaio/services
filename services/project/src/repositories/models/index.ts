@@ -17,8 +17,5 @@ export * from "./storeCurrencyFormatting.js";
 // Commerce contexts
 export * from "./market.js";
 
-// API Key
-export * from "./apiKey.js";
-
 // Integrations
 export * from "./integration.js";

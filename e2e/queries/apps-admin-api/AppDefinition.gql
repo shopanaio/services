@@ -1,0 +1,37 @@
+query AppsAppDefinition($code: String!) {
+  appsQuery {
+    appDefinition(code: $code) {
+      code
+      version
+      displayName
+      description
+      runtimeStatus
+      runtimeHealth {
+        status
+        message
+      }
+      permissions {
+        scope
+        granted
+      }
+      capabilities {
+        key
+        assignmentMode
+        operations {
+          name
+          action
+        }
+      }
+      graphql {
+        admin
+        storefront
+      }
+      installed
+      installation {
+        id
+        appCode
+        status
+      }
+    }
+  }
+}

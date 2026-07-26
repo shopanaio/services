@@ -83,12 +83,4 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
 
     return new StoreResolver(store, this.$ctx);
   }
-
-  /**
-   * Get API keys for the current store.
-   */
-  async apiKeys() {
-    // TODO: Implement API keys query
-    return [];
-  }
 }
