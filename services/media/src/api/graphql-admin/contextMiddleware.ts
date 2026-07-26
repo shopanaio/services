@@ -1,6 +1,7 @@
 import type { FastifyRequest } from "fastify";
 import {
   buildAdminContextMiddleware as buildMiddleware,
+  type AdminContextClaims,
   type ContextStore,
   type ContextUser,
 } from "@shopana/shared-context";
@@ -11,6 +12,7 @@ declare module "fastify" {
   interface FastifyRequest {
     store?: ContextStore;
     user: ContextUser;
+    adminContext?: AdminContextClaims;
   }
 }
 

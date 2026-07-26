@@ -1,15 +1,9 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { ContextUser } from "../../context/index.js";
-import { Kernel } from "../../kernel/Kernel.js";
-
-interface IamCurrentUserResult {
-  user: {
-    id: string;
-    name: string;
-    email?: string;
-  } | null;
-  userErrors: Array<{ code: string; message: string }>;
-}
+import {
+  buildAdminContextMiddleware as buildMiddleware,
+  type AdminContextClaims,
+  type ContextUser,
+} from "@shopana/shared-context";
 
 export class ForbiddenError extends Error {
   constructor(message: string = "Access denied") {
@@ -21,7 +15,7 @@ export class ForbiddenError extends Error {
 declare module "fastify" {
   interface FastifyRequest {
     user: ContextUser;
-    accessToken?: string;
+    adminContext?: AdminContextClaims;
     /** Store slug from X-Store-Name header */
     storeName?: string;
   }
@@ -44,51 +38,23 @@ function shouldSkipAuth(request: FastifyRequest): boolean {
 
 /**
  * Build admin context middleware.
- * Authenticates user via IAM and stores storeName from header.
- * Store loading is done lazily in currentStore query.
+ * Verifies the gateway-issued JWT and derives storeName from trusted claims.
  */
 export function buildAdminContextMiddleware() {
+  const middleware = buildMiddleware(undefined, {
+    serviceName: "PROJECT",
+    requireStore: false,
+  });
+
   return async function adminContextMiddleware(
     request: FastifyRequest,
     reply: FastifyReply
   ) {
-    if (shouldSkipAuth(request)) {
-      return;
-    }
+    if (shouldSkipAuth(request)) return;
 
-    const kernel = Kernel.getInstance();
+    await middleware(request, reply);
+    if (reply.sent) return;
 
-    // Store name from header (for lazy loading in currentStore query)
-    request.storeName = request.headers["x-store-name"] as string | undefined;
-
-    // Extract access token from Authorization header
-    const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return reply.status(401).send({
-        data: null,
-        errors: [{ message: "Missing or invalid Authorization header" }],
-      });
-    }
-
-    const accessToken = authHeader.slice(7); // Remove "Bearer " prefix
-
-    // Authenticate user via IAM
-    const userResult = (await kernel
-      .getServices()
-      .broker.call("iam.getCurrentUser", {
-        accessToken,
-      })) as IamCurrentUserResult;
-
-    if (!userResult.user) {
-      return reply.status(401).send({
-        data: null,
-        errors: [
-          { message: userResult.userErrors[0]?.message || "Unauthorized" },
-        ],
-      });
-    }
-
-    request.user = userResult.user;
-    request.accessToken = accessToken;
+    request.storeName = request.adminContext?.store?.name;
   };
 }

@@ -2,18 +2,13 @@ import type {
   AuthProvider as IAuthProvider,
   AuthorizeParams,
 } from "@shopana/shared-kernel";
+import { authorizeAdminContext } from "@shopana/shared-context";
 import {
   ServiceLinkedResourceAuthorizationError,
   type ProtectedResourceAuthorizeParams,
-  validateAuthorizeInput,
 } from "@shopana/rbac";
 import type { IamKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
-import {
-  ORG_DOMAIN,
-  type Domain,
-  type Resource,
-} from "../casbin/CasbinService.js";
 import {
   IAM_SERVICE_LINKED_RESOURCE_KIND,
   matchesServiceLinkedOwner,
@@ -22,7 +17,7 @@ import {
 /**
  * Authorization provider for IAM service.
  *
- * Implements AuthProvider interface with organization name resolution via NameResolver.
+ * Implements AuthProvider using the gateway-issued admin context.
  * Used by BaseScript and IAMType via composition (this.authProvider).
  * Gets kernel services from context automatically.
  */
@@ -41,77 +36,20 @@ export class AuthProvider implements IAuthProvider {
   }
 
   /**
-   * Authorization check with organization name resolution.
-   *
-   * If organizationName is provided (instead of organizationId),
-   * it will be resolved to organizationId via NameResolver cache.
-   *
-   * Validates domain, resource, and action against @shopana/rbac definitions.
+   * Authorization check bound to the gateway JWT subject and organization.
    */
   async authorize(params: AuthorizeParams): Promise<boolean> {
-    // Resolve organizationName to organizationId if needed
-    let { organizationId, organizationName } = params;
-    if (organizationName) {
-      const resolved = await this.resolveOrganizationId(organizationName);
-      if (!resolved) {
-        return false;
-      }
-      organizationId = resolved;
-    }
-
-    if (!organizationId) {
-      return false;
-    }
-
     const domain = params.domain ?? "org";
-    // Validate authorization input against @shopana/rbac definitions
-    // Must happen BEFORE owner bypass to reject invalid domains
-    const validation = validateAuthorizeInput({
-      domain,
+    const subject = params.subject || this.subject;
+    if (!subject) return false;
+
+    return authorizeAdminContext(getContext().adminContext, {
+      subject,
+      organizationId: params.organizationId,
+      organizationName: params.organizationName,
       resource: params.resource,
       action: params.action,
-    });
-
-    if (!validation.success) {
-      console.error("[AuthProvider] Invalid authorization request:", validation.errors);
-      return false;
-    }
-
-    const subject = params.subject || this.subject;
-    if (!subject) {
-      return false;
-    }
-
-    // Check if user is site admin (bypasses RBAC, but not service-linked mutability)
-    const isAdmin = await this.services.repository.user.isAdmin(subject);
-    const isOwner = isAdmin
-      ? false
-      : await this.services.repository.organization.isOwner(
-          organizationId,
-          subject
-        );
-    const baseAllowed =
-      isAdmin ||
-      isOwner ||
-      (await this.services.repository.casbin.enforce({
-        organizationId,
-        subject,
-        domain: domain as Domain,
-        resource: params.resource as Resource,
-        action: params.action,
-      }));
-    if (!baseAllowed) return false;
-
-    return true;
-  }
-
-  /**
-   * Resolve organization name to ID using cached NameResolver.
-   */
-  async resolveOrganizationId(name: string): Promise<string | null> {
-    return this.services.nameResolver.resolveOrganizationId(name, async (n) => {
-      const org = await this.services.repository.organization.findByName(n);
-      return org?.id ?? null;
+      domain,
     });
   }
 

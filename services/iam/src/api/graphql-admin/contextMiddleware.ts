@@ -1,4 +1,8 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import {
+  buildAdminContextMiddleware as buildMiddleware,
+  type AdminContextClaims,
+} from "@shopana/shared-context";
 import type { User } from "../../repositories/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 
@@ -9,6 +13,7 @@ declare module "fastify" {
       data: User | null;
       sessionId: string | null;
     };
+    adminContext?: AdminContextClaims;
   }
 }
 
@@ -24,15 +29,34 @@ function extractBearerToken(authHeader: string | undefined): string | null {
 
 /**
  * Build admin context middleware.
- * Extracts session token from Authorization header and validates session via Better Auth.
+ * Uses gateway-issued claims for authenticated admin requests while preserving
+ * direct bearer handling for public sign-in, sign-up and token refresh flows.
  */
 export function buildAdminContextMiddleware() {
+  const middleware = buildMiddleware(undefined, {
+    serviceName: "IAM",
+    requireStore: false,
+    requireAuth: false,
+  });
+
   return async function adminContextMiddleware(
     request: FastifyRequest,
-    _reply: FastifyReply
+    reply: FastifyReply
   ) {
     const kernel = Kernel.getInstance();
     request.currentUser = { id: "", data: null, sessionId: null };
+
+    await middleware(request, reply);
+    if (reply.sent) return;
+
+    if (request.adminContext) {
+      request.currentUser = {
+        id: request.adminContext.user.id,
+        data: null,
+        sessionId: request.adminContext.sessionId,
+      };
+      return;
+    }
 
     const token = extractBearerToken(request.headers.authorization);
     // Validate user session

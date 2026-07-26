@@ -168,6 +168,7 @@ export async function startServer(serverConfig: ServerConfig) {
           kernel: kernel!,
           store: request.store,
           user: request.user,
+          adminContext: request.adminContext,
           loaders: new Loader(kernel!.repository),
         });
 

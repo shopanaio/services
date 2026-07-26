@@ -1,4 +1,8 @@
-import type { ContextStore, ContextUser } from "@shopana/shared-context";
+import type {
+  AdminContextClaims,
+  ContextStore,
+  ContextUser,
+} from "@shopana/shared-context";
 import type { ServiceBroker } from "@shopana/shared-kernel";
 import type { AppInstallationStore } from "../control-plane/AppInstallationStore.js";
 import type { AppLifecycleService } from "../control-plane/AppLifecycleService.js";
@@ -16,6 +20,7 @@ export interface ServiceContextOptions {
   loaders: Loader;
   store?: ContextStore;
   user?: ContextUser;
+  adminContext?: AdminContextClaims;
 }
 
 /**
@@ -29,6 +34,7 @@ export class ServiceContext {
   readonly lifecycle: AppLifecycleService;
   readonly runtimes: AppRuntimeRegistry;
   readonly loaders: Loader;
+  readonly adminContext?: AdminContextClaims;
 
   private readonly currentStore?: ContextStore;
   private readonly currentUser?: ContextUser;
@@ -41,6 +47,7 @@ export class ServiceContext {
     this.lifecycle = options.lifecycle;
     this.runtimes = options.runtimes;
     this.loaders = options.loaders;
+    this.adminContext = options.adminContext;
     this.currentStore = options.store;
     this.currentUser = options.user;
   }

@@ -1,3 +1,4 @@
+import { authorizeAdminContext } from "@shopana/shared-context";
 import {
   throwIfBrokerAuthorizeDenied,
   type AuthProvider as IAuthProvider,
@@ -12,7 +13,7 @@ import { getContext } from "../context/index.js";
  * Authorization provider for media service.
  *
  * Implements AuthProvider interface.
- * Delegates authorization to IAM service via broker.
+ * Validates authorization against gateway-issued admin claims.
  * Used by MediaType via composition (this.authProvider).
  * Gets kernel services from context automatically.
  */
@@ -32,7 +33,7 @@ export class AuthProvider implements IAuthProvider {
   /**
    * Authorization check.
    *
-   * Delegates to IAM service via broker.
+   * Uses the verified admin context stored in the request context.
    * Uses store context from ServiceContext for domain resolution.
    */
   async authorize(params: AuthorizeParams): Promise<boolean> {
@@ -47,18 +48,14 @@ export class AuthProvider implements IAuthProvider {
     const domain =
       params.domain ?? (ctx.hasStore ? `store:${ctx.store.id}` : "org");
 
-    // Delegate to IAM service
-    const result = (await this.services.broker.call("iam.authorize", {
+    return authorizeAdminContext(ctx.adminContext, {
       subject,
       organizationId: params.organizationId,
       organizationName: params.organizationName,
       resource: params.resource,
       action: params.action,
       domain,
-    })) as BrokerAuthorizeResult;
-
-    throwIfBrokerAuthorizeDenied(result);
-    return result.allowed;
+    });
   }
 
   async authorizeProtectedResource(

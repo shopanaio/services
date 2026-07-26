@@ -2,10 +2,7 @@ import {
   createAuthorizationLoader,
   type AuthorizationLoader,
 } from "./AuthorizationLoader.js";
-
-interface Broker {
-  call(action: string, params: unknown): Promise<unknown>;
-}
+import type { AdminContextClaims } from "@shopana/shared-context";
 
 /**
  * Aggregates all DataLoaders for the project service.
@@ -15,7 +12,7 @@ export class Loader {
   /** Authorization loader for batched permission checks */
   public readonly authorization: AuthorizationLoader;
 
-  constructor(broker: Broker) {
-    this.authorization = createAuthorizationLoader(broker);
+  constructor(adminContext?: AdminContextClaims) {
+    this.authorization = createAuthorizationLoader(adminContext);
   }
 }

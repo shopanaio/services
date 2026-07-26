@@ -1,3 +1,4 @@
+import type { AdminContextClaims } from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { User } from "../repositories/index.js";
 import type { Loader } from "../loaders/Loader.js";
@@ -29,6 +30,8 @@ export interface ServiceContext {
     /** Current session ID (from JWT sid claim) */
     sessionId: string | null;
   } | null;
+  /** Verified authorization claims issued by the Admin Gateway. */
+  adminContext?: AdminContextClaims;
   /** Data loaders for batch loading */
   loaders: Loader;
   /** Request headers for session tracking */

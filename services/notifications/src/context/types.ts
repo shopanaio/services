@@ -1,4 +1,8 @@
-import type { ContextStore, ContextUser } from "@shopana/shared-context";
+import type {
+  AdminContextClaims,
+  ContextStore,
+  ContextUser,
+} from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
 
@@ -8,6 +12,7 @@ export interface ServiceContextOptions {
   loaders: Loader;
   store?: ContextStore;
   user?: ContextUser;
+  adminContext?: AdminContextClaims;
   locale?: string;
 }
 
@@ -16,6 +21,7 @@ export class ServiceContext {
   readonly kernel: Kernel;
   readonly loaders: Loader;
   readonly locale?: string;
+  readonly adminContext?: AdminContextClaims;
   private readonly storeValue?: ContextStore;
   private readonly userValue?: ContextUser;
 
@@ -23,6 +29,7 @@ export class ServiceContext {
     this.requestId = options.requestId;
     this.kernel = options.kernel;
     this.loaders = options.loaders;
+    this.adminContext = options.adminContext;
     this.storeValue = options.store;
     this.userValue = options.user;
     this.locale = options.locale;

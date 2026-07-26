@@ -2,6 +2,7 @@ import {
   decodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
+import { authorizeAdminContext } from "@shopana/shared-context";
 import { BaseResolver } from "./BaseResolver.js";
 import { StoreResolver } from "./StoreResolver.js";
 
@@ -26,30 +27,38 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
     // User must be authenticated
     if (!this.$ctx.user?.id) return [];
 
-    // Get all stores in the organization
+    const adminContext = this.$ctx.adminContext;
+    const selectedStore = adminContext?.store;
+    const subject = this.$ctx.user.id;
+    const hasOrganizationAccess = authorizeAdminContext(adminContext, {
+      subject,
+      organizationId,
+      domain: "org",
+      resource: "store.profile",
+      action: "read",
+    });
+    const hasSelectedStoreAccess = selectedStore
+      ? authorizeAdminContext(adminContext, {
+          subject,
+          organizationId,
+          domain: `store:${selectedStore.id}`,
+          resource: "store.profile",
+          action: "read",
+        })
+      : false;
+
+    if (!hasOrganizationAccess && !hasSelectedStoreAccess) return [];
+
     const allStores = await this.$ctx.kernel
       .getServices()
       .repository.store.findByOrganization(organizationId);
-
     if (allStores.length === 0) return [];
 
-    // Build batch enforce requests
-    const requests = allStores.map((store) => ({
-      userId: this.$ctx.user!.id,
-      domain: `store:${store.id}`,
-      resource: "store.profile",
-      action: "read",
-    }));
-
-    // Check permissions for all stores at once
-    const { results } = (await this.$ctx.kernel
-      .getServices()
-      .broker.call("iam.batchAuthorize", { organizationId, requests })) as {
-      results: boolean[];
-    };
-
-    // Filter allowed stores
-    const accessibleStores = allStores.filter((_, i) => results[i]);
+    const accessibleStores = hasOrganizationAccess
+      ? allStores
+      : hasSelectedStoreAccess
+        ? allStores.filter((store) => store.id === selectedStore?.id)
+        : [];
 
     if (accessibleStores.length === 0) return [];
 

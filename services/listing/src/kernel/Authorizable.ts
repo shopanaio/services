@@ -1,3 +1,4 @@
+import { authorizeAdminContext } from "@shopana/shared-context";
 import {
   throwIfBrokerAuthorizeDenied,
   type AuthProvider as IAuthProvider,
@@ -27,17 +28,14 @@ export class AuthProvider implements IAuthProvider {
     const domain =
       params.domain ?? (ctx.store?.id ? `store:${ctx.store.id}` : "org");
 
-    const result = (await this.services.broker.call("iam.authorize", {
+    return authorizeAdminContext(ctx.adminContext, {
       subject,
       organizationId: params.organizationId,
       organizationName: params.organizationName,
       resource: params.resource,
       action: params.action,
       domain,
-    })) as BrokerAuthorizeResult;
-
-    throwIfBrokerAuthorizeDenied(result);
-    return result.allowed;
+    });
   }
 
   async authorizeProtectedResource(

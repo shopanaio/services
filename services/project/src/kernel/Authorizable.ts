@@ -1,3 +1,4 @@
+import { authorizeAdminContext } from "@shopana/shared-context";
 import {
   throwIfBrokerAuthorizeDenied,
   type AuthProvider as IAuthProvider,
@@ -19,7 +20,7 @@ export type ProjectAuthorizeParams = AuthorizeParams & {
 /**
  * Authorization provider for project service.
  *
- * Implements AuthProvider interface with store name resolution via NameResolver.
+ * Implements AuthProvider using the gateway-issued admin context.
  * Used by BaseScript and BaseResolver via composition (this.auth).
  * Gets kernel services from context automatically.
  *
@@ -33,7 +34,6 @@ export class AuthProvider implements IAuthProvider {
   }
 
   private get services(): ProjectKernelServices {
-    console.log("Getting services from context");
     return getContext().kernel.getServices();
   }
 
@@ -42,14 +42,11 @@ export class AuthProvider implements IAuthProvider {
    * Uses override if provided, otherwise falls back to current user from context.
    */
   get subject(): string | null {
-    return getContext().user?.id ?? null;
+    return this.overrideUserId ?? getContext().user?.id ?? null;
   }
 
   /**
-   * Authorization check with store name resolution.
-   *
-   * If storeName is provided, it will be resolved to storeId via NameResolver cache.
-   * Authorization is delegated to IAM service.
+   * Authorization check bound to the selected store in the gateway JWT.
    */
   async authorize(params: ProjectAuthorizeParams): Promise<boolean> {
     const subject = params.subject ?? this.subject;
@@ -57,33 +54,25 @@ export class AuthProvider implements IAuthProvider {
       return false;
     }
 
-    // Resolve storeName to storeId if needed
+    const context = getContext();
     let storeId: string | undefined;
 
     if (params.storeName) {
-      const resolved = await this.resolveStoreId(params.storeName);
-      if (!resolved) {
-        // Store not found - deny access
-        return false;
-      }
-      storeId = resolved;
+      if (context.adminContext?.store?.name !== params.storeName) return false;
+      storeId = context.adminContext.store.id;
     }
 
     // Determine domain: explicit > resolved store > default org
     const domain = params.domain ?? (storeId ? `store:${storeId}` : "org");
 
-    // Delegate to IAM service
-    const result = (await this.services.broker.call("iam.authorize", {
+    return authorizeAdminContext(context.adminContext, {
       subject,
       organizationId: params.organizationId,
       organizationName: params.organizationName,
       resource: params.resource,
       action: params.action,
       domain,
-    })) as BrokerAuthorizeResult;
-
-    throwIfBrokerAuthorizeDenied(result);
-    return result.allowed;
+    });
   }
 
   async authorizeProtectedResource(
@@ -95,15 +84,5 @@ export class AuthProvider implements IAuthProvider {
     )) as BrokerAuthorizeResult;
     throwIfBrokerAuthorizeDenied(result);
     return result.allowed;
-  }
-
-  /**
-   * Resolve store name to ID using cached NameResolver.
-   */
-  async resolveStoreId(name: string): Promise<string | null> {
-    return this.services.nameResolver.resolveStoreId(name, async (n) => {
-      const store = await this.services.repository.store.findByName(n);
-      return store?.id ?? null;
-    });
   }
 }

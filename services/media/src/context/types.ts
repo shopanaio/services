@@ -1,4 +1,8 @@
-import type { ContextStore, ContextUser } from "@shopana/shared-context";
+import type {
+  AdminContextClaims,
+  ContextStore,
+  ContextUser,
+} from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
 
@@ -13,6 +17,8 @@ export interface ServiceContextOptions {
   store?: ContextStore;
   /** Authenticated user for admin API */
   user?: ContextUser;
+  /** Verified authorization claims issued by the Admin Gateway */
+  adminContext?: AdminContextClaims;
 }
 
 /**
@@ -26,6 +32,8 @@ export class ServiceContext {
   readonly kernel: Kernel;
   /** DataLoaders for efficient batched data fetching */
   readonly loaders: Loader;
+  /** Verified authorization claims issued by the Admin Gateway */
+  readonly adminContext?: AdminContextClaims;
 
   private _store?: ContextStore;
   private _user?: ContextUser;
@@ -34,6 +42,7 @@ export class ServiceContext {
     this.requestId = options.requestId;
     this.kernel = options.kernel;
     this.loaders = options.loaders;
+    this.adminContext = options.adminContext;
     this._store = options.store;
     this._user = options.user;
   }

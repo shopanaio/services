@@ -80,6 +80,7 @@ export async function startServer(config: { port: number }) {
           loaders: new Loader(kernel.repository, kernel.renderer),
           store: request.store,
           user: request.user,
+          adminContext: request.adminContext,
           locale: request.store?.defaultLocale,
         });
         setContext(context);

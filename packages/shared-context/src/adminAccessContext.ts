@@ -42,6 +42,15 @@ export interface AdminContextClaims extends ResolvedAdminAccessContext {
   readonly schemaVersion: 1;
 }
 
+export interface AdminContextAuthorizeInput {
+  readonly subject?: string;
+  readonly organizationId?: string;
+  readonly organizationName?: string;
+  readonly domain: string;
+  readonly resource: string;
+  readonly action: string;
+}
+
 export class AdminContextVerifier {
   private readonly keys: ReadonlyMap<string, KeyObject>;
   private readonly tolerance: number;
@@ -186,6 +195,42 @@ export function adminContextAllows(
   return context.permissions.some(
     (permission) => permissionKey(permission) === expected,
   );
+}
+
+/**
+ * Authorize an admin operation against gateway-issued claims.
+ *
+ * Besides checking the permission, this binds the operation to the JWT
+ * subject, organization and selected store. Organization-name-only checks
+ * fail closed because the token intentionally carries only the canonical ID.
+ */
+export function authorizeAdminContext(
+  context: AdminContextClaims | undefined,
+  input: AdminContextAuthorizeInput,
+): boolean {
+  if (!context) return false;
+
+  const subject = input.subject ?? context.user.id;
+  if (subject !== context.user.id) return false;
+
+  if (
+    !context.organizationId ||
+    (input.organizationId !== undefined &&
+      input.organizationId !== context.organizationId) ||
+    (input.organizationName !== undefined &&
+      input.organizationId === undefined)
+  ) {
+    return false;
+  }
+
+  if (
+    input.domain !== "org" &&
+    (!context.store || input.domain !== `store:${context.store.id}`)
+  ) {
+    return false;
+  }
+
+  return adminContextAllows(context, input);
 }
 
 export function readAdminPublicKeysFromEnvironment(): Readonly<

@@ -143,7 +143,7 @@ export class StoreUpdateSaga extends BrokerSaga<
     const context = new ServiceContext({
       requestId: `store-update:${DBOS.workflowID ?? input.storeId}`,
       kernel: this.kernel,
-      loaders: new Loader(this.broker),
+      loaders: new Loader(),
       storeName: input.context.storeName,
       locale: input.context.locale,
       user: input.context.userId ? { id: input.context.userId } : undefined,

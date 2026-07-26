@@ -79,6 +79,7 @@ export const adminGraphqlPlugin: FastifyPluginAsync<
         requestId: request.id as string,
         kernel: options.kernel,
         currentUser: request.currentUser,
+        adminContext: request.adminContext,
         loaders: new Loader(options.kernel.repository),
         requestHeaders: {
           userAgent: request.headers["user-agent"],

@@ -119,6 +119,7 @@ export async function startServer(serverConfig: ServerConfig) {
           loaders: new Loader(serverConfig.repository),
           store: request.store,
           user: request.user,
+          adminContext: request.adminContext,
         });
 
         setContext(context);

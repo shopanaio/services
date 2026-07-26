@@ -1,4 +1,8 @@
 import DataLoader from "dataloader";
+import {
+  authorizeAdminContext,
+  type AdminContextClaims,
+} from "@shopana/shared-context";
 
 export interface AuthRequest {
   userId: string;
@@ -8,64 +12,23 @@ export interface AuthRequest {
   domain?: string;
 }
 
-interface BatchAuthorizeResult {
-  results: boolean[];
-}
-
-interface Broker {
-  call(action: string, params: unknown): Promise<unknown>;
-}
-
 /**
- * Creates a DataLoader for batching authorization requests.
- * All authorization checks within the same event loop tick are batched
- * into a single iam.batchAuthorize call.
+ * Creates a DataLoader for request-local authorization checks.
  */
-export function createAuthorizationLoader(broker: Broker) {
+export function createAuthorizationLoader(
+  adminContext?: AdminContextClaims,
+) {
   return new DataLoader<AuthRequest, boolean, string>(
-    async (requests) => {
-      // Group requests by organizationId (batchAuthorize requires same org)
-      const byOrg = new Map<
-        string,
-        { index: number; request: AuthRequest }[]
-      >();
-
-      requests.forEach((request, index) => {
-        const orgRequests = byOrg.get(request.organizationId) ?? [];
-        orgRequests.push({ index, request });
-        byOrg.set(request.organizationId, orgRequests);
-      });
-
-      // Initialize results array
-      const results: boolean[] = new Array(requests.length).fill(false);
-
-      // Process each organization's requests in parallel
-      await Promise.all(
-        Array.from(byOrg.entries()).map(
-          async ([organizationId, orgRequests]) => {
-            const { results: batchResults } = (await broker.call(
-              "iam.batchAuthorize",
-              {
-                organizationId,
-                requests: orgRequests.map(({ request }) => ({
-                  userId: request.userId,
-                  domain: request.domain,
-                  resource: request.resource,
-                  action: request.action,
-                })),
-              }
-            )) as BatchAuthorizeResult;
-
-            // Map results back to original indices
-            orgRequests.forEach(({ index }, i) => {
-              results[index] = batchResults[i] ?? false;
-            });
-          }
-        )
-      );
-
-      return results;
-    },
+    async (requests) =>
+      requests.map((request) =>
+        authorizeAdminContext(adminContext, {
+          subject: request.userId,
+          organizationId: request.organizationId,
+          domain: request.domain ?? "org",
+          resource: request.resource,
+          action: request.action,
+        }),
+      ),
     {
       // Cache key based on all authorization parameters
       cacheKeyFn: (req) =>

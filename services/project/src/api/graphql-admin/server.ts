@@ -141,13 +141,14 @@ export async function startServer(serverConfig: ServerConfig) {
         }
 
         // Create fresh loaders per request for proper batching within request scope
-        const loaders = new Loader(kernel!.getServices().broker);
+        const loaders = new Loader(request.adminContext);
 
         const ctx = new ServiceContext({
           requestId: request.id as string,
           kernel: kernel!,
           storeName: request.storeName,
           user: request.user,
+          adminContext: request.adminContext,
           loaders,
         });
 

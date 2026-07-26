@@ -19,6 +19,8 @@ type RequestIdConfig = Exclude<
   boolean | undefined
 >;
 
+// Network-derived headers such as x-forwarded-for must not be read from
+// client-controlled WebSocket connectionParams.
 const STOREFRONT_WEBSOCKET_HEADERS = new Set([
   "authorization",
   "shopana-storefront-buyer-ip",
@@ -27,7 +29,6 @@ const STOREFRONT_WEBSOCKET_HEADERS = new Set([
   "tracestate",
   "user-agent",
   STOREFRONT_REQUEST_ID_HEADER,
-  "x-forwarded-for",
   "x-shopana-storefront-access-token",
 ]);
 
