@@ -24,6 +24,7 @@ const ALLOWED_SIGNED_QUERY_PARAMETERS = new Set([
   "prompt",
   "exp",
   "ba_iat",
+  "ba_pl",
   "ba_param",
   "sig",
 ]);
@@ -61,6 +62,22 @@ export class ApplicationAuthorizationContextService {
       input.runtime,
       input.rawQuery
     );
+    if (
+      input.currentStep === "consent" &&
+      (!input.sessionId || parsed.postLoginSessionId !== input.sessionId)
+    ) {
+      throw new ApplicationAuthRequestError(
+        "Authorization context session is invalid"
+      );
+    }
+    if (
+      input.currentStep === "login" &&
+      parsed.postLoginSessionId !== undefined
+    ) {
+      throw new ApplicationAuthRequestError(
+        "Authorization context session is unexpected"
+      );
+    }
     const client = await this.clients.findActiveHostedUiClient(
       input.runtime.applicationId,
       parsed.clientId
@@ -217,6 +234,12 @@ export class ApplicationAuthorizationContextService {
     params.set("resource", active.context.resource);
     params.set("exp", String(expiresAt));
     params.set("ba_iat", String(now));
+    if (
+      active.context.currentStep === "consent" &&
+      active.context.sessionId
+    ) {
+      params.set("ba_pl", active.context.sessionId);
+    }
     appendSignedParameterNames(params);
     const signature = await makeSignature(
       canonicalize(params).toString(),
@@ -227,6 +250,25 @@ export class ApplicationAuthorizationContextService {
     );
     params.set("sig", signature);
     return params.toString();
+  }
+
+  async assertOAuthRedirectTarget(
+    runtime: ApplicationAuthFactoryRuntime,
+    active: ActiveApplicationAuthorizationContext,
+    target: string
+  ): Promise<void> {
+    const client = await this.clients.findActiveHostedUiClient(
+      runtime.applicationId,
+      active.context.clientId
+    );
+    const redirectUri = client?.redirectUris.find(
+      (candidate) => hashValue(candidate) === active.context.redirectUriHash
+    );
+    if (!redirectUri || !isBoundOAuthRedirectTarget(target, redirectUri)) {
+      throw new ApplicationAuthRequestError(
+        "Authorization redirect target is invalid"
+      );
+    }
   }
 
   async serializeCookie(
@@ -270,6 +312,7 @@ export class ApplicationAuthorizationContextService {
     nonce: string;
     codeChallenge: string;
     scopes: string[];
+    postLoginSessionId: string | undefined;
   }> {
     const params = new URLSearchParams(rawQuery);
     if (
@@ -374,6 +417,17 @@ export class ApplicationAuthorizationContextService {
         "Authorization resource is invalid"
       );
     }
+    const postLoginSessionIds = params.getAll("ba_pl");
+    if (
+      postLoginSessionIds.length > 1 ||
+      (postLoginSessionIds[0] !== undefined &&
+        (postLoginSessionIds[0].length < 16 ||
+          postLoginSessionIds[0].length > 512))
+    ) {
+      throw new ApplicationAuthRequestError(
+        "Authorization context session is invalid"
+      );
+    }
     const scope = single(params, "scope", 1, 2048)
       .split(" ")
       .filter(Boolean);
@@ -389,6 +443,7 @@ export class ApplicationAuthorizationContextService {
       nonce: single(params, "nonce", 16, 2048),
       codeChallenge: single(params, "code_challenge", 43, 128),
       scopes: scope,
+      postLoginSessionId: postLoginSessionIds[0],
     };
   }
 }
@@ -475,6 +530,39 @@ function serializeCookie(
 
 function hashValue(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("base64url");
+}
+
+function isBoundOAuthRedirectTarget(
+  targetValue: string,
+  registeredValue: string
+): boolean {
+  if (targetValue.length > 16_384) return false;
+  let target: URL;
+  let registered: URL;
+  try {
+    target = new URL(targetValue);
+    registered = new URL(registeredValue);
+  } catch {
+    return false;
+  }
+  if (
+    target.protocol !== registered.protocol ||
+    target.username !== registered.username ||
+    target.password !== registered.password ||
+    target.host !== registered.host ||
+    target.pathname !== registered.pathname ||
+    target.hash !== registered.hash
+  ) {
+    return false;
+  }
+  const targetEntries = [...target.searchParams.entries()];
+  return [...registered.searchParams.entries()].every(
+    ([registeredName, registeredValue]) =>
+      targetEntries.some(
+        ([targetName, targetValue]) =>
+          targetName === registeredName && targetValue === registeredValue
+      )
+  );
 }
 
 function constantTimeEqual(left: string, right: string): boolean {

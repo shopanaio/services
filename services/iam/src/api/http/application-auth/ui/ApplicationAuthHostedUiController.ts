@@ -365,7 +365,7 @@ export class ApplicationAuthHostedUiController {
         rotated
       ),
     });
-    if (!response.ok || !response.headers.has("location")) {
+    if (!isRedirectResponse(response)) {
       input.reply.header(
         "set-cookie",
         await this.authorizationContexts.serializeCookie(
@@ -425,7 +425,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       rotated.opaqueId
     );
-    if (response.ok && response.headers.has("location")) {
+    if (isRedirectResponse(response)) {
       await this.authorizationContexts.consume(input.runtime, rotated);
       await sendApplicationAuthFetchResponse(
         appendSetCookie(
@@ -509,7 +509,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       rotated.opaqueId
     );
-    if (response.ok && response.headers.has("location")) {
+    if (isRedirectResponse(response)) {
       await this.authorizationContexts.consume(input.runtime, rotated);
       await sendApplicationAuthFetchResponse(
         appendSetCookie(
@@ -704,7 +704,7 @@ export class ApplicationAuthHostedUiController {
         "temporarily_unavailable"
       );
     }
-    if (response.ok && response.headers.has("location")) {
+    if (isRedirectResponse(response)) {
       await this.authorizationContexts.consume(input.runtime, rotated);
       await sendApplicationAuthFetchResponse(
         appendSetCookie(
@@ -1102,7 +1102,7 @@ export class ApplicationAuthHostedUiController {
       });
       throw error;
     }
-    if (!response.ok || !response.headers.has("location")) {
+    if (!isRedirectResponse(response)) {
       await this.recordAccountAudit(input, {
         action: "account_link",
         outcome: "failure",
@@ -1341,11 +1341,17 @@ export class ApplicationAuthHostedUiController {
           rotated
         ),
     });
-    if (response.ok || response.status === 302 || response.status === 303) {
+    const browserRedirect = await asBetterAuthBrowserRedirect(response);
+    if (browserRedirect) {
+      await this.authorizationContexts.assertOAuthRedirectTarget(
+        input.runtime,
+        rotated,
+        browserRedirect.headers.get("location") ?? ""
+      );
       await this.authorizationContexts.consume(input.runtime, rotated);
       await sendApplicationAuthFetchResponse(
         appendSetCookie(
-          response,
+          browserRedirect,
           this.authorizationContexts.clearCookie(input.runtime)
         ),
         input.reply
@@ -2021,7 +2027,7 @@ async function sendHtml(
       "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' https: data:; style-src 'self'",
     "content-language": runtime.defaultLocale,
     "x-content-type-options": "nosniff",
-    "referrer-policy": "no-referrer",
+    "referrer-policy": "same-origin",
   });
   await reply
     .type("text/html; charset=utf-8")
@@ -2057,12 +2063,48 @@ function appendSetCookie(response: Response, cookie: string): Response {
   });
 }
 
+function isRedirectResponse(response: Response): boolean {
+  return (
+    response.status >= 300 &&
+    response.status < 400 &&
+    response.headers.has("location")
+  );
+}
+
 function asBrowserRedirect(response: Response): Response {
   const location = response.headers.get("location");
   if (!location) return response;
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   headers.delete("content-type");
+  return new Response(null, {
+    status: 303,
+    headers,
+  });
+}
+
+async function asBetterAuthBrowserRedirect(
+  response: Response
+): Promise<Response | null> {
+  let location = response.headers.get("location");
+  if (!location && response.ok) {
+    try {
+      const value = (await response.clone().json()) as {
+        redirect?: unknown;
+        url?: unknown;
+      };
+      if (value.redirect === true && typeof value.url === "string") {
+        location = value.url;
+      }
+    } catch {
+      return null;
+    }
+  }
+  if (!location) return null;
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  headers.delete("content-type");
+  headers.set("location", location);
   return new Response(null, {
     status: 303,
     headers,

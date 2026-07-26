@@ -946,7 +946,11 @@ async function applyApplicationTokenIntrospection(input: {
   authorizationHeader: string | undefined;
   response: Response;
 }): Promise<Response> {
-  if (!input.response.ok) return input.response;
+  if (!input.response.ok) {
+    return input.response.status >= 500
+      ? replaceJsonResponse(input.response, 200, { active: false })
+      : input.response;
+  }
   let pluginResult: unknown;
   try {
     pluginResult = await input.response.clone().json();

@@ -7,7 +7,7 @@ import { bearer, emailOTP, jwt } from "better-auth/plugins";
 import { signJWT } from "better-auth/plugins/jwt";
 import { getCurrentAuthContext } from "@better-auth/core/context";
 import { oauthProvider } from "@better-auth/oauth-provider";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { getDatabase } from "../infrastructure/db/database.js";
 import type {
   ApplicationAuthDeliveryProfile,
@@ -199,7 +199,7 @@ export function createApplicationAuth(
               "OAuth token family is outside the application realm"
             );
           }
-          return randomUUID();
+          return applicationId;
         },
       },
       scopes: [...APPLICATION_OAUTH_SCOPES],

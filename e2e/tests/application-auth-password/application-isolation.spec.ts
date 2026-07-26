@@ -13,6 +13,8 @@ type Sql = ReturnType<typeof postgres>;
 interface Realm {
   applicationId: string;
   clientId: string;
+  introspectionClientId: string;
+  introspectionClientSecret: string;
   organizationId: string;
   resource: string;
 }
@@ -233,11 +235,16 @@ test.describe('Application password auth — application isolation', () => {
     await expectSignUp(request, realms.a, email);
     const tokens = await issueTokens(page, request, realms.a, email);
     const response = await request.post(endpoint(realms.b, '/oauth2/introspect'), {
-      headers: formHeaders(),
+      headers: {
+        ...formHeaders(),
+        authorization: basicClientAuthorization(
+          realms.b.introspectionClientId,
+          realms.b.introspectionClientSecret,
+        ),
+      },
       form: {
         token: tokens.access_token,
         token_type_hint: 'access_token',
-        client_id: realms.b.clientId,
       },
     });
 
@@ -494,7 +501,7 @@ test.describe('Application password auth — application isolation', () => {
         );
         expect(realm).toBeDefined();
         expect(row.organization_id).toBe(realm!.organizationId);
-        expect(row.actor_id).toBe(api.session.user.userId);
+        expect(row.actor_id).toBe(decodeGlobalId(api.session.user.userId).id);
       }
     });
   });
@@ -625,7 +632,14 @@ async function createRealm(
   const applicationId = decodeGlobalId(applicationGlobalId).id;
   const organizationId = decodeGlobalId(organizationGlobalId).id;
   const resource = payload!.application!.resource;
-  const provisionalRealm = { applicationId, clientId: '', organizationId, resource };
+  const provisionalRealm = {
+    applicationId,
+    clientId: '',
+    introspectionClientId: '',
+    introspectionClientSecret: '',
+    organizationId,
+    resource,
+  };
   await withDb(async (sql) => {
     await sql`
       update iam.application_auth_configuration
@@ -665,9 +679,34 @@ async function createRealm(
   const clientPayload = data.applicationMutation.applicationOAuthClientCreate;
   expect(clientPayload.userErrors).toEqual([]);
   expect(clientPayload.client).not.toBeNull();
+  const confidential = await api.admin.mutation(
+    'application-admin-api/ApplicationOAuthClientCreate',
+    {
+      variables: {
+        input: {
+          organizationId: organizationGlobalId,
+          applicationId: applicationGlobalId,
+          name: `Isolation introspection ${suffix}`,
+          clientType: 'CONFIDENTIAL',
+          environment: 'DEVELOPMENT',
+          redirectUris: [redirectUri(provisionalRealm)],
+          postLogoutRedirectUris: [],
+          enableEndSession: false,
+          skipConsent: false,
+        },
+      },
+    },
+  );
+  const confidentialPayload =
+    confidential.data.applicationMutation.applicationOAuthClientCreate;
+  expect(confidentialPayload.userErrors).toEqual([]);
+  expect(confidentialPayload.client).not.toBeNull();
+  expect(confidentialPayload.clientSecret).toEqual(expect.any(String));
   return {
     ...provisionalRealm,
     clientId: clientPayload.client!.clientId,
+    introspectionClientId: confidentialPayload.client!.clientId,
+    introspectionClientSecret: confidentialPayload.clientSecret!,
   };
 }
 
@@ -711,8 +750,18 @@ async function expectInvalidSignIn(
   });
 }
 
-function beginAuthorization(request: APIRequestContext, realm: Realm): Promise<APIResponse> {
-  return request.get(authorizeUrl(realm), {
+async function beginAuthorization(
+  request: APIRequestContext,
+  realm: Realm,
+): Promise<APIResponse> {
+  const authorize = await request.get(authorizeUrl(realm), {
+    headers: { accept: 'text/html' },
+    maxRedirects: 0,
+  });
+  expect(authorize.status()).toBe(302);
+  const location = authorize.headers().location;
+  expect(location).toBeTruthy();
+  return request.get(new URL(location!, iamBaseUrl).toString(), {
     headers: { accept: 'text/html' },
     maxRedirects: 0,
   });
@@ -820,6 +869,10 @@ function formHeaders(cookie?: string): Record<string, string> {
     origin: iamBaseUrl,
     ...(cookie ? { cookie } : {}),
   };
+}
+
+function basicClientAuthorization(clientId: string, clientSecret: string): string {
+  return `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
 }
 
 function applicationCookie(response: APIResponse, applicationId: string): string {
@@ -959,7 +1012,7 @@ async function configurePresentation(
   await withDb(async (sql) => {
     await sql`
       update iam.application_auth_configuration
-      set branding_json = ${JSON.stringify({ displayName })}::jsonb,
+      set branding_json = ${sql.json({ displayName })},
           revision = revision + 1,
           updated_at = now()
       where application_id = ${realm.applicationId}
