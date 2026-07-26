@@ -1,0 +1,90 @@
+query ApplicationAdminApplication($organizationId: ID!, $applicationId: ID!) {
+  applicationQuery {
+    application(organizationId: $organizationId, id: $applicationId) {
+      id
+      organizationId
+      name
+      displayName
+      description
+      status
+      resource
+      revision
+      createdAt
+      updatedAt
+      archivedAt
+      auth {
+        applicationId
+        realmEnabled
+        registrationMode
+        emailVerificationRequired
+        consentMode
+        accessTokenTtlSeconds
+        idTokenTtlSeconds
+        refreshTokenTtlSeconds
+        sessionTtlSeconds
+        branding {
+          displayName
+          headline
+          logoUrl
+          primaryColor
+          backgroundColor
+        }
+        defaultLocale
+        supportedLocales
+        trustedOrigins {
+          origin
+          createdAt
+        }
+        emailDelivery {
+          configured
+          transportProfile
+          senderIdentity
+          emailVerificationTemplateId
+          passwordResetTemplateId
+          emailOtpSignInTemplateId
+          updatedAt
+          updatedBy
+        }
+        authMethods {
+          id
+          configured
+          availableCapabilities
+          enabledCapabilities
+          revision
+          updatedAt
+          updatedBy
+        }
+        providers {
+          applicationId
+          provider
+          supported
+          configured
+          enabled
+          maskedClientId
+          scopes
+          revision
+          updatedAt
+          updatedBy
+          callbackUrl
+        }
+        protocolUrls {
+          issuer
+          authorizationUrl
+          tokenUrl
+          jwksUrl
+          revocationUrl
+          endSessionUrl
+          oidcDiscoveryUrl
+          oauthAuthorizationServerMetadataUrl
+          providerCallbackUrls {
+            provider
+            url
+          }
+        }
+        revision
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}

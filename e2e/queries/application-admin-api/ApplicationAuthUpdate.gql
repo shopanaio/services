@@ -1,0 +1,43 @@
+mutation ApplicationAdminApplicationAuthUpdate($input: ApplicationAuthUpdateInput!) {
+  applicationMutation {
+    applicationAuthUpdate(input: $input) {
+      configuration {
+        applicationId
+        realmEnabled
+        registrationMode
+        emailVerificationRequired
+        accessTokenTtlSeconds
+        idTokenTtlSeconds
+        refreshTokenTtlSeconds
+        sessionTtlSeconds
+        branding {
+          displayName
+          headline
+          logoUrl
+          primaryColor
+          backgroundColor
+        }
+        defaultLocale
+        trustedOrigins {
+          origin
+          createdAt
+        }
+        emailDelivery {
+          configured
+          transportProfile
+          senderIdentity
+          emailVerificationTemplateId
+          passwordResetTemplateId
+          emailOtpSignInTemplateId
+        }
+        revision
+        updatedAt
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test';
+import { expect, type APIRequestContext, type APIResponse } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
@@ -9,6 +9,9 @@ const PASSWORD_HASH = 'sensitive-password-hash';
 const PROVIDER_ACCESS_TOKEN = 'sensitive-provider-access-token';
 const PROVIDER_REFRESH_TOKEN = 'sensitive-provider-refresh-token';
 const PROVIDER_ID_TOKEN = 'sensitive-provider-id-token';
+const APPLICATION_PASSWORD = 'Application-user-password-123!';
+const IAM_HTTP_URL = process.env.IAM_HTTP_URL ?? 'http://127.0.0.1:11010';
+const ADMIN_GRAPHQL_URL = process.env.ADMIN_GRAPHQL_URL ?? 'http://127.0.0.1:14001/graphql';
 
 type Sql = ReturnType<typeof postgres>;
 type Api = ApiFixtures['api'];
@@ -119,17 +122,20 @@ test.describe('Application Admin API - application user management', () => {
   }) => {
     const createdAt = new Date('2026-01-01T00:00:00.000Z');
     const alpha = await seedUser(sql, scope.applicationA, {
-      name: 'Alpha',
+      id: '00000000-0000-4000-8000-000000000001',
+      name: 'Same Name',
       email: uniqueEmail('alpha'),
       createdAt,
     });
     const beta = await seedUser(sql, scope.applicationA, {
-      name: 'Beta',
+      id: '00000000-0000-4000-8000-000000000002',
+      name: 'Same Name',
       email: uniqueEmail('beta'),
       createdAt,
     });
     const gamma = await seedUser(sql, scope.applicationA, {
-      name: 'Gamma',
+      id: '00000000-0000-4000-8000-000000000003',
+      name: 'Same Name',
       email: uniqueEmail('gamma'),
       createdAt,
     });
@@ -147,10 +153,17 @@ test.describe('Application Admin API - application user management', () => {
       first: 2,
       orderBy: [{ field: 'NAME', direction: 'asc' }],
     });
+    const backwardPage = await listUsers(api, scope, {
+      last: 2,
+      before: required(secondPage.edges[0], 'second-page edge').cursor,
+      orderBy: [{ field: 'NAME', direction: 'asc' }],
+    });
 
     expect(firstPage.edges.map(({ node }) => node.id)).toEqual([alpha.globalId, beta.globalId]);
     expect(firstPage.pageInfo.hasNextPage).toBe(true);
     expect(secondPage.edges.map(({ node }) => node.id)).toEqual([gamma.globalId]);
+    expect(backwardPage.edges.map(({ node }) => node.id)).toEqual([alpha.globalId, beta.globalId]);
+    expect(backwardPage.pageInfo.hasPreviousPage).toBe(false);
     expect(new Set([...firstPage.edges, ...secondPage.edges].map(({ node }) => node.id)).size).toBe(
       3,
     );
@@ -200,14 +213,24 @@ test.describe('Application Admin API - application user management', () => {
       },
       throwOnError: false,
     });
+    const missingResult = await api.admin.query('application-admin-api/ApplicationUser', {
+      variables: {
+        organizationId: scope.organizationId,
+        applicationId: scope.applicationA.id,
+        userId: composeGlobalId('ApplicationUser', crypto.randomUUID()),
+      },
+      throwOnError: false,
+    });
 
     expect(result.data?.applicationQuery?.application?.user ?? null).toBeNull();
+    expect(notFoundSignature(result)).toEqual(notFoundSignature(missingResult));
     expect(JSON.stringify(result)).not.toContain(foreign.email);
     expect(JSON.stringify(result)).not.toContain(scope.applicationB.rawId);
   });
 
   test('APP-USER-006: application user response exposes security metadata without password hash, OTP, session token, or refresh token', async ({
     api,
+    request,
   }) => {
     const seeded = await seedUser(sql, scope.applicationA, {
       email: uniqueEmail('safe-response'),
@@ -216,6 +239,7 @@ test.describe('Application Admin API - application user management', () => {
     });
 
     const user = await getUser(api, scope, seeded.globalId);
+    const schema = await readApplicationUserSchema(request, api);
     const serialized = JSON.stringify(user);
 
     expect(user?.security).toEqual({
@@ -237,19 +261,47 @@ test.describe('Application Admin API - application user management', () => {
         'refreshToken',
       ]),
     );
+    expect(schema.applicationUser?.fields.map(({ name }) => name)).toEqual([
+      'id',
+      'applicationId',
+      'name',
+      'firstName',
+      'lastName',
+      'email',
+      'emailVerified',
+      'imageUrl',
+      'status',
+      'security',
+      'linkedAccounts',
+      'createdAt',
+      'updatedAt',
+    ]);
+    expect(schema.applicationUserSecurityMetadata?.fields.map(({ name }) => name)).toEqual([
+      'activeSessionCount',
+      'linkedAccountCount',
+      'hasPasswordLogin',
+    ]);
   });
 
-  test('APP-USER-007: block user prevents new signin and makes existing tokens inactive within the contract SLA', async ({
+  test('APP-USER-007: block user prevents new signin and immediately invalidates an existing application session', async ({
     api,
+    request,
   }) => {
-    const seeded = await seedUser(sql, scope.applicationA, {
-      email: uniqueEmail('block'),
-      accounts: ['credential'],
-      sessionCount: 2,
-    });
+    await configurePasswordAuth(sql, scope.applicationA);
+    const email = uniqueEmail('block');
+    const signup = await signUpApplicationUser(request, scope.applicationA, email);
+    const existingCookie = applicationSessionCookie(signup, scope.applicationA.rawId);
+    const seeded = await readSeededUserByEmail(sql, scope.applicationA, email);
+    await expectApplicationSessionActive(request, scope.applicationA, existingCookie);
 
     const payload = await blockUser(api, scope, seeded.globalId);
     const persisted = await readUserState(sql, seeded);
+    const blockedSignin = await signInApplicationUser(
+      request,
+      scope.applicationA,
+      email,
+      APPLICATION_PASSWORD,
+    );
 
     expect(payload.userErrors).toHaveLength(0);
     expect(payload.user).toMatchObject({
@@ -258,19 +310,34 @@ test.describe('Application Admin API - application user management', () => {
       security: { activeSessionCount: 0 },
     });
     expect(persisted).toEqual({ status: 'blocked', sessionCount: 0 });
+    await expectApplicationSessionInactive(request, scope.applicationA, existingCookie);
+    expect(blockedSignin.status()).toBe(401);
+    expect(await blockedSignin.json()).toEqual({
+      error: 'invalid_credentials',
+      error_description: 'Email or password is invalid',
+    });
   });
 
-  test('APP-USER-008: unblock user permits future signin but does not revive revoked sessions or token families', async ({
+  test('APP-USER-008: unblock user permits a new signin without reviving the revoked session', async ({
     api,
+    request,
   }) => {
-    const seeded = await seedUser(sql, scope.applicationA, {
-      email: uniqueEmail('unblock'),
-      accounts: ['credential'],
-      sessionCount: 2,
-    });
+    await configurePasswordAuth(sql, scope.applicationA);
+    const email = uniqueEmail('unblock');
+    const signup = await signUpApplicationUser(request, scope.applicationA, email);
+    const revokedCookie = applicationSessionCookie(signup, scope.applicationA.rawId);
+    const seeded = await readSeededUserByEmail(sql, scope.applicationA, email);
     await blockUser(api, scope, seeded.globalId);
 
     const payload = await unblockUser(api, scope, seeded.globalId);
+    const signin = await signInApplicationUser(
+      request,
+      scope.applicationA,
+      email,
+      APPLICATION_PASSWORD,
+    );
+    expect(signin.ok(), await signin.text()).toBe(true);
+    const newCookie = applicationSessionCookie(signin, scope.applicationA.rawId);
     const persisted = await readUserState(sql, seeded);
 
     expect(payload.userErrors).toHaveLength(0);
@@ -278,7 +345,10 @@ test.describe('Application Admin API - application user management', () => {
       status: 'ACTIVE',
       security: { activeSessionCount: 0 },
     });
-    expect(persisted).toEqual({ status: 'active', sessionCount: 0 });
+    expect(newCookie).not.toBe(revokedCookie);
+    await expectApplicationSessionInactive(request, scope.applicationA, revokedCookie);
+    await expectApplicationSessionActive(request, scope.applicationA, newCookie);
+    expect(persisted).toEqual({ status: 'active', sessionCount: 1 });
   });
 
   test('APP-USER-009: block user in application A does not affect same-email user in application B', async ({
@@ -354,6 +424,7 @@ test.describe('Application Admin API - application user management', () => {
 
   test('APP-USER-012: linked account list shows provider/account metadata without encrypted provider tokens', async ({
     api,
+    request,
   }) => {
     const seeded = await seedUser(sql, scope.applicationA, {
       email: uniqueEmail('linked-list'),
@@ -361,6 +432,7 @@ test.describe('Application Admin API - application user management', () => {
     });
 
     const user = await getUser(api, scope, seeded.globalId);
+    const schema = await readApplicationUserSchema(request, api);
     const serialized = JSON.stringify(user?.linkedAccounts);
 
     expect(user?.linkedAccounts.map(({ provider }) => provider)).toEqual(['github', 'google']);
@@ -371,6 +443,13 @@ test.describe('Application Admin API - application user management', () => {
     expect(Object.keys(user?.linkedAccounts[0] ?? {})).toEqual(
       expect.not.arrayContaining(['accountId', 'accessToken', 'refreshToken', 'idToken']),
     );
+    expect(schema.applicationUserLinkedAccount?.fields.map(({ name }) => name)).toEqual([
+      'id',
+      'provider',
+      'isOnlyLoginMethod',
+      'createdAt',
+      'updatedAt',
+    ]);
   });
 
   test('APP-USER-013: unlink account removes only the selected account in the target application', async ({
@@ -452,10 +531,27 @@ test.describe('Application Admin API - application user management', () => {
       sessionCount: 1,
     });
     const ownerToken = api.session.tenant.accessToken;
-    const outsider = await api.admin.user.create();
-    api.session.tenant.accessToken = outsider.accessToken;
+    const ownerId = api.session.tenant.userId;
+    const member = await api.admin.user.create();
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId: scope.organizationId,
+          email: member.data.email,
+          roles: [{ domain: 'org', role: 'member' }],
+        },
+      },
+    });
+    api.session.tenant.accessToken = member.accessToken;
+    api.session.tenant.userId = member.userId;
 
     try {
+      expect(
+        await checkOrgPermission(api, scope.organizationId, 'org.application-users', 'read'),
+      ).toBe(false);
+      expect(
+        await checkOrgPermission(api, scope.organizationId, 'org.application-users', 'write'),
+      ).toBe(false);
       const read = await api.admin.query('application-admin-api/ApplicationUsers', {
         variables: {
           organizationId: scope.organizationId,
@@ -470,18 +566,22 @@ test.describe('Application Admin API - application user management', () => {
       });
 
       expect(read.data?.applicationQuery?.application ?? null).toBeNull();
-      expect(read.errors?.length ?? 0).toBeGreaterThan(0);
-      expect(write.data?.applicationMutation?.applicationUserBlock?.user ?? null).toBeNull();
+      expect(JSON.stringify(read)).not.toContain(seeded.email);
+      expect(write.data?.applicationMutation.applicationUserBlock).toMatchObject({
+        user: null,
+        userErrors: [expect.objectContaining({ code: 'FORBIDDEN' })],
+      });
       expect(await readUserState(sql, seeded)).toEqual({
         status: 'active',
         sessionCount: 1,
       });
     } finally {
       api.session.tenant.accessToken = ownerToken;
+      api.session.tenant.userId = ownerId;
     }
   });
 
-  test('APP-USER-017: application user mutations write safe audit records without email, tokens, or account secrets', async ({
+  test('APP-USER-017: block mutation writes a safe audit record without email, tokens, or account secrets', async ({
     api,
   }) => {
     const seeded = await seedUser(sql, scope.applicationA, {
@@ -538,15 +638,21 @@ test.describe('Application Admin API - application user management', () => {
     expect(serialized).not.toContain(required(seeded.sessionTokens[0], 'seeded session token'));
   });
 
-  test('APP-USER-018: application user admin API rejects application user session as an administrative actor', async ({
+  test('APP-USER-018: application user admin API rejects a valid application session as an administrative actor', async ({
     api,
+    request,
   }) => {
-    const seeded = await seedUser(sql, scope.applicationA, {
-      email: uniqueEmail('public-actor'),
-      sessionCount: 1,
-    });
+    await configurePasswordAuth(sql, scope.applicationA);
+    const email = uniqueEmail('public-actor');
+    const signup = await signUpApplicationUser(request, scope.applicationA, email);
+    const cookie = applicationSessionCookie(signup, scope.applicationA.rawId);
+    const seeded = await readSeededUserByEmail(sql, scope.applicationA, email);
+    await expectApplicationSessionActive(request, scope.applicationA, cookie);
     const ownerToken = api.session.tenant.accessToken;
-    api.session.tenant.accessToken = seeded.sessionTokens[0];
+    api.session.tenant.accessToken = required(
+      seeded.sessionTokens[0],
+      'real application session token',
+    );
 
     try {
       const result = await api.admin.query('application-admin-api/ApplicationUsers', {
@@ -561,6 +667,7 @@ test.describe('Application Admin API - application user management', () => {
       expect(result.data?.applicationQuery?.application ?? null).toBeNull();
       expect(result.errors?.length ?? 0).toBeGreaterThan(0);
       expect(JSON.stringify(result)).not.toContain(seeded.email);
+      await expectApplicationSessionActive(request, scope.applicationA, cookie);
     } finally {
       api.session.tenant.accessToken = ownerToken;
     }
@@ -701,16 +808,215 @@ async function seedUser(
   };
 }
 
+async function configurePasswordAuth(sql: Sql, application: ApplicationRef): Promise<void> {
+  await sql`
+    UPDATE iam.application_auth_configuration
+    SET realm_enabled = true,
+        registration_mode = 'open',
+        password_sign_in_enabled = true,
+        password_sign_up_enabled = true,
+        password_reset_enabled = false,
+        email_verification_required = false,
+        revision = revision + 1,
+        updated_at = now()
+    WHERE application_id = ${application.rawId}::uuid
+  `;
+  await sql`
+    INSERT INTO iam.application_auth_origin (application_id, origin)
+    VALUES (${application.rawId}::uuid, ${IAM_HTTP_URL})
+    ON CONFLICT (application_id, origin) DO NOTHING
+  `;
+}
+
+async function signUpApplicationUser(
+  request: APIRequestContext,
+  application: ApplicationRef,
+  email: string,
+): Promise<APIResponse> {
+  const response = await request.post(applicationAuthEndpoint(application, '/sign-up/email'), {
+    headers: applicationAuthHeaders(),
+    data: {
+      name: 'Application User',
+      email,
+      password: APPLICATION_PASSWORD,
+    },
+  });
+  expect(response.ok(), await response.text()).toBe(true);
+  return response;
+}
+
+function signInApplicationUser(
+  request: APIRequestContext,
+  application: ApplicationRef,
+  email: string,
+  password: string,
+): Promise<APIResponse> {
+  return request.post(applicationAuthEndpoint(application, '/sign-in/email'), {
+    headers: applicationAuthHeaders(),
+    data: { email, password },
+  });
+}
+
+async function expectApplicationSessionActive(
+  request: APIRequestContext,
+  application: ApplicationRef,
+  cookie: string,
+): Promise<void> {
+  const response = await request.get(
+    applicationAuthEndpoint(application, '/account/connections'),
+    {
+      headers: { accept: 'text/html', cookie },
+    },
+  );
+  const body = await response.text();
+  expect(response.ok(), body).toBe(true);
+  expect(body).toContain('<!doctype html>');
+}
+
+async function expectApplicationSessionInactive(
+  request: APIRequestContext,
+  application: ApplicationRef,
+  cookie: string,
+): Promise<void> {
+  const response = await request.get(
+    applicationAuthEndpoint(application, '/account/connections'),
+    {
+      headers: { accept: 'text/html', cookie },
+    },
+  );
+  const body = await response.text();
+  expect(response.status(), body).toBe(400);
+  expect(body).toContain('Authentication unavailable');
+}
+
+function applicationAuthEndpoint(application: ApplicationRef, path: string): string {
+  return `${IAM_HTTP_URL}/auth/applications/${application.rawId}${path}`;
+}
+
+function applicationAuthHeaders(): Record<string, string> {
+  return {
+    accept: 'application/json',
+    'content-type': 'application/json',
+    origin: IAM_HTTP_URL,
+  };
+}
+
+function applicationSessionCookie(response: APIResponse, applicationId: string): string {
+  const cookie = response
+    .headersArray()
+    .filter(({ name }) => name.toLowerCase() === 'set-cookie')
+    .map(({ value }) => value.split(';', 1)[0]!)
+    .find((value) => value.includes(`shopana_application_${applicationId}.session_token`));
+  return required(cookie, 'application session cookie');
+}
+
+async function readSeededUserByEmail(
+  sql: Sql,
+  application: ApplicationRef,
+  email: string,
+): Promise<SeededUser> {
+  const [user] = await sql<{ id: string; email: string }[]>`
+    SELECT id, email
+    FROM iam.application_user
+    WHERE application_id = ${application.rawId}::uuid
+      AND email = ${email}
+  `;
+  const found = required(user, 'application user created through signup');
+  const accounts = await sql<{ id: string }[]>`
+    SELECT id
+    FROM iam.application_account
+    WHERE application_id = ${application.rawId}::uuid
+      AND user_id = ${found.id}
+    ORDER BY id
+  `;
+  const sessions = await sql<{ token: string }[]>`
+    SELECT token
+    FROM iam.application_session
+    WHERE application_id = ${application.rawId}::uuid
+      AND user_id = ${found.id}
+    ORDER BY created_at, id
+  `;
+  return {
+    id: found.id,
+    globalId: composeGlobalId('ApplicationUser', found.id),
+    applicationId: application.rawId,
+    email: found.email,
+    accountIds: accounts.map(({ id }) => id),
+    accountGlobalIds: accounts.map(({ id }) => composeGlobalId('ApplicationUserLinkedAccount', id)),
+    sessionTokens: sessions.map(({ token }) => token),
+  };
+}
+
+async function readApplicationUserSchema(request: APIRequestContext, api: Api) {
+  const response = await request.post(ADMIN_GRAPHQL_URL, {
+    headers: {
+      authorization: `Bearer ${required(api.session.tenant.accessToken, 'admin access token')}`,
+      'content-type': 'application/json',
+      'x-organization-id': required(api.session.organizationId, 'organization ID'),
+    },
+    data: {
+      query: `
+        query ApplicationAdminApplicationUserSchema {
+          applicationUser: __type(name: "ApplicationUser") {
+            fields { name }
+          }
+          applicationUserSecurityMetadata: __type(name: "ApplicationUserSecurityMetadata") {
+            fields { name }
+          }
+          applicationUserLinkedAccount: __type(name: "ApplicationUserLinkedAccount") {
+            fields { name }
+          }
+        }
+      `,
+    },
+  });
+  expect(response.ok(), await response.text()).toBe(true);
+  const result = (await response.json()) as {
+    data?: {
+      applicationUser: { fields: Array<{ name: string }> } | null;
+      applicationUserSecurityMetadata: { fields: Array<{ name: string }> } | null;
+      applicationUserLinkedAccount: { fields: Array<{ name: string }> } | null;
+    };
+    errors?: Array<{ message: string }>;
+  };
+  expect(result.errors).toBeUndefined();
+  return required(result.data, 'application user schema introspection');
+}
+
+async function checkOrgPermission(
+  api: Api,
+  organizationId: string,
+  resource: string,
+  action: string,
+): Promise<boolean> {
+  const { data } = await api.admin.query('roles-api/Authorize', {
+    variables: {
+      input: {
+        organizationId,
+        domain: 'org',
+        resource,
+        action,
+      },
+    },
+  });
+  return (
+    data as unknown as {
+      userQuery: { authorize: { allowed: boolean } };
+    }
+  ).userQuery.authorize.allowed;
+}
+
 async function listUsers(
   api: Api,
   scope: ApplicationScope,
   variables: Record<string, unknown> = {},
 ) {
+  const defaultPagination = 'first' in variables || 'last' in variables ? {} : { first: 20 };
   const { data } = await api.admin.query('application-admin-api/ApplicationUsers', {
     variables: {
       organizationId: scope.organizationId,
       applicationId: scope.applicationA.id,
-      first: 20,
+      ...defaultPagination,
       ...variables,
     },
   });
@@ -811,6 +1117,25 @@ async function readAccountProviders(sql: Sql, user: SeededUser): Promise<string[
 
 function uniqueEmail(label: string): string {
   return `${label}-${crypto.randomUUID()}@playwright.dev`;
+}
+
+function notFoundSignature(result: {
+  data?: unknown;
+  errors?: readonly {
+    message?: string;
+    path?: readonly (string | number)[];
+    extensions?: Record<string, unknown>;
+  }[];
+}) {
+  return {
+    data: result.data,
+    errors:
+      result.errors?.map(({ message, path, extensions }) => ({
+        message,
+        path,
+        code: extensions?.code,
+      })) ?? [],
+  };
 }
 
 function required<T>(value: T | null | undefined, label: string): T {

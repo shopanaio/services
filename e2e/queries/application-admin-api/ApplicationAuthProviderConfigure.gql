@@ -1,0 +1,26 @@
+mutation ApplicationAdminApplicationAuthProviderConfigure(
+  $input: ApplicationAuthProviderConfigureInput!
+) {
+  applicationMutation {
+    applicationAuthProviderConfigure(input: $input) {
+      provider {
+        applicationId
+        provider
+        supported
+        configured
+        enabled
+        maskedClientId
+        scopes
+        revision
+        updatedAt
+        updatedBy
+        callbackUrl
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

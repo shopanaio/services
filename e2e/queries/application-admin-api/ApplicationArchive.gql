@@ -1,0 +1,19 @@
+mutation ApplicationAdminApplicationArchive($input: ApplicationArchiveInput!) {
+  applicationMutation {
+    applicationArchive(input: $input) {
+      application {
+        id
+        organizationId
+        name
+        status
+        revision
+        archivedAt
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

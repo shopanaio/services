@@ -1,0 +1,19 @@
+mutation ApplicationAdminApplicationAuthRealmEnabledSet(
+  $input: ApplicationAuthRealmEnabledSetInput!
+) {
+  applicationMutation {
+    applicationAuthRealmEnabledSet(input: $input) {
+      configuration {
+        applicationId
+        realmEnabled
+        revision
+        updatedAt
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

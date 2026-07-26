@@ -1,0 +1,41 @@
+mutation ApplicationAdminApplicationOAuthClientCreate($input: ApplicationOAuthClientCreateInput!) {
+  applicationMutation {
+    applicationOAuthClientCreate(input: $input) {
+      client {
+        ...ApplicationAdminOAuthClientMutationFields
+      }
+      clientSecret
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}
+
+fragment ApplicationAdminOAuthClientMutationFields on ApplicationOAuthClient {
+  id
+  organizationId
+  applicationId
+  clientId
+  name
+  clientType
+  environment
+  redirectUris
+  postLogoutRedirectUris
+  resources
+  grantTypes
+  responseTypes
+  tokenEndpointAuthMethod
+  requirePkce
+  enableEndSession
+  skipConsent
+  disabled
+  archived
+  protocolPolicyVersion
+  revision
+  createdAt
+  updatedAt
+  archivedAt
+}

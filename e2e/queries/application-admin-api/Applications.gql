@@ -1,0 +1,40 @@
+query ApplicationAdminApplications(
+  $organizationId: ID!
+  $first: Int
+  $after: String
+  $where: ApplicationWhereInput
+  $orderBy: [ApplicationOrderByInput!]
+) {
+  applicationQuery {
+    applications(
+      organizationId: $organizationId
+      first: $first
+      after: $after
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          organizationId
+          name
+          displayName
+          description
+          status
+          revision
+          createdAt
+          updatedAt
+          archivedAt
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

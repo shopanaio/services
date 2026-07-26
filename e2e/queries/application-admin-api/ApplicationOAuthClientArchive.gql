@@ -1,0 +1,23 @@
+mutation ApplicationAdminApplicationOAuthClientArchive(
+  $input: ApplicationOAuthClientArchiveInput!
+) {
+  applicationMutation {
+    applicationOAuthClientArchive(input: $input) {
+      client {
+        id
+        applicationId
+        clientId
+        disabled
+        archived
+        revision
+        updatedAt
+        archivedAt
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

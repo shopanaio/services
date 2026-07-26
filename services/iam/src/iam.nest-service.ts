@@ -24,6 +24,7 @@ import {
 } from "./services/ApplicationAuthEmailDeliveryPort.js";
 import {
   APPLICATION_AUTH_RATE_LIMIT_PORT,
+  InMemoryApplicationAuthRateLimitAdapter,
   type ApplicationAuthRateLimitPort,
 } from "./services/ApplicationAuthRateLimiter.js";
 import {
@@ -79,6 +80,16 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     this.logger.debug("IAM onModuleInit started");
 
     const http = resolveIamHttpRuntimeConfiguration({ service, global });
+    const applicationAuthRateLimit =
+      this.applicationAuthRateLimit ??
+      (global.environment === "development"
+        ? new InMemoryApplicationAuthRateLimitAdapter()
+        : undefined);
+    if (!this.applicationAuthRateLimit && applicationAuthRateLimit) {
+      this.logger.warn(
+        "Using single-process application auth rate limiting in development"
+      );
+    }
     if (http.deprecatedAdminGraphqlPortAliasUsed) {
       this.logger.warn(
         "IAM ports.admin_graphql is deprecated; use ports.iam_http for the shared listener"
@@ -87,7 +98,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient, {
       applicationAuthPublicBaseUrl: http.publicBaseUrl,
       applicationAuthEmailDelivery: this.applicationAuthEmailDelivery,
-      applicationAuthRateLimit: this.applicationAuthRateLimit,
+      applicationAuthRateLimit,
       applicationAuthAudit: this.applicationAuthAudit,
       applicationAuthAdminAudit: this.applicationAuthAdminAudit,
       applicationAuthProviderValidation:

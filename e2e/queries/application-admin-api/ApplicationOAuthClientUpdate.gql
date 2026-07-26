@@ -1,0 +1,37 @@
+mutation ApplicationAdminApplicationOAuthClientUpdate($input: ApplicationOAuthClientUpdateInput!) {
+  applicationMutation {
+    applicationOAuthClientUpdate(input: $input) {
+      client {
+        ...ApplicationAdminOAuthClientUpdateFields
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}
+
+fragment ApplicationAdminOAuthClientUpdateFields on ApplicationOAuthClient {
+  id
+  applicationId
+  clientId
+  name
+  clientType
+  environment
+  redirectUris
+  postLogoutRedirectUris
+  resources
+  grantTypes
+  responseTypes
+  tokenEndpointAuthMethod
+  requirePkce
+  enableEndSession
+  skipConsent
+  disabled
+  archived
+  revision
+  updatedAt
+  archivedAt
+}

@@ -1,0 +1,22 @@
+mutation ApplicationAdminApplicationOAuthClientEnabledSet(
+  $input: ApplicationOAuthClientEnabledSetInput!
+) {
+  applicationMutation {
+    applicationOAuthClientEnabledSet(input: $input) {
+      client {
+        id
+        applicationId
+        clientId
+        disabled
+        archived
+        revision
+        updatedAt
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

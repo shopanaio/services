@@ -1,0 +1,20 @@
+mutation ApplicationAdminApplicationAuthMethodUpdate($input: ApplicationAuthMethodUpdateInput!) {
+  applicationMutation {
+    applicationAuthMethodUpdate(input: $input) {
+      authMethod {
+        id
+        configured
+        availableCapabilities
+        enabledCapabilities
+        revision
+        updatedAt
+        updatedBy
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

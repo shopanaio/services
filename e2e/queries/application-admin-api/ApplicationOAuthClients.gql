@@ -1,0 +1,61 @@
+query ApplicationAdminApplicationOAuthClients(
+  $organizationId: ID!
+  $applicationId: ID!
+  $clientId: String!
+  $first: Int
+  $after: String
+  $where: ApplicationOAuthClientWhereInput
+  $orderBy: [ApplicationOAuthClientOrderByInput!]
+) {
+  applicationQuery {
+    application(organizationId: $organizationId, id: $applicationId) {
+      id
+      oauthClient(clientId: $clientId) {
+        ...ApplicationAdminOAuthClientFields
+      }
+      oauthClients(first: $first, after: $after, where: $where, orderBy: $orderBy) {
+        edges {
+          cursor
+          node {
+            ...ApplicationAdminOAuthClientFields
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}
+
+fragment ApplicationAdminOAuthClientFields on ApplicationOAuthClient {
+  id
+  organizationId
+  applicationId
+  clientId
+  name
+  clientType
+  environment
+  redirectUris
+  postLogoutRedirectUris
+  resources
+  grantTypes
+  responseTypes
+  tokenEndpointAuthMethod
+  requirePkce
+  enableEndSession
+  skipConsent
+  disabled
+  archived
+  protocolPolicyVersion
+  revision
+  createdAt
+  updatedAt
+  archivedAt
+  createdBy
+  updatedBy
+}

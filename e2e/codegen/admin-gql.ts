@@ -42,74 +42,9 @@ export type Action =
   | 'read'
   | 'write';
 
-/** API key for programmatic access to the project */
 export type ApiApiKey = {
   __typename?: 'ApiKey';
-  /** Timestamp when the API key was created */
-  createdAt: Scalars['DateTime']['output'];
-  /** ID of the user who created this API key */
-  createdById: Scalars['ID']['output'];
-  /** Optional expiration date for the API key */
-  dueDate?: Maybe<Scalars['DateTime']['output']>;
-  /** Unique identifier of the API key */
   id: Scalars['ID']['output'];
-  /** Whether the API key has been banned by the system */
-  isBanned: Scalars['Boolean']['output'];
-  /** The API key value (only shown once upon creation) */
-  key: Scalars['String']['output'];
-  /** Timestamp of the last API call using this key */
-  lastUsedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** Human-readable name for the API key */
-  name: Scalars['String']['output'];
-  /** Timestamp when the API key was revoked, null if still active */
-  revokedAt?: Maybe<Scalars['DateTime']['output']>;
-};
-
-/** Payload returned after an API key action (revoke) */
-export type ApiApiKeyActionPayload = {
-  __typename?: 'ApiKeyActionPayload';
-  /** Whether the action was successful */
-  success: Scalars['Boolean']['output'];
-  /** List of errors that occurred during the action */
-  userErrors: Array<ApiUserError>;
-};
-
-/** Input for creating a new API key */
-export type ApiApiKeyCreateInput = {
-  /** Optional expiration date for the API key */
-  dueDate?: InputMaybe<Scalars['DateTime']['input']>;
-  /** Human-readable name for the API key */
-  name: Scalars['String']['input'];
-};
-
-/** Payload returned after creating an API key */
-export type ApiApiKeyCreatePayload = {
-  __typename?: 'ApiKeyCreatePayload';
-  /** The newly created API key, null if creation failed */
-  apiKey?: Maybe<ApiApiKey>;
-  /** List of errors that occurred during creation */
-  userErrors: Array<ApiUserError>;
-};
-
-/** Input for deleting an API key */
-export type ApiApiKeyDeleteInput = {
-  /** ID of the API key to delete */
-  id: Scalars['ID']['input'];
-};
-
-/** Payload returned after deleting an API key */
-export type ApiApiKeyDeletePayload = {
-  __typename?: 'ApiKeyDeletePayload';
-  /** ID of the deleted API key, null if deletion failed */
-  deletedApiKeyId?: Maybe<Scalars['ID']['output']>;
-  /** List of errors that occurred during deletion */
-  userErrors: Array<ApiUserError>;
-};
-
-/** Input for revoking an API key */
-export type ApiApiKeyRevokeInput = {
-  /** ID of the API key to revoke */
-  id: Scalars['ID']['input'];
 };
 
 /** How a capability is selected for execution. */
@@ -8968,12 +8903,24 @@ export type ApiHeadlessStorefrontUpdateInput = {
 export type ApiHelloWorldAppQuery = {
   __typename?: 'HelloWorldAppQuery';
   helloWorldGreeting: ApiHelloWorldGreeting;
+  helloWorldSecretDigest: ApiHelloWorldSecretDigest;
+};
+
+
+/** Hello World App queries. */
+export type ApiHelloWorldAppQueryHelloWorldSecretDigestArgs = {
+  name: Scalars['String']['input'];
 };
 
 export type ApiHelloWorldGreeting = {
   __typename?: 'HelloWorldGreeting';
   appCode: Scalars['String']['output'];
   message: Scalars['String']['output'];
+};
+
+export type ApiHelloWorldSecretDigest = {
+  __typename?: 'HelloWorldSecretDigest';
+  sha256: Scalars['String']['output'];
 };
 
 /** Filter operators for ID fields */
@@ -16391,12 +16338,6 @@ export type ApiStoreDeletePayload = {
 /** Mutations for store management */
 export type ApiStoreMutation = {
   __typename?: 'StoreMutation';
-  /** Create a new API key for programmatic access */
-  apiKeyCreate: ApiApiKeyCreatePayload;
-  /** Permanently delete an API key */
-  apiKeyDelete: ApiApiKeyDeletePayload;
-  /** Revoke an API key (soft delete) */
-  apiKeyRevoke: ApiApiKeyActionPayload;
   /** Add a new locale to the store */
   localeCreate: ApiLocaleCreatePayload;
   /** Remove a locale from the store */
@@ -16409,24 +16350,6 @@ export type ApiStoreMutation = {
   storeDelete: ApiStoreDeletePayload;
   /** Unified store update composed from independent settings operations */
   storeUpdate: ApiStoreUpdatePayload;
-};
-
-
-/** Mutations for store management */
-export type ApiStoreMutationApiKeyCreateArgs = {
-  input: ApiApiKeyCreateInput;
-};
-
-
-/** Mutations for store management */
-export type ApiStoreMutationApiKeyDeleteArgs = {
-  input: ApiApiKeyDeleteInput;
-};
-
-
-/** Mutations for store management */
-export type ApiStoreMutationApiKeyRevokeArgs = {
-  input: ApiApiKeyRevokeInput;
 };
 
 
@@ -16488,8 +16411,6 @@ export type ApiStoreOrderProcessingUpdateInput = {
 /** Queries for store management */
 export type ApiStoreQuery = {
   __typename?: 'StoreQuery';
-  /** Get all API keys for the current store */
-  apiKeys: Array<ApiApiKey>;
   /** Get the current store from context */
   currentStore?: Maybe<ApiStore>;
   /** Get all stores accessible to the current user in the organization */

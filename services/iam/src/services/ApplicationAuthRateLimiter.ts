@@ -43,6 +43,51 @@ interface LocalEntry {
 }
 
 /**
+ * Single-process adapter for local development and E2E.
+ * Staging and production must inject a shared atomic implementation.
+ */
+export class InMemoryApplicationAuthRateLimitAdapter
+  implements ApplicationAuthRateLimitPort
+{
+  private readonly entries = new Map<string, LocalEntry>();
+
+  constructor(private readonly now: () => number = Date.now) {}
+
+  async consume(
+    input: ApplicationAuthRateLimitConsumeInput
+  ): Promise<ApplicationAuthRateLimitConsumeResult> {
+    const now = this.now();
+    const current = this.entries.get(input.key);
+    if (!current || current.expiresAt <= now) {
+      this.entries.set(input.key, {
+        count: 1,
+        expiresAt: now + input.windowSeconds * 1_000,
+      });
+      this.prune(now);
+      return { allowed: true };
+    }
+    if (current.count >= input.limit) {
+      return {
+        allowed: false,
+        retryAfterSeconds: Math.max(
+          1,
+          Math.ceil((current.expiresAt - now) / 1_000)
+        ),
+      };
+    }
+    current.count += 1;
+    return { allowed: true };
+  }
+
+  private prune(now: number): void {
+    if (this.entries.size < 10_000) return;
+    for (const [key, entry] of this.entries) {
+      if (entry.expiresAt <= now) this.entries.delete(key);
+    }
+  }
+}
+
+/**
  * Enforces the application-auth baseline policies. A shared port is used when present;
  * local buckets are only the documented tighter emergency mode.
  */

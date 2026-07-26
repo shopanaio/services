@@ -1614,8 +1614,9 @@ export class ApplicationAuthHostedUiController {
     const value = (await response.json()) as {
       session?: { id?: unknown; createdAt?: unknown };
       user?: { id?: unknown };
-    };
+    } | null;
     if (
+      !value ||
       typeof value.session?.id !== "string" ||
       (typeof value.session.createdAt !== "string" &&
         !(value.session.createdAt instanceof Date)) ||

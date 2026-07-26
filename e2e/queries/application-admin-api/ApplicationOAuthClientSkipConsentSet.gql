@@ -1,0 +1,21 @@
+mutation ApplicationAdminApplicationOAuthClientSkipConsentSet(
+  $input: ApplicationOAuthClientSkipConsentSetInput!
+) {
+  applicationMutation {
+    applicationOAuthClientSkipConsentSet(input: $input) {
+      client {
+        id
+        applicationId
+        clientId
+        skipConsent
+        revision
+        updatedAt
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

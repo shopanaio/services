@@ -1,0 +1,20 @@
+mutation ApplicationAdminApplicationAuthProviderValidate(
+  $input: ApplicationAuthProviderValidateInput!
+) {
+  applicationMutation {
+    applicationAuthProviderValidate(input: $input) {
+      validation {
+        provider
+        status
+        reasonCode
+        revision
+        checkedAt
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

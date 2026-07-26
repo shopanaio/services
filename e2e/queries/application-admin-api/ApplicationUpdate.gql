@@ -1,0 +1,21 @@
+mutation ApplicationAdminApplicationUpdate($input: ApplicationUpdateInput!) {
+  applicationMutation {
+    applicationUpdate(input: $input) {
+      application {
+        id
+        organizationId
+        name
+        displayName
+        description
+        status
+        revision
+        updatedAt
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}
