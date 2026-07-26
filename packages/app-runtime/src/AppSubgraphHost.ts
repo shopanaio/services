@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import type { AppHostContext } from "@shopana/app-sdk";
 import { AppGraphQLServerFactory } from "./AppGraphQLServerFactory.js";
 import { AppSubgraphRegistry } from "./AppSubgraphRegistry.js";
@@ -14,7 +14,9 @@ export class AppSubgraphHost {
   private readonly logger = new Logger(AppSubgraphHost.name);
 
   constructor(
+    @Inject(AppSubgraphRegistry)
     private readonly registry: AppSubgraphRegistry,
+    @Inject(AppGraphQLServerFactory)
     private readonly serverFactory: AppGraphQLServerFactory,
   ) {}
 

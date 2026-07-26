@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { Apps } from "@shopana/broker-types";
 import type {
   AppInstallationStatus,
@@ -20,8 +20,11 @@ import { AppRuntimeRegistry } from "../runtime/AppRuntimeRegistry.js";
 @Injectable()
 export class AppLifecycleService {
   constructor(
+    @Inject(AppInstallationStore)
     private readonly installations: AppInstallationStore,
+    @Inject(AppInstallationSecretStore)
     private readonly secrets: AppInstallationSecretStore,
+    @Inject(AppRuntimeRegistry)
     private readonly runtimes: AppRuntimeRegistry,
   ) {}
 

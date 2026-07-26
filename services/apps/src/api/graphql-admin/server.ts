@@ -71,12 +71,17 @@ export async function startServer(serverConfig: ServerConfig) {
   const filename = fileURLToPath(import.meta.url);
   const directory = dirname(filename);
   const schemaFiles = [
+    "shared-currency.graphql",
+    "shared-locale.graphql",
+    "shared-units.graphql",
     "scalars.graphql",
     "base.graphql",
     "relay.graphql",
     "app-definition.graphql",
     "app-installation.graphql",
     "app-lifecycle.graphql",
+    "__generated__/base-filters.graphql",
+    "__generated__/filters.graphql",
   ];
   const modules = schemaFiles.map((file) => ({
     typeDefs: gql(

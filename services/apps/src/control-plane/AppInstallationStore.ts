@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type {
   AppInstallationStatus,
   AppLifecycleOperationType,
@@ -64,7 +64,10 @@ export interface BegunLifecycleOperation {
 
 @Injectable()
 export class AppInstallationStore {
-  constructor(private readonly repository: Repository) {}
+  constructor(
+    @Inject(Repository)
+    private readonly repository: Repository,
+  ) {}
 
   beginInstall(
     input: BeginInstallInput,

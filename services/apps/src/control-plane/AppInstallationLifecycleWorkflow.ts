@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type {
   AppInstallInput,
   AppResumeInput,
@@ -25,8 +25,11 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
 > {
   constructor(
     @InjectBroker("apps") broker: ServiceBroker,
+    @Inject(AppInstallationStore)
     private readonly installations: AppInstallationStore,
+    @Inject(AppRuntimeRegistry)
     private readonly runtimes: AppRuntimeRegistry,
+    @Inject(AppsRuntimeRouter)
     private readonly router: AppsRuntimeRouter,
   ) {
     super(broker);

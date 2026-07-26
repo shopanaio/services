@@ -4,10 +4,13 @@ import {
   adminUserErrors,
   type AdminUserError,
 } from "../shared/adminScriptSupport.js";
-import type {
-  NotificationSendTestParams,
-  NotificationSendTestResult,
-} from "./dto/index.js";
+
+type NotificationSendTestParams = Omit<
+  Notifications.SendTestNotificationParams,
+  "storeId" | "organizationId"
+>;
+type NotificationSendTestResult =
+  Notifications.EnqueueNotificationResult;
 
 export interface NotificationSendTestScriptResult {
   workflow?: NotificationSendTestResult;

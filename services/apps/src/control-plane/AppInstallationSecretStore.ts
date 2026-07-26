@@ -4,7 +4,7 @@ import {
   createHash,
   randomBytes,
 } from "node:crypto";
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { Repository } from "../repositories/Repository.js";
 
@@ -13,6 +13,7 @@ export class AppInstallationSecretStore {
   private readonly key: Buffer;
 
   constructor(
+    @Inject(Repository)
     private readonly repository: Repository,
   ) {
     const { global } = getServiceConfig("apps");

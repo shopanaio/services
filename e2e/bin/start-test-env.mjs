@@ -31,6 +31,11 @@ const adminContextKeys = generateSigningKeys("e2e-admin");
 const storefrontContextKeys = generateSigningKeys("e2e-storefront");
 const adminResolverToken = randomBytes(32).toString("base64url");
 const storefrontResolverToken = randomBytes(32).toString("base64url");
+const iamApplicationAuthRootKey = randomBytes(32).toString("base64");
+const storefrontTokenPepper =
+  `base64:${randomBytes(32).toString("base64")}`;
+const storefrontPublicTokenMasterKey =
+  `base64:${randomBytes(32).toString("base64")}`;
 
 function appendNodeOption(option) {
   const current = process.env.NODE_OPTIONS ?? "";
@@ -58,6 +63,15 @@ const baseEnv = {
   STOREFRONT_CONTEXT_PUBLIC_KEYS: JSON.stringify({
     [storefrontContextKeys.kid]: storefrontContextKeys.publicKey,
   }),
+  IAM_APPLICATION_AUTH_ACTIVE_KEY_VERSION: "1",
+  IAM_APPLICATION_AUTH_ROOT_KEYS: JSON.stringify({
+    1: iamApplicationAuthRootKey,
+  }),
+  IAM_PUBLIC_BASE_URL: "http://127.0.0.1:11010",
+  BETTER_AUTH_URL: "http://127.0.0.1:11010",
+  STOREFRONT_TOKEN_ACTIVE_PEPPER_VERSION: "1",
+  STOREFRONT_TOKEN_PEPPER_V1: storefrontTokenPepper,
+  STOREFRONT_PUBLIC_TOKEN_MASTER_KEY: storefrontPublicTokenMasterKey,
 };
 
 function generateSigningKeys(kid) {
@@ -93,7 +107,10 @@ function servicePorts(config) {
     if (service?.ports?.iam_http) {
       ports.push(service.ports.iam_http);
     }
-    if (service?.ports?.storefront_graphql) {
+    if (
+      service?.ports?.storefront_graphql &&
+      !service?.ports?.admin_graphql
+    ) {
       ports.push(service.ports.storefront_graphql);
     }
     if (service?.ports?.app_admin_graphql) {

@@ -61,7 +61,7 @@ export default defineConfig({
   webServer: startServers
     ? {
         command: 'node bin/start-test-env.mjs',
-        url: baseURL,
+        url: `http://127.0.0.1:${adminGatewayPort}/graphql`,
         timeout: 240 * 1000,
         reuseExistingServer: false,
       }

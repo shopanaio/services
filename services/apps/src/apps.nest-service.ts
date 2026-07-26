@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   Logger,
   OnModuleDestroy,
@@ -33,10 +34,15 @@ export class AppsNestService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @InjectBroker("apps") private readonly broker: ServiceBroker,
+    @Inject(Repository)
     private readonly repository: Repository,
+    @Inject(AppInstallationStore)
     private readonly installations: AppInstallationStore,
+    @Inject(AppLifecycleService)
     private readonly lifecycle: AppLifecycleService,
+    @Inject(AppRuntimeRegistry)
     private readonly runtimes: AppRuntimeRegistry,
+    @Inject(AppsGraphQLIngress)
     private readonly graphqlIngress: AppsGraphQLIngress,
   ) {}
 

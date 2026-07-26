@@ -46,9 +46,13 @@ export class AppsRuntimeHost
     @InjectBroker("apps") private readonly broker: ServiceBroker,
     @Inject(DATABASE_CLIENT)
     private readonly databaseClient: DatabaseClient,
+    @Inject(AppBrokerFacadeFactory)
     private readonly brokerFactory: AppBrokerFacadeFactory,
+    @Inject(AppRuntimeRegistry)
     private readonly registry: AppRuntimeRegistry,
+    @Inject(AppSecretResolverFactory)
     private readonly secretResolverFactory: AppSecretResolverFactory,
+    @Inject(AppSubgraphHost)
     private readonly subgraphHost: AppSubgraphHost,
     @Inject(APP_INSTALLATION_CONTEXT_PROVIDER)
     private readonly installations: AppInstallationContextProvider,

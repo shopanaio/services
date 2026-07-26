@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { Apps } from "@shopana/broker-types";
 import {
   Action,
@@ -15,8 +15,11 @@ import { AppsRuntimeRouter } from "../runtime/AppsRuntimeRouter.js";
 export class AppsPlatformActions extends BrokerActions {
   constructor(
     @InjectBroker("apps") broker: ServiceBroker,
+    @Inject(AppLifecycleService)
     private readonly lifecycle: AppLifecycleService,
+    @Inject(AppInstallationStore)
     private readonly installations: AppInstallationStore,
+    @Inject(AppsRuntimeRouter)
     private readonly router: AppsRuntimeRouter,
   ) {
     super(broker);

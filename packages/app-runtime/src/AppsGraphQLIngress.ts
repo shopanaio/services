@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import fastify, {
   type FastifyInstance,
   type FastifyRequest,
@@ -50,7 +50,10 @@ export class AppsGraphQLIngress {
   private readonly logger = new Logger(AppsGraphQLIngress.name);
   private readonly servers = new Map<AppGraphQLSurface, FastifyInstance>();
 
-  constructor(private readonly registry: AppSubgraphRegistry) {}
+  constructor(
+    @Inject(AppSubgraphRegistry)
+    private readonly registry: AppSubgraphRegistry,
+  ) {}
 
   async start(ports: AppsGraphQLIngressPorts): Promise<void> {
     await this.startSurface("admin", ports.admin);

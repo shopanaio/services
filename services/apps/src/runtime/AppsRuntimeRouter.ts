@@ -23,6 +23,7 @@ import {
 export class AppsRuntimeRouter {
   constructor(
     @InjectBroker("apps") private readonly broker: ServiceBroker,
+    @Inject(AppRuntimeRegistry)
     private readonly registry: AppRuntimeRegistry,
     @Inject(APP_INSTALLATION_CONTEXT_PROVIDER)
     private readonly installations: AppInstallationContextProvider,

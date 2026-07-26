@@ -70,7 +70,10 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  logger.error('Failed to start bootstrap:', error);
+  logger.error(
+    'Failed to start bootstrap:',
+    error instanceof Error ? error.stack : String(error),
+  );
   process.exit(1);
 });
 

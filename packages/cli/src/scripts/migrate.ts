@@ -108,7 +108,12 @@ function discoverMigratableServices(): ServiceMigrationConfig[] {
     }
   }
 
-  return services;
+  return services.sort((left, right) => {
+    if (left.kind !== right.kind) {
+      return left.kind === "service" ? -1 : 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
 }
 
 /**

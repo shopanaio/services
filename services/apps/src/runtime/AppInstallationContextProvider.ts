@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type {
   ActiveAppContextResolutionReference,
   AppContextResolutionReference,
@@ -23,6 +23,7 @@ export class DatabaseAppInstallationContextProvider
   implements AppInstallationContextProvider
 {
   constructor(
+    @Inject(AppInstallationStore)
     private readonly installations: AppInstallationStore,
     @InjectBroker("apps") private readonly broker: ServiceBroker,
   ) {}
