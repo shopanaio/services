@@ -37,6 +37,7 @@ interface GlobalConfig {
 }
 
 interface BuildConfig {
+  appCode?: string;
   graphql?: {
     admin?: string | string[];
     storefront?: string | string[];
@@ -99,9 +100,16 @@ function discoverSubgraphs(meshType: MeshType): Subgraph[] {
         continue;
       }
 
+      const appCode =
+        root.kind === "app" ? buildConfig.appCode : undefined;
+      if (root.kind === "app" && !appCode) {
+        throw new Error(
+          `App "${unitName}" must declare appCode in build.config.json`,
+        );
+      }
       const serviceConfig =
         root.kind === "app"
-          ? globalConfig.services?.apps?.applications?.[unitName]
+          ? globalConfig.services?.apps?.applications?.[appCode!]
           : globalConfig.services?.[unitName];
       const port =
         root.kind === "app"
@@ -118,7 +126,7 @@ function discoverSubgraphs(meshType: MeshType): Subgraph[] {
           name: `${subgraphName}-${meshType}`,
           endpoint:
             root.kind === "app"
-              ? `http://localhost:${port}/subgraphs/${unitName}/graphql`
+              ? `http://localhost:${port}/subgraphs/${appCode}/graphql`
               : `http://localhost:${port}/graphql`,
           schemaFile: `./schema/${subgraphName}-${meshType}.graphql`,
         });

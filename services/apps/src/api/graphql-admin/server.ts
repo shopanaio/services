@@ -35,6 +35,7 @@ export interface ServerConfig {
   installations: AppInstallationStore;
   lifecycle: AppLifecycleService;
   runtimes: AppRuntimeRegistry;
+  isReady: () => boolean;
 }
 
 function getHeaderValue(
@@ -141,9 +142,15 @@ export async function startServer(serverConfig: ServerConfig) {
     }),
   );
 
-  app.get("/healthz", async (_request, reply) =>
-    reply.send({ status: "ok", service: "apps" }),
-  );
+  app.get("/healthz", async (_request, reply) => {
+    const ready = serverConfig.isReady();
+    return reply
+      .code(ready ? 200 : 503)
+      .send({
+        status: ready ? "ok" : "starting",
+        service: "apps",
+      });
+  });
 
   await app.listen({
     port: serverConfig.port,

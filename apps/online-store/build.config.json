@@ -1,4 +1,5 @@
 {
+  "appCode": "shopana-online-store",
   "entryPoint": "src/index.ts",
   "outFile": "dist/index.js"
 }

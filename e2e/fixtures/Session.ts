@@ -10,7 +10,27 @@ export class SessionFixture {
     client: StorefrontApiFixture;
   };
 
-  project!: Partial<ApiStore> & { id: string; name: string; displayName: string };
+  private currentProject:
+    | (Partial<ApiStore> & { id: string; name: string; displayName: string })
+    | undefined;
+
+  get project(): Partial<ApiStore> & {
+    id: string;
+    name: string;
+    displayName: string;
+  } {
+    return this.currentProject!;
+  }
+
+  set project(
+    value: Partial<ApiStore> & {
+      id: string;
+      name: string;
+      displayName: string;
+    },
+  ) {
+    this.currentProject = value;
+  }
 
   organizationId: string | null = null;
 
@@ -25,7 +45,7 @@ export class SessionFixture {
   };
 
   get projectSlug(): string {
-    return this.project?.name ?? '';
+    return this.currentProject?.name ?? '';
   }
 
   get user() {
@@ -78,6 +98,7 @@ export class SessionFixture {
     }
 
     this.organizationId = organization.id;
+    this.currentProject = undefined;
     return organization;
   }
 

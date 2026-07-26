@@ -240,6 +240,26 @@ async function waitForPorts(ports, label) {
   }
 }
 
+async function waitForHttpOk(url, label, timeoutMs = 180000) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        console.log(`[e2e-env] ${label} is ready`);
+        return;
+      }
+    } catch {
+      // The service may still be starting.
+    }
+
+    await new Promise((resolveTimeout) => setTimeout(resolveTimeout, 1000));
+  }
+
+  throw new Error(`${label} did not become ready at ${url}`);
+}
+
 function stopDocker() {
   if (!startDocker) {
     return;
@@ -351,6 +371,13 @@ async function main() {
 
   start("services", "yarn", ["shopana", "dev"]);
   await waitForPorts(servicePorts(config), "service");
+  const appsAdminPort = config.services?.apps?.ports?.admin_graphql;
+  if (appsAdminPort) {
+    await waitForHttpOk(
+      `http://127.0.0.1:${appsAdminPort}/healthz`,
+      "apps runtime",
+    );
+  }
 
   start(
     "admin gateway",
