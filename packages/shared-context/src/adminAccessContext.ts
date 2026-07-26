@@ -158,12 +158,14 @@ export function parseResolvedAdminAccessContext(
     ) {
       throw new Error("Invalid admin context resolver response");
     }
-  } else if (
-    organizationId !== null ||
-    permissions.length > 0 ||
-    isOrganizationOwner
-  ) {
-    throw new Error("Invalid admin context resolver response");
+  } else {
+    if (organizationId === null) {
+      if (permissions.length > 0 || isOrganizationOwner) {
+        throw new Error("Invalid admin context resolver response");
+      }
+    } else if (permissions.some(({ domain }) => domain !== "org")) {
+      throw new Error("Invalid admin context resolver response");
+    }
   }
 
   return Object.freeze({

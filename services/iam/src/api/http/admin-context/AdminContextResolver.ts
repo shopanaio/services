@@ -5,6 +5,10 @@ import {
   type Action,
   type ResourceName,
 } from "@shopana/rbac";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { Util } from "casbin";
 import type {
   AdminPermission,
@@ -16,6 +20,7 @@ import type { Kernel } from "../../../kernel/Kernel.js";
 
 export interface AdminContextResolveInput {
   readonly accessToken: string;
+  readonly organizationId?: string;
   readonly storeName?: string;
 }
 
@@ -50,7 +55,7 @@ export class AdminContextResolver {
     });
     const isSiteAdmin = validated.user.admin;
 
-    if (!input.storeName) {
+    if (!input.storeName && !input.organizationId) {
       return Object.freeze({
         user,
         sessionId: validated.sessionId,
@@ -62,17 +67,40 @@ export class AdminContextResolver {
       });
     }
 
-    const result = await this.kernel.getServices().broker.call<
-      ProjectStoreResult,
-      { readonly name: string }
-    >("project.getCurrentStore", { name: input.storeName });
-    const store = result?.store;
-    if (!store) return null;
+    let organizationId: string | undefined;
+    if (input.organizationId) {
+      try {
+        organizationId = decodeGlobalIdByType(
+          input.organizationId,
+          GlobalIdEntity.Organization,
+        );
+      } catch {
+        return null;
+      }
+    }
+
+    let store: ContextStore | null = null;
+    if (input.storeName) {
+      const result = await this.kernel.getServices().broker.call<
+        ProjectStoreResult,
+        { readonly name: string }
+      >("project.getCurrentStore", { name: input.storeName });
+      store = result?.store ?? null;
+      if (
+        !store ||
+        (organizationId !== undefined &&
+          organizationId !== store.organizationId)
+      ) {
+        return null;
+      }
+      organizationId = store.organizationId;
+    }
+    if (!organizationId) return null;
 
     const member = isSiteAdmin
       ? null
       : await this.kernel.repository.organization.findMember(
-          store.organizationId,
+          organizationId,
           validated.user.id,
         );
     if (!isSiteAdmin && !member) return null;
@@ -81,17 +109,24 @@ export class AdminContextResolver {
     const permissions =
       isSiteAdmin || isOrganizationOwner
         ? Object.freeze<AdminPermission[]>([])
-        : await this.resolvePermissions(
-            store.organizationId,
-            store.id,
-            validated.user.id,
-          );
+        : store
+          ? await this.resolvePermissions(
+              organizationId,
+              store.id,
+              validated.user.id,
+            )
+          : await this.resolveRolePermissions(
+              organizationId,
+              validated.user.id,
+              "org",
+              AllResources,
+            );
 
     return Object.freeze({
       user,
       sessionId: validated.sessionId,
-      organizationId: store.organizationId,
-      store: Object.freeze({ ...store }),
+      organizationId,
+      store: store ? Object.freeze({ ...store }) : null,
       permissions,
       isSiteAdmin,
       isOrganizationOwner,

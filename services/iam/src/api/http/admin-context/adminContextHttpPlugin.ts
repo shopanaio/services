@@ -6,6 +6,7 @@ import { AdminContextResolver } from "./AdminContextResolver.js";
 
 const requestSchema = z.object({
   accessToken: z.string().min(1).max(16_384),
+  organizationId: z.string().trim().min(1).max(255).optional(),
   storeName: z
     .string()
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)

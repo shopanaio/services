@@ -7151,15 +7151,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shopana/app-headless@workspace:apps/headless":
+"@shopana/app-headless@workspace:*, @shopana/app-headless@workspace:apps/headless":
   version: 0.0.0-use.local
   resolution: "@shopana/app-headless@workspace:apps/headless"
   dependencies:
     "@shopana/app-sdk": "workspace:*"
+    "@shopana/shared-context": "workspace:*"
+    "@shopana/shared-graphql-guid": "workspace:*"
     "@shopana/shared-kernel": "workspace:*"
+    "@shopana/type-resolver": "workspace:*"
     "@types/node": "npm:^22.7.4"
     drizzle-orm: "npm:^0.45.1"
+    fastify: "npm:^4.28.1"
     typescript: "npm:^5.5.4"
+    zod: "npm:^3.23.8"
   languageName: unknown
   linkType: soft
 
@@ -7198,6 +7203,7 @@ __metadata:
     "@as-integrations/fastify": "npm:^2.1.1"
     "@nestjs/common": "npm:^10.0.0"
     "@shopana/app-sdk": "workspace:*"
+    "@shopana/shared-context": "workspace:*"
     "@types/node": "npm:^22.7.4"
     fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
@@ -7228,6 +7234,7 @@ __metadata:
     "@graphql-codegen/cli": "npm:^5.0.2"
     "@graphql-codegen/typescript": "npm:^4.0.8"
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
+    "@shopana/app-headless": "workspace:*"
     "@shopana/app-hello-world": "workspace:*"
     "@shopana/app-online-store": "workspace:*"
     "@shopana/app-runtime": "workspace:*"
@@ -7379,6 +7386,7 @@ __metadata:
     "@event-driven-io/dumbo": "npm:^0.13.0-alpha.6"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/platform-api": "npm:0.0.1"
+    "@shopana/shared-context": "npm:*"
     "@shopana/shared-graphql-guid": "npm:0.0.1"
     "@shopana/shared-money": "npm:0.0.1"
     "@shopana/shared-service-api": "npm:*"
@@ -7599,6 +7607,7 @@ __metadata:
     "@graphql-hive/gateway": "npm:^1.7.2"
     "@graphql-mesh/compose-cli": "npm:^1.2.13"
     "@shopana/shared-context": "workspace:*"
+    "@shopana/shared-graphql-guid": "workspace:*"
     glob: "npm:^11.0.0"
     graphql: "npm:^16.9.0"
     graphql-tag: "npm:^2.12.6"
@@ -7628,6 +7637,7 @@ __metadata:
     "@shopana/events": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/rbac": "npm:*"
+    "@shopana/shared-context": "npm:*"
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-service-config": "npm:*"
     "@shopana/type-resolver": "npm:*"
@@ -7792,6 +7802,7 @@ __metadata:
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/shared-async-context": "npm:0.0.1"
+    "@shopana/shared-context": "npm:*"
     "@shopana/shared-kernel": "npm:1.0.0"
     "@shopana/shared-money": "npm:0.0.1"
     "@shopana/shared-service-api": "npm:*"
@@ -7908,6 +7919,7 @@ __metadata:
     "@shopana/drizzle-query": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/rbac": "npm:*"
+    "@shopana/shared-context": "npm:*"
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-references": "npm:*"
     "@shopana/shared-service-config": "npm:*"
@@ -8011,14 +8023,16 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@shopana/shared-context@workspace:packages/shared-context"
   dependencies:
+    "@shopana/rbac": "npm:*"
     "@shopana/shared-kernel": "npm:*"
     "@types/node": "npm:^20.12.7"
     fastify: "npm:^4.26.0"
+    graphql: "npm:^16.9.0"
     typescript: "npm:^5.4.5"
   languageName: unknown
   linkType: soft
 
-"@shopana/shared-graphql-guid@npm:*, @shopana/shared-graphql-guid@npm:0.0.1, @shopana/shared-graphql-guid@workspace:packages/shared-graphql-guid":
+"@shopana/shared-graphql-guid@npm:*, @shopana/shared-graphql-guid@npm:0.0.1, @shopana/shared-graphql-guid@workspace:*, @shopana/shared-graphql-guid@workspace:packages/shared-graphql-guid":
   version: 0.0.0-use.local
   resolution: "@shopana/shared-graphql-guid@workspace:packages/shared-graphql-guid"
   dependencies:

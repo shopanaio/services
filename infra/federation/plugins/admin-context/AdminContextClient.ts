@@ -45,6 +45,7 @@ export class AdminContextClient {
 
   async resolve(input: {
     readonly accessToken: string;
+    readonly organizationId?: string;
     readonly storeName?: string;
     readonly requestId: string;
   }): Promise<ResolvedAdminAccessContext | null> {

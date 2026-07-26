@@ -26,6 +26,7 @@ const ADMIN_WEBSOCKET_HEADERS = new Set([
   "user-agent",
   ADMIN_REQUEST_ID_HEADER,
   "x-store-name",
+  "x-organization-id",
 ]);
 
 export function createAdminContextPlugin() {
@@ -116,6 +117,9 @@ export function createAdminContextPlugin() {
     }
     const context = await client.resolve({
       accessToken: parsed.accessToken,
+      ...(parsed.organizationId
+        ? { organizationId: parsed.organizationId }
+        : {}),
       ...(parsed.storeName ? { storeName: parsed.storeName } : {}),
       requestId,
     });

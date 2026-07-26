@@ -2,6 +2,7 @@ export const ADMIN_REQUEST_ID_HEADER = "x-request-id";
 
 export function parseAdminRequest(request: Request): {
   readonly accessToken?: string;
+  readonly organizationId?: string;
   readonly storeName?: string;
 } {
   const authorization = singleHeader(request, "authorization");
@@ -30,8 +31,17 @@ export function parseAdminRequest(request: Request): {
       "Invalid admin store name",
     );
   }
+  const organizationId = singleHeader(request, "x-organization-id");
+  if (organizationId && organizationId.length > 255) {
+    throw requestError(
+      400,
+      "ADMIN_ORGANIZATION_ID_INVALID",
+      "Invalid admin organization ID",
+    );
+  }
   return {
     ...(accessToken ? { accessToken } : {}),
+    ...(organizationId ? { organizationId } : {}),
     ...(storeName ? { storeName } : {}),
   };
 }
