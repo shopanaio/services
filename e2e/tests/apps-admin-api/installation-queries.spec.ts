@@ -201,7 +201,7 @@ test.describe('Apps Admin API - installation queries', () => {
           appCode: { _eq: 'hello-world' },
           configurationVersion: { _eq: 1 },
         },
-        orderBy: [{ field: 'createdAt', direction: 'DESC' }],
+        orderBy: [{ field: 'createdAt', direction: 'desc' }],
       },
     });
     expect(filtered.data.appsQuery.appInstallations.totalCount).toBe(1);
@@ -250,7 +250,7 @@ test.describe('Apps Admin API - installation queries', () => {
         status: 'ACTIVE',
         lifecycleOperations: {
           totalCount: 2,
-          edges: [{ node: { type: 'INSTALL' } }, { node: { type: 'UPDATE' } }],
+          edges: [{ node: { type: 'UPDATE' } }, { node: { type: 'INSTALL' } }],
         },
       });
     const operation = await api.admin.query('apps-admin-api/AppLifecycleOperation', {

@@ -84,7 +84,7 @@ export class AppsQueryResolver extends AppsType<Record<string, never>> {
       : null;
   }
 
-  appInstallations(args: AppsQueryAppInstallationsArgs) {
+  appInstallations(args: AppsQueryAppInstallationsArgs = {}) {
     return this.resolvers.appInstallationConnection({
       first: args.first ?? undefined,
       after: args.after ?? undefined,
