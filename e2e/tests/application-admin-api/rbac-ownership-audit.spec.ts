@@ -37,7 +37,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     await sql.end();
   });
 
-  test('APP-SEC-001: platform authentication is required for every applicationQuery and applicationMutation operation', async ({
+  test('platform authentication is required for every applicationQuery and applicationMutation operation', async ({
     api,
   }) => {
     const owner = {
@@ -74,7 +74,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     }
   });
 
-  test('APP-SEC-002: organization owner receives admin access to applications, auth, providers, OAuth clients, and users', async ({
+  test('organization owner receives admin access to applications, auth, providers, OAuth clients, and users', async ({
     api,
   }) => {
     const application = await getApplication(api, scope.applicationA);
@@ -100,7 +100,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     expect(users.data.applicationQuery.application?.users.totalCount).toBe(0);
   });
 
-  test('APP-SEC-003: organization admin role follows RBAC hierarchy for read, write, and admin actions', async ({
+  test('organization admin role follows RBAC hierarchy for read, write, and admin actions', async ({
     api,
   }) => {
     const admin = await createOrganizationMember(api, scope.organizationId, {
@@ -133,7 +133,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     }
   });
 
-  test('APP-SEC-004: organization member without custom policy cannot read application auth, providers, OAuth clients, or users', async ({
+  test('organization member without custom policy cannot read application auth, providers, OAuth clients, or users', async ({
     api,
   }) => {
     const member = await createOrganizationMember(api, scope.organizationId, {
@@ -180,7 +180,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     }
   });
 
-  test('APP-SEC-005: custom read policy permits queries but rejects write and admin mutations', async ({
+  test('custom read policy permits queries but rejects write and admin mutations', async ({
     api,
   }) => {
     const reader = await createOrganizationMember(api, scope.organizationId, {
@@ -216,7 +216,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     }
   });
 
-  test('APP-SEC-006: custom write policy permits non-secret updates but rejects secret rotation and archive actions', async ({
+  test('custom write policy permits non-secret updates but rejects secret rotation and archive actions', async ({
     api,
   }) => {
     const client = required(
@@ -269,7 +269,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     }
   });
 
-  test('APP-SEC-007: organizationId input is treated as a selector and never as trusted authorization context', async ({
+  test('organizationId input is treated as a selector and never as trusted authorization context', async ({
     api,
   }) => {
     const owner = {
@@ -299,7 +299,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     }
   });
 
-  test('APP-SEC-008: applicationId plus organizationId ownership predicate is enforced before every read and write', async ({
+  test('applicationId plus organizationId ownership predicate is enforced before every read and write', async ({
     api,
   }) => {
     const read = await api.admin.query('application-admin-api/Application', {
@@ -330,7 +330,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     ).toMatchObject({});
   });
 
-  test('APP-SEC-009: global ID type confusion is rejected before domain mutation and records safe failure audit when applicable', async ({
+  test('global ID type confusion is rejected before domain mutation and records safe failure audit when applicable', async ({
     api,
   }) => {
     const confusedId = composeGlobalId('ApplicationUser', scope.applicationA.rawId);
@@ -356,7 +356,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     expect((await getApplication(api, scope.applicationA))?.displayName).not.toBe('Type confused');
   });
 
-  test('APP-SEC-010: malformed input returns userErrors without stack traces, SQL, secrets, or internal tenant details', async ({
+  test('malformed input returns userErrors without stack traces, SQL, secrets, or internal tenant details', async ({
     api,
   }) => {
     const result = await api.admin.mutation('application-admin-api/ApplicationUpdate', {
@@ -380,7 +380,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     ]);
   });
 
-  test('APP-SEC-011: successful write mutations create durable admin audit records with actor, organization, application, action, and request ID', async ({
+  test('successful write mutations create durable admin audit records with actor, organization, application, action, and request ID', async ({
     api,
   }) => {
     await updateApplication(api, scope.applicationA, { displayName: 'Audited application' });
@@ -399,7 +399,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     });
   });
 
-  test('APP-SEC-012: failed write mutations create safe failure audit records when the boundary can identify action and scope', async ({
+  test('failed write mutations create safe failure audit records when the boundary can identify action and scope', async ({
     api,
   }) => {
     await updateApplication(api, scope.applicationA, { displayName: 'Revision winner' });
@@ -417,7 +417,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     );
   });
 
-  test('APP-SEC-013: admin audit outage makes security-sensitive mutations fail closed according to contract', async ({
+  test('admin audit outage makes security-sensitive mutations fail closed according to contract', async ({
     api,
   }) => {
     const suffix = crypto.randomUUID().replaceAll('-', '');
@@ -457,7 +457,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     }
   });
 
-  test('APP-SEC-014: admin audit safeDiff is action allowlisted and excludes raw GraphQL variables', async ({
+  test('admin audit safeDiff is action allowlisted and excludes raw GraphQL variables', async ({
     api,
   }) => {
     const secretLikeDescription = `do-not-copy-raw-${crypto.randomUUID()}`;
@@ -473,7 +473,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     serializedWithoutSecrets(audit, [secretLikeDescription, scope.organizationId]);
   });
 
-  test('APP-SEC-015: runtime operational audit remains separate from admin mutation audit', async ({
+  test('runtime operational audit remains separate from admin mutation audit', async ({
     api,
     request,
   }) => {
@@ -499,7 +499,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     expect(after).toBe(before);
   });
 
-  test('APP-SEC-016: GraphQL admin middleware applies only to /graphql and not to public application auth routes', async ({
+  test('GraphQL admin middleware applies only to /graphql and not to public application auth routes', async ({
     api,
     request,
   }) => {
@@ -528,7 +528,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     }
   });
 
-  test('APP-SEC-017: public application auth cookies or bearer tokens cannot authorize Admin GraphQL operations', async ({
+  test('public application auth cookies or bearer tokens cannot authorize Admin GraphQL operations', async ({
     api,
   }) => {
     const userId = crypto.randomUUID();
@@ -566,7 +566,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     }
   });
 
-  test('APP-SEC-018: concurrent writes with the same expected revision produce exactly one successful mutation', async ({
+  test('concurrent writes with the same expected revision produce exactly one successful mutation', async ({
     api,
   }) => {
     const [alpha, beta] = await Promise.all([

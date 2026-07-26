@@ -46,6 +46,7 @@ export interface ApplicationAuthAdminMutationScope {
   archived: boolean;
   configuration: ApplicationAuthConfigurationRecord;
   deliveryConfigured: boolean;
+  enabledProviderCount: number;
 }
 
 export interface CreateAdminApplicationInput {
@@ -174,12 +175,22 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         eq(applicationAuthDeliveryProfile.applicationId, record.applicationId)
       )
       .limit(1);
+    const [providers] = await this.connection
+      .select({ count: sql<number>`count(*)::int` })
+      .from(applicationAuthProvider)
+      .where(
+        and(
+          eq(applicationAuthProvider.applicationId, record.applicationId),
+          eq(applicationAuthProvider.enabled, true)
+        )
+      );
     return {
       organizationId: record.organizationId,
       applicationId: record.applicationId,
       archived: record.archivedAt !== null,
       configuration: record.configuration,
       deliveryConfigured: Boolean(delivery),
+      enabledProviderCount: providers?.count ?? 0,
     };
   }
 

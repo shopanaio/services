@@ -8,7 +8,7 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-CONF-001..004: configure is a versioned compare-and-swap replacement', async ({
+  test('configure is a versioned compare-and-swap replacement', async ({
     api,
   }) => {
     const install = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -75,7 +75,7 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
     ).toHaveLength(1);
   });
 
-  test('APPS-CONF-005..012: update versions and scope replacements follow the manifest contract', async ({
+  test('update versions and scope replacements follow the manifest contract', async ({
     api,
   }) => {
     const install = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -140,7 +140,7 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
     });
   });
 
-  test('APPS-CONF-011 APPS-CONF-012: defaults and configuration are store-local', async ({
+  test('defaults and configuration are store-local', async ({
     api,
   }) => {
     const firstStore = api.session.project;
@@ -173,7 +173,7 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
     api.session.project = firstStore;
   });
 
-  test('APPS-CONF-013..018 APPS-CONF-020 APPS-CONF-021: secrets remain write-only and validation is atomic', async ({
+  test('secrets remain write-only and validation is atomic', async ({
     api,
   }) => {
     const plaintext = `secret-${crypto.randomUUID()}`;
@@ -212,7 +212,7 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
     ]);
   });
 
-  test('APPS-CONF-017 APPS-CONF-019: rotation and uninstall never expose secret material', async ({
+  test('rotation and uninstall never expose secret material', async ({
     api,
   }) => {
     const firstValue = `first-${crypto.randomUUID()}`;
@@ -268,7 +268,7 @@ test.describe('Apps Admin API - configuration, scopes, and secrets', () => {
       .toBe('UNINSTALLED');
   });
 
-  test('APPS-CONF-022: runtime observes rotation and loses secret access after uninstall', async ({
+  test('runtime observes rotation and loses secret access after uninstall', async ({
     api,
   }) => {
     const name = 'runtime-token';

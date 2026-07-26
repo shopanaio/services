@@ -8,7 +8,7 @@ test.describe('Apps Admin API - installation queries', () => {
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-QUERY-001..007: lookup validates global IDs and exposes complete installation state', async ({
+  test('lookup validates global IDs and exposes complete installation state', async ({
     api,
   }) => {
     const install = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -54,7 +54,7 @@ test.describe('Apps Admin API - installation queries', () => {
     }
   });
 
-  test('APPS-QUERY-003 APPS-QUERY-015 APPS-QUERY-016 APPS-QUERY-020: point reads remain store-local', async ({
+  test('point reads remain store-local', async ({
     api,
   }) => {
     const firstStore = api.session.project;
@@ -85,7 +85,7 @@ test.describe('Apps Admin API - installation queries', () => {
     api.session.project = firstStore;
   });
 
-  test('APPS-QUERY-005 APPS-QUERY-006: configuration versions and revoked scopes remain queryable', async ({
+  test('configuration versions and revoked scopes remain queryable', async ({
     api,
   }) => {
     const install = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -116,7 +116,7 @@ test.describe('Apps Admin API - installation queries', () => {
     ).not.toBeNull();
   });
 
-  test('APPS-QUERY-008..010: connection order and Relay pagination are stable and lossless', async ({
+  test('connection order and Relay pagination are stable and lossless', async ({
     api,
   }) => {
     const ids: string[] = [];
@@ -186,7 +186,7 @@ test.describe('Apps Admin API - installation queries', () => {
     expect(secondPage.data.appsQuery.appInstallations.totalCount).toBe(ids.length);
   });
 
-  test('APPS-QUERY-011..014: filters, ordering, count, and invalid cursors are safe', async ({
+  test('filters, ordering, count, and invalid cursors are safe', async ({
     api,
   }) => {
     await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -219,7 +219,7 @@ test.describe('Apps Admin API - installation queries', () => {
     }
   });
 
-  test('APPS-QUERY-017..019: operation and manifest histories are deterministic and scoped', async ({
+  test('operation and manifest histories are deterministic and scoped', async ({
     api,
   }) => {
     const install = await api.admin.mutation('apps-admin-api/AppInstall', {

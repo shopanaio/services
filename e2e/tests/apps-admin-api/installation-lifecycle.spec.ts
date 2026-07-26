@@ -7,7 +7,7 @@ test.describe('Apps Admin API - installation lifecycle', () => {
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-LIFE-001..003 APPS-LIFE-028: install reaches ACTIVE with one traceable operation', async ({
+  test('install reaches ACTIVE with one traceable operation', async ({
     api,
   }) => {
     const response = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -46,7 +46,7 @@ test.describe('Apps Admin API - installation lifecycle', () => {
       });
   });
 
-  test('APPS-LIFE-004 APPS-LIFE-005 APPS-LIFE-025: invalid installs and transitions create no operation', async ({
+  test('invalid installs and transitions create no operation', async ({
     api,
   }) => {
     for (const [appCode, expectedCode] of [
@@ -108,7 +108,7 @@ test.describe('Apps Admin API - installation lifecycle', () => {
     });
   });
 
-  test('APPS-LIFE-006 APPS-LIFE-026: stores own independent installations and reject foreign IDs', async ({
+  test('stores own independent installations and reject foreign IDs', async ({
     api,
   }) => {
     const firstStore = api.session.project;
@@ -143,7 +143,7 @@ test.describe('Apps Admin API - installation lifecycle', () => {
     api.session.project = firstStore;
   });
 
-  test('APPS-LIFE-007 APPS-LIFE-008: failed install retries the same installation row', async ({
+  test('failed install retries the same installation row', async ({
     api,
   }) => {
     const failed = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -183,7 +183,7 @@ test.describe('Apps Admin API - installation lifecycle', () => {
       .toBe('ACTIVE');
   });
 
-  test('APPS-LIFE-009..019: update, suspend, and resume preserve lifecycle state', async ({
+  test('update, suspend, and resume preserve lifecycle state', async ({
     api,
   }) => {
     const install = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -247,7 +247,7 @@ test.describe('Apps Admin API - installation lifecycle', () => {
       .toBe('ACTIVE');
   });
 
-  test('APPS-LIFE-020..024 APPS-LIFE-027: uninstall preserves history and permits reinstall', async ({
+  test('uninstall preserves history and permits reinstall', async ({
     api,
   }) => {
     const install = await api.admin.mutation('apps-admin-api/AppInstall', {

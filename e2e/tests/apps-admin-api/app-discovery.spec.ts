@@ -118,7 +118,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-DISC-001: returns every bundled App in stable code order', async ({ api }) => {
+  test('returns every bundled App in stable code order', async ({ api }) => {
     const definitions = await getAvailableApps(api);
 
     expect(definitions.map(({ code }) => code)).toEqual(bundledApps.map(({ code }) => code));
@@ -127,7 +127,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     );
   });
 
-  test('APPS-DISC-002 APPS-DISC-003: resolves only an exact non-blank manifest code', async ({
+  test('resolves only an exact non-blank manifest code', async ({
     api,
   }) => {
     await expect(getAppDefinition(api, 'hello-world')).resolves.toMatchObject({
@@ -139,7 +139,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     await expect(getAppDefinition(api, 'unknown-app')).resolves.toBeNull();
   });
 
-  test('APPS-DISC-004 APPS-DISC-006..008: projects bundled manifest metadata', async ({
+  test('projects bundled manifest metadata', async ({
     api,
   }) => {
     const definitions = await getAvailableApps(api);
@@ -167,7 +167,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     ).toEqual(bundledApps);
   });
 
-  test('APPS-DISC-005 APPS-DISC-014: exposes healthy and failed runtimes without internals', async ({
+  test('exposes healthy and failed runtimes without internals', async ({
     api,
   }) => {
     const definitions = await getAvailableApps(api);
@@ -196,7 +196,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     );
   });
 
-  test('APPS-DISC-009 APPS-DISC-010: filters definitions by current installation state', async ({
+  test('filters definitions by current installation state', async ({
     api,
   }) => {
     await expect(getAvailableApps(api, true)).resolves.toEqual([]);
@@ -214,7 +214,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     ).resolves.toEqual(['shopana-headless', 'shopana-online-store']);
   });
 
-  test('APPS-DISC-007 APPS-DISC-011: exposes grants and installation for the current store', async ({
+  test('exposes grants and installation for the current store', async ({
     api,
   }) => {
     const installation = await installApp(api, 'shopana-headless');
@@ -230,7 +230,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     });
   });
 
-  test('APPS-DISC-012: an installation in another store does not change discovery', async ({
+  test('an installation in another store does not change discovery', async ({
     api,
   }) => {
     const firstStore = api.session.project;
@@ -255,7 +255,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     });
   });
 
-  test('APPS-DISC-013: an uninstalled terminal row is not currently installed', async ({ api }) => {
+  test('an uninstalled terminal row is not currently installed', async ({ api }) => {
     const installation = await installApp(api, 'hello-world');
 
     await expect

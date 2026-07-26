@@ -21,6 +21,7 @@ import { resolveIamHttpRuntimeConfiguration } from "./api/http/iamHttpConfigurat
 import {
   APPLICATION_AUTH_EMAIL_DELIVERY_PORT,
   type ApplicationAuthEmailDeliveryPort,
+  type ApplicationAuthEmailDeliveryRequest,
 } from "./services/ApplicationAuthEmailDeliveryPort.js";
 import {
   APPLICATION_AUTH_RATE_LIMIT_PORT,
@@ -86,6 +87,11 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       (global.environment === "development"
         ? new InMemoryApplicationAuthRateLimitAdapter()
         : undefined);
+    const applicationAuthEmailDelivery =
+      this.applicationAuthEmailDelivery ??
+      (process.env.IAM_E2E_EMAIL_DELIVERY === "true"
+        ? e2eApplicationAuthEmailDelivery
+        : undefined);
     if (!this.applicationAuthRateLimit && applicationAuthRateLimit) {
       this.logger.warn(
         "Using single-process application auth rate limiting in development"
@@ -98,7 +104,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     }
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient, {
       applicationAuthPublicBaseUrl: http.publicBaseUrl,
-      applicationAuthEmailDelivery: this.applicationAuthEmailDelivery,
+      applicationAuthEmailDelivery,
       applicationAuthRateLimit,
       applicationAuthAudit: this.applicationAuthAudit,
       applicationAuthAdminAudit: this.applicationAuthAdminAudit,
@@ -132,3 +138,12 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     this.logger.log("IAM service stopped");
   }
 }
+
+const e2eApplicationAuthEmailDelivery: ApplicationAuthEmailDeliveryPort = {
+  async enqueue(request: ApplicationAuthEmailDeliveryRequest) {
+    return {
+      accepted: true,
+      messageId: `e2e:${request.idempotencyKey}`,
+    };
+  },
+};

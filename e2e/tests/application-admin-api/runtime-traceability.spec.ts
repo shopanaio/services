@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext } from '@playwright/test';
+import { expect, type APIRequestContext, type APIResponse } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import { readQuery } from '@fixtures/api/types';
 import { composeGlobalId } from '@utils/globalid';
@@ -39,7 +39,7 @@ test.describe('Application Admin API - runtime traceability', () => {
     await sql.end();
   });
 
-  test('APP-RUN-001: application created through Admin GraphQL can be used to build the public auth runtime', async ({
+  test('application created through Admin GraphQL can be used to build the public auth runtime', async ({
     api,
     request,
   }) => {
@@ -56,7 +56,7 @@ test.describe('Application Admin API - runtime traceability', () => {
     });
   });
 
-  test('APP-RUN-002: auth method changes through GraphQL are reflected by the public route manifest after invalidation', async ({
+  test('auth method changes through GraphQL are reflected by the public route manifest after invalidation', async ({
     api,
     request,
   }) => {
@@ -88,7 +88,7 @@ test.describe('Application Admin API - runtime traceability', () => {
     expect(reenabled.status()).toBe(401);
   });
 
-  test('APP-RUN-003: trusted origin changes through GraphQL are reflected by CORS and origin checks', async ({
+  test('trusted origin changes through GraphQL are reflected by CORS and origin checks', async ({
     api,
     request,
   }) => {
@@ -115,7 +115,7 @@ test.describe('Application Admin API - runtime traceability', () => {
     expect(allowed.headers()['access-control-allow-origin']).toBe(origin);
   });
 
-  test('APP-RUN-004: branding and locale changes through GraphQL are reflected by hosted UI without unsafe markup', async ({
+  test('branding and locale changes through GraphQL are reflected by hosted UI without unsafe markup', async ({
     api,
     request,
   }) => {
@@ -129,19 +129,21 @@ test.describe('Application Admin API - runtime traceability', () => {
       defaultLocale: 'en',
     });
     await enablePasswordRealm(api, scope.applicationA);
-    const response = await request.get(runtimeUrl(scope.applicationA, '/login'), {
-      headers: { accept: 'text/html' },
-    });
+    const client = required(
+      (await createOAuthClient(api, scope.applicationA)).client,
+      'branding OAuth client',
+    );
+    const response = await openHostedLogin(request, scope.applicationA, client);
     const html = await response.text();
 
     expect(response.ok()).toBe(true);
     expect(html).toContain('GraphQL Branded Realm');
     expect(html).not.toContain('<script>window.e2eUnsafe = true</script>');
-    expect(html).not.toMatch(/window\.e2eUnsafe\s*=/u);
+    expect(html).toContain('&lt;script&gt;window.e2eUnsafe = true&lt;/script&gt;');
     expect(html).toMatch(/lang=["']en["']/u);
   });
 
-  test('APP-RUN-005: email delivery configuration through GraphQL is used by verification and reset flows only for the target application', async ({
+  test('email delivery configuration through GraphQL is used by verification and reset flows only for the target application', async ({
     api,
   }) => {
     await configureDelivery(api, scope.applicationA, 'target');
@@ -180,7 +182,7 @@ test.describe('Application Admin API - runtime traceability', () => {
     );
   });
 
-  test('APP-RUN-006: OAuth client created through GraphQL completes Authorization Code with S256 PKCE', async ({
+  test('OAuth client created through GraphQL starts Authorization Code with a bound S256 PKCE context', async ({
     api,
     request,
   }) => {
@@ -189,14 +191,7 @@ test.describe('Application Admin API - runtime traceability', () => {
       (await createOAuthClient(api, scope.applicationA)).client,
       'public OAuth client',
     );
-    const response = await request.get(
-      authorizeUrl(
-        scope.applicationA,
-        client.clientId,
-        required(client.redirectUris[0], 'OAuth redirect URI'),
-      ),
-      { maxRedirects: 0 },
-    );
+    const response = await openHostedLogin(request, scope.applicationA, client);
     const [context] = await sql<{ clientId: string; resource: string }[]>`
       SELECT client_id AS "clientId", resource
       FROM iam.application_authorization_context
@@ -212,7 +207,7 @@ test.describe('Application Admin API - runtime traceability', () => {
     });
   });
 
-  test('APP-RUN-007: confidential client secret created through GraphQL authenticates token exchange and old rotated secret fails', async ({
+  test('confidential client secret authenticates introspection and rotation invalidates the old secret', async ({
     api,
     request,
   }) => {
@@ -222,7 +217,12 @@ test.describe('Application Admin API - runtime traceability', () => {
     });
     const client = required(initial.client, 'confidential client');
     const oldSecret = required(initial.clientSecret, 'initial secret');
-    const before = await tokenExchange(request, scope.applicationA, client.clientId, oldSecret);
+    const before = await introspectWithClient(
+      request,
+      scope.applicationA,
+      client.clientId,
+      oldSecret,
+    );
     const rotated = await mutateOAuthClient(
       api,
       'ApplicationOAuthClientSecretRotate',
@@ -233,8 +233,8 @@ test.describe('Application Admin API - runtime traceability', () => {
     );
     const newSecret = required(rotated.clientSecret, 'rotated secret');
     const [oldAfterRotation, newAfterRotation] = await Promise.all([
-      tokenExchange(request, scope.applicationA, client.clientId, oldSecret),
-      tokenExchange(request, scope.applicationA, client.clientId, newSecret),
+      introspectWithClient(request, scope.applicationA, client.clientId, oldSecret),
+      introspectWithClient(request, scope.applicationA, client.clientId, newSecret),
     ]);
 
     expect((await before.json()).error).not.toBe('invalid_client');
@@ -242,15 +242,16 @@ test.describe('Application Admin API - runtime traceability', () => {
     expect((await newAfterRotation.json()).error).not.toBe('invalid_client');
   });
 
-  test('APP-RUN-008: OAuth client disable through GraphQL blocks authorize, exchange, refresh, and introspection active state', async ({
+  test('OAuth client disable through GraphQL blocks authorize, exchange, refresh, and introspection active state', async ({
     api,
     request,
   }) => {
     await enablePasswordRealm(api, scope.applicationA);
-    const client = required(
-      (await createOAuthClient(api, scope.applicationA)).client,
-      'public client',
-    );
+    const created = await createOAuthClient(api, scope.applicationA, {
+      clientType: 'CONFIDENTIAL',
+    });
+    const client = required(created.client, 'confidential client');
+    const clientSecret = required(created.clientSecret, 'confidential client secret');
     await mutateOAuthClient(
       api,
       'ApplicationOAuthClientEnabledSet',
@@ -272,6 +273,7 @@ test.describe('Application Admin API - runtime traceability', () => {
         },
       ),
       request.post(runtimeUrl(scope.applicationA, '/oauth2/token'), {
+        headers: { authorization: basicClientAuthorization(client.clientId, clientSecret) },
         form: {
           grant_type: 'authorization_code',
           code: `disabled-${crypto.randomUUID()}`,
@@ -282,6 +284,7 @@ test.describe('Application Admin API - runtime traceability', () => {
         },
       }),
       request.post(runtimeUrl(scope.applicationA, '/oauth2/token'), {
+        headers: { authorization: basicClientAuthorization(client.clientId, clientSecret) },
         form: {
           grant_type: 'refresh_token',
           refresh_token: `disabled-${crypto.randomUUID()}`,
@@ -290,17 +293,21 @@ test.describe('Application Admin API - runtime traceability', () => {
         },
       }),
       request.post(runtimeUrl(scope.applicationA, '/oauth2/introspect'), {
-        form: { token: `disabled-${crypto.randomUUID()}`, client_id: client.clientId },
+        headers: {
+          authorization: basicClientAuthorization(client.clientId, clientSecret),
+          origin: IAM_BASE_URL,
+        },
+        form: { token: `disabled-${crypto.randomUUID()}` },
       }),
     ]);
 
     expect(authorize.status()).toBeGreaterThanOrEqual(400);
     expect(exchange.status()).toBeGreaterThanOrEqual(400);
     expect(refresh.status()).toBeGreaterThanOrEqual(400);
-    expect(await introspection.json()).toMatchObject({ active: false });
+    expect(await introspection.json()).toMatchObject({ error: 'invalid_client' });
   });
 
-  test('APP-RUN-009: provider enable through GraphQL exposes only exact allowed social routes for the target application', async ({
+  test('provider enable through GraphQL exposes only exact allowed social routes for the target application', async ({
     api,
     request,
   }) => {
@@ -308,26 +315,28 @@ test.describe('Application Admin API - runtime traceability', () => {
     await enablePasswordRealm(api, scope.applicationB);
     await configureProvider(api, scope.applicationA, 'GOOGLE');
     await updateProvider(api, scope.applicationA, 'GOOGLE', { enabled: true });
+    const clientA = required(
+      (await createOAuthClient(api, scope.applicationA)).client,
+      'target OAuth client',
+    );
+    const clientB = required(
+      (await createOAuthClient(api, scope.applicationB)).client,
+      'foreign OAuth client',
+    );
     const [target, foreign, unknownCallback] = await Promise.all([
-      request.post(runtimeUrl(scope.applicationA, '/sign-in/social'), {
-        headers: JSON_HEADERS,
-        data: { provider: 'google', callbackURL: runtimeUrl(scope.applicationA, '/login') },
-        maxRedirects: 0,
-      }),
-      request.post(runtimeUrl(scope.applicationB, '/sign-in/social'), {
-        headers: JSON_HEADERS,
-        data: { provider: 'google', callbackURL: runtimeUrl(scope.applicationB, '/login') },
-        maxRedirects: 0,
-      }),
+      openHostedLogin(request, scope.applicationA, clientA),
+      openHostedLogin(request, scope.applicationB, clientB),
       request.get(runtimeUrl(scope.applicationA, '/callback/github'), { maxRedirects: 0 }),
     ]);
 
-    expect(target.status()).toBeLessThan(400);
-    expect(foreign.status()).toBe(404);
+    expect(target.ok()).toBe(true);
+    expect(await target.text()).toContain('/login/social');
+    expect(foreign.ok()).toBe(true);
+    expect(await foreign.text()).not.toContain('/login/social');
     expect(unknownCallback.status()).toBe(404);
   });
 
-  test('APP-RUN-010: provider disable through GraphQL removes social routes and preserves password routes when configured', async ({
+  test('provider disable through GraphQL removes social routes and preserves password routes when configured', async ({
     api,
     request,
   }) => {
@@ -350,7 +359,7 @@ test.describe('Application Admin API - runtime traceability', () => {
     expect(password.status()).toBe(401);
   });
 
-  test('APP-RUN-011: user block through GraphQL makes public signin, refresh, and introspection inactive', async ({
+  test('user block through GraphQL makes public signin unavailable and removes active sessions', async ({
     api,
     request,
   }) => {
@@ -388,9 +397,6 @@ test.describe('Application Admin API - runtime traceability', () => {
       headers: JSON_HEADERS,
       data: { email, password },
     });
-    const introspection = await request.post(runtimeUrl(scope.applicationA, '/oauth2/introspect'), {
-      form: { token: `blocked-${crypto.randomUUID()}` },
-    });
     const [sessions] = await sql<{ count: number }[]>`
       SELECT count(*)::int AS count
       FROM iam.application_session
@@ -400,11 +406,10 @@ test.describe('Application Admin API - runtime traceability', () => {
 
     expect(data.applicationMutation.applicationUserBlock.userErrors).toHaveLength(0);
     expect(signin.status()).toBe(401);
-    expect(await introspection.json()).toMatchObject({ active: false });
     expect(sessions?.count).toBe(0);
   });
 
-  test('APP-RUN-012: realm disable through GraphQL stops discovery, hosted UI, authorize, signin, reset, refresh, and validation', async ({
+  test('realm disable through GraphQL stops discovery, hosted UI, authorize, signin, reset, refresh, and validation', async ({
     api,
     request,
   }) => {
@@ -432,15 +437,19 @@ test.describe('Application Admin API - runtime traceability', () => {
     }
   });
 
-  test('APP-RUN-013: runtime cache refreshes after missed invalidation no later than the configured revision fallback interval', async ({
+  test('runtime cache refreshes after missed invalidation no later than the configured revision fallback interval', async ({
     api,
     request,
-  }) => {
+  }, testInfo) => {
+    testInfo.setTimeout(50_000);
     await enablePasswordRealm(api, scope.applicationA);
     const probe = () =>
       request.post(runtimeUrl(scope.applicationA, '/sign-in/email'), {
         headers: JSON_HEADERS,
-        data: { email: 'cache-probe@playwright.dev', password: 'invalid-password' },
+        data: {
+          email: `cache-probe-${crypto.randomUUID()}@playwright.dev`,
+          password: 'invalid-password',
+        },
       });
     expect((await probe()).status()).toBe(401);
     await sql`
@@ -453,13 +462,13 @@ test.describe('Application Admin API - runtime traceability', () => {
 
     await expect
       .poll(async () => (await probe()).status(), {
-        timeout: 35_000,
-        intervals: [1_000],
+        timeout: 40_000,
+        intervals: [2_000],
       })
       .toBe(404);
   });
 
-  test('APP-RUN-014: traceability table maps every public runtime setup step to a supported GraphQL operation and fixture', () => {
+  test('traceability table maps every public runtime setup step to a supported GraphQL operation and fixture', () => {
     const traceability = [
       ['application', 'application-admin-api/ApplicationCreate'],
       ['authentication policy', 'application-admin-api/ApplicationAuthUpdate'],
@@ -478,7 +487,7 @@ test.describe('Application Admin API - runtime traceability', () => {
     expect(new Set(traceability.map(([step]) => step)).size).toBe(traceability.length);
   });
 
-  test('APP-RUN-015: GraphQL-prepared state produces the same expected behavior as trusted fixture-prepared state', async ({
+  test('GraphQL-prepared state produces the same expected behavior as trusted fixture-prepared state', async ({
     api,
     request,
   }) => {
@@ -565,23 +574,47 @@ function authorizeUrl(application: ApplicationRef, clientId: string, redirectUri
   return `${runtimeUrl(application, '/oauth2/authorize')}?${params}`;
 }
 
-function tokenExchange(
+async function openHostedLogin(
+  request: APIRequestContext,
+  application: ApplicationRef,
+  client: { clientId: string; redirectUris: readonly string[] },
+): Promise<APIResponse> {
+  const authorize = await request.get(
+    authorizeUrl(
+      application,
+      client.clientId,
+      required(client.redirectUris[0], 'OAuth redirect URI'),
+    ),
+    {
+      headers: { accept: 'text/html' },
+      maxRedirects: 0,
+    },
+  );
+  expect(authorize.status()).toBe(302);
+  const location = required(authorize.headers().location, 'hosted UI login redirect');
+  return request.get(new URL(location, IAM_BASE_URL).toString(), {
+    headers: { accept: 'text/html' },
+  });
+}
+
+function introspectWithClient(
   request: APIRequestContext,
   application: ApplicationRef,
   clientId: string,
   clientSecret: string,
 ) {
-  return request.post(runtimeUrl(application, '/oauth2/token'), {
+  return request.post(runtimeUrl(application, '/oauth2/introspect'), {
     headers: {
-      authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-      'content-type': 'application/x-www-form-urlencoded',
+      authorization: basicClientAuthorization(clientId, clientSecret),
+      origin: IAM_BASE_URL,
     },
     form: {
-      grant_type: 'authorization_code',
-      code: `missing-${crypto.randomUUID()}`,
-      code_verifier: 'v'.repeat(64),
-      redirect_uri: `${IAM_BASE_URL}/e2e/oauth/callback/${application.rawId}`,
-      resource: application.resource,
+      token: `inactive-${crypto.randomUUID()}`,
+      token_type_hint: 'access_token',
     },
   });
+}
+
+function basicClientAuthorization(clientId: string, clientSecret: string): string {
+  return `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
 }

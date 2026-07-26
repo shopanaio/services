@@ -7,7 +7,7 @@ test.describe('Apps Admin API - idempotency and concurrency', () => {
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-IDEM-001..003 APPS-IDEM-010: install retry returns the original operation exactly once', async ({
+  test('install retry returns the original operation exactly once', async ({
     api,
   }) => {
     const clientMutationId = crypto.randomUUID();
@@ -39,7 +39,7 @@ test.describe('Apps Admin API - idempotency and concurrency', () => {
       .toBe('SUCCEEDED');
   });
 
-  test('APPS-IDEM-004 APPS-IDEM-005: update and actions return the original operation on retry', async ({
+  test('update and actions return the original operation on retry', async ({
     api,
   }) => {
     const installed = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -104,7 +104,7 @@ test.describe('Apps Admin API - idempotency and concurrency', () => {
     }
   });
 
-  test('APPS-IDEM-006 APPS-IDEM-013: idempotency keys are installation- and store-scoped', async ({
+  test('idempotency keys are installation- and store-scoped', async ({
     api,
   }) => {
     const sharedId = crypto.randomUUID();
@@ -133,7 +133,7 @@ test.describe('Apps Admin API - idempotency and concurrency', () => {
     );
   });
 
-  test('APPS-IDEM-007..009 APPS-IDEM-014: parallel installs and transitions converge to one operation', async ({
+  test('parallel installs and transitions converge to one operation', async ({
     api,
   }) => {
     const installs = await Promise.all(
@@ -184,7 +184,7 @@ test.describe('Apps Admin API - idempotency and concurrency', () => {
     );
   });
 
-  test('APPS-IDEM-011 APPS-IDEM-012: retry observes the persisted failed operation', async ({
+  test('retry observes the persisted failed operation', async ({
     api,
   }) => {
     const clientMutationId = crypto.randomUUID();

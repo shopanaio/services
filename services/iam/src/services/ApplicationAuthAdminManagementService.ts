@@ -784,7 +784,8 @@ export class ApplicationAuthAdminManagementService {
         if (
           scope.configuration.realmEnabled &&
           !resultingPasswordSignIn &&
-          !resultingEmailOtpSignIn
+          !resultingEmailOtpSignIn &&
+          scope.enabledProviderCount === 0
         ) {
           throw new ApplicationAuthAdminManagementError(
             "The last available sign-in method cannot be disabled",

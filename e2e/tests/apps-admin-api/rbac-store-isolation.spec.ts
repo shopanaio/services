@@ -12,7 +12,7 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-SEC-001 APPS-SEC-011 APPS-SEC-012: Admin tenant authentication is required', async ({
+  test('Admin tenant authentication is required', async ({
     api,
     request,
   }) => {
@@ -58,7 +58,7 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
     expect(storefront.data?.appsQuery?.availableApps).toBeUndefined();
   });
 
-  test('APPS-SEC-002..005 APPS-SEC-014: read, write, and admin permissions enforce exact boundaries', async ({
+  test('read, write, and admin permissions enforce exact boundaries', async ({
     api,
   }) => {
     const owner = {
@@ -184,7 +184,7 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
     }
   });
 
-  test('APPS-SEC-006..010 APPS-SEC-016 APPS-SEC-017: trusted context prevents foreign ID substitution', async ({
+  test('trusted context prevents foreign ID substitution', async ({
     api,
   }) => {
     const firstStore = api.session.project;
@@ -230,7 +230,7 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
     api.session.project = firstStore;
   });
 
-  test('APPS-SEC-013 APPS-SEC-015 APPS-SEC-018: malformed mutations are safe and side-effect free', async ({
+  test('malformed mutations are safe and side-effect free', async ({
     api,
   }) => {
     for (const installationId of [

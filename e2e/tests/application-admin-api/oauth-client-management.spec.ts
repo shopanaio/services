@@ -35,7 +35,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     await sql.end();
   });
 
-  test('APP-OAUTH-001: admin can create a public client with server-owned protocol policy', async ({
+  test('admin can create a public client with server-owned protocol policy', async ({
     api,
   }) => {
     const payload = await createOAuthClient(api, scope.applicationA);
@@ -56,7 +56,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     });
   });
 
-  test('APP-OAUTH-002: admin can create a confidential client and receives plaintext secret exactly once', async ({
+  test('admin can create a confidential client and receives plaintext secret exactly once', async ({
     api,
   }) => {
     const payload = await createOAuthClient(api, scope.applicationA, {
@@ -71,7 +71,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect(fetched).not.toHaveProperty('clientSecret');
   });
 
-  test('APP-OAUTH-003: created confidential client stores only a hashed secret and never returns the hash', async ({
+  test('created confidential client stores only a hashed secret and never returns the hash', async ({
     api,
   }) => {
     const payload = await createOAuthClient(api, scope.applicationA, {
@@ -87,7 +87,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect(JSON.stringify(client)).not.toContain(String(row.client_secret));
   });
 
-  test('APP-OAUTH-004: client create rejects caller-supplied resource, grant type, response type, auth method, or secret hash', async ({
+  test('client create rejects caller-supplied resource, grant type, response type, auth method, or secret hash', async ({
     api,
     request,
   }) => {
@@ -134,7 +134,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect((await listOAuthClients(api, scope.applicationA)).totalCount).toBe(0);
   });
 
-  test('APP-OAUTH-005: client create rejects invalid redirect URI without creating a client row', async ({
+  test('client create rejects invalid redirect URI without creating a client row', async ({
     api,
   }) => {
     const payload = await createOAuthClient(api, scope.applicationA, {
@@ -147,7 +147,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect((await listOAuthClients(api, scope.applicationA)).totalCount).toBe(0);
   });
 
-  test('APP-OAUTH-006: production client accepts only HTTPS redirect and post-logout URIs', async ({
+  test('production client accepts only HTTPS redirect and post-logout URIs', async ({
     api,
   }) => {
     const rejectedRedirect = await createOAuthClient(api, scope.applicationA, {
@@ -174,7 +174,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect(accepted.userErrors).toHaveLength(0);
   });
 
-  test('APP-OAUTH-007: development client allows loopback HTTP redirect URI and rejects non-loopback HTTP', async ({
+  test('development client allows loopback HTTP redirect URI and rejects non-loopback HTTP', async ({
     api,
   }) => {
     const loopback = await createOAuthClient(api, scope.applicationA, {
@@ -192,7 +192,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect(remote.userErrors).toEqual([expect.objectContaining({ code: 'INVALID_REDIRECT_URI' })]);
   });
 
-  test('APP-OAUTH-008: redirect and post-logout URIs are exact, deduplicated, and reject wildcard or fragment', async ({
+  test('redirect and post-logout URIs are exact, deduplicated, and reject wildcard or fragment', async ({
     api,
   }) => {
     const duplicate = await createOAuthClient(api, scope.applicationA, {
@@ -215,7 +215,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     ]);
   });
 
-  test('APP-OAUTH-009: client list and get require org.application-oauth-clients read permission', async ({
+  test('client list and get require org.application-oauth-clients read permission', async ({
     api,
   }) => {
     const created = required(
@@ -242,7 +242,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     }
   });
 
-  test('APP-OAUTH-010: client connection filters by type, environment, disabled, archived, and search inside application scope', async ({
+  test('client connection filters by type, environment, disabled, archived, and search inside application scope', async ({
     api,
   }) => {
     const match = required(
@@ -278,7 +278,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect(connection.edges.map(({ node }) => node.clientId)).toEqual([match.clientId]);
   });
 
-  test('APP-OAUTH-011: client connection pagination remains stable with multiple clients sharing updatedAt', async ({
+  test('client connection pagination remains stable with multiple clients sharing updatedAt', async ({
     api,
   }) => {
     const alpha = required(
@@ -317,7 +317,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect(repeated.edges[0]?.cursor).toBe(first.edges[0]?.cursor);
   });
 
-  test('APP-OAUTH-012: client update changes only mutable metadata and increments revision', async ({
+  test('client update changes only mutable metadata and increments revision', async ({
     api,
   }) => {
     const created = required(
@@ -351,7 +351,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     });
   });
 
-  test('APP-OAUTH-013: stale client update returns revision conflict and preserves previous values', async ({
+  test('stale client update returns revision conflict and preserves previous values', async ({
     api,
   }) => {
     const created = required(
@@ -387,7 +387,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     });
   });
 
-  test('APP-OAUTH-014: client disable prevents authorize, token exchange, refresh, and introspection authentication', async ({
+  test('client disable prevents authorize, token exchange, refresh, and introspection authentication', async ({
     api,
     request,
   }) => {
@@ -461,7 +461,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect(await introspect.json()).toMatchObject({ error: 'invalid_client' });
   });
 
-  test('APP-OAUTH-015: client re-enable restores only the client state and does not revive revoked sessions or token families', async ({
+  test('client re-enable restores only the client state and does not revive revoked sessions or token families', async ({
     api,
   }) => {
     const created = required(
@@ -513,7 +513,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect(token?.revoked).not.toBeNull();
   });
 
-  test('APP-OAUTH-016: client archive disables the client and excludes it from active default lists', async ({
+  test('client archive disables the client and excludes it from active default lists', async ({
     api,
   }) => {
     const created = required(
@@ -541,7 +541,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect(active.edges.map(({ node }) => node.clientId)).not.toContain(created.clientId);
   });
 
-  test('APP-OAUTH-017: archived client cannot be updated, enabled, receive skipConsent changes, or rotate secret', async ({
+  test('archived client cannot be updated, enabled, receive skipConsent changes, or rotate secret', async ({
     api,
   }) => {
     const created = required(
@@ -607,7 +607,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     }
   });
 
-  test('APP-OAUTH-018: public client secret rotation is rejected without changing revision', async ({
+  test('public client secret rotation is rejected without changing revision', async ({
     api,
   }) => {
     const created = required(
@@ -631,7 +631,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect((await getOAuthClient(api, scope.applicationA, created.clientId))?.revision).toBe(1);
   });
 
-  test('APP-OAUTH-019: confidential client secret rotation returns a new plaintext secret once and invalidates the old secret', async ({
+  test('confidential client secret rotation returns a new plaintext secret once and invalidates the old secret', async ({
     api,
   }) => {
     const initial = await createOAuthClient(api, scope.applicationA, {
@@ -659,7 +659,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     );
   });
 
-  test('APP-OAUTH-020: secret rotation requires admin permission and records a secret-free audit diff', async ({
+  test('secret rotation requires admin permission and records a secret-free audit diff', async ({
     api,
   }) => {
     const created = await createOAuthClient(api, scope.applicationA, {
@@ -687,7 +687,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     serializedWithoutSecrets(audits, [oldSecret, newSecret]);
   });
 
-  test('APP-OAUTH-021: skipConsent can be enabled only for a confirmed first-party client', async ({
+  test('skipConsent can be enabled only for a confirmed first-party client', async ({
     api,
   }) => {
     const created = required(
@@ -713,7 +713,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     );
   });
 
-  test('APP-OAUTH-022: skipConsent disable is allowed without weakening normal consent requirements for other clients', async ({
+  test('skipConsent disable is allowed without weakening normal consent requirements for other clients', async ({
     api,
   }) => {
     const firstParty = required(
@@ -746,7 +746,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     );
   });
 
-  test('APP-OAUTH-023: client ID from another application cannot be read or mutated through this application scope', async ({
+  test('client ID from another application cannot be read or mutated through this application scope', async ({
     api,
   }) => {
     const foreign = required(
@@ -770,7 +770,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     expect((await getOAuthClient(api, scope.applicationB, foreign.clientId))?.disabled).toBe(false);
   });
 
-  test('APP-OAUTH-024: member without explicit OAuth client permission cannot list, create, update, disable, archive, or rotate clients', async ({
+  test('member without explicit OAuth client permission cannot list, create, update, disable, archive, or rotate clients', async ({
     api,
   }) => {
     const client = required(
@@ -842,7 +842,7 @@ test.describe('Application Admin API - OAuth client management', () => {
     }
   });
 
-  test('APP-OAUTH-025: application user session cannot access OAuth client management through public application routes', async ({
+  test('application user session cannot access OAuth client management through public application routes', async ({
     api,
   }) => {
     const client = required(

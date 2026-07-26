@@ -36,7 +36,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     await sql.end();
   });
 
-  test('APP-ADM-001: organization admin can create an application with generated ID and read-only canonical resource', async ({
+  test('organization admin can create an application with generated ID and read-only canonical resource', async ({
     api,
   }) => {
     const application = await getApplication(api, scope.applicationA);
@@ -53,7 +53,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     expect(application?.auth.applicationId).toBe(scope.applicationA.id);
   });
 
-  test('APP-ADM-002: application create rejects duplicate name inside one organization without partial auth configuration', async ({
+  test('application create rejects duplicate name inside one organization without partial auth configuration', async ({
     api,
   }) => {
     const { data } = await api.admin.mutation('application-admin-api/ApplicationCreate', {
@@ -82,7 +82,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     expect(count).toEqual({ applications: 1, configurations: 1 });
   });
 
-  test('APP-ADM-003: same application name can exist in different organizations without leaking ownership', async ({
+  test('same application name can exist in different organizations without leaking ownership', async ({
     api,
   }) => {
     const localList = await listApplications(api, scope.organizationId, {
@@ -102,7 +102,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     expect(foreignList.edges[0]?.node.organizationId).toBe(scope.foreignOrganizationId);
   });
 
-  test('APP-ADM-004: application query hides an existing application when organizationId does not own it', async ({
+  test('application query hides an existing application when organizationId does not own it', async ({
     api,
   }) => {
     const result = await api.admin.query('application-admin-api/Application', {
@@ -118,7 +118,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     expect(JSON.stringify(result)).not.toContain(scope.applicationA.rawId);
   });
 
-  test('APP-ADM-005: applications connection filters by lifecycle status and search within the selected organization only', async ({
+  test('applications connection filters by lifecycle status and search within the selected organization only', async ({
     api,
   }) => {
     const match = await createApplication(api, scope.organizationId, 'search-match', {
@@ -144,7 +144,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     );
   });
 
-  test('APP-ADM-006: applications connection order and cursor pagination are stable across same-timestamp records', async ({
+  test('applications connection order and cursor pagination are stable across same-timestamp records', async ({
     api,
   }) => {
     const alpha = await createApplication(api, scope.organizationId, 'page-alpha', {
@@ -186,7 +186,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     );
   });
 
-  test('APP-ADM-007: application update requires expected revision and returns the incremented revision', async ({
+  test('application update requires expected revision and returns the incremented revision', async ({
     api,
   }) => {
     const payload = await updateApplication(api, scope.applicationA, {
@@ -203,7 +203,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     });
   });
 
-  test('APP-ADM-008: stale application update returns a revision conflict user error and changes no fields', async ({
+  test('stale application update returns a revision conflict user error and changes no fields', async ({
     api,
   }) => {
     const first = await updateApplication(api, scope.applicationA, {
@@ -227,7 +227,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     });
   });
 
-  test('APP-ADM-009: application archive disables the realm and prevents new public auth traffic', async ({
+  test('application archive disables the realm and prevents new public auth traffic', async ({
     api,
     request,
   }) => {
@@ -265,7 +265,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     expect(row?.realmEnabled).toBe(false);
   });
 
-  test('APP-ADM-010: archived application remains readable to authorized admins but is absent from active-only lists', async ({
+  test('archived application remains readable to authorized admins but is absent from active-only lists', async ({
     api,
   }) => {
     await archiveApplication(api, scope.applicationA);
@@ -282,7 +282,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     expect(archived.edges.map(({ node }) => node.id)).toContain(scope.applicationA.id);
   });
 
-  test('APP-ADM-011: application resource cannot be supplied or changed through create or update inputs', async ({
+  test('application resource cannot be supplied or changed through create or update inputs', async ({
     api,
     request,
   }) => {
@@ -341,7 +341,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     );
   });
 
-  test('APP-ADM-012: auth configuration query requires org.application-auth read permission', async ({
+  test('auth configuration query requires org.application-auth read permission', async ({
     api,
   }) => {
     const ownerToken = api.session.tenant.accessToken;
@@ -362,7 +362,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     }
   });
 
-  test('APP-ADM-013: auth update changes TTL policy only inside allowed platform ranges', async ({
+  test('auth update changes TTL policy only inside allowed platform ranges', async ({
     api,
   }) => {
     const payload = await updateAuth(api, scope.applicationA, {
@@ -382,7 +382,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     });
   });
 
-  test('APP-ADM-014: auth update rejects out-of-range token and session TTL values without partial changes', async ({
+  test('auth update rejects out-of-range token and session TTL values without partial changes', async ({
     api,
   }) => {
     const before = required(await getApplication(api, scope.applicationA), 'application').auth;
@@ -403,7 +403,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     });
   });
 
-  test('APP-ADM-015: trusted origins are normalized, deduplicated, and exposed only as exact origins', async ({
+  test('trusted origins are normalized, deduplicated, and exposed only as exact origins', async ({
     api,
   }) => {
     const payload = await updateAuth(api, scope.applicationA, {
@@ -422,7 +422,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     ]);
   });
 
-  test('APP-ADM-016: trusted origins reject wildcards, path/query components, and malformed origins', async ({
+  test('trusted origins reject wildcards, path/query components, and malformed origins', async ({
     api,
   }) => {
     for (const origin of [
@@ -442,7 +442,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     ).toHaveLength(0);
   });
 
-  test('APP-ADM-017: branding update accepts allowlisted colors and HTTPS logo URL only', async ({
+  test('branding update accepts allowlisted colors and HTTPS logo URL only', async ({
     api,
   }) => {
     const payload = await updateAuth(api, scope.applicationA, {
@@ -465,7 +465,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     });
   });
 
-  test('APP-ADM-018: branding update rejects scriptable or insecure logo URL without changing existing branding', async ({
+  test('branding update rejects scriptable or insecure logo URL without changing existing branding', async ({
     api,
   }) => {
     const accepted = await updateAuth(api, scope.applicationA, {
@@ -489,7 +489,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     });
   });
 
-  test('APP-ADM-019: email delivery update stores only profile and template references, never transport secrets', async ({
+  test('email delivery update stores only profile and template references, never transport secrets', async ({
     api,
   }) => {
     const transportSecret = 'smtp-password-must-never-be-stored';
@@ -516,7 +516,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     );
   });
 
-  test('APP-ADM-020: enabling password reset or verified signup requires configured email delivery', async ({
+  test('enabling password reset or verified signup requires configured email delivery', async ({
     api,
   }) => {
     const reset = await updateAuthMethod(api, scope.applicationA, 'password', [
@@ -534,7 +534,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     expect(signup.userErrors).toEqual([expect.objectContaining({ code: 'INVALID_REALM_STATE' })]);
   });
 
-  test('APP-ADM-021: auth method update cannot remove the last sign-in method while realm is enabled', async ({
+  test('auth method update cannot remove the last sign-in method while realm is enabled', async ({
     api,
   }) => {
     const method = await updateAuthMethod(api, scope.applicationA, 'password', ['SIGN_IN']);
@@ -556,7 +556,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     ).toEqual(['SIGN_IN']);
   });
 
-  test('APP-ADM-022: realm enabled set validates required methods, delivery, and provider state before enabling', async ({
+  test('realm enabled set validates required methods, delivery, and provider state before enabling', async ({
     api,
   }) => {
     const withoutMethod = await setRealmEnabled(api, scope.applicationA, true);
@@ -573,7 +573,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     ]);
   });
 
-  test('APP-ADM-023: realm disabled set preserves users, clients, providers, and configuration rows', async ({
+  test('realm disabled set preserves users, clients, providers, and configuration rows', async ({
     api,
   }) => {
     await updateAuthMethod(api, scope.applicationA, 'password', ['SIGN_IN']);
@@ -589,7 +589,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     expect(after).toEqual(before);
   });
 
-  test('APP-ADM-024: protocol URLs are built from IAM public base URL and target application ID only', async ({
+  test('protocol URLs are built from IAM public base URL and target application ID only', async ({
     api,
   }) => {
     const applicationA = required(await getApplication(api, scope.applicationA), 'application A');
@@ -605,7 +605,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
     expect(JSON.stringify(applicationB.auth.protocolUrls)).not.toContain(scope.applicationA.rawId);
   });
 
-  test('APP-ADM-025: all application and auth mutations emit secret-free success and failure admin audit records', async ({
+  test('all application and auth mutations emit secret-free success and failure admin audit records', async ({
     api,
   }) => {
     const secret = 'audit-must-not-contain-this-value';

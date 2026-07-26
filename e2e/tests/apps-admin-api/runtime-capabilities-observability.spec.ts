@@ -7,7 +7,7 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
     await api.session.setupUserAndStore();
   });
 
-  test('APPS-RUN-001 APPS-RUN-002 APPS-RUN-006: lifecycle synchronizes manifest capabilities', async ({
+  test('lifecycle synchronizes manifest capabilities', async ({
     api,
   }) => {
     const install = await api.admin.mutation('apps-admin-api/AppInstall', {
@@ -42,7 +42,7 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
     expect(update.data.appsMutation.appUpdate.userErrors).toEqual([]);
   });
 
-  test('APPS-RUN-003..005 APPS-RUN-008: capability eligibility follows lifecycle and store ownership', async ({
+  test('capability eligibility follows lifecycle and store ownership', async ({
     api,
   }) => {
     const firstStore = api.session.project;
@@ -105,14 +105,14 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
   });
 
   test.fixme(
-    'APPS-RUN-007: resource assignments cannot create cross-store precedence',
+    'resource assignments cannot create cross-store precedence',
     () => {
       // A READY bundled App with assignmentMode RESOURCE is required to exercise this contract.
       // shopana-online-store is the only resource-mode definition and is intentionally FAILED in e2e.
     },
   );
 
-  test('APPS-RUN-009..014: workflow and secret metadata remain server-owned and redacted', async ({
+  test('workflow and secret metadata remain server-owned and redacted', async ({
     api,
   }) => {
     const plaintext = `observable-${crypto.randomUUID()}`;
@@ -137,7 +137,7 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
     expect(JSON.stringify(payload)).not.toContain('private-token');
   });
 
-  test('APPS-RUN-015..018: failed runtime remains isolated from healthy durable state', async ({
+  test('failed runtime remains isolated from healthy durable state', async ({
     api,
   }) => {
     const healthy = await api.admin.mutation('apps-admin-api/AppInstall', {

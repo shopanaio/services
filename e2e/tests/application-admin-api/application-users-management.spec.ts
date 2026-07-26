@@ -72,7 +72,7 @@ test.describe('Application Admin API - application user management', () => {
     await sql.end();
   });
 
-  test('APP-USER-001: admin can list application users inside one application only', async ({
+  test('admin can list application users inside one application only', async ({
     api,
   }) => {
     const userA = await seedUser(sql, scope.applicationA, {
@@ -90,7 +90,7 @@ test.describe('Application Admin API - application user management', () => {
     expect(connection.edges[0]?.node.applicationId).toBe(scope.applicationA.id);
   });
 
-  test('APP-USER-002: application user connection filters by status and search without leaking users from another realm', async ({
+  test('application user connection filters by status and search without leaking users from another realm', async ({
     api,
   }) => {
     const match = await seedUser(sql, scope.applicationA, {
@@ -117,7 +117,7 @@ test.describe('Application Admin API - application user management', () => {
     expect(connection.edges[0]?.node.status).toBe('BLOCKED');
   });
 
-  test('APP-USER-003: application user connection ordering and cursor pagination are stable', async ({
+  test('application user connection ordering and cursor pagination are stable', async ({
     api,
   }) => {
     const createdAt = new Date('2026-01-01T00:00:00.000Z');
@@ -172,7 +172,7 @@ test.describe('Application Admin API - application user management', () => {
     );
   });
 
-  test('APP-USER-004: admin can get one application user by global ID only within the selected application', async ({
+  test('admin can get one application user by global ID only within the selected application', async ({
     api,
   }) => {
     const seeded = await seedUser(sql, scope.applicationA, {
@@ -198,7 +198,7 @@ test.describe('Application Admin API - application user management', () => {
     });
   });
 
-  test('APP-USER-005: get user with ID from another application returns null or safe not-found without revealing existence', async ({
+  test('get user with ID from another application returns null or safe not-found without revealing existence', async ({
     api,
   }) => {
     const foreign = await seedUser(sql, scope.applicationB, {
@@ -228,7 +228,7 @@ test.describe('Application Admin API - application user management', () => {
     expect(JSON.stringify(result)).not.toContain(scope.applicationB.rawId);
   });
 
-  test('APP-USER-006: application user response exposes security metadata without password hash, OTP, session token, or refresh token', async ({
+  test('application user response exposes security metadata without password hash, OTP, session token, or refresh token', async ({
     api,
     request,
   }) => {
@@ -283,7 +283,7 @@ test.describe('Application Admin API - application user management', () => {
     ]);
   });
 
-  test('APP-USER-007: block user prevents new signin and immediately invalidates an existing application session', async ({
+  test('block user prevents new signin and immediately invalidates an existing application session', async ({
     api,
     request,
   }) => {
@@ -318,7 +318,7 @@ test.describe('Application Admin API - application user management', () => {
     });
   });
 
-  test('APP-USER-008: unblock user permits a new signin without reviving the revoked session', async ({
+  test('unblock user permits a new signin without reviving the revoked session', async ({
     api,
     request,
   }) => {
@@ -351,7 +351,7 @@ test.describe('Application Admin API - application user management', () => {
     expect(persisted).toEqual({ status: 'active', sessionCount: 1 });
   });
 
-  test('APP-USER-009: block user in application A does not affect same-email user in application B', async ({
+  test('block user in application A does not affect same-email user in application B', async ({
     api,
   }) => {
     const email = uniqueEmail('shared');
@@ -378,7 +378,7 @@ test.describe('Application Admin API - application user management', () => {
     });
   });
 
-  test('APP-USER-010: revoke all sessions revokes only sessions in the target application', async ({
+  test('revoke all sessions revokes only sessions in the target application', async ({
     api,
   }) => {
     const userA = await seedUser(sql, scope.applicationA, {
@@ -404,7 +404,7 @@ test.describe('Application Admin API - application user management', () => {
     });
   });
 
-  test('APP-USER-011: revoke all sessions returns accurate revoked count and is idempotent', async ({
+  test('revoke all sessions returns accurate revoked count and is idempotent', async ({
     api,
   }) => {
     const seeded = await seedUser(sql, scope.applicationA, {
@@ -422,7 +422,7 @@ test.describe('Application Admin API - application user management', () => {
     expect(await countSessions(sql, seeded)).toBe(0);
   });
 
-  test('APP-USER-012: linked account list shows provider/account metadata without encrypted provider tokens', async ({
+  test('linked account list shows provider/account metadata without encrypted provider tokens', async ({
     api,
     request,
   }) => {
@@ -452,7 +452,7 @@ test.describe('Application Admin API - application user management', () => {
     ]);
   });
 
-  test('APP-USER-013: unlink account removes only the selected account in the target application', async ({
+  test('unlink account removes only the selected account in the target application', async ({
     api,
   }) => {
     const seeded = await seedUser(sql, scope.applicationA, {
@@ -474,7 +474,7 @@ test.describe('Application Admin API - application user management', () => {
     expect(await readAccountProviders(sql, seeded)).toEqual(['credential', 'github']);
   });
 
-  test('APP-USER-014: unlink account from another application is rejected without changing either realm', async ({
+  test('unlink account from another application is rejected without changing either realm', async ({
     api,
   }) => {
     const userA = await seedUser(sql, scope.applicationA, {
@@ -502,7 +502,7 @@ test.describe('Application Admin API - application user management', () => {
     expect(await readAccountProviders(sql, userB)).toEqual(['credential', 'github']);
   });
 
-  test('APP-USER-015: unlink cannot remove the last usable sign-in method for the user', async ({
+  test('unlink cannot remove the last usable sign-in method for the user', async ({
     api,
   }) => {
     const seeded = await seedUser(sql, scope.applicationA, {
@@ -523,7 +523,7 @@ test.describe('Application Admin API - application user management', () => {
     expect(await readAccountProviders(sql, seeded)).toEqual(['google']);
   });
 
-  test('APP-USER-016: application user admin operations require org.application-users permissions', async ({
+  test('application user admin operations require org.application-users permissions', async ({
     api,
   }) => {
     const seeded = await seedUser(sql, scope.applicationA, {
@@ -581,7 +581,7 @@ test.describe('Application Admin API - application user management', () => {
     }
   });
 
-  test('APP-USER-017: block mutation writes a safe audit record without email, tokens, or account secrets', async ({
+  test('block mutation writes a safe audit record without email, tokens, or account secrets', async ({
     api,
   }) => {
     const seeded = await seedUser(sql, scope.applicationA, {
@@ -638,7 +638,7 @@ test.describe('Application Admin API - application user management', () => {
     expect(serialized).not.toContain(required(seeded.sessionTokens[0], 'seeded session token'));
   });
 
-  test('APP-USER-018: application user admin API rejects a valid application session as an administrative actor', async ({
+  test('application user admin API rejects a valid application session as an administrative actor', async ({
     api,
     request,
   }) => {
