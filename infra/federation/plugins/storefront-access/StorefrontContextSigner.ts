@@ -3,6 +3,10 @@ import {
   sign,
   type KeyObject,
 } from "node:crypto";
+import {
+  STOREFRONT_CONTEXT_AUDIENCE,
+  STOREFRONT_CONTEXT_ISSUER,
+} from "@shopana/shared-context";
 import type { ResolvedStorefrontAccessContext } from "./types.js";
 
 export class StorefrontContextSigner {
@@ -12,7 +16,7 @@ export class StorefrontContextSigner {
     private readonly kid: string,
     privateKey: string,
   ) {
-    if (!kid || !privateKey) {
+    if (!/^[A-Za-z0-9._-]{1,128}$/.test(kid) || !privateKey) {
       throw new Error("Storefront context signing configuration is required");
     }
     this.key = createPrivateKey(
@@ -20,6 +24,11 @@ export class StorefrontContextSigner {
         ? privateKey
         : Buffer.from(privateKey, "base64"),
     );
+    if (this.key.asymmetricKeyType !== "ed25519") {
+      throw new Error(
+        "STOREFRONT_CONTEXT_PRIVATE_KEY must be an Ed25519 private key",
+      );
+    }
   }
 
   sign(
@@ -29,8 +38,8 @@ export class StorefrontContextSigner {
     const now = Math.floor(Date.now() / 1000);
     const header = encode({ alg: "EdDSA", kid: this.kid, typ: "JWT" });
     const payload = encode({
-      iss: "shopana-storefront-gateway",
-      aud: "shopana-storefront-subgraphs",
+      iss: STOREFRONT_CONTEXT_ISSUER,
+      aud: STOREFRONT_CONTEXT_AUDIENCE,
       sub: `credential:${context.access.credentialId}`,
       jti: requestId,
       iat: now,
@@ -48,7 +57,11 @@ export class StorefrontContextSigner {
     });
     const input = `${header}.${payload}`;
     const signature = sign(null, Buffer.from(input, "ascii"), this.key);
-    return `${input}.${signature.toString("base64url")}`;
+    const compactJws = `${input}.${signature.toString("base64url")}`;
+    if (compactJws.length > 16_384) {
+      throw new Error("Storefront context is too large");
+    }
+    return compactJws;
   }
 }
 

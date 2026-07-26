@@ -50,6 +50,18 @@ export function parseStorefrontRequest(request: Request): {
   };
 }
 
+export function parseRequestId(request: Request): string | undefined {
+  const requestId = singleHeader(request, "x-request-id");
+  if (requestId && requestId.length > 255) {
+    throw requestError(
+      400,
+      "STOREFRONT_REQUEST_ID_INVALID",
+      "Request ID is invalid",
+    );
+  }
+  return requestId;
+}
+
 function trustedForwardedIp(request: Request): string | undefined {
   if (process.env.STOREFRONT_TRUST_PROXY_HEADERS !== "true") {
     return undefined;
@@ -69,6 +81,10 @@ function singleHeader(request: Request, name: string): string | undefined {
   return value;
 }
 
-export function requestError(status: number, code: string, message: string) {
+export function requestError(
+  status: number,
+  code: string,
+  message: string,
+) {
   return Object.assign(new Error(message), { status, code });
 }

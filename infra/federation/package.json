@@ -16,7 +16,8 @@
     "dev:admin": "yarn schema:export && yarn compose:admin && yarn gateway:admin"
   },
   "dependencies": {
-    "@graphql-hive/gateway": "^1.7.2"
+    "@graphql-hive/gateway": "^1.7.2",
+    "@shopana/shared-context": "workspace:*"
   },
   "devDependencies": {
     "@apollo/subgraph": "^2.9.3",
