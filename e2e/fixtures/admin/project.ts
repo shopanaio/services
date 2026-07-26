@@ -15,8 +15,7 @@ export class ProjectFixture {
       name: `test-project-${crypto.randomUUID().slice(0, 8)}`,
       displayName: 'Playwright Project',
       locales: ['en'],
-      currencies: ['USD'],
-      defaultCurrency: 'USD',
+      currencyCode: 'USD',
     };
 
     const { data } = await this.gql.mutation('project-api/ProjectCreate', {

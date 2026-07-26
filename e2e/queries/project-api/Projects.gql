@@ -8,10 +8,8 @@ query Stores($organizationId: ID!) {
       timezone
       email
       locales
-      currencies
-      baseCurrency
       defaultLocale
-      defaultCurrency
+      currencyCode
       defaultWeightUnit
       defaultDimensionUnit
       createdAt
