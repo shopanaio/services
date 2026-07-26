@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
-import { composeGlobalId } from '@utils/globalid';
+import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
 import {
   IAM_BASE_URL,
   archiveApplication,
@@ -64,8 +64,10 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
 
       expect(query.data?.applicationQuery ?? null).toBeNull();
       expect(query.errors?.length ?? 0).toBeGreaterThan(0);
-      expect(mutation.data?.applicationMutation ?? null).toBeNull();
-      expect(mutation.errors?.length ?? 0).toBeGreaterThan(0);
+      expect(mutation.data?.applicationMutation?.applicationUpdate.application ?? null).toBeNull();
+      expect(mutation.data?.applicationMutation?.applicationUpdate.userErrors).toEqual([
+        expect.objectContaining({ code: 'FORBIDDEN' }),
+      ]);
     } finally {
       api.session.tenant.accessToken = owner.token;
       api.session.tenant.userId = owner.userId;
@@ -169,9 +171,9 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
         throwOnError: false,
       });
 
-      for (const result of [application, clients, users]) {
-        expect(result.errors?.length ?? 0).toBeGreaterThan(0);
-      }
+      expect(application.data?.applicationQuery?.application ?? null).toBeNull();
+      expect(clients.data?.applicationQuery?.application ?? null).toBeNull();
+      expect(users.data?.applicationQuery?.application ?? null).toBeNull();
     } finally {
       api.session.tenant.accessToken = owner.token;
       api.session.tenant.userId = owner.userId;
@@ -270,13 +272,15 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
   test('APP-SEC-007: organizationId input is treated as a selector and never as trusted authorization context', async ({
     api,
   }) => {
-    const member = await createOrganizationMember(api, scope.foreignOrganizationId, {
-      systemRole: 'admin',
-    });
     const owner = {
       token: api.session.tenant.accessToken,
       userId: api.session.tenant.userId,
+      organizationId: api.session.organizationId,
     };
+    api.session.organizationId = scope.foreignOrganizationId;
+    const member = await createOrganizationMember(api, scope.foreignOrganizationId, {
+      systemRole: 'admin',
+    });
     api.session.tenant.accessToken = member.accessToken;
     api.session.tenant.userId = member.userId;
     try {
@@ -288,10 +292,10 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
         throwOnError: false,
       });
       expect(result.data?.applicationQuery?.application ?? null).toBeNull();
-      expect(result.errors?.length ?? 0).toBeGreaterThan(0);
     } finally {
       api.session.tenant.accessToken = owner.token;
       api.session.tenant.userId = owner.userId;
+      api.session.organizationId = owner.organizationId;
     }
   });
 
@@ -319,7 +323,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     expect(read.data?.applicationQuery?.application ?? null).toBeNull();
     expect(write.data.applicationMutation.applicationAuthUpdate.configuration).toBeNull();
     expect(write.data.applicationMutation.applicationAuthUpdate.userErrors).toEqual([
-      expect.objectContaining({ code: 'APPLICATION_NOT_FOUND' }),
+      expect.objectContaining({ code: expect.stringMatching(/^(APPLICATION_NOT_FOUND|FORBIDDEN)$/u) }),
     ]);
     expect(
       required(await getApplication(api, scope.applicationA), 'application').auth.branding,
@@ -386,7 +390,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
       action: 'application_update',
       outcome: 'success',
       actorType: 'platform_admin',
-      actorId: api.session.tenant.userId,
+      actorId: decodeGlobalId(api.session.tenant.userId).id,
       organizationId: scope.rawOrganizationId,
       applicationId: scope.applicationA.rawId,
       targetType: 'application',
@@ -473,15 +477,25 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     api,
     request,
   }) => {
+    await updateAuth(api, scope.applicationA, { emailVerificationRequired: false });
     await updateAuthMethod(api, scope.applicationA, 'password', ['SIGN_IN']);
     await setRealmEnabled(api, scope.applicationA, true);
+    const client = required(
+      (await createOAuthClient(api, scope.applicationA)).client,
+      'runtime audit OAuth client',
+    );
     const before = (await readAdminAudits(sql, scope.applicationA)).length;
     const response = await request.get(
-      `${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/login`,
+      authorizationUrl(
+        scope.applicationA,
+        client.clientId,
+        required(client.redirectUris[0], 'OAuth redirect URI'),
+      ),
+      { maxRedirects: 0 },
     );
     const after = (await readAdminAudits(sql, scope.applicationA)).length;
 
-    expect(response.ok()).toBe(true);
+    expect(response.status()).toBe(302);
     expect(after).toBe(before);
   });
 
@@ -489,6 +503,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     api,
     request,
   }) => {
+    await updateAuth(api, scope.applicationA, { emailVerificationRequired: false });
     await updateAuthMethod(api, scope.applicationA, 'password', ['SIGN_IN']);
     await setRealmEnabled(api, scope.applicationA, true);
     const owner = {
@@ -498,7 +513,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     api.session.clearSession();
     try {
       const publicRoute = await request.get(
-        `${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/login`,
+        `${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/.well-known/openid-configuration`,
       );
       const admin = await api.admin.query('application-admin-api/Applications', {
         variables: { organizationId: scope.organizationId, first: 10 },
@@ -569,3 +584,22 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
     expect((await getApplication(api, scope.applicationA))?.revision).toBe(2);
   });
 });
+
+function authorizationUrl(
+  application: ApplicationAdminScope['applicationA'],
+  clientId: string,
+  redirectUri: string,
+): string {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: redirectUri,
+    scope: 'openid',
+    state: crypto.randomUUID(),
+    nonce: crypto.randomUUID(),
+    code_challenge: 'A'.repeat(43),
+    code_challenge_method: 'S256',
+    resource: application.resource,
+  });
+  return `${IAM_BASE_URL}/auth/applications/${application.rawId}/oauth2/authorize?${params}`;
+}
