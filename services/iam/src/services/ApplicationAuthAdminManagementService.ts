@@ -934,6 +934,21 @@ export class ApplicationAuthAdminManagementService {
         ] as ApplicationRealmChangedField[],
       },
       execute: async (scope, currentActor) => {
+        if (
+          value.enabled === false &&
+          scope.configuration.realmEnabled &&
+          !scope.configuration.passwordSignInEnabled &&
+          !scope.configuration.emailOtpSignInEnabled &&
+          !(await this.repository.hasEnabledProvider(
+            scope.applicationId,
+            value.provider
+          ))
+        ) {
+          throw new ApplicationAuthAdminManagementError(
+            "The last available sign-in method cannot be disabled",
+            "LAST_LOGIN_METHOD"
+          );
+        }
         const updated = await this.repository.updateProvider({
           ...value,
           applicationId: scope.applicationId,
@@ -1441,7 +1456,8 @@ export class ApplicationAuthAdminManagementService {
       configuration.emailOtpSignInEnabled ||
       configuration.emailOtpSignUpEnabled ||
       configuration.passwordResetEnabled ||
-      (configuration.passwordSignUpEnabled &&
+      ((configuration.passwordSignInEnabled ||
+        configuration.passwordSignUpEnabled) &&
         configuration.emailVerificationRequired);
     if (needsDelivery && !scope.deliveryConfigured) {
       throw invalidRealmState(

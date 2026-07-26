@@ -37,6 +37,7 @@ import {
 } from "./services/ApplicationAuthAdminAuditPort.js";
 import {
   APPLICATION_AUTH_PROVIDER_VALIDATION_PORT,
+  e2eApplicationAuthProviderValidationPort,
   type ApplicationAuthProviderValidationPort,
 } from "./services/ApplicationAuthProviderValidationPort.js";
 import {
@@ -102,7 +103,10 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       applicationAuthAudit: this.applicationAuthAudit,
       applicationAuthAdminAudit: this.applicationAuthAdminAudit,
       applicationAuthProviderValidation:
-        this.applicationAuthProviderValidation,
+        this.applicationAuthProviderValidation ??
+        (process.env.IAM_E2E_PROVIDER_VALIDATION === "true"
+          ? e2eApplicationAuthProviderValidationPort
+          : undefined),
       applicationAuthLiveStateInvalidation:
         this.applicationAuthLiveStateInvalidation,
     });

@@ -365,8 +365,11 @@ export class ApplicationAuthorizationContextService {
     if (single(params, "code_challenge_method", 1, 16) !== "S256") {
       throw new ApplicationAuthRequestError("PKCE method is invalid");
     }
-    const resource = single(params, "resource", 1, 2048);
-    if (resource !== runtime.resource) {
+    const resources = params.getAll("resource");
+    if (
+      resources.length > 1 ||
+      (resources[0] !== undefined && resources[0] !== runtime.resource)
+    ) {
       throw new ApplicationAuthRequestError(
         "Authorization resource is invalid"
       );

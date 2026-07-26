@@ -68,6 +68,7 @@ const baseEnv = {
     1: iamApplicationAuthRootKey,
   }),
   IAM_PUBLIC_BASE_URL: "http://127.0.0.1:11010",
+  IAM_E2E_PROVIDER_VALIDATION: "true",
   BETTER_AUTH_URL: "http://127.0.0.1:11010",
   STOREFRONT_TOKEN_ACTIVE_PEPPER_VERSION: "1",
   STOREFRONT_TOKEN_PEPPER_V1: storefrontTokenPepper,

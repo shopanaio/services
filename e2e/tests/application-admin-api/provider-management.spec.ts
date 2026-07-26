@@ -1,8 +1,10 @@
-import { expect } from '@playwright/test';
+import { expect, type APIRequestContext, type APIResponse } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import {
   IAM_BASE_URL,
   configureProvider,
+  createOAuthClient,
+  createOrganizationMember,
   deleteProviderCredentials,
   getApplication,
   openSql,
@@ -13,6 +15,7 @@ import {
   serializedWithoutSecrets,
   setRealmEnabled,
   setupApplicationAdminScope,
+  updateAuth,
   updateAuthMethod,
   updateProvider,
   validateProvider,
@@ -380,26 +383,49 @@ test.describe('Application Admin API - social provider management', () => {
     api,
   }) => {
     await configureProvider(api, scope.applicationA);
-    const ownerToken = api.session.tenant.accessToken;
-    const outsider = await api.admin.user.create();
-    api.session.tenant.accessToken = outsider.accessToken;
+    const configuredRevision = required(
+      await getApplication(api, scope.applicationA),
+      'configured application',
+    ).auth.revision;
+    const owner = {
+      token: api.session.tenant.accessToken,
+      userId: api.session.tenant.userId,
+    };
+    const writer = await createOrganizationMember(api, scope.organizationId, {
+      permissions: [
+        {
+          resource: 'org.application-auth-providers',
+          action: 'write',
+        },
+      ],
+    });
+    api.session.tenant.accessToken = writer.accessToken;
+    api.session.tenant.userId = writer.userId;
     try {
-      const write = await updateProvider(api, scope.applicationA, 'GOOGLE', {
-        scopes: ['openid', 'email'],
-      });
+      const write = await updateProvider(
+        api,
+        scope.applicationA,
+        'GOOGLE',
+        {
+          scopes: ['openid', 'email'],
+        },
+        configuredRevision,
+      );
       const rotate = await rotateProviderCredentials(
         api,
         scope.applicationA,
         'GOOGLE',
         'forbidden-client',
         'forbidden-secret',
+        configuredRevision + 1,
       );
-      expect(write.provider).toBeNull();
-      expect(write.userErrors).toEqual([expect.objectContaining({ code: 'FORBIDDEN' })]);
+      expect(write.userErrors).toHaveLength(0);
+      expect(write.provider).toMatchObject({ scopes: ['openid', 'email'] });
       expect(rotate.provider).toBeNull();
       expect(rotate.userErrors).toEqual([expect.objectContaining({ code: 'FORBIDDEN' })]);
     } finally {
-      api.session.tenant.accessToken = ownerToken;
+      api.session.tenant.accessToken = owner.token;
+      api.session.tenant.userId = owner.userId;
     }
   });
 
@@ -435,26 +461,47 @@ test.describe('Application Admin API - social provider management', () => {
     api,
     request,
   }) => {
+    await updateAuth(api, scope.applicationA, {
+      emailVerificationRequired: false,
+      trustedOrigins: [IAM_BASE_URL],
+    });
+    await updateAuth(api, scope.applicationB, {
+      emailVerificationRequired: false,
+      trustedOrigins: [IAM_BASE_URL],
+    });
     await updateAuthMethod(api, scope.applicationA, 'password', ['SIGN_IN']);
     await updateAuthMethod(api, scope.applicationB, 'password', ['SIGN_IN']);
     await configureProvider(api, scope.applicationA);
     await updateProvider(api, scope.applicationA, 'GOOGLE', { enabled: true });
     await setRealmEnabled(api, scope.applicationA, true);
     await setRealmEnabled(api, scope.applicationB, true);
+    const clientA = required(
+      (await createOAuthClient(api, scope.applicationA)).client,
+      'application A OAuth client',
+    );
+    const clientB = required(
+      (await createOAuthClient(api, scope.applicationB)).client,
+      'application B OAuth client',
+    );
 
     const [enabledA, beforeB] = await Promise.all([
-      request.get(`${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/login`),
-      request.get(`${IAM_BASE_URL}/auth/applications/${scope.applicationB.rawId}/login`),
+      openProviderLogin(request, scope.applicationA, clientA),
+      openProviderLogin(request, scope.applicationB, clientB),
     ]);
     await updateProvider(api, scope.applicationA, 'GOOGLE', { enabled: false });
     const [disabledA, afterB] = await Promise.all([
-      request.get(`${IAM_BASE_URL}/auth/applications/${scope.applicationA.rawId}/login`),
-      request.get(`${IAM_BASE_URL}/auth/applications/${scope.applicationB.rawId}/login`),
+      openProviderLogin(request, scope.applicationA, clientA),
+      openProviderLogin(request, scope.applicationB, clientB),
     ]);
 
-    expect(await enabledA.text()).toContain('google');
+    expect(enabledA.ok()).toBe(true);
+    expect(await enabledA.text()).toContain('/login/social');
+    expect(disabledA.ok()).toBe(true);
     expect(await disabledA.text()).not.toContain('/login/social');
-    expect(await afterB.text()).toBe(await beforeB.text());
+    expect(beforeB.ok()).toBe(true);
+    expect(await beforeB.text()).not.toContain('/login/social');
+    expect(afterB.ok()).toBe(true);
+    expect(await afterB.text()).not.toContain('/login/social');
   });
 
   test('APP-PROV-020: provider admin audit safeDiff never includes client secret, full client ID, tokens, or upstream payload', async ({
@@ -486,3 +533,35 @@ test.describe('Application Admin API - social provider management', () => {
     ]);
   });
 });
+
+async function openProviderLogin(
+  request: APIRequestContext,
+  application: ApplicationAdminScope['applicationA'],
+  client: {
+    clientId: string;
+    redirectUris: readonly string[];
+  },
+): Promise<APIResponse> {
+  const redirectUri = required(client.redirectUris[0], 'OAuth redirect URI');
+  const params = new URLSearchParams({
+    client_id: client.clientId,
+    response_type: 'code',
+    redirect_uri: redirectUri,
+    scope: 'openid',
+    state: crypto.randomUUID(),
+    nonce: crypto.randomUUID(),
+    code_challenge: 'A'.repeat(43),
+    code_challenge_method: 'S256',
+    resource: application.resource,
+  });
+  const authorize = await request.get(
+    `${IAM_BASE_URL}/auth/applications/${application.rawId}/oauth2/authorize?${params}`,
+    {
+      headers: { accept: 'text/html' },
+      maxRedirects: 0,
+    },
+  );
+  expect(authorize.status()).toBe(302);
+  const loginLocation = required(authorize.headers().location, 'hosted UI login redirect');
+  return request.get(new URL(loginLocation, IAM_BASE_URL).toString());
+}

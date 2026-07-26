@@ -37,3 +37,28 @@ export const unavailableApplicationAuthProviderValidationPort: ApplicationAuthPr
       };
     },
   });
+
+/**
+ * Deterministic adapter enabled explicitly by the isolated E2E runtime.
+ *
+ * It exercises all validation outcomes without making external provider
+ * requests or embedding real credentials in the test environment.
+ */
+export const e2eApplicationAuthProviderValidationPort: ApplicationAuthProviderValidationPort =
+  Object.freeze({
+    async validate(request) {
+      if (request.clientId === "e2e-provider-valid") {
+        return { status: "valid" as const };
+      }
+      if (request.clientId === "e2e-provider-invalid") {
+        return {
+          status: "invalid" as const,
+          reasonCode: "PROVIDER_CREDENTIALS_REJECTED",
+        };
+      }
+      return {
+        status: "unavailable" as const,
+        reasonCode: "PROVIDER_VALIDATION_UNAVAILABLE",
+      };
+    },
+  });
