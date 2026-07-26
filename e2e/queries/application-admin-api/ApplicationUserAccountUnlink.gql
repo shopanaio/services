@@ -1,0 +1,24 @@
+mutation ApplicationAdminApplicationUserAccountUnlink($input: ApplicationUserAccountUnlinkInput!) {
+  applicationMutation {
+    applicationUserAccountUnlink(input: $input) {
+      user {
+        id
+        security {
+          linkedAccountCount
+          hasPasswordLogin
+        }
+        linkedAccounts {
+          id
+          provider
+          isOnlyLoginMethod
+        }
+      }
+      unlinkedAccountId
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

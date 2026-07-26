@@ -5,10 +5,45 @@ mutation AppsAppInstall($input: AppInstallInput!) {
         id
         appCode
         status
+        installedVersion
+        targetVersion
+        manifestHash
+        configuration
+        configurationVersion
+        healthStatus
+        scopes {
+          scope
+          grantedAt
+          revokedAt
+          granted
+        }
+        capabilities {
+          id
+          capability
+          assignmentMode
+          operation
+          targetAppCode
+          targetAction
+          status
+          precedence
+          assignmentStatus
+        }
       }
       operation {
         id
+        type
         status
+        targetVersion
+        previousInstallationStatus
+        workflowId
+        actorType
+        actorId
+        correlationId
+        error {
+          code
+          message
+        }
+        createdAt
       }
       duplicate
       userErrors {

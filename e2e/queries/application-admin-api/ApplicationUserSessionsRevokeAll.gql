@@ -1,0 +1,21 @@
+mutation ApplicationAdminApplicationUserSessionsRevokeAll(
+  $input: ApplicationUserSessionsRevokeAllInput!
+) {
+  applicationMutation {
+    applicationUserSessionsRevokeAll(input: $input) {
+      user {
+        id
+        status
+        security {
+          activeSessionCount
+        }
+      }
+      revokedCount
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

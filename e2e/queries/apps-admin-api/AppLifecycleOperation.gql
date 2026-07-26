@@ -1,0 +1,27 @@
+query AppsAppLifecycleOperation($id: ID!) {
+  appsQuery {
+    appLifecycleOperation(id: $id) {
+      id
+      installation {
+        id
+        appCode
+      }
+      type
+      status
+      targetVersion
+      previousInstallationStatus
+      workflowId
+      actorType
+      actorId
+      correlationId
+      error {
+        code
+        message
+      }
+      startedAt
+      completedAt
+      createdAt
+      updatedAt
+    }
+  }
+}

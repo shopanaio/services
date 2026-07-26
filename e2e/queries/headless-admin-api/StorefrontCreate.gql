@@ -1,0 +1,34 @@
+mutation HeadlessStorefrontCreate($input: HeadlessStorefrontCreateInput!) {
+  headlessAppMutation {
+    headlessStorefrontCreate(input: $input) {
+      connection {
+        id
+        displayName
+        status
+        storefrontAccessPolicy {
+          permissions
+          revision
+          updatedAt
+        }
+        publicAccessToken
+        storefrontCredentials {
+          id
+          kind
+          status
+          label
+          tokenHint
+        }
+      }
+      duplicate
+      initialStorefrontCredentials {
+        publicAccessToken
+        privateAccessToken
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

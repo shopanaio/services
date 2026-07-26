@@ -1,10 +1,14 @@
-mutation AppsAppUninstall($input: AppInstallationActionInput!) {
+mutation AppsAppUpdate($input: AppUpdateInput!) {
   appsMutation {
-    appUninstall(input: $input) {
+    appUpdate(input: $input) {
       installation {
         id
         appCode
         status
+        installedVersion
+        targetVersion
+        configuration
+        configurationVersion
         scopes {
           scope
           grantedAt
@@ -14,6 +18,8 @@ mutation AppsAppUninstall($input: AppInstallationActionInput!) {
         capabilities {
           id
           capability
+          operation
+          targetAction
           status
           assignmentStatus
         }
@@ -22,7 +28,12 @@ mutation AppsAppUninstall($input: AppInstallationActionInput!) {
         id
         type
         status
+        targetVersion
+        previousInstallationStatus
         workflowId
+        actorType
+        actorId
+        correlationId
         error {
           code
           message

@@ -4,6 +4,90 @@ query AppsAppInstallation($id: ID!) {
       id
       appCode
       status
+      installedVersion
+      targetVersion
+      manifestHash
+      configuration
+      configurationVersion
+      healthStatus
+      lastError {
+        code
+        message
+      }
+      installedByUserId
+      scopes {
+        scope
+        grantedAt
+        revokedAt
+        granted
+      }
+      capabilities {
+        id
+        capability
+        assignmentMode
+        operation
+        targetAppCode
+        targetAction
+        status
+        precedence
+        assignmentStatus
+      }
+      lifecycleOperations(first: 50) {
+        edges {
+          node {
+            id
+            type
+            status
+            targetVersion
+            previousInstallationStatus
+            workflowId
+            actorType
+            actorId
+            correlationId
+            error {
+              code
+              message
+            }
+            startedAt
+            completedAt
+            createdAt
+            updatedAt
+          }
+          cursor
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      manifestSnapshots(first: 50) {
+        edges {
+          node {
+            id
+            appCode
+            version
+            manifestHash
+            manifest
+            createdAt
+          }
+          cursor
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      installedAt
+      suspendedAt
+      uninstalledAt
+      createdAt
+      updatedAt
     }
   }
 }

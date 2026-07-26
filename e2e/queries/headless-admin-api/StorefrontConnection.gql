@@ -1,0 +1,22 @@
+query HeadlessStorefrontConnection($id: ID!) {
+  headlessAppQuery {
+    headlessStorefrontConnection(id: $id) {
+      id
+      displayName
+      status
+      storefrontAccessPolicy {
+        permissions
+        revision
+        updatedAt
+      }
+      publicAccessToken
+      storefrontCredentials {
+        id
+        kind
+        status
+        label
+        tokenHint
+      }
+    }
+  }
+}

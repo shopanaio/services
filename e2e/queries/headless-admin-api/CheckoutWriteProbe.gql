@@ -1,0 +1,5 @@
+mutation HeadlessCheckoutWriteProbe {
+  checkoutMutation {
+    __typename
+  }
+}

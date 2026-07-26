@@ -1,0 +1,24 @@
+mutation AppsAppConfigure($input: AppConfigureInput!) {
+  appsMutation {
+    appConfigure(input: $input) {
+      installation {
+        id
+        appCode
+        status
+        configuration
+        configurationVersion
+        scopes {
+          scope
+          grantedAt
+          revokedAt
+          granted
+        }
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

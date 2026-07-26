@@ -1,0 +1,18 @@
+mutation ApplicationAdminApplicationUserUnblock($input: ApplicationUserStatusSetInput!) {
+  applicationMutation {
+    applicationUserUnblock(input: $input) {
+      user {
+        id
+        status
+        security {
+          activeSessionCount
+        }
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+mutation ApplicationAdminApplicationCreate($input: ApplicationCreateInput!) {
+  applicationMutation {
+    applicationCreate(input: $input) {
+      application {
+        id
+        organizationId
+        name
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}

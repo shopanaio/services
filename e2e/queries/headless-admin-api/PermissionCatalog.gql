@@ -1,0 +1,12 @@
+query HeadlessPermissionCatalog {
+  headlessAppQuery {
+    headlessStorefrontPermissionCatalog {
+      handle
+      resource
+      action
+      label
+      description
+      risk
+    }
+  }
+}

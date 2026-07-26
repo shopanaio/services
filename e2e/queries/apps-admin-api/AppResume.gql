@@ -1,16 +1,10 @@
-mutation AppsAppUninstall($input: AppInstallationActionInput!) {
+mutation AppsAppResume($input: AppInstallationActionInput!) {
   appsMutation {
-    appUninstall(input: $input) {
+    appResume(input: $input) {
       installation {
         id
         appCode
         status
-        scopes {
-          scope
-          grantedAt
-          revokedAt
-          granted
-        }
         capabilities {
           id
           capability
@@ -22,11 +16,8 @@ mutation AppsAppUninstall($input: AppInstallationActionInput!) {
         id
         type
         status
+        previousInstallationStatus
         workflowId
-        error {
-          code
-          message
-        }
       }
       duplicate
       userErrors {

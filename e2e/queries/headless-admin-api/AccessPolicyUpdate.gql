@@ -1,0 +1,16 @@
+mutation HeadlessAccessPolicyUpdate($input: StorefrontAccessPolicyUpdateInput!) {
+  headlessAppMutation {
+    storefrontAccessPolicyUpdate(input: $input) {
+      policy {
+        permissions
+        revision
+        updatedAt
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

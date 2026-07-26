@@ -1,0 +1,48 @@
+query ApplicationAdminApplicationUsers(
+  $organizationId: ID!
+  $applicationId: ID!
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: ApplicationUserWhereInput
+  $orderBy: [ApplicationUserOrderByInput!]
+) {
+  applicationQuery {
+    application(organizationId: $organizationId, id: $applicationId) {
+      id
+      users(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+      ) {
+        edges {
+          cursor
+          node {
+            id
+            applicationId
+            name
+            email
+            emailVerified
+            status
+            security {
+              activeSessionCount
+              linkedAccountCount
+              hasPasswordLogin
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}
