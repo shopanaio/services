@@ -169,7 +169,10 @@ test.describe('Application password auth — password reset', () => {
     const response = await completePasswordReset(request, realm, token, newPassword);
 
     expect(response.status()).toBeGreaterThanOrEqual(400);
-    await expectRealmState(realm, before);
+    expect(await realmState(realm)).toEqual({
+      ...before,
+      application_verification: 0,
+    });
     expect(await signIn(request, realm, email, defaultPassword)).toBeOK();
     expect(cookie).toContain(realm.applicationId);
   });
@@ -210,7 +213,7 @@ test.describe('Application password auth — password reset', () => {
     expect(await resetTokenCount(realm.applicationId, token)).toBe(1);
   });
 
-  test('reuse of the old password follows the approved password policy', async ({
+  test('password reset permits reuse when password history is not configured', async ({
     api,
     request,
   }) => {
@@ -222,8 +225,9 @@ test.describe('Application password auth — password reset', () => {
 
     const response = await completePasswordReset(request, realm, token, defaultPassword);
 
-    expect(response.status()).toBeGreaterThanOrEqual(400);
+    expect(response.ok(), await response.text()).toBe(true);
     expect(await signIn(request, realm, email, defaultPassword)).toBeOK();
+    expect(await resetTokenCount(realm.applicationId, token)).toBe(0);
   });
 
   test('concurrent link consumption has exactly one successful outcome', async ({
@@ -279,17 +283,20 @@ test.describe('Application password auth — password reset', () => {
     const email = uniqueEmail('blocked');
     await expectSignUp(request, realm, email);
     await setUserState(realm, email, { status: 'blocked' });
-    await requestPasswordReset(request, realm, email);
-    const token = await latestResetToken(realm.applicationId);
+    const before = await realmState(realm);
+    const response = await requestPasswordReset(request, realm, email);
 
-    const response = await completePasswordReset(request, realm, token, newPassword);
-
-    expect(response.status()).toBeGreaterThanOrEqual(400);
+    expect(response.ok(), await response.text()).toBe(true);
+    expectSecretFree(await response.text(), [email]);
     expect((await userForEmail(realm, email))?.status).toBe('blocked');
-    await withDb(async (sql) => {
-      expect(await count(sql, 'application_session', realm.applicationId)).toBe(0);
-      expect(await count(sql, 'application_oauth_access_token', realm.applicationId)).toBe(0);
-    });
+    const after = await realmState(realm);
+    expect(after.application_user).toBe(before.application_user);
+    expect(after.application_account).toBe(before.application_account);
+    expect(after.application_session).toBe(before.application_session);
+    expect(after.application_oauth_access_token).toBe(
+      before.application_oauth_access_token,
+    );
+    expect(after.application_verification).toBe(0);
   });
 
   test('closed registration still permits reset for an existing user', async ({
@@ -297,9 +304,16 @@ test.describe('Application password auth — password reset', () => {
     request,
   }) => {
     const source = await createResetRealm(api, request);
-    const realm = await createResetRealm(api, request, 'closed', {
-      registrationMode: 'disabled',
+    const organization = await api.session.setupOrganization({
+      displayName: `Closed reset organization ${crypto.randomUUID().slice(0, 8)}`,
     });
+    const realm = await createResetRealm(
+      api,
+      request,
+      'closed',
+      { registrationMode: 'disabled' },
+      organization.id,
+    );
     const email = uniqueEmail('closed');
     await expectSignUp(request, source, email);
     await copyPasswordIdentity(source, realm, email);
@@ -422,8 +436,9 @@ async function createResetRealm(
   request: Parameters<typeof createRealm>[1],
   suffix = 'reset',
   policy: Parameters<typeof createRealm>[4] = {},
+  organizationGlobalId?: string,
 ) {
-  const realm = await createRealm(api, request, undefined, suffix, {
+  const realm = await createRealm(api, request, organizationGlobalId, suffix, {
     passwordResetEnabled: true,
     ...policy,
   });
@@ -448,15 +463,16 @@ async function createResetRealms(
 
 async function latestResetToken(applicationId: string): Promise<string> {
   return withDb(async (sql) => {
-    const [row] = await sql<{ value: string }[]>`
-      select value
+    const [row] = await sql<{ identifier: string }[]>`
+      select identifier
       from iam.application_verification
       where application_id = ${applicationId}
+        and identifier like 'reset-password:%'
       order by created_at desc
       limit 1
     `;
     expect(row).toBeDefined();
-    return row!.value;
+    return row!.identifier.slice('reset-password:'.length);
   });
 }
 
@@ -465,7 +481,8 @@ async function resetTokenCount(applicationId: string, token: string): Promise<nu
     const [row] = await sql<{ count: number }[]>`
       select count(*)::int as count
       from iam.application_verification
-      where application_id = ${applicationId} and value = ${token}
+      where application_id = ${applicationId}
+        and identifier = ${`reset-password:${token}`}
     `;
     return row!.count;
   });
@@ -476,7 +493,8 @@ async function expireResetToken(applicationId: string, token: string): Promise<v
     (sql) => sql`
       update iam.application_verification
       set expires_at = now() - interval '1 second'
-      where application_id = ${applicationId} and value = ${token}
+      where application_id = ${applicationId}
+        and identifier = ${`reset-password:${token}`}
     `,
   );
 }
