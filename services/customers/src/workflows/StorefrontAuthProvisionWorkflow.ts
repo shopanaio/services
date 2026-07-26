@@ -94,7 +94,7 @@ export class StorefrontAuthProvisionWorkflow extends BrokerWorkflows<
       name: input.name,
       displayName: input.displayName,
       description: `Store application for ${input.displayName}`,
-      storefrontAuth: {
+      applicationAuth: {
         ...resolveStorefrontAuthUrls(input.name),
         defaultLocale: toApplicationAuthLocale(input.defaultLocale),
       },

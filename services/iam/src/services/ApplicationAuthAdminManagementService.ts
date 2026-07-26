@@ -396,7 +396,7 @@ export class ApplicationAuthAdminManagementService {
       applicationId?: string;
       authorization?: CreateApplicationAuthorizationMode;
       managementMode?: ResourceManagementMode;
-      storefrontAuth?: {
+      applicationAuth?: {
         origin: string;
         redirectUri: string;
         postLogoutRedirectUri: string;
@@ -434,10 +434,10 @@ export class ApplicationAuthAdminManagementService {
           ...value,
           applicationId,
           managementMode: options.managementMode ?? "organization",
-          ...(options.storefrontAuth
+          ...(options.applicationAuth
             ? {
-                storefrontAuth: {
-                  ...options.storefrontAuth,
+                applicationAuth: {
+                  ...options.applicationAuth,
                   clientId: new OAuthClientSecretCodec().generateClientId(),
                   actorId: trustedActor.id,
                 },

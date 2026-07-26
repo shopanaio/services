@@ -72,7 +72,7 @@ const linkedOwnerInputSchema = z
   })
   .strict();
 
-const storefrontAuthInputSchema = z
+const applicationAuthBootstrapInputSchema = z
   .object({
     origin: z.string().url().max(2048),
     redirectUri: z.string().url().max(2048),
@@ -90,7 +90,8 @@ const storefrontAuthInputSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["origin"],
-        message: "Storefront origin must use HTTPS or loopback HTTP",
+        message:
+          "Application trusted origin must use HTTPS or loopback HTTP",
       });
       return;
     }
@@ -98,7 +99,7 @@ const storefrontAuthInputSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["origin"],
-        message: "Storefront origin must be canonical",
+        message: "Application trusted origin must be canonical",
       });
     }
     const origin = new URL(normalizedOrigin);
@@ -116,7 +117,8 @@ const storefrontAuthInputSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: [field],
-          message: "Storefront OAuth URI must be an exact URL on the storefront origin",
+          message:
+            "Application OAuth URI must be an exact URL on the application trusted origin",
         });
       }
     }
@@ -130,7 +132,7 @@ const createApplicationInputSchema = z
     name: applicationNameSchema,
     displayName: z.string().trim().min(1).max(256),
     description: z.string().trim().max(4000).optional(),
-    storefrontAuth: storefrontAuthInputSchema.optional(),
+    applicationAuth: applicationAuthBootstrapInputSchema.optional(),
     managementMode: z.enum(["organization", "service"]),
     linkedOwner: linkedOwnerInputSchema.optional(),
   })
@@ -150,11 +152,12 @@ const createApplicationInputSchema = z
         message: "Linked owner is not allowed for admin-managed application",
       });
     }
-    if (value.storefrontAuth && value.managementMode !== "service") {
+    if (value.applicationAuth && value.managementMode !== "service") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["storefrontAuth"],
-        message: "Storefront auth preset is allowed only for service-linked applications",
+        path: ["applicationAuth"],
+        message:
+          "Application auth bootstrap is allowed only for service-linked applications",
       });
     }
   });
@@ -495,7 +498,7 @@ export class IamBrokerActions extends BrokerActions {
                     ? "trusted_boundary"
                     : "admin",
                 managementMode: params.managementMode,
-                storefrontAuth: params.storefrontAuth,
+                applicationAuth: params.applicationAuth,
               },
             );
 

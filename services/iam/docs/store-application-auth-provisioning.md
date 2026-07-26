@@ -4,16 +4,18 @@ The Customers service owns the lifecycle of each store's service-linked IAM
 application. Its `storeCreated` event handler starts the durable
 `customers.storefrontAuthProvision` workflow, persists the allocated application
 ID in `customers.storefront_auth_configuration`, and calls the trusted
-`iam.createApplication` action. IAM creates the following state in one database
+`iam.createApplication` action with the generic `applicationAuth` bootstrap.
+Customers owns the store ID, storefront URL templates and the decision to create
+the realm. IAM creates the following generic OAuth state in one database
 transaction:
 
 - the application, immutable resource audience and service management row;
 - an auth configuration with open registration, store branding and locale;
-- the exact storefront trusted origin;
-- one public first-party storefront OAuth client;
+- the exact application trusted origin;
+- one public first-party web OAuth client;
 - Authorization Code and Refresh Token grants, S256 PKCE and the fixed v1
   `openid profile email offline_access` scope registry;
-- exact storefront redirect and post-logout URIs.
+- exact application redirect and post-logout URIs.
 
 The realm is enabled immediately while all sign-in methods initially remain
 disabled. Selecting or removing password, email OTP or social sign-in changes

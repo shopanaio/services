@@ -56,7 +56,7 @@ export interface CreateAdminApplicationInput {
   displayName: string;
   description?: string | null;
   managementMode: ResourceManagementMode;
-  storefrontAuth?: {
+  applicationAuth?: {
     origin: string;
     redirectUri: string;
     postLogoutRedirectUri: string;
@@ -228,14 +228,14 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
     const configuration = applicationAuthMutableConfigurationSchema.parse({
       ...DEFAULT_APPLICATION_AUTH_CONFIGURATION,
-      ...(input.storefrontAuth
+      ...(input.applicationAuth
         ? {
             registrationMode: "open",
             emailVerificationRequired: false,
             brandingJson: {
               displayName: truncateUtf16(input.displayName, 80),
             },
-            defaultLocale: input.storefrontAuth.defaultLocale,
+            defaultLocale: input.applicationAuth.defaultLocale,
           }
         : {}),
     });
@@ -245,34 +245,34 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         applicationId: input.applicationId,
         resource: createApplicationResource(input.applicationId),
         secretKeyVersion: this.keyring.activeVersion,
-        realmEnabled: input.storefrontAuth !== undefined,
+        realmEnabled: input.applicationAuth !== undefined,
         ...configuration,
       })
       .returning();
     if (!createdConfiguration) {
       throw new Error("Application auth configuration could not be created");
     }
-    if (input.storefrontAuth) {
-      const storefront = input.storefrontAuth;
+    if (input.applicationAuth) {
+      const applicationAuth = input.applicationAuth;
       await this.connection.insert(applicationAuthOrigin).values({
         applicationId: input.applicationId,
-        origin: storefront.origin,
+        origin: applicationAuth.origin,
       });
       const [createdClient] = await this.connection
         .insert(applicationOauthClient)
         .values({
           id: await this.generateUuidV7(),
           applicationId: input.applicationId,
-          clientId: storefront.clientId,
+          clientId: applicationAuth.clientId,
           clientSecret: null,
           disabled: false,
           skipConsent: true,
           enableEndSession: true,
           scopes: [...APPLICATION_OAUTH_SCOPES],
           userId: null,
-          name: `${input.displayName} Storefront`,
-          redirectUris: [storefront.redirectUri],
-          postLogoutRedirectUris: [storefront.postLogoutRedirectUri],
+          name: `${input.displayName} Web client`,
+          redirectUris: [applicationAuth.redirectUri],
+          postLogoutRedirectUris: [applicationAuth.postLogoutRedirectUri],
           tokenEndpointAuthMethod: "none",
           grantTypes: [...APPLICATION_OAUTH_GRANT_TYPES],
           responseTypes: [...APPLICATION_OAUTH_RESPONSE_TYPES],
@@ -282,20 +282,20 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
           referenceId: input.applicationId,
           metadata: createApplicationOAuthClientPolicyMetadata({
             applicationId: input.applicationId,
-            clientId: storefront.clientId,
+            clientId: applicationAuth.clientId,
             resource: createdConfiguration.resource,
           }),
           resourceAudience: createdConfiguration.resource,
           protocolPolicyVersion: APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION,
-          environment: storefront.origin.startsWith("https://")
+          environment: applicationAuth.origin.startsWith("https://")
             ? "production"
             : "development",
-          createdBy: storefront.actorId,
-          updatedBy: storefront.actorId,
+          createdBy: applicationAuth.actorId,
+          updatedBy: applicationAuth.actorId,
         })
         .returning({ id: applicationOauthClient.id });
       if (!createdClient) {
-        throw new Error("Storefront OAuth client could not be created");
+        throw new Error("Application OAuth client could not be created");
       }
     }
     return {
