@@ -51,6 +51,9 @@ services:
         required: true
         internal:
           port: 11093
+      shopana-smtp:
+        enabled: true
+        required: true
 
   checkout:
     ports:

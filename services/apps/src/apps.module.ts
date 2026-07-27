@@ -22,6 +22,7 @@ import {
   DatabaseAppInstallationContextProvider,
 } from './runtime/AppInstallationContextProvider.js';
 import { AppSecretResolverFactory } from './runtime/AppSecretResolverFactory.js';
+import { AppConfigurationResolverFactory } from './runtime/AppConfigurationResolverFactory.js';
 import { AppInstallationSecretStore } from './control-plane/AppInstallationSecretStore.js';
 import { AppInstallationStore } from './control-plane/AppInstallationStore.js';
 import { AppLifecycleService } from './control-plane/AppLifecycleService.js';
@@ -46,6 +47,7 @@ import { AppsPlatformActions } from './control-plane/AppsPlatformActions.js';
     AppInstallationSecretStore,
     DatabaseAppInstallationContextProvider,
     AppSecretResolverFactory,
+    AppConfigurationResolverFactory,
     AppLifecycleService,
     AppInstallationLifecycleWorkflow,
     AppsPlatformActions,

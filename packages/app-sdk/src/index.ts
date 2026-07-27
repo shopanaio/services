@@ -294,9 +294,14 @@ export interface AppSecretResolver {
   resolve(name: string): Promise<string>;
 }
 
+export interface AppConfigurationResolver {
+  resolve(): Promise<Readonly<Record<string, unknown>>>;
+}
+
 export interface AppHostContext {
   readonly broker: AppBroker;
   readonly config: AppDeploymentConfig;
+  readonly configuration: AppConfigurationResolver;
   readonly databaseClient: unknown;
   readonly logger: AppLogger;
   readonly installations: AppInstallationContextProvider;

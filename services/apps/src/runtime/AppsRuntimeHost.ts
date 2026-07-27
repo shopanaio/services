@@ -23,6 +23,7 @@ import {
 } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { AppBrokerFacadeFactory } from "./AppBrokerFacadeFactory.js";
+import { AppConfigurationResolverFactory } from "./AppConfigurationResolverFactory.js";
 import { AppContextRunner } from "./AppContextRunner.js";
 import { AppRuntimeRegistry } from "./AppRuntimeRegistry.js";
 import { bundledApps } from "./bundled-apps.js";
@@ -52,6 +53,8 @@ export class AppsRuntimeHost
     private readonly registry: AppRuntimeRegistry,
     @Inject(AppSecretResolverFactory)
     private readonly secretResolverFactory: AppSecretResolverFactory,
+    @Inject(AppConfigurationResolverFactory)
+    private readonly configurationResolverFactory: AppConfigurationResolverFactory,
     @Inject(AppSubgraphHost)
     private readonly subgraphHost: AppSubgraphHost,
     @Inject(APP_INSTALLATION_CONTEXT_PROVIDER)
@@ -164,6 +167,10 @@ export class AppsRuntimeHost
     const hostContext = {
       broker: appBroker,
       config,
+      configuration: this.configurationResolverFactory.create(
+        appCode,
+        contextRunner,
+      ),
       databaseClient: this.databaseClient,
       logger: new Logger(`App:${appCode}`),
       installations: this.installations,

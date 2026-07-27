@@ -42,6 +42,95 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
     expect(update.data.appsMutation.appUpdate.userErrors).toEqual([]);
   });
 
+  test('SMTP installation exposes an email delivery route without exposing its password', async ({
+    api,
+  }) => {
+    const password = `smtp-${crypto.randomUUID()}`;
+    const install = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: {
+          appCode: 'shopana-smtp',
+          configuration: {
+            host: 'smtp.example.com',
+            port: 587,
+            security: 'STARTTLS',
+            username: 'mailer@example.com',
+          },
+          secrets: [{ name: 'smtpPassword', value: password }],
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
+    });
+    const installation = install.data.appsMutation.appInstall.installation;
+
+    expect(install.data.appsMutation.appInstall.userErrors).toEqual([]);
+    expect(JSON.stringify(install.data)).not.toContain(password);
+    expect(installation).not.toBeNull();
+
+    await expect
+      .poll(async () => {
+        const response = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id: installation!.id },
+        });
+        return response.data.appsQuery.appInstallation;
+      })
+      .toMatchObject({
+        status: 'ACTIVE',
+        configuration: {
+          host: 'smtp.example.com',
+          port: 587,
+          security: 'STARTTLS',
+          username: 'mailer@example.com',
+        },
+        capabilities: [
+          {
+            capability: 'notifications',
+            assignmentMode: 'STORE',
+            operation: 'deliver',
+            targetAppCode: 'shopana-smtp',
+            targetAction: 'deliver',
+            status: 'ACTIVE',
+          },
+        ],
+      });
+  });
+
+  test('SMTP installation rejects a blank password before activation', async ({
+    api,
+  }) => {
+    const install = await api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: {
+          appCode: 'shopana-smtp',
+          configuration: {
+            host: 'smtp.example.com',
+            port: 587,
+            security: 'STARTTLS',
+            username: 'mailer@example.com',
+          },
+          secrets: [{ name: 'smtpPassword', value: '   ' }],
+          clientMutationId: crypto.randomUUID(),
+        },
+      },
+    });
+    const installation = install.data.appsMutation.appInstall.installation;
+
+    expect(install.data.appsMutation.appInstall.userErrors).toEqual([]);
+    expect(installation).not.toBeNull();
+    await expect
+      .poll(async () => {
+        const response = await api.admin.query('apps-admin-api/AppInstallation', {
+          variables: { id: installation!.id },
+        });
+        return response.data.appsQuery.appInstallation;
+      })
+      .toMatchObject({
+        status: 'INSTALL_FAILED',
+        healthStatus: 'UNHEALTHY',
+        capabilities: [],
+      });
+  });
+
   test('capability eligibility follows lifecycle and store ownership', async ({
     api,
   }) => {
@@ -171,6 +260,7 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
       { code: 'hello-world', runtimeStatus: 'READY' },
       { code: 'shopana-headless', runtimeStatus: 'READY' },
       { code: 'shopana-online-store', runtimeStatus: 'FAILED' },
+      { code: 'shopana-smtp', runtimeStatus: 'READY' },
     ]);
   });
 });

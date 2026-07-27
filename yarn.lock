@@ -7224,6 +7224,20 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/app-smtp@workspace:*, @shopana/app-smtp@workspace:apps/smtp":
+  version: 0.0.0-use.local
+  resolution: "@shopana/app-smtp@workspace:apps/smtp"
+  dependencies:
+    "@shopana/app-sdk": "workspace:*"
+    "@shopana/broker-types": "workspace:*"
+    "@types/node": "npm:^22.7.4"
+    "@types/nodemailer": "npm:^7.0.12"
+    nodemailer: "npm:^7.0.13"
+    typescript: "npm:^5.5.4"
+    zod: "npm:^3.23.8"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/apps-service@npm:0.0.1, @shopana/apps-service@workspace:services/apps":
   version: 0.0.0-use.local
   resolution: "@shopana/apps-service@workspace:services/apps"
@@ -7239,6 +7253,7 @@ __metadata:
     "@shopana/app-online-store": "workspace:*"
     "@shopana/app-runtime": "workspace:*"
     "@shopana/app-sdk": "workspace:*"
+    "@shopana/app-smtp": "workspace:*"
     "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/drizzle-query": "npm:*"
@@ -9117,6 +9132,15 @@ __metadata:
   dependencies:
     undici-types: "npm:~6.21.0"
   checksum: 10/66e240c06a94859d0e1dce76b2055501cb9ec386c0028e687479625a2f1cd3dda0b089278b2767044dff51b07beaf439df6b8b3ce99d5cbeacf243988bd7aa86
+  languageName: node
+  linkType: hard
+
+"@types/nodemailer@npm:^7.0.12":
+  version: 7.0.12
+  resolution: "@types/nodemailer@npm:7.0.12"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10/8b5f0eaac68d2b054489a38bfb55a09c75c3ae66e355e624758dcbc88d5345d794691eccdabeb72aa737f7d13d7d74dfdd79f8786f55cd3388c1ec21292d9293
   languageName: node
   linkType: hard
 
@@ -16726,6 +16750,13 @@ __metadata:
   version: 2.0.21
   resolution: "node-releases@npm:2.0.21"
   checksum: 10/5344d634b39d20f47c0d85a1c64567fdb9cf46f7b27ed3d141f752642faab47dae326835c2109636f823758afb16ffbed7b0c0fe6f800ef91cec9f2beb4f2b4a
+  languageName: node
+  linkType: hard
+
+"nodemailer@npm:^7.0.13":
+  version: 7.0.13
+  resolution: "nodemailer@npm:7.0.13"
+  checksum: 10/4ae37bfb6896f1555de150c1098a7c1b28eb1da240a4c7adede81a8af0dcc184298cfbf804930599c076ea574428e0c18c6b28f0dc2072cebb30c1da5fd0b688
   languageName: node
   linkType: hard
 

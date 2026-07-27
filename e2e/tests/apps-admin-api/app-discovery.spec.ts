@@ -54,6 +54,21 @@ const bundledApps = [
     ],
     graphql: { admin: true, storefront: true },
   },
+  {
+    code: 'shopana-smtp',
+    version: '1.0.0',
+    displayName: 'SMTP',
+    description: 'Deliver Shopana email notifications through a store SMTP server.',
+    permissions: [],
+    capabilities: [
+      {
+        key: 'notifications',
+        assignmentMode: 'STORE',
+        operations: [{ name: 'deliver', action: 'deliver' }],
+      },
+    ],
+    graphql: { admin: false, storefront: false },
+  },
 ] as const;
 
 async function getAvailableApps(
@@ -173,7 +188,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     const definitions = await getAvailableApps(api);
     const byCode = new Map(definitions.map((definition) => [definition.code, definition]));
 
-    for (const code of ['hello-world', 'shopana-headless']) {
+    for (const code of ['hello-world', 'shopana-headless', 'shopana-smtp']) {
       expect(byCode.get(code)).toMatchObject({
         runtimeStatus: 'READY',
         runtimeHealth: {
@@ -211,7 +226,7 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     ).resolves.toEqual(['hello-world']);
     await expect(
       getAvailableApps(api, false).then((apps) => apps.map(({ code }) => code)),
-    ).resolves.toEqual(['shopana-headless', 'shopana-online-store']);
+    ).resolves.toEqual(['shopana-headless', 'shopana-online-store', 'shopana-smtp']);
   });
 
   test('exposes grants and installation for the current store', async ({

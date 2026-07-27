@@ -18,6 +18,7 @@
     "@shopana/app-online-store": "workspace:*",
     "@shopana/app-runtime": "workspace:*",
     "@shopana/app-sdk": "workspace:*",
+    "@shopana/app-smtp": "workspace:*",
     "@shopana/broker-types": "workspace:*",
     "@shopana/drizzle-query": "*",
     "@shopana/shared-context": "*",
