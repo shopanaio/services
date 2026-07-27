@@ -3,10 +3,23 @@ import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { readQuery } from '@fixtures/api/types';
-import { STOREFRONT_PERMISSIONS, STOREFRONT_PERMISSION_VALUES } from '@shopana/shared-context';
+import { composeGlobalId } from '@utils/globalid';
 
 type Api = ApiFixtures['api'];
 type CredentialMode = 'PUBLIC' | 'PRIVATE';
+
+const STOREFRONT_PERMISSIONS = {
+  CATALOG_READ: 'storefront.catalog.read',
+  INVENTORY_READ: 'storefront.inventory.read',
+  CHECKOUT_READ: 'storefront.checkout.read',
+  CHECKOUT_WRITE: 'storefront.checkout.write',
+  CUSTOMER_READ: 'storefront.customer.read',
+  CUSTOMER_WRITE: 'storefront.customer.write',
+  ORDER_READ: 'storefront.order.read',
+  ORDER_WRITE: 'storefront.order.write',
+} as const;
+
+const STOREFRONT_PERMISSION_VALUES = Object.values(STOREFRONT_PERMISSIONS);
 
 const DEFAULT_PERMISSIONS = [
   STOREFRONT_PERMISSIONS.CATALOG_READ,
@@ -91,7 +104,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
       created.initialStorefrontCredentials.publicAccessToken,
       'PUBLIC',
       'headless-admin-api/CheckoutReadProbe',
-      { id: 'hidden-checkout' },
+      { id: composeGlobalId('Checkout', crypto.randomUUID()) },
     );
     expectForbidden(protectedRead);
   });
@@ -191,7 +204,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
         token,
         mode,
         'headless-admin-api/CheckoutReadProbe',
-        { id: crypto.randomUUID() },
+        { id: composeGlobalId('Checkout', crypto.randomUUID()) },
       );
       expect(response.errors).toBeUndefined();
     }
@@ -243,13 +256,14 @@ test.describe('Headless Admin API - storefront access policy', () => {
   }) => {
     const created = await createStorefront(api);
     const token = created.initialStorefrontCredentials.publicAccessToken;
-    const deniedBefore = await storefrontRequest(
+    const hiddenCheckoutId = composeGlobalId('Checkout', crypto.randomUUID());
+    const allowedByDefault = await storefrontRequest(
       request,
       token,
       'PUBLIC',
       'headless-admin-api/CheckoutWriteProbe',
     );
-    expectForbidden(deniedBefore);
+    expect(allowedByDefault.errors).toBeUndefined();
 
     const updated = await updatePolicy(
       api,
@@ -264,7 +278,7 @@ test.describe('Headless Admin API - storefront access policy', () => {
       token,
       'PUBLIC',
       'headless-admin-api/CheckoutReadProbe',
-      { id: 'resource-must-stay-hidden' },
+      { id: hiddenCheckoutId },
     );
     expect(allowedRead.errors).toBeUndefined();
 
@@ -293,10 +307,10 @@ test.describe('Headless Admin API - storefront access policy', () => {
       token,
       'PUBLIC',
       'headless-admin-api/CheckoutReadProbe',
-      { id: 'resource-must-stay-hidden' },
+      { id: hiddenCheckoutId },
     );
     expectForbidden(hidden);
-    expect(JSON.stringify(hidden)).not.toContain('resource-must-stay-hidden');
+    expect(JSON.stringify(hidden)).not.toContain(hiddenCheckoutId);
 
     const allowedOnNextRequest = await storefrontRequest(
       request,

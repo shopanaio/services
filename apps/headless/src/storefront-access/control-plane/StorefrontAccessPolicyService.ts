@@ -54,12 +54,11 @@ export class StorefrontAccessPolicyService {
   }
 
   private validate(values: readonly string[]): readonly StorefrontPermission[] {
-    if (
-      values.some((value) => !isStorefrontPermission(value)) ||
-      new Set(values).size !== values.length
-    ) {
+    if (values.some((value) => !isStorefrontPermission(value))) {
       throw new Error("STOREFRONT_PERMISSION_INVALID");
     }
-    return Object.freeze([...values].sort() as StorefrontPermission[]);
+    return Object.freeze(
+      [...new Set(values)].sort() as StorefrontPermission[],
+    );
   }
 }
