@@ -34,6 +34,23 @@ describe("Policy RBAC contract", () => {
     );
   });
 
+  it("reports a missing subject without referring to workflow context", async () => {
+    const script = new MissingSubjectPolicyScript();
+
+    await expect(
+      script.run({ organizationId: "org-id" })
+    ).rejects.toMatchObject({
+      errors: [
+        {
+          code: "UNAUTHENTICATED",
+          message: "Access denied: Subject is missing",
+          field: null,
+        },
+      ],
+    });
+    expect(script.authProvider.authorize).not.toHaveBeenCalled();
+  });
+
   it("evaluates every policy declared on a workflow entrypoint", async () => {
     const workflow = new MultiPolicyWorkflow();
 
@@ -127,6 +144,19 @@ class ExplicitSubjectPolicyScript {
     action: "write",
     organizationId: (_self, params) => params.organizationId,
     subject: "explicit-user",
+  })
+  async run(_params: { organizationId: string }): Promise<string> {
+    return "executed";
+  }
+}
+
+class MissingSubjectPolicyScript {
+  readonly authProvider = createAuthProvider(null);
+
+  @Policy<{ organizationId: string }, MissingSubjectPolicyScript>({
+    resource: "org.applications",
+    action: "write",
+    organizationId: (_self, params) => params.organizationId,
   })
   async run(_params: { organizationId: string }): Promise<string> {
     return "executed";

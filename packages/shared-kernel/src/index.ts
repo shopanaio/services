@@ -116,6 +116,7 @@ export {
   EVENT_HANDLER_METADATA_KEY,
   type UserError,
   type Authorizable,
+  type Authorizer,
   type AuthProvider,
   type AuthorizeParams,
   type BrokerAuthorizeParams,

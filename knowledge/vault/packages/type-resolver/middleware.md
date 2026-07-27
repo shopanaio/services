@@ -76,6 +76,11 @@ const executor = createExecutor({
 });
 ```
 
+`@TypePolicy` consumes only the shared `Authorizer` capability exposed through
+`instance.authProvider`. A policy-decorated type without that capability is a
+configuration error and fails closed; `onDeny` applies only to an actual
+authorization denial.
+
 ## Related
 
 - [[type-resolver/index]] — Package overview

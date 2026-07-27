@@ -24,6 +24,7 @@ export type {
   ActionsForResource,
   AuthorizeParams,
   BrokerAuthorizeParams,
+  Authorizer,
   ProtectedResourceAuthorizeParams,
   AuthProvider,
   Authorizable,
@@ -33,3 +34,11 @@ export type {
   ServiceLinkedAuthorizationDetails,
 } from "./auth.js";
 export { ServiceLinkedResourceAuthorizationError } from "./auth.js";
+export {
+  AdminContextAuthorizer,
+  adminContextAllows,
+  authorizeAdminContext,
+  type AdminAuthorizationContext,
+  type AdminAuthorizationPermission,
+  type AdminContextAuthorizeInput,
+} from "./authorization.js";

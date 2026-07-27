@@ -1,9 +1,10 @@
 import type { UserError } from "./ZodSchema.js";
 import {
-  validateAuthorizeInput,
+  AdminContextAuthorizer,
   type ResourceName,
   type Domain,
   type ActionsForResource,
+  type Authorizer,
   type Authorizable,
   type BrokerAuthorizeParams,
 } from "@shopana/rbac";
@@ -20,6 +21,7 @@ import type { BrokerAdminContext } from "../broker/WorkflowAuthorization.js";
 export type {
   AuthorizeParams,
   BrokerAuthorizeParams,
+  Authorizer,
   AuthProvider,
   Authorizable,
   ProtectedResourceAuthorizeParams,
@@ -182,27 +184,22 @@ export async function authorizePolicies<TParams>(
   propertyKey: string | symbol,
   params: TParams
 ): Promise<void> {
-  const policies = getPolicies<TParams>(target, propertyKey);
-  let firstDenied: AuthorizationError | undefined;
-
-  for (const policy of policies) {
-    try {
-      await authorizePolicy(
-        target as Authorizable,
-        params,
-        policy as AuthorizeOptions<TParams, Authorizable>
-      );
-    } catch (error) {
-      if (!(error instanceof AuthorizationError)) {
-        throw error;
-      }
-      firstDenied ??= error;
-    }
+  const provider = (target as Partial<Authorizable>).authProvider;
+  if (!provider) {
+    throw new Error(
+      `@Policy requires ${target.constructor.name} to implement Authorizable`
+    );
   }
 
-  if (firstDenied) {
-    throw firstDenied;
-  }
+  await evaluatePolicies(
+    target,
+    propertyKey,
+    params,
+    provider,
+    () => ({}),
+    (input) => Boolean(input.subject ?? provider.subject),
+    subjectMissingError
+  );
 }
 
 export function hasPolicies(
@@ -222,29 +219,19 @@ export async function authorizePoliciesWithAdminContext<TParams>(
   params: TParams,
   context: BrokerAdminContext
 ): Promise<void> {
-  const policies = getPolicies<TParams>(target, propertyKey);
-  let firstDenied: AuthorizationError | undefined;
-
-  for (const policy of policies) {
-    const input = resolveAuthorizeParams(target, params, policy, {
+  await evaluatePolicies(
+    target,
+    propertyKey,
+    params,
+    new AdminContextAuthorizer(context),
+    (policy) => ({
       subject: context.user.id,
       organizationId: context.organizationId ?? undefined,
       domain: defaultWorkflowDomain(policy.resource, context.store?.id),
-    });
-    if (
-      !input.domain ||
-      !validateAuthorizeInput({
-        domain: input.domain,
-        resource: input.resource,
-        action: input.action,
-      }).success ||
-      !adminContextAllows(context, input)
-    ) {
-      firstDenied ??= deniedError(policy);
-    }
-  }
-
-  if (firstDenied) throw firstDenied;
+    }),
+    (input) => Boolean(input.subject),
+    workflowAuthorizationMissingError
+  );
 }
 
 /**
@@ -262,74 +249,21 @@ export async function authorizePoliciesWithIam<TParams>(
   if (policies.length === 0) return;
   const authorization = context.authorization;
   if (!authorization || authorization.kind !== "admin") {
-    throw unauthenticatedError(policies[0]);
+    throw workflowAuthorizationMissingError(policies[0]);
   }
-
-  let firstDenied: AuthorizationError | undefined;
-  for (const policy of policies) {
-    const input = resolveAuthorizeParams(target, params, policy, {
+  await evaluatePolicies(
+    target,
+    propertyKey,
+    params,
+    new IamWorkflowPolicyAuthorizer(broker, authorization),
+    (policy) => ({
       subject: authorization.subject,
       organizationId: authorization.organizationId,
       domain: defaultWorkflowDomain(policy.resource, authorization.storeId),
-    });
-    if (!workflowScopeMatches(input, authorization)) {
-      firstDenied ??= deniedError(policy);
-      continue;
-    }
-    const result = await broker.call<
-      BrokerAuthorizeResult,
-      BrokerAuthorizeParams
-    >("iam.authorize", input);
-    if (!result.allowed) firstDenied ??= deniedError(policy);
-  }
-
-  if (firstDenied) throw firstDenied;
-}
-
-async function authorizePolicy<
-  TParams,
-  TSelf extends Authorizable
->(
-  self: TSelf,
-  params: TParams,
-  options: AuthorizeOptions<TParams, TSelf>
-): Promise<void> {
-  if (!self.authProvider) {
-    throw new Error(
-      `@Policy requires ${self.constructor.name} to implement Authorizable`
-    );
-  }
-
-  const subject = resolveValue(options.subject, self, params);
-  const effectiveSubject = subject ?? self.authProvider.subject;
-
-  if (!effectiveSubject) {
-    throw new AuthorizationError(
-      [
-        {
-          code: "UNAUTHENTICATED",
-          message: "Access denied: Subject is missing",
-          field: null,
-        },
-      ],
-      options.resource,
-      options.action
-    );
-  }
-
-  const authorizeParams: BrokerAuthorizeParams = {
-    resource: options.resource,
-    action: options.action,
-    organizationId: resolveValue(options.organizationId, self, params),
-    organizationName: resolveValue(options.organizationName, self, params),
-    domain: resolveValue(options.domain, self, params),
-    subject,
-  };
-  const allowed = await self.authProvider.authorize(authorizeParams);
-
-  if (!allowed) {
-    throw deniedError(options);
-  }
+    }),
+    (input) => Boolean(input.subject),
+    workflowAuthorizationMissingError
+  );
 }
 
 async function authorizeWorkflowPolicies<TParams>(
@@ -340,7 +274,7 @@ async function authorizeWorkflowPolicies<TParams>(
 ): Promise<void> {
   const policies = getPolicies<TParams>(target, propertyKey);
   if (policies.length === 0) return;
-  if (!context) throw unauthenticatedError(policies[0]);
+  if (!context) throw workflowAuthorizationMissingError(policies[0]);
   const broker = (target as { broker?: WorkflowPolicyBroker }).broker;
   if (!broker) {
     throw new Error(
@@ -354,6 +288,57 @@ async function authorizeWorkflowPolicies<TParams>(
       Object.defineProperty(error, WORKFLOW_ADMISSION_ERROR, { value: true });
     }
     throw error;
+  }
+}
+
+async function evaluatePolicies<TParams>(
+  target: object,
+  propertyKey: string | symbol,
+  params: TParams,
+  authorizer: Authorizer,
+  resolveDefaults: (
+    policy: AuthorizeOptions<TParams, object>
+  ) => PolicyAuthorizeDefaults,
+  hasSubject: (input: BrokerAuthorizeParams) => boolean,
+  createUnauthenticatedError: (policy: PolicyIdentity) => AuthorizationError
+): Promise<void> {
+  const policies = getPolicies<TParams>(target, propertyKey);
+  let firstDenied: AuthorizationError | undefined;
+
+  for (const policy of policies) {
+    const input = resolveAuthorizeParams(
+      target,
+      params,
+      policy,
+      resolveDefaults(policy)
+    );
+    if (!hasSubject(input)) {
+      firstDenied ??= createUnauthenticatedError(policy);
+      continue;
+    }
+    if (!(await authorizer.authorize(input))) {
+      firstDenied ??= deniedError(policy);
+    }
+  }
+
+  if (firstDenied) throw firstDenied;
+}
+
+class IamWorkflowPolicyAuthorizer implements Authorizer {
+  constructor(
+    private readonly broker: WorkflowPolicyBroker,
+    private readonly authorization: NonNullable<
+      WorkflowExecutionContext["authorization"]
+    >
+  ) {}
+
+  async authorize(params: BrokerAuthorizeParams): Promise<boolean> {
+    if (!workflowScopeMatches(params, this.authorization)) return false;
+    const result = await this.broker.call<
+      BrokerAuthorizeResult,
+      BrokerAuthorizeParams
+    >("iam.authorize", params);
+    return result.allowed;
   }
 }
 
@@ -374,11 +359,7 @@ function resolveAuthorizeParams<TParams, TSelf extends object>(
   self: TSelf,
   params: TParams,
   options: AuthorizeOptions<TParams, TSelf>,
-  defaults: {
-    readonly subject?: string;
-    readonly organizationId?: string;
-    readonly domain?: string;
-  }
+  defaults: PolicyAuthorizeDefaults
 ): BrokerAuthorizeParams {
   const organizationId = resolveValue(options.organizationId, self, params);
   const organizationName = resolveValue(
@@ -410,36 +391,6 @@ function resolveValue<TSelf, TParams, TValue>(
     : value;
 }
 
-function adminContextAllows(
-  context: BrokerAdminContext,
-  input: BrokerAuthorizeParams
-): boolean {
-  if (
-    !input.subject ||
-    input.subject !== context.user.id ||
-    !context.organizationId ||
-    input.organizationId !== context.organizationId ||
-    (input.organizationName !== undefined &&
-      input.organizationId === undefined) ||
-    !input.domain
-  ) {
-    return false;
-  }
-  if (
-    input.domain !== "org" &&
-    (!context.store || input.domain !== `store:${context.store.id}`)
-  ) {
-    return false;
-  }
-  if (context.isSiteAdmin || context.isOrganizationOwner) return true;
-  return context.permissions.some(
-    (permission) =>
-      permission.domain === input.domain &&
-      permission.resource === input.resource &&
-      permission.action === input.action
-  );
-}
-
 function workflowScopeMatches(
   input: BrokerAuthorizeParams,
   authorization: NonNullable<WorkflowExecutionContext["authorization"]>
@@ -466,7 +417,23 @@ function defaultWorkflowDomain(
     : "org";
 }
 
-function unauthenticatedError(policy: PolicyIdentity): AuthorizationError {
+function subjectMissingError(policy: PolicyIdentity): AuthorizationError {
+  return new AuthorizationError(
+    [
+      {
+        code: "UNAUTHENTICATED",
+        message: "Access denied: Subject is missing",
+        field: null,
+      },
+    ],
+    policy.resource,
+    policy.action
+  );
+}
+
+function workflowAuthorizationMissingError(
+  policy: PolicyIdentity
+): AuthorizationError {
   return new AuthorizationError(
     [
       {
@@ -497,6 +464,12 @@ function deniedError(policy: PolicyIdentity): AuthorizationError {
 interface PolicyIdentity {
   readonly resource: string;
   readonly action: string;
+}
+
+interface PolicyAuthorizeDefaults {
+  readonly subject?: string;
+  readonly organizationId?: string;
+  readonly domain?: string;
 }
 
 interface WorkflowPolicyBroker {

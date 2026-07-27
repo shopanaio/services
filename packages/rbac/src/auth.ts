@@ -54,6 +54,11 @@ export interface BrokerAuthorizeParams {
 
 export type AuthorizeParams = BrokerAuthorizeParams;
 
+/** Minimal authorization capability consumed by policy evaluators. */
+export interface Authorizer {
+  authorize(params: AuthorizeParams): Promise<boolean>;
+}
+
 export interface ProtectedResourceAuthorizeParams {
   protectedResource: ProtectedResourceRef;
 }
@@ -74,10 +79,9 @@ export class ServiceLinkedResourceAuthorizationError extends Error {
  * Interface for authorization provider.
  * Contains subject (current user) and authorize method.
  */
-export interface AuthProvider {
+export interface AuthProvider extends Authorizer {
   /** Current subject (user ID) for authorization checks. */
   subject: string | null;
-  authorize(params: AuthorizeParams): Promise<boolean>;
   authorizeProtectedResource(
     params: ProtectedResourceAuthorizeParams
   ): Promise<boolean>;

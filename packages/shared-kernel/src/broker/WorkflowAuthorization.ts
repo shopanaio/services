@@ -2,30 +2,14 @@ import type {
   WorkflowExecutionContext,
   WorkflowStartOptions,
 } from "@shopana/dbos";
-import type { Action, ResourceName } from "@shopana/rbac";
+import type { AdminAuthorizationContext } from "@shopana/rbac";
 
 /**
  * Structural authorization subset of shared-context's
  * ResolvedAdminAccessContext. Keeping the contract structural avoids a
  * shared-context <-> shared-kernel package cycle.
  */
-export interface BrokerAdminContext {
-  readonly user: {
-    readonly id: string;
-  };
-  readonly organizationId: string | null;
-  readonly store: {
-    readonly id: string;
-    readonly organizationId: string;
-  } | null;
-  readonly permissions: readonly {
-    readonly domain: "org" | `store:${string}`;
-    readonly resource: ResourceName;
-    readonly action: Action;
-  }[];
-  readonly isSiteAdmin: boolean;
-  readonly isOrganizationOwner: boolean;
-}
+export type BrokerAdminContext = AdminAuthorizationContext;
 
 /**
  * Broker-only options for starting DBOS workflows.

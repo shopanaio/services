@@ -4,9 +4,12 @@ import {
   type KeyObject,
 } from "node:crypto";
 import {
+  adminContextAllows as evaluateAdminContextPermission,
+  authorizeAdminContext as evaluateAdminContextAuthorization,
   validateAuthorizeInput,
   type Action,
-  type ResourceName,
+  type AdminAuthorizationPermission,
+  type AdminContextAuthorizeInput as RbacAdminContextAuthorizeInput,
 } from "@shopana/rbac";
 import type { ContextStore, ContextUser } from "./types.js";
 
@@ -15,11 +18,7 @@ export const ADMIN_CONTEXT_ISSUER = "shopana-admin-gateway";
 export const ADMIN_CONTEXT_AUDIENCE = "shopana-admin-subgraphs";
 export const ADMIN_CONTEXT_TOKEN_TYPE = "shopana-admin-context+jwt";
 
-export interface AdminPermission {
-  readonly domain: "org" | `store:${string}`;
-  readonly resource: ResourceName;
-  readonly action: Action;
-}
+export type AdminPermission = AdminAuthorizationPermission;
 
 export interface ResolvedAdminAccessContext {
   readonly user: ContextUser;
@@ -42,14 +41,7 @@ export interface AdminContextClaims extends ResolvedAdminAccessContext {
   readonly schemaVersion: 1;
 }
 
-export interface AdminContextAuthorizeInput {
-  readonly subject?: string;
-  readonly organizationId?: string;
-  readonly organizationName?: string;
-  readonly domain: string;
-  readonly resource: string;
-  readonly action: string;
-}
+export type AdminContextAuthorizeInput = RbacAdminContextAuthorizeInput;
 
 export class AdminContextVerifier {
   private readonly keys: ReadonlyMap<string, KeyObject>;
@@ -190,13 +182,7 @@ export function adminContextAllows(
     readonly action: string;
   },
 ): boolean {
-  const validated = validateAuthorizeInput(input);
-  if (!validated.success) return false;
-  if (context.isSiteAdmin || context.isOrganizationOwner) return true;
-  const expected = permissionKey(validated.data);
-  return context.permissions.some(
-    (permission) => permissionKey(permission) === expected,
-  );
+  return evaluateAdminContextPermission(context, input);
 }
 
 /**
@@ -210,29 +196,7 @@ export function authorizeAdminContext(
   context: AdminContextClaims | undefined,
   input: AdminContextAuthorizeInput,
 ): boolean {
-  if (!context) return false;
-
-  const subject = input.subject ?? context.user.id;
-  if (subject !== context.user.id) return false;
-
-  if (
-    !context.organizationId ||
-    (input.organizationId !== undefined &&
-      input.organizationId !== context.organizationId) ||
-    (input.organizationName !== undefined &&
-      input.organizationId === undefined)
-  ) {
-    return false;
-  }
-
-  if (
-    input.domain !== "org" &&
-    (!context.store || input.domain !== `store:${context.store.id}`)
-  ) {
-    return false;
-  }
-
-  return adminContextAllows(context, input);
+  return evaluateAdminContextAuthorization(context, input);
 }
 
 export function readAdminPublicKeysFromEnvironment(): Readonly<

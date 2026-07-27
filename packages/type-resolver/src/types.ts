@@ -254,7 +254,7 @@ export interface Middleware<TContext = unknown> {
    * Called after instance creation, before $preload() and field resolution.
    *
    * Use cases:
-   * - Authorization checks (access instance.authorize())
+   * - Authorization checks (access an Authorizer exposed by the instance)
    * - Instance validation
    * - Logging/metrics
    *

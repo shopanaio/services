@@ -2,6 +2,7 @@
 export type {
   AuthorizeParams,
   BrokerAuthorizeParams,
+  Authorizer,
   AuthProvider,
   Authorizable,
 } from "@shopana/rbac";

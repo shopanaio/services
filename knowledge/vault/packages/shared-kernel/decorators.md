@@ -240,9 +240,10 @@ The complete Admin Context is consumed only by the root preflight. DBOS
 persists only `subject`, `organizationId`, and optional `storeId`; JWT claims
 and the permission list are never included.
 
-Workflow policies that use `organizationName` must also resolve an explicit,
-matching `organizationId`. A name-only scope fails closed; the current Admin
-Context organization ID is not substituted for it.
+Workflow preflight policies must use `organizationId`. Any
+`organizationName` scope fails closed because the Admin Context snapshot
+contains no trusted organization-name binding. IAM may resolve a name only
+during direct `iam.authorize` evaluation.
 
 A nested workflow skips its own policies on the first invocation because the
 root already declared and checked them. If DBOS recovers either the root or a
@@ -343,8 +344,11 @@ interface Authorizable {
   readonly authProvider: AuthProvider;
 }
 
-interface AuthProvider {
+interface Authorizer {
   authorize(params: AuthorizeParams): Promise<boolean>;
+}
+
+interface AuthProvider extends Authorizer {
   authorizeProtectedResource(
     params: { protectedResource: ProtectedResourceRef }
   ): Promise<boolean>;

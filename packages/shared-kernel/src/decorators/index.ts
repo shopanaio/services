@@ -3,6 +3,7 @@ export {
   Policy,
   AuthorizationError,
   type Authorizable,
+  type Authorizer,
   type AuthProvider,
   type AuthorizeParams,
   type BrokerAuthorizeParams,

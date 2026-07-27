@@ -17,12 +17,14 @@ export { parseGraphqlInfo } from "./utils/graphqlArgsParser.js";
 // Authorization middleware (re-exported for convenience)
 export {
   TypePolicy,
+  TypeAuthorizationConfigurationError,
   TypeAuthorizationError,
   createAuthorizationMiddleware,
   authorizationMiddleware,
   type TypePolicyOptions,
   type AuthorizeParams,
   type BrokerAuthorizeParams,
+  type Authorizer,
   type AuthProvider,
   type Authorizable,
   type AuthorizationMiddlewareOptions,
