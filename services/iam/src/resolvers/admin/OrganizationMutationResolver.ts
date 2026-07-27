@@ -94,6 +94,19 @@ export class OrganizationMutationResolver extends IAMType<
     );
 
     const data = result.data;
+    if (!data) {
+      return {
+        organization: null,
+        userErrors: [
+          {
+            code: result.error?.code ?? "ORGANIZATION_CREATE_FAILED",
+            message:
+              result.error?.message ?? "Failed to create organization",
+            field: null,
+          },
+        ],
+      };
+    }
     return {
       organization: data?.organization
         ? new OrganizationResolver(data.organization.id, this.$ctx)
@@ -108,7 +121,7 @@ export class OrganizationMutationResolver extends IAMType<
 
   /**
    * Update organization (name, displayName, logo).
-   * Uses OrganizationUpdateWorkflow to ensure logo back-refs are synced after DB commit.
+   * The saga validates and links a new logo before persisting its ID.
    */
   @ZodResolver(OrganizationUpdateInputSchema())
   async organizationUpdate(args: { input: OrganizationUpdateInput }) {
@@ -161,11 +174,24 @@ export class OrganizationMutationResolver extends IAMType<
     );
 
     const data = result.data;
+    if (!data) {
+      return {
+        organization: null,
+        userErrors: [
+          {
+            code: result.error?.code ?? "ORGANIZATION_UPDATE_FAILED",
+            message:
+              result.error?.message ?? "Failed to update organization",
+            field: null,
+          },
+        ],
+      };
+    }
     return {
-      organization: data?.organization
+      organization: data.organization
         ? new OrganizationResolver(data.organization.id, this.$ctx)
         : null,
-      userErrors: (data?.userErrors ?? []).map((e) => ({
+      userErrors: data.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
         field: e.field,

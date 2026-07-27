@@ -1442,6 +1442,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             entityType: "product",
             entityId: input.productId,
           },
+          storeId: input.context.storeId,
           fileIds: mediaChanges.fileIds,
         },
         {

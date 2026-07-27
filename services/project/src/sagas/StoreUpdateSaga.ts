@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { Media } from "@shopana/broker-types";
+import type { ZodTypeAny } from "zod";
 import {
   BrokerSaga,
   FatalError,
@@ -39,6 +40,14 @@ import type {
   StoreDefaultsUpdateParams,
   StoreOrderProcessingUpdateParams,
   StoreSettingsUpdateResult,
+} from "../scripts/storeSettings/dto.js";
+import {
+  storeAddressUpdateSchema,
+  storeBrandUpdateSchema,
+  storeContactDetailsUpdateSchema,
+  storeCurrencySettingsUpdateSchema,
+  storeDefaultsUpdateSchema,
+  storeOrderProcessingUpdateSchema,
 } from "../scripts/storeSettings/dto.js";
 
 type OperationParams<T> = Omit<T, "storeId" | "organizationId">;
@@ -162,6 +171,20 @@ export class StoreUpdateSaga extends BrokerSaga<
   private async execute(
     input: StoreUpdateSagaInput,
   ): Promise<StoreUpdateSagaOutput> {
+    const validationResults = input.operations.map((operation) => ({
+      type: operation.type,
+      applied: false,
+      errors: validateOperation(input, operation),
+    }));
+    const validationErrors = validationResults.flatMap(({ errors }) => errors);
+    if (validationErrors.length > 0) {
+      return {
+        storeId: null,
+        operationResults: validationResults,
+        userErrors: validationErrors,
+      };
+    }
+
     const snapshot = await this.captureStoreUpdateSnapshot(input);
     const revision = await this.acquireStoreRevision(input, snapshot);
     if ("error" in revision) {
@@ -276,6 +299,20 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
+  private async compensateUpdateContactDetails(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<
+      StoreUpdateOperation,
+      { type: "contactDetailsUpdate" }
+    >,
+    previous: StoreContactDetailsData,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreContactDetails(
+      input.storeId,
+      previous,
+    );
+  }
+
   @SagaStep()
   private async updateAddress(
     input: StoreUpdateSagaInput,
@@ -289,6 +326,17 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
+  private async compensateUpdateAddress(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<StoreUpdateOperation, { type: "addressUpdate" }>,
+    previous: StoreAddressData | null,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreAddress(
+      input.storeId,
+      previous,
+    );
+  }
+
   @SagaStep()
   private async updateBrand(
     input: StoreUpdateSagaInput,
@@ -300,6 +348,17 @@ export class StoreUpdateSaga extends BrokerSaga<
       ...operation.params,
     });
     return toOperationResult(result, operation);
+  }
+
+  private async compensateUpdateBrand(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<StoreUpdateOperation, { type: "brandUpdate" }>,
+    previous: StoreBrandData | null,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreBrand(
+      input.storeId,
+      previous,
+    );
   }
 
   @SagaStep()
@@ -318,6 +377,20 @@ export class StoreUpdateSaga extends BrokerSaga<
     return toOperationResult(result, operation);
   }
 
+  private async compensateUpdateOrderProcessing(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<
+      StoreUpdateOperation,
+      { type: "orderProcessingUpdate" }
+    >,
+    previous: StoreOrderProcessingData | null,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreOrderProcessing(
+      input.storeId,
+      previous,
+    );
+  }
+
   @SagaStep()
   private async updateDefaults(
     input: StoreUpdateSagaInput,
@@ -329,6 +402,17 @@ export class StoreUpdateSaga extends BrokerSaga<
       ...operation.params,
     });
     return toOperationResult(result, operation);
+  }
+
+  private async compensateUpdateDefaults(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<StoreUpdateOperation, { type: "defaultsUpdate" }>,
+    previous: StoreDefaultsData,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreDefaults(
+      input.storeId,
+      previous,
+    );
   }
 
   @SagaStep()
@@ -348,6 +432,20 @@ export class StoreUpdateSaga extends BrokerSaga<
       },
     );
     return toOperationResult(result, operation);
+  }
+
+  private async compensateUpdateCurrencySettings(
+    input: StoreUpdateSagaInput,
+    _operation: Extract<
+      StoreUpdateOperation,
+      { type: "currencySettingsUpdate" }
+    >,
+    previous: StoreCurrencySettingsSnapshotData,
+  ): Promise<void> {
+    await this.kernel.repository.storeSettings.restoreCurrencySettings(
+      input.storeId,
+      previous,
+    );
   }
 
   private operationContext(input: StoreUpdateSagaInput) {
@@ -386,6 +484,26 @@ export class StoreUpdateSaga extends BrokerSaga<
             field: ["storeId"],
           },
     };
+  }
+
+  private async compensateAcquireStoreRevision(
+    input: StoreUpdateSagaInput,
+    snapshot: StoreUpdateSnapshot,
+  ): Promise<void> {
+    const restored = await this.kernel.repository.store.restoreRevision({
+      id: input.storeId,
+      organizationId: input.context.organizationId,
+      acquiredRevision: snapshot.revision + 1,
+      previousRevision: snapshot.revision,
+      previousUpdatedAt: snapshot.updatedAt,
+    });
+    if (!restored) {
+      throw new FatalError(
+        "Unable to restore store revision",
+        undefined,
+        "REVISION_COMPENSATION_FAILED",
+      );
+    }
   }
 
   @SagaStep()
@@ -519,20 +637,20 @@ export class StoreUpdateSaga extends BrokerSaga<
     >("media.fileLink", {
       fileId: link.fileId,
       entityRef: storeMediaEntityRef(storeId),
+      owner: { type: "store", id: storeId },
       role: link.role,
     });
-    if (!result.success) {
+    if (result.code === "LINK_FAILED") {
       throw mediaInfrastructureError(
         "Unable to attach media file to the store",
         "MEDIA_LINK_FAILED",
       );
     }
-    if (result.fileExists && result.fileActive) return;
+    if (result.code === "LINKED") return;
 
     const error = brandMediaError({
       field: link.field,
-      fileExists: result.fileExists,
-      fileActive: result.fileActive,
+      code: result.code,
     });
     throw new FatalError(
       error.message,
@@ -602,20 +720,26 @@ function storeMediaEntityRef(storeId: string) {
 
 function brandMediaError(input: {
   field: string;
-  fileExists: boolean;
-  fileActive: boolean;
+  code: Exclude<Media.FileLinkResult["code"], "LINKED">;
 }): UserError {
-  if (!input.fileExists) {
+  if (input.code === "FILE_NOT_FOUND") {
     return {
       code: "MEDIA_FILE_NOT_FOUND",
       message: "Media file not found",
       field: [input.field],
     };
   }
-  if (!input.fileActive) {
+  if (input.code === "FILE_INACTIVE") {
     return {
       code: "MEDIA_FILE_INACTIVE",
       message: "Media file is not active",
+      field: [input.field],
+    };
+  }
+  if (input.code === "OWNER_MISMATCH") {
+    return {
+      code: "MEDIA_FILE_FORBIDDEN",
+      message: "Media file does not belong to this store",
       field: [input.field],
     };
   }
@@ -624,6 +748,45 @@ function brandMediaError(input: {
     message: "Unable to attach media file to the store",
     field: [input.field],
   };
+}
+
+function validateOperation(
+  input: StoreUpdateSagaInput,
+  operation: StoreUpdateOperation,
+): UserError[] {
+  const params = {
+    storeId: input.storeId,
+    organizationId: input.context.organizationId,
+    ...operation.params,
+  };
+  const result = schemaForOperation(operation).safeParse(params);
+  if (result.success) return [];
+
+  return prefixUserErrors(
+    result.error.errors.map((error) => ({
+      code: "INVALID_INPUT",
+      message: error.message,
+      field: error.path.map(String),
+    })),
+    operation,
+  );
+}
+
+function schemaForOperation(operation: StoreUpdateOperation): ZodTypeAny {
+  switch (operation.type) {
+    case "contactDetailsUpdate":
+      return storeContactDetailsUpdateSchema;
+    case "addressUpdate":
+      return storeAddressUpdateSchema;
+    case "brandUpdate":
+      return storeBrandUpdateSchema;
+    case "orderProcessingUpdate":
+      return storeOrderProcessingUpdateSchema;
+    case "defaultsUpdate":
+      return storeDefaultsUpdateSchema;
+    case "currencySettingsUpdate":
+      return storeCurrencySettingsUpdateSchema;
+  }
 }
 
 function mediaInfrastructureError(

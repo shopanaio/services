@@ -16,4 +16,4 @@ export interface UserError {
 }
 
 /** Asset owner types */
-export type AssetOwnerType = "organization" | "store";
+export type AssetOwnerType = "organization" | "store" | "user_profile";

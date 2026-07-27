@@ -18,7 +18,7 @@ export class SyncEntityFilesScript extends BaseScript<
   protected async execute(
     params: SyncEntityFilesParams
   ): Promise<SyncEntityFilesResult> {
-    const { entityRef, fileIds, role = DEFAULT_ROLE } = params;
+    const { entityRef, owner, fileIds, role = DEFAULT_ROLE } = params;
 
     // 1. Clear all existing back-refs for this entity
     const unlinkedCount = await this.repository.fileBackRef.unlinkAllByEntity({
@@ -45,6 +45,8 @@ export class SyncEntityFilesScript extends BaseScript<
       service: entityRef.service,
       entityType: entityRef.entityType,
       entityId: entityRef.entityId,
+      ownerType: owner.type,
+      ownerId: owner.id,
     });
 
     const skippedCount = uniqueFileIds.length - linkedCount;

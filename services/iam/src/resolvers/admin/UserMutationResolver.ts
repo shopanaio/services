@@ -32,7 +32,7 @@ import {
 export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update user's profile (firstName, lastName, language, avatar).
-   * Uses UserUpdateProfileWorkflow to ensure avatar back-refs are synced after DB commit.
+   * The saga validates and links a new avatar before persisting its ID.
    */
   @ZodResolver(UserUpdateProfileInputSchema())
   async userUpdateProfile(args: { input: UserUpdateProfileInput }) {
@@ -92,6 +92,18 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     );
 
     const data = result.data;
+    if (!data) {
+      return {
+        user: null,
+        userErrors: [
+          {
+            code: result.error?.code ?? "PROFILE_UPDATE_FAILED",
+            message: result.error?.message ?? "Failed to update user profile",
+            field: null,
+          },
+        ],
+      };
+    }
     return {
       user: data?.userId ? new UserResolver(data.userId, this.$ctx) : null,
       userErrors: (data?.userErrors ?? []).map((e) => ({

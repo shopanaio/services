@@ -11,7 +11,7 @@ export class FileLinkManyScript extends BaseScript<
   protected async execute(
     params: FileLinkManyParams
   ): Promise<FileLinkManyResult> {
-    const { items, entityRef } = params;
+    const { items, entityRef, owner } = params;
 
     if (items.length === 0) {
       return { linkedCount: 0, skippedCount: 0 };
@@ -22,12 +22,14 @@ export class FileLinkManyScript extends BaseScript<
       new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
     );
 
-    // linkMany handles soft-delete check in SQL and returns accurate count
+    // linkMany enforces active-file and owner constraints for every item.
     const { linkedCount } = await this.repository.fileBackRef.linkMany({
       items: uniqueItems,
       service: entityRef.service,
       entityType: entityRef.entityType,
       entityId: entityRef.entityId,
+      ownerType: owner.type,
+      ownerId: owner.id,
     });
 
     const skippedCount = uniqueItems.length - linkedCount;
@@ -35,7 +37,7 @@ export class FileLinkManyScript extends BaseScript<
     if (skippedCount > 0) {
       this.logger.info(
         { skippedCount, totalCount: uniqueItems.length, linkedCount },
-        "fileLinkMany: some files missing or soft-deleted"
+        "fileLinkMany: some files missing, inactive, foreign-owned, or already linked"
       );
     }
 

@@ -103,7 +103,7 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
 
     // Step 3: Sync product media back-refs (only after successful DB commit)
     if (result.productMedia) {
-      await this.syncProductBackRefs(result.productMedia);
+      await this.syncProductBackRefs(result.productMedia, input.storeId);
     }
 
     return result;
@@ -187,7 +187,10 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
   }
 
   @SagaStep()
-  private async syncProductBackRefs(entry: ProductMediaEntry): Promise<void> {
+  private async syncProductBackRefs(
+    entry: ProductMediaEntry,
+    storeId: string,
+  ): Promise<void> {
     try {
       await this.broker.call<Media.SyncEntityFilesResult, Media.SyncEntityFilesParams>(
         "media.syncEntityFiles",
@@ -197,6 +200,7 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
             entityType: "product",
             entityId: entry.productId,
           },
+          owner: { type: "store", id: storeId },
           fileIds: entry.fileIds,
         },
       );

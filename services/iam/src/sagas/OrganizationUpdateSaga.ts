@@ -5,6 +5,7 @@ import {
   SagaStep,
   InjectBroker,
   Policy,
+  RetryableError,
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import type { Media } from "@shopana/broker-types";
@@ -14,6 +15,7 @@ import type {
   OrganizationUpdateResult,
 } from "../scripts/organization/dto/OrganizationUpdateDto.js";
 import { OrganizationUpdateScript } from "../scripts/organization/OrganizationUpdateScript.js";
+import { mediaLinkError } from "./mediaLinkError.js";
 
 export interface OrganizationUpdateSagaInput extends OrganizationUpdateParams {
   previousLogoId?: string | null;
@@ -26,8 +28,9 @@ export type { OrganizationUpdateResult };
  * Saga for organization update.
  *
  * Steps:
- * 1. Update organization in database
- * 2. Sync logo back-refs (link new, unlink old)
+ * 1. Link and validate the new logo, when provided
+ * 2. Update organization in database
+ * 3. Unlink the previous logo
  */
 @Injectable()
 export class OrganizationUpdateSaga extends BrokerSaga<
@@ -52,17 +55,35 @@ export class OrganizationUpdateSaga extends BrokerSaga<
     input: OrganizationUpdateSagaInput,
   ): Promise<OrganizationUpdateResult> {
     const { previousLogoId, nextLogoId, ...updateParams } = input;
+    const logoChanged =
+      nextLogoId !== undefined && previousLogoId !== nextLogoId;
+    let nextLogoLinked = false;
 
-    // Step 1: Update organization in database
+    if (logoChanged && nextLogoId) {
+      const linkResult = await this.linkLogoBackRef(
+        input.organizationId,
+        nextLogoId,
+      );
+      if (!linkResult.success) {
+        return {
+          organization: null,
+          userErrors: [mediaLinkError(linkResult, "logoId")],
+        };
+      }
+      nextLogoLinked = true;
+    }
+
     const result = await this.updateOrganization(updateParams);
 
     if (result.userErrors.length > 0 || !result.organization) {
+      if (nextLogoLinked && nextLogoId) {
+        await this.cleanupLogoBackRef(input.organizationId, nextLogoId);
+      }
       return result;
     }
 
-    // Step 2: Sync logo back-refs
-    if (previousLogoId !== nextLogoId) {
-      await this.syncLogoBackRefs(input.organizationId, previousLogoId ?? null, nextLogoId ?? null);
+    if (logoChanged && previousLogoId) {
+      await this.unlinkLogoBackRef(input.organizationId, previousLogoId);
     }
 
     return result;
@@ -75,39 +96,94 @@ export class OrganizationUpdateSaga extends BrokerSaga<
     return this.kernel.runScript(OrganizationUpdateScript, input);
   }
 
-  @SagaStep()
-  private async syncLogoBackRefs(
+  @SagaStep({
+    retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+  })
+  private async linkLogoBackRef(
     organizationId: string,
-    previousLogoId: string | null,
-    nextLogoId: string | null,
+    fileId: string,
+  ): Promise<Media.FileLinkResult> {
+    const result = await this.linkLogoMediaReference(organizationId, fileId);
+    if (result.code === "LINK_FAILED") {
+      throw new RetryableError("Unable to attach organization logo media file");
+    }
+    return result;
+  }
+
+  private async compensateLinkLogoBackRef(
+    organizationId: string,
+    fileId: string,
   ): Promise<void> {
-    const entityRef = {
-      service: "iam",
-      entityType: "organization",
-      entityId: organizationId,
-    };
-    const role = "logo";
+    await this.unlinkLogoMediaReference(organizationId, fileId);
+  }
 
-    if (nextLogoId) {
-      try {
-        await this.broker.call<Media.FileLinkResult, Media.FileLinkParams>(
-          "media.fileLink",
-          { fileId: nextLogoId, entityRef, role },
-        );
-      } catch (error) {
-        this.logger.warn({ organizationId, fileId: nextLogoId, error }, "Failed to link logo");
-      }
-    }
+  @SagaStep({
+    retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+  })
+  private async cleanupLogoBackRef(
+    organizationId: string,
+    fileId: string,
+  ): Promise<void> {
+    await this.unlinkLogoMediaReference(organizationId, fileId);
+  }
 
-    if (previousLogoId) {
-      try {
-        await this.broker.call<Media.FileUnlinkResult, Media.FileUnlinkParams>(
-          "media.fileUnlink",
-          { fileId: previousLogoId, entityRef, role },
-        );
-      } catch (error) {
-        this.logger.warn({ organizationId, fileId: previousLogoId, error }, "Failed to unlink logo");
-      }
+  private async compensateCleanupLogoBackRef(
+    organizationId: string,
+    fileId: string,
+  ): Promise<void> {
+    const result = await this.linkLogoMediaReference(organizationId, fileId);
+    if (!result.success) {
+      throw new RetryableError(
+        "Unable to restore organization logo media reference",
+      );
     }
+  }
+
+  @SagaStep()
+  private async unlinkLogoBackRef(
+    organizationId: string,
+    fileId: string,
+  ): Promise<void> {
+    await this.unlinkLogoMediaReference(organizationId, fileId);
+  }
+
+  private async unlinkLogoMediaReference(
+    organizationId: string,
+    fileId: string,
+  ): Promise<void> {
+    const result = await this.broker.call<
+      Media.FileUnlinkResult,
+      Media.FileUnlinkParams
+    >("media.fileUnlink", {
+      fileId,
+      entityRef: {
+        service: "iam",
+        entityType: "organization",
+        entityId: organizationId,
+      },
+      role: "logo",
+    });
+    if (!result.success) {
+      throw new RetryableError("Unable to detach organization logo media file");
+    }
+  }
+
+  private linkLogoMediaReference(
+    organizationId: string,
+    fileId: string,
+  ): Promise<Media.FileLinkResult> {
+    return this.broker.call<Media.FileLinkResult, Media.FileLinkParams>(
+      "media.fileLink",
+      {
+        fileId,
+        entityRef: {
+          service: "iam",
+          entityType: "organization",
+          entityId: organizationId,
+        },
+        owner: { type: "organization", id: organizationId },
+        role: "logo",
+      },
+    );
   }
 }

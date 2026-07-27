@@ -25,6 +25,7 @@ export type {
 export type {
   FileBackRefEntityRef,
   FileBackRefKey,
+  FileLinkKey,
   FileBackRefItem,
   FileUsageCount,
   LinkResult,

@@ -3,45 +3,56 @@ import type { FileLinkParams, FileLinkResult } from "./dto/index.js";
 
 export class FileLinkScript extends BaseScript<FileLinkParams, FileLinkResult> {
   protected async execute(params: FileLinkParams): Promise<FileLinkResult> {
-    const { fileId, entityRef, role } = params;
+    const { fileId, entityRef, owner, role } = params;
 
-    // 1. Attempt to link (SQL handles soft-delete check atomically)
-    await this.repository.fileBackRef.link({
+    const link = await this.repository.fileBackRef.link({
       fileId,
       service: entityRef.service,
       entityType: entityRef.entityType,
       entityId: entityRef.entityId,
+      ownerType: owner.type,
+      ownerId: owner.id,
       role,
     });
 
-    // 2. Check file status for response
-    const file = await this.repository.file.findAnyById(fileId);
-
-    if (!file) {
+    if (link.code === "FILE_NOT_FOUND") {
       this.logger.info({ fileId }, "fileLink: file not found");
       return {
-        success: true,
+        success: false,
+        code: link.code,
         activeRefCount: 0,
         fileExists: false,
         fileActive: false,
       };
     }
 
-    if (file.deletedAt !== null) {
+    if (link.code === "FILE_INACTIVE") {
       this.logger.info({ fileId }, "fileLink: file is soft-deleted");
       return {
-        success: true,
+        success: false,
+        code: link.code,
         activeRefCount: 0,
         fileExists: true,
         fileActive: false,
       };
     }
 
-    // 3. File is active, count refs
+    if (link.code === "OWNER_MISMATCH") {
+      return {
+        success: false,
+        code: link.code,
+        activeRefCount:
+          await this.repository.fileBackRef.countByFileId(fileId),
+        fileExists: true,
+        fileActive: true,
+      };
+    }
+
     const activeRefCount = await this.repository.fileBackRef.countByFileId(fileId);
 
     return {
       success: true,
+      code: "LINKED",
       activeRefCount,
       fileExists: true,
       fileActive: true,
@@ -51,6 +62,7 @@ export class FileLinkScript extends BaseScript<FileLinkParams, FileLinkResult> {
   protected handleError(_error: unknown): FileLinkResult {
     return {
       success: false,
+      code: "LINK_FAILED",
       activeRefCount: 0,
       fileExists: false,
       fileActive: false,

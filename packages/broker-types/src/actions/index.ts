@@ -192,6 +192,7 @@ export type {
   // File Link/Unlink
   FileLinkParams,
   FileLinkResult,
+  FileOwnerRef,
   FileUnlinkParams,
   FileUnlinkResult,
   FileLinkItem,

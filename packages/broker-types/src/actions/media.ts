@@ -49,14 +49,26 @@ export interface GetAssetGroupResult {
 // File Link/Unlink Actions
 // ============================================================================
 
+export interface FileOwnerRef {
+  type: AssetOwnerType;
+  id: string;
+}
+
 export interface FileLinkParams {
   fileId: string;
   entityRef: EntityRef;
+  owner: FileOwnerRef;
   role: string;
 }
 
 export interface FileLinkResult {
   success: boolean;
+  code:
+    | "LINKED"
+    | "FILE_NOT_FOUND"
+    | "FILE_INACTIVE"
+    | "OWNER_MISMATCH"
+    | "LINK_FAILED";
   activeRefCount: number;
   fileExists: boolean;
   fileActive: boolean;
@@ -87,6 +99,7 @@ export interface FileLinkItem {
 export interface FileLinkManyParams {
   items: FileLinkItem[];
   entityRef: EntityRef;
+  owner: FileOwnerRef;
 }
 
 export interface FileLinkManyResult {
@@ -118,6 +131,7 @@ export interface EntityDeletedResult {
 
 export interface SyncEntityFilesParams {
   entityRef: EntityRef;
+  owner: FileOwnerRef;
   fileIds: string[];
   role?: string;
 }

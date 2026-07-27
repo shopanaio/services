@@ -12,9 +12,11 @@ import {
 import {
   StepTimeoutError,
   isRetryableError,
+  toOperationError,
   withTimeout,
   DEFAULT_STEP_TIMEOUT_MS,
 } from "../core/errors.js";
+import type { OperationError } from "../core/types.js";
 import { stepContextStorage } from "./StepExecutionContext.js";
 
 const logger = new Logger("WorkflowStep");
@@ -40,8 +42,8 @@ export interface InternalStepOptions extends StepOptions {
 /** Internal step result for DBOS serialization */
 type InternalStepResult<T> =
   | { kind: "ok"; data: T }
-  | { kind: "nonRetryableFailure"; error: Error }
-  | { kind: "timeout"; error: StepTimeoutError };
+  | { kind: "nonRetryableFailure"; error: OperationError }
+  | { kind: "timeout"; error: OperationError };
 
 /**
  * Execute a step with DBOS durability, timeout, and retry handling.
@@ -83,11 +85,14 @@ export async function runStep<T>(
           return { kind: "ok", data: result };
         } catch (error) {
           if (error instanceof StepTimeoutError) {
-            return { kind: "timeout", error };
+            return { kind: "timeout", error: toOperationError(error) };
           }
 
           if (!isRetryableError(error)) {
-            return { kind: "nonRetryableFailure", error: error as Error };
+            return {
+              kind: "nonRetryableFailure",
+              error: toOperationError(error),
+            };
           }
 
           // Retryable error - throw to trigger DBOS retry
@@ -119,7 +124,7 @@ export async function runStep<T>(
     stepResult.kind === "timeout" ||
     stepResult.kind === "nonRetryableFailure"
   ) {
-    const failureError = stepResult.error;
+    const failureError = restoreOperationError(stepResult.error);
     logger.debug(
       `Step ${stepName} failed with non-retryable error: ${failureError.message}`,
     );
@@ -133,4 +138,14 @@ export async function runStep<T>(
   }
 
   return stepResult.data;
+}
+
+function restoreOperationError(error: OperationError): Error {
+  const restored = new Error(error.message);
+  restored.name = error.name ?? "Error";
+  Object.assign(restored, {
+    code: error.code,
+    retryable: error.retryable,
+  });
+  return restored;
 }

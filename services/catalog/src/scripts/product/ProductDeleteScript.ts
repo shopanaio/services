@@ -132,6 +132,7 @@ export class ProductDeleteScript extends BaseScript<
             entityType: "product",
             entityId: productId,
           },
+          storeId: this.getProjectId(),
           fileIds: [],
         },
         {

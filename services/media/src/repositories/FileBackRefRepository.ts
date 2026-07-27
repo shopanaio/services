@@ -1,6 +1,11 @@
 import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database";
-import { fileBackRefs, files, type FileBackRef } from "./models";
+import {
+  assetGroups,
+  fileBackRefs,
+  files,
+  type FileBackRef,
+} from "./models";
 
 export interface FileBackRefEntityRef {
   service: string;
@@ -11,6 +16,11 @@ export interface FileBackRefEntityRef {
 export interface FileBackRefKey extends FileBackRefEntityRef {
   fileId: string;
   role: string;
+}
+
+export interface FileLinkKey extends FileBackRefKey {
+  ownerType: "organization" | "store" | "user_profile";
+  ownerId: string;
 }
 
 export interface FileBackRefItem {
@@ -25,6 +35,7 @@ export interface FileUsageCount {
 
 export interface LinkResult {
   inserted: boolean;
+  code: "LINKED" | "FILE_NOT_FOUND" | "FILE_INACTIVE" | "OWNER_MISMATCH";
 }
 
 export interface LinkManyResult {
@@ -35,23 +46,46 @@ export class FileBackRefRepository {
   constructor(private readonly db: Database) {}
 
   /**
-   * Link a file to an entity. Only links if file exists and is not soft-deleted.
+   * Link a file to an entity only when it is active and belongs to that entity's
+   * media owner.
    */
-  async link(params: FileBackRefKey): Promise<LinkResult> {
-    const { fileId, service, entityType, entityId, role } = params;
+  async link(params: FileLinkKey): Promise<LinkResult> {
+    const {
+      fileId,
+      service,
+      entityType,
+      entityId,
+      ownerType,
+      ownerId,
+      role,
+    } = params;
 
-    // Check if file exists and is active
-    const file = await this.db
-      .select({ id: files.id })
+    const [file] = await this.db
+      .select({
+        id: files.id,
+        deletedAt: files.deletedAt,
+        ownerType: assetGroups.ownerType,
+        ownerId: assetGroups.ownerId,
+      })
       .from(files)
-      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
+      .innerJoin(assetGroups, eq(files.assetGroupId, assetGroups.id))
+      .where(eq(files.id, fileId))
       .limit(1);
 
-    if (file.length === 0) {
-      return { inserted: false };
+    if (!file) {
+      return { inserted: false, code: "FILE_NOT_FOUND" };
+    }
+    if (file.deletedAt !== null) {
+      return { inserted: false, code: "FILE_INACTIVE" };
     }
 
-    // Insert with conflict handling
+    if (
+      file.ownerType !== ownerType ||
+      file.ownerId !== ownerId
+    ) {
+      return { inserted: false, code: "OWNER_MISMATCH" };
+    }
+
     const result = await this.db
       .insert(fileBackRefs)
       .values({
@@ -64,19 +98,29 @@ export class FileBackRefRepository {
       .onConflictDoNothing()
       .returning({ fileId: fileBackRefs.fileId });
 
-    return { inserted: result.length > 0 };
+    return { inserted: result.length > 0, code: "LINKED" };
   }
 
   /**
-   * Link multiple files to an entity. Only links files that exist and are not soft-deleted.
+   * Link multiple files to an entity. Missing, inactive, and foreign-owner files
+   * are excluded by the same invariant as the single-file path.
    */
   async linkMany(params: {
     items: FileBackRefItem[];
     service: string;
     entityType: string;
     entityId: string;
+    ownerType: "organization" | "store" | "user_profile";
+    ownerId: string;
   }): Promise<LinkManyResult> {
-    const { items, service, entityType, entityId } = params;
+    const {
+      items,
+      service,
+      entityType,
+      entityId,
+      ownerType,
+      ownerId,
+    } = params;
 
     if (items.length === 0) {
       return { linkedCount: 0 };
@@ -87,14 +131,25 @@ export class FileBackRefRepository {
       new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
     );
 
-    // Get active file IDs
     const fileIds = uniqueItems.map((item) => item.fileId);
     const activeFiles = await this.db
-      .select({ id: files.id })
+      .select({
+        id: files.id,
+        ownerType: assetGroups.ownerType,
+        ownerId: assetGroups.ownerId,
+      })
       .from(files)
+      .innerJoin(assetGroups, eq(files.assetGroupId, assetGroups.id))
       .where(and(inArray(files.id, fileIds), isNull(files.deletedAt)));
 
-    const activeIds = new Set(activeFiles.map((f) => f.id));
+    const activeIds = new Set(
+      activeFiles
+        .filter(
+          (file) =>
+            file.ownerType === ownerType && file.ownerId === ownerId,
+        )
+        .map((file) => file.id),
+    );
     const activeItems = uniqueItems.filter((item) => activeIds.has(item.fileId));
 
     if (activeItems.length === 0) {

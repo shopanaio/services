@@ -10,6 +10,7 @@ import type { Media, EntityRef } from "@shopana/broker-types";
 
 export interface BackRefNotifyInput {
   entityRef: EntityRef;
+  storeId: string;
   fileIds: string[];
 }
 
@@ -32,13 +33,14 @@ export class BackRefNotifySaga extends BrokerSaga<BackRefNotifyInput, BackRefNot
 
   @SagaStep()
   private async syncFiles(input: BackRefNotifyInput): Promise<BackRefNotifyOutput> {
-    const { entityRef, fileIds } = input;
+    const { entityRef, storeId, fileIds } = input;
     const uniqueFileIds = Array.from(new Set(fileIds));
 
     const result = await this.broker.call<Media.SyncEntityFilesResult, Media.SyncEntityFilesParams>(
       "media.syncEntityFiles",
       {
         entityRef,
+        owner: { type: "store", id: storeId },
         fileIds: uniqueFileIds,
       },
     );

@@ -8,6 +8,11 @@ export const entityRefSchema = z.object({
   entityId: z.string().min(1).max(255),
 });
 
+export const fileOwnerRefSchema = z.object({
+  type: z.enum(["organization", "store", "user_profile"]),
+  id: z.string().min(1).max(255),
+});
+
 export const fileLinkItemSchema = z.object({
   fileId: z.string().uuid(),
   role: z.string().min(1).max(32),
@@ -16,6 +21,7 @@ export const fileLinkItemSchema = z.object({
 export const fileLinkSchema = z.object({
   fileId: z.string().uuid(),
   entityRef: entityRefSchema,
+  owner: fileOwnerRefSchema,
   role: z.string().min(1).max(32),
 });
 
@@ -28,6 +34,7 @@ export const fileUnlinkSchema = z.object({
 export const fileLinkManySchema = z.object({
   items: z.array(fileLinkItemSchema).max(1000),
   entityRef: entityRefSchema,
+  owner: fileOwnerRefSchema,
 });
 
 export const fileUnlinkManySchema = z.object({
@@ -41,6 +48,7 @@ export const entityDeletedSchema = z.object({
 
 export const syncEntityFilesSchema = z.object({
   entityRef: entityRefSchema,
+  owner: fileOwnerRefSchema,
   fileIds: z.array(z.string().uuid()).max(1000),
   role: z.string().min(1).max(32).default("gallery"),
 });
@@ -53,14 +61,26 @@ export interface EntityRef {
   entityId: string;
 }
 
+export interface FileOwnerRef {
+  type: "organization" | "store" | "user_profile";
+  id: string;
+}
+
 export interface FileLinkParams {
   fileId: string;
   entityRef: EntityRef;
+  owner: FileOwnerRef;
   role: string;
 }
 
 export interface FileLinkResult {
   success: boolean;
+  code:
+    | "LINKED"
+    | "FILE_NOT_FOUND"
+    | "FILE_INACTIVE"
+    | "OWNER_MISMATCH"
+    | "LINK_FAILED";
   activeRefCount: number;
   fileExists: boolean;
   fileActive: boolean;
@@ -87,6 +107,7 @@ export interface FileLinkItem {
 export interface FileLinkManyParams {
   items: FileLinkItem[];
   entityRef: EntityRef;
+  owner: FileOwnerRef;
 }
 
 export interface FileLinkManyResult {
@@ -114,6 +135,7 @@ export interface EntityDeletedResult {
 
 export interface SyncEntityFilesParams {
   entityRef: EntityRef;
+  owner: FileOwnerRef;
   fileIds: string[];
   role?: string;
 }
