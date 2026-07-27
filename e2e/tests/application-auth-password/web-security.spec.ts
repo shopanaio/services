@@ -173,7 +173,7 @@ test.describe('Application password auth — browser and transport security', ()
       /(?:^|;)\s*frame-ancestors\s+'none'(?:;|$)/iu,
     );
     expect(headers['x-content-type-options']).toBe('nosniff');
-    expect(headers['referrer-policy']).toBe('no-referrer');
+    expect(headers['referrer-policy']).toBe('same-origin');
     expect(headers['cache-control']).toMatch(/no-store/iu);
     expect(headers['permissions-policy']).toBeTruthy();
   });
