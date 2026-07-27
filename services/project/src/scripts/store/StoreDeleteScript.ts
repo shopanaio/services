@@ -1,5 +1,4 @@
 import {
-  Policy,
   AuthorizationError,
   hashContent,
 } from "@shopana/shared-kernel";
@@ -11,11 +10,6 @@ export class StoreDeleteScript extends BaseScript<
   StoreDeleteParams,
   StoreDeleteResult
 > {
-  @Policy<StoreDeleteParams>({
-    resource: "org.stores",
-    action: "admin",
-    organizationId: (_, params) => params.organizationId,
-  })
   protected async execute(
     params: StoreDeleteParams
   ): Promise<StoreDeleteResult> {
@@ -50,7 +44,8 @@ export class StoreDeleteScript extends BaseScript<
         resourceId: params.id,
         operation: "storeDelete",
         contentHash: hashContent({ storeId: params.id }),
-      }
+      },
+      { adminContext: this.context.adminContext },
     );
 
     if (!result.success || !result.data) {

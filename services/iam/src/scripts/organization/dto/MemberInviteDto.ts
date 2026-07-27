@@ -20,6 +20,7 @@ export const roleAssignmentSchema = z.object({
  */
 export const memberInviteInputSchema = z.object({
   organizationId: z.string().uuid("Invalid organization ID"),
+  invitedBy: z.string().uuid("Invalid inviting user ID"),
   email: z
     .string()
     .email("Invalid email address")
@@ -36,6 +37,7 @@ export type MemberInviteInput = z.infer<typeof memberInviteInputSchema>;
  */
 export interface MemberInviteParams {
   organizationId: string;
+  invitedBy: string;
   email: string;
   roles: Array<{
     domain: string;

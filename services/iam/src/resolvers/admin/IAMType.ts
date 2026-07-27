@@ -6,6 +6,7 @@ import {
   type CacheStore,
   type Authorizable,
 } from "@shopana/type-resolver";
+import { hashContent } from "@shopana/shared-kernel";
 import type { ServiceContext } from "../../context/types.js";
 import { AuthProvider } from "../../kernel/Authorizable.js";
 
@@ -49,6 +50,25 @@ export abstract class IAMType<TValue, TData = unknown>
   static executor = createExecutor<ServiceContext>({
     middleware: [createAuthorizationMiddleware()],
   });
+
+  protected runAdminWorkflow<TResult, TInput extends object>(
+    name: string,
+    operation: string,
+    resourceId: string,
+    input: TInput,
+  ): Promise<TResult> {
+    return this.$ctx.kernel.getServices().broker.runWorkflow<TResult, TInput>(
+      name,
+      input,
+      {
+        source: "content",
+        resourceId,
+        operation,
+        contentHash: hashContent(input),
+      },
+      { adminContext: this.$ctx.adminContext },
+    );
+  }
 
   protected getCache(): CacheStore {
     return this.$ctx.kernel.cache as CacheStore;

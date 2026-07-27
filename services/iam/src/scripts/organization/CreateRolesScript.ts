@@ -2,7 +2,6 @@ import type { Domain, Resource } from "@src/casbin/CasbinService.js";
 import {
   Transactional,
   ZodSchema,
-  Policy,
   AuthorizationError,
 } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
@@ -19,11 +18,6 @@ export class CreateRolesScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(createRolesInputSchema)
-  @Policy<CreateRolesParams>({
-    resource: "org.roles",
-    action: "write",
-    organizationId: (_self, params) => params.organizationId,
-  })
   protected async execute(
     params: CreateRolesParams
   ): Promise<CreateRolesResult> {

@@ -1,5 +1,4 @@
 import {
-  Policy,
   ZodSchema,
   ValidationError,
   AuthorizationError,
@@ -18,11 +17,6 @@ export class StoreCreateScript extends BaseScript<
   StoreCreateParams,
   StoreCreateResult
 > {
-  @Policy<StoreCreateParams>({
-    resource: "org.stores",
-    action: "write",
-    organizationId: (_, params) => params.organizationId,
-  })
   @ZodSchema(storeCreateInputSchema)
   protected async execute(
     params: StoreCreateParams,
@@ -83,6 +77,7 @@ export class StoreCreateScript extends BaseScript<
         operation: "storeCreate",
         contentHash: hashContent({ name: params.name }),
       },
+      { adminContext: this.context.adminContext },
     );
 
     const storeId = result.data?.storeId;

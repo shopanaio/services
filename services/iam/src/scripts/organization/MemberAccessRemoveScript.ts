@@ -4,7 +4,7 @@ import {
   Transactional,
   ValidationError,
 } from "../../kernel/BaseScript.js";
-import { Policy, AuthorizationError } from "@shopana/shared-kernel";
+import { AuthorizationError } from "@shopana/shared-kernel";
 import type { Domain } from "../../casbin/CasbinService.js";
 import {
   memberAccessRemoveInputSchema,
@@ -24,14 +24,6 @@ export class MemberAccessRemoveScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(memberAccessRemoveInputSchema)
-  @Policy({
-    resource: "org.members",
-    action: "admin",
-    organizationId: (
-      self: MemberAccessRemoveScript,
-      params: MemberAccessRemoveParams
-    ) => params.organizationId,
-  })
   protected async execute(
     params: MemberAccessRemoveParams
   ): Promise<MemberAccessRemoveResult> {

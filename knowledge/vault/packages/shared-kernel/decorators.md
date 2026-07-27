@@ -164,6 +164,11 @@ Authorization check before method execution. On a DBOS workflow or saga
 entrypoint, policies are checked by `ServiceBroker` before the workflow is
 started.
 
+Transaction scripts do not declare `@Policy`. Authorization belongs to the
+durable workflow or saga entrypoint that owns the mutation. Scripts remain
+context-independent business operations and may be reused only behind an
+authorized entrypoint.
+
 ### Basic Usage
 
 ```typescript

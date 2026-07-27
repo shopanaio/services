@@ -4,6 +4,7 @@ import {
   Saga,
   SagaStep,
   InjectBroker,
+  Policy,
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import type { Media } from "@shopana/broker-types";
@@ -42,7 +43,14 @@ export class OrganizationUpdateSaga extends BrokerSaga<
   }
 
   @Saga("organizationUpdate")
-  async run(input: OrganizationUpdateSagaInput): Promise<OrganizationUpdateResult> {
+  @Policy<OrganizationUpdateSagaInput>({
+    resource: "org.profile",
+    action: "write",
+    organizationId: (_self, input) => input.organizationId,
+  })
+  async run(
+    input: OrganizationUpdateSagaInput,
+  ): Promise<OrganizationUpdateResult> {
     const { previousLogoId, nextLogoId, ...updateParams } = input;
 
     // Step 1: Update organization in database

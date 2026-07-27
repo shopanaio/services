@@ -5,6 +5,7 @@ import {
   BrokerSaga,
   FatalError,
   InjectBroker,
+  Policy,
   RetryableError,
   Saga,
   SagaStep,
@@ -139,6 +140,12 @@ export class StoreUpdateSaga extends BrokerSaga<
   }
 
   @Saga("storeUpdate")
+  @Policy<StoreUpdateSagaInput>({
+    resource: "store.profile",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.storeId}`,
+  })
   async run(input: StoreUpdateSagaInput): Promise<StoreUpdateSagaOutput> {
     const context = new ServiceContext({
       requestId: `store-update:${DBOS.workflowID ?? input.storeId}`,

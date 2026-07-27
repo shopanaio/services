@@ -1,4 +1,4 @@
-import { Policy, Transactional, ZodSchema } from "@shopana/shared-kernel";
+import { Transactional, ZodSchema } from "@shopana/shared-kernel";
 import { StoreSettingsUpdateScript } from "./StoreSettingsUpdateScript.js";
 import {
   storeCurrencySettingsUpdateSchema,
@@ -7,12 +7,6 @@ import {
 } from "./dto.js";
 
 export class StoreCurrencySettingsUpdateScript extends StoreSettingsUpdateScript<StoreCurrencySettingsUpdateParams> {
-  @Policy<StoreCurrencySettingsUpdateParams>({
-    resource: "store.profile",
-    action: "write",
-    organizationId: (_, params) => params.organizationId,
-    domain: (_, params) => `store:${params.storeId}`,
-  })
   @ZodSchema(storeCurrencySettingsUpdateSchema)
   @Transactional()
   protected async execute(

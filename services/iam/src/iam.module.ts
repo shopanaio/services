@@ -8,7 +8,18 @@ import {
   OrganizationDeleteSaga,
   UserUpdateProfileSaga,
 } from "./sagas/index.js";
-import { ApplicationUserCreatedEventWorkflow } from "./workflows/index.js";
+import {
+  ApplicationUserCreatedEventWorkflow,
+  AssignRoleWorkflow,
+  CreateRolesWorkflow,
+  MemberAccessRemoveWorkflow,
+  MemberInviteWorkflow,
+  MemberRemoveWorkflow,
+  MemberRoleChangeWorkflow,
+  RoleCreateWorkflow,
+  RoleDeleteWorkflow,
+  RoleUpdateWorkflow,
+} from "./workflows/index.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "iam" })],
@@ -19,6 +30,15 @@ import { ApplicationUserCreatedEventWorkflow } from "./workflows/index.js";
     OrganizationDeleteSaga,
     UserUpdateProfileSaga,
     ApplicationUserCreatedEventWorkflow,
+    AssignRoleWorkflow,
+    CreateRolesWorkflow,
+    MemberAccessRemoveWorkflow,
+    MemberInviteWorkflow,
+    MemberRemoveWorkflow,
+    MemberRoleChangeWorkflow,
+    RoleCreateWorkflow,
+    RoleDeleteWorkflow,
+    RoleUpdateWorkflow,
     IamNestService,
   ],
 })

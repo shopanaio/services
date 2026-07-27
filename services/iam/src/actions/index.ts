@@ -15,10 +15,8 @@ import { runWithContext, type ServiceContext } from "../context/index.js";
 import { Loader } from "../loaders/Loader.js";
 import type { ApplicationAuthAdminAuditReasonCategory } from "../services/ApplicationAuthAdminAuditPort.js";
 import { GetCurrentUserScript } from "../scripts/user/GetCurrentUserScript.js";
-import { AssignRoleScript } from "../scripts/organization/AssignRoleScript.js";
 import { AuthorizeScript } from "../scripts/organization/AuthorizeScript.js";
 import { BatchAuthorizeScript } from "../scripts/organization/BatchAuthorizeScript.js";
-import { CreateRolesScript } from "../scripts/organization/CreateRolesScript.js";
 import {
   IAM_SERVICE_LINKED_RESOURCE_KIND,
 } from "../service-linked/resources.js";
@@ -30,11 +28,6 @@ import {
   getCurrentUserInputSchema,
   type GetCurrentUserParams,
 } from "../scripts/user/dto/GetCurrentUserDto.js";
-import {
-  assignRoleInputSchema,
-  type AssignRoleParams,
-  type AssignRoleResult,
-} from "../scripts/organization/dto/AssignRoleDto.js";
 import {
   authorizeInputSchema,
   type AuthorizeParams,
@@ -51,11 +44,6 @@ import {
   type BatchAuthorizeParams,
   type BatchAuthorizeResult,
 } from "../scripts/organization/dto/BatchAuthorizeDto.js";
-import {
-  createRolesInputSchema,
-  type CreateRolesParams,
-  type CreateRolesResult,
-} from "../scripts/organization/dto/CreateRolesDto.js";
 import { ORG_DOMAIN } from "../casbin/CasbinService.js";
 
 const applicationNameSchema = z
@@ -402,30 +390,6 @@ export class IamBrokerActions extends BrokerActions {
     params: BatchAuthorizeParams,
   ): Promise<BatchAuthorizeResult> {
     return this.kernel.runScript(BatchAuthorizeScript, params);
-  }
-
-  /**
-   * Action: createRoles - create roles for a domain
-   */
-  @Action("createRoles")
-  @ZodSchema(createRolesInputSchema)
-  async createRoles(params: CreateRolesParams): Promise<CreateRolesResult> {
-    const ctx = await this.createUserContext(params.userId);
-    return runWithContext(ctx, () =>
-      this.kernel.runScript(CreateRolesScript, params),
-    );
-  }
-
-  /**
-   * Action: assignRole - assign a role to a user
-   */
-  @Action("assignRole")
-  @ZodSchema(assignRoleInputSchema)
-  async assignRole(params: AssignRoleParams): Promise<AssignRoleResult> {
-    const ctx = await this.createUserContext(params.userId);
-    return runWithContext(ctx, () =>
-      this.kernel.runScript(AssignRoleScript, params),
-    );
   }
 
   /**

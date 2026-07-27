@@ -4,7 +4,7 @@ import {
   Transactional,
   ValidationError,
 } from "../../kernel/BaseScript.js";
-import { Policy, AuthorizationError } from "@shopana/shared-kernel";
+import { AuthorizationError } from "@shopana/shared-kernel";
 import type { Domain } from "../../casbin/CasbinService.js";
 import {
   roleCreateInputSchema,
@@ -21,12 +21,6 @@ export class RoleCreateScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(roleCreateInputSchema)
-  @Policy({
-    resource: "org.roles",
-    action: "write",
-    organizationId: (self: RoleCreateScript, params: RoleCreateParams) =>
-      params.organizationId,
-  })
   protected async execute(params: RoleCreateParams): Promise<RoleCreateResult> {
     const {
       organizationId,

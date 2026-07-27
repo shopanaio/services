@@ -1,4 +1,4 @@
-import { ZodSchema, Policy, AuthorizationError } from "@shopana/shared-kernel";
+import { ZodSchema, AuthorizationError } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import {
   assignRoleInputSchema,
@@ -11,11 +11,6 @@ export class AssignRoleScript extends BaseScript<
   AssignRoleResult
 > {
   @ZodSchema(assignRoleInputSchema)
-  @Policy({
-    resource: "org.roles",
-    action: "write",
-    organizationId: (_, params: AssignRoleParams) => params.organizationId,
-  })
   protected async execute(params: AssignRoleParams): Promise<AssignRoleResult> {
     const { userId, organizationId, domain, roleName } = params;
 
@@ -39,7 +34,7 @@ export class AssignRoleScript extends BaseScript<
       userId,
       roleId: role.id,
       domain,
-      grantedBy: this.context.currentUser!.id,
+      grantedBy: params.userId,
     });
 
     // Assign role in Casbin

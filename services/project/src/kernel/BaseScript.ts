@@ -1,18 +1,11 @@
 import {
   ValidationError,
   AuthorizationError,
-  type Authorizable,
 } from "@shopana/shared-kernel";
 import type { ProjectKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
-import { AuthProvider } from "@src/kernel/Authorizable.js";
 
-export abstract class BaseScript<TParams, TResult> implements Authorizable {
-  /**
-   * Authorization provider for @Policy decorator.
-   */
-  readonly authProvider = new AuthProvider();
-
+export abstract class BaseScript<TParams, TResult> {
   protected readonly services: ProjectKernelServices;
   protected readonly repository: ProjectKernelServices["repository"];
   protected readonly logger: ProjectKernelServices["logger"];

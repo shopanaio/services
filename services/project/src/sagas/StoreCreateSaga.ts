@@ -4,8 +4,10 @@ import {
   Saga,
   SagaStep,
   InjectBroker,
+  Policy,
   ServiceBroker,
   FatalError,
+  type WorkflowExecutionContext,
 } from "@shopana/shared-kernel";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { IAM, Media } from "@shopana/broker-types";
@@ -76,11 +78,27 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   }
 
   @Saga("storeCreate")
-  async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
+  @Policy<StoreCreateInput>({
+    resource: "org.stores",
+    action: "write",
+    organizationId: (_self, input) => input.organizationId,
+  })
+  @Policy<StoreCreateInput>({
+    resource: "org.roles",
+    action: "write",
+    organizationId: (_self, input) => input.organizationId,
+  })
+  async run(
+    input: StoreCreateInput,
+    workflowContext?: WorkflowExecutionContext,
+  ): Promise<StoreCreateOutput> {
+    if (!workflowContext) {
+      throw new Error("Workflow authorization context is required");
+    }
     const storeId = await this.generateId();
     await this.createStore(storeId, input);
-    await this.createRoles(storeId, input);
-    await this.assignAdminRole(storeId, input);
+    await this.createRoles(storeId, input, workflowContext);
+    await this.assignAdminRole(storeId, input, workflowContext);
     await this.createMediaAssetGroup(storeId);
     await this.emitStoreCreated(storeId, input);
     return { storeId, organizationId: input.organizationId };
@@ -113,8 +131,15 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
     timeoutMs: 10_000,
   })
-  private async createRoles(id: string, input: StoreCreateInput): Promise<void> {
-    const result = await this.broker.call<IAM.CreateRolesResult, IAM.CreateRolesParams>(
+  private async createRoles(
+    id: string,
+    input: StoreCreateInput,
+    workflowContext: WorkflowExecutionContext,
+  ): Promise<void> {
+    const result = await this.broker.runWorkflow<
+      IAM.CreateRolesResult,
+      IAM.CreateRolesParams
+    >(
       "iam.createRoles",
       {
         userId: input.userId,
@@ -122,6 +147,13 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
         domain: `store:${id}`,
         roles: buildStoreRoles(),
       },
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "createRoles",
+        callId: id,
+      },
+      { workflowContext },
     );
 
     if (result.success) return;
@@ -137,8 +169,15 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
     timeoutMs: 10_000,
   })
-  private async assignAdminRole(id: string, input: StoreCreateInput): Promise<void> {
-    const result = await this.broker.call<IAM.AssignRoleResult, IAM.AssignRoleParams>(
+  private async assignAdminRole(
+    id: string,
+    input: StoreCreateInput,
+    workflowContext: WorkflowExecutionContext,
+  ): Promise<void> {
+    const result = await this.broker.runWorkflow<
+      IAM.AssignRoleResult,
+      IAM.AssignRoleParams
+    >(
       "iam.assignRole",
       {
         userId: input.userId,
@@ -146,6 +185,13 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
         domain: `store:${id}`,
         roleName: "admin",
       },
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "assignAdminRole",
+        callId: id,
+      },
+      { workflowContext },
     );
 
     if (result.success) return;

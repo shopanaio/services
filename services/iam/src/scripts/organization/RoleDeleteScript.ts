@@ -4,7 +4,7 @@ import {
   Transactional,
   ValidationError,
 } from "../../kernel/BaseScript.js";
-import { Policy, AuthorizationError } from "@shopana/shared-kernel";
+import { AuthorizationError } from "@shopana/shared-kernel";
 import type { Domain } from "../../casbin/CasbinService.js";
 import {
   roleDeleteInputSchema,
@@ -23,12 +23,6 @@ export class RoleDeleteScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(roleDeleteInputSchema)
-  @Policy({
-    resource: "org.roles",
-    action: "admin",
-    organizationId: (self: RoleDeleteScript, params: RoleDeleteParams) =>
-      params.organizationId,
-  })
   protected async execute(params: RoleDeleteParams): Promise<RoleDeleteResult> {
     const { organizationId, id } = params;
 

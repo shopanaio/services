@@ -450,41 +450,6 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       };
     }
 
-    let authorizationError: UserError | null = null;
-    if (!this.$ctx.user?.id) {
-      authorizationError = {
-        message: "Access denied: Subject is missing",
-        field: null,
-        code: "UNAUTHENTICATED",
-      };
-    } else {
-      const allowed = await this.authProvider.authorize({
-        subject: this.$ctx.user.id,
-        organizationId: store.organizationId,
-        domain: `store:${store.id}`,
-        resource: "store.profile",
-        action: "write",
-      });
-      if (!allowed) {
-        authorizationError = {
-          message: "Access denied: store.profile:write",
-          field: null,
-          code: "FORBIDDEN",
-        };
-      }
-    }
-    if (authorizationError) {
-      return {
-        store: null,
-        operationResults: mapped.entries.map((entry) => ({
-          type: toGraphqlOperationType(entry.type),
-          applied: false,
-          errors: [authorizationError],
-        })),
-        userErrors: [authorizationError],
-      };
-    }
-
     const sagaInput: StoreUpdateSagaInput = {
       storeId,
       expectedRevision: args.expectedRevision,
@@ -499,18 +464,23 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     const sagaResult = await this.$ctx.kernel.getServices().broker.runSaga<
       StoreUpdateSagaOutput,
       StoreUpdateSagaInput
-    >("project.storeUpdate", sagaInput, {
-      source: "content",
-      organizationId: store.organizationId,
-      resourceId: storeId,
-      operation: "storeUpdate",
-      content: {
-        clientMutationId,
-        expectedRevision: sagaInput.expectedRevision,
-        operations: sagaInput.operations,
-        userId: sagaInput.context.userId ?? null,
+    >(
+      "project.storeUpdate",
+      sagaInput,
+      {
+        source: "content",
+        organizationId: store.organizationId,
+        resourceId: storeId,
+        operation: "storeUpdate",
+        content: {
+          clientMutationId,
+          expectedRevision: sagaInput.expectedRevision,
+          operations: sagaInput.operations,
+          userId: sagaInput.context.userId ?? null,
+        },
       },
-    });
+      { adminContext: this.$ctx.adminContext },
+    );
 
     if (!sagaResult.data) {
       const error = {

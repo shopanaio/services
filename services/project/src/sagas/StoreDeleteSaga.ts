@@ -4,6 +4,7 @@ import {
   Saga,
   SagaStep,
   InjectBroker,
+  Policy,
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import { DBOS } from "@dbos-inc/dbos-sdk";
@@ -41,6 +42,11 @@ export class StoreDeleteSaga extends BrokerSaga<StoreDeleteInput, StoreDeleteOut
   }
 
   @Saga("storeDelete")
+  @Policy<StoreDeleteInput>({
+    resource: "org.stores",
+    action: "admin",
+    organizationId: (_self, input) => input.organizationId,
+  })
   async run(input: StoreDeleteInput): Promise<StoreDeleteOutput> {
     const { storeId, organizationId } = input;
 

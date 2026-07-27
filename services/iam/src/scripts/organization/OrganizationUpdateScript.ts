@@ -4,7 +4,7 @@ import {
   Transactional,
   ValidationError,
 } from "../../kernel/BaseScript.js";
-import { Policy, AuthorizationError } from "@shopana/shared-kernel";
+import { AuthorizationError } from "@shopana/shared-kernel";
 import {
   organizationUpdateInputSchema,
   type OrganizationUpdateParams,
@@ -22,12 +22,6 @@ export class OrganizationUpdateScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(organizationUpdateInputSchema)
-  @Policy({
-    resource: "org.profile",
-    action: "write",
-    organizationId: (_, params: OrganizationUpdateParams) =>
-      params.organizationId,
-  })
   protected async execute(
     params: OrganizationUpdateParams
   ): Promise<OrganizationUpdateResult> {

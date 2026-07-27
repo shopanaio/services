@@ -42,7 +42,7 @@ export class AuthorizationError extends Error {
 }
 
 /**
- * Policy options for @Policy decorator on script methods.
+ * Policy options for @Policy on service methods and durable entrypoints.
  * All fields accept either a static value or a function that resolves the value.
  *
  * @template TParams - Type of the script params
@@ -97,13 +97,14 @@ type PolicyDecorator = <T>(
  * @param options - Authorization options (resource, action, organizationId)
  *
  * @example
- * class AssignRoleScript extends BaseScript {
- *   @Policy<AssignRoleParams>({
+ * class AssignRoleWorkflow extends BrokerWorkflows {
+ *   @Workflow("assignRole")
+ *   @Policy<AssignRoleInput>({
  *     resource: "org.roles",
  *     action: "write",
- *     organizationId: (_, params) => params.organizationId
+ *     organizationId: (_, input) => input.organizationId
  *   })
- *   protected async execute(params: AssignRoleParams) { ... }
+ *   async run(input: AssignRoleInput) { ... }
  * }
  */
 export function Policy<TParams>(

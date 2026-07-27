@@ -17,10 +17,22 @@ import type {
   OrganizationUpdateSagaInput,
 } from "../../sagas/index.js";
 import type { OrganizationUpdateResult } from "../../scripts/organization/dto/OrganizationUpdateDto.js";
-import { MemberInviteScript } from "../../scripts/organization/MemberInviteScript.js";
-import { MemberRemoveScript } from "../../scripts/organization/MemberRemoveScript.js";
-import { MemberRoleChangeScript } from "../../scripts/organization/MemberRoleChangeScript.js";
-import { MemberAccessRemoveScript } from "../../scripts/organization/MemberAccessRemoveScript.js";
+import type {
+  MemberInviteParams,
+  MemberInviteResult,
+} from "../../scripts/organization/dto/MemberInviteDto.js";
+import type {
+  MemberRemoveParams,
+  MemberRemoveResult,
+} from "../../scripts/organization/dto/MemberRemoveDto.js";
+import type {
+  MemberRoleChangeParams,
+  MemberRoleChangeResult,
+} from "../../scripts/organization/dto/MemberRoleChangeDto.js";
+import type {
+  MemberAccessRemoveParams,
+  MemberAccessRemoveResult,
+} from "../../scripts/organization/dto/MemberAccessRemoveDto.js";
 import type {
   OrganizationCreateInput,
   OrganizationUpdateInput,
@@ -126,7 +138,10 @@ export class OrganizationMutationResolver extends IAMType<
       }
     }
 
-    const result = await broker.runSaga<OrganizationUpdateResult, OrganizationUpdateSagaInput>(
+    const result = await broker.runSaga<
+      OrganizationUpdateResult,
+      OrganizationUpdateSagaInput
+    >(
       "iam.organizationUpdate",
       {
         organizationId,
@@ -141,7 +156,8 @@ export class OrganizationMutationResolver extends IAMType<
         resourceId: organizationId,
         operation: "organizationUpdate",
         contentHash: hashContent({ organizationId }),
-      }
+      },
+      { adminContext: this.$ctx.adminContext },
     );
 
     const data = result.data;
@@ -237,11 +253,21 @@ export class OrganizationMutationResolver extends IAMType<
       input.organizationId,
       GlobalIdEntity.Organization
     );
-    const result = await this.$ctx.kernel.runScript(MemberInviteScript, {
+    const workflowInput: MemberInviteParams = {
       organizationId,
+      invitedBy: this.$ctx.adminContext?.user.id ?? "",
       email: input.email,
       roles: input.roles,
-    });
+    };
+    const result = await this.runAdminWorkflow<
+      MemberInviteResult,
+      MemberInviteParams
+    >(
+      "iam.memberInvite",
+      "memberInvite",
+      organizationId,
+      workflowInput,
+    );
 
     return {
       member: result.member
@@ -276,10 +302,16 @@ export class OrganizationMutationResolver extends IAMType<
       GlobalIdEntity.Organization
     );
     const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
-    const result = await this.$ctx.kernel.runScript(MemberRemoveScript, {
-      organizationId,
+    const workflowInput: MemberRemoveParams = { organizationId, userId };
+    const result = await this.runAdminWorkflow<
+      MemberRemoveResult,
+      MemberRemoveParams
+    >(
+      "iam.memberRemove",
+      "memberRemove",
       userId,
-    });
+      workflowInput,
+    );
 
     return {
       removedMemberId: result.removedMemberId
@@ -306,12 +338,21 @@ export class OrganizationMutationResolver extends IAMType<
     );
     const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
 
-    const result = await this.$ctx.kernel.runScript(MemberRoleChangeScript, {
+    const workflowInput: MemberRoleChangeParams = {
       organizationId,
       userId,
       domain: input.domain,
       role: input.role,
-    });
+    };
+    const result = await this.runAdminWorkflow<
+      MemberRoleChangeResult,
+      MemberRoleChangeParams
+    >(
+      "iam.memberRoleChange",
+      "memberRoleChange",
+      userId,
+      workflowInput,
+    );
 
     return {
       member: result.member
@@ -345,11 +386,20 @@ export class OrganizationMutationResolver extends IAMType<
     );
     const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
 
-    const result = await this.$ctx.kernel.runScript(MemberAccessRemoveScript, {
+    const workflowInput: MemberAccessRemoveParams = {
       organizationId,
       userId,
       domain: input.domain,
-    });
+    };
+    const result = await this.runAdminWorkflow<
+      MemberAccessRemoveResult,
+      MemberAccessRemoveParams
+    >(
+      "iam.memberAccessRemove",
+      "memberAccessRemove",
+      userId,
+      workflowInput,
+    );
 
     return {
       success: result.success,

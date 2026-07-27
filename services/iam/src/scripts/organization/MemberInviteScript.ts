@@ -4,7 +4,7 @@ import {
   Transactional,
   ValidationError,
 } from "../../kernel/BaseScript.js";
-import { Policy, AuthorizationError } from "@shopana/shared-kernel";
+import { AuthorizationError } from "@shopana/shared-kernel";
 import {
   InvitedMember,
   memberInviteInputSchema,
@@ -32,17 +32,10 @@ export class MemberInviteScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(memberInviteInputSchema)
-  @Policy({
-    resource: "org.members",
-    action: "write",
-    organizationId: (_self: MemberInviteScript, params: MemberInviteParams) =>
-      params.organizationId,
-  })
   protected async execute(
     params: MemberInviteParams
   ): Promise<MemberInviteResult> {
-    const { organizationId, email, roles } = params;
-    const currentUserId = this.currentUser.id;
+    const { organizationId, invitedBy, email, roles } = params;
 
     // 1. Find user by email
     const user = await this.repository.user.findByEmail(email);
@@ -81,7 +74,7 @@ export class MemberInviteScript extends BaseScript<
     await this.repository.organization.addMember({
       organizationId,
       userId: user.id,
-      invitedBy: currentUserId,
+      invitedBy,
     });
 
     // 3. Assign roles
@@ -137,7 +130,7 @@ export class MemberInviteScript extends BaseScript<
         userId: user.id,
         roleId: role.id,
         domain,
-        grantedBy: currentUserId,
+        grantedBy: invitedBy,
       });
 
       // Assign role in Casbin
