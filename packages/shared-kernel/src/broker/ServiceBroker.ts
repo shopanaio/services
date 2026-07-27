@@ -15,6 +15,7 @@ import {
   type SagaResult,
   type WorkflowStartOptions,
 } from '@shopana/dbos';
+import { authorizePolicies } from '../decorators/Authorize.js';
 
 export interface ServiceBrokerOptions {
   serviceName: string;
@@ -181,6 +182,7 @@ export class ServiceBroker implements OnModuleDestroy {
       qualifiedWorkflow,
       params,
     );
+    await this.authorizeWorkflowStart(qualifiedWorkflow, trustedParams);
     const handle = await this.workflowRegistry.start<TParams, TResult>(
       qualifiedWorkflow,
       trustedParams,
@@ -210,6 +212,7 @@ export class ServiceBroker implements OnModuleDestroy {
       qualifiedWorkflow,
       params,
     );
+    await this.authorizeWorkflowStart(qualifiedWorkflow, trustedParams);
     const handle = await this.workflowRegistry.start<TParams, unknown>(
       qualifiedWorkflow,
       trustedParams,
@@ -326,5 +329,16 @@ export class ServiceBroker implements OnModuleDestroy {
       ...params,
       source: this.options.serviceName,
     } as TParams;
+  }
+
+  private async authorizeWorkflowStart<TParams>(
+    qualifiedWorkflow: string,
+    params: TParams,
+  ): Promise<void> {
+    if (!this.workflowRegistry) {
+      return;
+    }
+    const descriptor = this.workflowRegistry.getDescriptor(qualifiedWorkflow);
+    await authorizePolicies(descriptor.instance as object, 'run', params);
   }
 }

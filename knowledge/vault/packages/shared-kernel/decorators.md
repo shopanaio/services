@@ -160,7 +160,9 @@ function ZodSchema<T extends z.ZodType>(
 
 ## @Policy
 
-Authorization check before method execution.
+Authorization check before method execution. On a DBOS workflow or saga
+entrypoint, policies are checked by `ServiceBroker` before the workflow is
+started.
 
 ### Basic Usage
 
@@ -191,6 +193,41 @@ class ProductActions extends BrokerActions implements Authorizable {
   }
 }
 ```
+
+### Workflow and Saga Policies
+
+Apply `@Policy` to the `run` method together with `@Workflow` or `@Saga`.
+The workflow class must implement `Authorizable`. Every declared policy must
+pass before `runWorkflow`, `startWorkflow`, or `runSaga` starts DBOS:
+
+```typescript
+@Injectable()
+class StoreUpdateSaga
+  extends BrokerSaga<StoreUpdateInput, StoreUpdateOutput>
+  implements Authorizable
+{
+  readonly authProvider = new AuthProvider();
+
+  @Saga("storeUpdate")
+  @Policy<StoreUpdateInput>({
+    resource: "org.stores",
+    action: "update",
+    organizationId: (_self, input) => input.organizationId,
+  })
+  @Policy<StoreUpdateInput>({
+    resource: "org.access",
+    action: "read",
+    organizationId: (_self, input) => input.organizationId,
+  })
+  async run(input: StoreUpdateInput): Promise<StoreUpdateOutput> {
+    // DBOS starts only after both policies pass.
+  }
+}
+```
+
+Policy checks are preflight checks and are not part of durable workflow
+execution. This keeps DBOS replay independent from request-scoped
+authorization context.
 
 ### With Domain
 

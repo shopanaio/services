@@ -6,6 +6,10 @@ import type {
   Authorizable,
   BrokerAuthorizeParams,
 } from "@shopana/rbac";
+import {
+  SAGA_DEFINITION_KEY,
+  WORKFLOW_METADATA_KEY,
+} from "@shopana/dbos";
 
 // Re-export from rbac for backwards compatibility
 export type {
@@ -66,6 +70,8 @@ export type AuthorizeOptions<
   subject?: string | ((self: TSelf, params: TParams) => string);
 };
 
+const POLICY_METADATA_KEY = Symbol("broker:policy");
+
 type PolicyDecorator = <T>(
   _target: object,
   _propertyKey: string | symbol,
@@ -99,82 +105,161 @@ export function Policy<
   TSelf extends Authorizable = Authorizable
 >(options: AuthorizeOptions<TParams, TSelf>): PolicyDecorator {
   return function <T>(
-    _target: object,
-    _propertyKey: string | symbol,
+    target: object,
+    propertyKey: string | symbol,
     descriptor: TypedPropertyDescriptor<T>
   ): TypedPropertyDescriptor<T> {
+    const existingPolicies =
+      (Reflect.getOwnMetadata(
+        POLICY_METADATA_KEY,
+        target,
+        propertyKey
+      ) as AuthorizeOptions[]) ?? [];
+    Reflect.defineMetadata(
+      POLICY_METADATA_KEY,
+      [...existingPolicies, options],
+      target,
+      propertyKey
+    );
+
+    if (isWorkflowEntrypoint(target, propertyKey)) {
+      return descriptor;
+    }
+
     const originalMethod = descriptor.value as unknown as (
       params: TParams,
       ...args: unknown[]
     ) => Promise<unknown>;
 
-    descriptor.value = async function (
+    const policyMethod = async function (
       this: TSelf,
       params: TParams,
       ...args: unknown[]
     ): Promise<unknown> {
-      const subject =
-        typeof options.subject === "function"
-          ? options.subject(this, params)
-          : options.subject;
-      const effectiveSubject = subject ?? this.authProvider.subject;
-
-      if (!effectiveSubject) {
-        throw new AuthorizationError(
-          [
-            {
-              code: "UNAUTHENTICATED",
-              message: "Access denied: Subject is missing",
-              field: null,
-            },
-          ],
-          options.resource,
-          options.action
-        );
+      if (!isWorkflowEntrypoint(target, propertyKey)) {
+        await authorizePolicy(this, params, options);
       }
-
-      const organizationId =
-        typeof options.organizationId === "function"
-          ? options.organizationId(this, params)
-          : options.organizationId;
-
-      const organizationName =
-        typeof options.organizationName === "function"
-          ? options.organizationName(this, params)
-          : options.organizationName;
-
-      const domain =
-        typeof options.domain === "function"
-          ? options.domain(this, params)
-          : options.domain;
-
-      const authorizeParams: BrokerAuthorizeParams = {
-        resource: options.resource,
-        action: options.action,
-        organizationId,
-        organizationName,
-        domain,
-        subject,
-      };
-      const allowed = await this.authProvider.authorize(authorizeParams);
-
-      if (!allowed) {
-        throw new AuthorizationError(
-          [
-            {
-              code: "FORBIDDEN",
-              message: `Access denied: ${options.resource}:${options.action}`,
-              field: null,
-            },
-          ],
-          options.resource,
-          options.action
-        );
-      }
-
       return originalMethod.call(this, params, ...args);
-    } as unknown as T;
+    };
+
+    descriptor.value = policyMethod as unknown as T;
 
     return descriptor;
   };
+}
+
+export async function authorizePolicies<TParams>(
+  target: object,
+  propertyKey: string | symbol,
+  params: TParams
+): Promise<void> {
+  const policies =
+    (Reflect.getMetadata(
+      POLICY_METADATA_KEY,
+      target,
+      propertyKey
+    ) as AuthorizeOptions<TParams, Authorizable>[]) ?? [];
+  let firstDenied: AuthorizationError | undefined;
+
+  for (const policy of policies) {
+    try {
+      await authorizePolicy(target as Authorizable, params, policy);
+    } catch (error) {
+      if (!(error instanceof AuthorizationError)) {
+        throw error;
+      }
+      firstDenied ??= error;
+    }
+  }
+
+  if (firstDenied) {
+    throw firstDenied;
+  }
+}
+
+async function authorizePolicy<
+  TParams,
+  TSelf extends Authorizable
+>(
+  self: TSelf,
+  params: TParams,
+  options: AuthorizeOptions<TParams, TSelf>
+): Promise<void> {
+  if (!self.authProvider) {
+    throw new Error(
+      `@Policy requires ${self.constructor.name} to implement Authorizable`
+    );
+  }
+
+  const subject =
+    typeof options.subject === "function"
+      ? options.subject(self, params)
+      : options.subject;
+  const effectiveSubject = subject ?? self.authProvider.subject;
+
+  if (!effectiveSubject) {
+    throw new AuthorizationError(
+      [
+        {
+          code: "UNAUTHENTICATED",
+          message: "Access denied: Subject is missing",
+          field: null,
+        },
+      ],
+      options.resource,
+      options.action
+    );
+  }
+
+  const organizationId =
+    typeof options.organizationId === "function"
+      ? options.organizationId(self, params)
+      : options.organizationId;
+
+  const organizationName =
+    typeof options.organizationName === "function"
+      ? options.organizationName(self, params)
+      : options.organizationName;
+
+  const domain =
+    typeof options.domain === "function"
+      ? options.domain(self, params)
+      : options.domain;
+
+  const authorizeParams: BrokerAuthorizeParams = {
+    resource: options.resource,
+    action: options.action,
+    organizationId,
+    organizationName,
+    domain,
+    subject,
+  };
+  const allowed = await self.authProvider.authorize(authorizeParams);
+
+  if (!allowed) {
+    throw new AuthorizationError(
+      [
+        {
+          code: "FORBIDDEN",
+          message: `Access denied: ${options.resource}:${options.action}`,
+          field: null,
+        },
+      ],
+      options.resource,
+      options.action
+    );
+  }
+}
+
+function isWorkflowEntrypoint(
+  target: object,
+  propertyKey: string | symbol
+): boolean {
+  if (propertyKey !== "run") {
+    return false;
+  }
+  return Boolean(
+    Reflect.getOwnMetadata(WORKFLOW_METADATA_KEY, target, propertyKey) ||
+      Reflect.getOwnMetadata(SAGA_DEFINITION_KEY, target.constructor)
+  );
 }

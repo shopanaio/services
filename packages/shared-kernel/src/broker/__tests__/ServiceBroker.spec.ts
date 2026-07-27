@@ -1,17 +1,21 @@
 import { jest } from '@jest/globals';
+import type { AuthorizeParams } from '@shopana/rbac';
 import { z } from 'zod';
 import { ActionRegistry } from '../ActionRegistry';
 import { ServiceBroker } from '../ServiceBroker';
 import type { ActionCallContext, ActionHandler } from '../ActionRegistry';
 import { BrokerActions } from '../BrokerActions';
 import { Action } from '../../decorators/Action';
-import { Policy } from '../../decorators/Authorize';
+import {
+  AuthorizationError,
+  Policy,
+} from '../../decorators/Authorize';
 import { ZodSchema } from '../../decorators/ZodSchema';
 
 class SecuredBrokerActions extends BrokerActions {
   readonly authProvider = {
     subject: 'platform-user',
-    authorize: jest.fn(async () => true),
+    authorize: jest.fn(async (_params: AuthorizeParams) => true),
   };
 
   @Action('securedAction')
@@ -27,6 +31,25 @@ class SecuredBrokerActions extends BrokerActions {
   ): Promise<{ value: string; caller: ActionCallContext['caller'] }> {
     return { value: params.value, caller: context.caller };
   }
+}
+
+class SecuredWorkflow {
+  readonly authProvider = {
+    subject: 'platform-user',
+    authorize: jest.fn(async (_params: AuthorizeParams) => true),
+  };
+
+  @Policy<{ organizationId: string }>({
+    resource: 'org.stores',
+    action: 'read',
+    organizationId: (_self, params) => params.organizationId,
+  })
+  @Policy<{ organizationId: string }>({
+    resource: 'org.roles',
+    action: 'update',
+    organizationId: (_self, params) => params.organizationId,
+  })
+  async run(_params: { organizationId: string }): Promise<void> {}
 }
 
 const createBroker = (options?: { registry?: ActionRegistry }) => {
@@ -129,7 +152,12 @@ describe('ServiceBroker', () => {
 
   it('assigns event source from broker identity instead of workflow payload', async () => {
     const registry = new ActionRegistry();
+    const workflow = {};
     const workflowRegistry = {
+      getDescriptor: jest.fn(() => ({
+        instance: workflow,
+        metadata: { name: 'emit' },
+      })),
       start: jest.fn(async () => ({
         workflowId: 'workflow-id',
         getResult: async () => ({ eventId: 'event-id' }),
@@ -153,6 +181,96 @@ describe('ServiceBroker', () => {
       expect.any(Object),
       undefined,
     );
+  });
+
+  it.each(['runWorkflow', 'startWorkflow', 'runSaga'] as const)(
+    'checks every workflow policy before %s starts DBOS',
+    async (method) => {
+      const registry = new ActionRegistry();
+      const workflow = new SecuredWorkflow();
+      const workflowRegistry = {
+        getDescriptor: jest.fn(() => ({
+          instance: workflow,
+          metadata: { name: 'secured' },
+        })),
+        start: jest.fn(async () => ({
+          workflowId: 'workflow-id',
+          getResult: async () => ({ success: true }),
+        })),
+      };
+      const broker = new ServiceBroker(
+        registry,
+        { serviceName: 'payments' },
+        workflowRegistry as never,
+      );
+      const params = { organizationId: 'organization-id' };
+      const idempotency = {
+        source: 'workflow' as const,
+        workflowId: 'parent',
+        stepId: 'secured',
+      };
+
+      if (method === 'runWorkflow') {
+        await broker.runWorkflow('payments.secured', params, idempotency);
+      } else if (method === 'startWorkflow') {
+        await broker.startWorkflow('payments.secured', params, idempotency);
+      } else {
+        await broker.runSaga('payments.secured', params, idempotency);
+      }
+
+      expect(workflow.authProvider.authorize).toHaveBeenCalledTimes(2);
+      expect(workflow.authProvider.authorize).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          resource: 'org.roles',
+          action: 'update',
+          organizationId: 'organization-id',
+        }),
+      );
+      expect(workflow.authProvider.authorize).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          resource: 'org.stores',
+          action: 'read',
+          organizationId: 'organization-id',
+        }),
+      );
+      expect(workflowRegistry.start).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('does not start DBOS when any workflow policy is denied', async () => {
+    const registry = new ActionRegistry();
+    const workflow = new SecuredWorkflow();
+    workflow.authProvider.authorize.mockImplementation(
+      async ({ resource }) => resource !== 'org.roles',
+    );
+    const workflowRegistry = {
+      getDescriptor: jest.fn(() => ({
+        instance: workflow,
+        metadata: { name: 'secured' },
+      })),
+      start: jest.fn(),
+    };
+    const broker = new ServiceBroker(
+      registry,
+      { serviceName: 'payments' },
+      workflowRegistry as never,
+    );
+
+    await expect(
+      broker.runWorkflow(
+        'payments.secured',
+        { organizationId: 'organization-id' },
+        {
+          source: 'workflow',
+          workflowId: 'parent',
+          stepId: 'secured',
+        },
+      ),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(workflow.authProvider.authorize).toHaveBeenCalledTimes(2);
+    expect(workflowRegistry.start).not.toHaveBeenCalled();
   });
 
   it('throws when call action lacks prefix', async () => {

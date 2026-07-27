@@ -200,6 +200,10 @@ console.log(meta?.schema);       // Zod schema if defined
 
 Execute a durable workflow:
 
+Before DBOS is started, the broker evaluates every `@Policy` declared on the
+registered workflow's `run` method. If any policy is denied, it throws
+`AuthorizationError` and does not create a workflow execution.
+
 ```typescript
 broker.runWorkflow<TResult>(
   name: string,
@@ -225,6 +229,8 @@ const result = await broker.runWorkflow<OrderResult>(
 ### runSaga()
 
 Execute a saga with automatic compensation:
+
+Saga policies use the same preflight authorization as workflows.
 
 ```typescript
 broker.runSaga<TResult>(

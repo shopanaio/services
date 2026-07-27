@@ -1,5 +1,9 @@
 import type { AuthProvider, AuthorizeParams } from "@shopana/rbac";
-import { Policy } from "../Authorize.js";
+import { WORKFLOW_METADATA_KEY } from "@shopana/dbos";
+import {
+  authorizePolicies,
+  Policy,
+} from "../Authorize.js";
 
 describe("Policy RBAC contract", () => {
   it("passes only RBAC context to the authorization provider", async () => {
@@ -27,6 +31,39 @@ describe("Policy RBAC contract", () => {
     expect(script.authProvider.authorize).toHaveBeenCalledWith(
       expect.objectContaining({ subject: "explicit-user" })
     );
+  });
+
+  it("evaluates every policy declared on a workflow entrypoint", async () => {
+    const workflow = new MultiPolicyWorkflow();
+
+    await authorizePolicies(workflow, "run", {
+      organizationId: "org-id",
+    });
+
+    expect(workflow.authProvider.authorize).toHaveBeenCalledTimes(2);
+    expect(workflow.authProvider.authorize).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        resource: "org.roles",
+        action: "update",
+      })
+    );
+    expect(workflow.authProvider.authorize).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        resource: "org.stores",
+        action: "read",
+      })
+    );
+  });
+
+  it("does not repeat a preflight policy inside DBOS execution", async () => {
+    const workflow = new WorkflowEntrypoint();
+
+    await expect(
+      workflow.run({ organizationId: "org-id" })
+    ).resolves.toBe("executed");
+    expect(workflow.authProvider.authorize).not.toHaveBeenCalled();
   });
 });
 
@@ -56,6 +93,42 @@ class ExplicitSubjectPolicyScript {
     return "executed";
   }
 }
+
+class MultiPolicyWorkflow {
+  readonly authProvider = createAuthProvider();
+
+  @Policy<{ organizationId: string }>({
+    resource: "org.stores",
+    action: "read",
+    organizationId: (_self, params) => params.organizationId,
+  })
+  @Policy<{ organizationId: string }>({
+    resource: "org.roles",
+    action: "update",
+    organizationId: (_self, params) => params.organizationId,
+  })
+  async run(_params: { organizationId: string }): Promise<void> {}
+}
+
+class WorkflowEntrypoint {
+  readonly authProvider = createAuthProvider();
+
+  @Policy<{ organizationId: string }>({
+    resource: "org.stores",
+    action: "update",
+    organizationId: (_self, params) => params.organizationId,
+  })
+  async run(_params: { organizationId: string }): Promise<string> {
+    return "executed";
+  }
+}
+
+Reflect.defineMetadata(
+  WORKFLOW_METADATA_KEY,
+  { name: "workflowEntrypoint" },
+  WorkflowEntrypoint.prototype,
+  "run"
+);
 
 function createAuthProvider(
   subject: string | null = "platform-user"
