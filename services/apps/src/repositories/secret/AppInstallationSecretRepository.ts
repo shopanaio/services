@@ -1,5 +1,8 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
-import type { TransactionManager } from "@shopana/shared-kernel";
+import {
+  Transactional,
+  type TransactionManager,
+} from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -21,34 +24,33 @@ export class AppInstallationSecretRepository extends BaseRepository {
     super(db, txManager);
   }
 
-  setMany(
+  @Transactional()
+  async setMany(
     installationId: string,
     secrets: Readonly<Record<string, string>>,
   ): Promise<void> {
-    return this.txManager.run(async () => {
-      for (const [name, ciphertext] of Object.entries(secrets)) {
-        await this.connection
-          .insert(appInstallationSecrets)
-          .values({
-            installationId,
-            name,
+    for (const [name, ciphertext] of Object.entries(secrets)) {
+      await this.connection
+        .insert(appInstallationSecrets)
+        .values({
+          installationId,
+          name,
+          ciphertext,
+          revokedAt: null,
+        })
+        .onConflictDoUpdate({
+          target: [
+            appInstallationSecrets.installationId,
+            appInstallationSecrets.name,
+          ],
+          set: {
             ciphertext,
+            version: sql`${appInstallationSecrets.version} + 1`,
             revokedAt: null,
-          })
-          .onConflictDoUpdate({
-            target: [
-              appInstallationSecrets.installationId,
-              appInstallationSecrets.name,
-            ],
-            set: {
-              ciphertext,
-              version: sql`${appInstallationSecrets.version} + 1`,
-              revokedAt: null,
-              updatedAt: new Date().toISOString(),
-            },
-          });
-      }
-    });
+            updatedAt: new Date().toISOString(),
+          },
+        });
+    }
   }
 
   async resolve(

@@ -80,8 +80,4 @@ export class Repository {
       txManager,
     );
   }
-
-  runInTransaction<TResult>(fn: () => Promise<TResult>): Promise<TResult> {
-    return this.txManager.run(fn);
-  }
 }
