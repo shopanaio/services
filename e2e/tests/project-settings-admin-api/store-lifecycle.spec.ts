@@ -84,8 +84,8 @@ test.describe('Project Settings Admin API - store lifecycle', () => {
       expect.objectContaining({
         status: 'ACTIVE',
         timezone: 'UTC',
-        defaultWeightUnit: 'KILOGRAM',
-        defaultDimensionUnit: 'CENTIMETER',
+        defaultWeightUnit: 'kg',
+        defaultDimensionUnit: 'cm',
       }),
     );
   });
@@ -247,7 +247,9 @@ test.describe('Project Settings Admin API - store lifecycle', () => {
   }) => {
     await setupStore(api);
     const store = await currentStore(api);
+    const trustedOrganizationId = api.session.organizationId!;
     const foreign = await api.session.setupOrganization();
+    api.session.organizationId = trustedOrganizationId;
     selectStore(api, store);
     const { data } = await api.admin.mutation('project-api/ProjectDelete', {
       variables: { input: { id: store.id, organizationId: foreign.id } },
@@ -270,6 +272,7 @@ test.describe('Project Settings Admin API - store lifecycle', () => {
       });
       expect(data.storeMutation.storeDelete.userErrors).toHaveLength(0);
       expect(data.storeMutation.storeDelete.deletedStoreId).toBe(store.id);
+      api.session.clearProject();
       const listed = await api.admin.query('project-api/Projects', {
         variables: { organizationId },
       });

@@ -10,18 +10,28 @@ import { BaseResolver } from "./BaseResolver.js";
 
 export { BaseResolver };
 
+type StoreAuthorizationDomain = "org" | `store:${string}`;
+
+export interface StoreResolverInput extends Store {
+  authorizationDomain?: StoreAuthorizationDomain;
+}
+
 /**
  * Store type resolver - resolves Store GraphQL type
  * Accepts pre-loaded StoreRecord from database
  */
 @TypePolicy<StoreResolver>({
   organizationId: (resolver) => resolver.$props.organizationId,
-  domain: (resolver) => `store:${resolver.$props.id}`,
+  domain: (resolver) =>
+    resolver.$props.authorizationDomain ?? `store:${resolver.$props.id}`,
   resource: "store.profile",
   action: "read",
   onDeny: "null",
 })
-export class StoreResolver extends BaseResolver<Store, Store> {
+export class StoreResolver extends BaseResolver<
+  StoreResolverInput,
+  StoreResolverInput
+> {
   private settingsPromise?: Promise<StoreSettingsSnapshot>;
 
   async $preload() {

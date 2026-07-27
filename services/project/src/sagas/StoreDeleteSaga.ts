@@ -60,7 +60,7 @@ export class StoreDeleteSaga extends BrokerSaga<StoreDeleteInput, StoreDeleteOut
     await this.notifyEntityDeleted(storeId);
 
     // Step 4: Emit storeDeleted event
-    await this.emitStoreDeleted(input);
+    await this.workflowEmitStoreDeleted(input);
 
     return { deletedStoreId: storeId, organizationId };
   }
@@ -102,8 +102,9 @@ export class StoreDeleteSaga extends BrokerSaga<StoreDeleteInput, StoreDeleteOut
     }
   }
 
-  @SagaStep()
-  private async emitStoreDeleted(input: StoreDeleteInput): Promise<void> {
+  private async workflowEmitStoreDeleted(
+    input: StoreDeleteInput,
+  ): Promise<void> {
     await this.broker.runWorkflow(
       "events.emit",
       {

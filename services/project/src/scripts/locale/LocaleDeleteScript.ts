@@ -1,9 +1,11 @@
+import { Transactional } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { LocaleDeleteParams, LocaleDeleteResult } from "./dto/index.js";
 
 export class LocaleDeleteScript extends BaseScript<LocaleDeleteParams, LocaleDeleteResult> {
+  @Transactional()
   protected async execute(params: LocaleDeleteParams): Promise<LocaleDeleteResult> {
-    const store = await this.repository.store.findById(params.storeId);
+    const store = await this.repository.store.findByIdForUpdate(params.storeId);
     if (!store) {
       return {
         deletedLocaleCode: null,

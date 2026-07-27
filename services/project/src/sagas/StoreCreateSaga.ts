@@ -97,8 +97,8 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     }
     const storeId = await this.generateId();
     await this.createStore(storeId, input);
-    await this.createRoles(storeId, input, workflowContext);
-    await this.assignAdminRole(storeId, input, workflowContext);
+    await this.workflowCreateRoles(storeId, input, workflowContext);
+    await this.workflowAssignAdminRole(storeId, input, workflowContext);
     await this.createMediaAssetGroup(storeId);
     await this.emitStoreCreated(storeId, input);
     return { storeId, organizationId: input.organizationId };
@@ -127,11 +127,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     });
   }
 
-  @SagaStep({
-    retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
-    timeoutMs: 10_000,
-  })
-  private async createRoles(
+  private async workflowCreateRoles(
     id: string,
     input: StoreCreateInput,
     workflowContext: WorkflowExecutionContext,
@@ -165,11 +161,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     );
   }
 
-  @SagaStep({
-    retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
-    timeoutMs: 10_000,
-  })
-  private async assignAdminRole(
+  private async workflowAssignAdminRole(
     id: string,
     input: StoreCreateInput,
     workflowContext: WorkflowExecutionContext,

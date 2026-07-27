@@ -111,8 +111,8 @@ test.describe('Project Settings Admin API - order, defaults, and currency settin
       validDefaults,
       {
         unitSystem: 'IMPERIAL',
-        defaultWeightUnit: 'POUND',
-        defaultDimensionUnit: 'INCH',
+        defaultWeightUnit: 'lb',
+        defaultDimensionUnit: 'in',
         timezone: 'America/New_York',
       },
     ]) {

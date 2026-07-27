@@ -6,6 +6,7 @@ import {
   currentStore,
   expectError,
   expectSuccess,
+  requestStoreUpdate,
   selectStore,
   setupStore,
   stableSettings,
@@ -77,29 +78,26 @@ test.describe('Project Settings Admin API - unified store update', () => {
     });
   });
 
-  test('PRJ-UPD-004/PRJ-UPD-017 authorization denial marks every requested operation unapplied', async ({
+  test('PRJ-UPD-004/PRJ-UPD-017 unauthenticated update is rejected before operation dispatch', async ({
     api,
   }) => {
     const store = await currentStore(api);
     api.session.clearSession();
-    const payload = await updateStore(api, store, {
+    const result = await requestStoreUpdate(api, store, {
       contactDetails: validContact('Forbidden', store.name),
       address: validAddress,
     });
-    expect(payload.store).toBeNull();
-    expectError(payload.userErrors, { code: 'UNAUTHENTICATED' });
-    expect(payload.operationResults).toEqual([
-      expect.objectContaining({ type: 'CONTACT_DETAILS_UPDATE', applied: false }),
-      expect.objectContaining({ type: 'ADDRESS_UPDATE', applied: false }),
-    ]);
+    expect(result.payload).toBeUndefined();
+    expect(JSON.stringify(result.errors)).toMatch(/UNAUTHENTICATED/iu);
   });
 
   test('PRJ-UPD-005 ownership is derived from the persisted target store', async ({ api }) => {
     const store = await currentStore(api);
-    const foreignOrganization = await api.session.setupOrganization({
+    const trustedOrganizationId = api.session.organizationId!;
+    await api.session.setupOrganization({
       displayName: 'Foreign selector',
     });
-    api.session.organizationId = foreignOrganization.id;
+    api.session.organizationId = trustedOrganizationId;
     selectStore(api, store);
     const payload = await updateStore(api, store, {
       contactDetails: validContact('Persisted ownership', store.name),

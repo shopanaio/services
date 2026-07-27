@@ -6,6 +6,7 @@ import {
   type CurrencyCode,
   type LocaleCode,
 } from "../../../repositories/models/index.js";
+import { timezoneSchema } from "../../shared/timezoneSchema.js";
 import type { StorePayload } from "./shared.js";
 
 /**
@@ -34,7 +35,7 @@ export const storeCreateInputSchema = z.object({
     .min(1, "At least one locale is required"),
   currencyCode: z.nativeEnum(CurrencyCodeEnum),
   status: z.enum(["active", "inactive"]).optional(),
-  timezone: z.string().optional(),
+  timezone: timezoneSchema.optional(),
   email: z.string().email("Invalid email format").optional().nullable(),
 });
 

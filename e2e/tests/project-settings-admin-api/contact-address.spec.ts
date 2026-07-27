@@ -110,20 +110,27 @@ test.describe('Project Settings Admin API - contact details and address', () => 
 
   test('PRJ-CONTACT-007/PRJ-CONTACT-008 E.164 phones are unique and limited to twenty', async ({ api }) => {
     const store = await currentStore(api);
-    for (const phoneNumbers of [
-      ['2025550101'],
-      ['+12025550101', '+12025550101'],
-      Array.from({ length: 21 }, (_, index) => `+1202555${String(index).padStart(4, '0')}`),
-    ]) {
+    for (const [phoneNumbers, field] of [
+      [
+        ['2025550101'],
+        ['operations', 'contactDetails', 'phoneNumbers', '0'],
+      ],
+      [
+        ['+12025550101', '+12025550101'],
+        ['operations', 'contactDetails', 'phoneNumbers'],
+      ],
+      [
+        Array.from({ length: 21 }, (_, index) => `+1202555${String(index).padStart(4, '0')}`),
+        ['operations', 'contactDetails', 'phoneNumbers'],
+      ],
+    ] as const) {
       const payload = await updateStore(api, store, {
         contactDetails: {
           ...validContact('Invalid phones', store.name),
-          phoneNumbers,
+          phoneNumbers: [...phoneNumbers],
         },
       });
-      expectError(payload.userErrors, {
-        field: ['operations', 'contactDetails', 'phoneNumbers'],
-      });
+      expectError(payload.userErrors, { field: [...field] });
     }
   });
 

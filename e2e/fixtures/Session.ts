@@ -137,4 +137,7 @@ export class SessionFixture {
     this.tenant.userId = undefined;
   }
 
+  clearProject() {
+    this.currentProject = undefined;
+  }
 }

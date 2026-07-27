@@ -20,7 +20,10 @@ export const roleAssignmentSchema = z.object({
  */
 export const memberInviteInputSchema = z.object({
   organizationId: z.string().uuid("Invalid organization ID"),
-  invitedBy: z.string().uuid("Invalid inviting user ID"),
+  invitedBy: z
+    .string()
+    .min(1, "Inviting user ID is required")
+    .max(128, "Inviting user ID is too long"),
   email: z
     .string()
     .email("Invalid email address")

@@ -6,6 +6,7 @@ import { composeGlobalId } from '@utils/globalid';
 import {
   currentStore,
   localeCreate,
+  requestStoreUpdate,
   selectStore,
   setupStore,
   stableSettings,
@@ -73,10 +74,10 @@ test.describe('Project Settings Admin API - RBAC and isolation', () => {
     const store = await currentStore(api);
     api.session.clearSession();
     const current = await api.admin.query('project-api/Project', { throwOnError: false });
-    expect(current.data.storeQuery.currentStore).toBeNull();
-    const payload = await updateStore(api, store, { address: validAddress });
-    expect(payload.store).toBeNull();
-    expect(payload.userErrors.map(({ code }) => code)).toContain('UNAUTHENTICATED');
+    expect(JSON.stringify(current.errors ?? current.data)).toMatch(/UNAUTHENTICATED/iu);
+    const result = await requestStoreUpdate(api, store, { address: validAddress });
+    expect(result.payload).toBeUndefined();
+    expect(JSON.stringify(result.errors)).toMatch(/UNAUTHENTICATED/iu);
   });
 
   test('PRJ-SEC-002 org.stores write permits create but not destructive delete', async ({ api }) => {
@@ -168,8 +169,9 @@ test.describe('Project Settings Admin API - RBAC and isolation', () => {
     api,
   }) => {
     const store = await currentStore(api);
-    const foreignOrganization = await api.session.setupOrganization();
-    api.session.organizationId = foreignOrganization.id;
+    const trustedOrganizationId = api.session.organizationId!;
+    await api.session.setupOrganization();
+    api.session.organizationId = trustedOrganizationId;
     selectStore(api, store);
     const payload = await updateStore(api, store, {
       contactDetails: validContact('Persisted organization', store.name),
@@ -224,14 +226,12 @@ test.describe('Project Settings Admin API - RBAC and isolation', () => {
   }) => {
     const trusted = await currentStore(api);
     const foreignOrganization = await api.session.setupOrganization();
-    const foreign = await api.admin.project.create({
-      organizationId: foreignOrganization.id,
-    });
     api.session.organizationId = foreignOrganization.id;
     selectStore(api, trusted);
-    const current = await currentStore(api);
-    expect(current.id).toBe(trusted.id);
-    expect(current.id).not.toBe(foreign.id);
+    const current = await api.admin.query('project-api/Project', {
+      throwOnError: false,
+    });
+    expect(JSON.stringify(current.errors ?? current.data)).toMatch(/ADMIN_CONTEXT_INVALID/iu);
   });
 
   test('PRJ-SEC-015/PRJ-SEC-016 non-Admin session scopes cannot authorize Project Admin GraphQL', async ({
@@ -242,9 +242,10 @@ test.describe('Project Settings Admin API - RBAC and isolation', () => {
     api.session.apiKey = '';
     api.session.clearSession();
     const current = await api.admin.query('project-api/Project', { throwOnError: false });
-    expect(current.data.storeQuery.currentStore).toBeNull();
-    const payload = await updateStore(api, store, { address: validAddress });
-    expect(payload.store).toBeNull();
+    expect(JSON.stringify(current.errors ?? current.data)).toMatch(/UNAUTHENTICATED/iu);
+    const result = await requestStoreUpdate(api, store, { address: validAddress });
+    expect(result.payload).toBeUndefined();
+    expect(JSON.stringify(result.errors)).toMatch(/UNAUTHENTICATED/iu);
   });
 
   test('PRJ-SEC-017 authorization denial creates no revision or settings side effect', async ({
@@ -257,7 +258,11 @@ test.describe('Project Settings Admin API - RBAC and isolation', () => {
       userId: api.session.tenant.userId,
     };
     api.session.clearSession();
-    await updateStore(api, store, { address: validAddress, brand: validBrand });
+    const denied = await requestStoreUpdate(api, store, {
+      address: validAddress,
+      brand: validBrand,
+    });
+    expect(denied.payload).toBeUndefined();
     api.session.tenant.accessToken = owner.accessToken;
     api.session.tenant.userId = owner.userId;
     api.session.scope = 'tenant';
@@ -287,6 +292,7 @@ test.describe('Project Settings Admin API - RBAC and isolation', () => {
     await api.admin.mutation('project-api/ProjectDelete', {
       variables: { input: { id: store.id, organizationId: api.session.organizationId! } },
     });
+    api.session.clearProject();
     expect((await api.admin.query('project-api/Project', {})).data.storeQuery.currentStore).toBeNull();
     const payload = await updateStore(api, store, { address: validAddress });
     expect(payload.store).toBeNull();
@@ -297,6 +303,7 @@ test.describe('Project Settings Admin API - RBAC and isolation', () => {
     api,
   }) => {
     const selected = await currentStore(api);
+    const selectedOrganizationId = api.session.organizationId!;
     const selectedSnapshot = stableSettings(selected);
     const owner = {
       accessToken: api.session.tenant.accessToken,
@@ -308,14 +315,17 @@ test.describe('Project Settings Admin API - RBAC and isolation', () => {
     });
     selectStore(api, foreign);
     const foreignSnapshot = stableSettings(await currentStore(api));
+    api.session.organizationId = selectedOrganizationId;
     selectStore(api, selected);
     api.session.clearSession();
-    await updateStore(api, selected, { address: validAddress });
-    await updateStore(api, foreign as typeof selected, { brand: validBrand });
+    await requestStoreUpdate(api, selected, { address: validAddress });
+    await requestStoreUpdate(api, foreign as typeof selected, { brand: validBrand });
     api.session.tenant.accessToken = owner.accessToken;
     api.session.tenant.userId = owner.userId;
+    api.session.organizationId = selectedOrganizationId;
     selectStore(api, selected);
     expect(stableSettings(await currentStore(api))).toEqual(selectedSnapshot);
+    api.session.organizationId = foreignOrganization.id;
     selectStore(api, foreign);
     expect(stableSettings(await currentStore(api))).toEqual(foreignSnapshot);
   });

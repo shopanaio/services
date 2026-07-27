@@ -51,16 +51,16 @@ test.describe('Project Settings Admin API - store queries and profile', () => {
     expect(sibling.id).not.toBe(selected.id);
   });
 
-  test('PRJ-QUERY-004 unauthenticated stores query is empty without existence disclosure', async ({
+  test('PRJ-QUERY-004 unauthenticated stores query fails without existence disclosure', async ({
     api,
   }) => {
     const organizationId = api.session.organizationId!;
     api.session.clearSession();
-    const { data } = await api.admin.query('project-api/Projects', {
+    const { data, errors } = await api.admin.query('project-api/Projects', {
       throwOnError: false,
       variables: { organizationId },
     });
-    expect(data.storeQuery.stores).toEqual([]);
+    expect(JSON.stringify(errors ?? data)).toMatch(/UNAUTHENTICATED/iu);
   });
 
   test('PRJ-QUERY-005 malformed and type-confused organization IDs fail safely', async ({
@@ -104,9 +104,15 @@ test.describe('Project Settings Admin API - store queries and profile', () => {
     });
     selectStore(api, trusted);
     expect((await currentStore(api)).id).toBe(trusted.id);
-    api.session.project = { id: sibling.id, name: 'unknown-header-name', displayName: sibling.displayName };
-    const { data } = await api.admin.query('project-api/Project', {});
-    expect(data.storeQuery.currentStore).toBeNull();
+    api.session.project = {
+      id: sibling.id,
+      name: 'unknown-header-name',
+      displayName: sibling.displayName,
+    };
+    const { data, errors } = await api.admin.query('project-api/Project', {
+      throwOnError: false,
+    });
+    expect(JSON.stringify(errors ?? data)).toMatch(/ADMIN_CONTEXT_INVALID/iu);
   });
 
   test('PRJ-QUERY-010 deleted selected store resolves null', async ({ api }) => {
@@ -117,6 +123,7 @@ test.describe('Project Settings Admin API - store queries and profile', () => {
       },
     });
     expect(data.storeMutation.storeDelete.userErrors).toHaveLength(0);
+    api.session.clearProject();
     const result = await api.admin.query('project-api/Project', {});
     expect(result.data.storeQuery.currentStore).toBeNull();
   });
@@ -166,8 +173,8 @@ test.describe('Project Settings Admin API - store queries and profile', () => {
     const store = await currentStore(api);
     expect(store.defaults).toEqual({
       unitSystem: 'METRIC',
-      defaultWeightUnit: 'KILOGRAM',
-      defaultDimensionUnit: 'CENTIMETER',
+      defaultWeightUnit: 'kg',
+      defaultDimensionUnit: 'cm',
       timezone: 'UTC',
     });
     expect(store.address).toBeNull();
@@ -211,14 +218,14 @@ test.describe('Project Settings Admin API - store queries and profile', () => {
     expect(fresh.brand.socialLinks).toEqual(socialLinks);
   });
 
-  test('PRJ-QUERY-021 TypePolicy returns null fields when store.profile read is denied', async ({
+  test('PRJ-QUERY-021 unauthenticated currentStore query fails without disclosure', async ({
     api,
   }) => {
     api.session.clearSession();
-    const { data } = await api.admin.query('project-api/Project', {
+    const { data, errors } = await api.admin.query('project-api/Project', {
       throwOnError: false,
     });
-    expect(data.storeQuery.currentStore).toBeNull();
+    expect(JSON.stringify(errors ?? data)).toMatch(/UNAUTHENTICATED/iu);
   });
 
   test('PRJ-QUERY-022 batched settings resolution never mixes sibling stores', async ({ api }) => {

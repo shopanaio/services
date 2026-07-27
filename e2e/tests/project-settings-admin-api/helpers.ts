@@ -100,6 +100,12 @@ export interface UpdatePayload {
   userErrors: UserError[];
 }
 
+interface UpdateOptions {
+  clientMutationId?: string;
+  expectedRevision?: number;
+  storeId?: string;
+}
+
 export const validContact = (name: string, slug: string) => ({
   name,
   slug,
@@ -141,8 +147,8 @@ export const validOrderProcessing = {
 
 export const validDefaults = {
   unitSystem: 'METRIC',
-  defaultWeightUnit: 'KILOGRAM',
-  defaultDimensionUnit: 'CENTIMETER',
+  defaultWeightUnit: 'kg',
+  defaultDimensionUnit: 'cm',
   timezone: 'Europe/Kyiv',
 };
 
@@ -181,13 +187,22 @@ export async function updateStore(
   api: Api,
   store: Pick<StoreView, 'id' | 'revision'>,
   operations: Record<string, unknown> | null,
-  options: {
-    clientMutationId?: string;
-    expectedRevision?: number;
-    storeId?: string;
-  } = {},
+  options: UpdateOptions = {},
 ): Promise<UpdatePayload> {
-  const { data } = await api.admin.mutation('project-api/ProjectUpdate', {
+  const { payload, errors } = await requestStoreUpdate(api, store, operations, options);
+  if (!payload) {
+    throw new Error(`storeUpdate returned no payload: ${JSON.stringify(errors)}`);
+  }
+  return payload;
+}
+
+export async function requestStoreUpdate(
+  api: Api,
+  store: Pick<StoreView, 'id' | 'revision'>,
+  operations: Record<string, unknown> | null,
+  options: UpdateOptions = {},
+) {
+  const { data, errors } = await api.admin.mutation('project-api/ProjectUpdate', {
     throwOnError: false,
     variables: {
       storeId: options.storeId ?? store.id,
@@ -196,7 +211,10 @@ export async function updateStore(
       operations,
     },
   });
-  return data.storeMutation.storeUpdate as unknown as UpdatePayload;
+  return {
+    payload: data?.storeMutation?.storeUpdate as unknown as UpdatePayload | undefined,
+    errors,
+  };
 }
 
 export async function createStore(

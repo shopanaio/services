@@ -208,6 +208,21 @@ export class StoreRepository extends BaseRepository {
   }
 
   /**
+   * Lock a store row for locale/settings invariants within an existing
+   * transaction. Callers must enter through @Transactional().
+   */
+  @ReadOnly()
+  async findByIdForUpdate(id: string): Promise<StoreRecord | null> {
+    const [result] = await this.connection
+      .select()
+      .from(store)
+      .where(and(eq(store.id, id), isNull(store.deletedAt)))
+      .for("update");
+
+    return result ?? null;
+  }
+
+  /**
    * Find store by name (URL-friendly identifier)
    */
   @ReadOnly()

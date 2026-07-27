@@ -4,6 +4,7 @@ import {
   DimensionUnitEnum,
   WeightUnitEnum,
 } from "../../repositories/models/index.js";
+import { timezoneSchema } from "../shared/timezoneSchema.js";
 import { storeNameSchema } from "../store/dto/StoreCreateDto.js";
 import type { StorePayload } from "../store/dto/shared.js";
 
@@ -14,20 +15,6 @@ const contextSchema = z.object({
 
 const nullableTrimmedString = (max: number) =>
   z.string().trim().min(1).max(max).nullable();
-
-const timezoneSchema = z
-  .string()
-  .trim()
-  .min(1, "Timezone is required")
-  .max(64)
-  .refine((timezone) => {
-    try {
-      new Intl.DateTimeFormat("en", { timeZone: timezone });
-      return true;
-    } catch {
-      return false;
-    }
-  }, "Invalid IANA timezone");
 
 export const storeContactDetailsUpdateSchema = contextSchema.extend({
   name: z.string().trim().min(1).max(255),

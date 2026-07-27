@@ -138,11 +138,16 @@ test.describe('Project Settings Admin API - locales', () => {
 
   test('PRJ-LOC-014 locale writes require store.profile write access', async ({ api }) => {
     const before = await currentStore(api);
+    const owner = {
+      accessToken: api.session.tenant.accessToken,
+      userId: api.session.tenant.userId,
+    };
     api.session.clearSession();
     const result = await localeCreate(api, 'de', true);
     const serialized = JSON.stringify(result.errors ?? result.payload?.userErrors);
     expect(serialized).toMatch(/(?:UNAUTHENTICATED|FORBIDDEN|access denied)/iu);
-    await api.session.setupUser();
+    api.session.tenant.accessToken = owner.accessToken;
+    api.session.tenant.userId = owner.userId;
     selectStore(api, before);
   });
 

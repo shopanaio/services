@@ -62,8 +62,22 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
 
     if (accessibleStores.length === 0) return [];
 
-    // Return StoreResolver instances - executor will handle resolution
-    return accessibleStores.map((store) => new StoreResolver(store, this.$ctx));
+    // The query already authorized the collection at either organization or
+    // selected-store scope. Preserve that exact scope for item TypePolicy
+    // instead of re-authorizing every organization-visible item as though it
+    // were the selected store.
+    return accessibleStores.map(
+      (store) =>
+        new StoreResolver(
+          {
+            ...store,
+            authorizationDomain: hasOrganizationAccess
+              ? "org"
+              : `store:${store.id}`,
+          },
+          this.$ctx,
+        ),
+    );
   }
 
   /**

@@ -1,9 +1,11 @@
+import { Transactional } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { LocaleSetDefaultParams, LocaleSetDefaultResult } from "./dto/index.js";
 
 export class LocaleSetDefaultScript extends BaseScript<LocaleSetDefaultParams, LocaleSetDefaultResult> {
+  @Transactional()
   protected async execute(params: LocaleSetDefaultParams): Promise<LocaleSetDefaultResult> {
-    const store = await this.repository.store.findById(params.storeId);
+    const store = await this.repository.store.findByIdForUpdate(params.storeId);
     if (!store) {
       return {
         success: false,

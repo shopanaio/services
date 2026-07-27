@@ -6,6 +6,7 @@ import {
   currentStore,
   openSql,
   rawId,
+  requestStoreUpdate,
   setupStore,
   stableSettings,
   updateStore,
@@ -195,9 +196,9 @@ test.describe('Project Settings Admin API - saga and observability', () => {
   }) => {
     const store = await currentStore(api);
     api.session.clearSession();
-    const payload = await updateStore(api, store, { address: validAddress });
-    expect(payload.store).toBeNull();
-    expect(payload.userErrors.map(({ code }) => code)).toContain('UNAUTHENTICATED');
+    const result = await requestStoreUpdate(api, store, { address: validAddress });
+    expect(result.payload).toBeUndefined();
+    expect(JSON.stringify(result.errors)).toMatch(/UNAUTHENTICATED/iu);
   });
 
   test('PRJ-OBS-011 unexpected and malformed failures do not expose database messages', async ({
