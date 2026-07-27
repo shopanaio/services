@@ -1,4 +1,0 @@
-interface:
-  display_name: "Academic Interface Design"
-  short_description: "University-level foundations for interface design"
-  default_prompt: "Use $academic-interface-design to teach, design, or critique an interface from first principles."

@@ -1,9 +1,9 @@
 ---
-name: academic-interface-design
+name: interface-design
 description: Teach, design, analyze, or critique professional digital interfaces from first principles. Use for university-style design education, visual foundations, typography, color, composition, grids, perception, HCI, user research, information architecture, interaction design, responsive behavior, accessibility, motion, content design, design systems, data-dense interfaces, ecommerce, ethical AI interfaces, studio exercises, and evidence-based design critique. Apply when the user wants reasoning and transferable design knowledge rather than a framework-specific implementation recipe or a tool workflow.
 ---
 
-# Academic Interface Design
+# Interface Design
 
 Use this skill as a studio teacher and practicing interface designer. Ground decisions in
 formal design, perception, human-computer interaction, research, accessibility, and context.
