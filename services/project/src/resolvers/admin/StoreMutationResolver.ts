@@ -1,5 +1,5 @@
 import { ZodResolver } from "@shopana/type-resolver";
-import type { UserError } from "@shopana/shared-kernel";
+import { AuthorizationError, type UserError } from "@shopana/shared-kernel";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -337,6 +337,25 @@ function toGraphqlOperationType(type: StoreUpdateOperation["type"]): string {
  * Handles all store-related mutations.
  */
 export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
+  private async localeWriteError(store: {
+    id: string;
+    organizationId: string;
+  }): Promise<UserError | null> {
+    const allowed = await this.authProvider.authorize({
+      resource: "store.profile",
+      action: "write",
+      organizationId: store.organizationId,
+      domain: `store:${store.id}`,
+    });
+    if (allowed) return null;
+
+    return {
+      message: "Access denied: store.profile:write",
+      code: "FORBIDDEN",
+      field: null,
+    };
+  }
+
   /**
    * Helper to get the current store from storeName header.
    * Throws if store not found.
@@ -461,26 +480,43 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
         userId: this.$ctx.user?.id,
       },
     };
-    const sagaResult = await this.$ctx.kernel.getServices().broker.runSaga<
-      StoreUpdateSagaOutput,
-      StoreUpdateSagaInput
-    >(
-      "project.storeUpdate",
-      sagaInput,
-      {
-        source: "content",
-        organizationId: store.organizationId,
-        resourceId: storeId,
-        operation: "storeUpdate",
-        content: {
-          clientMutationId,
-          expectedRevision: sagaInput.expectedRevision,
-          operations: sagaInput.operations,
-          userId: sagaInput.context.userId ?? null,
+    let sagaResult;
+    try {
+      sagaResult = await this.$ctx.kernel.getServices().broker.runSaga<
+        StoreUpdateSagaOutput,
+        StoreUpdateSagaInput
+      >(
+        "project.storeUpdate",
+        sagaInput,
+        {
+          source: "content",
+          organizationId: store.organizationId,
+          resourceId: storeId,
+          operation: "storeUpdate",
+          content: {
+            clientMutationId,
+            expectedRevision: sagaInput.expectedRevision,
+            operations: sagaInput.operations,
+            userId: sagaInput.context.userId ?? null,
+          },
         },
-      },
-      { adminContext: this.$ctx.adminContext },
-    );
+        { adminContext: this.$ctx.adminContext },
+      );
+    } catch (error) {
+      if (!(error instanceof AuthorizationError)) {
+        throw error;
+      }
+
+      return {
+        store: null,
+        operationResults: mapped.entries.map((entry) => ({
+          type: toGraphqlOperationType(entry.type),
+          applied: false,
+          errors: error.errors,
+        })),
+        userErrors: error.errors,
+      };
+    }
 
     if (!sagaResult.data) {
       const error = {
@@ -540,6 +576,14 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(LocaleCreateInputSchema())
   async localeCreate(args: { input: LocaleCreateInput }) {
     const store = await this.getCurrentStore();
+    const authorizationError = await this.localeWriteError(store);
+    if (authorizationError) {
+      return {
+        locale: null,
+        userErrors: [authorizationError],
+      };
+    }
+
     const result = await this.$ctx.kernel.runScript(LocaleCreateScript, {
       storeId: store.id,
       code: args.input.code,
@@ -557,6 +601,14 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(LocaleDeleteInputSchema())
   async localeDelete(args: { input: LocaleDeleteInput }) {
     const store = await this.getCurrentStore();
+    const authorizationError = await this.localeWriteError(store);
+    if (authorizationError) {
+      return {
+        deletedLocaleCode: null,
+        userErrors: [authorizationError],
+      };
+    }
+
     return this.$ctx.kernel.runScript(LocaleDeleteScript, {
       storeId: store.id,
       code: args.input.code,
@@ -566,6 +618,14 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(LocaleSetDefaultInputSchema())
   async localeSetDefault(args: { input: LocaleSetDefaultInput }) {
     const store = await this.getCurrentStore();
+    const authorizationError = await this.localeWriteError(store);
+    if (authorizationError) {
+      return {
+        success: false,
+        userErrors: [authorizationError],
+      };
+    }
+
     const result = await this.$ctx.kernel.runScript(LocaleSetDefaultScript, {
       storeId: store.id,
       locale: args.input.locale,

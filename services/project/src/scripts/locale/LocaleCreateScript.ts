@@ -29,6 +29,17 @@ export class LocaleCreateScript extends BaseScript<LocaleCreateParams, LocaleCre
       code: params.code,
       isActive: params.isActive,
     });
+    if (!created) {
+      return {
+        locale: null,
+        userErrors: [{
+          message: "Language is already configured",
+          code: "LOCALE_ALREADY_EXISTS",
+          field: ["code"],
+        }],
+      };
+    }
+
     return {
       locale: { code: created.code, isActive: created.isActive },
       userErrors: [],

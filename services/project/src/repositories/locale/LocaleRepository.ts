@@ -22,7 +22,7 @@ export class LocaleRepository extends BaseRepository {
   }
 
   @Transactional()
-  async create(storeId: string, data: CreateLocaleData): Promise<Locale> {
+  async create(storeId: string, data: CreateLocaleData): Promise<Locale | null> {
     const now = new Date();
     const [created] = await this.connection
       .insert(locale)
@@ -33,8 +33,11 @@ export class LocaleRepository extends BaseRepository {
         createdAt: now,
         updatedAt: now,
       })
+      .onConflictDoNothing({
+        target: [locale.storeId, locale.code],
+      })
       .returning();
-    return created;
+    return created ?? null;
   }
 
   @Transactional()

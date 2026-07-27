@@ -83,11 +83,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     action: "write",
     organizationId: (_self, input) => input.organizationId,
   })
-  @Policy<StoreCreateInput>({
-    resource: "org.roles",
-    action: "write",
-    organizationId: (_self, input) => input.organizationId,
-  })
   async run(
     input: StoreCreateInput,
     workflowContext?: WorkflowExecutionContext,

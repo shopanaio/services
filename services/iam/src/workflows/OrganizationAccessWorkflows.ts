@@ -70,7 +70,7 @@ export class CreateRolesWorkflow extends OrganizationAccessWorkflow {
 
   @Workflow("createRoles")
   @Policy<CreateRolesParams>({
-    resource: "org.roles",
+    resource: "org.stores",
     action: "write",
     organizationId: (_self, input) => input.organizationId,
   })
@@ -92,7 +92,7 @@ export class AssignRoleWorkflow extends OrganizationAccessWorkflow {
 
   @Workflow("assignRole")
   @Policy<AssignRoleParams>({
-    resource: "org.roles",
+    resource: "org.stores",
     action: "write",
     organizationId: (_self, input) => input.organizationId,
   })
