@@ -1,7 +1,5 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
-import {
-  HEADLESS_STOREFRONT_PERMISSION_CATALOG,
-} from "../../../../app.manifest.js";
+import { STOREFRONT_PERMISSION_CATALOG } from "@shopana/storefront-permissions";
 import { HeadlessType } from "./HeadlessType.js";
 import { HeadlessStorefrontConnectionResolver } from "./HeadlessStorefrontConnectionResolver.js";
 
@@ -15,7 +13,7 @@ export class HeadlessAppQueryResolver extends HeadlessType<
   Record<string, never>
 > {
   headlessStorefrontPermissionCatalog() {
-    return HEADLESS_STOREFRONT_PERMISSION_CATALOG;
+    return STOREFRONT_PERMISSION_CATALOG;
   }
 
   async headlessStorefrontConnections() {

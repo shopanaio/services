@@ -8,9 +8,9 @@ import type {
   AppUpdateInput,
   ShopanaApp,
 } from "@shopana/app-sdk";
+import { STOREFRONT_PERMISSION_CATALOG } from "@shopana/storefront-permissions";
 import {
   HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
-  HEADLESS_STOREFRONT_PERMISSION_CATALOG,
   headlessManifest,
 } from "../app.manifest.js";
 import {
@@ -79,7 +79,7 @@ export class HeadlessApp implements ShopanaApp {
     this.registerInstallationLifecycle();
     this.host.broker.register(
       "permissionCatalog",
-      () => HEADLESS_STOREFRONT_PERMISSION_CATALOG,
+      () => STOREFRONT_PERMISSION_CATALOG,
     );
   }
 

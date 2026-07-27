@@ -15,6 +15,7 @@
     "@shopana/shared-context": "workspace:*",
     "@shopana/shared-graphql-guid": "workspace:*",
     "@shopana/shared-kernel": "workspace:*",
+    "@shopana/storefront-permissions": "workspace:*",
     "@shopana/type-resolver": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "fastify": "^4.28.1",

@@ -328,8 +328,9 @@ export const headlessManifest = defineAppManifest({
 Generic `SalesChannelSpecification` и `SalesChannelConnection` Apps Service для
 Headless не используются.
 
-Canonical permission handles являются общим compile-time storefront access
-contract и экспортируются из `@shopana/shared-context`:
+Canonical permission handles и их metadata являются общим compile-time
+storefront access contract и экспортируются из
+`@shopana/storefront-permissions`:
 
 ```ts
 export const STOREFRONT_PERMISSIONS = {
@@ -347,16 +348,16 @@ export type StorefrontPermission =
   (typeof STOREFRONT_PERMISSIONS)[keyof typeof STOREFRONT_PERMISSIONS];
 ```
 
-Это единственный source of truth для стабильных строковых handles, которые
-используют Headless App, shared permission helper и domain subgraphs. Gateway
-не содержит собственной копии handles или mapping GraphQL fields.
+Это единственный source of truth для стабильных строковых handles и
+UI/domain metadata, которые используют Headless App, shared permission helper
+и domain subgraphs. Gateway не содержит собственной копии handles или mapping
+GraphQL fields.
 
-Headless App остаётся domain owner permission catalog и поверх общего contract
-определяет UI/domain metadata и default grants:
+Headless App поверх общего contract определяет только default grants:
 
 ```ts
-interface HeadlessStorefrontPermissionCatalog {
-  readonly definitions: readonly StorefrontPermissionDefinition[];
+interface HeadlessStorefrontApiConfiguration {
+  readonly permissions: typeof STOREFRONT_PERMISSION_CATALOG;
   readonly defaultPermissions: readonly StorefrontPermission[];
 }
 ```
@@ -365,17 +366,18 @@ Validation:
 
 1. Permission handles импортируются из `STOREFRONT_PERMISSIONS` и соответствуют
    `^[a-z][a-z0-9]*(?:[.:_-][a-z0-9]+)*$`.
-2. Каждый общий handle имеет ровно одну Headless-owned definition.
+2. Каждый общий handle имеет ровно одну package-owned definition.
 3. `defaultPermissions` являются подмножеством handles из `definitions`.
-4. Все persisted grants существуют в текущем Headless-owned catalog.
+4. Все persisted grants существуют в текущем package-owned catalog.
 5. Дубликаты запрещены.
 6. Manifest не содержит connections, token values, hashes, pepper или signing
    keys.
 
-UI metadata permission catalog и connection contract принадлежат
-`apps/headless`, а не core Apps Service или `packages/app-sdk`. Общий vocabulary
-handles и runtime context types принадлежат `@shopana/shared-context`.
-Headless App семантически валидирует catalog при registration/start.
+Permission handles, actions, risks и UI metadata принадлежат
+`@shopana/storefront-permissions`. Connection contract, default grants и
+persisted policies принадлежат `apps/headless`. Verified runtime context и
+permission helper принадлежат `@shopana/shared-context`. Headless App
+семантически валидирует общий catalog при registration/start.
 
 Admin UI получает definitions через Headless Admin GraphQL и не дублирует
 handles, labels, descriptions или risk metadata в frontend source.
@@ -703,8 +705,8 @@ Responsibilities:
 - получить policy;
 - заменить полный grant set;
 - проверить optimistic `revision`;
-- проверить grant по Headless-owned catalog;
-- не принимать permissions вне текущего Headless catalog;
+- проверить grant по package-owned catalog;
+- не принимать permissions вне текущего storefront catalog;
 - выдавать immutable sorted permission list.
 
 Update является полной заменой. Пустой список разрешён, но такой storefront
@@ -1014,7 +1016,7 @@ extend type AppsMutation {
 ```
 
 `headlessStorefrontPermissionCatalog` строится server-side из
-Headless-owned definitions и возвращает definitions в стабильном порядке.
+package-owned definitions и возвращает definitions в стабильном порядке.
 Admin frontend использует этот query для permission editor и не содержит
 fallback/hardcoded catalog.
 
@@ -1480,8 +1482,8 @@ App subgraph также проверяет JWS через shared middleware.
 
 ### 16.1. Initial catalog
 
-Canonical handles определены в
-`packages/shared-context/src/storefrontPermissions.ts`:
+Canonical handles и definitions определены в
+`packages/storefront-permissions/src/definitions.ts`:
 
 ```ts
 STOREFRONT_PERMISSIONS.CATALOG_READ
@@ -1494,7 +1496,7 @@ STOREFRONT_PERMISSIONS.ORDER_READ
 STOREFRONT_PERMISSIONS.ORDER_WRITE
 ```
 
-Headless-owned catalog добавляет к каждому canonical handle metadata:
+Package-owned catalog добавляет к каждому canonical handle metadata:
 
 ```ts
 interface StorefrontPermissionDefinition {
@@ -1507,15 +1509,17 @@ interface StorefrontPermissionDefinition {
 
 Разделение ответственности:
 
-1. `@shopana/shared-context` владеет стабильными handles, типом
-   `StorefrontPermission`, verified runtime context и permission helper.
-2. Headless App владеет доступностью permissions, definitions, default grants,
-   persisted policy и выдачей grants в internal resolver response.
-3. Gateway только переносит verified grants в подписанный JWS и не знает
+1. `@shopana/storefront-permissions` владеет стабильными handles, типом
+   `StorefrontPermission`, definitions и validation.
+2. `@shopana/shared-context` владеет verified runtime context и permission
+   helper, реэкспортируя vocabulary для существующих subgraph imports.
+3. Headless App владеет default grants, persisted policy и выдачей grants в
+   internal resolver response.
+4. Gateway только переносит verified grants в подписанный JWS и не знает
    семантику отдельных permissions.
-4. Каждый domain owner импортирует нужную константу и проверяет её в своём
+5. Каждый domain owner импортирует нужную константу и проверяет её в своём
    resolver/script.
-5. Admin UI получает catalog definitions и текущие grants через Headless
+6. Admin UI получает catalog definitions и текущие grants через Headless
    GraphQL, поэтому не имеет собственной копии permission contract.
 
 ### 16.2. Domain ownership
@@ -1539,10 +1543,11 @@ Gateway не должен поддерживать вручную список G
 
 Новый permission добавляется одним coordinated change:
 
-1. Добавить canonical handle в `STOREFRONT_PERMISSIONS`.
-2. Добавить Headless-owned definition с label, description и risk.
+1. Добавить canonical handle и definition с label, description и risk в
+   `@shopana/storefront-permissions`.
+2. Убедиться, что package validation принимает обновлённый catalog.
 3. Добавить enforcement в resolver/script domain owner.
-4. Обновить Admin GraphQL catalog response и UI получает новое значение
+4. Admin GraphQL catalog response и UI получают новое значение
    автоматически.
 5. Только после готового enforcement разрешить выдачу permission в policy;
    добавление в `defaultPermissions` выполняется последним отдельным решением.
@@ -1839,8 +1844,10 @@ Admin GraphQL возвращает canonical handle, label, description и risk 
 - Утвердить этот план.
 - Утвердить имя `Headless` и code `shopana-headless`.
 - Утвердить initial permission catalog.
-- Утвердить `@shopana/shared-context` как canonical source of truth для
-  permission handles и runtime storefront access types.
+- Утвердить `@shopana/storefront-permissions` как canonical source of truth
+  для permission handles и definitions.
+- Утвердить `@shopana/shared-context` как owner runtime storefront access
+  types и permission helper.
 - Утвердить обязательность storefront credential для всех GraphQL requests.
 - Утвердить client header names.
 - Утвердить Ed25519 internal context.
@@ -1856,8 +1863,9 @@ Exit criteria:
 - Добавить новый manifest `shopana-headless`.
 - Добавить package в существующий bundled App discovery/registration.
 - Добавить Headless-owned connection contract.
-- Добавить canonical permission handles в `@shopana/shared-context`.
-- Добавить Headless-owned permission definitions/defaults поверх общего
+- Добавить canonical permission handles и definitions в
+  `@shopana/storefront-permissions`.
+- Добавить Headless-owned defaults поверх общего
   contract и semantic validation полноты definitions.
 - Добавить Headless-owned Admin/storefront GraphQL modules и internal HTTP
   lifecycle declaration.
@@ -1908,7 +1916,7 @@ Exit criteria:
 - create возвращает initial credentials только один раз;
 - public token доступен повторно;
 - private metadata доступна без secret;
-- permission catalog query возвращает все canonical handles с Headless-owned
+- permission catalog query возвращает все canonical handles с package-owned
   metadata в стабильном порядке;
 - permissions обновляются по revision.
 
@@ -2063,7 +2071,7 @@ Exit criteria:
 
 ### Permissions
 
-- Headless definitions содержат каждый canonical handle ровно один раз.
+- Package definitions содержат каждый canonical handle ровно один раз.
 - Admin permission catalog query возвращает те же canonical handles без
   frontend hardcode.
 - Resolver выдаёт текущие policy grants, Gateway без изменения подписывает их
@@ -2134,6 +2142,7 @@ apps/headless/src/api/internal/**
 apps/headless/src/HeadlessApp.ts
 apps/headless/src/index.ts
 packages/app-sdk/**
+packages/storefront-permissions/**
 packages/shared-context/src/storefrontPermissions.ts
 packages/shared-context/src/storefrontAccessContext.ts
 packages/shared-context/src/storefrontContextMiddleware.ts

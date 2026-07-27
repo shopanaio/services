@@ -7159,6 +7159,7 @@ __metadata:
     "@shopana/shared-context": "workspace:*"
     "@shopana/shared-graphql-guid": "workspace:*"
     "@shopana/shared-kernel": "workspace:*"
+    "@shopana/storefront-permissions": "workspace:*"
     "@shopana/type-resolver": "workspace:*"
     "@types/node": "npm:^22.7.4"
     drizzle-orm: "npm:^0.45.1"
@@ -8040,6 +8041,7 @@ __metadata:
   dependencies:
     "@shopana/rbac": "npm:*"
     "@shopana/shared-kernel": "npm:*"
+    "@shopana/storefront-permissions": "workspace:*"
     "@types/node": "npm:^20.12.7"
     fastify: "npm:^4.26.0"
     graphql: "npm:^16.9.0"
@@ -8133,6 +8135,15 @@ __metadata:
     zod: "npm:^3.24.0"
   peerDependencies:
     dotenv: ^16.4.5
+  languageName: unknown
+  linkType: soft
+
+"@shopana/storefront-permissions@workspace:*, @shopana/storefront-permissions@workspace:packages/storefront-permissions":
+  version: 0.0.0-use.local
+  resolution: "@shopana/storefront-permissions@workspace:packages/storefront-permissions"
+  dependencies:
+    "@types/node": "npm:^20.12.7"
+    typescript: "npm:^5.4.5"
   languageName: unknown
   linkType: soft
 

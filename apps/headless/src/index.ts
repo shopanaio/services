@@ -15,19 +15,22 @@ import {
 } from "./api/graphql-admin/resolvers/index.js";
 
 export {
-  HEADLESS_STOREFRONT_AVAILABLE_PERMISSIONS,
   HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
-  HEADLESS_STOREFRONT_PERMISSION_CATALOG,
   headlessManifest,
   headlessStorefrontApi,
 } from "../app.manifest.js";
+export type { StorefrontApiConfiguration } from "../app.manifest.js";
+export {
+  STOREFRONT_PERMISSION_CATALOG,
+  STOREFRONT_PERMISSIONS,
+  STOREFRONT_PERMISSION_VALUES,
+} from "@shopana/storefront-permissions";
 export type {
-  HeadlessStorefrontPermissionAction,
-  HeadlessStorefrontPermissionDefinition,
-  HeadlessStorefrontPermissionRisk,
-  HeadlessStorefrontPermission,
-  StorefrontApiConfiguration,
-} from "../app.manifest.js";
+  StorefrontPermission,
+  StorefrontPermissionAction,
+  StorefrontPermissionDefinition,
+  StorefrontPermissionRisk,
+} from "@shopana/storefront-permissions";
 export { HeadlessApp } from "./HeadlessApp.js";
 export * from "./storefront-access/repositories/index.js";
 

@@ -1,8 +1,8 @@
 {
-  "name": "@shopana/shared-context",
+  "name": "@shopana/storefront-permissions",
   "version": "1.0.0",
   "type": "module",
-  "description": "Shared context middleware for Shopana microservices",
+  "description": "Storefront permission definitions for Shopana",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -17,19 +17,12 @@
     "dev": "tsc --watch"
   },
   "keywords": [
-    "context",
-    "middleware",
-    "fastify"
+    "storefront",
+    "permissions",
+    "authorization"
   ],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "@shopana/rbac": "*",
-    "@shopana/shared-kernel": "*",
-    "@shopana/storefront-permissions": "workspace:*",
-    "fastify": "^4.26.0",
-    "graphql": "^16.9.0"
-  },
   "devDependencies": {
     "@types/node": "^20.12.7",
     "typescript": "^5.4.5"
