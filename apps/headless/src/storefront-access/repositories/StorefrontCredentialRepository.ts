@@ -43,7 +43,10 @@ export class StorefrontCredentialRepository extends BaseRepository {
         .select({ id: headlessStorefrontConnections.id })
         .from(headlessStorefrontConnections)
         .where(
-          this.connectionOwnership(scope, input.connectionId),
+          and(
+            this.connectionOwnership(scope, input.connectionId),
+            eq(headlessStorefrontConnections.status, "ACTIVE"),
+          ),
         )
         .limit(1);
       if (!connectionRows[0]) {

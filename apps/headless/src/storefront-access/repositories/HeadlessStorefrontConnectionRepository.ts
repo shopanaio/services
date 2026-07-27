@@ -106,7 +106,12 @@ export class HeadlessStorefrontConnectionRepository
         displayName,
         updatedAt: now(),
       })
-      .where(this.connectionOwnership(scope, connectionId))
+      .where(
+        and(
+          this.connectionOwnership(scope, connectionId),
+          ne(headlessStorefrontConnections.status, "DISCONNECTED"),
+        ),
+      )
       .returning();
     return rows[0] ? mapConnection(rows[0]) : null;
   }

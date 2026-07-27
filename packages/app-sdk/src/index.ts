@@ -331,6 +331,23 @@ export interface ShopanaApp {
 export interface AppGraphQLHandlerContext {
   readonly app: Readonly<AppExecutionContext>;
   readonly host: AppHostContext;
+  readonly adminContext?: Readonly<{
+    readonly user: {
+      readonly id: string;
+    };
+    readonly organizationId: string | null;
+    readonly store: {
+      readonly id: string;
+      readonly organizationId: string;
+    } | null;
+    readonly permissions: readonly {
+      readonly domain: string;
+      readonly resource: string;
+      readonly action: string;
+    }[];
+    readonly isSiteAdmin: boolean;
+    readonly isOrganizationOwner: boolean;
+  }>;
 }
 
 export type AppGraphQLFieldHandler<

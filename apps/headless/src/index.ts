@@ -6,6 +6,7 @@ import {
 import { headlessManifest } from "../app.manifest.js";
 import { HeadlessApp } from "./HeadlessApp.js";
 import {
+  assertHeadlessAdminAccess,
   createHeadlessResolverContext,
   HeadlessStorefrontConnectionResolver,
   MutationResolver,
@@ -38,21 +39,26 @@ export default defineApp({
       schema: "./graphql/admin/headless.graphql",
       handlers: {
         "Query.headlessAppQuery": appGraphQL.handler(
-          (_parent, _args, context) =>
-            new QueryResolver(
+          (_parent, _args, context) => {
+            assertHeadlessAdminAccess(context, "read");
+            return new QueryResolver(
               {},
               createHeadlessResolverContext(context),
-            ).headlessAppQuery(),
+            ).headlessAppQuery();
+          },
         ),
         "Mutation.headlessAppMutation": appGraphQL.handler(
-          (_parent, _args, context) =>
-            new MutationResolver(
+          (_parent, _args, context) => {
+            assertHeadlessAdminAccess(context, "write");
+            return new MutationResolver(
               {},
               createHeadlessResolverContext(context),
-            ).headlessAppMutation(),
+            ).headlessAppMutation();
+          },
         ),
         "HeadlessStorefrontConnection.__resolveReference":
           appGraphQL.handler((parent, _args, context) => {
+            assertHeadlessAdminAccess(context, "read");
             const reference = parent as { id?: unknown };
             if (typeof reference.id !== "string") {
               return null;
@@ -72,6 +78,7 @@ export default defineApp({
           }),
         "StorefrontCredential.__resolveReference":
           appGraphQL.handler((parent, _args, context) => {
+            assertHeadlessAdminAccess(context, "read");
             const reference = parent as { id?: unknown };
             if (typeof reference.id !== "string") {
               return null;

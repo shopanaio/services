@@ -296,8 +296,9 @@ test.describe('Headless Admin API - lifecycle and idempotency', () => {
     )!;
     expectSuccess(await kit.suspend(created.connection.id));
     expectSuccess(await kit.suspend(created.connection.id));
-    expectSuccess(await kit.resume(created.connection.id));
-    expectSuccess(await kit.resume(created.connection.id));
+    const resumeMutationId = crypto.randomUUID();
+    expectSuccess(await kit.resume(created.connection.id, resumeMutationId));
+    expectSuccess(await kit.resume(created.connection.id, resumeMutationId));
     expectSuccess(await kit.revoke(privateCredential.id));
     expectSuccess(await kit.revoke(privateCredential.id));
     expectSuccess(await kit.disconnect(created.connection.id));

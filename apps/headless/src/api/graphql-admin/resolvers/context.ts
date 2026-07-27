@@ -2,6 +2,11 @@ import type {
   AppGraphQLHandlerContext,
   AppExecutionContext,
 } from "@shopana/app-sdk";
+import {
+  adminContextAllows,
+  type AdminContextClaims,
+} from "@shopana/shared-context";
+import { GraphQLError } from "graphql";
 import { HeadlessStorefrontRepository } from "../../../storefront-access/repositories/index.js";
 import {
   HeadlessStorefrontConnectionService,
@@ -17,6 +22,36 @@ export interface HeadlessResolverContext {
   readonly connections: HeadlessStorefrontConnectionService;
   readonly policies: StorefrontAccessPolicyService;
   readonly credentials: StorefrontCredentialService;
+}
+
+export function assertHeadlessAdminAccess(
+  context: AppGraphQLHandlerContext,
+  action: "read" | "write",
+): void {
+  const admin = context.adminContext as AdminContextClaims | undefined;
+  const store = admin?.store;
+  if (
+    !admin ||
+    !store ||
+    store.id !== context.app.storeId ||
+    store.organizationId !== context.app.organizationId ||
+    admin.organizationId !== context.app.organizationId
+  ) {
+    throw new GraphQLError("Verified admin context is required", {
+      extensions: { code: "UNAUTHENTICATED" },
+    });
+  }
+  if (
+    !adminContextAllows(admin, {
+      domain: `store:${store.id}`,
+      resource: "store.apps",
+      action,
+    })
+  ) {
+    throw new GraphQLError("Access denied", {
+      extensions: { code: "FORBIDDEN" },
+    });
+  }
 }
 
 export function createHeadlessResolverContext(

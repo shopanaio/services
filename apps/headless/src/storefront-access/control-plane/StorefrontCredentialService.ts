@@ -92,6 +92,16 @@ export class StorefrontCredentialService {
           privateAccessToken: null,
         });
       }
+      const connection = await this.repository.connection.lockById(
+        scope,
+        input.connectionId,
+      );
+      if (!connection) {
+        throw new Error("STOREFRONT_CREDENTIAL_NOT_FOUND");
+      }
+      if (connection.status !== "ACTIVE") {
+        throw new Error("STOREFRONT_INVALID_STATE");
+      }
       const generated = this.crypto.generate("PRIVATE");
       const credential = await this.create(
         scope,

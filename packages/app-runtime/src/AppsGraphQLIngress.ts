@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { ADMIN_CONTEXT_HEADER } from "@shopana/shared-context";
 import fastify, {
   type FastifyInstance,
   type FastifyRequest,
@@ -31,6 +32,7 @@ const adminForwardHeaders = new Set([
   "user-agent",
   "x-organization-id",
   "x-request-id",
+  ADMIN_CONTEXT_HEADER,
   "x-store-name",
 ]);
 

@@ -1,7 +1,8 @@
 import { promises as dns } from "node:dns";
 import { BlockList, isIP } from "node:net";
 
-const blockedAddresses = new BlockList();
+const blockedIpv4Addresses = new BlockList();
+const blockedIpv6Addresses = new BlockList();
 
 for (const [network, prefix] of [
   ["0.0.0.0", 8],
@@ -19,7 +20,7 @@ for (const [network, prefix] of [
   ["224.0.0.0", 4],
   ["240.0.0.0", 4],
 ] as const) {
-  blockedAddresses.addSubnet(network, prefix, "ipv4");
+  blockedIpv4Addresses.addSubnet(network, prefix, "ipv4");
 }
 
 for (const [network, prefix] of [
@@ -33,7 +34,7 @@ for (const [network, prefix] of [
   ["fe80::", 10],
   ["ff00::", 8],
 ] as const) {
-  blockedAddresses.addSubnet(network, prefix, "ipv6");
+  blockedIpv6Addresses.addSubnet(network, prefix, "ipv6");
 }
 
 export interface ResolvedSmtpEndpoint {
@@ -66,10 +67,9 @@ export function selectPublicSmtpEndpoints(
   const endpoints = addresses.flatMap(({ address, family }) => {
     if (
       (family !== 4 && family !== 6) ||
-      blockedAddresses.check(
-        address,
-        family === 4 ? "ipv4" : "ipv6",
-      )
+      (family === 4
+        ? blockedIpv4Addresses.check(address, "ipv4")
+        : blockedIpv6Addresses.check(address, "ipv6"))
     ) {
       return [];
     }

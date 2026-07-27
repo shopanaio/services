@@ -80,6 +80,7 @@ export class HeadlessAppMutationResolver extends HeadlessType<
       this.$ctx.connections.resumeConnection(
         this.scope,
         this.connectionId(args.input.connectionId),
+        args.input.clientMutationId,
       ),
     );
   }

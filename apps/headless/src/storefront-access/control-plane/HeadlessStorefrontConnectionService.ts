@@ -81,41 +81,84 @@ export class HeadlessStorefrontConnectionService {
     connectionId: string,
     displayName: string,
   ) {
-    return required(
-      await this.repository.connection.updateDisplayName(
+    const normalized = normalizeDisplayName(displayName);
+    return this.repository.runInTransaction(async () => {
+      const current = await this.repository.connection.lockById(
         scope,
         connectionId,
-        normalizeDisplayName(displayName),
-      ),
-    );
+      );
+      if (!current) throw new Error("STOREFRONT_NOT_FOUND");
+      if (current.status === "DISCONNECTED") {
+        throw new Error("STOREFRONT_INVALID_STATE");
+      }
+      return required(
+        await this.repository.connection.updateDisplayName(
+          scope,
+          connectionId,
+          normalized,
+        ),
+      );
+    });
   }
 
   async suspendConnection(
     scope: HeadlessStorefrontScope,
     connectionId: string,
   ) {
-    const current = await this.repository.connection.findById(
-      scope,
-      connectionId,
-    );
-    if (!current) throw new Error("STOREFRONT_NOT_FOUND");
-    if (current.status === "SUSPENDED") return current;
-    if (current.status !== "ACTIVE") throw new Error("STOREFRONT_INVALID_STATE");
-    return required(await this.repository.connection.suspend(scope, connectionId));
+    return this.repository.runInTransaction(async () => {
+      const current = await this.repository.connection.lockById(
+        scope,
+        connectionId,
+      );
+      if (!current) throw new Error("STOREFRONT_NOT_FOUND");
+      if (current.status === "SUSPENDED") return current;
+      if (current.status !== "ACTIVE") {
+        throw new Error("STOREFRONT_INVALID_STATE");
+      }
+      return required(
+        await this.repository.connection.suspend(scope, connectionId),
+      );
+    });
   }
 
   async resumeConnection(
     scope: HeadlessStorefrontScope,
     connectionId: string,
+    clientMutationId: string,
   ) {
-    const current = await this.repository.connection.findById(
-      scope,
-      connectionId,
-    );
-    if (!current) throw new Error("STOREFRONT_NOT_FOUND");
-    if (current.status === "ACTIVE") return current;
-    if (current.status !== "SUSPENDED") throw new Error("STOREFRONT_INVALID_STATE");
-    return required(await this.repository.connection.resume(scope, connectionId));
+    return this.repository.runInTransaction(async () => {
+      const existingId = await this.repository.idempotency.lockAndFind(
+        scope,
+        "CONNECTION_RESUME",
+        clientMutationId,
+      );
+      if (existingId) {
+        const existing = await this.repository.connection.findById(
+          scope,
+          existingId,
+        );
+        if (!existing) throw new Error("STOREFRONT_NOT_FOUND");
+        return existing;
+      }
+      const current = await this.repository.connection.lockById(
+        scope,
+        connectionId,
+      );
+      if (!current) throw new Error("STOREFRONT_NOT_FOUND");
+      if (current.status !== "SUSPENDED") {
+        throw new Error("STOREFRONT_INVALID_STATE");
+      }
+      const resumed = required(
+        await this.repository.connection.resume(scope, connectionId),
+      );
+      await this.repository.idempotency.record(
+        scope,
+        "CONNECTION_RESUME",
+        clientMutationId,
+        connectionId,
+      );
+      return resumed;
+    });
   }
 
   disconnectConnection(
@@ -124,7 +167,7 @@ export class HeadlessStorefrontConnectionService {
     actor: { readonly type: string; readonly id?: string },
   ) {
     return this.repository.runInTransaction(async () => {
-      const current = await this.repository.connection.findById(
+      const current = await this.repository.connection.lockById(
         scope,
         connectionId,
       );

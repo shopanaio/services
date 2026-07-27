@@ -19,6 +19,8 @@ import fastify, {
 import { GraphQLError } from "graphql";
 import { gql } from "graphql-tag";
 import {
+  buildAdminContextMiddleware,
+  type AdminContextClaims,
   STOREFRONT_CONTEXT_HEADER,
   StorefrontContextVerifier,
 } from "@shopana/shared-context";
@@ -30,6 +32,7 @@ import type {
 interface RuntimeGraphQLContext {
   readonly app?: Readonly<AppExecutionContext>;
   readonly host: AppHostContext;
+  readonly adminContext?: AdminContextClaims;
 }
 
 @Injectable()
@@ -63,11 +66,26 @@ export class AppGraphQLServerFactory {
 
     await apollo.start();
 
-    await app.register(fastifyApollo(apollo), {
-      path: "/graphql",
-      context: async (request) =>
-        this.createContext(hosted, host, request, surface),
-    });
+    const registerGraphQL = async (instance: FastifyInstance) => {
+      await instance.register(fastifyApollo(apollo), {
+        path: "/graphql",
+        context: async (request) =>
+          this.createContext(hosted, host, request, surface),
+      });
+    };
+    if (surface === "admin") {
+      await app.register(async (instance) => {
+        instance.addHook(
+          "preHandler",
+          buildAdminContextMiddleware(undefined, {
+            serviceName: `APP:${hosted.definition.manifest.code}`,
+          }),
+        );
+        await registerGraphQL(instance);
+      });
+    } else {
+      await registerGraphQL(app);
+    }
 
     app.get("/healthz", async () => ({
       status: "ok",
@@ -140,6 +158,7 @@ export class AppGraphQLServerFactory {
       return handler.handler(parent, args, {
         app,
         host: context.host,
+        adminContext: context.adminContext,
       });
     });
   }
@@ -179,15 +198,36 @@ export class AppGraphQLServerFactory {
       storeName,
       appVersion: hosted.definition.manifest.version,
     });
+    const adminContext = (
+      request as FastifyRequest & {
+        readonly adminContext?: AdminContextClaims;
+      }
+    ).adminContext;
+    if (!adminContext?.store) {
+      return { host };
+    }
     const organizationId = request.headers["x-organization-id"];
     if (
-      typeof organizationId === "string" &&
-      organizationId !== app.organizationId
+      adminContext.store.id !== app.storeId ||
+      adminContext.store.organizationId !== app.organizationId ||
+      adminContext.organizationId !== app.organizationId ||
+      (typeof organizationId === "string" &&
+        organizationId !== app.organizationId)
     ) {
       throw new GraphQLError("App installation organization mismatch", {
         extensions: { code: "APP_INSTALLATION_CONTEXT_MISMATCH" },
       });
     }
-    return { app, host };
+    return {
+      app: Object.freeze({
+        ...app,
+        actor: Object.freeze({
+          type: "USER" as const,
+          id: adminContext.user.id,
+        }),
+      }),
+      host,
+      adminContext,
+    };
   }
 }
