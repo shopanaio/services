@@ -200,15 +200,17 @@ console.log(meta?.schema);       // Zod schema if defined
 
 Execute a durable workflow:
 
-Before DBOS is started, the broker evaluates every `@Policy` declared on the
-registered workflow's `run` method. If any policy is denied, it throws
-`AuthorizationError` and does not create a workflow execution.
+For a root invocation, pass the verified `ResolvedAdminAccessContext` in
+`options.adminContext`. Before DBOS starts, the broker evaluates every
+`@Policy` declared on `run` against that context. Root workflows manually
+repeat all policies required by their nested workflows.
 
 ```typescript
 broker.runWorkflow<TResult>(
   name: string,
   params: Record<string, unknown>,
-  idempotencyContext: IdempotencyContext
+  idempotencyContext: IdempotencyContext,
+  options?: BrokerWorkflowStartOptions
 ): Promise<TResult>
 
 // Example
@@ -222,9 +224,21 @@ const result = await broker.runWorkflow<OrderResult>(
     source: "workflow",
     workflowId: parentWorkflowId,
     stepId: "createOrder",
-  }
+  },
+  { adminContext: ctx.adminContext },
 );
 ```
+
+The broker strips `adminContext` before calling DBOS. Only a minimal explicit
+`WorkflowExecutionContext` containing `subject`, `organizationId`, and
+optional `storeId` is persisted. JWT claims and permissions are not DBOS
+inputs.
+
+Nested workflow entrypoints receive that minimal context as their second
+argument and forward it with `{ workflowContext }`. Their policies are skipped
+on the first invocation. During DBOS recovery, the recovered workflow or saga
+checks its own policies through `iam.authorize`. Context propagation is
+explicit; ALS is not used.
 
 ### runSaga()
 
@@ -236,7 +250,8 @@ Saga policies use the same preflight authorization as workflows.
 broker.runSaga<TResult>(
   name: string,
   params: Record<string, unknown>,
-  idempotencyContext: IdempotencyContext
+  idempotencyContext: IdempotencyContext,
+  options?: BrokerWorkflowStartOptions
 ): Promise<SagaResult<TResult>>
 
 // Example

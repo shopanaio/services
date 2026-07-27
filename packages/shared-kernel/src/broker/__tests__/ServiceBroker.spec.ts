@@ -11,6 +11,7 @@ import {
   Policy,
 } from '../../decorators/Authorize';
 import { ZodSchema } from '../../decorators/ZodSchema';
+import type { BrokerAdminContext } from '../WorkflowAuthorization';
 
 class SecuredBrokerActions extends BrokerActions {
   readonly authProvider = {
@@ -34,11 +35,6 @@ class SecuredBrokerActions extends BrokerActions {
 }
 
 class SecuredWorkflow {
-  readonly authProvider = {
-    subject: 'platform-user',
-    authorize: jest.fn(async (_params: AuthorizeParams) => true),
-  };
-
   @Policy<{ organizationId: string }>({
     resource: 'org.stores',
     action: 'read',
@@ -46,10 +42,19 @@ class SecuredWorkflow {
   })
   @Policy<{ organizationId: string }>({
     resource: 'org.roles',
-    action: 'update',
+    action: 'write',
     organizationId: (_self, params) => params.organizationId,
   })
   async run(_params: { organizationId: string }): Promise<void> {}
+}
+
+class OrganizationNameScopedWorkflow {
+  @Policy({
+    resource: 'org.stores',
+    action: 'read',
+    organizationName: 'another-organization',
+  })
+  async run(): Promise<void> {}
 }
 
 const createBroker = (options?: { registry?: ActionRegistry }) => {
@@ -180,6 +185,7 @@ describe('ServiceBroker', () => {
       { eventType: 'productCreated', source: 'catalog' },
       expect.any(Object),
       undefined,
+      undefined,
     );
   });
 
@@ -209,42 +215,55 @@ describe('ServiceBroker', () => {
         workflowId: 'parent',
         stepId: 'secured',
       };
+      const options = {
+        adminContext: createAdminContext([
+          { domain: 'org', resource: 'org.roles', action: 'write' },
+          { domain: 'org', resource: 'org.stores', action: 'read' },
+        ]),
+      };
 
       if (method === 'runWorkflow') {
-        await broker.runWorkflow('payments.secured', params, idempotency);
+        await broker.runWorkflow(
+          'payments.secured',
+          params,
+          idempotency,
+          options,
+        );
       } else if (method === 'startWorkflow') {
-        await broker.startWorkflow('payments.secured', params, idempotency);
+        await broker.startWorkflow(
+          'payments.secured',
+          params,
+          idempotency,
+          options,
+        );
       } else {
-        await broker.runSaga('payments.secured', params, idempotency);
+        await broker.runSaga(
+          'payments.secured',
+          params,
+          idempotency,
+          options,
+        );
       }
 
-      expect(workflow.authProvider.authorize).toHaveBeenCalledTimes(2);
-      expect(workflow.authProvider.authorize).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          resource: 'org.roles',
-          action: 'update',
-          organizationId: 'organization-id',
-        }),
+      expect(workflowRegistry.start).toHaveBeenCalledWith(
+        'payments.secured',
+        params,
+        idempotency,
+        undefined,
+        {
+          authorization: {
+            kind: 'admin',
+            subject: 'platform-user',
+            organizationId: 'organization-id',
+          },
+        },
       );
-      expect(workflow.authProvider.authorize).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          resource: 'org.stores',
-          action: 'read',
-          organizationId: 'organization-id',
-        }),
-      );
-      expect(workflowRegistry.start).toHaveBeenCalledTimes(1);
     },
   );
 
   it('does not start DBOS when any workflow policy is denied', async () => {
     const registry = new ActionRegistry();
     const workflow = new SecuredWorkflow();
-    workflow.authProvider.authorize.mockImplementation(
-      async ({ resource }) => resource !== 'org.roles',
-    );
     const workflowRegistry = {
       getDescriptor: jest.fn(() => ({
         instance: workflow,
@@ -267,10 +286,97 @@ describe('ServiceBroker', () => {
           workflowId: 'parent',
           stepId: 'secured',
         },
+        {
+          adminContext: createAdminContext([
+            { domain: 'org', resource: 'org.stores', action: 'read' },
+          ]),
+        },
       ),
     ).rejects.toBeInstanceOf(AuthorizationError);
-    expect(workflow.authProvider.authorize).toHaveBeenCalledTimes(2);
     expect(workflowRegistry.start).not.toHaveBeenCalled();
+  });
+
+  it('does not bind an organizationName-only policy to the current organization ID', async () => {
+    const registry = new ActionRegistry();
+    const workflowRegistry = {
+      getDescriptor: jest.fn(() => ({
+        instance: new OrganizationNameScopedWorkflow(),
+        metadata: { name: 'nameScoped' },
+      })),
+      start: jest.fn(),
+    };
+    const broker = new ServiceBroker(
+      registry,
+      { serviceName: 'payments' },
+      workflowRegistry as never,
+    );
+
+    await expect(
+      broker.runWorkflow(
+        'payments.nameScoped',
+        undefined,
+        {
+          source: 'workflow',
+          workflowId: 'parent',
+          stepId: 'name-scoped',
+        },
+        {
+          adminContext: createAdminContext([
+            { domain: 'org', resource: 'org.stores', action: 'read' },
+          ]),
+        },
+      ),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(workflowRegistry.start).not.toHaveBeenCalled();
+  });
+
+  it('forwards minimal context to a nested workflow without repeating policies', async () => {
+    const registry = new ActionRegistry();
+    const workflowRegistry = {
+      getDescriptor: jest.fn(() => ({
+        instance: new SecuredWorkflow(),
+        metadata: { name: 'secured' },
+      })),
+      start: jest.fn(async () => ({
+        workflowId: 'nested-id',
+        getResult: async () => undefined,
+      })),
+    };
+    const broker = new ServiceBroker(
+      registry,
+      { serviceName: 'payments' },
+      workflowRegistry as never,
+    );
+    const workflowContext = {
+      authorization: {
+        kind: 'admin' as const,
+        subject: 'platform-user',
+        organizationId: 'organization-id',
+        permissions: ['must-not-reach-dbos'],
+        jwt: 'must-not-reach-dbos',
+      },
+    };
+
+    await broker.runWorkflow(
+      'payments.secured',
+      { organizationId: 'organization-id' },
+      { source: 'workflow', workflowId: 'root', stepId: 'nested' },
+      { workflowContext },
+    );
+
+    expect(workflowRegistry.start).toHaveBeenCalledWith(
+      'payments.secured',
+      { organizationId: 'organization-id' },
+      expect.any(Object),
+      undefined,
+      {
+        authorization: {
+          kind: 'admin',
+          subject: 'platform-user',
+          organizationId: 'organization-id',
+        },
+      },
+    );
   });
 
   it('throws when call action lacks prefix', async () => {
@@ -323,3 +429,16 @@ describe('ServiceBroker', () => {
     expect(health.inFlight).toBe(0);
   });
 });
+
+function createAdminContext(
+  permissions: BrokerAdminContext['permissions'],
+): BrokerAdminContext {
+  return {
+    user: { id: 'platform-user' },
+    organizationId: 'organization-id',
+    store: null,
+    permissions,
+    isSiteAdmin: false,
+    isOrganizationOwner: false,
+  };
+}

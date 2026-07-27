@@ -8,6 +8,7 @@ import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import "reflect-metadata";
 import { SAGA_DEFINITION_KEY } from "./decorators.js";
 import type { WorkflowRegistrar, WorkflowDescriptor } from "../workflow/BaseWorkflow.js";
+import type { WorkflowExecutionContext } from "../core/types.js";
 
 /**
  * Base class for sagas with automatic compensation.
@@ -65,7 +66,10 @@ export abstract class BaseSaga<TInput, TOutput>
   }
 
   /** Saga entry point - must be decorated with @Saga("name") */
-  abstract run(input: TInput): Promise<TOutput>;
+  abstract run(
+    input: TInput,
+    context?: WorkflowExecutionContext,
+  ): Promise<TOutput>;
 
   onModuleInit(): void {
     this.registerSaga();

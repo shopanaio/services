@@ -102,6 +102,26 @@ export interface WorkflowHandle<TResult> {
 }
 
 /**
+ * Minimal authorization identity persisted as a DBOS workflow argument.
+ * Full Admin Context claims, JWT fields and permissions are intentionally
+ * excluded.
+ */
+export interface WorkflowAdminAuthorizationContext {
+  readonly kind: "admin";
+  readonly subject: string;
+  readonly organizationId: string;
+  readonly storeId?: string;
+}
+
+/**
+ * Explicit durable context for root and nested workflow entrypoints.
+ * It is passed as a regular DBOS argument and never through ALS.
+ */
+export interface WorkflowExecutionContext {
+  readonly authorization?: WorkflowAdminAuthorizationContext;
+}
+
+/**
  * Options for starting a workflow
  */
 export interface WorkflowQueueRateLimitOptions {

@@ -22,6 +22,7 @@ import {
   APPLICATION_AUTH_EMAIL_DELIVERY_PORT,
   type ApplicationAuthEmailDeliveryPort,
   type ApplicationAuthEmailDeliveryRequest,
+  type ApplicationAuthEmailDeliveryResult,
 } from "./services/ApplicationAuthEmailDeliveryPort.js";
 import {
   APPLICATION_AUTH_RATE_LIMIT_PORT,
@@ -148,7 +149,9 @@ class E2EApplicationAuthEmailDelivery
 {
   private readonly requests: ApplicationAuthEmailDeliveryRequest[] = [];
 
-  async enqueue(request: ApplicationAuthEmailDeliveryRequest) {
+  async enqueue(
+    request: ApplicationAuthEmailDeliveryRequest
+  ): Promise<ApplicationAuthEmailDeliveryResult> {
     this.requests.push(structuredClone(request));
     return {
       accepted: true,

@@ -197,37 +197,57 @@ class ProductActions extends BrokerActions implements Authorizable {
 ### Workflow and Saga Policies
 
 Apply `@Policy` to the `run` method together with `@Workflow` or `@Saga`.
-The workflow class must implement `Authorizable`. Every declared policy must
-pass before `runWorkflow`, `startWorkflow`, or `runSaga` starts DBOS:
+The workflow class does not need an `AuthProvider`. `@Workflow`/`@Saga` must
+be the top decorator, with all `@Policy` decorators below it.
+
+The root workflow manually declares its own policies and every policy required
+by nested workflows. The broker evaluates that complete list against the
+verified shared Admin Context before starting DBOS:
 
 ```typescript
 @Injectable()
 class StoreUpdateSaga
   extends BrokerSaga<StoreUpdateInput, StoreUpdateOutput>
-  implements Authorizable
 {
-  readonly authProvider = new AuthProvider();
-
   @Saga("storeUpdate")
   @Policy<StoreUpdateInput>({
     resource: "org.stores",
-    action: "update",
+    action: "write",
     organizationId: (_self, input) => input.organizationId,
   })
+  // Policy required by a nested workflow, repeated explicitly on the root.
   @Policy<StoreUpdateInput>({
     resource: "org.access",
     action: "read",
     organizationId: (_self, input) => input.organizationId,
   })
-  async run(input: StoreUpdateInput): Promise<StoreUpdateOutput> {
-    // DBOS starts only after both policies pass.
+  async run(
+    input: StoreUpdateInput,
+    workflowContext?: WorkflowExecutionContext,
+  ): Promise<StoreUpdateOutput> {
+    if (!workflowContext) throw new Error("Workflow context is required");
+    await this.broker.runWorkflow(
+      "catalog.nestedUpdate",
+      nestedInput,
+      nestedIdempotency,
+      { workflowContext },
+    );
   }
 }
 ```
 
-Policy checks are preflight checks and are not part of durable workflow
-execution. This keeps DBOS replay independent from request-scoped
-authorization context.
+The complete Admin Context is consumed only by the root preflight. DBOS
+persists only `subject`, `organizationId`, and optional `storeId`; JWT claims
+and the permission list are never included.
+
+Workflow policies that use `organizationName` must also resolve an explicit,
+matching `organizationId`. A name-only scope fails closed; the current Admin
+Context organization ID is not substituted for it.
+
+A nested workflow skips its own policies on the first invocation because the
+root already declared and checked them. If DBOS recovers either the root or a
+nested workflow/saga, that recovered entrypoint checks all of its own policies
+against current IAM state through `iam.authorize`. No ALS is used.
 
 ### With Domain
 

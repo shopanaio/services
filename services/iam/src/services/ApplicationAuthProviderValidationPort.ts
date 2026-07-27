@@ -46,7 +46,7 @@ export const unavailableApplicationAuthProviderValidationPort: ApplicationAuthPr
  */
 export const e2eApplicationAuthProviderValidationPort: ApplicationAuthProviderValidationPort =
   Object.freeze({
-    async validate(request) {
+    async validate(request: ApplicationAuthProviderValidationRequest) {
       if (request.clientId === "e2e-provider-valid") {
         return { status: "valid" as const };
       }

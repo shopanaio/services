@@ -13,9 +13,15 @@ import {
   type WorkflowRegistry,
   type IdempotencyContext,
   type SagaResult,
+  type WorkflowExecutionContext,
   type WorkflowStartOptions,
 } from '@shopana/dbos';
-import { authorizePolicies } from '../decorators/Authorize.js';
+import {
+  AuthorizationError,
+  authorizePoliciesWithAdminContext,
+  hasPolicies,
+} from '../decorators/Authorize.js';
+import type { BrokerWorkflowStartOptions } from './WorkflowAuthorization.js';
 
 export interface ServiceBrokerOptions {
   serviceName: string;
@@ -169,7 +175,7 @@ export class ServiceBroker implements OnModuleDestroy {
     workflow: string,
     params: TParams,
     idempotencyCtx: IdempotencyContext,
-    options?: WorkflowStartOptions,
+    options?: BrokerWorkflowStartOptions,
   ): Promise<TResult> {
     if (!this.workflowRegistry) {
       throw new Error(
@@ -182,12 +188,17 @@ export class ServiceBroker implements OnModuleDestroy {
       qualifiedWorkflow,
       params,
     );
-    await this.authorizeWorkflowStart(qualifiedWorkflow, trustedParams);
+    const prepared = await this.prepareWorkflowStart(
+      qualifiedWorkflow,
+      trustedParams,
+      options,
+    );
     const handle = await this.workflowRegistry.start<TParams, TResult>(
       qualifiedWorkflow,
       trustedParams,
       idempotencyCtx,
-      options,
+      prepared.options,
+      prepared.context,
     );
     return handle.getResult();
   }
@@ -199,7 +210,7 @@ export class ServiceBroker implements OnModuleDestroy {
     workflow: string,
     params: TParams,
     idempotencyCtx: IdempotencyContext,
-    options?: WorkflowStartOptions,
+    options?: BrokerWorkflowStartOptions,
   ): Promise<{ workflowId: string; status: 'started' }> {
     if (!this.workflowRegistry) {
       throw new Error(
@@ -212,12 +223,17 @@ export class ServiceBroker implements OnModuleDestroy {
       qualifiedWorkflow,
       params,
     );
-    await this.authorizeWorkflowStart(qualifiedWorkflow, trustedParams);
+    const prepared = await this.prepareWorkflowStart(
+      qualifiedWorkflow,
+      trustedParams,
+      options,
+    );
     const handle = await this.workflowRegistry.start<TParams, unknown>(
       qualifiedWorkflow,
       trustedParams,
       idempotencyCtx,
-      options,
+      prepared.options,
+      prepared.context,
     );
 
     return { workflowId: handle.workflowId, status: 'started' };
@@ -231,11 +247,13 @@ export class ServiceBroker implements OnModuleDestroy {
     sagaName: string,
     params: TParams,
     idempotencyCtx: IdempotencyContext,
+    options?: BrokerWorkflowStartOptions,
   ): Promise<SagaResult<TResult>> {
     return this.runWorkflow<SagaResult<TResult>, TParams>(
       sagaName,
       params,
       idempotencyCtx,
+      options,
     );
   }
 
@@ -331,14 +349,141 @@ export class ServiceBroker implements OnModuleDestroy {
     } as TParams;
   }
 
-  private async authorizeWorkflowStart<TParams>(
+  private async prepareWorkflowStart<TParams>(
     qualifiedWorkflow: string,
     params: TParams,
-  ): Promise<void> {
+    options?: BrokerWorkflowStartOptions,
+  ): Promise<{
+    options?: WorkflowStartOptions;
+    context?: WorkflowExecutionContext;
+  }> {
     if (!this.workflowRegistry) {
-      return;
+      return {};
     }
+    if (options?.adminContext && options.workflowContext) {
+      throw new Error(
+        'Workflow start accepts either adminContext or workflowContext, not both',
+      );
+    }
+
     const descriptor = this.workflowRegistry.getDescriptor(qualifiedWorkflow);
-    await authorizePolicies(descriptor.instance as object, 'run', params);
+    const instance = descriptor.instance as object;
+    let context: WorkflowExecutionContext | undefined;
+
+    if (options?.adminContext) {
+      await authorizePoliciesWithAdminContext(
+        instance,
+        'run',
+        params,
+        options.adminContext,
+      );
+      context = this.createWorkflowContext(options.adminContext);
+    } else if (options?.workflowContext) {
+      context = this.normalizeWorkflowContext(options.workflowContext);
+    } else if (hasPolicies(instance, 'run')) {
+      throw new AuthorizationError(
+        [
+          {
+            code: 'UNAUTHENTICATED',
+            message: 'Verified admin workflow context is required',
+            field: null,
+          },
+        ],
+        'workflow',
+        'run',
+      );
+    }
+
+    const dbosOptions = this.toDbosWorkflowOptions(options);
+    return {
+      ...(dbosOptions ? { options: dbosOptions } : {}),
+      ...(context ? { context } : {}),
+    };
+  }
+
+  private createWorkflowContext(
+    adminContext: NonNullable<BrokerWorkflowStartOptions['adminContext']>,
+  ): WorkflowExecutionContext {
+    const organizationId = adminContext.organizationId;
+    if (
+      !adminContext.user.id.trim() ||
+      typeof organizationId !== 'string' ||
+      !organizationId.trim() ||
+      (adminContext.store !== null && !adminContext.store.id.trim())
+    ) {
+      throw new AuthorizationError(
+        [
+          {
+            code: 'UNAUTHENTICATED',
+            message: 'Admin organization context is required',
+            field: null,
+          },
+        ],
+        'workflow',
+        'run',
+      );
+    }
+    if (
+      adminContext.store &&
+      adminContext.store.organizationId !== organizationId
+    ) {
+      throw new Error('Admin store does not belong to its organization context');
+    }
+    return Object.freeze({
+      authorization: Object.freeze({
+        kind: 'admin',
+        subject: adminContext.user.id,
+        organizationId,
+        ...(adminContext.store ? { storeId: adminContext.store.id } : {}),
+      }),
+    });
+  }
+
+  private normalizeWorkflowContext(
+    context: WorkflowExecutionContext,
+  ): WorkflowExecutionContext {
+    const authorization = context.authorization;
+    if (
+      !authorization ||
+      authorization.kind !== 'admin' ||
+      !authorization.subject.trim() ||
+      !authorization.organizationId.trim() ||
+      (authorization.storeId !== undefined &&
+        !authorization.storeId.trim())
+    ) {
+      throw new AuthorizationError(
+        [
+          {
+            code: 'UNAUTHENTICATED',
+            message: 'Invalid nested workflow authorization context',
+            field: null,
+          },
+        ],
+        'workflow',
+        'run',
+      );
+    }
+    return Object.freeze({
+      authorization: Object.freeze({
+        kind: 'admin',
+        subject: authorization.subject,
+        organizationId: authorization.organizationId,
+        ...(authorization.storeId
+          ? { storeId: authorization.storeId }
+          : {}),
+      }),
+    });
+  }
+
+  private toDbosWorkflowOptions(
+    options?: BrokerWorkflowStartOptions,
+  ): WorkflowStartOptions | undefined {
+    if (!options) return undefined;
+    const {
+      adminContext: _adminContext,
+      workflowContext: _workflowContext,
+      ...dbosOptions
+    } = options;
+    return Object.keys(dbosOptions).length > 0 ? dbosOptions : undefined;
   }
 }

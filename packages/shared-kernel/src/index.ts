@@ -23,6 +23,10 @@ export {
   type BrokerCallContext,
 } from "./broker/BrokerCallContext";
 export {
+  type BrokerAdminContext,
+  type BrokerWorkflowStartOptions,
+} from "./broker/WorkflowAuthorization";
+export {
   ServiceBroker,
   type ServiceBrokerOptions,
 } from "./broker/ServiceBroker";
@@ -57,6 +61,8 @@ export {
 // Workflow types from @shopana/dbos
 export type {
   WorkflowHandle,
+  WorkflowAdminAuthorizationContext,
+  WorkflowExecutionContext,
   WorkflowStatusSimple,
   WorkflowQueueRateLimitOptions,
   WorkflowQueueConflictResolution,

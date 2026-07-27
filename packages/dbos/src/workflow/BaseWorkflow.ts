@@ -7,6 +7,7 @@ import { Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import "reflect-metadata";
 import { WORKFLOW_METADATA_KEY, type WorkflowMetadata } from "./decorators.js";
+import type { WorkflowExecutionContext } from "../core/types.js";
 
 /**
  * Descriptor for a registered workflow.
@@ -66,7 +67,10 @@ export abstract class BaseWorkflow<TInput, TOutput>
   }
 
   /** Workflow entry point - must be decorated with @Workflow("name") */
-  abstract run(input: TInput): Promise<TOutput>;
+  abstract run(
+    input: TInput,
+    context?: WorkflowExecutionContext,
+  ): Promise<TOutput>;
 
   onModuleInit(): void {
     this.registerWorkflow();

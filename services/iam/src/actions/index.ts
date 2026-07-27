@@ -355,21 +355,15 @@ export class IamBrokerActions extends BrokerActions {
    */
   @Action("authorize")
   @ZodSchema(authorizeInputSchema)
-  async authorize(
-    params: AuthorizeParams,
-    brokerCallContext: BrokerCallContext,
-  ): Promise<AuthorizeResult> {
-    const ctx = await this.createUserContext(params.subject!, brokerCallContext);
-    return runWithContext(ctx, () =>
-      this.kernel.runScript(AuthorizeScript, {
-        subject: params.subject,
-        organizationId: params.organizationId,
-        organizationName: params.organizationName,
-        domain: params.domain ?? ORG_DOMAIN,
-        resource: params.resource,
-        action: params.action,
-      }),
-    );
+  async authorize(params: AuthorizeParams): Promise<AuthorizeResult> {
+    return this.kernel.runScript(AuthorizeScript, {
+      subject: params.subject,
+      organizationId: params.organizationId,
+      organizationName: params.organizationName,
+      domain: params.domain ?? ORG_DOMAIN,
+      resource: params.resource,
+      action: params.action,
+    });
   }
 
   /** Check service-linked mutability independently from user RBAC. */
@@ -406,15 +400,8 @@ export class IamBrokerActions extends BrokerActions {
   @ZodSchema(batchAuthorizeInputSchema)
   async batchAuthorize(
     params: BatchAuthorizeParams,
-    brokerCallContext: BrokerCallContext,
   ): Promise<BatchAuthorizeResult> {
-    const ctx = await this.createUserContext(
-      params.requests[0]?.userId ?? "",
-      brokerCallContext,
-    );
-    return runWithContext(ctx, () =>
-      this.kernel.runScript(BatchAuthorizeScript, params),
-    );
+    return this.kernel.runScript(BatchAuthorizeScript, params);
   }
 
   /**

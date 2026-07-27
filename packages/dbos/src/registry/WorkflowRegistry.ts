@@ -8,6 +8,7 @@ import { DBOS, ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import type {
   WorkflowDuplicationPolicy,
   WorkflowHandle,
+  WorkflowExecutionContext,
   WorkflowQueueEnqueueOptions,
   WorkflowStartOptions,
 } from "../core/types.js";
@@ -120,6 +121,7 @@ export class WorkflowRegistry implements WorkflowRegistrar {
     params: TParams,
     idempotencyCtx: IdempotencyContext,
     options?: WorkflowStartOptions,
+    context?: WorkflowExecutionContext,
   ): Promise<WorkflowHandle<TResult>> {
     const descriptor = this.getDescriptor(qualifiedName);
 
@@ -130,12 +132,16 @@ export class WorkflowRegistry implements WorkflowRegistrar {
     // Cast to ConfiguredInstance with run method for DBOS.startWorkflow().
     // All BaseWorkflow/BaseSaga extend ConfiguredInstance and have a `run` method.
     const workflowInstance = descriptor.instance as ConfiguredInstance & {
-      run: (params: TParams) => Promise<TResult>;
+      run: (
+        params: TParams,
+        context?: WorkflowExecutionContext,
+      ) => Promise<TResult>;
     };
 
-    const handle = await DBOS.startWorkflow(workflowInstance, startParams).run(
-      params,
-    );
+    const configuredWorkflow = DBOS.startWorkflow(workflowInstance, startParams);
+    const handle = context
+      ? await configuredWorkflow.run(params, context)
+      : await configuredWorkflow.run(params);
 
     return {
       workflowId: handle.workflowID ?? workflowID,
@@ -153,12 +159,14 @@ export class WorkflowRegistry implements WorkflowRegistrar {
     params: TParams,
     idempotencyCtx: IdempotencyContext,
     options?: WorkflowStartOptions,
+    context?: WorkflowExecutionContext,
   ): Promise<TResult> {
     const handle = await this.start<TParams, TResult>(
       qualifiedName,
       params,
       idempotencyCtx,
       options,
+      context,
     );
     return handle.getResult();
   }

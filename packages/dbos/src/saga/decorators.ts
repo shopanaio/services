@@ -19,6 +19,7 @@ import {
   type SagaStatus,
   type RetryPolicy,
   type ExecutedStep,
+  type WorkflowExecutionContext,
   DEFAULT_COMPENSATION_RETRY,
 } from "../core/types.js";
 import { StepExecutionError, toOperationError } from "../core/errors.js";
@@ -36,6 +37,9 @@ export const SAGA_STEP_KEY = Symbol("dbos:saga:step");
 // ============================================================================
 
 const logger = new Logger("SagaEngine");
+const WORKFLOW_ADMISSION_ERROR = Symbol.for(
+  "shopana.dbos.workflow-admission-error",
+);
 
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -116,8 +120,16 @@ export function Saga(
 
     Reflect.defineMetadata(SAGA_DEFINITION_KEY, { name }, target.constructor);
 
-    (descriptor as { value: (input: unknown) => Promise<SagaResult> }).value =
-      async function (input: unknown): Promise<SagaResult> {
+    (descriptor as {
+      value: (
+        input: unknown,
+        workflowContext?: WorkflowExecutionContext,
+      ) => Promise<SagaResult>;
+    }).value =
+      async function (
+        input: unknown,
+        workflowContext?: WorkflowExecutionContext,
+      ): Promise<SagaResult> {
         const sagaId = DBOS.workflowID;
         if (!sagaId) {
           throw new Error("Saga must be executed within a DBOS workflow context");
@@ -143,7 +155,7 @@ export function Saga(
 
         try {
           const result = await sagaContextStorage.run(ctx, async () => {
-            return originalMethod.call(this, input);
+            return originalMethod.call(this, input, workflowContext);
           });
 
           return {
@@ -153,6 +165,17 @@ export function Saga(
             compensated: false,
           };
         } catch (error) {
+          // A recovery policy denial is an admission failure, not a business
+          // failure whose already-recorded saga steps should be compensated.
+          if (
+            typeof error === "object" &&
+            error !== null &&
+            (error as Record<PropertyKey, unknown>)[
+              WORKFLOW_ADMISSION_ERROR
+            ] === true
+          ) {
+            throw error;
+          }
           const stepError = error instanceof StepExecutionError ? error : null;
           const failedMethod = stepError?.methodName ?? "unknown";
           const failedStepName = stepError?.stepName ?? "unknown";
@@ -177,7 +200,10 @@ export function Saga(
 
             try {
               await executeCompensationWithRetry(
-                this,
+                this as unknown as Record<
+                  string,
+                  (...args: unknown[]) => Promise<unknown>
+                >,
                 step,
                 compensateMethodName,
                 compensationRetryPolicy,

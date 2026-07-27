@@ -51,6 +51,8 @@ export {
   type WorkflowResult,
   type WorkflowStatusSimple,
   type WorkflowHandle,
+  type WorkflowAdminAuthorizationContext,
+  type WorkflowExecutionContext,
   type WorkflowQueueRateLimitOptions,
   type WorkflowQueueConflictResolution,
   type WorkflowQueueConfig,

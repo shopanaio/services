@@ -2,6 +2,7 @@ import type { AuthProvider, AuthorizeParams } from "@shopana/rbac";
 import { WORKFLOW_METADATA_KEY } from "@shopana/dbos";
 import {
   authorizePolicies,
+  authorizePoliciesWithIam,
   Policy,
 } from "../Authorize.js";
 
@@ -45,7 +46,7 @@ describe("Policy RBAC contract", () => {
       1,
       expect.objectContaining({
         resource: "org.roles",
-        action: "update",
+        action: "write",
       })
     );
     expect(workflow.authProvider.authorize).toHaveBeenNthCalledWith(
@@ -64,6 +65,44 @@ describe("Policy RBAC contract", () => {
       workflow.run({ organizationId: "org-id" })
     ).resolves.toBe("executed");
     expect(workflow.authProvider.authorize).not.toHaveBeenCalled();
+  });
+
+  it("revalidates every workflow policy through iam.authorize on recovery", async () => {
+    const workflow = new MultiPolicyWorkflow();
+    const call = jest.fn(
+      async (_action: string, _params?: unknown) => ({ allowed: true })
+    );
+    const broker = {
+      call<TResult = unknown, TParams = unknown>(
+        action: string,
+        params?: TParams
+      ): Promise<TResult> {
+        return call(action, params) as unknown as Promise<TResult>;
+      },
+    };
+
+    await authorizePoliciesWithIam(
+      workflow,
+      "run",
+      { organizationId: "org-id" },
+      {
+        authorization: {
+          kind: "admin",
+          subject: "platform-user",
+          organizationId: "org-id",
+        },
+      },
+      broker
+    );
+
+    expect(call).toHaveBeenCalledTimes(2);
+    expect(call).toHaveBeenCalledWith(
+      "iam.authorize",
+      expect.objectContaining({
+        subject: "platform-user",
+        organizationId: "org-id",
+      })
+    );
   });
 });
 
@@ -104,7 +143,7 @@ class MultiPolicyWorkflow {
   })
   @Policy<{ organizationId: string }>({
     resource: "org.roles",
-    action: "update",
+    action: "write",
     organizationId: (_self, params) => params.organizationId,
   })
   async run(_params: { organizationId: string }): Promise<void> {}
@@ -115,7 +154,7 @@ class WorkflowEntrypoint {
 
   @Policy<{ organizationId: string }>({
     resource: "org.stores",
-    action: "update",
+    action: "write",
     organizationId: (_self, params) => params.organizationId,
   })
   async run(_params: { organizationId: string }): Promise<string> {
