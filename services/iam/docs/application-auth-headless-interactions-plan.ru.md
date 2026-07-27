@@ -119,7 +119,8 @@ Better Auth.
 5. Не зависеть от third-party cookies для завершения headless interaction.
 6. Не передавать password, OTP, provider token, authorization code или refresh
    token через URL, логи, audit либо browser-readable cookie.
-7. Разрешать headless запросы только с exact `trustedOrigins`.
+7. Разрешать browser JavaScript читать headless responses только с exact
+   `trustedOrigins`; не считать `Origin` аутентификацией небраузерного caller.
 8. Сохранить application isolation во всех repository predicates и token
    bindings.
 9. Предоставить framework-neutral `auth-core` и React adapter `auth-react`.
@@ -186,8 +187,9 @@ Public или confidential client внутри application realm. Он зада�
 - scopes;
 - текущий UI step;
 - при наличии — Better Auth application session;
-- transport: `HOSTED` или `HEADLESS`;
-- exact trusted origin для headless transport.
+- transport: `HOSTED`, `HEADLESS_BROWSER` или `HEADLESS_BFF`;
+- exact trusted origin для `HEADLESS_BROWSER`;
+- authenticated confidential client binding для `HEADLESS_BFF`.
 
 ### 5.4. Interaction credential
 
@@ -411,7 +413,8 @@ Hosted transport:
 Headless transport:
 
 - interaction bearer credential;
-- exact trusted `Origin`;
+- exact trusted `Origin` для browser либо authenticated confidential
+  server-start binding для BFF;
 - JSON action;
 - response state/validated redirect.
 
@@ -427,7 +430,6 @@ type ApplicationAuthInteractionStep =
   | "SIGN_UP"
   | "EMAIL_OTP_CHALLENGE"
   | "EMAIL_VERIFICATION_PENDING"
-  | "ACCOUNT_CREATED"
   | "CONSENT"
   | "COMPLETE"
   | "DENIED"
@@ -486,10 +488,14 @@ SIGN_IN
 
 SIGN_UP
   -> EMAIL_VERIFICATION_PENDING
-  -> ACCOUNT_CREATED
-  -> CONSENT                  auto-sign-in and policy permits continuation
-  -> SIGN_UP                  generic recoverable error
+                               generic accepted result when verification is required
+  -> SIGN_IN                  generic accepted result when verification is not required
   -> SIGN_IN                  explicit switch
+
+EMAIL_VERIFICATION_PENDING
+  -> SIGN_IN                  one-time email callback confirms or handles existing account
+  -> EMAIL_VERIFICATION_PENDING
+                               generic resend result
 
 EMAIL_OTP_CHALLENGE
   -> CONSENT                  successful sign-in, consent required
@@ -502,6 +508,7 @@ CONSENT
   -> DENIED                   deny
 
 Any non-terminal
+  -> DENIED                   cancel; OAuth error access_denied
   -> FAILED                   non-recoverable integrity/dependency failure
   -> EXPIRED                  TTL exceeded
 ```
@@ -512,8 +519,10 @@ Any non-terminal
 
 1. загрузить active realm;
 2. найти interaction по `applicationId + credentialHash`;
-3. проверить `transport=HEADLESS`;
-4. проверить exact origin binding;
+3. проверить transport-specific binding;
+4. для `HEADLESS_BROWSER` проверить exact origin, для `HEADLESS_BFF` — что
+   interaction создан authenticated server-start и credential не был выдан
+   browser;
 5. проверить `expiresAt > now` и `consumedAt IS NULL`;
 6. проверить ожидаемый current step;
 7. повторно загрузить active OAuth client;
@@ -522,9 +531,39 @@ Any non-terminal
 10. выполнить rate limit до Better Auth;
 11. вызвать Better Auth только с server-owned callback/query fields;
 12. определить следующий шаг;
-13. записать transition оптимистично по `revision`;
-14. consuming terminal transition выполнить атомарно;
-15. вернуть только safe presentation state.
+13. для mutation атомарно claim action по `actionId + expectedRevision` до
+    любого Better Auth/delivery side effect;
+14. выполнить side effect с тем же server-generated `operationId`;
+15. атомарно сохранить safe result и завершить transition;
+16. consuming terminal transition выполнить атомарно вместе с encrypted terminal
+    recovery result;
+17. вернуть только safe presentation state.
+
+Проверка `consumedAt IS NULL` относится к mutations. `GET current` использует
+отдельный read-only lookup, который допускает terminal consumed row только пока
+`terminalResultAvailableUntil > now`.
+
+Каждая post-start mutation-команда содержит:
+
+```typescript
+interface InteractionMutationMeta {
+  actionId: string; // random UUID/128-bit value, новый для намерения пользователя
+  expectedRevision: number;
+}
+```
+
+`actionId` генерируется SDK один раз и сохраняется до получения определенного
+ответа. Повтор с тем же `actionId` и тем же canonical command hash возвращает
+сохраненный safe result и не повторяет side effect. Тот же `actionId` с другим
+payload отклоняется. Другой action при незавершенном claim возвращает conflict.
+
+Одного optimistic CAS после вызова Better Auth недостаточно: parallel requests
+могут оба создать session, отправить OTP или выпустить code до проигравшего CAS.
+Поэтому adapter operation обязан быть idempotent по `operationId`. Phase 0 должна
+доказать это для каждой Better Auth operation. Если installed plugin не принимает
+idempotency key, IAM вводит version-locked operation ledger/unique persistence
+guard перед публикацией route. Операция без доказуемой idempotency или безопасной
+reconciliation не входит в public headless contract.
 
 Ни одна команда не принимает из browser:
 
@@ -577,8 +616,10 @@ Request:
 - scopes — уникальное непустое подмножество protocol policy v1;
 - `clientId` принадлежит path application;
 - client active, non-archived и hosted/headless eligible;
-- `Origin` входит в exact application `trustedOrigins`;
-- origin также согласован с redirect URI policy клиента;
+- для browser start `Origin` входит в exact application `trustedOrigins`;
+- browser origin также согласован с redirect URI policy клиента;
+- server start не принимает доверие из `Origin` и требует confidential client
+  authentication;
 - request body имеет строгую Zod schema без неизвестных полей;
 - duplicate JSON keys отклоняются raw parser до semantic parsing либо
   подтверждается parser contract, исключающий ambiguity.
@@ -700,29 +741,36 @@ Authorization: Interaction <public-id.secret>
 
 ### 10.3. Rotation decision
 
-В v1 credential остается стабильным до terminal transition.
+В v1 credential остается стабильным. После terminal transition он становится
+read-only recovery credential на срок не более двух минут, затем окончательно
+инвалидируется.
 
 Причины:
 
 - credential нельзя зафиксировать через browser cookie;
 - он создается IAM с 256-bit entropy;
 - TTL равен 10 минутам;
-- exact origin обязателен;
+- exact origin обязателен для browser transport; BFF credential остается
+  server-side;
 - state transitions имеют optimistic revision;
 - rotation после каждого action создает unrecoverable flow при потере HTTP
   response;
 - безопасная retry-схема для rotated secret потребовала бы дополнительного
   replay storage.
 
-Credential немедленно инвалидируется при:
+Credential немедленно теряет право на mutation при:
 
-- `COMPLETE`;
-- `DENIED`;
-- `FAILED`;
+- `COMPLETE` (read-only terminal recovery разрешен до recovery TTL);
+- `DENIED` (read-only terminal recovery разрешен до recovery TTL);
+- `FAILED` (только safe terminal error до recovery TTL);
 - `CANCEL`;
-- expiry;
+- expiry или окончание terminal recovery TTL;
 - realm/client disable;
 - secret rotation, если invalidation policy этого требует.
+
+`CANCEL` не является отдельным step: action атомарно переводит interaction в
+`DENIED` с terminal reason `USER_CANCELLED` и тем же validated OAuth
+`access_denied` redirect/recovery contract, что consent deny.
 
 Если позже потребуется rotation, она вводится отдельной protocol version вместе
 с idempotency/recovery contract.
@@ -752,13 +800,16 @@ Credential немедленно инвалидируется при:
 
 ```text
 POST /oauth2/interactions
+POST /oauth2/interactions/server
 GET  /oauth2/interactions/current
 POST /oauth2/interactions/password/sign-in
 POST /oauth2/interactions/password/sign-up
 POST /oauth2/interactions/email-otp/request
 POST /oauth2/interactions/email-otp/verify
 POST /oauth2/interactions/social/start
+POST /oauth2/interactions/social/continue
 POST /oauth2/interactions/verification/resend
+GET  /oauth2/interactions/verification/continue
 POST /oauth2/interactions/consent
 POST /oauth2/interactions/switch
 POST /oauth2/interactions/cancel
@@ -766,6 +817,15 @@ POST /oauth2/interactions/cancel
 
 Dynamic route вида `/social/:provider` не нужен. Provider приходит в strict
 body и проверяется через code-owned provider catalog плюс effective manifest.
+
+`POST /oauth2/interactions` — публичный browser start; перечисленные выше
+`Origin` requirements относятся к нему. Отдельный
+`POST /oauth2/interactions/server` предназначен только для confidential BFF,
+требует OAuth client authentication, не использует CORS/`Origin` как основание
+доверия и возвращает credential только BFF. Оба route вызывают один start service
+и применяют одинаковую authorize/redirect/resource/PKCE policy. Public client не
+может использовать server route; public BFF использует публичный start без
+дополнительных привилегий.
 
 ### 11.2. Current
 
@@ -775,9 +835,11 @@ Authorization: Interaction <credential>
 Origin: https://store.example.com
 ```
 
-Возвращает safe текущий state для reload/resume.
+Возвращает safe текущий state для reload/resume. Для terminal interaction в
+пределах recovery TTL возвращает сохраненный encrypted terminal result после
+расшифровки в памяти; после recovery TTL возвращает `INTERACTION_CONSUMED`.
 
-Не возвращает:
+Для non-terminal state не возвращает:
 
 - email, ранее введенный пользователем;
 - password;
@@ -788,6 +850,10 @@ Origin: https://store.example.com
 - raw redirect URI;
 - internal failure details.
 
+Единственное исключение — terminal recovery response: он возвращает уже
+validated OAuth redirect/error URL из encrypted terminal result и не раскрывает
+отдельные raw protocol fields.
+
 ### 11.3. Password sign-in
 
 ```http
@@ -797,6 +863,8 @@ Origin: https://store.example.com
 Content-Type: application/json
 
 {
+  "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193832",
+  "expectedRevision": 1,
   "email": "user@example.com",
   "password": "..."
 }
@@ -824,6 +892,8 @@ Public ошибка не сообщает:
 
 ```json
 {
+  "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193833",
+  "expectedRevision": 1,
   "name": "Alex",
   "email": "user@example.com",
   "password": "..."
@@ -836,13 +906,45 @@ Public ошибка не сообщает:
 - registration mode open;
 - password method `SIGN_UP` enabled.
 
-После успешной регистрации:
+Password signup имеет одинаковый observable result для существующего и нового
+email:
 
-- если email verification обязательна — `EMAIL_VERIFICATION_PENDING`;
-- если verification не нужна и Better Auth создал session — continuation;
-- если account создан без возможности sign-in — `ACCOUNT_CREATED`.
+- если verification обязательна — всегда `EMAIL_VERIFICATION_PENDING`;
+- если verification не нужна — всегда `SIGN_IN`;
+- headless signup никогда не использует auto-created session для немедленного
+  перехода в consent/complete;
+- если Better Auth создал session несмотря на adapter policy
+  `autoSignIn=false`, adapter немедленно отзывает ее до ответа;
+- response time использует тот же minimum floor.
+
+Для нового email IAM отправляет verification message. Для существующего email IAM
+не сообщает это API caller и отправляет владельцу нейтральное security message с
+IAM-owned continue link. Оба вида ссылки используют одинаковый внешний callback:
+
+```text
+GET /auth/applications/:applicationId/oauth2/interactions/verification/continue
+    ?handle=<one-time-verification-handle>
+```
+
+Handle хранится только hashed, имеет короткий TTL, связан с
+`applicationId + interactionId + actionId + email-purpose` и не содержит основной
+interaction credential. Callback атомарно consumes handle, выполняет Better Auth
+verification только для нового unverified account и переводит active interaction
+из `EMAIL_VERIFICATION_PENDING` в `SIGN_IN`. Ссылка существующего/уже verified
+account выполняет тот же безопасный переход без раскрытия account state.
+Открытие на другом устройстве не переносит application session: пользователь
+возвращается в исходный flow и входит обычным способом.
+
+Verification callback отвечает IAM-owned generic HTML с `Cache-Control: no-store`,
+`Referrer-Policy: no-referrer` и strict CSP. Query целиком исключается из access
+logs; handle удаляется из address bar немедленным same-origin clean redirect
+после consume.
 
 Browser не выбирает callback URL. Verification callback строится IAM.
+
+`POST /verification/resend` принимает `InteractionMutationMeta`, возвращает тот
+же generic state и ротирует старый verification handle. Public response не
+показывает, было ли письмо отправлено и существует ли account.
 
 ### 11.5. Email OTP
 
@@ -850,6 +952,8 @@ Request:
 
 ```json
 {
+  "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193834",
+  "expectedRevision": 1,
   "email": "user@example.com"
 }
 ```
@@ -858,6 +962,8 @@ Verify:
 
 ```json
 {
+  "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193835",
+  "expectedRevision": 2,
   "email": "user@example.com",
   "otp": "123456"
 }
@@ -883,6 +989,8 @@ response его не отражает.
 
 ```json
 {
+  "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193836",
+  "expectedRevision": 2,
   "target": "SIGN_UP"
 }
 ```
@@ -936,7 +1044,8 @@ Command:
 ```json
 {
   "decision": "ALLOW",
-  "revision": 4
+  "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193837",
+  "expectedRevision": 4
 }
 ```
 
@@ -950,7 +1059,8 @@ V1 не поддерживает выбор подмножества scopes на
 3. вызывает Better Auth `/oauth2/consent`;
 4. нормализует JSON/redirect plugin response;
 5. проверяет target через exact registered redirect binding;
-6. атомарно consumes interaction;
+6. в рамках завершения action journal шифрует terminal result и атомарно consumes
+   interaction;
 7. возвращает terminal result.
 
 ### 11.8. Complete
@@ -958,7 +1068,8 @@ V1 не поддерживает выбор подмножества scopes на
 ```json
 {
   "interaction": {
-    "step": "COMPLETE"
+    "step": "COMPLETE",
+    "terminalResultAvailableUntil": "2026-07-27T12:02:00.000Z"
   },
   "result": {
     "type": "OAUTH_REDIRECT",
@@ -974,6 +1085,19 @@ V1 не поддерживает выбор подмножества scopes на
 - final OAuth redirect validation;
 - state binding;
 - terminal context consumption.
+
+После `COMPLETE`/`DENIED` credential больше не разрешает mutations, но остается
+read-only recovery credential до `terminalResultAvailableUntil` (не более двух
+минут и не дольше общего interaction TTL). `GET current` с тем же credential
+возвращает сохраненный terminal result, не вызывая Better Auth и не выпуская
+новый code. Terminal result хранится encrypted at rest и удаляется после recovery
+TTL. Это закрывает потерю HTTP response между выдачей authorization code и
+получением JSON клиентом.
+
+Повтор terminal response не делает authorization code многоразовым: token
+endpoint по-прежнему consumes code ровно один раз. SDK очищает credential сразу
+после успешного `window.location.assign`, но потеря ответа допускает safe
+`resume()`.
 
 SDK выполняет `window.location.assign(redirectUrl)`.
 
@@ -1009,7 +1133,6 @@ type ApplicationAuthInteractionResponse =
   | SignUpInteraction
   | EmailOtpInteraction
   | VerificationPendingInteraction
-  | AccountCreatedInteraction
   | ConsentInteraction
   | CompleteInteraction
   | DeniedInteraction
@@ -1037,11 +1160,13 @@ type InteractionActionDescriptor =
   | { id: "PASSWORD_SIGN_UP"; fields: ["name", "email", "password"] }
   | { id: "EMAIL_OTP_REQUEST"; fields: ["email"] }
   | { id: "EMAIL_OTP_VERIFY"; fields: ["email", "otp"] }
+  | { id: "VERIFICATION_RESEND" }
   | { id: "SOCIAL_SIGN_IN_START"; provider: "google" | "facebook" }
   | { id: "SWITCH_TO_SIGN_IN" }
   | { id: "SWITCH_TO_SIGN_UP" }
   | { id: "CONSENT_ALLOW" }
-  | { id: "CONSENT_DENY" };
+  | { id: "CONSENT_DENY" }
+  | { id: "CANCEL" };
 ```
 
 Это дает server-driven capabilities без создания произвольного remote form
@@ -1088,6 +1213,7 @@ type ApplicationAuthInteractionErrorCode =
   | "INTERACTION_EXPIRED"
   | "INTERACTION_CONSUMED"
   | "INTERACTION_STATE_CONFLICT"
+  | "ACTION_IN_PROGRESS"
   | "ACTION_NOT_ALLOWED"
   | "AUTHENTICATION_FAILED"
   | "VERIFICATION_FAILED"
@@ -1105,8 +1231,8 @@ HTTP mapping:
 | `400` | `INVALID_REQUEST` | malformed strict input |
 | `401` | `INTERACTION_NOT_FOUND` | absent/invalid credential |
 | `403` | `ORIGIN_NOT_ALLOWED`, `ACTION_NOT_ALLOWED` | policy rejection |
-| `409` | `INTERACTION_STATE_CONFLICT` | stale revision/invalid transition |
-| `410` | `INTERACTION_EXPIRED`, `INTERACTION_CONSUMED` | terminal unavailable |
+| `409` | `INTERACTION_STATE_CONFLICT`, `ACTION_IN_PROGRESS` | stale revision/invalid transition или незавершенный claimed action |
+| `410` | `INTERACTION_EXPIRED`, `INTERACTION_CONSUMED` | expired либо terminal recovery TTL закончился |
 | `429` | `RATE_LIMITED` | retry-after |
 | `503` | `TEMPORARILY_UNAVAILABLE` | dependency unavailable |
 
@@ -1202,10 +1328,11 @@ id                          random 256-bit public interaction id
 application_id              UUID, required
 client_id                   string, required
 kind                        OAUTH_AUTHORIZATION
-transport                   HOSTED | HEADLESS
-credential_hash             nullable, required for HEADLESS
-credential_key_version      nullable, required for HEADLESS
-trusted_origin_hash         nullable, required for HEADLESS
+transport                   HOSTED | HEADLESS_BROWSER | HEADLESS_BFF
+credential_hash             nullable, required for both HEADLESS transports
+credential_key_version      nullable, required for both HEADLESS transports
+trusted_origin_hash         nullable, required for HEADLESS_BROWSER
+notification_origin_hash    nullable, optional for HEADLESS_BFF popup UX only
 redirect_uri_hash           required
 post_login_return_path_hash required
 state                       required
@@ -1219,6 +1346,9 @@ session_id                  nullable
 continuation_ciphertext     nullable encrypted Better Auth continuation
 continuation_key_version    nullable
 revision                    positive integer
+terminal_result_ciphertext  nullable encrypted safe OAuth redirect/error result
+terminal_result_key_version nullable
+terminal_result_available_until nullable
 expires_at                  required
 consumed_at                 nullable
 terminal_reason             nullable closed value
@@ -1228,9 +1358,19 @@ updated_at                  required
 
 ### 14.3. Constraints
 
-- `credential_hash IS NOT NULL` iff `transport=HEADLESS`;
-- `trusted_origin_hash IS NOT NULL` iff `transport=HEADLESS`;
+- `credential_hash IS NOT NULL` iff transport is `HEADLESS_BROWSER` or
+  `HEADLESS_BFF`;
+- `trusted_origin_hash IS NOT NULL` iff `transport=HEADLESS_BROWSER`;
+- `notification_origin_hash` для `HEADLESS_BFF` может содержать только exact
+  current trusted origin, но используется лишь как `postMessage` destination и
+  не авторизует request;
+- `HEADLESS_BFF` создается только authenticated server-start для confidential
+  client и никогда не возвращается через CORS browser response;
 - continuation ciphertext и key version появляются/удаляются вместе;
+- terminal result ciphertext, key version и availability появляются/удаляются
+  вместе и разрешены только terminal step;
+- `terminal_result_available_until <= expires_at` и не более двух минут после
+  terminal transition;
 - `code_challenge_method='S256'`;
 - `cardinality(scopes) > 0`;
 - `expires_at <= created_at + 10 minutes`;
@@ -1298,6 +1438,12 @@ Plaintext continuation запрещен в:
 - SDK;
 - database snapshots без encryption envelope.
 
+Terminal recovery result шифруется тем же keyring с отдельным purpose/AAD
+`field "terminal-result"`. Он может содержать validated redirect с authorization
+code, поэтому на него распространяются те же запреты logs/audit/metrics/DTO,
+кроме целевого terminal API response. После `terminal_result_available_until`
+ciphertext очищается cleanup job независимо от operational row retention.
+
 Если compatibility spike подтвердит стабильный sessionless internal consent API,
 continuation ciphertext не добавляется. Это решение должно быть доказано
 executable contract и зафиксировано до migration; fallback к browser
@@ -1311,7 +1457,7 @@ third-party cookie запрещен.
 sha256("https://store.example.com")
 ```
 
-Каждый headless action:
+Каждый `HEADLESS_BROWSER` action:
 
 - требует `Origin`;
 - нормализует через тот же application origin parser;
@@ -1321,7 +1467,33 @@ sha256("https://store.example.com")
 Удаление trusted origin немедленно делает active interactions этого origin
 неиспользуемыми.
 
-### 14.7. Cleanup
+`HEADLESS_BFF` не имеет `trusted_origin_hash`: он создается только после
+confidential client authentication, а credential остается server-side. Его
+actions авторизуются credential/application/client/state binding и не требуют
+синтетического `Origin`. Optional notification origin принимается server start
+только после client authentication и exact trusted-origin validation; он влияет
+лишь на popup UX.
+
+### 14.7. Verification и social navigation handles
+
+Navigation handles не используют основную interaction credential и хранятся в
+отдельных application-scoped таблицах. Общие invariants:
+
+- random public ID плюс минимум 256-bit secret;
+- в БД только purpose-derived HMAC/hash и key version;
+- application/interaction/action/purpose binding;
+- короткий фиксированный TTL;
+- atomic one-time consume;
+- raw handle отсутствует в logs/audit/metrics;
+- foreign application, invalid secret, expired и replay имеют одинаковый
+  unavailable response.
+
+Verification handle additionally связывает normalized email hash и тип
+`VERIFY_NEW_ACCOUNT | EXISTING_ACCOUNT_NOTICE`, который никогда не возвращается
+browser API. Social handle использует schema из раздела 18 и передается только
+form POST.
+
+### 14.8. Cleanup
 
 Cleanup удаляет interaction только когда:
 
@@ -1338,7 +1510,42 @@ Cleanup не должен:
 - удалять active interaction;
 - сканировать без application/time indexes.
 
+Cleanup также:
+
+- очищает terminal result ciphertext сразу после recovery TTL;
+- удаляет expired/consumed verification и social handles;
+- удаляет action journal только после interaction retention boundary;
+- не удаляет `CLAIMED` action до reconciliation/indeterminate resolution.
+
 ## 15. Repository contract
+
+Mutation side effects координируются отдельным
+`application_auth_interaction_action` journal:
+
+```text
+interaction_id             required
+application_id             required
+action_id                  random UUID/128-bit, required
+expected_revision          required
+action                     closed enum
+command_hash               HMAC canonical validated input
+operation_id               server-generated, unique
+status                     CLAIMED | COMPLETED | INDETERMINATE
+result_ciphertext          nullable encrypted safe result
+result_key_version         nullable
+claimed_at                 required
+completed_at               nullable
+```
+
+Unique constraints:
+
+- `(application_id, interaction_id, action_id)`;
+- `(application_id, operation_id)`;
+- не более одного `CLAIMED` action на interaction.
+
+Journal не хранит password, OTP, email или plaintext command. `command_hash`
+нужен только для проверки, что retry с тем же action ID имеет идентичный
+validated payload.
 
 ```typescript
 interface ApplicationAuthInteractionRepository {
@@ -1346,6 +1553,11 @@ interface ApplicationAuthInteractionRepository {
     applicationId: string,
     input: CreateHeadlessInteractionInput
   ): Promise<CreatedHeadlessInteraction>;
+
+  createHeadlessTerminal(
+    applicationId: string,
+    input: CreateHeadlessTerminalInteractionInput
+  ): Promise<CreatedRecoverableTerminalInteraction>;
 
   createHosted(
     applicationId: string,
@@ -1358,27 +1570,65 @@ interface ApplicationAuthInteractionRepository {
     credentialHash: string
   ): Promise<ApplicationAuthInteraction | null>;
 
-  transition(
+  findReadableByCredential(
+    applicationId: string,
+    publicId: string,
+    credentialHash: string,
+    now: Date
+  ): Promise<ApplicationAuthInteraction | null>;
+
+  claimAction(
     applicationId: string,
     input: {
       interactionId: string;
+      actionId: string;
+      action: ApplicationAuthInteractionAction;
+      commandHash: string;
+      expectedRevision: number;
+      expectedStep: ApplicationAuthInteractionStep;
+    }
+  ): Promise<ClaimActionResult>;
+
+  completeAction(
+    applicationId: string,
+    input: {
+      interactionId: string;
+      actionId: string;
+      operationId: string;
       expectedRevision: number;
       expectedStep: ApplicationAuthInteractionStep;
       nextStep: ApplicationAuthInteractionStep;
       sessionId?: string | null;
+      encryptedSafeResult: EncryptedInteractionActionResult;
     }
   ): Promise<ApplicationAuthInteraction | null>;
 
-  consume(
+  completeTerminalAction(
     applicationId: string,
     input: {
       interactionId: string;
+      actionId: string;
+      operationId: string;
       expectedRevision: number;
       expectedStep: ApplicationAuthInteractionStep;
       terminalStep: "COMPLETE" | "DENIED" | "FAILED";
       terminalReason: ApplicationAuthInteractionTerminalReason;
+      encryptedTerminalResult: EncryptedInteractionTerminalResult;
+      terminalResultAvailableUntil: Date;
     }
   ): Promise<boolean>;
+
+  readCompletedAction(
+    applicationId: string,
+    interactionId: string,
+    actionId: string
+  ): Promise<EncryptedInteractionActionResult | null>;
+
+  markActionIndeterminate(
+    applicationId: string,
+    interactionId: string,
+    actionId: string
+  ): Promise<void>;
 
   invalidateForSession(
     applicationId: string,
@@ -1392,7 +1642,18 @@ interface ApplicationAuthInteractionRepository {
 
 Repository никогда не делает lookup только по global interaction ID.
 
-`transition` и `consume` являются atomic compare-and-set по:
+`findActiveByCredential` используется mutations и требует
+`consumed_at IS NULL`. `findReadableByCredential` используется только
+`GET current`: он дополнительно допускает consumed terminal row с encrypted
+result и `terminal_result_available_until > now`.
+
+Если authorize start сразу дает reusable-consent/`skipConsent` completion,
+`createHeadlessTerminal` атомарно создает уже consumed interaction вместе с
+encrypted terminal result и recovery TTL. Start response возвращает его
+credential один раз; повторный `GET current` только читает тот же result.
+
+`claimAction`, `completeAction` и `completeTerminalAction` являются atomic
+compare-and-set по:
 
 - application ID;
 - interaction ID;
@@ -1400,6 +1661,13 @@ Repository никогда не делает lookup только по global inte
 - current step;
 - active TTL;
 - `consumed_at IS NULL`.
+
+Claim записывается до Better Auth/email-provider side effect. Retry с тем же
+`actionId + commandHash` получает completed result либо status
+`ACTION_IN_PROGRESS`; mismatch hash отклоняется. После process crash
+`CLAIMED` action не запускается повторно вслепую: adapter выполняет
+operation-specific reconciliation по `operationId`. Недоказуемый исход помечает
+interaction `FAILED`, а не повторяет потенциально необратимую операцию.
 
 ## 16. Service contract
 
@@ -1439,11 +1707,27 @@ interface ApplicationAuthInteractionService {
     context: ApplicationAuthInteractionRequestContext
   ): Promise<ApplicationAuthPublicInteraction>;
 
+  resendVerification(
+    credential: ApplicationAuthInteractionCredential,
+    input: VerificationResendInput,
+    context: ApplicationAuthInteractionRequestContext
+  ): Promise<ApplicationAuthPublicInteraction>;
+
+  continueVerification(
+    handle: ApplicationAuthVerificationHandle,
+    context: ApplicationAuthNavigationRequestContext
+  ): Promise<ApplicationAuthVerificationPageResult>;
+
   startSocialSignIn(
     credential: ApplicationAuthInteractionCredential,
     input: SocialSignInStartInput,
     context: ApplicationAuthInteractionRequestContext
   ): Promise<ApplicationAuthPublicInteraction>;
+
+  continueSocialSignIn(
+    handle: ApplicationAuthSocialContinuationHandle,
+    context: ApplicationAuthNavigationRequestContext
+  ): Promise<ApplicationAuthSocialProviderRedirect>;
 
   submitConsent(
     credential: ApplicationAuthInteractionCredential,
@@ -1469,12 +1753,23 @@ Request context содержит только server-derived values:
 ```typescript
 interface ApplicationAuthInteractionRequestContext {
   applicationId: string;
-  origin: string;
+  origin?: string;
+  transport: "HEADLESS_BROWSER" | "HEADLESS_BFF";
+  authenticatedClientId?: string;
   ip: string;
   userAgent?: string;
   requestId: string;
 }
 ```
+
+Все mutation inputs расширяют `InteractionMutationMeta`. Для
+`HEADLESS_BROWSER` controller выводит transport из route/start binding и требует
+exact origin. Для `HEADLESS_BFF` server start предварительно аутентифицирует
+confidential client, credential остается BFF, а последующие requests не требуют
+browser `Origin`; одного caller-provided transport field не существует.
+Navigation callback
+context не доверяет `Origin` и содержит только server-derived application ID,
+IP, user agent и request ID; авторизация выполняется одноразовым hashed handle.
 
 ## 17. Better Auth adapter
 
@@ -1497,13 +1792,14 @@ operations:
 ```typescript
 interface BetterAuthApplicationInteractionAdapter {
   beginAuthorization(...): Promise<AuthorizationBeginResult>;
-  signInWithPassword(...): Promise<AuthenticationResult>;
-  signUpWithPassword(...): Promise<RegistrationResult>;
-  requestEmailOtp(...): Promise<DeliveryResult>;
-  signInWithEmailOtp(...): Promise<AuthenticationResult>;
-  beginSocialSignIn(...): Promise<SocialRedirectResult>;
-  submitConsent(...): Promise<AuthorizationCompletionResult>;
+  signInWithPassword(operationId: string, ...): Promise<AuthenticationResult>;
+  signUpWithPassword(operationId: string, ...): Promise<RegistrationResult>;
+  requestEmailOtp(operationId: string, ...): Promise<DeliveryResult>;
+  signInWithEmailOtp(operationId: string, ...): Promise<AuthenticationResult>;
+  beginSocialSignIn(operationId: string, ...): Promise<SocialRedirectResult>;
+  submitConsent(operationId: string, ...): Promise<AuthorizationCompletionResult>;
   readSession(...): Promise<ApplicationSessionResult>;
+  reconcile(operationId: string, ...): Promise<ReconciledOperationResult>;
 }
 ```
 
@@ -1518,6 +1814,9 @@ Adapter:
 - нормализует plugin JSON/redirect variants;
 - покрывается compatibility contract;
 - является единственным местом, которое знает `oauth_query`.
+- принимает journal `operationId`, не выполняет один и тот же logical side
+  effect повторно и предоставляет operation-specific reconciliation после
+  process crash.
 
 Controller и React SDK не должны импортировать Better Auth types.
 
@@ -1536,6 +1835,8 @@ Authorization: Interaction <credential>
 Origin: https://store.example.com
 
 {
+  "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193838",
+  "expectedRevision": 1,
   "provider": "google",
   "mode": "popup"
 }
@@ -1552,13 +1853,51 @@ Origin: https://store.example.com
   },
   "social": {
     "mode": "popup",
-    "navigationUrl": "https://iam.example.com/auth/applications/.../social/continue?..."
+    "navigation": {
+      "method": "POST",
+      "url": "https://iam.example.com/auth/applications/.../oauth2/interactions/social/continue",
+      "handle": "one-time-navigation-handle"
+    }
   }
 }
 ```
 
-`navigationUrl` содержит только короткоживущий social continuation handle, не
-основной interaction credential.
+SDK открывает same-origin blank popup или начинает top-level navigation, создает
+ephemeral HTML form и отправляет `handle` методом `POST`. Handle не помещается в
+query, fragment, history, referrer или analytics и не является основным
+interaction credential.
+
+`POST /social/continue` является navigation route, а не CORS JSON route. Он:
+
+1. принимает только form field `handle` с жестким size limit;
+2. находит запись по public ID и constant-time hash;
+3. атомарно consumes ее до provider redirect;
+4. повторно проверяет application/interaction/provider/config revision;
+5. строит Better Auth social request только из server-owned values;
+6. отвечает `303` на provider с `Referrer-Policy: no-referrer`,
+   `Cache-Control: no-store` и redacted access logging.
+
+Social continuation хранится в отдельной таблице:
+
+```text
+application_auth_social_continuation
+  application_id
+  interaction_id
+  action_id
+  public_id
+  handle_hash
+  provider
+  mode
+  trusted_origin_hash
+  configuration_revision
+  provider_state_hash
+  expires_at                 <= created_at + 2 minutes
+  consumed_at
+```
+
+Raw handle и provider state не логируются. Callback коррелируется по
+Better Auth/provider state с server-side continuation record, а не по browser
+interaction credential или caller-provided callback URL.
 
 ### 18.3. Provider callback
 
@@ -1602,6 +1941,8 @@ Parent после сообщения вызывает `GET current` со сво�
 - parent проверяет `event.origin === IAM public origin`;
 - parent проверяет message application/interaction public ID;
 - continuation handle одноразовый и имеет короткий TTL;
+- handle передается top-level form POST, а не в URL;
+- query strings и form bodies navigation routes исключены из access logs;
 - callback replay отклоняется;
 - popup не принимает caller-provided callback URL;
 - redirect mode остается обязательным fallback при popup block.
@@ -1610,7 +1951,7 @@ Parent после сообщения вызывает `GET current` со сво�
 
 ### 19.1. CORS
 
-Для headless routes:
+Для `HEADLESS_BROWSER` routes:
 
 - `Origin` обязателен;
 - `Access-Control-Allow-Origin` — exact origin, не `*`;
@@ -1623,6 +1964,21 @@ Parent после сообщения вызывает `GET current` со сво�
 - preflight сверяется с effective route manifest;
 - disabled realm/method/provider route не появляется в manifest;
 - preflight не раскрывает существование foreign application/client.
+
+`HEADLESS_BFF` responses не доступны browser CORS: server-start и последующие
+BFF calls не возвращают CORS headers и не требуют `Origin`.
+
+`Origin` и CORS являются browser security boundary, а не аутентификацией
+произвольного HTTP caller. Небраузерный client может подставить любой `Origin`.
+Поэтому:
+
+- start endpoint считается публичным и защищается client/redirect/resource/PKCE
+  validation, body limits и rate limiting;
+- последующие actions авторизуются interaction credential, а origin binding
+  дополнительно ограничивает использование credential из browser;
+- документация и audit не называют trusted origin доказательством identity;
+- если BFF требуется непубличный start, он использует отдельный authenticated
+  server-start contract, а не доверие к `Origin`.
 
 Рекомендуется не использовать `Access-Control-Allow-Credentials: true` для
 чистых headless interaction routes, чтобы явно показать отсутствие cookie
@@ -1659,6 +2015,9 @@ Headless actions защищены комбинацией:
 - strict CORS;
 - step/revision binding;
 - short TTL.
+
+Для небраузерного attacker защита action основывается на unguessable credential,
+TTL и server-side state binding; `Origin` там не является доказательством.
 
 Отдельный form CSRF token для headless JSON не нужен. Hosted forms продолжают
 использовать action-specific CSRF.
@@ -1697,7 +2056,8 @@ Interaction start должен иметь отдельный лимит, что�
 
 ```text
 Browser component
-  -> headless IAM interaction
+  -> application BFF attempt/proxy
+  -> authenticated headless IAM BFF interaction
   -> application callback with code
   -> application BFF
   -> IAM token endpoint with verifier/client authentication
@@ -1706,6 +2066,11 @@ Browser component
 
 Для confidential client:
 
+- browser создает same-origin attempt через application BFF;
+- BFF генерирует verifier/state/nonce, хранит их server-side и вызывает
+  authenticated `/oauth2/interactions/server`;
+- interaction credential хранится BFF; browser получает только opaque
+  first-party attempt handle и вызывает application-owned proxy routes;
 - PKCE verifier хранится BFF;
 - client secret хранится только BFF;
 - browser не вызывает token endpoint с confidential credential.
@@ -1714,6 +2079,16 @@ Browser component
 
 - verifier также лучше хранить server-side;
 - browser получает только opaque attempt/session handle.
+- BFF вызывает публичный start contract и не получает доверия только потому, что
+  способен установить `Origin`; rate limits и вся public validation сохраняются.
+
+`auth-core` предоставляет разные explicit adapters:
+
+- direct SPA adapter говорит с IAM interaction routes;
+- BFF browser adapter говорит только с application-owned attempt/proxy routes;
+- BFF server helper говорит с IAM и хранит credential/verifier server-side.
+
+Один `ShopanaAuthProvider` не смешивает эти transports.
 
 ### 21.2. Public SPA mode
 
@@ -1766,6 +2141,7 @@ interface ShopanaAuthClient {
   signUpWithPassword(input: PasswordSignUpInput): Promise<AuthState>;
   requestEmailOtp(input: EmailOtpRequestInput): Promise<AuthState>;
   verifyEmailOtp(input: EmailOtpVerifyInput): Promise<AuthState>;
+  resendVerification(): Promise<AuthState>;
   startSocialSignIn(input: SocialSignInInput): Promise<AuthState>;
   submitConsent(decision: "ALLOW" | "DENY"): Promise<AuthState>;
   switchStep(target: "SIGN_IN" | "SIGN_UP"): Promise<AuthState>;
@@ -1798,8 +2174,13 @@ Credential не включается в public serializable `AuthState`.
 - `Authorization: Interaction`;
 - abort signals;
 - timeout;
-- no automatic request retry для password/OTP/consent;
-- safe retry только для `GET current`;
+- каждая mutation генерирует `actionId`, добавляет текущий `expectedRevision` и
+  сохраняет их до определенного ответа;
+- автоматический network retry mutation по умолчанию выключен, но явный retry
+  использует тот же `actionId` и поэтому не повторяет side effect;
+- safe retry для `GET current`;
+- после неопределенного terminal response `resume()` читает сохраненный terminal
+  result в пределах recovery TTL;
 - request ID correlation без sensitive values.
 
 ### 22.5. Hooks/events
@@ -1843,6 +2224,7 @@ Payload не содержит:
 <OAuthCallback />
 <SocialButton />
 <EmailOtpForm />
+<EmailVerificationPending />
 ```
 
 `<AuthFlow />` автоматически выбирает presentation по server step.
@@ -1855,6 +2237,7 @@ Payload не содержит:
 useAuthInteraction()
 useSignIn()
 useSignUp()
+useEmailVerification()
 useConsent()
 useAuthAppearance()
 ```
@@ -1927,6 +2310,11 @@ Default components:
 - OTP autocomplete;
 - popup-block fallback.
 
+`<EmailVerificationPending />` показывает generic check-email state, позволяет
+resend только через server-provided `VERIFICATION_RESEND` action и вызывает
+`resume()` по явному действию пользователя/возврату focus. Компонент не сообщает,
+создан ли новый account или существовал ли email.
+
 ### 23.5. SSR/hydration
 
 Пакет не читает `window` при module import.
@@ -1949,7 +2337,7 @@ Headless routes добавляются в effective application auth route manif
 
 Base routes:
 
-- start/current/cancel/switch;
+- browser start/confidential server start/current/cancel/switch;
 - consent.
 
 Policy-derived routes:
@@ -1959,6 +2347,15 @@ Policy-derived routes:
 - email OTP request/verify;
 - verification resend;
 - social start.
+
+Navigation routes являются отдельным manifest class:
+
+- verification continue `GET`;
+- social continue `POST`;
+- exact catalog-derived provider callbacks.
+
+Они не используют CORS preflight, принимают только one-time handle/provider state
+и имеют отдельные no-store/referrer/log-redaction rules.
 
 Если method/provider выключен:
 
@@ -1994,6 +2391,7 @@ Hosted renderer преобразует public/domain state в HTML:
 - `SIGN_IN` -> login page;
 - `SIGN_UP` -> signup page;
 - `EMAIL_OTP_CHALLENGE` -> OTP page;
+- `EMAIL_VERIFICATION_PENDING` -> generic check-email page;
 - `CONSENT` -> consent page;
 - terminal redirect -> 303;
 - terminal error -> generic error HTML.
@@ -2090,7 +2488,7 @@ Audit fields:
 - organization ID;
 - application ID;
 - OAuth client ID или safe hash согласно текущей audit policy;
-- transport `hosted|headless`;
+- transport `hosted|headless-browser|headless-bff`;
 - action/outcome;
 - reason category;
 - provider name при social action;
@@ -2154,7 +2552,12 @@ Sensitive values не логируются даже на debug.
 - 10-minute TTL;
 - exact origin;
 - terminal consumption;
+- read-only terminal recovery с encrypted result и отдельным коротким TTL;
 - credential hash at rest.
+
+Exact origin снижает риск browser misuse, но не останавливает небраузерного
+attacker с уже украденным bearer credential. Для такого attacker решающими
+остаются entropy, TTL, action journal и terminal/read-only state.
 
 ### 28.2. CSRF
 
@@ -2215,9 +2618,12 @@ Better Auth session:
 
 ### 28.7. Replay
 
-- terminal interaction consumed atomic CAS;
+- каждый mutation имеет `actionId + expectedRevision`;
+- action claim записывается до side effect, completed retry возвращает сохраненный
+  safe result;
+- terminal interaction consumed atomic CAS вместе с encrypted recovery result;
 - social continuation one-time;
-- consent action требует current revision;
+- consent и остальные mutations требуют current revision;
 - authorization code lifecycle остается Better Auth-owned one-time flow;
 - callback replay не восстанавливает interaction.
 
@@ -2228,7 +2634,11 @@ Better Auth session:
 - minimum response floor;
 - consistent HTTP mapping;
 - invalid/foreign credential indistinguishable;
-- rate-limit reason не раскрывает identity existence.
+- rate-limit reason не раскрывает identity existence;
+- password signup возвращает одинаковый step для existing/new email и никогда не
+  auto-signs-in headless caller;
+- verification/existing-account messages используют один внешний callback и
+  одинаковый API result.
 
 ### 28.9. UI spoofing
 
@@ -2246,7 +2656,9 @@ Better Auth session:
 - invalid OTP;
 - stale non-terminal revision;
 - popup blocked;
-- user remains on allowed step.
+- user remains on allowed step;
+- потерянный terminal response читается через `GET current` в recovery TTL без
+  повторного Better Auth side effect.
 
 ### 29.2. Terminal
 
@@ -2265,7 +2677,10 @@ Database/rate-limit/keyring/Better Auth/provider failure:
 
 - fail closed;
 - no stale runtime fallback;
-- no partial terminal completion;
+- action journal claim сохраняет operation ID до side effect;
+- no blind mutation retry после indeterminate outcome;
+- no partial terminal completion; если adapter не может reconcile operation,
+  interaction атомарно становится `FAILED`;
 - return generic `TEMPORARILY_UNAVAILABLE`;
 - audit/log safe reason category;
 - interaction может остаться active только если transition не был committed.
@@ -2286,6 +2701,10 @@ Database/rate-limit/keyring/Better Auth/provider failure:
 9. Утвердить interaction credential format.
 10. Утвердить stable credential vs rotation decision.
 11. Утвердить BFF и SPA integration boundaries.
+12. Доказать idempotency/reconciliation contract каждой mutation operation по
+    server-generated `operationId`.
+13. Проверить email verification callback без переноса session между devices.
+14. Зафиксировать terminal recovery result и двухминутный recovery TTL.
 
 Критерий выхода: нет неизвестных plugin response shapes, влияющих на state
 machine или final redirect.
@@ -2294,17 +2713,21 @@ machine или final redirect.
 
 1. Ввести interaction enums/types.
 2. Выполнить прямую migration текущей context model.
-3. Добавить transport/credential/origin/revision/terminal fields.
+3. Добавить transport/credential/origin/revision/encrypted terminal recovery
+   fields.
 4. При необходимости добавить encrypted continuation fields и key-version
    constraints.
 5. Реализовать constraints и indexes.
 6. Реализовать credential codec/hash.
 7. Реализовать application-scoped repository.
 8. Перенести cleanup.
-9. Добавить optimistic transition/consume.
+9. Добавить atomic claim/complete/terminal consume primitives.
+10. Добавить action journal с claim/complete/indeterminate operations.
+11. Добавить hashed verification и social continuation storage.
 
-Критерий выхода: repository гарантирует TTL, isolation, origin binding и
-one-time terminal consumption.
+Критерий выхода: repository гарантирует TTL, isolation, origin binding,
+claim-before-side-effect, one-time terminal consumption и read-only terminal
+recovery.
 
 ### Phase 2. Better Auth adapter
 
@@ -2315,6 +2738,8 @@ one-time terminal consumption.
 5. Нормализовать consent result.
 6. Реализовать validated redirect result.
 7. Добавить adapter contract fixtures.
+8. Добавить `operationId` idempotency/reconciliation fixtures, включая crash
+   между side effect и journal completion.
 
 Критерий выхода: interaction service не знает raw Better Auth response.
 
@@ -2325,11 +2750,14 @@ one-time terminal consumption.
 3. Реализовать password sign-in.
 4. Реализовать password sign-up.
 5. Реализовать email OTP.
-6. Реализовать switch.
-7. Реализовать consent.
-8. Реализовать cancel.
-9. Подключить rate limits.
-10. Подключить audit.
+6. Реализовать verification resend/continue и одинаковый existing/new signup
+   result.
+7. Реализовать switch.
+8. Реализовать consent.
+9. Реализовать cancel.
+10. Подключить action claim/idempotency.
+11. Подключить rate limits.
+12. Подключить audit.
 
 Критерий выхода: полный password/OTP Authorization Code flow выполняется без
 HTML renderer.
@@ -2344,9 +2772,12 @@ HTML renderer.
 6. Добавить no-store/security headers.
 7. Добавить preflight matrix.
 8. Добавить body/credential length limits.
+9. Добавить authenticated confidential BFF server-start route.
+10. Добавить terminal recovery read contract.
 
-Критерий выхода: только trusted origin может начать и продолжить interaction;
-unknown/disabled routes fail closed до Better Auth.
+Критерий выхода: browser CORS доступен только trusted origin, небраузерный start
+рассматривается как public, confidential server start требует client
+authentication, unknown/disabled routes fail closed до Better Auth.
 
 ### Phase 5. Consent presentation
 
@@ -2362,7 +2793,7 @@ unknown/disabled routes fail closed до Better Auth.
 
 ### Phase 6. Social flow
 
-1. Создать one-time social continuation.
+1. Создать hashed one-time social continuation и top-level form POST route.
 2. Реализовать redirect mode.
 3. Реализовать popup coordinator.
 4. Реализовать exact postMessage.
@@ -2394,7 +2825,9 @@ interaction credential/provider token.
 5. Реализовать popup coordinator.
 6. Реализовать safe navigation.
 7. Добавить public SPA PKCE adapter отдельно.
-8. Добавить redacted telemetry hooks.
+8. Добавить BFF browser/server adapters отдельно.
+9. Добавить action ID/revision lifecycle и terminal recovery resume.
+10. Добавить redacted telemetry hooks.
 
 Критерий выхода: vanilla TypeScript consumer проходит reference flow.
 
@@ -2406,10 +2839,11 @@ interaction credential/provider token.
 4. `<SignUp />`.
 5. `<Consent />`.
 6. Social buttons/popup fallback.
-7. Appearance slots/tokens.
-8. Accessibility.
-9. SSR-safe imports/hydration.
-10. Example application.
+7. Email verification pending/resend/resume.
+8. Appearance slots/tokens.
+9. Accessibility.
+10. SSR-safe imports/hydration.
+11. Example application.
 
 Критерий выхода: consumer может использовать default components или полностью
 собственный markup через hooks.
@@ -2437,15 +2871,22 @@ interaction credential/provider token.
 - start принимает только Authorization Code + S256 PKCE;
 - exact resource обязателен;
 - exact redirect URI обязателен;
-- exact trusted origin обязателен;
+- exact trusted origin обязателен для browser transport;
 - unsupported/duplicate scope отклоняется;
 - foreign client/application отклоняется;
 - archived/disabled client отклоняется;
 - disabled realm отклоняется;
 - invalid credential indistinguishable от foreign credential;
-- expired/consumed interaction недоступен;
+- expired interaction недоступен; consumed terminal interaction readable только
+  в recovery TTL;
 - stale revision дает conflict;
-- terminal transition one-time.
+- terminal transition one-time;
+- parallel mutations допускают только один action claim;
+- retry с тем же action ID возвращает тот же safe result;
+- reuse action ID с другим payload отклоняется;
+- crash после side effect проходит reconciliation без повторного side effect;
+- terminal response loss восстанавливается через current без повторной выдачи
+  code.
 
 ### 31.2. Password/signup
 
@@ -2453,9 +2894,14 @@ interaction credential/provider token.
 - registration open/disabled;
 - sign-up method enabled/disabled;
 - email verification required/not required;
+- verification callback new/existing/already verified/expired/replayed;
+- verification link на другом device не переносит session;
+- verification resend ротирует старый handle и возвращает generic result;
 - blocked user;
 - session/application mismatch;
 - no email enumeration;
+- existing/new email дают одинаковый observable signup step и response timing
+  floor;
 - rate limit;
 - application A credentials не работают в B.
 
@@ -2494,7 +2940,9 @@ interaction credential/provider token.
 - provider/application mismatch;
 - registration disabled;
 - account owned by another user;
-- no provider token leakage.
+- no provider token leakage;
+- social handle передается form POST и отсутствует в URL/history/referrer/logs;
+- social handle expired/replayed/cross-application;
 
 ### 31.6. CORS/security
 
@@ -2502,8 +2950,12 @@ interaction credential/provider token.
 - unknown/subdomain/lookalike origin negative;
 - wildcard absent;
 - missing Origin negative;
+- forged Origin не считается authentication для server caller;
+- public browser start сохраняет полный rate-limit/protocol validation;
+- confidential server start требует client authentication;
 - preflight exact methods/headers;
-- no credential in URL;
+- основной interaction и social continuation credentials отсутствуют в URL;
+  verification email использует только отдельный one-time handle;
 - no-store;
 - no sensitive logs;
 - body/credential length limits;
@@ -2518,6 +2970,8 @@ interaction credential/provider token.
 - resume behavior;
 - abort/unmount;
 - network error does not duplicate mutation;
+- mutation retry сохраняет action ID;
+- lost terminal response восстанавливается через resume;
 - popup cleanup;
 - callback state verification;
 - accessibility keyboard/focus/alerts;
@@ -2530,12 +2984,16 @@ interaction credential/provider token.
 2. Public SPA client + OTP + consent + code exchange.
 3. Public SPA client + Google popup + consent + code exchange.
 4. Confidential BFF client + password + consent + server token exchange.
+   Browser видит только first-party BFF attempt handle.
 5. First-party client + `skipConsent`.
 6. Existing consent reuse.
 7. Deny returns OAuth error to exact redirect URI.
 8. Interaction expires at every non-terminal step.
 9. Realm/client/origin disabled during active interaction.
 10. Parallel applications remain fully isolated.
+11. Parallel same-interaction mutations выполняют один logical side effect.
+12. Password signup с обязательной verification завершается через callback на
+    том же и другом device без account enumeration.
 
 ## 32. Rollout
 
@@ -2580,6 +3038,10 @@ services/iam/src/
       ApplicationAuthInteractionPresenter.ts
       BetterAuthApplicationInteractionAdapter.ts
       credential.ts
+      actionJournal.ts
+      terminalRecovery.ts
+      verificationContinuation.ts
+      socialContinuation.ts
       errors.ts
       schemas.ts
       types.ts
@@ -2594,6 +3056,8 @@ services/iam/src/
     applicationOAuthScopeCatalog.ts
   repositories/
     ApplicationAuthInteractionRepository.ts
+    ApplicationAuthInteractionActionRepository.ts
+    ApplicationAuthNavigationContinuationRepository.ts
     models/application-auth.ts
   services/
     ApplicationAuthPresentationService.ts
@@ -2621,6 +3085,7 @@ packages/auth-react/
       SignUp.tsx
       Consent.tsx
       EmailOtpForm.tsx
+      EmailVerificationPending.tsx
       SocialButton.tsx
     appearance/
     localization/
@@ -2637,7 +3102,8 @@ packages/auth-react/
 2. Компонент не получает Better Auth `oauth_query`, session ID или plugin
    response.
 3. Headless flow не зависит от third-party cookie.
-4. Headless API доступен только exact trusted origin.
+4. Browser JavaScript получает headless responses только с exact trusted origin;
+   server caller не считается authenticated по `Origin`.
 5. Interaction credential короткоживущий, hashed at rest и никогда не попадает
    в URL/log/audit.
 6. Hosted и headless flows используют один interaction service.
@@ -2654,6 +3120,15 @@ packages/auth-react/
 17. Default React components доступны, но consumer может построить полностью
     собственный UI через hooks.
 18. В репозитории нет legacy interaction orchestration и dual schema.
+19. Каждая mutation claim записана до side effect и idempotent/reconcilable по
+    operation ID.
+20. Потерянный terminal response восстанавливается без повторной выдачи code.
+21. Email verification имеет one-time callback, resend и cross-device semantics;
+    existing/new signup неразличимы для API caller.
+22. Social continuation передается form POST, hashed at rest и отсутствует в
+    URL/history/referrer/logs.
+23. Confidential BFF использует authenticated server start и не передает
+    interaction credential/verifier/client secret browser.
 
 ## 35. Итоговая рекомендуемая последовательность
 
