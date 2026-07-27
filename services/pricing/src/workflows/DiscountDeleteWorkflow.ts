@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -26,6 +27,12 @@ export class DiscountDeleteWorkflow extends BrokerWorkflows {
   }
 
   @Workflow("discountDelete")
+  @Policy<DiscountDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: DiscountDeleteWorkflowInput,
   ): Promise<DiscountDeleteWorkflowResult> {

@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -59,6 +60,12 @@ export class CustomerGroupDeleteWorkflow extends CustomerEntityDeleteWorkflow {
   }
 
   @Workflow("customerGroupDelete")
+  @Policy<CustomerGroupDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerGroupDeleteWorkflowInput
   ): Promise<CustomerGroupDeleteWorkflowResult> {
@@ -82,6 +89,12 @@ export class CustomerTagDeleteWorkflow extends CustomerEntityDeleteWorkflow {
   }
 
   @Workflow("customerTagDelete")
+  @Policy<CustomerTagDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerTagDeleteWorkflowInput
   ): Promise<CustomerTagDeleteWorkflowResult> {
@@ -105,6 +118,12 @@ export class CustomerSegmentDeleteWorkflow extends CustomerEntityDeleteWorkflow 
   }
 
   @Workflow("customerSegmentDelete")
+  @Policy<CustomerSegmentDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerSegmentDeleteWorkflowInput
   ): Promise<CustomerSegmentDeleteWorkflowResult> {
@@ -128,6 +147,12 @@ export class CustomerMergeDeleteWorkflow extends CustomerEntityDeleteWorkflow {
   }
 
   @Workflow("customerMergeDelete")
+  @Policy<CustomerMergeDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerMergeDeleteWorkflowInput
   ): Promise<CustomerMergeDeleteWorkflowResult> {
@@ -151,6 +176,12 @@ export class CustomerDataRequestDeleteWorkflow extends CustomerEntityDeleteWorkf
   }
 
   @Workflow("customerDataRequestDelete")
+  @Policy<CustomerDataRequestDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerDataRequestDeleteWorkflowInput
   ): Promise<CustomerDataRequestDeleteWorkflowResult> {

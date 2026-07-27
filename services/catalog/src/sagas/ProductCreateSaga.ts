@@ -4,6 +4,7 @@ import {
   Saga,
   SagaStep,
   InjectBroker,
+  Policy,
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import { DBOS } from "@dbos-inc/dbos-sdk";
@@ -55,6 +56,12 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
   }
 
   @Saga("productCreate")
+  @Policy<ProductCreateParams>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.organizationId,
+    domain: (_self, input) => `store:${input.storeId}`,
+  })
   async run(input: ProductCreateParams): Promise<ProductCreateResult> {
     // Validate inventory item input before any saga steps
     if (input.inventoryItem) {

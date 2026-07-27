@@ -4,6 +4,7 @@ import {
   Saga,
   SagaStep,
   InjectBroker,
+  Policy,
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import type { Media } from "@shopana/broker-types";
@@ -38,6 +39,12 @@ export class OrganizationDeleteSaga extends BrokerSaga<
   }
 
   @Saga("organizationDelete")
+  @Policy<OrganizationDeleteParams>({
+    resource: "org.profile",
+    action: "admin",
+    organizationId: (_self, input) => input.organizationId,
+    domain: "org",
+  })
   async run(input: OrganizationDeleteParams): Promise<OrganizationDeleteResult> {
     // Step 1: Delete organization from database
     const result = await this.deleteOrganization(input);

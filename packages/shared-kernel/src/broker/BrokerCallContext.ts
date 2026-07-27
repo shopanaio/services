@@ -1,3 +1,5 @@
+import type { BrokerAdminContext } from "./WorkflowAuthorization.js";
+
 export interface BrokerCaller {
   readonly kind: "action" | "event";
   readonly service: string;
@@ -21,4 +23,10 @@ export interface BrokerAppContext {
 export interface BrokerCallContext {
   readonly caller: BrokerCaller;
   readonly app?: Readonly<BrokerAppContext>;
+  readonly adminContext?: BrokerAdminContext;
+}
+
+export interface BrokerCallOptions {
+  readonly meta?: Record<string, unknown>;
+  readonly adminContext?: BrokerAdminContext;
 }

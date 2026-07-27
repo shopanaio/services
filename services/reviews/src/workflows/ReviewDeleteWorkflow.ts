@@ -3,6 +3,7 @@ import type { ReviewDeletedEvent } from "@shopana/events";
 import {
   DBOS,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -21,6 +22,12 @@ export class ReviewDeleteWorkflow extends ReviewsMutationWorkflow {
   }
 
   @Workflow("reviewDelete")
+  @Policy<ReviewDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(input: ReviewDeleteWorkflowInput): Promise<ReviewDeleteWorkflowResult> {
     const result = await this.stepDelete(input);
     if (result.deletedReviewId && result.productId && result.permanent !== undefined && result.userErrors.length === 0) {

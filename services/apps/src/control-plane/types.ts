@@ -55,6 +55,9 @@ export interface AppLifecycleOperationRecord {
 export interface AppLifecycleWorkflowInput {
   readonly installationId: string;
   readonly operationId: string;
+  readonly organizationId: string;
+  readonly storeId: string;
+  readonly operationType: AppLifecycleOperationType;
 }
 
 export interface AppManifestSnapshot {

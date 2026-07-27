@@ -21,6 +21,7 @@ export {
   type BrokerCaller,
   type BrokerAppContext,
   type BrokerCallContext,
+  type BrokerCallOptions,
 } from "./broker/BrokerCallContext";
 export {
   type BrokerAdminContext,

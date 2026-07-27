@@ -339,6 +339,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
         workflowId: `${operation}:${resourceId}:${this.$ctx.requestId}`,
         stepId: "start",
       },
+      { adminContext: this.$ctx.adminContext },
     )) as TResult;
   }
 

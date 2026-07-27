@@ -7,6 +7,7 @@ import {
 import type {
   BrokerAppContext,
   BrokerCallContext,
+  BrokerCallOptions,
 } from './BrokerCallContext.js';
 import {
   WORKFLOW_REGISTRY,
@@ -61,11 +62,16 @@ export class ServiceBroker implements OnModuleDestroy {
   async call<TResult = unknown, TParams = unknown>(
     action: string,
     params?: TParams,
+    options?: BrokerCallOptions,
   ): Promise<TResult> {
-    const context = this.createCallContext({
-      kind: 'action',
-      service: this.options.serviceName,
-    });
+    const context = this.createCallContext(
+      {
+        kind: 'action',
+        service: this.options.serviceName,
+      },
+      undefined,
+      options?.adminContext,
+    );
     return this.invoke<TResult, TParams>(action, params, context);
   }
 
@@ -133,10 +139,12 @@ export class ServiceBroker implements OnModuleDestroy {
   private createCallContext(
     caller: BrokerCallContext['caller'],
     app?: Readonly<BrokerAppContext>,
+    adminContext?: BrokerCallContext['adminContext'],
   ): BrokerCallContext {
     return Object.freeze({
       caller: Object.freeze(caller),
       ...(app ? { app: Object.freeze(app) } : {}),
+      ...(adminContext ? { adminContext } : {}),
     });
   }
 

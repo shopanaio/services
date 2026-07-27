@@ -9,6 +9,7 @@ import type {
 import {
   BrokerWorkflows,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -38,6 +39,13 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
 
   @Workflow("installationLifecycle", {
     idempotencyStrategy: "content",
+  })
+  @Policy<AppLifecycleWorkflowInput>({
+    resource: "store.apps",
+    action: (_self, input) =>
+      input.operationType === "UNINSTALL" ? "admin" : "write",
+    organizationId: (_self, input) => input.organizationId,
+    domain: (_self, input) => `store:${input.storeId}`,
   })
   async run(
     input: AppLifecycleWorkflowInput,

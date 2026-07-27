@@ -729,7 +729,8 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         source: "workflow",
         workflowId: `${operation}:${resourceId ?? this.$ctx.store.id}:${this.$ctx.requestId}`,
         stepId: "start",
-      }
+      },
+      { adminContext: this.$ctx.adminContext },
     )) as TResult;
   }
 

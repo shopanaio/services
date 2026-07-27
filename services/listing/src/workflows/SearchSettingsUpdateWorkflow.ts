@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -38,6 +39,12 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
   }
 
   @Workflow("searchSettingsUpdate")
+  @Policy<SearchSettingsUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: SearchSettingsUpdateWorkflowInput,
   ): Promise<SearchSettingsUpdateWorkflowResult> {

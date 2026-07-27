@@ -57,7 +57,9 @@ export type AuthorizeOptions<
   /** Resource to check authorization for (from @shopana/rbac) */
   resource: R;
   /** Action to check (validated against resource's allowed actions) */
-  action: ActionsForResource<R>;
+  action:
+    | ActionsForResource<R>
+    | ((self: TSelf, params: TParams) => ActionsForResource<R>);
   /**
    * Organization ID for authorization.
    */
@@ -250,7 +252,9 @@ export async function authorizePoliciesWithIam<TParams>(
   if (policies.length === 0) return;
   const authorization = context.authorization;
   if (!authorization || authorization.kind !== "admin") {
-    throw workflowAuthorizationMissingError(policies[0]);
+    throw workflowAuthorizationMissingError(
+      resolveAuthorizeParams(target, params, policies[0], {})
+    );
   }
   await evaluatePolicies(
     target,
@@ -275,7 +279,11 @@ async function authorizeWorkflowPolicies<TParams>(
 ): Promise<void> {
   const policies = getPolicies<TParams>(target, propertyKey);
   if (policies.length === 0) return;
-  if (!context) throw workflowAuthorizationMissingError(policies[0]);
+  if (!context) {
+    throw workflowAuthorizationMissingError(
+      resolveAuthorizeParams(target, params, policies[0], {})
+    );
+  }
   const broker = (target as { broker?: WorkflowPolicyBroker }).broker;
   if (!broker) {
     throw new Error(
@@ -314,11 +322,11 @@ async function evaluatePolicies<TParams>(
       resolveDefaults(policy)
     );
     if (!hasSubject(input)) {
-      firstDenied ??= createUnauthenticatedError(policy);
+      firstDenied ??= createUnauthenticatedError(input);
       continue;
     }
     if (!(await authorizer.authorize(input))) {
-      firstDenied ??= deniedError(policy);
+      firstDenied ??= deniedError(input);
     }
   }
 
@@ -370,7 +378,7 @@ function resolveAuthorizeParams<TParams, TSelf extends object>(
   );
   return {
     resource: options.resource,
-    action: options.action,
+    action: resolveValue(options.action, self, params)!,
     organizationId:
       organizationId ??
       (organizationName === undefined

@@ -4,6 +4,7 @@ import {
   Workflow,
   WorkflowStep,
   InjectBroker,
+  Policy,
   ServiceBroker,
   DBOS,
 } from "@shopana/shared-kernel";
@@ -110,6 +111,12 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   }
 
   @Workflow("productUpdate")
+  @Policy<ProductUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: ProductUpdateWorkflowInput,
   ): Promise<ProductUpdateWorkflowResult> {

@@ -126,7 +126,8 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
         workflowId: `${workflowName}:${this.$ctx.store.id}:${resourceId}:${this.$ctx.requestId}`,
         stepId: "start",
         callId,
-      }
+      },
+      { adminContext: this.$ctx.adminContext },
     ) as Promise<TResult>;
   }
 

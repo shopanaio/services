@@ -4,6 +4,7 @@ import {
   buildIdempotencyKey,
   hashContent,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -415,6 +416,12 @@ export class FacetCreateWorkflow extends FacetMutationWorkflowBase<
   }
 
   @Workflow("facetCreate")
+  @Policy<FacetMutationWorkflowInput<FacetCreateParams>>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: FacetMutationWorkflowInput<FacetCreateParams>
   ): Promise<FacetResult> {
@@ -432,6 +439,12 @@ export class FacetDeleteWorkflow extends FacetMutationWorkflowBase<
   }
 
   @Workflow("facetDelete")
+  @Policy<FacetMutationWorkflowInput<FacetDeleteParams>>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: FacetMutationWorkflowInput<FacetDeleteParams>
   ): Promise<FacetDeleteResult> {
@@ -449,6 +462,12 @@ export class FacetValueCreateWorkflow extends FacetMutationWorkflowBase<
   }
 
   @Workflow("facetValueCreate")
+  @Policy<FacetMutationWorkflowInput<FacetValueCreateParams>>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: FacetMutationWorkflowInput<FacetValueCreateParams>
   ): Promise<FacetValueResult> {
@@ -466,6 +485,12 @@ export class FacetValueUpdateWorkflow extends FacetMutationWorkflowBase<
   }
 
   @Workflow("facetValueUpdate")
+  @Policy<FacetMutationWorkflowInput<FacetValueUpdateParams>>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: FacetMutationWorkflowInput<FacetValueUpdateParams>
   ): Promise<FacetValueResult> {
@@ -483,6 +508,12 @@ export class FacetValueDeleteWorkflow extends FacetMutationWorkflowBase<
   }
 
   @Workflow("facetValueDelete")
+  @Policy<FacetMutationWorkflowInput<FacetValueDeleteParams>>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: FacetMutationWorkflowInput<FacetValueDeleteParams>
   ): Promise<FacetValueDeleteResult> {
@@ -500,6 +531,12 @@ export class FacetValueMergeWorkflow extends FacetMutationWorkflowBase<
   }
 
   @Workflow("facetValueMerge")
+  @Policy<FacetMutationWorkflowInput<FacetValueMergeParams>>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: FacetMutationWorkflowInput<FacetValueMergeParams>
   ): Promise<FacetValueMergeResult> {
@@ -517,6 +554,12 @@ export class FacetValueUnmergeWorkflow extends FacetMutationWorkflowBase<
   }
 
   @Workflow("facetValueUnmerge")
+  @Policy<FacetMutationWorkflowInput<FacetValueUnmergeParams>>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: FacetMutationWorkflowInput<FacetValueUnmergeParams>
   ): Promise<FacetValueUnmergeResult> {

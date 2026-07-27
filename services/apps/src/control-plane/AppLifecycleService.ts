@@ -6,6 +6,7 @@ import type {
   AppManifest,
 } from "@shopana/app-sdk";
 import type {
+  BrokerAdminContext,
   BrokerCallContext,
   ServiceBroker,
 } from "@shopana/shared-kernel";
@@ -34,6 +35,7 @@ export class AppLifecycleService {
     broker: ServiceBroker,
   ): Promise<Apps.AppLifecycleAcceptedResult> {
     this.assertPlatformCaller(context);
+    const adminContext = requiredAdminContext(context);
     const runtime = this.requireRuntime(params.appCode);
     const manifest = runtime.definition.manifest;
     const grantedScopes = this.validateGrantedScopes(
@@ -57,7 +59,7 @@ export class AppLifecycleService {
       begun,
       params.secrets,
     );
-    return this.startLifecycle(begun, broker);
+    return this.startLifecycle(begun, broker, adminContext);
   }
 
   async update(
@@ -66,6 +68,7 @@ export class AppLifecycleService {
     broker: ServiceBroker,
   ): Promise<Apps.AppLifecycleAcceptedResult> {
     this.assertPlatformCaller(context);
+    const adminContext = requiredAdminContext(context);
     const installation = await this.requireInstallation(
       params.installationId,
       params.storeId,
@@ -96,7 +99,7 @@ export class AppLifecycleService {
       snapshot: snapshotManifest(manifest),
     });
     await this.persistSecrets(begun, params.secrets);
-    return this.startLifecycle(begun, broker);
+    return this.startLifecycle(begun, broker, adminContext);
   }
 
   async suspend(
@@ -162,6 +165,7 @@ export class AppLifecycleService {
     transitionStatus: AppInstallationStatus,
   ): Promise<Apps.AppLifecycleAcceptedResult> {
     this.assertPlatformCaller(context);
+    const adminContext = requiredAdminContext(context);
     const installation = await this.requireInstallation(
       params.installationId,
       params.storeId,
@@ -178,12 +182,13 @@ export class AppLifecycleService {
       actor: actorFromContext(context, params.userId),
       correlationId: params.correlationId,
     });
-    return this.startLifecycle(begun, broker);
+    return this.startLifecycle(begun, broker, adminContext);
   }
 
   private async startLifecycle(
     begun: BegunLifecycleOperation,
     broker: ServiceBroker,
+    adminContext: BrokerAdminContext,
   ): Promise<Apps.AppLifecycleAcceptedResult> {
     if (!begun.duplicate) {
       try {
@@ -192,6 +197,9 @@ export class AppLifecycleService {
           {
             installationId: begun.installation.id,
             operationId: begun.operation.id,
+            organizationId: begun.installation.organizationId,
+            storeId: begun.installation.storeId,
+            operationType: begun.operation.type,
           },
           {
             source: "content",
@@ -203,7 +211,10 @@ export class AppLifecycleService {
               targetVersion: begun.operation.targetVersion,
             },
           },
-          { workflowId: begun.operation.workflowId },
+          {
+            workflowId: begun.operation.workflowId,
+            adminContext,
+          },
         );
       } catch (error) {
         await this.installations.failOperation(
@@ -287,6 +298,15 @@ export class AppLifecycleService {
       );
     }
   }
+}
+
+function requiredAdminContext(
+  context: BrokerCallContext,
+): BrokerAdminContext {
+  if (!context.adminContext) {
+    throw new Error("Verified Admin Context is required");
+  }
+  return context.adminContext;
 }
 
 function required(value: string, field: string): string {

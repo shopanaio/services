@@ -40,19 +40,23 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
       return this.$ctx.broker.call<
         Apps.AppLifecycleAcceptedResult,
         Apps.InstallAppParams
-      >("apps.installApp", {
-        appCode: input.appCode,
-        organizationId: this.$ctx.store.organizationId,
-        storeId: this.$ctx.store.id,
-        configuration: input.configuration ?? undefined,
-        grantedScopes: input.grantedScopes ?? undefined,
-        secrets: secretsToRecord(input.secrets),
-        installedByUserId: this.$ctx.hasUser
-          ? this.$ctx.user.id
-          : undefined,
-        idempotencyKey: input.clientMutationId,
-        correlationId: this.$ctx.requestId,
-      });
+      >(
+        "apps.installApp",
+        {
+          appCode: input.appCode,
+          organizationId: this.$ctx.store.organizationId,
+          storeId: this.$ctx.store.id,
+          configuration: input.configuration ?? undefined,
+          grantedScopes: input.grantedScopes ?? undefined,
+          secrets: secretsToRecord(input.secrets),
+          installedByUserId: this.$ctx.hasUser
+            ? this.$ctx.user.id
+            : undefined,
+          idempotencyKey: input.clientMutationId,
+          correlationId: this.$ctx.requestId,
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
     });
   }
 
@@ -71,20 +75,24 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
       return this.$ctx.broker.call<
         Apps.AppLifecycleAcceptedResult,
         Apps.UpdateAppParams
-      >("apps.updateApp", {
-        installationId: this.decodeInstallationId(
-          input.installationId,
-        ),
-        storeId: this.$ctx.store.id,
-        configuration: input.configuration ?? undefined,
-        expectedConfigurationVersion:
-          input.expectedConfigurationVersion ?? undefined,
-        grantedScopes: input.grantedScopes ?? undefined,
-        secrets: secretsToRecord(input.secrets),
-        idempotencyKey: input.clientMutationId,
-        userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-        correlationId: this.$ctx.requestId,
-      });
+      >(
+        "apps.updateApp",
+        {
+          installationId: this.decodeInstallationId(
+            input.installationId,
+          ),
+          storeId: this.$ctx.store.id,
+          configuration: input.configuration ?? undefined,
+          expectedConfigurationVersion:
+            input.expectedConfigurationVersion ?? undefined,
+          grantedScopes: input.grantedScopes ?? undefined,
+          secrets: secretsToRecord(input.secrets),
+          idempotencyKey: input.clientMutationId,
+          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+          correlationId: this.$ctx.requestId,
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
     });
   }
 
@@ -177,7 +185,11 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
         | Apps.SuspendAppParams
         | Apps.ResumeAppParams
         | Apps.UninstallAppParams
-      >(action, params);
+      >(
+        action,
+        params,
+        { adminContext: this.$ctx.adminContext },
+      );
     });
   }
 

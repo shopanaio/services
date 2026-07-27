@@ -3,6 +3,7 @@ import type { ReviewCreatedEvent } from "@shopana/events";
 import {
   DBOS,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -21,6 +22,12 @@ export class ReviewCreateWorkflow extends ReviewsMutationWorkflow {
   }
 
   @Workflow("reviewCreate")
+  @Policy<ReviewCreateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(input: ReviewCreateWorkflowInput): Promise<ReviewCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.review && result.userErrors.length === 0) {

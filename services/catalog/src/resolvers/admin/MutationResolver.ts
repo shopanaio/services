@@ -689,7 +689,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         resourceId: sagaInput.handle,
         operation: "productCreate",
         content: input,
-      }
+      },
+      { adminContext: this.$ctx.adminContext },
     );
 
     const result = sagaResult.data!;
@@ -802,7 +803,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           source: "workflow",
           workflowId: `productUpdate:${decodedProductId}:${idempotencyKey}`,
           stepId: "start",
-        }
+        },
+        { adminContext: this.$ctx.adminContext },
       )) as ProductUpdateWorkflowResult;
 
     return {
@@ -1046,7 +1048,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           source: "workflow",
           workflowId: `categoryUpdate:${categoryId}:${this.$ctx.requestId}`,
           stepId: "start",
-        }
+        },
+        { adminContext: this.$ctx.adminContext },
       )) as CategoryUpdateWorkflowResult;
 
     return {
@@ -1635,7 +1638,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           source: "workflow",
           workflowId: `productBulkEdit:${context.storeId}:${idempotencyKey}`,
           stepId: "start",
-        }
+        },
+        { adminContext: this.$ctx.adminContext },
       )) as { jobId: string };
 
     return {

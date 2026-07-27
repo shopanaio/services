@@ -236,6 +236,7 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
         stepId: "start",
         callId: payloadHash,
       },
+      { adminContext: this.$ctx.adminContext },
     );
 
     const currentSettings = result.settings
@@ -279,14 +280,19 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
       SearchSynonymGroupMutationWorkflowResult,
       SearchSynonymGroupCreateWorkflowInput
-    >("listing.searchSynonymGroupCreate", workflowInput, {
-      source: "workflow",
-      organizationId: this.$ctx.store.organizationId,
-      workflowId:
-        `searchSynonymGroupCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-      stepId: "start",
-      callId: hashContent({ v: 1, params: workflowInput.params }),
-    });
+    >(
+      "listing.searchSynonymGroupCreate",
+      workflowInput,
+      {
+        source: "workflow",
+        organizationId: this.$ctx.store.organizationId,
+        workflowId:
+          `searchSynonymGroupCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+        stepId: "start",
+        callId: hashContent({ v: 1, params: workflowInput.params }),
+      },
+      { adminContext: this.$ctx.adminContext },
+    );
     return {
       synonymGroup: result.synonymGroup
         ? mapSearchSynonymGroupAggregate(result.synonymGroup)
@@ -333,14 +339,19 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
       SearchSynonymGroupMutationWorkflowResult,
       SearchSynonymGroupUpdateWorkflowInput
-    >("listing.searchSynonymGroupUpdate", workflowInput, {
-      source: "workflow",
-      organizationId: this.$ctx.store.organizationId,
-      workflowId:
-        `searchSynonymGroupUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-      stepId: "start",
-      callId: hashContent({ v: 1, params: workflowInput.params }),
-    });
+    >(
+      "listing.searchSynonymGroupUpdate",
+      workflowInput,
+      {
+        source: "workflow",
+        organizationId: this.$ctx.store.organizationId,
+        workflowId:
+          `searchSynonymGroupUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+        stepId: "start",
+        callId: hashContent({ v: 1, params: workflowInput.params }),
+      },
+      { adminContext: this.$ctx.adminContext },
+    );
     return {
       synonymGroup: result.synonymGroup
         ? mapSearchSynonymGroupAggregate(result.synonymGroup)
@@ -382,14 +393,19 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
       SearchProductBoostMutationWorkflowResult,
       SearchProductBoostCreateWorkflowInput
-    >("listing.searchProductBoostCreate", workflowInput, {
-      source: "workflow",
-      organizationId: this.$ctx.store.organizationId,
-      workflowId:
-        `searchProductBoostCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-      stepId: "start",
-      callId: hashContent({ v: 1, params: workflowInput.params }),
-    });
+    >(
+      "listing.searchProductBoostCreate",
+      workflowInput,
+      {
+        source: "workflow",
+        organizationId: this.$ctx.store.organizationId,
+        workflowId:
+          `searchProductBoostCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+        stepId: "start",
+        callId: hashContent({ v: 1, params: workflowInput.params }),
+      },
+      { adminContext: this.$ctx.adminContext },
+    );
     return {
       productBoost: result.productBoost
         ? mapSearchProductBoostAggregate(result.productBoost)
@@ -443,14 +459,19 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
       SearchProductBoostMutationWorkflowResult,
       SearchProductBoostUpdateWorkflowInput
-    >("listing.searchProductBoostUpdate", workflowInput, {
-      source: "workflow",
-      organizationId: this.$ctx.store.organizationId,
-      workflowId:
-        `searchProductBoostUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-      stepId: "start",
-      callId: hashContent({ v: 1, params: workflowInput.params }),
-    });
+    >(
+      "listing.searchProductBoostUpdate",
+      workflowInput,
+      {
+        source: "workflow",
+        organizationId: this.$ctx.store.organizationId,
+        workflowId:
+          `searchProductBoostUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+        stepId: "start",
+        callId: hashContent({ v: 1, params: workflowInput.params }),
+      },
+      { adminContext: this.$ctx.adminContext },
+    );
     return {
       productBoost: result.productBoost
         ? mapSearchProductBoostAggregate(result.productBoost)
@@ -490,14 +511,19 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
       SearchSynonymGroupMutationWorkflowResult,
       SearchSynonymGroupDeleteWorkflowInput
-    >("listing.searchSynonymGroupDelete", workflowInput, {
-      source: "workflow",
-      organizationId: this.$ctx.store.organizationId,
-      workflowId:
-        `searchSynonymGroupDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-      stepId: "start",
-      callId: hashContent({ v: 1, params: workflowInput.params }),
-    });
+    >(
+      "listing.searchSynonymGroupDelete",
+      workflowInput,
+      {
+        source: "workflow",
+        organizationId: this.$ctx.store.organizationId,
+        workflowId:
+          `searchSynonymGroupDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+        stepId: "start",
+        callId: hashContent({ v: 1, params: workflowInput.params }),
+      },
+      { adminContext: this.$ctx.adminContext },
+    );
     return {
       synonymGroup: result.synonymGroup
         ? mapSearchSynonymGroupAggregate(result.synonymGroup)
@@ -534,14 +560,19 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
       SearchProductBoostMutationWorkflowResult,
       SearchProductBoostDeleteWorkflowInput
-    >("listing.searchProductBoostDelete", workflowInput, {
-      source: "workflow",
-      organizationId: this.$ctx.store.organizationId,
-      workflowId:
-        `searchProductBoostDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-      stepId: "start",
-      callId: hashContent({ v: 1, params: workflowInput.params }),
-    });
+    >(
+      "listing.searchProductBoostDelete",
+      workflowInput,
+      {
+        source: "workflow",
+        organizationId: this.$ctx.store.organizationId,
+        workflowId:
+          `searchProductBoostDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+        stepId: "start",
+        callId: hashContent({ v: 1, params: workflowInput.params }),
+      },
+      { adminContext: this.$ctx.adminContext },
+    );
     return {
       productBoost: result.productBoost
         ? mapSearchProductBoostAggregate(result.productBoost)

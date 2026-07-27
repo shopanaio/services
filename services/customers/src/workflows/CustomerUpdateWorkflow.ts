@@ -4,6 +4,7 @@ import {
   BrokerWorkflows,
   DBOS,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -41,6 +42,12 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
   }
 
   @Workflow("customerUpdate")
+  @Policy<CustomerUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerUpdateWorkflowInput
   ): Promise<CustomerUpdateWorkflowResult> {

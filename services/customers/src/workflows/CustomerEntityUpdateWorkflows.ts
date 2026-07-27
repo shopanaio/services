@@ -4,6 +4,7 @@ import {
   BrokerWorkflows,
   DBOS,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -104,6 +105,12 @@ export class CustomerGroupUpdateWorkflow extends CustomerEntityUpdateWorkflow {
   }
 
   @Workflow("customerGroupUpdate")
+  @Policy<CustomerGroupUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerGroupUpdateWorkflowInput
   ): Promise<CustomerGroupUpdateWorkflowResult> {
@@ -138,6 +145,12 @@ export class CustomerTagUpdateWorkflow extends CustomerEntityUpdateWorkflow {
   }
 
   @Workflow("customerTagUpdate")
+  @Policy<CustomerTagUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerTagUpdateWorkflowInput
   ): Promise<CustomerTagUpdateWorkflowResult> {
@@ -172,6 +185,12 @@ export class CustomerSegmentUpdateWorkflow extends CustomerEntityUpdateWorkflow 
   }
 
   @Workflow("customerSegmentUpdate")
+  @Policy<CustomerSegmentUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerSegmentUpdateWorkflowInput
   ): Promise<CustomerSegmentUpdateWorkflowResult> {
@@ -206,6 +225,12 @@ export class CustomerMergeUpdateWorkflow extends CustomerEntityUpdateWorkflow {
   }
 
   @Workflow("customerMergeUpdate")
+  @Policy<CustomerMergeUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerMergeUpdateWorkflowInput
   ): Promise<CustomerMergeUpdateWorkflowResult> {
@@ -233,6 +258,12 @@ export class CustomerDataRequestUpdateWorkflow extends CustomerEntityUpdateWorkf
   }
 
   @Workflow("customerDataRequestUpdate")
+  @Policy<CustomerDataRequestUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerDataRequestUpdateWorkflowInput
   ): Promise<CustomerDataRequestUpdateWorkflowResult> {

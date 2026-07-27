@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -48,6 +49,12 @@ export class SearchSynonymGroupCreateWorkflow
   }
 
   @Workflow("searchSynonymGroupCreate")
+  @Policy<SearchSynonymGroupCreateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: SearchSynonymGroupCreateWorkflowInput,
   ): Promise<SearchSynonymGroupMutationWorkflowResult> {
@@ -79,6 +86,12 @@ export class SearchSynonymGroupUpdateWorkflow
   }
 
   @Workflow("searchSynonymGroupUpdate")
+  @Policy<SearchSynonymGroupUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: SearchSynonymGroupUpdateWorkflowInput,
   ): Promise<SearchSynonymGroupMutationWorkflowResult> {
@@ -110,6 +123,12 @@ export class SearchProductBoostCreateWorkflow
   }
 
   @Workflow("searchProductBoostCreate")
+  @Policy<SearchProductBoostCreateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: SearchProductBoostCreateWorkflowInput,
   ): Promise<SearchProductBoostMutationWorkflowResult> {
@@ -141,6 +160,12 @@ export class SearchProductBoostUpdateWorkflow
   }
 
   @Workflow("searchProductBoostUpdate")
+  @Policy<SearchProductBoostUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: SearchProductBoostUpdateWorkflowInput,
   ): Promise<SearchProductBoostMutationWorkflowResult> {
@@ -172,6 +197,12 @@ export class SearchSynonymGroupDeleteWorkflow
   }
 
   @Workflow("searchSynonymGroupDelete")
+  @Policy<SearchSynonymGroupDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: SearchSynonymGroupDeleteWorkflowInput,
   ): Promise<SearchSynonymGroupMutationWorkflowResult> {
@@ -203,6 +234,12 @@ export class SearchProductBoostDeleteWorkflow
   }
 
   @Workflow("searchProductBoostDelete")
+  @Policy<SearchProductBoostDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: SearchProductBoostDeleteWorkflowInput,
   ): Promise<SearchProductBoostMutationWorkflowResult> {

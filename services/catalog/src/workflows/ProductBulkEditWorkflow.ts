@@ -4,7 +4,9 @@ import {
   Workflow,
   WorkflowStep,
   InjectBroker,
+  Policy,
   ServiceBroker,
+  type WorkflowExecutionContext,
   DBOS,
 } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
@@ -38,7 +40,19 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
   }
 
   @Workflow("productBulkEdit")
-  async run(input: ProductBulkEditInput): Promise<ProductBulkEditResult> {
+  @Policy<ProductBulkEditInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
+  async run(
+    input: ProductBulkEditInput,
+    workflowContext?: WorkflowExecutionContext,
+  ): Promise<ProductBulkEditResult> {
+    if (!workflowContext) {
+      throw new Error("Workflow authorization context is required");
+    }
     const { products, context } = input;
 
     // 1. Create job with items grouped by product
@@ -56,7 +70,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
       const cancelled = await this.stepIsJobCancelled(jobId);
       if (cancelled) break;
 
-      await this.executeProductGroup(group, context);
+      await this.executeProductGroup(group, context, workflowContext);
     }
 
     await this.stepFinalizeJob(jobId);
@@ -65,7 +79,8 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
 
   private async executeProductGroup(
     group: ProductGroup,
-    context: ProductBulkEditInput["context"]
+    context: ProductBulkEditInput["context"],
+    workflowContext: WorkflowExecutionContext,
   ): Promise<void> {
     const { productId, expectedRevision, items } = group;
 
@@ -92,7 +107,8 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
           workflowId: DBOS.workflowID!,
           stepId: "productUpdate",
           callId: productId,
-        }
+        },
+        { workflowContext },
       )) as ProductUpdateWorkflowResult;
 
       // 4. Map results back to items

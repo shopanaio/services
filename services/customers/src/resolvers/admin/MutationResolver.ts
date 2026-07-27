@@ -230,7 +230,8 @@ export class CustomersMutationResolver extends CustomersType<
           source: "workflow",
           workflowId: `customerCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
           stepId: "start",
-        }
+        },
+        { adminContext: this.$ctx.adminContext },
       )) as CustomerCreateWorkflowResult;
 
     return {
@@ -290,7 +291,8 @@ export class CustomersMutationResolver extends CustomersType<
           source: "workflow",
           workflowId: `customerUpdate:${customerId}:${this.$ctx.requestId}`,
           stepId: "start",
-        }
+        },
+        { adminContext: this.$ctx.adminContext },
       )) as CustomerUpdateWorkflowResult;
 
     this.$ctx.loaders.customer.clear(customerId);
@@ -339,7 +341,8 @@ export class CustomersMutationResolver extends CustomersType<
           source: "workflow",
           workflowId: `customerDelete:${customerId}:${this.$ctx.requestId}`,
           stepId: "start",
-        }
+        },
+        { adminContext: this.$ctx.adminContext },
       )) as CustomerDeleteWorkflowResult;
 
     this.$ctx.loaders.customer.clear(customerId);
@@ -377,7 +380,8 @@ export class CustomersMutationResolver extends CustomersType<
           source: "workflow",
           workflowId: `${operation}:${this.$ctx.store.id}:${this.$ctx.requestId}`,
           stepId: "start",
-        }
+        },
+        { adminContext: this.$ctx.adminContext },
       )) as TResult;
   }
 

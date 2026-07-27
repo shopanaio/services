@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -59,6 +60,12 @@ export class CustomerGroupCreateWorkflow extends CustomerEntityCreateWorkflow {
   }
 
   @Workflow("customerGroupCreate")
+  @Policy<CustomerGroupCreateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerGroupCreateWorkflowInput
   ): Promise<CustomerGroupCreateWorkflowResult> {
@@ -82,6 +89,12 @@ export class CustomerTagCreateWorkflow extends CustomerEntityCreateWorkflow {
   }
 
   @Workflow("customerTagCreate")
+  @Policy<CustomerTagCreateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerTagCreateWorkflowInput
   ): Promise<CustomerTagCreateWorkflowResult> {
@@ -105,6 +118,12 @@ export class CustomerSegmentCreateWorkflow extends CustomerEntityCreateWorkflow 
   }
 
   @Workflow("customerSegmentCreate")
+  @Policy<CustomerSegmentCreateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerSegmentCreateWorkflowInput
   ): Promise<CustomerSegmentCreateWorkflowResult> {
@@ -128,6 +147,12 @@ export class CustomerMergeCreateWorkflow extends CustomerEntityCreateWorkflow {
   }
 
   @Workflow("customerMergeCreate")
+  @Policy<CustomerMergeCreateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerMergeCreateWorkflowInput
   ): Promise<CustomerMergeCreateWorkflowResult> {
@@ -151,6 +176,12 @@ export class CustomerDataRequestCreateWorkflow extends CustomerEntityCreateWorkf
   }
 
   @Workflow("customerDataRequestCreate")
+  @Policy<CustomerDataRequestCreateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerDataRequestCreateWorkflowInput
   ): Promise<CustomerDataRequestCreateWorkflowResult> {

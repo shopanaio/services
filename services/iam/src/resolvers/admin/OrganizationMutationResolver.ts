@@ -193,7 +193,8 @@ export class OrganizationMutationResolver extends IAMType<
         resourceId: organizationId,
         operation: "organizationDelete",
         contentHash: hashContent({ organizationId }),
-      }
+      },
+      { adminContext: this.$ctx.adminContext },
     );
 
     const data = result.data;

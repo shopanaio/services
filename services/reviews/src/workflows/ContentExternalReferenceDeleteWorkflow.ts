@@ -3,6 +3,7 @@ import type { ReviewContentExternalReferenceDeletedEvent } from "@shopana/events
 import {
   DBOS,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -21,6 +22,12 @@ export class ContentExternalReferenceDeleteWorkflow extends ReviewsMutationWorkf
   }
 
   @Workflow("contentExternalReferenceDelete")
+  @Policy<ContentExternalReferenceDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: ContentExternalReferenceDeleteWorkflowInput
   ): Promise<ContentExternalReferenceDeleteWorkflowResult> {

@@ -4,6 +4,7 @@ import {
   BrokerWorkflows,
   DBOS,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -28,6 +29,12 @@ export class CustomerDeleteWorkflow extends BrokerWorkflows {
   }
 
   @Workflow("customerDelete")
+  @Policy<CustomerDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: CustomerDeleteWorkflowInput
   ): Promise<CustomerDeleteWorkflowResult> {

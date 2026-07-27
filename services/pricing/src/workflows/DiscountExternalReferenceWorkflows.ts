@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -57,6 +58,12 @@ export class DiscountExternalReferenceCreateWorkflow extends DiscountExternalRef
   }
 
   @Workflow("discountExternalReferenceCreate")
+  @Policy<DiscountExternalReferenceCreateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: DiscountExternalReferenceCreateWorkflowInput,
   ): Promise<DiscountExternalReferenceCreateWorkflowResult> {
@@ -93,6 +100,12 @@ export class DiscountExternalReferenceUpdateWorkflow extends DiscountExternalRef
   }
 
   @Workflow("discountExternalReferenceUpdate")
+  @Policy<DiscountExternalReferenceUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: DiscountExternalReferenceUpdateWorkflowInput,
   ): Promise<DiscountExternalReferenceUpdateWorkflowResult> {
@@ -126,6 +139,12 @@ export class DiscountExternalReferenceDeleteWorkflow extends DiscountExternalRef
   }
 
   @Workflow("discountExternalReferenceDelete")
+  @Policy<DiscountExternalReferenceDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: DiscountExternalReferenceDeleteWorkflowInput,
   ): Promise<DiscountExternalReferenceDeleteWorkflowResult> {

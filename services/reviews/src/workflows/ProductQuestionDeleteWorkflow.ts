@@ -3,6 +3,7 @@ import type { ProductQuestionDeletedEvent } from "@shopana/events";
 import {
   DBOS,
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -21,6 +22,12 @@ export class ProductQuestionDeleteWorkflow extends ReviewsMutationWorkflow {
   }
 
   @Workflow("productQuestionDelete")
+  @Policy<ProductQuestionDeleteWorkflowInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: ProductQuestionDeleteWorkflowInput
   ): Promise<ProductQuestionDeleteWorkflowResult> {

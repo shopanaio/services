@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   InjectBroker,
+  Policy,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -28,6 +29,12 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
   }
 
   @Workflow("productQuestionUpdate")
+  @Policy<ProductQuestionUpdateWorkflowInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_self, input) => input.context.organizationId,
+    domain: (_self, input) => `store:${input.context.storeId}`,
+  })
   async run(
     input: ProductQuestionUpdateWorkflowInput
   ): Promise<ProductQuestionUpdateWorkflowResult> {
