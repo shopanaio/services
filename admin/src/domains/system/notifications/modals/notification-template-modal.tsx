@@ -25,7 +25,7 @@ import {
   ModalLayout,
   useModalStackContext,
 } from "@/layouts/modals";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   useNotificationTemplate,
   useNotificationTemplatePreview,
@@ -93,16 +93,9 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 0,
     overflow: "hidden",
   },
-  editorHeader: {
-    boxSizing: "border-box",
-    display: "flex",
-    flex: "0 0 44px",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 44,
-    paddingInline: 12,
+  editorToolbar: {
+    flex: "0 0 50px",
     background: token.colorFillQuaternary,
-    borderBottom: `1px solid ${token.colorBorder}`,
   },
   languageBadge: {
     margin: 0,
@@ -538,19 +531,25 @@ export function NotificationTemplateModal() {
 
             {channel === NotificationChannel.Email ? (
               <Paper className={styles.editorPaper}>
-                <div className={styles.editorHeader}>
-                  <Segmented<EditorMode>
-                    onChange={(nextMode) =>
-                      void changeMode(nextMode).catch(() => undefined)
-                    }
-                    options={["Edit", "Preview", "Variables"]}
-                    size="small"
-                    value={mode}
-                  />
-                  <Tag className={styles.languageBadge}>
-                    HTML + Handlebars
-                  </Tag>
-                </div>
+                <PaperHeader
+                  actions={
+                    <Tag className={styles.languageBadge}>
+                      HTML + Handlebars
+                    </Tag>
+                  }
+                  className={styles.editorToolbar}
+                  contained
+                  title={
+                    <Segmented<EditorMode>
+                      onChange={(nextMode) =>
+                        void changeMode(nextMode).catch(() => undefined)
+                      }
+                      options={["Edit", "Preview", "Variables"]}
+                      size="small"
+                      value={mode}
+                    />
+                  }
+                />
                 <div
                   className={styles.editorBody}
                   data-testid="notification-template-body-editor"

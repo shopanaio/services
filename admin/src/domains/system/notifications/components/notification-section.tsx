@@ -10,7 +10,7 @@ import {
   GroupedLinkItem,
   GroupedLinkItemDivider,
 } from "@/ui-kit/grouped-link-item";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type {
   NotificationItemConfig,
   NotificationSectionConfig,
@@ -35,17 +35,6 @@ const useStyles = createStyles(({ css, token }) => ({
       inset 0 0 0 1px ${token.colorBorderSecondary},
       0 2px 8px rgb(0 0 0 / 8%);
   `,
-  header: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    height: 50,
-    paddingInline: 16,
-    color: token.colorText,
-    fontSize: 14,
-    fontWeight: token.fontWeightStrong,
-    lineHeight: "22px",
-  },
   itemDivider: {
     position: "relative",
     zIndex: 3,
@@ -102,8 +91,7 @@ export function NotificationSection({
 
   return (
     <Paper className={styles.paper}>
-      <div className={styles.header}>{section.title}</div>
-      <GroupedLinkItemDivider />
+      <PaperHeader contained title={section.title} />
       {section.items.map((item, index) => {
         const definition = definitionByKey.get(item.key);
         const updating = updatingKeys.has(item.key);

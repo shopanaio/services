@@ -11,6 +11,12 @@ const useStyles = createStyles(({ token }) => ({
     paddingBottom: token.paddingSM,
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
+  contained: {
+    minHeight: 50,
+    marginBottom: 0,
+    paddingBlock: 0,
+    paddingInline: token.padding,
+  },
   extra: {
     flex: 1,
   },
@@ -25,6 +31,8 @@ interface IPaperHeaderProps {
   actions?: ReactNode;
   /** Whether to show bottom border (default: true) */
   bordered?: boolean;
+  /** Header placed inside a Paper without its own padding */
+  contained?: boolean;
   /** Custom class name */
   className?: string;
   /** Optional icon shown before string titles */
@@ -37,6 +45,7 @@ export const PaperHeader = ({
   extra,
   actions,
   bordered = true,
+  contained = false,
   className,
 }: IPaperHeaderProps) => {
   const { styles, cx } = useStyles();
@@ -60,7 +69,11 @@ export const PaperHeader = ({
     <Flex
       align="center"
       justify="space-between"
-      className={cx(className, bordered && styles.header)}
+      className={cx(
+        bordered && styles.header,
+        contained && styles.contained,
+        className,
+      )}
     >
       <Flex align="center" gap={12} style={{ flex: 1 }}>
         {renderTitle()}

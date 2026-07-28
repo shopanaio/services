@@ -16,7 +16,7 @@ import {
   GroupedLinkItem,
   GroupedLinkItemDivider,
 } from "@/ui-kit/grouped-link-item";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 const DELIVERY_APPS_WHERE = {
   installed: { _eq: true },
@@ -39,17 +39,6 @@ const useStyles = createStyles(({ css, token }) => ({
     border-radius: ${token.borderRadiusLG}px;
     box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
   `,
-  deliveryHeader: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    height: 50,
-    paddingInline: 16,
-    color: token.colorText,
-    fontSize: 14,
-    fontWeight: token.fontWeightStrong,
-    lineHeight: "22px",
-  },
   appList: {
     margin: 0,
     padding: 0,
@@ -98,8 +87,7 @@ export default function NotificationSettingsPage() {
         ) : null}
 
         <Paper className={styles.deliveryPaper}>
-          <div className={styles.deliveryHeader}>Message delivery</div>
-          <GroupedLinkItemDivider />
+          <PaperHeader contained title="Message delivery" />
           {loading && deliveryApps.length === 0 ? (
             <ul className={styles.appList}>
               <AppRowSkeleton />
