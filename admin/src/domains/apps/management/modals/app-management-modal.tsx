@@ -19,6 +19,7 @@ import {
   LuActivity,
   LuCircleCheck,
   LuCodeXml,
+  LuExternalLink,
   LuShieldCheck,
 } from "react-icons/lu";
 import {
@@ -31,6 +32,7 @@ import {
   ModalLayout,
   useModalStackContext,
 } from "@/layouts/modals";
+import { usePathParams } from "@/registry";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ManagementAppListItem } from "../graphql/operation-types";
 import {
@@ -244,7 +246,13 @@ const getOperationColor = (status: AppLifecycleOperationStatus) => {
   return "blue";
 };
 
-function AppSummary({ app }: { app: ManagementAppListItem }) {
+function AppSummary({
+  app,
+  openHref,
+}: {
+  app: ManagementAppListItem;
+  openHref: string | null;
+}) {
   const { styles } = useStyles();
   const version = app.installation?.installedVersion ?? app.version;
 
@@ -267,6 +275,15 @@ function AppSummary({ app }: { app: ManagementAppListItem }) {
             Version {version}
           </Typography.Text>
         </div>
+        {openHref ? (
+          <Button
+            href={openHref}
+            icon={<LuExternalLink aria-hidden />}
+            size="small"
+          >
+            Open
+          </Button>
+        ) : null}
       </div>
       <Typography.Paragraph className={styles.description}>
         {app.description}
@@ -454,6 +471,7 @@ export const AppManagementModal = () => {
   const { styles } = useStyles();
   const { message, modal } = App.useApp();
   const { payload, pop } = useModalStackContext();
+  const { getParam } = usePathParams();
   const { appCode } = payload as AppManagementModalPayload;
   const { apps, loading, error } = useAppsManagement();
   const {
@@ -556,6 +574,14 @@ export const AppManagementModal = () => {
     : false;
   const suspended =
     app?.installation?.status === AppInstallationStatus.Suspended;
+  const orgName = getParam("orgName") ?? "";
+  const storeName = getParam("storeName") ?? "";
+  const openHref =
+    app && installed
+      ? `/${encodeURIComponent(orgName)}/${encodeURIComponent(
+          storeName,
+        )}/apps/${encodeURIComponent(app.code)}`
+      : null;
 
   return (
     <ModalLayout
@@ -592,7 +618,7 @@ export const AppManagementModal = () => {
         </Paper>
       ) : app ? (
         <>
-          <AppSummary app={app} />
+          <AppSummary app={app} openHref={openHref} />
           <AccessAndCapabilities app={app} />
           {installed ? <AppHistory app={app} /> : null}
 
