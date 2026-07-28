@@ -32,6 +32,7 @@ export class NotificationEnqueueWorkflow extends MaterializationWorkflowBase {
       requestId: `notification-action-${input.idempotencyKey}`,
       displayName: store.displayName,
       timezone: store.timezone,
+      email: store.email,
     };
     const materialized = await this.materialize({
       context,
@@ -63,14 +64,18 @@ function readStoreSnapshot(data: Record<string, unknown>) {
     typeof store.id !== "string" ||
     typeof store.displayName !== "string" ||
     typeof store.defaultLocale !== "string" ||
-    typeof store.timezone !== "string"
+    typeof store.timezone !== "string" ||
+    (store.email !== undefined &&
+      store.email !== null &&
+      typeof store.email !== "string")
   ) {
     throw new Error("NOTIFICATION_DATA_STORE_REQUIRED");
   }
-  return store as {
-    id: string;
-    displayName: string;
-    defaultLocale: string;
-    timezone: string;
+  return {
+    id: store.id,
+    displayName: store.displayName,
+    defaultLocale: store.defaultLocale,
+    timezone: store.timezone,
+    email: typeof store.email === "string" ? store.email : null,
   };
 }

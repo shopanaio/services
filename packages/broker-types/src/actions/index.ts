@@ -43,6 +43,8 @@ export type {
   NotificationDefinitionMetadata,
   EnqueueNotificationParams,
   EnqueueNotificationResult,
+  ApplicationAuthNotificationParams,
+  EnqueueApplicationAuthNotificationParams,
   NotificationDeliveryInputBase,
   EmailDeliveryInput,
   SmsDeliveryInput,

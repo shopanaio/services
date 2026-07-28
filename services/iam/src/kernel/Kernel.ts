@@ -50,6 +50,7 @@ import {
   createApplicationAuthLiveStateInvalidationEvent,
   type ApplicationAuthLiveStateInvalidationPort,
 } from "../events/application-auth/index.js";
+import { NotificationsApplicationAuthEmailDelivery } from "../infrastructure/notifications/NotificationsApplicationAuthEmailDelivery.js";
 
 /**
  * Extended kernel for IAM microservice (singleton)
@@ -189,12 +190,15 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationAuthPublicBaseUrl,
       consoleLogger
     );
+    const applicationAuthEmailDelivery =
+      options.applicationAuthEmailDelivery ??
+      new NotificationsApplicationAuthEmailDelivery(broker, repository);
     const applicationAuth = new ApplicationAuthFactory(
       applicationAuthKeyring,
       applicationAuthSecrets,
       repository.applicationAuthConfiguration,
       {
-        emailDelivery: options.applicationAuthEmailDelivery,
+        emailDelivery: applicationAuthEmailDelivery,
         liveStateInvalidation: applicationAuthLiveStateInvalidation,
         applicationUserLifecycle: {
           async provisioningRequired(input) {

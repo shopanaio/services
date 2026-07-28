@@ -56,4 +56,5 @@ export interface DeliveryWorkflowInput {
   defaultLocale?: string;
   displayName?: string;
   timezone?: string;
+  email?: string | null;
 }

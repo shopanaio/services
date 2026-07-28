@@ -221,10 +221,13 @@ export class DeliveryExecutionScript extends BaseScript<
         subject: rendered.subject ?? "",
         html: rendered.html,
         text: rendered.text,
-        from: channelSetting?.senderEmail
+        from: (channelSetting?.senderEmail ?? this.context.store.email)
           ? {
-              email: channelSetting.senderEmail,
-              name: channelSetting.senderName ?? undefined,
+              email: channelSetting?.senderEmail ?? this.context.store.email!,
+              name:
+                channelSetting?.senderName ??
+                this.context.store.displayName ??
+                undefined,
             }
           : undefined,
         replyTo: channelSetting?.replyTo ?? undefined,

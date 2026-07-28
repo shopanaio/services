@@ -265,6 +265,22 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     }
     if (input.applicationAuth) {
       const applicationAuth = input.applicationAuth;
+      if (input.managementMode === "service") {
+        const deliveryProfile = applicationAuthDeliveryProfileSchema.parse({
+          transportProfile: "notifications",
+          senderIdentity: "store",
+          emailVerificationTemplateId: "customer.auth.email_verification",
+          passwordResetTemplateId: "customer.auth.password_reset",
+          emailOtpSignInTemplateId: "customer.auth.login_code",
+          updatedBy: applicationAuth.actorId,
+        });
+        await this.connection
+          .insert(applicationAuthDeliveryProfile)
+          .values({
+            applicationId: input.applicationId,
+            ...deliveryProfile,
+          });
+      }
       await this.connection.insert(applicationAuthOrigin).values({
         applicationId: input.applicationId,
         origin: applicationAuth.origin,

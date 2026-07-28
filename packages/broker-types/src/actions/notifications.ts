@@ -130,6 +130,33 @@ export interface EnqueueNotificationResult {
   accepted: true;
 }
 
+export type ApplicationAuthNotificationParams =
+  | {
+      kind: "EMAIL_VERIFICATION";
+      url: string;
+    }
+  | {
+      kind: "EMAIL_OTP_SIGN_IN";
+      otp: string;
+    }
+  | {
+      kind: "PASSWORD_RESET";
+      url: string;
+    };
+
+export interface EnqueueApplicationAuthNotificationParams {
+  applicationId: string;
+  storeId: string;
+  organizationId: string;
+  recipient: {
+    email: string;
+    locale?: string;
+    name?: string;
+  };
+  notification: ApplicationAuthNotificationParams;
+  idempotencyKey: string;
+}
+
 export interface NotificationDeliveryInputBase {
   deliveryId: string;
   idempotencyKey: string;

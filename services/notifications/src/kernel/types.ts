@@ -30,4 +30,5 @@ export interface RunScriptContext {
   requestId?: string;
   displayName?: string;
   timezone?: string;
+  email?: string | null;
 }

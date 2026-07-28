@@ -54,6 +54,77 @@ export class NotificationBrokerActions extends BrokerActions {
     return { workflowId: started.workflowId, accepted: true };
   }
 
+  @Action("enqueueApplicationAuth")
+  async enqueueApplicationAuth(
+    params: Notifications.EnqueueApplicationAuthNotificationParams,
+    context: BrokerCallContext
+  ): Promise<Notifications.EnqueueNotificationResult> {
+    if (context.caller.service !== "iam") {
+      throw new Error(
+        "Application auth notifications can only be enqueued by IAM"
+      );
+    }
+    const store = await this.getStore(params.storeId);
+    if (store.organizationId !== params.organizationId) {
+      throw new Error(
+        "Application auth notification store is outside the organization"
+      );
+    }
+    const notification = applicationAuthNotification(params);
+    const data = {
+      store: {
+        id: store.id,
+        displayName: store.displayName,
+        defaultLocale: store.defaultLocale,
+        timezone: store.timezone,
+        email: store.email,
+      },
+      application: {
+        id: params.applicationId,
+      },
+      authentication: notification.data,
+    };
+    const started = await this.broker.startWorkflow(
+      "notifications.enqueue",
+      {
+        storeId: store.id,
+        organizationId: store.organizationId,
+        key: notification.key,
+        recipients: [
+          {
+            email: normalizeEmail(params.recipient.email),
+            locale: params.recipient.locale,
+            name: params.recipient.name,
+          },
+        ],
+        locale: params.recipient.locale,
+        data,
+        idempotencyKey: params.idempotencyKey,
+        subject: {
+          type: "applicationAuth",
+          id: params.applicationId,
+        },
+        correlationId: params.idempotencyKey,
+        sourceService: context.caller.service,
+        purpose: "BUSINESS",
+        forcedChannels: ["EMAIL"],
+      },
+      {
+        source: "content",
+        organizationId: store.organizationId,
+        resourceId: `${params.applicationId}:${params.idempotencyKey}`,
+        operation: `notifications.applicationAuth:${params.notification.kind}`,
+        content: {
+          applicationId: params.applicationId,
+          storeId: store.id,
+          notificationKind: params.notification.kind,
+          idempotencyKey: params.idempotencyKey,
+        },
+      }
+    );
+    return { workflowId: started.workflowId, accepted: true };
+  }
+
   @Action("sendTest")
   async sendTest(
     params: Notifications.SendTestNotificationParams,
@@ -245,4 +316,61 @@ export class NotificationBrokerActions extends BrokerActions {
       operation
     );
   }
+}
+
+function applicationAuthNotification(
+  params: Notifications.EnqueueApplicationAuthNotificationParams
+): {
+  key:
+    | "customer.auth.email_verification"
+    | "customer.auth.login_code"
+    | "customer.auth.password_reset";
+  data: Record<string, string>;
+} {
+  switch (params.notification.kind) {
+    case "EMAIL_VERIFICATION":
+      return {
+        key: "customer.auth.email_verification",
+        data: { url: requireHttpsOrLocalUrl(params.notification.url) },
+      };
+    case "EMAIL_OTP_SIGN_IN":
+      if (!/^\d{6}$/u.test(params.notification.otp)) {
+        throw new Error("Application auth email OTP is invalid");
+      }
+      return {
+        key: "customer.auth.login_code",
+        data: { otp: params.notification.otp },
+      };
+    case "PASSWORD_RESET":
+      return {
+        key: "customer.auth.password_reset",
+        data: { url: requireHttpsOrLocalUrl(params.notification.url) },
+      };
+  }
+}
+
+function normalizeEmail(value: string): string {
+  const email = value.trim().toLowerCase();
+  if (
+    email.length === 0 ||
+    email.length > 320 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)
+  ) {
+    throw new Error("Application auth notification email is invalid");
+  }
+  return email;
+}
+
+function requireHttpsOrLocalUrl(value: string): string {
+  const url = new URL(value);
+  const localHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+  if (
+    url.username ||
+    url.password ||
+    (url.protocol !== "https:" &&
+      !(url.protocol === "http:" && localHosts.has(url.hostname)))
+  ) {
+    throw new Error("Application auth notification URL is invalid");
+  }
+  return url.toString();
 }

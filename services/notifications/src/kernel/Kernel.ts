@@ -122,7 +122,7 @@ export class Kernel extends BaseKernel<NotificationKernelServices> {
           displayName: context.displayName ?? context.storeId,
           organizationId: context.organizationId,
           timezone: context.timezone ?? "UTC",
-          email: null,
+          email: context.email ?? null,
           defaultLocale: context.defaultLocale ?? context.locale ?? "en",
           currencyCode: "",
           locales: [context.defaultLocale ?? context.locale ?? "en"],

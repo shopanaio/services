@@ -93,7 +93,7 @@ const manifest = [
 ];
 
 export class TemplateDefinitionRegistry {
-  static readonly VERSION = "2026-07-v4";
+  static readonly VERSION = "2026-07-v5";
 
   private readonly definitions: ReadonlyMap<
     NotificationDefinitionKey,
