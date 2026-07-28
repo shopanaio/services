@@ -7,7 +7,6 @@ import {
   useCallback,
   useEffect,
   useRef,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { usePathParams } from "@/registry/path-params-context";
@@ -21,11 +20,6 @@ import {
   unregisterAdminAppModals,
 } from "../sdk/modal-api";
 import type { AdminAppSdk, AdminAppUiApi } from "../sdk";
-import {
-  getHelloWorldInstallationSnapshot,
-  subscribeHelloWorldInstallation,
-} from "../hello-world/store";
-import "../hello-world/register";
 import { AppRuntimeScope } from "./app-runtime-scope";
 import type { AdminAppUiDescriptor } from "./descriptor-schema";
 import { InstalledAppsRuntimeSync } from "./installed-apps-runtime-sync";
@@ -38,6 +32,8 @@ const ui: AdminAppUiApi = {
   ModalLayout: AdminAppModalLayout,
   DataGrid: AdminDataGrid,
 };
+
+const NO_FALLBACK_DESCRIPTORS: readonly AdminAppUiDescriptor[] = [];
 
 function supportsCurrentSdk(range: string): boolean {
   return range === "1.0.0" || range.startsWith("^1.");
@@ -59,12 +55,6 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
     (state) => state.clearChildren,
   );
   const activeRef = useRef<ActiveAdminApp[]>([]);
-  const helloWorldInstallation = useSyncExternalStore(
-    subscribeHelloWorldInstallation,
-    getHelloWorldInstallationSnapshot,
-    getHelloWorldInstallationSnapshot,
-  );
-
   const disposeActiveApps = useCallback(() => {
     activeRef.current.forEach(({ scope }) => {
       unregisterAdminAppModals(scope.owner);
@@ -231,7 +221,7 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
   return (
     <>
       <InstalledAppsRuntimeSync
-        fallbackDescriptors={helloWorldInstallation.descriptors}
+        fallbackDescriptors={NO_FALLBACK_DESCRIPTORS}
         onDescriptors={activateDescriptors}
       />
       {children}

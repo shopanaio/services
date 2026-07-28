@@ -36,7 +36,7 @@ export class AppsQueryResolver extends AppsType<Record<string, never>> {
       : null;
   }
 
-  async availableApps(args: AppsQueryAvailableAppsArgs) {
+  async availableApps(args: AppsQueryAvailableAppsArgs = {}) {
     const runtimes = [...this.$ctx.runtimes.list()].sort((left, right) =>
       left.definition.manifest.code.localeCompare(
         right.definition.manifest.code,
