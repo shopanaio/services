@@ -36,6 +36,17 @@ export interface SmtpConnectionsQueryData {
 
 export type SmtpConnectionsQueryVariables = Record<string, never>;
 
+export interface SmtpConnectionQueryData {
+  smtpAppQuery: {
+    smtpConnection: SmtpConnection | null;
+    smtpProviderPresets: SmtpProviderPreset[];
+  };
+}
+
+export interface SmtpConnectionQueryVariables {
+  id: string;
+}
+
 interface SmtpConnectionPayload {
   connection: SmtpConnection | null;
   userErrors: ApiGenericUserError[];

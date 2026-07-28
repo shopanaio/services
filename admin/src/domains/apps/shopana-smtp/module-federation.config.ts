@@ -9,6 +9,7 @@ const config = {
   exposes: {
     "./Page": "./src/page.tsx",
     "./SmtpSettingsModal": "./src/modals/smtp-settings-modal.tsx",
+    "./SmtpDisconnectModal": "./src/modals/smtp-disconnect-modal.tsx",
   },
   shared: {
     react: singleton,
