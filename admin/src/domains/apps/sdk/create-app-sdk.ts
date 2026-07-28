@@ -49,6 +49,15 @@ export function createAdminAppSdk({
     };
   };
 
+  const guardEffect = <TArgs extends unknown[]>(
+    operation: (...args: TArgs) => void,
+  ) => {
+    return (...args: TArgs): void => {
+      if (!scope.isActive) return;
+      operation(...args);
+    };
+  };
+
   const guardedGraphql: AdminAppGraphqlApi = {
     query: guard(
       <TData, TVariables>(
@@ -85,16 +94,16 @@ export function createAdminAppSdk({
       setCurrentDirty: guard(modals.setCurrentDirty),
     },
     navigation: {
-      openAppPath: guard(navigation.openAppPath),
-      replaceAppPath: guard(navigation.replaceAppPath),
-      openCorePath: guard(navigation.openCorePath),
+      openAppPath: guardEffect(navigation.openAppPath),
+      replaceAppPath: guardEffect(navigation.replaceAppPath),
+      openCorePath: guardEffect(navigation.openCorePath),
     },
     graphql: guardedGraphql,
     notifications: {
-      success: guard(notifications.success),
-      error: guard(notifications.error),
-      info: guard(notifications.info),
-      warning: guard(notifications.warning),
+      success: guardEffect(notifications.success),
+      error: guardEffect(notifications.error),
+      info: guardEffect(notifications.info),
+      warning: guardEffect(notifications.warning),
     },
     ui,
   };

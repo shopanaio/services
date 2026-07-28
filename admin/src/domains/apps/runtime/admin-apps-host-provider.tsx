@@ -44,6 +44,10 @@ function ownerFor(descriptor: AdminAppUiDescriptor): string {
   return `app:${descriptor.appCode}@${descriptor.version}:${descriptor.installationId}`;
 }
 
+function descriptorSignature(descriptor: AdminAppUiDescriptor): string {
+  return JSON.stringify(descriptor);
+}
+
 export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const client = useApolloClient();
@@ -69,13 +73,34 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
 
   const activateDescriptors = useCallback(
     (descriptors: AdminAppUiDescriptor[]) => {
-      disposeActiveApps();
       const orgName = path.getParam("orgName") ?? "";
       const storeName = path.getParam("storeName") ?? "";
+      const previousByAppCode = new Map(
+        activeRef.current.map((app) => [app.descriptor.appCode, app]),
+      );
 
       const active = descriptors
         .filter((descriptor) => supportsCurrentSdk(descriptor.sdkVersionRange))
         .map((descriptor): ActiveAdminApp => {
+          const previous = previousByAppCode.get(descriptor.appCode);
+          const canReuse =
+            previous &&
+            previous.sdk.context.orgName === orgName &&
+            previous.sdk.context.storeName === storeName &&
+            descriptorSignature(previous.descriptor) ===
+              descriptorSignature(descriptor);
+
+          if (canReuse) {
+            previousByAppCode.delete(descriptor.appCode);
+            return previous;
+          }
+
+          if (previous) {
+            unregisterAdminAppModals(previous.scope.owner);
+            previous.scope.dispose();
+            previousByAppCode.delete(descriptor.appCode);
+          }
+
           const owner = ownerFor(descriptor);
           const scope = new AppRuntimeScope(owner);
           const modalApi = createAdminAppModalApi(descriptor, owner);
@@ -161,6 +186,11 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
           return { descriptor, scope, sdk };
         });
 
+      previousByAppCode.forEach(({ scope }) => {
+        unregisterAdminAppModals(scope.owner);
+        scope.dispose();
+      });
+
       activeRef.current = active;
       adminAppRegistry.replace(active);
       adminAppExtensionRegistry.replace(
@@ -204,7 +234,6 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
     },
     [
       client,
-      disposeActiveApps,
       notification,
       path,
       router,

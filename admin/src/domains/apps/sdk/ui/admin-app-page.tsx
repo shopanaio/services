@@ -21,6 +21,7 @@ export function AdminAppPage({
   title,
   description,
   actions,
+  onBack,
   children,
 }: AdminAppPageLayoutProps) {
   const { styles } = useStyles();
@@ -28,8 +29,8 @@ export function AdminAppPage({
   return (
     <DataLayout
       actions={actions}
-      fullWidth
       name="admin-app"
+      onBack={onBack}
       title={title}
     >
       <div className={styles.content}>

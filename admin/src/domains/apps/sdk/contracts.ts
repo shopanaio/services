@@ -76,6 +76,7 @@ export interface AdminAppPageLayoutProps {
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
+  onBack?: () => void;
   children: ReactNode;
 }
 
@@ -183,4 +184,3 @@ export interface AdminExtensionProps<
 export type AdminAppPageComponent = ComponentType<AdminAppPageProps>;
 export type AdminAppModalComponent = ComponentType<AdminAppModalProps>;
 export type AdminAppExtensionComponent = ComponentType<AdminExtensionProps>;
-

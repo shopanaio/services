@@ -8,6 +8,9 @@ const config = {
   filename: "remoteEntry.js",
   exposes: {
     "./Page": "./src/page.tsx",
+    "./RenameStorefrontModal": "./src/modals/rename-storefront-modal.tsx",
+    "./DisconnectStorefrontModal":
+      "./src/modals/disconnect-storefront-modal.tsx",
   },
   shared: {
     react: singleton,

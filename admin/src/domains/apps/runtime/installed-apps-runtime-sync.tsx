@@ -73,7 +73,19 @@ export function InstalledAppsRuntimeSync({
             defaultPath: registration.defaultPath,
           },
           navigation: [],
-          modals: [],
+          modals:
+            registration.modals?.map(
+              ({
+                load: _load,
+                confirmOnDirtyClose = false,
+                requiredScopes = [],
+                ...modal
+              }) => ({
+                ...modal,
+                confirmOnDirtyClose,
+                requiredScopes,
+              }),
+            ) ?? [],
           extensions: [],
           grantedScopes: app.permissions
             .filter(({ granted }) => granted)
