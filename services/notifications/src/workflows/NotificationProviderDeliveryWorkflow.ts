@@ -116,7 +116,10 @@ export class NotificationProviderDeliveryWorkflow extends BrokerWorkflows {
           await this.stepScript(delivery, {
             operation: "recordAttemptSuccess",
             attemptId: attempt.attemptId,
-            receipt,
+            receipt: {
+              ...receipt,
+              state: receipt.state,
+            },
           });
           return {
             status: receipt.state,
