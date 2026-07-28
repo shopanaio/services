@@ -523,6 +523,10 @@ function StorefrontDetailPage({
     [query.permissionCatalog],
   );
 
+  if (query.loading && !storefront) {
+    return <Spin fullscreen tip="Loading storefront…" />;
+  }
+
   return (
     <sdk.ui.AppPage
       onBack={() => sdk.navigation.openAppPath("storefronts")}
