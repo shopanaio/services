@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Spin } from "antd";
+import { Alert, Skeleton } from "antd";
 import { useRouter } from "next/navigation";
 import {
   Suspense,
@@ -10,11 +10,36 @@ import {
 } from "react";
 import type { ModulePageProps } from "@/registry";
 import type { AdminAppPageComponent } from "../sdk";
+import {
+  AdminAppLoadingContent,
+  AdminAppPage,
+} from "../sdk/ui";
 import { createAdminAppPath } from "./app-route";
 import { AppRuntimeBoundary } from "./app-runtime-boundary";
 import { loadAdminAppRemoteModule } from "./federation/load-remote-module";
 import { adminAppRegistry } from "./registry/app-registry";
 import type { ActiveAdminApp } from "./registry/app-registry";
+
+function AppPageLoader({ active }: { active?: ActiveAdminApp }) {
+  if (active) {
+    return (
+      <active.sdk.ui.AppPage>
+        <AdminAppLoadingContent />
+      </active.sdk.ui.AppPage>
+    );
+  }
+
+  return (
+    <AdminAppPage
+      description={
+        <Skeleton.Input active size="small" style={{ width: 280 }} />
+      }
+      title={<Skeleton.Input active size="small" style={{ width: 160 }} />}
+    >
+      <AdminAppLoadingContent />
+    </AdminAppPage>
+  );
+}
 
 function RemotePageMount({
   active,
@@ -99,7 +124,7 @@ export default function AppRuntimePage({
 
   if (!active) {
     if (registryRevision === 0) {
-      return <Spin fullscreen tip="Loading App…" />;
+      return <AppPageLoader />;
     }
 
     return (
@@ -123,12 +148,12 @@ export default function AppRuntimePage({
   }
 
   if (shouldOpenDefaultPath) {
-    return <Spin fullscreen tip="Opening App…" />;
+    return <AppPageLoader active={active} />;
   }
 
   return (
     <AppRuntimeBoundary appCode={active.descriptor.appCode}>
-      <Suspense fallback={<Spin fullscreen tip="Loading App…" />}>
+      <Suspense fallback={<AppPageLoader active={active} />}>
         <RemotePageMount
           active={active}
           appPath={appPath}

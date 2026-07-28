@@ -9,6 +9,7 @@ import {
   Empty,
   Flex,
   List,
+  Skeleton,
   Spin,
   Tag,
   Typography,
@@ -16,6 +17,7 @@ import {
 import { createStyles } from "antd-style";
 import { LuEllipsis } from "react-icons/lu";
 import type { AdminAppPageProps } from "@shopana/admin-app-sdk";
+import { AdminAppLoadingContent } from "@/domains/apps/sdk/ui";
 import { SmtpConnectionStatus } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
@@ -349,20 +351,23 @@ function ConnectionDetailPage({
     }
   };
 
-  if (query.loading && !connection) {
-    return <Spin fullscreen tip="Loading SMTP connection…" />;
-  }
-
   return (
     <sdk.ui.AppPage
       onBack={() => sdk.navigation.openAppPath("connections")}
-      title={connection?.displayName ?? "SMTP connection"}
+      title={
+        connection?.displayName ?? (
+          <Skeleton.Input active size="small" style={{ width: 180 }} />
+        )
+      }
     >
-      <Spin spinning={query.loading}>
-        <div className={styles.stack}>
-          <ErrorAlert error={query.error} />
-          {connection ? (
-            <>
+      {query.loading && !connection ? (
+        <AdminAppLoadingContent />
+      ) : (
+        <Spin spinning={query.loading}>
+          <div className={styles.stack}>
+            <ErrorAlert error={query.error} />
+            {connection ? (
+              <>
               <Paper>
                 <PaperHeader
                   actions={
@@ -445,12 +450,13 @@ function ConnectionDetailPage({
                   </Button>
                 </div>
               </Paper>
-            </>
-          ) : query.loading ? null : (
-            <Empty description="SMTP connection not found" />
-          )}
-        </div>
-      </Spin>
+              </>
+            ) : query.loading ? null : (
+              <Empty description="SMTP connection not found" />
+            )}
+          </div>
+        </Spin>
+      )}
     </sdk.ui.AppPage>
   );
 }

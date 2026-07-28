@@ -10,6 +10,7 @@ import {
   Flex,
   Input,
   List,
+  Skeleton,
   Spin,
   Tag,
   Typography,
@@ -23,6 +24,7 @@ import {
   LuEyeOff,
 } from "react-icons/lu";
 import type { AdminAppPageProps } from "@shopana/admin-app-sdk";
+import { AdminAppLoadingContent } from "@/domains/apps/sdk/ui";
 import {
   HeadlessStorefrontConnectionStatus,
   StorefrontCredentialKind,
@@ -523,20 +525,23 @@ function StorefrontDetailPage({
     [query.permissionCatalog],
   );
 
-  if (query.loading && !storefront) {
-    return <Spin fullscreen tip="Loading storefront…" />;
-  }
-
   return (
     <sdk.ui.AppPage
       onBack={() => sdk.navigation.openAppPath("storefronts")}
-      title={storefront?.displayName ?? "Storefront"}
+      title={
+        storefront?.displayName ?? (
+          <Skeleton.Input active size="small" style={{ width: 180 }} />
+        )
+      }
     >
-      <Spin spinning={query.loading}>
-        <div className={styles.stack}>
-          <ErrorAlert error={query.error} />
-          {storefront ? (
-            <>
+      {query.loading && !storefront ? (
+        <AdminAppLoadingContent />
+      ) : (
+        <Spin spinning={query.loading}>
+          <div className={styles.stack}>
+            <ErrorAlert error={query.error} />
+            {storefront ? (
+              <>
               <Paper>
                 <PaperHeader
                   actions={
@@ -757,12 +762,13 @@ function StorefrontDetailPage({
                   </Button>
                 </div>
               </Paper>
-            </>
-          ) : query.loading ? null : (
-            <Empty description="Storefront not found" />
-          )}
-        </div>
-      </Spin>
+              </>
+            ) : query.loading ? null : (
+              <Empty description="Storefront not found" />
+            )}
+          </div>
+        </Spin>
+      )}
     </sdk.ui.AppPage>
   );
 }
