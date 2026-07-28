@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/store-menu/store-menu";
 import { SidebarLogo } from "@/layouts/app/components/sidebar/sidebar-logo";
@@ -25,6 +25,10 @@ type AntMenuItem = NonNullable<MenuProps["items"]>[number];
 interface MatchedItem {
   key: string;
   parentKey?: string;
+}
+
+function wrapMenuIcon(icon: ReactNode): ReactNode {
+  return icon ? <span>{icon}</span> : icon;
 }
 
 function findMatchingItem(
@@ -79,7 +83,9 @@ function buildMenuItems(
 ): AntMenuItem[] {
   return items.map((item, index) => {
     const isFinal = isSubitem && index === parentChildrenCount - 1;
-    const icon = isSubitem ? <SubitemIcon isFinal={isFinal} /> : item.icon;
+    const icon = isSubitem
+      ? <SubitemIcon isFinal={isFinal} />
+      : wrapMenuIcon(item.icon);
 
     if (item.type === "group") {
       return {
