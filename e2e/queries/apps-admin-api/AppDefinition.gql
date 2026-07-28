@@ -5,6 +5,10 @@ query AppsAppDefinition($code: String!) {
       version
       displayName
       description
+      icon {
+        url
+        alt
+      }
       runtimeStatus
       runtimeHealth {
         status

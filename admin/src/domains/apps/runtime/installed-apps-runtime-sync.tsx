@@ -62,6 +62,8 @@ export function InstalledAppsRuntimeSync({
             installationId: installation.id,
             appCode: app.code,
             displayName: app.displayName,
+            description: app.description,
+            icon: app.icon,
             version: installation.installedVersion,
             sdkVersionRange: "^1.0.0",
             remote: {

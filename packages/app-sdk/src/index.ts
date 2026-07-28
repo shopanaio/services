@@ -30,6 +30,13 @@ const AppGraphQLManifestSchema = z
   })
   .strict();
 
+const AppIconSchema = z
+  .object({
+    url: z.string().trim().min(1).max(2_048),
+    alt: z.string().trim().min(1).max(255),
+  })
+  .strict();
+
 const AppManifestV1Schema = z
   .object({
     schemaVersion: z.literal(1),
@@ -54,6 +61,7 @@ export const AppManifestV2Schema = z
     version: z.string().regex(semverPattern),
     displayName: z.string().trim().min(1),
     description: z.string().trim().min(1),
+    icon: AppIconSchema,
     lifecycle: AppLifecycleSchema.default({}),
     permissions: z.array(z.string().min(1)).default([]),
     capabilities: z.array(AppCapabilitySchema).default([]),

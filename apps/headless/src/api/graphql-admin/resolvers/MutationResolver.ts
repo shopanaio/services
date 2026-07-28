@@ -18,13 +18,17 @@ export class HeadlessAppMutationResolver extends HeadlessType<
   Record<string, never>
 > {
   async headlessStorefrontCreate(args: {
-    input: ClientMutationInput & { displayName: string };
+    input: ClientMutationInput & {
+      displayName: string;
+      permissions?: string[];
+    };
   }) {
     return this.payload(async () => {
       const created = await this.$ctx.connections.createConnection(
         this.scope,
         {
           displayName: args.input.displayName,
+          permissions: args.input.permissions,
           clientMutationId: args.input.clientMutationId,
           createdById: this.$ctx.app.actor?.id,
         },

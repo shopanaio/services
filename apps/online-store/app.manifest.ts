@@ -6,6 +6,10 @@ export const onlineStoreManifest = defineAppManifest({
   version: "1.0.0",
   displayName: "Online Store",
   description: "Shopana first-party online storefront sales channel.",
+  icon: {
+    url: "/app-icons/online-store.svg",
+    alt: "Online Store",
+  },
   lifecycle: {
     installWorkflow: "install",
     updateWorkflow: "update",

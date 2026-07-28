@@ -1,32 +1,14 @@
-import type {
-  SmtpConnection,
-  SmtpProviderPreset,
-} from "../graphql/operation-types";
-import type {
-  SmtpConnectionProvider,
-  SmtpConnectionSecurity,
-} from "@/graphql/types";
+import type { SmtpProviderPreset } from "../graphql/operation-types";
 
-export const SMTP_SETTINGS_MODAL_ID = "smtp.settings";
+export const CREATE_SMTP_CONNECTION_MODAL_ID = "smtp.connection.create";
 export const SMTP_DISCONNECT_MODAL_ID = "smtp.disconnect";
 
-export interface SmtpSettings {
-  displayName: string;
-  provider: SmtpConnectionProvider;
-  host: string;
-  port: number;
-  security: SmtpConnectionSecurity;
-  username?: string;
-  password?: string;
-}
-
-export interface SmtpSettingsModalPayload {
-  connection: SmtpConnection | null;
+export interface CreateSmtpConnectionModalPayload {
   presets: SmtpProviderPreset[];
 }
 
-export interface SmtpSettingsModalResult {
-  settings: SmtpSettings;
+export interface CreateSmtpConnectionModalResult {
+  connectionId: string;
 }
 
 export interface SmtpDisconnectModalPayload {

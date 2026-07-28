@@ -9,6 +9,10 @@ export const APPS_MANAGEMENT_QUERY = gql`
             code
             displayName
             description
+            icon {
+              url
+              alt
+            }
             version
             runtimeStatus
             runtimeHealth {
@@ -79,6 +83,11 @@ export const ADMIN_UI_APPS_QUERY = gql`
         installationId
         appCode
         displayName
+        description
+        icon {
+          url
+          alt
+        }
         version
         sdkVersionRange
         grantedScopes

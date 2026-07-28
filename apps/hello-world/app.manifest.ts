@@ -7,6 +7,10 @@ export const helloWorldManifest = defineAppManifest({
   displayName: "Hello World",
   description:
     "Minimal bundled Shopana App used to validate the hosted App runtime.",
+  icon: {
+    url: "/app-icons/hello-world.svg",
+    alt: "Hello World",
+  },
   lifecycle: {
     installWorkflow: "install",
     updateWorkflow: "update",

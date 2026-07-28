@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { AdminAppSdk } from "@shopana/admin-app-sdk";
+import type { ApiHeadlessStorefrontPermissionDefinition } from "@/graphql/types";
 import { HEADLESS_STOREFRONTS_QUERY } from "../graphql";
 import type { HeadlessStorefront } from "../graphql/operation-types";
 
 export function useHeadlessStorefronts(sdk: AdminAppSdk) {
   const [storefronts, setStorefronts] = useState<HeadlessStorefront[]>([]);
+  const [permissionCatalog, setPermissionCatalog] = useState<
+    ApiHeadlessStorefrontPermissionDefinition[]
+  >([]);
+  const [defaultPermissions, setDefaultPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -18,6 +23,12 @@ export function useHeadlessStorefronts(sdk: AdminAppSdk) {
     try {
       const data = await sdk.graphql.query(HEADLESS_STOREFRONTS_QUERY, {});
       setStorefronts(data.headlessAppQuery.headlessStorefrontConnections);
+      setPermissionCatalog(
+        data.headlessAppQuery.headlessStorefrontPermissionCatalog,
+      );
+      setDefaultPermissions(
+        data.headlessAppQuery.headlessStorefrontDefaultPermissions,
+      );
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -37,6 +48,12 @@ export function useHeadlessStorefronts(sdk: AdminAppSdk) {
       .then((data) => {
         if (!active) return;
         setStorefronts(data.headlessAppQuery.headlessStorefrontConnections);
+        setPermissionCatalog(
+          data.headlessAppQuery.headlessStorefrontPermissionCatalog,
+        );
+        setDefaultPermissions(
+          data.headlessAppQuery.headlessStorefrontDefaultPermissions,
+        );
         setLoading(false);
       })
       .catch((cause: unknown) => {
@@ -54,5 +71,12 @@ export function useHeadlessStorefronts(sdk: AdminAppSdk) {
     };
   }, [sdk]);
 
-  return { storefronts, loading, error, refetch };
+  return {
+    storefronts,
+    permissionCatalog,
+    defaultPermissions,
+    loading,
+    error,
+    refetch,
+  };
 }

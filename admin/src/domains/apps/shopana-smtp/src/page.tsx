@@ -14,29 +14,27 @@ import {
   Typography,
 } from "antd";
 import { createStyles } from "antd-style";
-import { LuEllipsis, LuMail } from "react-icons/lu";
+import { LuEllipsis } from "react-icons/lu";
 import type { AdminAppPageProps } from "@shopana/admin-app-sdk";
-import {
-  SmtpConnectionProvider,
-  SmtpConnectionStatus,
-} from "@/graphql/types";
+import { SmtpConnectionStatus } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import {
+  SmtpSettingsForm,
+  type SmtpSettings,
+} from "./components/smtp-settings-form";
 import {
   useSmtpConnection,
   useSmtpConnectionActions,
   useSmtpConnections,
 } from "./hooks";
-import type {
-  SmtpConnection,
-  SmtpProviderPreset,
-} from "./graphql/operation-types";
+import type { SmtpConnection } from "./graphql/operation-types";
 import {
+  CREATE_SMTP_CONNECTION_MODAL_ID,
   SMTP_DISCONNECT_MODAL_ID,
-  SMTP_SETTINGS_MODAL_ID,
+  type CreateSmtpConnectionModalPayload,
+  type CreateSmtpConnectionModalResult,
   type SmtpDisconnectModalPayload,
   type SmtpDisconnectModalResult,
-  type SmtpSettingsModalPayload,
-  type SmtpSettingsModalResult,
 } from "./modals";
 
 const useStyles = createStyles(({ token }) => ({
@@ -67,23 +65,6 @@ const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
     display: "flex",
     justifyContent: "space-between",
-  },
-  settings: {
-    display: "grid",
-    gap: `${token.paddingSM}px ${token.paddingLG}px`,
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    [`@media (max-width: ${token.screenSM}px)`]: {
-      gridTemplateColumns: "1fr",
-    },
-  },
-  setting: {
-    display: "flex",
-    flexDirection: "column",
-    gap: token.paddingXXS,
-    minWidth: 0,
-  },
-  settingValue: {
-    fontFamily: token.fontFamilyCode,
   },
   dangerRow: {
     alignItems: "center",
@@ -121,14 +102,6 @@ const statusPresentation = {
   },
 } as const;
 
-const providerLabels: Record<SmtpConnectionProvider, string> = {
-  [SmtpConnectionProvider.Custom]: "Custom SMTP",
-  [SmtpConnectionProvider.Sendgrid]: "SendGrid",
-  [SmtpConnectionProvider.MailchimpTransactional]:
-    "Mailchimp Transactional",
-  [SmtpConnectionProvider.GoogleWorkspace]: "Google Workspace",
-};
-
 function ErrorAlert({ error }: { error: Error | null }) {
   return error ? <Alert message={error.message} showIcon type="error" /> : null;
 }
@@ -138,15 +111,18 @@ function ConnectionStatus({ status }: { status: SmtpConnectionStatus }) {
   return <Tag color={presentation.color}>{presentation.label}</Tag>;
 }
 
-async function openSettingsModal(
-  sdk: AdminAppPageProps["sdk"],
-  connection: SmtpConnection | null,
-  presets: SmtpProviderPreset[],
-) {
-  return sdk.modals.openApp<
-    SmtpSettingsModalPayload,
-    SmtpSettingsModalResult
-  >(SMTP_SETTINGS_MODAL_ID, { connection, presets });
+function createSettings(
+  connection: SmtpConnection,
+): SmtpSettings {
+  return {
+    displayName: connection.displayName,
+    provider: connection.provider,
+    host: connection.host,
+    port: connection.port,
+    security: connection.security,
+    username: connection.username ?? undefined,
+    password: "",
+  };
 }
 
 function ConnectionsPage({ sdk }: { sdk: AdminAppPageProps["sdk"] }) {
@@ -169,39 +145,17 @@ function ConnectionsPage({ sdk }: { sdk: AdminAppPageProps["sdk"] }) {
 
   const addConnection = async () => {
     try {
-      const result = await openSettingsModal(sdk, null, query.presets);
+      const result = await sdk.modals.openApp<
+        CreateSmtpConnectionModalPayload,
+        CreateSmtpConnectionModalResult
+      >(CREATE_SMTP_CONNECTION_MODAL_ID, { presets: query.presets });
       if (result.status !== "submitted") return;
-      const connection = await actions.createConnection(result.data.settings);
-      if (!connection) {
-        throw new Error("The SMTP connection was not returned by the API.");
-      }
+
       sdk.notifications.success("SMTP connection added");
-      openConnection(connection.id);
+      openConnection(result.data.connectionId);
     } catch (error) {
       sdk.notifications.error(
         "Unable to add SMTP connection",
-        error instanceof Error ? error.message : undefined,
-      );
-    }
-  };
-
-  const editConnection = async (connection: SmtpConnection) => {
-    try {
-      const result = await openSettingsModal(
-        sdk,
-        connection,
-        query.presets,
-      );
-      if (result.status !== "submitted") return;
-      await actions.updateConnection({
-        connectionId: connection.id,
-        ...result.data.settings,
-      });
-      sdk.notifications.success("SMTP connection updated");
-      await query.refetch();
-    } catch (error) {
-      sdk.notifications.error(
-        "Unable to update SMTP connection",
         error instanceof Error ? error.message : undefined,
       );
     }
@@ -232,7 +186,6 @@ function ConnectionsPage({ sdk }: { sdk: AdminAppPageProps["sdk"] }) {
           Add connection
         </Button>
       }
-      title="SMTP"
     >
       <div className={styles.stack}>
         <ErrorAlert error={query.error} />
@@ -275,7 +228,6 @@ function ConnectionsPage({ sdk }: { sdk: AdminAppPageProps["sdk"] }) {
                               }
                         }
                       >
-                        <LuMail aria-hidden size={20} />
                         <div className={styles.connectionCopy}>
                           <Typography.Text strong ellipsis>
                             {connection.displayName}
@@ -288,26 +240,15 @@ function ConnectionsPage({ sdk }: { sdk: AdminAppPageProps["sdk"] }) {
                           </Typography.Text>
                         </div>
                         <ConnectionStatus status={connection.status} />
-                        {!isDisconnected ? (
+                        {isInactive ? (
                           <Dropdown
                             menu={{
                               items: [
-                                ...(isInactive
-                                  ? [
-                                      {
-                                        key: "activate",
-                                        label: "Make active",
-                                        onClick: () => {
-                                          void activateConnection(connection);
-                                        },
-                                      },
-                                    ]
-                                  : []),
                                 {
-                                  key: "edit",
-                                  label: "Edit settings",
+                                  key: "activate",
+                                  label: "Make active",
                                   onClick: () => {
-                                    void editConnection(connection);
+                                    void activateConnection(connection);
                                   },
                                 },
                               ],
@@ -352,26 +293,22 @@ function ConnectionDetailPage({
   const actions = useSmtpConnectionActions(sdk);
   const connection = query.connection;
 
-  const editConnection = async () => {
-    if (!connection) return;
+  const updateConnection = async (settings: SmtpSettings) => {
+    if (!connection) return false;
     try {
-      const result = await openSettingsModal(
-        sdk,
-        connection,
-        query.presets,
-      );
-      if (result.status !== "submitted") return;
       await actions.updateConnection({
         connectionId: connection.id,
-        ...result.data.settings,
+        ...settings,
       });
       sdk.notifications.success("SMTP connection updated");
       await query.refetch();
+      return true;
     } catch (error) {
       sdk.notifications.error(
         "Unable to update SMTP connection",
         error instanceof Error ? error.message : undefined,
       );
+      return false;
     }
   };
 
@@ -425,28 +362,16 @@ function ConnectionDetailPage({
               <Paper>
                 <PaperHeader
                   actions={
-                    connection.status !==
-                    SmtpConnectionStatus.Disconnected ? (
+                    connection.status ===
+                    SmtpConnectionStatus.Inactive ? (
                       <Dropdown
                         menu={{
                           items: [
-                            ...(connection.status ===
-                            SmtpConnectionStatus.Inactive
-                              ? [
-                                  {
-                                    key: "activate",
-                                    label: "Make active",
-                                    onClick: () => {
-                                      void activateConnection();
-                                    },
-                                  },
-                                ]
-                              : []),
                             {
-                              key: "edit",
-                              label: "Edit settings",
+                              key: "activate",
+                              label: "Make active",
                               onClick: () => {
-                                void editConnection();
+                                void activateConnection();
                               },
                             },
                           ],
@@ -478,66 +403,18 @@ function ConnectionDetailPage({
                 </div>
               </Paper>
 
-              <Paper>
-                <PaperHeader title="Provider settings" />
-                <div className={styles.settings}>
-                  <div className={styles.setting}>
-                    <Typography.Text strong>Provider</Typography.Text>
-                    <Typography.Text type="secondary">
-                      {providerLabels[connection.provider]}
-                    </Typography.Text>
-                  </div>
-                  <div className={styles.setting}>
-                    <Typography.Text strong>Security</Typography.Text>
-                    <Typography.Text type="secondary">
-                      {connection.security}
-                    </Typography.Text>
-                  </div>
-                  <div className={styles.setting}>
-                    <Typography.Text strong>SMTP host</Typography.Text>
-                    <Typography.Text
-                      className={styles.settingValue}
-                      type="secondary"
-                    >
-                      {connection.host}
-                    </Typography.Text>
-                  </div>
-                  <div className={styles.setting}>
-                    <Typography.Text strong>Port</Typography.Text>
-                    <Typography.Text
-                      className={styles.settingValue}
-                      type="secondary"
-                    >
-                      {connection.port}
-                    </Typography.Text>
-                  </div>
-                </div>
-              </Paper>
-
-              <Paper>
-                <PaperHeader title="Credentials" />
-                <div className={styles.settings}>
-                  <div className={styles.setting}>
-                    <Typography.Text strong>Username</Typography.Text>
-                    <Typography.Text
-                      className={styles.settingValue}
-                      type="secondary"
-                    >
-                      {connection.username ?? "Not configured"}
-                    </Typography.Text>
-                  </div>
-                  <div className={styles.setting}>
-                    <Typography.Text strong>
-                      Password or API key
-                    </Typography.Text>
-                    <Typography.Text type="secondary">
-                      {connection.hasPassword
-                        ? "Stored securely"
-                        : "Not configured"}
-                    </Typography.Text>
-                  </div>
-                </div>
-              </Paper>
+              <SmtpSettingsForm
+                key={connection.updatedAt}
+                disabled={
+                  connection.status === SmtpConnectionStatus.Disconnected
+                }
+                hasStoredPassword={connection.hasPassword}
+                initialValue={createSettings(connection)}
+                loading={actions.loading}
+                presets={query.presets}
+                submitLabel="Save changes"
+                onSubmit={updateConnection}
+              />
 
               <Paper>
                 <PaperHeader title="Danger zone" />

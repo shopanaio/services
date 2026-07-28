@@ -27,6 +27,8 @@ export type HeadlessStorefront = Pick<
 export interface HeadlessStorefrontsQueryData {
   headlessAppQuery: {
     headlessStorefrontConnections: HeadlessStorefront[];
+    headlessStorefrontPermissionCatalog: ApiHeadlessStorefrontPermissionDefinition[];
+    headlessStorefrontDefaultPermissions: string[];
   };
 }
 

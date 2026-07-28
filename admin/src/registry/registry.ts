@@ -32,6 +32,7 @@ export interface SidebarItem {
   path?: string;
   disabled?: boolean;
   icon?: ReactNode;
+  iconKey?: string;
   order?: number;
   activePaths?: string[];
   type?: "group";

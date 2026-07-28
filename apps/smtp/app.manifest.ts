@@ -4,8 +4,13 @@ export const smtpManifest = defineAppManifest({
   schemaVersion: 2,
   code: "shopana-smtp",
   version: "1.0.0",
-  displayName: "SMTP",
-  description: "Deliver Shopana email notifications through a store SMTP server.",
+  displayName: "Mailer",
+  description:
+    "Deliver store email through configurable SMTP provider connections.",
+  icon: {
+    url: "/app-icons/mailer.svg",
+    alt: "Mailer",
+  },
   lifecycle: {
     installWorkflow: "install",
     updateWorkflow: "update",

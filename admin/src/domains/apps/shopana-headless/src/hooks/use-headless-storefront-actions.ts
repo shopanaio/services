@@ -34,12 +34,16 @@ export function useHeadlessStorefrontActions(sdk: AdminAppSdk) {
   }, []);
 
   const createStorefront = useCallback(
-    (displayName: string) =>
+    (displayName: string, permissions: string[]) =>
       run(async () => {
         const data = await sdk.graphql.mutate(
           HEADLESS_STOREFRONT_CREATE_MUTATION,
           {
-            input: { displayName, clientMutationId: mutationId() },
+            input: {
+              displayName,
+              permissions,
+              clientMutationId: mutationId(),
+            },
           },
         );
         const payload = data.headlessAppMutation.headlessStorefrontCreate;

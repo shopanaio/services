@@ -20,14 +20,6 @@ import { useAppManagementModal } from "@/domains/apps/management/modals";
 import { DataLayout } from "@/layouts/data";
 import { Paper } from "@/ui-kit/paper";
 
-const APP_AVATAR_COLORS = [
-  "#598cf5",
-  "#6eb84a",
-  "#876bd1",
-  "#dc6f5e",
-  "#36a3a0",
-] as const;
-
 const useStyles = createStyles(({ css, token }) => ({
   content: {
     display: "flex",
@@ -137,14 +129,6 @@ const useStyles = createStyles(({ css, token }) => ({
   },
 }));
 
-const getAvatarColor = (appCode: string) => {
-  const hash = [...appCode].reduce(
-    (total, character) => total + character.charCodeAt(0),
-    0,
-  );
-  return APP_AVATAR_COLORS[hash % APP_AVATAR_COLORS.length];
-};
-
 const formatStatus = (status: AppInstallationStatus) =>
   status.toLowerCase().replaceAll("_", " ");
 
@@ -175,13 +159,12 @@ function AppAvatar({ app }: { app: ManagementAppListItem }) {
 
   return (
     <Avatar
+      alt={app.icon.alt}
       className={styles.avatar}
       shape="square"
       size={40}
-      style={{ backgroundColor: getAvatarColor(app.code) }}
-    >
-      {app.displayName.trim().charAt(0).toUpperCase()}
-    </Avatar>
+      src={app.icon.url}
+    />
   );
 }
 

@@ -110,6 +110,8 @@ export type AppDefinition = {
   displayName: Scalars['String']['output'];
   /** GraphQL surfaces declared by the bundled manifest. */
   graphql: AppGraphQlSurfaces;
+  /** App icon or logo used by Admin surfaces. */
+  icon: AppIcon;
   /** The current store installation, when one exists. */
   installation: Maybe<AppInstallation>;
   /** Whether this App has a non-terminal installation in the current store. */
@@ -136,6 +138,15 @@ export type AppGraphQlSurfaces = {
   __typename?: 'AppGraphQLSurfaces';
   admin: Scalars['Boolean']['output'];
   storefront: Scalars['Boolean']['output'];
+};
+
+/** Visual identity declared by an App manifest. */
+export type AppIcon = {
+  __typename?: 'AppIcon';
+  /** Accessible alternative text. */
+  alt: Scalars['String']['output'];
+  /** Same-origin or trusted image URL. */
+  url: Scalars['String']['output'];
 };
 
 /** Input for installing a bundled App in the current store. */
@@ -1449,6 +1460,7 @@ export type ResolversTypes = ResolversObject<{
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   AppEdge: ResolverTypeWrapper<AppEdge>;
   AppGraphQLSurfaces: ResolverTypeWrapper<AppGraphQlSurfaces>;
+  AppIcon: ResolverTypeWrapper<AppIcon>;
   AppInstallInput: AppInstallInput;
   AppInstallation: ResolverTypeWrapper<AppInstallation>;
   AppInstallationActionInput: AppInstallationActionInput;
@@ -1515,6 +1527,7 @@ export type ResolversParentTypes = ResolversObject<{
   Boolean: Scalars['Boolean']['output'];
   AppEdge: AppEdge;
   AppGraphQLSurfaces: AppGraphQlSurfaces;
+  AppIcon: AppIcon;
   AppInstallInput: AppInstallInput;
   AppInstallation: AppInstallation;
   AppInstallationActionInput: AppInstallationActionInput;
@@ -1599,6 +1612,7 @@ export type AppDefinitionResolvers<ContextType = ServiceContext, ParentType exte
   description?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   graphql?: Resolver<ResolversTypes['AppGraphQLSurfaces'], ParentType, ContextType>;
+  icon?: Resolver<ResolversTypes['AppIcon'], ParentType, ContextType>;
   installation?: Resolver<Maybe<ResolversTypes['AppInstallation']>, ParentType, ContextType>;
   installed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   permissions?: Resolver<Array<ResolversTypes['AppPermission']>, ParentType, ContextType>;
@@ -1617,6 +1631,12 @@ export type AppEdgeResolvers<ContextType = ServiceContext, ParentType extends Re
 export type AppGraphQlSurfacesResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppGraphQLSurfaces'] = ResolversParentTypes['AppGraphQLSurfaces']> = ResolversObject<{
   admin?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   storefront?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type AppIconResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppIcon'] = ResolversParentTypes['AppIcon']> = ResolversObject<{
+  alt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1812,6 +1832,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   AppDefinition?: AppDefinitionResolvers<ContextType>;
   AppEdge?: AppEdgeResolvers<ContextType>;
   AppGraphQLSurfaces?: AppGraphQlSurfacesResolvers<ContextType>;
+  AppIcon?: AppIconResolvers<ContextType>;
   AppInstallation?: AppInstallationResolvers<ContextType>;
   AppInstallationError?: AppInstallationErrorResolvers<ContextType>;
   AppInstallationScope?: AppInstallationScopeResolvers<ContextType>;

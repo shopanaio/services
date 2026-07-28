@@ -13,6 +13,7 @@ const bundledApps = [
     version: '0.0.1',
     displayName: 'Hello World',
     description: 'Minimal bundled Shopana App used to validate the hosted App runtime.',
+    icon: { url: '/app-icons/hello-world.svg', alt: 'Hello World' },
     permissions: [],
     capabilities: [
       {
@@ -28,6 +29,7 @@ const bundledApps = [
     version: '1.0.0',
     displayName: 'Headless',
     description: 'Custom storefronts using the Shopana Storefront API.',
+    icon: { url: '/app-icons/headless.svg', alt: 'Headless' },
     permissions: [{ scope: 'project.getStoreById', granted: false }],
     capabilities: [],
     graphql: { admin: true, storefront: true },
@@ -37,6 +39,7 @@ const bundledApps = [
     version: '1.0.0',
     displayName: 'Online Store',
     description: 'Shopana first-party online storefront sales channel.',
+    icon: { url: '/app-icons/online-store.svg', alt: 'Online Store' },
     permissions: [],
     capabilities: [
       {
@@ -57,8 +60,9 @@ const bundledApps = [
   {
     code: 'shopana-smtp',
     version: '1.0.0',
-    displayName: 'SMTP',
-    description: 'Deliver Shopana email notifications through a store SMTP server.',
+    displayName: 'Mailer',
+    description: 'Deliver store email through configurable SMTP provider connections.',
+    icon: { url: '/app-icons/mailer.svg', alt: 'Mailer' },
     permissions: [],
     capabilities: [
       {

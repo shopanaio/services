@@ -8,6 +8,8 @@ const config = {
   filename: "remoteEntry.js",
   exposes: {
     "./Page": "./src/page.tsx",
+    "./CreateStorefrontModal":
+      "./src/modals/create-storefront-modal.tsx",
     "./RenameStorefrontModal": "./src/modals/rename-storefront-modal.tsx",
     "./DisconnectStorefrontModal":
       "./src/modals/disconnect-storefront-modal.tsx",

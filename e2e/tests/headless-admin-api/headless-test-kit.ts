@@ -130,6 +130,7 @@ export class HeadlessTestKit {
   async create(
     displayName = 'Headless storefront',
     clientMutationId = crypto.randomUUID(),
+    permissions?: string[],
   ): Promise<{
     connection: Connection | null;
     duplicate: boolean;
@@ -159,7 +160,7 @@ export class HeadlessTestKit {
           }
         }
       }`,
-      { input: { displayName, clientMutationId } },
+      { input: { displayName, clientMutationId, permissions } },
     );
     return result.data!.headlessAppMutation.headlessStorefrontCreate;
   }

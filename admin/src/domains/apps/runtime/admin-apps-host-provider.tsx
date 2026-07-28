@@ -19,7 +19,12 @@ import {
   registerAdminAppModals,
   unregisterAdminAppModals,
 } from "../sdk/modal-api";
-import type { AdminAppSdk, AdminAppUiApi } from "../sdk";
+import type {
+  AdminAppPageLayoutProps,
+  AdminAppSdk,
+  AdminAppUiApi,
+} from "../sdk";
+import { AdminAppIcon } from "./app-icon";
 import { AppRuntimeScope } from "./app-runtime-scope";
 import { createAdminAppPath } from "./app-route";
 import type { AdminAppUiDescriptor } from "./descriptor-schema";
@@ -28,13 +33,35 @@ import { adminAppRegistry, type ActiveAdminApp } from "./registry/app-registry";
 import { adminAppExtensionRegistry } from "./registry/extension-registry";
 import { adminAppNavigationRegistry } from "./registry/navigation-registry";
 
-const ui: AdminAppUiApi = {
-  AppPage: AdminAppPage,
-  ModalLayout: AdminAppModalLayout,
-  DataGrid: AdminDataGrid,
-};
-
 const NO_FALLBACK_DESCRIPTORS: readonly AdminAppUiDescriptor[] = [];
+
+function createAppUi(descriptor: AdminAppUiDescriptor): AdminAppUiApi {
+  function AppPage(props: AdminAppPageLayoutProps) {
+    const appIdentityPage = props.title === undefined;
+    return (
+      <AdminAppPage
+        {...props}
+        description={
+          props.description ??
+          (appIdentityPage ? descriptor.description : undefined)
+        }
+        icon={
+          props.icon ??
+          (appIdentityPage ? (
+            <AdminAppIcon decorative icon={descriptor.icon} size={28} />
+          ) : undefined)
+        }
+        title={props.title ?? descriptor.displayName}
+      />
+    );
+  }
+
+  return {
+    AppPage,
+    ModalLayout: AdminAppModalLayout,
+    DataGrid: AdminDataGrid,
+  };
+}
 
 function supportsCurrentSdk(range: string): boolean {
   return range === "1.0.0" || range.startsWith("^1.");
@@ -113,6 +140,9 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
               code: descriptor.appCode,
               version: descriptor.version,
               installationId: descriptor.installationId,
+              displayName: descriptor.displayName,
+              description: descriptor.description,
+              icon: descriptor.icon,
             },
             context: {
               organizationId: orgName,
@@ -179,7 +209,7 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
               warning: (message, description) =>
                 notification.warning({ message, description }),
             },
-            ui,
+            ui: createAppUi(descriptor),
           });
 
           registerAdminAppModals(descriptor, owner, () => sdk);
@@ -216,6 +246,10 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
         .map(({ descriptor }) => ({
           key: `admin-app-${descriptor.appCode}`,
           label: descriptor.displayName,
+          iconKey: descriptor.icon.url,
+          icon: (
+            <AdminAppIcon decorative icon={descriptor.icon} size={18} />
+          ),
           path: `/:orgName/:storeName/apps/${encodeURIComponent(
             descriptor.appCode,
           )}`,

@@ -132,6 +132,8 @@ export type ApiAppDefinition = {
   displayName: Scalars['String']['output'];
   /** GraphQL surfaces declared by the bundled manifest. */
   graphql: ApiAppGraphQlSurfaces;
+  /** App icon or logo used by Admin surfaces. */
+  icon: ApiAppIcon;
   /** The current store installation, when one exists. */
   installation?: Maybe<ApiAppInstallation>;
   /** Whether this App has a non-terminal installation in the current store. */
@@ -158,6 +160,15 @@ export type ApiAppGraphQlSurfaces = {
   __typename?: 'AppGraphQLSurfaces';
   admin: Scalars['Boolean']['output'];
   storefront: Scalars['Boolean']['output'];
+};
+
+/** Visual identity declared by an App manifest. */
+export type ApiAppIcon = {
+  __typename?: 'AppIcon';
+  /** Accessible alternative text. */
+  alt: Scalars['String']['output'];
+  /** Same-origin or trusted image URL. */
+  url: Scalars['String']['output'];
 };
 
 /** Input for installing a bundled App in the current store. */
@@ -8694,7 +8705,7 @@ export type ApiGenericUserError = ApiUserError & {
 /** Headless App mutation namespace. */
 export type ApiHeadlessAppMutation = {
   __typename?: 'HeadlessAppMutation';
-  /** Create a storefront, its default policy, and its initial credentials. */
+  /** Create a storefront, its access policy, and its initial credentials. */
   headlessStorefrontCreate: ApiHeadlessStorefrontCreatePayload;
   /** Permanently disconnect a storefront and revoke its credentials. */
   headlessStorefrontDisconnect: ApiHeadlessStorefrontPayload;
@@ -8767,6 +8778,8 @@ export type ApiHeadlessAppQuery = {
   headlessStorefrontConnection?: Maybe<ApiHeadlessStorefrontConnection>;
   /** List Headless storefronts owned by the active installation. */
   headlessStorefrontConnections: Array<ApiHeadlessStorefrontConnection>;
+  /** Default permissions selected for a new Headless storefront. */
+  headlessStorefrontDefaultPermissions: Array<Scalars['String']['output']>;
   /** Permission catalog used to render the Headless access policy editor. */
   headlessStorefrontPermissionCatalog: Array<ApiHeadlessStorefrontPermissionDefinition>;
 };
@@ -8810,6 +8823,8 @@ export type ApiHeadlessStorefrontCreateInput = {
   /** A unique client-generated ID, reused only when retrying this request. */
   clientMutationId: Scalars['String']['input'];
   displayName: Scalars['String']['input'];
+  /** Initial Storefront API permissions. Uses App defaults when omitted. */
+  permissions?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 /** Payload returned after creating a Headless storefront. */

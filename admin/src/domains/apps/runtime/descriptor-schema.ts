@@ -28,6 +28,11 @@ export const adminAppUiDescriptorSchema = z.object({
   installationId: z.string().min(1),
   appCode: z.string().regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/),
   displayName: z.string().min(1),
+  description: z.string().min(1),
+  icon: z.object({
+    url: z.string().min(1),
+    alt: z.string().min(1),
+  }),
   version: z.string().min(1),
   sdkVersionRange: z.string().min(1),
   remote: z.object({
@@ -58,4 +63,3 @@ export function parseAdminAppUiDescriptors(
 ): AdminAppUiDescriptor[] {
   return z.array(adminAppUiDescriptorSchema).parse(input);
 }
-

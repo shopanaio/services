@@ -83,9 +83,10 @@ function buildMenuItems(
 ): AntMenuItem[] {
   return items.map((item, index) => {
     const isFinal = isSubitem && index === parentChildrenCount - 1;
-    const icon = isSubitem
-      ? <SubitemIcon isFinal={isFinal} />
-      : wrapMenuIcon(item.icon);
+    const icon =
+      isSubitem && !item.icon
+        ? <SubitemIcon isFinal={isFinal} />
+        : wrapMenuIcon(item.icon);
 
     if (item.type === "group") {
       return {

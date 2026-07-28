@@ -9,10 +9,11 @@ import {
   SmtpConnectionSecurity,
 } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import type { SmtpSettings } from "../components/smtp-settings-form";
+import { useSmtpConnectionActions } from "../hooks";
 import type {
-  SmtpSettings,
-  SmtpSettingsModalPayload,
-  SmtpSettingsModalResult,
+  CreateSmtpConnectionModalPayload,
+  CreateSmtpConnectionModalResult,
 } from ".";
 
 const useStyles = createStyles(({ token }) => ({
@@ -43,46 +44,46 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-const emptySettings: SmtpSettings = {
-  displayName: "",
-  provider: SmtpConnectionProvider.Sendgrid,
-  host: "smtp.sendgrid.net",
-  port: 587,
-  security: SmtpConnectionSecurity.Starttls,
-  username: "apikey",
-  password: "",
-};
+function createInitialSettings(
+  payload: CreateSmtpConnectionModalPayload,
+): SmtpSettings {
+  const preset =
+    payload.presets.find(
+      ({ provider }) => provider === SmtpConnectionProvider.Sendgrid,
+    ) ?? payload.presets[0];
 
-export default function SmtpSettingsModal({
+  return {
+    displayName: "",
+    provider: preset?.provider ?? SmtpConnectionProvider.Custom,
+    host: preset?.host ?? "",
+    port: preset?.port ?? 587,
+    security: preset?.security ?? SmtpConnectionSecurity.Starttls,
+    username: preset?.username ?? "",
+    password: "",
+  };
+}
+
+export default function CreateSmtpConnectionModal({
   sdk,
   payload,
-}: AdminAppModalProps<SmtpSettingsModalPayload>) {
+}: AdminAppModalProps<CreateSmtpConnectionModalPayload>) {
   const { styles, cx } = useStyles();
-  const [settings, setSettings] = useState<SmtpSettings>(() =>
-    payload.connection
-      ? {
-          displayName: payload.connection.displayName,
-          provider: payload.connection.provider,
-          host: payload.connection.host,
-          port: payload.connection.port,
-          security: payload.connection.security,
-          username: payload.connection.username ?? undefined,
-          password: "",
-        }
-      : emptySettings,
+  const actions = useSmtpConnectionActions(sdk);
+  const [settings, setSettings] = useState(() =>
+    createInitialSettings(payload),
   );
-  const [initialSettings] = useState(() => JSON.stringify(settings));
-  const isDirty = JSON.stringify(settings) !== initialSettings;
+  const isDirty = JSON.stringify(settings) !== JSON.stringify(
+    createInitialSettings(payload),
+  );
   const canSubmit = Boolean(
-    settings.displayName.trim() &&
+    !actions.loading &&
+      settings.displayName.trim() &&
       settings.host.trim() &&
       settings.port >= 1 &&
       settings.port <= 65535 &&
       (settings.provider === SmtpConnectionProvider.Custom ||
         settings.username?.trim()) &&
-      (!settings.username?.trim() ||
-        payload.connection?.hasPassword ||
-        settings.password?.trim()),
+      (!settings.username?.trim() || settings.password?.trim()),
   );
 
   useEffect(() => {
@@ -110,18 +111,30 @@ export default function SmtpSettingsModal({
     }));
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSubmit) return;
-    sdk.modals.setCurrentDirty(false);
-    sdk.modals.closeCurrent<SmtpSettingsModalResult>({
-      settings: {
+
+    try {
+      const connection = await actions.createConnection({
         ...settings,
         displayName: settings.displayName.trim(),
         host: settings.host.trim(),
         username: settings.username?.trim() || undefined,
         password: settings.password?.trim() || undefined,
-      },
-    });
+      });
+      if (!connection) {
+        throw new Error("The SMTP connection was not returned by the API.");
+      }
+      sdk.modals.setCurrentDirty(false);
+      sdk.modals.closeCurrent<CreateSmtpConnectionModalResult>({
+        connectionId: connection.id,
+      });
+    } catch (error) {
+      sdk.notifications.error(
+        "Unable to add SMTP connection",
+        error instanceof Error ? error.message : undefined,
+      );
+    }
   };
 
   return (
@@ -129,16 +142,15 @@ export default function SmtpSettingsModal({
       actions={
         <Button
           disabled={!canSubmit}
+          loading={actions.loading}
           size="small"
           type="primary"
-          onClick={submit}
+          onClick={() => void submit()}
         >
-          {payload.connection ? "Save changes" : "Add connection"}
+          Add connection
         </Button>
       }
-      title={
-        payload.connection ? "Edit SMTP connection" : "Add SMTP connection"
-      }
+      title="Add SMTP connection"
     >
       <Paper>
         <PaperHeader
@@ -151,11 +163,10 @@ export default function SmtpSettingsModal({
               Connection name
             </Typography.Text>
             <Input
+              autoFocus
               placeholder="Primary transactional email"
               value={settings.displayName}
-              onChange={({ target }) =>
-                update("displayName", target.value)
-              }
+              onChange={({ target }) => update("displayName", target.value)}
             />
           </label>
           <label className={cx(styles.field, styles.fieldFull)}>
@@ -232,9 +243,7 @@ export default function SmtpSettingsModal({
               onChange={({ target }) => update("password", target.value)}
             />
             <Typography.Text className={styles.help}>
-              {payload.connection?.hasPassword
-                ? "Leave blank to keep the stored credential."
-                : "The credential is encrypted and is never returned after saving."}
+              The credential is encrypted and is never returned after saving.
             </Typography.Text>
           </label>
         </div>

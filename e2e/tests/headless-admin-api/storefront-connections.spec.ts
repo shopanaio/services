@@ -52,6 +52,21 @@ test.describe('Headless Admin API - storefront connections', () => {
     });
   });
 
+  test('HDL-CONN-001A: create atomically persists explicitly selected permissions', async () => {
+    const permissions = ['storefront.catalog.read', 'storefront.order.read'];
+    const payload = await kit.create(
+      'Restricted storefront',
+      crypto.randomUUID(),
+      permissions,
+    );
+    expectSuccess(payload);
+    requiredConnection(payload.connection);
+    expect(payload.connection.storefrontAccessPolicy).toMatchObject({
+      permissions,
+      revision: 1,
+    });
+  });
+
   test('HDL-CONN-002: create atomically creates one public and one private credential', async () => {
     const payload = await kit.create();
     expectSuccess(payload);

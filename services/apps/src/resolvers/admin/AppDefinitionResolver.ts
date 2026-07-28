@@ -41,6 +41,17 @@ export class AppDefinitionResolver extends AppsType<
     return (await this.$data).manifest.description;
   }
 
+  async icon() {
+    const { manifest } = await this.$data;
+    if (manifest.schemaVersion !== 2) {
+      return {
+        url: "/app-icons/default.svg",
+        alt: manifest.displayName,
+      };
+    }
+    return manifest.icon;
+  }
+
   runtimeStatus() {
     return this.$ctx.runtimes.get(this.$props)?.status ?? "STOPPED";
   }

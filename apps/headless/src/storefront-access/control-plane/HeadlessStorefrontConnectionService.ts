@@ -19,6 +19,7 @@ export class HeadlessStorefrontConnectionService {
     scope: HeadlessStorefrontScope,
     input: {
       readonly displayName: string;
+      readonly permissions?: readonly string[];
       readonly clientMutationId: string;
       readonly createdById?: string;
     },
@@ -49,7 +50,7 @@ export class HeadlessStorefrontConnectionService {
       const policy = await this.policies.createDefault(
         scope,
         connection.id,
-        this.defaultPermissions,
+        input.permissions ?? this.defaultPermissions,
       );
       if (!policy) throw new Error("STOREFRONT_CREATE_FAILED");
       const initialCredentials =

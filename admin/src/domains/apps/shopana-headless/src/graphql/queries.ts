@@ -11,6 +11,15 @@ import type {
 export const HEADLESS_STOREFRONTS_QUERY = gql`
   query HeadlessStorefronts {
     headlessAppQuery {
+      headlessStorefrontPermissionCatalog {
+        handle
+        resource
+        action
+        label
+        description
+        risk
+      }
+      headlessStorefrontDefaultPermissions
       headlessStorefrontConnections {
         ...HeadlessStorefrontFields
       }

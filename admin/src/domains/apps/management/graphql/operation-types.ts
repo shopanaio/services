@@ -19,6 +19,7 @@ export type ManagementAppListItem = Pick<
   | "code"
   | "displayName"
   | "description"
+  | "icon"
   | "version"
   | "runtimeStatus"
   | "runtimeHealth"

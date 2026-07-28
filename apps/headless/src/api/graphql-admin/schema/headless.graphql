@@ -142,6 +142,9 @@ input StorefrontPrivateCredentialCreateInput {
 input HeadlessStorefrontCreateInput {
   displayName: String!
 
+  """Initial Storefront API permissions. Uses App defaults when omitted."""
+  permissions: [String!]
+
   """A unique client-generated ID, reused only when retrying this request."""
   clientMutationId: String!
 }
@@ -245,6 +248,9 @@ type HeadlessAppQuery {
   """Permission catalog used to render the Headless access policy editor."""
   headlessStorefrontPermissionCatalog: [HeadlessStorefrontPermissionDefinition!]!
 
+  """Default permissions selected for a new Headless storefront."""
+  headlessStorefrontDefaultPermissions: [String!]!
+
   """List Headless storefronts owned by the active installation."""
   headlessStorefrontConnections: [HeadlessStorefrontConnection!]!
 
@@ -254,7 +260,7 @@ type HeadlessAppQuery {
 
 """Headless App mutation namespace."""
 type HeadlessAppMutation {
-  """Create a storefront, its default policy, and its initial credentials."""
+  """Create a storefront, its access policy, and its initial credentials."""
   headlessStorefrontCreate(
     input: HeadlessStorefrontCreateInput!
   ): HeadlessStorefrontCreatePayload!

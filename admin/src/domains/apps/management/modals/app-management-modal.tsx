@@ -43,14 +43,6 @@ import {
 } from "../hooks";
 import type { AppManagementModalPayload } from "../modals";
 
-const APP_AVATAR_COLORS = [
-  "#598cf5",
-  "#6eb84a",
-  "#876bd1",
-  "#dc6f5e",
-  "#36a3a0",
-] as const;
-
 const PENDING_STATUSES = new Set<AppInstallationStatus>([
   AppInstallationStatus.Installing,
   AppInstallationStatus.PendingConsent,
@@ -218,14 +210,6 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-const getAvatarColor = (appCode: string) => {
-  const hash = [...appCode].reduce(
-    (total, character) => total + character.charCodeAt(0),
-    0,
-  );
-  return APP_AVATAR_COLORS[hash % APP_AVATAR_COLORS.length];
-};
-
 const formatLabel = (value: string) =>
   value
     .toLowerCase()
@@ -264,10 +248,9 @@ function AppSummary({
           className={styles.avatar}
           shape="square"
           size={40}
-          style={{ backgroundColor: getAvatarColor(app.code) }}
-        >
-          {app.displayName.trim().charAt(0).toUpperCase()}
-        </Avatar>
+          src={app.icon.url}
+          alt={app.icon.alt}
+        />
         <div className={styles.summaryCopy}>
           <Typography.Text className={styles.appName} strong>
             {app.displayName}

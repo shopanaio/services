@@ -2,7 +2,6 @@
 
 import {
   Alert,
-  App,
   Button,
   Checkbox,
   Divider,
@@ -16,13 +15,12 @@ import {
   Typography,
 } from "antd";
 import { createStyles } from "antd-style";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   LuCopy,
   LuEllipsis,
   LuEye,
   LuEyeOff,
-  LuStore,
 } from "react-icons/lu";
 import type { AdminAppPageProps } from "@shopana/admin-app-sdk";
 import {
@@ -38,15 +36,19 @@ import {
 } from "./hooks";
 import type { HeadlessStorefront } from "./graphql/operation-types";
 import {
+  CREATE_STOREFRONT_MODAL_ID,
   DISCONNECT_STOREFRONT_MODAL_ID,
   RENAME_STOREFRONT_MODAL_ID,
 } from "./modals";
 import type {
+  CreateStorefrontModalPayload,
+  CreateStorefrontModalResult,
   DisconnectStorefrontModalPayload,
   DisconnectStorefrontModalResult,
   RenameStorefrontModalPayload,
   RenameStorefrontModalResult,
 } from "./modals";
+import { groupStorefrontPermissions } from "./permissions";
 
 const useStyles = createStyles(({ token }) => ({
   stack: {
@@ -155,13 +157,6 @@ const statusPresentation = {
   },
 } as const;
 
-const permissionGroups = [
-  { label: "Catalog & inventory", resources: ["catalog", "inventory"] },
-  { label: "Checkout", resources: ["checkout"] },
-  { label: "Customers", resources: ["customer"] },
-  { label: "Orders", resources: ["order"] },
-] as const;
-
 function ErrorAlert({ error }: { error: Error | null }) {
   return error ? <Alert message={error.message} showIcon type="error" /> : null;
 }
@@ -183,7 +178,6 @@ function StorefrontsPage({
   onPrivateToken: (storefrontId: string, token: string) => void;
 }) {
   const { styles } = useStyles();
-  const { modal } = App.useApp();
   const query = useHeadlessStorefronts(sdk);
   const actions = useHeadlessStorefrontActions(sdk);
   const storefronts = useMemo(
@@ -204,41 +198,31 @@ function StorefrontsPage({
     sdk.navigation.openAppPath(`storefronts/${storefrontId}`);
   };
 
-  const addStorefront = () => {
-    let displayName = "";
-
-    modal.confirm({
-      title: "Add storefront",
-      content: (
-        <Input
-          autoFocus
-          placeholder="Storefront name"
-          onChange={({ target }) => {
-            displayName = target.value;
-          }}
-        />
-      ),
-      okText: "Add storefront",
-      async onOk() {
-        const normalizedName = displayName.trim();
-        if (!normalizedName) {
-          throw new Error("Enter a storefront name.");
-        }
-
-        const payload = await actions.createStorefront(normalizedName);
-        if (!payload.connection) {
-          throw new Error("The storefront was not returned by the API.");
-        }
-        if (payload.initialStorefrontCredentials?.privateAccessToken) {
+  const addStorefront = async () => {
+    try {
+      const result = await sdk.modals.openApp<
+        CreateStorefrontModalPayload,
+        CreateStorefrontModalResult
+      >(CREATE_STOREFRONT_MODAL_ID, {
+        permissionCatalog: query.permissionCatalog,
+        defaultPermissions: query.defaultPermissions,
+      });
+      if (result.status === "submitted") {
+        if (result.data.privateAccessToken) {
           onPrivateToken(
-            payload.connection.id,
-            payload.initialStorefrontCredentials.privateAccessToken,
+            result.data.storefrontId,
+            result.data.privateAccessToken,
           );
         }
         sdk.notifications.success("Storefront added");
-        openStorefront(payload.connection.id);
-      },
-    });
+        openStorefront(result.data.storefrontId);
+      }
+    } catch (error) {
+      sdk.notifications.error(
+        "Unable to open storefront settings",
+        error instanceof Error ? error.message : undefined,
+      );
+    }
   };
 
   const toggleStatus = async (storefront: HeadlessStorefront) => {
@@ -265,14 +249,14 @@ function StorefrontsPage({
     <sdk.ui.AppPage
       actions={
         <Button
-          loading={actions.loading}
+          disabled={query.permissionCatalog.length === 0}
+          loading={actions.loading || query.loading}
           type="primary"
-          onClick={addStorefront}
+          onClick={() => void addStorefront()}
         >
           Add storefront
         </Button>
       }
-      title="Headless"
     >
       <div className={styles.stack}>
         <ErrorAlert error={query.error} />
@@ -314,7 +298,6 @@ function StorefrontsPage({
                               }
                         }
                       >
-                        <LuStore aria-hidden size={20} />
                         <div className={styles.storefrontCopy}>
                           <Typography.Text strong ellipsis>
                             {storefront.displayName}
@@ -384,14 +367,14 @@ function StorefrontDetailPage({
   const query = useHeadlessStorefront(sdk, storefrontId);
   const actions = useHeadlessStorefrontActions(sdk);
   const [showPrivateToken, setShowPrivateToken] = useState(false);
-  const [permissionDraft, setPermissionDraft] = useState<string[]>([]);
+  const [permissionDraftOverride, setPermissionDraftOverride] = useState<
+    string[] | null
+  >(null);
 
   const storefront = query.storefront;
   const accessPolicy = storefront?.storefrontAccessPolicy;
-
-  useEffect(() => {
-    setPermissionDraft(accessPolicy?.permissions ?? []);
-  }, [accessPolicy]);
+  const permissionDraft =
+    permissionDraftOverride ?? accessPolicy?.permissions ?? [];
 
   const activePrivateCredential = storefront?.storefrontCredentials.find(
     ({ kind, status }) =>
@@ -478,11 +461,12 @@ function StorefrontDetailPage({
   };
 
   const togglePermission = (handle: string, enabled: boolean) => {
-    setPermissionDraft((current) =>
-      enabled
-        ? [...new Set([...current, handle])]
-        : current.filter((permission) => permission !== handle),
-    );
+    setPermissionDraftOverride((current) => {
+      const permissions = current ?? accessPolicy?.permissions ?? [];
+      return enabled
+        ? [...new Set([...permissions, handle])]
+        : permissions.filter((permission) => permission !== handle);
+    });
   };
 
   const savedPermissions = accessPolicy?.permissions ?? [];
@@ -502,6 +486,7 @@ function StorefrontDetailPage({
       );
       sdk.notifications.success("Storefront permissions saved");
       await query.refetch();
+      setPermissionDraftOverride(null);
     } catch (error) {
       sdk.notifications.error(
         "Unable to update permissions",
@@ -534,15 +519,7 @@ function StorefrontDetailPage({
   };
 
   const groupedPermissions = useMemo(
-    () =>
-      permissionGroups.map((group) => ({
-        ...group,
-        permissions: query.permissionCatalog.filter((permission) =>
-          group.resources.some(
-            (resource) => resource === permission.resource,
-          ),
-        ),
-      })),
+    () => groupStorefrontPermissions(query.permissionCatalog),
     [query.permissionCatalog],
   );
 

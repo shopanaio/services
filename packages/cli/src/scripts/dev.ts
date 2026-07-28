@@ -33,33 +33,61 @@ const services = discoverServices().filter(
     name !== "bootstrap"
 );
 
-// Track rebuild state
-const rebuilding = new Map<string, boolean>();
+// Track rebuild state. Repeated watcher events share the same in-flight build.
+const rebuilding = new Map<string, Promise<boolean>>();
+const appRebuildTimers = new Map<string, NodeJS.Timeout>();
 let bootstrapProcess: ChildProcess | null = null;
 let restartTimeout: NodeJS.Timeout | null = null;
 
 async function rebuildService(service: string): Promise<boolean> {
-  if (rebuilding.get(service)) return false;
-  rebuilding.set(service, true);
+  const activeBuild = rebuilding.get(service);
+  if (activeBuild) return activeBuild;
 
-  const result = await buildService(service);
+  const buildPromise = buildService(service, {
+    detectCircularImports: false,
+  }).then((result) => result.success);
+  rebuilding.set(service, buildPromise);
 
-  rebuilding.set(service, false);
-  return result.success;
+  try {
+    return await buildPromise;
+  } finally {
+    rebuilding.delete(service);
+  }
 }
 
 async function rebuildApp(unit: ProjectUnit): Promise<boolean> {
   const key = `app:${unit.name}`;
-  if (rebuilding.get(key)) return false;
-  rebuilding.set(key, true);
+  const activeBuild = rebuilding.get(key);
+  if (activeBuild) return activeBuild;
 
-  const appResult = await buildProjectUnit(unit);
-  const hostResult = appResult.success
-    ? await buildService("apps")
-    : { success: false };
+  const buildPromise = (async () => {
+    const appResult = await buildProjectUnit(unit, {
+      detectCircularImports: false,
+    });
+    if (!appResult.success) return false;
+    return rebuildService("apps");
+  })();
+  rebuilding.set(key, buildPromise);
 
-  rebuilding.set(key, false);
-  return appResult.success && hostResult.success;
+  try {
+    return await buildPromise;
+  } finally {
+    rebuilding.delete(key);
+  }
+}
+
+function scheduleAppRebuild(unit: ProjectUnit) {
+  const existingTimer = appRebuildTimers.get(unit.name);
+  if (existingTimer) clearTimeout(existingTimer);
+
+  appRebuildTimers.set(
+    unit.name,
+    setTimeout(async () => {
+      appRebuildTimers.delete(unit.name);
+      const built = await rebuildApp(unit);
+      if (built) scheduleRestart();
+    }, 150),
+  );
 }
 
 function startBootstrap() {
@@ -81,11 +109,9 @@ function scheduleRestart() {
 
   restartTimeout = setTimeout(() => {
     // Don't restart if any build is in progress
-    for (const [, building] of rebuilding) {
-      if (building) {
-        scheduleRestart();
-        return;
-      }
+    if (rebuilding.size > 0 || appRebuildTimers.size > 0) {
+      scheduleRestart();
+      return;
     }
     startBootstrap();
   }, 500);
@@ -121,9 +147,12 @@ export async function runDev(singleService?: string) {
   await buildServices(
     [...appUnits.map((unit) => unit.name), ...services],
     true,
-    { quiet: true },
+    { quiet: true, detectCircularImports: false },
   );
-  await buildService("bootstrap", { quiet: true });
+  await buildService("bootstrap", {
+    quiet: true,
+    detectCircularImports: false,
+  });
   const duration = Date.now() - startTime;
 
   console.log(`✓ Built ${services.length + 1} services (${duration}ms)\n`);
@@ -148,23 +177,22 @@ export async function runDev(singleService?: string) {
   }
 
   for (const app of appUnits) {
-    const srcDirs = [join(app.path, "src"), join(app.path, "app.manifest.ts")];
-    for (const source of srcDirs) {
-      if (!existsSync(source)) continue;
-      watch(source, { recursive: true }, async (_event, filename) => {
-        const changedFile = filename ?? source;
-        if (
-          changedFile.endsWith(".test.ts") ||
-          changedFile.endsWith(".spec.ts")
-        ) {
-          return;
-        }
-        if (!/\.(ts|js|json|graphql)$/.test(changedFile)) return;
-
-        const built = await rebuildApp(app);
-        if (built) scheduleRestart();
+    const srcDir = join(app.path, "src");
+    if (existsSync(srcDir)) {
+      watch(srcDir, { recursive: true }, (_event, filename) => {
+        if (!filename) return;
+        if (filename.endsWith(".test.ts") || filename.endsWith(".spec.ts")) return;
+        if (!/\.(ts|js|json|graphql)$/.test(filename)) return;
+        scheduleAppRebuild(app);
       });
     }
+
+    // Watch the parent directory so editor atomic-save/rename operations do not
+    // invalidate a watcher attached directly to the manifest inode.
+    watch(app.path, { recursive: false }, (_event, filename) => {
+      if (filename !== "app.manifest.ts") return;
+      scheduleAppRebuild(app);
+    });
   }
 
   // Watch bootstrap

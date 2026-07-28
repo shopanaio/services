@@ -85,6 +85,7 @@ export function discoverServices(): string[] {
 
 interface BuildOptions {
   quiet?: boolean;
+  detectCircularImports?: boolean;
 }
 
 /**
@@ -168,7 +169,12 @@ export async function buildProjectUnit(
       sourcemap: true,
       minify: false,
       conditions: ["source"],
-      plugins: [addJsExtensionPlugin, detectCircularImportsPlugin],
+      plugins: [
+        addJsExtensionPlugin,
+        ...(options?.detectCircularImports === false
+          ? []
+          : [detectCircularImportsPlugin]),
+      ],
       logLevel: "warning",
     });
 

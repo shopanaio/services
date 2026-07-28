@@ -26,6 +26,15 @@ type AppGraphQLSurfaces {
   storefront: Boolean!
 }
 
+"""Visual identity declared by an App manifest."""
+type AppIcon {
+  """Same-origin or trusted image URL."""
+  url: String!
+
+  """Accessible alternative text."""
+  alt: String!
+}
+
 """One operation exposed by an App capability."""
 type AppCapabilityOperation {
   """The operation name used by platform callers."""
@@ -69,6 +78,9 @@ type AppDefinition {
 
   """Human-readable App description."""
   description: String!
+
+  """App icon or logo used by Admin surfaces."""
+  icon: AppIcon!
 
   """Current process-local runtime state."""
   runtimeStatus: AppRuntimeStatus!

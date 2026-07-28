@@ -35,6 +35,10 @@ export const headlessManifest = defineAppManifest({
   version: "1.0.0",
   displayName: "Headless",
   description: "Custom storefronts using the Shopana Storefront API.",
+  icon: {
+    url: "/app-icons/headless.svg",
+    alt: "Headless",
+  },
   lifecycle: {
     installWorkflow: "install",
     updateWorkflow: "update",

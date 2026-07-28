@@ -73,8 +73,9 @@ export interface AdminAppNotificationsApi {
 }
 
 export interface AdminAppPageLayoutProps {
-  title: ReactNode;
+  title?: ReactNode;
   description?: ReactNode;
+  icon?: ReactNode;
   actions?: ReactNode;
   onBack?: () => void;
   children: ReactNode;
@@ -107,6 +108,12 @@ export interface AdminAppSdk {
     code: string;
     version: string;
     installationId: string;
+    displayName: string;
+    description: string;
+    icon: {
+      url: string;
+      alt: string;
+    };
   };
   readonly context: {
     organizationId: string;

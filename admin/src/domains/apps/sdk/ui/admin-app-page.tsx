@@ -15,11 +15,17 @@ const useStyles = createStyles(({ token }) => ({
   description: {
     margin: 0,
   },
+  title: {
+    alignItems: "center",
+    display: "inline-flex",
+    gap: token.paddingSM,
+  },
 }));
 
 export function AdminAppPage({
   title,
   description,
+  icon,
   actions,
   onBack,
   children,
@@ -31,7 +37,12 @@ export function AdminAppPage({
       actions={actions}
       name="admin-app"
       onBack={onBack}
-      title={title}
+      title={
+        <span className={styles.title}>
+          {icon}
+          {title}
+        </span>
+      }
     >
       <div className={styles.content}>
         {description ? (

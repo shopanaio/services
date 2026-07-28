@@ -7,6 +7,10 @@ query AppsAvailableApps($where: AppWhereInput) {
           version
           displayName
           description
+          icon {
+            url
+            alt
+          }
           runtimeStatus
           runtimeHealth {
             status
