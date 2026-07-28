@@ -30,3 +30,26 @@ export async function waitForEmailOtp(
 
   throw new Error(`OTP email for ${recipient} was not received`);
 }
+
+export async function expectNoEmailOtp(
+  recipient: string,
+  quietPeriodMs = 1_000,
+): Promise<void> {
+  const deadline = Date.now() + quietPeriodMs;
+  const query = encodeURIComponent(`to:"${recipient}"`);
+
+  while (Date.now() < deadline) {
+    const response = await fetch(
+      `${MAILPIT_URL}/view/latest.txt?query=${query}`,
+    );
+    if (response.ok) {
+      throw new Error(`Unexpected OTP email was delivered to ${recipient}`);
+    }
+    if (response.status !== 404) {
+      throw new Error(
+        `Mailpit returned ${response.status}: ${await response.text()}`,
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+}
