@@ -4,7 +4,6 @@ import {
   Alert,
   App,
   Empty,
-  Input,
   Segmented,
   Skeleton,
   Tabs,
@@ -79,12 +78,6 @@ const useStyles = createStyles(({ css, token }) => ({
     color: token.colorTextSecondary,
     fontSize: 13,
     lineHeight: "22px",
-  },
-  smsInput: {
-    fontSize: token.fontSizeLG,
-    lineHeight: "24px",
-    minHeight: 72,
-    resize: "vertical",
   },
   helper: {
     color: token.colorTextSecondary,
@@ -506,12 +499,17 @@ export function NotificationTemplateModal() {
                     <Typography.Text className={styles.label}>
                       Subject
                     </Typography.Text>
-                    <Input
-                      aria-label="Email subject"
-                      onChange={(event) =>
-                        updateDraft({ subject: event.target.value })
-                      }
+                    <CodeEditor
+                      ariaLabel="Email subject"
+                      fontSize={13}
+                      height="34px"
+                      language="handlebars-inline"
+                      lineNumbers={false}
+                      minHeight="34px"
+                      onChange={(subject) => updateDraft({ subject })}
+                      singleLine
                       value={draft?.subject ?? ""}
+                      wordWrap={false}
                     />
                   </>
                 ) : (
@@ -519,13 +517,14 @@ export function NotificationTemplateModal() {
                     <Typography.Text className={styles.label}>
                       Message
                     </Typography.Text>
-                    <Input.TextArea
-                      aria-label="SMS message"
-                      className={styles.smsInput}
-                      onChange={(event) =>
-                        updateDraft({ body: event.target.value })
-                      }
-                      rows={2}
+                    <CodeEditor
+                      ariaLabel="SMS message"
+                      fontSize={13}
+                      height="80px"
+                      language="handlebars-inline"
+                      lineNumbers={false}
+                      minHeight="80px"
+                      onChange={(body) => updateDraft({ body })}
                       value={draft?.body ?? ""}
                     />
                     <Typography.Text className={styles.helper}>
@@ -552,22 +551,19 @@ export function NotificationTemplateModal() {
                     HTML + Handlebars
                   </Tag>
                 </div>
-                <div className={styles.editorBody}>
+                <div
+                  className={styles.editorBody}
+                  data-testid="notification-template-body-editor"
+                >
                   {query.loading && !draft ? (
                     <Skeleton active paragraph={{ rows: 12 }} />
                   ) : mode === "Edit" ? (
                     <CodeEditor
+                      ariaLabel="Email template body"
                       bordered={false}
+                      dataTestId="notification-template-body-code-editor"
                       language="handlebars"
                       onChange={(body) => updateDraft({ body })}
-                      options={{
-                        fontSize: 12,
-                        lineHeight: 20,
-                        lineNumbersMinChars: 3,
-                        padding: { top: 10 },
-                        renderLineHighlight: "none",
-                        wordWrap: "on",
-                      }}
                       theme="light"
                       value={draft?.body ?? ""}
                     />

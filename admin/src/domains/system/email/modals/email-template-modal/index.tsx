@@ -159,8 +159,10 @@ export const EmailTemplateModal = () => {
               {showVariables ? (
                 <div className={styles.editor}>
                   <CodeEditor
+                    ariaLabel="Template variables"
                     language="json"
                     onChange={() => {}}
+                    readOnly
                     theme="light"
                     value={getEmailTemplateVariables(typedPayload.type)}
                   />
@@ -173,6 +175,7 @@ export const EmailTemplateModal = () => {
                   render={({ field }) => (
                     <div className={styles.editor}>
                       <CodeEditor
+                        ariaLabel="Email template body"
                         onChange={field.onChange}
                         theme="light"
                         value={field.value}
