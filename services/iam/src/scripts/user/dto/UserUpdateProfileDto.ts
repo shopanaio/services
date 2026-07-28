@@ -23,6 +23,11 @@ export const userUpdateProfileInputSchema = z.object({
   image: z.string().uuid("Invalid image ID").nullable().optional(),
 });
 
+export const userUpdateProfileParamsSchema =
+  userUpdateProfileInputSchema.extend({
+    userId: z.string().min(1, "User ID is required"),
+  });
+
 export type UserUpdateProfileInput = z.infer<
   typeof userUpdateProfileInputSchema
 >;
@@ -30,12 +35,9 @@ export type UserUpdateProfileInput = z.infer<
 /**
  * Script params
  */
-export interface UserUpdateProfileParams {
-  firstName?: string;
-  lastName?: string;
-  language?: string;
-  image?: string | null;
-}
+export type UserUpdateProfileParams = z.infer<
+  typeof userUpdateProfileParamsSchema
+>;
 
 /**
  * Script result

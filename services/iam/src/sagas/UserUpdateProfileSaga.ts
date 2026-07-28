@@ -17,7 +17,6 @@ import { UserUpdateProfileScript } from "../scripts/user/UserUpdateProfileScript
 import { mediaLinkError } from "./mediaLinkError.js";
 
 export interface UserUpdateProfileSagaInput extends UserUpdateProfileParams {
-  userId: string;
   previousAvatarId?: string | null;
   nextAvatarId?: string | null;
 }
@@ -47,7 +46,8 @@ export class UserUpdateProfileSaga extends BrokerSaga<
 
   @Saga("userUpdateProfile")
   async run(input: UserUpdateProfileSagaInput): Promise<UserUpdateProfileResult> {
-    const { userId, previousAvatarId, nextAvatarId, ...updateParams } = input;
+    const { previousAvatarId, nextAvatarId, ...updateParams } = input;
+    const { userId } = updateParams;
     const avatarChanged =
       nextAvatarId !== undefined && previousAvatarId !== nextAvatarId;
     let nextAvatarLinked = false;

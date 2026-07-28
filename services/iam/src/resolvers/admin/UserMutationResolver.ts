@@ -87,7 +87,10 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
         source: "content",
         resourceId: currentUser.id,
         operation: "userUpdateProfile",
-        contentHash: hashContent({ userId: currentUser.id }),
+        contentHash: hashContent({
+          userId: currentUser.id,
+          input,
+        }),
       }
     );
 

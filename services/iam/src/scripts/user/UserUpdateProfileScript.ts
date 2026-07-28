@@ -5,28 +5,27 @@ import {
   ValidationError,
 } from "../../kernel/BaseScript.js";
 import {
-  userUpdateProfileInputSchema,
+  userUpdateProfileParamsSchema,
   type UserUpdateProfileParams,
   type UserUpdateProfileResult,
 } from "./dto/UserUpdateProfileDto.js";
 
 /**
- * UserUpdateProfileScript - Update current user's profile
+ * UserUpdateProfileScript - Update a validated user's profile
  *
- * Updates the user's firstName, lastName, and language preferences.
- * Only the authenticated user can update their own profile.
+ * Updates the user's firstName, lastName, and avatar.
+ * The caller passes the user ID captured before entering the durable saga.
  */
 export class UserUpdateProfileScript extends BaseScript<
   UserUpdateProfileParams,
   UserUpdateProfileResult
 > {
   @Transactional()
-  @ZodSchema(userUpdateProfileInputSchema)
+  @ZodSchema(userUpdateProfileParamsSchema)
   protected async execute(
     params: UserUpdateProfileParams
   ): Promise<UserUpdateProfileResult> {
-    const { firstName, lastName, language, image } = params;
-    const userId = this.currentUser.id;
+    const { userId, firstName, lastName, language, image } = params;
 
     // Check if there's anything to update
     if (
@@ -46,13 +45,8 @@ export class UserUpdateProfileScript extends BaseScript<
       firstName?: string;
       lastName?: string;
       name?: string;
-      language?: string;
       image?: string | null;
     } = {};
-
-    if (language !== undefined) {
-      updateData.language = language;
-    }
 
     if (image !== undefined) {
       updateData.image = image;
@@ -88,8 +82,6 @@ export class UserUpdateProfileScript extends BaseScript<
       updateData.name =
         `${newFirstName} ${newLastName}`.trim() || currentUserData.name;
     }
-
-    console.log(updateData, "updateData");
 
     // Update the user profile
     const updated = await this.repository.user.updateProfile(
