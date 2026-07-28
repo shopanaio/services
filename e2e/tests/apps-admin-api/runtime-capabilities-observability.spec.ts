@@ -86,9 +86,9 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
           {
             capability: 'notifications',
             assignmentMode: 'STORE',
-            operation: 'deliver',
+            operation: 'deliverEmail',
             targetAppCode: 'shopana-smtp',
-            targetAction: 'deliver',
+            targetAction: 'deliverEmail',
             status: 'ACTIVE',
           },
         ],
@@ -130,6 +130,47 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
         capabilities: [],
       });
   });
+
+  test(
+    'SMTP installation allows deployment-approved Mailpit configuration without credentials',
+    async ({ api }) => {
+      const install = await api.admin.mutation('apps-admin-api/AppInstall', {
+        variables: {
+          input: {
+            appCode: 'shopana-smtp',
+            configuration: {
+              host: '127.0.0.1',
+              port: 11025,
+              security: 'NONE',
+            },
+            clientMutationId: crypto.randomUUID(),
+          },
+        },
+      });
+      const installation = install.data.appsMutation.appInstall.installation;
+
+      expect(install.data.appsMutation.appInstall.userErrors).toEqual([]);
+      expect(installation).not.toBeNull();
+      await expect
+        .poll(async () => {
+          const response = await api.admin.query(
+            'apps-admin-api/AppInstallation',
+            {
+              variables: { id: installation!.id },
+            },
+          );
+          return response.data.appsQuery.appInstallation;
+        })
+        .toMatchObject({
+          status: 'ACTIVE',
+          configuration: {
+            host: '127.0.0.1',
+            port: 11025,
+            security: 'NONE',
+          },
+        });
+    },
+  );
 
   test('capability eligibility follows lifecycle and store ownership', async ({
     api,

@@ -54,6 +54,8 @@ services:
       shopana-smtp:
         enabled: true
         required: true
+        allow_private_network: true
+        allow_insecure_smtp: true
 
   checkout:
     ports:

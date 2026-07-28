@@ -65,6 +65,9 @@ services:
       shopana-smtp:
         enabled: true
         required: true
+        # Development-only Mailpit allowances; omit or set false in production.
+        allow_private_network: true
+        allow_insecure_smtp: true
 
   checkout:
     ports:

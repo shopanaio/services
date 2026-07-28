@@ -79,6 +79,22 @@ services:
     restart: "no"
 
   # ============================================
+  # Mailpit (local SMTP sink)
+  # ============================================
+  mailpit:
+    image: axllent/mailpit:v1.30.0
+    container_name: shopana-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_MAX_MESSAGES: 1000
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - ./.data/mailpit:/data
+
+  # ============================================
   # Bootstrap (Development)
   # ============================================
   # bootstrap:

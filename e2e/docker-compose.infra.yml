@@ -53,3 +53,10 @@ services:
       myminio/media --ignore-existing; mc anonymous set public myminio/media; echo 'Buckets
       created'; exit 0; "
     restart: 'no'
+
+  mailpit:
+    image: axllent/mailpit:v1.30.0
+    container_name: shopana-e2e-mailpit
+    ports:
+      - '18025:8025'
+      - '11025:1025'
