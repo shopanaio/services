@@ -95,6 +95,11 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     gap: token.paddingXS,
   },
+  privateTokenWarning: {
+    "&.ant-alert-with-description": {
+      padding: token.paddingSM,
+    },
+  },
   rotation: {
     alignItems: "center",
     background: token.colorFillQuaternary,
@@ -644,22 +649,30 @@ function StorefrontDetailPage({
                       />
                     </div>
                   </div>
-                  <div className={styles.rotation}>
-                    <Flex vertical>
-                      <Typography.Text strong>
-                        Rotate private access token
-                      </Typography.Text>
-                      <Typography.Text type="secondary">
-                        The existing token remains valid until you revoke it.
-                      </Typography.Text>
-                    </Flex>
-                    <Button
-                      loading={actions.loading}
-                      onClick={() => void rotatePrivateToken()}
-                    >
-                      Generate new token
-                    </Button>
-                  </div>
+                  {privateToken ? (
+                    <Alert
+                      className={styles.privateTokenWarning}
+                      description="Copy and save this token now. You won’t be able to view it again."
+                      type="warning"
+                    />
+                  ) : (
+                    <div className={styles.rotation}>
+                      <Flex vertical>
+                        <Typography.Text strong>
+                          Rotate private access token
+                        </Typography.Text>
+                        <Typography.Text type="secondary">
+                          The existing token remains valid until you revoke it.
+                        </Typography.Text>
+                      </Flex>
+                      <Button
+                        loading={actions.loading}
+                        onClick={() => void rotatePrivateToken()}
+                      >
+                        Generate new token
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </Paper>
 
