@@ -10436,6 +10436,7 @@ export type ApiMutation = {
   reviewsMutation: ApiReviewsMutation;
   /** Role management mutations. */
   roleMutation: ApiRoleMutation;
+  smtpAppMutation: ApiSmtpAppMutation;
   /** Store-related mutations */
   storeMutation: ApiStoreMutation;
   /** User management mutations. */
@@ -13024,6 +13025,7 @@ export type ApiQuery = {
   pricingQuery: ApiPricingQuery;
   /** Admin-only Reviews query namespace. */
   reviewsQuery: ApiReviewsQuery;
+  smtpAppQuery: ApiSmtpAppQuery;
   /** Store-related queries */
   storeQuery: ApiStoreQuery;
   /** User management queries. */
@@ -16288,6 +16290,125 @@ export type ApiSkuStatusMetric = {
   count: Scalars['Int']['output'];
 };
 
+export type ApiSmtpAppMutation = {
+  __typename?: 'SmtpAppMutation';
+  smtpConnectionActivate: ApiSmtpConnectionPayload;
+  smtpConnectionCreate: ApiSmtpConnectionPayload;
+  smtpConnectionDisconnect: ApiSmtpConnectionPayload;
+  smtpConnectionUpdate: ApiSmtpConnectionPayload;
+};
+
+
+export type ApiSmtpAppMutationSmtpConnectionActivateArgs = {
+  input: ApiSmtpConnectionActionInput;
+};
+
+
+export type ApiSmtpAppMutationSmtpConnectionCreateArgs = {
+  input: ApiSmtpConnectionCreateInput;
+};
+
+
+export type ApiSmtpAppMutationSmtpConnectionDisconnectArgs = {
+  input: ApiSmtpConnectionActionInput;
+};
+
+
+export type ApiSmtpAppMutationSmtpConnectionUpdateArgs = {
+  input: ApiSmtpConnectionUpdateInput;
+};
+
+export type ApiSmtpAppQuery = {
+  __typename?: 'SmtpAppQuery';
+  smtpConnection?: Maybe<ApiSmtpConnection>;
+  smtpConnections: Array<ApiSmtpConnection>;
+  smtpProviderPresets: Array<ApiSmtpProviderPreset>;
+};
+
+
+export type ApiSmtpAppQuerySmtpConnectionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiSmtpConnection = ApiNode & {
+  __typename?: 'SmtpConnection';
+  createdAt: Scalars['DateTime']['output'];
+  displayName: Scalars['String']['output'];
+  hasPassword: Scalars['Boolean']['output'];
+  host: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  port: Scalars['Int']['output'];
+  provider: SmtpConnectionProvider;
+  security: SmtpConnectionSecurity;
+  status: SmtpConnectionStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  username?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiSmtpConnectionActionInput = {
+  connectionId: Scalars['ID']['input'];
+};
+
+export type ApiSmtpConnectionCreateInput = {
+  displayName: Scalars['String']['input'];
+  host: Scalars['String']['input'];
+  password?: InputMaybe<Scalars['String']['input']>;
+  port: Scalars['Int']['input'];
+  provider: SmtpConnectionProvider;
+  security: SmtpConnectionSecurity;
+  username?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiSmtpConnectionPayload = {
+  __typename?: 'SmtpConnectionPayload';
+  connection?: Maybe<ApiSmtpConnection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum SmtpConnectionProvider {
+  Custom = 'CUSTOM',
+  GoogleWorkspace = 'GOOGLE_WORKSPACE',
+  MailchimpTransactional = 'MAILCHIMP_TRANSACTIONAL',
+  Sendgrid = 'SENDGRID'
+}
+
+export enum SmtpConnectionSecurity {
+  None = 'NONE',
+  Starttls = 'STARTTLS',
+  Tls = 'TLS'
+}
+
+export enum SmtpConnectionStatus {
+  Active = 'ACTIVE',
+  Disconnected = 'DISCONNECTED',
+  Inactive = 'INACTIVE'
+}
+
+export type ApiSmtpConnectionUpdateInput = {
+  connectionId: Scalars['ID']['input'];
+  displayName: Scalars['String']['input'];
+  host: Scalars['String']['input'];
+  /**
+   * Omit to retain the current password or provide a value to replace it.
+   * Clear the username to remove credentials from the connection.
+   */
+  password?: InputMaybe<Scalars['String']['input']>;
+  port: Scalars['Int']['input'];
+  provider: SmtpConnectionProvider;
+  security: SmtpConnectionSecurity;
+  username?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiSmtpProviderPreset = {
+  __typename?: 'SmtpProviderPreset';
+  host?: Maybe<Scalars['String']['output']>;
+  label: Scalars['String']['output'];
+  port: Scalars['Int']['output'];
+  provider: SmtpConnectionProvider;
+  security: SmtpConnectionSecurity;
+  username?: Maybe<Scalars['String']['output']>;
+};
+
 /** Sort direction */
 export enum SortDirection {
   Asc = 'asc',
@@ -18112,6 +18233,7 @@ export enum Join__Graph {
   AppsAdmin = 'APPS_ADMIN',
   AppsHeadlessAdmin = 'APPS_HEADLESS_ADMIN',
   AppsHelloWorldAdmin = 'APPS_HELLO_WORLD_ADMIN',
+  AppsSmtpAdmin = 'APPS_SMTP_ADMIN',
   CatalogAdmin = 'CATALOG_ADMIN',
   CustomersAdmin = 'CUSTOMERS_ADMIN',
   IamAdmin = 'IAM_ADMIN',

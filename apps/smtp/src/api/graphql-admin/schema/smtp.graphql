@@ -1,0 +1,129 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: ["@key", "@shareable"]
+  )
+
+scalar DateTime
+
+interface Node {
+  id: ID!
+}
+
+interface UserError {
+  message: String!
+  field: [String!]
+  code: String
+}
+
+type GenericUserError implements UserError @shareable {
+  message: String!
+  field: [String!]
+  code: String
+}
+
+enum SmtpConnectionProvider {
+  CUSTOM
+  SENDGRID
+  MAILCHIMP_TRANSACTIONAL
+  GOOGLE_WORKSPACE
+}
+
+enum SmtpConnectionStatus {
+  ACTIVE
+  INACTIVE
+  DISCONNECTED
+}
+
+enum SmtpConnectionSecurity {
+  NONE
+  STARTTLS
+  TLS
+}
+
+type SmtpProviderPreset {
+  provider: SmtpConnectionProvider!
+  label: String!
+  host: String
+  port: Int!
+  security: SmtpConnectionSecurity!
+  username: String
+}
+
+type SmtpConnection implements Node @key(fields: "id") {
+  id: ID!
+  displayName: String!
+  provider: SmtpConnectionProvider!
+  status: SmtpConnectionStatus!
+  host: String!
+  port: Int!
+  security: SmtpConnectionSecurity!
+  username: String
+  hasPassword: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input SmtpConnectionCreateInput {
+  displayName: String!
+  provider: SmtpConnectionProvider!
+  host: String!
+  port: Int!
+  security: SmtpConnectionSecurity!
+  username: String
+  password: String
+}
+
+input SmtpConnectionUpdateInput {
+  connectionId: ID!
+  displayName: String!
+  provider: SmtpConnectionProvider!
+  host: String!
+  port: Int!
+  security: SmtpConnectionSecurity!
+  username: String
+
+  """
+  Omit to retain the current password or provide a value to replace it.
+  Clear the username to remove credentials from the connection.
+  """
+  password: String
+}
+
+input SmtpConnectionActionInput {
+  connectionId: ID!
+}
+
+type SmtpConnectionPayload {
+  connection: SmtpConnection
+  userErrors: [GenericUserError!]!
+}
+
+extend type Query {
+  smtpAppQuery: SmtpAppQuery!
+}
+
+extend type Mutation {
+  smtpAppMutation: SmtpAppMutation!
+}
+
+type SmtpAppQuery {
+  smtpProviderPresets: [SmtpProviderPreset!]!
+  smtpConnections: [SmtpConnection!]!
+  smtpConnection(id: ID!): SmtpConnection
+}
+
+type SmtpAppMutation {
+  smtpConnectionCreate(
+    input: SmtpConnectionCreateInput!
+  ): SmtpConnectionPayload!
+  smtpConnectionUpdate(
+    input: SmtpConnectionUpdateInput!
+  ): SmtpConnectionPayload!
+  smtpConnectionActivate(
+    input: SmtpConnectionActionInput!
+  ): SmtpConnectionPayload!
+  smtpConnectionDisconnect(
+    input: SmtpConnectionActionInput!
+  ): SmtpConnectionPayload!
+}

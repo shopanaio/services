@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-export const SMTP_PASSWORD_SECRET = "smtpPassword";
-
 const smtpDeploymentPolicySchema = z
   .object({
     allow_private_network: z.boolean().optional().default(false),

@@ -196,6 +196,7 @@ export enum GlobalIdEntity {
   AppManifestSnapshot = "AppManifestSnapshot",
   HeadlessStorefrontConnection = "HeadlessStorefrontConnection",
   StorefrontCredential = "StorefrontCredential",
+  SmtpConnection = "SmtpConnection",
   // Project
   Store = "Store",
 }

@@ -24,5 +24,5 @@ export const smtpManifest = defineAppManifest({
       },
     },
   ],
-  graphql: { admin: false, storefront: false },
+  graphql: { admin: true, storefront: false },
 });

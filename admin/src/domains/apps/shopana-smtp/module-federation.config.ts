@@ -8,6 +8,7 @@ const config = {
   filename: "remoteEntry.js",
   exposes: {
     "./Page": "./src/page.tsx",
+    "./SmtpSettingsModal": "./src/modals/smtp-settings-modal.tsx",
   },
   shared: {
     react: singleton,

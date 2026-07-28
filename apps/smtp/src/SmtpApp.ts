@@ -2,6 +2,7 @@ import type {
   AppHostContext,
   AppInstallInput,
   AppRuntimeHealth,
+  AppUninstallInput,
   AppUpdateInput,
   ShopanaApp,
 } from "@shopana/app-sdk";
@@ -10,25 +11,48 @@ import type {
   NotificationDeliveryReceipt,
 } from "@shopana/broker-types";
 import {
-  parseSmtpConfiguration,
   parseSmtpDeploymentPolicy,
-  SMTP_PASSWORD_SECRET,
-  validateSmtpPassword,
 } from "./configuration.js";
+import {
+  SmtpConnectionService,
+  SmtpCredentialCrypto,
+  SmtpRepository,
+  type SmtpConnectionScope,
+} from "./connections/index.js";
 import { deliverEmail as sendEmail } from "./delivery.js";
 
 export class SmtpApp implements ShopanaApp {
-  constructor(private readonly host: AppHostContext) {}
+  readonly repository: SmtpRepository;
+  readonly connections: SmtpConnectionService;
+
+  constructor(private readonly host: AppHostContext) {
+    this.repository = SmtpRepository.create(host.databaseClient);
+    this.connections = new SmtpConnectionService(
+      this.repository,
+      SmtpCredentialCrypto.fromEnvironment(),
+      parseSmtpDeploymentPolicy(host.config),
+    );
+  }
 
   register(): void {
     this.host.broker.registerWorkflow("install", {
-      run: (input: unknown) => this.validateLifecycleConfiguration(input),
+      run: (input: unknown) => {
+        const install = input as AppInstallInput;
+        return { status: "installed", version: install.version };
+      },
     });
     this.host.broker.registerWorkflow("update", {
-      run: (input: unknown) => this.validateLifecycleConfiguration(input),
+      run: (input: unknown) => {
+        const update = input as AppUpdateInput;
+        return { status: "updated", version: update.targetVersion };
+      },
     });
     this.host.broker.registerWorkflow("uninstall", {
-      run: () => ({ status: "uninstalled" }),
+      run: async (input: unknown) => {
+        const uninstall = input as AppUninstallInput;
+        await this.connections.disconnectAll(this.scope());
+        return { status: "uninstalled", version: uninstall.version };
+      },
     });
     this.host.broker.register("suspend", () => ({ status: "suspended" }));
     this.host.broker.register("resume", () => ({ status: "active" }));
@@ -53,22 +77,6 @@ export class SmtpApp implements ShopanaApp {
     return { status: "healthy" };
   }
 
-  private async validateLifecycleConfiguration(input: unknown): Promise<{
-    readonly status: "configured";
-  }> {
-    const lifecycle = input as AppInstallInput | AppUpdateInput;
-    const configuration = parseSmtpConfiguration(
-      lifecycle.configuration,
-      parseSmtpDeploymentPolicy(this.host.config),
-    );
-    if (configuration.username) {
-      validateSmtpPassword(
-        await this.host.secrets.resolve(SMTP_PASSWORD_SECRET),
-      );
-    }
-    return { status: "configured" };
-  }
-
   private async deliver(
     input: NotificationDeliveryInput | undefined,
   ): Promise<NotificationDeliveryReceipt> {
@@ -84,25 +92,61 @@ export class SmtpApp implements ShopanaApp {
     if (input.storeId !== context.storeId) {
       throw new Error("SMTP delivery store does not match App installation");
     }
+    const scope = this.scope();
+    const connection = await this.connections.findActiveSecret(scope);
+    if (!connection) {
+      throw Object.assign(
+        new Error("No active SMTP connection is configured"),
+        {
+          code: "SMTP_ACTIVE_CONNECTION_REQUIRED",
+          details: Object.freeze({
+            kind: "CONFIGURATION",
+            safeToRetry: false,
+            acceptedByProvider: false,
+          }),
+        },
+      );
+    }
     const policy = parseSmtpDeploymentPolicy(this.host.config);
-    const configuration = parseSmtpConfiguration(
-      await this.host.configuration.resolve(),
-      policy,
-    );
-    const password = configuration.username
-      ? validateSmtpPassword(
-          await this.host.secrets.resolve(SMTP_PASSWORD_SECRET),
-        )
-      : undefined;
-
-    return sendEmail(
-      configuration,
+    const receipt = await sendEmail(
       {
-        username: configuration.username,
-        password,
+        host: connection.host,
+        port: connection.port,
+        security: connection.security,
+        username: connection.username ?? undefined,
+      },
+      {
+        username: connection.username ?? undefined,
+        password: this.connections.resolvePassword(scope, connection),
       },
       input,
       policy,
     );
+    return {
+      ...receipt,
+      providerCode: providerCode(connection.provider),
+    };
+  }
+
+  private scope(): SmtpConnectionScope {
+    const context = this.host.executionContext.current();
+    return {
+      installationId: context.installationId,
+      organizationId: context.organizationId,
+      storeId: context.storeId,
+    };
+  }
+}
+
+function providerCode(provider: string): string {
+  switch (provider) {
+    case "SENDGRID":
+      return "sendgrid";
+    case "MAILCHIMP_TRANSACTIONAL":
+      return "mailchimp_transactional";
+    case "GOOGLE_WORKSPACE":
+      return "google_workspace";
+    default:
+      return "smtp";
   }
 }

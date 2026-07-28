@@ -37,6 +37,8 @@ const storefrontTokenPepper =
   `base64:${randomBytes(32).toString("base64")}`;
 const storefrontPublicTokenMasterKey =
   `base64:${randomBytes(32).toString("base64")}`;
+const smtpCredentialMasterKey =
+  `base64:${randomBytes(32).toString("base64")}`;
 
 function appendNodeOption(option) {
   const current = process.env.NODE_OPTIONS ?? "";
@@ -74,6 +76,7 @@ const baseEnv = {
   STOREFRONT_TOKEN_ACTIVE_PEPPER_VERSION: "1",
   STOREFRONT_TOKEN_PEPPER_V1: storefrontTokenPepper,
   STOREFRONT_PUBLIC_TOKEN_MASTER_KEY: storefrontPublicTokenMasterKey,
+  SMTP_CREDENTIAL_MASTER_KEY: smtpCredentialMasterKey,
 };
 
 function generateSigningKeys(kid) {
