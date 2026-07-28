@@ -10,6 +10,17 @@ import type { IModalStackDefinition } from '@/layouts/modals/types';
 export function getModalStackDefinitions(): IModalStackDefinition[] {
   return [
     // ========================================
+    // App management modal
+    // ========================================
+    {
+      type: 'app-management',
+      component: dynamic(() =>
+        import('@/domains/apps/management/modals/app-management-modal').then(
+          (m) => m.AppManagementModal
+        )
+      ),
+    },
+    // ========================================
     // Website navigation modals
     // ========================================
     {

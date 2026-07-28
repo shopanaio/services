@@ -1,34 +1,23 @@
 "use client";
 
-import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { type ReactNode } from "react";
 import {
   Alert,
-  App,
   Avatar,
-  Button,
   Empty,
-  Modal,
   Skeleton,
   Tag,
-  Typography,
 } from "antd";
 import { createStyles } from "antd-style";
-import {
-  LuChevronRight as RightOutlined,
-  LuEllipsis as MoreOutlined,
-} from "react-icons/lu";
+import { LuChevronRight as RightOutlined } from "react-icons/lu";
 import {
   AppInstallationStatus,
   AppRuntimeStatus,
 } from "@/graphql/types";
 import type { ManagementAppListItem } from "@/domains/apps/management/graphql/operation-types";
-import {
-  useAppsManagement,
-  useInstallApp,
-} from "@/domains/apps/management/hooks";
+import { useAppsManagement } from "@/domains/apps/management/hooks";
+import { useAppManagementModal } from "@/domains/apps/management/modals";
 import { DataLayout } from "@/layouts/data";
-import { usePathParams } from "@/registry";
 import { Paper } from "@/ui-kit/paper";
 
 const APP_AVATAR_COLORS = [
@@ -46,83 +35,13 @@ const useStyles = createStyles(({ css, token }) => ({
     width: "100%",
     maxWidth: 820,
     marginInline: "auto",
-    paddingTop: 12,
     paddingBottom: 40,
-  },
-  pageHeader: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    minHeight: 66,
-    marginBottom: 14,
-  },
-  pageTitle: css`
-    && {
-      margin: 0;
-      color: ${token.colorTextHeading};
-      font-size: 24px;
-      font-weight: ${token.fontWeightStrong};
-      line-height: 32px;
-    }
-  `,
-  pageDescription: {
-    color: token.colorTextSecondary,
-    fontSize: 13,
-    lineHeight: "20px",
   },
   paper: css`
     padding: 0;
     overflow: hidden;
     border-radius: ${token.borderRadiusLG}px;
     box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
-  `,
-  papers: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  },
-  paperHeader: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    minHeight: 50,
-    padding: "5px 10px 5px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  paperCopy: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    minWidth: 0,
-  },
-  paperTitle: {
-    color: token.colorText,
-    fontSize: 14,
-    fontWeight: token.fontWeightStrong,
-    lineHeight: "22px",
-  },
-  paperSubtitle: {
-    overflow: "hidden",
-    color: token.colorTextSecondary,
-    fontSize: 12,
-    lineHeight: "18px",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  moreButton: css`
-    && {
-      width: 32px;
-      height: 32px;
-      padding: 0;
-      color: ${token.colorText};
-      background: ${token.colorBgContainerDisabled};
-    }
-
-    && svg {
-      width: 16px;
-      height: 16px;
-    }
   `,
   appList: {
     margin: 0,
@@ -138,6 +57,7 @@ const useStyles = createStyles(({ css, token }) => ({
     },
   },
   appRow: {
+    width: "100%",
     boxSizing: "border-box",
     display: "flex",
     alignItems: "center",
@@ -146,7 +66,11 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: "10px 16px",
     color: "inherit",
     background: token.colorBgContainer,
+    border: 0,
+    cursor: "pointer",
+    font: "inherit",
     textDecoration: "none",
+    textAlign: "left",
   },
   appRowInteractive: {
     transition: `background-color ${token.motionDurationMid}`,
@@ -196,9 +120,6 @@ const useStyles = createStyles(({ css, token }) => ({
     height: 14,
     color: token.colorText,
   },
-  installButton: {
-    minWidth: 72,
-  },
   statusTag: {
     flex: "0 0 auto",
     marginInlineEnd: 0,
@@ -214,34 +135,6 @@ const useStyles = createStyles(({ css, token }) => ({
   skeleton: {
     padding: "12px 16px",
   },
-  help: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 40,
-    marginTop: 32,
-    color: token.colorLink,
-    fontSize: 13,
-    lineHeight: "20px",
-  },
-  permissionIntro: {
-    display: "block",
-    marginBottom: 12,
-  },
-  permissionList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    margin: 0,
-    padding: 0,
-    listStyle: "none",
-  },
-  permissionItem: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
-  },
 }));
 
 const getAvatarColor = (appCode: string) => {
@@ -254,6 +147,28 @@ const getAvatarColor = (appCode: string) => {
 
 const formatStatus = (status: AppInstallationStatus) =>
   status.toLowerCase().replaceAll("_", " ");
+
+const getStatusColor = (status: AppInstallationStatus) => {
+  if (status === AppInstallationStatus.Active) return "success";
+  if (
+    status === AppInstallationStatus.InstallFailed ||
+    status === AppInstallationStatus.UninstallFailed ||
+    status === AppInstallationStatus.UpdateFailed
+  ) {
+    return "error";
+  }
+  if (
+    status === AppInstallationStatus.Installing ||
+    status === AppInstallationStatus.Resuming ||
+    status === AppInstallationStatus.Suspending ||
+    status === AppInstallationStatus.Uninstalling ||
+    status === AppInstallationStatus.Updating
+  ) {
+    return "processing";
+  }
+  if (status === AppInstallationStatus.PendingConsent) return "warning";
+  return "default";
+};
 
 function AppAvatar({ app }: { app: ManagementAppListItem }) {
   const { styles } = useStyles();
@@ -281,72 +196,43 @@ function AppCopy({ app }: { app: ManagementAppListItem }) {
   );
 }
 
-function InstalledAppRow({
+function AppRow({
   app,
-  href,
+  onOpen,
 }: {
   app: ManagementAppListItem;
-  href: string;
+  onOpen: (app: ManagementAppListItem) => void;
 }) {
   const { styles, cx } = useStyles();
-  const status = app.installation?.status;
-  const isActive = status === AppInstallationStatus.Active;
+  const installationStatus = app.installation?.status;
+  const isAvailable =
+    !app.installed && app.runtimeStatus === AppRuntimeStatus.Ready;
+  const status = installationStatus
+    ? {
+        color: getStatusColor(installationStatus),
+        label: formatStatus(installationStatus),
+      }
+    : app.installed
+      ? { color: "blue", label: "installed" }
+      : isAvailable
+        ? { color: "blue", label: "available" }
+        : { color: "default", label: "unavailable" };
 
   return (
     <li className={styles.appListItem}>
-      {isActive ? (
-        <Link
-          aria-label={`Open ${app.displayName}`}
-          className={cx(styles.appRow, styles.appRowInteractive)}
-          href={href}
-        >
-          <AppAvatar app={app} />
-          <AppCopy app={app} />
-          <RightOutlined aria-hidden className={styles.chevron} />
-        </Link>
-      ) : (
-        <div className={styles.appRow}>
-          <AppAvatar app={app} />
-          <AppCopy app={app} />
-          {status ? (
-            <Tag className={styles.statusTag} color="processing">
-              {formatStatus(status)}
-            </Tag>
-          ) : null}
-        </div>
-      )}
-    </li>
-  );
-}
-
-function AvailableAppRow({
-  app,
-  installing,
-  onInstall,
-}: {
-  app: ManagementAppListItem;
-  installing: boolean;
-  onInstall: (app: ManagementAppListItem) => void;
-}) {
-  const { styles } = useStyles();
-  const available = app.runtimeStatus === AppRuntimeStatus.Ready;
-
-  return (
-    <li className={styles.appListItem}>
-      <div className={styles.appRow}>
+      <button
+        aria-label={`View ${app.displayName}`}
+        className={cx(styles.appRow, styles.appRowInteractive)}
+        onClick={() => onOpen(app)}
+        type="button"
+      >
         <AppAvatar app={app} />
         <AppCopy app={app} />
-        <Button
-          className={styles.installButton}
-          disabled={!available}
-          loading={installing}
-          onClick={() => onInstall(app)}
-          size="small"
-          type="primary"
-        >
-          {available ? "Install" : "Unavailable"}
-        </Button>
-      </div>
+        <Tag className={styles.statusTag} color={status.color}>
+          {status.label}
+        </Tag>
+        <RightOutlined aria-hidden className={styles.chevron} />
+      </button>
     </li>
   );
 }
@@ -355,31 +241,17 @@ function AppPaper({
   apps,
   emptyDescription,
   loading,
-  subtitle,
-  title,
-  actions,
   renderApp,
 }: {
   apps: ManagementAppListItem[];
   emptyDescription: string;
   loading: boolean;
-  subtitle: string;
-  title: string;
-  actions?: ReactNode;
   renderApp: (app: ManagementAppListItem) => ReactNode;
 }) {
   const { styles } = useStyles();
 
   return (
     <Paper className={styles.paper}>
-      <div className={styles.paperHeader}>
-        <div className={styles.paperCopy}>
-          <span className={styles.paperTitle}>{title}</span>
-          <span className={styles.paperSubtitle}>{subtitle}</span>
-        </div>
-        {actions}
-      </div>
-
       {loading && apps.length === 0 ? (
         <div className={styles.skeleton}>
           <Skeleton active avatar paragraph={{ rows: 1 }} title />
@@ -402,59 +274,12 @@ function AppPaper({
 
 export default function SystemAppsPage() {
   const { styles } = useStyles();
-  const { message } = App.useApp();
-  const { getParam } = usePathParams();
-  const orgName = getParam("orgName") ?? "";
-  const storeName = getParam("storeName") ?? "";
-  const {
-    installedApps,
-    availableApps,
-    loading,
-    error,
-    refetch,
-  } = useAppsManagement();
-  const { installApp, loading: installing } = useInstallApp();
-  const [selectedApp, setSelectedApp] =
-    useState<ManagementAppListItem | null>(null);
-  const appBaseUrl = `/${encodeURIComponent(orgName)}/${encodeURIComponent(
-    storeName,
-  )}/apps`;
-
-  const confirmInstallation = async () => {
-    if (!selectedApp) return;
-
-    const result = await installApp({
-      appCode: selectedApp.code,
-      clientMutationId: crypto.randomUUID(),
-      grantedScopes: selectedApp.permissions.map(({ scope }) => scope),
-    });
-
-    if (result.userErrors.length > 0) {
-      message.error(
-        result.userErrors
-          .map(({ message: errorMessage }) => errorMessage)
-          .join("\n"),
-      );
-      return;
-    }
-
-    setSelectedApp(null);
-    message.success(`${selectedApp.displayName} installation started`);
-  };
+  const { apps, loading, error } = useAppsManagement();
+  const { push: openAppModal } = useAppManagementModal();
 
   return (
-    <DataLayout fullWidth name="apps">
+    <DataLayout fullWidth name="apps" title="Apps">
       <main className={styles.content}>
-        <header className={styles.pageHeader}>
-          <Typography.Title className={styles.pageTitle} level={1}>
-            Apps
-          </Typography.Title>
-          <Typography.Text className={styles.pageDescription}>
-            Manage installed apps and develop custom integrations for your
-            store.
-          </Typography.Text>
-        </header>
-
         {error ? (
           <Alert
             description={error.message}
@@ -463,84 +288,20 @@ export default function SystemAppsPage() {
             type="error"
           />
         ) : (
-          <div className={styles.papers}>
-            <AppPaper
-              actions={
-                <Button
-                  aria-label="Refresh apps"
-                  className={styles.moreButton}
-                  disabled={loading}
-                  icon={<MoreOutlined />}
-                  onClick={() => void refetch()}
-                />
-              }
-              apps={installedApps}
-              emptyDescription="No apps are installed for this store"
-              loading={loading}
-              renderApp={(app) => (
-                <InstalledAppRow
-                  app={app}
-                  href={`${appBaseUrl}/${encodeURIComponent(app.code)}`}
-                  key={app.code}
-                />
-              )}
-              subtitle="Apps connected to this store"
-              title="Installed apps"
-            />
-            <AppPaper
-              apps={availableApps}
-              emptyDescription="All available apps are installed"
-              loading={loading}
-              renderApp={(app) => (
-                <AvailableAppRow
-                  app={app}
-                  installing={installing && selectedApp?.code === app.code}
-                  key={app.code}
-                  onInstall={setSelectedApp}
-                />
-              )}
-              subtitle="Apps available for this store"
-              title="Available apps"
-            />
-          </div>
+          <AppPaper
+            apps={apps}
+            emptyDescription="No apps are available for this store"
+            loading={loading}
+            renderApp={(app) => (
+              <AppRow
+                app={app}
+                key={app.code}
+                onOpen={() => openAppModal({ appCode: app.code })}
+              />
+            )}
+          />
         )}
-
-        <Typography.Text className={styles.help}>
-          Learn more about apps
-        </Typography.Text>
       </main>
-
-      <Modal
-        cancelButtonProps={{ disabled: installing }}
-        cancelText="Cancel"
-        confirmLoading={installing}
-        destroyOnHidden
-        okText="Install app"
-        onCancel={() => setSelectedApp(null)}
-        onOk={confirmInstallation}
-        open={selectedApp !== null}
-        title={selectedApp ? `Install ${selectedApp.displayName}?` : "Install app"}
-      >
-        {selectedApp ? (
-          <>
-            <Typography.Text className={styles.permissionIntro}>
-              {selectedApp.permissions.length > 0
-                ? "This app requests the following permissions:"
-                : "This app does not request additional permissions."}
-            </Typography.Text>
-            {selectedApp.permissions.length > 0 ? (
-              <ul className={styles.permissionList}>
-                {selectedApp.permissions.map(({ scope }) => (
-                  <li className={styles.permissionItem} key={scope}>
-                    <Typography.Text code>{scope}</Typography.Text>
-                    <Tag color="blue">Requested</Tag>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </>
-        ) : null}
-      </Modal>
     </DataLayout>
   );
 }

@@ -1,2 +1,7 @@
-export { APP_INSTALL_MUTATION } from "./mutations";
+export {
+  APP_INSTALL_MUTATION,
+  APP_RESUME_MUTATION,
+  APP_SUSPEND_MUTATION,
+  APP_UNINSTALL_MUTATION,
+} from "./mutations";
 export { ADMIN_UI_APPS_QUERY, APPS_MANAGEMENT_QUERY } from "./queries";

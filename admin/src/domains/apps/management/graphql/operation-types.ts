@@ -1,6 +1,7 @@
 import type {
   ApiAppDefinition,
   ApiAppInstallInput,
+  ApiAppInstallationActionInput,
   ApiAppInstallation,
   ApiAppLifecycleOperation,
   ApiGenericUserError,
@@ -20,13 +21,42 @@ export type ManagementAppListItem = Pick<
   | "description"
   | "version"
   | "runtimeStatus"
+  | "runtimeHealth"
   | "installed"
   | "permissions"
+  | "capabilities"
+  | "graphql"
 > & {
   installation: Pick<
     ApiAppInstallation,
-    "id" | "status" | "installedVersion" | "healthStatus"
-  > | null;
+    | "id"
+    | "status"
+    | "installedVersion"
+    | "targetVersion"
+    | "healthStatus"
+    | "installedAt"
+    | "suspendedAt"
+    | "updatedAt"
+    | "lastError"
+  > & {
+    lifecycleOperations: {
+      totalCount: number;
+      edges: Array<{
+        node: Pick<
+          ApiAppLifecycleOperation,
+          | "id"
+          | "type"
+          | "status"
+          | "targetVersion"
+          | "actorType"
+          | "startedAt"
+          | "completedAt"
+          | "createdAt"
+          | "error"
+        >;
+      }>;
+    };
+  } | null;
 };
 
 export interface AppsManagementQueryData {
@@ -51,4 +81,26 @@ export interface AppInstallMutationData {
 
 export interface AppInstallMutationVariables {
   input: ApiAppInstallInput;
+}
+
+export interface AppLifecycleActionMutationData {
+  appsMutation: {
+    appSuspend?: AppLifecycleMutationPayload;
+    appResume?: AppLifecycleMutationPayload;
+    appUninstall?: AppLifecycleMutationPayload;
+  };
+}
+
+export interface AppLifecycleActionMutationVariables {
+  input: ApiAppInstallationActionInput;
+}
+
+export interface AppLifecycleMutationPayload {
+  installation: Pick<
+    ApiAppInstallation,
+    "id" | "status" | "installedVersion" | "healthStatus"
+  > | null;
+  operation: Pick<ApiAppLifecycleOperation, "id" | "type" | "status"> | null;
+  duplicate: boolean;
+  userErrors: ApiGenericUserError[];
 }

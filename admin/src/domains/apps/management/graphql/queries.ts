@@ -9,16 +9,59 @@ export const APPS_MANAGEMENT_QUERY = gql`
         description
         version
         runtimeStatus
+        runtimeHealth {
+          status
+          message
+        }
         installed
         permissions {
           scope
           granted
         }
+        capabilities {
+          key
+          assignmentMode
+          operations {
+            name
+            action
+          }
+        }
+        graphql {
+          admin
+          storefront
+        }
         installation {
           id
           status
           installedVersion
+          targetVersion
           healthStatus
+          installedAt
+          suspendedAt
+          updatedAt
+          lastError {
+            code
+            message
+          }
+          lifecycleOperations(first: 10) {
+            totalCount
+            edges {
+              node {
+                id
+                type
+                status
+                targetVersion
+                actorType
+                startedAt
+                completedAt
+                createdAt
+                error {
+                  code
+                  message
+                }
+              }
+            }
+          }
         }
       }
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@apollo/client/react";
 import { AppInstallationStatus } from "@/graphql/types";
 import { APPS_MANAGEMENT_QUERY } from "../graphql";
@@ -26,10 +26,33 @@ export const useAppsManagement = () => {
   } = useQuery<AppsManagementQueryData>(APPS_MANAGEMENT_QUERY, {
     fetchPolicy: "cache-and-network",
   });
-  const apps = data?.appsQuery.availableApps ?? [];
-  const installedApps = apps.filter(({ installed }) => installed);
-  const availableApps = apps.filter(({ installed }) => !installed);
-  const hasPendingOperation = installedApps.some(({ installation }) =>
+  const apps = useMemo(
+    () => {
+      const sourceApps = data?.appsQuery.availableApps ?? [];
+
+      return [...sourceApps].sort((left, right) => {
+        const leftRank =
+          left.installation?.status === AppInstallationStatus.Active
+            ? 0
+            : left.installed
+              ? 1
+              : 2;
+        const rightRank =
+          right.installation?.status === AppInstallationStatus.Active
+            ? 0
+            : right.installed
+              ? 1
+              : 2;
+
+        return (
+          leftRank - rightRank ||
+          left.displayName.localeCompare(right.displayName)
+        );
+      });
+    },
+    [data?.appsQuery.availableApps],
+  );
+  const hasPendingOperation = apps.some(({ installation }) =>
     installation ? POLLING_STATUSES.has(installation.status) : false,
   );
 
@@ -44,8 +67,7 @@ export const useAppsManagement = () => {
   }, [hasPendingOperation, startPolling, stopPolling]);
 
   return {
-    installedApps,
-    availableApps,
+    apps,
     loading,
     error: error ?? null,
     refetch: async () => {
