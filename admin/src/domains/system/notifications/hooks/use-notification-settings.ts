@@ -22,6 +22,9 @@ export function useNotificationSettings() {
   const [updatingKeys, setUpdatingKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+  const [definitionOverrides, setDefinitionOverrides] = useState<
+    ReadonlyMap<string, Pick<ApiNotificationDefinition, "enabled" | "version">>
+  >(() => new Map());
   const query = useQuery<NotificationSettingsQueryData>(
     NOTIFICATION_SETTINGS_QUERY,
     {
@@ -39,6 +42,14 @@ export function useNotificationSettings() {
       enabled: boolean,
     ) => {
       setUpdatingKeys((current) => new Set(current).add(definition.key));
+      setDefinitionOverrides((current) => {
+        const next = new Map(current);
+        next.set(definition.key, {
+          enabled,
+          version: definition.version + 1,
+        });
+        return next;
+      });
 
       try {
         const result = await mutate({
@@ -94,15 +105,37 @@ export function useNotificationSettings() {
             });
           },
         });
+        const payload =
+          result.data?.notificationsMutation.setDefinitionEnabled;
+
+        if (!payload?.setting || payload.userErrors.length > 0) {
+          setDefinitionOverrides((current) => {
+            const next = new Map(current);
+            next.set(definition.key, definition);
+            return next;
+          });
+        } else {
+          setDefinitionOverrides((current) => {
+            const next = new Map(current);
+            next.set(definition.key, {
+              enabled: payload.setting.enabled,
+              version: payload.setting.version,
+            });
+            return next;
+          });
+        }
 
         return {
-          setting:
-            result.data?.notificationsMutation.setDefinitionEnabled.setting ??
-            null,
-          userErrors:
-            result.data?.notificationsMutation.setDefinitionEnabled
-              .userErrors ?? [],
+          setting: payload?.setting ?? null,
+          userErrors: payload?.userErrors ?? [],
         };
+      } catch (error) {
+        setDefinitionOverrides((current) => {
+          const next = new Map(current);
+          next.set(definition.key, definition);
+          return next;
+        });
+        throw error;
       } finally {
         setUpdatingKeys((current) => {
           const next = new Set(current);
@@ -115,7 +148,12 @@ export function useNotificationSettings() {
   );
 
   return {
-    definitions: query.data?.notificationsQuery.definitions ?? [],
+    definitions: (query.data?.notificationsQuery.definitions ?? []).map(
+      (definition) => {
+        const override = definitionOverrides.get(definition.key);
+        return override ? { ...definition, ...override } : definition;
+      },
+    ),
     staffRecipients: query.data?.notificationsQuery.staffRecipients ?? [],
     loading: query.loading,
     error: query.error ?? mutation.error ?? null,

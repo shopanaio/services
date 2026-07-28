@@ -30,7 +30,7 @@ CREATE TABLE "notifications"."notification_recipients" (
     ON DELETE CASCADE,
   "recipient_ref" varchar(255) NOT NULL,
   "customer_id" uuid,
-  "user_id" uuid,
+  "user_id" text,
   "email_ciphertext" text,
   "phone_ciphertext" text,
   "address_hash" varchar(64),

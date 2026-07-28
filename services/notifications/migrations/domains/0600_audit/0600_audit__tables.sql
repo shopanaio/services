@@ -1,7 +1,7 @@
 CREATE TABLE "notifications"."notification_audit_events" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
-  "actor_id" uuid,
+  "actor_id" text,
   "action" varchar(128) NOT NULL,
   "entity_type" varchar(64) NOT NULL,
   "entity_id" varchar(255) NOT NULL,

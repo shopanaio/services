@@ -3,7 +3,7 @@ CREATE TABLE "notifications"."notification_definition_settings" (
   "definition_key" varchar(128) NOT NULL,
   "enabled" boolean NOT NULL,
   "version" integer NOT NULL DEFAULT 1 CHECK ("version" >= 1),
-  "updated_by" uuid,
+  "updated_by" text,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT "notification_definition_settings_store_key"
     UNIQUE ("store_id", "definition_key")

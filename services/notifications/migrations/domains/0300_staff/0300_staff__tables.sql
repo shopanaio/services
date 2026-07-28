@@ -1,7 +1,7 @@
 CREATE TABLE "notifications"."staff_notification_recipients" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
-  "user_id" uuid,
+  "user_id" text,
   "name" varchar(255) NOT NULL,
   "email_ciphertext" text NOT NULL,
   "email_hash" varchar(64) NOT NULL,

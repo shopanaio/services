@@ -11,7 +11,7 @@ CREATE TABLE "notifications"."notification_template_revisions" (
   "source_hash" varchar(64) NOT NULL,
   "validation_status" "notifications"."template_validation_status"
     NOT NULL DEFAULT 'VALID',
-  "created_by" uuid,
+  "created_by" text,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT "notification_template_revision_identity"
     UNIQUE ("store_id", "definition_key", "channel", "locale", "revision")
@@ -30,7 +30,7 @@ CREATE TABLE "notifications"."notification_template_active_revisions" (
     REFERENCES "notifications"."notification_template_revisions"("id")
     ON DELETE RESTRICT,
   "version" integer NOT NULL DEFAULT 1 CHECK ("version" >= 1),
-  "updated_by" uuid,
+  "updated_by" text,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT "notification_template_active_identity"
     UNIQUE ("store_id", "definition_key", "channel", "locale")

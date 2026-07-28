@@ -23,7 +23,7 @@ CREATE TABLE "notifications"."webhook_store_secret_versions" (
   "secret_ciphertext" text NOT NULL,
   "active" boolean NOT NULL DEFAULT true,
   "grace_expires_at" timestamptz,
-  "created_by" uuid,
+  "created_by" text,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT "webhook_store_secret_version_identity"
     UNIQUE ("store_id", "version")

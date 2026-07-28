@@ -39,7 +39,7 @@ export const notificationDefinitionSettings = notificationsSchema.table(
     definitionKey: varchar("definition_key", { length: 128 }).notNull(),
     enabled: boolean("enabled").notNull(),
     version: integer("version").notNull().default(1),
-    updatedBy: uuid("updated_by"),
+    updatedBy: text("updated_by"),
     updatedAt: updatedAt(),
   },
   (table) => [
@@ -89,7 +89,7 @@ export const notificationTemplateRevisions = notificationsSchema.table(
     validationStatus: templateValidationStatusEnum("validation_status")
       .notNull()
       .default("VALID"),
-    createdBy: uuid("created_by"),
+    createdBy: text("created_by"),
     createdAt: createdAt(),
   },
   (table) => [
@@ -122,7 +122,7 @@ export const notificationTemplateActiveRevisions = notificationsSchema.table(
         onDelete: "restrict",
       }),
     version: integer("version").notNull().default(1),
-    updatedBy: uuid("updated_by"),
+    updatedBy: text("updated_by"),
     updatedAt: updatedAt(),
   },
   (table) => [
@@ -140,7 +140,7 @@ export const staffNotificationRecipients = notificationsSchema.table(
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
-    userId: uuid("user_id"),
+    userId: text("user_id"),
     name: varchar("name", { length: 255 }).notNull(),
     emailCiphertext: text("email_ciphertext").notNull(),
     emailHash: varchar("email_hash", { length: 64 }).notNull(),
@@ -244,7 +244,7 @@ export const notificationRecipients = notificationsSchema.table(
       .references(() => notificationOccurrences.id, { onDelete: "cascade" }),
     recipientRef: varchar("recipient_ref", { length: 255 }).notNull(),
     customerId: uuid("customer_id"),
-    userId: uuid("user_id"),
+    userId: text("user_id"),
     emailCiphertext: text("email_ciphertext"),
     phoneCiphertext: text("phone_ciphertext"),
     addressHash: varchar("address_hash", { length: 64 }),
@@ -402,7 +402,7 @@ export const webhookStoreSecretVersions = notificationsSchema.table(
       withTimezone: true,
       mode: "string",
     }),
-    createdBy: uuid("created_by"),
+    createdBy: text("created_by"),
     createdAt: createdAt(),
   },
   (table) => [
@@ -422,7 +422,7 @@ export const notificationAuditEvents = notificationsSchema.table(
   {
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
-    actorId: uuid("actor_id"),
+    actorId: text("actor_id"),
     action: varchar("action", { length: 128 }).notNull(),
     entityType: varchar("entity_type", { length: 64 }).notNull(),
     entityId: varchar("entity_id", { length: 255 }).notNull(),

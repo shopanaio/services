@@ -38,9 +38,8 @@ async function replaceCodeEditorValue(editor: Locator, value: string) {
 
 async function enableAllSwitches(page: Page) {
   const switches = page.getByRole('switch', { name: /^Enable / });
+  await expect(switches).toHaveCount(4);
   const count = await switches.count();
-
-  expect(count).toBe(4);
 
   for (let index = 0; index < count; index += 1) {
     const notificationSwitch = switches.nth(index);
@@ -65,9 +64,8 @@ async function enableAllSwitches(page: Page) {
 
 async function expectAllSwitchesEnabled(page: Page) {
   const switches = page.getByRole('switch', { name: /^Enable / });
+  await expect(switches).toHaveCount(4);
   const count = await switches.count();
-
-  expect(count).toBe(4);
 
   for (let index = 0; index < count; index += 1) {
     await expect(switches.nth(index)).toBeChecked();
