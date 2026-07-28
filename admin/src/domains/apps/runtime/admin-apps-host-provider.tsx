@@ -198,7 +198,7 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
             };
           }),
       );
-      setSidebarChildren("system-integrations", navigationItems);
+      setSidebarChildren("system-settings", navigationItems);
     },
     [
       client,
@@ -213,7 +213,7 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
   useEffect(
     () => () => {
       disposeActiveApps();
-      clearSidebarChildren("system-integrations");
+      clearSidebarChildren("system-settings");
     },
     [clearSidebarChildren, disposeActiveApps],
   );

@@ -1,5 +1,4 @@
 import { registerModule } from "@/registry";
-import { LuPlug as ApiOutlined } from "react-icons/lu";
 import { LuHistory as HistoryOutlined } from "react-icons/lu";
 import { LuSettings as SettingOutlined } from "react-icons/lu";
 import dynamic from "next/dynamic";
@@ -53,6 +52,18 @@ registerModule({
         () => import("@/domains/system/delivery-logs/page/page"),
       ),
     },
+    {
+      key: "system-apps",
+      path: "/:orgName/:storeName/system/settings/apps",
+      sidebar: {
+        label: "Apps",
+        icon: null,
+        order: 3,
+      },
+      component: dynamic(
+        () => import("@/domains/system/apps/page/page"),
+      ),
+    },
   ],
 });
 
@@ -84,42 +95,6 @@ registerModule({
       },
       component: dynamic(
         () => import("@/domains/system/roles/page/page"),
-      ),
-    },
-  ],
-});
-
-registerModule({
-  key: "system-integrations",
-  domain: "system",
-  sidebar: {
-    label: "Integrations",
-    icon: <ApiOutlined />,
-    order: 4,
-  },
-  items: [
-    {
-      key: "system-apps",
-      path: "/:orgName/:storeName/system/integrations/apps",
-      sidebar: {
-        label: "Apps",
-        icon: null,
-        order: 1,
-      },
-      component: dynamic(
-        () => import("@/domains/system/apps/page/page"),
-      ),
-    },
-    {
-      key: "system-api-keys",
-      path: "/:orgName/:storeName/system/integrations/api-keys",
-      sidebar: {
-        label: "API Keys",
-        icon: null,
-        order: 2,
-      },
-      component: dynamic(
-        () => import("@/domains/system/api-keys/page/page"),
       ),
     },
   ],
