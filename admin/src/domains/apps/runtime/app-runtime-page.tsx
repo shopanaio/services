@@ -53,7 +53,7 @@ export default function AppRuntimePage({
   searchParams = {},
 }: ModulePageProps) {
   const router = useRouter();
-  useSyncExternalStore(
+  const registryRevision = useSyncExternalStore(
     adminAppRegistry.subscribe.bind(adminAppRegistry),
     adminAppRegistry.getSnapshot,
     adminAppRegistry.getSnapshot,
@@ -98,6 +98,10 @@ export default function AppRuntimePage({
   ]);
 
   if (!active) {
+    if (registryRevision === 0) {
+      return <Spin fullscreen tip="Loading App…" />;
+    }
+
     return (
       <Alert
         type="warning"

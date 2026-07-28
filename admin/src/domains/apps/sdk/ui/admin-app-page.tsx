@@ -13,7 +13,7 @@ const useStyles = createStyles(({ token }) => ({
     paddingBottom: token.padding,
   },
   description: {
-    margin: 0,
+    display: "block",
   },
   title: {
     alignItems: "center",
@@ -46,12 +46,12 @@ export function AdminAppPage({
     >
       <div className={styles.content}>
         {description ? (
-          <Typography.Paragraph
+          <Typography.Text
             className={styles.description}
             type="secondary"
           >
             {description}
-          </Typography.Paragraph>
+          </Typography.Text>
         ) : null}
         {children}
       </div>

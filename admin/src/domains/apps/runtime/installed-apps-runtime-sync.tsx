@@ -28,14 +28,20 @@ export function InstalledAppsRuntimeSync({
 }: Props) {
   const discoveryEnabled =
     process.env.NEXT_PUBLIC_ADMIN_APPS_DISCOVERY === "true";
-  const { data: discoveredData } = useQuery<AdminUiAppsQueryData>(
+  const {
+    data: discoveredData,
+    loading: discoveredLoading,
+  } = useQuery<AdminUiAppsQueryData>(
     ADMIN_UI_APPS_QUERY,
     {
       skip: !discoveryEnabled,
       fetchPolicy: "cache-and-network",
     },
   );
-  const { data: managementData } = useQuery<AppsManagementQueryData>(
+  const {
+    data: managementData,
+    loading: managementLoading,
+  } = useQuery<AppsManagementQueryData>(
     APPS_MANAGEMENT_QUERY,
     {
       skip: discoveryEnabled,
@@ -105,8 +111,18 @@ export function InstalledAppsRuntimeSync({
   const source = discoveryEnabled
     ? discoveredData?.appsQuery.adminUiApps
     : localDescriptors;
+  const loading = discoveryEnabled
+    ? discoveredLoading
+    : managementLoading;
 
   useEffect(() => {
+    if (
+      loading &&
+      (source === undefined || source.length === 0) &&
+      fallbackDescriptors.length === 0
+    ) {
+      return;
+    }
     const descriptors = source ?? fallbackDescriptors;
     try {
       onDescriptors(parseAdminAppUiDescriptors(descriptors));
@@ -114,7 +130,7 @@ export function InstalledAppsRuntimeSync({
       console.error("[AdminApps] Invalid UI descriptor response", error);
       onDescriptors([...fallbackDescriptors]);
     }
-  }, [fallbackDescriptors, onDescriptors, source]);
+  }, [fallbackDescriptors, loading, onDescriptors, source]);
 
   return null;
 }

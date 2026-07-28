@@ -349,6 +349,10 @@ function ConnectionDetailPage({
     }
   };
 
+  if (query.loading && !connection) {
+    return <Spin fullscreen tip="Loading SMTP connection…" />;
+  }
+
   return (
     <sdk.ui.AppPage
       onBack={() => sdk.navigation.openAppPath("connections")}
