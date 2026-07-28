@@ -1,8 +1,10 @@
 "use client";
 
 import { createStyles } from "antd-style";
+import { useRouter } from "next/navigation";
 import { NotificationAudience } from "@/graphql/types";
 import { DataLayout } from "@/layouts/data";
+import { usePathParams } from "@/registry";
 import {
   NotificationPageState,
   NotificationSection,
@@ -25,6 +27,8 @@ const useStyles = createStyles(() => ({
 
 export default function CustomerNotificationsPage() {
   const { styles } = useStyles();
+  const router = useRouter();
+  const { resolvePath } = usePathParams();
   const settings = useNotificationSettings();
   const { push: openTemplateModal } = useNotificationTemplateModal();
   const definitions = settings.definitions.filter(
@@ -36,6 +40,9 @@ export default function CustomerNotificationsPage() {
       fullWidth
       loading={settings.loading && definitions.length === 0}
       name="customer-notifications"
+      onBack={() =>
+        router.push(resolvePath("/:orgName/:storeName/system/notifications"))
+      }
       title="Customer notifications"
     >
       <main className={styles.content}>

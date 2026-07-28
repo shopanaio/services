@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Tag } from "antd";
+import { Avatar, Skeleton, Tag } from "antd";
 import { createStyles } from "antd-style";
 import { LuChevronRight as RightOutlined } from "react-icons/lu";
 import {
@@ -85,6 +85,36 @@ const useStyles = createStyles(({ token }) => ({
     height: 14,
     color: token.colorText,
   },
+  skeletonName: {
+    width: 132,
+    minWidth: 0,
+    height: 12,
+    marginBlock: 4,
+  },
+  skeletonDescription: {
+    width: 220,
+    maxWidth: "100%",
+    minWidth: 0,
+    height: 10,
+    marginBlock: 4,
+  },
+  skeletonStatus: {
+    width: 64,
+    minWidth: 64,
+    height: 22,
+  },
+  skeletonChevron: {
+    flex: "0 0 auto",
+    width: 14,
+    minWidth: 14,
+    height: 14,
+  },
+  skeletonRow: {
+    cursor: "default",
+    "&:hover": {
+      background: token.colorBgContainer,
+    },
+  },
 }));
 
 const formatStatus = (status: AppInstallationStatus) =>
@@ -157,6 +187,37 @@ export function AppRow({ app, onOpen }: AppRowProps) {
         </Tag>
         <RightOutlined aria-hidden className={styles.chevron} />
       </button>
+    </li>
+  );
+}
+
+export function AppRowSkeleton() {
+  const { styles } = useStyles();
+
+  return (
+    <li aria-hidden className={styles.item}>
+      <div className={`${styles.row} ${styles.skeletonRow}`}>
+        <Skeleton.Avatar
+          active
+          className={styles.avatar}
+          shape="square"
+          size={40}
+        />
+        <span className={styles.copy}>
+          <Skeleton.Input active className={styles.skeletonName} />
+          <Skeleton.Input active className={styles.skeletonDescription} />
+        </span>
+        <Skeleton.Button
+          active
+          className={styles.skeletonStatus}
+          size="small"
+        />
+        <Skeleton.Avatar
+          active
+          className={styles.skeletonChevron}
+          size={14}
+        />
+      </div>
     </li>
   );
 }

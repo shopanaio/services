@@ -7,7 +7,11 @@ import type {
   ApiNotificationPreview,
   ApiNotificationPreviewInput,
   ApiNotificationTemplateUpdateInput,
+  ApiNotificationWebhookCapabilities,
+  ApiNotificationWebhookCreateInput,
   ApiNotificationWebhookSecretPayload,
+  ApiNotificationWebhookSubscription,
+  ApiNotificationWebhookUpdateInput,
   ApiStaffNotificationRecipient,
   NotificationChannel,
 } from "@/graphql/types";
@@ -87,4 +91,37 @@ export interface NotificationTemplatePreviewMutationData {
 
 export interface NotificationTemplatePreviewMutationVariables {
   input: ApiNotificationPreviewInput;
+}
+
+export interface NotificationWebhooksQueryData {
+  notificationsQuery: {
+    webhookCapabilities: ApiNotificationWebhookCapabilities;
+    webhookSubscriptions: ApiNotificationWebhookSubscription[];
+  };
+}
+
+export interface NotificationWebhookCreateMutationData {
+  notificationsMutation: {
+    createWebhook: {
+      webhook: ApiNotificationWebhookSubscription | null;
+      userErrors: ApiGenericUserError[];
+    };
+  };
+}
+
+export interface NotificationWebhookCreateMutationVariables {
+  input: ApiNotificationWebhookCreateInput;
+}
+
+export interface NotificationWebhookUpdateMutationData {
+  notificationsMutation: {
+    updateWebhook: {
+      webhook: ApiNotificationWebhookSubscription | null;
+      userErrors: ApiGenericUserError[];
+    };
+  };
+}
+
+export interface NotificationWebhookUpdateMutationVariables {
+  input: ApiNotificationWebhookUpdateInput;
 }

@@ -105,6 +105,16 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard notification template changes?',
     },
     {
+      type: 'system-notification-webhook',
+      component: dynamic(() =>
+        import('@/domains/system/notifications/modals/notification-webhook-modal').then(
+          (m) => m.NotificationWebhookModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard webhook changes?',
+    },
+    {
       type: 'general-settings-edit-store-settings',
       component: dynamic(() =>
         import('@/domains/system/general-settings/modals/store-settings-modal').then(

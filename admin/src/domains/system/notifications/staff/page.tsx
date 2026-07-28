@@ -1,8 +1,10 @@
 "use client";
 
 import { createStyles } from "antd-style";
+import { useRouter } from "next/navigation";
 import { NotificationAudience } from "@/graphql/types";
 import { DataLayout } from "@/layouts/data";
+import { usePathParams } from "@/registry";
 import {
   NotificationPageState,
   NotificationRecipientsSection,
@@ -29,6 +31,8 @@ const useStyles = createStyles(() => ({
 
 export default function StaffNotificationsPage() {
   const { styles } = useStyles();
+  const router = useRouter();
+  const { resolvePath } = usePathParams();
   const settings = useNotificationSettings();
   const { push: openItemModal } = useNotificationItemModal();
   const { push: openTemplateModal } = useNotificationTemplateModal();
@@ -41,6 +45,9 @@ export default function StaffNotificationsPage() {
       fullWidth
       loading={settings.loading && definitions.length === 0}
       name="staff-notifications"
+      onBack={() =>
+        router.push(resolvePath("/:orgName/:storeName/system/notifications"))
+      }
       title="Staff notifications"
     >
       <main className={styles.content}>

@@ -2,11 +2,16 @@
 
 import { Alert, Skeleton } from "antd";
 import { createStyles } from "antd-style";
+import { useRouter } from "next/navigation";
 import { DataLayout } from "@/layouts/data";
-import { GroupedLinkItem } from "@/ui-kit/grouped-link-item";
+import { usePathParams } from "@/registry";
+import {
+  GroupedLinkItem,
+  GroupedLinkItemDivider,
+} from "@/ui-kit/grouped-link-item";
 import { Paper } from "@/ui-kit/paper";
-import { useWebhookSecret } from "../hooks";
-import { useNotificationItemModal } from "../modals";
+import { useWebhookSecret, useWebhooks } from "../hooks";
+import { useNotificationWebhookModal } from "../modals";
 
 const useStyles = createStyles(({ css, token }) => ({
   content: {
@@ -47,16 +52,35 @@ const useStyles = createStyles(({ css, token }) => ({
 
 export default function WebhooksPage() {
   const { styles } = useStyles();
-  const { push: openItemModal } = useNotificationItemModal();
+  const router = useRouter();
+  const { resolvePath } = usePathParams();
+  const { push: openWebhookModal } = useNotificationWebhookModal();
+  const webhooksQuery = useWebhooks();
   const webhookSecret = useWebhookSecret();
   const userErrorMessage = webhookSecret.userErrors
     .map(({ message }) => message)
     .join("\n");
 
   return (
-    <DataLayout fullWidth name="webhooks" title="Webhooks">
+    <DataLayout
+      fullWidth
+      name="webhooks"
+      onBack={() =>
+        router.push(resolvePath("/:orgName/:storeName/system/notifications"))
+      }
+      title="Webhooks"
+    >
       <main className={styles.content}>
-        {webhookSecret.error || userErrorMessage ? (
+        {webhooksQuery.error ? (
+          <Alert
+            description={webhooksQuery.error.message}
+            message="Unable to load webhooks"
+            showIcon
+            type="error"
+          />
+        ) : null}
+        {webhooksQuery.webhooks.length > 0 &&
+        (webhookSecret.error || userErrorMessage) ? (
           <Alert
             description={webhookSecret.error?.message ?? userErrorMessage}
             message="Unable to reveal the webhook signing secret"
@@ -72,16 +96,47 @@ export default function WebhooksPage() {
           <GroupedLinkItem
             ariaLabel="Create webhook"
             description="Add a new event endpoint"
-            onClick={() => openItemModal({ title: "Create webhook" })}
+            onClick={() =>
+              openWebhookModal({
+                onSaved: async () => {
+                  await webhookSecret.revealSecret();
+                },
+              })
+            }
             title="Create webhook"
           />
+          {webhooksQuery.loading && webhooksQuery.webhooks.length === 0 ? (
+            <Skeleton active paragraph={{ rows: 1 }} title />
+          ) : (
+            webhooksQuery.webhooks.map((webhook) => {
+              const eventTitle =
+                webhooksQuery.capabilities?.events.find(
+                  (event) => event.eventType === webhook.eventType,
+                )?.title ?? webhook.eventType;
+
+              return (
+                <div key={webhook.id}>
+                  <GroupedLinkItemDivider />
+                  <GroupedLinkItem
+                    ariaLabel={`Edit ${eventTitle} webhook`}
+                    description={`${webhook.format} · ${webhook.url}`}
+                    onClick={() => openWebhookModal({ webhook })}
+                    title={eventTitle}
+                  />
+                </div>
+              );
+            })
+          )}
           <p className={styles.secret}>
             Your webhooks will be signed with
             {webhookSecret.loading ? (
               <Skeleton.Input active block size="small" />
             ) : (
               <span className={styles.secretValue}>
-                {webhookSecret.secret ?? "Unavailable"}
+                {webhookSecret.secret ??
+                  (webhooksQuery.webhooks.length === 0
+                    ? "Created after the first webhook"
+                    : "Unavailable")}
               </span>
             )}
           </p>

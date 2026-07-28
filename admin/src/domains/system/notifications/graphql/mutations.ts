@@ -91,3 +91,57 @@ export const NOTIFICATION_TEMPLATE_PREVIEW_MUTATION = gql`
     }
   }
 `;
+
+export const NOTIFICATION_WEBHOOK_CREATE_MUTATION = gql`
+  mutation NotificationWebhookCreate(
+    $input: NotificationWebhookCreateInput!
+  ) {
+    notificationsMutation {
+      createWebhook(input: $input) {
+        webhook {
+          id
+          eventType
+          format
+          url
+          apiVersion
+          status
+          version
+          createdAt
+          updatedAt
+        }
+        userErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  }
+`;
+
+export const NOTIFICATION_WEBHOOK_UPDATE_MUTATION = gql`
+  mutation NotificationWebhookUpdate(
+    $input: NotificationWebhookUpdateInput!
+  ) {
+    notificationsMutation {
+      updateWebhook(input: $input) {
+        webhook {
+          id
+          eventType
+          format
+          url
+          apiVersion
+          status
+          version
+          createdAt
+          updatedAt
+        }
+        userErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  }
+`;

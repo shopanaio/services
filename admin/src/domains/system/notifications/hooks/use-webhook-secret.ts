@@ -26,5 +26,6 @@ export function useWebhookSecret() {
     userErrors: payload?.userErrors ?? [],
     loading: result.loading,
     error: result.error ?? null,
+    revealSecret: reveal,
   };
 }

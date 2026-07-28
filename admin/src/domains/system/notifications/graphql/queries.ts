@@ -65,3 +65,32 @@ export const NOTIFICATION_TEMPLATE_QUERY = gql`
     }
   }
 `;
+
+export const NOTIFICATION_WEBHOOKS_QUERY = gql`
+  query NotificationWebhooks {
+    notificationsQuery {
+      webhookCapabilities {
+        events {
+          eventType
+          title
+        }
+        apiVersions {
+          version
+          stability
+          isDefault
+        }
+      }
+      webhookSubscriptions {
+        id
+        eventType
+        format
+        url
+        apiVersion
+        status
+        version
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;

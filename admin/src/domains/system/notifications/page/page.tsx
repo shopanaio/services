@@ -1,10 +1,13 @@
 "use client";
 
-import { Alert, Empty, Skeleton } from "antd";
+import { Alert, Empty } from "antd";
 import { createStyles } from "antd-style";
 import { useRouter } from "next/navigation";
 import type { ApiAppWhereInput } from "@/graphql/types";
-import { AppRow } from "@/domains/apps/management/components";
+import {
+  AppRow,
+  AppRowSkeleton,
+} from "@/domains/apps/management/components";
 import { useAppsManagement } from "@/domains/apps/management/hooks";
 import { useAppManagementModal } from "@/domains/apps/management/modals";
 import { DataLayout } from "@/layouts/data";
@@ -66,9 +69,6 @@ const useStyles = createStyles(({ css, token }) => ({
     minHeight: 64,
     paddingInline: token.padding,
   },
-  skeleton: {
-    padding: "10px 16px",
-  },
 }));
 
 export default function NotificationSettingsPage() {
@@ -101,9 +101,9 @@ export default function NotificationSettingsPage() {
           <div className={styles.deliveryHeader}>Message delivery</div>
           <GroupedLinkItemDivider />
           {loading && deliveryApps.length === 0 ? (
-            <div className={styles.skeleton}>
-              <Skeleton active avatar paragraph={{ rows: 1 }} title />
-            </div>
+            <ul className={styles.appList}>
+              <AppRowSkeleton />
+            </ul>
           ) : deliveryApps.length > 0 ? (
             <ul className={styles.appList}>
               {deliveryApps.map((app) => (

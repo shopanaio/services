@@ -4,11 +4,13 @@ import { type ReactNode } from "react";
 import {
   Alert,
   Empty,
-  Skeleton,
 } from "antd";
 import { createStyles } from "antd-style";
 import type { ManagementAppListItem } from "@/domains/apps/management/graphql/operation-types";
-import { AppRow } from "@/domains/apps/management/components";
+import {
+  AppRow,
+  AppRowSkeleton,
+} from "@/domains/apps/management/components";
 import { useAppsManagement } from "@/domains/apps/management/hooks";
 import { useAppManagementModal } from "@/domains/apps/management/modals";
 import { DataLayout } from "@/layouts/data";
@@ -41,9 +43,6 @@ const useStyles = createStyles(({ css, token }) => ({
     minHeight: 128,
     padding: token.paddingLG,
   },
-  skeleton: {
-    padding: "12px 16px",
-  },
 }));
 
 function AppPaper({
@@ -62,9 +61,9 @@ function AppPaper({
   return (
     <Paper className={styles.paper}>
       {loading && apps.length === 0 ? (
-        <div className={styles.skeleton}>
-          <Skeleton active avatar paragraph={{ rows: 1 }} title />
-        </div>
+        <ul className={styles.appList}>
+          <AppRowSkeleton />
+        </ul>
       ) : apps.length > 0 ? (
         <ul className={styles.appList}>
           {apps.map((app) => renderApp(app))}
