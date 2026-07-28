@@ -3,18 +3,12 @@
 import { type ReactNode } from "react";
 import {
   Alert,
-  Avatar,
   Empty,
   Skeleton,
-  Tag,
 } from "antd";
 import { createStyles } from "antd-style";
-import { LuChevronRight as RightOutlined } from "react-icons/lu";
-import {
-  AppInstallationStatus,
-  AppRuntimeStatus,
-} from "@/graphql/types";
 import type { ManagementAppListItem } from "@/domains/apps/management/graphql/operation-types";
+import { AppRow } from "@/domains/apps/management/components";
 import { useAppsManagement } from "@/domains/apps/management/hooks";
 import { useAppManagementModal } from "@/domains/apps/management/modals";
 import { DataLayout } from "@/layouts/data";
@@ -40,83 +34,6 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 0,
     listStyle: "none",
   },
-  appListItem: {
-    boxSizing: "border-box",
-    height: 64,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    "&:last-child": {
-      borderBottom: 0,
-    },
-  },
-  appRow: {
-    width: "100%",
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-    height: 64,
-    padding: "10px 16px",
-    color: "inherit",
-    background: token.colorBgContainer,
-    border: 0,
-    cursor: "pointer",
-    font: "inherit",
-    textDecoration: "none",
-    textAlign: "left",
-  },
-  appRowInteractive: {
-    transition: `background-color ${token.motionDurationMid}`,
-    "&:hover": {
-      background: token.colorFillQuaternary,
-    },
-    "&:focus-visible": {
-      outline: `2px solid ${token.colorPrimaryBorder}`,
-      outlineOffset: -2,
-    },
-  },
-  avatar: {
-    flex: "0 0 auto",
-    width: 40,
-    height: 40,
-    borderRadius: token.borderRadiusLG,
-    fontSize: 14,
-    lineHeight: "40px",
-  },
-  appCopy: {
-    display: "flex",
-    flex: 1,
-    flexDirection: "column",
-    minWidth: 0,
-    overflow: "hidden",
-  },
-  appName: {
-    overflow: "hidden",
-    color: token.colorText,
-    fontSize: 13,
-    fontWeight: token.fontWeightStrong,
-    lineHeight: "20px",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  appDescription: {
-    overflow: "hidden",
-    color: token.colorTextSecondary,
-    fontSize: 11,
-    lineHeight: "18px",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  chevron: {
-    flex: "0 0 auto",
-    width: 14,
-    height: 14,
-    color: token.colorText,
-  },
-  statusTag: {
-    flex: "0 0 auto",
-    marginInlineEnd: 0,
-    textTransform: "capitalize",
-  },
   state: {
     display: "flex",
     alignItems: "center",
@@ -128,97 +45,6 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: "12px 16px",
   },
 }));
-
-const formatStatus = (status: AppInstallationStatus) =>
-  status.toLowerCase().replaceAll("_", " ");
-
-const getStatusColor = (status: AppInstallationStatus) => {
-  if (status === AppInstallationStatus.Active) return "success";
-  if (
-    status === AppInstallationStatus.InstallFailed ||
-    status === AppInstallationStatus.UninstallFailed ||
-    status === AppInstallationStatus.UpdateFailed
-  ) {
-    return "error";
-  }
-  if (
-    status === AppInstallationStatus.Installing ||
-    status === AppInstallationStatus.Resuming ||
-    status === AppInstallationStatus.Suspending ||
-    status === AppInstallationStatus.Uninstalling ||
-    status === AppInstallationStatus.Updating
-  ) {
-    return "processing";
-  }
-  if (status === AppInstallationStatus.PendingConsent) return "warning";
-  return "default";
-};
-
-function AppAvatar({ app }: { app: ManagementAppListItem }) {
-  const { styles } = useStyles();
-
-  return (
-    <Avatar
-      alt={app.icon.alt}
-      className={styles.avatar}
-      shape="square"
-      size={40}
-      src={app.icon.url}
-    />
-  );
-}
-
-function AppCopy({ app }: { app: ManagementAppListItem }) {
-  const { styles } = useStyles();
-
-  return (
-    <span className={styles.appCopy}>
-      <span className={styles.appName}>{app.displayName}</span>
-      <span className={styles.appDescription}>{app.description}</span>
-    </span>
-  );
-}
-
-function AppRow({
-  app,
-  onOpen,
-}: {
-  app: ManagementAppListItem;
-  onOpen: (app: ManagementAppListItem) => void;
-}) {
-  const { styles, cx } = useStyles();
-  const installationStatus = app.installation?.status;
-  const isAvailable =
-    !app.installed && app.runtimeStatus === AppRuntimeStatus.Ready;
-  const status = installationStatus
-    ? {
-        color: getStatusColor(installationStatus),
-        label: formatStatus(installationStatus),
-      }
-    : app.installed
-      ? { color: "blue", label: "installed" }
-      : isAvailable
-        ? { color: "blue", label: "available" }
-        : { color: "default", label: "unavailable" };
-
-  return (
-    <li className={styles.appListItem}>
-      <button
-        aria-label={`View ${app.displayName}`}
-        className={cx(styles.appRow, styles.appRowInteractive)}
-        onClick={() => onOpen(app)}
-        type="button"
-      >
-        <AppAvatar app={app} />
-        <AppCopy app={app} />
-        <Tag className={styles.statusTag} color={status.color}>
-          {status.label}
-        </Tag>
-        <RightOutlined aria-hidden className={styles.chevron} />
-      </button>
-    </li>
-  );
-}
 
 function AppPaper({
   apps,

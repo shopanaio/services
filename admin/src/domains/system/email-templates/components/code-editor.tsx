@@ -1,6 +1,8 @@
 "use client";
 
-import Editor from "@monaco-editor/react";
+import Editor, {
+  type EditorProps as MonacoEditorProps,
+} from "@monaco-editor/react";
 import { createStyles } from "antd-style";
 
 const useStyles = createStyles(({ token }) => ({
@@ -22,6 +24,18 @@ const useStyles = createStyles(({ token }) => ({
       borderColor: token.colorBorder,
     },
   },
+  borderless: {
+    border: 0,
+    borderRadius: 0,
+    outline: 0,
+    "&:focus-within": {
+      borderColor: "transparent",
+      outline: 0,
+    },
+    "&:hover": {
+      borderColor: "transparent",
+    },
+  },
 }));
 
 export interface CodeEditorProps {
@@ -30,6 +44,8 @@ export interface CodeEditorProps {
   height?: string;
   theme?: string;
   language?: string;
+  bordered?: boolean;
+  options?: MonacoEditorProps["options"];
 }
 
 export const CodeEditor = ({
@@ -38,11 +54,13 @@ export const CodeEditor = ({
   height = "100%",
   theme = "vs-dark",
   language = "handlebars",
+  bordered = true,
+  options,
 }: CodeEditorProps) => {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
 
   return (
-    <div className={styles.editor}>
+    <div className={cx(styles.editor, !bordered && styles.borderless)}>
       <Editor
         height={height}
         language={language}
@@ -57,6 +75,7 @@ export const CodeEditor = ({
             vertical: "auto",
             horizontal: "hidden",
           },
+          ...options,
         }}
         theme={theme}
         value={value}

@@ -4,6 +4,7 @@ import type {
   ApiAppInstallationActionInput,
   ApiAppInstallation,
   ApiAppLifecycleOperation,
+  ApiAppWhereInput,
   ApiGenericUserError,
 } from "@/graphql/types";
 import type { AdminAppUiDescriptor } from "../../runtime/descriptor-schema";
@@ -68,6 +69,10 @@ export interface AppsManagementQueryData {
       }>;
     };
   };
+}
+
+export interface AppsManagementQueryVariables {
+  where?: ApiAppWhereInput;
 }
 
 export interface AppInstallMutationData {

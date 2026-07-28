@@ -1,9 +1,9 @@
 import { gql } from "@apollo/client";
 
 export const APPS_MANAGEMENT_QUERY = gql`
-  query AppsManagement {
+  query AppsManagement($where: AppWhereInput) {
     appsQuery {
-      apps(first: 100) {
+      apps(first: 100, where: $where) {
         edges {
           node {
             code

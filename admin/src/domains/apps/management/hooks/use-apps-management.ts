@@ -2,9 +2,15 @@
 
 import { useEffect, useMemo } from "react";
 import { useQuery } from "@apollo/client/react";
-import { AppInstallationStatus } from "@/graphql/types";
+import {
+  AppInstallationStatus,
+  type ApiAppWhereInput,
+} from "@/graphql/types";
 import { APPS_MANAGEMENT_QUERY } from "../graphql";
-import type { AppsManagementQueryData } from "../graphql/operation-types";
+import type {
+  AppsManagementQueryData,
+  AppsManagementQueryVariables,
+} from "../graphql/operation-types";
 
 const POLLING_STATUSES = new Set<AppInstallationStatus>([
   AppInstallationStatus.Installing,
@@ -15,7 +21,7 @@ const POLLING_STATUSES = new Set<AppInstallationStatus>([
   AppInstallationStatus.Updating,
 ]);
 
-export const useAppsManagement = () => {
+export const useAppsManagement = (where?: ApiAppWhereInput) => {
   const {
     data,
     loading,
@@ -23,9 +29,13 @@ export const useAppsManagement = () => {
     refetch,
     startPolling,
     stopPolling,
-  } = useQuery<AppsManagementQueryData>(APPS_MANAGEMENT_QUERY, {
-    fetchPolicy: "cache-and-network",
-  });
+  } = useQuery<AppsManagementQueryData, AppsManagementQueryVariables>(
+    APPS_MANAGEMENT_QUERY,
+    {
+      fetchPolicy: "cache-and-network",
+      variables: { where },
+    },
+  );
   const apps = useMemo(
     () => {
       const sourceApps =

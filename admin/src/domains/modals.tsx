@@ -87,6 +87,24 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       closeConfirmMessage: 'Discard email template changes?',
     },
     {
+      type: 'system-notification-item',
+      component: dynamic(() =>
+        import('@/domains/system/notifications/modals/notification-item-modal').then(
+          (m) => m.NotificationItemModal
+        )
+      ),
+    },
+    {
+      type: 'system-notification-template',
+      component: dynamic(() =>
+        import('@/domains/system/notifications/modals/notification-template-modal').then(
+          (m) => m.NotificationTemplateModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard notification template changes?',
+    },
+    {
       type: 'general-settings-edit-store-settings',
       component: dynamic(() =>
         import('@/domains/system/general-settings/modals/store-settings-modal').then(

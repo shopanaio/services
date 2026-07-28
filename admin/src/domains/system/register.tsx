@@ -45,6 +45,27 @@ registerModule({
       ),
     },
     {
+      key: "customer-notifications",
+      path: "/:orgName/:storeName/system/notifications/customer",
+      component: dynamic(
+        () => import("@/domains/system/notifications/customer/page"),
+      ),
+    },
+    {
+      key: "staff-notifications",
+      path: "/:orgName/:storeName/system/notifications/staff",
+      component: dynamic(
+        () => import("@/domains/system/notifications/staff/page"),
+      ),
+    },
+    {
+      key: "notification-webhooks",
+      path: "/:orgName/:storeName/system/notifications/webhooks",
+      component: dynamic(
+        () => import("@/domains/system/notifications/webhooks/page"),
+      ),
+    },
+    {
       key: "delivery-logs",
       path: "/:orgName/:storeName/system/notifications/delivery-logs",
       disabled: true,
