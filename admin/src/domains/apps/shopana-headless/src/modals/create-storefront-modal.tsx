@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button, Checkbox, Flex, Input, Typography } from "antd";
+import { Alert, Button, Checkbox, Flex, Input, Typography } from "antd";
 import { createStyles } from "antd-style";
 import type { AdminAppModalProps } from "@shopana/admin-app-sdk";
+import { LuCopy } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useHeadlessStorefrontActions } from "../hooks";
 import { groupStorefrontPermissions } from "../permissions";
@@ -35,6 +36,25 @@ const useStyles = createStyles(({ token }) => ({
   permissionDescription: {
     paddingLeft: token.paddingLG,
   },
+  credentialStack: {
+    display: "flex",
+    flexDirection: "column",
+    gap: token.paddingSM,
+  },
+  credentialInput: {
+    display: "flex",
+    gap: token.paddingXS,
+  },
+  credentialField: {
+    display: "flex",
+    flexDirection: "column",
+    gap: token.paddingXXS,
+  },
+  privateTokenWarning: {
+    "&.ant-alert-with-description": {
+      padding: token.paddingSM,
+    },
+  },
 }));
 
 function samePermissions(left: string[], right: string[]) {
@@ -52,6 +72,11 @@ export default function CreateStorefrontModal({
   const actions = useHeadlessStorefrontActions(sdk);
   const [displayName, setDisplayName] = useState("");
   const [permissions, setPermissions] = useState(payload.defaultPermissions);
+  const [created, setCreated] = useState<{
+    storefrontId: string;
+    publicAccessToken: string;
+    privateAccessToken: string;
+  } | null>(null);
   const normalizedName = displayName.trim();
   const isDirty =
     Boolean(normalizedName) ||
@@ -63,8 +88,8 @@ export default function CreateStorefrontModal({
   );
 
   useEffect(() => {
-    sdk.modals.setCurrentDirty(isDirty);
-  }, [isDirty, sdk]);
+    sdk.modals.setCurrentDirty(Boolean(created) || isDirty);
+  }, [created, isDirty, sdk]);
 
   const togglePermission = (handle: string, enabled: boolean) => {
     setPermissions((current) =>
@@ -85,11 +110,25 @@ export default function CreateStorefrontModal({
       if (!result.connection) {
         throw new Error("The storefront was not returned by the API.");
       }
-      sdk.modals.setCurrentDirty(false);
-      sdk.modals.closeCurrent<CreateStorefrontModalResult>({
+      let privateAccessToken =
+        result.initialStorefrontCredentials?.privateAccessToken ?? null;
+      if (!privateAccessToken) {
+        const credential = await actions.createPrivateCredential(
+          result.connection.id,
+          "Initial private access token",
+        );
+        privateAccessToken = credential.privateAccessToken;
+      }
+      if (!privateAccessToken) {
+        throw new Error("The private access token was not returned by the API.");
+      }
+      setCreated({
         storefrontId: result.connection.id,
-        privateAccessToken:
-          result.initialStorefrontCredentials?.privateAccessToken ?? null,
+        publicAccessToken:
+          result.initialStorefrontCredentials?.publicAccessToken ??
+          result.connection.publicAccessToken ??
+          "",
+        privateAccessToken,
       });
     } catch (error) {
       sdk.notifications.error(
@@ -99,20 +138,48 @@ export default function CreateStorefrontModal({
     }
   };
 
+  const finish = () => {
+    if (!created) return;
+    sdk.modals.setCurrentDirty(false);
+    sdk.modals.closeCurrent<CreateStorefrontModalResult>({
+      storefrontId: created.storefrontId,
+      privateAccessToken: created.privateAccessToken,
+    });
+  };
+
+  const copyCredential = async (value: string, label: string) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      sdk.notifications.success(`${label} copied`);
+    } catch (error) {
+      sdk.notifications.error(
+        `Unable to copy ${label.toLowerCase()}`,
+        error instanceof Error ? error.message : undefined,
+      );
+    }
+  };
+
   return (
     <sdk.ui.ModalLayout
       actions={
-        <Button
-          disabled={!canSubmit}
-          loading={actions.loading}
-          size="small"
-          type="primary"
-          onClick={() => void submit()}
-        >
-          Add storefront
-        </Button>
+        created ? (
+          <Button size="small" type="primary" onClick={finish}>
+            I saved the token
+          </Button>
+        ) : (
+          <Button
+            disabled={!canSubmit}
+            loading={actions.loading}
+            size="small"
+            type="primary"
+            onClick={() => void submit()}
+          >
+            Add storefront
+          </Button>
+        )
       }
-      title="Add storefront"
+      title={created ? "Save private access token" : "Add storefront"}
     >
       <Paper>
         <PaperHeader title="Storefront connection" />
@@ -120,7 +187,8 @@ export default function CreateStorefrontModal({
           Choose the name used to identify this storefront in Admin.
         </Typography.Paragraph>
         <Input
-          autoFocus
+          autoFocus={!created}
+          disabled={Boolean(created)}
           maxLength={255}
           placeholder="Storefront name"
           value={displayName}
@@ -128,11 +196,57 @@ export default function CreateStorefrontModal({
         />
       </Paper>
 
+      {created ? (
+        <Paper>
+          <PaperHeader title="Credentials" />
+          <div className={styles.credentialStack}>
+            <div className={styles.credentialField}>
+              <Typography.Text strong>Public access token</Typography.Text>
+              <div className={styles.credentialInput}>
+                <Input readOnly value={created.publicAccessToken} />
+                <Button
+                  aria-label="Copy public access token"
+                  disabled={!created.publicAccessToken}
+                  icon={<LuCopy size={16} />}
+                  onClick={() =>
+                    void copyCredential(
+                      created.publicAccessToken,
+                      "Public access token",
+                    )
+                  }
+                />
+              </div>
+            </div>
+            <div className={styles.credentialField}>
+              <Typography.Text strong>Private access token</Typography.Text>
+              <div className={styles.credentialInput}>
+                <Input readOnly value={created.privateAccessToken} />
+                <Button
+                  aria-label="Copy private access token"
+                  icon={<LuCopy size={16} />}
+                  onClick={() =>
+                    void copyCredential(
+                      created.privateAccessToken,
+                      "Private access token",
+                    )
+                  }
+                />
+              </div>
+            </div>
+            <Alert
+              className={styles.privateTokenWarning}
+              description="Copy and save this token now. You won’t be able to view it again."
+              type="warning"
+            />
+          </div>
+        </Paper>
+      ) : null}
+
       <Paper>
-        <PaperHeader
-          description="Choose which Storefront API resources this connection can access."
-          title="Permissions"
-        />
+        <PaperHeader title="Permissions" />
+        <Typography.Paragraph type="secondary">
+          Choose which Storefront API resources this connection can access.
+        </Typography.Paragraph>
         <div className={styles.permissions}>
           {groupedPermissions.map((group) => (
             <div className={styles.permissionGroup} key={group.label}>
@@ -141,7 +255,7 @@ export default function CreateStorefrontModal({
                 <div className={styles.permission} key={permission.handle}>
                   <Checkbox
                     checked={permissions.includes(permission.handle)}
-                    disabled={actions.loading}
+                    disabled={Boolean(created) || actions.loading}
                     onChange={({ target }) =>
                       togglePermission(
                         permission.handle,
