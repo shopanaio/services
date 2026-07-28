@@ -62,6 +62,8 @@ async function beginAuthorization(configuration) {
   );
   sessionStorage.setItem("oauth.pkce.verifier", verifier);
   sessionStorage.setItem("oauth.state", state);
+  const nonce = crypto.randomUUID();
+  sessionStorage.setItem("oauth.nonce", nonce);
 
   const authorize = new URL(configuration.authorizeEndpoint);
   authorize.search = new URLSearchParams({
@@ -70,7 +72,7 @@ async function beginAuthorization(configuration) {
     redirect_uri: configuration.redirectUri,
     scope: "openid profile email offline_access",
     state,
-    nonce: crypto.randomUUID(),
+    nonce,
     code_challenge: base64Url(digest),
     code_challenge_method: "S256",
     resource: configuration.resource,
@@ -87,11 +89,15 @@ async function finishAuthorization(configuration) {
 
   const expectedState = sessionStorage.getItem("oauth.state");
   const verifier = sessionStorage.getItem("oauth.pkce.verifier");
+  const expectedNonce = sessionStorage.getItem("oauth.nonce");
   if (!expectedState || callback.searchParams.get("state") !== expectedState) {
     throw new Error("OAuth state mismatch");
   }
   if (!verifier) {
     throw new Error("PKCE verifier is missing");
+  }
+  if (!expectedNonce) {
+    throw new Error("OIDC nonce is missing");
   }
 
   const tokenResponse = await fetch(configuration.tokenEndpoint, {
@@ -113,6 +119,9 @@ async function finishAuthorization(configuration) {
   const tokens = await tokenResponse.json();
   const idTokenClaims = decodeJwtPayload(tokens.id_token);
   const accessTokenClaims = decodeJwtPayload(tokens.access_token);
+  if (idTokenClaims.nonce !== expectedNonce) {
+    throw new Error("OIDC nonce mismatch");
+  }
   const userinfoResponse = await fetch(configuration.userinfoEndpoint, {
     headers: { authorization: `Bearer ${tokens.access_token}` },
   });
@@ -135,6 +144,7 @@ async function finishAuthorization(configuration) {
   authenticatedSession.hidden = false;
   sessionStorage.removeItem("oauth.pkce.verifier");
   sessionStorage.removeItem("oauth.state");
+  sessionStorage.removeItem("oauth.nonce");
   window.history.replaceState({}, "", callback.pathname);
 }
 

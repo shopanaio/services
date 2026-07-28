@@ -33,7 +33,7 @@ export async function waitForEmailOtp(
 
 export async function expectNoEmailOtp(
   recipient: string,
-  quietPeriodMs = 1_000,
+  quietPeriodMs = 5_000,
 ): Promise<void> {
   const deadline = Date.now() + quietPeriodMs;
   const query = encodeURIComponent(`to:"${recipient}"`);

@@ -583,6 +583,27 @@ export function applicationSessionIdForUser(
   });
 }
 
+export function applicationOAuthTokenCounts(
+  realm: StorefrontEmailOtpRealm,
+): Promise<{ accessTokens: number; refreshTokens: number }> {
+  return withDb(async (sql) => {
+    const [accessTokenRow] = await sql<{ count: number }[]>`
+      select count(*)::int as count
+      from iam.application_oauth_access_token
+      where application_id = ${realm.applicationId}
+    `;
+    const [refreshTokenRow] = await sql<{ count: number }[]>`
+      select count(*)::int as count
+      from iam.application_oauth_refresh_token
+      where application_id = ${realm.applicationId}
+    `;
+    return {
+      accessTokens: accessTokenRow!.count,
+      refreshTokens: refreshTokenRow!.count,
+    };
+  });
+}
+
 export function customerCount(
   realm: StorefrontEmailOtpRealm,
   email: string,

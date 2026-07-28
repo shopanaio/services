@@ -3,6 +3,7 @@ import { test } from '@fixtures/base.extend';
 import {
   applicationIdentityCount,
   applicationIssuer,
+  applicationOAuthTokenCounts,
   applicationSessionIdForUser,
   applicationSessionCount,
   beginEmailOtpAuthorization,
@@ -21,6 +22,7 @@ import {
   submitEmailOtpForCallback,
   waitForCustomerProjection,
 } from './application-auth-email-otp-test-kit';
+import { updatePolicy } from '../application-auth-password/application-auth-test-kit';
 
 test.describe('Application email OTP auth UI — customer sign in', () => {
   test('an existing customer signs in through the hosted OAuth UI and Mailpit OTP', async ({
@@ -127,14 +129,74 @@ test.describe('Application email OTP auth UI — customer sign in', () => {
     await clearSeedApplicationSessions(realm, identity.id);
     await setCustomerAuthMethods(api, request, passwordRevision, ['EMAIL_OTP']);
     const sessionsBeforeOtp = await applicationSessionCount(realm);
+    const tokenCountsBeforeOtp = await applicationOAuthTokenCounts(realm);
     const attempt = await beginEmailOtpAuthorization(page, realm, email);
     const invalidOtp = attempt.otp === '000000' ? '111111' : '000000';
+    const callbackRequests: string[] = [];
+    const tokenRequests: string[] = [];
+    page.on('request', (browserRequest) => {
+      if (browserRequest.url().startsWith(realm.redirectUri)) {
+        callbackRequests.push(browserRequest.url());
+      }
+      if (browserRequest.url() === `${applicationIssuer(realm)}/oauth2/token`) {
+        tokenRequests.push(browserRequest.url());
+      }
+    });
 
     await submitEmailOtpExpectRejected(page, realm, email, invalidOtp);
 
+    expect(callbackRequests).toEqual([]);
+    expect(tokenRequests).toEqual([]);
     expect(await applicationIdentityCount(realm, email)).toBe(1);
     expect(await customerCount(realm, email)).toBe(1);
     expect(await applicationSessionCount(realm)).toBe(sessionsBeforeOtp);
+    expect(await applicationOAuthTokenCounts(realm)).toEqual(
+      tokenCountsBeforeOtp,
+    );
+  });
+
+  test('disabled registration still allows an existing customer to sign in with OTP', async ({
+    api,
+    page,
+    request,
+  }) => {
+    test.setTimeout(210_000);
+    const realm = await createStorefrontEmailOtpRealm(api);
+    const passwordRevision = await setCustomerAuthMethods(
+      api,
+      request,
+      realm.revision,
+      ['PASSWORD'],
+    );
+    const email = `otp-existing-closed-${crypto.randomUUID()}@playwright.dev`;
+    const identity = await seedExistingCustomerWithPassword(
+      request,
+      realm,
+      email,
+    );
+    await waitForCustomerProjection(realm, identity.id);
+    await clearSeedApplicationSessions(realm, identity.id);
+    await setCustomerAuthMethods(api, request, passwordRevision, ['EMAIL_OTP']);
+    await updatePolicy(realm, {
+      registrationMode: 'disabled',
+      emailOtpSignInEnabled: true,
+      emailOtpSignUpEnabled: false,
+    });
+    await openOAuthTestApplication(page, realm);
+
+    await page.locator('[data-testid="login-button"]').click();
+    const renderedSession = await completeEmailOtpThroughHostedUi(
+      page,
+      realm,
+      email,
+    );
+
+    expect(renderedSession.userId).toBe(identity.id);
+    expect(await applicationIdentityCount(realm, email)).toBe(1);
+    expect(await customerCount(realm, email)).toBe(1);
+    expect(await applicationSessionIdForUser(realm, identity.id)).toBe(
+      renderedSession.sessionId,
+    );
   });
 
   test('a consumed OTP cannot be replayed', async ({
