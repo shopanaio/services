@@ -60,7 +60,6 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const {
     stores,
     loading: storesLoading,
-    refetch: refetchStores,
   } = useStores({
     organizationId: organization?.id ?? "",
     skip: !organization?.id,
@@ -181,11 +180,10 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
 
         if (store) {
           message.success(`Store "${values.name}" created successfully`);
-          refetchStores();
         }
       },
     });
-  }, [organization, pushCreateStoreModal, createStore, refetchStores]);
+  }, [organization, pushCreateStoreModal, createStore]);
 
   const handleInviteMember = useCallback(() => {
     if (!organization) return;

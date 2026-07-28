@@ -85,6 +85,7 @@ export function StoresSection({
         title="Stores"
         actions={
           <Button
+            data-testid="stores-create-button"
             size="small"
             icon={<PlusOutlined />}
             onClick={onCreateStore}

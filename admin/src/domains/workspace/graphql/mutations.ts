@@ -7,6 +7,7 @@ import {
   ROLE_FRAGMENT,
   MEMBER_FRAGMENT,
   STORE_FRAGMENT,
+  STORE_BASIC_FRAGMENT,
 } from "./fragments";
 
 /**
@@ -410,7 +411,7 @@ export const CREATE_STORE_MUTATION = gql`
     storeMutation {
       storeCreate(input: $input) {
         store {
-          ...StoreFields
+          ...StoreBasicFields
         }
         userErrors {
           ...UserErrorFields
@@ -418,7 +419,7 @@ export const CREATE_STORE_MUTATION = gql`
       }
     }
   }
-  ${STORE_FRAGMENT}
+  ${STORE_BASIC_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;
 

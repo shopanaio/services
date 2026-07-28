@@ -1,5 +1,5 @@
 import { ApolloClient, InMemoryCache } from "@apollo/client-integration-nextjs";
-import { ApolloLink } from "@apollo/client";
+import { ApolloLink, gql } from "@apollo/client";
 import { ErrorLink } from "@apollo/client/link/error";
 import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import { Observable } from "rxjs";
@@ -22,6 +22,43 @@ function getStoreNameFromUrl(): string | null {
   const segments = window.location.pathname.split("/").filter(Boolean);
   // URL pattern: /orgName/storeName/...
   return segments.length >= 3 ? segments[1] : null;
+}
+
+// Extract organization name from organization and store routes.
+function getOrganizationNameFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const segments = window.location.pathname.split("/").filter(Boolean);
+
+  if (segments[0] === "workspace" && segments.length >= 2) {
+    return segments[1];
+  }
+
+  // Store URL pattern: /orgName/storeName/...
+  return segments.length >= 3 ? segments[0] : null;
+}
+
+const ORGANIZATION_CONTEXT_FRAGMENT = gql`
+  fragment OrganizationContextFields on Organization {
+    id
+  }
+`;
+
+function getOrganizationIdFromUrl(cache: InMemoryCache): string | null {
+  const organizationName = getOrganizationNameFromUrl();
+  if (!organizationName) return null;
+
+  const cacheId = cache.identify({
+    __typename: "Organization",
+    name: organizationName,
+  });
+  if (!cacheId) return null;
+
+  return (
+    cache.readFragment<{ id: string }>({
+      id: cacheId,
+      fragment: ORGANIZATION_CONTEXT_FRAGMENT,
+    })?.id ?? null
+  );
 }
 
 // Refresh token 60 seconds before expiry to avoid race conditions
@@ -95,82 +132,115 @@ async function ensureFreshToken(): Promise<string | null> {
 }
 
 // Proactive token refresh link - refreshes token BEFORE request if needed
-const proactiveRefreshLink = new ApolloLink((operation, forward) => {
-  return new Observable((observer) => {
-    ensureFreshToken()
-      .then((token) => {
-        const oldHeaders = operation.getContext().headers || {};
-        const headers: Record<string, string> = { ...oldHeaders };
-
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
-
-        const storeName = getStoreNameFromUrl();
-        if (storeName) {
-          headers["x-store-name"] = storeName;
-        }
-
-        operation.setContext({ headers });
-        forward(operation).subscribe(observer);
-      })
-      .catch(() => {
-        // If proactive refresh fails, still try the request
-        // The error link will handle 401 as fallback
-        forward(operation).subscribe(observer);
-      });
-  });
-});
-
-// Fallback error link - handles 401 if proactive refresh missed it
-const errorLink = new ErrorLink(({ error, operation, forward }) => {
-  if (!CombinedGraphQLErrors.is(error)) {
-    return;
-  }
-
-  const isUnauthenticated = error.errors.some(
-    (e) => e.extensions?.code === "UNAUTHENTICATED"
-  );
-
-  if (!isUnauthenticated) {
-    return;
-  }
-
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    clearStoredTokens();
-    return;
-  }
-
-  // Use the same refresh mechanism to avoid duplicate refreshes
-  return new Observable((observer) => {
-    ensureFreshToken()
-      .then((token) => {
-        if (token) {
+function createProactiveRefreshLink(cache: InMemoryCache) {
+  return new ApolloLink((operation, forward) => {
+    return new Observable((observer) => {
+      ensureFreshToken()
+        .then((token) => {
           const oldHeaders = operation.getContext().headers || {};
-          const headers: Record<string, string> = {
-            ...oldHeaders,
-            Authorization: `Bearer ${token}`,
-          };
+          const headers: Record<string, string> = { ...oldHeaders };
+
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
 
           const storeName = getStoreNameFromUrl();
           if (storeName) {
             headers["x-store-name"] = storeName;
           }
 
+          const organizationId = getOrganizationIdFromUrl(cache);
+          if (organizationId) {
+            headers["x-organization-id"] = organizationId;
+          }
+
           operation.setContext({ headers });
           forward(operation).subscribe(observer);
-        } else {
-          observer.error(new Error("Token refresh failed"));
-        }
-      })
-      .catch(() => {
-        observer.error(new Error("Token refresh failed"));
-      });
+        })
+        .catch(() => {
+          // If proactive refresh fails, still try the request
+          // The error link will handle 401 as fallback
+          forward(operation).subscribe(observer);
+        });
+    });
   });
-});
+}
+
+// Fallback error link - handles 401 if proactive refresh missed it
+function createErrorLink(cache: InMemoryCache) {
+  return new ErrorLink(({ error, operation, forward }) => {
+    if (!CombinedGraphQLErrors.is(error)) {
+      return;
+    }
+
+    const isUnauthenticated = error.errors.some(
+      (e) => e.extensions?.code === "UNAUTHENTICATED"
+    );
+
+    if (!isUnauthenticated) {
+      return;
+    }
+
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      clearStoredTokens();
+      return;
+    }
+
+    // Use the same refresh mechanism to avoid duplicate refreshes
+    return new Observable((observer) => {
+      ensureFreshToken()
+        .then((token) => {
+          if (token) {
+            const oldHeaders = operation.getContext().headers || {};
+            const headers: Record<string, string> = {
+              ...oldHeaders,
+              Authorization: `Bearer ${token}`,
+            };
+
+            const storeName = getStoreNameFromUrl();
+            if (storeName) {
+              headers["x-store-name"] = storeName;
+            }
+
+            const organizationId = getOrganizationIdFromUrl(cache);
+            if (organizationId) {
+              headers["x-organization-id"] = organizationId;
+            }
+
+            operation.setContext({ headers });
+            forward(operation).subscribe(observer);
+          } else {
+            observer.error(new Error("Token refresh failed"));
+          }
+        })
+        .catch(() => {
+          observer.error(new Error("Token refresh failed"));
+        });
+    });
+  });
+}
 
 export function makeClient() {
+  const cache = new InMemoryCache({
+    possibleTypes: {
+      Listing: ["Product", "Bundle"],
+    },
+    typePolicies: {
+      Query: {
+        fields: {
+          userQuery: { merge: true },
+        },
+      },
+      Organization: {
+        keyFields: ["name"],
+      },
+      Store: {
+        keyFields: ["name"],
+      },
+    },
+  });
+
   const uploadLink = new UploadHttpLink({
     uri: GRAPHQL_ENDPOINT,
     credentials: "include",
@@ -181,26 +251,13 @@ export function makeClient() {
   });
 
   return new ApolloClient({
-    cache: new InMemoryCache({
-      possibleTypes: {
-        Listing: ["Product", "Bundle"],
-      },
-      typePolicies: {
-        Query: {
-          fields: {
-            userQuery: { merge: true },
-          },
-        },
-        Organization: {
-          keyFields: ["name"],
-        },
-        Store: {
-          keyFields: ["name"],
-        },
-      },
-    }),
+    cache,
     // Order: errorLink (fallback 401) -> proactiveRefreshLink (proactive refresh + auth header) -> uploadLink
-    link: ApolloLink.from([errorLink, proactiveRefreshLink, uploadLink as unknown as ApolloLink]),
+    link: ApolloLink.from([
+      createErrorLink(cache),
+      createProactiveRefreshLink(cache),
+      uploadLink as unknown as ApolloLink,
+    ]),
     defaultOptions: {
       watchQuery: {
         fetchPolicy: "cache-and-network",

@@ -9,11 +9,22 @@ import type {
   ApiGenericUserError,
 } from "@/graphql/types";
 
+type CreatedStore = Pick<
+  ApiStore,
+  | "id"
+  | "revision"
+  | "name"
+  | "displayName"
+  | "status"
+  | "currencyCode"
+  | "createdAt"
+>;
+
 interface CreateStoreResult {
   /**
    * The created store, or null if creation failed.
    */
-  store: ApiStore | null;
+  store: CreatedStore | null;
   /**
    * List of validation/business logic errors.
    */
@@ -65,26 +76,26 @@ export function useCreateStore(): UseCreateStoreReturn {
     {
       storeMutation: {
         storeCreate: {
-          store: ApiStore | null;
+          store: CreatedStore | null;
           userErrors: ApiGenericUserError[];
         };
       };
     },
     { input: ApiStoreCreateInput }
-  >(CREATE_STORE_MUTATION, {
-    refetchQueries: (result) => {
-      const organizationId =
-        result.data?.storeMutation.storeCreate.store?.organization?.id;
-      if (organizationId) {
-        return [{ query: STORES_QUERY, variables: { organizationId } }];
-      }
-      return [];
-    },
-  });
+  >(CREATE_STORE_MUTATION);
 
   const createStore = useCallback(
     async (input: ApiStoreCreateInput): Promise<CreateStoreResult> => {
-      const result = await mutate({ variables: { input } });
+      const result = await mutate({
+        variables: { input },
+        refetchQueries: [
+          {
+            query: STORES_QUERY,
+            variables: { organizationId: input.organizationId },
+          },
+        ],
+        awaitRefetchQueries: true,
+      });
       const payload = result.data?.storeMutation.storeCreate;
 
       return {
