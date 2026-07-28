@@ -4,7 +4,11 @@ import type {
 } from "@shopana/broker-types";
 import nodemailer from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport/index.js";
-import type { SmtpConfiguration } from "./configuration.js";
+import {
+  DEFAULT_SMTP_DEPLOYMENT_POLICY,
+  type SmtpConfiguration,
+  type SmtpDeploymentPolicy,
+} from "./configuration.js";
 import {
   smtpConfigurationError,
   validateSmtpPassword,
@@ -31,6 +35,7 @@ interface SmtpTransporter {
 export interface SmtpDeliveryDependencies {
   readonly resolveEndpoints: (
     host: string,
+    allowPrivateNetwork: boolean,
   ) => Promise<readonly ResolvedSmtpEndpoint[]>;
   readonly createTransport: (
     options: SMTPTransport.Options,
@@ -48,8 +53,15 @@ export async function deliverEmail(
   configuration: SmtpConfiguration,
   credentials: SmtpDeliveryCredentials,
   delivery: EmailDeliveryInput,
+  policy: SmtpDeploymentPolicy = DEFAULT_SMTP_DEPLOYMENT_POLICY,
   dependencies: SmtpDeliveryDependencies = defaultDependencies,
 ): Promise<NotificationDeliveryReceipt> {
+  if (configuration.security === "NONE" && !policy.allowInsecureSmtp) {
+    throw smtpConfigurationError(
+      "SMTP_INSECURE_NOT_ALLOWED",
+      "Insecure SMTP is disabled by deployment configuration",
+    );
+  }
   if (!delivery.from?.email) {
     throw smtpConfigurationError(
       "SMTP_SENDER_REQUIRED",
@@ -68,7 +80,10 @@ export async function deliverEmail(
 
   let endpoints: readonly ResolvedSmtpEndpoint[];
   try {
-    endpoints = await dependencies.resolveEndpoints(configuration.host);
+    endpoints = await dependencies.resolveEndpoints(
+      configuration.host,
+      policy.allowPrivateNetwork,
+    );
   } catch (error) {
     const failure = normalizeSmtpError(error);
     if (failure.receipt) {
@@ -84,6 +99,7 @@ export async function deliverEmail(
       port: configuration.port,
       secure: configuration.security === "TLS",
       requireTLS: configuration.security === "STARTTLS",
+      ignoreTLS: configuration.security === "NONE",
       auth: configuration.username
         ? {
             user: configuration.username,

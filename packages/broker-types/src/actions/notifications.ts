@@ -178,7 +178,12 @@ export type NotificationDeliveryInput =
   | WebhookDeliveryInput;
 
 export interface NotificationDeliveryReceipt {
-  state: "ACCEPTED" | "DELIVERED" | "REJECTED" | "UNKNOWN";
+  state:
+    | "ACCEPTED"
+    | "DELIVERED"
+    | "REJECTED"
+    | "UNKNOWN"
+    | "UNSUPPORTED";
   providerCode: string;
   providerMessageId?: string;
   acceptedAt?: string;

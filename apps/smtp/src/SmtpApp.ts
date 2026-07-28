@@ -6,21 +6,16 @@ import type {
   ShopanaApp,
 } from "@shopana/app-sdk";
 import type {
-  EmailDeliveryInput,
   NotificationDeliveryInput,
   NotificationDeliveryReceipt,
 } from "@shopana/broker-types";
 import {
   parseSmtpConfiguration,
+  parseSmtpDeploymentPolicy,
   SMTP_PASSWORD_SECRET,
   validateSmtpPassword,
 } from "./configuration.js";
-import { deliverEmail } from "./delivery.js";
-
-interface NotificationDeliveryCapabilityInput {
-  readonly channel: NotificationDeliveryInput["channel"];
-  readonly delivery: NotificationDeliveryInput;
-}
+import { deliverEmail as sendEmail } from "./delivery.js";
 
 export class SmtpApp implements ShopanaApp {
   constructor(private readonly host: AppHostContext) {}
@@ -41,7 +36,7 @@ export class SmtpApp implements ShopanaApp {
       status: "healthy",
     }));
     this.host.broker.register<
-      NotificationDeliveryCapabilityInput,
+      NotificationDeliveryInput,
       NotificationDeliveryReceipt
     >("deliver", (input) => this.deliver(input));
   }
@@ -62,7 +57,10 @@ export class SmtpApp implements ShopanaApp {
     readonly status: "configured";
   }> {
     const lifecycle = input as AppInstallInput | AppUpdateInput;
-    const configuration = parseSmtpConfiguration(lifecycle.configuration);
+    const configuration = parseSmtpConfiguration(
+      lifecycle.configuration,
+      parseSmtpDeploymentPolicy(this.host.config),
+    );
     if (configuration.username) {
       validateSmtpPassword(
         await this.host.secrets.resolve(SMTP_PASSWORD_SECRET),
@@ -72,26 +70,24 @@ export class SmtpApp implements ShopanaApp {
   }
 
   private async deliver(
-    input: NotificationDeliveryCapabilityInput | undefined,
+    input: NotificationDeliveryInput | undefined,
   ): Promise<NotificationDeliveryReceipt> {
-    if (
-      !input ||
-      input.channel !== "EMAIL" ||
-      input.delivery.channel !== "EMAIL"
-    ) {
+    if (!input || input.channel !== "EMAIL") {
       return {
-        state: "REJECTED",
+        state: "UNSUPPORTED",
         providerCode: "smtp",
         responseCode: "SMTP_EMAIL_ONLY",
       };
     }
 
     const context = this.host.executionContext.current();
-    if (input.delivery.storeId !== context.storeId) {
+    if (input.storeId !== context.storeId) {
       throw new Error("SMTP delivery store does not match App installation");
     }
+    const policy = parseSmtpDeploymentPolicy(this.host.config);
     const configuration = parseSmtpConfiguration(
       await this.host.configuration.resolve(),
+      policy,
     );
     const password = configuration.username
       ? validateSmtpPassword(
@@ -99,13 +95,14 @@ export class SmtpApp implements ShopanaApp {
         )
       : undefined;
 
-    return deliverEmail(
+    return sendEmail(
       configuration,
       {
         username: configuration.username,
         password,
       },
-      input.delivery as EmailDeliveryInput,
+      input,
+      policy,
     );
   }
 }

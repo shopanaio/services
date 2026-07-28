@@ -79,12 +79,19 @@ export class AppsPlatformActions extends BrokerActions {
     ) {
       throw new Error("Invalid capability invocation");
     }
-    const route = await this.installations.resolveCapabilityRoute(
-      params.storeId,
-      params.capability,
-      params.operation,
-      params.target ? normalizeTarget(params.target) : undefined,
-    );
+    const route = params.installationId
+      ? await this.installations.resolveActiveStoreCapabilityRouteForInstallation(
+          params.storeId,
+          params.capability,
+          params.operation,
+          params.installationId,
+        )
+      : await this.installations.resolveCapabilityRoute(
+          params.storeId,
+          params.capability,
+          params.operation,
+          params.target ? normalizeTarget(params.target) : undefined,
+        );
     if (!route) {
       throw new Error(
         `No active App route for capability "${params.capability}.${params.operation}"`,
@@ -103,6 +110,34 @@ export class AppsPlatformActions extends BrokerActions {
       installationId: route.installationId,
       appCode: route.appCode,
       data,
+    };
+  }
+
+  @Action("listCapabilityRoutes")
+  async listCapabilityRoutes(
+    params: Apps.ListCapabilityRoutesParams,
+    context: BrokerCallContext,
+  ): Promise<Apps.ListCapabilityRoutesResult> {
+    if (
+      context.caller.kind !== "action" ||
+      context.app ||
+      !params.storeId?.trim() ||
+      !params.capability?.trim() ||
+      !params.operation?.trim()
+    ) {
+      throw new Error("Invalid capability route query");
+    }
+    const routes =
+      await this.installations.listActiveStoreCapabilityRoutes(
+        params.storeId,
+        params.capability,
+        params.operation,
+      );
+    return {
+      routes: routes.map(({ installationId, appCode }) => ({
+        installationId,
+        appCode,
+      })),
     };
   }
 

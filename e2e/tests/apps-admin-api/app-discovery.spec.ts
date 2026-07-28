@@ -64,7 +64,7 @@ const bundledApps = [
       {
         key: 'notifications',
         assignmentMode: 'STORE',
-        operations: [{ name: 'deliverEmail', action: 'deliverEmail' }],
+        operations: [{ name: 'deliver', action: 'deliver' }],
       },
     ],
     graphql: { admin: false, storefront: false },

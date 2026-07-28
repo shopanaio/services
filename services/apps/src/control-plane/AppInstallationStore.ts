@@ -553,6 +553,32 @@ export class AppInstallationStore {
     );
   }
 
+  listActiveStoreCapabilityRoutes(
+    storeId: string,
+    capability: string,
+    operation: string,
+  ): Promise<ResolvedCapabilityRoute[]> {
+    return this.repository.capability.listActiveStoreRoutes(
+      storeId,
+      capability,
+      operation,
+    );
+  }
+
+  resolveActiveStoreCapabilityRouteForInstallation(
+    storeId: string,
+    capability: string,
+    operation: string,
+    installationId: string,
+  ): Promise<ResolvedCapabilityRoute | null> {
+    return this.repository.capability.resolveActiveStoreRouteForInstallation(
+      storeId,
+      capability,
+      operation,
+      installationId,
+    );
+  }
+
   @Transactional()
   async assignCapabilityResource(input: {
     readonly storeId: string;

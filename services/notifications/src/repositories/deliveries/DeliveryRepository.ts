@@ -363,22 +363,13 @@ export class DeliveryRepository extends BaseRepository {
   async createAttempt(input: {
     deliveryId: string;
     workflowId: string;
+    providerCode?: string;
+    providerSlotId?: string;
   }) {
-    const bundle = await this.getBundle(input.deliveryId);
-    if (!bundle) throw new Error("DELIVERY_NOT_FOUND");
-    const attemptNumber = bundle.delivery.attemptCount + 1;
-    const id = await this.generateUuidV7();
-    await this.connection.insert(notificationDeliveryAttempts).values({
-      id,
-      storeId: this.storeId,
-      deliveryId: input.deliveryId,
-      attemptNumber,
-      workflowId: input.workflowId,
-    });
-    await this.connection
+    const deliveryRows = await this.connection
       .update(notificationDeliveries)
       .set({
-        attemptCount: attemptNumber,
+        attemptCount: sql<number>`${notificationDeliveries.attemptCount} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -386,16 +377,26 @@ export class DeliveryRepository extends BaseRepository {
           eq(notificationDeliveries.storeId, this.storeId),
           eq(notificationDeliveries.id, input.deliveryId)
         )
-      );
+      )
+      .returning({ attemptNumber: notificationDeliveries.attemptCount });
+    const attemptNumber = deliveryRows[0]?.attemptNumber;
+    if (attemptNumber === undefined) throw new Error("DELIVERY_NOT_FOUND");
+    const id = await this.generateUuidV7();
+    await this.connection.insert(notificationDeliveryAttempts).values({
+      id,
+      storeId: this.storeId,
+      deliveryId: input.deliveryId,
+      attemptNumber,
+      workflowId: input.workflowId,
+      providerCode: input.providerCode,
+      providerSlotId: input.providerSlotId,
+    });
     return { id, attemptNumber };
   }
 
-  async recordSuccess(input: {
-    deliveryId: string;
+  async recordAttemptSuccess(input: {
     attemptId: string;
     state: "ACCEPTED" | "DELIVERED";
-    providerCode: string;
-    providerSlotId: string;
     providerMessageId?: string;
     responseCode?: string;
   }): Promise<void> {
@@ -404,8 +405,6 @@ export class DeliveryRepository extends BaseRepository {
       .update(notificationDeliveryAttempts)
       .set({
         status: input.state,
-        providerCode: input.providerCode,
-        providerSlotId: input.providerSlotId,
         providerMessageId: input.providerMessageId,
         providerResponseCode: input.responseCode,
         finishedAt,
@@ -416,14 +415,24 @@ export class DeliveryRepository extends BaseRepository {
           eq(notificationDeliveryAttempts.id, input.attemptId)
         )
       );
+  }
+
+  async finalizeSuccess(input: {
+    deliveryId: string;
+    state: "ACCEPTED" | "DELIVERED";
+    providerCode?: string;
+    providerSlotId?: string;
+    providerMessageId?: string;
+  }): Promise<void> {
+    const finishedAt = new Date().toISOString();
     const bundle = await this.getBundle(input.deliveryId);
     await this.connection
       .update(notificationDeliveries)
       .set({
         status: input.state,
-        providerCode: input.providerCode,
-        providerSlotId: input.providerSlotId,
-        providerMessageId: input.providerMessageId,
+        providerCode: input.providerCode ?? null,
+        providerSlotId: input.providerSlotId ?? null,
+        providerMessageId: input.providerMessageId ?? null,
         renderedContent:
           input.state === "DELIVERED" ? null : bundle?.delivery.renderedContent,
         nextAttemptAt: null,
@@ -464,11 +473,99 @@ export class DeliveryRepository extends BaseRepository {
     await this.refreshOccurrenceStatus(bundle.occurrence.id);
   }
 
-  async recordFailure(input: {
-    deliveryId: string;
+  async recordAttemptFailure(input: {
     attemptId: string;
+    errorKind: string;
+    errorCode?: string;
+    providerMessageId?: string;
+    diagnostics?: Record<string, unknown>;
+    retry?: {
+      nextAttemptAt: string;
+    };
+  }): Promise<void> {
+    const attempt = await this.connection
+      .select({
+        deliveryId: notificationDeliveryAttempts.deliveryId,
+      })
+      .from(notificationDeliveryAttempts)
+      .where(
+        and(
+          eq(notificationDeliveryAttempts.storeId, this.storeId),
+          eq(notificationDeliveryAttempts.id, input.attemptId)
+        )
+      )
+      .limit(1);
+    const deliveryId = attempt[0]?.deliveryId;
+    if (!deliveryId) return;
+    await this.lockDelivery(deliveryId);
+
+    const finishedAt = new Date().toISOString();
+    await this.connection
+      .update(notificationDeliveryAttempts)
+      .set({
+        status: input.errorKind === "UNKNOWN" ? "UNKNOWN" : "FAILED",
+        errorKind: input.errorKind,
+        errorCode: input.errorCode,
+        providerMessageId: input.providerMessageId,
+        diagnostics: {
+          ...input.diagnostics,
+          ...(input.retry
+            ? {
+                retryScheduled: true,
+                nextAttemptAt: input.retry.nextAttemptAt,
+              }
+            : {}),
+        },
+        finishedAt,
+      })
+      .where(
+        and(
+          eq(notificationDeliveryAttempts.storeId, this.storeId),
+          eq(notificationDeliveryAttempts.id, input.attemptId)
+        )
+      );
+    if (input.retry) {
+      await this.refreshDeliveryRetryState(deliveryId);
+    }
+  }
+
+  async resumeProviderRetry(attemptId: string): Promise<void> {
+    const attempts = await this.connection
+      .select({
+        deliveryId: notificationDeliveryAttempts.deliveryId,
+        diagnostics: notificationDeliveryAttempts.diagnostics,
+      })
+      .from(notificationDeliveryAttempts)
+      .where(
+        and(
+          eq(notificationDeliveryAttempts.storeId, this.storeId),
+          eq(notificationDeliveryAttempts.id, attemptId)
+        )
+      )
+      .limit(1);
+    const attempt = attempts[0];
+    if (!attempt) return;
+    await this.lockDelivery(attempt.deliveryId);
+    await this.connection
+      .update(notificationDeliveryAttempts)
+      .set({
+        diagnostics: {
+          ...attempt.diagnostics,
+          retryScheduled: false,
+        },
+      })
+      .where(
+        and(
+          eq(notificationDeliveryAttempts.storeId, this.storeId),
+          eq(notificationDeliveryAttempts.id, attemptId)
+        )
+      );
+    await this.refreshDeliveryRetryState(attempt.deliveryId);
+  }
+
+  async finalizeFailure(input: {
+    deliveryId: string;
     status:
-      | "RETRY_SCHEDULED"
       | "UNKNOWN"
       | "FAILED_PERMANENT"
       | "DEAD"
@@ -478,37 +575,17 @@ export class DeliveryRepository extends BaseRepository {
     providerCode?: string;
     providerSlotId?: string;
     providerMessageId?: string;
-    nextAttemptAt?: string;
-    diagnostics?: Record<string, unknown>;
   }): Promise<void> {
     const finishedAt = new Date().toISOString();
-    await this.connection
-      .update(notificationDeliveryAttempts)
-      .set({
-        status: input.status === "UNKNOWN" ? "UNKNOWN" : "FAILED",
-        errorKind: input.errorKind,
-        errorCode: input.errorCode,
-        providerCode: input.providerCode,
-        providerSlotId: input.providerSlotId,
-        providerMessageId: input.providerMessageId,
-        diagnostics: input.diagnostics ?? {},
-        finishedAt,
-      })
-      .where(
-        and(
-          eq(notificationDeliveryAttempts.storeId, this.storeId),
-          eq(notificationDeliveryAttempts.id, input.attemptId)
-        )
-      );
     const bundle = await this.getBundle(input.deliveryId);
     await this.connection
       .update(notificationDeliveries)
       .set({
         status: input.status,
-        providerCode: input.providerCode,
-        providerSlotId: input.providerSlotId,
-        providerMessageId: input.providerMessageId,
-        nextAttemptAt: input.nextAttemptAt,
+        providerCode: input.providerCode ?? null,
+        providerSlotId: input.providerSlotId ?? null,
+        providerMessageId: input.providerMessageId ?? null,
+        nextAttemptAt: null,
         lastErrorKind: input.errorKind,
         lastErrorCode: input.errorCode,
         updatedAt: finishedAt,
@@ -522,31 +599,6 @@ export class DeliveryRepository extends BaseRepository {
     if (bundle) await this.refreshOccurrenceStatus(bundle.occurrence.id);
   }
 
-  async prepareRetry(deliveryId: string): Promise<boolean> {
-    const rows = await this.connection
-      .update(notificationDeliveries)
-      .set({
-        status: "PENDING",
-        nextAttemptAt: null,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(notificationDeliveries.storeId, this.storeId),
-          eq(notificationDeliveries.id, deliveryId),
-          inArray(notificationDeliveries.status, [
-            "RETRY_SCHEDULED",
-            "FAILED_PERMANENT",
-            "DEAD",
-            "UNKNOWN",
-            "BLOCKED_NO_PROVIDER",
-          ])
-        )
-      )
-      .returning({ id: notificationDeliveries.id });
-    return rows.length === 1;
-  }
-
   async listAttempts(deliveryId: string) {
     return this.connection
       .select()
@@ -558,6 +610,70 @@ export class DeliveryRepository extends BaseRepository {
         )
       )
       .orderBy(desc(notificationDeliveryAttempts.attemptNumber));
+  }
+
+  private async lockDelivery(deliveryId: string): Promise<void> {
+    await this.connection
+      .select({ id: notificationDeliveries.id })
+      .from(notificationDeliveries)
+      .where(
+        and(
+          eq(notificationDeliveries.storeId, this.storeId),
+          eq(notificationDeliveries.id, deliveryId)
+        )
+      )
+      .for("update");
+  }
+
+  private async refreshDeliveryRetryState(deliveryId: string): Promise<void> {
+    const attempts = await this.connection
+      .select({
+        errorKind: notificationDeliveryAttempts.errorKind,
+        errorCode: notificationDeliveryAttempts.errorCode,
+        diagnostics: notificationDeliveryAttempts.diagnostics,
+      })
+      .from(notificationDeliveryAttempts)
+      .where(
+        and(
+          eq(notificationDeliveryAttempts.storeId, this.storeId),
+          eq(notificationDeliveryAttempts.deliveryId, deliveryId)
+        )
+      );
+    const scheduled = attempts
+      .flatMap((attempt) => {
+        const nextAttemptAt = attempt.diagnostics.nextAttemptAt;
+        return attempt.diagnostics.retryScheduled === true &&
+          typeof nextAttemptAt === "string"
+          ? [{ ...attempt, nextAttemptAt }]
+          : [];
+      })
+      .sort((left, right) =>
+        left.nextAttemptAt.localeCompare(right.nextAttemptAt)
+      );
+    const next = scheduled[0];
+    await this.connection
+      .update(notificationDeliveries)
+      .set({
+        status: next ? "RETRY_SCHEDULED" : "SENDING",
+        nextAttemptAt: next?.nextAttemptAt ?? null,
+        ...(next
+          ? {
+              lastErrorKind: next.errorKind,
+              lastErrorCode: next.errorCode,
+            }
+          : {}),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(notificationDeliveries.storeId, this.storeId),
+          eq(notificationDeliveries.id, deliveryId),
+          inArray(notificationDeliveries.status, [
+            "SENDING",
+            "RETRY_SCHEDULED",
+          ])
+        )
+      );
   }
 
   private async refreshOccurrenceStatus(occurrenceId: string): Promise<void> {

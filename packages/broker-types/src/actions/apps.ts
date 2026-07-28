@@ -76,9 +76,25 @@ export interface ExecuteCapabilityParams {
   storeId: string;
   capability: string;
   operation: string;
+  installationId?: string;
   target?: CapabilityTarget;
   input?: unknown;
   correlationId?: string;
+}
+
+export interface ListCapabilityRoutesParams {
+  storeId: string;
+  capability: string;
+  operation: string;
+}
+
+export interface CapabilityRoute {
+  installationId: string;
+  appCode: string;
+}
+
+export interface ListCapabilityRoutesResult {
+  routes: CapabilityRoute[];
 }
 
 export interface CapabilityTarget {

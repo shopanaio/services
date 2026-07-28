@@ -7,6 +7,8 @@ import {
   type SmtpDeliveryDependencies,
 } from "./delivery.js";
 import {
+  parseSmtpConfiguration,
+  parseSmtpDeploymentPolicy,
   smtpConfigurationError,
   validateSmtpPassword,
   type SmtpConfiguration,
@@ -101,6 +103,90 @@ test("retains every public DNS endpoint and filters private addresses", () => {
   ]);
 });
 
+test("allows private SMTP endpoints only when deployment policy opts in", () => {
+  assert.throws(
+    () =>
+      selectPublicSmtpEndpoints("mailpit", [
+        { address: "172.18.0.5", family: 4 },
+      ]),
+    (error: Error & { code?: string }) =>
+      error.code === "SMTP_HOST_NOT_PUBLIC",
+  );
+  assert.deepEqual(
+    selectPublicSmtpEndpoints(
+      "mailpit",
+      [{ address: "172.18.0.5", family: 4 }],
+      true,
+    ),
+    [
+      {
+        address: "172.18.0.5",
+        family: 4,
+        servername: "mailpit",
+      },
+    ],
+  );
+});
+
+test("continues to reject unsupported addresses when private SMTP is enabled", () => {
+  for (const [host, family] of [
+    ["0.0.0.0", 4],
+    ["224.0.0.1", 4],
+    ["::", 6],
+    ["ff02::1", 6],
+  ] as const) {
+    assert.throws(
+      () =>
+        selectPublicSmtpEndpoints(
+          host,
+          [{ address: host, family }],
+          true,
+        ),
+      (error: Error & { code?: string }) =>
+        error.code === "SMTP_HOST_NOT_SUPPORTED",
+    );
+  }
+});
+
+test("allows insecure SMTP only when deployment policy opts in", () => {
+  const input = {
+    host: "127.0.0.1",
+    port: 1025,
+    security: "NONE",
+  } as const;
+
+  assert.throws(
+    () => parseSmtpConfiguration(input),
+    (error: Error & { code?: string }) =>
+      error.code === "SMTP_CONFIGURATION_INVALID",
+  );
+
+  const policy = parseSmtpDeploymentPolicy({
+    enabled: true,
+    required: true,
+    allow_private_network: true,
+    allow_insecure_smtp: true,
+  });
+  assert.deepEqual(parseSmtpConfiguration(input, policy), input);
+  assert.deepEqual(policy, {
+    allowPrivateNetwork: true,
+    allowInsecureSmtp: true,
+  });
+  assert.throws(
+    () =>
+      parseSmtpConfiguration(
+        {
+          ...input,
+          allow_insecure_smtp: true,
+          allow_private_network: true,
+        },
+        policy,
+      ),
+    (error: Error & { code?: string }) =>
+      error.code === "SMTP_CONFIGURATION_INVALID",
+  );
+});
+
 test("falls back to the next DNS endpoint after a connection failure", async () => {
   const attemptedHosts: string[] = [];
   let closed = 0;
@@ -151,6 +237,7 @@ test("falls back to the next DNS endpoint after a connection failure", async () 
     configuration,
     { password: "secret" },
     delivery,
+    undefined,
     dependencies,
   );
 
@@ -196,6 +283,7 @@ test("does not use DNS fallback after an explicit SMTP response", async () => {
       configuration,
       { password: "secret" },
       delivery,
+      undefined,
       dependencies,
     ),
     (error: Error & { details?: Record<string, unknown> }) =>
@@ -203,6 +291,69 @@ test("does not use DNS fallback after an explicit SMTP response", async () => {
       error.details.safeToRetry === true,
   );
   assert.equal(transportsCreated, 1);
+});
+
+test("disables TLS negotiation for explicitly insecure SMTP", async () => {
+  const policy = parseSmtpDeploymentPolicy({
+    allow_private_network: true,
+    allow_insecure_smtp: true,
+  });
+  let resolvedWithPrivateNetwork = false;
+  const dependencies: SmtpDeliveryDependencies = {
+    resolveEndpoints: async (_host, allowPrivateNetwork) => {
+      resolvedWithPrivateNetwork = allowPrivateNetwork;
+      return [{ address: "127.0.0.1", family: 4 }];
+    },
+    createTransport: (options) => {
+      assert.equal(options.secure, false);
+      assert.equal(options.requireTLS, false);
+      assert.equal(options.ignoreTLS, true);
+      assert.equal(options.auth, undefined);
+      return {
+        sendMail: async () => ({
+          envelope: { from: "", to: [] },
+          messageId: "message-2",
+          accepted: ["customer@example.com"],
+          rejected: [],
+          pending: [],
+          response: "250 queued",
+        }),
+        close: () => undefined,
+      };
+    },
+    now: () => new Date("2026-07-28T12:00:00.000Z"),
+  };
+
+  const receipt = await deliverEmail(
+    {
+      host: "127.0.0.1",
+      port: 1025,
+      security: "NONE",
+    },
+    {},
+    delivery,
+    policy,
+    dependencies,
+  );
+
+  assert.equal(resolvedWithPrivateNetwork, true);
+  assert.equal(receipt.state, "ACCEPTED");
+});
+
+test("refuses insecure delivery when deployment policy is not enabled", async () => {
+  await assert.rejects(
+    deliverEmail(
+      {
+        host: "127.0.0.1",
+        port: 1025,
+        security: "NONE",
+      },
+      {},
+      delivery,
+    ),
+    (error: Error & { code?: string }) =>
+      error.code === "SMTP_INSECURE_NOT_ALLOWED",
+  );
 });
 
 test("rejects a blank SMTP password", () => {

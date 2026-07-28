@@ -10,21 +10,47 @@ import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 
 export type DeliveryExecutionParams =
   | { operation: "claimAndRender"; deliveryId: string }
-  | { operation: "createAttempt"; deliveryId: string; workflowId: string }
   | {
-      operation: "recordSuccess";
+      operation: "createAttempt";
       deliveryId: string;
-      attemptId: string;
-      providerCode: string;
-      providerSlotId: string;
-      receipt: NotificationDeliveryReceipt;
+      workflowId: string;
+      providerCode?: string;
+      providerSlotId?: string;
     }
   | {
-      operation: "recordFailure";
-      deliveryId: string;
+      operation: "recordAttemptSuccess";
       attemptId: string;
+      receipt: NotificationDeliveryReceipt & {
+        state: "ACCEPTED" | "DELIVERED";
+      };
+    }
+  | {
+      operation: "recordAttemptFailure";
+      attemptId: string;
+      errorKind: string;
+      errorCode?: string;
+      providerMessageId?: string;
+      diagnostics?: Record<string, unknown>;
+      retry?: {
+        nextAttemptAt: string;
+      };
+    }
+  | {
+      operation: "resumeProviderRetry";
+      attemptId: string;
+    }
+  | {
+      operation: "finalizeSuccess";
+      deliveryId: string;
+      state: "ACCEPTED" | "DELIVERED";
+      providerCode?: string;
+      providerSlotId?: string;
+      providerMessageId?: string;
+    }
+  | {
+      operation: "finalizeFailure";
+      deliveryId: string;
       status:
-        | "RETRY_SCHEDULED"
         | "UNKNOWN"
         | "FAILED_PERMANENT"
         | "DEAD"
@@ -34,10 +60,7 @@ export type DeliveryExecutionParams =
       providerCode?: string;
       providerSlotId?: string;
       providerMessageId?: string;
-      nextAttemptAt?: string;
-      diagnostics?: Record<string, unknown>;
     }
-  | { operation: "prepareRetry"; deliveryId: string }
   | {
       operation: "recordPreflightFailure";
       deliveryId: string;
@@ -70,27 +93,27 @@ export class DeliveryExecutionScript extends BaseScript<
         const result = await this.repository.deliveries.createAttempt(params);
         return { attemptId: result.id, attemptNumber: result.attemptNumber };
       }
-      case "recordSuccess":
-        await this.repository.deliveries.recordSuccess({
-          deliveryId: params.deliveryId,
+      case "recordAttemptSuccess":
+        await this.repository.deliveries.recordAttemptSuccess({
           attemptId: params.attemptId,
           state:
             params.receipt.state === "DELIVERED" ? "DELIVERED" : "ACCEPTED",
-          providerCode: params.providerCode,
-          providerSlotId: params.providerSlotId,
           providerMessageId: params.receipt.providerMessageId,
           responseCode: params.receipt.responseCode,
         });
         return { success: true };
-      case "recordFailure":
-        await this.repository.deliveries.recordFailure(params);
+      case "recordAttemptFailure":
+        await this.repository.deliveries.recordAttemptFailure(params);
         return { success: true };
-      case "prepareRetry":
-        return {
-          success: await this.repository.deliveries.prepareRetry(
-            params.deliveryId
-          ),
-        };
+      case "resumeProviderRetry":
+        await this.repository.deliveries.resumeProviderRetry(params.attemptId);
+        return { success: true };
+      case "finalizeSuccess":
+        await this.repository.deliveries.finalizeSuccess(params);
+        return { success: true };
+      case "finalizeFailure":
+        await this.repository.deliveries.finalizeFailure(params);
+        return { success: true };
       case "recordPreflightFailure":
         await this.repository.deliveries.recordPreflightFailure(params);
         return { success: true };

@@ -280,6 +280,81 @@ export class AppCapabilityRepository extends BaseRepository {
     };
   }
 
+  async listActiveStoreRoutes(
+    storeId: string,
+    capability: string,
+    operation: string,
+  ): Promise<ResolvedCapabilityRoute[]> {
+    const rows = await this.connection
+      .select({
+        installationId: appInstallations.id,
+        appCode: appInstallations.appCode,
+        appVersion: appInstallations.installedVersion,
+        organizationId: appInstallations.organizationId,
+        storeId: appInstallations.storeId,
+        capability: appBindings.capability,
+        operation: appBindings.operationContract,
+        targetAction: appBindings.targetAction,
+      })
+      .from(appBindingAssignments)
+      .innerJoin(
+        appBindings,
+        eq(appBindings.id, appBindingAssignments.slotId),
+      )
+      .innerJoin(
+        appInstallations,
+        eq(appInstallations.id, appBindings.installationId),
+      )
+      .where(
+        and(
+          eq(appBindingAssignments.storeId, storeId),
+          eq(appBindingAssignments.aggregate, "apps"),
+          eq(
+            appBindingAssignments.aggregateId,
+            capabilityRouteKey(capability, operation),
+          ),
+          eq(appBindingAssignments.domain, capability),
+          eq(appBindingAssignments.status, "active"),
+          eq(appBindings.storeId, storeId),
+          eq(appBindings.assignmentMode, "store"),
+          eq(appBindings.capability, capability),
+          eq(appBindings.operationContract, operation),
+          eq(appBindings.status, "active"),
+          eq(appInstallations.status, "ACTIVE"),
+          isNotNull(appBindings.targetAppCode),
+          isNotNull(appBindings.targetAction),
+        ),
+      )
+      .orderBy(
+        asc(appBindingAssignments.precedence),
+        desc(appBindingAssignments.updatedAt),
+        asc(appInstallations.appCode),
+        asc(appInstallations.id),
+      );
+    return rows.flatMap((row) =>
+      row.appVersion
+        ? [{ ...row, appVersion: row.appVersion }]
+        : [],
+    );
+  }
+
+  async resolveActiveStoreRouteForInstallation(
+    storeId: string,
+    capability: string,
+    operation: string,
+    installationId: string,
+  ): Promise<ResolvedCapabilityRoute | null> {
+    const routes = await this.listActiveStoreRoutes(
+      storeId,
+      capability,
+      operation,
+    );
+    return (
+      routes.find((route) => route.installationId === installationId) ??
+      null
+    );
+  }
+
   async assignResource(input: {
     readonly storeId: string;
     readonly installationId: string;
@@ -463,18 +538,20 @@ export class AppCapabilityRepository extends BaseRepository {
           eq(appBindingAssignments.aggregateId, routeKey),
           eq(appBindingAssignments.domain, capability.key),
         );
-        await this.connection
-          .update(appBindingAssignments)
-          .set({
-            status: "disabled",
-            updatedAt: new Date().toISOString(),
-          })
-          .where(
-            and(
-              assignmentScope,
-              ne(appBindingAssignments.slotId, slotId),
-            ),
-          );
+        if (!isBroadcastStoreRoute(capability.key, operation)) {
+          await this.connection
+            .update(appBindingAssignments)
+            .set({
+              status: "disabled",
+              updatedAt: new Date().toISOString(),
+            })
+            .where(
+              and(
+                assignmentScope,
+                ne(appBindingAssignments.slotId, slotId),
+              ),
+            );
+        }
 
         const assignmentRows = await this.connection
           .select({ id: appBindingAssignments.id })
@@ -577,6 +654,9 @@ export class AppCapabilityRepository extends BaseRepository {
 
     if (enabled) {
       for (const slot of slots) {
+        if (isBroadcastStoreRoute(slot.capability, slot.operation)) {
+          continue;
+        }
         await this.connection
           .update(appBindingAssignments)
           .set({
@@ -614,4 +694,11 @@ export function capabilityRouteKey(
   operation: string,
 ): string {
   return `${capability}:${operation}`;
+}
+
+function isBroadcastStoreRoute(
+  capability: string,
+  operation: string,
+): boolean {
+  return capability === "notifications" && operation === "deliver";
 }

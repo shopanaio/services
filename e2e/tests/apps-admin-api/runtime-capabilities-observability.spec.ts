@@ -86,9 +86,9 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
           {
             capability: 'notifications',
             assignmentMode: 'STORE',
-            operation: 'deliverEmail',
+            operation: 'deliver',
             targetAppCode: 'shopana-smtp',
-            targetAction: 'deliverEmail',
+            targetAction: 'deliver',
             status: 'ACTIVE',
           },
         ],
