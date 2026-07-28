@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Dropdown, Tag, Typography } from "antd";
+import { Button, Dropdown, Tag } from "antd";
 import { createStyles } from "antd-style";
 import {
   LuBadge as BrandOutlined,
@@ -10,7 +10,7 @@ import {
 } from "react-icons/lu";
 import type { ApiStore } from "@/graphql/types";
 import { shopCountries } from "@/defs/localization";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import type { StoreSettingsSection } from "../modals";
 
@@ -19,18 +19,6 @@ const useStyles = createStyles(({ token }) => ({
     padding: 0,
     overflow: "hidden",
     borderRadius: token.borderRadiusLG,
-  },
-  header: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 50,
-    padding: "5px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  title: {
-    lineHeight: "22px",
   },
   menuButton: {
     width: 32,
@@ -94,18 +82,19 @@ export const StoreContactDetailsCard = ({
 
   return (
     <Paper className={styles.paper} data-testid="store-contact-details-card">
-      <div className={styles.header}>
-        <Typography.Text strong className={styles.title}>
-          Store contact details
-        </Typography.Text>
-        <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={["click"]}>
-          <Button
-            aria-label="Store contact details actions"
-            className={styles.menuButton}
-            icon={<EllipsisOutlined />}
-          />
-        </Dropdown>
-      </div>
+      <PaperHeader
+        actions={
+          <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={["click"]}>
+            <Button
+              aria-label="Store contact details actions"
+              className={styles.menuButton}
+              icon={<EllipsisOutlined />}
+            />
+          </Dropdown>
+        }
+        contained
+        title="Store contact details"
+      />
       <div className={styles.body}>
         <SettingsItemTile
           ariaLabel="Edit store profile"

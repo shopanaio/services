@@ -5,7 +5,7 @@ import { createStyles } from "antd-style";
 import { FaFacebookF } from "react-icons/fa";
 import { LuEllipsis, LuLockKeyhole, LuMail, LuMessageSquare } from "react-icons/lu";
 import { FcGoogle } from "react-icons/fc";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import type { ApiCustomerAccountsSettings } from "@/graphql/types";
 import {
@@ -15,16 +15,6 @@ import {
 
 const useStyles = createStyles(({ token }) => ({
   paper: { padding: 0, overflow: "hidden" },
-  header: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 50,
-    padding: "5px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  title: { lineHeight: "22px" },
   menuButton: { width: 32, height: 32, padding: 0 },
   body: { display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px" },
   tiles: {
@@ -76,16 +66,19 @@ export const CustomerAccountsCard = ({ settings, onEdit }: CustomerAccountsCardP
 
   return (
     <Paper className={styles.paper} data-testid="customer-accounts-card">
-      <div className={styles.header}>
-        <Typography.Text strong className={styles.title}>Customer accounts</Typography.Text>
-        <Dropdown
-          menu={{ items: [{ key: "edit", label: "Edit customer accounts", onClick: onEdit }] }}
-          placement="bottomRight"
-          trigger={["click"]}
-        >
-          <Button aria-label="Customer accounts actions" className={styles.menuButton} icon={<LuEllipsis />} />
-        </Dropdown>
-      </div>
+      <PaperHeader
+        actions={
+          <Dropdown
+            menu={{ items: [{ key: "edit", label: "Edit customer accounts", onClick: onEdit }] }}
+            placement="bottomRight"
+            trigger={["click"]}
+          >
+            <Button aria-label="Customer accounts actions" className={styles.menuButton} icon={<LuEllipsis />} />
+          </Dropdown>
+        }
+        contained
+        title="Customer accounts"
+      />
       <div className={styles.body}>
         <div className={styles.tiles}>
           {enabledMethods.length === 0 ? (

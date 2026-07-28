@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Dropdown, Typography } from "antd";
+import { Button, Dropdown } from "antd";
 import { createStyles } from "antd-style";
 import {
   LuArchive,
@@ -10,20 +10,11 @@ import {
   LuZap,
 } from "react-icons/lu";
 import { AutomaticFulfillmentMode, type ApiStore } from "@/graphql/types";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   paper: { padding: 0, overflow: "hidden" },
-  header: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 50,
-    padding: "5px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
   menuButton: { width: 32, height: 32, padding: 0 },
   body: { display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px" },
   automationGrid: {
@@ -62,16 +53,19 @@ export const StoreOrderProcessingCard = ({ store, onEdit }: StoreOrderProcessing
 
   return (
     <Paper className={styles.paper} data-testid="store-order-processing-card">
-      <div className={styles.header}>
-        <Typography.Text strong>Order processing</Typography.Text>
-        <Dropdown
-          menu={{ items: [{ key: "edit", label: "Edit order processing", onClick: onEdit }] }}
-          placement="bottomRight"
-          trigger={["click"]}
-        >
-          <Button aria-label="Order processing actions" className={styles.menuButton} icon={<LuEllipsis />} />
-        </Dropdown>
-      </div>
+      <PaperHeader
+        actions={
+          <Dropdown
+            menu={{ items: [{ key: "edit", label: "Edit order processing", onClick: onEdit }] }}
+            placement="bottomRight"
+            trigger={["click"]}
+          >
+            <Button aria-label="Order processing actions" className={styles.menuButton} icon={<LuEllipsis />} />
+          </Dropdown>
+        }
+        contained
+        title="Order processing"
+      />
       <div className={styles.body}>
         {tile(LuHash, "Order ID preview", orderIdPreview)}
         <div className={styles.automationGrid}>

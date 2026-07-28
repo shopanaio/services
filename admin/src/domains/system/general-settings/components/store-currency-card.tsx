@@ -1,24 +1,15 @@
 "use client";
 
-import { Button, Dropdown, Typography } from "antd";
+import { Button, Dropdown } from "antd";
 import { createStyles } from "antd-style";
 import { LuCircleDollarSign, LuEllipsis } from "react-icons/lu";
 import type { ApiStore } from "@/graphql/types";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import { formatCurrencyName, formatCurrencySymbol } from "../utils";
 
 const useStyles = createStyles(({ token }) => ({
   paper: { padding: 0, overflow: "hidden" },
-  header: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 50,
-    padding: "5px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
   menuButton: {
     width: 32,
     height: 32,
@@ -48,22 +39,25 @@ export const StoreCurrencyCard = ({ store, onEdit }: StoreCurrencyCardProps) => 
 
   return (
     <Paper className={styles.paper} data-testid="store-currency-card">
-      <div className={styles.header}>
-        <Typography.Text strong>Currency</Typography.Text>
-        <Dropdown
-          menu={{
-            items: [{ key: "edit", label: "Edit currency", onClick: onEdit }],
-          }}
-          placement="bottomRight"
-          trigger={["click"]}
-        >
-          <Button
-            aria-label="Currency actions"
-            className={styles.menuButton}
-            icon={<LuEllipsis />}
-          />
-        </Dropdown>
-      </div>
+      <PaperHeader
+        actions={
+          <Dropdown
+            menu={{
+              items: [{ key: "edit", label: "Edit currency", onClick: onEdit }],
+            }}
+            placement="bottomRight"
+            trigger={["click"]}
+          >
+            <Button
+              aria-label="Currency actions"
+              className={styles.menuButton}
+              icon={<LuEllipsis />}
+            />
+          </Dropdown>
+        }
+        contained
+        title="Currency"
+      />
       <div className={styles.body}>
         <SettingsItemTile
           ariaLabel="Edit currency"

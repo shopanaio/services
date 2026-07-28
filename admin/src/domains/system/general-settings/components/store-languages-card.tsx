@@ -1,25 +1,16 @@
 "use client";
 
-import { App, Button, Dropdown, Typography } from "antd";
+import { App, Button, Dropdown } from "antd";
 import { createStyles } from "antd-style";
 import { LuEllipsis, LuLanguages } from "react-icons/lu";
 import type { ApiStore, LocaleCode } from "@/graphql/types";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import { getLanguageTag } from "../utils";
 
 const useStyles = createStyles(({ token }) => ({
   paper: { padding: 0, overflow: "hidden" },
-  header: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 50,
-    padding: "5px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  headerAction: {
+  menuButton: {
     width: 32,
     height: 32,
     padding: 0,
@@ -63,20 +54,23 @@ export const StoreLanguagesCard = ({
 
   return (
     <Paper className={styles.paper} data-testid="store-languages-card">
-      <div className={styles.header}>
-        <Typography.Text strong>Languages</Typography.Text>
-        <Dropdown
-          menu={{ items: [{ key: "add", label: "Add language", onClick: onAdd }] }}
-          placement="bottomRight"
-          trigger={["click"]}
-        >
-          <Button
-            aria-label="Language actions"
-            className={styles.headerAction}
-            icon={<LuEllipsis />}
-          />
-        </Dropdown>
-      </div>
+      <PaperHeader
+        actions={
+          <Dropdown
+            menu={{ items: [{ key: "add", label: "Add language", onClick: onAdd }] }}
+            placement="bottomRight"
+            trigger={["click"]}
+          >
+            <Button
+              aria-label="Language actions"
+              className={styles.menuButton}
+              icon={<LuEllipsis />}
+            />
+          </Dropdown>
+        }
+        contained
+        title="Languages"
+      />
       <div className={styles.body}>
         {[...store.languageSettings]
           .sort(

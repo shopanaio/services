@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Dropdown, Typography } from "antd";
+import { Button, Dropdown } from "antd";
 import { createStyles } from "antd-style";
 import {
   LuClock3,
@@ -9,7 +9,7 @@ import {
   LuWeight,
 } from "react-icons/lu";
 import type { ApiStore } from "@/graphql/types";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import {
   formatTimeZoneLabel,
@@ -17,22 +17,10 @@ import {
   WEIGHT_UNIT_LABELS,
 } from "../utils";
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   paper: {
     padding: 0,
     overflow: "hidden",
-  },
-  header: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 50,
-    padding: "5px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  title: {
-    lineHeight: "22px",
   },
   menuButton: {
     width: 32,
@@ -89,18 +77,19 @@ export const StoreDefaultsCard = ({ store, onEdit }: StoreDefaultsCardProps) => 
 
   return (
     <Paper className={styles.paper} data-testid="store-defaults-card">
-      <div className={styles.header}>
-        <Typography.Text strong className={styles.title}>
-          Store defaults
-        </Typography.Text>
-        <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={["click"]}>
-          <Button
-            aria-label="Store defaults actions"
-            className={styles.menuButton}
-            icon={<LuEllipsis />}
-          />
-        </Dropdown>
-      </div>
+      <PaperHeader
+        actions={
+          <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={["click"]}>
+            <Button
+              aria-label="Store defaults actions"
+              className={styles.menuButton}
+              icon={<LuEllipsis />}
+            />
+          </Dropdown>
+        }
+        contained
+        title="Store defaults"
+      />
       <div className={styles.body}>
         {tiles.map((tile) => (
           <SettingsItemTile

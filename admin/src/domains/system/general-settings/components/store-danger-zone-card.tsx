@@ -6,7 +6,7 @@ import { Alert, App, Button, Input, Modal, Typography } from "antd";
 import { createStyles } from "antd-style";
 import type { ApiStore } from "@/graphql/types";
 import { useDeleteStore, useWorkspace } from "@/domains/workspace";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 const useStyles = createStyles(({ token }) => ({
   paper: {
@@ -14,14 +14,6 @@ const useStyles = createStyles(({ token }) => ({
     overflow: "hidden",
     borderColor: token.colorErrorBorder,
     boxShadow: "none",
-  },
-  header: {
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    height: 50,
-    padding: "5px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
   row: {
     display: "flex",
@@ -102,9 +94,7 @@ export const StoreDangerZoneCard = ({ store }: StoreDangerZoneCardProps) => {
   return (
     <>
       <Paper className={styles.paper} data-testid="store-danger-zone-card">
-        <div className={styles.header}>
-          <Typography.Text strong>Danger zone</Typography.Text>
-        </div>
+        <PaperHeader contained title="Danger zone" />
         <div className={cx(styles.row, styles.rowDivider)}>
           <div className={styles.copy}>
             <span className={styles.label}>Transfer store</span>
