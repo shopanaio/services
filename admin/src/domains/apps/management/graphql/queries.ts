@@ -3,61 +3,65 @@ import { gql } from "@apollo/client";
 export const APPS_MANAGEMENT_QUERY = gql`
   query AppsManagement {
     appsQuery {
-      availableApps {
-        code
-        displayName
-        description
-        version
-        runtimeStatus
-        runtimeHealth {
-          status
-          message
-        }
-        installed
-        permissions {
-          scope
-          granted
-        }
-        capabilities {
-          key
-          assignmentMode
-          operations {
-            name
-            action
-          }
-        }
-        graphql {
-          admin
-          storefront
-        }
-        installation {
-          id
-          status
-          installedVersion
-          targetVersion
-          healthStatus
-          installedAt
-          suspendedAt
-          updatedAt
-          lastError {
+      apps(first: 100) {
+        edges {
+          node {
             code
-            message
-          }
-          lifecycleOperations(first: 10) {
-            totalCount
-            edges {
-              node {
-                id
-                type
-                status
-                targetVersion
-                actorType
-                startedAt
-                completedAt
-                createdAt
-                error {
-                  code
-                  message
+            displayName
+            description
+            version
+            runtimeStatus
+            runtimeHealth {
+              status
+              message
+            }
+            installed
+            permissions {
+              scope
+              granted
+            }
+            capabilities {
+              key
+              assignmentMode
+              operations {
+                name
+                action
+              }
+            }
+            graphql {
+              admin
+              storefront
+            }
+            installation {
+              id
+              status
+              installedVersion
+              targetVersion
+              healthStatus
+              installedAt
+              suspendedAt
+              updatedAt
+              lastError {
+                code
+                message
+              }
+              lifecycleOperations(first: 10) {
+                totalCount
+                edges {
+                  node {
+                    id
+                    type
+                    status
+                    targetVersion
+                    actorType
+                    startedAt
+                    completedAt
+                    createdAt
+                    error {
+                      code
+                      message
+                    }
+                  }
                 }
               }
             }

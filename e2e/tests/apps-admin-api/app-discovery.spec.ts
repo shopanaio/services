@@ -77,10 +77,13 @@ async function getAvailableApps(
 ): Promise<ApiAppDefinition[]> {
   const response = await api.admin.query('apps-admin-api/AvailableApps', {
     variables: {
-      where: installed === undefined ? null : { installed },
+      where:
+        installed === undefined
+          ? null
+          : { installed: { _eq: installed } },
     },
   });
-  return response.data.appsQuery.availableApps;
+  return response.data.appsQuery.apps.edges.map(({ node }) => node);
 }
 
 async function getAppDefinition(

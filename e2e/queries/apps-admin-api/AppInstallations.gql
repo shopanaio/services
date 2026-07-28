@@ -3,11 +3,11 @@ query AppsAppInstallations(
   $after: String
   $last: Int
   $before: String
-  $where: AppInstallationWhereInput
-  $orderBy: [AppInstallationOrderByInput!]
+  $where: AppWhereInput
+  $orderBy: [AppOrderByInput!]
 ) {
   appsQuery {
-    appInstallations(
+    apps(
       first: $first
       after: $after
       last: $last
@@ -17,17 +17,21 @@ query AppsAppInstallations(
     ) {
       edges {
         node {
-          id
-          appCode
-          status
-          installedVersion
-          targetVersion
-          manifestHash
-          configuration
-          configurationVersion
-          healthStatus
-          createdAt
-          updatedAt
+          code
+          installed
+          installation {
+            id
+            appCode
+            status
+            installedVersion
+            targetVersion
+            manifestHash
+            configuration
+            configurationVersion
+            healthStatus
+            createdAt
+            updatedAt
+          }
         }
         cursor
       }

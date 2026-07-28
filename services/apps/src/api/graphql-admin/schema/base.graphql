@@ -26,21 +26,18 @@ type AppsQuery {
   """Get a bundled App definition by its stable code."""
   appDefinition(code: String!): AppDefinition
 
-  """List bundled Apps available to the current store."""
-  availableApps(where: AppDefinitionWhereInput): [AppDefinition!]!
-
-  """Get an App installation by its global ID."""
-  appInstallation(id: ID!): AppInstallation
-
-  """List App installations for the current store."""
-  appInstallations(
+  """List bundled Apps and their installation state for the current store."""
+  apps(
     first: Int
     after: String
     last: Int
     before: String
-    where: AppInstallationWhereInput
-    orderBy: [AppInstallationOrderByInput!]
-  ): AppInstallationConnection!
+    where: AppWhereInput
+    orderBy: [AppOrderByInput!]
+  ): AppConnection!
+
+  """Get an App installation by its global ID."""
+  appInstallation(id: ID!): AppInstallation
 
   """Get a lifecycle operation by its global ID."""
   appLifecycleOperation(id: ID!): AppLifecycleOperation

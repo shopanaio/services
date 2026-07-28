@@ -28,7 +28,8 @@ export const useAppsManagement = () => {
   });
   const apps = useMemo(
     () => {
-      const sourceApps = data?.appsQuery.availableApps ?? [];
+      const sourceApps =
+        data?.appsQuery.apps.edges.map(({ node }) => node) ?? [];
 
       return [...sourceApps].sort((left, right) => {
         const leftRank =
@@ -50,7 +51,7 @@ export const useAppsManagement = () => {
         );
       });
     },
-    [data?.appsQuery.availableApps],
+    [data?.appsQuery.apps.edges],
   );
   const hasPendingOperation = apps.some(({ installation }) =>
     installation ? POLLING_STATUSES.has(installation.status) : false,

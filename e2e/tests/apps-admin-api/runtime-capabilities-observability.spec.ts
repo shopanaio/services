@@ -288,16 +288,25 @@ test.describe('Apps Admin API - runtime, capabilities, and observability', () =>
       operation: null,
     });
     const connection = await api.admin.query('apps-admin-api/AppInstallations', {
-      variables: { first: 20 },
+      variables: {
+        first: 20,
+        where: { installed: { _eq: true } },
+      },
     });
-    expect(connection.data.appsQuery.appInstallations).toMatchObject({
+    expect(connection.data.appsQuery.apps).toMatchObject({
       totalCount: 1,
-      edges: [{ node: { id: healthy.data.appsMutation.appInstall.installation!.id } }],
+      edges: [{
+        node: {
+          installation: {
+            id: healthy.data.appsMutation.appInstall.installation!.id,
+          },
+        },
+      }],
     });
     const discovery = await api.admin.query('apps-admin-api/AvailableApps', {
       variables: { where: null },
     });
-    expect(discovery.data.appsQuery.availableApps).toMatchObject([
+    expect(discovery.data.appsQuery.apps.edges.map(({ node }) => node)).toMatchObject([
       { code: 'hello-world', runtimeStatus: 'READY' },
       { code: 'shopana-headless', runtimeStatus: 'READY' },
       { code: 'shopana-online-store', runtimeStatus: 'FAILED' },

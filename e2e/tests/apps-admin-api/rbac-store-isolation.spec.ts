@@ -55,7 +55,7 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
     });
     const storefront = await storefrontResponse.json();
     expect(storefront.errors?.length).toBeGreaterThan(0);
-    expect(storefront.data?.appsQuery?.availableApps).toBeUndefined();
+    expect(storefront.data?.appsQuery?.apps).toBeUndefined();
   });
 
   test('read, write, and admin permissions enforce exact boundaries', async ({
@@ -257,9 +257,12 @@ test.describe('Apps Admin API - RBAC and store isolation', () => {
       );
     }
     const connection = await api.admin.query('apps-admin-api/AppInstallations', {
-      variables: { first: 20 },
+      variables: {
+        first: 20,
+        where: { installed: { _eq: true } },
+      },
     });
-    expect(connection.data.appsQuery.appInstallations.totalCount).toBe(0);
+    expect(connection.data.appsQuery.apps.totalCount).toBe(0);
   });
 });
 

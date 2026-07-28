@@ -14,11 +14,6 @@ enum AppRuntimeHealthStatus {
   UNHEALTHY
 }
 
-"""Filters for bundled App discovery."""
-input AppDefinitionWhereInput {
-  installed: Boolean
-}
-
 """The health check result for a bundled App runtime."""
 type AppRuntimeHealth {
   status: AppRuntimeHealthStatus!
@@ -95,4 +90,17 @@ type AppDefinition {
 
   """The current store installation, when one exists."""
   installation: AppInstallation
+}
+
+"""A Relay connection of bundled Apps."""
+type AppConnection {
+  edges: [AppEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+"""An edge in a bundled App connection."""
+type AppEdge {
+  node: AppDefinition!
+  cursor: String!
 }

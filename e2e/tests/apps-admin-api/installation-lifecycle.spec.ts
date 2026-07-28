@@ -159,13 +159,18 @@ test.describe('Apps Admin API - installation lifecycle', () => {
       expect.objectContaining({ code: 'INVALID_INPUT' }),
     ]);
     const connection = await api.admin.query('apps-admin-api/AppInstallations', {
-      variables: { first: 20, where: { appCode: { _eq: 'hello-world' } } },
+      variables: { first: 20, where: { code: { _eq: 'hello-world' } } },
     });
-    expect(connection.data.appsQuery.appInstallations).toMatchObject({
+    expect(connection.data.appsQuery.apps).toMatchObject({
       totalCount: 1,
-      edges: [{ node: { status: 'INSTALL_FAILED' } }],
+      edges: [{
+        node: {
+          installation: { status: 'INSTALL_FAILED' },
+        },
+      }],
     });
-    const failedId = connection.data.appsQuery.appInstallations.edges[0].node.id;
+    const failedId =
+      connection.data.appsQuery.apps.edges[0].node.installation!.id;
 
     const retry = await api.admin.mutation('apps-admin-api/AppInstall', {
       variables: {

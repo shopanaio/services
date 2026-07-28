@@ -89,6 +89,14 @@ export type AppConfigurePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** A Relay connection of bundled Apps. */
+export type AppConnection = {
+  __typename?: 'AppConnection';
+  edges: Array<AppEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
 /** A bundled App that can be installed in a store. */
 export type AppDefinition = {
   __typename?: 'AppDefinition';
@@ -116,9 +124,11 @@ export type AppDefinition = {
   version: Scalars['String']['output'];
 };
 
-/** Filters for bundled App discovery. */
-export type AppDefinitionWhereInput = {
-  installed?: InputMaybe<Scalars['Boolean']['input']>;
+/** An edge in a bundled App connection. */
+export type AppEdge = {
+  __typename?: 'AppEdge';
+  cursor: Scalars['String']['output'];
+  node: AppDefinition;
 };
 
 /** GraphQL surfaces contributed by an App. */
@@ -188,21 +198,6 @@ export type AppInstallationActionInput = {
   installationId: Scalars['ID']['input'];
 };
 
-/** A Relay connection of App installations. */
-export type AppInstallationConnection = {
-  __typename?: 'AppInstallationConnection';
-  edges: Array<AppInstallationEdge>;
-  pageInfo: PageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in an App installation connection. */
-export type AppInstallationEdge = {
-  __typename?: 'AppInstallationEdge';
-  cursor: Scalars['String']['output'];
-  node: AppInstallation;
-};
-
 /** The latest persisted App installation failure. */
 export type AppInstallationError = {
   __typename?: 'AppInstallationError';
@@ -216,44 +211,6 @@ export enum AppInstallationHealthStatus {
   Healthy = 'HEALTHY',
   Unhealthy = 'UNHEALTHY',
   Unknown = 'UNKNOWN'
-}
-
-/** Ordering configuration for AppInstallation */
-export type AppInstallationOrderByInput = {
-  /** Sort direction */
-  direction: SortDirection;
-  /** Field to order by */
-  field: AppInstallationOrderField;
-};
-
-/** Fields available for sorting AppInstallation */
-export enum AppInstallationOrderField {
-  /** Sort by appCode */
-  AppCode = 'appCode',
-  /** Sort by configurationVersion */
-  ConfigurationVersion = 'configurationVersion',
-  /** Sort by createdAt */
-  CreatedAt = 'createdAt',
-  /** Sort by healthStatus */
-  HealthStatus = 'healthStatus',
-  /** Sort by id */
-  Id = 'id',
-  /** Sort by installedAt */
-  InstalledAt = 'installedAt',
-  /** Sort by installedVersion */
-  InstalledVersion = 'installedVersion',
-  /** Sort by manifestHash */
-  ManifestHash = 'manifestHash',
-  /** Sort by status */
-  Status = 'status',
-  /** Sort by suspendedAt */
-  SuspendedAt = 'suspendedAt',
-  /** Sort by targetVersion */
-  TargetVersion = 'targetVersion',
-  /** Sort by uninstalledAt */
-  UninstalledAt = 'uninstalledAt',
-  /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt'
 }
 
 /** A permission grant recorded for an App installation. */
@@ -280,42 +237,6 @@ export enum AppInstallationStatus {
   UpdateFailed = 'UPDATE_FAILED',
   Updating = 'UPDATING'
 }
-
-/** Filter conditions for AppInstallation */
-export type AppInstallationWhereInput = {
-  /** Logical AND of multiple conditions */
-  _and?: InputMaybe<Array<AppInstallationWhereInput>>;
-  /** Negate the condition */
-  _not?: InputMaybe<AppInstallationWhereInput>;
-  /** Logical OR of multiple conditions */
-  _or?: InputMaybe<Array<AppInstallationWhereInput>>;
-  /** Filter by appCode */
-  appCode?: InputMaybe<StringFilter>;
-  /** Filter by configurationVersion */
-  configurationVersion?: InputMaybe<IntFilter>;
-  /** Filter by createdAt */
-  createdAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by healthStatus */
-  healthStatus?: InputMaybe<StringFilter>;
-  /** Filter by id */
-  id?: InputMaybe<IdFilter>;
-  /** Filter by installedAt */
-  installedAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by installedVersion */
-  installedVersion?: InputMaybe<StringFilter>;
-  /** Filter by manifestHash */
-  manifestHash?: InputMaybe<StringFilter>;
-  /** Filter by status */
-  status?: InputMaybe<StringFilter>;
-  /** Filter by suspendedAt */
-  suspendedAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by targetVersion */
-  targetVersion?: InputMaybe<StringFilter>;
-  /** Filter by uninstalledAt */
-  uninstalledAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by updatedAt */
-  updatedAt?: InputMaybe<DateTimeFilter>;
-};
 
 /** Actor that initiated an App lifecycle operation. */
 export enum AppLifecycleActorType {
@@ -419,6 +340,32 @@ export type AppManifestSnapshotEdge = {
   node: AppManifestSnapshot;
 };
 
+/** Ordering configuration for App */
+export type AppOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: AppOrderField;
+};
+
+/** Fields available for sorting App */
+export enum AppOrderField {
+  /** Sort by capabilities */
+  Capabilities = 'capabilities',
+  /** Sort by code */
+  Code = 'code',
+  /** Sort by displayName */
+  DisplayName = 'displayName',
+  /** Sort by installed */
+  Installed = 'installed',
+  /** Sort by status */
+  Status = 'status',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by version */
+  Version = 'version'
+}
+
 /** A permission requested by an App manifest. */
 export type AppPermission = {
   __typename?: 'AppPermission';
@@ -468,6 +415,30 @@ export type AppUpdateInput = {
   installationId: Scalars['ID']['input'];
   /** Sets or rotates the named secrets without returning their values. */
   secrets?: InputMaybe<Array<AppSecretInput>>;
+};
+
+/** Filter conditions for App */
+export type AppWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<AppWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<AppWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<AppWhereInput>>;
+  /** Filter by capabilities */
+  capabilities?: InputMaybe<StringFilter>;
+  /** Filter by code */
+  code?: InputMaybe<StringFilter>;
+  /** Filter by displayName */
+  displayName?: InputMaybe<StringFilter>;
+  /** Filter by installed */
+  installed?: InputMaybe<BooleanFilter>;
+  /** Filter by status */
+  status?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by version */
+  version?: InputMaybe<StringFilter>;
 };
 
 export type AppsMutation = {
@@ -522,12 +493,10 @@ export type AppsQuery = {
   appDefinition: Maybe<AppDefinition>;
   /** Get an App installation by its global ID. */
   appInstallation: Maybe<AppInstallation>;
-  /** List App installations for the current store. */
-  appInstallations: AppInstallationConnection;
   /** Get a lifecycle operation by its global ID. */
   appLifecycleOperation: Maybe<AppLifecycleOperation>;
-  /** List bundled Apps available to the current store. */
-  availableApps: Array<AppDefinition>;
+  /** List bundled Apps and their installation state for the current store. */
+  apps: AppConnection;
 };
 
 
@@ -541,23 +510,18 @@ export type AppsQueryAppInstallationArgs = {
 };
 
 
-export type AppsQueryAppInstallationsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<AppInstallationOrderByInput>>;
-  where?: InputMaybe<AppInstallationWhereInput>;
-};
-
-
 export type AppsQueryAppLifecycleOperationArgs = {
   id: Scalars['ID']['input'];
 };
 
 
-export type AppsQueryAvailableAppsArgs = {
-  where?: InputMaybe<AppDefinitionWhereInput>;
+export type AppsQueryAppsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<AppOrderByInput>>;
+  where?: InputMaybe<AppWhereInput>;
 };
 
 /** Filter operators for Boolean fields */
@@ -1480,22 +1444,18 @@ export type ResolversTypes = ResolversObject<{
   AppCapabilityOperation: ResolverTypeWrapper<AppCapabilityOperation>;
   AppConfigureInput: AppConfigureInput;
   AppConfigurePayload: ResolverTypeWrapper<AppConfigurePayload>;
+  AppConnection: ResolverTypeWrapper<AppConnection>;
   AppDefinition: ResolverTypeWrapper<AppDefinition>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  AppDefinitionWhereInput: AppDefinitionWhereInput;
+  AppEdge: ResolverTypeWrapper<AppEdge>;
   AppGraphQLSurfaces: ResolverTypeWrapper<AppGraphQlSurfaces>;
   AppInstallInput: AppInstallInput;
   AppInstallation: ResolverTypeWrapper<AppInstallation>;
   AppInstallationActionInput: AppInstallationActionInput;
-  AppInstallationConnection: ResolverTypeWrapper<AppInstallationConnection>;
-  AppInstallationEdge: ResolverTypeWrapper<AppInstallationEdge>;
   AppInstallationError: ResolverTypeWrapper<AppInstallationError>;
   AppInstallationHealthStatus: AppInstallationHealthStatus;
-  AppInstallationOrderByInput: AppInstallationOrderByInput;
-  AppInstallationOrderField: AppInstallationOrderField;
   AppInstallationScope: ResolverTypeWrapper<AppInstallationScope>;
   AppInstallationStatus: AppInstallationStatus;
-  AppInstallationWhereInput: AppInstallationWhereInput;
   AppLifecycleActorType: AppLifecycleActorType;
   AppLifecycleOperation: ResolverTypeWrapper<AppLifecycleOperation>;
   AppLifecycleOperationConnection: ResolverTypeWrapper<AppLifecycleOperationConnection>;
@@ -1507,12 +1467,15 @@ export type ResolversTypes = ResolversObject<{
   AppManifestSnapshot: ResolverTypeWrapper<AppManifestSnapshot>;
   AppManifestSnapshotConnection: ResolverTypeWrapper<AppManifestSnapshotConnection>;
   AppManifestSnapshotEdge: ResolverTypeWrapper<AppManifestSnapshotEdge>;
+  AppOrderByInput: AppOrderByInput;
+  AppOrderField: AppOrderField;
   AppPermission: ResolverTypeWrapper<AppPermission>;
   AppRuntimeHealth: ResolverTypeWrapper<AppRuntimeHealth>;
   AppRuntimeHealthStatus: AppRuntimeHealthStatus;
   AppRuntimeStatus: AppRuntimeStatus;
   AppSecretInput: AppSecretInput;
   AppUpdateInput: AppUpdateInput;
+  AppWhereInput: AppWhereInput;
   AppsMutation: ResolverTypeWrapper<AppsMutation>;
   AppsQuery: ResolverTypeWrapper<AppsQuery>;
   BooleanFilter: BooleanFilter;
@@ -1547,19 +1510,16 @@ export type ResolversParentTypes = ResolversObject<{
   AppCapabilityOperation: AppCapabilityOperation;
   AppConfigureInput: AppConfigureInput;
   AppConfigurePayload: AppConfigurePayload;
+  AppConnection: AppConnection;
   AppDefinition: AppDefinition;
   Boolean: Scalars['Boolean']['output'];
-  AppDefinitionWhereInput: AppDefinitionWhereInput;
+  AppEdge: AppEdge;
   AppGraphQLSurfaces: AppGraphQlSurfaces;
   AppInstallInput: AppInstallInput;
   AppInstallation: AppInstallation;
   AppInstallationActionInput: AppInstallationActionInput;
-  AppInstallationConnection: AppInstallationConnection;
-  AppInstallationEdge: AppInstallationEdge;
   AppInstallationError: AppInstallationError;
-  AppInstallationOrderByInput: AppInstallationOrderByInput;
   AppInstallationScope: AppInstallationScope;
-  AppInstallationWhereInput: AppInstallationWhereInput;
   AppLifecycleOperation: AppLifecycleOperation;
   AppLifecycleOperationConnection: AppLifecycleOperationConnection;
   AppLifecycleOperationEdge: AppLifecycleOperationEdge;
@@ -1568,10 +1528,12 @@ export type ResolversParentTypes = ResolversObject<{
   AppManifestSnapshot: AppManifestSnapshot;
   AppManifestSnapshotConnection: AppManifestSnapshotConnection;
   AppManifestSnapshotEdge: AppManifestSnapshotEdge;
+  AppOrderByInput: AppOrderByInput;
   AppPermission: AppPermission;
   AppRuntimeHealth: AppRuntimeHealth;
   AppSecretInput: AppSecretInput;
   AppUpdateInput: AppUpdateInput;
+  AppWhereInput: AppWhereInput;
   AppsMutation: AppsMutation;
   AppsQuery: AppsQuery;
   BooleanFilter: BooleanFilter;
@@ -1624,6 +1586,13 @@ export type AppConfigurePayloadResolvers<ContextType = ServiceContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type AppConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppConnection'] = ResolversParentTypes['AppConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['AppEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type AppDefinitionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppDefinition'] = ResolversParentTypes['AppDefinition']> = ResolversObject<{
   capabilities?: Resolver<Array<ResolversTypes['AppCapabilityDefinition']>, ParentType, ContextType>;
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1636,6 +1605,12 @@ export type AppDefinitionResolvers<ContextType = ServiceContext, ParentType exte
   runtimeHealth?: Resolver<ResolversTypes['AppRuntimeHealth'], ParentType, ContextType>;
   runtimeStatus?: Resolver<ResolversTypes['AppRuntimeStatus'], ParentType, ContextType>;
   version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type AppEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppEdge'] = ResolversParentTypes['AppEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['AppDefinition'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1667,19 +1642,6 @@ export type AppInstallationResolvers<ContextType = ServiceContext, ParentType ex
   targetVersion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   uninstalledAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type AppInstallationConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppInstallationConnection'] = ResolversParentTypes['AppInstallationConnection']> = ResolversObject<{
-  edges?: Resolver<Array<ResolversTypes['AppInstallationEdge']>, ParentType, ContextType>;
-  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
-  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type AppInstallationEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppInstallationEdge'] = ResolversParentTypes['AppInstallationEdge']> = ResolversObject<{
-  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  node?: Resolver<ResolversTypes['AppInstallation'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1793,9 +1755,8 @@ export type AppsMutationResolvers<ContextType = ServiceContext, ParentType exten
 export type AppsQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppsQuery'] = ResolversParentTypes['AppsQuery']> = ResolversObject<{
   appDefinition?: Resolver<Maybe<ResolversTypes['AppDefinition']>, ParentType, ContextType, RequireFields<AppsQueryAppDefinitionArgs, 'code'>>;
   appInstallation?: Resolver<Maybe<ResolversTypes['AppInstallation']>, ParentType, ContextType, RequireFields<AppsQueryAppInstallationArgs, 'id'>>;
-  appInstallations?: Resolver<ResolversTypes['AppInstallationConnection'], ParentType, ContextType, Partial<AppsQueryAppInstallationsArgs>>;
   appLifecycleOperation?: Resolver<Maybe<ResolversTypes['AppLifecycleOperation']>, ParentType, ContextType, RequireFields<AppsQueryAppLifecycleOperationArgs, 'id'>>;
-  availableApps?: Resolver<Array<ResolversTypes['AppDefinition']>, ParentType, ContextType, Partial<AppsQueryAvailableAppsArgs>>;
+  apps?: Resolver<ResolversTypes['AppConnection'], ParentType, ContextType, Partial<AppsQueryAppsArgs>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1847,11 +1808,11 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   AppCapabilityDefinition?: AppCapabilityDefinitionResolvers<ContextType>;
   AppCapabilityOperation?: AppCapabilityOperationResolvers<ContextType>;
   AppConfigurePayload?: AppConfigurePayloadResolvers<ContextType>;
+  AppConnection?: AppConnectionResolvers<ContextType>;
   AppDefinition?: AppDefinitionResolvers<ContextType>;
+  AppEdge?: AppEdgeResolvers<ContextType>;
   AppGraphQLSurfaces?: AppGraphQlSurfacesResolvers<ContextType>;
   AppInstallation?: AppInstallationResolvers<ContextType>;
-  AppInstallationConnection?: AppInstallationConnectionResolvers<ContextType>;
-  AppInstallationEdge?: AppInstallationEdgeResolvers<ContextType>;
   AppInstallationError?: AppInstallationErrorResolvers<ContextType>;
   AppInstallationScope?: AppInstallationScopeResolvers<ContextType>;
   AppLifecycleOperation?: AppLifecycleOperationResolvers<ContextType>;

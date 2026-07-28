@@ -1,5 +1,6 @@
 import { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database.js";
+import { AppRepository } from "./app/AppRepository.js";
 import { AppCapabilityRepository } from "./capability/AppCapabilityRepository.js";
 import { AppInstallationRepository } from "./installation/AppInstallationRepository.js";
 import { AppLifecycleOperationRepository } from "./lifecycle/AppLifecycleOperationRepository.js";
@@ -14,6 +15,7 @@ export interface RepositoryConfig {
 export type { Database };
 
 export class Repository {
+  public readonly app: AppRepository;
   public readonly installation: AppInstallationRepository;
   public readonly lifecycleOperation: AppLifecycleOperationRepository;
   public readonly manifestSnapshot: AppManifestSnapshotRepository;
@@ -27,6 +29,7 @@ export class Repository {
   }
 
   private constructor(
+    app: AppRepository,
     installation: AppInstallationRepository,
     lifecycleOperation: AppLifecycleOperationRepository,
     manifestSnapshot: AppManifestSnapshotRepository,
@@ -35,6 +38,7 @@ export class Repository {
     capability: AppCapabilityRepository,
     txManager: TransactionManager<Database>,
   ) {
+    this.app = app;
     this.installation = installation;
     this.lifecycleOperation = lifecycleOperation;
     this.manifestSnapshot = manifestSnapshot;
@@ -46,6 +50,7 @@ export class Repository {
 
   static async create(config: RepositoryConfig): Promise<Repository> {
     const txManager = new TransactionManager(config.db);
+    const app = new AppRepository(config.db, txManager);
     const installation = new AppInstallationRepository(
       config.db,
       txManager,
@@ -71,6 +76,7 @@ export class Repository {
       txManager,
     );
     return new Repository(
+      app,
       installation,
       lifecycleOperation,
       manifestSnapshot,

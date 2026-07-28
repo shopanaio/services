@@ -8,44 +8,14 @@ import {
   type SQL,
 } from "drizzle-orm";
 import type { AppInstallationStatus } from "@shopana/app-sdk";
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-  type PageInfo,
-} from "@shopana/drizzle-query";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { AppInstallationRecord } from "../../control-plane/types.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
-import { decodeAppInstallationGlobalId } from "../global-id-where-mappers.js";
 import {
   appInstallations,
   type AppInstallationModel,
 } from "../models/index.js";
-
-export const appInstallationRelayQuery = createRelayQuery(
-  createQuery(appInstallations)
-    .include(["id"])
-    .mapWhereFields({
-      id: decodeAppInstallationGlobalId,
-    })
-    .maxLimit(100)
-    .defaultLimit(20),
-  { name: "appInstallation", tieBreaker: "id" },
-);
-
-export type AppInstallationRelayInput = InferRelayInput<
-  typeof appInstallationRelayQuery
->;
-
-export type AppInstallationConnectionInput = AppInstallationRelayInput;
-
-export interface AppInstallationConnectionResult {
-  readonly edges: Array<{ cursor: string; nodeId: string }>;
-  readonly pageInfo: PageInfo;
-  readonly totalCount: number;
-}
 
 export interface CreateAppInstallationInput {
   readonly appCode: string;
@@ -277,42 +247,6 @@ export class AppInstallationRepository extends BaseRepository {
       eq(appInstallations.organizationId, organizationId),
       statuses,
     );
-  }
-
-  async getConnection(
-    input: AppInstallationConnectionInput,
-  ): Promise<AppInstallationConnectionResult> {
-    const { where: inputWhere, orderBy, ...pagination } = input;
-    const where: AppInstallationRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(inputWhere ? [inputWhere] : []),
-      ],
-    };
-    const relayInput: AppInstallationRelayInput = {
-      ...pagination,
-      first:
-        input.first == null && input.last == null ? 20 : input.first,
-      where,
-      orderBy: orderBy ?? [
-        { field: "createdAt", direction: "desc" },
-        { field: "id", direction: "desc" },
-      ],
-    };
-
-    const [result, totalCount] = await Promise.all([
-      appInstallationRelayQuery.execute(this.connection, relayInput),
-      appInstallationRelayQuery.count(this.connection, { where }),
-    ]);
-
-    return {
-      edges: result.edges.map(({ cursor, node }) => ({
-        cursor,
-        nodeId: node.id,
-      })),
-      pageInfo: result.pageInfo,
-      totalCount,
-    };
   }
 
   async create(

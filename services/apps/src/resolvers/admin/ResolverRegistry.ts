@@ -1,5 +1,5 @@
 import type { ServiceContext } from "../../context/types.js";
-import type { AppInstallationConnectionInput } from "../../repositories/installation/AppInstallationRepository.js";
+import type { AppConnectionInput } from "../../repositories/app/AppRepository.js";
 import type { AppLifecycleOperationConnectionInput } from "../../repositories/lifecycle/AppLifecycleOperationRepository.js";
 import type { AppManifestSnapshotConnectionInput } from "../../repositories/manifest/AppManifestSnapshotRepository.js";
 
@@ -28,6 +28,13 @@ export function getResolverRegistry(
 export class ResolverRegistry {
   constructor(private readonly context: ServiceContext) {}
 
+  async appConnection(input: AppConnectionInput) {
+    const { AppConnectionResolver } = await import(
+      "./AppConnectionResolver.js"
+    );
+    return new AppConnectionResolver(input, this.context);
+  }
+
   async appDefinition(appCode: string) {
     const { AppDefinitionResolver } = await import(
       "./AppDefinitionResolver.js"
@@ -40,15 +47,6 @@ export class ResolverRegistry {
       "./AppInstallationResolver.js"
     );
     return new AppInstallationResolver(id, this.context);
-  }
-
-  async appInstallationConnection(
-    input: AppInstallationConnectionInput,
-  ) {
-    const { AppInstallationConnectionResolver } = await import(
-      "./AppInstallationConnectionResolver.js"
-    );
-    return new AppInstallationConnectionResolver(input, this.context);
   }
 
   async appCapabilityBinding(id: string) {

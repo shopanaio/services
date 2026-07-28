@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AppCapabilityAssignmentMode, AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppConfigureInput, AppDefinitionWhereInput, AppInstallInput, AppInstallationActionInput, AppInstallationHealthStatus, AppInstallationOrderByInput, AppInstallationOrderField, AppInstallationStatus, AppInstallationWhereInput, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppUpdateInput, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, SortDirection, StringFilter, WeightUnit } from './types.js'
+import { AppCapabilityAssignmentMode, AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppConfigureInput, AppInstallInput, AppInstallationActionInput, AppInstallationHealthStatus, AppInstallationStatus, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppOrderByInput, AppOrderField, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppUpdateInput, AppWhereInput, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -19,8 +19,6 @@ export const AppCapabilityBindingStatusSchema = z.nativeEnum(AppCapabilityBindin
 
 export const AppInstallationHealthStatusSchema = z.nativeEnum(AppInstallationHealthStatus);
 
-export const AppInstallationOrderFieldSchema = z.nativeEnum(AppInstallationOrderField);
-
 export const AppInstallationStatusSchema = z.nativeEnum(AppInstallationStatus);
 
 export const AppLifecycleActorTypeSchema = z.nativeEnum(AppLifecycleActorType);
@@ -28,6 +26,8 @@ export const AppLifecycleActorTypeSchema = z.nativeEnum(AppLifecycleActorType);
 export const AppLifecycleOperationStatusSchema = z.nativeEnum(AppLifecycleOperationStatus);
 
 export const AppLifecycleOperationTypeSchema = z.nativeEnum(AppLifecycleOperationType);
+
+export const AppOrderFieldSchema = z.nativeEnum(AppOrderField);
 
 export const AppRuntimeHealthStatusSchema = z.nativeEnum(AppRuntimeHealthStatus);
 
@@ -52,12 +52,6 @@ export function AppConfigureInputSchema(): z.ZodObject<Properties<AppConfigureIn
   })
 }
 
-export function AppDefinitionWhereInputSchema(): z.ZodObject<Properties<AppDefinitionWhereInput>> {
-  return z.object({
-    installed: z.boolean().nullish()
-  })
-}
-
 export function AppInstallInputSchema(): z.ZodObject<Properties<AppInstallInput>> {
   return z.object({
     appCode: z.string(),
@@ -75,31 +69,10 @@ export function AppInstallationActionInputSchema(): z.ZodObject<Properties<AppIn
   })
 }
 
-export function AppInstallationOrderByInputSchema(): z.ZodObject<Properties<AppInstallationOrderByInput>> {
+export function AppOrderByInputSchema(): z.ZodObject<Properties<AppOrderByInput>> {
   return z.object({
     direction: SortDirectionSchema,
-    field: AppInstallationOrderFieldSchema
-  })
-}
-
-export function AppInstallationWhereInputSchema(): z.ZodObject<Properties<AppInstallationWhereInput>> {
-  return z.object({
-    _and: z.array(z.lazy(() => AppInstallationWhereInputSchema())).nullish(),
-    _not: z.lazy(() => AppInstallationWhereInputSchema().nullish()),
-    _or: z.array(z.lazy(() => AppInstallationWhereInputSchema())).nullish(),
-    appCode: z.lazy(() => StringFilterSchema().nullish()),
-    configurationVersion: z.lazy(() => IntFilterSchema().nullish()),
-    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    healthStatus: z.lazy(() => StringFilterSchema().nullish()),
-    id: z.lazy(() => IdFilterSchema().nullish()),
-    installedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    installedVersion: z.lazy(() => StringFilterSchema().nullish()),
-    manifestHash: z.lazy(() => StringFilterSchema().nullish()),
-    status: z.lazy(() => StringFilterSchema().nullish()),
-    suspendedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    targetVersion: z.lazy(() => StringFilterSchema().nullish()),
-    uninstalledAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
+    field: AppOrderFieldSchema
   })
 }
 
@@ -118,6 +91,21 @@ export function AppUpdateInputSchema(): z.ZodObject<Properties<AppUpdateInput>> 
     grantedScopes: z.array(z.string()).nullish(),
     installationId: z.string(),
     secrets: z.array(z.lazy(() => AppSecretInputSchema())).nullish()
+  })
+}
+
+export function AppWhereInputSchema(): z.ZodObject<Properties<AppWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => AppWhereInputSchema())).nullish(),
+    _not: z.lazy(() => AppWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => AppWhereInputSchema())).nullish(),
+    capabilities: z.lazy(() => StringFilterSchema().nullish()),
+    code: z.lazy(() => StringFilterSchema().nullish()),
+    displayName: z.lazy(() => StringFilterSchema().nullish()),
+    installed: z.lazy(() => BooleanFilterSchema().nullish()),
+    status: z.lazy(() => StringFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    version: z.lazy(() => StringFilterSchema().nullish())
   })
 }
 

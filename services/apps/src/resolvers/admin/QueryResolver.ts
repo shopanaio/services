@@ -9,10 +9,9 @@ import {
 import { AppsType } from "./AppsType.js";
 import type {
   AppsQueryAppDefinitionArgs,
+  AppsQueryAppsArgs,
   AppsQueryAppInstallationArgs,
-  AppsQueryAppInstallationsArgs,
   AppsQueryAppLifecycleOperationArgs,
-  AppsQueryAvailableAppsArgs,
 } from "./generated/types.js";
 
 @ApolloQuery
@@ -36,38 +35,15 @@ export class AppsQueryResolver extends AppsType<Record<string, never>> {
       : null;
   }
 
-  async availableApps(args: AppsQueryAvailableAppsArgs = {}) {
-    const runtimes = [...this.$ctx.runtimes.list()].sort((left, right) =>
-      left.definition.manifest.code.localeCompare(
-        right.definition.manifest.code,
-      ),
-    );
-    const installedFilter = args.where?.installed;
-    const selected =
-      installedFilter == null
-        ? runtimes
-        : (
-            await Promise.all(
-              runtimes.map(async (runtime) => ({
-                runtime,
-                installation:
-                  await this.$ctx.loaders.installationByAppCode.load(
-                    runtime.definition.manifest.code,
-                  ),
-              })),
-            )
-          )
-            .filter(
-              ({ installation }) =>
-                Boolean(installation) === installedFilter,
-            )
-            .map(({ runtime }) => runtime);
-
-    return Promise.all(
-      selected.map((runtime) =>
-        this.resolvers.appDefinition(runtime.definition.manifest.code),
-      ),
-    );
+  apps(args: AppsQueryAppsArgs = {}) {
+    return this.resolvers.appConnection({
+      first: args.first ?? undefined,
+      after: args.after ?? undefined,
+      last: args.last ?? undefined,
+      before: args.before ?? undefined,
+      where: args.where ?? undefined,
+      orderBy: args.orderBy ?? undefined,
+    });
   }
 
   async appInstallation(args: AppsQueryAppInstallationArgs) {
@@ -82,17 +58,6 @@ export class AppsQueryResolver extends AppsType<Record<string, never>> {
     return installation
       ? this.resolvers.appInstallation(installation.id)
       : null;
-  }
-
-  appInstallations(args: AppsQueryAppInstallationsArgs = {}) {
-    return this.resolvers.appInstallationConnection({
-      first: args.first ?? undefined,
-      after: args.after ?? undefined,
-      last: args.last ?? undefined,
-      before: args.before ?? undefined,
-      where: args.where ?? undefined,
-      orderBy: args.orderBy ?? undefined,
-    });
   }
 
   async appLifecycleOperation(

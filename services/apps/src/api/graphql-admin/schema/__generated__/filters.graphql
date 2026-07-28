@@ -1,78 +1,54 @@
 # Auto-generated GraphQL filter types for Apps service.
 # Do not edit manually. Run: shopana codegen -s apps
 
-# ---- AppInstallation ----
+# ---- App ----
 
-"""Filter conditions for AppInstallation"""
-input AppInstallationWhereInput {
+"""Filter conditions for App"""
+input AppWhereInput {
   """Logical AND of multiple conditions"""
-  _and: [AppInstallationWhereInput!]
+  _and: [AppWhereInput!]
   """Logical OR of multiple conditions"""
-  _or: [AppInstallationWhereInput!]
+  _or: [AppWhereInput!]
   """Negate the condition"""
-  _not: AppInstallationWhereInput
-  """Filter by id"""
-  id: IDFilter
-  """Filter by appCode"""
-  appCode: StringFilter
+  _not: AppWhereInput
+  """Filter by code"""
+  code: StringFilter
+  """Filter by version"""
+  version: StringFilter
+  """Filter by displayName"""
+  displayName: StringFilter
+  """Filter by capabilities"""
+  capabilities: StringFilter
   """Filter by status"""
   status: StringFilter
-  """Filter by installedVersion"""
-  installedVersion: StringFilter
-  """Filter by targetVersion"""
-  targetVersion: StringFilter
-  """Filter by manifestHash"""
-  manifestHash: StringFilter
-  """Filter by configurationVersion"""
-  configurationVersion: IntFilter
-  """Filter by healthStatus"""
-  healthStatus: StringFilter
-  """Filter by installedAt"""
-  installedAt: DateTimeFilter
-  """Filter by suspendedAt"""
-  suspendedAt: DateTimeFilter
-  """Filter by uninstalledAt"""
-  uninstalledAt: DateTimeFilter
-  """Filter by createdAt"""
-  createdAt: DateTimeFilter
+  """Filter by installed"""
+  installed: BooleanFilter
   """Filter by updatedAt"""
   updatedAt: DateTimeFilter
 }
 
-"""Fields available for sorting AppInstallation"""
-enum AppInstallationOrderField {
-  """Sort by id"""
-  id
-  """Sort by appCode"""
-  appCode
+"""Fields available for sorting App"""
+enum AppOrderField {
+  """Sort by code"""
+  code
+  """Sort by version"""
+  version
+  """Sort by displayName"""
+  displayName
+  """Sort by capabilities"""
+  capabilities
   """Sort by status"""
   status
-  """Sort by installedVersion"""
-  installedVersion
-  """Sort by targetVersion"""
-  targetVersion
-  """Sort by manifestHash"""
-  manifestHash
-  """Sort by configurationVersion"""
-  configurationVersion
-  """Sort by healthStatus"""
-  healthStatus
-  """Sort by installedAt"""
-  installedAt
-  """Sort by suspendedAt"""
-  suspendedAt
-  """Sort by uninstalledAt"""
-  uninstalledAt
-  """Sort by createdAt"""
-  createdAt
+  """Sort by installed"""
+  installed
   """Sort by updatedAt"""
   updatedAt
 }
 
-"""Ordering configuration for AppInstallation"""
-input AppInstallationOrderByInput {
+"""Ordering configuration for App"""
+input AppOrderByInput {
   """Field to order by"""
-  field: AppInstallationOrderField!
+  field: AppOrderField!
   """Sort direction"""
   direction: SortDirection!
 }

@@ -5,57 +5,44 @@ import {
   generateWhereInputType,
   type GraphQLFieldType,
 } from "@shopana/drizzle-query";
-import { appInstallationRelayQuery } from "../src/repositories/installation/AppInstallationRepository.js";
+import { appRelayQuery } from "../src/repositories/app/AppRepository.js";
 
 const generatedSchemaDirectory =
   "src/api/graphql-admin/schema/__generated__";
 
 mkdirSync(generatedSchemaDirectory, { recursive: true });
 
-const appInstallationFieldTypes: Record<string, GraphQLFieldType> = {
-  id: "ID",
-  appCode: "String",
+const appFieldTypes: Record<string, GraphQLFieldType> = {
+  code: "String",
+  version: "String",
+  displayName: "String",
+  capabilities: "String",
   status: "String",
-  installedVersion: "String",
-  targetVersion: "String",
-  manifestHash: "String",
-  configurationVersion: "Int",
-  healthStatus: "String",
-  installedAt: "DateTime",
-  suspendedAt: "DateTime",
-  uninstalledAt: "DateTime",
-  createdAt: "DateTime",
+  installed: "Boolean",
   updatedAt: "DateTime",
 };
 
-const appInstallationOptions = {
+const appOptions = {
   includeDescriptions: true,
-  fieldTypes: appInstallationFieldTypes,
-  excludeFields: [
-    "organizationId",
-    "storeId",
-    "configuration",
-    "installedByUserId",
-    "lastErrorCode",
-    "lastErrorMessage",
-  ],
+  fieldTypes: appFieldTypes,
+  excludeFields: ["storeId", "installationId"],
 };
 
 const filters = `# Auto-generated GraphQL filter types for Apps service.
 # Do not edit manually. Run: shopana codegen -s apps
 
-# ---- AppInstallation ----
+# ---- App ----
 
 ${generateWhereInputType(
-  appInstallationRelayQuery,
-  "AppInstallation",
-  appInstallationOptions,
+  appRelayQuery,
+  "App",
+  appOptions,
 )}
 
 ${generateOrderByInputType(
-  appInstallationRelayQuery,
-  "AppInstallation",
-  appInstallationOptions,
+  appRelayQuery,
+  "App",
+  appOptions,
 )}
 `;
 

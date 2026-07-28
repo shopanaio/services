@@ -61,7 +61,11 @@ export type ManagementAppListItem = Pick<
 
 export interface AppsManagementQueryData {
   appsQuery: {
-    availableApps: ManagementAppListItem[];
+    apps: {
+      edges: Array<{
+        node: ManagementAppListItem;
+      }>;
+    };
   };
 }
 

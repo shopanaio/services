@@ -115,6 +115,14 @@ export type ApiAppConfigurePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** A Relay connection of bundled Apps. */
+export type ApiAppConnection = {
+  __typename?: 'AppConnection';
+  edges: Array<ApiAppEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
 /** A bundled App that can be installed in a store. */
 export type ApiAppDefinition = {
   __typename?: 'AppDefinition';
@@ -142,9 +150,11 @@ export type ApiAppDefinition = {
   version: Scalars['String']['output'];
 };
 
-/** Filters for bundled App discovery. */
-export type ApiAppDefinitionWhereInput = {
-  installed?: InputMaybe<Scalars['Boolean']['input']>;
+/** An edge in a bundled App connection. */
+export type ApiAppEdge = {
+  __typename?: 'AppEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiAppDefinition;
 };
 
 /** GraphQL surfaces contributed by an App. */
@@ -214,21 +224,6 @@ export type ApiAppInstallationActionInput = {
   installationId: Scalars['ID']['input'];
 };
 
-/** A Relay connection of App installations. */
-export type ApiAppInstallationConnection = {
-  __typename?: 'AppInstallationConnection';
-  edges: Array<ApiAppInstallationEdge>;
-  pageInfo: ApiPageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in an App installation connection. */
-export type ApiAppInstallationEdge = {
-  __typename?: 'AppInstallationEdge';
-  cursor: Scalars['String']['output'];
-  node: ApiAppInstallation;
-};
-
 /** The latest persisted App installation failure. */
 export type ApiAppInstallationError = {
   __typename?: 'AppInstallationError';
@@ -242,44 +237,6 @@ export enum AppInstallationHealthStatus {
   Healthy = 'HEALTHY',
   Unhealthy = 'UNHEALTHY',
   Unknown = 'UNKNOWN'
-}
-
-/** Ordering configuration for AppInstallation */
-export type ApiAppInstallationOrderByInput = {
-  /** Sort direction */
-  direction: SortDirection;
-  /** Field to order by */
-  field: AppInstallationOrderField;
-};
-
-/** Fields available for sorting AppInstallation */
-export enum AppInstallationOrderField {
-  /** Sort by appCode */
-  AppCode = 'appCode',
-  /** Sort by configurationVersion */
-  ConfigurationVersion = 'configurationVersion',
-  /** Sort by createdAt */
-  CreatedAt = 'createdAt',
-  /** Sort by healthStatus */
-  HealthStatus = 'healthStatus',
-  /** Sort by id */
-  Id = 'id',
-  /** Sort by installedAt */
-  InstalledAt = 'installedAt',
-  /** Sort by installedVersion */
-  InstalledVersion = 'installedVersion',
-  /** Sort by manifestHash */
-  ManifestHash = 'manifestHash',
-  /** Sort by status */
-  Status = 'status',
-  /** Sort by suspendedAt */
-  SuspendedAt = 'suspendedAt',
-  /** Sort by targetVersion */
-  TargetVersion = 'targetVersion',
-  /** Sort by uninstalledAt */
-  UninstalledAt = 'uninstalledAt',
-  /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt'
 }
 
 /** A permission grant recorded for an App installation. */
@@ -306,42 +263,6 @@ export enum AppInstallationStatus {
   UpdateFailed = 'UPDATE_FAILED',
   Updating = 'UPDATING'
 }
-
-/** Filter conditions for AppInstallation */
-export type ApiAppInstallationWhereInput = {
-  /** Logical AND of multiple conditions */
-  _and?: InputMaybe<Array<ApiAppInstallationWhereInput>>;
-  /** Negate the condition */
-  _not?: InputMaybe<ApiAppInstallationWhereInput>;
-  /** Logical OR of multiple conditions */
-  _or?: InputMaybe<Array<ApiAppInstallationWhereInput>>;
-  /** Filter by appCode */
-  appCode?: InputMaybe<ApiStringFilter>;
-  /** Filter by configurationVersion */
-  configurationVersion?: InputMaybe<ApiIntFilter>;
-  /** Filter by createdAt */
-  createdAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by healthStatus */
-  healthStatus?: InputMaybe<ApiStringFilter>;
-  /** Filter by id */
-  id?: InputMaybe<ApiIdFilter>;
-  /** Filter by installedAt */
-  installedAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by installedVersion */
-  installedVersion?: InputMaybe<ApiStringFilter>;
-  /** Filter by manifestHash */
-  manifestHash?: InputMaybe<ApiStringFilter>;
-  /** Filter by status */
-  status?: InputMaybe<ApiStringFilter>;
-  /** Filter by suspendedAt */
-  suspendedAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by targetVersion */
-  targetVersion?: InputMaybe<ApiStringFilter>;
-  /** Filter by uninstalledAt */
-  uninstalledAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by updatedAt */
-  updatedAt?: InputMaybe<ApiDateTimeFilter>;
-};
 
 /** Actor that initiated an App lifecycle operation. */
 export enum AppLifecycleActorType {
@@ -445,6 +366,32 @@ export type ApiAppManifestSnapshotEdge = {
   node: ApiAppManifestSnapshot;
 };
 
+/** Ordering configuration for App */
+export type ApiAppOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: AppOrderField;
+};
+
+/** Fields available for sorting App */
+export enum AppOrderField {
+  /** Sort by capabilities */
+  Capabilities = 'capabilities',
+  /** Sort by code */
+  Code = 'code',
+  /** Sort by displayName */
+  DisplayName = 'displayName',
+  /** Sort by installed */
+  Installed = 'installed',
+  /** Sort by status */
+  Status = 'status',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by version */
+  Version = 'version'
+}
+
 /** A permission requested by an App manifest. */
 export type ApiAppPermission = {
   __typename?: 'AppPermission';
@@ -494,6 +441,30 @@ export type ApiAppUpdateInput = {
   installationId: Scalars['ID']['input'];
   /** Sets or rotates the named secrets without returning their values. */
   secrets?: InputMaybe<Array<ApiAppSecretInput>>;
+};
+
+/** Filter conditions for App */
+export type ApiAppWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiAppWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiAppWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiAppWhereInput>>;
+  /** Filter by capabilities */
+  capabilities?: InputMaybe<ApiStringFilter>;
+  /** Filter by code */
+  code?: InputMaybe<ApiStringFilter>;
+  /** Filter by displayName */
+  displayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by installed */
+  installed?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by status */
+  status?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by version */
+  version?: InputMaybe<ApiStringFilter>;
 };
 
 /** An organization-owned application authentication realm. */
@@ -1564,12 +1535,10 @@ export type ApiAppsQuery = {
   appDefinition?: Maybe<ApiAppDefinition>;
   /** Get an App installation by its global ID. */
   appInstallation?: Maybe<ApiAppInstallation>;
-  /** List App installations for the current store. */
-  appInstallations: ApiAppInstallationConnection;
   /** Get a lifecycle operation by its global ID. */
   appLifecycleOperation?: Maybe<ApiAppLifecycleOperation>;
-  /** List bundled Apps available to the current store. */
-  availableApps: Array<ApiAppDefinition>;
+  /** List bundled Apps and their installation state for the current store. */
+  apps: ApiAppConnection;
 };
 
 
@@ -1583,23 +1552,18 @@ export type ApiAppsQueryAppInstallationArgs = {
 };
 
 
-export type ApiAppsQueryAppInstallationsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiAppInstallationOrderByInput>>;
-  where?: InputMaybe<ApiAppInstallationWhereInput>;
-};
-
-
 export type ApiAppsQueryAppLifecycleOperationArgs = {
   id: Scalars['ID']['input'];
 };
 
 
-export type ApiAppsQueryAvailableAppsArgs = {
-  where?: InputMaybe<ApiAppDefinitionWhereInput>;
+export type ApiAppsQueryAppsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiAppOrderByInput>>;
+  where?: InputMaybe<ApiAppWhereInput>;
 };
 
 export type ApiAuthMutation = {

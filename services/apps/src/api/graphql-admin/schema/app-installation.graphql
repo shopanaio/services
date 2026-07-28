@@ -97,19 +97,6 @@ type AppInstallation implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""A Relay connection of App installations."""
-type AppInstallationConnection {
-  edges: [AppInstallationEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-"""An edge in an App installation connection."""
-type AppInstallationEdge {
-  node: AppInstallation!
-  cursor: String!
-}
-
 """A write-only secret supplied during install or update."""
 input AppSecretInput {
   name: String!

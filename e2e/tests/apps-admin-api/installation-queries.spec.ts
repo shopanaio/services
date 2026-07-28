@@ -116,45 +116,20 @@ test.describe('Apps Admin API - installation queries', () => {
     ).not.toBeNull();
   });
 
-  test('connection order and Relay pagination are stable and lossless', async ({
+  test('Apps connection order and Relay pagination are stable and lossless', async ({
     api,
   }) => {
-    const ids: string[] = [];
-    for (let index = 0; index < 3; index += 1) {
-      const install = await api.admin.mutation('apps-admin-api/AppInstall', {
-        variables: {
-          input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
-        },
-      });
-      const id = install.data.appsMutation.appInstall.installation!.id;
-      ids.push(id);
-      await expect
-        .poll(async () => {
-          const response = await api.admin.query('apps-admin-api/AppInstallation', {
-            variables: { id },
-          });
-          return response.data.appsQuery.appInstallation?.status;
-        })
-        .toBe('ACTIVE');
-      if (index < 2) {
-        await api.admin.mutation('apps-admin-api/AppUninstall', {
-          variables: { input: { installationId: id, clientMutationId: crypto.randomUUID() } },
-        });
-        await expect
-          .poll(async () => {
-            const response = await api.admin.query('apps-admin-api/AppInstallation', {
-              variables: { id },
-            });
-            return response.data.appsQuery.appInstallation?.status;
-          })
-          .toBe('UNINSTALLED');
-      }
-    }
+    const expectedCodes = [
+      'hello-world',
+      'shopana-headless',
+      'shopana-online-store',
+      'shopana-smtp',
+    ];
     const defaultPage = await api.admin.query('apps-admin-api/AppInstallations', {
       variables: {},
     });
-    expect(defaultPage.data.appsQuery.appInstallations.edges.map(({ node }) => node.id)).toEqual(
-      [...ids].reverse(),
+    expect(defaultPage.data.appsQuery.apps.edges.map(({ node }) => node.code)).toEqual(
+      expectedCodes,
     );
     const firstPage = await api.admin.query('apps-admin-api/AppInstallations', {
       variables: { first: 2 },
@@ -162,49 +137,64 @@ test.describe('Apps Admin API - installation queries', () => {
     const secondPage = await api.admin.query('apps-admin-api/AppInstallations', {
       variables: {
         first: 2,
-        after: firstPage.data.appsQuery.appInstallations.pageInfo.endCursor,
+        after: firstPage.data.appsQuery.apps.pageInfo.endCursor,
       },
     });
-    const firstPageIds = firstPage.data.appsQuery.appInstallations.edges.map(
-      ({ node }) => node.id,
+    const firstPageCodes = firstPage.data.appsQuery.apps.edges.map(
+      ({ node }) => node.code,
     );
-    const secondPageIds = secondPage.data.appsQuery.appInstallations.edges.map(
-      ({ node }) => node.id,
+    const secondPageCodes = secondPage.data.appsQuery.apps.edges.map(
+      ({ node }) => node.code,
     );
-    expect(firstPageIds).toEqual([...ids].reverse().slice(0, 2));
-    expect(secondPageIds).toEqual([...ids].reverse().slice(2));
-    expect([...firstPageIds, ...secondPageIds]).toEqual([...ids].reverse());
-    expect(firstPage.data.appsQuery.appInstallations.pageInfo).toMatchObject({
+    expect(firstPageCodes).toEqual(expectedCodes.slice(0, 2));
+    expect(secondPageCodes).toEqual(expectedCodes.slice(2));
+    expect([...firstPageCodes, ...secondPageCodes]).toEqual(expectedCodes);
+    expect(firstPage.data.appsQuery.apps.pageInfo).toMatchObject({
       hasNextPage: true,
       hasPreviousPage: false,
     });
-    expect(secondPage.data.appsQuery.appInstallations.pageInfo).toMatchObject({
+    expect(secondPage.data.appsQuery.apps.pageInfo).toMatchObject({
       hasNextPage: false,
       hasPreviousPage: true,
     });
-    expect(firstPage.data.appsQuery.appInstallations.totalCount).toBe(ids.length);
-    expect(secondPage.data.appsQuery.appInstallations.totalCount).toBe(ids.length);
+    expect(firstPage.data.appsQuery.apps.totalCount).toBe(expectedCodes.length);
+    expect(secondPage.data.appsQuery.apps.totalCount).toBe(expectedCodes.length);
   });
 
   test('filters, ordering, count, and invalid cursors are safe', async ({
     api,
   }) => {
-    await api.admin.mutation('apps-admin-api/AppInstall', {
+    const install = await api.admin.mutation('apps-admin-api/AppInstall', {
       variables: {
         input: { appCode: 'hello-world', clientMutationId: crypto.randomUUID() },
       },
     });
+    const installationId =
+      install.data.appsMutation.appInstall.installation!.id;
+    await expect
+      .poll(async () => {
+        const current = await api.admin.query(
+          'apps-admin-api/AppInstallation',
+          { variables: { id: installationId } },
+        );
+        return current.data.appsQuery.appInstallation?.status;
+      })
+      .toBe('ACTIVE');
+
     const filtered = await api.admin.query('apps-admin-api/AppInstallations', {
       variables: {
         first: 20,
         where: {
-          appCode: { _eq: 'hello-world' },
-          configurationVersion: { _eq: 1 },
+          code: { _eq: 'hello-world' },
+          displayName: { _containsi: 'hello' },
+          capabilities: { _containsi: 'greeting' },
+          status: { _in: ['ACTIVE'] },
+          installed: { _eq: true },
         },
-        orderBy: [{ field: 'createdAt', direction: 'desc' }],
+        orderBy: [{ field: 'displayName', direction: 'asc' }],
       },
     });
-    expect(filtered.data.appsQuery.appInstallations.totalCount).toBe(1);
+    expect(filtered.data.appsQuery.apps.totalCount).toBe(1);
 
     for (const variables of [
       { first: 1, last: 1 },

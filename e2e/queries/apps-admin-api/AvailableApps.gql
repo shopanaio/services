@@ -1,37 +1,42 @@
-query AppsAvailableApps($where: AppDefinitionWhereInput) {
+query AppsAvailableApps($where: AppWhereInput) {
   appsQuery {
-    availableApps(where: $where) {
-      code
-      version
-      displayName
-      description
-      runtimeStatus
-      runtimeHealth {
-        status
-        message
-      }
-      permissions {
-        scope
-        granted
-      }
-      capabilities {
-        key
-        assignmentMode
-        operations {
-          name
-          action
+    apps(first: 100, where: $where) {
+      edges {
+        node {
+          code
+          version
+          displayName
+          description
+          runtimeStatus
+          runtimeHealth {
+            status
+            message
+          }
+          permissions {
+            scope
+            granted
+          }
+          capabilities {
+            key
+            assignmentMode
+            operations {
+              name
+              action
+            }
+          }
+          graphql {
+            admin
+            storefront
+          }
+          installed
+          installation {
+            id
+            appCode
+            status
+          }
         }
       }
-      graphql {
-        admin
-        storefront
-      }
-      installed
-      installation {
-        id
-        appCode
-        status
-      }
+      totalCount
     }
   }
 }

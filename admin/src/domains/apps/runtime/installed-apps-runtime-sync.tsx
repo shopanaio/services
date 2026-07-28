@@ -45,57 +45,59 @@ export function InstalledAppsRuntimeSync({
   const localDescriptors = useMemo<AdminAppUiDescriptor[]>(() => {
     if (discoveryEnabled) return [];
 
-    return (managementData?.appsQuery.availableApps ?? []).flatMap((app) => {
-      const registration = getLocalAdminApp(app.code);
-      const installation = app.installation;
-      if (
-        !registration ||
-        !installation ||
-        installation.status !== AppInstallationStatus.Active
-      ) {
-        return [];
-      }
+    return (managementData?.appsQuery.apps.edges ?? []).flatMap(
+      ({ node: app }) => {
+        const registration = getLocalAdminApp(app.code);
+        const installation = app.installation;
+        if (
+          !registration ||
+          !installation ||
+          installation.status !== AppInstallationStatus.Active
+        ) {
+          return [];
+        }
 
-      return [
-        {
-          installationId: installation.id,
-          appCode: app.code,
-          displayName: app.displayName,
-          version: installation.installedVersion,
-          sdkVersionRange: "^1.0.0",
-          remote: {
-            name: registration.remoteName,
-            manifestUrl: `local:${app.code}`,
-            contentHash: "local",
+        return [
+          {
+            installationId: installation.id,
+            appCode: app.code,
+            displayName: app.displayName,
+            version: installation.installedVersion,
+            sdkVersionRange: "^1.0.0",
+            remote: {
+              name: registration.remoteName,
+              manifestUrl: `local:${app.code}`,
+              contentHash: "local",
+            },
+            page: {
+              module: registration.pageModule,
+              defaultPath: registration.defaultPath,
+            },
+            navigation: [],
+            modals:
+              registration.modals?.map(
+                ({
+                  load: _load,
+                  confirmOnDirtyClose = false,
+                  requiredScopes = [],
+                  ...modal
+                }) => ({
+                  ...modal,
+                  confirmOnDirtyClose,
+                  requiredScopes,
+                }),
+              ) ?? [],
+            extensions: [],
+            grantedScopes: app.permissions
+              .filter(({ granted }) => granted)
+              .map(({ scope }) => scope),
           },
-          page: {
-            module: registration.pageModule,
-            defaultPath: registration.defaultPath,
-          },
-          navigation: [],
-          modals:
-            registration.modals?.map(
-              ({
-                load: _load,
-                confirmOnDirtyClose = false,
-                requiredScopes = [],
-                ...modal
-              }) => ({
-                ...modal,
-                confirmOnDirtyClose,
-                requiredScopes,
-              }),
-            ) ?? [],
-          extensions: [],
-          grantedScopes: app.permissions
-            .filter(({ granted }) => granted)
-            .map(({ scope }) => scope),
-        },
-      ];
-    });
+        ];
+      },
+    );
   }, [
     discoveryEnabled,
-    managementData?.appsQuery.availableApps,
+    managementData?.appsQuery.apps.edges,
   ]);
 
   const source = discoveryEnabled
