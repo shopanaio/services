@@ -29,5 +29,5 @@ export const onlineStoreManifest = defineAppManifest({
       },
     },
   ],
-  graphql: { admin: true, storefront: true },
+  graphql: { admin: false, storefront: false },
 });
