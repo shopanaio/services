@@ -21,7 +21,7 @@ function getStoreNameFromUrl(): string | null {
   if (typeof window === "undefined") return null;
   const segments = window.location.pathname.split("/").filter(Boolean);
   // URL pattern: /orgName/storeName/...
-  return segments.length >= 2 ? segments[1] : null;
+  return segments.length >= 3 ? segments[1] : null;
 }
 
 // Refresh token 60 seconds before expiry to avoid race conditions
