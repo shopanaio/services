@@ -1,20 +1,19 @@
 "use client";
 
-import { Flex, Typography } from "antd";
+import { Typography } from "antd";
 import { createStyles } from "antd-style";
+import { DataLayout } from "@/layouts/data";
 import type { AdminAppPageLayoutProps } from "../contracts";
 
 const useStyles = createStyles(({ token }) => ({
-  root: {
-    minHeight: "100%",
-    padding: token.paddingLG,
-    background: token.colorBgLayout,
-  },
-  header: {
-    marginBottom: token.marginLG,
-  },
   content: {
-    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: token.padding,
+    paddingBottom: token.padding,
+  },
+  description: {
+    margin: 0,
   },
 }));
 
@@ -27,18 +26,23 @@ export function AdminAppPage({
   const { styles } = useStyles();
 
   return (
-    <main className={styles.root}>
-      <Flex className={styles.header} justify="space-between" align="start">
-        <div>
-          <Typography.Title level={2}>{title}</Typography.Title>
-          {description ? (
-            <Typography.Text type="secondary">{description}</Typography.Text>
-          ) : null}
-        </div>
-        {actions}
-      </Flex>
-      <section className={styles.content}>{children}</section>
-    </main>
+    <DataLayout
+      actions={actions}
+      fullWidth
+      name="admin-app"
+      title={title}
+    >
+      <div className={styles.content}>
+        {description ? (
+          <Typography.Paragraph
+            className={styles.description}
+            type="secondary"
+          >
+            {description}
+          </Typography.Paragraph>
+        ) : null}
+        {children}
+      </div>
+    </DataLayout>
   );
 }
-

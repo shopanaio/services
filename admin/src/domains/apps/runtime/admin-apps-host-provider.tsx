@@ -21,6 +21,7 @@ import {
 } from "../sdk/modal-api";
 import type { AdminAppSdk, AdminAppUiApi } from "../sdk";
 import { AppRuntimeScope } from "./app-runtime-scope";
+import { createAdminAppPath } from "./app-route";
 import type { AdminAppUiDescriptor } from "./descriptor-schema";
 import { InstalledAppsRuntimeSync } from "./installed-apps-runtime-sync";
 import { adminAppRegistry, type ActiveAdminApp } from "./registry/app-registry";
@@ -78,9 +79,6 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
           const owner = ownerFor(descriptor);
           const scope = new AppRuntimeScope(owner);
           const modalApi = createAdminAppModalApi(descriptor, owner);
-          const appPrefix = `/${encodeURIComponent(orgName)}/${encodeURIComponent(
-            storeName,
-          )}/apps/${encodeURIComponent(descriptor.appCode)}`;
           const storePrefix = `/${encodeURIComponent(orgName)}/${encodeURIComponent(
             storeName,
           )}`;
@@ -102,13 +100,19 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
             modals: modalApi,
             navigation: {
               openAppPath: (appPath) =>
-                router.push(
-                  `${appPrefix}/${appPath.replace(/^\/+/, "")}`.replace(/\/$/, ""),
-                ),
+                router.push(createAdminAppPath({
+                  orgName,
+                  storeName,
+                  appCode: descriptor.appCode,
+                  appPath,
+                })),
               replaceAppPath: (appPath) =>
-                router.replace(
-                  `${appPrefix}/${appPath.replace(/^\/+/, "")}`.replace(/\/$/, ""),
-                ),
+                router.replace(createAdminAppPath({
+                  orgName,
+                  storeName,
+                  appCode: descriptor.appCode,
+                  appPath,
+                })),
               openCorePath: (corePath) => {
                 if (
                   !corePath.startsWith("/") ||
@@ -178,27 +182,25 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
           })),
         ),
       );
-      const navigationItems: SidebarItem[] = active.flatMap(
-        ({ descriptor }) =>
-          descriptor.navigation.map((item) => {
-            const suffix = item.path.replace(/^\/+/, "");
-            const pathPattern = `/:orgName/:storeName/apps/${encodeURIComponent(
+      const navigationItems: SidebarItem[] = active
+        .map(({ descriptor }) => ({
+          key: `admin-app-${descriptor.appCode}`,
+          label: descriptor.displayName,
+          path: `/:orgName/:storeName/apps/${encodeURIComponent(
+            descriptor.appCode,
+          )}`,
+          activePaths: [
+            `/:orgName/:storeName/apps/${encodeURIComponent(
               descriptor.appCode,
-            )}${suffix ? `/${suffix}` : ""}`;
-            return {
-              key: `admin-app-${descriptor.appCode}-${item.id}`,
-              label: item.label,
-              order: 1000 + item.order,
-              path: pathPattern,
-              activePaths: [
-                `/:orgName/:storeName/apps/${encodeURIComponent(
-                  descriptor.appCode,
-                )}{/*appPath}`,
-              ],
-            };
-          }),
-      );
-      setSidebarChildren("system-settings", navigationItems);
+            )}{/*appPath}`,
+          ],
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label))
+        .map((item, index) => ({
+          ...item,
+          order: index,
+        }));
+      setSidebarChildren("admin-apps", navigationItems);
     },
     [
       client,
@@ -213,7 +215,7 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
   useEffect(
     () => () => {
       disposeActiveApps();
-      clearSidebarChildren("system-settings");
+      clearSidebarChildren("admin-apps");
     },
     [clearSidebarChildren, disposeActiveApps],
   );

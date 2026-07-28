@@ -1,13 +1,16 @@
 "use client";
 
 import { Alert, Spin } from "antd";
+import { useRouter } from "next/navigation";
 import {
   Suspense,
   use,
+  useEffect,
   useSyncExternalStore,
 } from "react";
 import type { ModulePageProps } from "@/registry";
 import type { AdminAppPageComponent } from "../sdk";
+import { createAdminAppPath } from "./app-route";
 import { AppRuntimeBoundary } from "./app-runtime-boundary";
 import { loadAdminAppRemoteModule } from "./federation/load-remote-module";
 import { adminAppRegistry } from "./registry/app-registry";
@@ -49,6 +52,7 @@ export default function AppRuntimePage({
   pathParams,
   searchParams = {},
 }: ModulePageProps) {
+  const router = useRouter();
   useSyncExternalStore(
     adminAppRegistry.subscribe.bind(adminAppRegistry),
     adminAppRegistry.getSnapshot,
@@ -62,6 +66,36 @@ export default function AppRuntimePage({
     : typeof pathParams.appPath === "string"
       ? pathParams.appPath
       : "";
+  const defaultPath = active?.descriptor.page?.defaultPath
+    ?.split("/")
+    .filter(Boolean)
+    .join("/");
+  const shouldOpenDefaultPath = Boolean(
+    active && !appPath && defaultPath,
+  );
+
+  useEffect(() => {
+    if (!active || !shouldOpenDefaultPath || !defaultPath) return;
+    const orgName =
+      typeof pathParams.orgName === "string" ? pathParams.orgName : "";
+    const storeName =
+      typeof pathParams.storeName === "string" ? pathParams.storeName : "";
+    router.replace(
+      createAdminAppPath({
+        orgName,
+        storeName,
+        appCode: active.descriptor.appCode,
+        appPath: defaultPath,
+      }),
+    );
+  }, [
+    active,
+    defaultPath,
+    pathParams.orgName,
+    pathParams.storeName,
+    router,
+    shouldOpenDefaultPath,
+  ]);
 
   if (!active) {
     return (
@@ -82,6 +116,10 @@ export default function AppRuntimePage({
         message={`${active.descriptor.displayName} has no Admin page`}
       />
     );
+  }
+
+  if (shouldOpenDefaultPath) {
+    return <Spin fullscreen tip="Opening App…" />;
   }
 
   return (

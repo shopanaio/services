@@ -34,6 +34,7 @@ import {
 } from "@/layouts/modals";
 import { usePathParams } from "@/registry";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { createAdminAppPath } from "../../runtime/app-route";
 import type { ManagementAppListItem } from "../graphql/operation-types";
 import {
   useAppLifecycleActions,
@@ -577,10 +578,13 @@ export const AppManagementModal = () => {
   const orgName = getParam("orgName") ?? "";
   const storeName = getParam("storeName") ?? "";
   const openHref =
-    app && installed
-      ? `/${encodeURIComponent(orgName)}/${encodeURIComponent(
+    app &&
+    app.installation?.status === AppInstallationStatus.Active
+      ? createAdminAppPath({
+          orgName,
           storeName,
-        )}/apps/${encodeURIComponent(app.code)}`
+          appCode: app.code,
+        })
       : null;
 
   return (

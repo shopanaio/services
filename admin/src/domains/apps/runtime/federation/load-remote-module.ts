@@ -31,12 +31,15 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   });
 }
 
-export function registerLocalAdminAppModule(
+export function registerLocalAdminAppModule<TProps>(
   remoteName: string,
   module: string,
-  loader: LocalModuleLoader,
+  loader: () => Promise<{ default: ComponentType<TProps> }>,
 ): void {
-  localModules.set(`${remoteName}:${module}`, loader);
+  localModules.set(
+    `${remoteName}:${module}`,
+    loader as unknown as LocalModuleLoader,
+  );
 }
 
 export function loadAdminAppRemoteModule(
