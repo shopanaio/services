@@ -3,15 +3,16 @@ import { test } from '@fixtures/base.extend';
 import {
   applicationIdentityCount,
   applicationIssuer,
+  applicationSessionIdForUser,
   applicationSessionCount,
   beginEmailOtpAuthorization,
   blockApplicationUser,
   clearSeedApplicationSessions,
-  completeEmailOtpAuthorization,
+  completeEmailOtpThroughHostedUi,
   createAdditionalStorefrontEmailOtpRealm,
   createStorefrontEmailOtpRealm,
   customerCount,
-  decodeJwtPayload,
+  openOAuthTestApplication,
   replayEmailOtpAuthorization,
   selectStorefrontRealm,
   seedExistingCustomerWithPassword,
@@ -57,10 +58,13 @@ test.describe('Application email OTP auth UI — customer sign in', () => {
       await applicationSessionCount(foreignRealm);
     await setCustomerAuthMethods(api, request, passwordRevision, ['EMAIL_OTP']);
     const sessionsBeforeOtp = await applicationSessionCount(realm);
+    await openOAuthTestApplication(page, realm);
+    await expect(page.locator('[data-testid="login-button"]')).toBeVisible();
+    expect(page.context().pages()).toHaveLength(1);
 
-    const tokens = await completeEmailOtpAuthorization(
+    await page.locator('[data-testid="login-button"]').click();
+    const renderedSession = await completeEmailOtpThroughHostedUi(
       page,
-      request,
       realm,
       email,
     );
@@ -80,20 +84,24 @@ test.describe('Application email OTP auth UI — customer sign in', () => {
     expect(await applicationSessionCount(foreignRealm)).toBe(
       foreignSessionsBeforeOtp,
     );
-    expect(decodeJwtPayload(tokens.id_token)).toMatchObject({
+    expect(renderedSession.userId).toBe(identity.id);
+    expect(renderedSession.idTokenClaims).toMatchObject({
       sub: identity.id,
       email,
       iss: applicationIssuer(realm),
       aud: realm.clientId,
     });
-    expect(decodeJwtPayload(tokens.access_token)).toMatchObject({
+    expect(renderedSession.accessTokenClaims).toMatchObject({
       sub: identity.id,
       application_id: realm.applicationId,
       actor_type: 'application_user',
       client_id: realm.clientId,
       aud: realm.resource,
     });
-    expect(tokens.refresh_token).toBeTruthy();
+    expect(await applicationSessionIdForUser(realm, identity.id)).toBe(
+      renderedSession.sessionId,
+    );
+    expect(page.context().pages()).toHaveLength(1);
   });
 
   test('an invalid OTP creates no session or token', async ({

@@ -195,20 +195,13 @@ export class ApplicationAuthorizationContextService {
     runtime: ApplicationAuthFactoryRuntime,
     active: ActiveApplicationAuthorizationContext
   ): Promise<string> {
-    const client = await this.clients.findActiveHostedUiClient(
-      runtime.applicationId,
-      active.context.clientId
-    );
-    if (!client || active.context.resource !== runtime.resource) {
+    if (active.context.resource !== runtime.resource) {
       throw new ApplicationAuthRequestError(
         "Authorization context client is unavailable"
       );
     }
-    const redirectUri = client.redirectUris.find(
-      (candidate) => hashValue(candidate) === active.context.redirectUriHash
-    );
+    const redirectUri = await this.resolveBoundRedirectUri(runtime, active);
     if (
-      !redirectUri ||
       hashValue(POST_LOGIN_RETURN_PATH) !==
         active.context.postLoginReturnPathHash
     ) {
@@ -252,11 +245,10 @@ export class ApplicationAuthorizationContextService {
     return params.toString();
   }
 
-  async assertOAuthRedirectTarget(
+  async resolveBoundRedirectUri(
     runtime: ApplicationAuthFactoryRuntime,
-    active: ActiveApplicationAuthorizationContext,
-    target: string
-  ): Promise<void> {
+    active: ActiveApplicationAuthorizationContext
+  ): Promise<string> {
     const client = await this.clients.findActiveHostedUiClient(
       runtime.applicationId,
       active.context.clientId
@@ -264,7 +256,21 @@ export class ApplicationAuthorizationContextService {
     const redirectUri = client?.redirectUris.find(
       (candidate) => hashValue(candidate) === active.context.redirectUriHash
     );
-    if (!redirectUri || !isBoundOAuthRedirectTarget(target, redirectUri)) {
+    if (!redirectUri) {
+      throw new ApplicationAuthRequestError(
+        "Authorization context redirect binding is invalid"
+      );
+    }
+    return redirectUri;
+  }
+
+  async assertOAuthRedirectTarget(
+    runtime: ApplicationAuthFactoryRuntime,
+    active: ActiveApplicationAuthorizationContext,
+    target: string
+  ): Promise<void> {
+    const redirectUri = await this.resolveBoundRedirectUri(runtime, active);
+    if (!isBoundOAuthRedirectTarget(target, redirectUri)) {
       throw new ApplicationAuthRequestError(
         "Authorization redirect target is invalid"
       );

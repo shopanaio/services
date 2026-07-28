@@ -19,6 +19,7 @@ const tmpDir = join(rootDir, ".tmp", "e2e");
 const adminPort = Number(process.env.E2E_ADMIN_PORT || 3300);
 const adminGatewayPort = Number(process.env.E2E_ADMIN_GATEWAY_PORT || 14001);
 const storefrontGatewayPort = Number(process.env.E2E_STOREFRONT_GATEWAY_PORT || 14000);
+const oauthTestClientPort = Number(process.env.E2E_OAUTH_CLIENT_PORT || 3000);
 const startDocker = process.env.E2E_START_DOCKER !== "false";
 const runMigrations = process.env.E2E_RUN_MIGRATIONS !== "false";
 const adminNextDistDir = process.env.E2E_ADMIN_NEXT_DIST_DIR || `.next-e2e-${adminPort}`;
@@ -414,6 +415,11 @@ async function main() {
 
   await waitForPort(adminGatewayPort, "admin gateway");
   await waitForPort(storefrontGatewayPort, "storefront gateway");
+
+  start("oauth test client", "node", ["bin/oauth-test-client.mjs"], {
+    cwd: e2eDir,
+  });
+  await waitForPort(oauthTestClientPort, "oauth test client");
 
   start("admin UI", "yarn", ["dev", "--port", String(adminPort)], {
     cwd: adminDir,

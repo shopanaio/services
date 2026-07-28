@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OAuth customer application</title>
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>Customer application</h1>
+      <button type="button" data-testid="login-button">Sign in</button>
+
+      <section data-testid="authenticated-session" hidden>
+        <h2>Authenticated session</h2>
+        <p>User ID: <output data-testid="user-id"></output></p>
+        <p>Session ID: <output data-testid="session-id"></output></p>
+        <output data-testid="id-token-claims" hidden></output>
+        <output data-testid="access-token-claims" hidden></output>
+      </section>
+
+      <p data-testid="oauth-error" role="alert" hidden></p>
+    </main>
+  </body>
+</html>

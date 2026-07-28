@@ -62,6 +62,13 @@ export interface CustomerProjection {
   accountStatus: 'GUEST' | 'INVITED' | 'REGISTERED';
 }
 
+export interface RenderedOAuthApplicationSession {
+  userId: string;
+  sessionId: string;
+  idTokenClaims: Record<string, unknown>;
+  accessTokenClaims: Record<string, unknown>;
+}
+
 const adminGraphqlUrl =
   process.env.ADMIN_GRAPHQL_URL ?? 'http://127.0.0.1:14001/graphql';
 
@@ -239,6 +246,77 @@ export async function clearSeedApplicationSessions(
         and user_id = ${userId}
     `,
   );
+}
+
+export async function openOAuthTestApplication(
+  page: Page,
+  realm: StorefrontEmailOtpRealm,
+): Promise<void> {
+  expect(new URL(realm.redirectUri).origin).toBe(realm.origin);
+  const applicationUrl = new URL(realm.origin);
+  applicationUrl.search = new URLSearchParams({
+    authorize_endpoint: endpoint(realm, '/oauth2/authorize'),
+    token_endpoint: endpoint(realm, '/oauth2/token'),
+    userinfo_endpoint: endpoint(realm, '/oauth2/userinfo'),
+    client_id: realm.clientId,
+    redirect_uri: realm.redirectUri,
+    resource: realm.resource,
+  }).toString();
+  await page.goto(applicationUrl.toString());
+}
+
+export async function completeEmailOtpThroughHostedUi(
+  page: Page,
+  realm: StorefrontEmailOtpRealm,
+  email: string,
+): Promise<RenderedOAuthApplicationSession> {
+  await expect(page).toHaveURL(
+    new RegExp(
+      `/auth/applications/${realm.applicationId}/login$`,
+      'u',
+    ),
+  );
+  await page.locator('a[href="./email-otp"]').click();
+  await page
+    .locator('form[action="./email-otp/request"] input[name="email"]')
+    .fill(email);
+  await page
+    .locator('form[action="./email-otp/request"] button[type="submit"]')
+    .click();
+  const otp = await waitForEmailOtp(email.trim().toLowerCase(), 30_000);
+  const verifyForm = page.locator('form[action="./verify"]');
+  await verifyForm.locator('input[name="email"]').fill(email);
+  await verifyForm.locator('input[name="otp"]').fill(otp);
+  await verifyForm.locator('button[type="submit"]').click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`^${escapeRegExp(realm.redirectUri)}(?:\\?.*)?$`, 'u'),
+  );
+  await expect(page.locator('[data-testid="authenticated-session"]')).toBeVisible();
+  await expect(page.locator('[data-testid="oauth-error"]')).toBeHidden();
+
+  const userId = await page.locator('[data-testid="user-id"]').textContent();
+  const sessionId = await page
+    .locator('[data-testid="session-id"]')
+    .textContent();
+  const idTokenClaims = JSON.parse(
+    (await page
+      .locator('[data-testid="id-token-claims"]')
+      .getAttribute('data-claims'))!,
+  ) as Record<string, unknown>;
+  const accessTokenClaims = JSON.parse(
+    (await page
+      .locator('[data-testid="access-token-claims"]')
+      .getAttribute('data-claims'))!,
+  ) as Record<string, unknown>;
+  expect(userId).toBeTruthy();
+  expect(sessionId).toBeTruthy();
+  return {
+    userId: userId!,
+    sessionId: sessionId!,
+    idTokenClaims,
+    accessTokenClaims,
+  };
 }
 
 export async function completeEmailOtpAuthorization(
@@ -488,6 +566,23 @@ export function applicationSessionCount(
   });
 }
 
+export function applicationSessionIdForUser(
+  realm: StorefrontEmailOtpRealm,
+  userId: string,
+): Promise<string | null> {
+  return withDb(async (sql) => {
+    const [row] = await sql<{ id: string }[]>`
+      select id
+      from iam.application_session
+      where application_id = ${realm.applicationId}
+        and user_id = ${userId}
+      order by created_at desc
+      limit 1
+    `;
+    return row?.id ?? null;
+  });
+}
+
 export function customerCount(
   realm: StorefrontEmailOtpRealm,
   email: string,
@@ -613,4 +708,8 @@ function adminHeaders(api: Api): Record<string, string> {
     'x-organization-id': api.session.organizationId!,
     'x-store-name': api.session.project.name,
   };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }

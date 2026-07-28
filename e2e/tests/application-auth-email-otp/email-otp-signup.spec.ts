@@ -4,12 +4,15 @@ import { expectNoEmailOtp } from '@utils/mailpit';
 import {
   applicationIssuer,
   applicationIdentityCount,
+  applicationSessionIdForUser,
   applicationSessionCount,
   beginEmailOtpAuthorization,
+  completeEmailOtpThroughHostedUi,
   completeEmailOtpAuthorization,
   createStorefrontEmailOtpRealm,
   customerCount,
   decodeJwtPayload,
+  openOAuthTestApplication,
   replayEmailOtpAuthorization,
   requestEmailOtp,
   setCustomerAuthMethods,
@@ -30,10 +33,13 @@ test.describe('Application email OTP auth UI — customer registration', () => {
     await setCustomerAuthMethods(api, request, realm.revision, ['EMAIL_OTP']);
     const email = `otp-signup-${crypto.randomUUID()}@playwright.dev`;
     const sessionsBeforeOtp = await applicationSessionCount(realm);
+    await openOAuthTestApplication(page, realm);
+    await expect(page.locator('[data-testid="login-button"]')).toBeVisible();
+    expect(page.context().pages()).toHaveLength(1);
 
-    const tokens = await completeEmailOtpAuthorization(
+    await page.locator('[data-testid="login-button"]').click();
+    const renderedSession = await completeEmailOtpThroughHostedUi(
       page,
-      request,
       realm,
       email,
     );
@@ -51,19 +57,24 @@ test.describe('Application email OTP auth UI — customer registration', () => {
       accountStatus: 'REGISTERED',
     });
     expect(await customerCount(realm, email)).toBe(1);
-    expect(decodeJwtPayload(tokens.id_token)).toMatchObject({
+    expect(renderedSession.userId).toBe(identity.id);
+    expect(renderedSession.idTokenClaims).toMatchObject({
       sub: identity.id,
       email,
       iss: applicationIssuer(realm),
       aud: realm.clientId,
     });
-    expect(decodeJwtPayload(tokens.access_token)).toMatchObject({
+    expect(renderedSession.accessTokenClaims).toMatchObject({
       sub: identity.id,
       application_id: realm.applicationId,
       actor_type: 'application_user',
       client_id: realm.clientId,
       aud: realm.resource,
     });
+    expect(await applicationSessionIdForUser(realm, identity.id)).toBe(
+      renderedSession.sessionId,
+    );
+    expect(page.context().pages()).toHaveLength(1);
     expect(await applicationSessionCount(realm)).toBeGreaterThan(
       sessionsBeforeOtp,
     );

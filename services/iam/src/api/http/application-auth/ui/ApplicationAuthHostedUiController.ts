@@ -652,7 +652,11 @@ export class ApplicationAuthHostedUiController {
       input.reply,
       input.runtime,
       t("emailOtpVerifyTitle"),
-      body
+      body,
+      await this.authorizationContexts.resolveBoundRedirectUri(
+        input.runtime,
+        active
+      )
     );
   }
 
@@ -679,6 +683,14 @@ export class ApplicationAuthHostedUiController {
       active,
       { currentStep: "login" }
     );
+    const existingUser =
+      await this.kernel.repository.applicationUser
+        .forApplication(input.runtime.applicationId)
+        .findByEmail(email);
+    if (existingUser?.status === "blocked") {
+      await this.renderEmailOtpVerify(input, rotated, true);
+      return;
+    }
     let response: Response;
     try {
       response = await this.callBetterAuth(input, "/sign-in/email-otp", {
@@ -2019,12 +2031,16 @@ async function sendHtml(
   reply: FastifyReply,
   runtime: ApplicationAuthFactoryRuntime,
   title: string,
-  body: string
+  body: string,
+  boundRedirectUri?: string
 ): Promise<void> {
+  const formAction = boundRedirectUri
+    ? `'self' ${oauthRedirectCspSource(boundRedirectUri)}`
+    : "'self'";
   reply.headers({
     ...noStoreHeaders(),
     "content-security-policy":
-      "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' https: data:; style-src 'self'",
+      `default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action ${formAction}; img-src 'self' https: data:; style-src 'self'`,
     "content-language": runtime.defaultLocale,
     "x-content-type-options": "nosniff",
     "referrer-policy": "same-origin",
@@ -2034,6 +2050,19 @@ async function sendHtml(
   await reply
     .type("text/html; charset=utf-8")
     .send(renderApplicationAuthPage({ runtime, title, body }));
+}
+
+function oauthRedirectCspSource(redirectUri: string): string {
+  const target = new URL(redirectUri);
+  if (target.protocol === "http:" || target.protocol === "https:") {
+    return target.origin;
+  }
+  if (!/^[a-z][a-z0-9+.-]*:$/u.test(target.protocol)) {
+    throw new ApplicationAuthRequestError(
+      "Authorization redirect URI scheme is invalid"
+    );
+  }
+  return target.protocol;
 }
 
 async function redirectToUi(
