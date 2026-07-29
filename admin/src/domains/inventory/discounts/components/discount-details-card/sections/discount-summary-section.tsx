@@ -56,6 +56,7 @@ export function DiscountSummarySection({
   discount,
   currency,
   onEdit,
+  onEditValueTargets,
   onRefresh,
   onArchived,
 }: DiscountSummarySectionProps) {
@@ -166,6 +167,18 @@ export function DiscountSummarySection({
                           "data-testid":
                             "discount-edit-general-settings-menu-item",
                           onClick: onEdit,
+                        },
+                      ]
+                    : []),
+                  ...(onEditValueTargets
+                    ? [
+                        {
+                          key: "edit-value-targets",
+                          label: "Edit value, targets & requirements",
+                          icon: <LuPencil />,
+                          "data-testid":
+                            "discount-edit-value-targets-menu-item",
+                          onClick: onEditValueTargets,
                         },
                       ]
                     : []),

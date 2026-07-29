@@ -43,12 +43,14 @@ export function DiscountDetailsCard({
         discount={discount}
         currency={currency}
         onEdit={editHandler("summary")}
+        onEditValueTargets={editHandler("value-usage")}
         onRefresh={onRefresh}
         onArchived={onArchived}
       />
       <ValueUsageSection
         discount={discount}
         currency={currency}
+        onEdit={editHandler("value-usage")}
         onViewActivity={onViewActivity}
       />
       <AppliesToSection

@@ -9,9 +9,10 @@ import type { DiscountDetailsSection } from "../../components/discount-details-c
 import { useDiscount } from "../../hooks";
 import {
   useDiscountGeneralEditModal,
+  useDiscountValueTargetsEditModal,
   type IDiscountModalPayload,
 } from "../../modals";
-import { DiscountMethod } from "@/graphql/types";
+import { DiscountKind, DiscountMethod } from "@/graphql/types";
 import { useDiscountModalStyles } from "./discount-modal.styles";
 
 export function DiscountModal() {
@@ -22,23 +23,42 @@ export function DiscountModal() {
     typeof typedPayload.entityId === "string" ? typedPayload.entityId : null;
   const { discount, loading, error, refetch } = useDiscount(entityId);
   const { push: openGeneralSettingsModal } = useDiscountGeneralEditModal();
+  const { push: openValueTargetsModal } =
+    useDiscountValueTargetsEditModal();
 
   const editGeneralSettings = useCallback(
     (section: DiscountDetailsSection) => {
-      if (
-        !discount ||
-        (section !== "summary" &&
-          (section !== "codes" || discount.method !== DiscountMethod.Code))
-      ) {
+      if (!discount) {
         return;
       }
 
-      openGeneralSettingsModal({
-        discount,
-        onSaved: refetch,
-      });
+      if (
+        section === "summary" ||
+        (section === "codes" && discount.method === DiscountMethod.Code)
+      ) {
+        openGeneralSettingsModal({
+          discount,
+          onSaved: refetch,
+        });
+        return;
+      }
+
+      if (
+        (section === "value-usage" || section === "targets") &&
+        discount.kind === DiscountKind.AmountOffProducts
+      ) {
+        openValueTargetsModal({
+          discount,
+          onSaved: refetch,
+        });
+      }
     },
-    [discount, openGeneralSettingsModal, refetch],
+    [
+      discount,
+      openGeneralSettingsModal,
+      openValueTargetsModal,
+      refetch,
+    ],
   );
 
   const renderContent = () => {
@@ -70,9 +90,13 @@ export function DiscountModal() {
       <DiscountDetailsCard
         discount={discount}
         editableSections={
-          discount.method === DiscountMethod.Code
-            ? ["summary", "codes"]
-            : ["summary"]
+          [
+            "summary",
+            ...(discount.method === DiscountMethod.Code ? ["codes"] : []),
+            ...(discount.kind === DiscountKind.AmountOffProducts
+              ? ["value-usage", "targets"]
+              : []),
+          ] as DiscountDetailsSection[]
         }
         onEditSection={editGeneralSettings}
         onRefresh={refetch}

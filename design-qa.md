@@ -75,3 +75,28 @@
 - Fix any P0/P1/P2 mismatches and repeat the capture.
 
 final result: blocked
+
+---
+
+## Edit value, targets & requirements modal
+
+**Comparison target**
+
+- Source visual truth:
+  `/var/folders/lv/lp5x7z1d6dxgx4td81cg1lph0000gn/T/codex-clipboard-9baff46b-7d32-4ce9-95b3-5e64c7b90554.png`
+- Target: Admin discount “Edit value, targets & requirements” ModalStack.
+- Structural review: completed against the supplied desktop reference.
+- Interaction review: Product, Variant, and Category pickers are wired through
+  the existing ModalStack picker hooks.
+- API review: value, target selections, and minimum requirement are submitted
+  in one `discountUpdate` operation.
+
+**Findings**
+
+- [P0] Browser-rendered comparison is unavailable.
+  Evidence: the configured in-app browser rejected access to the local Admin
+  URL, so no implementation screenshot could be captured.
+  Impact: pixel-level spacing, typography, overflow, and interactive state
+  parity remain unverified.
+
+final result: blocked

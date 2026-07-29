@@ -526,6 +526,16 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard general settings changes?',
     },
+    {
+      type: 'discount-value-targets-edit',
+      component: dynamic(() =>
+        import('@/domains/inventory/discounts/modals/edit-value-targets-modal').then(
+          (m) => m.EditValueTargetsModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard value, target and requirement changes?',
+    },
     // ========================================
     // Tag modals
     // ========================================

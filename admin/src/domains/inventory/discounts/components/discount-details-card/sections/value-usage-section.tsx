@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button, Flex, Typography } from "antd";
+import { Button, Dropdown, Flex, Typography } from "antd";
 import {
   LuActivity,
   LuCircleDollarSign,
+  LuEllipsis,
   LuGift,
+  LuPencil,
   LuPercent,
   LuTruck,
 } from "react-icons/lu";
@@ -38,7 +40,34 @@ import {
 interface ValueUsageSectionProps {
   discount: ApiDiscount;
   currency: CurrencyCode | null;
+  onEdit?: () => void;
   onViewActivity?: () => void;
+}
+
+function ValueEditMenu({ onEdit }: { onEdit: () => void }) {
+  return (
+    <Dropdown
+      trigger={["click"]}
+      menu={{
+        items: [
+          {
+            key: "edit-value-targets",
+            label: "Edit value, targets & requirements",
+            icon: <LuPencil />,
+            "data-testid": "discount-value-edit-menu-item",
+            onClick: onEdit,
+          },
+        ],
+      }}
+    >
+      <Button
+        size="small"
+        icon={<LuEllipsis />}
+        aria-label="Discount value actions"
+        data-testid="discount-value-actions"
+      />
+    </Dropdown>
+  );
 }
 
 function formatRuleValue(
@@ -214,6 +243,7 @@ function buildUsagePoints(
 export function ValueUsageSection({
   discount,
   currency,
+  onEdit,
   onViewActivity,
 }: ValueUsageSectionProps) {
   const { styles } = useDiscountSectionStyles();
@@ -229,7 +259,15 @@ export function ValueUsageSection({
   if (!discount.rule) {
     return (
       <Paper className={styles.section} data-testid="discount-value-usage-section">
-        <PaperHeader title="Value & usage" className={styles.compactHeader} />
+        <PaperHeader
+          title="Value & usage"
+          className={styles.compactHeader}
+          actions={
+            onEdit ? (
+              <ValueEditMenu onEdit={onEdit} />
+            ) : undefined
+          }
+        />
         <EntityDetailsEmptyState
           icon={<LuPercent />}
           state={{
@@ -250,14 +288,21 @@ export function ValueUsageSection({
       <PaperHeader
         title="Value & usage"
         actions={
-          onViewActivity ? (
-            <Button
-              size="small"
-              icon={<LuActivity />}
-              onClick={onViewActivity}
-            >
-              View activity
-            </Button>
+          onEdit || onViewActivity ? (
+            <Flex align="center" gap={8}>
+              {onViewActivity ? (
+                <Button
+                  size="small"
+                  icon={<LuActivity />}
+                  onClick={onViewActivity}
+                >
+                  View activity
+                </Button>
+              ) : null}
+              {onEdit ? (
+                <ValueEditMenu onEdit={onEdit} />
+              ) : null}
+            </Flex>
           ) : undefined
         }
       />

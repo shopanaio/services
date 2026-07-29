@@ -1,11 +1,19 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Button, Flex, Tag, Timeline, Typography } from "antd";
+import {
+  Button,
+  Dropdown,
+  Flex,
+  Tag,
+  Timeline,
+  Typography,
+} from "antd";
 import {
   LuBox,
   LuEllipsis,
   LuGift,
+  LuPencil,
   LuShoppingCart,
   LuTruck,
   LuTriangleAlert,
@@ -310,12 +318,27 @@ export function AppliesToSection({
         className={styles.compactHeader}
         actions={
           onEdit ? (
-            <Button
-              size="small"
-              icon={<LuEllipsis />}
-              aria-label="Edit discount targets"
-              onClick={onEdit}
-            />
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "edit-value-targets",
+                    label: "Edit value, targets & requirements",
+                    icon: <LuPencil />,
+                    "data-testid": "discount-targets-edit-menu-item",
+                    onClick: onEdit,
+                  },
+                ],
+              }}
+            >
+              <Button
+                size="small"
+                icon={<LuEllipsis />}
+                aria-label="Discount target actions"
+                data-testid="discount-targets-actions"
+              />
+            </Dropdown>
           ) : undefined
         }
       />

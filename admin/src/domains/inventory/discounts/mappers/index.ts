@@ -7,6 +7,13 @@ export {
   type DiscountGeneralFormValues,
 } from "./discount-general-update.mapper";
 export {
+  buildDiscountValueTargetsUpdateInput,
+  createDiscountValueTargetsFormValues,
+  validateDiscountValueTargetsForm,
+  type DiscountTargetEditorItem,
+  type DiscountValueTargetsFormValues,
+} from "./discount-value-targets-update.mapper";
+export {
   mapDiscountUserErrorsToFormErrors,
   type DiscountFormError,
 } from "./discount-errors.mapper";

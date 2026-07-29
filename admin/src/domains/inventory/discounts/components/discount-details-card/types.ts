@@ -25,6 +25,7 @@ export interface DiscountSummarySectionProps {
   discount: ApiDiscount;
   currency: CurrencyCode | null;
   onEdit?: () => void;
+  onEditValueTargets?: () => void;
   onRefresh?: () => Promise<unknown>;
   onArchived?: () => void;
 }

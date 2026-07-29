@@ -60,22 +60,54 @@ function resolveNodeType(value: unknown): string | null {
   return typeof typename === "string" ? typename : null;
 }
 
+function resolveDiscountRuleType(value: unknown): string | null {
+  if (value instanceof DiscountAmountOffRuleResolver) {
+    return "DiscountAmountOffRule";
+  }
+  if (value instanceof DiscountBuyXGetYRuleResolver) {
+    return "DiscountBuyXGetYRule";
+  }
+  if (value instanceof DiscountFreeShippingRuleResolver) {
+    return "DiscountFreeShippingRule";
+  }
+  if (!value || typeof value !== "object") return null;
+
+  const rule = value as Record<string, unknown>;
+  if (rule.__typename === "DiscountAmountOffRule") {
+    return "DiscountAmountOffRule";
+  }
+  if (rule.__typename === "DiscountBuyXGetYRule") {
+    return "DiscountBuyXGetYRule";
+  }
+  if (rule.__typename === "DiscountFreeShippingRule") {
+    return "DiscountFreeShippingRule";
+  }
+  if (
+    "allocationMethod" in rule ||
+    "percentageBps" in rule ||
+    "amountMinor" in rule
+  ) {
+    return "DiscountAmountOffRule";
+  }
+  if (
+    "benefitQuantity" in rule ||
+    "benefitValueType" in rule ||
+    "usesPerOrderLimit" in rule
+  ) {
+    return "DiscountBuyXGetYRule";
+  }
+  if ("maximumShippingPriceMinor" in rule) {
+    return "DiscountFreeShippingRule";
+  }
+
+  return null;
+}
+
 export const typeResolvers = {
   Node: { __resolveType: resolveNodeType },
   UserError: { __resolveType: () => "GenericUserError" },
   DiscountRule: {
-    __resolveType: (value: unknown) => {
-      if (value instanceof DiscountAmountOffRuleResolver) {
-        return "DiscountAmountOffRule";
-      }
-      if (value instanceof DiscountBuyXGetYRuleResolver) {
-        return "DiscountBuyXGetYRule";
-      }
-      if (value instanceof DiscountFreeShippingRuleResolver) {
-        return "DiscountFreeShippingRule";
-      }
-      return null;
-    },
+    __resolveType: resolveDiscountRuleType,
   },
   DiscountCatalogTarget: {
     __resolveType: (value: unknown) => {
