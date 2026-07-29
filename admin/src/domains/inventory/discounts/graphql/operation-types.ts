@@ -3,7 +3,11 @@ import type {
   ApiDiscount,
   ApiDiscountCreateInput,
   ApiDiscountCreatePayload,
+  ApiGenericUserError,
+  ApiDiscountOperationResult,
   ApiDiscountOrderByInput,
+  ApiDiscountUpdateInput,
+  ApiDiscountUpdatePayload,
   ApiDiscountWhereInput,
   ApiPricingMutation,
   ApiPricingQuery,
@@ -21,26 +25,9 @@ export interface DiscountsQueryVariables extends RelayCursorPaginationVariables 
   orderBy?: ApiDiscountOrderByInput[] | null;
 }
 
-export type DiscountDetailsQueryDiscount = Pick<
-  ApiDiscount,
-  | "id"
-  | "revision"
-  | "title"
-  | "primaryCode"
-  | "method"
-  | "kind"
-  | "discountClass"
-  | "currency"
-  | "state"
-  | "effectiveStatus"
-  | "createdAt"
-  | "updatedAt"
-  | "archivedAt"
->;
-
 export interface DiscountDetailsQueryData {
   pricingQuery: {
-    discount: DiscountDetailsQueryDiscount | null;
+    discount: ApiDiscount | null;
   };
 }
 
@@ -56,4 +43,23 @@ export interface DiscountCreateMutationData {
 
 export interface DiscountCreateMutationVariables {
   input: ApiDiscountCreateInput;
+}
+
+export interface DiscountUpdateMutationData {
+  pricingMutation: Pick<ApiPricingMutation, "discountUpdate"> & {
+    discountUpdate: ApiDiscountUpdatePayload;
+  };
+}
+
+export interface DiscountUpdateMutationVariables {
+  discountId: string;
+  expectedRevision: number;
+  operations: ApiDiscountUpdateInput;
+}
+
+export interface DiscountUpdateResult {
+  discount: ApiDiscount | null;
+  operationResults: ApiDiscountOperationResult[];
+  userErrors: ApiGenericUserError[];
+  errors: ApiGenericUserError[];
 }

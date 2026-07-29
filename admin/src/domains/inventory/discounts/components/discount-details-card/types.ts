@@ -1,15 +1,26 @@
-import type { DiscountDetailsQueryDiscount } from "../../graphql/operation-types";
+import type { ApiDiscount, CurrencyCode } from "@/graphql/types";
 
-export type DiscountDetailsSection = "summary";
+export type DiscountDetailsSection =
+  | "summary"
+  | "value-usage"
+  | "targets"
+  | "eligibility"
+  | "channels"
+  | "combinations"
+  | "availability"
+  | "tags"
+  | "codes"
+  | "external-references";
 
 export interface DiscountDetailsCardProps {
-  discount: DiscountDetailsQueryDiscount;
+  discount: ApiDiscount;
   onEditSection?: (section: DiscountDetailsSection) => void;
   onViewActivity?: () => void;
   onRefresh?: () => Promise<unknown>;
 }
 
 export interface DiscountSummarySectionProps {
-  discount: DiscountDetailsQueryDiscount;
+  discount: ApiDiscount;
+  currency: CurrencyCode | null;
   onEdit?: () => void;
 }

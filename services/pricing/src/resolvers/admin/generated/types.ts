@@ -414,7 +414,8 @@ export type Discount = Node & {
   appliesOnSubscription: Scalars['Boolean']['output'];
   appliesOncePerCustomer: Scalars['Boolean']['output'];
   archivedAt: Maybe<Scalars['DateTime']['output']>;
-  buyerContext: DiscountBuyerContext;
+  /** Buyer eligibility is absent until it is configured on an incomplete draft. */
+  buyerContext: Maybe<DiscountBuyerContext>;
   channelCodes: Array<Scalars['String']['output']>;
   channels: Array<DiscountChannel>;
   codes: DiscountCodeConnection;
@@ -2367,7 +2368,7 @@ export type DiscountResolvers<ContextType = ServiceContext, ParentType extends R
   appliesOnSubscription?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   appliesOncePerCustomer?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   archivedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  buyerContext?: Resolver<ResolversTypes['DiscountBuyerContext'], ParentType, ContextType>;
+  buyerContext?: Resolver<Maybe<ResolversTypes['DiscountBuyerContext']>, ParentType, ContextType>;
   channelCodes?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   channels?: Resolver<Array<ResolversTypes['DiscountChannel']>, ParentType, ContextType>;
   codes?: Resolver<ResolversTypes['DiscountCodeConnection'], ParentType, ContextType, Partial<DiscountCodesArgs>>;

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Alert, Empty, Flex, Skeleton } from "antd";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { DiscountDetailsCard } from "../../components/discount-details-card";
+import { DiscountStatusTag } from "../../components/discount-details-card/discount-status-tag";
 import { useDiscount } from "../../hooks";
 import type { IDiscountModalPayload } from "../../modals";
 import { useDiscountModalStyles } from "./discount-modal.styles";
@@ -53,9 +54,7 @@ export function DiscountModal() {
     }
 
     return (
-      <div className={styles.content}>
-        <DiscountDetailsCard discount={discount} onRefresh={refetch} />
-      </div>
+      <DiscountDetailsCard discount={discount} onRefresh={refetch} />
     );
   };
 
@@ -66,9 +65,17 @@ export function DiscountModal() {
         title: "Discount details",
         onClose: forcePop,
         submitButtonProps: null,
+        extra: discount ? (
+          <DiscountStatusTag
+            status={discount.effectiveStatus}
+            method={discount.method}
+            compact
+          />
+        ) : null,
       }}
+      bodyClassName={styles.body}
     >
-      <div className={styles.body}>{renderContent()}</div>
+      {renderContent()}
     </ModalLayout>
   );
 }

@@ -137,11 +137,8 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
       this.$ctx.loaders.discountEligibleCustomers.load(this.$props),
       this.$ctx.loaders.discountEligibleSegments.load(this.$props),
     ]);
-    if (!context) {
-      throw new PreloadNotFoundError(
-        `Buyer context for discount ${this.$props} not found`,
-      );
-    }
+    if (!context) return null;
+
     return new DiscountBuyerContextResolver(
       { context, customers, segments },
       this.$ctx,

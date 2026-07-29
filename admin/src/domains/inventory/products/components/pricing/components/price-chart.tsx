@@ -8,35 +8,50 @@ import {
   formatShortDate,
 } from "../../../utils/price-formatting";
 
+export interface PriceChartPoint {
+  date: Date;
+  value: number;
+  currency?: CurrencyCode | null;
+  isCurrent?: boolean;
+}
+
 interface IPriceChartProps {
-  history: ApiVariantPriceConnection;
+  history?: ApiVariantPriceConnection;
+  points?: PriceChartPoint[];
   currency?: CurrencyCode | null;
   height?: number;
   showAxisLabels?: boolean;
   showDateLabels?: boolean;
   gridLineCount?: number;
+  valueFormatter?: (value: number, point: PriceChartPoint) => string;
 }
 
 export const PriceChart = ({
   history,
+  points,
   currency,
   height = 100,
   showAxisLabels = false,
   showDateLabels = false,
   gridLineCount = 3,
+  valueFormatter,
 }: IPriceChartProps) => {
   const theme = useTheme();
 
   const chartData = useMemo(() => {
     // Convert API format to chart format and reverse for chronological order
-    const items = history.edges.map((edge, index) => ({
+    if (points) {
+      return points;
+    }
+
+    const items = (history?.edges ?? []).map((edge, index) => ({
       date: new Date(edge.node.effectiveFrom),
       value: edge.node.amountMinor,
       currency: edge.node.currency,
       isCurrent: index === 0, // First item is the current price
     }));
     return items.reverse();
-  }, [history]);
+  }, [history, points]);
 
   const option = useMemo(() => {
     const dates = chartData.map((d) => formatShortDate(d.date));
@@ -97,8 +112,10 @@ export const PriceChart = ({
         formatter: (params: { dataIndex: number; value: number }[]) => {
           const point = params[0];
           const item = chartData[point.dataIndex];
-          const price = formatPrice(point.value, item.currency ?? axisCurrency);
-          return `<div style="font-weight:600">${price}</div>
+          const formattedValue = valueFormatter
+            ? valueFormatter(point.value, item)
+            : formatPrice(point.value, item.currency ?? axisCurrency);
+          return `<div style="font-weight:600">${formattedValue}</div>
                   <div style="opacity:0.7;font-size:10px">${formatShortDate(
                     item.date
                   )}</div>`;
@@ -178,6 +195,7 @@ export const PriceChart = ({
     showDateLabels,
     gridLineCount,
     currency,
+    valueFormatter,
   ]);
 
   return (

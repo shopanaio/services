@@ -1,29 +1,43 @@
 "use client";
 
 import { useQuery } from "@apollo/client/react";
+import type { ApiDiscount } from "@/graphql/types";
+import {
+  DISCOUNT_REVIEW_FIXTURES_ENABLED,
+  getDiscountReviewFixture,
+} from "../fixtures/discount-review.fixtures";
 import { DISCOUNT_DETAILS_QUERY } from "../graphql";
 import type {
   DiscountDetailsQueryData,
-  DiscountDetailsQueryDiscount,
   DiscountDetailsQueryVariables,
 } from "../graphql/operation-types";
 
 interface UseDiscountReturn {
-  discount: DiscountDetailsQueryDiscount | null;
+  discount: ApiDiscount | null;
   loading: boolean;
   error: Error | null;
   refetch: () => Promise<unknown>;
 }
 
 export function useDiscount(id?: string | null): UseDiscountReturn {
+  const reviewFixture = getDiscountReviewFixture(id);
   const { data, previousData, loading, error, refetch } = useQuery<
     DiscountDetailsQueryData,
     DiscountDetailsQueryVariables
   >(DISCOUNT_DETAILS_QUERY, {
     variables: { id: id ?? "" },
-    skip: !id,
+    skip: !id || DISCOUNT_REVIEW_FIXTURES_ENABLED,
     fetchPolicy: "cache-and-network",
   });
+
+  if (DISCOUNT_REVIEW_FIXTURES_ENABLED) {
+    return {
+      discount: reviewFixture,
+      loading: false,
+      error: null,
+      refetch: () => Promise.resolve(undefined),
+    };
+  }
 
   const effectiveData = data ?? previousData;
 

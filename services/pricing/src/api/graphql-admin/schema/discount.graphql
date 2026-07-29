@@ -37,7 +37,10 @@ type Discount implements Node @key(fields: "id") {
   rule: DiscountRule
   minimumRequirement: DiscountMinimumRequirement
   targetSelections: [DiscountTargetSelection!]!
-  buyerContext: DiscountBuyerContext!
+  """
+  Buyer eligibility is absent until it is configured on an incomplete draft.
+  """
+  buyerContext: DiscountBuyerContext
   channels: [DiscountChannel!]!
   combinations: [DiscountCombination!]!
   usage: DiscountUsageSummary!

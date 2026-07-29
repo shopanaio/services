@@ -6964,7 +6964,8 @@ export type ApiDiscount = ApiNode & {
   appliesOnSubscription: Scalars['Boolean']['output'];
   appliesOncePerCustomer: Scalars['Boolean']['output'];
   archivedAt?: Maybe<Scalars['DateTime']['output']>;
-  buyerContext: ApiDiscountBuyerContext;
+  /** Buyer eligibility is absent until it is configured on an incomplete draft. */
+  buyerContext?: Maybe<ApiDiscountBuyerContext>;
   channelCodes: Array<Scalars['String']['output']>;
   channels: Array<ApiDiscountChannel>;
   codes: ApiDiscountCodeConnection;

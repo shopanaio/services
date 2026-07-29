@@ -1,1 +1,10 @@
 export { DiscountSummarySection } from "./discount-summary-section";
+export { ValueUsageSection } from "./value-usage-section";
+export { AppliesToSection } from "./applies-to-section";
+export { CustomerEligibilitySection } from "./customer-eligibility-section";
+export { ChannelsSection } from "./channels-section";
+export { CombinationsSection } from "./combinations-section";
+export { AvailabilityLimitsSection } from "./availability-limits-section";
+export { DiscountTagsSection } from "./tags-section";
+export { DiscountCodesSection } from "./discount-codes-section";
+export { ExternalReferencesSection } from "./external-references-section";

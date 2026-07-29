@@ -1,21 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { App, Button, Tag, Flex, Dropdown } from "antd";
-import { LuPlus as PlusOutlined, LuEllipsis as MoreOutlined, LuTags as TagsOutlined } from "react-icons/lu";
-import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { useTagPicker } from "@/shared/components/entity-picker-modal";
+import { App } from "antd";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
-import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
+import {
+  EntityTagsSection,
+  type EntityDetailsTagItem,
+} from "@/domains/inventory/components/entity-details-sections";
 import type { ApiTag, ApiProductUpdateInput } from "@/graphql/types";
 import { ProductTagOperationAction } from "@/graphql/types";
 import { useUpdateProduct } from "@/domains/inventory/products/hooks";
-
-interface TagItem {
-  id: string;
-  name: string;
-  handle?: string | null;
-}
 
 interface ITagsSectionProps {
   productId?: string;
@@ -24,7 +18,7 @@ interface ITagsSectionProps {
   onProductRefresh?: () => Promise<unknown>;
 }
 
-const toTagItem = (tag: ApiTag): TagItem => ({
+const toTagItem = (tag: ApiTag): EntityDetailsTagItem => ({
   id: tag.id,
   name: tag.name,
   handle: tag.handle,
@@ -39,7 +33,9 @@ export const TagsSection = ({
   const { message } = App.useApp();
   const { updateProduct } = useUpdateProduct();
   const [pendingTagId, setPendingTagId] = useState<string | null>(null);
-  const [tags, setTags] = useState<TagItem[]>(() => initialTags.map(toTagItem));
+  const [tags, setTags] = useState<EntityDetailsTagItem[]>(() =>
+    initialTags.map(toTagItem),
+  );
   const initialTagsKey = initialTags.map((tag) => tag.id).join("|");
 
   useEffect(() => {
@@ -102,7 +98,7 @@ export const TagsSection = ({
     const existingById = new Map(tags.map((tag) => [tag.id, tag]));
     const newTags = entities
       .filter((entity) => !existingById.has(entity.id))
-      .map((entity): TagItem => ({
+      .map((entity): EntityDetailsTagItem => ({
         id: entity.id,
         name: entity.title,
         handle:
@@ -140,101 +136,16 @@ export const TagsSection = ({
     }
   };
 
-  const { openPicker } = useTagPicker({
-    excludeIds: tags.map((tag) => tag.id),
-    onConfirm: (entities: IPickableEntity[]) => {
-      void addTags(entities);
-    },
-  });
-
-  const hasTags = tags.length > 0;
   const isPending = pendingTagId !== null;
 
   return (
-    <Paper data-testid="product-tags-section">
-      <PaperHeader
-        title="Tags"
-        actions={
-          !hasTags ? (
-            <Button
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={isPending ? undefined : openPicker}
-              data-testid="product-tags-add-button"
-              disabled={isPending}
-            >
-              Add Tag
-            </Button>
-          ) : undefined
-        }
-      />
-      {hasTags ? (
-        <Flex gap={4} wrap="wrap">
-          {tags.map((tag) => (
-            <Dropdown
-              key={tag.id}
-              trigger={["click"]}
-              menu={{
-                items: [
-                  {
-                    key: "delete",
-                    label: (
-                      <span
-                        data-testid={
-                          tag.handle
-                            ? `product-tags-delete-menu-item-${tag.handle}`
-                            : `product-tags-delete-menu-item-${tag.id}`
-                        }
-                      >
-                        Delete tag
-                      </span>
-                    ),
-                    onClick: () => deleteTag(tag.id),
-                    disabled: isPending,
-                  },
-                ],
-              }}
-            >
-              <Tag
-                style={{ cursor: "pointer" }}
-                data-testid={
-                  tag.handle
-                    ? `product-tags-item-${tag.handle}`
-                    : `product-tags-item-${tag.id}`
-                }
-              >
-                <Flex align="center" gap={4}>
-                  {tag.name}
-                  <MoreOutlined />
-                </Flex>
-              </Tag>
-            </Dropdown>
-          ))}
-          <Tag
-            variant="outlined"
-            onClick={isPending ? undefined : openPicker}
-            data-testid="product-tags-add-button"
-            style={{
-              cursor: isPending ? "not-allowed" : "pointer",
-              background: "transparent",
-              borderStyle: "dashed",
-            }}
-          >
-            <Flex align="center" gap={4}>
-              <PlusOutlined />
-              Add Tag
-            </Flex>
-          </Tag>
-        </Flex>
-      ) : (
-        <EntityDetailsEmptyState
-          icon={<TagsOutlined />}
-          state={{
-            title: "No tags added",
-            description: "Add tags to group products for filtering.",
-          }}
-        />
-      )}
-    </Paper>
+    <EntityTagsSection
+      tags={tags}
+      isPending={isPending}
+      onAdd={addTags}
+      onDelete={deleteTag}
+      testIdPrefix="product-tags"
+      emptyDescription="Add tags to group products for filtering."
+    />
   );
 };

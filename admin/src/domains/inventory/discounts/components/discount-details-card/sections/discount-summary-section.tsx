@@ -1,66 +1,31 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Button, Divider, Flex, Tag, Typography } from "antd";
 import {
-  LuArchive,
-  LuCircleCheck,
-  LuCirclePause,
-  LuClock3,
-  LuEllipsis,
-  LuFilePenLine,
-  LuTimerOff,
-} from "react-icons/lu";
-import { DiscountEffectiveStatus } from "@/graphql/types";
+  Button,
+  Divider,
+  Flex,
+  Segmented,
+  Switch,
+  Tag,
+  Typography,
+} from "antd";
+import { LuEllipsis } from "react-icons/lu";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
+import { KPITile } from "@/ui-kit/kpi-tile";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { PeriodSwitch } from "@/domains/inventory/products/components/period-switch";
-import { getDiscountKpiFixture, type DiscountKpiPeriod } from "../discount-kpi.fixtures";
+import { DiscountStatusTag } from "../discount-status-tag";
+import { DiscountEffectiveStatus } from "@/graphql/types";
 import { useDiscountSummaryStyles } from "../discount-details-card.styles";
 import {
+  formatDiscountCount,
   formatDiscountDate,
-  formatDiscountEnum,
   formatDiscountKind,
+  formatDiscountMoney,
   formatDiscountMethod,
+  formatDiscountPercentage,
   getShortDiscountId,
 } from "../formatters";
 import type { DiscountSummarySectionProps } from "../types";
-
-const PERIODS = [
-  { value: "7d", label: "7 days" },
-  { value: "30d", label: "30 days" },
-  { value: "90d", label: "90 days" },
-] as const;
-
-const STATUS_PRESENTATION: Record<
-  DiscountEffectiveStatus,
-  { color: string; icon: ReactNode }
-> = {
-  [DiscountEffectiveStatus.Active]: {
-    color: "success",
-    icon: <LuCircleCheck />,
-  },
-  [DiscountEffectiveStatus.Archived]: {
-    color: "default",
-    icon: <LuArchive />,
-  },
-  [DiscountEffectiveStatus.Draft]: {
-    color: "default",
-    icon: <LuFilePenLine />,
-  },
-  [DiscountEffectiveStatus.Expired]: {
-    color: "error",
-    icon: <LuTimerOff />,
-  },
-  [DiscountEffectiveStatus.Paused]: {
-    color: "warning",
-    icon: <LuCirclePause />,
-  },
-  [DiscountEffectiveStatus.Scheduled]: {
-    color: "processing",
-    icon: <LuClock3 />,
-  },
-};
 
 function IdentityChip({ label, value }: { label: string; value: string }) {
   const { styles } = useDiscountSummaryStyles();
@@ -77,22 +42,53 @@ function IdentityChip({ label, value }: { label: string; value: string }) {
 
 export function DiscountSummarySection({
   discount,
+  currency,
   onEdit,
 }: DiscountSummarySectionProps) {
-  const { styles, cx } = useDiscountSummaryStyles();
-  const fixture = getDiscountKpiFixture(discount);
-  const [period, setPeriod] = useState<DiscountKpiPeriod>(fixture.period);
-  const [compareEnabled, setCompareEnabled] = useState(fixture.compareEnabled);
-  const status = STATUS_PRESENTATION[discount.effectiveStatus];
+  const { styles } = useDiscountSummaryStyles();
   const title = discount.title ?? discount.primaryCode ?? "Untitled discount";
-
+  const redemptionAmounts = discount.redemptions.edges.map(
+    ({ node }) => Number(node.amountMinor),
+  ).filter(
+    (amount) => Number.isFinite(amount),
+  );
+  const averageAmount =
+    redemptionAmounts.length > 0
+      ? Math.round(
+          redemptionAmounts.reduce((sum, value) => sum + value, 0) /
+            redemptionAmounts.length,
+        )
+      : null;
+  const discountedSales =
+    averageAmount == null
+      ? null
+      : averageAmount * discount.redemptions.totalCount;
+  const averageDiscount = (() => {
+    const rule = discount.rule;
+    if (!rule) return "—";
+    if (rule.__typename === "DiscountAmountOffRule") {
+      if (rule.percentageBps != null) {
+        return formatDiscountPercentage(rule.percentageBps);
+      }
+      return formatDiscountMoney(rule.amountMinor, currency);
+    }
+    if (rule.__typename === "DiscountFreeShippingRule") {
+      return averageAmount == null
+        ? "—"
+        : formatDiscountMoney(averageAmount, currency);
+    }
+    return "—";
+  })();
   const statusTitle = (
     <Flex align="center" gap={8} wrap>
-      <Tag color={status.color} icon={status.icon} className={styles.statusTag}>
-        {formatDiscountEnum(discount.effectiveStatus)}
-      </Tag>
+      <DiscountStatusTag
+        status={discount.effectiveStatus}
+        className={styles.statusTag}
+      />
       <Typography.Text type="secondary" className={styles.metaText}>
-        Updated {formatDiscountDate(discount.updatedAt)}
+        {discount.effectiveStatus === DiscountEffectiveStatus.Draft
+          ? `Created ${formatDiscountDate(discount.createdAt)}`
+          : `Updated ${formatDiscountDate(discount.updatedAt)}`}
       </Typography.Text>
     </Flex>
   );
@@ -101,6 +97,7 @@ export function DiscountSummarySection({
     <Paper data-testid="discount-summary-section">
       <PaperHeader
         title={statusTitle}
+        className={styles.header}
         actions={
           onEdit ? (
             <Button
@@ -123,7 +120,10 @@ export function DiscountSummarySection({
           {title}
         </Typography.Title>
         <Flex align="center" gap={8} className={styles.chips}>
-          <IdentityChip label="Method" value={formatDiscountMethod(discount.method)} />
+          <IdentityChip
+            label="Method"
+            value={formatDiscountMethod(discount.method)}
+          />
           <IdentityChip label="Type" value={formatDiscountKind(discount.kind)} />
           <CopyableChip
             label="ID"
@@ -131,47 +131,56 @@ export function DiscountSummarySection({
             displayValue={getShortDiscountId(discount.id)}
             mono
           />
-          <IdentityChip label="Currency" value={discount.currency} />
+          <IdentityChip label="Currency" value={currency ?? "Not configured"} />
         </Flex>
       </Flex>
 
       <Divider className={styles.divider} />
 
-      <Flex vertical gap={8}>
-        <PeriodSwitch
-          periods={PERIODS}
-          value={period}
-          onChange={setPeriod}
-          showCompare
-          compareEnabled={compareEnabled}
-          onCompareChange={setCompareEnabled}
+      <Flex
+        align="center"
+        justify="space-between"
+        gap={12}
+        className={styles.summaryControls}
+      >
+        <Segmented
+          size="small"
+          value="7 days"
+          options={["7 days", "30 days", "90 days"]}
+          className={styles.periodControl}
         />
-
-        <div className={styles.kpiGrid}>
-          {fixture.metrics.map((metric) => (
-            <div className={styles.kpiTile} key={metric.label}>
-              <Typography.Text className={styles.kpiLabel}>
-                {metric.label}
-              </Typography.Text>
-              <Flex align="end" justify="space-between" gap={8}>
-                <Typography.Text className={styles.kpiValue} title={metric.value}>
-                  {metric.value}
-                </Typography.Text>
-                <Typography.Text
-                  className={cx(
-                    styles.trend,
-                    metric.trendDirection === "positive"
-                      ? styles.trendPositive
-                      : styles.trendNeutral,
-                  )}
-                >
-                  {metric.trend}
-                </Typography.Text>
-              </Flex>
-            </div>
-          ))}
-        </div>
+        <Flex align="center" gap={6}>
+          <Typography.Text type="secondary">Compare</Typography.Text>
+          <Switch size="small" aria-label="Compare discount metrics" />
+        </Flex>
       </Flex>
+
+      <div className={styles.kpiGrid}>
+        <KPITile
+          label="Orders"
+          value={formatDiscountCount(discount.redemptions.totalCount)}
+        />
+        <KPITile
+          label="Uses"
+          value={formatDiscountCount(discount.usage.consumedCount)}
+        />
+        <KPITile
+          label="Discounted sales"
+          value={
+            discountedSales == null
+              ? "$0"
+              : new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: currency ?? "USD",
+                  maximumFractionDigits: 0,
+                }).format(discountedSales / 100)
+          }
+        />
+        <KPITile
+          label="Avg. discount"
+          value={averageDiscount}
+        />
+      </div>
     </Paper>
   );
 }
