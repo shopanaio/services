@@ -415,6 +415,7 @@ export function EditEligibilityChannelsModal() {
           <Segmented
             block
             value={values.buyerContextType}
+            data-testid="discount-buyer-context"
             options={[
               {
                 value: DiscountBuyerContextType.All,
@@ -476,6 +477,7 @@ export function EditEligibilityChannelsModal() {
                 />
                 <Button
                   icon={<LuListPlus />}
+                  data-testid={`discount-${isCustomers ? "customers" : "segments"}-select-button`}
                   onClick={
                     isCustomers
                       ? customerPicker.openPicker
@@ -533,9 +535,14 @@ export function EditEligibilityChannelsModal() {
           />
           <div>
             {values.channels.map((channel) => (
-              <div className={styles.channelRow} key={channel.code}>
+              <div
+                className={styles.channelRow}
+                key={channel.code}
+                data-testid={`discount-channel-row-${channel.code}`}
+              >
                 <Checkbox
                   checked={channel.enabled}
+                  data-testid={`discount-channel-enabled-${channel.code}`}
                   onChange={(event) =>
                     updateValues({
                       channels: values.channels.map((item) =>
@@ -562,6 +569,7 @@ export function EditEligibilityChannelsModal() {
                 <Checkbox
                   checked={channel.featured}
                   disabled={!channel.enabled}
+                  data-testid={`discount-channel-featured-${channel.code}`}
                   onChange={(event) =>
                     updateValues({
                       channels: values.channels.map((item) =>

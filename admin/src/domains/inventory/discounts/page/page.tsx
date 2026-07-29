@@ -58,8 +58,18 @@ function DiscountCell({ data }: CustomCellRendererProps<ApiDiscount>) {
   if (!data) return null;
 
   return (
-    <Flex vertical gap={2} style={{ minWidth: 0 }}>
-      <Typography.Text strong ellipsis title={data.title ?? undefined}>
+    <Flex
+      vertical
+      gap={2}
+      style={{ minWidth: 0 }}
+      data-testid={`discounts-table-discount-cell-${data.id}`}
+    >
+      <Typography.Text
+        strong
+        ellipsis
+        title={data.title ?? undefined}
+        data-testid={`discounts-table-title-${data.id}`}
+      >
         {data.title ?? data.primaryCode ?? "Untitled discount"}
       </Typography.Text>
       {data.primaryCode && data.title && (

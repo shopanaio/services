@@ -83,6 +83,8 @@ export const ModalHeader = ({
             icon={<CloseOutlined />}
             onClick={onClose}
             className={styles.closeButton}
+            aria-label="Close modal"
+            data-testid={`close-${name ? `${name}-` : ""}modal-button`}
           />
           <kbd className={styles.escBadge}>esc</kbd>
         </div>

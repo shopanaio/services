@@ -67,6 +67,7 @@ export function CombinationsSection({
                   {
                     key: "edit",
                     label: "Edit availability, limits & combinations",
+                    "data-testid": "discount-combinations-edit-menu-item",
                     onClick: onEdit,
                   },
                 ],
@@ -76,6 +77,7 @@ export function CombinationsSection({
                 size="small"
                 icon={<LuEllipsis />}
                 aria-label="Discount combination actions"
+                data-testid="discount-combinations-actions"
               />
             </Dropdown>
           ) : undefined

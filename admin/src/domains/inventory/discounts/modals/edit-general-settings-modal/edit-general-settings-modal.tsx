@@ -70,6 +70,7 @@ function CodeCell(params: CustomCellRendererProps<DiscountCodeEditorRow>) {
   return (
     <Input
       aria-label="Discount code"
+      data-testid={`discount-code-input-${params.data.key}`}
       className={styles.cellControl}
       value={params.data.code}
       placeholder="Enter code"
@@ -89,6 +90,7 @@ function StatusCell(params: CustomCellRendererProps<DiscountCodeEditorRow>) {
   return (
     <Select
       aria-label="Discount code status"
+      data-testid={`discount-code-status-${params.data.key}`}
       className={styles.cellControl}
       value={params.data.status}
       disabled={!params.data.id}
@@ -112,6 +114,7 @@ function UsageLimitCell(
   return (
     <InputNumber
       aria-label="Discount code usage limit"
+      data-testid={`discount-code-usage-limit-${params.data.key}`}
       className={styles.cellControl}
       min={1}
       precision={0}
@@ -152,6 +155,7 @@ function ActionsCell(params: CustomCellRendererProps<DiscountCodeEditorRow>) {
           type="text"
           size="small"
           aria-label={`Actions for ${params.data.code || "new discount code"}`}
+          data-testid={`discount-code-actions-${params.data.key}`}
           icon={<MoreOutlined />}
         />
       </Dropdown>
@@ -344,6 +348,7 @@ export function EditGeneralSettingsModal() {
               </Typography.Text>
               <Input
                 aria-label="Discount title"
+                data-testid="discount-general-title-input"
                 value={values.title}
                 maxLength={255}
                 onChange={(event) => {
@@ -361,6 +366,7 @@ export function EditGeneralSettingsModal() {
               </Typography.Text>
               <InputNumber
                 aria-label="Discount priority"
+                data-testid="discount-general-priority-input"
                 className={styles.cellControl}
                 min={0}
                 precision={0}
@@ -389,7 +395,12 @@ export function EditGeneralSettingsModal() {
               title="Discount codes"
               className={styles.codesHeader}
               actions={
-                <Button size="small" icon={<PlusOutlined />} onClick={addCode}>
+                <Button
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={addCode}
+                  data-testid="discount-code-add-button"
+                >
                   Add
                 </Button>
               }

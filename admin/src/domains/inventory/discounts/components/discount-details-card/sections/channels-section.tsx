@@ -45,6 +45,7 @@ export function ChannelsSection({
                   {
                     key: "edit",
                     label: "Edit eligibility & channels",
+                    "data-testid": "discount-channels-edit-menu-item",
                     onClick: onEdit,
                   },
                 ],
@@ -54,6 +55,7 @@ export function ChannelsSection({
                 size="small"
                 icon={<LuEllipsis />}
                 aria-label="Discount channel actions"
+                data-testid="discount-channels-actions"
               />
             </Dropdown>
           ) : undefined

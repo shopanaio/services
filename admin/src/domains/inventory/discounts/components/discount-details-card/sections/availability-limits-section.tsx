@@ -61,6 +61,7 @@ export function AvailabilityLimitsSection({
                   {
                     key: "edit",
                     label: "Edit availability, limits & combinations",
+                    "data-testid": "discount-availability-edit-menu-item",
                     onClick: onEdit,
                   },
                 ],
@@ -70,6 +71,7 @@ export function AvailabilityLimitsSection({
                 size="small"
                 icon={<LuEllipsis />}
                 aria-label="Availability and limits actions"
+                data-testid="discount-availability-actions"
               />
             </Dropdown>
           ) : undefined

@@ -136,6 +136,7 @@ function getCurrencySymbol(currency: string): string {
 }
 
 interface TargetSelectionEditorProps {
+  testIdPrefix: string;
   title: string;
   targetType: DiscountTargetType;
   targets: DiscountTargetEditorItem[];
@@ -146,6 +147,7 @@ interface TargetSelectionEditorProps {
 }
 
 function TargetSelectionEditor({
+  testIdPrefix,
   title,
   targetType,
   targets,
@@ -190,11 +192,12 @@ function TargetSelectionEditor({
 
   return (
     <>
-      <Paper className={styles.section}>
+      <Paper className={styles.section} data-testid={`${testIdPrefix}-section`}>
         <PaperHeader title={title} />
         <Radio.Group
           className={styles.targetGroup}
           value={targetType}
+          data-testid={`${testIdPrefix}-type`}
           onChange={(event) =>
             onChange(event.target.value as DiscountTargetType, [])
           }
@@ -203,6 +206,7 @@ function TargetSelectionEditor({
             <Radio
               key={option.value}
               value={option.value}
+              data-testid={`${testIdPrefix}-${option.value.toLowerCase()}`}
               className={cx(
                 styles.targetOption,
                 targetType === option.value &&
@@ -223,7 +227,10 @@ function TargetSelectionEditor({
       </Paper>
 
       {targetCopy ? (
-        <Paper className={styles.section}>
+        <Paper
+          className={styles.section}
+          data-testid={`${testIdPrefix}-selection-section`}
+        >
           <PaperHeader
             title={`Selected ${targetCopy.plural}`}
             actions={
@@ -391,6 +398,7 @@ export function EditValueTargetsModal() {
               </Typography.Text>
               <Select
                 aria-label="Discount value type"
+                data-testid="discount-value-type"
                 value={values.valueType}
                 options={[
                   {
@@ -419,6 +427,7 @@ export function EditValueTargetsModal() {
               {values.valueType === DiscountValueType.Percentage ? (
                 <InputNumber
                   aria-label="Discount percentage"
+                  data-testid="discount-percentage-input"
                   min={0.01}
                   max={100}
                   precision={2}
@@ -430,6 +439,7 @@ export function EditValueTargetsModal() {
               ) : (
                 <Input
                   aria-label="Discount fixed amount"
+                  data-testid="discount-fixed-amount-input"
                   inputMode="decimal"
                   prefix={currencySymbol}
                   value={values.amount}
@@ -450,6 +460,7 @@ export function EditValueTargetsModal() {
 
             <Checkbox
               className={styles.allocation}
+              data-testid="discount-allocation-each-checkbox"
               checked={
                 values.allocationMethod === DiscountAllocationMethod.Each
               }
@@ -477,6 +488,7 @@ export function EditValueTargetsModal() {
               </Typography.Text>
               <Input
                 aria-label="Maximum discount"
+                data-testid="discount-maximum-input"
                 inputMode="decimal"
                 prefix={
                   values.maximumDiscount ? currencySymbol : undefined
@@ -503,6 +515,7 @@ export function EditValueTargetsModal() {
               </Typography.Text>
               <Input
                 aria-label="Maximum shipping price"
+                data-testid="discount-maximum-shipping-price-input"
                 inputMode="decimal"
                 prefix={
                   values.maximumShippingPrice
@@ -535,6 +548,7 @@ export function EditValueTargetsModal() {
                   </Typography.Text>
                   <Select
                     aria-label="Buy requirement"
+                    data-testid="discount-buy-requirement-type"
                     value={values.buyRequirementType}
                     options={[
                       {
@@ -563,6 +577,7 @@ export function EditValueTargetsModal() {
                   DiscountRequirementType.Quantity ? (
                     <InputNumber
                       aria-label="Required quantity"
+                      data-testid="discount-required-quantity-input"
                       min={1}
                       precision={0}
                       value={values.requiredQuantity}
@@ -574,6 +589,7 @@ export function EditValueTargetsModal() {
                   ) : (
                     <Input
                       aria-label="Required subtotal"
+                      data-testid="discount-required-subtotal-input"
                       inputMode="decimal"
                       prefix={currencySymbol}
                       value={values.requiredSubtotal}
@@ -597,6 +613,7 @@ export function EditValueTargetsModal() {
                   </Typography.Text>
                   <InputNumber
                     aria-label="Benefit quantity"
+                    data-testid="discount-benefit-quantity-input"
                     min={1}
                     precision={0}
                     value={values.benefitQuantity}
@@ -612,6 +629,7 @@ export function EditValueTargetsModal() {
                   </Typography.Text>
                   <Select
                     aria-label="Benefit value type"
+                    data-testid="discount-benefit-value-type"
                     value={values.benefitValueType}
                     options={[
                       {
@@ -648,6 +666,7 @@ export function EditValueTargetsModal() {
                     DiscountValueType.Percentage ? (
                       <InputNumber
                         aria-label="Benefit percentage"
+                        data-testid="discount-benefit-percentage-input"
                         min={0.01}
                         max={100}
                         precision={2}
@@ -661,6 +680,7 @@ export function EditValueTargetsModal() {
                     ) : (
                       <Input
                         aria-label="Benefit amount"
+                        data-testid="discount-benefit-amount-input"
                         inputMode="decimal"
                         prefix={currencySymbol}
                         value={values.benefitAmount}
@@ -678,6 +698,7 @@ export function EditValueTargetsModal() {
                     </Typography.Text>
                     <InputNumber
                       aria-label="Uses per order"
+                      data-testid="discount-uses-per-order-input"
                       min={1}
                       precision={0}
                       placeholder="No limit"
@@ -696,6 +717,7 @@ export function EditValueTargetsModal() {
                   </Typography.Text>
                   <InputNumber
                     aria-label="Uses per order"
+                    data-testid="discount-uses-per-order-input"
                     min={1}
                     precision={0}
                     placeholder="No limit"
@@ -713,6 +735,7 @@ export function EditValueTargetsModal() {
 
         {discount.kind === DiscountKind.AmountOffProducts ? (
           <TargetSelectionEditor
+            testIdPrefix="discount-benefit-target"
             title="Applies to"
             targetType={values.targetType}
             targets={values.targets}
@@ -725,6 +748,7 @@ export function EditValueTargetsModal() {
         {isBuyXGetY ? (
           <>
             <TargetSelectionEditor
+              testIdPrefix="discount-qualifier-target"
               title="Customer buys"
               targetType={values.qualifierTargetType}
               targets={values.qualifierTargets}
@@ -736,6 +760,7 @@ export function EditValueTargetsModal() {
               }
             />
             <TargetSelectionEditor
+              testIdPrefix="discount-benefit-target"
               title="Customer gets"
               targetType={values.targetType}
               targets={values.targets}
@@ -781,6 +806,7 @@ export function EditValueTargetsModal() {
             </Typography.Text>
             <Select
               aria-label="Minimum requirement"
+              data-testid="discount-minimum-requirement-type"
               value={values.requirementType ?? "NONE"}
               options={[
                 { value: "NONE", label: "None" },
@@ -815,6 +841,7 @@ export function EditValueTargetsModal() {
               </Typography.Text>
               <Input
                 aria-label="Minimum subtotal"
+                data-testid="discount-minimum-subtotal-input"
                 inputMode="decimal"
                 prefix={currencySymbol}
                 value={values.minimumSubtotal}
@@ -835,6 +862,7 @@ export function EditValueTargetsModal() {
               </Typography.Text>
               <InputNumber
                 aria-label="Minimum quantity"
+                data-testid="discount-minimum-quantity-input"
                 min={1}
                 precision={0}
                 value={values.minimumQuantity}

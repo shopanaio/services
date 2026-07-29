@@ -186,6 +186,7 @@ export function EditAvailabilityModal() {
             <Checkbox
               className={styles.option}
               checked={values.appliesOnOneTimePurchase}
+              data-testid="discount-purchase-one-time"
               onChange={(event) =>
                 updateValues({
                   appliesOnOneTimePurchase: event.target.checked,
@@ -203,6 +204,7 @@ export function EditAvailabilityModal() {
             <Checkbox
               className={styles.option}
               checked={values.appliesOnSubscription}
+              data-testid="discount-purchase-subscription"
               onChange={(event) =>
                 updateValues({
                   appliesOnSubscription: event.target.checked,
@@ -228,6 +230,7 @@ export function EditAvailabilityModal() {
             </Typography.Text>
             <InputNumber
               aria-label="Total usage limit"
+              data-testid="discount-total-usage-limit"
               min={1}
               precision={0}
               placeholder="No limit"
@@ -244,6 +247,7 @@ export function EditAvailabilityModal() {
             className={styles.option}
             checked={values.appliesOncePerCustomer}
             disabled={!isCodeDiscount}
+            data-testid="discount-once-per-customer"
             onChange={(event) =>
               updateValues({
                 appliesOncePerCustomer: event.target.checked,
@@ -274,6 +278,7 @@ export function EditAvailabilityModal() {
                 key={option.value}
                 className={styles.option}
                 checked={values.combinesWith.includes(option.value)}
+                data-testid={`discount-combination-${option.value.toLowerCase()}`}
                 onChange={(event) =>
                   toggleCombination(option.value, event.target.checked)
                 }
@@ -310,6 +315,7 @@ export function EditAvailabilityModal() {
               </Typography.Text>
               <Input
                 aria-label="Discount starts at"
+                data-testid="discount-starts-at"
                 type="datetime-local"
                 value={values.startsAt}
                 onChange={(event) =>
@@ -326,6 +332,7 @@ export function EditAvailabilityModal() {
               </Typography.Text>
               <Input
                 aria-label="Discount ends at"
+                data-testid="discount-ends-at"
                 type="datetime-local"
                 value={values.endsAt}
                 onChange={(event) =>

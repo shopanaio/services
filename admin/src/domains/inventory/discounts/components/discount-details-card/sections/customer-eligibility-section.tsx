@@ -206,6 +206,7 @@ export function CustomerEligibilitySection({
                   {
                     key: "edit",
                     label: "Edit eligibility & channels",
+                    "data-testid": "discount-eligibility-edit-menu-item",
                     onClick: onEdit,
                   },
                 ],
@@ -215,6 +216,7 @@ export function CustomerEligibilitySection({
                 size="small"
                 icon={<LuEllipsis />}
                 aria-label="Customer eligibility actions"
+                data-testid="discount-eligibility-actions"
               />
             </Dropdown>
           ) : undefined

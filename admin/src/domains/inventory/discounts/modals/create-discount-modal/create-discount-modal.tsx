@@ -338,6 +338,7 @@ export function CreateDiscountModal() {
                   >
                     <Radio
                       value={DiscountMethod.Code}
+                      data-testid="discount-method-code"
                       className={cx(
                         styles.methodOption,
                         method === DiscountMethod.Code &&
@@ -355,6 +356,7 @@ export function CreateDiscountModal() {
                     </Radio>
                     <Radio
                       value={DiscountMethod.Automatic}
+                      data-testid="discount-method-automatic"
                       className={cx(
                         styles.methodOption,
                         method === DiscountMethod.Automatic &&
@@ -397,6 +399,7 @@ export function CreateDiscountModal() {
                     <Input
                       {...field}
                       size="middle"
+                      data-testid="discount-create-title-input"
                       status={errors.title ? "error" : undefined}
                       placeholder="e.g. Summer sale"
                     />
