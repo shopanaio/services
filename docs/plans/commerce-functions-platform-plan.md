@@ -1,16 +1,17 @@
-# Платформа Commerce Functions через broker actions
+# Commerce Extension Platform и Commerce Functions через broker actions
 
 ## Статус документа
 
-Архитектурный и реализационный план первого этапа.
+Архитектурный и реализационный план платформы расширений commerce backend.
 
 На этом этапе фиксируются:
 
+- граница между Commerce Functions и другими типами App extensions;
 - место Commerce Functions в архитектуре Shopana;
-- общий каталог targets;
+- полный Shopify-подобный каталог function targets и порядок их исполнения;
 - ownership функций;
 - общий executor и runner;
-- discovery и вызов App providers;
+- discovery и вызов App function implementations;
 - порядок выполнения, ошибки, наблюдаемость и rollout.
 
 На этом этапе намеренно **не фиксируются**:
@@ -20,15 +21,30 @@
 - GraphQL API управления функциями;
 - окончательная модель Pricing Quote;
 - формулы скидок, allocation и rounding отдельных типов скидок.
+- полные контракты payment, delivery, fulfillment и tax providers;
+- runtime и delivery-модель UI extensions;
+- визуальный редактор automation workflows.
 
 Контракты конкретных функций должны проектироваться отдельно, поверх общего
 механизма исполнения.
 
 ## Цель
 
-Создать Shopify-подобную платформу расширения commerce pipeline, в которой
-native-подсистемы Shopana и установленные Apps могут влиять на корзину, цену,
-доставку, оплату и validation через стандартные function targets.
+Создать Shopify-подобную платформу расширения Shopana, в которой разные виды
+расширений имеют разные семантику:
+
+- **Functions** синхронно возвращают декларативные operations внутри
+  platform-owned commerce pipeline;
+- **Providers** реализуют выбранную внешнюю подсистему: payment gateway,
+  delivery carrier, fulfillment service или tax engine;
+- **Event subscriptions** асинхронно реагируют на уже зафиксированные domain
+  events;
+- **Automation triggers/actions** участвуют в durable workflows;
+- **UI extensions** добавляют интерфейс в разрешённые Admin, Storefront,
+  Checkout и Customer Account surfaces.
+
+Этот документ подробно проектирует Commerce Functions и фиксирует их место в
+общей extension platform. Он не должен превращать все App actions в Functions.
 
 Функции исполняются только через существующий `ServiceBroker`.
 WASM, отдельный sandbox runtime и загрузка пользовательского кода во время
@@ -36,11 +52,57 @@ WASM, отдельный sandbox runtime и загрузка пользоват�
 
 Главный принцип:
 
-> Function provider вычисляет и возвращает декларативный результат, а
+> Function implementation вычисляет и возвращает декларативный результат, а
 > владеющий домен проверяет, разрешает конфликты и применяет этот результат.
 
-App не получает право самостоятельно изменять checkout, pricing tables или
-итоговую сумму заказа.
+App function не получает право самостоятельно изменять checkout, pricing
+tables, inventory, order или итоговую сумму заказа.
+
+## Граница Commerce Functions
+
+Shopify Functions расширяют преимущественно синхронный purchase/checkout loop:
+cart transform, discounts, fulfillment constraints, order routing, delivery,
+payment methods и validation. Остальные части Shopify расширяются не
+Functions, а payment extensions, fulfillment services, APIs/webhooks, Flow,
+UI extensions, metafields/metaobjects и другими механизмами.
+
+В Shopana принимается такая же граница.
+
+### Что является Function
+
+Function подходит, когда:
+
+- платформа должна принять решение внутри текущей синхронной операции;
+- несколько native/App implementations могут внести предложения;
+- результат можно выразить декларативными operations;
+- только владеющий домен применяет итог;
+- повторный запуск на одинаковом input и execution plan даёт одинаковый
+  результат;
+- implementation не выполняет необратимых side effects.
+
+### Что не является Function
+
+Следующие интеграции являются отдельными extension kinds:
+
+| Extension kind | Примеры | Execution semantics |
+|---|---|---|
+| `provider` | LiqPay, Stripe, Nova Poshta, Meest, 3PL, tax engine | Выбранный implementation выполняет protocol-specific command |
+| `eventSubscription` | экспорт оплаченного заказа в ERP, analytics, CRM sync | Асинхронно после commit, durable delivery |
+| `automationTrigger` | App сообщает событие для workflow | Запускает DBOS workflow |
+| `automationAction` | начислить баллы, поставить order hold, отправить сообщение | Side effect как контролируемый workflow step |
+| `ui` | Admin block, checkout block, customer account page | Исполняется на конкретной UI surface |
+
+Например:
+
+- скрыть наложенный платёж — Function
+  `cart.payment-methods.transform.run`;
+- провести платёж через LiqPay — provider action `payments.charge`;
+- отправить `orders.paid` в ERP — `eventSubscription`;
+- начислить loyalty points после оплаты — `automationAction`;
+- показать loyalty balance в Admin — `ui`.
+
+Термин `provider` далее не используется для implementation функции, чтобы не
+смешивать её с payment/delivery/fulfillment provider extensions.
 
 ## Основные архитектурные решения
 
@@ -66,7 +128,7 @@ Commerce Functions являются механизмом расширения н
 
 #### `BrokerFunctionExecutor`
 
-Отвечает за один invocation одного provider:
+Отвечает за один invocation одной function implementation:
 
 - получает подготовленный route;
 - вызывает native broker action или `apps.executeCapability`;
@@ -83,7 +145,7 @@ Commerce Functions являются механизмом расширения н
 - принимает target и opaque input;
 - получает список native и App routes;
 - формирует immutable execution plan;
-- запускает providers с ограниченным параллелизмом;
+- запускает implementations с ограниченным параллелизмом;
 - собирает результаты;
 - восстанавливает стабильный порядок;
 - применяет общую failure policy;
@@ -114,7 +176,7 @@ App route исполняется только так:
 - проверка manifest external contracts;
 - запрет App самостоятельно выдавать себя за platform caller.
 
-### 4. Один capability namespace
+### 4. Один capability namespace для Functions
 
 Для Commerce Functions использовать один App capability:
 
@@ -143,9 +205,69 @@ cart.delivery-options.transform.run
 }
 ```
 
-Для первого этапа функции назначаются на store. `resource` assignments следует
-добавлять только тогда, когда появится конкретный сценарий назначения функции
-на delivery profile, market, channel или другой ресурс.
+Capability route подтверждает, что installation технически умеет выполнить
+target, но сам по себе не включает бизнес-правило для store.
+
+Активация и конфигурация описываются отдельным function binding, связанным с
+domain owner. Для простых глобальных transforms owner может быть store. Для
+discount function owner — конкретная discount definition. Для delivery или
+payment customization owner — соответствующая customization entity.
+
+`commerce.function` нельзя использовать для других extension kinds. Они
+получают отдельные capability namespaces и contracts:
+
+```text
+payments.provider
+delivery.provider
+fulfillment.provider
+tax.provider
+automation.action
+```
+
+Event subscriptions используют event topics, а UI extensions — UI target
+registry. Они не обнаруживаются через `commerce.function`.
+
+Концептуальная manifest-модель:
+
+```ts
+{
+  extensions: [
+    {
+      kind: "function",
+      capability: "commerce.function",
+      target: "cart.lines.discounts.generate.run",
+      action: "generateDiscounts"
+    },
+    {
+      kind: "provider",
+      capability: "payments.provider",
+      operations: {
+        authorize: "authorizePayment",
+        capture: "capturePayment",
+        refund: "refundPayment"
+      }
+    },
+    {
+      kind: "eventSubscription",
+      topic: "orders.paid",
+      action: "exportPaidOrder"
+    },
+    {
+      kind: "automationAction",
+      key: "loyalty.add-points",
+      action: "addLoyaltyPoints"
+    },
+    {
+      kind: "ui",
+      target: "admin.customer.details.block",
+      module: "customerLoyaltyBlock"
+    }
+  ]
+}
+```
+
+Точная общая manifest schema проектируется отдельно. В function-runner
+используется только extension kind `function`.
 
 ### 5. Target принадлежит домену
 
@@ -153,7 +275,7 @@ cart.delivery-options.transform.run
 владеющий сервис:
 
 - строит canonical input;
-- валидирует provider output по target-specific schema;
+- валидирует implementation output по target-specific schema;
 - разрешает конфликты;
 - применяет операции;
 - формирует итоговое доменное состояние.
@@ -170,6 +292,7 @@ packages/
       contracts.ts
       FunctionTargetRegistry.ts
       FunctionRouteResolver.ts
+      FunctionImplementation.ts
       BrokerFunctionExecutor.ts
       CommerceFunctionRunner.ts
       execution-policy.ts
@@ -192,7 +315,7 @@ services/
     src/functions/
       PricingFunctionPipeline.ts
       pricing-targets.ts
-      native-providers.ts
+      native-implementations.ts
     src/quote/
       PricingQuoteService.ts
 
@@ -225,6 +348,8 @@ services/
 interface CommerceFunctionRunRequest<TInput = unknown> {
   storeId: string;
   target: CommerceFunctionTarget;
+  bindings: readonly CommerceFunctionBindingRef[];
+  bindingSetRevision: string;
   input: TInput;
   executionId: string;
   correlationId?: string;
@@ -233,21 +358,27 @@ interface CommerceFunctionRunRequest<TInput = unknown> {
 
 interface CommerceFunctionRunResult<TOutput = unknown> {
   target: CommerceFunctionTarget;
-  outputs: FunctionProviderOutput<TOutput>[];
+  outputs: FunctionImplementationOutput<TOutput>[];
   trace: CommerceFunctionExecutionTrace;
 }
 ```
 
-`input` и provider `data` остаются `unknown` на общем уровне. Target-specific
-pipeline обязан валидировать их своей Zod schema до использования.
+Владеющий домен разрешает active bindings до вызова runner. Runner проверяет
+их capability routes и revisions, добавляет native implementations из target
+definition и фиксирует immutable plan.
+
+`input` и implementation `data` остаются `unknown` на общем уровне.
+Target-specific pipeline обязан валидировать их своей Zod schema до
+использования.
 
 Общий envelope должен содержать только инфраструктурные сведения:
 
 - target;
 - execution ID;
-- provider identity;
+- implementation identity;
 - route/installation identity;
-- app version для App provider;
+- app version для App implementation;
+- binding/owner/configuration revisions;
 - status;
 - duration;
 - warning/error classification;
@@ -256,13 +387,13 @@ pipeline обязан валидировать их своей Zod schema до �
 В envelope нельзя помещать money, cart lines, discounts или delivery methods:
 это контракты конкретных targets.
 
-## Провайдеры функций
+## Implementations функций
 
-Runner поддерживает два вида providers.
+Runner поддерживает два вида implementations.
 
-### Native provider
+### Native implementation
 
-Native provider — обычный broker action платформенного сервиса.
+Native implementation — обычный broker action платформенного сервиса.
 
 Примеры:
 
@@ -271,12 +402,12 @@ Native provider — обычный broker action платформенного с
 - Checkout предоставляет native validation;
 - Delivery предоставляет native delivery constraints.
 
-Native provider не должен регистрироваться как App installation.
+Native implementation не должен регистрироваться как App installation.
 Его route описывается target definition владеющего сервиса.
 
-### App provider
+### App implementation
 
-App provider обнаруживается через:
+App implementation обнаруживается через:
 
 ```text
 apps.listCapabilityRoutes(
@@ -288,39 +419,171 @@ apps.listCapabilityRoutes(
 Каждый route вызывается отдельно с обязательным `installationId` через
 `apps.executeCapability`.
 
-## Каталог функций
+## Function definition, owner и binding
 
-Имена targets фиксируются как направление архитектуры. Их payload contracts
-будут отдельными решениями.
+Shopify разделяет код Function и объект-владелец её конфигурации. Например,
+discount function поставляется App, но merchant создаёт отдельный discount,
+который хранит конфигурацию и ссылается на эту function.
 
-### MVP
+Shopana должна разделять три сущности.
 
-| Target | Назначение | Оркестратор | Кто применяет результат |
-|---|---|---|---|
-| `cart.transform.run` | Bundles, expand/merge/update cart lines | `pricing` | `pricing` в процессе построения quote |
-| `cart.lines.discounts.generate.run` | Product и order discount candidates | `pricing` | pricing discount engine |
-| `cart.delivery-options.discounts.generate.run` | Скидки на delivery options | `pricing` | pricing discount engine |
-| `cart.delivery-options.transform.run` | Hide/rename/reorder delivery options | `delivery` | delivery pipeline |
-| `cart.payment-methods.transform.run` | Hide/rename/reorder payment methods | `payments` | payment methods pipeline |
-| `cart.validations.generate.run` | Cart и checkout validation errors | `checkout` | checkout command/workflow |
+### Function definition
 
-### Следующий этап
+Статическое объявление App manifest:
 
-| Target | Назначение | Оркестратор | Кто применяет результат |
-|---|---|---|---|
-| `cart.fulfillment-constraints.generate.run` | Ограничения совместного или location-specific fulfillment | `delivery` | delivery/fulfillment planner |
-| `cart.delivery-options.generate.run` | Custom delivery и pickup options | `delivery` | delivery pipeline |
-| `order.routing-location-rules.run` | Приоритет location при маршрутизации заказа | `orders` или будущий fulfillment domain | order routing pipeline |
+- App и version;
+- target;
+- action;
+- supported contract version;
+- требуемые scopes;
+- configuration schema reference.
 
-### Пока не добавлять
+Definition отвечает на вопрос: «что эта версия App умеет выполнять?».
 
-- Custom discount allocator как App function. В первой версии allocation и
-  rounding полностью принадлежат Pricing.
-- Custom tax calculator как универсальную функцию. Сначала нужен отдельный
-  tax domain и чёткий fiscal contract.
-- Функции с прямыми side effects: reserve inventory, charge payment, create
-  order, send notification.
-- Произвольные lifecycle hooks без конкретного владельца и применения.
+### Function owner
+
+Доменная сущность, поведение которой расширяется:
+
+- discount definition в `pricing`;
+- cart transform configuration;
+- delivery customization;
+- payment customization;
+- validation rule set;
+- routing rule set.
+
+Owner хранится у владеющего домена. Apps service не должен становиться
+владельцем discount, payment или delivery configuration.
+
+### Function binding
+
+Активная связь owner с implementation:
+
+```ts
+interface CommerceFunctionBinding {
+  id: string;
+  storeId: string;
+  target: CommerceFunctionTarget;
+  owner: {
+    service: string;
+    resourceType: string;
+    resourceId: string;
+  };
+  installationId: string;
+  functionKey: string;
+  precedence: number;
+  activationSequence: number;
+  status: "ACTIVE" | "DISABLED";
+  configurationRevision: string;
+  routeRevision: string;
+}
+```
+
+Binding отвечает на вопрос: «какая implementation с какой конфигурацией
+активна для этого domain owner?».
+
+Одна App implementation может иметь несколько bindings. Например, один action
+`generateDiscounts` обслуживает несколько discount definitions с разными
+условиями.
+
+### Discovery binding
+
+Execution planning разделяется на два шага:
+
+1. Владеющий домен разрешает active owners/bindings для текущего контекста.
+2. Apps service подтверждает, что installation/version всё ещё предоставляет
+   capability route для target и action.
+
+`apps.listCapabilityRoutes` не должен автоматически превращать все capability
+routes в активные discount/customization rules. Для store-global target
+domain может создать один store-owned binding при включении App, но это явная
+конфигурация, а не скрытое поведение discovery.
+
+Canonical input одной implementation содержит безопасный snapshot
+конфигурации binding либо app-owned configuration reference, разрешённый
+владеющим доменом. App не читает configuration напрямую из чужой domain DB.
+
+## Каталог Commerce Functions
+
+Имена Shopana targets нормализуются вокруг изменяемого commerce resource.
+Payload contracts будут отдельными решениями.
+
+Shopify на текущем Function API имеет следующие группы:
+
+- Cart and Checkout Validation;
+- Cart Transform;
+- Delivery Customization;
+- Discount;
+- Fulfillment Constraints;
+- Order Routing Location Rule;
+- Payment Customization;
+- Local Pickup Delivery Option Generator;
+- Pickup Point Delivery Option Generator;
+- Discounts Allocator в developer preview.
+
+Shopana покрывает тот же commerce loop, но не обязана сохранять legacy
+Shopify namespace `purchase.*`.
+
+### Core targets
+
+| Shopana target | Shopify analogue | Назначение | Оркестратор | Кто применяет результат |
+|---|---|---|---|---|
+| `cart.transform.run` | `cart.transform.run` | Bundles, expand/merge/update cart lines | `pricing` | Pricing quote pipeline |
+| `cart.lines.discounts.generate.run` | тот же target | Product и order discount candidates | `pricing` | pricing discount engine |
+| `cart.delivery-options.discounts.generate.run` | тот же target | Discount candidates для доставки | `pricing` | pricing discount engine |
+| `cart.fulfillment-constraints.generate.run` | тот же target | Fulfill-from и fulfill-together constraints | `delivery` | fulfillment planner |
+| `cart.fulfillment-groups.location-rankings.generate.run` | тот же target | Ранжирование складов/locations | `orders` или будущий fulfillment domain | order routing pipeline |
+| `cart.delivery-options.transform.run` | тот же target | Hide/move/rename delivery options | `delivery` | delivery pipeline |
+| `cart.local-pickup-options.generate.run` | `purchase.local-pickup-delivery-option-generator.run` | Варианты самовывоза из locations | `delivery` | delivery pipeline |
+| `cart.pickup-point-options.generate.run` | `purchase.pickup-point-delivery-option-generator.run` | Отделения, почтоматы и сторонние pickup points | `delivery` | delivery pipeline |
+| `cart.payment-methods.transform.run` | тот же target | Hide/move/rename payment methods | `payments` | payment methods pipeline |
+| `cart.validations.generate.run` | тот же target | Cart/checkout validation operations | `checkout` | checkout command/workflow |
+
+### Experimental target
+
+| Shopana target | Shopify analogue | Назначение | Execution mode | Решение |
+|---|---|---|---|---|
+| `cart.discounts.allocate.run` | `purchase.discounts-allocator.run` | Кастомные combination/allocation rules и ограничения скидок | `SINGLE` | Зарезервировать имя, не реализовывать в MVP |
+
+Shopify Discounts Allocator находится в developer preview и допускает максимум
+одну allocator function на store. В Shopana первая версия allocation, caps,
+rounding и порядок применения полностью принадлежат Pricing. Target можно
+включить только после стабилизации Pricing Quote и discount combination model.
+
+### Rollout каталога
+
+#### MVP-A: Pricing migration
+
+- `cart.transform.run`;
+- `cart.lines.discounts.generate.run`;
+- `cart.delivery-options.discounts.generate.run`.
+
+#### MVP-B: Checkout completion
+
+- `cart.delivery-options.transform.run`;
+- `cart.payment-methods.transform.run`;
+- `cart.validations.generate.run`.
+
+#### Phase 2: Fulfillment and pickup
+
+- `cart.fulfillment-constraints.generate.run`;
+- `cart.fulfillment-groups.location-rankings.generate.run`;
+- `cart.local-pickup-options.generate.run`;
+- `cart.pickup-point-options.generate.run`.
+
+#### Phase 3: Advanced discount control
+
+- `cart.discounts.allocate.run`, только после отдельного ADR.
+
+### Намеренно не добавлять как универсальные Functions
+
+- Custom tax calculator. Это `tax.provider` с fiscal lifecycle
+  quote/commit/refund, а не multi-implementation Function.
+- Payment authorization/capture/refund. Это `payments.provider`.
+- Delivery shipment create/cancel/track. Это `delivery.provider`.
+- Fulfillment accept/reject/ship. Это `fulfillment.provider`.
+- Inventory reservation, order creation, notification и ERP export.
+  Это actions/workflows/event subscriptions с side effects.
+- Произвольные lifecycle hooks без конкретного owner и operation contract.
 
 Commerce Function должна быть вычислением. Side-effecting операции остаются
 обычными actions/workflows/sagas.
@@ -330,13 +593,13 @@ Commerce Function должна быть вычислением. Side-effecting �
 ```text
 Domain pipeline
   |
-  | 1. строит canonical target input
+  | 1. разрешает active owners/bindings и строит canonical target input
   v
 CommerceFunctionRunner
   |
   | 2. получает target definition
   | 3. добавляет native routes
-  | 4. читает App routes через apps.listCapabilityRoutes
+  | 4. проверяет App binding routes через apps.listCapabilityRoutes
   | 5. фиксирует immutable execution plan
   v
 BrokerFunctionExecutor
@@ -362,49 +625,54 @@ Domain result
 
 ## Execution plan и детерминизм
 
-Перед вызовом providers runner создаёт immutable execution plan.
+Перед вызовом implementations runner создаёт immutable execution plan.
 
 Plan должен фиксировать:
 
 - target;
 - store ID;
-- provider type;
+- implementation type;
+- function binding ID;
+- domain owner reference;
 - native action либо App installation ID;
 - App code и app version;
 - route revision;
+- configuration revision;
 - precedence;
-- stable sequence;
+- activation sequence;
 - failure mode;
 - deadline;
 - execution ID.
 
-Все providers можно вызывать параллельно, но результаты всегда применяются в
-порядке plan, а не в порядке завершения Promise.
+Все implementations можно вызывать параллельно, но результаты всегда
+применяются в порядке plan, а не в порядке завершения Promise.
 
-Стабильный порядок App routes:
+Стабильный порядок App bindings:
 
 ```text
 precedence ASC
-assignmentCreatedAt ASC
-assignmentId ASC
+activationSequence ASC
+functionBindingId ASC
 ```
 
 Текущий `updatedAt DESC` в `AppCapabilityRepository` нельзя использовать для
-Commerce Functions. Обычное обновление assignment не должно менять порядок
-расчёта.
+порядка Commerce Functions. Обычное обновление route или assignment не должно
+менять порядок расчёта; его определяет immutable activation sequence binding.
 
 `listCapabilityRoutes` сейчас возвращает только `installationId` и `appCode`.
-Для runner его результат нужно расширить как минимум:
+Для проверки implementation route его результат нужно расширить как минимум:
 
-- идентификатор assignment/route;
-- precedence;
-- stable sequence;
+- идентификатор capability route;
 - app version;
 - route revision.
 
-`executeCapability` должен принимать ожидаемую route revision/app version или
-другой compare-and-run token. Это защищает один execution plan от смешивания
-версий при одновременном update/suspend App.
+Binding metadata — precedence, activation sequence, owner и configuration
+revision — приходит от владеющего домена, а не вычисляется Apps service.
+
+`executeCapability` должен принимать ожидаемую route revision/app version,
+function binding ID и configuration revision либо единый compare-and-run
+token. Это защищает один execution plan от смешивания versions/configurations
+при одновременном update, disable или suspend App.
 
 Так как проект не требует backward compatibility, broker types и callers
 следует изменить напрямую без временного V1/V2 API.
@@ -419,11 +687,11 @@ Target definition содержит только инфраструктурную
 - target name;
 - owning service;
 - execution mode;
-- native provider routes;
+- native implementation routes;
 - default timeout/deadline;
 - concurrency limit;
 - failure policy;
-- допускаются ли несколько App providers;
+- допускаются ли несколько App implementations;
 - максимальный размер input/output envelope;
 - trace redaction policy.
 
@@ -439,7 +707,8 @@ Registry не содержит бизнес-логику функции и не 
 
 ### `COLLECT_ALL`
 
-Вызываются все активные providers. Результаты возвращаются владельцу target.
+Вызываются все активные implementations. Результаты возвращаются владельцу
+target.
 
 Используется для:
 
@@ -450,11 +719,13 @@ Registry не содержит бизнес-логику функции и не 
 
 ### `SINGLE`
 
-Исполняется один выбранный route по precedence/assignment.
+Исполняется один выбранный binding по precedence/activation sequence.
 
-Подходит для эксклюзивного provider scenario, если такой появится. Не следует
-использовать `SINGLE` для скидок, потому что несколько Apps должны иметь
-возможность вернуть candidates.
+Подходит для target, где разрешена ровно одна implementation. Первый
+зарезервированный сценарий — `cart.discounts.allocate.run`.
+
+Не следует использовать `SINGLE` для discount generation, потому что несколько
+Apps должны иметь возможность вернуть candidates.
 
 `FIRST_SUCCESS` пока не добавлять: он усложняет детерминизм и может скрывать
 ошибки конфигурации.
@@ -465,13 +736,13 @@ Runner нормализует технические failures, но не реш�
 
 Базовые режимы:
 
-- `REQUIRED` — failure provider прерывает target execution;
-- `OPTIONAL` — failure фиксируется в trace, provider output пропускается;
+- `REQUIRED` — failure implementation прерывает target execution;
+- `OPTIONAL` — failure фиксируется в trace, implementation output пропускается;
 - `DISABLED` — route присутствует в конфигурации, но не включается в plan.
 
-Native provider по умолчанию `REQUIRED`.
-Политика App provider задаётся target definition и позже может быть дополнена
-store configuration.
+Native implementation по умолчанию `REQUIRED`.
+Политика App implementation задаётся target definition и позже может быть
+дополнена store configuration.
 
 Нельзя молча использовать старый checkout discount snapshot как fallback при
 ошибке Pricing. Это создаёт недетерминированную цену. Quote должен либо успешно
@@ -483,8 +754,8 @@ store configuration.
 - timeout/deadline exceeded;
 - App runtime unavailable;
 - authorization/scope error;
-- provider exception;
-- invalid provider output;
+- implementation exception;
+- invalid implementation output;
 - stale execution plan;
 - output size limit;
 - domain rejection после возврата runner.
@@ -499,7 +770,7 @@ runner означает только прекращение ожидания и 
 - function actions обязаны быть pure/read-only относительно commerce state;
 - нельзя выполнять в них charge, reservation или domain writes;
 - input должен содержать deadline;
-- provider должен проверять deadline перед дорогими внешними вызовами;
+- implementation должна проверять deadline перед дорогими внешними вызовами;
 - повторный запуск с тем же execution ID должен быть безопасным;
 - поздний result не должен применяться после закрытия execution plan.
 
@@ -537,9 +808,9 @@ runner означает только прекращение ожидания и 
 - owner service;
 - start/end/duration;
 - execution plan revision;
-- provider type;
+- implementation type;
 - installation ID/App code/App version для App;
-- native action для platform provider;
+- native action для platform implementation;
 - precedence и sequence;
 - success/failure/status;
 - error class и безопасный error code;
@@ -548,13 +819,13 @@ runner означает только прекращение ожидания и 
 
 Метрики:
 
-- calls и duration по target/provider;
-- provider failures;
+- calls и duration по target/implementation;
+- implementation failures;
 - invalid outputs;
 - deadline exceeded;
 - stale plan;
-- число providers на execution;
-- skipped optional providers;
+- число implementations на execution;
+- skipped optional implementations;
 - quote calculation failures.
 
 Полные function payloads не логируются. Для диагностики можно хранить
@@ -585,13 +856,13 @@ checkout
 Pricing знает о влияющих на цену подсистемах не через imports или общую БД, а
 через:
 
-1. явно заданные native providers target definition;
-2. App providers из `apps.listCapabilityRoutes`;
+1. явно заданные native implementations target definition;
+2. App implementations из `apps.listCapabilityRoutes`;
 3. canonical snapshots, которые Pricing получает через broker read actions;
 4. фиксированный порядок stages Pricing pipeline.
 
-Новый provider не требует изменения Checkout. Он подключается к известному
-target через manifest и assignment.
+Новая App implementation не требует изменения Checkout. Она подключается к
+известному target через manifest и assignment.
 
 Новая категория влияния на цену требует нового target или изменения
 target-specific contract и поэтому является осознанным изменением платформы.
@@ -602,7 +873,7 @@ target-specific contract и поэтому является осознанным
 
 В первом этапе:
 
-- Catalog предоставляет native provider для `cart.transform.run`;
+- Catalog предоставляет native implementation для `cart.transform.run`;
 - Pricing передаёт canonical cart input;
 - Catalog возвращает opaque transform result по будущему target contract;
 - Pricing валидирует и применяет transform к расчётному представлению cart;
@@ -621,14 +892,32 @@ Checkout координирует пользовательский flow, но н
 
 ```text
 1. Checkout получает/изменяет cart intent
-2. Pricing строит quote и выполняет cart/discount targets
-3. Delivery получает или генерирует delivery options
-4. Delivery выполняет delivery transform
-5. Pricing пересчитывает delivery discounts и final totals
-6. Payments получает methods и выполняет payment transform
-7. Checkout выполняет validation
-8. DBOS checkout workflow использует зафиксированные snapshots
+2. Pricing разрешает merchandise snapshot и выполняет cart.transform.run
+3. Pricing выполняет cart.lines.discounts.generate.run
+4. Pricing применяет combination policy и line/order allocations
+5. Delivery выполняет cart.fulfillment-constraints.generate.run
+6. Fulfillment/Orders выполняет
+   cart.fulfillment-groups.location-rankings.generate.run
+7. Delivery получает carrier rates через delivery providers
+8. Delivery выполняет local-pickup и pickup-point generators
+9. Delivery выполняет cart.delivery-options.transform.run
+10. Pricing выполняет cart.delivery-options.discounts.generate.run
+11. Tax provider, когда появится tax domain, рассчитывает fiscal amounts
+12. Pricing фиксирует final monetary totals
+13. Payments получает methods от payment providers
+14. Payments выполняет cart.payment-methods.transform.run
+15. Checkout выполняет cart.validations.generate.run
+16. DBOS checkout workflow использует зафиксированные snapshots
 ```
+
+Зависимости stages являются частью platform contract:
+
+- transforms предшествуют line discounts;
+- constraints и location rankings работают с уже трансформированными lines;
+- delivery generators предшествуют delivery customization;
+- delivery discounts работают с итоговым набором delivery options;
+- payment customization видит final payable amount;
+- validation получает результаты всех предыдущих stages.
 
 DBOS применяется для durable checkout/order/payment orchestration.
 Runner сам по себе не является workflow и не должен превращать каждый
@@ -665,12 +954,14 @@ checkout mutations, меняющим цену.
 
 ### Этап 0. Зафиксировать ADR
 
-1. Утвердить термины `Commerce Function`, `target`, `provider`, `executor`,
-   `runner`, `domain applicator`.
+1. Утвердить термины `Commerce Function`, `target`, `implementation`,
+   `executor`, `runner`, `domain applicator`.
 2. Утвердить отсутствие WASM и отдельного functions service.
 3. Утвердить capability `commerce.function`.
-4. Утвердить MVP target list и ownership.
-5. Утвердить принцип pure computation/no side effects.
+4. Утвердить границу Functions, Providers, Event subscriptions, Automations и
+   UI extensions.
+5. Утвердить полный target catalog, rollout groups и ownership.
+6. Утвердить принцип pure computation/no side effects.
 
 Результат: короткий architecture decision в knowledge base.
 
@@ -679,11 +970,11 @@ checkout mutations, меняющим цену.
 1. Создать `packages/function-runner`.
 2. Добавить generic request/result/trace envelopes.
 3. Добавить `FunctionTargetRegistry`.
-4. Добавить route/provider abstractions.
+4. Добавить route/implementation abstractions.
 5. Реализовать `BrokerFunctionExecutor`.
 6. Реализовать `CommerceFunctionRunner`.
 7. Добавить concurrency limit, deadline classification и failure policy.
-8. Экспортировать Nest provider/module factory при необходимости.
+8. Экспортировать Nest module/provider factory при необходимости.
 9. Добавить broker types без target-specific payloads.
 
 Результат: runner можно вызвать с opaque input и получить упорядоченные opaque
@@ -693,19 +984,33 @@ outputs.
 
 1. Расширить `apps.listCapabilityRoutes` route metadata.
 2. Удалить `updatedAt` из порядка Commerce Function routes.
-3. Добавить stable sequence.
-4. Добавить route revision/version token.
-5. Сделать `apps.executeCapability` compare-and-run для immutable plan.
-6. Добавить размерные ограничения и безопасные error codes.
-7. Сохранить обязательный путь через `AppsRuntimeRouter.callAsApp`.
+3. Добавить route revision/version token.
+4. Сделать `apps.executeCapability` compare-and-run для immutable plan.
+5. Добавить размерные ограничения и безопасные error codes.
+6. Сохранить обязательный путь через `AppsRuntimeRouter.callAsApp`.
 
 Результат: один function execution не смешивает routes и App versions.
 
-### Этап 3. Pricing skeleton
+### Этап 3. Function owners и bindings
+
+1. Добавить общие binding identity/revision contracts.
+2. Не создавать общую таблицу с domain configuration в Apps service.
+3. Реализовать store-owned binding для первого global target.
+4. Реализовать pricing-owned binding для discount definition.
+5. Добавить precedence и immutable activation sequence.
+6. Добавить resolution active owners/bindings перед route verification.
+7. Передавать binding/configuration snapshot в target canonical input.
+8. Инвалидировать execution plan при изменении route или configuration
+   revision.
+
+Результат: manifest capability, active rule и domain configuration являются
+разными сущностями.
+
+### Этап 4. Pricing skeleton
 
 1. Создать `PricingFunctionPipeline`.
 2. Зарегистрировать pricing-owned targets.
-3. Добавить native provider descriptors.
+3. Добавить native implementation descriptors.
 4. Создать новый broker action `pricing.calculateQuote`.
 5. Пока использовать минимальную внутреннюю quote model.
 6. Подключить `cart.transform.run`.
@@ -716,16 +1021,16 @@ outputs.
 Результат: все источники влияния на денежный результат проходят через Pricing
 pipeline и общий runner.
 
-### Этап 4. Native bundles
+### Этап 5. Native bundles
 
 1. Добавить catalog native broker action для cart transform.
-2. Подключить его как required native provider.
+2. Подключить его как required native implementation.
 3. Перенести применение bundle pricing из Checkout в Pricing.
 4. Проверить nested bundles, quantity и currency invariants на уровне Pricing.
 
 Результат: bundle pricing больше не рассчитывается legacy-кодом Checkout.
 
-### Этап 5. Переключить Checkout
+### Этап 6. Переключить Checkout
 
 1. Все price-affecting checkout commands переводятся на
    `pricing.calculateQuote`.
@@ -737,29 +1042,61 @@ pipeline и общий runner.
 
 Результат: Pricing является единственным владельцем денежных расчётов.
 
-### Этап 6. Delivery, Payments и Validation
+### Этап 7. Delivery, Payments и Validation
 
 1. Подключить `DeliveryFunctionPipeline`.
-2. Подключить delivery options transform.
+2. Подключить `cart.delivery-options.transform.run`.
 3. Подключить `PaymentFunctionPipeline`.
-4. Подключить payment methods transform.
+4. Подключить `cart.payment-methods.transform.run`.
 5. Подключить `CheckoutValidationPipeline`.
-6. Встроить stages в checkout workflow в определённом порядке.
+6. Подключить `cart.validations.generate.run`.
+7. Встроить stages в checkout workflow в определённом порядке.
 
-Результат: общий runner используется всеми commerce domains без переноса
+Результат: core checkout function loop использует общий runner без переноса
 domain ownership.
 
-### Этап 7. App authoring и Admin
+### Этап 8. Fulfillment routing и pickup
+
+1. Добавить canonical fulfillment groups и location snapshots.
+2. Подключить `cart.fulfillment-constraints.generate.run`.
+3. Подключить
+   `cart.fulfillment-groups.location-rankings.generate.run`.
+4. Утвердить владельца order routing: `orders` либо будущий fulfillment
+   bounded context.
+5. Подключить `cart.local-pickup-options.generate.run`.
+6. Подключить `cart.pickup-point-options.generate.run`.
+7. Разделить delivery provider rates и declarative generator Functions.
+8. Встроить новые stages до delivery customization.
+
+Результат: полный Shopify-подобный function pipeline покрывает fulfillment
+planning, order routing и pickup.
+
+### Этап 9. App authoring и Admin
 
 1. Добавить target constants/types в App SDK.
 2. Добавить manifest validation известных targets.
 3. Показывать function bindings и precedence в Admin.
 4. Добавить enable/disable и failure policy, если это потребуется merchant UI.
 5. Добавить execution trace view без sensitive payloads.
-6. Подготовить example App с двумя targets.
+6. Подготовить example App с несколькими targets из разных domains.
+7. Показывать extension kind отдельно от capability, чтобы Function не
+   смешивалась с provider/event/automation/UI extension.
 
 Результат: App developer может подключить функцию без знания внутреннего
 Pricing/Checkout кода.
+
+### Этап 10. Advanced discount allocator
+
+1. Отдельно спроектировать discount combination и allocation model.
+2. Зафиксировать, какие Pricing invariants allocator не может нарушать.
+3. Добавить `cart.discounts.allocate.run` как `SINGLE`.
+4. Разрешить максимум одну активную App implementation на store.
+5. Использовать native Pricing allocator, когда App allocator не назначен.
+   Технический failure назначенного allocator должен завершать расчёт ошибкой.
+6. Добавить отдельные limits и trace для monetary allocations.
+
+Результат: allocator расширяет политику распределения скидок, но не получает
+право самостоятельно задавать quote totals.
 
 ## Проверка реализации
 
@@ -768,14 +1105,23 @@ Pricing/Checkout кода.
 - неизвестный target отклоняется;
 - App не может вызвать platform-only discovery/execution;
 - inactive/suspended installation не попадает в plan;
+- capability route без active function binding не исполняется;
+- несколько bindings одной implementation получают каждый свой configuration
+  snapshot;
+- изменение configuration revision делает старый execution plan stale;
 - route order стабилен и не зависит от Promise completion;
 - изменение `updatedAt` не меняет порядок;
 - App update во время execution даёт stale-plan failure, а не mixed version;
-- optional provider failure отражается в trace;
-- required provider failure прерывает execution;
+- optional implementation failure отражается в trace;
+- required implementation failure прерывает execution;
 - late result после deadline не применяется;
 - malformed output отклоняется доменным validator;
 - App не может напрямую задать final total;
+- Function не может выполнить payment, inventory, order или notification side
+  effect;
+- provider, event, automation и UI extensions не обнаруживаются через
+  `commerce.function`;
+- `SINGLE` target отклоняет более одной активной App implementation;
 - повторный расчёт одного input на одном plan детерминирован;
 - bundles и discounts рассчитываются в Pricing, а не в Checkout;
 - checkout не использует legacy discount fallback.
@@ -785,17 +1131,30 @@ Pricing/Checkout кода.
 
 ## Критерии готовности платформенного слоя
 
-Платформенный слой можно считать готовым, когда:
+Foundation Commerce Functions можно считать готовым, когда:
 
 1. Есть единый target registry.
-2. `BrokerFunctionExecutor` вызывает один native или App provider.
-3. `CommerceFunctionRunner` исполняет immutable multi-provider plan.
+2. `BrokerFunctionExecutor` вызывает одну native или App implementation.
+3. `CommerceFunctionRunner` исполняет immutable multi-implementation plan.
 4. App routes имеют стабильный порядок и version guard.
-5. Runner возвращает opaque outputs и полный безопасный trace.
-6. Ни runner, ни Apps service не содержат pricing/checkout business logic.
-7. Первый pricing target работает с native и App provider одновременно.
-8. Checkout получает цену только из нового Pricing quote path.
-9. Legacy checkout calculation удалён без compatibility layer.
+5. Definition, domain owner и function binding разделены.
+6. Execution plan фиксирует route и configuration revisions.
+7. Runner возвращает opaque outputs и полный безопасный trace.
+8. Ни runner, ни Apps service не содержат pricing/checkout business logic.
+9. Первый pricing target работает с native и App implementation одновременно.
+10. Checkout получает цену только из нового Pricing quote path.
+11. Legacy checkout calculation удалён без compatibility layer.
+
+Полный Commerce Functions loop можно считать готовым, когда дополнительно:
+
+1. Реализованы все core targets из каталога.
+2. Checkout stages выполняются в зафиксированном порядке.
+3. Fulfillment constraints предшествуют order routing.
+4. Pickup generators предшествуют delivery customization.
+5. Delivery discounts применяются к итоговым delivery options.
+6. Payment customization получает final payable amount.
+7. Validation видит результаты всех предыдущих stages.
+8. Provider/event/automation/UI contracts не смешаны с function-runner.
 
 ## Отдельные решения, которые потребуются позже
 
@@ -807,6 +1166,22 @@ Pricing/Checkout кода.
 4. Pricing Quote model и его versioning.
 5. Delivery/payment transform contracts.
 6. Validation severity и checkout stages.
-7. Function limits, merchant configuration и billing/usage model.
-8. Replay/debugging policy для function executions.
+7. Fulfillment constraints и order routing contracts.
+8. Local pickup и pickup point generator contracts.
+9. Function owner/binding persistence для каждого domain.
+10. Advanced Discounts Allocator ADR.
+11. Function limits, merchant configuration и billing/usage model.
+12. Replay/debugging policy для function executions.
+13. Payment, delivery, fulfillment и tax provider platform.
+14. Event subscriptions и automation extension model.
+15. UI extension target registry и runtime.
 
+## Референсы Shopify
+
+- [Shopify Function APIs](https://shopify.dev/docs/api/functions/2026-07)
+- [About Shopify Functions](https://shopify.dev/docs/apps/build/functions/index)
+- [Standardized Function target names](https://shopify.dev/changelog/standardized-target-and-operation-names-across-function-apis)
+- [Discounts Allocator Function API](https://shopify.dev/docs/api/functions/unstable/discounts-allocator)
+- [Payments extensions](https://shopify.dev/docs/apps/build/payments)
+- [Fulfillment service apps](https://shopify.dev/docs/apps/build/orders-fulfillment/fulfillment-service-apps)
+- [Shopify app extension types](https://shopify.dev/docs/apps/build/app-extensions/list-of-app-extensions)
