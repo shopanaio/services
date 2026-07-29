@@ -542,7 +542,7 @@ export function EditEligibilityChannelsModal() {
               >
                 <Checkbox
                   checked={channel.enabled}
-                  data-testid={`discount-channel-enabled-${channel.code}`}
+                  data-testid={`discount-channel-enabled-${channel.code.toLowerCase()}`}
                   onChange={(event) =>
                     updateValues({
                       channels: values.channels.map((item) =>
@@ -569,7 +569,7 @@ export function EditEligibilityChannelsModal() {
                 <Checkbox
                   checked={channel.featured}
                   disabled={!channel.enabled}
-                  data-testid={`discount-channel-featured-${channel.code}`}
+                  data-testid={`discount-channel-featured-${channel.code.toLowerCase()}`}
                   onChange={(event) =>
                     updateValues({
                       channels: values.channels.map((item) =>

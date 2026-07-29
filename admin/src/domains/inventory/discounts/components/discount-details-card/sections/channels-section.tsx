@@ -26,9 +26,9 @@ export function ChannelsSection({
 }: ChannelsSectionProps) {
   const { styles } = useDiscountSectionStyles();
   const channelPresentation = {
-    "online-store": { label: "Online store", icon: <LuStore /> },
-    "mobile-app": { label: "Mobile app", icon: <LuSmartphone /> },
-    "point-of-sale": { label: "POS", icon: <LuShoppingBag /> },
+    ONLINE_STORE: { label: "Online store", icon: <LuStore /> },
+    MOBILE_APP: { label: "Mobile app", icon: <LuSmartphone /> },
+    POINT_OF_SALE: { label: "POS", icon: <LuShoppingBag /> },
   } as const;
 
   return (
@@ -65,7 +65,7 @@ export function ChannelsSection({
       {discount.channels.length > 0 ? (
         <>
           <div className={styles.entityList}>
-            {(["online-store", "mobile-app", "point-of-sale"] as const).map(
+            {(["ONLINE_STORE", "MOBILE_APP", "POINT_OF_SALE"] as const).map(
               (code) => {
                 const channel = discount.channels.find(
                   (candidate) => candidate.code === code,

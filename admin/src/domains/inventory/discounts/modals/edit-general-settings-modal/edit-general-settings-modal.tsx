@@ -95,8 +95,20 @@ function StatusCell(params: CustomCellRendererProps<DiscountCodeEditorRow>) {
       value={params.data.status}
       disabled={!params.data.id}
       options={[
-        { value: DiscountCodeStatus.Active, label: "Active" },
-        { value: DiscountCodeStatus.Disabled, label: "Disabled" },
+        {
+          value: DiscountCodeStatus.Active,
+          label: (
+            <span data-testid="discount-code-status-option-active">Active</span>
+          ),
+        },
+        {
+          value: DiscountCodeStatus.Disabled,
+          label: (
+            <span data-testid="discount-code-status-option-disabled">
+              Disabled
+            </span>
+          ),
+        },
       ]}
       onChange={(status) =>
         getGridContext(params).updateRow(params.data!.key, { status })

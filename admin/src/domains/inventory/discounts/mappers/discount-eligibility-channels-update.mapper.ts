@@ -31,9 +31,9 @@ export interface DiscountEligibilityChannelsFormValues {
 }
 
 const CHANNELS = [
-  { code: "online-store", title: "Online store" },
-  { code: "mobile-app", title: "Mobile app" },
-  { code: "point-of-sale", title: "Point of sale" },
+  { code: "ONLINE_STORE", title: "Online store" },
+  { code: "MOBILE_APP", title: "Mobile app" },
+  { code: "POINT_OF_SALE", title: "Point of sale" },
 ] as const;
 
 export function createDiscountEligibilityChannelsFormValues(

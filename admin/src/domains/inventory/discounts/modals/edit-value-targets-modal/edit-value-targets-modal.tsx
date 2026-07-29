@@ -403,11 +403,19 @@ export function EditValueTargetsModal() {
                 options={[
                   {
                     value: DiscountValueType.Percentage,
-                    label: "Percentage",
+                    label: (
+                      <span data-testid="discount-value-type-option-percentage">
+                        Percentage
+                      </span>
+                    ),
                   },
                   {
                     value: DiscountValueType.FixedAmount,
-                    label: "Fixed amount",
+                    label: (
+                      <span data-testid="discount-value-type-option-fixed-amount">
+                        Fixed amount
+                      </span>
+                    ),
                   },
                 ]}
                 onChange={(valueType) => updateValues({ valueType })}
@@ -553,11 +561,19 @@ export function EditValueTargetsModal() {
                     options={[
                       {
                         value: DiscountRequirementType.Quantity,
-                        label: "Minimum quantity",
+                        label: (
+                          <span data-testid="discount-buy-requirement-type-option-minimum-quantity">
+                            Minimum quantity
+                          </span>
+                        ),
                       },
                       {
                         value: DiscountRequirementType.Subtotal,
-                        label: "Minimum subtotal",
+                        label: (
+                          <span data-testid="discount-buy-requirement-type-option-minimum-subtotal">
+                            Minimum subtotal
+                          </span>
+                        ),
                       },
                     ]}
                     onChange={(buyRequirementType) =>
@@ -634,15 +650,27 @@ export function EditValueTargetsModal() {
                     options={[
                       {
                         value: DiscountValueType.Free,
-                        label: "Free",
+                        label: (
+                          <span data-testid="discount-benefit-value-type-option-free">
+                            Free
+                          </span>
+                        ),
                       },
                       {
                         value: DiscountValueType.Percentage,
-                        label: "Percentage",
+                        label: (
+                          <span data-testid="discount-benefit-value-type-option-percentage">
+                            Percentage
+                          </span>
+                        ),
                       },
                       {
                         value: DiscountValueType.FixedAmount,
-                        label: "Fixed amount",
+                        label: (
+                          <span data-testid="discount-benefit-value-type-option-fixed-amount">
+                            Fixed amount
+                          </span>
+                        ),
                       },
                     ]}
                     onChange={(benefitValueType) =>
@@ -809,14 +837,29 @@ export function EditValueTargetsModal() {
               data-testid="discount-minimum-requirement-type"
               value={values.requirementType ?? "NONE"}
               options={[
-                { value: "NONE", label: "None" },
+                {
+                  value: "NONE",
+                  label: (
+                    <span data-testid="discount-minimum-requirement-type-option-none">
+                      None
+                    </span>
+                  ),
+                },
                 {
                   value: DiscountRequirementType.Subtotal,
-                  label: "Minimum subtotal",
+                  label: (
+                    <span data-testid="discount-minimum-requirement-type-option-minimum-subtotal">
+                      Minimum subtotal
+                    </span>
+                  ),
                 },
                 {
                   value: DiscountRequirementType.Quantity,
-                  label: "Minimum quantity",
+                  label: (
+                    <span data-testid="discount-minimum-requirement-type-option-minimum-quantity">
+                      Minimum quantity
+                    </span>
+                  ),
                 },
               ]}
               onChange={(requirementType) =>

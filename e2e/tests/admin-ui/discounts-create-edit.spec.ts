@@ -67,10 +67,13 @@ async function selectOption(
   page: Page,
   container: Locator,
   testId: string,
-  option: string,
+  optionTestId: string,
 ) {
   await container.getByTestId(testId).click();
-  await page.getByRole('option', { name: option, exact: true }).click();
+  await page
+    .locator('.ant-select-dropdown:visible')
+    .getByTestId(optionTestId)
+    .click();
 }
 
 async function openGeneralEditor(page: Page) {
@@ -138,7 +141,12 @@ async function createDiscount(
     return;
   }
 
-  await discountRows(page).first().click();
+  const kindTableLabel = kind.value === 'BUY_X_GET_Y' ? 'Buy x get y' : kind.label;
+  const codeRow = discountRows(page)
+    .filter({ hasText: kindTableLabel })
+    .filter({ hasText: 'Code' });
+  await expect(codeRow).toHaveCount(1);
+  await codeRow.click();
   await expect(page.getByTestId('discount-modal')).toBeVisible();
   const generalModal = await openGeneralEditor(page);
   await generalModal.getByTestId('discount-general-title-input').fill(title);
@@ -172,17 +180,37 @@ async function editAmountOffProducts(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   const modal = await openValueEditor(page);
 
-  await selectOption(page, modal, 'discount-value-type', 'Fixed amount');
+  await selectOption(
+    page,
+    modal,
+    'discount-value-type',
+    'discount-value-type-option-fixed-amount',
+  );
   await modal.getByTestId('discount-fixed-amount-input').fill('12.34');
-  await selectOption(page, modal, 'discount-value-type', 'Percentage');
+  await selectOption(
+    page,
+    modal,
+    'discount-value-type',
+    'discount-value-type-option-percentage',
+  );
   await fillControl(modal.getByTestId('discount-percentage-input'), '15.5');
   await modal.getByTestId('discount-allocation-each-checkbox').click();
   await modal.getByTestId('discount-maximum-input').fill('75');
   await exerciseTargetTypes(modal, 'discount-benefit-target');
 
-  await selectOption(page, modal, 'discount-minimum-requirement-type', 'Minimum subtotal');
+  await selectOption(
+    page,
+    modal,
+    'discount-minimum-requirement-type',
+    'discount-minimum-requirement-type-option-minimum-subtotal',
+  );
   await modal.getByTestId('discount-minimum-subtotal-input').fill('100');
-  await selectOption(page, modal, 'discount-minimum-requirement-type', 'Minimum quantity');
+  await selectOption(
+    page,
+    modal,
+    'discount-minimum-requirement-type',
+    'discount-minimum-requirement-type-option-minimum-quantity',
+  );
   await fillControl(modal.getByTestId('discount-minimum-quantity-input'), '3');
 
   await saveEditor(page, modal, 'discount-value-targets-edit');
@@ -196,13 +224,33 @@ async function editAmountOffOrder(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   const modal = await openValueEditor(page);
 
-  await selectOption(page, modal, 'discount-value-type', 'Percentage');
+  await selectOption(
+    page,
+    modal,
+    'discount-value-type',
+    'discount-value-type-option-percentage',
+  );
   await expect(modal.getByTestId('discount-percentage-input')).toBeVisible();
-  await selectOption(page, modal, 'discount-value-type', 'Fixed amount');
+  await selectOption(
+    page,
+    modal,
+    'discount-value-type',
+    'discount-value-type-option-fixed-amount',
+  );
   await modal.getByTestId('discount-fixed-amount-input').fill('25');
   await modal.getByTestId('discount-allocation-each-checkbox').click();
-  await selectOption(page, modal, 'discount-minimum-requirement-type', 'None');
-  await selectOption(page, modal, 'discount-minimum-requirement-type', 'Minimum subtotal');
+  await selectOption(
+    page,
+    modal,
+    'discount-minimum-requirement-type',
+    'discount-minimum-requirement-type-option-none',
+  );
+  await selectOption(
+    page,
+    modal,
+    'discount-minimum-requirement-type',
+    'discount-minimum-requirement-type-option-minimum-subtotal',
+  );
   await modal.getByTestId('discount-minimum-subtotal-input').fill('200');
 
   await saveEditor(page, modal, 'discount-value-targets-edit');
@@ -215,17 +263,42 @@ async function editBuyXGetY(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   const modal = await openValueEditor(page);
 
-  await selectOption(page, modal, 'discount-buy-requirement-type', 'Minimum subtotal');
+  await selectOption(
+    page,
+    modal,
+    'discount-buy-requirement-type',
+    'discount-buy-requirement-type-option-minimum-subtotal',
+  );
   await modal.getByTestId('discount-required-subtotal-input').fill('150');
-  await selectOption(page, modal, 'discount-buy-requirement-type', 'Minimum quantity');
+  await selectOption(
+    page,
+    modal,
+    'discount-buy-requirement-type',
+    'discount-buy-requirement-type-option-minimum-quantity',
+  );
   await fillControl(modal.getByTestId('discount-required-quantity-input'), '2');
   await fillControl(modal.getByTestId('discount-benefit-quantity-input'), '1');
 
-  await selectOption(page, modal, 'discount-benefit-value-type', 'Percentage');
+  await selectOption(
+    page,
+    modal,
+    'discount-benefit-value-type',
+    'discount-benefit-value-type-option-percentage',
+  );
   await fillControl(modal.getByTestId('discount-benefit-percentage-input'), '20');
-  await selectOption(page, modal, 'discount-benefit-value-type', 'Fixed amount');
+  await selectOption(
+    page,
+    modal,
+    'discount-benefit-value-type',
+    'discount-benefit-value-type-option-fixed-amount',
+  );
   await modal.getByTestId('discount-benefit-amount-input').fill('7.5');
-  await selectOption(page, modal, 'discount-benefit-value-type', 'Free');
+  await selectOption(
+    page,
+    modal,
+    'discount-benefit-value-type',
+    'discount-benefit-value-type-option-free',
+  );
   await fillControl(modal.getByTestId('discount-uses-per-order-input'), '2');
 
   await exerciseTargetTypes(modal, 'discount-qualifier-target');
@@ -242,10 +315,25 @@ async function editFreeShipping(page: Page, title: string) {
   const modal = await openValueEditor(page);
 
   await modal.getByTestId('discount-maximum-shipping-price-input').fill('30');
-  await selectOption(page, modal, 'discount-minimum-requirement-type', 'Minimum quantity');
+  await selectOption(
+    page,
+    modal,
+    'discount-minimum-requirement-type',
+    'discount-minimum-requirement-type-option-minimum-quantity',
+  );
   await fillControl(modal.getByTestId('discount-minimum-quantity-input'), '4');
-  await selectOption(page, modal, 'discount-minimum-requirement-type', 'None');
-  await selectOption(page, modal, 'discount-minimum-requirement-type', 'Minimum subtotal');
+  await selectOption(
+    page,
+    modal,
+    'discount-minimum-requirement-type',
+    'discount-minimum-requirement-type-option-none',
+  );
+  await selectOption(
+    page,
+    modal,
+    'discount-minimum-requirement-type',
+    'discount-minimum-requirement-type-option-minimum-subtotal',
+  );
   await modal.getByTestId('discount-minimum-subtotal-input').fill('75');
 
   await saveEditor(page, modal, 'discount-value-targets-edit');
@@ -278,8 +366,11 @@ async function editGeneralSettingsAndCodes(page: Page, title: string, unique: st
     .first()
     .fill(`UPDATED-${unique}`);
   await grid.getByLabel('Discount code status', { exact: true }).first().click();
-  await page.getByRole('option', { name: 'Disabled', exact: true }).click();
-  await grid.getByRole('button', { name: /Actions for SECOND-/ }).click();
+  await page
+    .locator('.ant-select-dropdown:visible')
+    .getByTestId('discount-code-status-option-disabled')
+    .click();
+  await grid.getByTestId(/^discount-code-actions-/).last().click();
   await page.getByTestId('discount-code-delete-menu-item').click();
   await saveEditor(page, modal, 'discount-general-edit');
 
@@ -312,15 +403,15 @@ async function editEligibilityAndChannels(page: Page, title: string) {
   await expect(modal.getByTestId('discount-segments-select-button')).toBeVisible();
   await buyerContext.getByText('All customers', { exact: true }).click();
 
-  await modal.getByTestId('discount-channel-enabled-online-store').click();
-  await modal.getByTestId('discount-channel-featured-online-store').click();
-  await modal.getByTestId('discount-channel-enabled-mobile-app').click();
-  await modal.getByTestId('discount-channel-enabled-point-of-sale').click();
-  await modal.getByTestId('discount-channel-enabled-point-of-sale').click();
+  await modal.getByTestId('discount-channel-enabled-online_store').click();
+  await modal.getByTestId('discount-channel-featured-online_store').click();
+  await modal.getByTestId('discount-channel-enabled-mobile_app').click();
+  await modal.getByTestId('discount-channel-enabled-point_of_sale').click();
+  await modal.getByTestId('discount-channel-enabled-point_of_sale').click();
 
   await saveEditor(page, modal, 'discount-eligibility-channels-edit');
   await expect(page.getByTestId('discount-customer-eligibility-section')).toContainText(
-    'All customers',
+    'Available to all customers',
   );
   await expect(page.getByTestId('discount-channels-section')).toContainText('2 of 3 active');
   await closeDiscountDetails(page);
@@ -387,14 +478,13 @@ test.describe('Admin discounts create and edit UI', () => {
     api,
     page,
   }) => {
-    test.setTimeout(600_000);
+    test.setTimeout(120_000);
 
     api.session.user.data.password = 'StrongPassword123!';
     await api.session.setupUser();
     const organization = await api.session.setupOrganization();
     await api.session.setupProject({
-      currencies: [UAH],
-      defaultCurrency: UAH,
+      currencyCode: UAH,
     });
 
     const unique = crypto.randomUUID().slice(0, 8);
@@ -436,7 +526,15 @@ test.describe('Admin discounts create and edit UI', () => {
       page,
       getDiscountTitle(titles, 'AMOUNT_OFF_PRODUCTS:AUTOMATIC'),
     );
-    await editBuyXGetY(page, getDiscountTitle(titles, 'BUY_X_GET_Y:AUTOMATIC'));
+    await test.step('edit BUY_X_GET_Y automatic value and targets', async () => {
+      await editBuyXGetY(
+        page,
+        getDiscountTitle(titles, 'BUY_X_GET_Y:AUTOMATIC'),
+      );
+    });
+    await test.step('edit BUY_X_GET_Y code value and targets', async () => {
+      await editBuyXGetY(page, getDiscountTitle(titles, 'BUY_X_GET_Y:CODE'));
+    });
     await editAmountOffOrder(
       page,
       getDiscountTitle(titles, 'AMOUNT_OFF_ORDER:AUTOMATIC'),
