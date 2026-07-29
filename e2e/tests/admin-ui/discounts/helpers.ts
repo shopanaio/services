@@ -1,16 +1,15 @@
-import { test } from '@fixtures/base.extend';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { expect, type Locator, type Page } from '@playwright/test';
 
-const UAH = 'UAH';
-type Api = ApiFixtures['api'];
+export const UAH = 'UAH';
+export type Api = ApiFixtures['api'];
 
-interface DiscountTargetFixtures {
+export interface DiscountTargetFixtures {
   categoryName: string;
   productTitle: string;
 }
 
-const DISCOUNT_KINDS = [
+export const DISCOUNT_KINDS = [
   {
     value: 'AMOUNT_OFF_PRODUCTS',
     label: 'Amount off products',
@@ -56,7 +55,7 @@ async function completeProfileIfNeeded(page: Page) {
   await expect(firstNameInput).toBeHidden();
 }
 
-async function createDiscountTargetFixtures(
+export async function createDiscountTargetFixtures(
   api: Api,
   unique: string,
 ): Promise<DiscountTargetFixtures> {
@@ -108,7 +107,7 @@ async function createDiscountTargetFixtures(
   return { categoryName, productTitle };
 }
 
-function discountRows(page: Page) {
+export function discountRows(page: Page) {
   return page.getByTestId('discounts-table').locator('.ag-center-cols-container .ag-row');
 }
 
@@ -168,7 +167,7 @@ async function openDiscountByTitle(page: Page, title: string) {
   await expect(page.getByTestId('discount-detail-title')).toHaveText(title);
 }
 
-async function createDiscount(
+export async function createDiscount(
   page: Page,
   kind: (typeof DISCOUNT_KINDS)[number],
   method: 'AUTOMATIC' | 'CODE',
@@ -298,7 +297,7 @@ async function configureAllTargetKinds(
   );
 }
 
-async function editAmountOffProducts(page: Page, title: string) {
+export async function editAmountOffProducts(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   const modal = await openValueEditor(page);
 
@@ -342,7 +341,7 @@ async function editAmountOffProducts(page: Page, title: string) {
   await closeDiscountDetails(page);
 }
 
-async function editAmountOffOrder(page: Page, title: string) {
+export async function editAmountOffOrder(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   const modal = await openValueEditor(page);
 
@@ -381,7 +380,7 @@ async function editAmountOffOrder(page: Page, title: string) {
   await closeDiscountDetails(page);
 }
 
-async function editBuyXGetY(
+export async function editBuyXGetY(
   page: Page,
   title: string,
   fixtures: DiscountTargetFixtures,
@@ -449,7 +448,7 @@ async function editBuyXGetY(
   await closeDiscountDetails(page);
 }
 
-async function editFreeShipping(page: Page, title: string) {
+export async function editFreeShipping(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   const modal = await openValueEditor(page);
 
@@ -483,7 +482,11 @@ async function editFreeShipping(page: Page, title: string) {
   await closeDiscountDetails(page);
 }
 
-async function editGeneralSettingsAndCodes(page: Page, title: string, unique: string) {
+export async function editGeneralSettingsAndCodes(
+  page: Page,
+  title: string,
+  unique: string,
+) {
   await openDiscountByTitle(page, title);
   let modal = await openGeneralEditor(page);
   await fillControl(modal.getByTestId('discount-general-priority-input'), '25');
@@ -519,7 +522,7 @@ async function editGeneralSettingsAndCodes(page: Page, title: string, unique: st
   await closeDiscountDetails(page);
 }
 
-async function editAutomaticGeneralSettings(page: Page, title: string) {
+export async function editAutomaticGeneralSettings(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   const modal = await openGeneralEditor(page);
   await expect(modal.getByTestId('discount-codes-grid')).toHaveCount(0);
@@ -528,7 +531,7 @@ async function editAutomaticGeneralSettings(page: Page, title: string) {
   await closeDiscountDetails(page);
 }
 
-async function editEligibilityAndChannels(page: Page, title: string) {
+export async function editEligibilityAndChannels(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   await page.getByTestId('discount-channels-actions').click();
   await page.getByTestId('discount-channels-edit-menu-item').click();
@@ -556,7 +559,7 @@ async function editEligibilityAndChannels(page: Page, title: string) {
   await closeDiscountDetails(page);
 }
 
-async function editAvailability(page: Page, title: string) {
+export async function editAvailability(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   await page.getByTestId('discount-availability-actions').click();
   await page.getByTestId('discount-availability-edit-menu-item').click();
@@ -585,7 +588,7 @@ async function editAvailability(page: Page, title: string) {
   await closeDiscountDetails(page);
 }
 
-async function assertEveryDetailsSection(page: Page, title: string) {
+export async function assertEveryDetailsSection(page: Page, title: string) {
   await openDiscountByTitle(page, title);
   for (const testId of [
     'discount-summary-section',
@@ -604,136 +607,98 @@ async function assertEveryDetailsSection(page: Page, title: string) {
   await closeDiscountDetails(page);
 }
 
-function getDiscountTitle(titles: Map<string, string>, key: string) {
-  const title = titles.get(key);
-  if (!title) {
-    throw new Error(`Missing discount fixture title for ${key}`);
-  }
-  return title;
+export type DiscountKindFixture = (typeof DISCOUNT_KINDS)[number];
+export type DiscountMethod = 'AUTOMATIC' | 'CODE';
+
+export interface DiscountTestContext {
+  unique: string;
 }
 
-test.describe('Admin discounts create and edit UI', () => {
-  test.describe.configure({ mode: 'serial' });
+export interface DiscountTitles {
+  automatic: string;
+  code: string;
+}
 
-  test('creates every kind and method, then edits every modal section and subtype', async ({
-    api,
-    page,
-  }) => {
-    test.setTimeout(120_000);
+export function getDiscountKind(
+  value: DiscountKindFixture['value'],
+): DiscountKindFixture {
+  const kind = DISCOUNT_KINDS.find((candidate) => candidate.value === value);
+  if (!kind) {
+    throw new Error(`Missing discount kind fixture for ${value}`);
+  }
+  return kind;
+}
 
-    api.session.user.data.password = 'StrongPassword123!';
-    await api.session.setupUser();
-    const organization = await api.session.setupOrganization();
-    await api.session.setupProject({
-      currencyCode: UAH,
-    });
-
-    const unique = crypto.randomUUID().slice(0, 8);
-    const titles = new Map<string, string>();
-    const discountsUrl = `/${organization.name}/${api.session.projectSlug}/discounts`;
-
-    await signIn(page, api.session.user.data.email, api.session.user.data.password);
-    await completeProfileIfNeeded(page);
-    await page.goto(discountsUrl);
-    await expect(page.getByTestId('page-title')).toHaveText('Discounts');
-
-    for (const kind of DISCOUNT_KINDS) {
-      for (const method of ['AUTOMATIC', 'CODE'] as const) {
-        const title = `${kind.label} ${method.toLowerCase()} ${unique}`;
-        const key = `${kind.value}:${method}`;
-        titles.set(key, title);
-        await createDiscount(page, kind, method, title, `${kind.value}-${unique}`);
-      }
-    }
-
-    await page.reload();
-    await expect(page.getByTestId('page-title')).toHaveText('Discounts');
-    await expect(discountRows(page)).toHaveCount(8);
-
-    for (const kind of DISCOUNT_KINDS) {
-      for (const method of ['AUTOMATIC', 'CODE'] as const) {
-        const title = getDiscountTitle(titles, `${kind.value}:${method}`);
-        const cell = page.getByTestId('discounts-table').getByText(title, { exact: true });
-        const row = cell.locator('xpath=ancestor::*[@role="row"][1]');
-        await expect(cell).toBeVisible();
-        await expect(row).toContainText(method === 'AUTOMATIC' ? 'Automatic' : 'Code');
-        await expect(row).toContainText(
-          kind.value === 'BUY_X_GET_Y' ? 'Buy x get y' : kind.label,
-        );
-      }
-    }
-
-    await editAmountOffProducts(
-      page,
-      getDiscountTitle(titles, 'AMOUNT_OFF_PRODUCTS:AUTOMATIC'),
-    );
-    await editAmountOffOrder(
-      page,
-      getDiscountTitle(titles, 'AMOUNT_OFF_ORDER:AUTOMATIC'),
-    );
-    await editFreeShipping(page, getDiscountTitle(titles, 'FREE_SHIPPING:CODE'));
-    await editGeneralSettingsAndCodes(
-      page,
-      getDiscountTitle(titles, 'AMOUNT_OFF_PRODUCTS:CODE'),
-      unique,
-    );
-    await editAutomaticGeneralSettings(
-      page,
-      getDiscountTitle(titles, 'AMOUNT_OFF_ORDER:AUTOMATIC'),
-    );
-    await editEligibilityAndChannels(
-      page,
-      getDiscountTitle(titles, 'BUY_X_GET_Y:CODE'),
-    );
-    await editAvailability(page, getDiscountTitle(titles, 'FREE_SHIPPING:CODE'));
-    await assertEveryDetailsSection(
-      page,
-      getDiscountTitle(titles, 'AMOUNT_OFF_PRODUCTS:CODE'),
-    );
+export async function setupDiscountTest(
+  api: Api,
+  page: Page,
+): Promise<DiscountTestContext> {
+  api.session.user.data.password = 'StrongPassword123!';
+  await api.session.setupUser();
+  const organization = await api.session.setupOrganization();
+  await api.session.setupProject({
+    currencyCode: UAH,
   });
 
-  for (const method of ['AUTOMATIC', 'CODE'] as const) {
-    test(`configures BUY_X_GET_Y product, variant and category targets for ${method.toLowerCase()}`, async ({
-      api,
-      page,
-    }) => {
-      test.setTimeout(120_000);
+  const unique = crypto.randomUUID().slice(0, 8);
+  const discountsUrl = `/${organization.name}/${api.session.projectSlug}/discounts`;
+  await signIn(page, api.session.user.data.email, api.session.user.data.password);
+  await completeProfileIfNeeded(page);
+  await page.goto(discountsUrl);
+  await expect(page.getByTestId('page-title')).toHaveText('Discounts');
 
-      api.session.user.data.password = 'StrongPassword123!';
-      await api.session.setupUser();
-      const organization = await api.session.setupOrganization();
-      await api.session.setupProject({
-        currencyCode: UAH,
-      });
+  return { unique };
+}
 
-      const unique = crypto.randomUUID().slice(0, 8);
-      const fixtures = await createDiscountTargetFixtures(api, unique);
-      const discountsUrl = `/${organization.name}/${api.session.projectSlug}/discounts`;
-      const buyXGetY = DISCOUNT_KINDS.find((kind) => kind.value === 'BUY_X_GET_Y');
-      if (!buyXGetY) {
-        throw new Error('BUY_X_GET_Y discount kind fixture is missing');
-      }
+export async function createDiscountsForKind(
+  page: Page,
+  kind: DiscountKindFixture,
+  unique: string,
+): Promise<DiscountTitles> {
+  const titles: DiscountTitles = {
+    automatic: `${kind.label} automatic ${unique}`,
+    code: `${kind.label} code ${unique}`,
+  };
 
-      await signIn(page, api.session.user.data.email, api.session.user.data.password);
-      await completeProfileIfNeeded(page);
-      await page.goto(discountsUrl);
-      await expect(page.getByTestId('page-title')).toHaveText('Discounts');
+  await createDiscount(
+    page,
+    kind,
+    'AUTOMATIC',
+    titles.automatic,
+    `${kind.value}-${unique}`,
+  );
+  await createDiscount(
+    page,
+    kind,
+    'CODE',
+    titles.code,
+    `${kind.value}-${unique}`,
+  );
 
-      const title = `Buy X get Y targets ${method.toLowerCase()} ${unique}`;
-      await createDiscount(
-        page,
-        buyXGetY,
-        method,
-        title,
-        `BUY_X_GET_Y-${unique}`,
-      );
+  return titles;
+}
 
-      await test.step(
-        `edit BUY_X_GET_Y ${method.toLowerCase()} products, variants and categories`,
-        async () => {
-          await editBuyXGetY(page, title, fixtures);
-        },
-      );
-    });
+export async function expectDiscountsForKind(
+  page: Page,
+  kind: DiscountKindFixture,
+  titles: DiscountTitles,
+) {
+  await page.reload();
+  await expect(page.getByTestId('page-title')).toHaveText('Discounts');
+  await expect(discountRows(page)).toHaveCount(2);
+
+  for (const [method, title] of [
+    ['AUTOMATIC', titles.automatic],
+    ['CODE', titles.code],
+  ] as const) {
+    const cell = page
+      .getByTestId('discounts-table')
+      .getByText(title, { exact: true });
+    const row = cell.locator('xpath=ancestor::*[@role="row"][1]');
+    await expect(cell).toBeVisible();
+    await expect(row).toContainText(method === 'AUTOMATIC' ? 'Automatic' : 'Code');
+    await expect(row).toContainText(
+      kind.value === 'BUY_X_GET_Y' ? 'Buy x get y' : kind.label,
+    );
   }
-});
+}
