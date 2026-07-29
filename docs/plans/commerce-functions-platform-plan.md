@@ -669,10 +669,15 @@ functionBindingId ASC
 Binding metadata — precedence, activation sequence, owner и configuration
 revision — приходит от владеющего домена, а не вычисляется Apps service.
 
-`executeCapability` должен принимать ожидаемую route revision/app version,
-function binding ID и configuration revision либо единый compare-and-run
-token. Это защищает один execution plan от смешивания versions/configurations
-при одновременном update, disable или suspend App.
+`executeCapability` принимает installation ID, target, function binding ID и
+canonical input с зафиксированным configuration snapshot. Непосредственно
+перед запуском Apps service повторно разрешает текущий active route и
+проверяет, что installation не disabled/suspended. В trace записываются
+фактически использованные App version и route revision.
+
+При конкурентном update используется route, который был active в момент
+фактического invocation. Configuration snapshot текущего execution при этом
+не изменяется.
 
 Так как проект не требует backward compatibility, broker types и callers
 следует изменить напрямую без временного V1/V2 API.
@@ -756,7 +761,6 @@ Native implementation по умолчанию `REQUIRED`.
 - authorization/scope error;
 - implementation exception;
 - invalid implementation output;
-- stale execution plan;
 - output size limit;
 - domain rejection после возврата runner.
 
@@ -984,12 +988,13 @@ outputs.
 
 1. Расширить `apps.listCapabilityRoutes` route metadata.
 2. Удалить `updatedAt` из порядка Commerce Function routes.
-3. Добавить route revision/version token.
-4. Сделать `apps.executeCapability` compare-and-run для immutable plan.
+3. Повторно разрешать active route непосредственно перед invocation.
+4. Возвращать фактически использованные App version и route revision.
 5. Добавить размерные ограничения и безопасные error codes.
 6. Сохранить обязательный путь через `AppsRuntimeRouter.callAsApp`.
 
-Результат: один function execution не смешивает routes и App versions.
+Результат: каждый invocation использует текущий active route, а его фактическая
+версия отражается в execution trace.
 
 ### Этап 3. Function owners и bindings
 
@@ -1000,8 +1005,7 @@ outputs.
 5. Добавить precedence и immutable activation sequence.
 6. Добавить resolution active owners/bindings перед route verification.
 7. Передавать binding/configuration snapshot в target canonical input.
-8. Инвалидировать execution plan при изменении route или configuration
-   revision.
+8. Не изменять configuration snapshot уже начатого execution.
 
 Результат: manifest capability, active rule и domain configuration являются
 разными сущностями.
@@ -1108,10 +1112,11 @@ Pricing/Checkout кода.
 - capability route без active function binding не исполняется;
 - несколько bindings одной implementation получают каждый свой configuration
   snapshot;
-- изменение configuration revision делает старый execution plan stale;
+- изменение configuration не меняет snapshot уже начатого execution;
 - route order стабилен и не зависит от Promise completion;
 - изменение `updatedAt` не меняет порядок;
-- App update во время execution даёт stale-plan failure, а не mixed version;
+- active route повторно проверяется непосредственно перед invocation;
+- trace содержит фактически использованные App version и route revision;
 - optional implementation failure отражается в trace;
 - required implementation failure прерывает execution;
 - late result после deadline не применяется;
@@ -1136,9 +1141,10 @@ Foundation Commerce Functions можно считать готовым, когд
 1. Есть единый target registry.
 2. `BrokerFunctionExecutor` вызывает одну native или App implementation.
 3. `CommerceFunctionRunner` исполняет immutable multi-implementation plan.
-4. App routes имеют стабильный порядок и version guard.
+4. App routes имеют стабильный порядок и проверяются перед invocation.
 5. Definition, domain owner и function binding разделены.
-6. Execution plan фиксирует route и configuration revisions.
+6. Execution фиксирует configuration snapshot и фактически использованный
+   App route в trace.
 7. Runner возвращает opaque outputs и полный безопасный trace.
 8. Ни runner, ни Apps service не содержат pricing/checkout business logic.
 9. Первый pricing target работает с native и App implementation одновременно.
@@ -1185,3 +1191,142 @@ Foundation Commerce Functions можно считать готовым, когд
 - [Payments extensions](https://shopify.dev/docs/apps/build/payments)
 - [Fulfillment service apps](https://shopify.dev/docs/apps/build/orders-fulfillment/fulfillment-service-apps)
 - [Shopify app extension types](https://shopify.dev/docs/apps/build/app-extensions/list-of-app-extensions)
+
+## Укрупнённые фазы выполнения
+
+Детальные этапы плана группируются в несколько больших последовательных фаз.
+Переход к следующей фазе выполняется после достижения результата и критериев
+выхода текущей.
+
+### Фаза A. Подготовка Apps routing и общего runner
+
+Цель — построить инфраструктуру запуска opaque functions без привязки к
+pricing, delivery или checkout contracts.
+
+Включает:
+
+- создание `packages/function-runner`;
+- реализацию `FunctionTargetRegistry`;
+- реализацию `BrokerFunctionExecutor`;
+- реализацию `CommerceFunctionRunner`;
+- поддержку native и App implementations;
+- создание immutable execution plan;
+- стабильный порядок routes;
+- фиксацию configuration snapshot на время execution;
+- повторную проверку active route перед invocation;
+- concurrency limits и deadline classification;
+- общую failure policy;
+- безопасный execution trace;
+- расширение `apps.listCapabilityRoutes`;
+- усиление `apps.executeCapability` для безопасного Function invocation.
+
+Результат фазы:
+
+- любой зарегистрированный target можно запустить с opaque input;
+- runner возвращает упорядоченные opaque outputs;
+- App invocation проходит только через Apps runtime;
+- configuration snapshot не изменяется во время execution;
+- trace отражает фактически использованную App version и route revision;
+- бизнес-логика commerce domains отсутствует в runner и Apps service.
+
+### Фаза B. Интеграция Pricing и Bundles
+
+Цель — сделать Pricing первым владельцем полноценного function pipeline и
+единственной точкой денежного расчёта.
+
+Включает:
+
+- создание `PricingFunctionPipeline`;
+- создание `pricing.calculateQuote`;
+- подключение native implementations;
+- интеграцию `cart.transform.run`;
+- перенос native bundle transform из Checkout в связку Catalog → Pricing;
+- интеграцию `cart.lines.discounts.generate.run`;
+- интеграцию delivery discount target;
+- применение target-specific validation внутри Pricing;
+- реализацию combination, allocation и rounding на стороне Pricing;
+- формирование immutable quote/cost snapshot;
+- trace и метрики pricing executions.
+
+Результат фазы:
+
+- bundles и discounts рассчитываются Pricing;
+- native и App implementations участвуют в одном execution plan;
+- Apps возвращают candidates/operations, но не final total;
+- Pricing возвращает полный детерминированный quote.
+
+### Фаза C. Интеграция Checkout и удаление legacy
+
+Цель — переключить весь checkout price flow на новый Pricing pipeline.
+
+Включает:
+
+- перевод всех price-affecting checkout commands на
+  `pricing.calculateQuote`;
+- сохранение quote/cost snapshots в checkout commands и events;
+- согласование quote revision с checkout revision;
+- удаление fallback на ранее применённые discounts;
+- удаление `CheckoutCostService`;
+- удаление legacy `PricingApiClient.evaluateDiscounts`;
+- удаление bundle и discount arithmetic из Checkout;
+- удаление неиспользуемых legacy types и call sites;
+- проверку отсутствия старого пути расчёта.
+
+Результат фазы:
+
+- Checkout не рассчитывает деньги;
+- при изменении корзины используется только новый quote path;
+- legacy pricing удалён полностью;
+- отсутствуют compatibility adapters и скрытые fallback paths.
+
+### Фаза D. Интеграция остальных commerce domains
+
+Цель — подключить общий runner к delivery, payments, fulfillment и checkout
+validation, сохранив доменный ownership.
+
+Включает:
+
+- создание `DeliveryFunctionPipeline`;
+- интеграцию delivery option generators;
+- интеграцию delivery option customization;
+- интеграцию fulfillment constraints;
+- интеграцию order routing rules;
+- создание `PaymentFunctionPipeline`;
+- интеграцию payment customization;
+- создание `CheckoutValidationPipeline`;
+- интеграцию cart и checkout validations;
+- фиксацию общего порядка commerce stages;
+- включение результатов в durable checkout workflow.
+
+Результат фазы:
+
+- каждый домен применяет результаты только своих targets;
+- checkout flow использует единый согласованный порядок stages;
+- runner переиспользуется без центрального functions service;
+- pricing, delivery, payments, fulfillment и validation расширяются Apps
+  независимо.
+
+### Фаза E. App developer experience и эксплуатация
+
+Цель — сделать платформу доступной разработчикам Apps и управляемой для
+merchant/operator.
+
+Включает:
+
+- target constants и authoring helpers в App SDK;
+- manifest validation системных targets;
+- reference App с несколькими functions;
+- Admin UI для definitions, bindings, precedence и состояния implementations;
+- просмотр безопасного execution trace;
+- метрики, dashboards и alerting;
+- limits на duration, input/output size и concurrency;
+- документацию по purity, retries и deadlines;
+- эксплуатационные сценарии suspend/update/uninstall App;
+- нагрузочную и отказоустойчивую проверку function pipeline.
+
+Результат фазы:
+
+- App developer может реализовать target через broker action;
+- merchant видит активные implementations и их порядок;
+- operator может диагностировать failure без просмотра sensitive payloads;
+- платформа готова к последовательному добавлению новых target contracts.
