@@ -1,32 +1,45 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback } from "react";
 import { Alert, Empty, Flex, Skeleton } from "antd";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { DiscountDetailsCard } from "../../components/discount-details-card";
 import { DiscountStatusTag } from "../../components/discount-details-card/discount-status-tag";
+import type { DiscountDetailsSection } from "../../components/discount-details-card/types";
 import { useDiscount } from "../../hooks";
-import type { IDiscountModalPayload } from "../../modals";
+import {
+  useDiscountGeneralEditModal,
+  type IDiscountModalPayload,
+} from "../../modals";
+import { DiscountMethod } from "@/graphql/types";
 import { useDiscountModalStyles } from "./discount-modal.styles";
 
 export function DiscountModal() {
-  const { payload, pop, forcePop } = useModalStackContext();
+  const { payload, forcePop } = useModalStackContext();
   const { styles } = useDiscountModalStyles();
   const typedPayload = payload as IDiscountModalPayload;
   const entityId =
     typeof typedPayload.entityId === "string" ? typedPayload.entityId : null;
   const { discount, loading, error, refetch } = useDiscount(entityId);
+  const { push: openGeneralSettingsModal } = useDiscountGeneralEditModal();
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        pop();
+  const editGeneralSettings = useCallback(
+    (section: DiscountDetailsSection) => {
+      if (
+        !discount ||
+        (section !== "summary" &&
+          (section !== "codes" || discount.method !== DiscountMethod.Code))
+      ) {
+        return;
       }
-    };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [pop]);
+      openGeneralSettingsModal({
+        discount,
+        onSaved: refetch,
+      });
+    },
+    [discount, openGeneralSettingsModal, refetch],
+  );
 
   const renderContent = () => {
     if (loading && !discount) {
@@ -54,7 +67,17 @@ export function DiscountModal() {
     }
 
     return (
-      <DiscountDetailsCard discount={discount} onRefresh={refetch} />
+      <DiscountDetailsCard
+        discount={discount}
+        editableSections={
+          discount.method === DiscountMethod.Code
+            ? ["summary", "codes"]
+            : ["summary"]
+        }
+        onEditSection={editGeneralSettings}
+        onRefresh={refetch}
+        onArchived={forcePop}
+      />
     );
   };
 

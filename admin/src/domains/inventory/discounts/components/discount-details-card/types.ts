@@ -15,12 +15,16 @@ export type DiscountDetailsSection =
 export interface DiscountDetailsCardProps {
   discount: ApiDiscount;
   onEditSection?: (section: DiscountDetailsSection) => void;
+  editableSections?: readonly DiscountDetailsSection[];
   onViewActivity?: () => void;
   onRefresh?: () => Promise<unknown>;
+  onArchived?: () => void;
 }
 
 export interface DiscountSummarySectionProps {
   discount: ApiDiscount;
   currency: CurrencyCode | null;
   onEdit?: () => void;
+  onRefresh?: () => Promise<unknown>;
+  onArchived?: () => void;
 }

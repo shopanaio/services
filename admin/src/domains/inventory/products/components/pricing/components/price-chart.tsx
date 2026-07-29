@@ -24,6 +24,7 @@ interface IPriceChartProps {
   showDateLabels?: boolean;
   gridLineCount?: number;
   valueFormatter?: (value: number, point: PriceChartPoint) => string;
+  showPointSymbols?: boolean;
 }
 
 export const PriceChart = ({
@@ -35,6 +36,7 @@ export const PriceChart = ({
   showDateLabels = false,
   gridLineCount = 3,
   valueFormatter,
+  showPointSymbols = true,
 }: IPriceChartProps) => {
   const theme = useTheme();
 
@@ -134,7 +136,7 @@ export const PriceChart = ({
           type: "line",
           data: values,
           smooth: false,
-          symbol: "circle",
+          symbol: showPointSymbols ? "circle" : "none",
           symbolSize: (_value: number, params: { dataIndex: number }) => {
             return params.dataIndex === currentIndex ? 10 : 6;
           },
@@ -196,6 +198,7 @@ export const PriceChart = ({
     gridLineCount,
     currency,
     valueFormatter,
+    showPointSymbols,
   ]);
 
   return (

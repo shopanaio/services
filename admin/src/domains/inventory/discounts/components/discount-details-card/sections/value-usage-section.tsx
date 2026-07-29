@@ -311,6 +311,7 @@ export function ValueUsageSection({
             onPeriodChange={(value) => setPeriod(value as ChartPeriod)}
             label="Usage history"
             valueFormatter={(value) => formatDiscountCount(value)}
+            showPointSymbols={false}
           />
         </div>
       </div>

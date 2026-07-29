@@ -516,6 +516,16 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard this discount draft?',
     },
+    {
+      type: 'discount-general-edit',
+      component: dynamic(() =>
+        import('@/domains/inventory/discounts/modals/edit-general-settings-modal').then(
+          (m) => m.EditGeneralSettingsModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard general settings changes?',
+    },
     // ========================================
     // Tag modals
     // ========================================

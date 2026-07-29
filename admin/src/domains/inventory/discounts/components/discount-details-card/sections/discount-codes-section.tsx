@@ -35,12 +35,14 @@ export function DiscountCodesSection({
         title="Discount codes"
         className={styles.compactHeader}
         actions={
-          <Button
-            size="small"
-            icon={<LuEllipsis />}
-            aria-label="Edit discount codes"
-            onClick={onEdit}
-          />
+          onEdit ? (
+            <Button
+              size="small"
+              icon={<LuEllipsis />}
+              aria-label="Edit discount codes"
+              onClick={onEdit}
+            />
+          ) : undefined
         }
       />
 

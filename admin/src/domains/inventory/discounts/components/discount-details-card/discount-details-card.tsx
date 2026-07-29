@@ -20,13 +20,17 @@ import type { DiscountDetailsCardProps } from "./types";
 export function DiscountDetailsCard({
   discount,
   onEditSection,
+  editableSections,
   onRefresh,
+  onArchived,
   onViewActivity,
 }: DiscountDetailsCardProps) {
   const { styles } = useDiscountDetailsCardStyles();
   const currency = useDefaultCurrency() ?? discount.currency;
   const editHandler = (section: Parameters<NonNullable<typeof onEditSection>>[0]) =>
-    onEditSection ? () => onEditSection(section) : undefined;
+    onEditSection && (!editableSections || editableSections.includes(section))
+      ? () => onEditSection(section)
+      : undefined;
 
   return (
     <Flex
@@ -39,6 +43,8 @@ export function DiscountDetailsCard({
         discount={discount}
         currency={currency}
         onEdit={editHandler("summary")}
+        onRefresh={onRefresh}
+        onArchived={onArchived}
       />
       <ValueUsageSection
         discount={discount}

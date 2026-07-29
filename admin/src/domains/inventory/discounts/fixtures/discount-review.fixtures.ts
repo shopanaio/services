@@ -27,7 +27,7 @@ import {
  * Temporary review mode. Keep list and details fixtures behind one switch so
  * restoring live API data only requires changing this value to false.
  */
-export const DISCOUNT_REVIEW_FIXTURES_ENABLED = true;
+export const DISCOUNT_REVIEW_FIXTURES_ENABLED = false;
 
 const pageInfo: ApiPageInfo = {
   __typename: "PageInfo",

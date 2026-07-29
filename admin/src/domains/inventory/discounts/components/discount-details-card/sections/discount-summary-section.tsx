@@ -1,20 +1,32 @@
 "use client";
 
 import {
+  App,
   Button,
   Divider,
+  Dropdown,
   Flex,
   Segmented,
   Switch,
   Tag,
   Typography,
 } from "antd";
-import { LuEllipsis } from "react-icons/lu";
+import {
+  LuArchive,
+  LuCirclePause,
+  LuCirclePlay,
+  LuEllipsis,
+  LuPencil,
+} from "react-icons/lu";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { DiscountStatusTag } from "../discount-status-tag";
-import { DiscountEffectiveStatus } from "@/graphql/types";
+import {
+  DiscountEffectiveStatus,
+  DiscountState,
+} from "@/graphql/types";
+import { useUpdateDiscount } from "../../../hooks";
 import { useDiscountSummaryStyles } from "../discount-details-card.styles";
 import {
   formatDiscountCount,
@@ -44,9 +56,50 @@ export function DiscountSummarySection({
   discount,
   currency,
   onEdit,
+  onRefresh,
+  onArchived,
 }: DiscountSummarySectionProps) {
   const { styles } = useDiscountSummaryStyles();
+  const { message } = App.useApp();
+  const { updateDiscount, loading: statusUpdating } = useUpdateDiscount();
   const title = discount.title ?? discount.primaryCode ?? "Untitled discount";
+  const isArchived = discount.state === DiscountState.Archived;
+  const nextState =
+    discount.state === DiscountState.Active
+      ? DiscountState.Paused
+      : DiscountState.Active;
+  const statusActionLabel =
+    nextState === DiscountState.Active ? "Activate discount" : "Pause discount";
+
+  const updateStatus = (state: DiscountState) => {
+    void (async () => {
+      const result = await updateDiscount({
+        discountId: discount.id,
+        expectedRevision: discount.revision,
+        operations: {
+          lifecycle: { state },
+        },
+      });
+
+      if (result.errors.length > 0) {
+        message.error(result.errors[0].message);
+        return;
+      }
+
+      if (state === DiscountState.Archived) {
+        message.success("Discount archived");
+        onArchived?.();
+        return;
+      }
+
+      message.success(
+        state === DiscountState.Active
+          ? "Discount activated"
+          : "Discount paused",
+      );
+      await onRefresh?.();
+    })();
+  };
   const redemptionAmounts = discount.redemptions.edges.map(
     ({ node }) => Number(node.amountMinor),
   ).filter(
@@ -99,13 +152,56 @@ export function DiscountSummarySection({
         title={statusTitle}
         className={styles.header}
         actions={
-          onEdit ? (
-            <Button
-              size="small"
-              icon={<LuEllipsis />}
-              aria-label="Edit discount summary"
-              onClick={onEdit}
-            />
+          !isArchived ? (
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  ...(onEdit
+                    ? [
+                        {
+                          key: "edit-general-settings",
+                          label: "Edit general settings",
+                          icon: <LuPencil />,
+                          "data-testid":
+                            "discount-edit-general-settings-menu-item",
+                          onClick: onEdit,
+                        },
+                      ]
+                    : []),
+                  {
+                    key: "change-status",
+                    label: statusActionLabel,
+                    icon:
+                      nextState === DiscountState.Active ? (
+                        <LuCirclePlay />
+                      ) : (
+                        <LuCirclePause />
+                      ),
+                    disabled: statusUpdating,
+                    "data-testid": "discount-change-status-menu-item",
+                    onClick: () => updateStatus(nextState),
+                  },
+                  { type: "divider" as const },
+                  {
+                    key: "archive",
+                    label: "Archive discount",
+                    icon: <LuArchive />,
+                    danger: true,
+                    disabled: statusUpdating,
+                    "data-testid": "discount-archive-menu-item",
+                    onClick: () => updateStatus(DiscountState.Archived),
+                  },
+                ],
+              }}
+            >
+              <Button
+                size="small"
+                icon={<LuEllipsis />}
+                aria-label="Discount actions"
+                data-testid="discount-summary-actions"
+              />
+            </Dropdown>
           ) : undefined
         }
       />

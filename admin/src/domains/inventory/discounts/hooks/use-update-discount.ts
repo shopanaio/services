@@ -27,6 +27,7 @@ export function useUpdateDiscount() {
       try {
         const result = await updateDiscountMutation({
           variables: input,
+          fetchPolicy: "no-cache",
         });
         const payload = result.data?.pricingMutation.discountUpdate;
         const operationResults = payload?.operationResults ?? [];

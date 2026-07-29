@@ -16,6 +16,7 @@ export interface IPriceHistoryChartColumnProps {
   currency?: CurrencyCode | null;
   label?: string;
   valueFormatter?: (value: number, point: PriceChartPoint) => string;
+  showPointSymbols?: boolean;
 }
 
 export const PriceHistoryChartColumn = ({
@@ -26,6 +27,7 @@ export const PriceHistoryChartColumn = ({
   currency,
   label = "Price history",
   valueFormatter,
+  showPointSymbols,
 }: IPriceHistoryChartColumnProps) => {
   const { styles } = useStyles();
 
@@ -53,6 +55,7 @@ export const PriceHistoryChartColumn = ({
         height={100}
         gridLineCount={3}
         valueFormatter={valueFormatter}
+        showPointSymbols={showPointSymbols}
       />
     </div>
   );
