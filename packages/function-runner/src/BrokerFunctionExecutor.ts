@@ -172,6 +172,15 @@ export class BrokerFunctionExecutor
     envelope: CommerceFunctionInvocation,
   ): Promise<InvocationResult> {
     if (context.item.implementationType === "NATIVE") {
+      if (
+        this.broker.getActionMetadata(
+          context.item.nativeAction,
+        )?.readOnly !== true
+      ) {
+        throw new NativeFunctionActionPolicyError(
+          context.item.nativeAction,
+        );
+      }
       return {
         data: await this.broker.call(
           context.item.nativeAction,
@@ -280,6 +289,15 @@ class DeadlineExceededError extends Error {
   }
 }
 
+class NativeFunctionActionPolicyError extends Error {
+  readonly code = "FUNCTION_ACTION_NOT_READ_ONLY";
+
+  constructor(readonly action: string) {
+    super("Native Commerce Function action is not classified as read-only");
+    this.name = "NativeFunctionActionPolicyError";
+  }
+}
+
 function classifyError(error: unknown): {
   errorClass: FunctionErrorClass;
   code: string;
@@ -288,6 +306,12 @@ function classifyError(error: unknown): {
     return {
       errorClass: "DEADLINE_EXCEEDED",
       code: "FUNCTION_DEADLINE_EXCEEDED",
+    };
+  }
+  if (error instanceof NativeFunctionActionPolicyError) {
+    return {
+      errorClass: "AUTHORIZATION_ERROR",
+      code: error.code,
     };
   }
   if (
@@ -354,11 +378,12 @@ function stableCapabilityFailure(
   }
   if (
     candidate.errorClassification === "AUTHORIZATION_ERROR" &&
-    candidate.errorCode === "FUNCTION_AUTHORIZATION_ERROR"
+    (candidate.errorCode === "FUNCTION_AUTHORIZATION_ERROR" ||
+      candidate.errorCode === "FUNCTION_ACTION_NOT_READ_ONLY")
   ) {
     return {
       errorClass: "AUTHORIZATION_ERROR",
-      code: "FUNCTION_AUTHORIZATION_ERROR",
+      code: candidate.errorCode,
     };
   }
   if (

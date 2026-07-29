@@ -1,5 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import { AuthorizationError } from "@shopana/shared-kernel";
+import {
+  AppOutboundAuthorizationError,
+} from "../runtime/AppOutboundAuthorizationError.js";
 import { AppRuntimeInvocationError } from "../runtime/AppRuntimeInvocationError.js";
 import {
   CapabilityInvocationError,
@@ -24,6 +27,19 @@ describe("capabilityErrorDescriptor", () => {
     });
   });
 
+  it("classifies Commerce Function outbound policy denials as authorization errors", () => {
+    expect(
+      capabilityErrorDescriptor(
+        new AppOutboundAuthorizationError(
+          "Commerce Function cannot call a mutating action",
+        ),
+      ),
+    ).toEqual({
+      classification: "AUTHORIZATION_ERROR",
+      code: "FUNCTION_AUTHORIZATION_ERROR",
+    });
+  });
+
   it("uses stable runtime codes without inspecting messages", () => {
     expect(
       capabilityErrorDescriptor(
@@ -40,6 +56,14 @@ describe("capabilityErrorDescriptor", () => {
     ).toEqual({
       classification: "ROUTE_UNAVAILABLE",
       code: "FUNCTION_ROUTE_UNAVAILABLE",
+    });
+    expect(
+      capabilityErrorDescriptor(
+        new AppRuntimeInvocationError("APP_ACTION_NOT_READ_ONLY"),
+      ),
+    ).toEqual({
+      classification: "AUTHORIZATION_ERROR",
+      code: "FUNCTION_ACTION_NOT_READ_ONLY",
     });
     expect(
       capabilityErrorDescriptor(

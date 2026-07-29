@@ -638,6 +638,49 @@ describe("CommerceFunctionRunner", () => {
 });
 
 describe("BrokerFunctionExecutor", () => {
+  it("rejects native actions that are not explicitly read-only", async () => {
+    const executor = new BrokerFunctionExecutor(
+      broker(
+        async () => ({ ok: true }),
+        undefined,
+      ),
+    );
+
+    const outcome = await executor.execute({
+      planIndex: 0,
+      target: TARGET,
+      storeId: "store-1",
+      executionId: "execution-1",
+      deadlineAt: new Date(Date.now() + 1_000).toISOString(),
+      input: { cartId: "cart-1" },
+      item: {
+        implementationType: "NATIVE",
+        implementationId: "native:pricing",
+        nativeAction: "pricing.nativeFunction",
+        functionBindingId: null,
+        owner: {
+          service: "pricing",
+          resourceType: "functionTarget",
+          resourceId: TARGET,
+        },
+        configurationRevision: null,
+        configurationSnapshot: null,
+        precedence: 0,
+        activationSequence: 0,
+        failureMode: "REQUIRED",
+      },
+      definition: definition(),
+    });
+
+    expect(outcome).toMatchObject({
+      ok: false,
+      errorClass: "AUTHORIZATION_ERROR",
+      trace: {
+        errorCode: "FUNCTION_ACTION_NOT_READ_ONLY",
+      },
+    });
+  });
+
   it("discards an output finalized at the target deadline", async () => {
     const now = jest
       .spyOn(Date, "now")
@@ -818,8 +861,14 @@ function route(
 
 function broker(
   call: (action: string, params?: unknown) => Promise<unknown>,
+  metadata: { readonly readOnly?: boolean } | undefined = {
+    readOnly: true,
+  },
 ): ServiceBroker {
-  return { call } as unknown as ServiceBroker;
+  return {
+    call,
+    getActionMetadata: () => metadata,
+  } as unknown as ServiceBroker;
 }
 
 function delay(milliseconds: number): Promise<void> {

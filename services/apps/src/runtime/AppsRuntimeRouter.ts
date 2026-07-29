@@ -70,6 +70,15 @@ export class AppsRuntimeRouter {
         "APP_ROUTE_UNAVAILABLE",
       );
     }
+    const qualifiedAction = `apps.${appCode}.${localAction}`;
+    if (
+      contextRef.executionKind === "COMMERCE_FUNCTION" &&
+      this.broker.getActionMetadata(qualifiedAction)?.readOnly !== true
+    ) {
+      throw new AppRuntimeInvocationError(
+        "APP_ACTION_NOT_READ_ONLY",
+      );
+    }
 
     const context = await (async () => {
       try {
@@ -99,7 +108,7 @@ export class AppsRuntimeRouter {
     }
 
     return this.broker.callAsApp<TResult, TInput>(
-      `apps.${appCode}.${localAction}`,
+      qualifiedAction,
       input,
       Object.freeze({
         ...context,

@@ -10,6 +10,9 @@ import {
 } from "@shopana/shared-kernel";
 import { AppBrokerFacadeFactory } from "./AppBrokerFacadeFactory.js";
 import { AppContextRunner } from "./AppContextRunner.js";
+import {
+  AppOutboundAuthorizationError,
+} from "./AppOutboundAuthorizationError.js";
 
 describe("AppBrokerFacadeFactory Commerce Function policy", () => {
   it("allows explicitly read-only actions and blocks writes and workflows", async () => {
@@ -64,16 +67,12 @@ describe("AppBrokerFacadeFactory Commerce Function policy", () => {
       contextRunner.run(context, () =>
         facade.call("catalog.updateItem"),
       ),
-    ).toThrow(
-      'Commerce Function cannot call mutating or unclassified action "catalog.updateItem"',
-    );
+    ).toThrow(AppOutboundAuthorizationError);
     expect(() =>
       contextRunner.run(context, () =>
         facade.call("payments.readInternalContract"),
       ),
-    ).toThrow(
-      'App "function-test" has no declared permission for service "payments"',
-    );
+    ).toThrow(AppOutboundAuthorizationError);
     expect(() =>
       contextRunner.run(context, () =>
         facade.runWorkflow(
@@ -86,9 +85,7 @@ describe("AppBrokerFacadeFactory Commerce Function policy", () => {
           },
         ),
       ),
-    ).toThrow(
-      'Commerce Function cannot start workflow "catalog.updateWorkflow"',
-    );
+    ).toThrow(AppOutboundAuthorizationError);
   });
 });
 

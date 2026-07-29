@@ -1,4 +1,7 @@
 import type { AppManifest } from "@shopana/app-sdk";
+import {
+  AppOutboundAuthorizationError,
+} from "./AppOutboundAuthorizationError.js";
 
 export function getExternallyRoutableActions(
   manifest: AppManifest,
@@ -56,12 +59,12 @@ export function assertAppOutboundContractAllowed(
       permission.startsWith(`${targetService}:`),
   );
   if (declaredScopes.length === 0) {
-    throw new Error(
+    throw new AppOutboundAuthorizationError(
       `App "${manifest.code}" has no declared permission for service "${targetService}"`,
     );
   }
   if (!declaredScopes.some((permission) => grantedScopes.includes(permission))) {
-    throw new Error(
+    throw new AppOutboundAuthorizationError(
       `App installation has no granted permission for service "${targetService}"`,
     );
   }

@@ -1,4 +1,7 @@
 import { AuthorizationError } from "@shopana/shared-kernel";
+import {
+  AppOutboundAuthorizationError,
+} from "../runtime/AppOutboundAuthorizationError.js";
 import { AppRuntimeInvocationError } from "../runtime/AppRuntimeInvocationError.js";
 
 export type CapabilityErrorClassification =
@@ -14,6 +17,7 @@ export interface CapabilityErrorDescriptor {
   readonly classification: CapabilityErrorClassification;
   readonly code:
     | "APP_RUNTIME_UNAVAILABLE"
+    | "FUNCTION_ACTION_NOT_READ_ONLY"
     | "FUNCTION_AUTHORIZATION_ERROR"
     | "FUNCTION_DEADLINE_EXCEEDED"
     | "FUNCTION_IMPLEMENTATION_EXCEPTION"
@@ -97,15 +101,22 @@ export function capabilityErrorDescriptor(
     };
   }
   if (error instanceof AppRuntimeInvocationError) {
-    return error.code === "APP_RUNTIME_UNAVAILABLE"
-      ? {
-          classification: "APP_RUNTIME_UNAVAILABLE",
-          code: "APP_RUNTIME_UNAVAILABLE",
-        }
-      : {
-          classification: "ROUTE_UNAVAILABLE",
-          code: "FUNCTION_ROUTE_UNAVAILABLE",
-        };
+    if (error.code === "APP_RUNTIME_UNAVAILABLE") {
+      return {
+        classification: "APP_RUNTIME_UNAVAILABLE",
+        code: "APP_RUNTIME_UNAVAILABLE",
+      };
+    }
+    if (error.code === "APP_ACTION_NOT_READ_ONLY") {
+      return {
+        classification: "AUTHORIZATION_ERROR",
+        code: "FUNCTION_ACTION_NOT_READ_ONLY",
+      };
+    }
+    return {
+      classification: "ROUTE_UNAVAILABLE",
+      code: "FUNCTION_ROUTE_UNAVAILABLE",
+    };
   }
   return {
     classification: "IMPLEMENTATION_EXCEPTION",
@@ -120,7 +131,12 @@ function hasAuthorizationError(
   if (depth > 8 || !error || typeof error !== "object") {
     return false;
   }
-  if (error instanceof AuthorizationError) return true;
+  if (
+    error instanceof AuthorizationError ||
+    error instanceof AppOutboundAuthorizationError
+  ) {
+    return true;
+  }
   return hasAuthorizationError(
     (error as { cause?: unknown }).cause,
     depth + 1,

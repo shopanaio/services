@@ -153,6 +153,9 @@ export class AppsPlatformActions extends BrokerActions {
         },
       );
     }
+    if (params.capability === COMMERCE_FUNCTION_CAPABILITY) {
+      assertCommerceFunctionDeadline(params.deadlineAt);
+    }
     const input = functionInvocation ?? params.input;
     let data: unknown;
     try {
@@ -300,21 +303,7 @@ function createCommerceFunctionInvocation(
     params.functionBindingId,
     "functionBindingId",
   );
-  const deadlineAt = required(params.deadlineAt, "deadlineAt");
-  const deadline = Date.parse(deadlineAt);
-  if (!Number.isFinite(deadline)) {
-    throw new Error("deadlineAt must be an ISO date");
-  }
-  if (deadline <= Date.now()) {
-    throw new CapabilityInvocationError(
-      undefined,
-      undefined,
-      {
-        classification: "DEADLINE_EXCEEDED",
-        code: "FUNCTION_DEADLINE_EXCEEDED",
-      },
-    );
-  }
+  const deadlineAt = assertCommerceFunctionDeadline(params.deadlineAt);
   const invocation = canonicalizeCommerceFunctionJson(
     {
       target: required(params.operation, "operation"),
@@ -336,6 +325,27 @@ function createCommerceFunctionInvocation(
     throw new Error("Commerce Function invocation exceeds the size limit");
   }
   return invocation as unknown as Readonly<CommerceFunctionInvocation>;
+}
+
+function assertCommerceFunctionDeadline(
+  value: string | undefined,
+): string {
+  const deadlineAt = required(value, "deadlineAt");
+  const deadline = Date.parse(deadlineAt);
+  if (!Number.isFinite(deadline)) {
+    throw new Error("deadlineAt must be an ISO date");
+  }
+  if (deadline <= Date.now()) {
+    throw new CapabilityInvocationError(
+      undefined,
+      undefined,
+      {
+        classification: "DEADLINE_EXCEEDED",
+        code: "FUNCTION_DEADLINE_EXCEEDED",
+      },
+    );
+  }
+  return deadlineAt;
 }
 
 function normalizeCommerceFunctionOutput(

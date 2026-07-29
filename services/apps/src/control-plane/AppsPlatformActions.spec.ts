@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import {
   COMMERCE_FUNCTION_CAPABILITY,
   COMMERCE_FUNCTION_MAX_OUTPUT_BYTES,
@@ -44,22 +44,49 @@ describe("AppsPlatformActions Commerce Function output boundary", () => {
       capabilityRouteId: "route-1",
     } satisfies Partial<CapabilityInvocationError>);
   });
+
+  it("does not invoke an App when route resolution crosses the deadline", async () => {
+    let now = 1_000;
+    const nowSpy = jest
+      .spyOn(Date, "now")
+      .mockImplementation(() => now);
+    const invoke = jest.fn(async () => ({ ok: true }));
+    const installations = {
+      resolveActiveStoreCapabilityRouteForInstallation: async () => {
+        now = 2_000;
+        return route();
+      },
+    } as unknown as AppInstallationStore;
+    const actions = new AppsPlatformActions(
+      {} as ServiceBroker,
+      {} as AppLifecycleService,
+      installations,
+      { invoke } as unknown as AppsRuntimeRouter,
+    );
+
+    try {
+      await expect(
+        actions.executeCapability(
+          {
+            ...params(),
+            deadlineAt: new Date(2_000).toISOString(),
+          },
+          context(),
+        ),
+      ).rejects.toMatchObject({
+        errorClassification: "DEADLINE_EXCEEDED",
+        errorCode: "FUNCTION_DEADLINE_EXCEEDED",
+      } satisfies Partial<CapabilityInvocationError>);
+      expect(invoke).not.toHaveBeenCalled();
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
 });
 
 function createActions(output: unknown): AppsPlatformActions {
   const installations = {
-    resolveActiveStoreCapabilityRouteForInstallation: async () => ({
-      capabilityRouteId: "route-1",
-      installationId: "installation-1",
-      appCode: "function-test",
-      appVersion: "1.0.0",
-      organizationId: "organization-1",
-      storeId: "store-1",
-      capability: COMMERCE_FUNCTION_CAPABILITY,
-      operation: "cart.transform.run",
-      targetAction: "transform",
-      routeRevision: "revision-1",
-    }),
+    resolveActiveStoreCapabilityRouteForInstallation: async () => route(),
   } as unknown as AppInstallationStore;
   const router = {
     invoke: async () => output,
@@ -70,6 +97,21 @@ function createActions(output: unknown): AppsPlatformActions {
     installations,
     router,
   );
+}
+
+function route() {
+  return {
+    capabilityRouteId: "route-1",
+    installationId: "installation-1",
+    appCode: "function-test",
+    appVersion: "1.0.0",
+    organizationId: "organization-1",
+    storeId: "store-1",
+    capability: COMMERCE_FUNCTION_CAPABILITY,
+    operation: "cart.transform.run",
+    targetAction: "transform",
+    routeRevision: "revision-1",
+  };
 }
 
 function params(): Apps.ExecuteCapabilityParams {

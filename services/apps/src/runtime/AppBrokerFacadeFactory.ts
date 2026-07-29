@@ -20,6 +20,9 @@ import type {
 } from "@shopana/shared-kernel";
 import { AppContextRunner } from "./AppContextRunner.js";
 import { assertAppOutboundContractAllowed } from "./AppManifestContracts.js";
+import {
+  AppOutboundAuthorizationError,
+} from "./AppOutboundAuthorizationError.js";
 import { AppWorkflowActivation } from "./AppWorkflowActivation.js";
 
 interface CreateAppBrokerInput {
@@ -171,7 +174,7 @@ export class AppBrokerFacadeFactory {
           context.executionKind === "COMMERCE_FUNCTION" &&
           input.broker.getActionMetadata(qualifiedAction)?.readOnly !== true
         ) {
-          throw new Error(
+          throw new AppOutboundAuthorizationError(
             `Commerce Function cannot call mutating or unclassified action "${qualifiedAction}"`,
           );
         }
@@ -192,7 +195,7 @@ export class AppBrokerFacadeFactory {
       ): Promise<TResult> => {
         const context = currentContext();
         if (context.executionKind === "COMMERCE_FUNCTION") {
-          throw new Error(
+          throw new AppOutboundAuthorizationError(
             `Commerce Function cannot start workflow "${qualifiedWorkflow}"`,
           );
         }
