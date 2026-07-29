@@ -6,11 +6,6 @@ import type {
   ApiPageInfo,
 } from "@/graphql/types";
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
-import {
-  DISCOUNT_REVIEW_FIXTURES_ENABLED,
-  discountReviewConnection,
-  discountReviewFixtures,
-} from "../fixtures/discount-review.fixtures";
 import { DISCOUNTS_QUERY } from "../graphql";
 import type {
   DiscountsQueryData,
@@ -38,22 +33,9 @@ export function useDiscounts(
   >({
     query: DISCOUNTS_QUERY,
     variables,
-    skip: DISCOUNT_REVIEW_FIXTURES_ENABLED,
     fetchPolicy: "cache-and-network",
     getConnection: (data) => data?.pricingQuery.discounts,
   });
-
-  if (DISCOUNT_REVIEW_FIXTURES_ENABLED) {
-    return {
-      discounts: discountReviewFixtures,
-      connection: discountReviewConnection,
-      totalCount: discountReviewConnection.totalCount,
-      pageInfo: discountReviewConnection.pageInfo,
-      loading: false,
-      error: null,
-      refetch: () => Promise.resolve(undefined),
-    };
-  }
 
   return {
     discounts: result.nodes,
