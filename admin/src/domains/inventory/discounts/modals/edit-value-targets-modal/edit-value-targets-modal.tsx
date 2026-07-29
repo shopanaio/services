@@ -256,18 +256,26 @@ function TargetSelectionEditor({
                 }
                 placeholder={`No ${targetCopy.plural} selected`}
               />
-              <Button icon={<LuListPlus />} onClick={openPicker}>
+              <Button
+                icon={<LuListPlus />}
+                data-testid={`${testIdPrefix}-select-button`}
+                onClick={openPicker}
+              >
                 Select
               </Button>
             </Flex>
           </div>
           {targets.length > 0 ? (
-            <div className={styles.selectedTags}>
+            <div
+              className={styles.selectedTags}
+              data-testid={`${testIdPrefix}-selected-targets`}
+            >
               {targets.map((target) => (
                 <Tag
                   key={target.id}
                   closable
                   className={styles.selectedTag}
+                  data-testid={`${testIdPrefix}-selected-target-${target.id}`}
                   onClose={() =>
                     onChange(
                       targetType,
