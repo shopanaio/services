@@ -76,7 +76,11 @@ export abstract class BrokerActions implements OnModuleInit {
         // Bind the method to this instance
         const boundMethod = method.bind(this);
 
-        this.broker.register(metadata.actionName, boundMethod);
+        this.broker.register(
+          metadata.actionName,
+          boundMethod,
+          metadata.metadata,
+        );
         registeredActions.push(metadata.actionName);
       }
     }

@@ -91,6 +91,7 @@ export interface AppExecutionContext {
   readonly storeId: string;
   readonly appVersion: string;
   readonly grantedScopes: readonly string[];
+  readonly executionKind?: "STANDARD" | "COMMERCE_FUNCTION";
   readonly operationId?: string;
   readonly actor?: {
     readonly type: "USER" | "APP" | "SERVICE" | "SYSTEM";
@@ -201,6 +202,11 @@ export type AppActionHandler<TParams = unknown, TResult = unknown> = (
 ) => Promise<TResult> | TResult;
 
 export interface AppActionMetadata {
+  /**
+   * Explicitly allows this action to be called from a Commerce Function.
+   * Unmarked actions are treated as potentially mutating.
+   */
+  readonly readOnly?: boolean;
   readonly retryPolicy?: {
     readonly maxAttempts: number;
     readonly intervalSeconds: number;
@@ -287,6 +293,7 @@ export interface AppInvocationContextRef {
   readonly installationId: string;
   readonly operationId?: string;
   readonly correlationId?: string;
+  readonly executionKind?: "STANDARD" | "COMMERCE_FUNCTION";
 }
 
 export interface AppInstallationContextProvider {

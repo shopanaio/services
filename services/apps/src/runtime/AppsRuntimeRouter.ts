@@ -18,6 +18,7 @@ import {
   getExternallyRoutableWorkflows,
   restrictGrantedScopes,
 } from "./AppManifestContracts.js";
+import { AppRuntimeInvocationError } from "./AppRuntimeInvocationError.js";
 
 export interface PreparedAppWorkflowInvocation {
   readonly workflowName: string;
@@ -44,32 +45,47 @@ export class AppsRuntimeRouter {
   ): Promise<TResult> {
     const runtime = this.registry.get(appCode);
     if (!runtime || runtime.status !== "READY") {
-      throw new Error(`App runtime "${appCode}" is not ready`);
+      throw new AppRuntimeInvocationError(
+        "APP_RUNTIME_UNAVAILABLE",
+      );
     }
     if (!contextRef.installationId) {
-      throw new Error("App installation reference is required");
+      throw new AppRuntimeInvocationError(
+        "APP_ROUTE_UNAVAILABLE",
+      );
     }
 
     const localAction = action.trim();
     if (!localAction || localAction.includes(".")) {
-      throw new Error("App action must be a non-empty local name");
+      throw new AppRuntimeInvocationError(
+        "APP_ROUTE_UNAVAILABLE",
+      );
     }
     if (
       !getExternallyRoutableActions(
         runtime.definition.manifest,
       ).has(localAction)
     ) {
-      throw new Error(
-        `App action "${localAction}" is not declared as an external contract`,
+      throw new AppRuntimeInvocationError(
+        "APP_ROUTE_UNAVAILABLE",
       );
     }
 
-    const context = await this.installations.resolve({
-      appCode,
-      installationId: contextRef.installationId,
-      appVersion: runtime.definition.manifest.version,
-      operationId: contextRef.operationId,
-    });
+    const context = await (async () => {
+      try {
+        return await this.installations.resolve({
+          appCode,
+          installationId: contextRef.installationId,
+          appVersion: runtime.definition.manifest.version,
+          operationId: contextRef.operationId,
+        });
+      } catch (error) {
+        throw new AppRuntimeInvocationError(
+          "APP_ROUTE_UNAVAILABLE",
+          error,
+        );
+      }
+    })();
     if (
       context.appCode !== appCode ||
       context.appVersion !== runtime.definition.manifest.version ||
@@ -77,7 +93,9 @@ export class AppsRuntimeRouter {
       !context.organizationId ||
       !context.storeId
     ) {
-      throw new Error("Resolved App installation context is invalid");
+      throw new AppRuntimeInvocationError(
+        "APP_ROUTE_UNAVAILABLE",
+      );
     }
 
     return this.broker.callAsApp<TResult, TInput>(
@@ -86,6 +104,7 @@ export class AppsRuntimeRouter {
       Object.freeze({
         ...context,
         correlationId: contextRef.correlationId ?? context.correlationId,
+        executionKind: contextRef.executionKind ?? "STANDARD",
         grantedScopes: restrictGrantedScopes(
           runtime.definition.manifest,
           context.grantedScopes,

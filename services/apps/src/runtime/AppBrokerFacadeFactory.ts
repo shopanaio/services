@@ -167,6 +167,14 @@ export class AppBrokerFacadeFactory {
           qualifiedAction,
           context.grantedScopes,
         );
+        if (
+          context.executionKind === "COMMERCE_FUNCTION" &&
+          input.broker.getActionMetadata(qualifiedAction)?.readOnly !== true
+        ) {
+          throw new Error(
+            `Commerce Function cannot call mutating or unclassified action "${qualifiedAction}"`,
+          );
+        }
         return input.broker.callAsApp<TResult, TParams>(
           qualifiedAction,
           params,
@@ -183,6 +191,11 @@ export class AppBrokerFacadeFactory {
         options?: AppWorkflowStartOptions,
       ): Promise<TResult> => {
         const context = currentContext();
+        if (context.executionKind === "COMMERCE_FUNCTION") {
+          throw new Error(
+            `Commerce Function cannot start workflow "${qualifiedWorkflow}"`,
+          );
+        }
         assertAppOutboundContractAllowed(
           input.manifest,
           qualifiedWorkflow,

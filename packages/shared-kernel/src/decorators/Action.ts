@@ -1,3 +1,5 @@
+import type { ActionMetadata } from "../broker/ActionRegistry.js";
+
 /**
  * Metadata key for storing action name on methods
  */
@@ -8,6 +10,7 @@ export const ACTION_METADATA_KEY = Symbol("broker:action");
  */
 export interface ActionDecoratorMetadata {
   actionName: string;
+  metadata?: ActionMetadata;
 }
 
 /**
@@ -17,6 +20,7 @@ export interface ActionDecoratorMetadata {
  * Use together with @ZodSchema decorator for payload validation.
  *
  * @param actionName - Name of the action (will be prefixed with service name)
+ * @param metadata - Broker execution metadata such as read-only classification
  *
  * @example
  * class IamActions extends BrokerActions {
@@ -27,7 +31,10 @@ export interface ActionDecoratorMetadata {
  *   }
  * }
  */
-export function Action(actionName: string): MethodDecorator {
+export function Action(
+  actionName: string,
+  metadata?: ActionMetadata,
+): MethodDecorator {
   return function (
     target: object,
     propertyKey: string | symbol,
@@ -36,7 +43,7 @@ export function Action(actionName: string): MethodDecorator {
     // Store action metadata
     Reflect.defineMetadata(
       ACTION_METADATA_KEY,
-      { actionName } as ActionDecoratorMetadata,
+      { actionName, metadata } as ActionDecoratorMetadata,
       target,
       propertyKey
     );

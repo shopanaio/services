@@ -27,6 +27,22 @@ export type {
   UnassignCapabilityResult,
 } from "./apps.js";
 
+// Commerce function infrastructure contracts
+export * as Functions from "./functions.js";
+export {
+  COMMERCE_FUNCTION_CAPABILITY,
+  COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH,
+  COMMERCE_FUNCTION_MAX_INVOCATION_BYTES,
+  COMMERCE_FUNCTION_MAX_OUTPUT_BYTES,
+  CommerceFunctionJsonError,
+  canonicalizeCommerceFunctionJson,
+} from "./functions.js";
+export type {
+  CommerceFunctionInvocation,
+  CommerceFunctionJsonPrimitive,
+  CommerceFunctionJsonValue,
+} from "./functions.js";
+
 // Notifications service actions
 export * as Notifications from "./notifications.js";
 export {

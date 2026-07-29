@@ -10,6 +10,11 @@ export type ActionHandler<TParams = unknown, TResult = unknown> = (
 ) => Promise<TResult> | TResult;
 
 export interface ActionMetadata {
+  /**
+   * Explicitly marks an action as safe for pure/read-only execution contexts.
+   * Actions are treated as mutating unless this flag is true.
+   */
+  readOnly?: boolean;
   retryPolicy?: {
     maxAttempts: number;
     intervalSeconds: number;

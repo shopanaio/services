@@ -1,5 +1,14 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { Apps } from "@shopana/broker-types";
+import {
+  COMMERCE_FUNCTION_CAPABILITY,
+  COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH,
+  COMMERCE_FUNCTION_MAX_INVOCATION_BYTES,
+  COMMERCE_FUNCTION_MAX_OUTPUT_BYTES,
+  canonicalizeCommerceFunctionJson,
+  type Apps,
+  type CommerceFunctionInvocation,
+  type CommerceFunctionJsonValue,
+} from "@shopana/broker-types";
 import {
   Action,
   BrokerActions,
@@ -10,6 +19,11 @@ import {
 import { AppInstallationStore } from "./AppInstallationStore.js";
 import { AppLifecycleService } from "./AppLifecycleService.js";
 import { AppsRuntimeRouter } from "../runtime/AppsRuntimeRouter.js";
+import {
+  CapabilityInvocationError,
+  CommerceFunctionOutputError,
+} from "./capability-error-classification.js";
+import type { ResolvedCapabilityRoute } from "./types.js";
 
 @Injectable()
 export class AppsPlatformActions extends BrokerActions {
@@ -79,36 +93,97 @@ export class AppsPlatformActions extends BrokerActions {
     ) {
       throw new Error("Invalid capability invocation");
     }
-    const route = params.installationId
-      ? await this.installations.resolveActiveStoreCapabilityRouteForInstallation(
-          params.storeId,
-          params.capability,
-          params.operation,
-          params.installationId,
-        )
-      : await this.installations.resolveCapabilityRoute(
-          params.storeId,
-          params.capability,
-          params.operation,
-          params.target ? normalizeTarget(params.target) : undefined,
+    const functionInvocation =
+      params.capability === COMMERCE_FUNCTION_CAPABILITY
+        ? createCommerceFunctionInvocation(params)
+        : undefined;
+    let route: ResolvedCapabilityRoute | null;
+    try {
+      route = params.installationId
+        ? await this.installations.resolveActiveStoreCapabilityRouteForInstallation(
+            params.storeId,
+            params.capability,
+            params.operation,
+            params.installationId,
+          )
+        : await this.installations.resolveCapabilityRoute(
+            params.storeId,
+            params.capability,
+            params.operation,
+            params.target ? normalizeTarget(params.target) : undefined,
+          );
+    } catch (error) {
+      if (params.capability === COMMERCE_FUNCTION_CAPABILITY) {
+        throw new CapabilityInvocationError(
+          error,
+          undefined,
+          {
+            classification: "ROUTE_UNAVAILABLE",
+            code: "FUNCTION_ROUTE_DISCOVERY_FAILED",
+          },
         );
+      }
+      throw error;
+    }
     if (!route) {
+      if (params.capability === COMMERCE_FUNCTION_CAPABILITY) {
+        throw new CapabilityInvocationError(
+          undefined,
+          undefined,
+          {
+            classification: "ROUTE_UNAVAILABLE",
+            code: "FUNCTION_ROUTE_UNAVAILABLE",
+          },
+        );
+      }
       throw new Error(
         `No active App route for capability "${params.capability}.${params.operation}"`,
       );
     }
-    const data = await this.router.invoke(
-      route.appCode,
-      route.targetAction,
-      params.input,
-      {
-        installationId: route.installationId,
-        correlationId: params.correlationId,
-      },
-    );
+    if (
+      params.capability === COMMERCE_FUNCTION_CAPABILITY &&
+      route.targetAction !== params.functionKey
+    ) {
+      throw new CapabilityInvocationError(
+        undefined,
+        route,
+        {
+          classification: "ROUTE_UNAVAILABLE",
+          code: "FUNCTION_KEY_MISMATCH",
+        },
+      );
+    }
+    const input = functionInvocation ?? params.input;
+    let data: unknown;
+    try {
+      data = await this.router.invoke(
+        route.appCode,
+        route.targetAction,
+        input,
+        {
+          installationId: route.installationId,
+          correlationId: params.correlationId,
+          executionKind:
+            params.capability === COMMERCE_FUNCTION_CAPABILITY
+              ? "COMMERCE_FUNCTION"
+              : "STANDARD",
+        },
+      );
+      if (params.capability === COMMERCE_FUNCTION_CAPABILITY) {
+        data = normalizeCommerceFunctionOutput(data);
+      }
+    } catch (error) {
+      if (params.capability === COMMERCE_FUNCTION_CAPABILITY) {
+        throw new CapabilityInvocationError(error, route);
+      }
+      throw error;
+    }
     return {
+      capabilityRouteId: route.capabilityRouteId,
       installationId: route.installationId,
       appCode: route.appCode,
+      appVersion: route.appVersion,
+      routeRevision: route.routeRevision,
       data,
     };
   }
@@ -134,9 +209,20 @@ export class AppsPlatformActions extends BrokerActions {
         params.operation,
       );
     return {
-      routes: routes.map(({ installationId, appCode }) => ({
+      routes: routes.map(({
+        capabilityRouteId,
         installationId,
         appCode,
+        appVersion,
+        targetAction,
+        routeRevision,
+      }) => ({
+        capabilityRouteId,
+        installationId,
+        appCode,
+        appVersion,
+        functionKey: targetAction,
+        routeRevision,
       })),
     };
   }
@@ -202,4 +288,78 @@ function required(value: string | undefined, field: string): string {
     throw new Error(`${field} is required`);
   }
   return normalized;
+}
+
+function createCommerceFunctionInvocation(
+  params: Apps.ExecuteCapabilityParams,
+): Readonly<CommerceFunctionInvocation> {
+  required(params.installationId, "installationId");
+  required(params.functionKey, "functionKey");
+  const executionId = required(params.executionId, "executionId");
+  const functionBindingId = required(
+    params.functionBindingId,
+    "functionBindingId",
+  );
+  const deadlineAt = required(params.deadlineAt, "deadlineAt");
+  const deadline = Date.parse(deadlineAt);
+  if (!Number.isFinite(deadline)) {
+    throw new Error("deadlineAt must be an ISO date");
+  }
+  if (deadline <= Date.now()) {
+    throw new CapabilityInvocationError(
+      undefined,
+      undefined,
+      {
+        classification: "DEADLINE_EXCEEDED",
+        code: "FUNCTION_DEADLINE_EXCEEDED",
+      },
+    );
+  }
+  const invocation = canonicalizeCommerceFunctionJson(
+    {
+      target: required(params.operation, "operation"),
+      executionId,
+      functionBindingId,
+      deadlineAt,
+      ...(params.correlationId
+        ? { correlationId: params.correlationId }
+        : {}),
+      configurationSnapshot: params.configurationSnapshot ?? null,
+      input: params.input ?? null,
+    },
+    COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH,
+  );
+  if (
+    Buffer.byteLength(JSON.stringify(invocation), "utf8") >
+    COMMERCE_FUNCTION_MAX_INVOCATION_BYTES
+  ) {
+    throw new Error("Commerce Function invocation exceeds the size limit");
+  }
+  return invocation as unknown as Readonly<CommerceFunctionInvocation>;
+}
+
+function normalizeCommerceFunctionOutput(
+  value: unknown,
+): CommerceFunctionJsonValue {
+  let output: CommerceFunctionJsonValue;
+  try {
+    output = canonicalizeCommerceFunctionJson(
+      value,
+      COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH,
+    );
+  } catch (error) {
+    throw new CommerceFunctionOutputError(
+      "FUNCTION_OUTPUT_JSON_VALUE_REQUIRED",
+      error,
+    );
+  }
+  if (
+    Buffer.byteLength(JSON.stringify(output), "utf8") >
+    COMMERCE_FUNCTION_MAX_OUTPUT_BYTES
+  ) {
+    throw new CommerceFunctionOutputError(
+      "FUNCTION_OUTPUT_SIZE_LIMIT",
+    );
+  }
+  return output;
 }

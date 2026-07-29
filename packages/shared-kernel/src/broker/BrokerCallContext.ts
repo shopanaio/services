@@ -12,6 +12,7 @@ export interface BrokerAppContext {
   readonly storeId: string;
   readonly appVersion: string;
   readonly grantedScopes: readonly string[];
+  readonly executionKind?: "STANDARD" | "COMMERCE_FUNCTION";
   readonly operationId?: string;
   readonly actor?: {
     readonly type: "USER" | "APP" | "SERVICE" | "SYSTEM";

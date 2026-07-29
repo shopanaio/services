@@ -77,9 +77,15 @@ export interface ExecuteCapabilityParams {
   capability: string;
   operation: string;
   installationId?: string;
+  /** Manifest action key required for Commerce Function invocations. */
+  functionKey?: string;
   target?: CapabilityTarget;
   input?: unknown;
   correlationId?: string;
+  executionId?: string;
+  functionBindingId?: string;
+  deadlineAt?: string;
+  configurationSnapshot?: unknown;
 }
 
 export interface ListCapabilityRoutesParams {
@@ -89,8 +95,13 @@ export interface ListCapabilityRoutesParams {
 }
 
 export interface CapabilityRoute {
+  capabilityRouteId: string;
   installationId: string;
   appCode: string;
+  appVersion: string;
+  /** Manifest action key used to verify a Commerce Function binding. */
+  functionKey: string;
+  routeRevision: string;
 }
 
 export interface ListCapabilityRoutesResult {
@@ -104,8 +115,11 @@ export interface CapabilityTarget {
 }
 
 export interface ExecuteCapabilityResult {
+  capabilityRouteId: string;
   installationId: string;
   appCode: string;
+  appVersion: string;
+  routeRevision: string;
   data: unknown;
 }
 

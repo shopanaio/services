@@ -19,7 +19,7 @@ class SecuredBrokerActions extends BrokerActions {
     authorize: jest.fn(async (_params: AuthorizeParams) => true),
   };
 
-  @Action('securedAction')
+  @Action('securedAction', { readOnly: true })
   @ZodSchema(z.object({ value: z.string() }).strict())
   @Policy<{ value: string }>({
     resource: 'org.stores',
@@ -108,6 +108,9 @@ describe('ServiceBroker', () => {
     const callerBroker = new ServiceBroker(registry, { serviceName: 'project' });
     const actions = new SecuredBrokerActions(targetBroker);
     actions.onModuleInit();
+    expect(
+      targetBroker.getActionMetadata('payments.securedAction'),
+    ).toEqual({ readOnly: true });
 
     await expect(
       callerBroker.call('payments.securedAction', { value: 'ok' }),

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   and,
   asc,
@@ -21,6 +22,7 @@ import {
   appBindings,
   appInstallations,
 } from "../models/index.js";
+import { isBroadcastStoreRoute } from "./capability-route-policy.js";
 
 export interface AppCapabilityBindingRecord {
   readonly id: string;
@@ -225,6 +227,7 @@ export class AppCapabilityRepository extends BaseRepository {
     const assignmentMode = target ? "resource" : "store";
     const rows = await this.connection
       .select({
+        capabilityRouteId: appBindings.id,
         installationId: appInstallations.id,
         appCode: appInstallations.appCode,
         appVersion: appInstallations.installedVersion,
@@ -277,6 +280,14 @@ export class AppCapabilityRepository extends BaseRepository {
     return {
       ...row,
       appVersion: row.appVersion,
+      routeRevision: capabilityRouteRevision({
+        capabilityRouteId: row.capabilityRouteId,
+        appCode: row.appCode,
+        appVersion: row.appVersion,
+        capability: row.capability,
+        operation: row.operation,
+        targetAction: row.targetAction,
+      }),
     };
   }
 
@@ -287,6 +298,7 @@ export class AppCapabilityRepository extends BaseRepository {
   ): Promise<ResolvedCapabilityRoute[]> {
     const rows = await this.connection
       .select({
+        capabilityRouteId: appBindings.id,
         installationId: appInstallations.id,
         appCode: appInstallations.appCode,
         appVersion: appInstallations.installedVersion,
@@ -327,13 +339,26 @@ export class AppCapabilityRepository extends BaseRepository {
       )
       .orderBy(
         asc(appBindingAssignments.precedence),
-        desc(appBindingAssignments.updatedAt),
         asc(appInstallations.appCode),
         asc(appInstallations.id),
+        asc(appBindings.id),
       );
     return rows.flatMap((row) =>
       row.appVersion
-        ? [{ ...row, appVersion: row.appVersion }]
+        ? [
+            {
+              ...row,
+              appVersion: row.appVersion,
+              routeRevision: capabilityRouteRevision({
+                capabilityRouteId: row.capabilityRouteId,
+                appCode: row.appCode,
+                appVersion: row.appVersion,
+                capability: row.capability,
+                operation: row.operation,
+                targetAction: row.targetAction,
+              }),
+            },
+          ]
         : [],
     );
   }
@@ -696,9 +721,22 @@ export function capabilityRouteKey(
   return `${capability}:${operation}`;
 }
 
-function isBroadcastStoreRoute(
-  capability: string,
-  operation: string,
-): boolean {
-  return capability === "notifications" && operation === "deliver";
+export function capabilityRouteRevision(input: {
+  readonly capabilityRouteId: string;
+  readonly appCode: string;
+  readonly appVersion: string;
+  readonly capability: string;
+  readonly operation: string;
+  readonly targetAction: string;
+}): string {
+  return createHash("sha256")
+    .update(JSON.stringify([
+      input.capabilityRouteId,
+      input.appCode,
+      input.appVersion,
+      input.capability,
+      input.operation,
+      input.targetAction,
+    ]))
+    .digest("hex");
 }

@@ -7639,6 +7639,22 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/function-runner@workspace:packages/function-runner":
+  version: 0.0.0-use.local
+  resolution: "@shopana/function-runner@workspace:packages/function-runner"
+  dependencies:
+    "@shopana/broker-types": "workspace:*"
+    "@shopana/build-tools": "workspace:*"
+    "@shopana/shared-kernel": "workspace:*"
+    "@types/jest": "npm:^30.0.0"
+    "@types/node": "npm:^22.7.4"
+    esbuild: "npm:^0.24.2"
+    jest: "npm:^30.1.3"
+    ts-jest: "npm:^29.4.1"
+    typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/iam-service@npm:0.0.1, @shopana/iam-service@workspace:services/iam":
   version: 0.0.0-use.local
   resolution: "@shopana/iam-service@workspace:services/iam"

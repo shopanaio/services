@@ -66,6 +66,7 @@ export interface AppManifestSnapshot {
 }
 
 export interface ResolvedCapabilityRoute {
+  readonly capabilityRouteId: string;
   readonly installationId: string;
   readonly appCode: string;
   readonly appVersion: string;
@@ -74,6 +75,7 @@ export interface ResolvedCapabilityRoute {
   readonly capability: string;
   readonly operation: string;
   readonly targetAction: string;
+  readonly routeRevision: string;
 }
 
 export interface CapabilityRouteTarget {
