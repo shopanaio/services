@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Flex, Tag, Typography } from "antd";
+import { Button, Dropdown, Flex, Tag, Typography } from "antd";
 import {
   LuBoxes,
   LuEllipsis,
@@ -60,12 +60,24 @@ export function CombinationsSection({
         className={styles.compactHeader}
         actions={
           onEdit ? (
-            <Button
-              size="small"
-              icon={<LuEllipsis />}
-              aria-label="Edit discount combinations"
-              onClick={onEdit}
-            />
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "edit",
+                    label: "Edit availability, limits & combinations",
+                    onClick: onEdit,
+                  },
+                ],
+              }}
+            >
+              <Button
+                size="small"
+                icon={<LuEllipsis />}
+                aria-label="Discount combination actions"
+              />
+            </Dropdown>
           ) : undefined
         }
       />

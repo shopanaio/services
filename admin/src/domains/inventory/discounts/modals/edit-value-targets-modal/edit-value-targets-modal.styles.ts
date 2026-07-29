@@ -58,6 +58,7 @@ export const useEditValueTargetsModalStyles = createStyles(({ token }) => ({
     },
   },
   targetOption: {
+    display: "flex",
     width: "100%",
     minHeight: 72,
     marginInlineEnd: 0,

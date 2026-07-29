@@ -78,6 +78,31 @@ final result: blocked
 
 ---
 
+## Edit eligibility & channels modal
+
+**Comparison target**
+
+- Source visual truth:
+  `/var/folders/lv/lp5x7z1d6dxgx4td81cg1lph0000gn/T/codex-clipboard-6f0d4c8f-106e-4981-ba22-ea14ac9daf3d.png`
+- Target: Admin discount “Edit eligibility & channels” ModalStack.
+- Structural review: completed against the supplied desktop reference.
+- Interaction review: buyer context switching, Customer and Segment picker
+  flows, AG Grid removals, and channel/featured controls are implemented.
+- API review: eligibility and channels are submitted together through the
+  unified `discountUpdate` workflow.
+
+**Findings**
+
+- [P0] Browser-rendered comparison remains unavailable.
+  Evidence: the configured in-app browser rejects access to the local Admin
+  URL, so no implementation screenshot can be captured.
+  Impact: pixel-level spacing, typography, overflow, and interactive state
+  parity remain unverified.
+
+final result: blocked
+
+---
+
 ## Edit value, targets & requirements modal
 
 **Comparison target**
@@ -98,5 +123,31 @@ final result: blocked
   URL, so no implementation screenshot could be captured.
   Impact: pixel-level spacing, typography, overflow, and interactive state
   parity remain unverified.
+
+final result: blocked
+
+---
+
+## Edit availability, limits & combinations modal
+
+**Comparison target**
+
+- Source visual truth:
+  `/var/folders/lv/lp5x7z1d6dxgx4td81cg1lph0000gn/T/codex-clipboard-6d27f7b3-6f44-400a-ba0d-98c7aa4b8f7e.png`
+- Target: Admin discount “Edit availability, limits & combinations”
+  ModalStack.
+- Structural review: completed against the supplied desktop reference.
+- Interaction review: purchase modes, usage policy, compatible discount
+  classes, and local-time active dates are editable.
+- API review: definition and combinesWith are submitted together through the
+  unified `discountUpdate` workflow.
+
+**Findings**
+
+- [P0] Browser-rendered comparison remains unavailable.
+  Evidence: the configured in-app browser rejects access to the local Admin
+  URL, so no implementation screenshot can be captured.
+  Impact: pixel-level spacing, typography, native date-input rendering, and
+  interactive state parity remain unverified.
 
 final result: blocked

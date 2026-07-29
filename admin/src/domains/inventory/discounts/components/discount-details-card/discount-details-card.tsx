@@ -20,6 +20,7 @@ import type { DiscountDetailsCardProps } from "./types";
 export function DiscountDetailsCard({
   discount,
   onEditSection,
+  onEditValueTargets,
   editableSections,
   onRefresh,
   onArchived,
@@ -43,19 +44,19 @@ export function DiscountDetailsCard({
         discount={discount}
         currency={currency}
         onEdit={editHandler("summary")}
-        onEditValueTargets={editHandler("value-usage")}
+        onEditValueTargets={onEditValueTargets}
         onRefresh={onRefresh}
         onArchived={onArchived}
       />
       <ValueUsageSection
         discount={discount}
         currency={currency}
-        onEdit={editHandler("value-usage")}
+        onEdit={onEditValueTargets}
         onViewActivity={onViewActivity}
       />
       <AppliesToSection
         discount={discount}
-        onEdit={editHandler("targets")}
+        onEdit={onEditValueTargets}
       />
       <CustomerEligibilitySection
         discount={discount}

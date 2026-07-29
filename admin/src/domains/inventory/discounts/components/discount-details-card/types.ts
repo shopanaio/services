@@ -15,6 +15,7 @@ export type DiscountDetailsSection =
 export interface DiscountDetailsCardProps {
   discount: ApiDiscount;
   onEditSection?: (section: DiscountDetailsSection) => void;
+  onEditValueTargets?: () => void;
   editableSections?: readonly DiscountDetailsSection[];
   onViewActivity?: () => void;
   onRefresh?: () => Promise<unknown>;

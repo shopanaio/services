@@ -1,6 +1,13 @@
 "use client";
 
-import { Button, Flex, Tag, Timeline, Typography } from "antd";
+import {
+  Button,
+  Dropdown,
+  Flex,
+  Tag,
+  Timeline,
+  Typography,
+} from "antd";
 import {
   LuCalendarClock,
   LuEllipsis,
@@ -47,12 +54,24 @@ export function AvailabilityLimitsSection({
         className={styles.compactHeader}
         actions={
           onEdit ? (
-            <Button
-              size="small"
-              icon={<LuEllipsis />}
-              aria-label="Edit availability and limits"
-              onClick={onEdit}
-            />
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "edit",
+                    label: "Edit availability, limits & combinations",
+                    onClick: onEdit,
+                  },
+                ],
+              }}
+            >
+              <Button
+                size="small"
+                icon={<LuEllipsis />}
+                aria-label="Availability and limits actions"
+              />
+            </Dropdown>
           ) : undefined
         }
       />

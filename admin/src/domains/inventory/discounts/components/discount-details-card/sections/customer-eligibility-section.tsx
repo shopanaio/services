@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Flex, Tag, Typography } from "antd";
+import { Button, Dropdown, Flex, Tag, Typography } from "antd";
 import {
   LuEllipsis,
   LuUsers,
@@ -199,12 +199,24 @@ export function CustomerEligibilitySection({
         className={styles.compactHeader}
         actions={
           onEdit ? (
-            <Button
-              size="small"
-              icon={<LuEllipsis />}
-              aria-label="Edit customer eligibility"
-              onClick={onEdit}
-            />
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "edit",
+                    label: "Edit eligibility & channels",
+                    onClick: onEdit,
+                  },
+                ],
+              }}
+            >
+              <Button
+                size="small"
+                icon={<LuEllipsis />}
+                aria-label="Customer eligibility actions"
+              />
+            </Dropdown>
           ) : undefined
         }
       />

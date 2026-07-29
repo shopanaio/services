@@ -8,11 +8,13 @@ import { DiscountStatusTag } from "../../components/discount-details-card/discou
 import type { DiscountDetailsSection } from "../../components/discount-details-card/types";
 import { useDiscount } from "../../hooks";
 import {
+  useDiscountAvailabilityEditModal,
+  useDiscountEligibilityChannelsEditModal,
   useDiscountGeneralEditModal,
   useDiscountValueTargetsEditModal,
   type IDiscountModalPayload,
 } from "../../modals";
-import { DiscountKind, DiscountMethod } from "@/graphql/types";
+import { DiscountMethod } from "@/graphql/types";
 import { useDiscountModalStyles } from "./discount-modal.styles";
 
 export function DiscountModal() {
@@ -25,6 +27,21 @@ export function DiscountModal() {
   const { push: openGeneralSettingsModal } = useDiscountGeneralEditModal();
   const { push: openValueTargetsModal } =
     useDiscountValueTargetsEditModal();
+  const { push: openEligibilityChannelsModal } =
+    useDiscountEligibilityChannelsEditModal();
+  const { push: openAvailabilityModal } =
+    useDiscountAvailabilityEditModal();
+
+  const editValueTargets = useCallback(() => {
+    if (!discount) {
+      return;
+    }
+
+    openValueTargetsModal({
+      discount,
+      onSaved: refetch,
+    });
+  }, [discount, openValueTargetsModal, refetch]);
 
   const editGeneralSettings = useCallback(
     (section: DiscountDetailsSection) => {
@@ -43,11 +60,16 @@ export function DiscountModal() {
         return;
       }
 
-      if (
-        (section === "value-usage" || section === "targets") &&
-        discount.kind === DiscountKind.AmountOffProducts
-      ) {
-        openValueTargetsModal({
+      if (section === "eligibility" || section === "channels") {
+        openEligibilityChannelsModal({
+          discount,
+          onSaved: refetch,
+        });
+        return;
+      }
+
+      if (section === "combinations" || section === "availability") {
+        openAvailabilityModal({
           discount,
           onSaved: refetch,
         });
@@ -55,8 +77,9 @@ export function DiscountModal() {
     },
     [
       discount,
+      openAvailabilityModal,
+      openEligibilityChannelsModal,
       openGeneralSettingsModal,
-      openValueTargetsModal,
       refetch,
     ],
   );
@@ -92,13 +115,15 @@ export function DiscountModal() {
         editableSections={
           [
             "summary",
+            "eligibility",
+            "channels",
+            "combinations",
+            "availability",
             ...(discount.method === DiscountMethod.Code ? ["codes"] : []),
-            ...(discount.kind === DiscountKind.AmountOffProducts
-              ? ["value-usage", "targets"]
-              : []),
           ] as DiscountDetailsSection[]
         }
         onEditSection={editGeneralSettings}
+        onEditValueTargets={editValueTargets}
         onRefresh={refetch}
         onArchived={forcePop}
       />

@@ -21,6 +21,7 @@ import {
 import { LuListPlus } from "react-icons/lu";
 import {
   DiscountAllocationMethod,
+  DiscountKind,
   DiscountRequirementType,
   DiscountTargetType,
   DiscountValueType,
@@ -103,6 +104,7 @@ const serializeValues = (values: DiscountValueTargetsFormValues) =>
   JSON.stringify({
     ...values,
     targets: values.targets.map(({ id }) => id),
+    qualifierTargets: values.qualifierTargets.map(({ id }) => id),
   });
 
 function mergePickerSelection(
@@ -133,48 +135,34 @@ function getCurrencySymbol(currency: string): string {
   );
 }
 
-export function EditValueTargetsModal() {
+interface TargetSelectionEditorProps {
+  title: string;
+  targetType: DiscountTargetType;
+  targets: DiscountTargetEditorItem[];
+  onChange: (
+    targetType: DiscountTargetType,
+    targets: DiscountTargetEditorItem[],
+  ) => void;
+}
+
+function TargetSelectionEditor({
+  title,
+  targetType,
+  targets,
+  onChange,
+}: TargetSelectionEditorProps) {
   const { styles, cx } = useEditValueTargetsModalStyles();
-  const { message } = App.useApp();
-  const { payload, pop, forcePop, setDirty } = useModalStackContext();
-  const { discount, onSaved } =
-    payload as IDiscountValueTargetsEditModalPayload;
-  const mutation = useUpdateDiscount();
-  const [values, setValues] = useState<DiscountValueTargetsFormValues>(() =>
-    createDiscountValueTargetsFormValues(discount),
-  );
-  const [initialSnapshot] = useState(() =>
-    serializeValues(createDiscountValueTargetsFormValues(discount)),
-  );
-  const [formError, setFormError] = useState<string | null>(null);
-  const dirty = serializeValues(values) !== initialSnapshot;
-  const selectedIds = values.targets.map((target) => target.id);
-  const targetCopy = getTargetCopy(values.targetType);
-  const currencySymbol = getCurrencySymbol(discount.currency);
-
-  useEffect(() => {
-    setDirty(dirty);
-  }, [dirty, setDirty]);
-
-  const updateValues = useCallback(
-    (changes: Partial<DiscountValueTargetsFormValues>) => {
-      setValues((current) => ({ ...current, ...changes }));
-      setFormError(null);
-    },
-    [],
-  );
-
+  const selectedIds = targets.map((target) => target.id);
+  const targetCopy = getTargetCopy(targetType);
   const handlePickerConfirm = useCallback(
     (entities: IPickableEntity[], ids: string[]) => {
-      setValues((current) => ({
-        ...current,
-        targets: mergePickerSelection(current.targets, entities, ids),
-      }));
-      setFormError(null);
+      onChange(
+        targetType,
+        mergePickerSelection(targets, entities, ids),
+      );
     },
-    [],
+    [onChange, targetType, targets],
   );
-
   const productPicker = useProductPicker({
     selectionMode: "multi",
     initialSelection: selectedIds,
@@ -190,24 +178,146 @@ export function EditValueTargetsModal() {
     initialSelection: selectedIds,
     onConfirm: handlePickerConfirm,
   });
-
   const openPicker = useCallback(() => {
-    if (values.targetType === DiscountTargetType.Products) {
+    if (targetType === DiscountTargetType.Products) {
       productPicker.openPicker();
-    } else if (values.targetType === DiscountTargetType.Variants) {
+    } else if (targetType === DiscountTargetType.Variants) {
       variantPicker.openPicker();
-    } else if (values.targetType === DiscountTargetType.Categories) {
+    } else if (targetType === DiscountTargetType.Categories) {
       categoryPicker.openPicker();
     }
-  }, [
-    categoryPicker,
-    productPicker,
-    values.targetType,
-    variantPicker,
-  ]);
+  }, [categoryPicker, productPicker, targetType, variantPicker]);
+
+  return (
+    <>
+      <Paper className={styles.section}>
+        <PaperHeader title={title} />
+        <Radio.Group
+          className={styles.targetGroup}
+          value={targetType}
+          onChange={(event) =>
+            onChange(event.target.value as DiscountTargetType, [])
+          }
+        >
+          {TARGET_OPTIONS.map((option) => (
+            <Radio
+              key={option.value}
+              value={option.value}
+              className={cx(
+                styles.targetOption,
+                targetType === option.value &&
+                  styles.targetOptionSelected,
+              )}
+            >
+              <span className={styles.targetCopy}>
+                <Typography.Text className={styles.targetTitle}>
+                  {option.title}
+                </Typography.Text>
+                <Typography.Text className={styles.targetDescription}>
+                  {option.description}
+                </Typography.Text>
+              </span>
+            </Radio>
+          ))}
+        </Radio.Group>
+      </Paper>
+
+      {targetCopy ? (
+        <Paper className={styles.section}>
+          <PaperHeader
+            title={`Selected ${targetCopy.plural}`}
+            actions={
+              <Typography.Text type="secondary">
+                {targets.length} selected
+              </Typography.Text>
+            }
+          />
+          <div className={styles.field}>
+            <Typography.Text strong className={styles.fieldLabel}>
+              {targetCopy.plural[0].toUpperCase() +
+                targetCopy.plural.slice(1)}{" "}
+              *
+            </Typography.Text>
+            <Flex gap={8} className={styles.pickerRow}>
+              <Input
+                readOnly
+                className={styles.pickerSummary}
+                value={
+                  targets.length === 0
+                    ? ""
+                    : `${targets.length} ${targetCopy.plural} selected`
+                }
+                placeholder={`No ${targetCopy.plural} selected`}
+              />
+              <Button icon={<LuListPlus />} onClick={openPicker}>
+                Select
+              </Button>
+            </Flex>
+          </div>
+          {targets.length > 0 ? (
+            <div className={styles.selectedTags}>
+              {targets.map((target) => (
+                <Tag
+                  key={target.id}
+                  closable
+                  className={styles.selectedTag}
+                  onClose={() =>
+                    onChange(
+                      targetType,
+                      targets.filter((item) => item.id !== target.id),
+                    )
+                  }
+                >
+                  {target.title}
+                </Tag>
+              ))}
+            </div>
+          ) : null}
+        </Paper>
+      ) : null}
+    </>
+  );
+}
+
+export function EditValueTargetsModal() {
+  const { styles, cx } = useEditValueTargetsModalStyles();
+  const { message } = App.useApp();
+  const { payload, pop, forcePop, setDirty } = useModalStackContext();
+  const { discount, onSaved } =
+    payload as IDiscountValueTargetsEditModalPayload;
+  const mutation = useUpdateDiscount();
+  const [values, setValues] = useState<DiscountValueTargetsFormValues>(() =>
+    createDiscountValueTargetsFormValues(discount),
+  );
+  const [initialSnapshot] = useState(() =>
+    serializeValues(createDiscountValueTargetsFormValues(discount)),
+  );
+  const [formError, setFormError] = useState<string | null>(null);
+  const dirty = serializeValues(values) !== initialSnapshot;
+  const currencySymbol = getCurrencySymbol(discount.currency);
+  const isAmountOff =
+    discount.kind === DiscountKind.AmountOffProducts ||
+    discount.kind === DiscountKind.AmountOffOrder;
+  const isBuyXGetY = discount.kind === DiscountKind.BuyXGetY;
+  const isFreeShipping = discount.kind === DiscountKind.FreeShipping;
+
+  useEffect(() => {
+    setDirty(dirty);
+  }, [dirty, setDirty]);
+
+  const updateValues = useCallback(
+    (changes: Partial<DiscountValueTargetsFormValues>) => {
+      setValues((current) => ({ ...current, ...changes }));
+      setFormError(null);
+    },
+    [],
+  );
 
   const save = useCallback(async () => {
-    const validationErrors = validateDiscountValueTargetsForm(values);
+    const validationErrors = validateDiscountValueTargetsForm(
+      discount,
+      values,
+    );
     if (validationErrors.length > 0) {
       setFormError(validationErrors.join(" "));
       return;
@@ -216,7 +326,7 @@ export function EditValueTargetsModal() {
     const result = await mutation.updateDiscount({
       discountId: discount.id,
       expectedRevision: discount.revision,
-      operations: buildDiscountValueTargetsUpdateInput(values),
+      operations: buildDiscountValueTargetsUpdateInput(discount, values),
     });
 
     if (!result.discount || result.errors.length > 0) {
@@ -271,9 +381,10 @@ export function EditValueTargetsModal() {
           <Alert type="error" showIcon message={errorMessage} />
         ) : null}
 
-        <Paper className={styles.section}>
-          <PaperHeader title="Value" />
-          <div className={styles.fieldGrid}>
+        {isAmountOff ? (
+          <Paper className={styles.section}>
+            <PaperHeader title="Value" />
+            <div className={styles.fieldGrid}>
             <div className={styles.field}>
               <Typography.Text strong className={styles.fieldLabel}>
                 Value type *
@@ -335,144 +446,334 @@ export function EditValueTargetsModal() {
                   : "Sent as amountMinor; must be a positive amount."}
               </Typography.Text>
             </div>
-          </div>
+            </div>
 
-          <Checkbox
-            className={styles.allocation}
-            checked={
-              values.allocationMethod === DiscountAllocationMethod.Each
-            }
-            onChange={(event) =>
-              updateValues({
-                allocationMethod: event.target.checked
-                  ? DiscountAllocationMethod.Each
-                  : DiscountAllocationMethod.Across,
-              })
-            }
-          >
-            <span className={styles.allocationCopy}>
-              <Typography.Text>Allocate to each eligible line</Typography.Text>
-              <Typography.Text className={styles.fieldHelp}>
-                EACH when enabled; ACROSS when disabled.
-              </Typography.Text>
-            </span>
-          </Checkbox>
-
-          <div className={styles.field}>
-            <Typography.Text strong className={styles.fieldLabel}>
-              Maximum discount
-            </Typography.Text>
-            <Input
-              aria-label="Maximum discount"
-              inputMode="decimal"
-              prefix={values.maximumDiscount ? currencySymbol : undefined}
-              placeholder="No limit"
-              value={values.maximumDiscount}
+            <Checkbox
+              className={styles.allocation}
+              checked={
+                values.allocationMethod === DiscountAllocationMethod.Each
+              }
               onChange={(event) =>
-                updateValues({ maximumDiscount: event.target.value })
+                updateValues({
+                  allocationMethod: event.target.checked
+                    ? DiscountAllocationMethod.Each
+                    : DiscountAllocationMethod.Across,
+                })
               }
-            />
-            <Typography.Text className={styles.fieldHelp}>
-              Optional maximumDiscountMinor; must be a positive amount.
-            </Typography.Text>
-          </div>
-        </Paper>
-
-        <Paper className={styles.section}>
-          <PaperHeader title="Applies to" />
-          <Radio.Group
-            className={styles.targetGroup}
-            value={values.targetType}
-            onChange={(event) =>
-              updateValues({
-                targetType: event.target.value,
-                targets: [],
-              })
-            }
-          >
-            {TARGET_OPTIONS.map((option) => (
-              <Radio
-                key={option.value}
-                value={option.value}
-                className={cx(
-                  styles.targetOption,
-                  values.targetType === option.value &&
-                    styles.targetOptionSelected,
-                )}
-              >
-                <span className={styles.targetCopy}>
-                  <Typography.Text className={styles.targetTitle}>
-                    {option.title}
-                  </Typography.Text>
-                  <Typography.Text className={styles.targetDescription}>
-                    {option.description}
-                  </Typography.Text>
-                </span>
-              </Radio>
-            ))}
-          </Radio.Group>
-        </Paper>
-
-        {targetCopy ? (
-          <Paper className={styles.section}>
-            <PaperHeader
-              title={`Selected ${targetCopy.plural}`}
-              actions={
-                <Typography.Text type="secondary">
-                  {values.targets.length} selected
+            >
+              <span className={styles.allocationCopy}>
+                <Typography.Text>
+                  Allocate to each eligible line
                 </Typography.Text>
-              }
-            />
+                <Typography.Text className={styles.fieldHelp}>
+                  EACH when enabled; ACROSS when disabled.
+                </Typography.Text>
+              </span>
+            </Checkbox>
+
             <div className={styles.field}>
               <Typography.Text strong className={styles.fieldLabel}>
-                {targetCopy.plural[0].toUpperCase() +
-                  targetCopy.plural.slice(1)}{" "}
-                *
+                Maximum discount
               </Typography.Text>
-              <Flex gap={8} className={styles.pickerRow}>
-                <Input
-                  readOnly
-                  className={styles.pickerSummary}
-                  value={
-                    values.targets.length === 0
-                      ? ""
-                      : `${values.targets.length} ${targetCopy.plural} selected`
-                  }
-                  placeholder={`No ${targetCopy.plural} selected`}
-                />
-                <Button icon={<LuListPlus />} onClick={openPicker}>
-                  Select
-                </Button>
-              </Flex>
+              <Input
+                aria-label="Maximum discount"
+                inputMode="decimal"
+                prefix={
+                  values.maximumDiscount ? currencySymbol : undefined
+                }
+                placeholder="No limit"
+                value={values.maximumDiscount}
+                onChange={(event) =>
+                  updateValues({ maximumDiscount: event.target.value })
+                }
+              />
               <Typography.Text className={styles.fieldHelp}>
-                Produces targetIds for the {values.targetType} selection; at
-                least one ID is required.
+                Optional maximumDiscountMinor; must be a positive amount.
               </Typography.Text>
             </div>
-            {values.targets.length > 0 ? (
-              <div className={styles.selectedTags}>
-                {values.targets.map((target) => (
-                  <Tag
-                    key={target.id}
-                    closable
-                    className={styles.selectedTag}
-                    onClose={() =>
-                      updateValues({
-                        targets: values.targets.filter(
-                          (item) => item.id !== target.id,
-                        ),
-                      })
-                    }
-                  >
-                    {target.title}
-                  </Tag>
-                ))}
-              </div>
-            ) : null}
           </Paper>
         ) : null}
 
-        <Paper className={styles.section}>
+        {isFreeShipping ? (
+          <Paper className={styles.section}>
+            <PaperHeader title="Value" />
+            <div className={styles.field}>
+              <Typography.Text strong className={styles.fieldLabel}>
+                Maximum shipping price
+              </Typography.Text>
+              <Input
+                aria-label="Maximum shipping price"
+                inputMode="decimal"
+                prefix={
+                  values.maximumShippingPrice
+                    ? currencySymbol
+                    : undefined
+                }
+                placeholder="No limit"
+                value={values.maximumShippingPrice}
+                onChange={(event) =>
+                  updateValues({
+                    maximumShippingPrice: event.target.value,
+                  })
+                }
+              />
+              <Typography.Text className={styles.fieldHelp}>
+                Leave empty to apply to all eligible shipping rates.
+              </Typography.Text>
+            </div>
+          </Paper>
+        ) : null}
+
+        {isBuyXGetY ? (
+          <>
+            <Paper className={styles.section}>
+              <PaperHeader title="Customer buys" />
+              <div className={styles.fieldGrid}>
+                <div className={styles.field}>
+                  <Typography.Text strong className={styles.fieldLabel}>
+                    Requirement *
+                  </Typography.Text>
+                  <Select
+                    aria-label="Buy requirement"
+                    value={values.buyRequirementType}
+                    options={[
+                      {
+                        value: DiscountRequirementType.Quantity,
+                        label: "Minimum quantity",
+                      },
+                      {
+                        value: DiscountRequirementType.Subtotal,
+                        label: "Minimum subtotal",
+                      },
+                    ]}
+                    onChange={(buyRequirementType) =>
+                      updateValues({ buyRequirementType })
+                    }
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <Typography.Text strong className={styles.fieldLabel}>
+                    {values.buyRequirementType ===
+                    DiscountRequirementType.Quantity
+                      ? "Required quantity *"
+                      : "Required subtotal *"}
+                  </Typography.Text>
+                  {values.buyRequirementType ===
+                  DiscountRequirementType.Quantity ? (
+                    <InputNumber
+                      aria-label="Required quantity"
+                      min={1}
+                      precision={0}
+                      value={values.requiredQuantity}
+                      onChange={(requiredQuantity) =>
+                        updateValues({ requiredQuantity })
+                      }
+                      style={{ width: "100%" }}
+                    />
+                  ) : (
+                    <Input
+                      aria-label="Required subtotal"
+                      inputMode="decimal"
+                      prefix={currencySymbol}
+                      value={values.requiredSubtotal}
+                      onChange={(event) =>
+                        updateValues({
+                          requiredSubtotal: event.target.value,
+                        })
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+            </Paper>
+
+            <Paper className={styles.section}>
+              <PaperHeader title="Customer gets" />
+              <div className={styles.fieldGrid}>
+                <div className={styles.field}>
+                  <Typography.Text strong className={styles.fieldLabel}>
+                    Benefit quantity *
+                  </Typography.Text>
+                  <InputNumber
+                    aria-label="Benefit quantity"
+                    min={1}
+                    precision={0}
+                    value={values.benefitQuantity}
+                    onChange={(benefitQuantity) =>
+                      updateValues({ benefitQuantity })
+                    }
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <Typography.Text strong className={styles.fieldLabel}>
+                    Benefit value *
+                  </Typography.Text>
+                  <Select
+                    aria-label="Benefit value type"
+                    value={values.benefitValueType}
+                    options={[
+                      {
+                        value: DiscountValueType.Free,
+                        label: "Free",
+                      },
+                      {
+                        value: DiscountValueType.Percentage,
+                        label: "Percentage",
+                      },
+                      {
+                        value: DiscountValueType.FixedAmount,
+                        label: "Fixed amount",
+                      },
+                    ]}
+                    onChange={(benefitValueType) =>
+                      updateValues({ benefitValueType })
+                    }
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              </div>
+
+              {values.benefitValueType !== DiscountValueType.Free ? (
+                <div className={styles.fieldGrid}>
+                  <div className={styles.field}>
+                    <Typography.Text strong className={styles.fieldLabel}>
+                      {values.benefitValueType ===
+                      DiscountValueType.Percentage
+                        ? "Benefit percentage *"
+                        : "Benefit amount *"}
+                    </Typography.Text>
+                    {values.benefitValueType ===
+                    DiscountValueType.Percentage ? (
+                      <InputNumber
+                        aria-label="Benefit percentage"
+                        min={0.01}
+                        max={100}
+                        precision={2}
+                        suffix="%"
+                        value={values.benefitPercentage}
+                        onChange={(benefitPercentage) =>
+                          updateValues({ benefitPercentage })
+                        }
+                        style={{ width: "100%" }}
+                      />
+                    ) : (
+                      <Input
+                        aria-label="Benefit amount"
+                        inputMode="decimal"
+                        prefix={currencySymbol}
+                        value={values.benefitAmount}
+                        onChange={(event) =>
+                          updateValues({
+                            benefitAmount: event.target.value,
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  <div className={styles.field}>
+                    <Typography.Text strong className={styles.fieldLabel}>
+                      Uses per order
+                    </Typography.Text>
+                    <InputNumber
+                      aria-label="Uses per order"
+                      min={1}
+                      precision={0}
+                      placeholder="No limit"
+                      value={values.usesPerOrderLimit}
+                      onChange={(usesPerOrderLimit) =>
+                        updateValues({ usesPerOrderLimit })
+                      }
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.field}>
+                  <Typography.Text strong className={styles.fieldLabel}>
+                    Uses per order
+                  </Typography.Text>
+                  <InputNumber
+                    aria-label="Uses per order"
+                    min={1}
+                    precision={0}
+                    placeholder="No limit"
+                    value={values.usesPerOrderLimit}
+                    onChange={(usesPerOrderLimit) =>
+                      updateValues({ usesPerOrderLimit })
+                    }
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              )}
+            </Paper>
+          </>
+        ) : null}
+
+        {discount.kind === DiscountKind.AmountOffProducts ? (
+          <TargetSelectionEditor
+            title="Applies to"
+            targetType={values.targetType}
+            targets={values.targets}
+            onChange={(targetType, targets) =>
+              updateValues({ targetType, targets })
+            }
+          />
+        ) : null}
+
+        {isBuyXGetY ? (
+          <>
+            <TargetSelectionEditor
+              title="Customer buys"
+              targetType={values.qualifierTargetType}
+              targets={values.qualifierTargets}
+              onChange={(qualifierTargetType, qualifierTargets) =>
+                updateValues({
+                  qualifierTargetType,
+                  qualifierTargets,
+                })
+              }
+            />
+            <TargetSelectionEditor
+              title="Customer gets"
+              targetType={values.targetType}
+              targets={values.targets}
+              onChange={(targetType, targets) =>
+                updateValues({ targetType, targets })
+              }
+            />
+          </>
+        ) : null}
+
+        {discount.kind === DiscountKind.AmountOffOrder ||
+        isFreeShipping ? (
+          <Paper className={styles.section}>
+            <PaperHeader title="Applies to" />
+            <div
+              className={cx(
+                styles.targetOption,
+                styles.targetOptionSelected,
+              )}
+            >
+              <span className={styles.targetCopy}>
+                <Typography.Text className={styles.targetTitle}>
+                  {isFreeShipping
+                    ? "Eligible shipping rates"
+                    : "Entire order"}
+                </Typography.Text>
+                <Typography.Text className={styles.targetDescription}>
+                  {isFreeShipping
+                    ? "Free shipping applies to eligible delivery methods."
+                    : "Order discounts cannot contain catalog target selections."}
+                </Typography.Text>
+              </span>
+            </div>
+          </Paper>
+        ) : null}
+
+        {!isBuyXGetY ? (
+          <Paper className={styles.section}>
           <PaperHeader title="Minimum requirements" />
           <div className={styles.field}>
             <Typography.Text strong className={styles.fieldLabel}>
@@ -547,7 +848,8 @@ export function EditValueTargetsModal() {
               </Typography.Text>
             </div>
           ) : null}
-        </Paper>
+          </Paper>
+        ) : null}
       </div>
     </ModalLayout>
   );

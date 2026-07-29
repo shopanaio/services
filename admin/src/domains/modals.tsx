@@ -536,6 +536,26 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       confirmOnDirtyClose: true,
       closeConfirmMessage: 'Discard value, target and requirement changes?',
     },
+    {
+      type: 'discount-eligibility-channels-edit',
+      component: dynamic(() =>
+        import('@/domains/inventory/discounts/modals/edit-eligibility-channels-modal').then(
+          (m) => m.EditEligibilityChannelsModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard eligibility and channel changes?',
+    },
+    {
+      type: 'discount-availability-edit',
+      component: dynamic(() =>
+        import('@/domains/inventory/discounts/modals/edit-availability-modal').then(
+          (m) => m.EditAvailabilityModal
+        )
+      ),
+      confirmOnDirtyClose: true,
+      closeConfirmMessage: 'Discard availability, limit and combination changes?',
+    },
     // ========================================
     // Tag modals
     // ========================================

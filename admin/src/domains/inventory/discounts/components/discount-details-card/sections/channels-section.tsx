@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Flex, Typography } from "antd";
+import { Button, Dropdown, Flex, Typography } from "antd";
 import {
   LuCircle,
   LuCircleCheck,
@@ -38,12 +38,24 @@ export function ChannelsSection({
         className={styles.compactHeader}
         actions={
           onEdit ? (
-            <Button
-              size="small"
-              icon={<LuEllipsis />}
-              aria-label="Edit discount channels"
-              onClick={onEdit}
-            />
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "edit",
+                    label: "Edit eligibility & channels",
+                    onClick: onEdit,
+                  },
+                ],
+              }}
+            >
+              <Button
+                size="small"
+                icon={<LuEllipsis />}
+                aria-label="Discount channel actions"
+              />
+            </Dropdown>
           ) : undefined
         }
       />
