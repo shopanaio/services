@@ -19,7 +19,7 @@ export class HeadlessStorefrontConnectionService {
     scope: HeadlessStorefrontScope,
     input: {
       readonly displayName: string;
-      readonly permissions?: readonly string[];
+      readonly permissions?: readonly StorefrontPermission[];
       readonly clientMutationId: string;
       readonly createdById?: string;
     },

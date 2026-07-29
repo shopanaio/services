@@ -1,4 +1,8 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import {
+  isStorefrontPermission,
+  type StorefrontPermission,
+} from "@shopana/shared-context";
 import { HeadlessType } from "./HeadlessType.js";
 import { HeadlessStorefrontConnectionResolver } from "./HeadlessStorefrontConnectionResolver.js";
 import { StorefrontAccessPolicyResolver } from "./StorefrontAccessPolicyResolver.js";
@@ -28,7 +32,9 @@ export class HeadlessAppMutationResolver extends HeadlessType<
         this.scope,
         {
           displayName: args.input.displayName,
-          permissions: args.input.permissions,
+          permissions: parseStorefrontPermissions(
+            args.input.permissions,
+          ),
           clientMutationId: args.input.clientMutationId,
           createdById: this.$ctx.app.actor?.id,
         },
@@ -221,6 +227,16 @@ export class HeadlessAppMutationResolver extends HeadlessType<
   private get actor() {
     return this.$ctx.app.actor ?? { type: "USER" as const };
   }
+}
+
+function parseStorefrontPermissions(
+  values: readonly string[] | undefined,
+): readonly StorefrontPermission[] | undefined {
+  if (values === undefined) return undefined;
+  if (!values.every(isStorefrontPermission)) {
+    throw new Error("STOREFRONT_PERMISSION_INVALID");
+  }
+  return Object.freeze([...values]);
 }
 
 function userMessage(code: string): string {

@@ -11,7 +11,13 @@ import { AppsRuntimeRouter } from "./AppsRuntimeRouter.js";
 describe("AppsRuntimeRouter Commerce Function policy", () => {
   it("rejects an App action that is not explicitly read-only", async () => {
     const resolve = jest.fn(async () => executionContext());
-    const callAsApp = jest.fn(async () => ({ ok: true }));
+    const callAsApp = jest.fn(
+      async (
+        _action: string,
+        _input: unknown,
+        _context: unknown,
+      ) => ({ ok: true }),
+    );
     const router = createRouter({
       metadata: undefined,
       resolve,
@@ -38,7 +44,13 @@ describe("AppsRuntimeRouter Commerce Function policy", () => {
 
   it("allows an explicitly read-only App action", async () => {
     const resolve = jest.fn(async () => executionContext());
-    const callAsApp = jest.fn(async () => ({ ok: true }));
+    const callAsApp = jest.fn(
+      async (
+        _action: string,
+        _input: unknown,
+        _context: unknown,
+      ) => ({ ok: true }),
+    );
     const router = createRouter({
       metadata: { readOnly: true },
       resolve,
