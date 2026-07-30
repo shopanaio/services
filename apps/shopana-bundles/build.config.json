@@ -7,20 +7,10 @@
       "src/api/graphql-admin/schema/**/*.graphql"
     ]
   },
-  "migrations": {
-    "path": "dist/migrations",
-    "type": "node-pg-migrate",
-    "schema": "app_shopana_bundles",
-    "table": "pgmigrations"
-  },
   "assets": [
     {
       "include": "src/api/graphql-admin/schema/**/*.graphql",
       "outDir": "dist/graphql/admin"
-    },
-    {
-      "include": "migrations/**/*",
-      "outDir": "dist/migrations"
     }
   ]
 }

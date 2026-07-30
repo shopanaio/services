@@ -46,6 +46,9 @@ export * from "./productTitleBm25SearchIndex";
 // Collections
 export * from "./collection";
 
+// Product components
+export * from "./components";
+
 // Bulk edit
 export * from "./bulkEditJobs";
 export * from "./bulkEditItems";

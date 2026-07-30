@@ -1,5 +1,13 @@
 # Bundles Database Schema
 
+> Historical Bundles App design. The canonical database contract now lives in
+> `services/catalog/src/repositories/models/components.ts`,
+> `services/catalog/migrations/domains/0800_components/`, and
+> `services/catalog/migrations/domains/1100_dependencies/`. It restores the
+> former Catalog-owned bundle contract with `bundle*` renamed to `component*`.
+> The later `app_shopana_bundles.bundle*` variant below is retained only as
+> design history.
+
 Bundle — это catalog product с отдельной 1:1 записью в таблице
 `app_shopana_bundles.bundle`. Наличие этой записи определяет принадлежность продукта
 к bundle aggregate; discriminator в `catalog.product` и `catalog.variant` не хранится.

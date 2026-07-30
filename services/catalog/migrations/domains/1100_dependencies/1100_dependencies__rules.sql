@@ -1,6 +1,6 @@
 -- Up Migration
 
-CREATE TABLE "app_shopana_bundles"."dependency_rule" (
+CREATE TABLE "catalog"."dependency_rule" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
@@ -13,12 +13,12 @@ CREATE TABLE "app_shopana_bundles"."dependency_rule" (
   CONSTRAINT "dependency_rule_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "dependency_rule_configuration_id_fk"
     FOREIGN KEY ("configuration_id")
-    REFERENCES "app_shopana_bundles"."bundle_configuration" ("id")
+    REFERENCES "catalog"."component_configuration" ("id")
     ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_dependency_rule_configuration_id"
-  ON "app_shopana_bundles"."dependency_rule" ("configuration_id");
+  ON "catalog"."dependency_rule" ("configuration_id");
 
 CREATE INDEX "idx_dependency_rule_priority"
-  ON "app_shopana_bundles"."dependency_rule" ("configuration_id", "priority");
+  ON "catalog"."dependency_rule" ("configuration_id", "priority");
