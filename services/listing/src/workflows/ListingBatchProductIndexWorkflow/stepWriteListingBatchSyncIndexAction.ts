@@ -313,7 +313,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       productBootstrapRows.push({
         productId,
         productDocId,
-        kind: writeModel.productKind,
+        entityType: writeModel.productEntityType,
         productCreatedAt: writeModel.product.productCreatedAt,
         productUpdatedAt: writeModel.product.productUpdatedAt,
       });

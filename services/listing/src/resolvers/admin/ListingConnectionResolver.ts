@@ -11,7 +11,7 @@ import {
 } from "./ListingQueryTypes.js";
 import { mapListingFacets } from "./listingFacetMapper.js";
 import {
-  loadProductKindMap,
+  loadProductEntityTypeMap,
   toListingNodeReference,
 } from "./listingReferences.js";
 import {
@@ -65,14 +65,14 @@ export class ListingConnectionResolver extends ListingType<
 
   async edges() {
     const rows = (await this.$get("rows")) ?? [];
-    const kinds = await loadProductKindMap(
+    const entityTypes = await loadProductEntityTypeMap(
       this.$ctx.kernel.getServices().repository,
       rows.map((row) => row.productId)
     );
 
     return rows.map((row) => ({
       cursor: row.cursor ?? "",
-      node: toListingNodeReference(row.productId, kinds.get(row.productId)),
+      node: toListingNodeReference(row.productId, entityTypes.get(row.productId)),
     }));
   }
 

@@ -59,25 +59,15 @@ dependency rules, configuration metadata), а не отправляет весь
 
 ## Product, Bundle и Variant owned field additions
 
-Catalog service already owns `Product`, `Bundle`, and `Variant`. `Product` keeps
-the discriminator so generic catalog internals can distinguish BASE/BUNDLE rows,
-but `Product` does not expose a `bundle` field. Bundle-specific reads go through
-the `Bundle` type and `CatalogQuery.bundle` / `CatalogQuery.bundles`. `Bundle`
-uses the same public ID namespace as `Product`: a bundle ID is a `Product` global
-ID whose decoded product row has `kind = BUNDLE`.
+Catalog service owns `Product` and `Variant`; the Shopana Bundles app owns
+`Bundle` and its admin operations. `Bundle` uses the same public ID namespace as
+`Product`: a bundle ID is a Product global ID backed by a 1:1 row in the app
+bundle table.
 
 ```graphql
-enum ProductKind {
-  BASE
-  BUNDLE
-}
-
 interface CatalogSellable implements Node {
   """The Product global ID of the sellable catalog item."""
   id: ID!
-
-  """Product discriminator."""
-  kind: ProductKind!
 
   """The URL-friendly handle."""
   handle: String
@@ -103,9 +93,6 @@ type Product implements Node & CatalogSellable @key(fields: "id") {
   """The Product global ID."""
   id: ID!
 
-  """Product discriminator."""
-  kind: ProductKind!
-
   """The URL-friendly handle."""
   handle: String
 
@@ -127,10 +114,7 @@ type Product implements Node & CatalogSellable @key(fields: "id") {
 
 type Variant implements Node @key(fields: "id") {
   # Existing catalog-owned fields stay unchanged.
-  """Variant discriminator. Must match parent product kind."""
-  kind: ProductKind!
-
-  """Bundle configuration assigned to this variant. Null for BASE variants."""
+  """Bundle configuration assigned to this variant when one exists."""
   bundleConfiguration: BundleConfiguration
 }
 
@@ -213,9 +197,6 @@ enum BundleDependencyActionType {
 type Bundle implements Node & CatalogSellable @key(fields: "id") {
   """The Product global ID of the bundle sellable item."""
   id: ID!
-
-  """Product discriminator. Always BUNDLE for this type."""
-  kind: ProductKind!
 
   """The URL-friendly handle for the bundle."""
   handle: String
@@ -1232,7 +1213,7 @@ input BundleDependencyActionSyncInput {
 
 ## Валидация
 
-- `BundleCreateInput` создает новую запись `catalog.product(kind = BUNDLE)`,
+- `BundleCreateInput` создает новую запись `catalog.product`,
   связанную запись `catalog.bundle`, переводы, media/options/variants и inventory
   по тем же правилам, что `ProductCreateInput`.
 - Клиент не передает существующий `productId` в `bundleCreate`.
@@ -1240,7 +1221,7 @@ input BundleDependencyActionSyncInput {
   от созданного `catalog.product.id`.
 - `CatalogQuery.bundle(id:)`, `bundleUpdate(bundleId:)` и
   `BundleConfigurationCreateInput.bundleId` принимают только `Product` global ID,
-  который указывает на `catalog.product.kind = BUNDLE`.
+  для которого существует строка в app-owned таблице `bundle`.
 - Все mutations, меняющие bundle product или его configuration tree, выполняются с
   optimistic locking: `expectedRevision` обязателен и сравнивается с текущим
   `catalog.product.revision` parent bundle product.
@@ -1320,11 +1301,9 @@ input BundleDependencyActionSyncInput {
 
 | GraphQL поле/тип | DB таблица |
 | --- | --- |
-| `Product.kind` | `catalog.product.kind` |
-| `Variant.kind` | `catalog.variant.kind` |
-| `CatalogSellable` | GraphQL interface over sellable `catalog.product` rows; concrete resolver returns `Product` for `kind = BASE` and `Bundle` for `kind = BUNDLE` |
+| `CatalogSellable` | GraphQL interface over sellable entities; concrete type is determined by the owning service |
 | `Bundle.id` | `catalog.product.id` encoded as `GlobalIdEntity.Product`; no public ID for `catalog.bundle.id` |
-| `Bundle` | `catalog.product(kind = BUNDLE)` + internal `catalog.bundle` row for bundle-specific fields |
+| `Bundle` | `catalog.product` + app-owned `bundle` row for bundle-specific fields |
 | `Bundle.type`, `Bundle.displayStyle` | `catalog.bundle.type`, `catalog.bundle.display_style` |
 | `Bundle.configurations`, `BundleConfiguration` | `catalog.bundle_configuration` |
 | `BundleConfiguration.bundleId` | parent `catalog.product.id` encoded as `GlobalIdEntity.Product`; service maps it to internal `catalog.bundle.id` for DB writes |
@@ -1361,17 +1340,16 @@ Bundle API objects that implement `Node` must be resolvable through the existing
 Implementation requirements:
 
 - Do not add a separate `GlobalIdEntity.Bundle`: `Bundle.id` uses
-  `GlobalIdEntity.Product` and validates `product.kind = BUNDLE`.
+  `GlobalIdEntity.Product` and validates that the app-owned bundle row exists.
 - Add all bundle structure node entities to `GlobalIdEntity`.
 - Encode every `id` field with the matching `GlobalIdEntity`.
 - Decode query and mutation input IDs by expected entity type.
-- Extend `CatalogQuery.node(id:)` dispatch so a `Product` ID whose row has
-  `kind = BUNDLE` resolves as `Bundle`, while `kind = BASE` resolves as `Product`.
+- Bundle node resolution belongs to the Shopana Bundles app; catalog resolves
+  Product IDs as `Product`.
 - Implement `CatalogSellable` as a GraphQL interface, not a union, for flat
-  category/listing/search connections that can contain both BASE products and
-  BUNDLE products.
-- `CatalogSellableConnection.node` resolves concrete type from
-  `catalog.product.kind`: `BASE` -> `Product`, `BUNDLE` -> `Bundle`.
+  category/listing/search connections that can contain products and bundles.
+- `CatalogSellableConnection.node` resolves concrete type from the owning
+  service/entity type supplied by listing.
 - Do not add a separate `GlobalIdEntity.CatalogSellable`: the concrete object ID
   remains the `Product` global ID.
 - Do not expose `bundle_configuration_variant` as `Node`: it is an assignment table

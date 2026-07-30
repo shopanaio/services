@@ -26,7 +26,6 @@ import type {
   ApiProductOrderByInput,
   ApiProductPriceRange,
   ApiProductWhereInput,
-  ProductKind,
 } from "@/graphql/types";
 
 export type CategoryProductsOrderByInput = ApiProductOrderByInput;
@@ -82,9 +81,8 @@ export interface CategoryProductsQueryData {
 
 export type CategoryProductListItem = Pick<
   ApiProduct,
-  "id" | "kind" | "isPublished" | "title" | "handle"
+  "id" | "isPublished" | "title" | "handle"
 > & {
-  kind: ProductKind;
   media: Array<
     Pick<ApiProductMediaItem, "sortIndex"> & {
       file: Pick<ApiProductMediaItem["file"], "id" | "url" | "altText">;

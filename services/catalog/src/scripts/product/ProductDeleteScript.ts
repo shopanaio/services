@@ -38,7 +38,6 @@ export class ProductDeleteScript extends BaseScript<
         categoryIds: [],
         revision: undefined,
         deletedAt: undefined,
-        entityType: undefined,
         userErrors: [
           { message: "Product not found", field: ["id"], code: "NOT_FOUND" },
         ],
@@ -62,7 +61,6 @@ export class ProductDeleteScript extends BaseScript<
         categoryIds,
         revision: undefined,
         deletedAt: undefined,
-        entityType: undefined,
         userErrors: [
           { message: "Failed to delete product", code: "DELETE_FAILED" },
         ],
@@ -81,7 +79,6 @@ export class ProductDeleteScript extends BaseScript<
       categoryIds,
       revision,
       deletedAt: effectiveDeletedAt,
-      entityType: existingProduct.kind === "BUNDLE" ? "bundle" : "product",
       userErrors: [],
     };
   }
@@ -92,7 +89,6 @@ export class ProductDeleteScript extends BaseScript<
       categoryIds: [],
       revision: undefined,
       deletedAt: undefined,
-      entityType: undefined,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

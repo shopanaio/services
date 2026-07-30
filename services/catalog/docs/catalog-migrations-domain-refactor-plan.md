@@ -102,13 +102,6 @@ services/catalog/migrations/
       0700_pricing__item_pricing.sql
       0701_pricing__cost_history.sql
       0702_pricing__views.sql
-    0800_bundles/
-      0800_bundles__tables.sql
-      0801_bundles__configuration.sql
-      0802_bundles__items.sql
-      0803_bundles__pricing.sql
-      0804_bundles__dependencies.sql
-      0805_bundles__views.sql
     0900_collections/
       0900_collections__tables.sql
       0901_collections__items.sql
@@ -142,10 +135,8 @@ The exact file list may change after inventory. Every final file must answer two
 - Facets owns facets, facet values, facet translations, swatches, source handles/sources, and facet relation tables.
 - Inventory owns warehouses, inventory items, stock, stock changes, reservations, inbound supply, and inventory views.
 - Pricing owns item pricing, variant cost history, current price/cost views, and product price range views.
-- Bundles owns bundle root tables, configurations, groups, items, option selections, bundle pricing rules/templates, and bundle list views.
 - Collections owns collections, collection items, collection rules, translations, SEO, and media.
 - Bulk edit owns bulk edit jobs, items, operation fences, statuses, and cancel reasons.
-- Dependencies owns dependency rules, condition groups, conditions, and dependency actions.
 - Cross-domain read models go in `9000_read_models` only when no single entity clearly owns the view.
 
 ## Inventory Contract

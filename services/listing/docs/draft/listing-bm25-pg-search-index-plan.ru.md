@@ -100,7 +100,6 @@ CREATE TABLE listing.product_title_bm25_search_index (
   product_id             uuid NOT NULL,
   locale                 varchar(8) NOT NULL,
 
-  kind                   varchar(16) NOT NULL,
   status                 varchar(16) NOT NULL, -- 'published' | 'draft'
   published_at           timestamptz,
   product_created_at     timestamptz NOT NULL,
@@ -114,8 +113,6 @@ CREATE TABLE listing.product_title_bm25_search_index (
 
   PRIMARY KEY (product_id, locale),
   UNIQUE (search_id),
-  CONSTRAINT chk_product_title_bm25_kind
-    CHECK (kind IN ('BASE', 'BUNDLE')),
   CONSTRAINT chk_product_title_bm25_status
     CHECK (status IN ('published', 'draft'))
 );

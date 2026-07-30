@@ -18,7 +18,7 @@ CREATE TABLE listing.product_listing_index (
   product_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
 
-  kind                   varchar(16) NOT NULL,
+  entity_type            varchar(16) NOT NULL,
   vendor_id              uuid,
   handle                 varchar(255),
   status                 varchar(16) NOT NULL,
@@ -41,8 +41,8 @@ CREATE TABLE listing.product_listing_index (
     UNIQUE (store_id, product_doc_id, product_id),
   CONSTRAINT product_listing_doc_product_unique
     UNIQUE (product_doc_id, product_id),
-  CONSTRAINT chk_product_listing_kind
-    CHECK (kind IN ('BASE', 'BUNDLE')),
+  CONSTRAINT chk_product_listing_entity_type
+    CHECK (entity_type IN ('product', 'bundle')),
   CONSTRAINT chk_product_listing_status
     CHECK (status IN ('published', 'draft')),
   CONSTRAINT chk_product_listing_doc_positive

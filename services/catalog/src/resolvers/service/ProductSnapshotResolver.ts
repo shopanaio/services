@@ -1,5 +1,4 @@
 import type {
-  CatalogProductKind,
   CatalogProductLocalizedContentSnapshot,
   CatalogProductSeoSnapshot,
   CatalogProductSnapshotVersion,
@@ -42,10 +41,6 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
 
   async revision(): Promise<number> {
     return this.$get("revision");
-  }
-
-  async kind(): Promise<CatalogProductKind> {
-    return this.$get("kind");
   }
 
   async status(): Promise<CatalogProductStatus> {
@@ -188,7 +183,6 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
       id: product.id,
       storeId: product.storeId,
       revision: product.revision,
-      kind: product.kind,
       status: product.publishedAt ? "published" : "draft",
       publishedAt: product.publishedAt,
       createdAt: product.createdAt,

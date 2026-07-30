@@ -15,11 +15,6 @@ import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 import { vendor } from "./vendors";
 
-export const productKindEnum = catalogSchema.enum("product_kind", [
-  "BASE",
-  "BUNDLE",
-]);
-
 export const product = catalogSchema.table(
   "product",
   {
@@ -36,7 +31,6 @@ export const product = catalogSchema.table(
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
     revision: integer("revision").notNull().default(0),
-    kind: productKindEnum("kind").notNull().default("BASE"),
   },
   (table) => [
     check(
@@ -68,7 +62,6 @@ export const variant = catalogSchema.table(
   {
     storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
-    kind: productKindEnum("kind").notNull().default("BASE"),
     id: uuid("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     handle: varchar("handle", { length: 255 }).notNull(),

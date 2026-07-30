@@ -6,7 +6,6 @@ import type {
   ProductFeature,
   ProductSeo,
   ProductMedia,
-  Bundle,
   ProductPriceRange,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
@@ -24,7 +23,6 @@ export class ProductLoader {
   public readonly productOption: DataLoader<string, ProductOption | null>;
   public readonly productFeature: DataLoader<string, ProductFeature | null>;
   public readonly productMedia: DataLoader<string, ProductMedia[]>;
-  public readonly bundleByProductId: DataLoader<string, Bundle | null>;
   public readonly productPriceRange: DataLoader<string, ProductPriceRange | null>;
 
   constructor(repository: Repository) {
@@ -109,15 +107,6 @@ export class ProductLoader {
         results.filter((media) => media.productId === id)
       );
     });
-
-    this.bundleByProductId = new DataLoader<string, Bundle | null>(
-      async (productIds) => {
-        const results = await repository.product.getBundlesByProductIds(productIds);
-        return productIds.map(
-          (id) => results.find((bundle) => bundle.productId === id) ?? null
-        );
-      }
-    );
 
     this.productPriceRange = new DataLoader<string, ProductPriceRange | null>(
       async (productIds) => {

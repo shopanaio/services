@@ -197,7 +197,6 @@ export type ProductSnapshotField =
   | "id"
   | "storeId"
   | "revision"
-  | "kind"
   | "status"
   | "publishedAt"
   | "createdAt"
@@ -405,8 +404,6 @@ export type CatalogProductOptionValueRefField = "id" | "handle";
 
 export type CatalogProductSnapshotVersion = "2026-07-13";
 
-export type CatalogProductKind = "BASE" | "BUNDLE";
-
 export type CatalogProductStatus = "draft" | "published";
 
 export interface ProductSnapshot {
@@ -418,8 +415,6 @@ export interface ProductSnapshot {
   storeId: string;
   /** Source: catalog.product.revision. */
   revision: number;
-  /** Source: catalog.product.kind. */
-  kind: CatalogProductKind;
   /** Source: derived from catalog.product.published_at. */
   status: CatalogProductStatus;
   /** Source: catalog.product.published_at. */

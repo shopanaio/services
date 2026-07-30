@@ -2,7 +2,6 @@ import {
   CurrencyCode,
   FileProvider,
   OptionDisplayType,
-  ProductKind,
   ProductSortBy,
   SortDirection,
   SwatchType,
@@ -336,7 +335,6 @@ export const createMockApiVariant = (params: {
   handle: params.handle,
   title: params.title ?? null,
   isDefault: params.isDefault ?? false,
-  kind: ProductKind.Base,
   price: params.price ?? null,
   weight: params.weight ?? null,
   dimensions: params.dimensions ?? null,
@@ -526,7 +524,6 @@ export const createMockApiProduct = (params: {
   const product: ApiProduct = {
     __typename: "Product",
     id: params.id,
-    kind: ProductKind.Base,
     title: params.title,
     handle: params.handle,
     isPublished: params.isPublished,

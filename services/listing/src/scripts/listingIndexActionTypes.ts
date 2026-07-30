@@ -1,7 +1,7 @@
 import type { Listing } from "@shopana/broker-types";
 import type { ListingIndexActionType } from "../workflows/listingIndexWorkflowHelpers.js";
 import type {
-  ProductKind,
+  ProductEntityType,
   ProductListingIndexUpsertInput,
   ProductListingPriceRowInput,
   ProductSortRowInput,
@@ -83,7 +83,7 @@ export type ListingIndexItemKey = {
 };
 
 export type ListingSyncWriteModel = {
-  version: 3;
+  version: 4;
   actionType: Extract<ListingIndexActionType, "syncSellableItem">;
   writeModelJson: ListingSyncWriteModelJson;
   writeModelHash: string;
@@ -91,7 +91,7 @@ export type ListingSyncWriteModel = {
 
 export type ListingSyncWriteModelJson = {
   product: Omit<ProductListingIndexUpsertInput, "productDocId">;
-  productKind: ProductKind;
+  productEntityType: ProductEntityType;
   productPrices: readonly ProductListingPriceRowInput[];
   productSortRows: readonly Omit<ProductSortRowInput, "productDocId">[];
   /** Null preserves existing rows; an explicit payload replaces all product-bound rows. */

@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { catalogSchema, localeCodeEnum } from "./schema";
-import { product, productKindEnum } from "./products";
+import { product } from "./products";
 
 export const productTitleBm25SearchIndex = catalogSchema.table(
   "product_title_bm25_search_index",
@@ -20,7 +20,6 @@ export const productTitleBm25SearchIndex = catalogSchema.table(
     storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     locale: localeCodeEnum("locale").notNull(),
-    kind: productKindEnum("kind").notNull(),
     status: varchar("status", { length: 16 }).notNull(),
     publishedAt: timestamp("published_at", {
       withTimezone: true,
@@ -74,7 +73,6 @@ export const productTitleBm25SearchIndex = catalogSchema.table(
         table.storeId,
         table.locale,
         table.status,
-        table.kind,
         table.productId,
         table.title,
         table.publishedAt,

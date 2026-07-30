@@ -4,7 +4,7 @@ import {
   type ListingVariantTerm,
 } from "../../listing/variantTerms/index.js";
 
-export type ProductKind = "BASE" | "BUNDLE";
+export type ProductEntityType = "product" | "bundle";
 export type ListingStatus = "published" | "draft";
 export type PostingEntityType = "product" | "variant";
 export type ProductPostingField = "category" | "vendor" | "facet";
@@ -26,7 +26,7 @@ export type PostingKeyInput =
 export interface ProductListingIndexUpsertInput {
   productId: string;
   productDocId: number;
-  kind: ProductKind;
+  entityType: ProductEntityType;
   vendorId?: string | null;
   handle?: string | null;
   status: ListingStatus;
@@ -40,7 +40,7 @@ export interface ProductListingIndexUpsertInput {
 export interface ProductListingIndexBootstrapInput {
   productId: string;
   productDocId: number;
-  kind?: ProductKind;
+  entityType?: ProductEntityType;
   productCreatedAt?: string;
   productUpdatedAt?: string;
 }
@@ -194,9 +194,9 @@ export function assertNonNegativeInteger(value: number, label: string): void {
   }
 }
 
-export function assertProductKind(value: ProductKind): void {
-  if (value !== "BASE" && value !== "BUNDLE") {
-    throw new Error(`Unsupported product kind: ${value}`);
+export function assertProductEntityType(value: ProductEntityType): void {
+  if (value !== "product" && value !== "bundle") {
+    throw new Error(`Unsupported product entity type: ${value}`);
   }
 }
 

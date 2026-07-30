@@ -10,7 +10,7 @@ import {
   assertListingStatus,
   assertNonNegativeInteger,
   assertPositiveDocId,
-  assertProductKind,
+  assertProductEntityType,
   assertUniqueBy,
   chunkArray,
   nowIso,
@@ -168,15 +168,15 @@ export class ProductListingIndexRepository extends BaseRepository {
     const now = nowIso();
     const insertRows = rows.map((row) => {
       assertPositiveDocId(row.productDocId, "productDocId");
-      if (row.kind !== undefined) {
-        assertProductKind(row.kind);
+      if (row.entityType !== undefined) {
+        assertProductEntityType(row.entityType);
       }
 
       return {
         storeId: this.storeId,
         productId: row.productId,
         productDocId: row.productDocId,
-        kind: row.kind ?? "BASE",
+        entityType: row.entityType ?? "product",
         vendorId: null,
         handle: null,
         status: "draft",
@@ -234,7 +234,7 @@ export class ProductListingIndexRepository extends BaseRepository {
           target: productListingIndex.productId,
           setWhere: eq(productListingIndex.storeId, this.storeId),
           set: {
-            kind: sql`excluded.kind`,
+            entityType: sql`excluded.entity_type`,
             vendorId: sql`excluded.vendor_id`,
             handle: sql`excluded.handle`,
             status: sql`excluded.status`,
@@ -343,7 +343,7 @@ export class ProductListingIndexRepository extends BaseRepository {
     now: string
   ): NewProductListingIndex {
     assertPositiveDocId(row.productDocId, "productDocId");
-    assertProductKind(row.kind);
+    assertProductEntityType(row.entityType);
     assertListingStatus(row.status);
     assertNonNegativeInteger(row.productRevision, "productRevision");
     assertNonNegativeInteger(row.totalStock, "totalStock");
@@ -352,7 +352,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       storeId: this.storeId,
       productId: row.productId,
       productDocId: row.productDocId,
-      kind: row.kind,
+      entityType: row.entityType,
       vendorId: row.vendorId ?? null,
       handle: row.handle ?? null,
       status: row.status,
@@ -373,9 +373,9 @@ export class ProductListingIndexRepository extends BaseRepository {
       updatedAt: nowIso(),
     };
 
-    if (patch.kind !== undefined) {
-      assertProductKind(patch.kind);
-      updateData.kind = patch.kind;
+    if (patch.entityType !== undefined) {
+      assertProductEntityType(patch.entityType);
+      updateData.entityType = patch.entityType;
     }
     if (patch.vendorId !== undefined) updateData.vendorId = patch.vendorId;
     if (patch.handle !== undefined) updateData.handle = patch.handle;

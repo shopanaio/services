@@ -10,5 +10,4 @@ export interface ProductDeleteResult extends ProductResultBase {
   categoryIds?: string[];
   revision?: number;
   deletedAt?: string;
-  entityType?: "product" | "bundle";
 }

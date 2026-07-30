@@ -16,7 +16,7 @@
 - event emission helpers;
 - payload shaping для GraphQL;
 - product bulk update mapping;
-- domain mutations для vendor, product, variant, options, features, category, facet, collection, tag, bundle.
+- domain mutations для vendor, product, variant, options, features, category, facet, collection и tag.
 
 Это расходится с локальными архитектурными правилами:
 
@@ -32,7 +32,7 @@
 2. Разнести domain mutation methods по отдельным файлам без изменения публичного GraphQL contract.
 3. Вынести повторяющийся mapping global IDs, rich text, operation inputs и userErrors в переиспользуемые boundary helpers.
 4. Сделать single product update и bulk product update использующими один mapper для `ProductUpdateOperation`.
-5. Привести tags/facets/collections/bundles к тем же resolver conventions, что products/categories: generated types, Zod schemas где доступны, единый payload shape.
+5. Привести tags/facets/collections к тем же resolver conventions, что products/categories: generated types, Zod schemas где доступны, единый payload shape.
 6. Сохранить существующие scripts/workflows как business/orchestration layer. Рефакторинг resolver не должен переносить business rules обратно в resolver.
 
 ## Не цели
@@ -67,7 +67,7 @@ Resolver напрямую строит workflow input, workflow IDs, event paylo
 
 ### Неравномерная validation convention
 
-Часть mutations помечена `@ZodResolver(...)`, часть принимает inline object types и валидируется вручную или не валидируется через generated schemas. Особенно заметны tag/facet/collection/bundle sections.
+Часть mutations помечена `@ZodResolver(...)`, часть принимает inline object types и валидируется вручную или не валидируется через generated schemas. Особенно заметны tag/facet/collection sections.
 
 ### Повторение global ID decoding
 
@@ -92,7 +92,6 @@ mutation/
     category-create.mapper.ts
     category-update.mapper.ts
     collection.mapper.ts
-    bundle.mapper.ts
   mutations/
     VendorMutationResolver.ts
     ProductMutationResolver.ts
@@ -104,7 +103,6 @@ mutation/
     TagMutationResolver.ts
     FacetMutationResolver.ts
     CollectionMutationResolver.ts
-    BundleMutationResolver.ts
   events/
     product-events.ts
 ```
@@ -314,9 +312,9 @@ Event emission для affected products вынести в `events/product-events
 
 Это не меняет API, но выравнивает validation convention.
 
-### `FacetMutationResolver.ts`, `CollectionMutationResolver.ts`, `BundleMutationResolver.ts`
+### `FacetMutationResolver.ts`, `CollectionMutationResolver.ts`
 
-Переносить после product/category/tag, потому что там больше inline object types и target ID decoding. Для bundle target decoding желательно сначала добавить `decodeTargetIdByType`.
+Переносить после product/category/tag, потому что там больше inline object types и target ID decoding.
 
 ## Пошаговый план
 
@@ -388,13 +386,11 @@ Acceptance:
 - imports в `MutationResolver.ts` резко сокращены;
 - domain files импортируют только свои scripts/generated types/schemas.
 
-### Phase 5. Extract tag/facet/collection/bundle resolvers
+### Phase 5. Extract tag/facet/collection resolvers
 
 1. Создать `TagMutationResolver.ts` и добавить `@ZodResolver` для tag inputs.
 2. Создать `FacetMutationResolver.ts`.
 3. Создать `CollectionMutationResolver.ts`.
-4. Создать `BundleMutationResolver.ts`.
-5. Вынести bundle target ID mapping в helper.
 
 Acceptance:
 
@@ -416,7 +412,7 @@ Acceptance:
 
 1. `MutationResolver.ts` должен быть меньше 150 строк.
 2. `CatalogMutationResolver.ts` должен быть facade-only, без DTO mapping.
-3. Domain resolver files должны быть меньше 400-600 строк каждый. Если bundle остается больше, разделить bundle groups/items/templates/rules/actions на отдельные files.
+3. Domain resolver files должны быть меньше 400-600 строк каждый.
 
 ## Риски и контроль
 

@@ -11,7 +11,6 @@ SELECT
   product.updated_at,
   product.deleted_at,
   product.revision,
-  product.kind,
   product_translation.locale,
   product_translation.name,
   product_price_range.currency,
@@ -39,5 +38,4 @@ LEFT JOIN "catalog"."category_translation" category_translation
  AND category_translation.locale = product_translation.locale
 LEFT JOIN "catalog"."vendor" vendor
   ON vendor.store_id = product.store_id
- AND vendor.id = product.vendor_id
-WHERE product.kind = 'BASE';
+ AND vendor.id = product.vendor_id;

@@ -40,10 +40,6 @@ export class ProductResolver extends CatalogType<string, Product> {
     return this.encodeId(this.$props, GlobalIdEntity.Product);
   }
 
-  async kind() {
-    return this.$get("kind");
-  }
-
   async handle() {
     return this.$get("handle");
   }

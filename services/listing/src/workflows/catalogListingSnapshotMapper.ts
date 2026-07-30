@@ -6,11 +6,9 @@ export function mapCatalogProductToListingSnapshot(input: {
   locales: readonly string[];
 }): Listing.ListingSellableItemSnapshot {
   const product = input.product;
-  const entityType: Listing.ListingSellableItemEntityType =
-    product.kind === "BUNDLE" ? "bundle" : "product";
 
   return {
-    entityType,
+    entityType: "product",
     id: product.id,
     productRevision: product.revision,
     sourceUpdatedAt: product.updatedAt,

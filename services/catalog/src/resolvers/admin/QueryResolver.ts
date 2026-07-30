@@ -7,16 +7,11 @@ import { GraphQLError } from "graphql";
 import type { CurrencyCode } from "@shopana/shared-references";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
-import { BundleResolver } from "./BundleResolver.js";
 
 import {
   ProductConnectionResolver,
   type ProductQueryProductsArgs,
 } from "./ProductConnectionResolver.js";
-import {
-  BundleConnectionResolver,
-  type BundleQueryBundlesArgs,
-} from "./BundleConnectionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
 import { CategoryResolver } from "./CategoryResolver.js";
 import { VendorResolver } from "./VendorResolver.js";
@@ -170,9 +165,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!productId) return null;
     const product = await this.$ctx.loaders.product.load(productId);
     if (!product) return null;
-    return product.kind === "BUNDLE"
-      ? new BundleResolver(productId, this.$ctx)
-      : new ProductResolver(productId, this.$ctx);
+    return new ProductResolver(productId, this.$ctx);
   }
 
   /**
@@ -203,32 +196,6 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    */
   products(args: ProductQueryProductsArgs) {
     return new ProductConnectionResolver(
-      {
-        ...args,
-        meta: {
-          categoriesScope: normalizeProductCategoriesScopeInput(
-            args.meta?.categoriesScope
-          ),
-        },
-      },
-      this.$ctx
-    );
-  }
-
-  // ---- Bundle Queries ----
-
-  async bundle(args: { id: string }) {
-    const productId =
-      this.safeDecodeId(args.id, GlobalIdEntity.Product) ?? args.id;
-    const product = await this.$ctx.loaders.product.load(productId);
-    if (!product || product.kind !== "BUNDLE") {
-      return null;
-    }
-    return new BundleResolver(productId, this.$ctx);
-  }
-
-  bundles(args: BundleQueryBundlesArgs) {
-    return new BundleConnectionResolver(
       {
         ...args,
         meta: {

@@ -6,7 +6,6 @@ import type {
   ListingSyncWriteModel,
 } from "./listingIndexActionTypes.js";
 import type {
-  ProductKind,
   ProductSortRowInput,
 } from "../repositories/listing/listingRepositoryTypes.js";
 import {
@@ -28,8 +27,6 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
     action: ListingPreparedSyncAction;
   }): Promise<ListingSyncWriteModel> {
     const item = input.action.params.item;
-    const productKind: ProductKind =
-      item.entityType === "bundle" ? "BUNDLE" : "BASE";
     const listingStatus: "published" | "draft" =
       item.status === "published" ? "published" : "draft";
     const indexableVariants = item.variants.filter(isIndexableVariant);
@@ -57,7 +54,7 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
     const writeModelJson: ListingSyncWriteModelJson = {
       product: {
         productId: item.id,
-        kind: productKind,
+        entityType: item.entityType,
         vendorId: item.vendorId ?? null,
         handle: item.content.translations[item.content.defaultLocale]?.title ?? item.id,
         status: listingStatus,
@@ -67,7 +64,7 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
         productRevision: item.productRevision,
         totalStock,
       },
-      productKind,
+      productEntityType: item.entityType,
       productPrices: item.priceRanges
         .map((price) => ({
           productId: item.id,
@@ -122,11 +119,11 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
     };
 
     return {
-      version: 3,
+      version: 4,
       actionType: "syncSellableItem",
       writeModelJson,
       writeModelHash: hashContent({
-        v: 3,
+        v: 4,
         actionType: "syncSellableItem",
         writeModelJson,
       }),

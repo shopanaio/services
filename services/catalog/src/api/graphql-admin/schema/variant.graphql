@@ -9,9 +9,6 @@ type Variant implements Node @key(fields: "id") {
   """The globally unique ID of the variant."""
   id: ID!
 
-  """Variant discriminator. Must match parent product kind."""
-  kind: ProductKind!
-
   """The product this variant belongs to."""
   product: Product!
 

@@ -262,7 +262,7 @@ type CatalogQuery @join__type(graph: CATALOG_ADMIN)  {
     meta: ProductProductsMetaInput
   ): ProductConnection!
   """
-  Get a bundle by Product global ID. The product must have kind = BUNDLE.
+  Get a bundle by Product global ID.
   """
   bundle(id: ID!) : Bundle
   """
@@ -868,10 +868,6 @@ type Bundle implements Node & Listing @join__type(graph: CATALOG_ADMIN, key: "id
   The Product global ID of the bundle sellable item.
   """
   id: ID!
-  """
-  Product discriminator. Always BUNDLE for this type.
-  """
-  kind: ProductKind! @join__field(graph: CATALOG_ADMIN) 
   """
   The URL-friendly handle for the bundle.
   """
@@ -2587,10 +2583,6 @@ type Product implements Node & Listing @join__type(graph: CATALOG_ADMIN, key: "i
   """
   id: ID!
   """
-  Product discriminator.
-  """
-  kind: ProductKind! @join__field(graph: CATALOG_ADMIN) 
-  """
   The URL-friendly handle for the product.
   """
   handle: String! @join__field(graph: CATALOG_ADMIN) 
@@ -3202,10 +3194,6 @@ type Variant implements Node @join__type(graph: CATALOG_ADMIN, key: "id")  @join
   The globally unique ID of the variant.
   """
   id: ID!
-  """
-  Variant discriminator. Must match parent product kind.
-  """
-  kind: ProductKind!
   """
   The product this variant belongs to.
   """
@@ -7208,11 +7196,6 @@ enum BundleDependencyActionType @join__type(graph: CATALOG_ADMIN)  {
   HIDE @join__enumValue(graph: CATALOG_ADMIN) 
   SET_REQUIRED @join__enumValue(graph: CATALOG_ADMIN) 
   ADJUST_PRICE @join__enumValue(graph: CATALOG_ADMIN) 
-}
-
-enum ProductKind @join__type(graph: CATALOG_ADMIN)  {
-  BASE @join__enumValue(graph: CATALOG_ADMIN) 
-  BUNDLE @join__enumValue(graph: CATALOG_ADMIN) 
 }
 
 enum ProductSortBy @join__type(graph: CATALOG_ADMIN)  {

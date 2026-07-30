@@ -100,7 +100,6 @@ export type {
   CatalogProductFeatureValueRef,
   CatalogProductFeatureValueRefField,
   CatalogProductFeatureValueRefSelection,
-  CatalogProductKind,
   CatalogProductLocalizedContentSnapshot,
   CatalogProductLocalizedContentSnapshotField,
   CatalogProductLocalizedContentSnapshotPopulate,

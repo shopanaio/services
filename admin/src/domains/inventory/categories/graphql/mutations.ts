@@ -81,7 +81,6 @@ export const PRODUCT_CATEGORY_UPDATE_MUTATION = gql`
       ) {
         product {
           id
-          kind
           title
           handle
           isPublished

@@ -66,7 +66,6 @@ Dynamic Content Engine должен встроиться в этот подхо�
 
 - SEO title/description;
 - category/collection content;
-- bundle content;
 - email/storefront snippets.
 
 ## Token Registry

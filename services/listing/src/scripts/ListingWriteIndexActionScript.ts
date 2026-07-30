@@ -108,7 +108,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
       {
         productId,
         productDocId,
-        kind: writeModel.productKind,
+        entityType: writeModel.productEntityType,
         productCreatedAt: writeModel.product.productCreatedAt,
         productUpdatedAt: writeModel.product.productUpdatedAt,
       },

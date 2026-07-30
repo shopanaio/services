@@ -182,7 +182,7 @@ CREATE TABLE listing.product_listing_index (
   product_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
 
-  kind                   varchar(16) NOT NULL,
+  entity_type            varchar(16) NOT NULL,
   vendor_id              uuid,
   handle                 varchar(255),
   status                 varchar(16) NOT NULL,
@@ -204,8 +204,8 @@ CREATE TABLE listing.product_listing_index (
     UNIQUE (store_id, product_id),
   CONSTRAINT product_listing_store_doc_product_unique
     UNIQUE (store_id, product_doc_id, product_id),
-  CONSTRAINT chk_product_listing_kind
-    CHECK (kind IN ('BASE', 'BUNDLE')),
+  CONSTRAINT chk_product_listing_entity_type
+    CHECK (entity_type IN ('product', 'bundle')),
   CONSTRAINT chk_product_listing_status
     CHECK (status IN ('published', 'draft')),
   CONSTRAINT chk_product_listing_doc_positive
@@ -222,7 +222,7 @@ CREATE TABLE listing.product_listing_index (
 | `store_id` | Tenant/store boundary. Используется в index prefixes и во всех listing queries. Root identity остается `product_id`, а composite child FKs используют `store_id` только для consistency checks. |
 | `product_id` | External canonical product id from upstream product source. Listing stores it as an opaque id and does not enforce an FK to upstream schema. |
 | `product_doc_id` | Stable integer id товара внутри project для roaring product bitmaps. Выделяется один раз и не переиспользуется после удаления product. |
-| `kind` | Тип товара from indexing payload, currently `BASE` or `BUNDLE`; нужен для rule collections и возможных storefront predicates по типу. |
+| `entity_type` | Тип sellable entity из indexing payload: `product` или `bundle`. |
 | `vendor_id` | Vendor product-level filter. Это явный фильтр, не generic facet. |
 | `handle` | Storefront handle published product. Используется для read model diagnostics и возможной hydration опоры, но не заменяет canonical product data. |
 | `status` | Listing visibility state: `published` или `draft`. Published означает `published_at IS NOT NULL` и product не deleted. Deleted products должны удаляться из index. |
@@ -971,7 +971,6 @@ CREATE TABLE listing.product_title_bm25_search_index (
   store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   locale                 varchar(8) NOT NULL,
-  kind                   varchar(16) NOT NULL,
   status                 varchar(16) NOT NULL,
   published_at           timestamptz,
   product_created_at     timestamptz NOT NULL,
@@ -989,8 +988,6 @@ CREATE TABLE listing.product_title_bm25_search_index (
     FOREIGN KEY (product_id)
     REFERENCES listing.product_listing_index(product_id)
     ON DELETE CASCADE,
-  CONSTRAINT chk_product_title_bm25_kind
-    CHECK (kind IN ('BASE', 'BUNDLE')),
   CONSTRAINT chk_product_title_bm25_status
     CHECK (status IN ('published', 'draft'))
 );

@@ -44,9 +44,6 @@ interface Listing implements Node {
   """The Product global ID of the catalog listing item."""
   id: ID!
 
-  """Product discriminator."""
-  kind: ProductKind!
-
   """Whether the listing item is currently published."""
   isPublished: Boolean!
 

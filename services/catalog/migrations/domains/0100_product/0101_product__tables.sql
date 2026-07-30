@@ -10,7 +10,6 @@ CREATE TABLE "catalog"."product" (
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
   "deleted_at" timestamp with time zone,
   "revision" integer NOT NULL DEFAULT 0,
-  "kind" "catalog"."product_kind" NOT NULL DEFAULT 'BASE',
   CONSTRAINT "product_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "product_published_requires_handle"
     CHECK ("published_at" IS NULL OR "handle" IS NOT NULL),
@@ -46,7 +45,6 @@ CREATE INDEX "idx_product_revision"
 CREATE TABLE "catalog"."variant" (
   "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
-  "kind" "catalog"."product_kind" NOT NULL DEFAULT 'BASE',
   "id" uuid NOT NULL,
   "is_default" boolean NOT NULL DEFAULT false,
   "handle" varchar(255) NOT NULL,

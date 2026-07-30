@@ -1865,8 +1865,6 @@ export type ApiBundle = ApiListing & ApiNode & {
   id: Scalars['ID']['output'];
   /** Whether the bundle is currently published. */
   isPublished: Scalars['Boolean']['output'];
-  /** Product discriminator. Always BUNDLE for this type. */
-  kind: ProductKind;
   /** Media registered on this bundle. */
   media: Array<ApiProductMediaItem>;
   /** The options available for this bundle. */
@@ -2915,7 +2913,7 @@ export type ApiCatalogMutationVendorCreateArgs = {
 
 export type ApiCatalogQuery = {
   __typename?: 'CatalogQuery';
-  /** Get a bundle by Product global ID. The product must have kind = BUNDLE. */
+  /** Get a bundle by Product global ID. */
   bundle?: Maybe<ApiBundle>;
   /** Get bundles with Relay-style pagination. */
   bundles: ApiBundleConnection;
@@ -11509,8 +11507,6 @@ export type ApiProduct = ApiListing & ApiNode & {
   id: Scalars['ID']['output'];
   /** Whether the product is currently published. */
   isPublished: Scalars['Boolean']['output'];
-  /** Product discriminator. */
-  kind: ProductKind;
   /** Media registered on this product. */
   media: Array<ApiProductMediaItem>;
   /** The options available for this product. */
@@ -11952,11 +11948,6 @@ export type ApiProductInventoryWidget = {
   quantities: ApiInventoryQuantities;
   skuStatus: ApiInventorySkuStatus;
 };
-
-export enum ProductKind {
-  Base = 'BASE',
-  Bundle = 'BUNDLE'
-}
 
 /** Input for product media. */
 export type ApiProductMediaInput = {
@@ -17289,8 +17280,6 @@ export type ApiVariant = ApiNode & {
   inventoryItem?: Maybe<ApiInventoryItem>;
   /** Whether this is the default variant for the product. */
   isDefault: Scalars['Boolean']['output'];
-  /** Variant discriminator. Must match parent product kind. */
-  kind: ProductKind;
   /** Media attached to this variant (images, videos). */
   media: Array<ApiVariantMediaItem>;
   /** Current price for this variant. */

@@ -11,7 +11,6 @@ SELECT
   product.updated_at,
   product.deleted_at,
   product.revision,
-  product.kind,
   product_translation.locale,
   product_translation.name,
   product_price_range.currency,
@@ -41,7 +40,6 @@ LEFT JOIN "catalog"."category_translation" category_translation
 LEFT JOIN "catalog"."vendor" vendor
   ON vendor.store_id = product.store_id
  AND vendor.id = product.vendor_id
-LEFT JOIN "app_shopana_bundles"."bundle" bundle
+INNER JOIN "app_shopana_bundles"."bundle" bundle
   ON bundle.store_id = product.store_id
- AND bundle.product_id = product.id
-WHERE product.kind = 'BUNDLE';
+ AND bundle.product_id = product.id;

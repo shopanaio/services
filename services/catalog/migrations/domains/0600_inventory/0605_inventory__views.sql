@@ -5,7 +5,6 @@ SELECT
   variant.store_id,
   warehouse.id AS warehouse_scope_id,
   variant.product_id,
-  variant.kind,
   translation.locale,
   translation.name AS product_name,
   variant.id,
@@ -35,8 +34,7 @@ LEFT JOIN "catalog"."warehouse_stock" stock
   ON stock.store_id = variant.store_id
  AND stock.variant_id = variant.id
  AND stock.warehouse_id = warehouse.id
-WHERE stock.id IS NULL
-  AND variant.kind = 'BASE';
+WHERE stock.id IS NULL;
 
 CREATE VIEW "catalog"."inventory_item_list_all_stock_view" AS
 SELECT
@@ -44,7 +42,6 @@ SELECT
   item.id,
   item.variant_id,
   product.id AS product_id,
-  variant.kind,
   product.handle AS product_handle,
   translation.locale,
   translation.name AS product_name,
@@ -94,7 +91,6 @@ SELECT
   item.id,
   item.variant_id,
   product.id AS product_id,
-  variant.kind,
   product.handle AS product_handle,
   translation.locale,
   translation.name AS product_name,

@@ -12,7 +12,6 @@ import { FeatureResolver } from "../../../resolvers/admin/FeatureResolver.js";
 import { FeatureValueResolver } from "../../../resolvers/admin/FeatureValueResolver.js";
 import { OptionResolver } from "../../../resolvers/admin/OptionResolver.js";
 import { OptionValueResolver } from "../../../resolvers/admin/OptionValueResolver.js";
-import { BundleResolver } from "../../../resolvers/admin/BundleResolver.js";
 import {
   ProductReferenceResolver,
   ProductResolver,
@@ -24,23 +23,6 @@ import { InventoryItemResolver } from "../../../resolvers/admin/InventoryItemRes
 import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver.js";
 import { StockResolver } from "../../../resolvers/admin/StockResolver.js";
 
-async function resolveProductBackedType(
-  obj: unknown,
-): Promise<"Bundle" | "Product" | null> {
-  if (obj instanceof BundleResolver) return "Bundle";
-  if (obj instanceof ProductResolver) {
-    const product = await obj.$ctx.loaders.product.load(obj.$props);
-    if (!product) return null;
-    return product.kind === "BUNDLE" ? "Bundle" : "Product";
-  }
-
-  const record = obj as Record<string, unknown>;
-  if (record.kind === "BUNDLE") return "Bundle";
-  if (record.kind === "BASE") return "Product";
-
-  return null;
-}
-
 /**
  * Type resolvers for interfaces and scalars.
  */
@@ -49,8 +31,7 @@ export const typeResolvers: Partial<Resolvers> = {
   Node: {
     __resolveType: async (obj: unknown) => {
       const record = obj as Record<string, unknown>;
-      const productBackedType = await resolveProductBackedType(obj);
-      if (productBackedType) return productBackedType;
+      if (obj instanceof ProductResolver) return "Product";
       if (obj instanceof StockResolver) return "WarehouseStock";
       if (obj instanceof WarehouseResolver) return "Warehouse";
       if (obj instanceof InventoryItemResolver) return "InventoryItem";
@@ -93,21 +74,6 @@ export const typeResolvers: Partial<Resolvers> = {
         GlobalIdEntity.Product,
       );
       return ProductReferenceResolver.load(productId, fieldInfo, ctx);
-    },
-  },
-
-  Bundle: {
-    __resolveReference: async (
-      reference: { __typename: "Bundle"; id: string },
-      ctx: ServiceContext,
-      info: GraphQLResolveInfo,
-    ) => {
-      const fieldInfo = parseGraphqlInfo(info);
-      const productId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Product,
-      );
-      return BundleResolver.load(productId, fieldInfo, ctx);
     },
   },
 

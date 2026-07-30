@@ -9,23 +9,20 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 import type { CurrencyCode } from "@shopana/shared-references";
 import {
-	  product,
-	  bundle,
-	  bundleListView,
-	  productPriceRange,
-	  productCategory,
-	  productListView,
+  product,
+  productPriceRange,
+  productCategory,
+  productListView,
   productTranslation,
   productOption,
   productFeature,
   type Product,
-  type Bundle,
   type NewProduct,
   type ProductTranslation,
-	  type ProductOption,
-	  type ProductFeature,
-	  type ProductPriceRange,
-	} from "../models/index.js";
+  type ProductOption,
+  type ProductFeature,
+  type ProductPriceRange,
+} from "../models/index.js";
 import {
   decodeCategoryGlobalId,
   decodeProductGlobalId,
@@ -48,33 +45,13 @@ export const productRelayQuery = createRelayQuery(
   { name: "product", tieBreaker: "id" }
 );
 
-export const bundleRelayQuery = createRelayQuery(
-  createQuery(bundleListView)
-    .include(["id"])
-    .mapWhereFields({
-      id: decodeProductGlobalId,
-      vendorId: decodeVendorGlobalId,
-      primaryCategoryId: decodeCategoryGlobalId,
-    })
-    .maxLimit(100)
-    .defaultLimit(20),
-  { name: "bundle", tieBreaker: "id" }
-);
-
 export type ProductQueryInput = InferExecuteOptions<typeof productQuery>;
 export type ProductRelayInput = InferRelayInput<typeof productRelayQuery>;
-export type BundleRelayInput = InferRelayInput<typeof bundleRelayQuery>;
 export type ProductConnectionMetaInput = {
   categoriesScope?: NormalizedProductCategoriesScope;
 };
 export type ProductConnectionInput = ProductRelayInput & {
   meta?: ProductConnectionMetaInput;
-};
-export type BundleConnectionMetaInput = {
-  categoriesScope?: NormalizedProductCategoriesScope;
-};
-export type BundleConnectionInput = BundleRelayInput & {
-  meta?: BundleConnectionMetaInput;
 };
 
 const EMPTY_PRODUCT_WHERE: ProductRelayInput["where"] = {
@@ -217,7 +194,6 @@ export class ProductRepository extends BaseRepository {
     id: string;
     revision: number;
     deletedAt: string | null;
-    kind: Product["kind"];
   } | null> {
     const now = new Date().toISOString();
     const result = await this.connection
@@ -238,7 +214,6 @@ export class ProductRepository extends BaseRepository {
         id: product.id,
         revision: product.revision,
         deletedAt: product.deletedAt,
-        kind: product.kind,
       });
 
     return result[0] ?? null;
@@ -353,52 +328,6 @@ export class ProductRepository extends BaseRepository {
     };
   }
 
-  async getBundleConnection(args: BundleConnectionInput): Promise<ProductConnectionResult> {
-    const { where, orderBy, meta, ...paginationArgs } = args;
-    const categoriesScopeWhere = await this.buildCategoriesScopeWhere(
-      meta?.categoriesScope
-    );
-
-    const mergedWhere: BundleRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        { deletedAt: { _is: null } },
-        { locale: { _eq: this.locale } },
-        {
-          _or: [
-            { currency: { _eq: this.currency } },
-            { currency: { _is: null } },
-          ],
-        },
-        ...(where ? [where] : []),
-        ...(categoriesScopeWhere ? [categoriesScopeWhere] : []),
-      ],
-    };
-
-    const executeInput: BundleRelayInput = {
-      ...paginationArgs,
-      where: mergedWhere,
-      orderBy: orderBy ?? [
-        { field: "createdAt", direction: "desc" },
-        { field: "id", direction: "desc" },
-      ],
-    };
-
-    const [result, totalCount] = await Promise.all([
-      bundleRelayQuery.execute(this.connection, executeInput),
-      bundleRelayQuery.count(this.connection, { where: mergedWhere }),
-    ]);
-
-    return {
-      edges: result.edges.map((edge) => ({
-        cursor: edge.cursor,
-        nodeId: edge.node.id,
-      })),
-      pageInfo: result.pageInfo,
-      totalCount,
-    };
-  }
-
   private async buildCategoriesScopeWhere(
     scope: NormalizedProductCategoriesScope | undefined,
   ): Promise<ProductRelayInput["where"] | undefined> {
@@ -483,19 +412,6 @@ export class ProductRepository extends BaseRepository {
         and(
           eq(product.storeId, this.storeId),
           inArray(product.id, [...productIds])
-        )
-      );
-  }
-
-  async getBundlesByProductIds(productIds: readonly string[]): Promise<Bundle[]> {
-    if (productIds.length === 0) return [];
-    return this.connection
-      .select()
-      .from(bundle)
-      .where(
-        and(
-          eq(bundle.storeId, this.storeId),
-          inArray(bundle.productId, [...productIds])
         )
       );
   }

@@ -126,20 +126,12 @@ import type {
   ProductBulkUpdateInput,
   ProductUpdateInput,
   ProductDeleteInput,
-  BundleCreateInput,
-  BundleConfigurationCreateInput,
-  BundleConfigurationUpdateInput,
-  BundleConfigurationDeleteInput,
-  BundleGroupsSyncInput,
-  BundlePricingTemplatesSyncInput,
-  BundleDependencyRulesSyncInput,
   CatalogMutationCategoryCreateArgs,
   CatalogMutationCategoryDeleteArgs,
   CatalogMutationCategoryMoveArgs,
   CatalogMutationCategoryRebalanceArgs,
   CatalogMutationCategoryUpdateArgs,
   CatalogMutationVendorCreateArgs,
-  CatalogMutationBundleUpdateArgs,
   CatalogMutationProductUpdateArgs,
   WarehouseCreateInput,
   WarehouseUpdateInput,
@@ -154,13 +146,6 @@ import {
   VendorCreateInputSchema,
   ProductCreateInputSchema,
   ProductDeleteInputSchema,
-  BundleCreateInputSchema,
-  BundleConfigurationCreateInputSchema,
-  BundleConfigurationUpdateInputSchema,
-  BundleConfigurationDeleteInputSchema,
-  BundleGroupsSyncInputSchema,
-  BundlePricingTemplatesSyncInputSchema,
-  BundleDependencyRulesSyncInputSchema,
   WarehouseCreateInputSchema,
   WarehouseUpdateInputSchema,
   WarehouseDeleteInputSchema,
@@ -576,7 +561,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     productId: string;
     categoryIds: readonly string[] | undefined;
     deletedAt?: string;
-    entityType?: "product" | "bundle";
   }): Promise<void> {
     await this.$ctx.kernel.getServices().broker.runWorkflow(
       "events.emit",
@@ -587,7 +571,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           storeId: this.$ctx.store.id,
           categoryIds: [...new Set(args.categoryIds ?? [])],
           deletedAt: args.deletedAt,
-          entityType: args.entityType,
+          entityType: "product",
         },
         context: {
           organizationId: this.$ctx.store.organizationId,
@@ -721,7 +705,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         productId: result.deletedProductId,
         categoryIds: result.categoryIds,
         deletedAt: result.deletedAt,
-        entityType: result.entityType,
       });
     }
 
@@ -821,85 +804,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         errors: r.errors,
       })),
       userErrors: result.userErrors,
-    };
-  }
-
-  // ---- Bundle Mutation Stubs ----
-
-  @ZodResolver(BundleCreateInputSchema())
-  async bundleCreate(_args: { input: BundleCreateInput }) {
-    return {
-      bundle: null,
-      userErrors: [],
-    };
-  }
-
-  async bundleUpdate(_args: CatalogMutationBundleUpdateArgs) {
-    return {
-      bundle: null,
-      userErrors: [],
-    };
-  }
-
-  @ZodResolver(BundleConfigurationCreateInputSchema())
-  async bundleConfigurationCreate(_args: {
-    input: BundleConfigurationCreateInput;
-  }) {
-    return {
-      configuration: null,
-      userErrors: [],
-    };
-  }
-
-  @ZodResolver(BundleConfigurationUpdateInputSchema())
-  async bundleConfigurationUpdate(_args: {
-    input: BundleConfigurationUpdateInput;
-  }) {
-    return {
-      configuration: null,
-      userErrors: [],
-    };
-  }
-
-  @ZodResolver(BundleConfigurationDeleteInputSchema())
-  async bundleConfigurationDelete(_args: {
-    input: BundleConfigurationDeleteInput;
-  }) {
-    return {
-      deletedConfigurationId: null,
-      bundle: null,
-      userErrors: [],
-    };
-  }
-
-  @ZodResolver(BundleGroupsSyncInputSchema())
-  async bundleGroupsSync(_args: { input: BundleGroupsSyncInput }) {
-    return {
-      configuration: null,
-      groups: [],
-      userErrors: [],
-    };
-  }
-
-  @ZodResolver(BundlePricingTemplatesSyncInputSchema())
-  async bundlePricingTemplatesSync(_args: {
-    input: BundlePricingTemplatesSyncInput;
-  }) {
-    return {
-      configuration: null,
-      pricingTemplates: [],
-      userErrors: [],
-    };
-  }
-
-  @ZodResolver(BundleDependencyRulesSyncInputSchema())
-  async bundleDependencyRulesSync(_args: {
-    input: BundleDependencyRulesSyncInput;
-  }) {
-    return {
-      configuration: null,
-      dependencyRules: [],
-      userErrors: [],
     };
   }
 

@@ -55,13 +55,13 @@ const productListFieldTypes: Record<string, GraphQLFieldType> = {
 const productWhere = generateWhereInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
   fieldTypes: productListFieldTypes,
-  excludeFields: ["storeId", "deletedAt", "revision", "kind"],
+  excludeFields: ["storeId", "deletedAt", "revision"],
 });
 
 const productOrderBy = generateOrderByInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
   fieldTypes: productListFieldTypes,
-  excludeFields: ["storeId", "deletedAt", "revision", "kind"],
+  excludeFields: ["storeId", "deletedAt", "revision"],
 });
 
 const vendorFieldTypes: Record<string, GraphQLFieldType> = {
@@ -164,12 +164,12 @@ const warehouseStockConnectionInput =
 
 const variantWhere = generateWhereInputType(variantRelayQuery, "Variant", {
   includeDescriptions: true,
-  excludeFields: ["storeId", "deletedAt", "sku", "kind"],
+  excludeFields: ["storeId", "deletedAt", "sku"],
 });
 
 const variantOrderBy = generateOrderByInputType(variantRelayQuery, "Variant", {
   includeDescriptions: true,
-  excludeFields: ["storeId", "deletedAt", "sku", "kind"],
+  excludeFields: ["storeId", "deletedAt", "sku"],
 });
 
 const facetSourceCandidateFieldTypes: Record<string, GraphQLFieldType> = {

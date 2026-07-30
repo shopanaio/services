@@ -15,7 +15,6 @@ export {
 
 // Type resolvers
 export { ProductResolver } from "./ProductResolver.js";
-export { BundleResolver } from "./BundleResolver.js";
 export { VendorResolver } from "./VendorResolver.js";
 export { ProductSeoResolver } from "./ProductSeoResolver.js";
 export { SeoResolver } from "./SeoResolver.js";
@@ -42,10 +41,6 @@ export {
   ProductConnectionResolver,
   type ProductConnectionInput,
 } from "./ProductConnectionResolver.js";
-export {
-  BundleConnectionResolver,
-  type BundleConnectionInput,
-} from "./BundleConnectionResolver.js";
 export {
   VariantConnectionResolver,
   type VariantConnectionInput,

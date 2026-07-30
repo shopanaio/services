@@ -7,7 +7,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { productKindEnum } from "./products";
 import { catalogSchema, localeCodeEnum } from "./schema";
 
 const inventoryItemListViewColumns = {
@@ -15,7 +14,6 @@ const inventoryItemListViewColumns = {
   id: uuid("id").notNull(),
   variantId: uuid("variant_id").notNull(),
   productId: uuid("product_id").notNull(),
-  kind: productKindEnum("kind").notNull(),
   productHandle: text("product_handle"),
   locale: localeCodeEnum("locale").notNull(),
   productName: text("product_name").notNull(),
@@ -43,7 +41,6 @@ export const inventoryItemListAllStockView = catalogSchema
       item.id,
       item.variant_id,
       product.id AS product_id,
-      variant.kind,
       product.handle AS product_handle,
       translation.locale,
       translation.name AS product_name,
@@ -99,7 +96,6 @@ export const inventoryItemListWarehouseStockView = catalogSchema
       item.id,
       item.variant_id,
       product.id AS product_id,
-      variant.kind,
       product.handle AS product_handle,
       translation.locale,
       translation.name AS product_name,

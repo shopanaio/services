@@ -6,7 +6,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { productKindEnum } from "./products";
 import { catalogSchema, localeCodeEnum } from "./schema";
 
 export const variantWarehouseCandidateView = catalogSchema
@@ -14,7 +13,6 @@ export const variantWarehouseCandidateView = catalogSchema
     storeId: uuid("store_id").notNull(),
     warehouseScopeId: uuid("warehouse_scope_id").notNull(),
     productId: uuid("product_id").notNull(),
-    kind: productKindEnum("kind").notNull(),
     locale: localeCodeEnum("locale").notNull(),
     productName: text("product_name").notNull(),
     id: uuid("id").notNull(),
@@ -43,7 +41,6 @@ export const variantWarehouseCandidateView = catalogSchema
       variant.store_id,
       warehouse.id AS warehouse_scope_id,
       variant.product_id,
-      variant.kind,
       translation.locale,
       translation.name AS product_name,
       variant.id,
@@ -74,7 +71,6 @@ export const variantWarehouseCandidateView = catalogSchema
      AND stock.variant_id = variant.id
      AND stock.warehouse_id = warehouse.id
     WHERE stock.id IS NULL
-      AND variant.kind = 'BASE'
   `);
 
 export type VariantWarehouseCandidateView =

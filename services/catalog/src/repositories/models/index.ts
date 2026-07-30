@@ -51,9 +51,6 @@ export * from "./bulkEditJobs";
 export * from "./bulkEditItems";
 export * from "./productBulkFence";
 
-// Bundles
-export * from "./bundle";
-
 // Inventory
 export * from "./inventory-item";
 export * from "./inventory-item-list-views";

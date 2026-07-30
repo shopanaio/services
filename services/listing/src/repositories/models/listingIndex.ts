@@ -83,7 +83,7 @@ export const productListingIndex = listingSchema.table(
     storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").primaryKey(),
     productDocId: integer("product_doc_id").notNull(),
-    kind: varchar("kind", { length: 16 }).notNull(),
+    entityType: varchar("entity_type", { length: 16 }).notNull(),
     vendorId: uuid("vendor_id"),
     handle: varchar("handle", { length: 255 }),
     status: varchar("status", { length: 16 }).notNull(),
@@ -126,7 +126,10 @@ export const productListingIndex = listingSchema.table(
       table.productDocId,
       table.productId,
     ),
-    check("chk_product_listing_kind", sql`${table.kind} IN ('BASE', 'BUNDLE')`),
+    check(
+      "chk_product_listing_entity_type",
+      sql`${table.entityType} IN ('product', 'bundle')`,
+    ),
     check(
       "chk_product_listing_status",
       sql`${table.status} IN ('published', 'draft')`,

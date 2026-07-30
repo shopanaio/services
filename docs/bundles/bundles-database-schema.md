@@ -1,10 +1,8 @@
 # Bundles Database Schema
 
-Bundle — это продукт с `product.kind = 'BUNDLE'` и отдельной 1:1 записью в таблице `bundle`.
-Варианты продукта хранят тот же discriminator в `variant.kind`; код создания и обновления
-вариантов должен синхронизировать его с `product.kind`.
-На уровне DB/API/кода kind хранится как PostgreSQL enum `product_kind` и мапится в
-`ProductKind` (`BASE`, `BUNDLE`).
+Bundle — это catalog product с отдельной 1:1 записью в таблице
+`app_shopana_bundles.bundle`. Наличие этой записи определяет принадлежность продукта
+к bundle aggregate; discriminator в `catalog.product` и `catalog.variant` не хранится.
 Bundle root ссылается на `product.id`; configuration-scoped таблицы ссылаются на
 `bundle_configuration.id`.
 Структура бандла хранится в `bundle_configuration`: одна конфигурация содержит groups/items/pricing templates/dependency rules и может быть назначена одному или нескольким вариантам bundle product.
@@ -18,7 +16,7 @@ Bundle root ссылается на `product.id`; configuration-scoped табл�
 
                               catalog.product
                                      │
-                                     │ 1:1 (kind = 'BUNDLE')
+                                     │ 1:1
                                      ▼
 ┌──────────────────┐       ┌────────────────────────┐       ┌─────────────────────────────┐
 │      bundle      │       │  bundle_configuration  │       │ bundle_configuration_variant │
@@ -30,7 +28,6 @@ Bundle root ссылается на `product.id`; configuration-scoped табл�
 │ created_at       │       │ updated_at             │                       ▼
 │ updated_at       │       │                        │
 └──────────────────┘       └────────────────────────┘              catalog.variant
-                                                                    (kind mirrors product.kind)
          │                            │
          │                            │ 1:N
          ▼
@@ -162,16 +159,6 @@ Bundle root ссылается на `product.id`; configuration-scoped табл�
 
 ## Enums
 
-### ProductKind
-```typescript
-enum ProductKind {
-  BASE = "BASE",
-  BUNDLE = "BUNDLE",
-}
-
-type ProductKindDb = "BASE" | "BUNDLE";
-```
-
 ### BundleItemType
 ```typescript
 enum BundleItemType {
@@ -290,42 +277,6 @@ enum DependencyActionType {
 import { pgSchema } from "drizzle-orm/pg-core";
 export const catalogSchema = pgSchema("catalog");
 ```
-
-### Product And Variant Kind
-
-```typescript
-// services/catalog/src/repositories/models/products.ts
-import { index, uuid } from "drizzle-orm/pg-core";
-
-export const productKindEnum = catalogSchema.enum("product_kind", [
-  "BASE",
-  "BUNDLE",
-]);
-
-export const product = catalogSchema.table(
-  "product",
-  {
-    // existing product columns...
-    kind: productKindEnum("kind").notNull().default("BASE"),
-  }
-);
-
-export const variant = catalogSchema.table(
-  "variant",
-  {
-    // existing variant columns...
-    productId: uuid("product_id").notNull(),
-    kind: productKindEnum("kind").notNull().default("BASE"), // mirrors parent product.kind
-  },
-  (table) => [
-    index("idx_variant_product_id").on(table.productId),
-  ]
-);
-```
-
-`variant.kind` is denormalized intentionally to make variant-level filtering and bundle
-configuration joins explicit. It must never diverge from the parent product kind; product
-and variant write paths are responsible for keeping the value in sync.
 
 ### Bundle
 
@@ -994,8 +945,7 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 
 | Aspect | Decision | Rationale |
 |--------|----------|-----------|
-| **Product kind** | `product.kind` is PostgreSQL enum `product_kind` (`BASE` / `BUNDLE`) | DB, API, and code use the same readable discriminator values |
-| **Variant kind** | `variant.kind` mirrors `product.kind` in write paths | Keeps variant-level reads/filtering explicit without a composite product-kind FK |
+| **Bundle identity** | Наличие строки `app_shopana_bundles.bundle` для `catalog.product.id` | Bundle определяется владельцем aggregate, без discriminator в catalog |
 | **Bundle root** | `bundle` table is 1:1 with `product` | Keeps bundle-specific aggregate root separate from base product fields |
 | **Bundle type** | `bundle.type = "FIXED" \| "MULTIPACK" \| "MIX_AND_MATCH" \| "CUSTOM" \| null` in DB | Stores the bundle type as a readable string for admin labels and filters without numeric mapping |
 | **Display style** | `bundle.display_style = "ACCORDION" \| "TABS" \| "FLAT" \| "WIZARD"` | Storefront rendering mode stored as uppercase strings to match GraphQL enum values |

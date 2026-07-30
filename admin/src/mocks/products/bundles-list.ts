@@ -5,7 +5,6 @@
 import {
   BundleDisplayStyle,
   BundleType,
-  ProductKind,
   type ApiBundle,
   type ApiFile,
   type ApiPageInfo,
@@ -47,7 +46,6 @@ const createMockBundle = (params: {
   id: params.id,
   title: params.title,
   handle: params.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-  kind: ProductKind.Bundle,
   isPublished: params.isPublished,
   type: params.type,
   createdAt: params.createdAt,

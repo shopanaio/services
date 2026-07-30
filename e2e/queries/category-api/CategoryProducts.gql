@@ -12,7 +12,6 @@ query CategoryProducts(
         edges {
           node {
             id
-            kind
             title
             handle
             isPublished

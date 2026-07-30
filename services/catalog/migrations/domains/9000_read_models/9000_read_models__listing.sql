@@ -11,7 +11,6 @@ SELECT
   product.updated_at,
   product.deleted_at,
   product.revision,
-  product.kind,
   product_translation.locale,
   product_translation.name,
   product_price_range.currency,

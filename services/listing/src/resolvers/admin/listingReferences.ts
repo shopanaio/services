@@ -5,28 +5,30 @@ import {
 import type { Repository } from "../../repositories/Repository.js";
 import type {
   ListingNodeReference,
-  ProductKind,
+  ProductEntityType,
 } from "./ListingQueryTypes.js";
 
-export async function loadProductKindMap(
+export async function loadProductEntityTypeMap(
   repository: Repository,
   productIds: readonly string[]
-): Promise<Map<string, ProductKind>> {
+): Promise<Map<string, ProductEntityType>> {
   const uniqueIds = [...new Set(productIds)];
   if (uniqueIds.length === 0) {
     return new Map();
   }
 
   const rows = await repository.productListingIndex.getByProductIds(uniqueIds);
-  return new Map(rows.map((row) => [row.productId, row.kind as ProductKind]));
+  return new Map(
+    rows.map((row) => [row.productId, row.entityType as ProductEntityType])
+  );
 }
 
 export function toListingNodeReference(
   productId: string,
-  kind: ProductKind | undefined
+  entityType: ProductEntityType | undefined
 ): ListingNodeReference {
   return {
-    __typename: kind === "BUNDLE" ? "Bundle" : "Product",
+    __typename: entityType === "bundle" ? "Bundle" : "Product",
     id: encodeGlobalIdByType(productId, GlobalIdEntity.Product),
   };
 }

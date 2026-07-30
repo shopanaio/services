@@ -33,7 +33,6 @@ type CatalogQueryResult =
               id?: string;
               storeId?: string;
               revision?: number;
-              kind?: string;
               handle?: string | null;
               status?: string;
               publishedAt?: string | null;
@@ -184,7 +183,6 @@ function buildFullProductSnapshotSelectionFromArgs(args: unknown) {
                   'id',
                   'storeId',
                   'revision',
-                  'kind',
                   'status',
                   'publishedAt',
                   'createdAt',
@@ -428,7 +426,6 @@ test.describe('Catalog query action', () => {
         id: productId,
         storeId,
         revision: expect.any(Number),
-        kind: 'BASE',
         handle,
         status: 'draft',
         publishedAt: null,
@@ -605,7 +602,6 @@ test.describe('Catalog query action', () => {
         expect.objectContaining({
           snapshotVersion: '2026-07-13',
           storeId,
-          kind: 'BASE',
           status: 'draft',
         }),
       );

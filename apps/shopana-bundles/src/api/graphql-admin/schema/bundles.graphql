@@ -81,9 +81,6 @@ type Bundle implements Node @key(fields: "id") {
   """The Product global ID of the bundle sellable item."""
   id: ID!
 
-  """Product discriminator. Always BUNDLE for this type."""
-  kind: ProductKind!
-
   """The URL-friendly handle for the bundle."""
   handle: String!
 
@@ -945,7 +942,7 @@ input BundleDependencyActionSyncItemInput {
 # ---- Catalog API Extensions ----
 
 extend type CatalogQuery {
-  """Get a bundle by Product global ID. The product must have kind = BUNDLE."""
+  """Get a bundle by Product global ID."""
   bundle(id: ID!): Bundle
 
   """Get bundles with Relay-style pagination."""

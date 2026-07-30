@@ -129,7 +129,7 @@ constants. The repository files import Drizzle models from
 ## Shared types
 
 ```ts
-export type ProductKind = "BASE" | "BUNDLE";
+export type ProductEntityType = "product" | "bundle";
 export type ListingStatus = "published" | "draft";
 export type PostingEntityType = "product" | "variant";
 
@@ -149,7 +149,7 @@ export interface PostingKeyInput {
 export interface ProductListingIndexUpsertInput {
   productId: string;
   productDocId: number;
-  kind: ProductKind;
+  entityType: ProductEntityType;
   vendorId?: string | null;
   handle?: string | null;
   status: ListingStatus;
@@ -164,7 +164,7 @@ export interface ProductListingIndexUpsertInput {
 export interface ProductListingIndexBootstrapInput {
   productId: string;
   productDocId: number;
-  kind?: ProductKind;
+  entityType?: ProductEntityType;
   productCreatedAt?: string;
   productUpdatedAt?: string;
 }
@@ -237,7 +237,6 @@ export interface ProjectionBlockRowInput {
 export interface ProductTitleBm25RowInput {
   productId: string;
   locale: string;
-  kind: ProductKind;
   status: ListingStatus;
   publishedAt?: string | null;
   productCreatedAt: string;
