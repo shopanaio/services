@@ -18,7 +18,6 @@ MCP Server for working with Shopana CLI. Provides tools for managing Shopana pla
 | `shopana_gateway` | Start GraphQL gateway |
 | `shopana_schema` | Manage GraphQL schemas |
 | `shopana_list_services` | List all services with their capabilities |
-| `shopana_store_info` | Full project and architecture information |
 | `shopana_admin` | Run Admin frontend codegen, build, and lint |
 
 ## Installation
@@ -100,12 +99,6 @@ Start dev server for catalog service
 
 ```
 Generate migrations for checkout service after schema changes
-```
-
-### Getting Project Information
-
-```
-Show project information and available services
 ```
 
 ### Working With Admin Frontend

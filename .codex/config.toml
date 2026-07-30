@@ -26,9 +26,6 @@ approval_mode = "approve"
 [mcp_servers.shopana-cli.tools.shopana_get_e2e_test_command]
 approval_mode = "approve"
 
-[mcp_servers.shopana-cli.tools.shopana_project_info]
-approval_mode = "approve"
-
 [mcp_servers.antd]
 approval_mode = "approve"
 command = "npx"
