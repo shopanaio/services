@@ -2,22 +2,22 @@ import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 import { categoryTranslation, productCategory } from "./categories";
 import { productPriceRange } from "./pricing";
-import { product } from "./products";
+import { product, productRegistry } from "./products";
 import { productTranslation } from "./translations";
 import { vendor } from "./vendors";
 
 export const listingListView = catalogSchema.view("listing_list_view").as((qb) =>
   qb
     .select({
-      storeId: product.storeId,
-      id: product.id,
+      storeId: productRegistry.storeId,
+      id: productRegistry.id,
       vendorId: product.vendorId,
-      handle: product.handle,
-      publishedAt: product.publishedAt,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-      deletedAt: product.deletedAt,
-      revision: product.revision,
+      handle: productRegistry.handle,
+      publishedAt: productRegistry.publishedAt,
+      createdAt: productRegistry.createdAt,
+      updatedAt: productRegistry.updatedAt,
+      deletedAt: productRegistry.deletedAt,
+      revision: productRegistry.revision,
       locale: productTranslation.locale,
       name: productTranslation.name,
       currency: productPriceRange.currency,
@@ -29,41 +29,42 @@ export const listingListView = catalogSchema.view("listing_list_view").as((qb) =
       primaryCategoryName: sql<string>`${categoryTranslation.name}`.as("primary_category_name"),
       brandName: sql<string>`${vendor.name}`.as("brand_name"),
     })
-    .from(product)
+    .from(productRegistry)
+    .innerJoin(product, sql`${product.id} = ${productRegistry.id}`)
     .innerJoin(
       productTranslation,
-      sql`${productTranslation.storeId} = ${product.storeId} AND ${productTranslation.productId} = ${product.id}`
+      sql`${productTranslation.storeId} = ${productRegistry.storeId} AND ${productTranslation.productId} = ${productRegistry.id}`
     )
     .leftJoin(
       productPriceRange,
-      sql`${productPriceRange.storeId} = ${product.storeId} AND ${productPriceRange.productId} = ${product.id}`
+      sql`${productPriceRange.storeId} = ${productRegistry.storeId} AND ${productPriceRange.productId} = ${productRegistry.id}`
     )
     .leftJoin(
       productCategory,
-      sql`${productCategory.storeId} = ${product.storeId} AND ${productCategory.productId} = ${product.id} AND ${productCategory.isPrimary} = true`
+      sql`${productCategory.storeId} = ${productRegistry.storeId} AND ${productCategory.productId} = ${productRegistry.id} AND ${productCategory.isPrimary} = true`
     )
     .leftJoin(
       categoryTranslation,
-      sql`${categoryTranslation.storeId} = ${product.storeId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
+      sql`${categoryTranslation.storeId} = ${productRegistry.storeId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
     )
     .leftJoin(
       vendor,
-      sql`${vendor.storeId} = ${product.storeId} AND ${vendor.id} = ${product.vendorId}`
+      sql`${vendor.storeId} = ${productRegistry.storeId} AND ${vendor.id} = ${product.vendorId}`
     )
 );
 
 export const productListView = catalogSchema.view("product_list_view").as((qb) =>
   qb
     .select({
-      storeId: product.storeId,
-      id: product.id,
+      storeId: productRegistry.storeId,
+      id: productRegistry.id,
       vendorId: product.vendorId,
-      handle: product.handle,
-      publishedAt: product.publishedAt,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-      deletedAt: product.deletedAt,
-      revision: product.revision,
+      handle: productRegistry.handle,
+      publishedAt: productRegistry.publishedAt,
+      createdAt: productRegistry.createdAt,
+      updatedAt: productRegistry.updatedAt,
+      deletedAt: productRegistry.deletedAt,
+      revision: productRegistry.revision,
       locale: productTranslation.locale,
       name: productTranslation.name,
       currency: productPriceRange.currency,
@@ -75,26 +76,27 @@ export const productListView = catalogSchema.view("product_list_view").as((qb) =
       primaryCategoryName: sql<string>`${categoryTranslation.name}`.as("primary_category_name"),
       brandName: sql<string>`${vendor.name}`.as("brand_name"),
     })
-    .from(product)
+    .from(productRegistry)
+    .innerJoin(product, sql`${product.id} = ${productRegistry.id}`)
     .innerJoin(
       productTranslation,
-      sql`${productTranslation.storeId} = ${product.storeId} AND ${productTranslation.productId} = ${product.id}`
+      sql`${productTranslation.storeId} = ${productRegistry.storeId} AND ${productTranslation.productId} = ${productRegistry.id}`
     )
     .leftJoin(
       productPriceRange,
-      sql`${productPriceRange.storeId} = ${product.storeId} AND ${productPriceRange.productId} = ${product.id}`
+      sql`${productPriceRange.storeId} = ${productRegistry.storeId} AND ${productPriceRange.productId} = ${productRegistry.id}`
     )
     .leftJoin(
       productCategory,
-      sql`${productCategory.storeId} = ${product.storeId} AND ${productCategory.productId} = ${product.id} AND ${productCategory.isPrimary} = true`
+      sql`${productCategory.storeId} = ${productRegistry.storeId} AND ${productCategory.productId} = ${productRegistry.id} AND ${productCategory.isPrimary} = true`
     )
     .leftJoin(
       categoryTranslation,
-      sql`${categoryTranslation.storeId} = ${product.storeId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
+      sql`${categoryTranslation.storeId} = ${productRegistry.storeId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
     )
     .leftJoin(
       vendor,
-      sql`${vendor.storeId} = ${product.storeId} AND ${vendor.id} = ${product.vendorId}`
+      sql`${vendor.storeId} = ${productRegistry.storeId} AND ${vendor.id} = ${product.vendorId}`
     )
 );
 

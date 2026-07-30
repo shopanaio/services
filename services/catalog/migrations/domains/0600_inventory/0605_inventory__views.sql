@@ -16,17 +16,18 @@ SELECT
   variant.updated_at,
   variant.created_at,
   variant.deleted_at,
-  product.deleted_at AS product_deleted_at,
+  registry.deleted_at AS product_deleted_at,
   item.id AS inventory_item_id
 FROM "catalog"."variant" variant
-JOIN "catalog"."product" product
-  ON product.store_id = variant.store_id
- AND product.id = variant.product_id
+JOIN "catalog"."entity_registry" registry
+  ON registry.store_id = variant.store_id
+ AND registry.id = variant.product_id
+ AND registry.entity_type = 'PRODUCT'
 JOIN "catalog"."warehouses" warehouse
   ON warehouse.store_id = variant.store_id
 JOIN "catalog"."product_translation" translation
   ON translation.store_id = variant.store_id
- AND translation.product_id = product.id
+ AND translation.product_id = registry.id
 LEFT JOIN "catalog"."inventory_item" item
   ON item.store_id = variant.store_id
  AND item.variant_id = variant.id
@@ -41,17 +42,17 @@ SELECT
   item.store_id,
   item.id,
   item.variant_id,
-  product.id AS product_id,
-  product.handle AS product_handle,
+  registry.id AS product_id,
+  registry.handle AS product_handle,
   translation.locale,
   translation.name AS product_name,
   item.sku,
   item.track_inventory,
   item.continue_selling_when_out_of_stock,
-  coalesce(variant.deleted_at, product.deleted_at) AS deleted_at,
+  coalesce(variant.deleted_at, registry.deleted_at) AS deleted_at,
   greatest(
     item.updated_at,
-    product.updated_at,
+    registry.updated_at,
     variant.updated_at
   ) AS updated_at,
   coalesce(stock.quantity_on_hand, 0)::integer AS quantity_on_hand,
@@ -66,12 +67,13 @@ FROM "catalog"."inventory_item" item
 JOIN "catalog"."variant" variant
   ON variant.store_id = item.store_id
  AND variant.id = item.variant_id
-JOIN "catalog"."product" product
-  ON product.store_id = item.store_id
- AND product.id = variant.product_id
+JOIN "catalog"."entity_registry" registry
+  ON registry.store_id = item.store_id
+ AND registry.id = variant.product_id
+ AND registry.entity_type = 'PRODUCT'
 JOIN "catalog"."product_translation" translation
   ON translation.store_id = item.store_id
- AND translation.product_id = product.id
+ AND translation.product_id = registry.id
 LEFT JOIN (
   SELECT
     store_id,
@@ -90,18 +92,18 @@ SELECT
   item.store_id,
   item.id,
   item.variant_id,
-  product.id AS product_id,
-  product.handle AS product_handle,
+  registry.id AS product_id,
+  registry.handle AS product_handle,
   translation.locale,
   translation.name AS product_name,
   stock.warehouse_id AS warehouse_scope_id,
   item.sku,
   item.track_inventory,
   item.continue_selling_when_out_of_stock,
-  coalesce(variant.deleted_at, product.deleted_at) AS deleted_at,
+  coalesce(variant.deleted_at, registry.deleted_at) AS deleted_at,
   greatest(
     item.updated_at,
-    product.updated_at,
+    registry.updated_at,
     variant.updated_at
   ) AS updated_at,
   stock.quantity_on_hand::integer AS quantity_on_hand,
@@ -116,12 +118,13 @@ FROM "catalog"."inventory_item" item
 JOIN "catalog"."variant" variant
   ON variant.store_id = item.store_id
  AND variant.id = item.variant_id
-JOIN "catalog"."product" product
-  ON product.store_id = item.store_id
- AND product.id = variant.product_id
+JOIN "catalog"."entity_registry" registry
+  ON registry.store_id = item.store_id
+ AND registry.id = variant.product_id
+ AND registry.entity_type = 'PRODUCT'
 JOIN "catalog"."product_translation" translation
   ON translation.store_id = item.store_id
- AND translation.product_id = product.id
+ AND translation.product_id = registry.id
 JOIN "catalog"."warehouse_stock" stock
   ON stock.store_id = item.store_id
  AND stock.variant_id = item.variant_id;
