@@ -194,6 +194,9 @@ type Product implements Node @key(fields: "id") {
 
   """Current product price range in the selected currency."""
   priceRange: ProductPriceRange
+
+  """Product component data, or null when this product has no component configuration."""
+  productComponent: ProductComponent
 }
 
 """

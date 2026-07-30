@@ -12,6 +12,9 @@ type Variant implements Node @key(fields: "id") {
   """The product this variant belongs to."""
   product: Product!
 
+  """Product component configuration assigned to this variant."""
+  productComponentConfiguration: ProductComponentConfiguration
+
   """Whether this is the default variant for the product."""
   isDefault: Boolean!
 
