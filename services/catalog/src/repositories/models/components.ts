@@ -6,6 +6,7 @@ import {
   index,
   integer,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -15,7 +16,13 @@ import {
 import { productOption, productOptionValue } from "./options";
 import { currencyEnum } from "./pricing";
 import { product, variant } from "./products";
-import { catalogSchema, localeCodeEnum } from "./schema";
+import {
+  catalogSchema,
+  componentPriceStrategyEnum,
+  localeCodeEnum,
+  priceAdjustmentOperationEnum,
+  priceAdjustmentValueTypeEnum,
+} from "./schema";
 
 export const component = catalogSchema.table(
   "component",
@@ -92,9 +99,23 @@ export const componentPriceRule = catalogSchema.table(
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => componentConfiguration.id, { onDelete: "cascade" }),
-    priceType: varchar("price_type", { length: 32 }).notNull(),
+    strategy: componentPriceStrategyEnum("strategy").notNull(),
+    operation: priceAdjustmentOperationEnum("operation"),
+    valueType: priceAdjustmentValueTypeEnum("value_type"),
   },
   (table) => [
+    check(
+      "component_price_rule_shape_check",
+      sql`(
+          ${table.strategy} = 'ADJUSTMENT'
+          AND ${table.operation} IS NOT NULL
+          AND ${table.valueType} IS NOT NULL
+        ) OR (
+          ${table.strategy} IN ('BASE', 'OVERRIDE', 'FREE')
+          AND ${table.operation} IS NULL
+          AND ${table.valueType} IS NULL
+        )`,
+    ),
     index("idx_component_price_rule_configuration_id").on(
       table.configurationId,
     ),
@@ -109,13 +130,13 @@ export const componentPriceRuleAmount = catalogSchema.table(
       .notNull()
       .references(() => componentPriceRule.id, { onDelete: "cascade" }),
     currency: currencyEnum("currency").notNull(),
-    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.priceRuleId, table.currency] }),
     check(
       "component_price_rule_amount_minor_check",
-      sql`${table.amountMinor} >= 0`,
+      sql`${table.amountMinor} > 0`,
     ),
     index("idx_component_price_rule_amount_store_currency").on(
       table.storeId,
@@ -131,12 +152,12 @@ export const componentPriceRulePercent = catalogSchema.table(
     priceRuleId: uuid("price_rule_id")
       .primaryKey()
       .references(() => componentPriceRule.id, { onDelete: "cascade" }),
-    percentValue: integer("percent_value").notNull(),
+    percentageBps: smallint("percentage_bps").notNull(),
   },
   (table) => [
     check(
-      "component_price_rule_percent_value_check",
-      sql`${table.percentValue} >= 0 AND ${table.percentValue} <= 100`,
+      "component_price_rule_percentage_bps_check",
+      sql`${table.percentageBps} BETWEEN 1 AND 10000`,
     ),
     index("idx_component_price_rule_percent_store_id").on(table.storeId),
   ],

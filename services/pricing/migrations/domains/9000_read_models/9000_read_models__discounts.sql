@@ -104,6 +104,7 @@ LEFT JOIN LATERAL (
 CREATE VIEW "pricing"."discount_configuration_view" AS
 SELECT
   discount_list.*,
+  amount_off.operation AS amount_off_operation,
   amount_off.value_type AS amount_off_value_type,
   amount_off.percentage_bps AS amount_off_percentage_bps,
   amount_off.amount_minor AS amount_off_amount_minor,
@@ -113,6 +114,8 @@ SELECT
   buy_x_get_y.required_quantity AS buy_required_quantity,
   buy_x_get_y.required_subtotal_minor AS buy_required_subtotal_minor,
   buy_x_get_y.benefit_quantity,
+  buy_x_get_y.benefit_strategy,
+  buy_x_get_y.benefit_operation,
   buy_x_get_y.benefit_value_type,
   buy_x_get_y.benefit_percentage_bps,
   buy_x_get_y.benefit_amount_minor,

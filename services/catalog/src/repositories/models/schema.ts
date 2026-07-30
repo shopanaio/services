@@ -6,6 +6,21 @@ import {
 
 export const catalogSchema = pgSchema("catalog");
 
+export const priceAdjustmentOperationEnum = catalogSchema.enum(
+  "price_adjustment_operation",
+  ["DECREASE", "INCREASE"],
+);
+
+export const priceAdjustmentValueTypeEnum = catalogSchema.enum(
+  "price_adjustment_value_type",
+  ["PERCENTAGE", "FIXED_AMOUNT"],
+);
+
+export const componentPriceStrategyEnum = catalogSchema.enum(
+  "component_price_strategy",
+  ["BASE", "ADJUSTMENT", "OVERRIDE", "FREE"],
+);
+
 export const localeCodeEnum = catalogSchema.enum(
   "locale_code",
   LOCALE_CODES as [string, ...string[]],

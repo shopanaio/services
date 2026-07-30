@@ -38,9 +38,8 @@ enum DiscountCodeStatus {
   DISABLED
 }
 
-enum DiscountValueType {
-  PERCENTAGE
-  FIXED_AMOUNT
+enum DiscountBenefitStrategy {
+  ADJUSTMENT
   FREE
 }
 

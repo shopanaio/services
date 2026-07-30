@@ -1,15 +1,47 @@
 -- Up Migration
 
+CREATE TYPE "catalog"."price_adjustment_operation" AS ENUM (
+  'DECREASE',
+  'INCREASE'
+);
+
+CREATE TYPE "catalog"."price_adjustment_value_type" AS ENUM (
+  'PERCENTAGE',
+  'FIXED_AMOUNT'
+);
+
+CREATE TYPE "catalog"."component_price_strategy" AS ENUM (
+  'BASE',
+  'ADJUSTMENT',
+  'OVERRIDE',
+  'FREE'
+);
+
 CREATE TABLE "catalog"."component_price_rule" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
-  "price_type" varchar(32) NOT NULL,
+  "strategy" "catalog"."component_price_strategy" NOT NULL,
+  "operation" "catalog"."price_adjustment_operation",
+  "value_type" "catalog"."price_adjustment_value_type",
   CONSTRAINT "component_price_rule_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "component_price_rule_configuration_id_fk"
     FOREIGN KEY ("configuration_id")
     REFERENCES "catalog"."component_configuration" ("id")
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT "component_price_rule_shape_check"
+    CHECK (
+      (
+        "strategy" = 'ADJUSTMENT'
+        AND "operation" IS NOT NULL
+        AND "value_type" IS NOT NULL
+      )
+      OR (
+        "strategy" IN ('BASE', 'OVERRIDE', 'FREE')
+        AND "operation" IS NULL
+        AND "value_type" IS NULL
+      )
+    )
 );
 
 CREATE INDEX "idx_component_price_rule_configuration_id"
@@ -27,7 +59,7 @@ CREATE TABLE "catalog"."component_price_rule_amount" (
     REFERENCES "catalog"."component_price_rule" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "component_price_rule_amount_minor_check"
-    CHECK ("amount_minor" >= 0)
+    CHECK ("amount_minor" > 0)
 );
 
 CREATE INDEX "idx_component_price_rule_amount_store_currency"
@@ -36,14 +68,14 @@ CREATE INDEX "idx_component_price_rule_amount_store_currency"
 CREATE TABLE "catalog"."component_price_rule_percent" (
   "store_id" uuid NOT NULL,
   "price_rule_id" uuid NOT NULL,
-  "percent_value" integer NOT NULL,
+  "percentage_bps" smallint NOT NULL,
   CONSTRAINT "component_price_rule_percent_pkey" PRIMARY KEY ("price_rule_id"),
   CONSTRAINT "component_price_rule_percent_price_rule_id_fk"
     FOREIGN KEY ("price_rule_id")
     REFERENCES "catalog"."component_price_rule" ("id")
     ON DELETE CASCADE,
-  CONSTRAINT "component_price_rule_percent_value_check"
-    CHECK ("percent_value" >= 0 AND "percent_value" <= 100)
+  CONSTRAINT "component_price_rule_percentage_bps_check"
+    CHECK ("percentage_bps" BETWEEN 1 AND 10000)
 );
 
 CREATE INDEX "idx_component_price_rule_percent_store_id"

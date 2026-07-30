@@ -2192,6 +2192,22 @@ export type PageInfo = {
   startCursor: Maybe<Scalars['String']['output']>;
 };
 
+/** Direction in which a price adjustment changes the base price. */
+export enum PriceAdjustmentOperation {
+  /** Subtract the calculated value from the base price. */
+  Decrease = 'DECREASE',
+  /** Add the calculated value to the base price. */
+  Increase = 'INCREASE'
+}
+
+/** Representation used to calculate a price adjustment. */
+export enum PriceAdjustmentValueType {
+  /** Use a monetary value expressed in minor currency units. */
+  FixedAmount = 'FIXED_AMOUNT',
+  /** Calculate the value from basis points where 10000 equals 100%. */
+  Percentage = 'PERCENTAGE'
+}
+
 /** Input for pricing widget query. */
 export type PricingWidgetInput = {
   /** Pagination: cursor after. */
@@ -2400,12 +2416,28 @@ export type ProductComponent = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type ProductComponentAdjustmentPriceRule = Node & ProductComponentPriceRule & {
+  __typename?: 'ProductComponentAdjustmentPriceRule';
+  /** Currency-specific values for FIXED_AMOUNT adjustments. */
+  amounts: Array<ProductComponentPriceRuleAmount>;
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Whether the adjustment decreases or increases the base price. */
+  operation: PriceAdjustmentOperation;
+  /** Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments. */
+  percentageBps: Maybe<Scalars['Int']['output']>;
+  /** Apply a fixed-amount or percentage adjustment to the base price. */
+  strategy: ProductComponentPriceStrategy;
+  /** Whether the adjustment uses a percentage or fixed amount. */
+  valueType: PriceAdjustmentValueType;
+};
+
 export type ProductComponentBasePriceRule = Node & ProductComponentPriceRule & {
   __typename?: 'ProductComponentBasePriceRule';
   /** The globally unique ID of the price rule. */
   id: Scalars['ID']['output'];
-  /** Pricing strategy. */
-  priceType: ProductComponentPriceType;
+  /** Use the referenced product or variant base price. */
+  strategy: ProductComponentPriceStrategy;
 };
 
 export type ProductComponentCondition = Node & {
@@ -2661,26 +2693,6 @@ export enum ProductComponentDependencyTargetType {
   ProductComponent = 'PRODUCT_COMPONENT'
 }
 
-export type ProductComponentDiscountFixedPriceRule = Node & ProductComponentPriceRule & {
-  __typename?: 'ProductComponentDiscountFixedPriceRule';
-  /** Money values for DISCOUNT_FIXED rules. */
-  amounts: Array<ProductComponentPriceRuleAmount>;
-  /** The globally unique ID of the price rule. */
-  id: Scalars['ID']['output'];
-  /** Pricing strategy. */
-  priceType: ProductComponentPriceType;
-};
-
-export type ProductComponentDiscountPercentPriceRule = Node & ProductComponentPriceRule & {
-  __typename?: 'ProductComponentDiscountPercentPriceRule';
-  /** The globally unique ID of the price rule. */
-  id: Scalars['ID']['output'];
-  /** Percent row for DISCOUNT_PERCENT rules. */
-  percent: ProductComponentPriceRulePercent;
-  /** Pricing strategy. */
-  priceType: ProductComponentPriceType;
-};
-
 export enum ProductComponentDisplayStyle {
   Accordion = 'ACCORDION',
   Flat = 'FLAT',
@@ -2688,22 +2700,12 @@ export enum ProductComponentDisplayStyle {
   Wizard = 'WIZARD'
 }
 
-export type ProductComponentFixedPriceRule = Node & ProductComponentPriceRule & {
-  __typename?: 'ProductComponentFixedPriceRule';
-  /** Money values for FIXED rules. */
-  amounts: Array<ProductComponentPriceRuleAmount>;
-  /** The globally unique ID of the price rule. */
-  id: Scalars['ID']['output'];
-  /** Pricing strategy. */
-  priceType: ProductComponentPriceType;
-};
-
 export type ProductComponentFreePriceRule = Node & ProductComponentPriceRule & {
   __typename?: 'ProductComponentFreePriceRule';
   /** The globally unique ID of the price rule. */
   id: Scalars['ID']['output'];
-  /** Pricing strategy. */
-  priceType: ProductComponentPriceType;
+  /** Set the component item price to zero. */
+  strategy: ProductComponentPriceStrategy;
 };
 
 export type ProductComponentGroup = Node & {
@@ -2919,6 +2921,16 @@ export enum ProductComponentLogicOperator {
   Or = 'OR'
 }
 
+export type ProductComponentOverridePriceRule = Node & ProductComponentPriceRule & {
+  __typename?: 'ProductComponentOverridePriceRule';
+  /** Currency-specific absolute prices. */
+  amounts: Array<ProductComponentPriceRuleAmount>;
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Replace the base price with a currency-specific absolute price. */
+  strategy: ProductComponentPriceStrategy;
+};
+
 export type ProductComponentPayload = {
   __typename?: 'ProductComponentPayload';
   product: Maybe<Product>;
@@ -2929,53 +2941,45 @@ export type ProductComponentPayload = {
 export type ProductComponentPriceRule = {
   /** The globally unique ID of the price rule. */
   id: Scalars['ID']['output'];
-  /** Pricing strategy. */
-  priceType: ProductComponentPriceType;
+  /** How this rule derives the component item price. */
+  strategy: ProductComponentPriceStrategy;
 };
 
 export type ProductComponentPriceRuleAmount = {
   __typename?: 'ProductComponentPriceRuleAmount';
-  /** Amount in minor units. */
+  /** Positive amount in minor units. */
   amountMinor: Scalars['BigInt']['output'];
   /** The currency code. */
   currency: CurrencyCode;
 };
 
 export type ProductComponentPriceRuleAmountInput = {
-  /** Amount in minor units. */
+  /** Positive amount in minor units. */
   amountMinor: Scalars['BigInt']['input'];
   /** The currency code. */
   currency: CurrencyCode;
 };
 
 export type ProductComponentPriceRuleInput = {
-  /** Money values for FIXED and DISCOUNT_FIXED rules. */
+  /** Currency-specific values for FIXED_AMOUNT adjustments and OVERRIDE rules. */
   amounts?: InputMaybe<Array<ProductComponentPriceRuleAmountInput>>;
   /** Existing price rule ID. Null creates a new price rule. */
   id?: InputMaybe<Scalars['ID']['input']>;
-  /** Percent value for DISCOUNT_PERCENT rules. */
-  percent?: InputMaybe<ProductComponentPriceRulePercentInput>;
-  /** Pricing strategy. */
-  priceType: ProductComponentPriceType;
+  /** Required for ADJUSTMENT rules. */
+  operation?: InputMaybe<PriceAdjustmentOperation>;
+  /** Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments. */
+  percentageBps?: InputMaybe<Scalars['Int']['input']>;
+  /** How this rule derives the component item price. */
+  strategy: ProductComponentPriceStrategy;
+  /** Required for ADJUSTMENT rules. */
+  valueType?: InputMaybe<PriceAdjustmentValueType>;
 };
 
-export type ProductComponentPriceRulePercent = {
-  __typename?: 'ProductComponentPriceRulePercent';
-  /** Percent value, 0..100. */
-  value: Scalars['Int']['output'];
-};
-
-export type ProductComponentPriceRulePercentInput = {
-  /** Percent value, 0..100. */
-  value: Scalars['Int']['input'];
-};
-
-export enum ProductComponentPriceType {
+export enum ProductComponentPriceStrategy {
+  Adjustment = 'ADJUSTMENT',
   Base = 'BASE',
-  DiscountFixed = 'DISCOUNT_FIXED',
-  DiscountPercent = 'DISCOUNT_PERCENT',
-  Fixed = 'FIXED',
-  Free = 'FREE'
+  Free = 'FREE',
+  Override = 'OVERRIDE'
 }
 
 export type ProductComponentPricingTemplate = Node & {
@@ -5070,8 +5074,8 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Category ) | ( Omit<Collection, 'media' | 'products'> & { media: Array<_RefType['CollectionMediaItem']>, products: _RefType['CollectionProductConnection'] } ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['Variant'] } ) | ( Omit<Product, 'categoryAssignments' | 'productComponent' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, productComponent?: Maybe<_RefType['ProductComponent']>, variants: _RefType['VariantConnection'] } ) | ( ProductComponentBasePriceRule ) | ( ProductComponentCondition ) | ( ProductComponentConditionGroup ) | ( Omit<ProductComponentConfiguration, 'dependencyRules' | 'groups' | 'pricingTemplates' | 'product' | 'variants'> & { dependencyRules: Array<_RefType['ProductComponentDependencyRule']>, groups: Array<_RefType['ProductComponentGroup']>, pricingTemplates: Array<_RefType['ProductComponentPricingTemplate']>, product: _RefType['Product'], variants: Array<_RefType['Variant']> } ) | ( Omit<ProductComponentDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['ProductComponentPriceRule']> } ) | ( Omit<ProductComponentDependencyRule, 'actions'> & { actions: Array<_RefType['ProductComponentDependencyAction']> } ) | ( ProductComponentDiscountFixedPriceRule ) | ( ProductComponentDiscountPercentPriceRule ) | ( ProductComponentFixedPriceRule ) | ( ProductComponentFreePriceRule ) | ( Omit<ProductComponentGroup, 'items'> & { items: Array<_RefType['ProductComponentItem']> } ) | ( Omit<ProductComponentItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: _RefType['ProductComponentGroup'], priceRule?: Maybe<_RefType['ProductComponentPriceRule']>, pricingTemplate?: Maybe<_RefType['ProductComponentPricingTemplate']>, refProduct?: Maybe<_RefType['Product']>, refVariant?: Maybe<_RefType['Variant']> } ) | ( ProductComponentItemOptionSelection ) | ( ProductComponentItemOptionValueSelection ) | ( Omit<ProductComponentPricingTemplate, 'priceRule'> & { priceRule: _RefType['ProductComponentPriceRule'] } ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'dimensions' | 'product' | 'productComponentConfiguration'> & { dimensions?: Maybe<_RefType['VariantDimensions']>, product: _RefType['Product'], productComponentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']> } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Warehouse ) | ( Omit<WarehouseStock, 'variant'> & { variant: _RefType['Variant'] } );
-  ProductComponentPriceRule: ( ProductComponentBasePriceRule ) | ( ProductComponentDiscountFixedPriceRule ) | ( ProductComponentDiscountPercentPriceRule ) | ( ProductComponentFixedPriceRule ) | ( ProductComponentFreePriceRule );
+  Node: ( Category ) | ( Omit<Collection, 'media' | 'products'> & { media: Array<_RefType['CollectionMediaItem']>, products: _RefType['CollectionProductConnection'] } ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['Variant'] } ) | ( Omit<Product, 'categoryAssignments' | 'productComponent' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, productComponent?: Maybe<_RefType['ProductComponent']>, variants: _RefType['VariantConnection'] } ) | ( ProductComponentAdjustmentPriceRule ) | ( ProductComponentBasePriceRule ) | ( ProductComponentCondition ) | ( ProductComponentConditionGroup ) | ( Omit<ProductComponentConfiguration, 'dependencyRules' | 'groups' | 'pricingTemplates' | 'product' | 'variants'> & { dependencyRules: Array<_RefType['ProductComponentDependencyRule']>, groups: Array<_RefType['ProductComponentGroup']>, pricingTemplates: Array<_RefType['ProductComponentPricingTemplate']>, product: _RefType['Product'], variants: Array<_RefType['Variant']> } ) | ( Omit<ProductComponentDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['ProductComponentPriceRule']> } ) | ( Omit<ProductComponentDependencyRule, 'actions'> & { actions: Array<_RefType['ProductComponentDependencyAction']> } ) | ( ProductComponentFreePriceRule ) | ( Omit<ProductComponentGroup, 'items'> & { items: Array<_RefType['ProductComponentItem']> } ) | ( Omit<ProductComponentItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: _RefType['ProductComponentGroup'], priceRule?: Maybe<_RefType['ProductComponentPriceRule']>, pricingTemplate?: Maybe<_RefType['ProductComponentPricingTemplate']>, refProduct?: Maybe<_RefType['Product']>, refVariant?: Maybe<_RefType['Variant']> } ) | ( ProductComponentItemOptionSelection ) | ( ProductComponentItemOptionValueSelection ) | ( ProductComponentOverridePriceRule ) | ( Omit<ProductComponentPricingTemplate, 'priceRule'> & { priceRule: _RefType['ProductComponentPriceRule'] } ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'dimensions' | 'product' | 'productComponentConfiguration'> & { dimensions?: Maybe<_RefType['VariantDimensions']>, product: _RefType['Product'], productComponentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']> } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Warehouse ) | ( Omit<WarehouseStock, 'variant'> & { variant: _RefType['Variant'] } );
+  ProductComponentPriceRule: ( ProductComponentAdjustmentPriceRule ) | ( ProductComponentBasePriceRule ) | ( ProductComponentFreePriceRule ) | ( ProductComponentOverridePriceRule );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
@@ -5192,6 +5196,8 @@ export type ResolversTypes = ResolversObject<{
   OperationType: OperationType;
   OptionDisplayType: OptionDisplayType;
   PageInfo: ResolverTypeWrapper<PageInfo>;
+  PriceAdjustmentOperation: PriceAdjustmentOperation;
+  PriceAdjustmentValueType: PriceAdjustmentValueType;
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: ResolverTypeWrapper<PricingWidgetPayload>;
   Product: ResolverTypeWrapper<Omit<Product, 'categoryAssignments' | 'productComponent' | 'variants'> & { categoryAssignments: Array<ResolversTypes['ProductCategoryAssignment']>, productComponent?: Maybe<ResolversTypes['ProductComponent']>, variants: ResolversTypes['VariantConnection'] }>;
@@ -5206,6 +5212,7 @@ export type ResolversTypes = ResolversObject<{
   ProductCategoryOperationAction: ProductCategoryOperationAction;
   ProductCategoryOperationInput: ProductCategoryOperationInput;
   ProductComponent: ResolverTypeWrapper<Omit<ProductComponent, 'configurations' | 'product'> & { configurations: Array<ResolversTypes['ProductComponentConfiguration']>, product: ResolversTypes['Product'] }>;
+  ProductComponentAdjustmentPriceRule: ResolverTypeWrapper<ProductComponentAdjustmentPriceRule>;
   ProductComponentBasePriceRule: ResolverTypeWrapper<ProductComponentBasePriceRule>;
   ProductComponentCondition: ResolverTypeWrapper<ProductComponentCondition>;
   ProductComponentConditionCategory: ProductComponentConditionCategory;
@@ -5228,10 +5235,7 @@ export type ResolversTypes = ResolversObject<{
   ProductComponentDependencyRulesSyncInput: ProductComponentDependencyRulesSyncInput;
   ProductComponentDependencyRulesSyncPayload: ResolverTypeWrapper<Omit<ProductComponentDependencyRulesSyncPayload, 'configuration' | 'dependencyRules' | 'productComponent'> & { configuration?: Maybe<ResolversTypes['ProductComponentConfiguration']>, dependencyRules: Array<ResolversTypes['ProductComponentDependencyRule']>, productComponent?: Maybe<ResolversTypes['ProductComponent']> }>;
   ProductComponentDependencyTargetType: ProductComponentDependencyTargetType;
-  ProductComponentDiscountFixedPriceRule: ResolverTypeWrapper<ProductComponentDiscountFixedPriceRule>;
-  ProductComponentDiscountPercentPriceRule: ResolverTypeWrapper<ProductComponentDiscountPercentPriceRule>;
   ProductComponentDisplayStyle: ProductComponentDisplayStyle;
-  ProductComponentFixedPriceRule: ResolverTypeWrapper<ProductComponentFixedPriceRule>;
   ProductComponentFreePriceRule: ResolverTypeWrapper<ProductComponentFreePriceRule>;
   ProductComponentGroup: ResolverTypeWrapper<Omit<ProductComponentGroup, 'items'> & { items: Array<ResolversTypes['ProductComponentItem']> }>;
   ProductComponentGroupSyncItemInput: ProductComponentGroupSyncItemInput;
@@ -5246,14 +5250,13 @@ export type ResolversTypes = ResolversObject<{
   ProductComponentItemSyncItemInput: ProductComponentItemSyncItemInput;
   ProductComponentItemType: ProductComponentItemType;
   ProductComponentLogicOperator: ProductComponentLogicOperator;
+  ProductComponentOverridePriceRule: ResolverTypeWrapper<ProductComponentOverridePriceRule>;
   ProductComponentPayload: ResolverTypeWrapper<Omit<ProductComponentPayload, 'product' | 'productComponent'> & { product?: Maybe<ResolversTypes['Product']>, productComponent?: Maybe<ResolversTypes['ProductComponent']> }>;
   ProductComponentPriceRule: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['ProductComponentPriceRule']>;
   ProductComponentPriceRuleAmount: ResolverTypeWrapper<ProductComponentPriceRuleAmount>;
   ProductComponentPriceRuleAmountInput: ProductComponentPriceRuleAmountInput;
   ProductComponentPriceRuleInput: ProductComponentPriceRuleInput;
-  ProductComponentPriceRulePercent: ResolverTypeWrapper<ProductComponentPriceRulePercent>;
-  ProductComponentPriceRulePercentInput: ProductComponentPriceRulePercentInput;
-  ProductComponentPriceType: ProductComponentPriceType;
+  ProductComponentPriceStrategy: ProductComponentPriceStrategy;
   ProductComponentPricingTemplate: ResolverTypeWrapper<Omit<ProductComponentPricingTemplate, 'priceRule'> & { priceRule: ResolversTypes['ProductComponentPriceRule'] }>;
   ProductComponentPricingTemplateSyncItemInput: ProductComponentPricingTemplateSyncItemInput;
   ProductComponentPricingTemplatesSyncInput: ProductComponentPricingTemplatesSyncInput;
@@ -5536,6 +5539,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductCategoryAssignment: ProductCategoryAssignment;
   ProductCategoryOperationInput: ProductCategoryOperationInput;
   ProductComponent: Omit<ProductComponent, 'configurations' | 'product'> & { configurations: Array<ResolversParentTypes['ProductComponentConfiguration']>, product: ResolversParentTypes['Product'] };
+  ProductComponentAdjustmentPriceRule: ProductComponentAdjustmentPriceRule;
   ProductComponentBasePriceRule: ProductComponentBasePriceRule;
   ProductComponentCondition: ProductComponentCondition;
   ProductComponentConditionGroup: ProductComponentConditionGroup;
@@ -5553,9 +5557,6 @@ export type ResolversParentTypes = ResolversObject<{
   ProductComponentDependencyRuleSyncItemInput: ProductComponentDependencyRuleSyncItemInput;
   ProductComponentDependencyRulesSyncInput: ProductComponentDependencyRulesSyncInput;
   ProductComponentDependencyRulesSyncPayload: Omit<ProductComponentDependencyRulesSyncPayload, 'configuration' | 'dependencyRules' | 'productComponent'> & { configuration?: Maybe<ResolversParentTypes['ProductComponentConfiguration']>, dependencyRules: Array<ResolversParentTypes['ProductComponentDependencyRule']>, productComponent?: Maybe<ResolversParentTypes['ProductComponent']> };
-  ProductComponentDiscountFixedPriceRule: ProductComponentDiscountFixedPriceRule;
-  ProductComponentDiscountPercentPriceRule: ProductComponentDiscountPercentPriceRule;
-  ProductComponentFixedPriceRule: ProductComponentFixedPriceRule;
   ProductComponentFreePriceRule: ProductComponentFreePriceRule;
   ProductComponentGroup: Omit<ProductComponentGroup, 'items'> & { items: Array<ResolversParentTypes['ProductComponentItem']> };
   ProductComponentGroupSyncItemInput: ProductComponentGroupSyncItemInput;
@@ -5567,13 +5568,12 @@ export type ResolversParentTypes = ResolversObject<{
   ProductComponentItemOptionValueSelection: ProductComponentItemOptionValueSelection;
   ProductComponentItemOptionValueSelectionSyncItemInput: ProductComponentItemOptionValueSelectionSyncItemInput;
   ProductComponentItemSyncItemInput: ProductComponentItemSyncItemInput;
+  ProductComponentOverridePriceRule: ProductComponentOverridePriceRule;
   ProductComponentPayload: Omit<ProductComponentPayload, 'product' | 'productComponent'> & { product?: Maybe<ResolversParentTypes['Product']>, productComponent?: Maybe<ResolversParentTypes['ProductComponent']> };
   ProductComponentPriceRule: ResolversInterfaceTypes<ResolversParentTypes>['ProductComponentPriceRule'];
   ProductComponentPriceRuleAmount: ProductComponentPriceRuleAmount;
   ProductComponentPriceRuleAmountInput: ProductComponentPriceRuleAmountInput;
   ProductComponentPriceRuleInput: ProductComponentPriceRuleInput;
-  ProductComponentPriceRulePercent: ProductComponentPriceRulePercent;
-  ProductComponentPriceRulePercentInput: ProductComponentPriceRulePercentInput;
   ProductComponentPricingTemplate: Omit<ProductComponentPricingTemplate, 'priceRule'> & { priceRule: ResolversParentTypes['ProductComponentPriceRule'] };
   ProductComponentPricingTemplateSyncItemInput: ProductComponentPricingTemplateSyncItemInput;
   ProductComponentPricingTemplatesSyncInput: ProductComponentPricingTemplatesSyncInput;
@@ -6142,7 +6142,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Category' | 'Collection' | 'InventoryItem' | 'Product' | 'ProductComponentBasePriceRule' | 'ProductComponentCondition' | 'ProductComponentConditionGroup' | 'ProductComponentConfiguration' | 'ProductComponentDependencyAction' | 'ProductComponentDependencyRule' | 'ProductComponentDiscountFixedPriceRule' | 'ProductComponentDiscountPercentPriceRule' | 'ProductComponentFixedPriceRule' | 'ProductComponentFreePriceRule' | 'ProductComponentGroup' | 'ProductComponentItem' | 'ProductComponentItemOptionSelection' | 'ProductComponentItemOptionValueSelection' | 'ProductComponentPricingTemplate' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Category' | 'Collection' | 'InventoryItem' | 'Product' | 'ProductComponentAdjustmentPriceRule' | 'ProductComponentBasePriceRule' | 'ProductComponentCondition' | 'ProductComponentConditionGroup' | 'ProductComponentConfiguration' | 'ProductComponentDependencyAction' | 'ProductComponentDependencyRule' | 'ProductComponentFreePriceRule' | 'ProductComponentGroup' | 'ProductComponentItem' | 'ProductComponentItemOptionSelection' | 'ProductComponentItemOptionValueSelection' | 'ProductComponentOverridePriceRule' | 'ProductComponentPricingTemplate' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -6247,10 +6247,21 @@ export type ProductComponentResolvers<ContextType = ServiceContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ProductComponentAdjustmentPriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentAdjustmentPriceRule'] = ResolversParentTypes['ProductComponentAdjustmentPriceRule']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductComponentAdjustmentPriceRule']>, { __typename: 'ProductComponentAdjustmentPriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  amounts?: Resolver<Array<ResolversTypes['ProductComponentPriceRuleAmount']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  operation?: Resolver<ResolversTypes['PriceAdjustmentOperation'], ParentType, ContextType>;
+  percentageBps?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  strategy?: Resolver<ResolversTypes['ProductComponentPriceStrategy'], ParentType, ContextType>;
+  valueType?: Resolver<ResolversTypes['PriceAdjustmentValueType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type ProductComponentBasePriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentBasePriceRule'] = ResolversParentTypes['ProductComponentBasePriceRule']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductComponentBasePriceRule']>, { __typename: 'ProductComponentBasePriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  priceType?: Resolver<ResolversTypes['ProductComponentPriceType'], ParentType, ContextType>;
+  strategy?: Resolver<ResolversTypes['ProductComponentPriceStrategy'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -6341,34 +6352,10 @@ export type ProductComponentDependencyRulesSyncPayloadResolvers<ContextType = Se
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductComponentDiscountFixedPriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentDiscountFixedPriceRule'] = ResolversParentTypes['ProductComponentDiscountFixedPriceRule']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductComponentDiscountFixedPriceRule']>, { __typename: 'ProductComponentDiscountFixedPriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  amounts?: Resolver<Array<ResolversTypes['ProductComponentPriceRuleAmount']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  priceType?: Resolver<ResolversTypes['ProductComponentPriceType'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProductComponentDiscountPercentPriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentDiscountPercentPriceRule'] = ResolversParentTypes['ProductComponentDiscountPercentPriceRule']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductComponentDiscountPercentPriceRule']>, { __typename: 'ProductComponentDiscountPercentPriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  percent?: Resolver<ResolversTypes['ProductComponentPriceRulePercent'], ParentType, ContextType>;
-  priceType?: Resolver<ResolversTypes['ProductComponentPriceType'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProductComponentFixedPriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentFixedPriceRule'] = ResolversParentTypes['ProductComponentFixedPriceRule']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductComponentFixedPriceRule']>, { __typename: 'ProductComponentFixedPriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  amounts?: Resolver<Array<ResolversTypes['ProductComponentPriceRuleAmount']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  priceType?: Resolver<ResolversTypes['ProductComponentPriceType'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type ProductComponentFreePriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentFreePriceRule'] = ResolversParentTypes['ProductComponentFreePriceRule']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductComponentFreePriceRule']>, { __typename: 'ProductComponentFreePriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  priceType?: Resolver<ResolversTypes['ProductComponentPriceType'], ParentType, ContextType>;
+  strategy?: Resolver<ResolversTypes['ProductComponentPriceStrategy'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -6442,6 +6429,14 @@ export type ProductComponentItemOptionValueSelectionResolvers<ContextType = Serv
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ProductComponentOverridePriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentOverridePriceRule'] = ResolversParentTypes['ProductComponentOverridePriceRule']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductComponentOverridePriceRule']>, { __typename: 'ProductComponentOverridePriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  amounts?: Resolver<Array<ResolversTypes['ProductComponentPriceRuleAmount']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  strategy?: Resolver<ResolversTypes['ProductComponentPriceStrategy'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type ProductComponentPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentPayload'] = ResolversParentTypes['ProductComponentPayload']> = ResolversObject<{
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   productComponent?: Resolver<Maybe<ResolversTypes['ProductComponent']>, ParentType, ContextType>;
@@ -6450,19 +6445,14 @@ export type ProductComponentPayloadResolvers<ContextType = ServiceContext, Paren
 }>;
 
 export type ProductComponentPriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentPriceRule'] = ResolversParentTypes['ProductComponentPriceRule']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'ProductComponentBasePriceRule' | 'ProductComponentDiscountFixedPriceRule' | 'ProductComponentDiscountPercentPriceRule' | 'ProductComponentFixedPriceRule' | 'ProductComponentFreePriceRule', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'ProductComponentAdjustmentPriceRule' | 'ProductComponentBasePriceRule' | 'ProductComponentFreePriceRule' | 'ProductComponentOverridePriceRule', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  priceType?: Resolver<ResolversTypes['ProductComponentPriceType'], ParentType, ContextType>;
+  strategy?: Resolver<ResolversTypes['ProductComponentPriceStrategy'], ParentType, ContextType>;
 }>;
 
 export type ProductComponentPriceRuleAmountResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentPriceRuleAmount'] = ResolversParentTypes['ProductComponentPriceRuleAmount']> = ResolversObject<{
   amountMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   currency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProductComponentPriceRulePercentResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComponentPriceRulePercent'] = ResolversParentTypes['ProductComponentPriceRulePercent']> = ResolversObject<{
-  value?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -7063,6 +7053,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductBulkUpdatePayload?: ProductBulkUpdatePayloadResolvers<ContextType>;
   ProductCategoryAssignment?: ProductCategoryAssignmentResolvers<ContextType>;
   ProductComponent?: ProductComponentResolvers<ContextType>;
+  ProductComponentAdjustmentPriceRule?: ProductComponentAdjustmentPriceRuleResolvers<ContextType>;
   ProductComponentBasePriceRule?: ProductComponentBasePriceRuleResolvers<ContextType>;
   ProductComponentCondition?: ProductComponentConditionResolvers<ContextType>;
   ProductComponentConditionGroup?: ProductComponentConditionGroupResolvers<ContextType>;
@@ -7072,19 +7063,16 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductComponentDependencyAction?: ProductComponentDependencyActionResolvers<ContextType>;
   ProductComponentDependencyRule?: ProductComponentDependencyRuleResolvers<ContextType>;
   ProductComponentDependencyRulesSyncPayload?: ProductComponentDependencyRulesSyncPayloadResolvers<ContextType>;
-  ProductComponentDiscountFixedPriceRule?: ProductComponentDiscountFixedPriceRuleResolvers<ContextType>;
-  ProductComponentDiscountPercentPriceRule?: ProductComponentDiscountPercentPriceRuleResolvers<ContextType>;
-  ProductComponentFixedPriceRule?: ProductComponentFixedPriceRuleResolvers<ContextType>;
   ProductComponentFreePriceRule?: ProductComponentFreePriceRuleResolvers<ContextType>;
   ProductComponentGroup?: ProductComponentGroupResolvers<ContextType>;
   ProductComponentGroupsSyncPayload?: ProductComponentGroupsSyncPayloadResolvers<ContextType>;
   ProductComponentItem?: ProductComponentItemResolvers<ContextType>;
   ProductComponentItemOptionSelection?: ProductComponentItemOptionSelectionResolvers<ContextType>;
   ProductComponentItemOptionValueSelection?: ProductComponentItemOptionValueSelectionResolvers<ContextType>;
+  ProductComponentOverridePriceRule?: ProductComponentOverridePriceRuleResolvers<ContextType>;
   ProductComponentPayload?: ProductComponentPayloadResolvers<ContextType>;
   ProductComponentPriceRule?: ProductComponentPriceRuleResolvers<ContextType>;
   ProductComponentPriceRuleAmount?: ProductComponentPriceRuleAmountResolvers<ContextType>;
-  ProductComponentPriceRulePercent?: ProductComponentPriceRulePercentResolvers<ContextType>;
   ProductComponentPricingTemplate?: ProductComponentPricingTemplateResolvers<ContextType>;
   ProductComponentPricingTemplatesSyncPayload?: ProductComponentPricingTemplatesSyncPayloadResolvers<ContextType>;
   ProductComponentRemovePayload?: ProductComponentRemovePayloadResolvers<ContextType>;

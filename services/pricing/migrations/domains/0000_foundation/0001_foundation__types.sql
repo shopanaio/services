@@ -41,9 +41,18 @@ CREATE TYPE "pricing"."discount_code_status" AS ENUM (
   'DISABLED'
 );
 
-CREATE TYPE "pricing"."discount_value_type" AS ENUM (
+CREATE TYPE "pricing"."price_adjustment_operation" AS ENUM (
+  'DECREASE',
+  'INCREASE'
+);
+
+CREATE TYPE "pricing"."price_adjustment_value_type" AS ENUM (
   'PERCENTAGE',
-  'FIXED_AMOUNT',
+  'FIXED_AMOUNT'
+);
+
+CREATE TYPE "pricing"."discount_benefit_strategy" AS ENUM (
+  'ADJUSTMENT',
   'FREE'
 );
 

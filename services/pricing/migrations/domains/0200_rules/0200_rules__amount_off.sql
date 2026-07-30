@@ -3,7 +3,8 @@
 CREATE TABLE "pricing"."discount_amount_off" (
   "discount_id" uuid PRIMARY KEY,
   "store_id" uuid NOT NULL,
-  "value_type" "pricing"."discount_value_type" NOT NULL,
+  "operation" "pricing"."price_adjustment_operation" NOT NULL,
+  "value_type" "pricing"."price_adjustment_value_type" NOT NULL,
   "percentage_bps" smallint,
   "amount_minor" bigint,
   "allocation_method" "pricing"."discount_allocation_method" NOT NULL DEFAULT 'ACROSS',
@@ -13,8 +14,8 @@ CREATE TABLE "pricing"."discount_amount_off" (
     FOREIGN KEY ("discount_id")
     REFERENCES "pricing"."discount" ("id")
     ON DELETE CASCADE,
-  CONSTRAINT "discount_amount_off_value_type_check"
-    CHECK ("value_type" IN ('PERCENTAGE', 'FIXED_AMOUNT')),
+  CONSTRAINT "discount_amount_off_operation_check"
+    CHECK ("operation" = 'DECREASE'),
   CONSTRAINT "discount_amount_off_value_check"
     CHECK (
       (

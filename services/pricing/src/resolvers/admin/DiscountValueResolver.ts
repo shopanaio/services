@@ -25,6 +25,7 @@ import {
 export class DiscountAmountOffRuleResolver extends PricingType<
   Extract<DiscountRuleReadModel, { kind: "AMOUNT_OFF" }>["value"]
 > {
+  operation() { return this.$props.operation; }
   valueType() { return this.$props.valueType; }
   percentageBps() { return this.$props.percentageBps; }
   amountMinor() { return toGraphqlBigInt(this.$props.amountMinor); }
@@ -43,6 +44,8 @@ export class DiscountBuyXGetYRuleResolver extends PricingType<
     return toGraphqlBigInt(this.$props.requiredSubtotalMinor);
   }
   benefitQuantity() { return this.$props.benefitQuantity; }
+  benefitStrategy() { return this.$props.benefitStrategy; }
+  benefitOperation() { return this.$props.benefitOperation; }
   benefitValueType() { return this.$props.benefitValueType; }
   benefitPercentageBps() { return this.$props.benefitPercentageBps; }
   benefitAmountMinor() {

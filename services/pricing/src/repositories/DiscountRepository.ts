@@ -242,6 +242,7 @@ export interface DiscountCreateWriteInput {
 export type DiscountRuleWriteInput =
   | {
       type: "amountOff";
+      operation: "DECREASE";
       valueType: "PERCENTAGE" | "FIXED_AMOUNT";
       percentageBps: number | null;
       amountMinor: bigint | null;
@@ -254,7 +255,9 @@ export type DiscountRuleWriteInput =
       requiredQuantity: number | null;
       requiredSubtotalMinor: bigint | null;
       benefitQuantity: number;
-      benefitValueType: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE";
+      benefitStrategy: "ADJUSTMENT" | "FREE";
+      benefitOperation: "DECREASE" | null;
+      benefitValueType: "PERCENTAGE" | "FIXED_AMOUNT" | null;
       benefitPercentageBps: number | null;
       benefitAmountMinor: bigint | null;
       usesPerOrderLimit: number | null;
@@ -667,6 +670,7 @@ export class DiscountRepository extends BaseRepository {
       await this.connection.insert(discountAmountOff).values({
         discountId: id,
         storeId: this.storeId,
+        operation: input.operation,
         valueType: input.valueType,
         percentageBps: input.percentageBps,
         amountMinor: input.amountMinor,
@@ -681,6 +685,8 @@ export class DiscountRepository extends BaseRepository {
         requiredQuantity: input.requiredQuantity,
         requiredSubtotalMinor: input.requiredSubtotalMinor,
         benefitQuantity: input.benefitQuantity,
+        benefitStrategy: input.benefitStrategy,
+        benefitOperation: input.benefitOperation,
         benefitValueType: input.benefitValueType,
         benefitPercentageBps: input.benefitPercentageBps,
         benefitAmountMinor: input.benefitAmountMinor,

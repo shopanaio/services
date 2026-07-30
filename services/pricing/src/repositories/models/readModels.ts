@@ -12,6 +12,7 @@ import {
 import {
   currencyCodeEnum,
   discountAllocationMethodEnum,
+  discountBenefitStrategyEnum,
   discountBuyerContextTypeEnum,
   discountClassEnum,
   discountCodeStatusEnum,
@@ -20,7 +21,8 @@ import {
   discountMethodEnum,
   discountRequirementTypeEnum,
   discountStateEnum,
-  discountValueTypeEnum,
+  priceAdjustmentOperationEnum,
+  priceAdjustmentValueTypeEnum,
   pricingSchema,
 } from "./schema.js";
 
@@ -107,7 +109,8 @@ export const discountListView = pricingSchema
 export const discountConfigurationView = pricingSchema
   .view("discount_configuration_view", {
     ...discountListColumns,
-    amountOffValueType: discountValueTypeEnum("amount_off_value_type"),
+    amountOffOperation: priceAdjustmentOperationEnum("amount_off_operation"),
+    amountOffValueType: priceAdjustmentValueTypeEnum("amount_off_value_type"),
     amountOffPercentageBps: smallint("amount_off_percentage_bps"),
     amountOffAmountMinor: bigint("amount_off_amount_minor", {
       mode: "bigint",
@@ -124,7 +127,9 @@ export const discountConfigurationView = pricingSchema
       mode: "bigint",
     }),
     benefitQuantity: integer("benefit_quantity"),
-    benefitValueType: discountValueTypeEnum("benefit_value_type"),
+    benefitStrategy: discountBenefitStrategyEnum("benefit_strategy"),
+    benefitOperation: priceAdjustmentOperationEnum("benefit_operation"),
+    benefitValueType: priceAdjustmentValueTypeEnum("benefit_value_type"),
     benefitPercentageBps: smallint("benefit_percentage_bps"),
     benefitAmountMinor: bigint("benefit_amount_minor", { mode: "bigint" }),
     usesPerOrderLimit: integer("uses_per_order_limit"),

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BigIntFilter, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, DiscountAllocationMethod, DiscountAllocationTargetType, DiscountAmountOffRuleInput, DiscountBuyXGetYRuleInput, DiscountBuyerContextInput, DiscountBuyerContextType, DiscountChannelInput, DiscountClass, DiscountClassFilter, DiscountCodeCreateOperationInput, DiscountCodeDeleteOperationInput, DiscountCodeOrderByInput, DiscountCodeOrderField, DiscountCodeStatus, DiscountCodeStatusFilter, DiscountCodeUpdateOperationInput, DiscountCodeWhereInput, DiscountCodesUpdateInput, DiscountCreateInput, DiscountCurrencyFilter, DiscountDefinitionUpdateInput, DiscountDeleteInput, DiscountEffectiveStatus, DiscountEffectiveStatusFilter, DiscountExternalReferenceCreateInput, DiscountExternalReferenceDeleteInput, DiscountExternalReferenceIdentityInput, DiscountExternalReferenceOrderByInput, DiscountExternalReferenceOrderField, DiscountExternalReferenceSyncInput, DiscountExternalReferenceUpdateInput, DiscountExternalReferenceWhereInput, DiscountExternalSyncDirection, DiscountExternalSyncDirectionFilter, DiscountExternalSyncStatus, DiscountExternalSyncStatusFilter, DiscountFreeShippingRuleInput, DiscountKind, DiscountKindFilter, DiscountLifecycleUpdateInput, DiscountMethod, DiscountMethodFilter, DiscountMinimumRequirementInput, DiscountMinimumRequirementSyncInput, DiscountOperationType, DiscountOrderByInput, DiscountOrderField, DiscountPurchaseModesInput, DiscountRedemptionOrderByInput, DiscountRedemptionOrderField, DiscountRedemptionStatus, DiscountRedemptionStatusFilter, DiscountRedemptionWhereInput, DiscountReferenceStatus, DiscountRequirementType, DiscountReservationStatus, DiscountReservationStatusFilter, DiscountRuleInput, DiscountScheduleInput, DiscountState, DiscountStateFilter, DiscountTargetRole, DiscountTargetSelectionInput, DiscountTargetType, DiscountUpdateInput, DiscountUsageLimitsInput, DiscountUsageReservationOrderByInput, DiscountUsageReservationOrderField, DiscountUsageReservationWhereInput, DiscountValueType, DiscountWhereInput, IdFilter, IntFilter, LocaleCode, SortDirection, StringFilter, WeightUnit } from './types.js'
+import { BigIntFilter, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, DiscountAllocationMethod, DiscountAllocationTargetType, DiscountAmountOffRuleInput, DiscountBenefitStrategy, DiscountBuyXGetYRuleInput, DiscountBuyerContextInput, DiscountBuyerContextType, DiscountChannelInput, DiscountClass, DiscountClassFilter, DiscountCodeCreateOperationInput, DiscountCodeDeleteOperationInput, DiscountCodeOrderByInput, DiscountCodeOrderField, DiscountCodeStatus, DiscountCodeStatusFilter, DiscountCodeUpdateOperationInput, DiscountCodeWhereInput, DiscountCodesUpdateInput, DiscountCreateInput, DiscountCurrencyFilter, DiscountDefinitionUpdateInput, DiscountDeleteInput, DiscountEffectiveStatus, DiscountEffectiveStatusFilter, DiscountExternalReferenceCreateInput, DiscountExternalReferenceDeleteInput, DiscountExternalReferenceIdentityInput, DiscountExternalReferenceOrderByInput, DiscountExternalReferenceOrderField, DiscountExternalReferenceSyncInput, DiscountExternalReferenceUpdateInput, DiscountExternalReferenceWhereInput, DiscountExternalSyncDirection, DiscountExternalSyncDirectionFilter, DiscountExternalSyncStatus, DiscountExternalSyncStatusFilter, DiscountFreeShippingRuleInput, DiscountKind, DiscountKindFilter, DiscountLifecycleUpdateInput, DiscountMethod, DiscountMethodFilter, DiscountMinimumRequirementInput, DiscountMinimumRequirementSyncInput, DiscountOperationType, DiscountOrderByInput, DiscountOrderField, DiscountPurchaseModesInput, DiscountRedemptionOrderByInput, DiscountRedemptionOrderField, DiscountRedemptionStatus, DiscountRedemptionStatusFilter, DiscountRedemptionWhereInput, DiscountReferenceStatus, DiscountRequirementType, DiscountReservationStatus, DiscountReservationStatusFilter, DiscountRuleInput, DiscountScheduleInput, DiscountState, DiscountStateFilter, DiscountTargetRole, DiscountTargetSelectionInput, DiscountTargetType, DiscountUpdateInput, DiscountUsageLimitsInput, DiscountUsageReservationOrderByInput, DiscountUsageReservationOrderField, DiscountUsageReservationWhereInput, DiscountWhereInput, IdFilter, IntFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -18,6 +18,8 @@ export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
 export const DiscountAllocationMethodSchema = z.nativeEnum(DiscountAllocationMethod);
 
 export const DiscountAllocationTargetTypeSchema = z.nativeEnum(DiscountAllocationTargetType);
+
+export const DiscountBenefitStrategySchema = z.nativeEnum(DiscountBenefitStrategy);
 
 export const DiscountBuyerContextTypeSchema = z.nativeEnum(DiscountBuyerContextType);
 
@@ -61,9 +63,11 @@ export const DiscountTargetTypeSchema = z.nativeEnum(DiscountTargetType);
 
 export const DiscountUsageReservationOrderFieldSchema = z.nativeEnum(DiscountUsageReservationOrderField);
 
-export const DiscountValueTypeSchema = z.nativeEnum(DiscountValueType);
-
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
+
+export const PriceAdjustmentOperationSchema = z.nativeEnum(PriceAdjustmentOperation);
+
+export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueType);
 
 export const SortDirectionSchema = z.nativeEnum(SortDirection);
 
@@ -115,17 +119,20 @@ export function DiscountAmountOffRuleInputSchema(): z.ZodObject<Properties<Disco
     allocationMethod: DiscountAllocationMethodSchema.nullish(),
     amountMinor: z.string().nullish(),
     maximumDiscountMinor: z.string().nullish(),
+    operation: PriceAdjustmentOperationSchema,
     percentageBps: z.number().nullish(),
-    valueType: DiscountValueTypeSchema
+    valueType: PriceAdjustmentValueTypeSchema
   })
 }
 
 export function DiscountBuyXGetYRuleInputSchema(): z.ZodObject<Properties<DiscountBuyXGetYRuleInput>> {
   return z.object({
     benefitAmountMinor: z.string().nullish(),
+    benefitOperation: PriceAdjustmentOperationSchema.nullish(),
     benefitPercentageBps: z.number().nullish(),
     benefitQuantity: z.number(),
-    benefitValueType: DiscountValueTypeSchema,
+    benefitStrategy: DiscountBenefitStrategySchema,
+    benefitValueType: PriceAdjustmentValueTypeSchema.nullish(),
     requiredQuantity: z.number().nullish(),
     requiredSubtotalMinor: z.string().nullish(),
     requirementType: DiscountRequirementTypeSchema,

@@ -71,6 +71,13 @@ function mapRuleInput(
       errors,
     );
     const percentageBps = input.amountOff.percentageBps ?? null;
+    if (input.amountOff.operation !== "DECREASE") {
+      errors.push({
+        message: "Discount amount-off rules must decrease the base price",
+        code: "INVALID_RULE_VALUE",
+        field: ["amountOff", "operation"],
+      });
+    }
     if (
       input.amountOff.valueType === "PERCENTAGE" &&
       (!percentageBps ||
@@ -96,19 +103,11 @@ function mapRuleInput(
         field: ["amountOff"],
       });
     }
-    if (input.amountOff.valueType === "FREE") {
-      errors.push({
-        message: "Amount-off rules cannot use FREE as their value type",
-        code: "INVALID_RULE_VALUE",
-        field: ["amountOff", "valueType"],
-      });
-    }
     return {
       value: {
         type: "amountOff",
-        valueType: input.amountOff.valueType as
-          | "PERCENTAGE"
-          | "FIXED_AMOUNT",
+        operation: "DECREASE",
+        valueType: input.amountOff.valueType,
         percentageBps,
         amountMinor,
         allocationMethod: input.amountOff.allocationMethod ?? "ACROSS",
@@ -139,6 +138,8 @@ function mapRuleInput(
     const requiredQuantity = input.buyXGetY.requiredQuantity ?? null;
     const benefitPercentageBps =
       input.buyXGetY.benefitPercentageBps ?? null;
+    const benefitOperation = input.buyXGetY.benefitOperation ?? null;
+    const benefitValueType = input.buyXGetY.benefitValueType ?? null;
     if (
       input.buyXGetY.requirementType === "QUANTITY" &&
       (!requiredQuantity ||
@@ -174,11 +175,13 @@ function mapRuleInput(
       });
     }
     if (
-      input.buyXGetY.benefitValueType === "PERCENTAGE" &&
+      input.buyXGetY.benefitStrategy === "ADJUSTMENT" &&
+      benefitValueType === "PERCENTAGE" &&
       (!benefitPercentageBps ||
         benefitPercentageBps < 1 ||
         benefitPercentageBps > 10_000 ||
-        benefitAmountMinor !== null)
+        benefitAmountMinor !== null ||
+        benefitOperation !== "DECREASE")
     ) {
       errors.push({
         message:
@@ -188,8 +191,11 @@ function mapRuleInput(
       });
     }
     if (
-      input.buyXGetY.benefitValueType === "FIXED_AMOUNT" &&
-      (benefitAmountMinor === null || benefitPercentageBps !== null)
+      input.buyXGetY.benefitStrategy === "ADJUSTMENT" &&
+      benefitValueType === "FIXED_AMOUNT" &&
+      (benefitAmountMinor === null ||
+        benefitPercentageBps !== null ||
+        benefitOperation !== "DECREASE")
     ) {
       errors.push({
         message:
@@ -199,8 +205,21 @@ function mapRuleInput(
       });
     }
     if (
-      input.buyXGetY.benefitValueType === "FREE" &&
-      (benefitAmountMinor !== null || benefitPercentageBps !== null)
+      input.buyXGetY.benefitStrategy === "ADJUSTMENT" &&
+      benefitValueType === null
+    ) {
+      errors.push({
+        message: "Adjustment benefits require a value type",
+        code: "INVALID_RULE_VALUE",
+        field: ["buyXGetY", "benefitValueType"],
+      });
+    }
+    if (
+      input.buyXGetY.benefitStrategy === "FREE" &&
+      (benefitAmountMinor !== null ||
+        benefitPercentageBps !== null ||
+        benefitOperation !== null ||
+        benefitValueType !== null)
     ) {
       errors.push({
         message: "Free benefits cannot include an amount or percentage",
@@ -226,7 +245,15 @@ function mapRuleInput(
         requiredQuantity,
         requiredSubtotalMinor,
         benefitQuantity: input.buyXGetY.benefitQuantity,
-        benefitValueType: input.buyXGetY.benefitValueType,
+        benefitStrategy: input.buyXGetY.benefitStrategy,
+        benefitOperation:
+          input.buyXGetY.benefitStrategy === "ADJUSTMENT"
+            ? "DECREASE"
+            : null,
+        benefitValueType:
+          input.buyXGetY.benefitStrategy === "ADJUSTMENT"
+            ? benefitValueType
+            : null,
         benefitPercentageBps,
         benefitAmountMinor,
         usesPerOrderLimit,

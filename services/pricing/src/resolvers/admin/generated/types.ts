@@ -518,8 +518,11 @@ export type DiscountAmountOffRule = {
   allocationMethod: DiscountAllocationMethod;
   amountMinor: Maybe<Scalars['BigInt']['output']>;
   maximumDiscountMinor: Maybe<Scalars['BigInt']['output']>;
+  /** Always DECREASE for a discount. */
+  operation: PriceAdjustmentOperation;
   percentageBps: Maybe<Scalars['Int']['output']>;
-  valueType: DiscountValueType;
+  /** Shared percentage or fixed-amount representation. */
+  valueType: PriceAdjustmentValueType;
 };
 
 export type DiscountAmountOffRuleInput = {
@@ -527,16 +530,29 @@ export type DiscountAmountOffRuleInput = {
   allocationMethod?: InputMaybe<DiscountAllocationMethod>;
   amountMinor?: InputMaybe<Scalars['BigInt']['input']>;
   maximumDiscountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  /** Must be DECREASE. */
+  operation: PriceAdjustmentOperation;
   percentageBps?: InputMaybe<Scalars['Int']['input']>;
-  valueType: DiscountValueType;
+  /** Shared percentage or fixed-amount representation. */
+  valueType: PriceAdjustmentValueType;
 };
+
+export enum DiscountBenefitStrategy {
+  Adjustment = 'ADJUSTMENT',
+  Free = 'FREE'
+}
 
 export type DiscountBuyXGetYRule = {
   __typename?: 'DiscountBuyXGetYRule';
   benefitAmountMinor: Maybe<Scalars['BigInt']['output']>;
+  /** DECREASE for ADJUSTMENT; null for FREE. */
+  benefitOperation: Maybe<PriceAdjustmentOperation>;
   benefitPercentageBps: Maybe<Scalars['Int']['output']>;
   benefitQuantity: Scalars['Int']['output'];
-  benefitValueType: DiscountValueType;
+  /** FREE or an arithmetic price adjustment. */
+  benefitStrategy: DiscountBenefitStrategy;
+  /** Required for ADJUSTMENT; null for FREE. */
+  benefitValueType: Maybe<PriceAdjustmentValueType>;
   requiredQuantity: Maybe<Scalars['Int']['output']>;
   requiredSubtotalMinor: Maybe<Scalars['BigInt']['output']>;
   requirementType: DiscountRequirementType;
@@ -545,9 +561,14 @@ export type DiscountBuyXGetYRule = {
 
 export type DiscountBuyXGetYRuleInput = {
   benefitAmountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  /** Must be DECREASE for ADJUSTMENT and null for FREE. */
+  benefitOperation?: InputMaybe<PriceAdjustmentOperation>;
   benefitPercentageBps?: InputMaybe<Scalars['Int']['input']>;
   benefitQuantity: Scalars['Int']['input'];
-  benefitValueType: DiscountValueType;
+  /** FREE or an arithmetic price adjustment. */
+  benefitStrategy: DiscountBenefitStrategy;
+  /** Required for ADJUSTMENT and null for FREE. */
+  benefitValueType?: InputMaybe<PriceAdjustmentValueType>;
   requiredQuantity?: InputMaybe<Scalars['Int']['input']>;
   requiredSubtotalMinor?: InputMaybe<Scalars['BigInt']['input']>;
   requirementType: DiscountRequirementType;
@@ -1387,12 +1408,6 @@ export type DiscountUsageSummary = {
   version: Maybe<Scalars['BigInt']['output']>;
 };
 
-export enum DiscountValueType {
-  FixedAmount = 'FIXED_AMOUNT',
-  Free = 'FREE',
-  Percentage = 'PERCENTAGE'
-}
-
 /** Filters backed by pricing.discount_list_view and store-scoped relations. */
 export type DiscountWhereInput = {
   _and?: InputMaybe<Array<DiscountWhereInput>>;
@@ -1760,6 +1775,22 @@ export type PageInfo = {
   startCursor: Maybe<Scalars['String']['output']>;
 };
 
+/** Direction in which a price adjustment changes the base price. */
+export enum PriceAdjustmentOperation {
+  /** Subtract the calculated value from the base price. */
+  Decrease = 'DECREASE',
+  /** Add the calculated value to the base price. */
+  Increase = 'INCREASE'
+}
+
+/** Representation used to calculate a price adjustment. */
+export enum PriceAdjustmentValueType {
+  /** Use a monetary value expressed in minor currency units. */
+  FixedAmount = 'FIXED_AMOUNT',
+  /** Calculate the value from basis points where 10000 equals 100%. */
+  Percentage = 'PERCENTAGE'
+}
+
 /** Store-scoped pricing commands. */
 export type PricingMutation = {
   __typename?: 'PricingMutation';
@@ -2107,6 +2138,7 @@ export type ResolversTypes = ResolversObject<{
   DiscountAllocationTargetType: DiscountAllocationTargetType;
   DiscountAmountOffRule: ResolverTypeWrapper<DiscountAmountOffRule>;
   DiscountAmountOffRuleInput: DiscountAmountOffRuleInput;
+  DiscountBenefitStrategy: DiscountBenefitStrategy;
   DiscountBuyXGetYRule: ResolverTypeWrapper<DiscountBuyXGetYRule>;
   DiscountBuyXGetYRuleInput: DiscountBuyXGetYRuleInput;
   DiscountBuyerContext: ResolverTypeWrapper<DiscountBuyerContext>;
@@ -2208,7 +2240,6 @@ export type ResolversTypes = ResolversObject<{
   DiscountUsageReservationOrderField: DiscountUsageReservationOrderField;
   DiscountUsageReservationWhereInput: DiscountUsageReservationWhereInput;
   DiscountUsageSummary: ResolverTypeWrapper<DiscountUsageSummary>;
-  DiscountValueType: DiscountValueType;
   DiscountWhereInput: DiscountWhereInput;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   IDFilter: IdFilter;
@@ -2218,6 +2249,8 @@ export type ResolversTypes = ResolversObject<{
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
+  PriceAdjustmentOperation: PriceAdjustmentOperation;
+  PriceAdjustmentValueType: PriceAdjustmentValueType;
   PricingMutation: ResolverTypeWrapper<Omit<PricingMutation, 'discountCreate' | 'discountUpdate'> & { discountCreate: ResolversTypes['DiscountCreatePayload'], discountUpdate: ResolversTypes['DiscountUpdatePayload'] }>;
   PricingQuery: ResolverTypeWrapper<Omit<PricingQuery, 'discount' | 'discountCode' | 'discountCodes' | 'discounts' | 'node' | 'nodes'> & { discount?: Maybe<ResolversTypes['Discount']>, discountCode?: Maybe<ResolversTypes['DiscountCode']>, discountCodes: ResolversTypes['DiscountCodeConnection'], discounts: ResolversTypes['DiscountConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   Product: ResolverTypeWrapper<Product>;
@@ -2413,16 +2446,19 @@ export type DiscountAmountOffRuleResolvers<ContextType = ServiceContext, ParentT
   allocationMethod?: Resolver<ResolversTypes['DiscountAllocationMethod'], ParentType, ContextType>;
   amountMinor?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
   maximumDiscountMinor?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
+  operation?: Resolver<ResolversTypes['PriceAdjustmentOperation'], ParentType, ContextType>;
   percentageBps?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  valueType?: Resolver<ResolversTypes['DiscountValueType'], ParentType, ContextType>;
+  valueType?: Resolver<ResolversTypes['PriceAdjustmentValueType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type DiscountBuyXGetYRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DiscountBuyXGetYRule'] = ResolversParentTypes['DiscountBuyXGetYRule']> = ResolversObject<{
   benefitAmountMinor?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
+  benefitOperation?: Resolver<Maybe<ResolversTypes['PriceAdjustmentOperation']>, ParentType, ContextType>;
   benefitPercentageBps?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   benefitQuantity?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  benefitValueType?: Resolver<ResolversTypes['DiscountValueType'], ParentType, ContextType>;
+  benefitStrategy?: Resolver<ResolversTypes['DiscountBenefitStrategy'], ParentType, ContextType>;
+  benefitValueType?: Resolver<Maybe<ResolversTypes['PriceAdjustmentValueType']>, ParentType, ContextType>;
   requiredQuantity?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   requiredSubtotalMinor?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
   requirementType?: Resolver<ResolversTypes['DiscountRequirementType'], ParentType, ContextType>;

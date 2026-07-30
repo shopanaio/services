@@ -19,11 +19,10 @@ enum ProductComponentItemOptionValueSelectionStatus {
   UNAVAILABLE
 }
 
-enum ProductComponentPriceType {
+enum ProductComponentPriceStrategy {
   BASE
-  FIXED
-  DISCOUNT_PERCENT
-  DISCOUNT_FIXED
+  ADJUSTMENT
+  OVERRIDE
   FREE
 }
 
@@ -258,48 +257,46 @@ interface ProductComponentPriceRule implements Node {
   """The globally unique ID of the price rule."""
   id: ID!
 
-  """Pricing strategy."""
-  priceType: ProductComponentPriceType!
+  """How this rule derives the component item price."""
+  strategy: ProductComponentPriceStrategy!
 }
 
 type ProductComponentBasePriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
   """The globally unique ID of the price rule."""
   id: ID!
 
-  """Pricing strategy."""
-  priceType: ProductComponentPriceType!
+  """Use the referenced product or variant base price."""
+  strategy: ProductComponentPriceStrategy!
 }
 
-type ProductComponentFixedPriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
+type ProductComponentAdjustmentPriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
   """The globally unique ID of the price rule."""
   id: ID!
 
-  """Pricing strategy."""
-  priceType: ProductComponentPriceType!
+  """Apply a fixed-amount or percentage adjustment to the base price."""
+  strategy: ProductComponentPriceStrategy!
 
-  """Money values for FIXED rules."""
+  """Whether the adjustment decreases or increases the base price."""
+  operation: PriceAdjustmentOperation!
+
+  """Whether the adjustment uses a percentage or fixed amount."""
+  valueType: PriceAdjustmentValueType!
+
+  """Currency-specific values for FIXED_AMOUNT adjustments."""
   amounts: [ProductComponentPriceRuleAmount!]!
+
+  """Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments."""
+  percentageBps: Int
 }
 
-type ProductComponentDiscountPercentPriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
+type ProductComponentOverridePriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
   """The globally unique ID of the price rule."""
   id: ID!
 
-  """Pricing strategy."""
-  priceType: ProductComponentPriceType!
+  """Replace the base price with a currency-specific absolute price."""
+  strategy: ProductComponentPriceStrategy!
 
-  """Percent row for DISCOUNT_PERCENT rules."""
-  percent: ProductComponentPriceRulePercent!
-}
-
-type ProductComponentDiscountFixedPriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
-  """The globally unique ID of the price rule."""
-  id: ID!
-
-  """Pricing strategy."""
-  priceType: ProductComponentPriceType!
-
-  """Money values for DISCOUNT_FIXED rules."""
+  """Currency-specific absolute prices."""
   amounts: [ProductComponentPriceRuleAmount!]!
 }
 
@@ -307,21 +304,16 @@ type ProductComponentFreePriceRule implements Node & ProductComponentPriceRule @
   """The globally unique ID of the price rule."""
   id: ID!
 
-  """Pricing strategy."""
-  priceType: ProductComponentPriceType!
+  """Set the component item price to zero."""
+  strategy: ProductComponentPriceStrategy!
 }
 
 type ProductComponentPriceRuleAmount {
   """The currency code."""
   currency: CurrencyCode!
 
-  """Amount in minor units."""
+  """Positive amount in minor units."""
   amountMinor: BigInt!
-}
-
-type ProductComponentPriceRulePercent {
-  """Percent value, 0..100."""
-  value: Int!
 }
 
 type ProductComponentPricingTemplate implements Node @key(fields: "id") {
@@ -643,27 +635,28 @@ input ProductComponentPriceRuleInput {
   """Existing price rule ID. Null creates a new price rule."""
   id: ID
 
-  """Pricing strategy."""
-  priceType: ProductComponentPriceType!
+  """How this rule derives the component item price."""
+  strategy: ProductComponentPriceStrategy!
 
-  """Money values for FIXED and DISCOUNT_FIXED rules."""
+  """Required for ADJUSTMENT rules."""
+  operation: PriceAdjustmentOperation
+
+  """Required for ADJUSTMENT rules."""
+  valueType: PriceAdjustmentValueType
+
+  """Currency-specific values for FIXED_AMOUNT adjustments and OVERRIDE rules."""
   amounts: [ProductComponentPriceRuleAmountInput!]
 
-  """Percent value for DISCOUNT_PERCENT rules."""
-  percent: ProductComponentPriceRulePercentInput
+  """Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments."""
+  percentageBps: Int
 }
 
 input ProductComponentPriceRuleAmountInput {
   """The currency code."""
   currency: CurrencyCode!
 
-  """Amount in minor units."""
+  """Positive amount in minor units."""
   amountMinor: BigInt!
-}
-
-input ProductComponentPriceRulePercentInput {
-  """Percent value, 0..100."""
-  value: Int!
 }
 
 input ProductComponentPricingTemplatesSyncInput {

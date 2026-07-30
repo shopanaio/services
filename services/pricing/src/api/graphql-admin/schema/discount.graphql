@@ -89,7 +89,11 @@ union DiscountRule =
 
 """Percentage or fixed-amount rule used by product and order discounts."""
 type DiscountAmountOffRule {
-  valueType: DiscountValueType!
+  """Always DECREASE for a discount."""
+  operation: PriceAdjustmentOperation!
+
+  """Shared percentage or fixed-amount representation."""
+  valueType: PriceAdjustmentValueType!
   percentageBps: Int
   amountMinor: BigInt
   allocationMethod: DiscountAllocationMethod!
@@ -101,7 +105,15 @@ type DiscountBuyXGetYRule {
   requiredQuantity: Int
   requiredSubtotalMinor: BigInt
   benefitQuantity: Int!
-  benefitValueType: DiscountValueType!
+
+  """FREE or an arithmetic price adjustment."""
+  benefitStrategy: DiscountBenefitStrategy!
+
+  """DECREASE for ADJUSTMENT; null for FREE."""
+  benefitOperation: PriceAdjustmentOperation
+
+  """Required for ADJUSTMENT; null for FREE."""
+  benefitValueType: PriceAdjustmentValueType
   benefitPercentageBps: Int
   benefitAmountMinor: BigInt
   usesPerOrderLimit: Int
@@ -183,7 +195,11 @@ type DiscountEdge {
 }
 
 input DiscountAmountOffRuleInput {
-  valueType: DiscountValueType!
+  """Must be DECREASE."""
+  operation: PriceAdjustmentOperation!
+
+  """Shared percentage or fixed-amount representation."""
+  valueType: PriceAdjustmentValueType!
   percentageBps: Int
   amountMinor: BigInt
   """Defaults to ACROSS when omitted."""
@@ -196,7 +212,15 @@ input DiscountBuyXGetYRuleInput {
   requiredQuantity: Int
   requiredSubtotalMinor: BigInt
   benefitQuantity: Int!
-  benefitValueType: DiscountValueType!
+
+  """FREE or an arithmetic price adjustment."""
+  benefitStrategy: DiscountBenefitStrategy!
+
+  """Must be DECREASE for ADJUSTMENT and null for FREE."""
+  benefitOperation: PriceAdjustmentOperation
+
+  """Required for ADJUSTMENT and null for FREE."""
+  benefitValueType: PriceAdjustmentValueType
   benefitPercentageBps: Int
   benefitAmountMinor: BigInt
   usesPerOrderLimit: Int

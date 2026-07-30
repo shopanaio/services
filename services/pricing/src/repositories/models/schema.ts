@@ -43,9 +43,19 @@ export const discountCodeStatusEnum = pricingSchema.enum(
   ["ACTIVE", "DISABLED"],
 );
 
-export const discountValueTypeEnum = pricingSchema.enum(
-  "discount_value_type",
-  ["PERCENTAGE", "FIXED_AMOUNT", "FREE"],
+export const priceAdjustmentOperationEnum = pricingSchema.enum(
+  "price_adjustment_operation",
+  ["DECREASE", "INCREASE"],
+);
+
+export const priceAdjustmentValueTypeEnum = pricingSchema.enum(
+  "price_adjustment_value_type",
+  ["PERCENTAGE", "FIXED_AMOUNT"],
+);
+
+export const discountBenefitStrategyEnum = pricingSchema.enum(
+  "discount_benefit_strategy",
+  ["ADJUSTMENT", "FREE"],
 );
 
 export const discountAllocationMethodEnum = pricingSchema.enum(

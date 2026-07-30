@@ -10,8 +10,10 @@ import {
 import { discount } from "./discounts.js";
 import {
   discountAllocationMethodEnum,
+  discountBenefitStrategyEnum,
   discountRequirementTypeEnum,
-  discountValueTypeEnum,
+  priceAdjustmentOperationEnum,
+  priceAdjustmentValueTypeEnum,
   pricingSchema,
 } from "./schema.js";
 
@@ -22,7 +24,8 @@ export const discountAmountOff = pricingSchema.table(
       .primaryKey()
       .references(() => discount.id, { onDelete: "cascade" }),
     storeId: uuid("store_id").notNull(),
-    valueType: discountValueTypeEnum("value_type").notNull(),
+    operation: priceAdjustmentOperationEnum("operation").notNull(),
+    valueType: priceAdjustmentValueTypeEnum("value_type").notNull(),
     percentageBps: smallint("percentage_bps"),
     amountMinor: bigint("amount_minor", { mode: "bigint" }),
     allocationMethod: discountAllocationMethodEnum("allocation_method")
@@ -34,8 +37,8 @@ export const discountAmountOff = pricingSchema.table(
   },
   (table) => [
     check(
-      "discount_amount_off_value_type_check",
-      sql`${table.valueType} IN ('PERCENTAGE', 'FIXED_AMOUNT')`,
+      "discount_amount_off_operation_check",
+      sql`${table.operation} = 'DECREASE'`,
     ),
     check(
       "discount_amount_off_value_check",
@@ -70,7 +73,9 @@ export const discountBuyXGetY = pricingSchema.table(
       mode: "bigint",
     }),
     benefitQuantity: integer("benefit_quantity").notNull(),
-    benefitValueType: discountValueTypeEnum("benefit_value_type").notNull(),
+    benefitStrategy: discountBenefitStrategyEnum("benefit_strategy").notNull(),
+    benefitOperation: priceAdjustmentOperationEnum("benefit_operation"),
+    benefitValueType: priceAdjustmentValueTypeEnum("benefit_value_type"),
     benefitPercentageBps: smallint("benefit_percentage_bps"),
     benefitAmountMinor: bigint("benefit_amount_minor", { mode: "bigint" }),
     usesPerOrderLimit: integer("uses_per_order_limit"),
@@ -91,13 +96,19 @@ export const discountBuyXGetY = pricingSchema.table(
     ),
     check(
       "discount_buy_x_get_y_benefit_check",
-      sql`(${table.benefitValueType} = 'PERCENTAGE'
+      sql`(${table.benefitStrategy} = 'ADJUSTMENT'
+          AND ${table.benefitOperation} = 'DECREASE'
+          AND ${table.benefitValueType} = 'PERCENTAGE'
           AND ${table.benefitPercentageBps} BETWEEN 1 AND 10000
           AND ${table.benefitAmountMinor} IS NULL)
-        OR (${table.benefitValueType} = 'FIXED_AMOUNT'
+        OR (${table.benefitStrategy} = 'ADJUSTMENT'
+          AND ${table.benefitOperation} = 'DECREASE'
+          AND ${table.benefitValueType} = 'FIXED_AMOUNT'
           AND ${table.benefitPercentageBps} IS NULL
           AND ${table.benefitAmountMinor} > 0)
-        OR (${table.benefitValueType} = 'FREE'
+        OR (${table.benefitStrategy} = 'FREE'
+          AND ${table.benefitOperation} IS NULL
+          AND ${table.benefitValueType} IS NULL
           AND ${table.benefitPercentageBps} IS NULL
           AND ${table.benefitAmountMinor} IS NULL)`,
     ),
