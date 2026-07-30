@@ -7151,16 +7151,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shopana/app-bundles@workspace:apps/shopana-bundles":
-  version: 0.0.0-use.local
-  resolution: "@shopana/app-bundles@workspace:apps/shopana-bundles"
-  dependencies:
-    "@shopana/app-sdk": "workspace:*"
-    "@types/node": "npm:^22.7.4"
-    typescript: "npm:^5.5.4"
-  languageName: unknown
-  linkType: soft
-
 "@shopana/app-headless@workspace:*, @shopana/app-headless@workspace:apps/headless":
   version: 0.0.0-use.local
   resolution: "@shopana/app-headless@workspace:apps/headless"
