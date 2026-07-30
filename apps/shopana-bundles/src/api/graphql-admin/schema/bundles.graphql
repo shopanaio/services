@@ -1,7 +1,7 @@
 extend schema
   @link(
     url: "https://specs.apollo.dev/federation/v2.7"
-    import: ["@key"]
+    import: ["@external", "@key"]
   )
 
 # ---- Bundle Types ----
@@ -77,99 +77,47 @@ enum BundleDependencyActionType {
   ADJUST_PRICE
 }
 
-type Bundle implements Node @key(fields: "id") {
-  """The Product global ID of the bundle sellable item."""
-  id: ID!
+"""
+Catalog Product extended with data owned by the Bundles App.
 
-  """The URL-friendly handle for the bundle."""
-  handle: String!
+The Bundles subgraph resolves this entity by the Product global ID and never
+duplicates fields owned by Catalog.
+"""
+extend type Product @key(fields: "id") {
+  id: ID! @external
 
-  """The date and time when the bundle was published, or null if unpublished."""
-  publishedAt: DateTime
+  """Bundle data, or null when this product is not configured as a bundle."""
+  bundle: ProductBundle
+}
 
-  """Whether the bundle is currently published."""
-  isPublished: Boolean!
-
-  """The date and time when the bundle was created."""
-  createdAt: DateTime!
-
-  """The date and time when the bundle was last updated."""
-  updatedAt: DateTime!
-
-  """The date and time when the bundle was deleted (soft delete)."""
-  deletedAt: DateTime
-
-  """Optimistic locking revision number. Incremented on each update."""
-  revision: Int!
-
-  """The vendor associated with this bundle."""
-  vendor: Vendor
-
-  """The variants of this bundle."""
-  variants(first: Int, after: String, last: Int, before: String): VariantConnection!
-
-  """Media registered on this bundle."""
-  media: [ProductMediaItem!]!
-
-  """The options available for this bundle."""
-  options: [ProductOption!]!
-
-  """The features of this bundle."""
-  features: [ProductFeature!]!
-
-  """The total number of variants for this bundle."""
-  variantsCount: Int!
-
-  """The primary category assigned to this bundle."""
-  primaryCategory: Category
-
-  """Category assignments with relationship metadata."""
-  categoryAssignments: [ProductCategoryAssignment!]!
-
-  """The tags associated with this bundle."""
-  tags: [Tag!]!
-
-  """Bundle title."""
-  title: String!
-
-  """Bundle description."""
-  description: RichText
-
-  """Short excerpt."""
-  excerpt: RichText
-
-  """SEO and Open Graph metadata."""
-  seo: ProductSeo
-
-  """Current bundle price range in the selected currency."""
-  priceRange: ProductPriceRange
-
+"""Bundle-specific data associated one-to-one with a Catalog Product."""
+type ProductBundle {
   """High-level bundle type."""
   type: BundleType
 
   """Configurator display style."""
   displayStyle: BundleDisplayStyle!
 
-  """All bundle configurations for this bundle."""
+  """All bundle configurations associated with the product."""
   configurations: [BundleConfiguration!]!
 }
 
-"""A connection to a list of Bundle items."""
-type BundleConnection {
+"""A connection to Catalog Products configured by the Bundles App."""
+type BundleProductConnection {
   """A list of edges."""
-  edges: [BundleEdge!]!
+  edges: [BundleProductEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The total number of bundles."""
+  """The total number of products configured as bundles."""
   totalCount: Int!
 }
 
-"""An edge in a Bundle connection."""
-type BundleEdge {
+"""An edge in a bundle product connection."""
+type BundleProductEdge {
   """The item at the end of the edge."""
-  node: Bundle!
+  node: Product!
 
   """A cursor for use in pagination."""
   cursor: String!
@@ -179,11 +127,11 @@ type BundleConfiguration implements Node @key(fields: "id") {
   """The globally unique ID of the configuration."""
   id: ID!
 
-  """The bundle root this configuration belongs to."""
-  bundle: Bundle!
+  """The Catalog Product this configuration belongs to."""
+  product: Product!
 
-  """The Product global ID of the bundle this configuration belongs to."""
-  bundleId: ID!
+  """The global ID of the Catalog Product."""
+  productId: ID!
 
   """Configuration name."""
   name: String!
@@ -529,12 +477,12 @@ input BundleBundlesMetaInput {
 # ---- Bundle Mutation Payloads ----
 
 type BundleCreatePayload {
-  bundle: Bundle
+  product: Product
   userErrors: [GenericUserError!]!
 }
 
 type BundleUpdatePayload {
-  bundle: Bundle
+  product: Product
   userErrors: [GenericUserError!]!
 }
 
@@ -545,7 +493,7 @@ type BundleConfigurationPayload {
 
 type BundleConfigurationDeletePayload {
   deletedConfigurationId: ID
-  bundle: Bundle
+  product: Product
   userErrors: [GenericUserError!]!
 }
 
@@ -643,8 +591,8 @@ input BundleUpdateInput {
 }
 
 input BundleConfigurationCreateInput {
-  """Product global ID of the bundle."""
-  bundleId: ID!
+  """Global ID of the Catalog Product."""
+  productId: ID!
 
   """Expected parent bundle product revision. Required for optimistic locking."""
   expectedRevision: Int!
@@ -939,13 +887,21 @@ input BundleDependencyActionSyncItemInput {
   sortIndex: Int!
 }
 
-# ---- Catalog API Extensions ----
+# ---- Bundles App API ----
 
-extend type CatalogQuery {
-  """Get a bundle by Product global ID."""
-  bundle(id: ID!): Bundle
+extend type Query {
+  bundlesAppQuery: BundlesAppQuery!
+}
 
-  """Get bundles with Relay-style pagination."""
+extend type Mutation {
+  bundlesAppMutation: BundlesAppMutation!
+}
+
+type BundlesAppQuery {
+  """Get a Catalog Product configured as a bundle."""
+  bundle(id: ID!): Product
+
+  """Get Catalog Products configured as bundles."""
   bundles(
     first: Int
     after: String
@@ -954,17 +910,17 @@ extend type CatalogQuery {
     where: BundleWhereInput
     orderBy: [BundleOrderByInput!]
     meta: BundleBundlesMetaInput
-  ): BundleConnection!
+  ): BundleProductConnection!
 }
 
-extend type CatalogMutation {
+type BundlesAppMutation {
   """Create a new bundle sellable item."""
   bundleCreate(input: BundleCreateInput!): BundleCreatePayload!
 
   """Unified bundle update with optimistic locking."""
   bundleUpdate(
-    """The bundle ID to update."""
-    bundleId: ID!
+    """The Catalog Product global ID to update."""
+    productId: ID!
     """Expected revision for optimistic locking."""
     expectedRevision: Int!
     """Bundle-level operations."""
@@ -1002,7 +958,9 @@ extend type CatalogMutation {
   ): BundleDependencyRulesSyncPayload!
 }
 
-extend type Variant {
+extend type Variant @key(fields: "id") {
+  id: ID! @external
+
   """Bundle configuration assigned to this variant. Null for BASE variants."""
   bundleConfiguration: BundleConfiguration
 }
