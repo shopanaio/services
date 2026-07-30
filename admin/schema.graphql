@@ -953,10 +953,6 @@ type Bundle implements Node & Listing @join__type(graph: CATALOG_ADMIN, key: "id
   """
   priceRange: ProductPriceRange @join__field(graph: CATALOG_ADMIN) 
   """
-  High-level bundle type.
-  """
-  type: BundleType @join__field(graph: CATALOG_ADMIN) 
-  """
   Configurator display style.
   """
   displayStyle: BundleDisplayStyle! @join__field(graph: CATALOG_ADMIN) 
@@ -7127,13 +7123,6 @@ enum ProductStatus @join__type(graph: CATALOG_ADMIN)  {
   PUBLISHED @join__enumValue(graph: CATALOG_ADMIN) 
 }
 
-enum BundleType @join__type(graph: CATALOG_ADMIN)  {
-  FIXED @join__enumValue(graph: CATALOG_ADMIN) 
-  MULTIPACK @join__enumValue(graph: CATALOG_ADMIN) 
-  MIX_AND_MATCH @join__enumValue(graph: CATALOG_ADMIN) 
-  CUSTOM @join__enumValue(graph: CATALOG_ADMIN) 
-}
-
 enum BundleDisplayStyle @join__type(graph: CATALOG_ADMIN)  {
   ACCORDION @join__enumValue(graph: CATALOG_ADMIN) 
   TABS @join__enumValue(graph: CATALOG_ADMIN) 
@@ -9421,10 +9410,6 @@ input BundleCreateInput @join__type(graph: CATALOG_ADMIN)  {
   """
   inventoryItem: InventoryItemInput
   """
-  High-level bundle type.
-  """
-  type: BundleType
-  """
   Configurator display style.
   """
   displayStyle: BundleDisplayStyle
@@ -9471,10 +9456,6 @@ input BundleUpdateInput @join__type(graph: CATALOG_ADMIN)  {
   Variant create, update, and delete operations.
   """
   variants: [VariantOperationInput!]
-  """
-  High-level bundle type.
-  """
-  type: BundleType
   """
   Configurator display style.
   """

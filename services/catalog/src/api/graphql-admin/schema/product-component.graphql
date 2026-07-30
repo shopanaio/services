@@ -1,12 +1,5 @@
 # ---- ProductComponent Types ----
 
-enum ProductComponentType {
-  FIXED
-  MULTIPACK
-  MIX_AND_MATCH
-  CUSTOM
-}
-
 enum ProductComponentDisplayStyle {
   ACCORDION
   TABS
@@ -81,9 +74,6 @@ type ProductComponent {
 
   """Global ID of the owning product."""
   productId: ID!
-
-  """High-level component type."""
-  type: ProductComponentType
 
   """Configurator display style."""
   displayStyle: ProductComponentDisplayStyle!
@@ -499,9 +489,6 @@ input ProductComponentSettingsUpdateInput {
 
   """Expected product revision for optimistic locking."""
   expectedRevision: Int!
-
-  """Updated high-level component type."""
-  type: ProductComponentType
 
   """Updated configurator display style."""
   displayStyle: ProductComponentDisplayStyle

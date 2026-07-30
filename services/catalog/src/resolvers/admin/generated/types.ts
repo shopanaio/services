@@ -2396,8 +2396,6 @@ export type ProductComponent = {
   product: Product;
   /** Global ID of the owning product. */
   productId: Scalars['ID']['output'];
-  /** High-level component type. */
-  type: Maybe<ProductComponentType>;
   /** The date and time when the component data was last updated. */
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -3046,16 +3044,7 @@ export type ProductComponentSettingsUpdateInput = {
   expectedRevision: Scalars['Int']['input'];
   /** Global ID of the product. */
   productId: Scalars['ID']['input'];
-  /** Updated high-level component type. */
-  type?: InputMaybe<ProductComponentType>;
 };
-
-export enum ProductComponentType {
-  Custom = 'CUSTOM',
-  Fixed = 'FIXED',
-  MixAndMatch = 'MIX_AND_MATCH',
-  Multipack = 'MULTIPACK'
-}
 
 /** A connection to a list of Product items. */
 export type ProductConnection = {
@@ -5272,7 +5261,6 @@ export type ResolversTypes = ResolversObject<{
   ProductComponentRemoveInput: ProductComponentRemoveInput;
   ProductComponentRemovePayload: ResolverTypeWrapper<Omit<ProductComponentRemovePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductComponentSettingsUpdateInput: ProductComponentSettingsUpdateInput;
-  ProductComponentType: ProductComponentType;
   ProductConnection: ResolverTypeWrapper<Omit<ProductConnection, 'edges'> & { edges: Array<ResolversTypes['ProductEdge']> }>;
   ProductContentInput: ProductContentInput;
   ProductCreateInput: ProductCreateInput;
@@ -6255,7 +6243,6 @@ export type ProductComponentResolvers<ContextType = ServiceContext, ParentType e
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
   productId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  type?: Resolver<Maybe<ResolversTypes['ProductComponentType']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

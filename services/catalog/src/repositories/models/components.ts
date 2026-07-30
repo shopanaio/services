@@ -25,7 +25,6 @@ export const component = catalogSchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
-    type: varchar("type", { length: 32 }),
     displayStyle: varchar("display_style", { length: 32 })
       .notNull()
       .default("ACCORDION"),

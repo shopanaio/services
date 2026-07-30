@@ -4,7 +4,6 @@ CREATE TABLE "catalog"."component" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
-  "type" varchar(32),
   "display_style" varchar(32) NOT NULL DEFAULT 'ACCORDION',
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),

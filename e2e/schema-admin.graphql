@@ -1624,9 +1624,6 @@ type Bundle implements Node & Listing {
   """Current bundle price range in the selected currency."""
   priceRange: ProductPriceRange
 
-  """High-level bundle type."""
-  type: BundleType
-
   """Configurator display style."""
   displayStyle: BundleDisplayStyle!
 
@@ -3968,13 +3965,6 @@ enum ProductStatus {
   PUBLISHED
 }
 
-enum BundleType {
-  FIXED
-  MULTIPACK
-  MIX_AND_MATCH
-  CUSTOM
-}
-
 enum BundleDisplayStyle {
   ACCORDION
   TABS
@@ -4931,9 +4921,6 @@ input BundleCreateInput {
   """Inventory tracking settings for the bundle."""
   inventoryItem: InventoryItemInput
 
-  """High-level bundle type."""
-  type: BundleType
-
   """Configurator display style."""
   displayStyle: BundleDisplayStyle
 }
@@ -4968,9 +4955,6 @@ input BundleUpdateInput {
 
   """Variant create, update, and delete operations."""
   variants: [VariantOperationInput!]
-
-  """High-level bundle type."""
-  type: BundleType
 
   """Configurator display style."""
   displayStyle: BundleDisplayStyle
