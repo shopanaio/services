@@ -21,10 +21,11 @@ import {
 import { LuListPlus } from "react-icons/lu";
 import {
   DiscountAllocationMethod,
+  DiscountBenefitStrategy,
   DiscountKind,
   DiscountRequirementType,
   DiscountTargetType,
-  DiscountValueType,
+  PriceAdjustmentValueType,
 } from "@/graphql/types";
 import {
   ModalHeader,
@@ -410,7 +411,7 @@ export function EditValueTargetsModal() {
                 value={values.valueType}
                 options={[
                   {
-                    value: DiscountValueType.Percentage,
+                    value: PriceAdjustmentValueType.Percentage,
                     label: (
                       <span data-testid="discount-value-type-option-percentage">
                         Percentage
@@ -418,7 +419,7 @@ export function EditValueTargetsModal() {
                     ),
                   },
                   {
-                    value: DiscountValueType.FixedAmount,
+                    value: PriceAdjustmentValueType.FixedAmount,
                     label: (
                       <span data-testid="discount-value-type-option-fixed-amount">
                         Fixed amount
@@ -436,11 +437,11 @@ export function EditValueTargetsModal() {
 
             <div className={styles.field}>
               <Typography.Text strong className={styles.fieldLabel}>
-                {values.valueType === DiscountValueType.Percentage
+                {values.valueType === PriceAdjustmentValueType.Percentage
                   ? "Percentage *"
                   : "Amount *"}
               </Typography.Text>
-              {values.valueType === DiscountValueType.Percentage ? (
+              {values.valueType === PriceAdjustmentValueType.Percentage ? (
                 <InputNumber
                   aria-label="Discount percentage"
                   data-testid="discount-percentage-input"
@@ -465,7 +466,7 @@ export function EditValueTargetsModal() {
                 />
               )}
               <Typography.Text className={styles.fieldHelp}>
-                {values.valueType === DiscountValueType.Percentage
+                {values.valueType === PriceAdjustmentValueType.Percentage
                   ? `Sent as percentageBps: ${Math.round(
                       (values.percentage ?? 0) * 100,
                     )}. Valid range is 1 to 10000.`
@@ -654,10 +655,15 @@ export function EditValueTargetsModal() {
                   <Select
                     aria-label="Benefit value type"
                     data-testid="discount-benefit-value-type"
-                    value={values.benefitValueType}
+                    value={
+                      values.benefitStrategy ===
+                      DiscountBenefitStrategy.Free
+                        ? DiscountBenefitStrategy.Free
+                        : values.benefitValueType
+                    }
                     options={[
                       {
-                        value: DiscountValueType.Free,
+                        value: DiscountBenefitStrategy.Free,
                         label: (
                           <span data-testid="discount-benefit-value-type-option-free">
                             Free
@@ -665,7 +671,7 @@ export function EditValueTargetsModal() {
                         ),
                       },
                       {
-                        value: DiscountValueType.Percentage,
+                        value: PriceAdjustmentValueType.Percentage,
                         label: (
                           <span data-testid="discount-benefit-value-type-option-percentage">
                             Percentage
@@ -673,7 +679,7 @@ export function EditValueTargetsModal() {
                         ),
                       },
                       {
-                        value: DiscountValueType.FixedAmount,
+                        value: PriceAdjustmentValueType.FixedAmount,
                         label: (
                           <span data-testid="discount-benefit-value-type-option-fixed-amount">
                             Fixed amount
@@ -681,25 +687,36 @@ export function EditValueTargetsModal() {
                         ),
                       },
                     ]}
-                    onChange={(benefitValueType) =>
-                      updateValues({ benefitValueType })
-                    }
+                    onChange={(benefitKind) => {
+                      if (benefitKind === DiscountBenefitStrategy.Free) {
+                        updateValues({
+                          benefitStrategy: DiscountBenefitStrategy.Free,
+                        });
+                        return;
+                      }
+                      updateValues({
+                        benefitStrategy:
+                          DiscountBenefitStrategy.Adjustment,
+                        benefitValueType: benefitKind,
+                      });
+                    }}
                     style={{ width: "100%" }}
                   />
                 </div>
               </div>
 
-              {values.benefitValueType !== DiscountValueType.Free ? (
+              {values.benefitStrategy ===
+              DiscountBenefitStrategy.Adjustment ? (
                 <div className={styles.fieldGrid}>
                   <div className={styles.field}>
                     <Typography.Text strong className={styles.fieldLabel}>
                       {values.benefitValueType ===
-                      DiscountValueType.Percentage
+                      PriceAdjustmentValueType.Percentage
                         ? "Benefit percentage *"
                         : "Benefit amount *"}
                     </Typography.Text>
                     {values.benefitValueType ===
-                    DiscountValueType.Percentage ? (
+                    PriceAdjustmentValueType.Percentage ? (
                       <InputNumber
                         aria-label="Benefit percentage"
                         data-testid="discount-benefit-percentage-input"

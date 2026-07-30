@@ -59,6 +59,7 @@ export const DISCOUNT_DETAILS_FRAGMENT = gql`
     rule {
       __typename
       ... on DiscountAmountOffRule {
+        operation
         valueType
         percentageBps
         amountMinor
@@ -70,6 +71,8 @@ export const DISCOUNT_DETAILS_FRAGMENT = gql`
         requiredQuantity
         requiredSubtotalMinor
         benefitQuantity
+        benefitStrategy
+        benefitOperation
         benefitValueType
         benefitPercentageBps
         benefitAmountMinor

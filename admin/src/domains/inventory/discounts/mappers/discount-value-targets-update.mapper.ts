@@ -4,11 +4,13 @@ import type {
 } from "@/graphql/types";
 import {
   DiscountAllocationMethod,
+  DiscountBenefitStrategy,
   DiscountKind,
   DiscountRequirementType,
   DiscountTargetRole,
   DiscountTargetType,
-  DiscountValueType,
+  PriceAdjustmentOperation,
+  PriceAdjustmentValueType,
 } from "@/graphql/types";
 
 export interface DiscountTargetEditorItem {
@@ -17,7 +19,7 @@ export interface DiscountTargetEditorItem {
 }
 
 export interface DiscountValueTargetsFormValues {
-  valueType: DiscountValueType.Percentage | DiscountValueType.FixedAmount;
+  valueType: PriceAdjustmentValueType;
   percentage: number | null;
   amount: string;
   allocationMethod: DiscountAllocationMethod;
@@ -34,7 +36,8 @@ export interface DiscountValueTargetsFormValues {
   requiredSubtotal: string;
   requiredQuantity: number | null;
   benefitQuantity: number | null;
-  benefitValueType: DiscountValueType;
+  benefitStrategy: DiscountBenefitStrategy;
+  benefitValueType: PriceAdjustmentValueType;
   benefitPercentage: number | null;
   benefitAmount: string;
   usesPerOrderLimit: number | null;
@@ -131,9 +134,9 @@ export function createDiscountValueTargetsFormValues(
 
   return {
     valueType:
-      amountOff?.valueType === DiscountValueType.FixedAmount
-        ? DiscountValueType.FixedAmount
-        : DiscountValueType.Percentage,
+      amountOff?.valueType === PriceAdjustmentValueType.FixedAmount
+        ? PriceAdjustmentValueType.FixedAmount
+        : PriceAdjustmentValueType.Percentage,
     percentage:
       amountOff?.percentageBps == null
         ? null
@@ -159,8 +162,10 @@ export function createDiscountValueTargetsFormValues(
     requiredSubtotal: minorToMajor(buyXGetY?.requiredSubtotalMinor),
     requiredQuantity: buyXGetY?.requiredQuantity ?? 1,
     benefitQuantity: buyXGetY?.benefitQuantity ?? 1,
+    benefitStrategy:
+      buyXGetY?.benefitStrategy ?? DiscountBenefitStrategy.Free,
     benefitValueType:
-      buyXGetY?.benefitValueType ?? DiscountValueType.Free,
+      buyXGetY?.benefitValueType ?? PriceAdjustmentValueType.Percentage,
     benefitPercentage:
       buyXGetY?.benefitPercentageBps == null
         ? null
@@ -195,7 +200,7 @@ export function validateDiscountValueTargetsForm(
     discount.kind === DiscountKind.AmountOffOrder
   ) {
     if (
-      values.valueType === DiscountValueType.Percentage &&
+      values.valueType === PriceAdjustmentValueType.Percentage &&
       (values.percentage == null ||
         values.percentage <= 0 ||
         values.percentage > 100)
@@ -203,7 +208,7 @@ export function validateDiscountValueTargetsForm(
       errors.push("Percentage must be greater than 0 and no more than 100.");
     }
     if (
-      values.valueType === DiscountValueType.FixedAmount &&
+      values.valueType === PriceAdjustmentValueType.FixedAmount &&
       !isPositiveMoney(values.amount)
     ) {
       errors.push("Fixed amount must be a positive amount.");
@@ -257,7 +262,8 @@ export function validateDiscountValueTargetsForm(
       errors.push("Benefit quantity must be a positive whole number.");
     }
     if (
-      values.benefitValueType === DiscountValueType.Percentage &&
+      values.benefitStrategy === DiscountBenefitStrategy.Adjustment &&
+      values.benefitValueType === PriceAdjustmentValueType.Percentage &&
       (values.benefitPercentage == null ||
         values.benefitPercentage <= 0 ||
         values.benefitPercentage > 100)
@@ -267,7 +273,8 @@ export function validateDiscountValueTargetsForm(
       );
     }
     if (
-      values.benefitValueType === DiscountValueType.FixedAmount &&
+      values.benefitStrategy === DiscountBenefitStrategy.Adjustment &&
+      values.benefitValueType === PriceAdjustmentValueType.FixedAmount &&
       !isPositiveMoney(values.benefitAmount)
     ) {
       errors.push("Benefit amount must be a positive amount.");
@@ -340,14 +347,15 @@ export function buildDiscountValueTargetsUpdateInput(
   ) {
     operations.rule = {
       amountOff: {
+        operation: PriceAdjustmentOperation.Decrease,
         valueType: values.valueType,
         allocationMethod: values.allocationMethod,
         percentageBps:
-          values.valueType === DiscountValueType.Percentage
+          values.valueType === PriceAdjustmentValueType.Percentage
             ? Math.round((values.percentage ?? 0) * 100)
             : null,
         amountMinor:
-          values.valueType === DiscountValueType.FixedAmount
+          values.valueType === PriceAdjustmentValueType.FixedAmount
             ? majorToMinor(values.amount)
             : null,
         maximumDiscountMinor: values.maximumDiscount
@@ -387,13 +395,23 @@ export function buildDiscountValueTargetsUpdateInput(
             ? majorToMinor(values.requiredSubtotal)
             : null,
         benefitQuantity: values.benefitQuantity ?? 1,
-        benefitValueType: values.benefitValueType,
+        benefitStrategy: values.benefitStrategy,
+        benefitOperation:
+          values.benefitStrategy === DiscountBenefitStrategy.Adjustment
+            ? PriceAdjustmentOperation.Decrease
+            : null,
+        benefitValueType:
+          values.benefitStrategy === DiscountBenefitStrategy.Adjustment
+            ? values.benefitValueType
+            : null,
         benefitPercentageBps:
-          values.benefitValueType === DiscountValueType.Percentage
+          values.benefitStrategy === DiscountBenefitStrategy.Adjustment &&
+          values.benefitValueType === PriceAdjustmentValueType.Percentage
             ? Math.round((values.benefitPercentage ?? 0) * 100)
             : null,
         benefitAmountMinor:
-          values.benefitValueType === DiscountValueType.FixedAmount
+          values.benefitStrategy === DiscountBenefitStrategy.Adjustment &&
+          values.benefitValueType === PriceAdjustmentValueType.FixedAmount
             ? majorToMinor(values.benefitAmount)
             : null,
         usesPerOrderLimit: values.usesPerOrderLimit,

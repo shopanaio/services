@@ -13,9 +13,10 @@ import {
 } from "react-icons/lu";
 import type { ApiDiscount, CurrencyCode } from "@/graphql/types";
 import {
+  DiscountBenefitStrategy,
   DiscountEffectiveStatus,
   DiscountRequirementType,
-  DiscountValueType,
+  PriceAdjustmentValueType,
 } from "@/graphql/types";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -78,13 +79,12 @@ function formatRuleValue(
   if (!rule) return "Not configured";
 
   if (rule.__typename === "DiscountAmountOffRule") {
-    if (rule.valueType === DiscountValueType.Percentage) {
+    if (rule.valueType === PriceAdjustmentValueType.Percentage) {
       return formatDiscountPercentage(rule.percentageBps);
     }
-    if (rule.valueType === DiscountValueType.FixedAmount) {
+    if (rule.valueType === PriceAdjustmentValueType.FixedAmount) {
       return formatDiscountMoney(rule.amountMinor, currency);
     }
-    return "Free";
   }
 
   if (rule.__typename === "DiscountBuyXGetYRule") {
@@ -107,7 +107,7 @@ function getValuePresentation(discount: ApiDiscount) {
 
   if (
     rule?.__typename === "DiscountAmountOffRule" &&
-    rule.valueType === DiscountValueType.Percentage
+    rule.valueType === PriceAdjustmentValueType.Percentage
   ) {
     return { icon: <LuPercent />, label: "Percentage off" };
   }
@@ -149,11 +149,11 @@ function getValueDetails(
       });
     }
     const benefit =
-      rule.benefitValueType === DiscountValueType.Percentage
-        ? formatDiscountPercentage(rule.benefitPercentageBps)
-        : rule.benefitValueType === DiscountValueType.FixedAmount
-          ? formatDiscountMoney(rule.benefitAmountMinor, currency)
-          : "Free";
+      rule.benefitStrategy === DiscountBenefitStrategy.Free
+        ? "Free"
+        : rule.benefitValueType === PriceAdjustmentValueType.Percentage
+          ? formatDiscountPercentage(rule.benefitPercentageBps)
+          : formatDiscountMoney(rule.benefitAmountMinor, currency);
     details.push({
       label: "Benefit",
       value: `${formatDiscountCount(rule.benefitQuantity)} item${rule.benefitQuantity === 1 ? "" : "s"} · ${benefit}`,
