@@ -1,20 +1,46 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."product" (
+  "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "vendor_id" uuid,
+  "handle" varchar(255),
+  "published_at" timestamp with time zone,
+  "created_at" timestamp with time zone NOT NULL DEFAULT now(),
+  "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
+  "deleted_at" timestamp with time zone,
+  "revision" integer NOT NULL DEFAULT 0,
   CONSTRAINT "product_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "product_entity_id_fk"
-    FOREIGN KEY ("id")
-    REFERENCES "catalog"."entity_registry" ("id")
-    ON DELETE CASCADE,
+  CONSTRAINT "product_published_requires_handle"
+    CHECK ("published_at" IS NULL OR "handle" IS NOT NULL),
+  CONSTRAINT "product_store_id_id_unique" UNIQUE ("store_id", "id"),
   CONSTRAINT "product_vendor_fk"
     FOREIGN KEY ("vendor_id")
     REFERENCES "catalog"."vendor" ("id")
 );
 
+CREATE UNIQUE INDEX "product_store_id_handle_key"
+  ON "catalog"."product" ("store_id", "handle")
+  WHERE "deleted_at" IS NULL AND "handle" IS NOT NULL;
+
+CREATE INDEX "idx_product_store_id"
+  ON "catalog"."product" ("store_id");
+
 CREATE INDEX "idx_product_vendor_id"
   ON "catalog"."product" ("vendor_id");
+
+CREATE INDEX "idx_product_created_at"
+  ON "catalog"."product" ("created_at");
+
+CREATE INDEX "idx_product_updated_at"
+  ON "catalog"."product" ("updated_at");
+
+CREATE INDEX "idx_product_deleted_at"
+  ON "catalog"."product" ("deleted_at")
+  WHERE "deleted_at" IS NOT NULL;
+
+CREATE INDEX "idx_product_revision"
+  ON "catalog"."product" ("id", "revision");
 
 CREATE TABLE "catalog"."variant" (
   "store_id" uuid NOT NULL,
