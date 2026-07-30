@@ -1,3 +1,9 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: ["@key"]
+  )
+
 # ---- Bundle Types ----
 
 enum BundleType {
@@ -934,4 +940,164 @@ input BundleDependencyActionSyncItemInput {
 
   """Sort order within the rule."""
   sortIndex: Int!
+}
+
+# ---- Catalog API Extensions ----
+
+extend type CatalogQuery {
+  """Get a bundle by Product global ID. The product must have kind = BUNDLE."""
+  bundle(id: ID!): Bundle
+
+  """Get bundles with Relay-style pagination."""
+  bundles(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: BundleWhereInput
+    orderBy: [BundleOrderByInput!]
+    meta: BundleBundlesMetaInput
+  ): BundleConnection!
+}
+
+extend type CatalogMutation {
+  """Create a new bundle sellable item."""
+  bundleCreate(input: BundleCreateInput!): BundleCreatePayload!
+
+  """Unified bundle update with optimistic locking."""
+  bundleUpdate(
+    """The bundle ID to update."""
+    bundleId: ID!
+    """Expected revision for optimistic locking."""
+    expectedRevision: Int!
+    """Bundle-level operations."""
+    operations: BundleUpdateInput
+  ): BundleUpdatePayload!
+
+  """Create one bundle configuration."""
+  bundleConfigurationCreate(
+    input: BundleConfigurationCreateInput!
+  ): BundleConfigurationPayload!
+
+  """Update configuration metadata."""
+  bundleConfigurationUpdate(
+    input: BundleConfigurationUpdateInput!
+  ): BundleConfigurationPayload!
+
+  """Delete one bundle configuration with optimistic locking."""
+  bundleConfigurationDelete(
+    input: BundleConfigurationDeleteInput!
+  ): BundleConfigurationDeletePayload!
+
+  """Sync all groups/items for one bundle configuration."""
+  bundleGroupsSync(
+    input: BundleGroupsSyncInput!
+  ): BundleGroupsSyncPayload!
+
+  """Sync all reusable pricing templates for one bundle configuration."""
+  bundlePricingTemplatesSync(
+    input: BundlePricingTemplatesSyncInput!
+  ): BundlePricingTemplatesSyncPayload!
+
+  """Sync all dependency rules for one bundle configuration."""
+  bundleDependencyRulesSync(
+    input: BundleDependencyRulesSyncInput!
+  ): BundleDependencyRulesSyncPayload!
+}
+
+extend type Variant {
+  """Bundle configuration assigned to this variant. Null for BASE variants."""
+  bundleConfiguration: BundleConfiguration
+}
+
+# ---- Bundle Filters ----
+
+"""Filter conditions for Bundle."""
+input BundleWhereInput {
+  """Logical AND of multiple conditions."""
+  _and: [BundleWhereInput!]
+  """Logical OR of multiple conditions."""
+  _or: [BundleWhereInput!]
+  """Negate the condition."""
+  _not: BundleWhereInput
+  """Filter by id."""
+  id: IDFilter
+  """Filter by vendorId."""
+  vendorId: IDFilter
+  """Filter by handle."""
+  handle: StringFilter
+  """Filter by publishedAt."""
+  publishedAt: DateTimeFilter
+  """Filter by createdAt."""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt."""
+  updatedAt: DateTimeFilter
+  """Filter by locale."""
+  locale: StringFilter
+  """Filter by name."""
+  name: StringFilter
+  """Filter by currency."""
+  currency: StringFilter
+  """Filter by minAmountMinor."""
+  minAmountMinor: IntFilter
+  """Filter by maxAmountMinor."""
+  maxAmountMinor: IntFilter
+  """Filter by minPriceMinor."""
+  minPriceMinor: IntFilter
+  """Filter by maxPriceMinor."""
+  maxPriceMinor: IntFilter
+  """Filter by primaryCategoryId."""
+  primaryCategoryId: IDFilter
+  """Filter by primaryCategoryName."""
+  primaryCategoryName: StringFilter
+  """Filter by brandName."""
+  brandName: StringFilter
+  """Filter by bundleType."""
+  bundleType: StringFilter
+}
+
+"""Fields available for sorting Bundle."""
+enum BundleOrderField {
+  """Sort by id."""
+  id
+  """Sort by vendorId."""
+  vendorId
+  """Sort by handle."""
+  handle
+  """Sort by publishedAt."""
+  publishedAt
+  """Sort by createdAt."""
+  createdAt
+  """Sort by updatedAt."""
+  updatedAt
+  """Sort by locale."""
+  locale
+  """Sort by name."""
+  name
+  """Sort by currency."""
+  currency
+  """Sort by minAmountMinor."""
+  minAmountMinor
+  """Sort by maxAmountMinor."""
+  maxAmountMinor
+  """Sort by minPriceMinor."""
+  minPriceMinor
+  """Sort by maxPriceMinor."""
+  maxPriceMinor
+  """Sort by primaryCategoryId."""
+  primaryCategoryId
+  """Sort by primaryCategoryName."""
+  primaryCategoryName
+  """Sort by brandName."""
+  brandName
+  """Sort by bundleType."""
+  bundleType
+}
+
+"""Ordering configuration for Bundle."""
+input BundleOrderByInput {
+  """Field to order by."""
+  field: BundleOrderField!
+  """Sort direction."""
+  direction: SortDirection!
 }

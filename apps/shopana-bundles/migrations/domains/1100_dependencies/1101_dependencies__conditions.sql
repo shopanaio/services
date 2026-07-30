@@ -1,6 +1,6 @@
 -- Up Migration
 
-CREATE TABLE "catalog"."condition_group" (
+CREATE TABLE "app_shopana_bundles"."condition_group" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "rule_id" uuid NOT NULL,
@@ -9,14 +9,14 @@ CREATE TABLE "catalog"."condition_group" (
   CONSTRAINT "condition_group_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "condition_group_rule_id_fk"
     FOREIGN KEY ("rule_id")
-    REFERENCES "catalog"."dependency_rule" ("id")
+    REFERENCES "app_shopana_bundles"."dependency_rule" ("id")
     ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_condition_group_rule_id"
-  ON "catalog"."condition_group" ("rule_id");
+  ON "app_shopana_bundles"."condition_group" ("rule_id");
 
-CREATE TABLE "catalog"."condition" (
+CREATE TABLE "app_shopana_bundles"."condition" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "group_id" uuid NOT NULL,
@@ -30,12 +30,12 @@ CREATE TABLE "catalog"."condition" (
   CONSTRAINT "condition_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "condition_group_id_fk"
     FOREIGN KEY ("group_id")
-    REFERENCES "catalog"."condition_group" ("id")
+    REFERENCES "app_shopana_bundles"."condition_group" ("id")
     ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_condition_group_id"
-  ON "catalog"."condition" ("group_id");
+  ON "app_shopana_bundles"."condition" ("group_id");
 
 CREATE INDEX "idx_condition_target"
-  ON "catalog"."condition" ("target_type", "target_id");
+  ON "app_shopana_bundles"."condition" ("target_type", "target_id");

@@ -1,6 +1,6 @@
 -- Up Migration
 
-CREATE TABLE "catalog"."bundle_price_rule" (
+CREATE TABLE "app_shopana_bundles"."bundle_price_rule" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
@@ -8,14 +8,14 @@ CREATE TABLE "catalog"."bundle_price_rule" (
   CONSTRAINT "bundle_price_rule_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "bundle_price_rule_configuration_id_fk"
     FOREIGN KEY ("configuration_id")
-    REFERENCES "catalog"."bundle_configuration" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_configuration" ("id")
     ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_bundle_price_rule_configuration_id"
-  ON "catalog"."bundle_price_rule" ("configuration_id");
+  ON "app_shopana_bundles"."bundle_price_rule" ("configuration_id");
 
-CREATE TABLE "catalog"."bundle_price_rule_amount" (
+CREATE TABLE "app_shopana_bundles"."bundle_price_rule_amount" (
   "store_id" uuid NOT NULL,
   "price_rule_id" uuid NOT NULL,
   "currency" "catalog"."currency_code" NOT NULL,
@@ -23,31 +23,31 @@ CREATE TABLE "catalog"."bundle_price_rule_amount" (
   CONSTRAINT "bundle_price_rule_amount_pkey" PRIMARY KEY ("price_rule_id", "currency"),
   CONSTRAINT "bundle_price_rule_amount_price_rule_id_fk"
     FOREIGN KEY ("price_rule_id")
-    REFERENCES "catalog"."bundle_price_rule" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_price_rule" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "bundle_price_rule_amount_minor_check" CHECK ("amount_minor" >= 0)
 );
 
 CREATE INDEX "idx_bundle_price_rule_amount_store_currency"
-  ON "catalog"."bundle_price_rule_amount" ("store_id", "currency");
+  ON "app_shopana_bundles"."bundle_price_rule_amount" ("store_id", "currency");
 
-CREATE TABLE "catalog"."bundle_price_rule_percent" (
+CREATE TABLE "app_shopana_bundles"."bundle_price_rule_percent" (
   "store_id" uuid NOT NULL,
   "price_rule_id" uuid NOT NULL,
   "percent_value" integer NOT NULL,
   CONSTRAINT "bundle_price_rule_percent_pkey" PRIMARY KEY ("price_rule_id"),
   CONSTRAINT "bundle_price_rule_percent_price_rule_id_fk"
     FOREIGN KEY ("price_rule_id")
-    REFERENCES "catalog"."bundle_price_rule" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_price_rule" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "bundle_price_rule_percent_value_check"
     CHECK ("percent_value" >= 0 AND "percent_value" <= 100)
 );
 
 CREATE INDEX "idx_bundle_price_rule_percent_store_id"
-  ON "catalog"."bundle_price_rule_percent" ("store_id");
+  ON "app_shopana_bundles"."bundle_price_rule_percent" ("store_id");
 
-CREATE TABLE "catalog"."bundle_pricing_template" (
+CREATE TABLE "app_shopana_bundles"."bundle_pricing_template" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
@@ -57,16 +57,16 @@ CREATE TABLE "catalog"."bundle_pricing_template" (
   CONSTRAINT "bundle_pricing_template_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "bundle_pricing_template_configuration_id_fk"
     FOREIGN KEY ("configuration_id")
-    REFERENCES "catalog"."bundle_configuration" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_configuration" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "bundle_pricing_template_price_rule_id_fk"
     FOREIGN KEY ("price_rule_id")
-    REFERENCES "catalog"."bundle_price_rule" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_price_rule" ("id")
     ON DELETE RESTRICT
 );
 
 CREATE INDEX "idx_bundle_pricing_template_configuration_id"
-  ON "catalog"."bundle_pricing_template" ("configuration_id");
+  ON "app_shopana_bundles"."bundle_pricing_template" ("configuration_id");
 
 CREATE INDEX "idx_bundle_pricing_template_price_rule_id"
-  ON "catalog"."bundle_pricing_template" ("price_rule_id");
+  ON "app_shopana_bundles"."bundle_pricing_template" ("price_rule_id");

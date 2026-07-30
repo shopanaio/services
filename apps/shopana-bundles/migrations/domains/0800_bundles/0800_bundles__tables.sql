@@ -1,6 +1,8 @@
 -- Up Migration
 
-CREATE TABLE "catalog"."bundle" (
+CREATE SCHEMA IF NOT EXISTS "app_shopana_bundles";
+
+CREATE TABLE "app_shopana_bundles"."bundle" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
@@ -18,12 +20,12 @@ CREATE TABLE "catalog"."bundle" (
 );
 
 CREATE UNIQUE INDEX "bundle_product_id_unique"
-  ON "catalog"."bundle" ("product_id");
+  ON "app_shopana_bundles"."bundle" ("product_id");
 
 CREATE INDEX "idx_bundle_store_id"
-  ON "catalog"."bundle" ("store_id");
+  ON "app_shopana_bundles"."bundle" ("store_id");
 
-CREATE TABLE "catalog"."bundle_configuration" (
+CREATE TABLE "app_shopana_bundles"."bundle_configuration" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "bundle_id" uuid NOT NULL,
@@ -33,14 +35,14 @@ CREATE TABLE "catalog"."bundle_configuration" (
   CONSTRAINT "bundle_configuration_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "bundle_configuration_bundle_id_fk"
     FOREIGN KEY ("bundle_id")
-    REFERENCES "catalog"."bundle" ("id")
+    REFERENCES "app_shopana_bundles"."bundle" ("id")
     ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_bundle_configuration_bundle_id"
-  ON "catalog"."bundle_configuration" ("bundle_id");
+  ON "app_shopana_bundles"."bundle_configuration" ("bundle_id");
 
-CREATE TABLE "catalog"."bundle_configuration_variant" (
+CREATE TABLE "app_shopana_bundles"."bundle_configuration_variant" (
   "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
@@ -48,7 +50,7 @@ CREATE TABLE "catalog"."bundle_configuration_variant" (
     PRIMARY KEY ("configuration_id", "variant_id"),
   CONSTRAINT "bundle_configuration_variant_configuration_id_fk"
     FOREIGN KEY ("configuration_id")
-    REFERENCES "catalog"."bundle_configuration" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_configuration" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "bundle_configuration_variant_variant_id_fk"
     FOREIGN KEY ("variant_id")
@@ -57,7 +59,7 @@ CREATE TABLE "catalog"."bundle_configuration_variant" (
 );
 
 CREATE UNIQUE INDEX "bundle_configuration_variant_unique"
-  ON "catalog"."bundle_configuration_variant" ("variant_id");
+  ON "app_shopana_bundles"."bundle_configuration_variant" ("variant_id");
 
 CREATE INDEX "idx_bundle_configuration_variant_store_id"
-  ON "catalog"."bundle_configuration_variant" ("store_id");
+  ON "app_shopana_bundles"."bundle_configuration_variant" ("store_id");

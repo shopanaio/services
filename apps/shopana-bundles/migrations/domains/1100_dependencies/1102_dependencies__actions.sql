@@ -1,6 +1,6 @@
 -- Up Migration
 
-CREATE TABLE "catalog"."dependency_action" (
+CREATE TABLE "app_shopana_bundles"."dependency_action" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "rule_id" uuid NOT NULL,
@@ -14,11 +14,11 @@ CREATE TABLE "catalog"."dependency_action" (
   CONSTRAINT "dependency_action_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "dependency_action_rule_id_fk"
     FOREIGN KEY ("rule_id")
-    REFERENCES "catalog"."dependency_rule" ("id")
+    REFERENCES "app_shopana_bundles"."dependency_rule" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "dependency_action_price_rule_id_fk"
     FOREIGN KEY ("price_rule_id")
-    REFERENCES "catalog"."bundle_price_rule" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_price_rule" ("id")
     ON DELETE RESTRICT,
   CONSTRAINT "dependency_action_price_rule_check"
     CHECK (
@@ -34,10 +34,10 @@ CREATE TABLE "catalog"."dependency_action" (
 );
 
 CREATE INDEX "idx_dependency_action_rule_id"
-  ON "catalog"."dependency_action" ("rule_id");
+  ON "app_shopana_bundles"."dependency_action" ("rule_id");
 
 CREATE INDEX "idx_dependency_action_target"
-  ON "catalog"."dependency_action" ("target_type", "target_id");
+  ON "app_shopana_bundles"."dependency_action" ("target_type", "target_id");
 
 CREATE INDEX "idx_dependency_action_price_rule_id"
-  ON "catalog"."dependency_action" ("price_rule_id");
+  ON "app_shopana_bundles"."dependency_action" ("price_rule_id");

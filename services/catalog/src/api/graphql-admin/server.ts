@@ -79,7 +79,6 @@ export async function startServer(serverConfig: ServerConfig) {
     "scalars.graphql",
     // Service-specific schemas
     "base.graphql",
-    "bundle.graphql",
     "bulk.graphql",
     "category.graphql",
     "collection.graphql",

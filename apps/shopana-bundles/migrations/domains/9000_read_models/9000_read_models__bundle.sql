@@ -1,6 +1,6 @@
 -- Up Migration
 
-CREATE VIEW "catalog"."product_list_view" AS
+CREATE VIEW "app_shopana_bundles"."bundle_list_view" AS
 SELECT
   product.store_id,
   product.id,
@@ -21,7 +21,8 @@ SELECT
   product_price_range.max_amount_minor AS max_price_minor,
   product_category.category_id AS primary_category_id,
   category_translation.name AS primary_category_name,
-  vendor.name AS brand_name
+  vendor.name AS brand_name,
+  bundle.type AS bundle_type
 FROM "catalog"."product" product
 INNER JOIN "catalog"."product_translation" product_translation
   ON product_translation.store_id = product.store_id
@@ -40,4 +41,7 @@ LEFT JOIN "catalog"."category_translation" category_translation
 LEFT JOIN "catalog"."vendor" vendor
   ON vendor.store_id = product.store_id
  AND vendor.id = product.vendor_id
-WHERE product.kind = 'BASE';
+LEFT JOIN "app_shopana_bundles"."bundle" bundle
+  ON bundle.store_id = product.store_id
+ AND bundle.product_id = product.id
+WHERE product.kind = 'BUNDLE';

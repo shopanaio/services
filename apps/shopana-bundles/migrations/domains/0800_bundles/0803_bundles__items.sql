@@ -1,6 +1,6 @@
 -- Up Migration
 
-CREATE TABLE "catalog"."bundle_item" (
+CREATE TABLE "app_shopana_bundles"."bundle_item" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "group_id" uuid NOT NULL,
@@ -21,15 +21,15 @@ CREATE TABLE "catalog"."bundle_item" (
   CONSTRAINT "bundle_item_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "bundle_item_group_id_fk"
     FOREIGN KEY ("group_id")
-    REFERENCES "catalog"."bundle_group" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_group" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "bundle_item_price_rule_id_fk"
     FOREIGN KEY ("price_rule_id")
-    REFERENCES "catalog"."bundle_price_rule" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_price_rule" ("id")
     ON DELETE SET NULL,
   CONSTRAINT "bundle_item_pricing_template_id_fk"
     FOREIGN KEY ("pricing_template_id")
-    REFERENCES "catalog"."bundle_pricing_template" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_pricing_template" ("id")
     ON DELETE SET NULL,
   CONSTRAINT "bundle_item_quantity_check"
     CHECK (
@@ -56,21 +56,21 @@ CREATE TABLE "catalog"."bundle_item" (
 );
 
 CREATE INDEX "idx_bundle_item_group_id"
-  ON "catalog"."bundle_item" ("group_id");
+  ON "app_shopana_bundles"."bundle_item" ("group_id");
 
 CREATE INDEX "idx_bundle_item_ref_product_id"
-  ON "catalog"."bundle_item" ("ref_product_id");
+  ON "app_shopana_bundles"."bundle_item" ("ref_product_id");
 
 CREATE INDEX "idx_bundle_item_ref_variant_id"
-  ON "catalog"."bundle_item" ("ref_variant_id");
+  ON "app_shopana_bundles"."bundle_item" ("ref_variant_id");
 
 CREATE INDEX "idx_bundle_item_sort"
-  ON "catalog"."bundle_item" ("group_id", "sort_index");
+  ON "app_shopana_bundles"."bundle_item" ("group_id", "sort_index");
 
 CREATE INDEX "idx_bundle_item_price_rule_id"
-  ON "catalog"."bundle_item" ("price_rule_id");
+  ON "app_shopana_bundles"."bundle_item" ("price_rule_id");
 
-CREATE TABLE "catalog"."bundle_item_option_selection" (
+CREATE TABLE "app_shopana_bundles"."bundle_item_option_selection" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "item_id" uuid NOT NULL,
@@ -82,7 +82,7 @@ CREATE TABLE "catalog"."bundle_item_option_selection" (
   CONSTRAINT "bundle_item_option_selection_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "bundle_item_option_selection_item_id_fk"
     FOREIGN KEY ("item_id")
-    REFERENCES "catalog"."bundle_item" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_item" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "bundle_item_option_selection_ref_option_id_fk"
     FOREIGN KEY ("ref_option_id")
@@ -95,18 +95,18 @@ CREATE TABLE "catalog"."bundle_item_option_selection" (
 );
 
 CREATE INDEX "idx_bundle_item_option_selection_item_id"
-  ON "catalog"."bundle_item_option_selection" ("item_id");
+  ON "app_shopana_bundles"."bundle_item_option_selection" ("item_id");
 
 CREATE INDEX "idx_bundle_item_option_selection_ref_option_id"
-  ON "catalog"."bundle_item_option_selection" ("ref_option_id");
+  ON "app_shopana_bundles"."bundle_item_option_selection" ("ref_option_id");
 
 CREATE INDEX "idx_bundle_item_option_selection_parent_option_id"
-  ON "catalog"."bundle_item_option_selection" ("parent_option_id");
+  ON "app_shopana_bundles"."bundle_item_option_selection" ("parent_option_id");
 
 CREATE UNIQUE INDEX "bundle_item_option_selection_item_option_unique"
-  ON "catalog"."bundle_item_option_selection" ("item_id", "ref_option_id");
+  ON "app_shopana_bundles"."bundle_item_option_selection" ("item_id", "ref_option_id");
 
-CREATE TABLE "catalog"."bundle_item_option_value_selection" (
+CREATE TABLE "app_shopana_bundles"."bundle_item_option_value_selection" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "option_selection_id" uuid NOT NULL,
@@ -119,7 +119,7 @@ CREATE TABLE "catalog"."bundle_item_option_value_selection" (
   CONSTRAINT "bundle_item_option_value_selection_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "bundle_item_option_value_selection_option_selection_id_fk"
     FOREIGN KEY ("option_selection_id")
-    REFERENCES "catalog"."bundle_item_option_selection" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_item_option_selection" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "bundle_item_option_value_selection_ref_option_value_id_fk"
     FOREIGN KEY ("ref_option_value_id")
@@ -128,18 +128,18 @@ CREATE TABLE "catalog"."bundle_item_option_value_selection" (
 );
 
 CREATE INDEX "idx_bundle_item_option_value_selection_option_id"
-  ON "catalog"."bundle_item_option_value_selection" ("option_selection_id");
+  ON "app_shopana_bundles"."bundle_item_option_value_selection" ("option_selection_id");
 
 CREATE INDEX "idx_bundle_item_option_value_selection_ref_value_id"
-  ON "catalog"."bundle_item_option_value_selection" ("ref_option_value_id");
+  ON "app_shopana_bundles"."bundle_item_option_value_selection" ("ref_option_value_id");
 
 CREATE INDEX "idx_bundle_item_option_value_selection_status"
-  ON "catalog"."bundle_item_option_value_selection" ("option_selection_id", "status");
+  ON "app_shopana_bundles"."bundle_item_option_value_selection" ("option_selection_id", "status");
 
 CREATE UNIQUE INDEX "bundle_item_option_value_selection_value_unique"
-  ON "catalog"."bundle_item_option_value_selection" ("option_selection_id", "value");
+  ON "app_shopana_bundles"."bundle_item_option_value_selection" ("option_selection_id", "value");
 
-CREATE TABLE "catalog"."bundle_item_translation" (
+CREATE TABLE "app_shopana_bundles"."bundle_item_translation" (
   "store_id" uuid NOT NULL,
   "item_id" uuid NOT NULL,
   "locale" "catalog"."locale_code" NOT NULL,
@@ -147,9 +147,9 @@ CREATE TABLE "catalog"."bundle_item_translation" (
   CONSTRAINT "bundle_item_translation_pkey" PRIMARY KEY ("item_id", "locale"),
   CONSTRAINT "bundle_item_translation_item_id_fk"
     FOREIGN KEY ("item_id")
-    REFERENCES "catalog"."bundle_item" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_item" ("id")
     ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_bundle_item_translation_store_locale"
-  ON "catalog"."bundle_item_translation" ("store_id", "locale");
+  ON "app_shopana_bundles"."bundle_item_translation" ("store_id", "locale");

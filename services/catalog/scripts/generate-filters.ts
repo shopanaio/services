@@ -5,10 +5,7 @@ import {
   type GraphQLFieldType,
 } from "@shopana/drizzle-query";
 import { categoryRelayQuery } from "../src/repositories/category/CategoryRepository.js";
-import {
-  bundleRelayQuery,
-  productRelayQuery,
-} from "../src/repositories/product/ProductRepository.js";
+import { productRelayQuery } from "../src/repositories/product/ProductRepository.js";
 import { tagRelayQuery } from "../src/repositories/tag/TagRepository.js";
 import { vendorRelayQuery } from "../src/repositories/vendor/VendorRepository.js";
 import { variantRelayQuery } from "../src/repositories/variant/VariantRepository.js";
@@ -64,23 +61,6 @@ const productWhere = generateWhereInputType(productRelayQuery, "Product", {
 const productOrderBy = generateOrderByInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
   fieldTypes: productListFieldTypes,
-  excludeFields: ["storeId", "deletedAt", "revision", "kind"],
-});
-
-const bundleListFieldTypes: Record<string, GraphQLFieldType> = {
-  ...productListFieldTypes,
-  bundleType: "String",
-};
-
-const bundleWhere = generateWhereInputType(bundleRelayQuery, "Bundle", {
-  includeDescriptions: true,
-  fieldTypes: bundleListFieldTypes,
-  excludeFields: ["storeId", "deletedAt", "revision", "kind"],
-});
-
-const bundleOrderBy = generateOrderByInputType(bundleRelayQuery, "Bundle", {
-  includeDescriptions: true,
-  fieldTypes: bundleListFieldTypes,
   excludeFields: ["storeId", "deletedAt", "revision", "kind"],
 });
 
@@ -257,12 +237,6 @@ const content = `# Auto-generated GraphQL filter types for Catalog service.
 ${productWhere}
 
 ${productOrderBy}
-
-# ---- Bundle ----
-
-${bundleWhere}
-
-${bundleOrderBy}
 
 # ---- Vendor ----
 

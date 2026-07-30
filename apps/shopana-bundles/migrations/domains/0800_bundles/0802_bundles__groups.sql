@@ -1,6 +1,6 @@
 -- Up Migration
 
-CREATE TABLE "catalog"."bundle_group" (
+CREATE TABLE "app_shopana_bundles"."bundle_group" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE "catalog"."bundle_group" (
   CONSTRAINT "bundle_group_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "bundle_group_configuration_id_fk"
     FOREIGN KEY ("configuration_id")
-    REFERENCES "catalog"."bundle_configuration" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_configuration" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "bundle_group_selection_check"
     CHECK (
@@ -27,12 +27,12 @@ CREATE TABLE "catalog"."bundle_group" (
 );
 
 CREATE INDEX "idx_bundle_group_configuration_id"
-  ON "catalog"."bundle_group" ("configuration_id");
+  ON "app_shopana_bundles"."bundle_group" ("configuration_id");
 
 CREATE INDEX "idx_bundle_group_sort"
-  ON "catalog"."bundle_group" ("configuration_id", "sort_index");
+  ON "app_shopana_bundles"."bundle_group" ("configuration_id", "sort_index");
 
-CREATE TABLE "catalog"."bundle_group_translation" (
+CREATE TABLE "app_shopana_bundles"."bundle_group_translation" (
   "store_id" uuid NOT NULL,
   "group_id" uuid NOT NULL,
   "locale" "catalog"."locale_code" NOT NULL,
@@ -40,9 +40,9 @@ CREATE TABLE "catalog"."bundle_group_translation" (
   CONSTRAINT "bundle_group_translation_pkey" PRIMARY KEY ("group_id", "locale"),
   CONSTRAINT "bundle_group_translation_group_id_fk"
     FOREIGN KEY ("group_id")
-    REFERENCES "catalog"."bundle_group" ("id")
+    REFERENCES "app_shopana_bundles"."bundle_group" ("id")
     ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_bundle_group_translation_store_locale"
-  ON "catalog"."bundle_group_translation" ("store_id", "locale");
+  ON "app_shopana_bundles"."bundle_group_translation" ("store_id", "locale");
