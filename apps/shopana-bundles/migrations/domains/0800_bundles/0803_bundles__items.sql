@@ -83,15 +83,7 @@ CREATE TABLE "app_shopana_bundles"."bundle_item_option_selection" (
   CONSTRAINT "bundle_item_option_selection_item_id_fk"
     FOREIGN KEY ("item_id")
     REFERENCES "app_shopana_bundles"."bundle_item" ("id")
-    ON DELETE CASCADE,
-  CONSTRAINT "bundle_item_option_selection_ref_option_id_fk"
-    FOREIGN KEY ("ref_option_id")
-    REFERENCES "catalog"."product_option" ("id")
-    ON DELETE CASCADE,
-  CONSTRAINT "bundle_item_option_selection_parent_option_id_fk"
-    FOREIGN KEY ("parent_option_id")
-    REFERENCES "catalog"."product_option" ("id")
-    ON DELETE SET NULL
+    ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_bundle_item_option_selection_item_id"
@@ -120,11 +112,7 @@ CREATE TABLE "app_shopana_bundles"."bundle_item_option_value_selection" (
   CONSTRAINT "bundle_item_option_value_selection_option_selection_id_fk"
     FOREIGN KEY ("option_selection_id")
     REFERENCES "app_shopana_bundles"."bundle_item_option_selection" ("id")
-    ON DELETE CASCADE,
-  CONSTRAINT "bundle_item_option_value_selection_ref_option_value_id_fk"
-    FOREIGN KEY ("ref_option_value_id")
-    REFERENCES "catalog"."product_option_value" ("id")
-    ON DELETE SET NULL
+    ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_bundle_item_option_value_selection_option_id"
