@@ -93,13 +93,22 @@ extend type Product @key(fields: "id") {
 """Bundle-specific data associated one-to-one with a Catalog Product."""
 type ProductBundle {
   """High-level bundle type."""
-  type: BundleType
+  type: BundleType!
 
   """Configurator display style."""
   displayStyle: BundleDisplayStyle!
 
+  """Optimistic locking revision owned by the Bundles App."""
+  revision: Int!
+
   """All bundle configurations associated with the product."""
   configurations: [BundleConfiguration!]!
+
+  """The date and time when the bundle data was created."""
+  createdAt: DateTime!
+
+  """The date and time when the bundle data was last updated."""
+  updatedAt: DateTime!
 }
 
 """A connection to Catalog Products configured by the Bundles App."""
@@ -468,48 +477,49 @@ type BundleDependencyAction implements Node @key(fields: "id") {
   sortIndex: Int!
 }
 
-# ---- Bundle Listing Inputs ----
-
-input BundleBundlesMetaInput {
-  categoriesScope: ProductCategoriesScopeInput
-}
-
 # ---- Bundle Mutation Payloads ----
 
-type BundleCreatePayload {
+type ProductBundlePayload {
   product: Product
+  bundle: ProductBundle
   userErrors: [GenericUserError!]!
 }
 
-type BundleUpdatePayload {
+type ProductBundleRemovePayload {
   product: Product
+  removed: Boolean!
   userErrors: [GenericUserError!]!
 }
 
 type BundleConfigurationPayload {
+  bundle: ProductBundle
   configuration: BundleConfiguration
   userErrors: [GenericUserError!]!
 }
 
 type BundleConfigurationDeletePayload {
+  bundle: ProductBundle
   deletedConfigurationId: ID
   product: Product
   userErrors: [GenericUserError!]!
 }
 
 type BundleGroupsSyncPayload {
+  bundle: ProductBundle
   configuration: BundleConfiguration
   groups: [BundleGroup!]!
   userErrors: [GenericUserError!]!
 }
 
 type BundlePricingTemplatesSyncPayload {
+  bundle: ProductBundle
   configuration: BundleConfiguration
   pricingTemplates: [BundlePricingTemplate!]!
   userErrors: [GenericUserError!]!
 }
 
 type BundleDependencyRulesSyncPayload {
+  bundle: ProductBundle
   configuration: BundleConfiguration
   dependencyRules: [BundleDependencyRule!]!
   userErrors: [GenericUserError!]!
@@ -517,85 +527,34 @@ type BundleDependencyRulesSyncPayload {
 
 # ---- Bundle Mutation Inputs ----
 
-input BundleCreateInput {
-  """Bundle title."""
-  title: String!
+input BundleSettingsUpdateInput {
+  """Global ID of the Catalog Product configured as a bundle."""
+  productId: ID!
 
-  """URL-friendly handle for the bundle."""
-  handle: String!
+  """Expected revision of Product.bundle."""
+  expectedBundleRevision: Int!
 
-  """Vendor ID to associate with the bundle."""
-  vendorId: ID
-
-  """Bundle description."""
-  description: RichTextInput
-
-  """Short excerpt in multiple formats."""
-  excerpt: RichTextInput
-
-  """File IDs for bundle media (already uploaded via mediaMutation.fileUpload)."""
-  mediaFileIds: [ID!]
-
-  """Bundle options."""
-  options: [ProductCreateOptionInput!]
-
-  """Bundle variants to create."""
-  variants: [ProductCreateVariantInput!]
-
-  """Inventory tracking settings for the bundle."""
-  inventoryItem: InventoryItemInput
-
-  """High-level bundle type."""
+  """Updated high-level bundle type."""
   type: BundleType
 
-  """Configurator display style."""
+  """Updated configurator display style."""
   displayStyle: BundleDisplayStyle
 }
 
-input BundleUpdateInput {
-  """The URL-friendly handle for the bundle."""
-  handle: String
+input BundleRemoveInput {
+  """Global ID of the Catalog Product configured as a bundle."""
+  productId: ID!
 
-  """Bundle title."""
-  title: String
-
-  """Vendor ID to associate with the bundle. Pass null to clear."""
-  vendorId: ID
-
-  """Bundle content (description, excerpt)."""
-  content: ProductContentInput
-
-  """SEO and Open Graph metadata."""
-  seo: ProductSeoInput
-
-  """Bundle status: DRAFT or PUBLISHED."""
-  status: ProductStatus
-
-  """Bundle media."""
-  media: ProductMediaInput
-
-  """Bundle category assignment operations."""
-  categories: [ProductCategoryOperationInput!]
-
-  """Bundle tag assignment operations."""
-  tags: [ProductTagOperationInput!]
-
-  """Variant create, update, and delete operations."""
-  variants: [VariantOperationInput!]
-
-  """High-level bundle type."""
-  type: BundleType
-
-  """Configurator display style."""
-  displayStyle: BundleDisplayStyle
+  """Expected revision of Product.bundle."""
+  expectedBundleRevision: Int!
 }
 
 input BundleConfigurationCreateInput {
   """Global ID of the Catalog Product."""
   productId: ID!
 
-  """Expected parent bundle product revision. Required for optimistic locking."""
-  expectedRevision: Int!
+  """Expected revision of Product.bundle."""
+  expectedBundleRevision: Int!
 
   """Configuration name."""
   name: String!
@@ -603,18 +562,18 @@ input BundleConfigurationCreateInput {
 
 input BundleConfigurationUpdateInput {
   id: ID!
-  expectedRevision: Int!
+  expectedBundleRevision: Int!
   name: String
 }
 
 input BundleConfigurationDeleteInput {
   id: ID!
-  expectedRevision: Int!
+  expectedBundleRevision: Int!
 }
 
 input BundleGroupsSyncInput {
   configurationId: ID!
-  expectedRevision: Int!
+  expectedBundleRevision: Int!
 
   """
   Complete list of groups for this configuration.
@@ -756,7 +715,7 @@ input BundlePriceRulePercentInput {
 
 input BundlePricingTemplatesSyncInput {
   configurationId: ID!
-  expectedRevision: Int!
+  expectedBundleRevision: Int!
 
   """
   Complete list of pricing templates for this configuration.
@@ -785,7 +744,7 @@ input BundlePricingTemplateSyncItemInput {
 
 input BundleDependencyRulesSyncInput {
   configurationId: ID!
-  expectedRevision: Int!
+  expectedBundleRevision: Int!
 
   """
   Complete list of dependency rules for this configuration.
@@ -898,34 +857,34 @@ extend type Mutation {
 }
 
 type BundlesAppQuery {
-  """Get a Catalog Product configured as a bundle."""
-  bundle(id: ID!): Product
+  """
+  Get Catalog Products initialized in the Bundles App.
 
-  """Get Catalog Products configured as bundles."""
+  Product-owned fields are resolved by Catalog through Federation. This query
+  filters and orders only by data owned by the Bundles App.
+  """
   bundles(
     first: Int
     after: String
     last: Int
     before: String
-    where: BundleWhereInput
-    orderBy: [BundleOrderByInput!]
-    meta: BundleBundlesMetaInput
+    where: BundleProductWhereInput
+    orderBy: [BundleProductOrderByInput!]
   ): BundleProductConnection!
 }
 
 type BundlesAppMutation {
-  """Create a new bundle sellable item."""
-  bundleCreate(input: BundleCreateInput!): BundleCreatePayload!
+  """Update only settings owned by the Bundles App."""
+  bundleSettingsUpdate(
+    input: BundleSettingsUpdateInput!
+  ): ProductBundlePayload!
 
-  """Unified bundle update with optimistic locking."""
-  bundleUpdate(
-    """The Catalog Product global ID to update."""
-    productId: ID!
-    """Expected revision for optimistic locking."""
-    expectedRevision: Int!
-    """Bundle-level operations."""
-    operations: BundleUpdateInput
-  ): BundleUpdatePayload!
+  """
+  Remove bundle-owned data without deleting the Catalog Product.
+
+  Product deletion remains owned by catalogMutation.productDelete.
+  """
+  bundleRemove(input: BundleRemoveInput!): ProductBundleRemovePayload!
 
   """Create one bundle configuration."""
   bundleConfigurationCreate(
@@ -965,94 +924,48 @@ extend type Variant @key(fields: "id") {
   bundleConfiguration: BundleConfiguration
 }
 
-# ---- Bundle Filters ----
+# ---- Bundle Product Listing ----
 
-"""Filter conditions for Bundle."""
-input BundleWhereInput {
+"""Filter products by data owned by the Bundles App."""
+input BundleProductWhereInput {
   """Logical AND of multiple conditions."""
-  _and: [BundleWhereInput!]
+  _and: [BundleProductWhereInput!]
+
   """Logical OR of multiple conditions."""
-  _or: [BundleWhereInput!]
+  _or: [BundleProductWhereInput!]
+
   """Negate the condition."""
-  _not: BundleWhereInput
-  """Filter by id."""
-  id: IDFilter
-  """Filter by vendorId."""
-  vendorId: IDFilter
-  """Filter by handle."""
-  handle: StringFilter
-  """Filter by publishedAt."""
-  publishedAt: DateTimeFilter
-  """Filter by createdAt."""
+  _not: BundleProductWhereInput
+
+  """Filter by Catalog Product global ID."""
+  productId: IDFilter
+
+  """Filter by bundle type."""
+  type: [BundleType!]
+
+  """Filter by configurator display style."""
+  displayStyle: [BundleDisplayStyle!]
+
+  """Filter by bundle initialization time."""
   createdAt: DateTimeFilter
-  """Filter by updatedAt."""
+
+  """Filter by bundle update time."""
   updatedAt: DateTimeFilter
-  """Filter by locale."""
-  locale: StringFilter
-  """Filter by name."""
-  name: StringFilter
-  """Filter by currency."""
-  currency: StringFilter
-  """Filter by minAmountMinor."""
-  minAmountMinor: IntFilter
-  """Filter by maxAmountMinor."""
-  maxAmountMinor: IntFilter
-  """Filter by minPriceMinor."""
-  minPriceMinor: IntFilter
-  """Filter by maxPriceMinor."""
-  maxPriceMinor: IntFilter
-  """Filter by primaryCategoryId."""
-  primaryCategoryId: IDFilter
-  """Filter by primaryCategoryName."""
-  primaryCategoryName: StringFilter
-  """Filter by brandName."""
-  brandName: StringFilter
-  """Filter by bundleType."""
-  bundleType: StringFilter
 }
 
-"""Fields available for sorting Bundle."""
-enum BundleOrderField {
-  """Sort by id."""
-  id
-  """Sort by vendorId."""
-  vendorId
-  """Sort by handle."""
-  handle
-  """Sort by publishedAt."""
-  publishedAt
-  """Sort by createdAt."""
-  createdAt
-  """Sort by updatedAt."""
-  updatedAt
-  """Sort by locale."""
-  locale
-  """Sort by name."""
-  name
-  """Sort by currency."""
-  currency
-  """Sort by minAmountMinor."""
-  minAmountMinor
-  """Sort by maxAmountMinor."""
-  maxAmountMinor
-  """Sort by minPriceMinor."""
-  minPriceMinor
-  """Sort by maxPriceMinor."""
-  maxPriceMinor
-  """Sort by primaryCategoryId."""
-  primaryCategoryId
-  """Sort by primaryCategoryName."""
-  primaryCategoryName
-  """Sort by brandName."""
-  brandName
-  """Sort by bundleType."""
-  bundleType
+"""Fields owned by the Bundles App that can be used for ordering."""
+enum BundleProductOrderField {
+  CREATED_AT
+  UPDATED_AT
+  TYPE
+  DISPLAY_STYLE
 }
 
-"""Ordering configuration for Bundle."""
-input BundleOrderByInput {
+"""Ordering configuration for bundle products."""
+input BundleProductOrderByInput {
   """Field to order by."""
-  field: BundleOrderField!
+  field: BundleProductOrderField!
+
   """Sort direction."""
   direction: SortDirection!
 }
