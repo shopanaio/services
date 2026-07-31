@@ -24,24 +24,12 @@ registerModule({
       ),
     },
     {
-      key: "bundles-list",
-      path: "/:orgName/:storeName/bundles",
-      sidebar: {
-        label: "Bundles",
-        icon: null,
-        order: 2,
-      },
-      component: dynamic(
-        () => import("@/domains/inventory/bundles/page/page"),
-      ),
-    },
-    {
       key: "categories-list",
       path: "/:orgName/:storeName/categories",
       sidebar: {
         label: "Categories",
         icon: null,
-        order: 3,
+        order: 2,
       },
       component: dynamic(
         () => import("@/domains/inventory/categories/page/page")
@@ -53,7 +41,7 @@ registerModule({
       sidebar: {
         label: "Tags",
         icon: null,
-        order: 4,
+        order: 3,
       },
       component: dynamic(
         () => import("@/domains/inventory/tags/page/page"),
