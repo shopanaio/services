@@ -328,7 +328,7 @@ export interface ProductComponentDependencyActionSyncItem {
     | "SET_REQUIRED"
     | "ADJUST_PRICE";
   targetType: "ITEM" | "GROUP" | "PRODUCT_COMPONENT";
-  targetId?: string | null;
+  targetId: string;
   requiredValue?: boolean | null;
   priceRule?: ProductComponentPriceRuleInput | null;
   stackable: boolean;

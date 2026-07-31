@@ -2402,16 +2402,6 @@ function mapProductComponentDependencyRules(
       }),
       actions: rule.actions.map((action, actionIndex) => {
         const actionPrefix = [...rulePrefix, "actions", String(actionIndex)];
-        if (
-          String(action.targetType) !== "PRODUCT_COMPONENT" &&
-          !action.targetId
-        ) {
-          errors.push({
-            message: "Target ID is required for item and group actions",
-            field: [...actionPrefix, "targetId"],
-            code: "REQUIRED",
-          });
-        }
         if (String(action.actionType) === "ADJUST_PRICE" && !action.priceRule) {
           errors.push({
             message: "Price rule is required for adjust price actions",
@@ -2430,14 +2420,13 @@ function mapProductComponentDependencyRules(
             : undefined,
           actionType: action.actionType,
           targetType: action.targetType,
-          targetId: action.targetId
-            ? decodeProductComponentTargetId(
-                action.targetId,
-                String(action.targetType),
-                [...actionPrefix, "targetId"],
-                errors,
-              )
-            : action.targetId,
+          targetId:
+            decodeProductComponentTargetId(
+              action.targetId,
+              String(action.targetType),
+              [...actionPrefix, "targetId"],
+              errors,
+            ) ?? "",
           requiredValue: action.requiredValue,
           priceRule: action.priceRule
             ? mapProductComponentPriceRule(

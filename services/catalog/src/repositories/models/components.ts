@@ -3,12 +3,14 @@ import {
   bigint,
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   primaryKey,
   smallint,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   varchar,
@@ -19,6 +21,7 @@ import { product, variant } from "./products";
 import {
   catalogSchema,
   componentPriceStrategyEnum,
+  componentTargetKindEnum,
   localeCodeEnum,
   priceAdjustmentOperationEnum,
   priceAdjustmentValueTypeEnum,
@@ -44,6 +47,7 @@ export const component = catalogSchema.table(
   },
   (table) => [
     uniqueIndex("component_product_id_unique").on(table.productId),
+    unique("component_id_product_id_unique").on(table.id, table.productId),
     check(
       "component_display_style_check",
       sql`${table.displayStyle} IN ('ACCORDION', 'TABS', 'FLAT', 'WIZARD')`,
@@ -69,7 +73,114 @@ export const componentConfiguration = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
+    unique("component_configuration_id_component_id_unique").on(
+      table.id,
+      table.componentId,
+    ),
     index("idx_component_configuration_component_id").on(table.componentId),
+  ],
+);
+
+export const componentTarget = catalogSchema.table(
+  "component_target",
+  {
+    storeId: uuid("store_id").notNull(),
+    configurationId: uuid("configuration_id")
+      .notNull()
+      .references(() => componentConfiguration.id, { onDelete: "cascade" }),
+    id: uuid("id").notNull(),
+    kind: componentTargetKindEnum("kind").notNull(),
+    parentId: uuid("parent_id"),
+    parentKind: componentTargetKindEnum("parent_kind"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.configurationId, table.id] }),
+    unique("component_target_identity_kind_unique").on(
+      table.configurationId,
+      table.id,
+      table.kind,
+    ),
+    unique("component_target_item_parent_unique").on(
+      table.configurationId,
+      table.id,
+      table.kind,
+      table.parentId,
+    ),
+    check(
+      "component_target_hierarchy_check",
+      sql`(
+          ${table.kind} = 'PRODUCT_COMPONENT'
+          AND ${table.parentId} IS NULL
+          AND ${table.parentKind} IS NULL
+        )
+        OR (
+          ${table.kind} = 'GROUP'
+          AND ${table.parentId} IS NOT NULL
+          AND ${table.parentKind} = 'PRODUCT_COMPONENT'
+        )
+        OR (
+          ${table.kind} = 'ITEM'
+          AND ${table.parentId} IS NOT NULL
+          AND ${table.parentKind} = 'GROUP'
+        )`,
+    ),
+    foreignKey({
+      name: "component_target_parent_fk",
+      columns: [table.configurationId, table.parentId, table.parentKind],
+      foreignColumns: [table.configurationId, table.id, table.kind],
+    }).onDelete("cascade"),
+    uniqueIndex("component_target_configuration_root_unique")
+      .on(table.configurationId)
+      .where(sql`${table.kind} = 'PRODUCT_COMPONENT'`),
+    index("idx_component_target_parent").on(
+      table.configurationId,
+      table.parentId,
+    ),
+  ],
+);
+
+export const productComponentTarget = catalogSchema.table(
+  "product_component_target",
+  {
+    storeId: uuid("store_id").notNull(),
+    configurationId: uuid("configuration_id").notNull(),
+    id: uuid("id").notNull(),
+    componentId: uuid("component_id").notNull(),
+    kind: componentTargetKindEnum("kind")
+      .notNull()
+      .default("PRODUCT_COMPONENT"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.configurationId, table.id] }),
+    unique("product_component_target_configuration_unique").on(
+      table.configurationId,
+    ),
+    check(
+      "product_component_target_kind_check",
+      sql`${table.kind} = 'PRODUCT_COMPONENT'`,
+    ),
+    foreignKey({
+      name: "product_component_target_registry_fk",
+      columns: [table.configurationId, table.id, table.kind],
+      foreignColumns: [
+        componentTarget.configurationId,
+        componentTarget.id,
+        componentTarget.kind,
+      ],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "product_component_target_configuration_fk",
+      columns: [table.configurationId, table.componentId],
+      foreignColumns: [
+        componentConfiguration.id,
+        componentConfiguration.componentId,
+      ],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "product_component_target_component_fk",
+      columns: [table.componentId, table.id],
+      foreignColumns: [component.id, component.productId],
+    }).onDelete("cascade"),
   ],
 );
 
@@ -195,6 +306,9 @@ export const componentGroup = catalogSchema.table(
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => componentConfiguration.id, { onDelete: "cascade" }),
+    targetKind: componentTargetKindEnum("target_kind")
+      .notNull()
+      .default("GROUP"),
     sortIndex: integer("sort_index").notNull().default(0),
     minSelection: integer("min_selection"),
     maxSelection: integer("max_selection"),
@@ -206,6 +320,23 @@ export const componentGroup = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
+    unique("component_group_configuration_id_id_unique").on(
+      table.configurationId,
+      table.id,
+    ),
+    check(
+      "component_group_target_kind_check",
+      sql`${table.targetKind} = 'GROUP'`,
+    ),
+    foreignKey({
+      name: "component_group_target_fk",
+      columns: [table.configurationId, table.id, table.targetKind],
+      foreignColumns: [
+        componentTarget.configurationId,
+        componentTarget.id,
+        componentTarget.kind,
+      ],
+    }).onDelete("cascade"),
     check(
       "component_group_selection_check",
       sql`(${table.minSelection} IS NULL OR ${table.minSelection} >= 0)
@@ -248,9 +379,12 @@ export const componentItem = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
+    configurationId: uuid("configuration_id").notNull(),
     groupId: uuid("group_id")
+      .notNull(),
+    targetKind: componentTargetKindEnum("target_kind")
       .notNull()
-      .references(() => componentGroup.id, { onDelete: "cascade" }),
+      .default("ITEM"),
     itemType: varchar("item_type", { length: 32 }).notNull(),
     sortIndex: integer("sort_index").notNull().default(0),
     refProductId: uuid("ref_product_id"),
@@ -276,6 +410,30 @@ export const componentItem = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
+    check(
+      "component_item_target_kind_check",
+      sql`${table.targetKind} = 'ITEM'`,
+    ),
+    foreignKey({
+      name: "component_item_group_fk",
+      columns: [table.configurationId, table.groupId],
+      foreignColumns: [componentGroup.configurationId, componentGroup.id],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "component_item_target_fk",
+      columns: [
+        table.configurationId,
+        table.id,
+        table.targetKind,
+        table.groupId,
+      ],
+      foreignColumns: [
+        componentTarget.configurationId,
+        componentTarget.id,
+        componentTarget.kind,
+        componentTarget.parentId,
+      ],
+    }).onDelete("cascade"),
     check(
       "component_item_quantity_check",
       sql`(${table.minQty} IS NULL OR ${table.minQty} >= 0)
@@ -444,6 +602,10 @@ export const dependencyRule = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
+    unique("dependency_rule_configuration_id_id_unique").on(
+      table.configurationId,
+      table.id,
+    ),
     index("idx_dependency_rule_configuration_id").on(table.configurationId),
     index("idx_dependency_rule_priority").on(
       table.configurationId,
@@ -457,15 +619,27 @@ export const conditionGroup = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
+    configurationId: uuid("configuration_id").notNull(),
     ruleId: uuid("rule_id")
-      .notNull()
-      .references(() => dependencyRule.id, { onDelete: "cascade" }),
+      .notNull(),
     logicOperator: varchar("logic_operator", { length: 8 })
       .notNull()
       .default("AND"),
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
+    unique("condition_group_configuration_id_id_unique").on(
+      table.configurationId,
+      table.id,
+    ),
+    foreignKey({
+      name: "condition_group_rule_fk",
+      columns: [table.configurationId, table.ruleId],
+      foreignColumns: [
+        dependencyRule.configurationId,
+        dependencyRule.id,
+      ],
+    }).onDelete("cascade"),
     index("idx_condition_group_rule_id").on(table.ruleId),
   ],
 );
@@ -475,20 +649,41 @@ export const condition = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
+    configurationId: uuid("configuration_id").notNull(),
     groupId: uuid("group_id")
-      .notNull()
-      .references(() => conditionGroup.id, { onDelete: "cascade" }),
+      .notNull(),
     category: varchar("category", { length: 32 }).notNull(),
     subject: varchar("subject", { length: 32 }).notNull(),
     operator: varchar("operator", { length: 32 }).notNull(),
-    targetType: varchar("target_type", { length: 32 }).notNull(),
+    targetType: componentTargetKindEnum("target_type").notNull(),
     targetId: uuid("target_id").notNull(),
     value: integer("value"),
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
+    foreignKey({
+      name: "condition_group_fk",
+      columns: [table.configurationId, table.groupId],
+      foreignColumns: [
+        conditionGroup.configurationId,
+        conditionGroup.id,
+      ],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "condition_target_fk",
+      columns: [table.configurationId, table.targetId, table.targetType],
+      foreignColumns: [
+        componentTarget.configurationId,
+        componentTarget.id,
+        componentTarget.kind,
+      ],
+    }).onDelete("cascade"),
     index("idx_condition_group_id").on(table.groupId),
-    index("idx_condition_target").on(table.targetType, table.targetId),
+    index("idx_condition_target").on(
+      table.configurationId,
+      table.targetId,
+      table.targetType,
+    ),
   ],
 );
 
@@ -497,12 +692,12 @@ export const dependencyAction = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
+    configurationId: uuid("configuration_id").notNull(),
     ruleId: uuid("rule_id")
-      .notNull()
-      .references(() => dependencyRule.id, { onDelete: "cascade" }),
+      .notNull(),
     actionType: varchar("action_type", { length: 32 }).notNull(),
-    targetType: varchar("target_type", { length: 32 }).notNull(),
-    targetId: uuid("target_id"),
+    targetType: componentTargetKindEnum("target_type").notNull(),
+    targetId: uuid("target_id").notNull(),
     requiredValue: boolean("required_value"),
     priceRuleId: uuid("price_rule_id").references(() => componentPriceRule.id, {
       onDelete: "restrict",
@@ -511,6 +706,23 @@ export const dependencyAction = catalogSchema.table(
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
+    foreignKey({
+      name: "dependency_action_rule_fk",
+      columns: [table.configurationId, table.ruleId],
+      foreignColumns: [
+        dependencyRule.configurationId,
+        dependencyRule.id,
+      ],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "dependency_action_target_fk",
+      columns: [table.configurationId, table.targetId, table.targetType],
+      foreignColumns: [
+        componentTarget.configurationId,
+        componentTarget.id,
+        componentTarget.kind,
+      ],
+    }).onDelete("cascade"),
     check(
       "dependency_action_price_rule_check",
       sql`(
@@ -523,7 +735,11 @@ export const dependencyAction = catalogSchema.table(
         )`,
     ),
     index("idx_dependency_action_rule_id").on(table.ruleId),
-    index("idx_dependency_action_target").on(table.targetType, table.targetId),
+    index("idx_dependency_action_target").on(
+      table.configurationId,
+      table.targetId,
+      table.targetType,
+    ),
     index("idx_dependency_action_price_rule_id").on(table.priceRuleId),
   ],
 );
@@ -534,6 +750,11 @@ export type ComponentConfiguration =
   typeof componentConfiguration.$inferSelect;
 export type NewComponentConfiguration =
   typeof componentConfiguration.$inferInsert;
+export type ComponentTarget = typeof componentTarget.$inferSelect;
+export type NewComponentTarget = typeof componentTarget.$inferInsert;
+export type ProductComponentTarget = typeof productComponentTarget.$inferSelect;
+export type NewProductComponentTarget =
+  typeof productComponentTarget.$inferInsert;
 export type ComponentConfigurationVariant =
   typeof componentConfigurationVariant.$inferSelect;
 export type NewComponentConfigurationVariant =

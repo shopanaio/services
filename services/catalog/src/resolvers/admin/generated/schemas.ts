@@ -573,7 +573,7 @@ export function ProductComponentDependencyActionSyncItemInputSchema(): z.ZodObje
     requiredValue: z.boolean().nullish(),
     sortIndex: z.number(),
     stackable: z.boolean(),
-    targetId: z.string().nullish(),
+    targetId: z.string(),
     targetType: ProductComponentDependencyTargetTypeSchema
   })
 }

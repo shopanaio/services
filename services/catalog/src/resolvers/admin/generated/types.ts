@@ -2511,8 +2511,8 @@ export type ProductComponentDependencyAction = Node & {
   sortIndex: Scalars['Int']['output'];
   /** Whether this action can stack with other matching actions. */
   stackable: Scalars['Boolean']['output'];
-  /** Target ID. Null is allowed when targetType is PRODUCT_COMPONENT. */
-  targetId: Maybe<Scalars['ID']['output']>;
+  /** Target ID. Points to an item, group, or the parent component product. */
+  targetId: Scalars['ID']['output'];
   /** Target type. */
   targetType: ProductComponentDependencyTargetType;
 };
@@ -2530,8 +2530,8 @@ export type ProductComponentDependencyActionSyncItemInput = {
   sortIndex: Scalars['Int']['input'];
   /** Whether this action can stack with other matching actions. */
   stackable: Scalars['Boolean']['input'];
-  /** Target ID. Null is allowed when targetType is PRODUCT_COMPONENT. */
-  targetId?: InputMaybe<Scalars['ID']['input']>;
+  /** Target ID. Points to an item, group, or the parent component product. */
+  targetId: Scalars['ID']['input'];
   /** Target type. */
   targetType: ProductComponentDependencyTargetType;
 };
@@ -6146,7 +6146,7 @@ export type ProductComponentDependencyActionResolvers<ContextType = ServiceConte
   requiredValue?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   stackable?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  targetId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  targetId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   targetType?: Resolver<ResolversTypes['ProductComponentDependencyTargetType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

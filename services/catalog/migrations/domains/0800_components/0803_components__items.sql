@@ -3,7 +3,9 @@
 CREATE TABLE "catalog"."component_item" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
+  "configuration_id" uuid NOT NULL,
   "group_id" uuid NOT NULL,
+  "target_kind" "catalog"."component_target_kind" NOT NULL DEFAULT 'ITEM',
   "item_type" varchar(32) NOT NULL,
   "sort_index" integer NOT NULL DEFAULT 0,
   "ref_product_id" uuid,
@@ -19,9 +21,20 @@ CREATE TABLE "catalog"."component_item" (
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT "component_item_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "component_item_group_id_fk"
-    FOREIGN KEY ("group_id")
-    REFERENCES "catalog"."component_group" ("id")
+  CONSTRAINT "component_item_target_kind_check"
+    CHECK ("target_kind" = 'ITEM'),
+  CONSTRAINT "component_item_group_fk"
+    FOREIGN KEY ("configuration_id", "group_id")
+    REFERENCES "catalog"."component_group" ("configuration_id", "id")
+    ON DELETE CASCADE,
+  CONSTRAINT "component_item_target_fk"
+    FOREIGN KEY ("configuration_id", "id", "target_kind", "group_id")
+    REFERENCES "catalog"."component_target" (
+      "configuration_id",
+      "id",
+      "kind",
+      "parent_id"
+    )
     ON DELETE CASCADE,
   CONSTRAINT "component_item_price_rule_id_fk"
     FOREIGN KEY ("price_rule_id")

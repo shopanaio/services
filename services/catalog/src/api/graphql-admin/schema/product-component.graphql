@@ -385,8 +385,8 @@ type ProductComponentDependencyAction implements Node @key(fields: "id") {
   """Target type."""
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Null is allowed when targetType is PRODUCT_COMPONENT."""
-  targetId: ID
+  """Target ID. Points to an item, group, or the parent component product."""
+  targetId: ID!
 
   """Required value for SET_REQUIRED."""
   requiredValue: Boolean
@@ -689,8 +689,8 @@ input ProductComponentDependencyActionSyncItemInput {
   """Target type."""
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Null is allowed when targetType is PRODUCT_COMPONENT."""
-  targetId: ID
+  """Target ID. Points to an item, group, or the parent component product."""
+  targetId: ID!
 
   """Required value for SET_REQUIRED."""
   requiredValue: Boolean

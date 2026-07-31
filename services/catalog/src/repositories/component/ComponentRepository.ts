@@ -1,4 +1,12 @@
-import { and, asc, eq, inArray, isNull, notInArray } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  inArray,
+  isNull,
+  notExists,
+  notInArray,
+} from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import type {
   ProductComponentDependencyRulesSyncParams,
@@ -21,10 +29,12 @@ import {
   componentPriceRuleAmount,
   componentPriceRulePercent,
   componentPricingTemplate,
+  componentTarget,
   condition,
   conditionGroup,
   dependencyAction,
   dependencyRule,
+  productComponentTarget,
   variant,
   type Component,
   type ComponentConfiguration,
@@ -646,6 +656,21 @@ export class ComponentRepository extends BaseRepository {
         name,
       })
       .returning();
+    await this.connection.insert(componentTarget).values({
+      id: productId,
+      storeId: this.storeId,
+      configurationId: id,
+      kind: "PRODUCT_COMPONENT",
+      parentId: null,
+      parentKind: null,
+    });
+    await this.connection.insert(productComponentTarget).values({
+      id: productId,
+      storeId: this.storeId,
+      configurationId: id,
+      componentId: owner.id,
+      kind: "PRODUCT_COMPONENT",
+    });
     return rows[0];
   }
 
@@ -750,6 +775,14 @@ export class ComponentRepository extends BaseRepository {
             ),
           );
       } else {
+        await this.connection.insert(componentTarget).values({
+          id: groupId,
+          storeId: this.storeId,
+          configurationId: params.configurationId,
+          kind: "GROUP",
+          parentId: params.productId,
+          parentKind: "PRODUCT_COMPONENT",
+        });
         await this.connection.insert(componentGroup).values({
           id: groupId,
           storeId: this.storeId,
@@ -903,7 +936,11 @@ export class ComponentRepository extends BaseRepository {
         });
       }
 
-      await this.syncConditionGroups(ruleId, ruleInput.conditionGroups);
+      await this.syncConditionGroups(
+        params.configurationId,
+        ruleId,
+        ruleInput.conditionGroups,
+      );
       await this.syncDependencyActions(
         params.configurationId,
         ruleId,
@@ -968,9 +1005,18 @@ export class ComponentRepository extends BaseRepository {
             ),
           );
       } else {
+        await this.connection.insert(componentTarget).values({
+          id: itemId,
+          storeId: this.storeId,
+          configurationId,
+          kind: "ITEM",
+          parentId: groupId,
+          parentKind: "GROUP",
+        });
         await this.connection.insert(componentItem).values({
           id: itemId,
           storeId: this.storeId,
+          configurationId,
           groupId,
           ...values,
         });
@@ -1177,6 +1223,7 @@ export class ComponentRepository extends BaseRepository {
   }
 
   private async syncConditionGroups(
+    configurationId: string,
     ruleId: string,
     groups: ProductComponentDependencyRulesSyncParams["dependencyRules"][number]["conditionGroups"],
   ): Promise<void> {
@@ -1208,16 +1255,18 @@ export class ComponentRepository extends BaseRepository {
         await this.connection.insert(conditionGroup).values({
           id: groupId,
           storeId: this.storeId,
+          configurationId,
           ruleId,
           logicOperator: input.logicOperator,
           sortIndex: input.sortIndex,
         });
       }
-      await this.syncConditions(groupId, input.conditions);
+      await this.syncConditions(configurationId, groupId, input.conditions);
     }
   }
 
   private async syncConditions(
+    configurationId: string,
     groupId: string,
     conditions: ProductComponentDependencyRulesSyncParams["dependencyRules"][number]["conditionGroups"][number]["conditions"],
   ): Promise<void> {
@@ -1246,6 +1295,7 @@ export class ComponentRepository extends BaseRepository {
           .where(
             and(
               eq(condition.storeId, this.storeId),
+              eq(condition.configurationId, configurationId),
               eq(condition.id, input.id),
               eq(condition.groupId, groupId),
             ),
@@ -1254,6 +1304,7 @@ export class ComponentRepository extends BaseRepository {
         await this.connection.insert(condition).values({
           id: await this.generateUuidV7(),
           storeId: this.storeId,
+          configurationId,
           groupId,
           ...values,
         });
@@ -1315,6 +1366,7 @@ export class ComponentRepository extends BaseRepository {
           .where(
             and(
               eq(dependencyAction.storeId, this.storeId),
+              eq(dependencyAction.configurationId, configurationId),
               eq(dependencyAction.id, input.id),
               eq(dependencyAction.ruleId, ruleId),
             ),
@@ -1323,6 +1375,7 @@ export class ComponentRepository extends BaseRepository {
         await this.connection.insert(dependencyAction).values({
           id: await this.generateUuidV7(),
           storeId: this.storeId,
+          configurationId,
           ruleId,
           ...values,
         });
@@ -1340,11 +1393,12 @@ export class ComponentRepository extends BaseRepository {
     if (ids.length === 0) return;
     const items = await this.getItemsByGroupIds(ids);
     await this.connection
-      .delete(componentGroup)
+      .delete(componentTarget)
       .where(
         and(
-          eq(componentGroup.storeId, this.storeId),
-          inArray(componentGroup.id, ids),
+          eq(componentTarget.storeId, this.storeId),
+          eq(componentTarget.kind, "GROUP"),
+          inArray(componentTarget.id, ids),
         ),
       );
     await this.deletePriceRules(
@@ -1356,11 +1410,12 @@ export class ComponentRepository extends BaseRepository {
     if (ids.length === 0) return;
     const items = await this.getItemsByIds(ids);
     await this.connection
-      .delete(componentItem)
+      .delete(componentTarget)
       .where(
         and(
-          eq(componentItem.storeId, this.storeId),
-          inArray(componentItem.id, ids),
+          eq(componentTarget.storeId, this.storeId),
+          eq(componentTarget.kind, "ITEM"),
+          inArray(componentTarget.id, ids),
         ),
       );
     await this.deletePriceRules(
@@ -1395,6 +1450,31 @@ export class ComponentRepository extends BaseRepository {
         and(
           eq(componentPriceRule.storeId, this.storeId),
           inArray(componentPriceRule.id, uniqueIds),
+          notExists(
+            this.connection
+              .select({ id: componentItem.id })
+              .from(componentItem)
+              .where(eq(componentItem.priceRuleId, componentPriceRule.id)),
+          ),
+          notExists(
+            this.connection
+              .select({ id: componentPricingTemplate.id })
+              .from(componentPricingTemplate)
+              .where(
+                eq(
+                  componentPricingTemplate.priceRuleId,
+                  componentPriceRule.id,
+                ),
+              ),
+          ),
+          notExists(
+            this.connection
+              .select({ id: dependencyAction.id })
+              .from(dependencyAction)
+              .where(
+                eq(dependencyAction.priceRuleId, componentPriceRule.id),
+              ),
+          ),
         ),
       );
   }

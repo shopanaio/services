@@ -21,6 +21,11 @@ export const componentPriceStrategyEnum = catalogSchema.enum(
   ["BASE", "ADJUSTMENT", "OVERRIDE", "FREE"],
 );
 
+export const componentTargetKindEnum = catalogSchema.enum(
+  "component_target_kind",
+  ["PRODUCT_COMPONENT", "GROUP", "ITEM"],
+);
+
 export const localeCodeEnum = catalogSchema.enum(
   "locale_code",
   LOCALE_CODES as [string, ...string[]],

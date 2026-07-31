@@ -14,7 +14,9 @@ CREATE TABLE "catalog"."dependency_rule" (
   CONSTRAINT "dependency_rule_configuration_id_fk"
     FOREIGN KEY ("configuration_id")
     REFERENCES "catalog"."component_configuration" ("id")
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT "dependency_rule_configuration_id_id_unique"
+    UNIQUE ("configuration_id", "id")
 );
 
 CREATE INDEX "idx_dependency_rule_configuration_id"

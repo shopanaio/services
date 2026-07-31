@@ -221,9 +221,7 @@ export class ProductComponentDependencyActionResolver extends CatalogType<
       this.$get("targetType"),
       this.$get("targetId"),
     ]);
-    return targetId
-      ? this.encodeId(targetId, targetEntity(targetType))
-      : null;
+    return this.encodeId(targetId, targetEntity(targetType));
   }
 
   async requiredValue() {

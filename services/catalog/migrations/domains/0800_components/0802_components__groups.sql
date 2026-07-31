@@ -4,6 +4,7 @@ CREATE TABLE "catalog"."component_group" (
   "id" uuid NOT NULL,
   "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
+  "target_kind" "catalog"."component_target_kind" NOT NULL DEFAULT 'GROUP',
   "sort_index" integer NOT NULL DEFAULT 0,
   "min_selection" integer,
   "max_selection" integer,
@@ -13,6 +14,14 @@ CREATE TABLE "catalog"."component_group" (
   CONSTRAINT "component_group_configuration_id_fk"
     FOREIGN KEY ("configuration_id")
     REFERENCES "catalog"."component_configuration" ("id")
+    ON DELETE CASCADE,
+  CONSTRAINT "component_group_configuration_id_id_unique"
+    UNIQUE ("configuration_id", "id"),
+  CONSTRAINT "component_group_target_kind_check"
+    CHECK ("target_kind" = 'GROUP'),
+  CONSTRAINT "component_group_target_fk"
+    FOREIGN KEY ("configuration_id", "id", "target_kind")
+    REFERENCES "catalog"."component_target" ("configuration_id", "id", "kind")
     ON DELETE CASCADE,
   CONSTRAINT "component_group_selection_check"
     CHECK (
