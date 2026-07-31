@@ -15,15 +15,15 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  IF NEW.kind = 'PRODUCT_COMPONENT' THEN
+  IF NEW.kind = 'CONFIGURATION' THEN
     IF NOT EXISTS (
       SELECT 1
-      FROM "catalog"."product_component_target" AS subtype
+      FROM "catalog"."component_configuration_target" AS subtype
       WHERE subtype.configuration_id = NEW.configuration_id
         AND subtype.id = NEW.id
     ) THEN
       RAISE EXCEPTION
-        'component target % in configuration % has no PRODUCT_COMPONENT subtype',
+        'component target % in configuration % has no CONFIGURATION subtype',
         NEW.id,
         NEW.configuration_id
         USING ERRCODE = 'foreign_key_violation';
@@ -97,13 +97,13 @@ BEGIN
 END;
 $$;
 
-CREATE CONSTRAINT TRIGGER "product_component_target_registry_owner"
+CREATE CONSTRAINT TRIGGER "component_configuration_target_registry_owner"
 AFTER DELETE OR UPDATE
-ON "catalog"."product_component_target"
+ON "catalog"."component_configuration_target"
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION "catalog"."prevent_component_target_subtype_orphan"(
-  'PRODUCT_COMPONENT'
+  'CONFIGURATION'
 );
 
 CREATE CONSTRAINT TRIGGER "component_group_registry_owner"

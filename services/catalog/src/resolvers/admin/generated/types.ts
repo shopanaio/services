@@ -2406,7 +2406,7 @@ export type ProductComponentCondition = Node & {
   sortIndex: Scalars['Int']['output'];
   /** Condition subject. */
   subject: ProductComponentConditionSubject;
-  /** Target ID. Points to an item, group, or the parent component product. */
+  /** Target ID. Points to an item, group, or component configuration. */
   targetId: Scalars['ID']['output'];
   /** Target type. */
   targetType: ProductComponentDependencyTargetType;
@@ -2467,7 +2467,7 @@ export type ProductComponentConditionSyncItemInput = {
   sortIndex: Scalars['Int']['input'];
   /** Condition subject. */
   subject: ProductComponentConditionSubject;
-  /** Target ID. Points to an item, group, or the parent component product. */
+  /** Target ID. Points to an item, group, or component configuration. */
   targetId: Scalars['ID']['input'];
   /** Target type. */
   targetType: ProductComponentDependencyTargetType;
@@ -2511,7 +2511,7 @@ export type ProductComponentDependencyAction = Node & {
   sortIndex: Scalars['Int']['output'];
   /** Whether this action can stack with other matching actions. */
   stackable: Scalars['Boolean']['output'];
-  /** Target ID. Points to an item, group, or the parent component product. */
+  /** Target ID. Points to an item, group, or component configuration. */
   targetId: Scalars['ID']['output'];
   /** Target type. */
   targetType: ProductComponentDependencyTargetType;
@@ -2530,7 +2530,7 @@ export type ProductComponentDependencyActionSyncItemInput = {
   sortIndex: Scalars['Int']['input'];
   /** Whether this action can stack with other matching actions. */
   stackable: Scalars['Boolean']['input'];
-  /** Target ID. Points to an item, group, or the parent component product. */
+  /** Target ID. Points to an item, group, or component configuration. */
   targetId: Scalars['ID']['input'];
   /** Target type. */
   targetType: ProductComponentDependencyTargetType;
@@ -2587,9 +2587,9 @@ export type ProductComponentDependencyRuleSyncItemInput = {
 };
 
 export enum ProductComponentDependencyTargetType {
+  Configuration = 'CONFIGURATION',
   Group = 'GROUP',
-  Item = 'ITEM',
-  ProductComponent = 'PRODUCT_COMPONENT'
+  Item = 'ITEM'
 }
 
 export enum ProductComponentDisplayStyle {

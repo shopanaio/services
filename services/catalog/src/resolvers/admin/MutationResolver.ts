@@ -2454,7 +2454,7 @@ function decodeProductComponentTargetId(
       ? GlobalIdEntity.ProductComponentItem
       : targetType === "GROUP"
         ? GlobalIdEntity.ProductComponentGroup
-        : GlobalIdEntity.Product;
+        : GlobalIdEntity.ProductComponentConfiguration;
   return decodeInputId(value, entity, field, errors);
 }
 

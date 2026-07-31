@@ -34,7 +34,7 @@ import {
   conditionGroup,
   dependencyAction,
   dependencyRule,
-  productComponentTarget,
+  componentConfigurationTarget,
   variant,
   type Component,
   type ComponentConfiguration,
@@ -657,19 +657,18 @@ export class ComponentRepository extends BaseRepository {
       })
       .returning();
     await this.connection.insert(componentTarget).values({
-      id: productId,
+      id,
       storeId: this.storeId,
       configurationId: id,
-      kind: "PRODUCT_COMPONENT",
+      kind: "CONFIGURATION",
       parentId: null,
       parentKind: null,
     });
-    await this.connection.insert(productComponentTarget).values({
-      id: productId,
+    await this.connection.insert(componentConfigurationTarget).values({
+      id,
       storeId: this.storeId,
       configurationId: id,
-      componentId: owner.id,
-      kind: "PRODUCT_COMPONENT",
+      kind: "CONFIGURATION",
     });
     return rows[0];
   }
@@ -780,8 +779,8 @@ export class ComponentRepository extends BaseRepository {
           storeId: this.storeId,
           configurationId: params.configurationId,
           kind: "GROUP",
-          parentId: params.productId,
-          parentKind: "PRODUCT_COMPONENT",
+          parentId: params.configurationId,
+          parentKind: "CONFIGURATION",
         });
         await this.connection.insert(componentGroup).values({
           id: groupId,

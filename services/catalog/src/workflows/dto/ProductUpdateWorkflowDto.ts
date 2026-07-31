@@ -314,7 +314,7 @@ export interface ProductComponentConditionSyncItem {
   category: "STATE_CHECK" | "NUMERIC";
   subject: "ITEM_SELECTED" | "ITEM_QTY" | "GROUP_TOTAL_QTY";
   operator: "IS_SELECTED" | "IS_NOT_SELECTED" | "EQ" | "GTE" | "LTE";
-  targetType: "ITEM" | "GROUP" | "PRODUCT_COMPONENT";
+  targetType: "ITEM" | "GROUP" | "CONFIGURATION";
   targetId: string;
   value?: number | null;
   sortIndex: number;
@@ -327,7 +327,7 @@ export interface ProductComponentDependencyActionSyncItem {
     | "HIDE"
     | "SET_REQUIRED"
     | "ADJUST_PRICE";
-  targetType: "ITEM" | "GROUP" | "PRODUCT_COMPONENT";
+  targetType: "ITEM" | "GROUP" | "CONFIGURATION";
   targetId: string;
   requiredValue?: boolean | null;
   priceRule?: ProductComponentPriceRuleInput | null;

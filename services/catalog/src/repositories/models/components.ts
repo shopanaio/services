@@ -47,7 +47,6 @@ export const component = catalogSchema.table(
   },
   (table) => [
     uniqueIndex("component_product_id_unique").on(table.productId),
-    unique("component_id_product_id_unique").on(table.id, table.productId),
     check(
       "component_display_style_check",
       sql`${table.displayStyle} IN ('ACCORDION', 'TABS', 'FLAT', 'WIZARD')`,
@@ -73,10 +72,6 @@ export const componentConfiguration = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("component_configuration_id_component_id_unique").on(
-      table.id,
-      table.componentId,
-    ),
     index("idx_component_configuration_component_id").on(table.componentId),
   ],
 );
@@ -109,14 +104,14 @@ export const componentTarget = catalogSchema.table(
     check(
       "component_target_hierarchy_check",
       sql`(
-          ${table.kind} = 'PRODUCT_COMPONENT'
+          ${table.kind} = 'CONFIGURATION'
           AND ${table.parentId} IS NULL
           AND ${table.parentKind} IS NULL
         )
         OR (
           ${table.kind} = 'GROUP'
           AND ${table.parentId} IS NOT NULL
-          AND ${table.parentKind} = 'PRODUCT_COMPONENT'
+          AND ${table.parentKind} = 'CONFIGURATION'
         )
         OR (
           ${table.kind} = 'ITEM'
@@ -131,7 +126,7 @@ export const componentTarget = catalogSchema.table(
     }).onDelete("cascade"),
     uniqueIndex("component_target_configuration_root_unique")
       .on(table.configurationId)
-      .where(sql`${table.kind} = 'PRODUCT_COMPONENT'`),
+      .where(sql`${table.kind} = 'CONFIGURATION'`),
     index("idx_component_target_parent").on(
       table.configurationId,
       table.parentId,
@@ -139,47 +134,34 @@ export const componentTarget = catalogSchema.table(
   ],
 );
 
-export const productComponentTarget = catalogSchema.table(
-  "product_component_target",
+export const componentConfigurationTarget = catalogSchema.table(
+  "component_configuration_target",
   {
     storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id").notNull(),
     id: uuid("id").notNull(),
-    componentId: uuid("component_id").notNull(),
     kind: componentTargetKindEnum("kind")
       .notNull()
-      .default("PRODUCT_COMPONENT"),
+      .default("CONFIGURATION"),
   },
   (table) => [
     primaryKey({ columns: [table.configurationId, table.id] }),
-    unique("product_component_target_configuration_unique").on(
+    unique("component_configuration_target_configuration_unique").on(
       table.configurationId,
     ),
     check(
-      "product_component_target_kind_check",
-      sql`${table.kind} = 'PRODUCT_COMPONENT'`,
+      "component_configuration_target_identity_check",
+      sql`${table.kind} = 'CONFIGURATION'
+        AND ${table.id} = ${table.configurationId}`,
     ),
     foreignKey({
-      name: "product_component_target_registry_fk",
+      name: "component_configuration_target_registry_fk",
       columns: [table.configurationId, table.id, table.kind],
       foreignColumns: [
         componentTarget.configurationId,
         componentTarget.id,
         componentTarget.kind,
       ],
-    }).onDelete("cascade"),
-    foreignKey({
-      name: "product_component_target_configuration_fk",
-      columns: [table.configurationId, table.componentId],
-      foreignColumns: [
-        componentConfiguration.id,
-        componentConfiguration.componentId,
-      ],
-    }).onDelete("cascade"),
-    foreignKey({
-      name: "product_component_target_component_fk",
-      columns: [table.componentId, table.id],
-      foreignColumns: [component.id, component.productId],
     }).onDelete("cascade"),
   ],
 );
@@ -752,9 +734,10 @@ export type NewComponentConfiguration =
   typeof componentConfiguration.$inferInsert;
 export type ComponentTarget = typeof componentTarget.$inferSelect;
 export type NewComponentTarget = typeof componentTarget.$inferInsert;
-export type ProductComponentTarget = typeof productComponentTarget.$inferSelect;
-export type NewProductComponentTarget =
-  typeof productComponentTarget.$inferInsert;
+export type ComponentConfigurationTarget =
+  typeof componentConfigurationTarget.$inferSelect;
+export type NewComponentConfigurationTarget =
+  typeof componentConfigurationTarget.$inferInsert;
 export type ComponentConfigurationVariant =
   typeof componentConfigurationVariant.$inferSelect;
 export type NewComponentConfigurationVariant =

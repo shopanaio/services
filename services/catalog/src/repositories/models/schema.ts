@@ -23,7 +23,7 @@ export const componentPriceStrategyEnum = catalogSchema.enum(
 
 export const componentTargetKindEnum = catalogSchema.enum(
   "component_target_kind",
-  ["PRODUCT_COMPONENT", "GROUP", "ITEM"],
+  ["CONFIGURATION", "GROUP", "ITEM"],
 );
 
 export const localeCodeEnum = catalogSchema.enum(

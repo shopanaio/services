@@ -15,8 +15,8 @@ function targetEntity(targetType: string) {
       return GlobalIdEntity.ProductComponentItem;
     case "GROUP":
       return GlobalIdEntity.ProductComponentGroup;
-    case "PRODUCT_COMPONENT":
-      return GlobalIdEntity.Product;
+    case "CONFIGURATION":
+      return GlobalIdEntity.ProductComponentConfiguration;
     default:
       throw new Error(`Unsupported product component target type: ${targetType}`);
   }

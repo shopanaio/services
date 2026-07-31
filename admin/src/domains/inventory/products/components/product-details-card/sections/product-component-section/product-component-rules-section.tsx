@@ -64,10 +64,10 @@ function humanize(value: string) {
 function getTargetName(
   configuration: ApiProductComponentConfiguration,
   targetType: ProductComponentDependencyTargetType,
-  targetId: string | null | undefined,
+  targetId: string,
 ) {
-  if (targetType === ProductComponentDependencyTargetType.ProductComponent) {
-    return "product component";
+  if (targetType === ProductComponentDependencyTargetType.Configuration) {
+    return "configuration";
   }
 
   if (targetType === ProductComponentDependencyTargetType.Group) {

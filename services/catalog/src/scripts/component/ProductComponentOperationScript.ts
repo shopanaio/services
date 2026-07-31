@@ -453,7 +453,7 @@ export class ProductComponentOperationScript extends BaseScript<
     );
     const componentItemIds = new Set(componentItems.map((item) => item.id));
     const validateTarget = (
-      targetType: "ITEM" | "GROUP" | "PRODUCT_COMPONENT",
+      targetType: "ITEM" | "GROUP" | "CONFIGURATION",
       targetId: string,
       field: string[],
     ) => {
@@ -462,7 +462,7 @@ export class ProductComponentOperationScript extends BaseScript<
           ? Boolean(targetId && componentItemIds.has(targetId))
           : targetType === "GROUP"
             ? Boolean(targetId && componentGroupIds.has(targetId))
-            : targetId === params.productId;
+            : targetId === params.configurationId;
       if (!valid) {
         errors.push(this.notFound("Dependency target", field));
       }

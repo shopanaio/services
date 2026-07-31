@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TYPE "catalog"."component_target_kind" AS ENUM (
-  'PRODUCT_COMPONENT',
+  'CONFIGURATION',
   'GROUP',
   'ITEM'
 );
@@ -25,10 +25,6 @@ CREATE TABLE "catalog"."component" (
 CREATE UNIQUE INDEX "component_product_id_unique"
   ON "catalog"."component" ("product_id");
 
-ALTER TABLE "catalog"."component"
-  ADD CONSTRAINT "component_id_product_id_unique"
-  UNIQUE ("id", "product_id");
-
 CREATE INDEX "idx_component_store_id"
   ON "catalog"."component" ("store_id");
 
@@ -48,10 +44,6 @@ CREATE TABLE "catalog"."component_configuration" (
 
 CREATE INDEX "idx_component_configuration_component_id"
   ON "catalog"."component_configuration" ("component_id");
-
-ALTER TABLE "catalog"."component_configuration"
-  ADD CONSTRAINT "component_configuration_id_component_id_unique"
-  UNIQUE ("id", "component_id");
 
 CREATE TABLE "catalog"."component_target" (
   "store_id" uuid NOT NULL,
@@ -73,14 +65,14 @@ CREATE TABLE "catalog"."component_target" (
   CONSTRAINT "component_target_hierarchy_check"
     CHECK (
       (
-        "kind" = 'PRODUCT_COMPONENT'
+        "kind" = 'CONFIGURATION'
         AND "parent_id" IS NULL
         AND "parent_kind" IS NULL
       )
       OR (
         "kind" = 'GROUP'
         AND "parent_id" IS NOT NULL
-        AND "parent_kind" = 'PRODUCT_COMPONENT'
+        AND "parent_kind" = 'CONFIGURATION'
       )
       OR (
         "kind" = 'ITEM'
@@ -100,36 +92,27 @@ CREATE TABLE "catalog"."component_target" (
 
 CREATE UNIQUE INDEX "component_target_configuration_root_unique"
   ON "catalog"."component_target" ("configuration_id")
-  WHERE "kind" = 'PRODUCT_COMPONENT';
+  WHERE "kind" = 'CONFIGURATION';
 
 CREATE INDEX "idx_component_target_parent"
   ON "catalog"."component_target" ("configuration_id", "parent_id");
 
-CREATE TABLE "catalog"."product_component_target" (
+CREATE TABLE "catalog"."component_configuration_target" (
   "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
   "id" uuid NOT NULL,
-  "component_id" uuid NOT NULL,
   "kind" "catalog"."component_target_kind"
     NOT NULL
-    DEFAULT 'PRODUCT_COMPONENT',
-  CONSTRAINT "product_component_target_pkey"
+    DEFAULT 'CONFIGURATION',
+  CONSTRAINT "component_configuration_target_pkey"
     PRIMARY KEY ("configuration_id", "id"),
-  CONSTRAINT "product_component_target_configuration_unique"
+  CONSTRAINT "component_configuration_target_configuration_unique"
     UNIQUE ("configuration_id"),
-  CONSTRAINT "product_component_target_kind_check"
-    CHECK ("kind" = 'PRODUCT_COMPONENT'),
-  CONSTRAINT "product_component_target_registry_fk"
+  CONSTRAINT "component_configuration_target_identity_check"
+    CHECK ("kind" = 'CONFIGURATION' AND "id" = "configuration_id"),
+  CONSTRAINT "component_configuration_target_registry_fk"
     FOREIGN KEY ("configuration_id", "id", "kind")
     REFERENCES "catalog"."component_target" ("configuration_id", "id", "kind")
-    ON DELETE CASCADE,
-  CONSTRAINT "product_component_target_configuration_fk"
-    FOREIGN KEY ("configuration_id", "component_id")
-    REFERENCES "catalog"."component_configuration" ("id", "component_id")
-    ON DELETE CASCADE,
-  CONSTRAINT "product_component_target_component_fk"
-    FOREIGN KEY ("component_id", "id")
-    REFERENCES "catalog"."component" ("id", "product_id")
     ON DELETE CASCADE
 );
 

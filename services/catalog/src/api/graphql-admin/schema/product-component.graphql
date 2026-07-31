@@ -53,7 +53,7 @@ enum ProductComponentConditionOperator {
 enum ProductComponentDependencyTargetType {
   ITEM
   GROUP
-  PRODUCT_COMPONENT
+  CONFIGURATION
 }
 
 enum ProductComponentDependencyActionType {
@@ -365,7 +365,7 @@ type ProductComponentCondition implements Node @key(fields: "id") {
   """Target type."""
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Points to an item, group, or the parent component product."""
+  """Target ID. Points to an item, group, or component configuration."""
   targetId: ID!
 
   """Numeric value for numeric conditions."""
@@ -385,7 +385,7 @@ type ProductComponentDependencyAction implements Node @key(fields: "id") {
   """Target type."""
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Points to an item, group, or the parent component product."""
+  """Target ID. Points to an item, group, or component configuration."""
   targetId: ID!
 
   """Required value for SET_REQUIRED."""
@@ -669,7 +669,7 @@ input ProductComponentConditionSyncItemInput {
   """Target type."""
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Points to an item, group, or the parent component product."""
+  """Target ID. Points to an item, group, or component configuration."""
   targetId: ID!
 
   """Numeric value for numeric conditions."""
@@ -689,7 +689,7 @@ input ProductComponentDependencyActionSyncItemInput {
   """Target type."""
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Points to an item, group, or the parent component product."""
+  """Target ID. Points to an item, group, or component configuration."""
   targetId: ID!
 
   """Required value for SET_REQUIRED."""
