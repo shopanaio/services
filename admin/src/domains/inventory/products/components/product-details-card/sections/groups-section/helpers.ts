@@ -3,8 +3,9 @@ import type {
   BundleItem,
   PricingRuleTemplate,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import { BundleItemType, BundlePriceType } from "@/graphql/bundle-types";
+import { ProductComponentItemType } from "@/graphql/types";
 import {
+  BundlePriceType,
   PRICE_RULE_OPTIONS,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 
@@ -12,7 +13,7 @@ export const getItemImageUrl = (item: BundleItem): string | null => {
   if (item.featuredImage?.url) {
     return item.featuredImage.url;
   }
-  if (item.itemType === BundleItemType.Variant && item.assignedVariant) {
+  if (item.itemType === ProductComponentItemType.Variant && item.assignedVariant) {
     return item.assignedVariant.media?.[0]?.file?.url ?? null;
   }
   return null;
@@ -20,7 +21,7 @@ export const getItemImageUrl = (item: BundleItem): string | null => {
 
 export const getItemName = (item: BundleItem): string => {
   if (item.title) return item.title;
-  if (item.itemType === BundleItemType.Variant && item.assignedVariant) {
+  if (item.itemType === ProductComponentItemType.Variant && item.assignedVariant) {
     return item.assignedVariant.title ?? "Variant";
   }
   if (item.assignedProduct) {
@@ -62,6 +63,8 @@ export const getPriceRuleColor = (priceType: BundlePriceType): string => {
     case BundlePriceType.Free:
       return "green";
     case BundlePriceType.Fixed:
+    case BundlePriceType.MarkupFixed:
+    case BundlePriceType.MarkupPercent:
       return "blue";
     default:
       return "default";

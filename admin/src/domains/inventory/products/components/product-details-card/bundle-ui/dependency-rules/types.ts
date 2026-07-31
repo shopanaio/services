@@ -2,12 +2,12 @@ import type {
   ComparisonOperator,
   LogicOperator,
   StateCheckOperator,
-  ConditionCategory,
   ConditionSubject,
   DependencyTargetType,
   DependencyActionType,
 } from "./enums";
-import type { BundlePriceType } from "@/graphql/bundle-types";
+import { ConditionCategory } from "./enums";
+import type { BundlePriceType } from "../types";
 
 // ============================================================================
 // Conditions
@@ -15,7 +15,7 @@ import type { BundlePriceType } from "@/graphql/bundle-types";
 
 export interface IStateCheckCondition {
   id: string;
-  category: ConditionCategory.STATE_CHECK;
+  category: typeof ConditionCategory.STATE_CHECK;
   subject: ConditionSubject;
   operator: StateCheckOperator;
   targetType: DependencyTargetType;
@@ -24,7 +24,7 @@ export interface IStateCheckCondition {
 
 export interface INumericCondition {
   id: string;
-  category: ConditionCategory.NUMERIC;
+  category: typeof ConditionCategory.NUMERIC;
   subject: ConditionSubject;
   operator: ComparisonOperator;
   targetType: DependencyTargetType;

@@ -12,7 +12,9 @@ import {
 import { LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type { DisplayStyle, OutOfStockBehavior } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import type { ProductComponentDisplayStyle } from "@/graphql/types";
+import { ProductComponentDisplayStyle as DisplayStyle } from "@/graphql/types";
+import type { OutOfStockBehavior } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 
 // ============================================================================
 // Styles
@@ -93,8 +95,8 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface ISettingsTabProps {
-  displayStyle: DisplayStyle;
-  onDisplayStyleChange: (style: DisplayStyle) => void;
+  displayStyle: ProductComponentDisplayStyle;
+  onDisplayStyleChange: (style: ProductComponentDisplayStyle) => void;
   showImages: boolean;
   onShowImagesChange: (value: boolean) => void;
   showSku: boolean;
@@ -114,10 +116,10 @@ interface ISettingsTabProps {
 // ============================================================================
 
 const DISPLAY_STYLE_OPTIONS = [
-  { value: "accordion", label: "Accordion", description: "Groups displayed as collapsible sections" },
-  { value: "tabs", label: "Tabs", description: "Groups displayed as horizontal tabs" },
-  { value: "flat", label: "Flat List", description: "All groups visible in a single list" },
-  { value: "wizard", label: "Wizard", description: "Step-by-step selection process" },
+  { value: DisplayStyle.Accordion, label: "Accordion", description: "Groups displayed as collapsible sections" },
+  { value: DisplayStyle.Tabs, label: "Tabs", description: "Groups displayed as horizontal tabs" },
+  { value: DisplayStyle.Flat, label: "Flat List", description: "All groups visible in a single list" },
+  { value: DisplayStyle.Wizard, label: "Wizard", description: "Step-by-step selection process" },
 ];
 
 // ============================================================================

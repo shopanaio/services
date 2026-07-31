@@ -8,8 +8,7 @@ import type {
   PricingRuleTemplate,
   BundleItem,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import { BundlePriceType } from "@/graphql/bundle-types";
-import { PRICE_RULE_OPTIONS } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import { BundlePriceType, PRICE_RULE_OPTIONS } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import { Dash } from "@/shared/components/editor-grid";
 
 // Helper to determine if pricingRule is a template

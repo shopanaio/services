@@ -20,7 +20,7 @@ import {
 } from "@/layouts/modals";
 import { useAgGridTheme } from "@/hooks";
 import { Dash } from "@/shared/components/editor-grid";
-import { BundlePriceType } from "@/graphql/bundle-types";
+import { BundlePriceType } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 
 import type { IBundleItemVariantSettingsModalPayload } from "@/domains/inventory/products/modals";
 

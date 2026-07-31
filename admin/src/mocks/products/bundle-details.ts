@@ -3,19 +3,10 @@
  */
 
 import type { IProduct } from "./types";
-import type { IAttributeRow } from "./attributes";
-import type {
-  IBundleConfiguration,
-  IBundleGroup,
-  PricingRuleTemplate,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import { EntityStatus, WeightUnit, DimensionUnit, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
-import { createMockData as createAttributesMockData } from "./attributes";
-import { productDetailsMockData } from "./bundle-configurations";
-import { type ApiCategory, type ApiFile, type ApiRichText, type ApiTag, type FileProvider } from "@/graphql/bundle-types";
-import { BundleType } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import { FileProvider, type ApiFile, type ApiRichText } from "@/graphql/types";
 
 const generateId = (): string => Math.random().toString(36).substring(2, 11);
 
@@ -28,7 +19,7 @@ const createApiFile = (name: string, index: number = 0): ApiFile => ({
   ext: "jpg",
   mimeType: "image/jpeg",
   sizeBytes: 1024 * 100,
-  provider: "S3" as FileProvider,
+  provider: FileProvider.S3,
   isProcessed: true,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -158,66 +149,4 @@ export const mockBundleProduct: IProduct = {
   groups: [],
   container: null,
   containerId: "bnd-detail-1",
-};
-
-export interface IBundleDetailsMockData {
-  bundleType: BundleType | null;
-  categories: {
-    primary: ApiCategory | null;
-    list: ApiCategory[];
-  };
-  tags: ApiTag[];
-  attributes: IAttributeRow[];
-  configurations: IBundleConfiguration[];
-  pricingTemplates: PricingRuleTemplate[];
-}
-
-export const bundleDetailsMockData: IBundleDetailsMockData = {
-  bundleType: BundleType.MixAndMatch,
-  categories: {
-    primary: mockCategories[0],
-    list: mockCategories.slice(1, 3),
-  },
-  tags: mockTags.slice(0, 3).map((tag) => ({
-    __typename: "Tag",
-    id: tag.id,
-    name: tag.title,
-    handle: tag.slug,
-    productsCount: 0,
-    products: {
-      __typename: "ProductConnection",
-      edges: [],
-      pageInfo: {
-        __typename: "PageInfo",
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: null,
-        endCursor: null,
-      },
-      totalCount: 0,
-    },
-    createdAt: new Date().toISOString(),
-  })),
-  attributes: createAttributesMockData(),
-  configurations: [
-    {
-      id: "bundle-config-1",
-      title: "Configuration 1",
-      bundleItems: productDetailsMockData.bundleItems,
-      dependencyRules: productDetailsMockData.dependencyRules,
-    },
-    {
-      id: "bundle-config-2",
-      title: "Configuration 2",
-      bundleItems: productDetailsMockData.bundleItems,
-      dependencyRules: productDetailsMockData.dependencyRules,
-    },
-    {
-      id: "bundle-config-3",
-      title: "Configuration 3",
-      bundleItems: productDetailsMockData.bundleItems,
-      dependencyRules: productDetailsMockData.dependencyRules,
-    },
-  ],
-  pricingTemplates: productDetailsMockData.pricingTemplates,
 };

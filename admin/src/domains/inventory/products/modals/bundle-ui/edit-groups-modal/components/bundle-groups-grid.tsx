@@ -29,11 +29,11 @@ import type {
   BundleItem,
   PricingRuleTemplate,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import { BundleItemType, BundlePriceType } from "@/graphql/bundle-types";
+import { ProductComponentItemType, type ApiProduct } from "@/graphql/types";
 import {
+  BundlePriceType,
   PRICE_RULE_OPTIONS,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import type { ApiProduct } from "@/graphql/bundle-types";
 
 // ============================================================================
 // Styles
@@ -137,7 +137,7 @@ export const rowsToGroups = (rows: ITableRow[]): IBundleGroup[] => {
 
     const items: BundleItem[] = itemRows.map((itemRow) => ({
       id: itemRow.id,
-      itemType: itemRow.itemType as BundleItemType,
+      itemType: itemRow.itemType as ProductComponentItemType,
       sortIndex: itemRow.sortIndex,
       assignedProduct: itemRow.assignedProduct,
       assignedVariant: itemRow.assignedVariant,
@@ -223,7 +223,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
     const existingProductIds = useMemo(() => {
       if (!addingToGroupId) return [];
       return allRows
-        .filter((r) => r.parentId === addingToGroupId && r.itemType === BundleItemType.Product)
+        .filter((r) => r.parentId === addingToGroupId && r.itemType === ProductComponentItemType.Product)
         .map((r) => r.assignedProduct?.id)
         .filter(Boolean) as string[];
     }, [allRows, addingToGroupId]);
@@ -249,7 +249,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
             parentId: addingToGroupId,
             sortIndex: maxSortIndex + 1 + index,
             level: 1,
-            itemType: BundleItemType.Product,
+            itemType: ProductComponentItemType.Product,
             assignedProduct: product as ApiProduct,
             title: null,
             featuredImage: null,
@@ -358,7 +358,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
 
     const handleEditVariants = useCallback(
       (row: ITableRow) => {
-        if (row.itemType !== BundleItemType.Product || !row.assignedProduct) return;
+        if (row.itemType !== ProductComponentItemType.Product || !row.assignedProduct) return;
 
         const assignedProduct = row.assignedProduct;
         const variantsFromConnection =
@@ -421,7 +421,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
 
     const handleIncludeVariants = useCallback(
       (row: ITableRow) => {
-        if (row.itemType !== BundleItemType.Product || !row.assignedProduct) return;
+        if (row.itemType !== ProductComponentItemType.Product || !row.assignedProduct) return;
 
         const assignedProduct = row.assignedProduct;
         const variantsFromConnection =
@@ -447,7 +447,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
                 parentId: row.parentId,
                 sortIndex: row.sortIndex + index,
                 level: 1,
-                itemType: BundleItemType.Variant,
+                itemType: ProductComponentItemType.Variant,
                 assignedVariant: variant,
                 minQty: row.minQty,
                 maxQty: row.maxQty,
@@ -480,7 +480,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
 
     const handleShowAsProduct = useCallback(
       (row: ITableRow) => {
-        if (row.itemType !== BundleItemType.Variant || !row.assignedVariant) return;
+        if (row.itemType !== ProductComponentItemType.Variant || !row.assignedVariant) return;
 
         const productId = row.assignedVariant.product?.id;
         if (!productId) return;
@@ -497,7 +497,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         setAllRows((prev) => {
           const firstVariantIndex = prev.findIndex(
             (r) =>
-              r.itemType === BundleItemType.Variant &&
+              r.itemType === ProductComponentItemType.Variant &&
               r.assignedVariant?.product?.id === productId
           );
           if (firstVariantIndex === -1) return prev;
@@ -505,7 +505,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           const newRows = prev.filter(
             (r) =>
               !(
-                r.itemType === BundleItemType.Variant &&
+                r.itemType === ProductComponentItemType.Variant &&
                 r.assignedVariant?.product?.id === productId
               )
           );

@@ -1,5 +1,10 @@
-import type { ApiFile, ApiProduct, ApiVariant } from "@/graphql/bundle-types";
-import { BundleItemType, BundlePriceType } from "@/graphql/bundle-types";
+import type {
+  ApiFile,
+  ApiProduct,
+  ApiVariant,
+  ProductComponentDisplayStyle,
+} from "@/graphql/types";
+import { ProductComponentItemType } from "@/graphql/types";
 import type { IDependencyRule } from "./dependency-rules/types";
 
 /**
@@ -13,11 +18,6 @@ export enum BundleType {
 }
 
 /**
- * Display style for storefront
- */
-export type DisplayStyle = "accordion" | "tabs" | "flat" | "wizard";
-
-/**
  * Behavior when component is out of stock
  */
 export type OutOfStockBehavior = "hide" | "disable" | "backorder";
@@ -26,6 +26,20 @@ export type OutOfStockBehavior = "hide" | "disable" | "backorder";
  * Stock status for bundle items
  */
 export type StockStatus = "inStock" | "lowStock" | "outOfStock";
+
+/**
+ * Editor-only flattened pricing choice. ProductComponent has no equivalent
+ * enum: it models strategy, operation, value type and value separately.
+ */
+export enum BundlePriceType {
+  Base = "BASE",
+  DiscountFixed = "DISCOUNT_FIXED",
+  DiscountPercent = "DISCOUNT_PERCENT",
+  Fixed = "FIXED",
+  Free = "FREE",
+  MarkupFixed = "MARKUP_FIXED",
+  MarkupPercent = "MARKUP_PERCENT",
+}
 
 // ============================================================================
 // Bundle Item
@@ -36,7 +50,7 @@ export interface BundleItem {
   id: string;
 
   /** Bundle item type - determines how the item is displayed */
-  itemType: BundleItemType;
+  itemType: ProductComponentItemType;
 
   /** Sort index for display order */
   sortIndex: number;
@@ -131,7 +145,7 @@ export interface PricingRuleTemplate {
 // ============================================================================
 
 export interface BundleDisplaySettings {
-  displayStyle: DisplayStyle;
+  displayStyle: ProductComponentDisplayStyle;
   showImages: boolean;
   showSku: boolean;
   showStock: boolean;
@@ -194,11 +208,23 @@ export const PRICE_RULE_OPTIONS: PriceRuleOption[] = [
     value: BundlePriceType.Free,
     label: "Free",
   },
+  {
+    value: BundlePriceType.MarkupPercent,
+    label: "Markup %",
+    requiresValue: true,
+    valueSuffix: "%",
+  },
+  {
+    value: BundlePriceType.MarkupFixed,
+    label: "Markup $",
+    requiresValue: true,
+    valueSuffix: "$",
+  },
 ];
 
-export const ITEM_TYPE_LABELS: Record<BundleItemType, string> = {
-  [BundleItemType.Product]: "Product",
-  [BundleItemType.Variant]: "Variant",
+export const ITEM_TYPE_LABELS: Record<ProductComponentItemType, string> = {
+  [ProductComponentItemType.Product]: "Product",
+  [ProductComponentItemType.Variant]: "Variant",
 };
 
 export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {

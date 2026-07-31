@@ -2,10 +2,12 @@ import type {
   ApiFile,
   ApiProduct,
   ApiVariant,
-  BundleItemType,
+  ProductComponentItemType,
+} from "@/graphql/types";
+import type {
   BundlePriceType,
-} from "@/graphql/bundle-types";
-import type { PricingRuleTemplate } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+  PricingRuleTemplate,
+} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 
 // ============================================================================
 // Row Types
@@ -30,7 +32,7 @@ export interface ITableRow {
   maxSelection?: number | null;
 
   // Item-specific fields
-  itemType?: BundleItemType;
+  itemType?: ProductComponentItemType;
   assignedProduct?: ApiProduct;
   assignedVariant?: ApiVariant;
   excludeAssignedProductVariants?: string[] | null;

@@ -17,8 +17,8 @@ import type {
 } from "@/graphql/types";
 import type { VariantColumnField } from './components/variants/config/types';
 import type { VariantEditorSaveRow } from "./mappers/product-variant-editor.mapper";
-import type { BundlePriceType } from "@/graphql/bundle-types";
 import type {
+  BundlePriceType,
   IBundleGroup,
   IBundleSettings,
   IDependencyRule,

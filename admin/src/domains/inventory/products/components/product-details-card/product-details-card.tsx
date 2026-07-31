@@ -38,11 +38,16 @@ import type {
   IBundleConfiguration,
   IBundleGroup,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import { BundleType } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import {
   LogicOperator,
   type IDependencyRule,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
-import { bundleDetailsMockData } from "@/mocks/products/bundle-details";
+import { createProductComponentMockData } from "@/mocks/products/product-component";
+import {
+  toProductComponentEditorConfigurations,
+  toProductComponentEditorPricingTemplates,
+} from "../../mappers/product-component-editor.mapper";
 
 // ============================================================================
 // Main Component
@@ -76,11 +81,19 @@ export const ProductDetailsCard = ({
   const { push: openEditConfigurationModal } =
     useEditBundleConfigurationModal();
   const { push: openDependencyChartModal } = useDependencyChartModal();
+  const productComponentMockData = useMemo(
+    () => createProductComponentMockData(product),
+    [product],
+  );
+  const renderedProductComponentConfigurations = useMemo(
+    () => toProductComponentEditorConfigurations(productComponentMockData),
+    [productComponentMockData],
+  );
   const [activeConfigurationId, setActiveConfigurationId] = useState(
-    bundleDetailsMockData.configurations[0]?.id ?? "",
+    renderedProductComponentConfigurations[0]?.id ?? "",
   );
   const [configurations, setConfigurations] = useState<IBundleConfiguration[]>(
-    bundleDetailsMockData.configurations,
+    renderedProductComponentConfigurations,
   );
   const activeConfiguration = useMemo(
     () =>
@@ -199,7 +212,10 @@ export const ProductDetailsCard = ({
   const handleEditGroups = useCallback(() => {
     openEditGroupsModal({
       groups,
-      pricingTemplates: bundleDetailsMockData.pricingTemplates,
+      pricingTemplates: toProductComponentEditorPricingTemplates(
+        productComponentMockData,
+        activeConfiguration?.id ?? "",
+      ),
       onSave: (updatedGroups: IBundleGroup[]) => {
         updateActiveConfiguration((configuration) => ({
           ...configuration,
@@ -207,7 +223,13 @@ export const ProductDetailsCard = ({
         }));
       },
     });
-  }, [groups, openEditGroupsModal, updateActiveConfiguration]);
+  }, [
+    activeConfiguration?.id,
+    groups,
+    openEditGroupsModal,
+    productComponentMockData,
+    updateActiveConfiguration,
+  ]);
 
   const handleOpenChart = useCallback(() => {
     openDependencyChartModal({
@@ -317,7 +339,7 @@ export const ProductDetailsCard = ({
       <BundleSection
         configurations={configurations}
         activeConfigurationId={activeConfiguration?.id ?? ""}
-        bundleType={bundleDetailsMockData.bundleType}
+        bundleType={BundleType.MixAndMatch}
         onConfigurationChange={setActiveConfigurationId}
         onCreateConfiguration={handleCreateConfiguration}
         onEditConfiguration={handleEditConfiguration}

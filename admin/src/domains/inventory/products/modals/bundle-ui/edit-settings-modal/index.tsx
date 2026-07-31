@@ -7,9 +7,9 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { SettingsTab } from "./components";
+import { ProductComponentDisplayStyle } from "@/graphql/types";
 import type {
   IBundleSettings,
-  DisplayStyle,
   OutOfStockBehavior,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 
@@ -27,7 +27,7 @@ export interface IEditSettingsModalPayload {
 // ============================================================================
 
 const DEFAULT_BUNDLE_SETTINGS: IBundleSettings = {
-  displayStyle: "accordion",
+  displayStyle: ProductComponentDisplayStyle.Accordion,
   showImages: true,
   showSku: true,
   showStock: true,
@@ -80,7 +80,7 @@ export const EditSettingsModal = () => {
     >
       <SettingsTab
         displayStyle={settings.displayStyle}
-        onDisplayStyleChange={(style: DisplayStyle) => updateSetting("displayStyle", style)}
+        onDisplayStyleChange={(style: ProductComponentDisplayStyle) => updateSetting("displayStyle", style)}
         showImages={settings.showImages}
         onShowImagesChange={(value: boolean) => updateSetting("showImages", value)}
         showSku={settings.showSku}

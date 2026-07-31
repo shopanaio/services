@@ -19,8 +19,8 @@ import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuPencil as EditOut
 import type { ColumnsType } from "antd/es/table";
 
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { BundlePriceType } from "@/graphql/bundle-types";
 import {
+  BundlePriceType,
   type PricingRuleTemplate,
   PRICE_RULE_OPTIONS,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
