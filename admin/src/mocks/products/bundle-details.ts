@@ -8,14 +8,14 @@ import type {
   IBundleConfiguration,
   IBundleGroup,
   PricingRuleTemplate,
-} from "@/domains/inventory/bundles/types";
+} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import { EntityStatus, WeightUnit, DimensionUnit, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
 import { createMockData as createAttributesMockData } from "./attributes";
 import { productDetailsMockData } from "./bundle-configurations";
 import { type ApiCategory, type ApiFile, type ApiRichText, type ApiTag, type FileProvider } from "@/graphql/bundle-types";
-import { BundleType } from "@/domains/inventory/bundles/types";
+import { BundleType } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 
 const generateId = (): string => Math.random().toString(36).substring(2, 11);
 

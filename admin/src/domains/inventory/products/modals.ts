@@ -17,6 +17,13 @@ import type {
 } from "@/graphql/types";
 import type { VariantColumnField } from './components/variants/config/types';
 import type { VariantEditorSaveRow } from "./mappers/product-variant-editor.mapper";
+import type { BundlePriceType } from "@/graphql/bundle-types";
+import type {
+  IBundleGroup,
+  IBundleSettings,
+  IDependencyRule,
+  PricingRuleTemplate,
+} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 
 // ============================================================================
 // Modal Types
@@ -37,6 +44,12 @@ export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-sh
 export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
 export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
 export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
+export const PRODUCT_BUNDLE_EDIT_GROUPS_MODAL_TYPE = 'product-bundle-edit-groups';
+export const PRODUCT_BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE = 'product-bundle-edit-configuration';
+export const PRODUCT_BUNDLE_EDIT_TEMPLATES_MODAL_TYPE = 'product-bundle-edit-templates';
+export const PRODUCT_BUNDLE_EDIT_SETTINGS_MODAL_TYPE = 'product-bundle-edit-settings';
+export const PRODUCT_BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE = 'product-bundle-item-variant-settings';
+export const PRODUCT_DEPENDENCY_CHART_MODAL_TYPE = 'product-dependency-chart';
 
 // ============================================================================
 // Payload Interfaces
@@ -252,6 +265,69 @@ export interface IBulkEditorModalPayload extends IModalStackPayload {
   productIds: string[];
 }
 
+export interface IBundleEditGroupsModalPayload extends IModalStackPayload {
+  groups: IBundleGroup[];
+  pricingTemplates: PricingRuleTemplate[];
+  onSave?: (groups: IBundleGroup[]) => void;
+}
+
+export interface IBundleEditConfigurationModalPayload
+  extends IModalStackPayload {
+  title: string;
+  modalTitle?: string;
+  submitLabel?: string;
+  onSave?: (data: { title: string }) => void;
+}
+
+export interface IBundleEditTemplatesModalPayload extends IModalStackPayload {
+  pricingTemplates: PricingRuleTemplate[];
+  onSave?: (data: { pricingTemplates: PricingRuleTemplate[] }) => void;
+}
+
+export interface IBundleEditSettingsModalPayload extends IModalStackPayload {
+  settings: IBundleSettings;
+  onSave?: (settings: IBundleSettings) => void;
+}
+
+export interface IDependencyChartModalPayload extends IModalStackPayload {
+  groups: IBundleGroup[];
+  rules: IDependencyRule[];
+  selectedRuleId?: string;
+  onSave?: (rules: IDependencyRule[]) => void;
+}
+
+export interface IBundleItemVariantSettingsModalPayload
+  extends IModalStackPayload {
+  itemId: string;
+  productId: string;
+  productTitle: string;
+  availableVariantIds: string[] | null;
+  priceType: BundlePriceType;
+  priceValue: number | null;
+  variants: Array<{
+    id: string;
+    title: string;
+    sku: string;
+    price: number;
+    stock: number;
+    options?: Array<{
+      optionId: string;
+      optionName: string;
+      value: string;
+    }>;
+  }>;
+  options?: Array<{
+    id: string;
+    name: string;
+    values: string[];
+  }>;
+  showAsVariants?: boolean;
+  onSave?: (data: {
+    availableVariantIds: string[] | null;
+    showAsVariants: boolean;
+  }) => void;
+}
+
 
 // ============================================================================
 // Module Augmentation for Type Safety
@@ -274,6 +350,12 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_VARIANTS_MODAL_TYPE]: IEditVariantsModalPayload;
     [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
     [BULK_EDITOR_MODAL_TYPE]: IBulkEditorModalPayload;
+    [PRODUCT_BUNDLE_EDIT_GROUPS_MODAL_TYPE]: IBundleEditGroupsModalPayload;
+    [PRODUCT_BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE]: IBundleEditConfigurationModalPayload;
+    [PRODUCT_BUNDLE_EDIT_TEMPLATES_MODAL_TYPE]: IBundleEditTemplatesModalPayload;
+    [PRODUCT_BUNDLE_EDIT_SETTINGS_MODAL_TYPE]: IBundleEditSettingsModalPayload;
+    [PRODUCT_BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE]: IBundleItemVariantSettingsModalPayload;
+    [PRODUCT_DEPENDENCY_CHART_MODAL_TYPE]: IDependencyChartModalPayload;
   }
 }
 
@@ -457,3 +539,22 @@ export const useEditTagsModal = createModalStackHook(PRODUCT_EDIT_TAGS_MODAL_TYP
  * ```
  */
 export const useBulkEditorModal = createModalStackHook(BULK_EDITOR_MODAL_TYPE);
+
+export const useEditBundleGroupsModal = createModalStackHook(
+  PRODUCT_BUNDLE_EDIT_GROUPS_MODAL_TYPE,
+);
+export const useEditBundleConfigurationModal = createModalStackHook(
+  PRODUCT_BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE,
+);
+export const useEditBundleTemplatesModal = createModalStackHook(
+  PRODUCT_BUNDLE_EDIT_TEMPLATES_MODAL_TYPE,
+);
+export const useEditBundleSettingsModal = createModalStackHook(
+  PRODUCT_BUNDLE_EDIT_SETTINGS_MODAL_TYPE,
+);
+export const useBundleItemVariantSettingsModal = createModalStackHook(
+  PRODUCT_BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE,
+);
+export const useDependencyChartModal = createModalStackHook(
+  PRODUCT_DEPENDENCY_CHART_MODAL_TYPE,
+);

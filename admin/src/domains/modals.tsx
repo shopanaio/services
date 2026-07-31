@@ -367,6 +367,54 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    {
+      type: 'product-bundle-item-variant-settings',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/bundle-ui/variant-settings-modal').then(
+          (m) => m.VariantSettingsModal
+        )
+      ),
+    },
+    {
+      type: 'product-dependency-chart',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/bundle-ui/dependency-chart-modal').then(
+          (m) => m.DependencyChartModal
+        )
+      ),
+    },
+    {
+      type: 'product-bundle-edit-groups',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/bundle-ui/edit-groups-modal').then(
+          (m) => m.EditGroupsModal
+        )
+      ),
+    },
+    {
+      type: 'product-bundle-edit-configuration',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/bundle-ui/edit-configuration-modal').then(
+          (m) => m.EditConfigurationModal
+        )
+      ),
+    },
+    {
+      type: 'product-bundle-edit-templates',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/bundle-ui/edit-templates-modal').then(
+          (m) => m.EditTemplatesModal
+        )
+      ),
+    },
+    {
+      type: 'product-bundle-edit-settings',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/bundle-ui/edit-settings-modal').then(
+          (m) => m.EditSettingsModal
+        )
+      ),
+    },
     // Bulk Editor modal
     {
       type: 'bulk-editor',

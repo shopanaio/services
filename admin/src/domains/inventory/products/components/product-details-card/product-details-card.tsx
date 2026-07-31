@@ -19,6 +19,7 @@ import {
   OptionsSection,
   InventorySection,
   VariantsTableSection,
+  BundleSection,
 } from "./sections";
 import { useProductModals } from "./hooks";
 import type { ApiProduct } from "@/graphql/types";
@@ -28,20 +29,19 @@ import {
   getProductMediaFiles,
   getProductPrimaryCategory,
 } from "../../utils/api-product-display";
-import { BundleSection } from "@/domains/inventory/bundles/components/bundle-details-card/sections";
 import {
   useDependencyChartModal,
   useEditBundleConfigurationModal,
   useEditBundleGroupsModal,
-} from "@/domains/inventory/bundles/modals";
+} from "@/domains/inventory/products/modals";
 import type {
   IBundleConfiguration,
   IBundleGroup,
-} from "@/domains/inventory/bundles/types";
+} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import {
   LogicOperator,
   type IDependencyRule,
-} from "@/domains/inventory/bundles/dependency-rules";
+} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
 import { bundleDetailsMockData } from "@/mocks/products/bundle-details";
 
 // ============================================================================

@@ -5,3 +5,6 @@ export { ReviewsSection } from "./reviews-section";
 export { OptionsSection } from "./options-section";
 export { InventorySection } from "./inventory-section";
 export { VariantsTableSection } from "./variants-table-section";
+export { BundleSection } from "./bundle-section";
+export { GroupsSection } from "./groups-section";
+export { DependencyRulesSection } from "./dependency-rules-section";

@@ -3,18 +3,18 @@ import type {
   IBundleGroup,
   PricingRuleTemplate,
   IDependencyRule,
-} from "@/domains/inventory/bundles/types";
+} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import {
   DependencyActionType,
   DependencyTargetType,
-} from "@/domains/inventory/bundles/types";
+} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import {
   ConditionCategory,
   ConditionSubject,
   StateCheckOperator,
   LogicOperator,
   ComparisonOperator,
-} from "@/domains/inventory/bundles/dependency-rules";
+} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
 
 // Mock Bundle Groups (used by bundle-details.ts)
 const mockBundleGroups: IBundleGroup[] = [
