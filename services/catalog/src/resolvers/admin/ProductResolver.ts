@@ -19,6 +19,7 @@ import { ProductSeoResolver } from "./ProductSeoResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { VendorResolver } from "./VendorResolver.js";
 import { toRichText } from "./helpers/richText.js";
+import { ProductComponentResolver } from "./ProductComponentResolver.js";
 
 /**
  * Product resolver - resolves Product domain interface.
@@ -213,6 +214,14 @@ export class ProductResolver extends CatalogType<string, Product> {
   async tags(): Promise<TagResolver[]> {
     const ids = await this.$ctx.loaders.productTagIds.load(this.$props);
     return ids.map((id) => new TagResolver(id, this.$ctx));
+  }
+
+  async productComponent() {
+    const component =
+      await this.$ctx.loaders.componentByProductId.load(this.$props);
+    return component
+      ? new ProductComponentResolver(component.id, this.$ctx)
+      : null;
   }
 }
 

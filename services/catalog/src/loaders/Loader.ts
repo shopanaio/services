@@ -12,6 +12,7 @@ import { BulkEditLoader } from "./BulkEditLoader.js";
 import { WarehouseLoader } from "./WarehouseLoader.js";
 import { InventoryItemLoader } from "./InventoryItemLoader.js";
 import { StockLoader } from "./StockLoader.js";
+import { ComponentLoader } from "./ComponentLoader.js";
 
 export class Loader {
   // Product
@@ -97,6 +98,37 @@ export class Loader {
   // Stock
   public readonly stockByVariant;
 
+  // Product components
+  public readonly component;
+  public readonly componentByProductId;
+  public readonly componentConfiguration;
+  public readonly componentConfigurationIdsByComponentId;
+  public readonly componentConfigurationVariantIds;
+  public readonly componentConfigurationIdByVariantId;
+  public readonly componentGroup;
+  public readonly componentGroupIdsByConfigurationId;
+  public readonly componentGroupTranslation;
+  public readonly componentItem;
+  public readonly componentItemIdsByGroupId;
+  public readonly componentItemTranslation;
+  public readonly componentOptionSelection;
+  public readonly componentOptionSelectionIdsByItemId;
+  public readonly componentOptionValueSelection;
+  public readonly componentOptionValueSelectionIdsBySelectionId;
+  public readonly componentPriceRule;
+  public readonly componentPriceRuleAmounts;
+  public readonly componentPriceRulePercent;
+  public readonly componentPricingTemplate;
+  public readonly componentPricingTemplateIdsByConfigurationId;
+  public readonly componentDependencyRule;
+  public readonly componentDependencyRuleIdsByConfigurationId;
+  public readonly componentConditionGroup;
+  public readonly componentConditionGroupIdsByRuleId;
+  public readonly componentCondition;
+  public readonly componentConditionIdsByGroupId;
+  public readonly componentDependencyAction;
+  public readonly componentDependencyActionIdsByRuleId;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;
 
@@ -113,6 +145,7 @@ export class Loader {
     const warehouseLoader = new WarehouseLoader(repository);
     const inventoryItemLoader = new InventoryItemLoader(repository);
     const stockLoader = new StockLoader(repository);
+    const componentLoader = new ComponentLoader(repository);
 
     // Product
     this.product = productLoader.product;
@@ -197,5 +230,47 @@ export class Loader {
 
     // Stock
     this.stockByVariant = stockLoader.stockByVariant;
+
+    // Product components
+    this.component = componentLoader.component;
+    this.componentByProductId = componentLoader.componentByProductId;
+    this.componentConfiguration = componentLoader.configuration;
+    this.componentConfigurationIdsByComponentId =
+      componentLoader.configurationIdsByComponentId;
+    this.componentConfigurationVariantIds =
+      componentLoader.configurationVariantIds;
+    this.componentConfigurationIdByVariantId =
+      componentLoader.configurationIdByVariantId;
+    this.componentGroup = componentLoader.group;
+    this.componentGroupIdsByConfigurationId =
+      componentLoader.groupIdsByConfigurationId;
+    this.componentGroupTranslation = componentLoader.groupTranslation;
+    this.componentItem = componentLoader.item;
+    this.componentItemIdsByGroupId = componentLoader.itemIdsByGroupId;
+    this.componentItemTranslation = componentLoader.itemTranslation;
+    this.componentOptionSelection = componentLoader.optionSelection;
+    this.componentOptionSelectionIdsByItemId =
+      componentLoader.optionSelectionIdsByItemId;
+    this.componentOptionValueSelection = componentLoader.optionValueSelection;
+    this.componentOptionValueSelectionIdsBySelectionId =
+      componentLoader.optionValueSelectionIdsBySelectionId;
+    this.componentPriceRule = componentLoader.priceRule;
+    this.componentPriceRuleAmounts = componentLoader.priceRuleAmounts;
+    this.componentPriceRulePercent = componentLoader.priceRulePercent;
+    this.componentPricingTemplate = componentLoader.pricingTemplate;
+    this.componentPricingTemplateIdsByConfigurationId =
+      componentLoader.pricingTemplateIdsByConfigurationId;
+    this.componentDependencyRule = componentLoader.dependencyRule;
+    this.componentDependencyRuleIdsByConfigurationId =
+      componentLoader.dependencyRuleIdsByConfigurationId;
+    this.componentConditionGroup = componentLoader.conditionGroup;
+    this.componentConditionGroupIdsByRuleId =
+      componentLoader.conditionGroupIdsByRuleId;
+    this.componentCondition = componentLoader.condition;
+    this.componentConditionIdsByGroupId =
+      componentLoader.conditionIdsByGroupId;
+    this.componentDependencyAction = componentLoader.dependencyAction;
+    this.componentDependencyActionIdsByRuleId =
+      componentLoader.dependencyActionIdsByRuleId;
   }
 }

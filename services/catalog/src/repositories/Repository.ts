@@ -24,6 +24,7 @@ import { StockRepository } from "./stock/StockRepository.js";
 import { WarehouseRepository } from "./warehouse/WarehouseRepository.js";
 import { InventoryItemRepository } from "./inventory-item/InventoryItemRepository.js";
 import { InventoryWidgetRepository } from "./inventory-widget/InventoryWidgetRepository.js";
+import { ComponentRepository } from "./component/ComponentRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -57,6 +58,7 @@ export class Repository {
   public readonly physical: PhysicalRepository;
   public readonly stock: StockRepository;
   public readonly warehouse: WarehouseRepository;
+  public readonly component: ComponentRepository;
   public readonly txManager: TransactionManager<Database>;
 
   /**
@@ -92,6 +94,7 @@ export class Repository {
     physical: PhysicalRepository,
     stock: StockRepository,
     warehouse: WarehouseRepository,
+    component: ComponentRepository,
     txManager: TransactionManager<Database>
   ) {
     this.product = product;
@@ -118,6 +121,7 @@ export class Repository {
     this.physical = physical;
     this.stock = stock;
     this.warehouse = warehouse;
+    this.component = component;
     this.txManager = txManager;
   }
 
@@ -158,6 +162,7 @@ export class Repository {
     const physical = new PhysicalRepository(db, txManager);
     const stock = new StockRepository(db, txManager);
     const warehouse = new WarehouseRepository(db, txManager);
+    const component = new ComponentRepository(db, txManager);
 
     return new Repository(
       product,
@@ -184,6 +189,7 @@ export class Repository {
       physical,
       stock,
       warehouse,
+      component,
       txManager
     );
   }

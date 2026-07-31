@@ -35,6 +35,27 @@ export { VariantPriceResolver } from "./VariantPriceResolver.js";
 export { PricingWidgetResolver } from "./PricingWidgetResolver.js";
 export { InventoryWidgetResolver } from "./InventoryWidgetResolver.js";
 export { VariantFederationResolver } from "./VariantFederationResolver.js";
+export { ProductComponentResolver } from "./ProductComponentResolver.js";
+export { ProductComponentConfigurationResolver } from "./ProductComponentConfigurationResolver.js";
+export { ProductComponentGroupResolver } from "./ProductComponentGroupResolver.js";
+export { ProductComponentItemResolver } from "./ProductComponentItemResolver.js";
+export {
+  ProductComponentItemOptionSelectionResolver,
+  ProductComponentItemOptionValueSelectionResolver,
+} from "./ProductComponentOptionResolver.js";
+export {
+  ProductComponentBasePriceRuleResolver,
+  ProductComponentAdjustmentPriceRuleResolver,
+  ProductComponentOverridePriceRuleResolver,
+  ProductComponentFreePriceRuleResolver,
+  ProductComponentPricingTemplateResolver,
+} from "./ProductComponentPriceRuleResolver.js";
+export {
+  ProductComponentDependencyRuleResolver,
+  ProductComponentConditionGroupResolver,
+  ProductComponentConditionResolver,
+  ProductComponentDependencyActionResolver,
+} from "./ProductComponentDependencyRuleResolver.js";
 
 // Connection resolvers
 export {

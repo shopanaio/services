@@ -22,6 +22,26 @@ import { VendorResolver } from "../../../resolvers/admin/VendorResolver.js";
 import { InventoryItemResolver } from "../../../resolvers/admin/InventoryItemResolver.js";
 import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver.js";
 import { StockResolver } from "../../../resolvers/admin/StockResolver.js";
+import { ProductComponentConfigurationResolver } from "../../../resolvers/admin/ProductComponentConfigurationResolver.js";
+import { ProductComponentGroupResolver } from "../../../resolvers/admin/ProductComponentGroupResolver.js";
+import { ProductComponentItemResolver } from "../../../resolvers/admin/ProductComponentItemResolver.js";
+import {
+  ProductComponentItemOptionSelectionResolver,
+  ProductComponentItemOptionValueSelectionResolver,
+} from "../../../resolvers/admin/ProductComponentOptionResolver.js";
+import {
+  ProductComponentAdjustmentPriceRuleResolver,
+  ProductComponentBasePriceRuleResolver,
+  ProductComponentFreePriceRuleResolver,
+  ProductComponentOverridePriceRuleResolver,
+  ProductComponentPricingTemplateResolver,
+} from "../../../resolvers/admin/ProductComponentPriceRuleResolver.js";
+import {
+  ProductComponentConditionGroupResolver,
+  ProductComponentConditionResolver,
+  ProductComponentDependencyActionResolver,
+  ProductComponentDependencyRuleResolver,
+} from "../../../resolvers/admin/ProductComponentDependencyRuleResolver.js";
 
 /**
  * Type resolvers for interfaces and scalars.
@@ -32,6 +52,34 @@ export const typeResolvers: Partial<Resolvers> = {
     __resolveType: async (obj: unknown) => {
       const record = obj as Record<string, unknown>;
       if (obj instanceof ProductResolver) return "Product";
+      if (obj instanceof ProductComponentConfigurationResolver)
+        return "ProductComponentConfiguration";
+      if (obj instanceof ProductComponentGroupResolver)
+        return "ProductComponentGroup";
+      if (obj instanceof ProductComponentItemResolver)
+        return "ProductComponentItem";
+      if (obj instanceof ProductComponentItemOptionSelectionResolver)
+        return "ProductComponentItemOptionSelection";
+      if (obj instanceof ProductComponentItemOptionValueSelectionResolver)
+        return "ProductComponentItemOptionValueSelection";
+      if (obj instanceof ProductComponentBasePriceRuleResolver)
+        return "ProductComponentBasePriceRule";
+      if (obj instanceof ProductComponentAdjustmentPriceRuleResolver)
+        return "ProductComponentAdjustmentPriceRule";
+      if (obj instanceof ProductComponentOverridePriceRuleResolver)
+        return "ProductComponentOverridePriceRule";
+      if (obj instanceof ProductComponentFreePriceRuleResolver)
+        return "ProductComponentFreePriceRule";
+      if (obj instanceof ProductComponentPricingTemplateResolver)
+        return "ProductComponentPricingTemplate";
+      if (obj instanceof ProductComponentDependencyRuleResolver)
+        return "ProductComponentDependencyRule";
+      if (obj instanceof ProductComponentConditionGroupResolver)
+        return "ProductComponentConditionGroup";
+      if (obj instanceof ProductComponentConditionResolver)
+        return "ProductComponentCondition";
+      if (obj instanceof ProductComponentDependencyActionResolver)
+        return "ProductComponentDependencyAction";
       if (obj instanceof StockResolver) return "WarehouseStock";
       if (obj instanceof WarehouseResolver) return "Warehouse";
       if (obj instanceof InventoryItemResolver) return "InventoryItem";
@@ -59,6 +107,20 @@ export const typeResolvers: Partial<Resolvers> = {
 
   UserError: {
     __resolveType: () => "GenericUserError",
+  },
+
+  ProductComponentPriceRule: {
+    __resolveType: (obj: unknown) => {
+      if (obj instanceof ProductComponentBasePriceRuleResolver)
+        return "ProductComponentBasePriceRule";
+      if (obj instanceof ProductComponentAdjustmentPriceRuleResolver)
+        return "ProductComponentAdjustmentPriceRule";
+      if (obj instanceof ProductComponentOverridePriceRuleResolver)
+        return "ProductComponentOverridePriceRule";
+      if (obj instanceof ProductComponentFreePriceRuleResolver)
+        return "ProductComponentFreePriceRule";
+      return null;
+    },
   },
 
   // Federation reference resolvers
@@ -238,6 +300,255 @@ export const typeResolvers: Partial<Resolvers> = {
         GlobalIdEntity.Warehouse,
       );
       return WarehouseResolver.load(warehouseId, fieldInfo, ctx);
+    },
+  },
+
+  ProductComponentConfiguration: {
+    __resolveReference: async (
+      reference: { __typename: "ProductComponentConfiguration"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const fieldInfo = parseGraphqlInfo(info);
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentConfiguration,
+      );
+      return ProductComponentConfigurationResolver.load(id, fieldInfo, ctx);
+    },
+  },
+
+  ProductComponentGroup: {
+    __resolveReference: async (
+      reference: { __typename: "ProductComponentGroup"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const fieldInfo = parseGraphqlInfo(info);
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentGroup,
+      );
+      return ProductComponentGroupResolver.load(id, fieldInfo, ctx);
+    },
+  },
+
+  ProductComponentItem: {
+    __resolveReference: async (
+      reference: { __typename: "ProductComponentItem"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const fieldInfo = parseGraphqlInfo(info);
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentItem,
+      );
+      return ProductComponentItemResolver.load(id, fieldInfo, ctx);
+    },
+  },
+
+  ProductComponentItemOptionSelection: {
+    __resolveReference: async (
+      reference: {
+        __typename: "ProductComponentItemOptionSelection";
+        id: string;
+      },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const fieldInfo = parseGraphqlInfo(info);
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentItemOptionSelection,
+      );
+      return ProductComponentItemOptionSelectionResolver.load(
+        id,
+        fieldInfo,
+        ctx,
+      );
+    },
+  },
+
+  ProductComponentItemOptionValueSelection: {
+    __resolveReference: async (
+      reference: {
+        __typename: "ProductComponentItemOptionValueSelection";
+        id: string;
+      },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const fieldInfo = parseGraphqlInfo(info);
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentItemOptionValueSelection,
+      );
+      return ProductComponentItemOptionValueSelectionResolver.load(
+        id,
+        fieldInfo,
+        ctx,
+      );
+    },
+  },
+
+  ProductComponentBasePriceRule: {
+    __resolveReference: (
+      reference: { __typename: "ProductComponentBasePriceRule"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) =>
+      ProductComponentBasePriceRuleResolver.load(
+        decodeGlobalIdByType(
+          reference.id,
+          GlobalIdEntity.ProductComponentPriceRule,
+        ),
+        parseGraphqlInfo(info),
+        ctx,
+      ),
+  },
+
+  ProductComponentAdjustmentPriceRule: {
+    __resolveReference: (
+      reference: {
+        __typename: "ProductComponentAdjustmentPriceRule";
+        id: string;
+      },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) =>
+      ProductComponentAdjustmentPriceRuleResolver.load(
+        decodeGlobalIdByType(
+          reference.id,
+          GlobalIdEntity.ProductComponentPriceRule,
+        ),
+        parseGraphqlInfo(info),
+        ctx,
+      ),
+  },
+
+  ProductComponentOverridePriceRule: {
+    __resolveReference: (
+      reference: {
+        __typename: "ProductComponentOverridePriceRule";
+        id: string;
+      },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) =>
+      ProductComponentOverridePriceRuleResolver.load(
+        decodeGlobalIdByType(
+          reference.id,
+          GlobalIdEntity.ProductComponentPriceRule,
+        ),
+        parseGraphqlInfo(info),
+        ctx,
+      ),
+  },
+
+  ProductComponentFreePriceRule: {
+    __resolveReference: (
+      reference: { __typename: "ProductComponentFreePriceRule"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) =>
+      ProductComponentFreePriceRuleResolver.load(
+        decodeGlobalIdByType(
+          reference.id,
+          GlobalIdEntity.ProductComponentPriceRule,
+        ),
+        parseGraphqlInfo(info),
+        ctx,
+      ),
+  },
+
+  ProductComponentPricingTemplate: {
+    __resolveReference: async (
+      reference: { __typename: "ProductComponentPricingTemplate"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentPricingTemplate,
+      );
+      return ProductComponentPricingTemplateResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        ctx,
+      );
+    },
+  },
+
+  ProductComponentDependencyRule: {
+    __resolveReference: async (
+      reference: { __typename: "ProductComponentDependencyRule"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentDependencyRule,
+      );
+      return ProductComponentDependencyRuleResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        ctx,
+      );
+    },
+  },
+
+  ProductComponentConditionGroup: {
+    __resolveReference: async (
+      reference: { __typename: "ProductComponentConditionGroup"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentConditionGroup,
+      );
+      return ProductComponentConditionGroupResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        ctx,
+      );
+    },
+  },
+
+  ProductComponentCondition: {
+    __resolveReference: async (
+      reference: { __typename: "ProductComponentCondition"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentCondition,
+      );
+      return ProductComponentConditionResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        ctx,
+      );
+    },
+  },
+
+  ProductComponentDependencyAction: {
+    __resolveReference: async (
+      reference: { __typename: "ProductComponentDependencyAction"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.ProductComponentDependencyAction,
+      );
+      return ProductComponentDependencyActionResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        ctx,
+      );
     },
   },
 };

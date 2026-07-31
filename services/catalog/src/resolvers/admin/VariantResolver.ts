@@ -15,6 +15,7 @@ import type { PricingCursorInput } from "../../repositories/pricing/PricingRepos
 import { CatalogType } from "./CatalogType.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
 import type { CurrencyCode } from "@shopana/shared-references";
+import { ProductComponentConfigurationResolver } from "./ProductComponentConfigurationResolver.js";
 
 /**
  * Variant resolver for Catalog Service.
@@ -183,5 +184,18 @@ export class VariantResolver extends CatalogType<string, Variant> {
     );
     if (!item) return null;
     return this.resolvers.inventoryItem(item.id);
+  }
+
+  async productComponentConfiguration() {
+    const configurationId =
+      await this.$ctx.loaders.componentConfigurationIdByVariantId.load(
+        this.$props,
+      );
+    return configurationId
+      ? new ProductComponentConfigurationResolver(
+          configurationId,
+          this.$ctx,
+        )
+      : null;
   }
 }

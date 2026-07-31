@@ -130,7 +130,7 @@ export const componentPriceRuleAmount = catalogSchema.table(
       .notNull()
       .references(() => componentPriceRule.id, { onDelete: "cascade" }),
     currency: currencyEnum("currency").notNull(),
-    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.priceRuleId, table.currency] }),
