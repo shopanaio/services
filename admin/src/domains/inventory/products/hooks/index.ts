@@ -11,3 +11,5 @@ export * from "./use-sync-product-features";
 export * from "./use-sync-product-options";
 export * from "./use-product-variants-connection";
 export * from "./use-product-variants-loader";
+export * from "./use-product-component-configurations";
+export * from "./use-sync-product-component-dependency-rules";

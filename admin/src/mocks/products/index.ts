@@ -5,7 +5,6 @@ export * from "./tags";
 export * from "./options";
 export * from "./attributes";
 export * from "./pricing";
-export * from "./components";
 export * from "./ai-writer";
 export * from "./bulk-editor";
 export * from "./product-details";

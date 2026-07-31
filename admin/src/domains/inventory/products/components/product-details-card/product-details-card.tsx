@@ -16,13 +16,13 @@ import {
   TagsSection,
   ReviewsSection,
   OptionsSection,
-  BundlesSection,
   InventorySection,
   VariantsTableSection,
+  ProductComponentSection,
 } from "./sections";
 import { useProductModals } from "./hooks";
 import type { ApiProduct } from "@/graphql/types";
-import type { IVariantsTableData, ProductDetailsSupplementalData } from "./types";
+import type { IVariantsTableData } from "./types";
 import {
   getProductCategories,
   getProductMediaFiles,
@@ -35,7 +35,6 @@ import {
 
 interface IProductDetailsCardProps {
   product: ApiProduct;
-  supplementalData: ProductDetailsSupplementalData;
   variantsTableData?: IVariantsTableData;
   onEditSection?: (section: string) => void;
   onVariantsPageChange?: (direction: "next" | "prev") => void;
@@ -45,7 +44,6 @@ interface IProductDetailsCardProps {
 
 export const ProductDetailsCard = ({
   product,
-  supplementalData,
   variantsTableData,
   onEditSection,
   onVariantsPageChange,
@@ -146,8 +144,8 @@ export const ProductDetailsCard = ({
         />
       )}
 
-      {/* BUNDLES CONTAINING THIS PRODUCT */}
-      <BundlesSection bundles={supplementalData.includedInBundles} />
+      {/* PRODUCT COMPONENT CONFIGURATIONS */}
+      <ProductComponentSection product={product} />
 
       <TagsSection
         productId={product.id}

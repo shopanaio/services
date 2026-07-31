@@ -4,7 +4,6 @@ import { useMemo, useState, useEffect } from "react";
 import { Alert, Flex, Skeleton } from "antd";
 import { useModalStackContext, ModalLayout } from "@/layouts/modals";
 import { ProductDetailsCard } from "../../components/product-details-card/product-details-card";
-import { productDetailsMockData } from "../../components/product-details-card/supplemental-data";
 import { useProduct } from "../../hooks";
 
 const VARIANTS_PAGE_SIZE = 10;
@@ -114,7 +113,6 @@ export const ProductModal = () => {
     return (
       <ProductDetailsCard
         product={product}
-        supplementalData={productDetailsMockData}
         variantsTableData={variantsTableData}
         onVariantsPageChange={handleVariantsPageChange}
         isVariantsPageLoading={isVariantsPageLoading}

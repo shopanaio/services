@@ -351,21 +351,19 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Bundle Item Variant Settings modal
     {
-      type: 'bundle-item-variant-settings',
+      type: 'product-component-configuration',
       component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/variant-settings-modal').then(
-          (m) => m.VariantSettingsModal
+        import('@/domains/inventory/products/modals/product-component-configuration-modal').then(
+          (m) => m.ProductComponentConfigurationModal
         )
       ),
     },
-    // Dependency Chart modal
     {
-      type: 'dependency-chart',
+      type: 'product-component-pricing-rules',
       component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/dependency-chart-modal').then(
-          (m) => m.DependencyChartModal
+        import('@/domains/inventory/products/modals/product-component-pricing-rules-modal').then(
+          (m) => m.ProductComponentPricingRulesModal
         )
       ),
     },
@@ -1093,54 +1091,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       component: dynamic(() =>
         import('@/shared/components/entity-picker-modal/media-picker-modal').then(
           (m) => m.MediaPickerModal
-        )
-      ),
-    },
-    // ========================================
-    // Bundle modals
-    // ========================================
-    // Bundle modal
-    {
-      type: 'bundle',
-      component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/bundle-modal').then(
-          (m) => m.BundleModal
-        )
-      ),
-    },
-    // Bundle Edit Groups modal
-    {
-      type: 'bundle-edit-groups',
-      component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/edit-groups-modal').then(
-          (m) => m.EditGroupsModal
-        )
-      ),
-    },
-    // Bundle Edit Configuration modal
-    {
-      type: 'bundle-edit-configuration',
-      component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/edit-configuration-modal').then(
-          (m) => m.EditConfigurationModal
-        )
-      ),
-    },
-    // Bundle Edit Templates modal
-    {
-      type: 'bundle-edit-templates',
-      component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/edit-templates-modal').then(
-          (m) => m.EditTemplatesModal
-        )
-      ),
-    },
-    // Bundle Edit Settings modal
-    {
-      type: 'bundle-edit-settings',
-      component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/edit-settings-modal').then(
-          (m) => m.EditSettingsModal
         )
       ),
     },

@@ -224,7 +224,7 @@ function createErrorLink(cache: InMemoryCache) {
 export function makeClient() {
   const cache = new InMemoryCache({
     possibleTypes: {
-      Listing: ["Product", "Bundle"],
+      Listing: ["Product"],
     },
     typePolicies: {
       Query: {

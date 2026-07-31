@@ -194,6 +194,165 @@ export const PRODUCT_FEATURE_FRAGMENT = gql`
   }
 `;
 
+export const PRODUCT_COMPONENT_PRICE_RULE_FRAGMENT = gql`
+  fragment ProductComponentPriceRuleFields on ProductComponentPriceRule {
+    id
+    strategy
+    ... on ProductComponentAdjustmentPriceRule {
+      operation
+      valueType
+      percentageBps
+      amounts {
+        currency
+        amountMinor
+      }
+    }
+    ... on ProductComponentOverridePriceRule {
+      amounts {
+        currency
+        amountMinor
+      }
+    }
+  }
+`;
+
+export const PRODUCT_COMPONENT_FRAGMENT = gql`
+  fragment ProductComponentFields on ProductComponent {
+    id
+    productId
+    displayStyle
+    createdAt
+    updatedAt
+    configurations {
+      id
+      productId
+      name
+      createdAt
+      updatedAt
+      variants {
+        id
+        title
+      }
+      groups {
+        id
+        title
+        sortIndex
+        minSelection
+        maxSelection
+        createdAt
+        updatedAt
+        items {
+          id
+          groupId
+          itemType
+          sortIndex
+          title
+          visible
+          selected
+          minQty
+          maxQty
+          defaultQty
+          refProductId
+          refVariantId
+          featuredImage {
+            ...FileFields
+          }
+          refProduct {
+            id
+            title
+            media {
+              ...ProductMediaItemFields
+            }
+          }
+          refVariant {
+            id
+            title
+            media {
+              ...VariantMediaItemFields
+            }
+            product {
+              id
+              title
+            }
+          }
+          priceRule {
+            ...ProductComponentPriceRuleFields
+          }
+          pricingTemplate {
+            id
+            name
+            sortIndex
+            priceRule {
+              ...ProductComponentPriceRuleFields
+            }
+          }
+          optionSelections {
+            id
+            optionId
+            parentOptionId
+            sortIndex
+            values {
+              id
+              optionValueId
+              value
+              status
+              sortIndex
+            }
+          }
+        }
+      }
+      pricingTemplates {
+        id
+        name
+        sortIndex
+        priceRule {
+          ...ProductComponentPriceRuleFields
+        }
+      }
+      dependencyRules {
+        id
+        name
+        enabled
+        priority
+        logicOperator
+        createdAt
+        updatedAt
+        conditionGroups {
+          id
+          logicOperator
+          sortIndex
+          conditions {
+            id
+            category
+            subject
+            operator
+            targetType
+            targetId
+            value
+            sortIndex
+          }
+        }
+        actions {
+          id
+          actionType
+          targetType
+          targetId
+          requiredValue
+          stackable
+          sortIndex
+          priceRule {
+            ...ProductComponentPriceRuleFields
+          }
+        }
+      }
+    }
+  }
+  ${FILE_FRAGMENT}
+  ${PRODUCT_MEDIA_ITEM_FRAGMENT}
+  ${VARIANT_MEDIA_ITEM_FRAGMENT}
+  ${PRODUCT_COMPONENT_PRICE_RULE_FRAGMENT}
+`;
+
 export const PRODUCT_LIST_FRAGMENT = gql`
   fragment ProductListFields on Product {
     id
@@ -295,6 +454,9 @@ export const PRODUCT_EDITOR_BASE_FRAGMENT = gql`
 export const PRODUCT_DETAILS_FRAGMENT = gql`
   fragment ProductDetailsFields on Product {
     ...ProductEditorBaseFields
+    productComponent {
+      ...ProductComponentFields
+    }
     variants(first: $variantsFirst, after: $variantsAfter) {
       edges {
         cursor
@@ -312,6 +474,7 @@ export const PRODUCT_DETAILS_FRAGMENT = gql`
     }
   }
   ${PRODUCT_EDITOR_BASE_FRAGMENT}
+  ${PRODUCT_COMPONENT_FRAGMENT}
   ${VARIANT_FRAGMENT}
 `;
 

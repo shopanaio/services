@@ -138,24 +138,6 @@ export const CATEGORY_LISTING_PREVIEW_QUERY = gql`
                 currency
               }
             }
-            ... on Bundle {
-              title
-              handle
-              isPublished
-              media {
-                sortIndex
-                file {
-                  id
-                  url
-                  altText
-                }
-              }
-              priceRange {
-                minPriceAmount
-                maxPriceAmount
-                currency
-              }
-            }
           }
         }
         facets {

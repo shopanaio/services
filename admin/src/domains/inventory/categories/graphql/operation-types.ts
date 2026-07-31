@@ -18,7 +18,6 @@ import type {
   ApiProduct,
   ApiProductCategoryOperationInput,
   ApiCategoryWhereInput,
-  ApiBundle,
   ApiListingFacet,
   ApiListingProductFilter,
   ApiProductMediaItem,
@@ -100,31 +99,21 @@ export interface CategoryProductsQueryVariables {
   orderBy?: CategoryProductsOrderByInput[] | null;
 }
 
-export type CategoryListingPreviewItem =
-  | (Pick<ApiProduct, "id" | "title" | "handle" | "isPublished"> & {
-      __typename?: "Product";
-      media: Array<
-        Pick<ApiProductMediaItem, "sortIndex"> & {
-          file: Pick<ApiProductMediaItem["file"], "id" | "url" | "altText">;
-        }
-      >;
-      priceRange?: Pick<
-        ApiProductPriceRange,
-        "minPriceAmount" | "maxPriceAmount" | "currency"
-      > | null;
-    })
-  | (Pick<ApiBundle, "id" | "title" | "handle" | "isPublished"> & {
-      __typename?: "Bundle";
-      media: Array<
-        Pick<ApiProductMediaItem, "sortIndex"> & {
-          file: Pick<ApiProductMediaItem["file"], "id" | "url" | "altText">;
-        }
-      >;
-      priceRange?: Pick<
-        ApiProductPriceRange,
-        "minPriceAmount" | "maxPriceAmount" | "currency"
-      > | null;
-    });
+export type CategoryListingPreviewItem = Pick<
+  ApiProduct,
+  "id" | "title" | "handle" | "isPublished"
+> & {
+  __typename?: "Product";
+  media: Array<
+    Pick<ApiProductMediaItem, "sortIndex"> & {
+      file: Pick<ApiProductMediaItem["file"], "id" | "url" | "altText">;
+    }
+  >;
+  priceRange?: Pick<
+    ApiProductPriceRange,
+    "minPriceAmount" | "maxPriceAmount" | "currency"
+  > | null;
+};
 
 export interface CategoryListingPreviewQueryData {
   listingQuery: {

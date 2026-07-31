@@ -2,8 +2,6 @@ import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
 import { LuPackage } from "react-icons/lu";
 
-const BUNDLES_PAGE_ENABLED = false;
-
 registerModule({
   key: "catalog",
   domain: "store",
@@ -25,22 +23,6 @@ registerModule({
         () => import("@/domains/inventory/products/page/page"),
       ),
     },
-    ...(BUNDLES_PAGE_ENABLED
-      ? [
-          {
-            key: "bundles-list",
-            path: "/:orgName/:storeName/bundles",
-            sidebar: {
-              label: "Bundles",
-              icon: null,
-              order: 2,
-            },
-            component: dynamic(
-              () => import("@/domains/inventory/bundles/page/page"),
-            ),
-          },
-        ]
-      : []),
     {
       key: "categories-list",
       path: "/:orgName/:storeName/categories",
