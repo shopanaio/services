@@ -219,13 +219,17 @@ export const PRODUCT_COMPONENT_PRICE_RULE_FRAGMENT = gql`
 export const PRODUCT_COMPONENT_FRAGMENT = gql`
   fragment ProductComponentFields on ProductComponent {
     id
-    productId
+    product {
+      id
+    }
     displayStyle
     createdAt
     updatedAt
     configurations {
       id
-      productId
+      product {
+        id
+      }
       name
       createdAt
       updatedAt
@@ -243,7 +247,9 @@ export const PRODUCT_COMPONENT_FRAGMENT = gql`
         updatedAt
         items {
           id
-          groupId
+          group {
+            id
+          }
           itemType
           sortIndex
           title
@@ -252,8 +258,6 @@ export const PRODUCT_COMPONENT_FRAGMENT = gql`
           minQty
           maxQty
           defaultQty
-          refProductId
-          refVariantId
           featuredImage {
             ...FileFields
           }
@@ -288,12 +292,18 @@ export const PRODUCT_COMPONENT_FRAGMENT = gql`
           }
           optionSelections {
             id
-            optionId
-            parentOptionId
+            option {
+              id
+            }
+            parentOption {
+              id
+            }
             sortIndex
             values {
               id
-              optionValueId
+              optionValue {
+                id
+              }
               value
               status
               sortIndex

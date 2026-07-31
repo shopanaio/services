@@ -24,6 +24,18 @@ registerModule({
       ),
     },
     {
+      key: "bundles-list",
+      path: "/:orgName/:storeName/bundles",
+      sidebar: {
+        label: "Bundles",
+        icon: null,
+        order: 2,
+      },
+      component: dynamic(
+        () => import("@/domains/inventory/bundles/page/page"),
+      ),
+    },
+    {
       key: "categories-list",
       path: "/:orgName/:storeName/categories",
       sidebar: {

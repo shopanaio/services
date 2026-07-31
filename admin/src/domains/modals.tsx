@@ -367,6 +367,22 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    {
+      type: 'bundle-item-variant-settings',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/variant-settings-modal').then(
+          (m) => m.VariantSettingsModal
+        )
+      ),
+    },
+    {
+      type: 'dependency-chart',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/dependency-chart-modal').then(
+          (m) => m.DependencyChartModal
+        )
+      ),
+    },
     // Bulk Editor modal
     {
       type: 'bulk-editor',
@@ -1091,6 +1107,49 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       component: dynamic(() =>
         import('@/shared/components/entity-picker-modal/media-picker-modal').then(
           (m) => m.MediaPickerModal
+        )
+      ),
+    },
+    // ========================================
+    // Bundle modals
+    // ========================================
+    {
+      type: 'bundle',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/bundle-modal').then(
+          (m) => m.BundleModal
+        )
+      ),
+    },
+    {
+      type: 'bundle-edit-groups',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/edit-groups-modal').then(
+          (m) => m.EditGroupsModal
+        )
+      ),
+    },
+    {
+      type: 'bundle-edit-configuration',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/edit-configuration-modal').then(
+          (m) => m.EditConfigurationModal
+        )
+      ),
+    },
+    {
+      type: 'bundle-edit-templates',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/edit-templates-modal').then(
+          (m) => m.EditTemplatesModal
+        )
+      ),
+    },
+    {
+      type: 'bundle-edit-settings',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/edit-settings-modal').then(
+          (m) => m.EditSettingsModal
         )
       ),
     },

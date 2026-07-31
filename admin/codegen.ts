@@ -17,10 +17,22 @@ const scalars = {
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: '../infra/federation/supergraph-admin.graphql',
   // documents: ['src/**/*.graphql', 'src/**/*.gql'],
   generates: {
     'src/graphql/types.ts': {
+      schema: '../infra/federation/supergraph-admin.graphql',
+      plugins: ['typescript'],
+      config: {
+        typesPrefix: 'Api',
+        enumPrefix: false,
+        scalars,
+        skipTypename: false,
+        avoidOptionals: false,
+        maybeValue: 'T | null',
+      },
+    },
+    'src/graphql/bundle-types.ts': {
+      schema: 'schema.graphql',
       plugins: ['typescript'],
       config: {
         typesPrefix: 'Api',
