@@ -1817,6 +1817,14 @@ export enum BulkUpdateJobStatus {
 
 export enum BulkUpdateOpType {
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
+  ProductComponentConfigurationCreate = 'PRODUCT_COMPONENT_CONFIGURATION_CREATE',
+  ProductComponentConfigurationDelete = 'PRODUCT_COMPONENT_CONFIGURATION_DELETE',
+  ProductComponentConfigurationUpdate = 'PRODUCT_COMPONENT_CONFIGURATION_UPDATE',
+  ProductComponentDependencyRulesSync = 'PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC',
+  ProductComponentGroupsSync = 'PRODUCT_COMPONENT_GROUPS_SYNC',
+  ProductComponentPricingTemplatesSync = 'PRODUCT_COMPONENT_PRICING_TEMPLATES_SYNC',
+  ProductComponentRemove = 'PRODUCT_COMPONENT_REMOVE',
+  ProductComponentSettingsUpdate = 'PRODUCT_COMPONENT_SETTINGS_UPDATE',
   ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
   VariantCreate = 'VARIANT_CREATE',
@@ -10768,8 +10776,6 @@ export type ApiProductComponent = {
   id: Scalars['ID']['output'];
   /** The product that owns this component configuration. */
   product: ApiProduct;
-  /** Global ID of the owning product. */
-  productId: Scalars['ID']['output'];
   /** The date and time when the component data was last updated. */
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -10895,8 +10901,6 @@ export type ApiProductComponentConfiguration = ApiNode & {
   pricingTemplates: Array<ApiProductComponentPricingTemplate>;
   /** The Catalog Product this configuration belongs to. */
   product: ApiProduct;
-  /** The global ID of the Catalog Product. */
-  productId: Scalars['ID']['output'];
   /** The date and time when the configuration was last updated. */
   updatedAt: Scalars['DateTime']['output'];
   /** Variants that use this configuration. */
@@ -11060,8 +11064,6 @@ export type ApiProductComponentItem = ApiNode & {
   featuredImage?: Maybe<ApiFile>;
   /** The group this item belongs to. */
   group: ApiProductComponentGroup;
-  /** The group ID. */
-  groupId: Scalars['ID']['output'];
   /** The globally unique ID of the item. */
   id: Scalars['ID']['output'];
   /** Whether the item references a product or a concrete variant. */
@@ -11078,12 +11080,8 @@ export type ApiProductComponentItem = ApiNode & {
   pricingTemplate?: Maybe<ApiProductComponentPricingTemplate>;
   /** Referenced product for PRODUCT items. */
   refProduct?: Maybe<ApiProduct>;
-  /** Referenced product ID for PRODUCT items. */
-  refProductId?: Maybe<Scalars['ID']['output']>;
   /** Referenced variant for VARIANT items. */
   refVariant?: Maybe<ApiVariant>;
-  /** Referenced variant ID for VARIANT items. */
-  refVariantId?: Maybe<Scalars['ID']['output']>;
   /** Whether item is selected by default. */
   selected: Scalars['Boolean']['output'];
   /** Sort order within the group. */
@@ -11102,12 +11100,8 @@ export type ApiProductComponentItemOptionSelection = ApiNode & {
   id: Scalars['ID']['output'];
   /** Referenced product option. */
   option: ApiProductOption;
-  /** Referenced product option ID. */
-  optionId: Scalars['ID']['output'];
   /** Parent option for dependent option trees. */
   parentOption?: Maybe<ApiProductOption>;
-  /** Parent option ID. */
-  parentOptionId?: Maybe<Scalars['ID']['output']>;
   /** Sort order within item option selections. */
   sortIndex: Scalars['Int']['output'];
   /** Allowed values for this option. */
@@ -11133,8 +11127,6 @@ export type ApiProductComponentItemOptionValueSelection = ApiNode & {
   id: Scalars['ID']['output'];
   /** Referenced product option value. Null when the value is unavailable. */
   optionValue?: Maybe<ApiProductOptionValue>;
-  /** Referenced product option value ID. */
-  optionValueId?: Maybe<Scalars['ID']['output']>;
   /** Sort order within option values. */
   sortIndex: Scalars['Int']['output'];
   /** Selection status. */

@@ -249,6 +249,7 @@ export type ProductUpdatedReason =
   | "tag"
   | "options"
   | "features"
+  | "component"
   | "variant"
   | "pricing"
   | "inventory"

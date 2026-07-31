@@ -59,6 +59,46 @@ export type ProductUpdateOperation =
       meta?: ProductUpdateOperationMeta;
     }
   | {
+      type: "productComponentSettingsUpdate";
+      params: ProductComponentSettingsUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productComponentRemove";
+      params: ProductComponentRemoveParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productComponentConfigurationCreate";
+      params: ProductComponentConfigurationCreateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productComponentConfigurationUpdate";
+      params: ProductComponentConfigurationUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productComponentConfigurationDelete";
+      params: ProductComponentConfigurationDeleteParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productComponentGroupsSync";
+      params: ProductComponentGroupsSyncParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productComponentPricingTemplatesSync";
+      params: ProductComponentPricingTemplatesSyncParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productComponentDependencyRulesSync";
+      params: ProductComponentDependencyRulesSyncParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
       type: "variantCreate";
       params: VariantCreateParams;
       meta?: ProductUpdateOperationMeta;
@@ -136,6 +176,163 @@ export interface ProductOptionsSyncParams {
 export interface ProductFeaturesSyncParams {
   productId: string;
   features: FeatureSyncItemInput[];
+}
+
+export type ProductComponentDisplayStyle =
+  | "ACCORDION"
+  | "TABS"
+  | "FLAT"
+  | "WIZARD";
+
+export interface ProductComponentSettingsUpdateParams {
+  productId: string;
+  displayStyle: ProductComponentDisplayStyle;
+}
+
+export interface ProductComponentRemoveParams {
+  productId: string;
+}
+
+export interface ProductComponentConfigurationCreateParams {
+  productId: string;
+  clientMutationId: string;
+  name: string;
+}
+
+export interface ProductComponentConfigurationUpdateParams {
+  productId: string;
+  configurationId: string;
+  name: string;
+}
+
+export interface ProductComponentConfigurationDeleteParams {
+  productId: string;
+  configurationId: string;
+}
+
+export interface ProductComponentGroupsSyncParams {
+  productId: string;
+  configurationId: string;
+  groups: ProductComponentGroupSyncItem[];
+}
+
+export interface ProductComponentPricingTemplatesSyncParams {
+  productId: string;
+  configurationId: string;
+  pricingTemplates: ProductComponentPricingTemplateSyncItem[];
+}
+
+export interface ProductComponentDependencyRulesSyncParams {
+  productId: string;
+  configurationId: string;
+  dependencyRules: ProductComponentDependencyRuleSyncItem[];
+}
+
+export interface ProductComponentGroupSyncItem {
+  id?: string;
+  title: string;
+  minSelection?: number | null;
+  maxSelection?: number | null;
+  sortIndex: number;
+  items: ProductComponentItemSyncItem[];
+}
+
+export interface ProductComponentItemSyncItem {
+  id?: string;
+  itemType: "PRODUCT" | "VARIANT";
+  refProductId?: string | null;
+  refVariantId?: string | null;
+  featuredImageId?: string | null;
+  minQty?: number | null;
+  maxQty?: number | null;
+  defaultQty?: number | null;
+  priceRule?: ProductComponentPriceRuleInput | null;
+  pricingTemplateId?: string | null;
+  optionSelections?: ProductComponentItemOptionSelectionSyncItem[] | null;
+  title?: string | null;
+  visible: boolean;
+  selected: boolean;
+  sortIndex: number;
+}
+
+export interface ProductComponentItemOptionSelectionSyncItem {
+  id?: string;
+  optionId: string;
+  parentOptionId?: string | null;
+  sortIndex: number;
+  values: ProductComponentItemOptionValueSelectionSyncItem[];
+}
+
+export interface ProductComponentItemOptionValueSelectionSyncItem {
+  id?: string;
+  optionValueId?: string | null;
+  value: string;
+  status: "SELECTED" | "DESELECTED" | "UNAVAILABLE" | "NEW";
+  sortIndex: number;
+}
+
+export interface ProductComponentPriceRuleInput {
+  id?: string;
+  strategy: "BASE" | "ADJUSTMENT" | "OVERRIDE" | "FREE";
+  operation?: "INCREASE" | "DECREASE" | null;
+  valueType?: "FIXED_AMOUNT" | "PERCENTAGE" | null;
+  amounts?: ProductComponentPriceRuleAmountInput[] | null;
+  percentageBps?: number | null;
+}
+
+export interface ProductComponentPriceRuleAmountInput {
+  currency: string;
+  amountMinor: number;
+}
+
+export interface ProductComponentPricingTemplateSyncItem {
+  id?: string;
+  name: string;
+  priceRule: ProductComponentPriceRuleInput;
+  sortIndex: number;
+}
+
+export interface ProductComponentDependencyRuleSyncItem {
+  id?: string;
+  name: string;
+  enabled: boolean;
+  priority: number;
+  logicOperator: "AND" | "OR";
+  conditionGroups: ProductComponentConditionGroupSyncItem[];
+  actions: ProductComponentDependencyActionSyncItem[];
+}
+
+export interface ProductComponentConditionGroupSyncItem {
+  id?: string;
+  logicOperator: "AND" | "OR";
+  sortIndex: number;
+  conditions: ProductComponentConditionSyncItem[];
+}
+
+export interface ProductComponentConditionSyncItem {
+  id?: string;
+  category: "STATE_CHECK" | "NUMERIC";
+  subject: "ITEM_SELECTED" | "ITEM_QTY" | "GROUP_TOTAL_QTY";
+  operator: "IS_SELECTED" | "IS_NOT_SELECTED" | "EQ" | "GTE" | "LTE";
+  targetType: "ITEM" | "GROUP" | "PRODUCT_COMPONENT";
+  targetId: string;
+  value?: number | null;
+  sortIndex: number;
+}
+
+export interface ProductComponentDependencyActionSyncItem {
+  id?: string;
+  actionType:
+    | "SHOW"
+    | "HIDE"
+    | "SET_REQUIRED"
+    | "ADJUST_PRICE";
+  targetType: "ITEM" | "GROUP" | "PRODUCT_COMPONENT";
+  targetId?: string | null;
+  requiredValue?: boolean | null;
+  priceRule?: ProductComponentPriceRuleInput | null;
+  stackable: boolean;
+  sortIndex: number;
 }
 
 export interface VariantCreateParams {
@@ -225,6 +422,14 @@ export interface OperationResult {
     | "productTagUpdate"
     | "productOptionsSync"
     | "productFeaturesSync"
+    | "productComponentSettingsUpdate"
+    | "productComponentRemove"
+    | "productComponentConfigurationCreate"
+    | "productComponentConfigurationUpdate"
+    | "productComponentConfigurationDelete"
+    | "productComponentGroupsSync"
+    | "productComponentPricingTemplatesSync"
+    | "productComponentDependencyRulesSync"
     | "variantCreate"
     | "variantDelete"
     | "variantUpdate";

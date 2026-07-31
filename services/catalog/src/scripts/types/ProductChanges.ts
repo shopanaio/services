@@ -14,6 +14,9 @@ export interface ProductChanges {
 
   /** Variant-level changes (only modified variants) */
   variants?: Record<string, VariantChanges>;
+
+  /** Product component aggregate changed. */
+  component?: { changed: true };
 }
 
 /**

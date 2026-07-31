@@ -144,6 +144,18 @@ function getOperationMetadata(op: ProductUpdateOperation): {
   if (op.type === "productFeaturesSync") {
     return { opType: "productFeaturesSync", variantId: null };
   }
+  if (
+    op.type === "productComponentSettingsUpdate" ||
+    op.type === "productComponentRemove" ||
+    op.type === "productComponentConfigurationCreate" ||
+    op.type === "productComponentConfigurationUpdate" ||
+    op.type === "productComponentConfigurationDelete" ||
+    op.type === "productComponentGroupsSync" ||
+    op.type === "productComponentPricingTemplatesSync" ||
+    op.type === "productComponentDependencyRulesSync"
+  ) {
+    return { opType: op.type, variantId: null };
+  }
   if (op.type === "variantCreate") {
     return { opType: "variantCreate", variantId: null };
   }

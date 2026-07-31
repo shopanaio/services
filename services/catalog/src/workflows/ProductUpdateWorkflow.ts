@@ -65,11 +65,17 @@ import { OptionsSyncScript } from "../scripts/option/OptionsSyncScript.js";
 import { FeaturesSyncScript } from "../scripts/feature/FeaturesSyncScript.js";
 import { validateOptionSyncParams } from "../scripts/option/validation/index.js";
 import { validateFeatureSyncParams } from "../scripts/feature/validation/index.js";
+import {
+  ProductComponentOperationScript,
+  type ProductComponentWorkflowOperation,
+} from "../scripts/component/index.js";
 
 type VariantWorkflowOperation = Extract<
   ProductUpdateOperation,
   { type: "variantCreate" | "variantUpdate" | "variantDelete" }
 >;
+
+type ComponentWorkflowOperation = ProductComponentWorkflowOperation;
 
 interface VariantBatchValidationResult {
   valid: boolean;
@@ -212,6 +218,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           scriptCtx,
         );
         results.push(prefixOperationResultErrors(result, op));
+      } else if (isComponentOperation(op)) {
+        const result = await this.stepProductComponentOperation(
+          op,
+          scriptCtx,
+        );
+        if (result.applied) {
+          changes.component = { changed: true };
+        }
+        results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "variantCreate") {
         const result = await this.stepVariantCreate(op.params, changes, scriptCtx);
         results.push(prefixOperationResultErrors(result, op));
@@ -262,7 +277,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // 5. Emit event with update reasons
     const hasChanges =
-      changes.product !== undefined || changes.variants !== undefined;
+      changes.product !== undefined ||
+      changes.component !== undefined ||
+      changes.variants !== undefined;
     if (hasChanges) {
       await this.workflowNotifyProductMediaBackRefs(input, changes);
       await this.workflowEmitEvent(input, changes);
@@ -281,6 +298,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   ): Promise<VariantBatchValidationResult> {
     const errorsByOperationIndex: Record<number, UserError[]> = {};
     const userErrors: UserError[] = [];
+    const componentCreateIds = new Map<string, number>();
 
     for (const [index, op] of input.operations.entries()) {
       let errors: UserError[] = [];
@@ -296,6 +314,44 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           op.params,
         );
         errors = prefixUserErrors(validation.userErrors, op);
+      } else if (
+        isComponentOperation(op) &&
+        input.expectedRevision === undefined
+      ) {
+        errors = [
+          {
+            message:
+              "Expected revision is required for product component operations",
+            code: "EXPECTED_REVISION_REQUIRED",
+            field: ["expectedRevision"],
+          },
+        ];
+      } else if (op.type === "productComponentConfigurationCreate") {
+        const previousIndex = componentCreateIds.get(
+          op.params.clientMutationId,
+        );
+        if (previousIndex === undefined) {
+          componentCreateIds.set(op.params.clientMutationId, index);
+        } else {
+          errors = [
+            {
+              message:
+                "Client mutation ID must be unique within the request",
+              code: "DUPLICATE_CLIENT_MUTATION_ID",
+              field: fieldPath(op, "clientMutationId"),
+            },
+          ];
+          const previousOp = input.operations[previousIndex];
+          const previousError = {
+            ...errors[0],
+            field: fieldPath(previousOp, "clientMutationId"),
+          };
+          errorsByOperationIndex[previousIndex] = [
+            ...(errorsByOperationIndex[previousIndex] ?? []),
+            previousError,
+          ];
+          userErrors.push(previousError);
+        }
       }
 
       if (errors.length > 0) {
@@ -806,10 +862,22 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     if (op.type === "variantCreate") {
       result.clientMutationId = op.params.clientMutationId;
     }
-    if (op.type === "variantDelete") {
-      result.entityId = op.params.variantId;
+    if (op.type === "productComponentConfigurationCreate") {
+      result.clientMutationId = op.params.clientMutationId;
     }
-
+    if (
+      op.type === "variantDelete" ||
+      op.type === "productComponentConfigurationUpdate" ||
+      op.type === "productComponentConfigurationDelete" ||
+      op.type === "productComponentGroupsSync" ||
+      op.type === "productComponentPricingTemplatesSync" ||
+      op.type === "productComponentDependencyRulesSync"
+    ) {
+      result.entityId =
+        op.type === "variantDelete"
+          ? op.params.variantId
+          : op.params.configurationId;
+    }
     return result;
   }
 
@@ -1068,6 +1136,29 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       applied: result.userErrors.length === 0,
       errors: result.userErrors,
     };
+  }
+
+  @WorkflowStep()
+  private async stepProductComponentOperation(
+    operation: ComponentWorkflowOperation,
+    ctx: RunScriptContext,
+  ): Promise<OperationResult> {
+    const result = await this.kernel.runScript(
+      ProductComponentOperationScript,
+      operation,
+      ctx,
+    );
+
+    const operationResult: OperationResult = {
+      type: operation.type,
+      applied: result.userErrors.length === 0,
+      entityId: result.entityId,
+      errors: result.userErrors,
+    };
+    if (operation.type === "productComponentConfigurationCreate") {
+      operationResult.clientMutationId = operation.params.clientMutationId;
+    }
+    return operationResult;
   }
 
   /**
@@ -1536,6 +1627,7 @@ function getProductUpdatedReasons(changes: ProductChanges): ProductUpdatedReason
     if (productChanges.options !== undefined) reasons.add("options");
     if (productChanges.features !== undefined) reasons.add("features");
   }
+  if (changes.component !== undefined) reasons.add("component");
 
   for (const variantChanges of Object.values(changes.variants ?? {})) {
     if (variantChanges.lifecycle !== undefined) reasons.add("variant");
@@ -1567,6 +1659,7 @@ function sortProductUpdatedReasons(
     "tag",
     "options",
     "features",
+    "component",
     "variant",
     "pricing",
     "inventory",
@@ -1584,6 +1677,12 @@ function isVariantOperation(
     op.type === "variantUpdate" ||
     op.type === "variantDelete"
   );
+}
+
+function isComponentOperation(
+  op: ProductUpdateOperation,
+): op is ComponentWorkflowOperation {
+  return op.type.startsWith("productComponent");
 }
 
 function fieldPath(op: ProductUpdateOperation, ...parts: string[]): string[] {

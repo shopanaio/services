@@ -799,7 +799,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         applied: r.applied,
         clientMutationId: r.clientMutationId,
         entityId: r.entityId
-          ? encodeGlobalIdByType(r.entityId, GlobalIdEntity.Variant)
+          ? encodeGlobalIdByType(r.entityId, operationResultEntityType(r.type))
           : undefined,
         errors: r.errors,
       })),
@@ -1610,6 +1610,7 @@ function mapProductUpdateInput(
   const tags = operations?.tags;
   const options = operations?.options;
   const features = operations?.features;
+  const components = operations?.components;
   const operationsFieldPrefix = productIndex === undefined
     ? ["operations"]
     : ["input", "products", String(productIndex), "operations"];
@@ -1685,6 +1686,36 @@ function mapProductUpdateInput(
     entries.push(mapped.entry);
     errors.push(...mapped.entry.errors);
     if (mapped.entry.operation) result.push(mapped.entry.operation);
+  }
+
+  if (components) {
+    if (expectedRevision === undefined) {
+      const field =
+        productIndex === undefined
+          ? ["expectedRevision"]
+          : ["input", "products", String(productIndex), "expectedRevision"];
+      errors.push({
+        message: "Expected revision is required for product component operations",
+        field,
+        code: "EXPECTED_REVISION_REQUIRED",
+      });
+    }
+
+    for (const [componentIndex, input] of components.entries()) {
+      const fieldPrefix = [
+        ...operationsFieldPrefix,
+        "components",
+        String(componentIndex),
+      ];
+      const entry = mapProductComponentOperationInput(
+        productId,
+        input,
+        fieldPrefix,
+      );
+      entries.push(entry);
+      errors.push(...entry.errors);
+      if (entry.operation) result.push(entry.operation);
+    }
   }
 
   if (variants) {
@@ -1790,6 +1821,652 @@ function mapProductLevelOperation(
     },
     meta: { fieldPrefix },
   };
+}
+
+type ProductComponentOperationInput =
+  NonNullable<ProductUpdateInput["components"]>[number];
+
+function mapProductComponentOperationInput(
+  productId: string,
+  input: ProductComponentOperationInput,
+  fieldPrefix: string[],
+): ProductUpdateMappedEntry {
+  const errors: UserError[] = [];
+  const action = String(input.action);
+  const configurationId = input.configurationId
+    ? decodeInputId(
+        input.configurationId,
+        GlobalIdEntity.ProductComponentConfiguration,
+        [...fieldPrefix, "configurationId"],
+        errors,
+      )
+    : undefined;
+  const clientMutationId =
+    typeof input.clientMutationId === "string"
+      ? input.clientMutationId.trim()
+      : undefined;
+  const name = typeof input.name === "string" ? input.name.trim() : undefined;
+
+  const requireConfigurationId = () => {
+    if (!input.configurationId) {
+      errors.push({
+        message: "Configuration ID is required for this operation",
+        field: [...fieldPrefix, "configurationId"],
+        code: "REQUIRED",
+      });
+    }
+  };
+  const forbid = (
+    allowed: Array<keyof ProductComponentOperationInput>,
+  ): void => {
+    const allowedSet = new Set<keyof ProductComponentOperationInput>([
+      "action",
+      ...allowed,
+    ]);
+    for (const key of [
+      "configurationId",
+      "clientMutationId",
+      "displayStyle",
+      "name",
+      "groups",
+      "pricingTemplates",
+      "dependencyRules",
+    ] as Array<keyof ProductComponentOperationInput>) {
+      if (
+        !allowedSet.has(key) &&
+        input[key] !== undefined &&
+        input[key] !== null
+      ) {
+        errors.push({
+          message: `${String(key)} is not allowed for this operation`,
+          field: [...fieldPrefix, String(key)],
+          code: "FIELD_NOT_ALLOWED",
+        });
+      }
+    }
+  };
+
+  switch (action) {
+    case "SETTINGS_UPDATE": {
+      forbid(["displayStyle"]);
+      if (!input.displayStyle) {
+        errors.push({
+          message: "Display style is required for settings update",
+          field: [...fieldPrefix, "displayStyle"],
+          code: "REQUIRED",
+        });
+      }
+      const operation =
+        errors.length === 0 && input.displayStyle
+          ? ({
+              type: "productComponentSettingsUpdate",
+              params: { productId, displayStyle: input.displayStyle },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+      return { type: "productComponentSettingsUpdate", operation, errors };
+    }
+    case "REMOVE": {
+      forbid([]);
+      const operation =
+        errors.length === 0
+          ? ({
+              type: "productComponentRemove",
+              params: { productId },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+      return { type: "productComponentRemove", operation, errors };
+    }
+    case "CONFIGURATION_CREATE": {
+      forbid(["clientMutationId", "name"]);
+      if (!clientMutationId) {
+        errors.push({
+          message: "Client mutation ID is required for configuration create",
+          field: [...fieldPrefix, "clientMutationId"],
+          code: "REQUIRED",
+        });
+      }
+      if (!name) {
+        errors.push({
+          message: "Configuration name is required",
+          field: [...fieldPrefix, "name"],
+          code: "REQUIRED",
+        });
+      }
+      const operation =
+        errors.length === 0 && clientMutationId && name
+          ? ({
+              type: "productComponentConfigurationCreate",
+              params: { productId, clientMutationId, name },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+      return {
+        type: "productComponentConfigurationCreate",
+        operation,
+        errors,
+        clientMutationId,
+      };
+    }
+    case "CONFIGURATION_UPDATE": {
+      forbid(["configurationId", "name"]);
+      requireConfigurationId();
+      if (!name) {
+        errors.push({
+          message: "Configuration name is required",
+          field: [...fieldPrefix, "name"],
+          code: "REQUIRED",
+        });
+      }
+      const operation =
+        errors.length === 0 && configurationId && name
+          ? ({
+              type: "productComponentConfigurationUpdate",
+              params: { productId, configurationId, name },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+      return {
+        type: "productComponentConfigurationUpdate",
+        operation,
+        errors,
+        entityId: configurationId,
+      };
+    }
+    case "CONFIGURATION_DELETE": {
+      forbid(["configurationId"]);
+      requireConfigurationId();
+      const operation =
+        errors.length === 0 && configurationId
+          ? ({
+              type: "productComponentConfigurationDelete",
+              params: { productId, configurationId },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+      return {
+        type: "productComponentConfigurationDelete",
+        operation,
+        errors,
+        entityId: configurationId,
+      };
+    }
+    case "GROUPS_SYNC": {
+      forbid(["configurationId", "groups"]);
+      requireConfigurationId();
+      if (!input.groups) {
+        errors.push({
+          message: "Groups are required for groups sync",
+          field: [...fieldPrefix, "groups"],
+          code: "REQUIRED",
+        });
+      }
+      const groups = input.groups
+        ? mapProductComponentGroups(input.groups, fieldPrefix, errors)
+        : undefined;
+      const operation =
+        errors.length === 0 && configurationId && groups
+          ? ({
+              type: "productComponentGroupsSync",
+              params: { productId, configurationId, groups },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+      return {
+        type: "productComponentGroupsSync",
+        operation,
+        errors,
+        entityId: configurationId,
+      };
+    }
+    case "PRICING_TEMPLATES_SYNC": {
+      forbid(["configurationId", "pricingTemplates"]);
+      requireConfigurationId();
+      if (!input.pricingTemplates) {
+        errors.push({
+          message: "Pricing templates are required for pricing templates sync",
+          field: [...fieldPrefix, "pricingTemplates"],
+          code: "REQUIRED",
+        });
+      }
+      const pricingTemplates = input.pricingTemplates?.map((template, index) => ({
+        id: template.id
+          ? decodeInputId(
+              template.id,
+              GlobalIdEntity.ProductComponentPricingTemplate,
+              [...fieldPrefix, "pricingTemplates", String(index), "id"],
+              errors,
+            )
+          : undefined,
+        name: template.name,
+        sortIndex: template.sortIndex,
+        priceRule: mapProductComponentPriceRule(
+          template.priceRule,
+          [...fieldPrefix, "pricingTemplates", String(index), "priceRule"],
+          errors,
+        ),
+      }));
+      const operation =
+        errors.length === 0 && configurationId && pricingTemplates
+          ? ({
+              type: "productComponentPricingTemplatesSync",
+              params: { productId, configurationId, pricingTemplates },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+      return {
+        type: "productComponentPricingTemplatesSync",
+        operation,
+        errors,
+        entityId: configurationId,
+      };
+    }
+    case "DEPENDENCY_RULES_SYNC": {
+      forbid(["configurationId", "dependencyRules"]);
+      requireConfigurationId();
+      if (!input.dependencyRules) {
+        errors.push({
+          message: "Dependency rules are required for dependency rules sync",
+          field: [...fieldPrefix, "dependencyRules"],
+          code: "REQUIRED",
+        });
+      }
+      const dependencyRules = input.dependencyRules
+        ? mapProductComponentDependencyRules(
+            input.dependencyRules,
+            fieldPrefix,
+            errors,
+          )
+        : undefined;
+      const operation =
+        errors.length === 0 && configurationId && dependencyRules
+          ? ({
+              type: "productComponentDependencyRulesSync",
+              params: { productId, configurationId, dependencyRules },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+      return {
+        type: "productComponentDependencyRulesSync",
+        operation,
+        errors,
+        entityId: configurationId,
+      };
+    }
+    default:
+      errors.push({
+        message: "Unsupported product component operation action",
+        field: [...fieldPrefix, "action"],
+        code: "INVALID_ACTION",
+      });
+      return { type: "productComponentSettingsUpdate", errors };
+  }
+}
+
+function mapProductComponentGroups(
+  groups: NonNullable<ProductComponentOperationInput["groups"]>,
+  operationPrefix: string[],
+  errors: UserError[],
+) {
+  return groups.map((group, groupIndex) => {
+    const prefix = [...operationPrefix, "groups", String(groupIndex)];
+    return {
+      id: group.id
+        ? decodeInputId(
+            group.id,
+            GlobalIdEntity.ProductComponentGroup,
+            [...prefix, "id"],
+            errors,
+          )
+        : undefined,
+      title: group.title,
+      minSelection: group.minSelection,
+      maxSelection: group.maxSelection,
+      sortIndex: group.sortIndex,
+      items: group.items.map((item, itemIndex) => {
+        const itemPrefix = [...prefix, "items", String(itemIndex)];
+        const priceRule = item.priceRule
+          ? mapProductComponentPriceRule(
+              item.priceRule,
+              [...itemPrefix, "priceRule"],
+              errors,
+            )
+          : item.priceRule;
+        if (item.priceRule && item.pricingTemplateId) {
+          errors.push({
+            message: "Inline price rule and pricing template cannot be used together",
+            field: [...itemPrefix, "priceRule"],
+            code: "MUTUALLY_EXCLUSIVE",
+          });
+        }
+        if (String(item.itemType) === "PRODUCT" && !item.refProductId) {
+          errors.push({
+            message: "Referenced product ID is required for product items",
+            field: [...itemPrefix, "refProductId"],
+            code: "REQUIRED",
+          });
+        }
+        if (String(item.itemType) === "PRODUCT" && item.refVariantId) {
+          errors.push({
+            message: "Referenced variant ID is not allowed for product items",
+            field: [...itemPrefix, "refVariantId"],
+            code: "FIELD_NOT_ALLOWED",
+          });
+        }
+        if (String(item.itemType) === "VARIANT" && !item.refVariantId) {
+          errors.push({
+            message: "Referenced variant ID is required for variant items",
+            field: [...itemPrefix, "refVariantId"],
+            code: "REQUIRED",
+          });
+        }
+        if (String(item.itemType) === "VARIANT" && item.refProductId) {
+          errors.push({
+            message: "Referenced product ID is not allowed for variant items",
+            field: [...itemPrefix, "refProductId"],
+            code: "FIELD_NOT_ALLOWED",
+          });
+        }
+        if (
+          String(item.itemType) === "VARIANT" &&
+          item.optionSelections != null
+        ) {
+          errors.push({
+            message: "Option selections are only allowed for product items",
+            field: [...itemPrefix, "optionSelections"],
+            code: "FIELD_NOT_ALLOWED",
+          });
+        }
+        return {
+          id: item.id
+            ? decodeInputId(
+                item.id,
+                GlobalIdEntity.ProductComponentItem,
+                [...itemPrefix, "id"],
+                errors,
+              )
+            : undefined,
+          itemType: item.itemType,
+          refProductId: item.refProductId
+            ? decodeInputId(
+                item.refProductId,
+                GlobalIdEntity.Product,
+                [...itemPrefix, "refProductId"],
+                errors,
+              )
+            : item.refProductId,
+          refVariantId: item.refVariantId
+            ? decodeInputId(
+                item.refVariantId,
+                GlobalIdEntity.Variant,
+                [...itemPrefix, "refVariantId"],
+                errors,
+              )
+            : item.refVariantId,
+          featuredImageId: item.featuredImageId
+            ? decodeInputId(
+                item.featuredImageId,
+                GlobalIdEntity.File,
+                [...itemPrefix, "featuredImageId"],
+                errors,
+              )
+            : item.featuredImageId,
+          minQty: item.minQty,
+          maxQty: item.maxQty,
+          defaultQty: item.defaultQty,
+          priceRule,
+          pricingTemplateId: item.pricingTemplateId
+            ? decodeInputId(
+                item.pricingTemplateId,
+                GlobalIdEntity.ProductComponentPricingTemplate,
+                [...itemPrefix, "pricingTemplateId"],
+                errors,
+              )
+            : item.pricingTemplateId,
+          optionSelections: item.optionSelections?.map((selection, selectionIndex) => {
+            const selectionPrefix = [
+              ...itemPrefix,
+              "optionSelections",
+              String(selectionIndex),
+            ];
+            return {
+              id: selection.id
+                ? decodeInputId(
+                    selection.id,
+                    GlobalIdEntity.ProductComponentItemOptionSelection,
+                    [...selectionPrefix, "id"],
+                    errors,
+                  )
+                : undefined,
+              optionId:
+                decodeInputId(
+                  selection.optionId,
+                  GlobalIdEntity.Option,
+                  [...selectionPrefix, "optionId"],
+                  errors,
+                ) ?? "",
+              parentOptionId: selection.parentOptionId
+                ? decodeInputId(
+                    selection.parentOptionId,
+                    GlobalIdEntity.Option,
+                    [...selectionPrefix, "parentOptionId"],
+                    errors,
+                  )
+                : selection.parentOptionId,
+              sortIndex: selection.sortIndex,
+              values: selection.values.map((value, valueIndex) => ({
+                id: value.id
+                  ? decodeInputId(
+                      value.id,
+                      GlobalIdEntity.ProductComponentItemOptionValueSelection,
+                      [
+                        ...selectionPrefix,
+                        "values",
+                        String(valueIndex),
+                        "id",
+                      ],
+                      errors,
+                    )
+                  : undefined,
+                optionValueId: value.optionValueId
+                  ? decodeInputId(
+                      value.optionValueId,
+                      GlobalIdEntity.OptionValue,
+                      [
+                        ...selectionPrefix,
+                        "values",
+                        String(valueIndex),
+                        "optionValueId",
+                      ],
+                      errors,
+                    )
+                  : value.optionValueId,
+                value: value.value,
+                status: value.status,
+                sortIndex: value.sortIndex,
+              })),
+            };
+          }),
+          title: item.title,
+          visible: item.visible,
+          selected: item.selected,
+          sortIndex: item.sortIndex,
+        };
+      }),
+    };
+  });
+}
+
+function mapProductComponentPriceRule(
+  input: NonNullable<
+    NonNullable<
+      NonNullable<ProductComponentOperationInput["pricingTemplates"]>[number]
+    >["priceRule"]
+  >,
+  fieldPrefix: string[],
+  errors: UserError[],
+) {
+  return {
+    id: input.id
+      ? decodeInputId(
+          input.id,
+          GlobalIdEntity.ProductComponentPriceRule,
+          [...fieldPrefix, "id"],
+          errors,
+        )
+      : undefined,
+    strategy: input.strategy,
+    operation: input.operation,
+    valueType: input.valueType,
+    amounts: input.amounts?.map((amount) => ({
+      currency: amount.currency,
+      amountMinor: Number(amount.amountMinor),
+    })),
+    percentageBps: input.percentageBps,
+  };
+}
+
+function mapProductComponentDependencyRules(
+  rules: NonNullable<ProductComponentOperationInput["dependencyRules"]>,
+  operationPrefix: string[],
+  errors: UserError[],
+) {
+  return rules.map((rule, ruleIndex) => {
+    const rulePrefix = [
+      ...operationPrefix,
+      "dependencyRules",
+      String(ruleIndex),
+    ];
+    return {
+      id: rule.id
+        ? decodeInputId(
+            rule.id,
+            GlobalIdEntity.ProductComponentDependencyRule,
+            [...rulePrefix, "id"],
+            errors,
+          )
+        : undefined,
+      name: rule.name,
+      enabled: rule.enabled,
+      priority: rule.priority,
+      logicOperator: rule.logicOperator,
+      conditionGroups: rule.conditionGroups.map((group, groupIndex) => {
+        const groupPrefix = [
+          ...rulePrefix,
+          "conditionGroups",
+          String(groupIndex),
+        ];
+        return {
+          id: group.id
+            ? decodeInputId(
+                group.id,
+                GlobalIdEntity.ProductComponentConditionGroup,
+                [...groupPrefix, "id"],
+                errors,
+              )
+            : undefined,
+          logicOperator: group.logicOperator,
+          sortIndex: group.sortIndex,
+          conditions: group.conditions.map((condition, conditionIndex) => {
+            const conditionPrefix = [
+              ...groupPrefix,
+              "conditions",
+              String(conditionIndex),
+            ];
+            return {
+              id: condition.id
+                ? decodeInputId(
+                    condition.id,
+                    GlobalIdEntity.ProductComponentCondition,
+                    [...conditionPrefix, "id"],
+                    errors,
+                  )
+                : undefined,
+              category: condition.category,
+              subject: condition.subject,
+              operator: condition.operator,
+              targetType: condition.targetType,
+              targetId:
+                decodeProductComponentTargetId(
+                  condition.targetId,
+                  String(condition.targetType),
+                  [...conditionPrefix, "targetId"],
+                  errors,
+                ) ?? "",
+              value: condition.value,
+              sortIndex: condition.sortIndex,
+            };
+          }),
+        };
+      }),
+      actions: rule.actions.map((action, actionIndex) => {
+        const actionPrefix = [...rulePrefix, "actions", String(actionIndex)];
+        if (
+          String(action.targetType) !== "PRODUCT_COMPONENT" &&
+          !action.targetId
+        ) {
+          errors.push({
+            message: "Target ID is required for item and group actions",
+            field: [...actionPrefix, "targetId"],
+            code: "REQUIRED",
+          });
+        }
+        if (String(action.actionType) === "ADJUST_PRICE" && !action.priceRule) {
+          errors.push({
+            message: "Price rule is required for adjust price actions",
+            field: [...actionPrefix, "priceRule"],
+            code: "REQUIRED",
+          });
+        }
+        return {
+          id: action.id
+            ? decodeInputId(
+                action.id,
+                GlobalIdEntity.ProductComponentDependencyAction,
+                [...actionPrefix, "id"],
+                errors,
+              )
+            : undefined,
+          actionType: action.actionType,
+          targetType: action.targetType,
+          targetId: action.targetId
+            ? decodeProductComponentTargetId(
+                action.targetId,
+                String(action.targetType),
+                [...actionPrefix, "targetId"],
+                errors,
+              )
+            : action.targetId,
+          requiredValue: action.requiredValue,
+          priceRule: action.priceRule
+            ? mapProductComponentPriceRule(
+                action.priceRule,
+                [...actionPrefix, "priceRule"],
+                errors,
+              )
+            : action.priceRule,
+          stackable: action.stackable,
+          sortIndex: action.sortIndex,
+        };
+      }),
+    };
+  });
+}
+
+function decodeProductComponentTargetId(
+  value: string,
+  targetType: string,
+  field: string[],
+  errors: UserError[],
+): string | undefined {
+  const entity =
+    targetType === "ITEM"
+      ? GlobalIdEntity.ProductComponentItem
+      : targetType === "GROUP"
+        ? GlobalIdEntity.ProductComponentGroup
+        : GlobalIdEntity.Product;
+  return decodeInputId(value, entity, field, errors);
 }
 
 type VariantOperationInput = NonNullable<ProductUpdateInput["variants"]>[number];
@@ -2225,7 +2902,10 @@ function mapPreflightEntryToGraphqlResult(
     applied: false,
     clientMutationId: entry.clientMutationId,
     entityId: entry.entityId
-      ? encodeGlobalIdByType(entry.entityId, GlobalIdEntity.Variant)
+      ? encodeGlobalIdByType(
+          entry.entityId,
+          operationResultEntityType(entry.type),
+        )
       : undefined,
     errors,
   };
@@ -2404,6 +3084,30 @@ function toGraphqlOperationType(type: ProductUpdateOperation["type"]) {
   if (type === "productFeaturesSync") {
     return "PRODUCT_FEATURES_SYNC";
   }
+  if (type === "productComponentSettingsUpdate") {
+    return "PRODUCT_COMPONENT_SETTINGS_UPDATE";
+  }
+  if (type === "productComponentRemove") {
+    return "PRODUCT_COMPONENT_REMOVE";
+  }
+  if (type === "productComponentConfigurationCreate") {
+    return "PRODUCT_COMPONENT_CONFIGURATION_CREATE";
+  }
+  if (type === "productComponentConfigurationUpdate") {
+    return "PRODUCT_COMPONENT_CONFIGURATION_UPDATE";
+  }
+  if (type === "productComponentConfigurationDelete") {
+    return "PRODUCT_COMPONENT_CONFIGURATION_DELETE";
+  }
+  if (type === "productComponentGroupsSync") {
+    return "PRODUCT_COMPONENT_GROUPS_SYNC";
+  }
+  if (type === "productComponentPricingTemplatesSync") {
+    return "PRODUCT_COMPONENT_PRICING_TEMPLATES_SYNC";
+  }
+  if (type === "productComponentDependencyRulesSync") {
+    return "PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC";
+  }
   if (type === "variantCreate") {
     return "VARIANT_CREATE";
   }
@@ -2411,6 +3115,22 @@ function toGraphqlOperationType(type: ProductUpdateOperation["type"]) {
     return "VARIANT_DELETE";
   }
   return "VARIANT_UPDATE";
+}
+
+function operationResultEntityType(
+  type: ProductUpdateOperation["type"],
+): GlobalIdType {
+  if (
+    type === "productComponentConfigurationCreate" ||
+    type === "productComponentConfigurationUpdate" ||
+    type === "productComponentConfigurationDelete" ||
+    type === "productComponentGroupsSync" ||
+    type === "productComponentPricingTemplatesSync" ||
+    type === "productComponentDependencyRulesSync"
+  ) {
+    return GlobalIdEntity.ProductComponentConfiguration;
+  }
+  return GlobalIdEntity.Variant;
 }
 
 function hasProductUpdateFields(

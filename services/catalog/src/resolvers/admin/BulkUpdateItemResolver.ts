@@ -9,6 +9,19 @@ const OP_TYPE_MAP: Record<string, string> = {
   productUpdate: "PRODUCT_UPDATE",
   productCategoryUpdate: "PRODUCT_CATEGORY_UPDATE",
   productTagUpdate: "PRODUCT_TAG_UPDATE",
+  productComponentSettingsUpdate: "PRODUCT_COMPONENT_SETTINGS_UPDATE",
+  productComponentRemove: "PRODUCT_COMPONENT_REMOVE",
+  productComponentConfigurationCreate:
+    "PRODUCT_COMPONENT_CONFIGURATION_CREATE",
+  productComponentConfigurationUpdate:
+    "PRODUCT_COMPONENT_CONFIGURATION_UPDATE",
+  productComponentConfigurationDelete:
+    "PRODUCT_COMPONENT_CONFIGURATION_DELETE",
+  productComponentGroupsSync: "PRODUCT_COMPONENT_GROUPS_SYNC",
+  productComponentPricingTemplatesSync:
+    "PRODUCT_COMPONENT_PRICING_TEMPLATES_SYNC",
+  productComponentDependencyRulesSync:
+    "PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC",
   productSetStatus: "PRODUCT_SET_STATUS",
   variantSetSku: "VARIANT_SET_SKU",
   variantSetPricing: "VARIANT_SET_PRICING",

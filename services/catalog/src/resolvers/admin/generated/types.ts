@@ -120,6 +120,14 @@ export enum BulkUpdateJobStatus {
 
 export enum BulkUpdateOpType {
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
+  ProductComponentConfigurationCreate = 'PRODUCT_COMPONENT_CONFIGURATION_CREATE',
+  ProductComponentConfigurationDelete = 'PRODUCT_COMPONENT_CONFIGURATION_DELETE',
+  ProductComponentConfigurationUpdate = 'PRODUCT_COMPONENT_CONFIGURATION_UPDATE',
+  ProductComponentDependencyRulesSync = 'PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC',
+  ProductComponentGroupsSync = 'PRODUCT_COMPONENT_GROUPS_SYNC',
+  ProductComponentPricingTemplatesSync = 'PRODUCT_COMPONENT_PRICING_TEMPLATES_SYNC',
+  ProductComponentRemove = 'PRODUCT_COMPONENT_REMOVE',
+  ProductComponentSettingsUpdate = 'PRODUCT_COMPONENT_SETTINGS_UPDATE',
   ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
   VariantCreate = 'VARIANT_CREATE',
@@ -2358,8 +2366,6 @@ export type ProductComponent = {
   id: Scalars['ID']['output'];
   /** The product that owns this component configuration. */
   product: Product;
-  /** Global ID of the owning product. */
-  productId: Scalars['ID']['output'];
   /** The date and time when the component data was last updated. */
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -2485,8 +2491,6 @@ export type ProductComponentConfiguration = Node & {
   pricingTemplates: Array<ProductComponentPricingTemplate>;
   /** The Catalog Product this configuration belongs to. */
   product: Product;
-  /** The global ID of the Catalog Product. */
-  productId: Scalars['ID']['output'];
   /** The date and time when the configuration was last updated. */
   updatedAt: Scalars['DateTime']['output'];
   /** Variants that use this configuration. */
@@ -2650,8 +2654,6 @@ export type ProductComponentItem = Node & {
   featuredImage: Maybe<File>;
   /** The group this item belongs to. */
   group: ProductComponentGroup;
-  /** The group ID. */
-  groupId: Scalars['ID']['output'];
   /** The globally unique ID of the item. */
   id: Scalars['ID']['output'];
   /** Whether the item references a product or a concrete variant. */
@@ -2668,12 +2670,8 @@ export type ProductComponentItem = Node & {
   pricingTemplate: Maybe<ProductComponentPricingTemplate>;
   /** Referenced product for PRODUCT items. */
   refProduct: Maybe<Product>;
-  /** Referenced product ID for PRODUCT items. */
-  refProductId: Maybe<Scalars['ID']['output']>;
   /** Referenced variant for VARIANT items. */
   refVariant: Maybe<Variant>;
-  /** Referenced variant ID for VARIANT items. */
-  refVariantId: Maybe<Scalars['ID']['output']>;
   /** Whether item is selected by default. */
   selected: Scalars['Boolean']['output'];
   /** Sort order within the group. */
@@ -2692,12 +2690,8 @@ export type ProductComponentItemOptionSelection = Node & {
   id: Scalars['ID']['output'];
   /** Referenced product option. */
   option: ProductOption;
-  /** Referenced product option ID. */
-  optionId: Scalars['ID']['output'];
   /** Parent option for dependent option trees. */
   parentOption: Maybe<ProductOption>;
-  /** Parent option ID. */
-  parentOptionId: Maybe<Scalars['ID']['output']>;
   /** Sort order within item option selections. */
   sortIndex: Scalars['Int']['output'];
   /** Allowed values for this option. */
@@ -2723,8 +2717,6 @@ export type ProductComponentItemOptionValueSelection = Node & {
   id: Scalars['ID']['output'];
   /** Referenced product option value. Null when the value is unavailable. */
   optionValue: Maybe<ProductOptionValue>;
-  /** Referenced product option value ID. */
-  optionValueId: Maybe<Scalars['ID']['output']>;
   /** Sort order within option values. */
   sortIndex: Scalars['Int']['output'];
   /** Selection status. */
@@ -6088,7 +6080,6 @@ export type ProductComponentResolvers<ContextType = ServiceContext, ParentType e
   displayStyle?: Resolver<ResolversTypes['ProductComponentDisplayStyle'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
-  productId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -6142,7 +6133,6 @@ export type ProductComponentConfigurationResolvers<ContextType = ServiceContext,
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   pricingTemplates?: Resolver<Array<ResolversTypes['ProductComponentPricingTemplate']>, ParentType, ContextType>;
   product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
-  productId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   variants?: Resolver<Array<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -6201,7 +6191,6 @@ export type ProductComponentItemResolvers<ContextType = ServiceContext, ParentTy
   defaultQty?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   featuredImage?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
   group?: Resolver<ResolversTypes['ProductComponentGroup'], ParentType, ContextType>;
-  groupId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   itemType?: Resolver<ResolversTypes['ProductComponentItemType'], ParentType, ContextType>;
   maxQty?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -6210,9 +6199,7 @@ export type ProductComponentItemResolvers<ContextType = ServiceContext, ParentTy
   priceRule?: Resolver<Maybe<ResolversTypes['ProductComponentPriceRule']>, ParentType, ContextType>;
   pricingTemplate?: Resolver<Maybe<ResolversTypes['ProductComponentPricingTemplate']>, ParentType, ContextType>;
   refProduct?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
-  refProductId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   refVariant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
-  refVariantId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   selected?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -6225,9 +6212,7 @@ export type ProductComponentItemOptionSelectionResolvers<ContextType = ServiceCo
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductComponentItemOptionSelection']>, { __typename: 'ProductComponentItemOptionSelection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   option?: Resolver<ResolversTypes['ProductOption'], ParentType, ContextType>;
-  optionId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   parentOption?: Resolver<Maybe<ResolversTypes['ProductOption']>, ParentType, ContextType>;
-  parentOptionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['ProductComponentItemOptionValueSelection']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -6237,7 +6222,6 @@ export type ProductComponentItemOptionValueSelectionResolvers<ContextType = Serv
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductComponentItemOptionValueSelection']>, { __typename: 'ProductComponentItemOptionValueSelection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   optionValue?: Resolver<Maybe<ResolversTypes['ProductOptionValue']>, ParentType, ContextType>;
-  optionValueId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ProductComponentItemOptionValueSelectionStatus'], ParentType, ContextType>;
   value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
