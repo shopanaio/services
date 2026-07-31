@@ -391,14 +391,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    {
-      type: 'product-bundle-edit-settings',
-      component: dynamic(() =>
-        import('@/domains/inventory/products/modals/bundle-ui/edit-settings-modal').then(
-          (m) => m.EditSettingsModal
-        )
-      ),
-    },
     // Bulk Editor modal
     {
       type: 'bulk-editor',

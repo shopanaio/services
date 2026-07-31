@@ -1,8 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   Typography,
   Button,
@@ -11,17 +9,17 @@ import {
   Tag,
   Flex,
   Divider,
-  } from "antd";
+} from "antd";
 import { LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined, LuFolder as FolderOutlined, LuImage as PictureOutlined, LuGift as GiftOutlined, LuEye as EyeOutlined, LuEyeOff as EyeInvisibleOutlined, LuCircleCheck as CheckCircleOutlined, LuSquareCheckBig as CheckSquareOutlined, LuCircleMinus as MinusCircleOutlined, LuHash as NumberOutlined, LuCircleDollarSign as DollarOutlined, LuLayoutGrid as AppstoreOutlined, LuLockKeyhole as LockOutlined, LuLockOpen as UnlockOutlined } from "react-icons/lu";
 
-import type { IBundleGroup,
-  BundleItem } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import {
-  PRICE_RULE_OPTIONS,
-  DependencyTargetType,
-  } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import { CHART_NODE_ICONS,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
+import type {
+  ApiProductComponentDependencyRule,
+  ApiProductComponentGroup,
+  ApiProductComponentItem,
+} from "@/graphql/types";
+import { ProductComponentDependencyTargetType } from "@/graphql/types";
+import { getPriceRuleLabel as formatPriceRule } from "@/domains/inventory/products/components/product-details-card/sections/groups-section/helpers";
+import { CHART_NODE_ICONS } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 
@@ -35,59 +33,45 @@ import { useStyles } from "./node-inspector.styles";
 
 interface INodeInspectorProps {
   selectedNode: SelectedNode;
-  groups: IBundleGroup[];
-  onRuleChange: (rule: import("@/domains/inventory/products/components/product-details-card/bundle-ui/types").IDependencyRule) => void;
+  groups: ApiProductComponentGroup[];
+  onRuleChange: (rule: ApiProductComponentDependencyRule) => void;
 }
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-const getItemImageUrl = (item: BundleItem): string | undefined => {
-  // BundleItem has its own featuredImage field
+const getItemImageUrl = (item: ApiProductComponentItem): string | undefined => {
+  // Product component items have their own featuredImage field.
   return item.featuredImage?.url ?? undefined;
 };
 
-const getItemTitle = (item: BundleItem): string => {
+const getItemTitle = (item: ApiProductComponentItem): string => {
   return (
     item.title ??
-    item.assignedProduct?.title ??
-    item.assignedVariant?.product?.title ??
+    item.refProduct?.title ??
+    item.refVariant?.product?.title ??
     "Unnamed"
   );
 };
 
-const getVariantTitle = (item: BundleItem): string | undefined => {
-  return item.assignedVariant?.title ?? undefined;
+const getVariantTitle = (item: ApiProductComponentItem): string | undefined => {
+  return item.refVariant?.title ?? undefined;
 };
 
-const getPriceRuleLabel = (item: BundleItem): string => {
-  if (!item.pricingRule) return "No rule";
-  if ("name" in item.pricingRule) {
-    return item.pricingRule.name;
-  }
-  const option = PRICE_RULE_OPTIONS.find(
-    (o) => o.value === item.pricingRule.priceType
-  );
-  if (!option) return "Unknown";
-  if (option.requiresValue && item.pricingRule.priceValue !== null) {
-    return `${item.pricingRule.priceValue}${option.valueSuffix ?? ""}`;
-  }
-  return option.label;
+const getPriceRuleLabel = (item: ApiProductComponentItem): string => {
+  const rule = item.pricingTemplate?.priceRule ?? item.priceRule;
+  return rule
+    ? (formatPriceRule(rule, item.pricingTemplate?.name) ?? "Base price")
+    : "No rule";
 };
 
-const getPriceRuleType = (item: BundleItem): string => {
-  if (!item.pricingRule) return "None";
-  if ("name" in item.pricingRule) {
-    return "Template";
-  }
-  const option = PRICE_RULE_OPTIONS.find(
-    (o) => o.value === item.pricingRule.priceType
-  );
-  return option?.label ?? "Unknown";
+const getPriceRuleType = (item: ApiProductComponentItem): string => {
+  if (item.pricingTemplate) return "Template";
+  return item.priceRule?.strategy ?? "None";
 };
 
-const getSelectionLabel = (group: IBundleGroup): string | null => {
+const getSelectionLabel = (group: ApiProductComponentGroup): string | null => {
   const min = group.minSelection;
   const max = group.maxSelection;
   if (min == null && max == null) return null;
@@ -102,8 +86,8 @@ const getSelectionLabel = (group: IBundleGroup): string | null => {
 // ============================================================================
 
 interface IItemInspectorContentProps {
-  item: BundleItem;
-  group: IBundleGroup;
+  item: ApiProductComponentItem;
+  group: ApiProductComponentGroup;
 }
 
 const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
@@ -112,8 +96,8 @@ const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
   const title = getItemTitle(item);
   const variantTitle = getVariantTitle(item);
 
-  const isVisible = item.visible !== "no";
-  const isPreSelected = item.selected === "yes";
+  const isVisible = item.visible;
+  const isPreSelected = item.selected;
 
   return (
     <div className={styles.content}>
@@ -194,7 +178,7 @@ const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
 // ============================================================================
 
 interface IGroupInspectorContentProps {
-  group: IBundleGroup;
+  group: ApiProductComponentGroup;
 }
 
 const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
@@ -263,7 +247,7 @@ const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
 
 interface IBundleInspectorContentProps {
   label: string;
-  groups: IBundleGroup[];
+  groups: ApiProductComponentGroup[];
 }
 
 const BundleInspectorContent = ({ label, groups }: IBundleInspectorContentProps) => {
@@ -364,11 +348,11 @@ export const NodeInspector = ({
   const getInspectorHeader = () => {
     switch (selectedNode?.type) {
       case "item":
-        return { icon: CHART_NODE_ICONS[DependencyTargetType.ITEM], title: "Item Inspector" };
+        return { icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Item], title: "Item Inspector" };
       case "group":
-        return { icon: CHART_NODE_ICONS[DependencyTargetType.GROUP], title: "Group Inspector" };
+        return { icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Group], title: "Group Inspector" };
       case "bundle":
-        return { icon: CHART_NODE_ICONS[DependencyTargetType.BUNDLE], title: "Bundle Inspector" };
+        return { icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Configuration], title: "Bundle Inspector" };
       default:
         return { icon: null, title: "Inspector" };
     }

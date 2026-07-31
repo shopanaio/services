@@ -1,10 +1,11 @@
 import {
   Node,
   Edge } from "@xyflow/react";
-import type { BundleItem,
-  IBundleGroup } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import type { IDependencyRule,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules/types";
+import type {
+  ApiProductComponentGroup,
+  ApiProductComponentItem,
+} from "@/graphql/types";
+import type { ApiProductComponentDependencyRule } from "@/graphql/types";
 
 // ============================================================================
 // Sort Mode
@@ -17,7 +18,7 @@ export type RuleSortMode = "asc" | "desc" | "auto";
 // ============================================================================
 
 export interface ItemNodeData {
-  item: BundleItem | { id: string; title: string; isGroup?: boolean };
+  item: ApiProductComponentItem | { id: string; title: string; isGroup?: boolean };
   groupId: string;
   groupTitle: string;
   /** Item position in layout: source (top) or target (bottom). Set by layout hook. */
@@ -41,18 +42,18 @@ export type SelectedNodeType = "rule" | "item" | "group" | "bundle" | null;
 
 export interface SelectedRuleNode {
   type: "rule";
-  rule: IDependencyRule;
+  rule: ApiProductComponentDependencyRule;
 }
 
 export interface SelectedItemNode {
   type: "item";
-  item: BundleItem;
-  group: IBundleGroup;
+  item: ApiProductComponentItem;
+  group: ApiProductComponentGroup;
 }
 
 export interface SelectedGroupNode {
   type: "group";
-  group: IBundleGroup;
+  group: ApiProductComponentGroup;
 }
 
 export interface SelectedBundleNode {
@@ -68,7 +69,7 @@ export type SelectedNode =
   | null;
 
 export interface RuleNodeData {
-  rule: IDependencyRule;
+  rule: ApiProductComponentDependencyRule;
   isSelected: boolean;
   /** True if this node should be dimmed (not in selected path) */
   isDimmed?: boolean;

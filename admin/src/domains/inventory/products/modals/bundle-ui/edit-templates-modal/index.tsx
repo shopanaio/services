@@ -7,17 +7,15 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { TemplatesTab } from "./components";
-import type {
-  PricingRuleTemplate,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import type { ApiProductComponentPricingTemplate } from "@/graphql/types";
 
 // ============================================================================
 // Payload
 // ============================================================================
 
 export interface IEditTemplatesModalPayload {
-  pricingTemplates: PricingRuleTemplate[];
-  onSave?: (data: { pricingTemplates: PricingRuleTemplate[] }) => void;
+  pricingTemplates: ApiProductComponentPricingTemplate[];
+  onSave?: (data: { pricingTemplates: ApiProductComponentPricingTemplate[] }) => void;
 }
 
 // ============================================================================
@@ -29,12 +27,12 @@ export const EditTemplatesModal = () => {
 
   const modalPayload = payload as unknown as IEditTemplatesModalPayload | undefined;
 
-  const [pricingTemplates, setPricingTemplates] = useState<PricingRuleTemplate[]>(
+  const [pricingTemplates, setPricingTemplates] = useState<ApiProductComponentPricingTemplate[]>(
     modalPayload?.pricingTemplates ?? []
   );
 
   const handlePricingTemplatesChange = useCallback(
-    (templates: PricingRuleTemplate[]) => {
+    (templates: ApiProductComponentPricingTemplate[]) => {
       setPricingTemplates(templates);
       setDirty(true);
     },

@@ -1,23 +1,22 @@
-import {
-  useState,
-  useCallback } from "react";
+import { useCallback, useState } from "react";
 
-import type { IBundleGroup } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import type {
-  IDependencyRule,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules/types";
-import type { IDependencyCondition, IDependencyAction, IConditionGroup } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules/types";
+  ApiProductComponentCondition,
+  ApiProductComponentConditionGroup,
+  ApiProductComponentDependencyAction,
+  ApiProductComponentDependencyRule,
+  ApiProductComponentGroup,
+} from "@/graphql/types";
 import {
-  DependencyActionType,
-  DependencyTargetType,
-  ConditionSubject,
-  ConditionCategory,
-  StateCheckOperator,
-  LogicOperator,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
+  ProductComponentConditionCategory,
+  ProductComponentConditionOperator,
+  ProductComponentConditionSubject,
+  ProductComponentDependencyActionType,
+  ProductComponentDependencyTargetType,
+  ProductComponentLogicOperator,
+} from "@/graphql/types";
 
-import {
-  PRICE_RULE_OPTIONS } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import { PRICE_RULE_OPTIONS } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 
 export {
   getTargetOptions,
@@ -44,20 +43,30 @@ const generateId = (prefix: string): string => {
 };
 
 /** Get the first condition group (or a default one) */
-const getDefaultGroup = (rule: IDependencyRule): IConditionGroup => {
+const getDefaultGroup = (
+  rule: ApiProductComponentDependencyRule,
+): ApiProductComponentConditionGroup => {
   if (rule.conditionGroups.length > 0) {
     return rule.conditionGroups[0];
   }
-  return { id: generateId("grp"), logicOperator: LogicOperator.AND, conditions: [] };
+  return {
+    __typename: "ProductComponentConditionGroup",
+    id: generateId("grp"),
+    logicOperator: ProductComponentLogicOperator.And,
+    sortIndex: 0,
+    conditions: [],
+  };
 };
 
 /** Update conditions in the first group, creating the group if needed */
 const updateFirstGroupConditions = (
-  rule: IDependencyRule,
-  updater: (conditions: IDependencyCondition[]) => IDependencyCondition[],
-): IDependencyRule => {
+  rule: ApiProductComponentDependencyRule,
+  updater: (
+    conditions: ApiProductComponentCondition[],
+  ) => ApiProductComponentCondition[],
+): ApiProductComponentDependencyRule => {
   const group = getDefaultGroup(rule);
-  const updatedGroup: IConditionGroup = {
+  const updatedGroup: ApiProductComponentConditionGroup = {
     ...group,
     conditions: updater(group.conditions),
   };
@@ -72,9 +81,9 @@ const updateFirstGroupConditions = (
 // ============================================================================
 
 interface UseRuleInspectorOptions {
-  rule: IDependencyRule | null;
-  groups: IBundleGroup[];
-  onRuleChange: (rule: IDependencyRule) => void;
+  rule: ApiProductComponentDependencyRule | null;
+  groups: ApiProductComponentGroup[];
+  onRuleChange: (rule: ApiProductComponentDependencyRule) => void;
 }
 
 export const useRuleInspector = ({
@@ -112,24 +121,27 @@ export const useRuleInspector = ({
   const handleAddCondition = useCallback(() => {
     if (!rule) return;
     const firstItem = groups[0]?.items[0];
-    const newCondition: IDependencyCondition = {
+    const newCondition: ApiProductComponentCondition = {
+      __typename: "ProductComponentCondition",
       id: generateId("cond"),
-      category: ConditionCategory.STATE_CHECK,
-      subject: ConditionSubject.ITEM_SELECTED,
-      operator: StateCheckOperator.IS_SELECTED,
-      targetType: DependencyTargetType.ITEM,
+      category: ProductComponentConditionCategory.StateCheck,
+      subject: ProductComponentConditionSubject.ItemSelected,
+      operator: ProductComponentConditionOperator.IsSelected,
+      targetType: ProductComponentDependencyTargetType.Item,
       targetId: firstItem?.id ?? "",
+      value: null,
+      sortIndex: getDefaultGroup(rule).conditions.length,
     };
     onRuleChange(updateFirstGroupConditions(rule, (conds) => [...conds, newCondition]));
   }, [rule, groups, onRuleChange]);
 
   const handleUpdateCondition = useCallback(
-    (conditionId: string, updates: Partial<IDependencyCondition>) => {
+    (conditionId: string, updates: Partial<ApiProductComponentCondition>) => {
       if (!rule) return;
       onRuleChange(
         updateFirstGroupConditions(rule, (conds) =>
           conds.map((c) =>
-            c.id === conditionId ? ({ ...c, ...updates } as IDependencyCondition) : c
+            c.id === conditionId ? ({ ...c, ...updates } as ApiProductComponentCondition) : c
           )
         )
       );
@@ -153,11 +165,16 @@ export const useRuleInspector = ({
   const handleAddAction = useCallback(() => {
     if (!rule) return;
     const firstItem = groups[0]?.items[0];
-    const newAction: IDependencyAction = {
+    const newAction: ApiProductComponentDependencyAction = {
+      __typename: "ProductComponentDependencyAction",
       id: generateId("act"),
-      actionType: DependencyActionType.HIDE,
-      targetType: DependencyTargetType.ITEM,
+      actionType: ProductComponentDependencyActionType.Hide,
+      targetType: ProductComponentDependencyTargetType.Item,
       targetId: firstItem?.id ?? "",
+      requiredValue: null,
+      priceRule: null,
+      stackable: false,
+      sortIndex: rule.actions.length,
     };
     onRuleChange({
       ...rule,
@@ -166,7 +183,7 @@ export const useRuleInspector = ({
   }, [rule, groups, onRuleChange]);
 
   const handleUpdateAction = useCallback(
-    (actionId: string, updates: Partial<IDependencyAction>) => {
+    (actionId: string, updates: Partial<ApiProductComponentDependencyAction>) => {
       if (!rule) return;
       onRuleChange({
         ...rule,

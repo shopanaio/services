@@ -25,15 +25,21 @@ import {
   PriceValueCellRenderer,
 } from "./index";
 import type {
-  IBundleGroup,
-  BundleItem,
-  PricingRuleTemplate,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import { ProductComponentItemType, type ApiProduct } from "@/graphql/types";
+  ApiProduct,
+  ApiProductComponentGroup,
+  ApiProductComponentItem,
+  ApiProductComponentPricingTemplate,
+} from "@/graphql/types";
+import { ProductComponentItemType } from "@/graphql/types";
 import {
   BundlePriceType,
   PRICE_RULE_OPTIONS,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import {
+  toApiPriceRule,
+  toEditorPriceRule,
+  type EditorPriceRule,
+} from "@/domains/inventory/products/mappers/product-component-editor.mapper";
 
 // ============================================================================
 // Styles
@@ -68,13 +74,13 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 const isTemplate = (
-  rule: BundleItem["pricingRule"]
-): rule is PricingRuleTemplate => {
-  return "id" in rule && "name" in rule;
+  rule: ITableRow["pricingRule"],
+): rule is ApiProductComponentPricingTemplate => {
+  return !!rule && "priceRule" in rule && "name" in rule;
 };
 
-// Convert IBundleGroup[] to flat ITableRow[]
-const groupsToRows = (groups: IBundleGroup[]): ITableRow[] => {
+// Convert API groups to flat editor rows.
+const groupsToRows = (groups: ApiProductComponentGroup[]): ITableRow[] => {
   const rows: ITableRow[] = [];
   const sortedGroups = [...groups].sort((a, b) => a.sortIndex - b.sortIndex);
 
@@ -88,6 +94,7 @@ const groupsToRows = (groups: IBundleGroup[]): ITableRow[] => {
       level: 0,
       minSelection: group.minSelection,
       maxSelection: group.maxSelection,
+      sourceGroup: group,
     });
 
     const sortedItems = [...group.items].sort(
@@ -99,23 +106,25 @@ const groupsToRows = (groups: IBundleGroup[]): ITableRow[] => {
         type: "item",
         name:
           item.title ||
-          item.assignedProduct?.title ||
-          item.assignedVariant?.title ||
+          item.refProduct?.title ||
+          item.refVariant?.title ||
           "Unknown",
         parentId: group.id,
         sortIndex: item.sortIndex,
         level: 1,
         itemType: item.itemType,
-        assignedProduct: item.assignedProduct,
-        assignedVariant: item.assignedVariant,
-        excludeAssignedProductVariants: item.excludeAssignedProductVariants,
+        assignedProduct: item.refProduct ?? undefined,
+        assignedVariant: item.refVariant ?? undefined,
         title: item.title,
         featuredImage: item.featuredImage,
         minQty: item.minQty,
         maxQty: item.maxQty,
-        pricingRule: item.pricingRule,
-        visible: item.visible ?? "yes",
-        selected: item.selected ?? "no",
+        pricingRule:
+          item.pricingTemplate ??
+          (item.priceRule ? toEditorPriceRule(item.priceRule) : undefined),
+        visible: item.visible ? "yes" : "no",
+        selected: item.selected ? "yes" : "no",
+        sourceItem: item,
       });
     }
   }
@@ -123,9 +132,9 @@ const groupsToRows = (groups: IBundleGroup[]): ITableRow[] => {
   return rows;
 };
 
-// Convert flat ITableRow[] back to IBundleGroup[]
-export const rowsToGroups = (rows: ITableRow[]): IBundleGroup[] => {
-  const groups: IBundleGroup[] = [];
+// Convert flat editor rows back to API groups.
+export const rowsToGroups = (rows: ITableRow[]): ApiProductComponentGroup[] => {
+  const groups: ApiProductComponentGroup[] = [];
   const groupRows = rows
     .filter((r) => r.type === "group")
     .sort((a, b) => a.sortIndex - b.sortIndex);
@@ -135,33 +144,57 @@ export const rowsToGroups = (rows: ITableRow[]): IBundleGroup[] => {
       .filter((r) => r.type === "item" && r.parentId === groupRow.id)
       .sort((a, b) => a.sortIndex - b.sortIndex);
 
-    const items: BundleItem[] = itemRows.map((itemRow) => ({
-      id: itemRow.id,
-      itemType: itemRow.itemType as ProductComponentItemType,
-      sortIndex: itemRow.sortIndex,
-      assignedProduct: itemRow.assignedProduct,
-      assignedVariant: itemRow.assignedVariant,
-      excludeAssignedProductVariants: itemRow.excludeAssignedProductVariants,
-      title: itemRow.title ?? null,
-      featuredImage: itemRow.featuredImage ?? null,
-      minQty: itemRow.minQty ?? null,
-      maxQty: itemRow.maxQty ?? null,
-      pricingRule: itemRow.pricingRule ?? {
-        priceType: BundlePriceType.Base,
-        priceValue: null,
-      },
-      visible: itemRow.visible ?? "yes",
-      selected: itemRow.selected ?? "no",
-    }));
-
-    groups.push({
+    const now = new Date().toISOString();
+    const group: ApiProductComponentGroup = {
+      ...(groupRow.sourceGroup ?? {
+        __typename: "ProductComponentGroup" as const,
+        id: groupRow.id,
+        createdAt: now,
+        updatedAt: now,
+      }),
       id: groupRow.id,
       title: groupRow.name,
       sortIndex: groupRow.sortIndex,
       minSelection: groupRow.minSelection ?? null,
       maxSelection: groupRow.maxSelection ?? null,
-      items,
+      items: [],
+    };
+    group.items = itemRows.map((itemRow): ApiProductComponentItem => {
+      const pricingTemplate = isTemplate(itemRow.pricingRule)
+        ? itemRow.pricingRule
+        : null;
+      const editorPriceRule =
+        itemRow.pricingRule && !pricingTemplate
+          ? (itemRow.pricingRule as EditorPriceRule)
+          : { priceType: BundlePriceType.Base, priceValue: null };
+      return {
+        ...(itemRow.sourceItem ?? {
+          __typename: "ProductComponentItem" as const,
+          id: itemRow.id,
+          createdAt: now,
+          updatedAt: now,
+          defaultQty: 1,
+          optionSelections: [],
+        }),
+        id: itemRow.id,
+        group,
+        itemType: itemRow.itemType as ProductComponentItemType,
+        sortIndex: itemRow.sortIndex,
+        refProduct: itemRow.assignedProduct ?? null,
+        refVariant: itemRow.assignedVariant ?? null,
+        title: itemRow.title ?? null,
+        featuredImage: itemRow.featuredImage ?? null,
+        minQty: itemRow.minQty ?? null,
+        maxQty: itemRow.maxQty ?? null,
+        pricingTemplate,
+        priceRule: pricingTemplate
+          ? null
+          : toApiPriceRule(editorPriceRule, `${itemRow.id}-price-rule`),
+        visible: itemRow.visible !== "no",
+        selected: itemRow.selected === "yes",
+      };
     });
+    groups.push(group);
   }
 
   return groups;
@@ -177,8 +210,8 @@ export interface BundleGroupsGridHandle {
 }
 
 interface BundleGroupsGridProps {
-  groups: IBundleGroup[];
-  pricingTemplates: PricingRuleTemplate[];
+  groups: ApiProductComponentGroup[];
+  pricingTemplates: ApiProductComponentPricingTemplate[];
   onRowsChange: () => void;
 }
 
@@ -332,7 +365,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
     );
 
     const handlePriceRuleChange = useCallback(
-      (itemId: string, pricingRule: BundleItem["pricingRule"]) => {
+      (itemId: string, pricingRule: ITableRow["pricingRule"]) => {
         updateRow(itemId, { pricingRule } as Partial<ITableRow>);
       },
       [updateRow]
@@ -364,14 +397,12 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         const variantsFromConnection =
           assignedProduct.variants?.edges?.map((e) => e.node) ?? [];
 
-        const priceType =
-          row.pricingRule && "id" in row.pricingRule
-            ? BundlePriceType.Base
-            : row.pricingRule?.priceType ?? BundlePriceType.Base;
-        const priceValue =
-          row.pricingRule && "id" in row.pricingRule
-            ? null
-            : row.pricingRule?.priceValue ?? null;
+        const editorRule = row.pricingRule
+          ? isTemplate(row.pricingRule)
+            ? toEditorPriceRule(row.pricingRule.priceRule)
+            : row.pricingRule
+          : { priceType: BundlePriceType.Base, priceValue: null };
+        const { priceType, priceValue } = editorRule;
 
         openVariantSettingsModal({
           itemId: row.id,
@@ -539,7 +570,9 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           const rule = row.pricingRule;
           if (!rule) return;
 
-          const priceType = isTemplate(rule) ? rule.priceType : rule.priceType;
+          const priceType = isTemplate(rule)
+            ? toEditorPriceRule(rule.priceRule).priceType
+            : rule.priceType;
 
           updateRow(rowId, {
             pricingRule: {
@@ -696,7 +729,9 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
             if (params.data?.type !== "item") return false;
             const rule = params.data?.pricingRule;
             if (!rule) return false;
-            const priceType = isTemplate(rule) ? rule.priceType : rule.priceType;
+            const priceType = isTemplate(rule)
+              ? toEditorPriceRule(rule.priceRule).priceType
+              : rule.priceType;
             const option = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
             return !!option?.requiresValue;
           },
@@ -704,7 +739,9 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
             if (params.data?.type !== "item") return null;
             const rule = params.data?.pricingRule;
             if (!rule) return null;
-            return isTemplate(rule) ? rule.priceValue : rule.priceValue;
+            return isTemplate(rule)
+              ? toEditorPriceRule(rule.priceRule).priceValue
+              : rule.priceValue;
           },
           cellRenderer: PriceValueCellRenderer,
           cellEditor: "agNumberCellEditor",

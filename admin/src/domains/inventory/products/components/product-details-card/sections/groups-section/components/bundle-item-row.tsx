@@ -2,7 +2,7 @@
 
 import { Typography, Avatar, Tag } from "antd";
 import { LuImage as PictureOutlined } from "react-icons/lu";
-import type { BundleItem } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import type { ApiProductComponentItem } from "@/graphql/types";
 import {
   getItemImageUrl,
   getItemName,
@@ -13,13 +13,16 @@ import {
 import { useStyles } from "../styles";
 
 interface IBundleItemRowProps {
-  item: BundleItem;
+  item: ApiProductComponentItem;
 }
 
 export const BundleItemRow = ({ item }: IBundleItemRowProps) => {
   const { styles } = useStyles();
   const imgUrl = getItemImageUrl(item);
-  const priceLabel = item.pricingRule ? getPriceRuleLabel(item.pricingRule) : null;
+  const priceRule = item.pricingTemplate?.priceRule ?? item.priceRule;
+  const priceLabel = priceRule
+    ? getPriceRuleLabel(priceRule, item.pricingTemplate?.name)
+    : null;
   const qtyLabel = getItemQtyLabel(item);
 
   return (
@@ -41,7 +44,7 @@ export const BundleItemRow = ({ item }: IBundleItemRowProps) => {
       </div>
       {priceLabel && (
         <Tag
-          color={getPriceRuleColor(item.pricingRule!.priceType)}
+          color={getPriceRuleColor(priceRule!.strategy)}
           className={styles.itemTag}
         >
           {priceLabel}

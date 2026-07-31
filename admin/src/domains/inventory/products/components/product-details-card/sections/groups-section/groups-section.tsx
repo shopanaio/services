@@ -1,12 +1,12 @@
 "use client";
 
 import { Empty } from "antd";
-import type { IBundleGroup } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import type { ApiProductComponentGroup } from "@/graphql/types";
 import { useStyles } from "./styles";
 import { GroupLane } from "./components/group-lane";
 
 interface IGroupsSectionProps {
-  groups: IBundleGroup[];
+  groups: ApiProductComponentGroup[];
   onEdit: () => void;
 }
 

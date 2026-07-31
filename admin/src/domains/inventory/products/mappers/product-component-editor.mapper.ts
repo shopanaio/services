@@ -1,32 +1,19 @@
 import type {
-  ApiProductComponent,
   ApiProductComponentAdjustmentPriceRule,
-  ApiProductComponentDependencyAction,
+  ApiProductComponentBasePriceRule,
+  ApiProductComponentFreePriceRule,
+  ApiProductComponentOverridePriceRule,
   ApiProductComponentPriceRule,
 } from "@/graphql/types";
 import {
+  CurrencyCode,
   PriceAdjustmentOperation,
   PriceAdjustmentValueType,
-  ProductComponentConditionCategory,
-  ProductComponentConditionOperator,
-  ProductComponentDependencyTargetType,
   ProductComponentPriceStrategy,
 } from "@/graphql/types";
-import type {
-  IBundleConfiguration,
-  PricingRuleTemplate,
-} from "../components/product-details-card/bundle-ui/types";
 import { BundlePriceType } from "../components/product-details-card/bundle-ui/types";
-import {
-  ComparisonOperator,
-  ConditionCategory,
-  DependencyTargetType,
-  StateCheckOperator,
-  type IDependencyAction,
-  type IDependencyCondition,
-} from "../components/product-details-card/bundle-ui/dependency-rules";
 
-interface EditorPriceRule {
+export interface EditorPriceRule {
   priceType: BundlePriceType;
   priceValue: number | null;
 }
@@ -38,7 +25,7 @@ const getRuleAmounts = (
     ? (rule.amounts as Array<{ amountMinor: number }>)
     : [];
 
-const toEditorPriceRule = (
+export const toEditorPriceRule = (
   rule: ApiProductComponentPriceRule | null | undefined,
 ): EditorPriceRule => {
   if (!rule || rule.strategy === ProductComponentPriceStrategy.Base) {
@@ -75,126 +62,41 @@ const toEditorPriceRule = (
   };
 };
 
-const toEditorTargetType = (
-  targetType: ProductComponentDependencyTargetType,
-): DependencyTargetType => {
-  if (targetType === ProductComponentDependencyTargetType.Item) {
-    return DependencyTargetType.ITEM;
+export const toApiPriceRule = (
+  value: EditorPriceRule,
+  id: string,
+):
+  | ApiProductComponentBasePriceRule
+  | ApiProductComponentFreePriceRule
+  | ApiProductComponentOverridePriceRule
+  | ApiProductComponentAdjustmentPriceRule => {
+  if (value.priceType === BundlePriceType.Base) {
+    return { __typename: "ProductComponentBasePriceRule", id, strategy: ProductComponentPriceStrategy.Base };
   }
-  if (targetType === ProductComponentDependencyTargetType.Group) {
-    return DependencyTargetType.GROUP;
+  if (value.priceType === BundlePriceType.Free) {
+    return { __typename: "ProductComponentFreePriceRule", id, strategy: ProductComponentPriceStrategy.Free };
   }
-  return DependencyTargetType.BUNDLE;
-};
-
-const toEditorCondition = (
-  condition: ApiProductComponent["configurations"][number]["dependencyRules"][number]["conditionGroups"][number]["conditions"][number],
-): IDependencyCondition => {
-  const common = {
-    id: condition.id,
-    subject: condition.subject,
-    targetType: toEditorTargetType(condition.targetType),
-    targetId: condition.targetId,
-  };
-
-  if (condition.category === ProductComponentConditionCategory.StateCheck) {
+  if (value.priceType === BundlePriceType.Fixed) {
     return {
-      ...common,
-      category: ConditionCategory.STATE_CHECK,
-      operator:
-        condition.operator === ProductComponentConditionOperator.IsSelected
-          ? StateCheckOperator.IS_SELECTED
-          : StateCheckOperator.IS_NOT_SELECTED,
+      __typename: "ProductComponentOverridePriceRule",
+      id,
+      strategy: ProductComponentPriceStrategy.Override,
+      amounts: [{ __typename: "ProductComponentPriceRuleAmount", currency: CurrencyCode.Usd, amountMinor: value.priceValue ?? 0 }],
     };
   }
-
-  const operator =
-    condition.operator === ProductComponentConditionOperator.Gte
-      ? ComparisonOperator.GTE
-      : condition.operator === ProductComponentConditionOperator.Lte
-        ? ComparisonOperator.LTE
-        : ComparisonOperator.EQ;
-
+  const percentage =
+    value.priceType === BundlePriceType.DiscountPercent ||
+    value.priceType === BundlePriceType.MarkupPercent;
+  const decrease =
+    value.priceType === BundlePriceType.DiscountPercent ||
+    value.priceType === BundlePriceType.DiscountFixed;
   return {
-    ...common,
-    category: ConditionCategory.NUMERIC,
-    operator,
-    value: condition.value ?? 0,
+    __typename: "ProductComponentAdjustmentPriceRule",
+    id,
+    strategy: ProductComponentPriceStrategy.Adjustment,
+    operation: decrease ? PriceAdjustmentOperation.Decrease : PriceAdjustmentOperation.Increase,
+    valueType: percentage ? PriceAdjustmentValueType.Percentage : PriceAdjustmentValueType.FixedAmount,
+    percentageBps: percentage ? Math.round((value.priceValue ?? 0) * 100) : null,
+    amounts: percentage ? [] : [{ __typename: "ProductComponentPriceRuleAmount", currency: CurrencyCode.Usd, amountMinor: value.priceValue ?? 0 }],
   };
 };
-
-const toEditorAction = (
-  action: ApiProductComponentDependencyAction,
-): IDependencyAction => ({
-  id: action.id,
-  actionType: action.actionType,
-  targetType: toEditorTargetType(action.targetType),
-  targetId: action.targetId,
-  requiredValue: action.requiredValue ?? undefined,
-  ...(action.priceRule ? toEditorPriceRule(action.priceRule) : {}),
-});
-
-/**
- * Converts API response objects into mutable state for the existing mock-only
- * component editors. Fields without an editor equivalent are intentionally
- * retained only in the API mock, not invented in the editor model.
- */
-export const toProductComponentEditorConfigurations = (
-  component: ApiProductComponent,
-): IBundleConfiguration[] =>
-  component.configurations.map((configuration) => ({
-    id: configuration.id,
-    title: configuration.name,
-    bundleItems: configuration.groups.map((group) => ({
-      id: group.id,
-      title: group.title,
-      sortIndex: group.sortIndex,
-      minSelection: group.minSelection ?? null,
-      maxSelection: group.maxSelection ?? null,
-      items: group.items.map((item) => ({
-        id: item.id,
-        itemType: item.itemType,
-        sortIndex: item.sortIndex,
-        assignedProduct: item.refProduct ?? undefined,
-        assignedVariant: item.refVariant ?? undefined,
-        title: item.title ?? null,
-        featuredImage: item.featuredImage ?? null,
-        minQty: item.minQty ?? null,
-        maxQty: item.maxQty ?? null,
-        pricingRule: item.pricingTemplate
-          ? ({
-              id: item.pricingTemplate.id,
-              name: item.pricingTemplate.name,
-              ...toEditorPriceRule(item.pricingTemplate.priceRule),
-            } satisfies PricingRuleTemplate)
-          : toEditorPriceRule(item.priceRule),
-        visible: item.visible ? "yes" : "no",
-        selected: item.selected ? "yes" : "no",
-      })),
-    })),
-    dependencyRules: configuration.dependencyRules.map((rule) => ({
-      id: rule.id,
-      name: rule.name,
-      enabled: rule.enabled,
-      priority: rule.priority,
-      logicOperator: rule.logicOperator,
-      conditionGroups: rule.conditionGroups.map((group) => ({
-        id: group.id,
-        logicOperator: group.logicOperator,
-        conditions: group.conditions.map(toEditorCondition),
-      })),
-      actions: rule.actions.map(toEditorAction),
-    })),
-  }));
-
-export const toProductComponentEditorPricingTemplates = (
-  component: ApiProductComponent,
-  configurationId: string,
-): PricingRuleTemplate[] =>
-  (component.configurations.find(({ id }) => id === configurationId)
-    ?.pricingTemplates ?? []
-  ).map((template) => ({
-    id: template.id,
-    name: template.name,
-    ...toEditorPriceRule(template.priceRule),
-  }));

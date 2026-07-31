@@ -1,105 +1,77 @@
-import type { IDependencyCondition, IDependencyAction } from "./types";
-import type { IBundleGroup } from "../types";
+import type {
+  ApiProductComponentCondition,
+  ApiProductComponentDependencyAction,
+  ApiProductComponentGroup,
+  ProductComponentConditionOperator,
+  ProductComponentConditionSubject,
+} from "@/graphql/types";
 import {
-  DependencyTargetType,
-  DependencyActionType,
-  ConditionCategory,
-  ConditionSubject,
-  ComparisonOperator,
-} from "./enums";
+  ProductComponentConditionCategory,
+  ProductComponentDependencyActionType,
+  ProductComponentDependencyTargetType,
+} from "@/graphql/types";
 import { ACTION_PHRASE, SUBJECT_SHORT, OPERATOR_PHRASE } from "./constants";
 import { STATE_CHECK_OPERATOR_META } from "./operators";
-import { PRICE_RULE_OPTIONS } from "../types";
-
-
-// ============================================================================
-// Target Resolution
-// ============================================================================
+import { getPriceRuleLabel } from "../../sections/groups-section/helpers";
 
 export const resolveTargetName = (
-  targetType: DependencyTargetType,
+  targetType: ProductComponentDependencyTargetType,
   targetId: string | undefined,
-  groups: IBundleGroup[],
+  groups: ApiProductComponentGroup[],
 ): string | null => {
   if (!targetId) return null;
-  if (targetType === DependencyTargetType.GROUP) {
-    return groups.find((g) => g.id === targetId)?.title ?? null;
+  if (targetType === ProductComponentDependencyTargetType.Group) {
+    return groups.find(({ id }) => id === targetId)?.title ?? null;
   }
-  if (targetType === DependencyTargetType.ITEM) {
+  if (targetType === ProductComponentDependencyTargetType.Item) {
     for (const group of groups) {
-      const item = group.items?.find((i) => i.id === targetId);
+      const item = group.items.find(({ id }) => id === targetId);
       if (item) {
-        return item.title
-          ?? item.assignedProduct?.title
-          ?? item.assignedVariant?.title
-          ?? null;
+        return item.title ?? item.refProduct?.title ?? item.refVariant?.title ?? null;
       }
     }
   }
   return null;
 };
 
-// ============================================================================
-// Condition Formatting
-// ============================================================================
-
-export const formatCondition = (cond: IDependencyCondition): string => {
-  if (cond.category === ConditionCategory.STATE_CHECK) {
-    return STATE_CHECK_OPERATOR_META[cond.operator]?.label ?? cond.operator;
+export const formatCondition = (
+  condition: ApiProductComponentCondition,
+): string => {
+  if (condition.category === ProductComponentConditionCategory.StateCheck) {
+    return STATE_CHECK_OPERATOR_META[condition.operator]?.label ?? condition.operator;
   }
-
-  const subjectShort = SUBJECT_SHORT[cond.subject] ?? cond.subject;
-  const phrase = OPERATOR_PHRASE[cond.operator as ComparisonOperator] ?? cond.operator;
-  if (cond.value === undefined || cond.value === null) {
-    return `${subjectShort} ${phrase}`;
-  }
-  return `${subjectShort} ${phrase} ${cond.value}`;
+  const subject = SUBJECT_SHORT[condition.subject] ?? condition.subject;
+  const operator = OPERATOR_PHRASE[condition.operator] ?? condition.operator;
+  return condition.value == null
+    ? `${subject} ${operator}`
+    : `${subject} ${operator} ${condition.value}`;
 };
 
-// ============================================================================
-// Action Formatting
-// ============================================================================
-
-export const formatAction = (action: IDependencyAction): string => {
+export const formatAction = (
+  action: ApiProductComponentDependencyAction,
+): string => {
   const phrase = ACTION_PHRASE[action.actionType] ?? action.actionType;
-
-  if (action.actionType === DependencyActionType.SET_REQUIRED) {
+  if (action.actionType === ProductComponentDependencyActionType.SetRequired) {
     return `${phrase}: ${action.requiredValue ? "yes" : "no"}`;
   }
-
-  if (action.actionType === DependencyActionType.ADJUST_PRICE && action.priceType) {
-    const priceOption = PRICE_RULE_OPTIONS.find((o) => o.value === action.priceType);
-    const value =
-      action.priceValue !== null && action.priceValue !== undefined
-        ? `${action.priceValue}${priceOption?.valueSuffix ?? ""}`
-        : "";
-    // Compact format for hub nodes: "Discount 10%" or "Free"
-    return value ? `Discount ${value}` : (priceOption?.label ?? action.priceType);
+  if (
+    action.actionType === ProductComponentDependencyActionType.AdjustPrice &&
+    action.priceRule
+  ) {
+    return getPriceRuleLabel(action.priceRule) ?? phrase;
   }
-
   return phrase;
 };
 
-// ============================================================================
-// Chip Label Helpers
-// ============================================================================
+export const getOperatorLabel = (operator: ProductComponentConditionOperator): string =>
+  OPERATOR_PHRASE[operator] ?? STATE_CHECK_OPERATOR_META[operator]?.label ?? operator;
 
-/** Get display label for any operator (phrase for comparison, label for state) */
-export const getOperatorLabel = (op: string): string => {
-  if (op in ComparisonOperator) {
-    return OPERATOR_PHRASE[op as ComparisonOperator] ?? op;
-  }
-  return STATE_CHECK_OPERATOR_META[op as keyof typeof STATE_CHECK_OPERATOR_META]?.label ?? op;
-};
-
-/** Build a grammatically correct chip label for a condition */
-export const getConditionChipLabel = (subject: ConditionSubject, operator: string): string => {
-  // State checks — the operator label is already a phrase
-  if (!(operator in ComparisonOperator)) {
-    return STATE_CHECK_OPERATOR_META[operator as keyof typeof STATE_CHECK_OPERATOR_META]?.label ?? operator;
-  }
-  // Numeric — short subject + verb phrase
-  const subjectShort = SUBJECT_SHORT[subject] ?? subject;
-  const phrase = OPERATOR_PHRASE[operator as ComparisonOperator] ?? operator;
-  return `${subjectShort} ${phrase}`;
+export const getConditionChipLabel = (
+  subject: ProductComponentConditionSubject,
+  operator: ProductComponentConditionOperator,
+): string => {
+  const operatorLabel = getOperatorLabel(operator);
+  return operator in OPERATOR_PHRASE
+    ? `${SUBJECT_SHORT[subject] ?? subject} ${operatorLabel}`
+    : operatorLabel;
 };

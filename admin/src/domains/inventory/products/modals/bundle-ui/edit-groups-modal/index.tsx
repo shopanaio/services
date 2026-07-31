@@ -9,18 +9,18 @@ import { useStyles } from "./edit-groups-modal.styles";
 import { BundleGroupsGrid, rowsToGroups } from "./components";
 import type { BundleGroupsGridHandle } from "./components/bundle-groups-grid";
 import type {
-  IBundleGroup,
-  PricingRuleTemplate,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+  ApiProductComponentGroup,
+  ApiProductComponentPricingTemplate,
+} from "@/graphql/types";
 
 // ============================================================================
 // Payload
 // ============================================================================
 
 export interface IEditGroupsModalPayload {
-  groups: IBundleGroup[];
-  pricingTemplates: PricingRuleTemplate[];
-  onSave?: (groups: IBundleGroup[]) => void;
+  groups: ApiProductComponentGroup[];
+  pricingTemplates: ApiProductComponentPricingTemplate[];
+  onSave?: (groups: ApiProductComponentGroup[]) => void;
 }
 
 // ============================================================================

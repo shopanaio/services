@@ -7,6 +7,9 @@ import type {
   ApiGenericUserError,
   ApiOperationResult,
   ApiProduct,
+  ApiProductComponentDependencyRule,
+  ApiProductComponentGroup,
+  ApiProductComponentPricingTemplate,
   ApiProductFeature,
   ApiProductOption,
   ApiProductUpdateInput,
@@ -17,13 +20,7 @@ import type {
 } from "@/graphql/types";
 import type { VariantColumnField } from './components/variants/config/types';
 import type { VariantEditorSaveRow } from "./mappers/product-variant-editor.mapper";
-import type {
-  BundlePriceType,
-  IBundleGroup,
-  IBundleSettings,
-  IDependencyRule,
-  PricingRuleTemplate,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import type { BundlePriceType } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 
 // ============================================================================
 // Modal Types
@@ -47,7 +44,6 @@ export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
 export const PRODUCT_BUNDLE_EDIT_GROUPS_MODAL_TYPE = 'product-bundle-edit-groups';
 export const PRODUCT_BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE = 'product-bundle-edit-configuration';
 export const PRODUCT_BUNDLE_EDIT_TEMPLATES_MODAL_TYPE = 'product-bundle-edit-templates';
-export const PRODUCT_BUNDLE_EDIT_SETTINGS_MODAL_TYPE = 'product-bundle-edit-settings';
 export const PRODUCT_BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE = 'product-bundle-item-variant-settings';
 export const PRODUCT_DEPENDENCY_CHART_MODAL_TYPE = 'product-dependency-chart';
 
@@ -266,9 +262,9 @@ export interface IBulkEditorModalPayload extends IModalStackPayload {
 }
 
 export interface IBundleEditGroupsModalPayload extends IModalStackPayload {
-  groups: IBundleGroup[];
-  pricingTemplates: PricingRuleTemplate[];
-  onSave?: (groups: IBundleGroup[]) => void;
+  groups: ApiProductComponentGroup[];
+  pricingTemplates: ApiProductComponentPricingTemplate[];
+  onSave?: (groups: ApiProductComponentGroup[]) => void;
 }
 
 export interface IBundleEditConfigurationModalPayload
@@ -280,20 +276,15 @@ export interface IBundleEditConfigurationModalPayload
 }
 
 export interface IBundleEditTemplatesModalPayload extends IModalStackPayload {
-  pricingTemplates: PricingRuleTemplate[];
-  onSave?: (data: { pricingTemplates: PricingRuleTemplate[] }) => void;
-}
-
-export interface IBundleEditSettingsModalPayload extends IModalStackPayload {
-  settings: IBundleSettings;
-  onSave?: (settings: IBundleSettings) => void;
+  pricingTemplates: ApiProductComponentPricingTemplate[];
+  onSave?: (data: { pricingTemplates: ApiProductComponentPricingTemplate[] }) => void;
 }
 
 export interface IDependencyChartModalPayload extends IModalStackPayload {
-  groups: IBundleGroup[];
-  rules: IDependencyRule[];
+  groups: ApiProductComponentGroup[];
+  rules: ApiProductComponentDependencyRule[];
   selectedRuleId?: string;
-  onSave?: (rules: IDependencyRule[]) => void;
+  onSave?: (rules: ApiProductComponentDependencyRule[]) => void;
 }
 
 export interface IBundleItemVariantSettingsModalPayload
@@ -353,7 +344,6 @@ declare module '@/layouts/modals' {
     [PRODUCT_BUNDLE_EDIT_GROUPS_MODAL_TYPE]: IBundleEditGroupsModalPayload;
     [PRODUCT_BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE]: IBundleEditConfigurationModalPayload;
     [PRODUCT_BUNDLE_EDIT_TEMPLATES_MODAL_TYPE]: IBundleEditTemplatesModalPayload;
-    [PRODUCT_BUNDLE_EDIT_SETTINGS_MODAL_TYPE]: IBundleEditSettingsModalPayload;
     [PRODUCT_BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE]: IBundleItemVariantSettingsModalPayload;
     [PRODUCT_DEPENDENCY_CHART_MODAL_TYPE]: IDependencyChartModalPayload;
   }
@@ -548,9 +538,6 @@ export const useEditBundleConfigurationModal = createModalStackHook(
 );
 export const useEditBundleTemplatesModal = createModalStackHook(
   PRODUCT_BUNDLE_EDIT_TEMPLATES_MODAL_TYPE,
-);
-export const useEditBundleSettingsModal = createModalStackHook(
-  PRODUCT_BUNDLE_EDIT_SETTINGS_MODAL_TYPE,
 );
 export const useBundleItemVariantSettingsModal = createModalStackHook(
   PRODUCT_BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE,

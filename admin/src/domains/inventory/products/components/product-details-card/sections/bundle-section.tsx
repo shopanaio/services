@@ -1,14 +1,12 @@
 "use client";
 
 import type { KeyboardEvent, MouseEvent } from "react";
-import { App, Button, Dropdown, Flex, Tabs, Tag, Typography } from "antd";
+import { App, Button, Dropdown, Flex, Tabs, Typography } from "antd";
 import { LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined, LuGitBranch as PartitionOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
-import type { IBundleConfiguration } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import type { BundleType } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import type { ApiProductComponentConfiguration } from "@/graphql/types";
 import { createStyles } from "antd-style";
-import { BUNDLE_TYPE_CONFIG } from "./groups-section/constants";
 import { GroupsSection } from "./groups-section";
 import { DependencyRulesSection } from "./dependency-rules-section";
 
@@ -32,9 +30,8 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 interface IBundleSectionProps {
-  configurations: IBundleConfiguration[];
+  configurations: ApiProductComponentConfiguration[];
   activeConfigurationId: string;
-  bundleType?: BundleType | null;
   onConfigurationChange: (configurationId: string) => void;
   onCreateConfiguration: (sourceConfigurationId?: string) => void;
   onEditConfiguration: (configurationId: string) => void;
@@ -48,7 +45,6 @@ interface IBundleSectionProps {
 export const BundleSection = ({
   configurations,
   activeConfigurationId,
-  bundleType,
   onConfigurationChange,
   onCreateConfiguration,
   onEditConfiguration,
@@ -62,12 +58,12 @@ export const BundleSection = ({
   const { styles } = useStyles();
 
   const handleDeleteConfiguration = (
-    configuration: IBundleConfiguration,
+    configuration: ApiProductComponentConfiguration,
   ) => {
     if (configurations.length <= 1) return;
 
     modal.confirm({
-      title: `Delete ${configuration.title}?`,
+      title: `Delete ${configuration.name}?`,
       content: "This configuration will be removed from the bundle.",
       okText: "Delete",
       okType: "danger",
@@ -96,7 +92,9 @@ export const BundleSection = ({
     }
   };
 
-  const renderConfigurationMenu = (configuration: IBundleConfiguration) => (
+  const renderConfigurationMenu = (
+    configuration: ApiProductComponentConfiguration,
+  ) => (
     <span
       onClick={(event: MouseEvent<HTMLElement>) => event.stopPropagation()}
       onMouseDown={(event: MouseEvent<HTMLElement>) => event.stopPropagation()}
@@ -135,16 +133,7 @@ export const BundleSection = ({
 
   return (
     <Paper>
-      <PaperHeader
-        title="Bundle"
-        extra={
-          bundleType && BUNDLE_TYPE_CONFIG[bundleType] ? (
-            <Tag color={BUNDLE_TYPE_CONFIG[bundleType].color}>
-              {BUNDLE_TYPE_CONFIG[bundleType].label}
-            </Tag>
-          ) : undefined
-        }
-      />
+      <PaperHeader title="Bundle" />
       <Tabs
         type="editable-card"
         size="middle"
@@ -154,7 +143,7 @@ export const BundleSection = ({
         onEdit={handleEditConfigurations}
         items={configurations.map((configuration) => ({
           key: configuration.id,
-          label: configuration.title,
+          label: configuration.name,
           closable: true,
           closeIcon: renderConfigurationMenu(configuration),
           forceRender: true,
@@ -166,7 +155,7 @@ export const BundleSection = ({
                   <EditAction onEdit={onEditGroups} label="Edit bundle items" />
                 </Flex>
                 <GroupsSection
-                  groups={configuration.bundleItems}
+                  groups={configuration.groups}
                   onEdit={onEditGroups}
                 />
               </Flex>
@@ -201,7 +190,7 @@ export const BundleSection = ({
                 </Flex>
                 <DependencyRulesSection
                   dependencyRules={configuration.dependencyRules}
-                  groups={configuration.bundleItems}
+                  groups={configuration.groups}
                   onEditRule={onEditRule}
                 />
               </Flex>

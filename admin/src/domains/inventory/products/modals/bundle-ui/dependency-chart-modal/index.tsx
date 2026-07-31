@@ -20,9 +20,9 @@ import {
 } from "@/layouts/modals";
 import type { IDependencyChartModalPayload } from "@/domains/inventory/products/modals";
 import type {
-  IDependencyRule,
-  IBundleGroup,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+  ApiProductComponentDependencyRule,
+  ApiProductComponentGroup,
+} from "@/graphql/types";
 
 import { ItemNode, RuleNode, BundleNode, HubNode } from "./nodes";
 import { LabeledEdge } from "./edges";
@@ -55,10 +55,10 @@ const edgeTypes = {
 // ============================================================================
 
 interface IDependencyChartInnerProps {
-  groups: IBundleGroup[];
-  initialRules: IDependencyRule[];
+  groups: ApiProductComponentGroup[];
+  initialRules: ApiProductComponentDependencyRule[];
   selectedRuleId?: string;
-  onSave?: (rules: IDependencyRule[]) => void;
+  onSave?: (rules: ApiProductComponentDependencyRule[]) => void;
   onCancel: () => void;
 }
 
@@ -329,7 +329,7 @@ export const DependencyChartModal = () => {
     | undefined;
 
   const handleSave = useCallback(
-    (rules: IDependencyRule[]) => {
+    (rules: ApiProductComponentDependencyRule[]) => {
       modalPayload?.onSave?.(rules);
       pop();
     },

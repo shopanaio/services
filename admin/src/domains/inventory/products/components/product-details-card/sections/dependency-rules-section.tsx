@@ -7,10 +7,12 @@ import {
   Button } from "antd";
 import { LuChevronRight as RightOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
-import type { IBundleGroup } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import type { IDependencyRule } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules/types";
+import type {
+  ApiProductComponentDependencyRule,
+  ApiProductComponentGroup,
+} from "@/graphql/types";
+import type { ProductComponentDependencyTargetType } from "@/graphql/types";
 import {
-  DependencyTargetType,
   resolveTargetName,
   formatCondition,
   formatAction,
@@ -119,7 +121,7 @@ const useStyles = createStyles(({ token }) => ({
 
 interface IFlowBlockItem {
   key: string;
-  targetType: DependencyTargetType;
+  targetType: ProductComponentDependencyTargetType;
   name: string | null;
   description: string;
 }
@@ -161,8 +163,8 @@ const FlowBlock = ({
 // ============================================================================
 
 interface IDependencyRulesSectionProps {
-  dependencyRules: IDependencyRule[];
-  groups: IBundleGroup[];
+  dependencyRules: ApiProductComponentDependencyRule[];
+  groups: ApiProductComponentGroup[];
   onEditRule: (ruleId: string) => void;
 }
 

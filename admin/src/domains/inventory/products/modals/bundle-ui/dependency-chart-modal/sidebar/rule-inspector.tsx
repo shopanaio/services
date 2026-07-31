@@ -1,7 +1,6 @@
 "use client";
 
-import {
-  ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   Typography,
   Input,
@@ -14,19 +13,23 @@ import {
   Empty,
   Tag,
   Tooltip,
-  } from "antd";
+} from "antd";
 import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined, LuSquareCheckBig as CheckSquareOutlined, LuHash as NumberOutlined, LuListOrdered as OrderedListOutlined, LuCircleDollarSign as DollarOutlined, LuEye as EyeOutlined, LuZap as ThunderboltOutlined, LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 
-import type { IBundleGroup } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import type { IDependencyRule } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules/types";
+import type {
+  ApiProductComponentCondition,
+  ApiProductComponentDependencyRule,
+  ApiProductComponentGroup,
+} from "@/graphql/types";
 import {
-  DependencyActionType,
-  DependencyTargetType,
-  PRICE_RULE_OPTIONS,
-  } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+  ProductComponentConditionCategory,
+  ProductComponentConditionOperator,
+  ProductComponentConditionSubject,
+  ProductComponentDependencyActionType,
+  ProductComponentDependencyTargetType,
+} from "@/graphql/types";
+import { PRICE_RULE_OPTIONS } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import {
-  ConditionCategory,
-  ConditionSubject,
   ActionCategory,
   CONDITION_SUBJECT_META,
   CONDITION_SUBJECT_LABELS,
@@ -42,11 +45,12 @@ import {
   getOperatorLabel,
   getConditionChipLabel,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
-import type { IDependencyCondition } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules/types";
-import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
-  NavigableDropdown,
-} from "@/ui-kit/navigable-dropdown";
+  toApiPriceRule,
+  toEditorPriceRule,
+} from "@/domains/inventory/products/mappers/product-component-editor.mapper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { NavigableDropdown } from "@/ui-kit/navigable-dropdown";
 import type { IMenuLevel } from "@/ui-kit/navigable-dropdown/navigable-dropdown";
 
 import { useStyles } from "./rule-inspector.styles";
@@ -57,9 +61,9 @@ import { useRuleInspector, PRICE_TYPE_OPTIONS } from "./use-rule-inspector";
 // ============================================================================
 
 interface IRuleInspectorProps {
-  rule: IDependencyRule | null;
-  groups: IBundleGroup[];
-  onRuleChange: (rule: IDependencyRule) => void;
+  rule: ApiProductComponentDependencyRule | null;
+  groups: ApiProductComponentGroup[];
+  onRuleChange: (rule: ApiProductComponentDependencyRule) => void;
 }
 
 // ============================================================================
@@ -67,18 +71,19 @@ interface IRuleInspectorProps {
 // ============================================================================
 
 /** Check if a condition needs a value input */
-const conditionNeedsValue = (condition: IDependencyCondition): boolean => {
-  if (condition.category !== ConditionCategory.NUMERIC) return false;
+const conditionNeedsValue = (
+  condition: ApiProductComponentCondition,
+): boolean => {
+  if (condition.category !== ProductComponentConditionCategory.Numeric) return false;
   const meta = COMPARISON_OPERATOR_META[condition.operator];
   return meta?.requiresValue ?? false;
 };
 
-
 /** Icon maps for first-level menu items */
 const SUBJECT_ICONS: Record<string, ReactNode> = {
-  [ConditionSubject.ITEM_SELECTED]: <CheckSquareOutlined />,
-  [ConditionSubject.ITEM_QTY]: <NumberOutlined />,
-  [ConditionSubject.GROUP_TOTAL_QTY]: <OrderedListOutlined />,
+  [ProductComponentConditionSubject.ItemSelected]: <CheckSquareOutlined />,
+  [ProductComponentConditionSubject.ItemQty]: <NumberOutlined />,
+  [ProductComponentConditionSubject.GroupTotalQty]: <OrderedListOutlined />,
 };
 
 const CATEGORY_ICONS: Record<string, ReactNode> = {
@@ -89,61 +94,64 @@ const CATEGORY_ICONS: Record<string, ReactNode> = {
 
 /** Get display label for a target */
 const getTargetLabel = (
-  targetType: DependencyTargetType,
+  targetType: ProductComponentDependencyTargetType,
   targetId: string | undefined,
-  groups: IBundleGroup[],
+  groups: ApiProductComponentGroup[],
 ): string => {
-  if (targetType === DependencyTargetType.BUNDLE) return "Bundle";
-  if (targetType === DependencyTargetType.GROUP) {
+  if (targetType === ProductComponentDependencyTargetType.Configuration) return "Bundle";
+  if (targetType === ProductComponentDependencyTargetType.Group) {
     const group = groups.find((g) => g.id === targetId);
     return group?.title ?? targetId ?? "—";
   }
   for (const g of groups) {
     const item = g.items.find((i) => i.id === targetId);
-    if (item) return item.title ?? item.assignedProduct?.title ?? item.id;
+    if (item) return item.title ?? item.refProduct?.title ?? item.id;
   }
   return targetId ?? "—";
 };
 
 /** Build target selection levels: Item → items list, Group → groups list, Bundle → leaf */
 const buildTargetLevels = (
-  groups: IBundleGroup[],
-  onSelect: (targetType: DependencyTargetType, targetId: string) => void,
+  groups: ApiProductComponentGroup[],
+  onSelect: (targetType: ProductComponentDependencyTargetType, targetId: string) => void,
 ): IMenuLevel[] => [
   {
-    key: DependencyTargetType.ITEM,
+    key: ProductComponentDependencyTargetType.Item,
     label: "Item",
-    icon: CHART_NODE_ICONS[DependencyTargetType.ITEM],
+    icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Item],
     children: groups.flatMap((g) =>
       g.items.map((item) => ({
         key: item.id,
-        label: item.title ?? item.assignedProduct?.title ?? item.id,
-        onClick: () => onSelect(DependencyTargetType.ITEM, item.id),
+        label: item.title ?? item.refProduct?.title ?? item.id,
+        onClick: () => onSelect(ProductComponentDependencyTargetType.Item, item.id),
       })),
     ),
   },
   {
-    key: DependencyTargetType.GROUP,
+    key: ProductComponentDependencyTargetType.Group,
     label: "Group",
-    icon: CHART_NODE_ICONS[DependencyTargetType.GROUP],
+    icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Group],
     children: groups.map((g) => ({
       key: g.id,
       label: g.title,
-      onClick: () => onSelect(DependencyTargetType.GROUP, g.id),
+      onClick: () => onSelect(ProductComponentDependencyTargetType.Group, g.id),
     })),
   },
   {
-    key: DependencyTargetType.BUNDLE,
+    key: ProductComponentDependencyTargetType.Configuration,
     label: "Bundle",
-    icon: CHART_NODE_ICONS[DependencyTargetType.BUNDLE],
-    onClick: () => onSelect(DependencyTargetType.BUNDLE, ""),
+    icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Configuration],
+    onClick: () => onSelect(ProductComponentDependencyTargetType.Configuration, ""),
   },
 ];
 
 /** Build 2-level structure for condition subject→operator */
 const buildConditionLevels = (
-  targetType: DependencyTargetType,
-  onSelect: (subject: ConditionSubject, operator: string) => void,
+  targetType: ProductComponentDependencyTargetType,
+  onSelect: (
+    subject: ProductComponentConditionSubject,
+    operator: ProductComponentConditionOperator,
+  ) => void,
 ): IMenuLevel[] => {
   const subjects = SUBJECTS_BY_TARGET[targetType];
   return subjects.map((subject) => ({
@@ -160,8 +168,8 @@ const buildConditionLevels = (
 
 /** Build 2-level structure for action category→type */
 const buildActionLevels = (
-  targetType: DependencyTargetType,
-  onSelect: (actionType: DependencyActionType) => void,
+  targetType: ProductComponentDependencyTargetType,
+  onSelect: (actionType: ProductComponentDependencyActionType) => void,
 ): IMenuLevel[] => {
   const categories = CATEGORIES_BY_TARGET[targetType];
   return categories.map((cat) => ({
@@ -202,7 +210,7 @@ export const RuleInspector = ({
   } = useRuleInspector({ rule, groups, onRuleChange });
 
   // Get all conditions from all groups (flattened for display)
-  const allConditions: IDependencyCondition[] =
+  const allConditions: ApiProductComponentCondition[] =
     rule?.conditionGroups.flatMap((g) => g.conditions) ?? [];
 
   // Collapsed view
@@ -355,8 +363,8 @@ export const RuleInspector = ({
                           operator: firstOperator,
                           category:
                             subjectMeta?.category ??
-                            ConditionCategory.STATE_CHECK,
-                        } as Partial<IDependencyCondition>);
+                            ProductComponentConditionCategory.StateCheck,
+                        } as Partial<ApiProductComponentCondition>);
                       },
                     )}
                   >
@@ -394,7 +402,7 @@ export const RuleInspector = ({
                           subject,
                           operator,
                           category: subjectMeta.category,
-                        } as Partial<IDependencyCondition>);
+                        } as Partial<ApiProductComponentCondition>);
                       },
                     )}
                   >
@@ -408,7 +416,7 @@ export const RuleInspector = ({
                   {conditionNeedsValue(condition) && (
                     <InputNumber
                       value={
-                        condition.category === ConditionCategory.NUMERIC
+                        condition.category === ProductComponentConditionCategory.Numeric
                           ? condition.value
                           : undefined
                       }
@@ -468,8 +476,8 @@ export const RuleInspector = ({
                           targetType,
                           actionType: newActionType,
                           targetId:
-                            targetType === DependencyTargetType.BUNDLE
-                              ? undefined
+                            targetType === ProductComponentDependencyTargetType.Configuration
+                              ? ""
                               : targetId,
                         });
                       },
@@ -512,33 +520,49 @@ export const RuleInspector = ({
                 </div>
 
                 {/* Price-specific fields */}
-                {action.actionType === DependencyActionType.ADJUST_PRICE && (
+                {action.actionType === ProductComponentDependencyActionType.AdjustPrice && (
                   <div className={styles.conditionRow}>
                     <Select
-                      value={action.priceType}
+                      value={toEditorPriceRule(action.priceRule).priceType}
                       onChange={(value) =>
-                        handleUpdateAction(action.id, { priceType: value })
+                        handleUpdateAction(action.id, {
+                          priceRule: toApiPriceRule(
+                            {
+                              priceType: value,
+                              priceValue: toEditorPriceRule(action.priceRule).priceValue,
+                            },
+                            action.priceRule?.id ?? `${action.id}-price-rule`,
+                          ),
+                        })
                       }
                       options={PRICE_TYPE_OPTIONS}
                       size="small"
                       style={{ flex: 1 }}
                       placeholder="Price type"
                     />
-                    {action.priceType &&
+                    {toEditorPriceRule(action.priceRule).priceType &&
                       PRICE_RULE_OPTIONS.find(
-                        (o) => o.value === action.priceType,
+                        (o) => o.value === toEditorPriceRule(action.priceRule).priceType,
                       )?.requiresValue && (
                         <InputNumber
-                          value={action.priceValue ?? undefined}
+                          value={toEditorPriceRule(action.priceRule).priceValue ?? undefined}
                           onChange={(value) =>
-                            handleUpdateAction(action.id, { priceValue: value })
+                            handleUpdateAction(action.id, {
+                              priceRule: toApiPriceRule(
+                                {
+                                  priceType: toEditorPriceRule(action.priceRule).priceType,
+                                  priceValue: value,
+                                },
+                                action.priceRule?.id ?? `${action.id}-price-rule`,
+                              ),
+                            })
                           }
                           min={0}
                           size="small"
                           style={{ width: 80 }}
                           addonAfter={
                             PRICE_RULE_OPTIONS.find(
-                              (o) => o.value === action.priceType,
+                              (o) => o.value === toEditorPriceRule(action.priceRule).priceType,
                             )?.valueSuffix
                           }
                         />
@@ -547,7 +571,7 @@ export const RuleInspector = ({
                 )}
 
                 {/* Required field */}
-                {action.actionType === DependencyActionType.SET_REQUIRED && (
+                {action.actionType === ProductComponentDependencyActionType.SetRequired && (
                   <div className={styles.conditionRow}>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                       Required:

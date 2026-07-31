@@ -1,27 +1,20 @@
-import {
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  useEffect } from "react";
-import { useReactFlow,
-  useNodesState,
-  useEdgesState } from "@xyflow/react";
-import type { Node,
-  Edge } from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
+import type { Edge, Node } from "@xyflow/react";
 import { v4 as uuid } from "uuid";
 
-import type { IDependencyRule,
-  IBundleGroup } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import { LogicOperator,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
+import type {
+  ApiProductComponentDependencyRule,
+  ApiProductComponentGroup,
+} from "@/graphql/types";
+import { ProductComponentLogicOperator } from "@/graphql/types";
 import type { SelectedNode, ItemNodeData, BundleNodeData, RuleSortMode } from "../types";
 import { useDerivedGraph } from "./use-derived-graph";
 import { useColumnLayout } from "./use-column-layout";
 
 interface UseDependencyChartOptions {
-  groups: IBundleGroup[];
-  initialRules: IDependencyRule[];
+  groups: ApiProductComponentGroup[];
+  initialRules: ApiProductComponentDependencyRule[];
   initialSelectedRuleId?: string;
 }
 
@@ -33,7 +26,7 @@ export const useDependencyChart = ({
   const { fitView } = useReactFlow();
 
   // Draft state - changes don't affect parent until Save
-  const [draftRules, setDraftRules] = useState<IDependencyRule[]>(initialRules);
+  const [draftRules, setDraftRules] = useState<ApiProductComponentDependencyRule[]>(initialRules);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(
     initialSelectedRuleId ?? null
   );
@@ -64,14 +57,18 @@ export const useDependencyChart = ({
 
   const handleAddRule = useCallback(() => {
     const newRuleId = uuid();
-    const newRule: IDependencyRule = {
+    const now = new Date().toISOString();
+    const newRule: ApiProductComponentDependencyRule = {
+      __typename: "ProductComponentDependencyRule",
       id: newRuleId,
       name: `Rule ${draftRules.length + 1}`,
       enabled: true,
       priority: draftRules.length,
-      logicOperator: LogicOperator.AND,
+      logicOperator: ProductComponentLogicOperator.And,
       conditionGroups: [],
       actions: [],
+      createdAt: now,
+      updatedAt: now,
     };
 
     setDraftRules((prev) => [...prev, newRule]);
@@ -180,7 +177,7 @@ export const useDependencyChart = ({
     setSelectedNode(null);
   }, []);
 
-  const handleRuleChange = useCallback((updatedRule: IDependencyRule) => {
+  const handleRuleChange = useCallback((updatedRule: ApiProductComponentDependencyRule) => {
     setDraftRules((prev) =>
       prev.map((r) => (r.id === updatedRule.id ? updatedRule : r))
     );

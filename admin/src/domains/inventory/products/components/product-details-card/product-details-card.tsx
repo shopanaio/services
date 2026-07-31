@@ -22,7 +22,13 @@ import {
   BundleSection,
 } from "./sections";
 import { useProductModals } from "./hooks";
-import type { ApiProduct } from "@/graphql/types";
+import type {
+  ApiProduct,
+  ApiProductComponentConfiguration,
+  ApiProductComponentDependencyRule,
+  ApiProductComponentGroup,
+} from "@/graphql/types";
+import { ProductComponentLogicOperator } from "@/graphql/types";
 import type { IVariantsTableData } from "./types";
 import {
   getProductCategories,
@@ -34,20 +40,7 @@ import {
   useEditBundleConfigurationModal,
   useEditBundleGroupsModal,
 } from "@/domains/inventory/products/modals";
-import type {
-  IBundleConfiguration,
-  IBundleGroup,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import { BundleType } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import {
-  LogicOperator,
-  type IDependencyRule,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
 import { createProductComponentMockData } from "@/mocks/products/product-component";
-import {
-  toProductComponentEditorConfigurations,
-  toProductComponentEditorPricingTemplates,
-} from "../../mappers/product-component-editor.mapper";
 
 // ============================================================================
 // Main Component
@@ -85,15 +78,13 @@ export const ProductDetailsCard = ({
     () => createProductComponentMockData(product),
     [product],
   );
-  const renderedProductComponentConfigurations = useMemo(
-    () => toProductComponentEditorConfigurations(productComponentMockData),
-    [productComponentMockData],
-  );
   const [activeConfigurationId, setActiveConfigurationId] = useState(
-    renderedProductComponentConfigurations[0]?.id ?? "",
+    productComponentMockData.configurations[0]?.id ?? "",
   );
-  const [configurations, setConfigurations] = useState<IBundleConfiguration[]>(
-    renderedProductComponentConfigurations,
+  const [configurations, setConfigurations] = useState<
+    ApiProductComponentConfiguration[]
+  >(
+    productComponentMockData.configurations,
   );
   const activeConfiguration = useMemo(
     () =>
@@ -102,7 +93,7 @@ export const ProductDetailsCard = ({
       ) ?? configurations[0],
     [activeConfigurationId, configurations],
   );
-  const groups = activeConfiguration?.bundleItems ?? [];
+  const groups = activeConfiguration?.groups ?? [];
   const dependencyRules = activeConfiguration?.dependencyRules ?? [];
   const shouldRenderVariantsSection =
     !!variantsTableData &&
@@ -111,7 +102,9 @@ export const ProductDetailsCard = ({
   const handleEdit = (section: string) => onEditSection?.(section);
 
   const updateActiveConfiguration = useCallback(
-    (updater: (configuration: IBundleConfiguration) => IBundleConfiguration) => {
+    (updater: (
+      configuration: ApiProductComponentConfiguration,
+    ) => ApiProductComponentConfiguration) => {
       setConfigurations((currentConfigurations) =>
         currentConfigurations.map((configuration) =>
           configuration.id === activeConfiguration?.id
@@ -147,7 +140,7 @@ export const ProductDetailsCard = ({
 
             return [
               ...currentConfigurations,
-              { ...sourceConfiguration, id: newConfigurationId, title },
+              { ...sourceConfiguration, id: newConfigurationId, name: title },
             ];
           });
           setActiveConfigurationId(newConfigurationId);
@@ -170,12 +163,12 @@ export const ProductDetailsCard = ({
       if (!configuration) return;
 
       openEditConfigurationModal({
-        title: configuration.title,
+        title: configuration.name,
         modalTitle: "Edit Bundle Configuration",
         onSave: ({ title }: { title: string }) => {
           setConfigurations((currentConfigurations) =>
             currentConfigurations.map((item) =>
-              item.id === configurationId ? { ...item, title } : item,
+              item.id === configurationId ? { ...item, name: title } : item,
             ),
           );
         },
@@ -212,14 +205,11 @@ export const ProductDetailsCard = ({
   const handleEditGroups = useCallback(() => {
     openEditGroupsModal({
       groups,
-      pricingTemplates: toProductComponentEditorPricingTemplates(
-        productComponentMockData,
-        activeConfiguration?.id ?? "",
-      ),
-      onSave: (updatedGroups: IBundleGroup[]) => {
+      pricingTemplates: activeConfiguration?.pricingTemplates ?? [],
+      onSave: (updatedGroups: ApiProductComponentGroup[]) => {
         updateActiveConfiguration((configuration) => ({
           ...configuration,
-          bundleItems: updatedGroups,
+          groups: updatedGroups,
         }));
       },
     });
@@ -227,7 +217,7 @@ export const ProductDetailsCard = ({
     activeConfiguration?.id,
     groups,
     openEditGroupsModal,
-    productComponentMockData,
+    activeConfiguration?.pricingTemplates,
     updateActiveConfiguration,
   ]);
 
@@ -235,7 +225,7 @@ export const ProductDetailsCard = ({
     openDependencyChartModal({
       groups,
       rules: dependencyRules,
-      onSave: (updatedRules: IDependencyRule[]) => {
+      onSave: (updatedRules: ApiProductComponentDependencyRule[]) => {
         updateActiveConfiguration((configuration) => ({
           ...configuration,
           dependencyRules: updatedRules,
@@ -254,21 +244,25 @@ export const ProductDetailsCard = ({
       0,
       ...dependencyRules.map((rule) => rule.priority),
     );
-    const newRule: IDependencyRule = {
+    const now = new Date().toISOString();
+    const newRule: ApiProductComponentDependencyRule = {
+      __typename: "ProductComponentDependencyRule",
       id: `rule-${Date.now()}`,
       name: "",
       enabled: true,
       priority: maxPriority + 100,
-      logicOperator: LogicOperator.AND,
+      logicOperator: ProductComponentLogicOperator.And,
       conditionGroups: [],
       actions: [],
+      createdAt: now,
+      updatedAt: now,
     };
 
     openDependencyChartModal({
       groups,
       rules: [...dependencyRules, newRule],
       selectedRuleId: newRule.id,
-      onSave: (updatedRules: IDependencyRule[]) => {
+      onSave: (updatedRules: ApiProductComponentDependencyRule[]) => {
         updateActiveConfiguration((configuration) => ({
           ...configuration,
           dependencyRules: updatedRules,
@@ -288,7 +282,7 @@ export const ProductDetailsCard = ({
         groups,
         rules: dependencyRules,
         selectedRuleId: ruleId,
-        onSave: (updatedRules: IDependencyRule[]) => {
+        onSave: (updatedRules: ApiProductComponentDependencyRule[]) => {
           updateActiveConfiguration((configuration) => ({
             ...configuration,
             dependencyRules: updatedRules,
@@ -339,7 +333,6 @@ export const ProductDetailsCard = ({
       <BundleSection
         configurations={configurations}
         activeConfigurationId={activeConfiguration?.id ?? ""}
-        bundleType={BundleType.MixAndMatch}
         onConfigurationChange={setActiveConfigurationId}
         onCreateConfiguration={handleCreateConfiguration}
         onEditConfiguration={handleEditConfiguration}

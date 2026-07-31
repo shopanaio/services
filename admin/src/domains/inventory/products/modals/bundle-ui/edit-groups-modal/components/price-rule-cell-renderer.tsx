@@ -4,27 +4,28 @@ import { LuChevronDown as DownOutlined } from "react-icons/lu";
 import type { MenuProps } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { ITableRow } from "../types";
-import type {
-  PricingRuleTemplate,
-  BundleItem,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import type { ApiProductComponentPricingTemplate } from "@/graphql/types";
+import {
+  toEditorPriceRule,
+  type EditorPriceRule,
+} from "@/domains/inventory/products/mappers/product-component-editor.mapper";
 import { BundlePriceType, PRICE_RULE_OPTIONS } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
 import { Dash } from "@/shared/components/editor-grid";
 
 // Helper to determine if pricingRule is a template
 const isTemplate = (
-  rule: BundleItem["pricingRule"] | undefined,
-): rule is PricingRuleTemplate => {
-  return !!rule && "id" in rule && "name" in rule;
+  rule: ITableRow["pricingRule"],
+): rule is ApiProductComponentPricingTemplate => {
+  return !!rule && "priceRule" in rule && "name" in rule;
 };
 
 const TEMPLATE_PREFIX = "tpl:";
 
 export interface IPriceRuleCellRendererParams extends ICellRendererParams<ITableRow> {
-  pricingTemplates: PricingRuleTemplate[];
+  pricingTemplates: ApiProductComponentPricingTemplate[];
   onPriceRuleChange: (
     itemId: string,
-    pricingRule: BundleItem["pricingRule"],
+    pricingRule: ApiProductComponentPricingTemplate | EditorPriceRule,
   ) => void;
 }
 
@@ -87,7 +88,7 @@ export const PriceRuleCellRenderer = ({
       const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
 
       const prevValue = isTemplate(pricingRule)
-        ? pricingRule.priceValue
+        ? toEditorPriceRule(pricingRule.priceRule).priceValue
         : pricingRule.priceValue;
 
       onPriceRuleChange(data.id, {
@@ -138,8 +139,8 @@ export const PriceValueCellRenderer = ({
   const rule = data.pricingRule;
   if (!rule) return <Dash />;
 
-  const priceType = isTemplate(rule) ? rule.priceType : rule.priceType;
-  const priceValue = isTemplate(rule) ? rule.priceValue : rule.priceValue;
+  const editorRule = isTemplate(rule) ? toEditorPriceRule(rule.priceRule) : rule;
+  const { priceType, priceValue } = editorRule;
   const option = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
 
   if (!option?.requiresValue) return <Dash />;

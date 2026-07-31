@@ -1,22 +1,18 @@
 import {
-  DependencyActionType,
-  DependencyTargetType,
-  ActionCategory,
-  ComparisonOperator,
-  StateCheckOperator,
-  LogicOperator,
-  ConditionSubject,
-} from "./enums";
+  ProductComponentConditionOperator,
+  ProductComponentConditionSubject,
+  ProductComponentDependencyActionType,
+  ProductComponentDependencyTargetType,
+  ProductComponentLogicOperator,
+} from "@/graphql/types";
 
-// ============================================================================
-// Label Maps
-// ============================================================================
+import { ActionCategory } from "./enums";
 
-export const ACTION_TYPE_LABELS: Record<DependencyActionType, string> = {
-  [DependencyActionType.SHOW]: "show",
-  [DependencyActionType.HIDE]: "hide",
-  [DependencyActionType.SET_REQUIRED]: "set required",
-  [DependencyActionType.ADJUST_PRICE]: "adjust price",
+export const ACTION_TYPE_LABELS: Record<ProductComponentDependencyActionType, string> = {
+  [ProductComponentDependencyActionType.Show]: "show",
+  [ProductComponentDependencyActionType.Hide]: "hide",
+  [ProductComponentDependencyActionType.SetRequired]: "set required",
+  [ProductComponentDependencyActionType.AdjustPrice]: "adjust price",
 };
 
 export const ACTION_CATEGORY_LABELS: Record<ActionCategory, string> = {
@@ -25,69 +21,54 @@ export const ACTION_CATEGORY_LABELS: Record<ActionCategory, string> = {
   [ActionCategory.PRICE]: "Price",
 };
 
-export const TARGET_TYPE_LABELS: Record<DependencyTargetType, string> = {
-  [DependencyTargetType.ITEM]: "Item",
-  [DependencyTargetType.GROUP]: "Group",
-  [DependencyTargetType.BUNDLE]: "Bundle",
+export const TARGET_TYPE_LABELS: Record<ProductComponentDependencyTargetType, string> = {
+  [ProductComponentDependencyTargetType.Item]: "Item",
+  [ProductComponentDependencyTargetType.Group]: "Group",
+  [ProductComponentDependencyTargetType.Configuration]: "Bundle",
 };
 
-// ============================================================================
-// New System Labels
-// ============================================================================
-
-export const COMPARISON_OPERATOR_LABELS: Record<ComparisonOperator, string> = {
-  [ComparisonOperator.GTE]: ">=",
-  [ComparisonOperator.EQ]: "=",
-  [ComparisonOperator.LTE]: "<=",
+export const COMPARISON_OPERATOR_LABELS: Partial<Record<ProductComponentConditionOperator, string>> = {
+  [ProductComponentConditionOperator.Gte]: ">=",
+  [ProductComponentConditionOperator.Eq]: "=",
+  [ProductComponentConditionOperator.Lte]: "<=",
 };
 
-export const STATE_CHECK_LABELS: Record<StateCheckOperator, string> = {
-  [StateCheckOperator.IS_SELECTED]: "is selected",
-  [StateCheckOperator.IS_NOT_SELECTED]: "is not selected",
+export const STATE_CHECK_LABELS: Partial<Record<ProductComponentConditionOperator, string>> = {
+  [ProductComponentConditionOperator.IsSelected]: "is selected",
+  [ProductComponentConditionOperator.IsNotSelected]: "is not selected",
 };
 
-export const LOGIC_OPERATOR_LABELS: Record<LogicOperator, string> = {
-  [LogicOperator.AND]: "AND",
-  [LogicOperator.OR]: "OR",
+export const LOGIC_OPERATOR_LABELS: Record<ProductComponentLogicOperator, string> = {
+  [ProductComponentLogicOperator.And]: "AND",
+  [ProductComponentLogicOperator.Or]: "OR",
 };
 
-export const CONDITION_SUBJECT_LABELS: Record<ConditionSubject, string> = {
-  [ConditionSubject.ITEM_SELECTED]: "selection",
-  [ConditionSubject.ITEM_QTY]: "quantity",
-  [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
+export const CONDITION_SUBJECT_LABELS: Record<ProductComponentConditionSubject, string> = {
+  [ProductComponentConditionSubject.ItemSelected]: "selection",
+  [ProductComponentConditionSubject.ItemQty]: "quantity",
+  [ProductComponentConditionSubject.GroupTotalQty]: "total quantity",
 };
 
-// ============================================================================
-// Chip Display Phrases
-// ============================================================================
-
-/** Short subject names for chip display */
-export const SUBJECT_SHORT: Partial<Record<ConditionSubject, string>> = {
-  [ConditionSubject.ITEM_QTY]: "quantity",
-  [ConditionSubject.GROUP_TOTAL_QTY]: "quantity",
+export const SUBJECT_SHORT: Partial<Record<ProductComponentConditionSubject, string>> = {
+  [ProductComponentConditionSubject.ItemQty]: "quantity",
+  [ProductComponentConditionSubject.GroupTotalQty]: "quantity",
 };
 
-/** Grammatically correct verb phrases for comparison operators */
-export const OPERATOR_PHRASE: Record<ComparisonOperator, string> = {
-  [ComparisonOperator.GTE]: "is at least",
-  [ComparisonOperator.EQ]: "equals",
-  [ComparisonOperator.LTE]: "is at most",
+export const OPERATOR_PHRASE: Partial<Record<ProductComponentConditionOperator, string>> = {
+  [ProductComponentConditionOperator.Gte]: "is at least",
+  [ProductComponentConditionOperator.Eq]: "equals",
+  [ProductComponentConditionOperator.Lte]: "is at most",
 };
 
-/** Grammatically correct phrases for action chip display */
-export const ACTION_PHRASE: Record<DependencyActionType, string> = {
-  [DependencyActionType.SHOW]: "is shown",
-  [DependencyActionType.HIDE]: "is hidden",
-  [DependencyActionType.SET_REQUIRED]: "is required",
-  [DependencyActionType.ADJUST_PRICE]: "price adjust",
+export const ACTION_PHRASE: Record<ProductComponentDependencyActionType, string> = {
+  [ProductComponentDependencyActionType.Show]: "is shown",
+  [ProductComponentDependencyActionType.Hide]: "is hidden",
+  [ProductComponentDependencyActionType.SetRequired]: "is required",
+  [ProductComponentDependencyActionType.AdjustPrice]: "price adjust",
 };
 
-// ============================================================================
-// Target Type Colors
-// ============================================================================
-
-export const TARGET_TYPE_COLORS: Record<DependencyTargetType, string> = {
-  [DependencyTargetType.ITEM]: "blue",
-  [DependencyTargetType.GROUP]: "purple",
-  [DependencyTargetType.BUNDLE]: "gold",
+export const TARGET_TYPE_COLORS: Record<ProductComponentDependencyTargetType, string> = {
+  [ProductComponentDependencyTargetType.Item]: "blue",
+  [ProductComponentDependencyTargetType.Group]: "purple",
+  [ProductComponentDependencyTargetType.Configuration]: "gold",
 };

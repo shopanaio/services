@@ -1,83 +1,66 @@
-import { DependencyActionType, DependencyTargetType, ActionCategory } from "./enums";
+import {
+  ProductComponentDependencyActionType,
+  ProductComponentDependencyTargetType,
+} from "@/graphql/types";
+
+import { ActionCategory } from "./enums";
 import type { ActionMetadata } from "./types";
 
-// ============================================================================
-// Action Metadata
-// ============================================================================
-
-export const ACTION_META: Record<DependencyActionType, ActionMetadata> = {
-  [DependencyActionType.SHOW]: {
+export const ACTION_META: Record<ProductComponentDependencyActionType, ActionMetadata> = {
+  [ProductComponentDependencyActionType.Show]: {
     label: "show",
     description: "Make the target visible",
   },
-  [DependencyActionType.HIDE]: {
+  [ProductComponentDependencyActionType.Hide]: {
     label: "hide",
     description: "Hide the target from view",
   },
-  [DependencyActionType.SET_REQUIRED]: {
+  [ProductComponentDependencyActionType.SetRequired]: {
     label: "set required",
     description: "Make a group required or optional",
   },
-  [DependencyActionType.ADJUST_PRICE]: {
+  [ProductComponentDependencyActionType.AdjustPrice]: {
     label: "adjust price",
     requiresPriceType: true,
     description: "Modify the base price with a calculation",
   },
 };
 
-// ============================================================================
-// Actions by Category
-// ============================================================================
-
-export const ACTIONS_BY_CATEGORY: Record<ActionCategory, DependencyActionType[]> = {
+export const ACTIONS_BY_CATEGORY: Record<ActionCategory, ProductComponentDependencyActionType[]> = {
   [ActionCategory.VISIBILITY]: [
-    DependencyActionType.SHOW,
-    DependencyActionType.HIDE,
+    ProductComponentDependencyActionType.Show,
+    ProductComponentDependencyActionType.Hide,
   ],
-  [ActionCategory.SELECTION]: [
-    DependencyActionType.SET_REQUIRED,
-  ],
-  [ActionCategory.PRICE]: [
-    DependencyActionType.ADJUST_PRICE,
-  ],
+  [ActionCategory.SELECTION]: [ProductComponentDependencyActionType.SetRequired],
+  [ActionCategory.PRICE]: [ProductComponentDependencyActionType.AdjustPrice],
 };
 
-// ============================================================================
-// Valid Categories per Target Type
-// ============================================================================
-
-export const CATEGORIES_BY_TARGET: Record<DependencyTargetType, ActionCategory[]> = {
-  [DependencyTargetType.ITEM]: [
+export const CATEGORIES_BY_TARGET: Record<ProductComponentDependencyTargetType, ActionCategory[]> = {
+  [ProductComponentDependencyTargetType.Item]: [
     ActionCategory.VISIBILITY,
     ActionCategory.PRICE,
   ],
-  [DependencyTargetType.GROUP]: [
+  [ProductComponentDependencyTargetType.Group]: [
     ActionCategory.VISIBILITY,
     ActionCategory.SELECTION,
     ActionCategory.PRICE,
   ],
-  [DependencyTargetType.BUNDLE]: [
-    ActionCategory.PRICE,
-  ],
+  [ProductComponentDependencyTargetType.Configuration]: [ActionCategory.PRICE],
 };
 
-// ============================================================================
-// Valid Actions per Target Type (flat convenience map)
-// ============================================================================
-
-export const ACTIONS_BY_TARGET: Record<DependencyTargetType, DependencyActionType[]> = {
-  [DependencyTargetType.ITEM]: [
-    DependencyActionType.SHOW,
-    DependencyActionType.HIDE,
-    DependencyActionType.ADJUST_PRICE,
+export const ACTIONS_BY_TARGET: Record<ProductComponentDependencyTargetType, ProductComponentDependencyActionType[]> = {
+  [ProductComponentDependencyTargetType.Item]: [
+    ProductComponentDependencyActionType.Show,
+    ProductComponentDependencyActionType.Hide,
+    ProductComponentDependencyActionType.AdjustPrice,
   ],
-  [DependencyTargetType.GROUP]: [
-    DependencyActionType.SHOW,
-    DependencyActionType.HIDE,
-    DependencyActionType.SET_REQUIRED,
-    DependencyActionType.ADJUST_PRICE,
+  [ProductComponentDependencyTargetType.Group]: [
+    ProductComponentDependencyActionType.Show,
+    ProductComponentDependencyActionType.Hide,
+    ProductComponentDependencyActionType.SetRequired,
+    ProductComponentDependencyActionType.AdjustPrice,
   ],
-  [DependencyTargetType.BUNDLE]: [
-    DependencyActionType.ADJUST_PRICE,
+  [ProductComponentDependencyTargetType.Configuration]: [
+    ProductComponentDependencyActionType.AdjustPrice,
   ],
 };

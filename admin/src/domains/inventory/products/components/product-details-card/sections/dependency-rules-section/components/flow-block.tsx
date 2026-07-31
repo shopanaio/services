@@ -3,7 +3,7 @@
 import {
   Typography,
   Tag } from "antd";
-import type { DependencyTargetType } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules/enums";
+import type { ProductComponentDependencyTargetType } from "@/graphql/types";
 import {
   TARGET_TYPE_COLORS,
   CHART_NODE_ICONS,
@@ -12,7 +12,7 @@ import { useStyles } from "../styles";
 
 export interface IFlowBlockItem {
   key: string;
-  targetType: DependencyTargetType;
+  targetType: ProductComponentDependencyTargetType;
   name: string | null;
   description: string;
 }

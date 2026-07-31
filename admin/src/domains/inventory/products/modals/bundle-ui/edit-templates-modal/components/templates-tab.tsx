@@ -19,11 +19,16 @@ import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuPencil as EditOut
 import type { ColumnsType } from "antd/es/table";
 
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import type { ApiProductComponentPricingTemplate } from "@/graphql/types";
 import {
   BundlePriceType,
-  type PricingRuleTemplate,
   PRICE_RULE_OPTIONS,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import {
+  toApiPriceRule,
+  toEditorPriceRule,
+  type EditorPriceRule,
+} from "@/domains/inventory/products/mappers/product-component-editor.mapper";
 
 // ============================================================================
 // Styles
@@ -55,11 +60,13 @@ const useStyles = createStyles(() => ({
 // ============================================================================
 
 interface ITemplatesTabProps {
-  pricingTemplates: PricingRuleTemplate[];
-  onPricingTemplatesChange: (templates: PricingRuleTemplate[]) => void;
+  pricingTemplates: ApiProductComponentPricingTemplate[];
+  onPricingTemplatesChange: (templates: ApiProductComponentPricingTemplate[]) => void;
 }
 
-interface IEditingTemplate extends PricingRuleTemplate {
+interface IEditingTemplate extends EditorPriceRule {
+  id: string;
+  name: string;
   isNew?: boolean;
 }
 
@@ -100,15 +107,29 @@ export const TemplatesTab = ({
     setEditingTemplate(newTemplate);
   }, []);
 
-  const handleEditTemplate = useCallback((template: PricingRuleTemplate) => {
+  const handleEditTemplate = useCallback((template: ApiProductComponentPricingTemplate) => {
     setEditingTemplateId(template.id);
-    setEditingTemplate({ ...template });
+    setEditingTemplate({
+      id: template.id,
+      name: template.name,
+      ...toEditorPriceRule(template.priceRule),
+    });
   }, []);
 
   const handleSaveTemplate = useCallback(() => {
     if (!editingTemplate || !editingTemplate.name.trim()) return;
 
-    const { isNew, ...templateData } = editingTemplate;
+    const { isNew, priceType, priceValue, ...identity } = editingTemplate;
+    const existing = pricingTemplates.find(({ id }) => id === identity.id);
+    const templateData: ApiProductComponentPricingTemplate = {
+      __typename: "ProductComponentPricingTemplate",
+      sortIndex: existing?.sortIndex ?? pricingTemplates.length,
+      ...identity,
+      priceRule: toApiPriceRule(
+        { priceType, priceValue },
+        existing?.priceRule.id ?? `${identity.id}-price-rule`,
+      ),
+    };
 
     if (isNew) {
       onPricingTemplatesChange([...pricingTemplates, templateData]);
@@ -137,7 +158,7 @@ export const TemplatesTab = ({
   // ========================================
   // Templates Table Columns
   // ========================================
-  const templateColumns: ColumnsType<PricingRuleTemplate> = useMemo(
+  const templateColumns: ColumnsType<ApiProductComponentPricingTemplate> = useMemo(
     () => [
       {
         title: "Name",
@@ -187,8 +208,9 @@ export const TemplatesTab = ({
               />
             );
           }
-          const option = PRICE_RULE_OPTIONS.find((o) => o.value === record.priceType);
-          return option?.label ?? record.priceType;
+          const editorRule = toEditorPriceRule(record.priceRule);
+          const option = PRICE_RULE_OPTIONS.find((o) => o.value === editorRule.priceType);
+          return option?.label ?? editorRule.priceType;
         },
       },
       {
@@ -197,7 +219,8 @@ export const TemplatesTab = ({
         key: "priceValue",
         width: 100,
         render: (_, record) => {
-          const option = PRICE_RULE_OPTIONS.find((o) => o.value === record.priceType);
+          const editorRule = toEditorPriceRule(record.priceRule);
+          const option = PRICE_RULE_OPTIONS.find((o) => o.value === editorRule.priceType);
           const requiresValue = option?.requiresValue;
 
           if (editingTemplateId === record.id && editingTemplate) {
@@ -217,13 +240,13 @@ export const TemplatesTab = ({
             );
           }
 
-          if (!requiresValue || record.priceValue === null) {
+          if (!requiresValue || editorRule.priceValue === null) {
             return <Typography.Text type="secondary">—</Typography.Text>;
           }
 
           return (
             <Tag className={styles.priceTag}>
-              {record.priceValue}
+              {editorRule.priceValue}
               {option?.valueSuffix}
             </Tag>
           );
@@ -291,7 +314,19 @@ export const TemplatesTab = ({
   // ========================================
   const templateDataSource = useMemo(() => {
     if (editingTemplate?.isNew) {
-      return [...pricingTemplates, editingTemplate];
+      return [
+        ...pricingTemplates,
+        {
+          __typename: "ProductComponentPricingTemplate" as const,
+          id: editingTemplate.id,
+          name: editingTemplate.name,
+          sortIndex: pricingTemplates.length,
+          priceRule: toApiPriceRule(
+            editingTemplate,
+            `${editingTemplate.id}-price-rule`,
+          ),
+        },
+      ];
     }
     return pricingTemplates;
   }, [pricingTemplates, editingTemplate]);

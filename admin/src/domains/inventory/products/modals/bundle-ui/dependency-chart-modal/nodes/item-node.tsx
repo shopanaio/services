@@ -91,45 +91,21 @@ const useStyles = createStyles(({ token }) => ({
 // Helpers
 // ============================================================================
 
-interface ItemWithProduct {
-  title?: string | null;
-  assignedProduct?: {
-    title?: string | null;
-    featuredImage?: { url?: string | null } | null;
-  } | null;
-  assignedVariant?: {
-    title?: string | null;
-    featuredImage?: { url?: string | null } | null;
-    product?: {
-      title?: string | null;
-      featuredImage?: { url?: string | null } | null;
-    } | null;
-  } | null;
-  featuredImage?: { url?: string | null } | null;
-}
+const getProductTitle = (item: ItemNodeData["item"]): string =>
+  "refProduct" in item
+    ? item.title ?? item.refProduct?.title ?? item.refVariant?.product?.title ?? "Unnamed"
+    : item.title;
 
-const getProductTitle = (item: ItemWithProduct): string => {
-  return (
-    item.title ??
-    item.assignedProduct?.title ??
-    item.assignedVariant?.product?.title ??
-    "Unnamed"
-  );
-};
+const getVariantTitle = (item: ItemNodeData["item"]): string | undefined =>
+  "refVariant" in item ? (item.refVariant?.title ?? undefined) : undefined;
 
-const getVariantTitle = (item: ItemWithProduct): string | undefined => {
-  return item.assignedVariant?.title ?? undefined;
-};
-
-const getImageUrl = (item: ItemWithProduct): string | undefined => {
-  return (
-    item.featuredImage?.url ??
-    item.assignedProduct?.featuredImage?.url ??
-    item.assignedVariant?.featuredImage?.url ??
-    item.assignedVariant?.product?.featuredImage?.url ??
-    undefined
-  );
-};
+const getImageUrl = (item: ItemNodeData["item"]): string | undefined =>
+  "featuredImage" in item
+    ? item.featuredImage?.url ??
+      item.refVariant?.media?.[0]?.file?.url ??
+      item.refProduct?.media?.[0]?.file?.url ??
+      undefined
+    : undefined;
 
 // ============================================================================
 // Component
@@ -141,9 +117,9 @@ const ItemNodeComponent = ({ data, selected }: ItemNodeProps) => {
   const { styles, cx } = useStyles();
   const { item, groupTitle, position: nodePosition, isGroup, isDimmed, isHighlighted } = data;
 
-  const productTitle = getProductTitle(item as ItemWithProduct);
-  const variantTitle = !isGroup ? getVariantTitle(item as ItemWithProduct) : undefined;
-  const imageUrl = !isGroup ? getImageUrl(item as ItemWithProduct) : undefined;
+  const productTitle = getProductTitle(item);
+  const variantTitle = !isGroup ? getVariantTitle(item) : undefined;
+  const imageUrl = !isGroup ? getImageUrl(item) : undefined;
 
   // Source: right handle only (to hub)
   // Target: left handle only (from hub)

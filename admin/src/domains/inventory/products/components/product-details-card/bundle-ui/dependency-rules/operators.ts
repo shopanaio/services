@@ -1,62 +1,46 @@
 import {
-  ComparisonOperator,
-  StateCheckOperator,
-  DependencyTargetType,
-  ConditionSubject,
-} from "./enums";
+  ProductComponentConditionOperator,
+  ProductComponentConditionSubject,
+  ProductComponentDependencyTargetType,
+} from "@/graphql/types";
+
 import type { OperatorMetadata } from "./types";
 
-// ============================================================================
-// Comparison Operator Metadata
-// ============================================================================
-
-export const COMPARISON_OPERATOR_META: Record<ComparisonOperator, OperatorMetadata> = {
-  [ComparisonOperator.GTE]: { label: "at least", symbol: ">=", requiresValue: true },
-  [ComparisonOperator.EQ]: { label: "equals", symbol: "=", requiresValue: true },
-  [ComparisonOperator.LTE]: { label: "at most", symbol: "<=", requiresValue: true },
+export const COMPARISON_OPERATOR_META: Partial<Record<ProductComponentConditionOperator, OperatorMetadata>> = {
+  [ProductComponentConditionOperator.Gte]: { label: "at least", symbol: ">=", requiresValue: true },
+  [ProductComponentConditionOperator.Eq]: { label: "equals", symbol: "=", requiresValue: true },
+  [ProductComponentConditionOperator.Lte]: { label: "at most", symbol: "<=", requiresValue: true },
 };
 
-// ============================================================================
-// State Check Operator Metadata
-// ============================================================================
-
-export const STATE_CHECK_OPERATOR_META: Record<StateCheckOperator, OperatorMetadata> = {
-  [StateCheckOperator.IS_SELECTED]: { label: "is selected", symbol: "=1", requiresValue: false },
-  [StateCheckOperator.IS_NOT_SELECTED]: { label: "is not selected", symbol: "=0", requiresValue: false },
+export const STATE_CHECK_OPERATOR_META: Partial<Record<ProductComponentConditionOperator, OperatorMetadata>> = {
+  [ProductComponentConditionOperator.IsSelected]: { label: "is selected", symbol: "=1", requiresValue: false },
+  [ProductComponentConditionOperator.IsNotSelected]: { label: "is not selected", symbol: "=0", requiresValue: false },
 };
 
-// ============================================================================
-// Valid Operators per Subject
-// ============================================================================
-
-export const OPERATORS_BY_SUBJECT: Record<ConditionSubject, (ComparisonOperator | StateCheckOperator)[]> = {
-  [ConditionSubject.ITEM_SELECTED]: [
-    StateCheckOperator.IS_SELECTED,
-    StateCheckOperator.IS_NOT_SELECTED,
+export const OPERATORS_BY_SUBJECT: Record<ProductComponentConditionSubject, ProductComponentConditionOperator[]> = {
+  [ProductComponentConditionSubject.ItemSelected]: [
+    ProductComponentConditionOperator.IsSelected,
+    ProductComponentConditionOperator.IsNotSelected,
   ],
-  [ConditionSubject.ITEM_QTY]: [
-    ComparisonOperator.GTE,
-    ComparisonOperator.EQ,
-    ComparisonOperator.LTE,
+  [ProductComponentConditionSubject.ItemQty]: [
+    ProductComponentConditionOperator.Gte,
+    ProductComponentConditionOperator.Eq,
+    ProductComponentConditionOperator.Lte,
   ],
-  [ConditionSubject.GROUP_TOTAL_QTY]: [
-    ComparisonOperator.GTE,
-    ComparisonOperator.EQ,
-    ComparisonOperator.LTE,
+  [ProductComponentConditionSubject.GroupTotalQty]: [
+    ProductComponentConditionOperator.Gte,
+    ProductComponentConditionOperator.Eq,
+    ProductComponentConditionOperator.Lte,
   ],
 };
 
-// ============================================================================
-// Valid Subjects per Target Type
-// ============================================================================
-
-export const SUBJECTS_BY_TARGET: Record<DependencyTargetType, ConditionSubject[]> = {
-  [DependencyTargetType.ITEM]: [
-    ConditionSubject.ITEM_SELECTED,
-    ConditionSubject.ITEM_QTY,
+export const SUBJECTS_BY_TARGET: Record<ProductComponentDependencyTargetType, ProductComponentConditionSubject[]> = {
+  [ProductComponentDependencyTargetType.Item]: [
+    ProductComponentConditionSubject.ItemSelected,
+    ProductComponentConditionSubject.ItemQty,
   ],
-  [DependencyTargetType.GROUP]: [
-    ConditionSubject.GROUP_TOTAL_QTY,
+  [ProductComponentDependencyTargetType.Group]: [
+    ProductComponentConditionSubject.GroupTotalQty,
   ],
-  [DependencyTargetType.BUNDLE]: [],
+  [ProductComponentDependencyTargetType.Configuration]: [],
 };

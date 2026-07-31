@@ -1,17 +1,17 @@
-import {
-  useMemo } from "react";
+import { useMemo } from "react";
 import { useTheme } from "antd-style";
 import { MarkerType } from "@xyflow/react";
 
-import type { IBundleGroup } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
-import type { IDependencyRule,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules/types";
+import type {
+  ApiProductComponentCondition,
+  ApiProductComponentDependencyRule,
+  ApiProductComponentGroup,
+} from "@/graphql/types";
+import { ProductComponentDependencyTargetType } from "@/graphql/types";
 import {
-  DependencyTargetType,
   formatCondition,
   formatAction,
 } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
-import type { IDependencyCondition } from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules/types";
 import type {
   ChartNode,
   ChartEdge,
@@ -27,8 +27,8 @@ import type {
 // ============================================================================
 
 interface UseDerivedGraphOptions {
-  groups: IBundleGroup[];
-  rules: IDependencyRule[];
+  groups: ApiProductComponentGroup[];
+  rules: ApiProductComponentDependencyRule[];
   selectedRuleId: string | null;
   sortMode: RuleSortMode;
 }
@@ -55,7 +55,7 @@ export const useDerivedGraph = ({
     const actionColor = theme.colorSuccess;
 
     // Helper: flatten all conditions from a rule's condition groups
-    const getAllConditions = (rule: IDependencyRule): IDependencyCondition[] =>
+    const getAllConditions = (rule: ApiProductComponentDependencyRule): ApiProductComponentCondition[] =>
       rule.conditionGroups.flatMap((g) => g.conditions);
 
     // 1. First pass: collect which items/groups are used as sources (conditions) and targets (actions)
@@ -68,24 +68,24 @@ export const useDerivedGraph = ({
 
     rules.forEach((rule) => {
       getAllConditions(rule).forEach((condition) => {
-        if (condition.targetType === DependencyTargetType.ITEM && condition.targetId) {
+        if (condition.targetType === ProductComponentDependencyTargetType.Item && condition.targetId) {
           sourceItemIds.add(condition.targetId);
         }
-        if (condition.targetType === DependencyTargetType.GROUP && condition.targetId) {
+        if (condition.targetType === ProductComponentDependencyTargetType.Group && condition.targetId) {
           sourceGroupIds.add(condition.targetId);
         }
-        if (condition.targetType === DependencyTargetType.BUNDLE) {
+        if (condition.targetType === ProductComponentDependencyTargetType.Configuration) {
           hasBundleSource = true;
         }
       });
       rule.actions.forEach((action) => {
-        if (action.targetType === DependencyTargetType.ITEM && action.targetId) {
+        if (action.targetType === ProductComponentDependencyTargetType.Item && action.targetId) {
           targetItemIds.add(action.targetId);
         }
-        if (action.targetType === DependencyTargetType.GROUP && action.targetId) {
+        if (action.targetType === ProductComponentDependencyTargetType.Group && action.targetId) {
           targetGroupIds.add(action.targetId);
         }
-        if (action.targetType === DependencyTargetType.BUNDLE) {
+        if (action.targetType === ProductComponentDependencyTargetType.Configuration) {
           hasBundleTarget = true;
         }
       });
@@ -253,14 +253,14 @@ export const useDerivedGraph = ({
     // Multiple rules can share the same hub.
 
     // Helper to get source node ID for a condition
-    const getConditionSourceNodeId = (condition: IDependencyCondition): string | null => {
-      if (!condition.targetId && condition.targetType !== DependencyTargetType.BUNDLE) return null;
+    const getConditionSourceNodeId = (condition: ApiProductComponentCondition): string | null => {
+      if (!condition.targetId && condition.targetType !== ProductComponentDependencyTargetType.Configuration) return null;
 
-      if (condition.targetType === DependencyTargetType.ITEM) {
+      if (condition.targetType === ProductComponentDependencyTargetType.Item) {
         return duplicatedItemIds.has(condition.targetId!)
           ? `item:${condition.targetId}:source`
           : `item:${condition.targetId}`;
-      } else if (condition.targetType === DependencyTargetType.GROUP) {
+      } else if (condition.targetType === ProductComponentDependencyTargetType.Group) {
         return duplicatedGroupIds.has(condition.targetId!)
           ? `group:${condition.targetId}:source`
           : `group:${condition.targetId}`;
@@ -271,9 +271,9 @@ export const useDerivedGraph = ({
 
     // Helper to get target node ID for an action
     const getActionTargetNodeId = (action: typeof rules[0]["actions"][0]): string | null => {
-      if (action.targetType === DependencyTargetType.BUNDLE) {
+      if (action.targetType === ProductComponentDependencyTargetType.Configuration) {
         return "bundle:main";
-      } else if (action.targetType === DependencyTargetType.ITEM) {
+      } else if (action.targetType === ProductComponentDependencyTargetType.Item) {
         if (!action.targetId) return null;
         return duplicatedItemIds.has(action.targetId)
           ? `item:${action.targetId}:target`

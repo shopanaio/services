@@ -2,13 +2,13 @@
 
 import { Typography, Tag } from "antd";
 import { LuLockKeyhole as LockOutlined, LuLockOpen as UnlockOutlined, LuCircleCheck as CheckCircleOutlined, LuSquareCheckBig as CheckSquareOutlined } from "react-icons/lu";
-import type { IBundleGroup } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import type { ApiProductComponentGroup } from "@/graphql/types";
 import { getSelectionLabel } from "../helpers";
 import { useStyles } from "../styles";
 import { BundleItemRow } from "./bundle-item-row";
 
 interface IGroupLaneProps {
-  group: IBundleGroup;
+  group: ApiProductComponentGroup;
   onClick?: () => void;
 }
 

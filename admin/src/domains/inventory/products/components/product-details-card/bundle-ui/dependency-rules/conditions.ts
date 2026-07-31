@@ -1,31 +1,27 @@
 import {
-  ConditionCategory,
-  ConditionSubject,
-} from "./enums";
-
-// ============================================================================
-// Condition Subject Metadata
-// ============================================================================
+  ProductComponentConditionCategory,
+  ProductComponentConditionSubject,
+} from "@/graphql/types";
 
 export interface ConditionSubjectMetadata {
-  category: ConditionCategory;
+  category: ProductComponentConditionCategory;
   label: string;
   description: string;
 }
 
-export const CONDITION_SUBJECT_META: Record<ConditionSubject, ConditionSubjectMetadata> = {
-  [ConditionSubject.ITEM_SELECTED]: {
-    category: ConditionCategory.STATE_CHECK,
+export const CONDITION_SUBJECT_META: Record<ProductComponentConditionSubject, ConditionSubjectMetadata> = {
+  [ProductComponentConditionSubject.ItemSelected]: {
+    category: ProductComponentConditionCategory.StateCheck,
     label: "selection",
     description: "Whether the item is selected",
   },
-  [ConditionSubject.ITEM_QTY]: {
-    category: ConditionCategory.NUMERIC,
+  [ProductComponentConditionSubject.ItemQty]: {
+    category: ProductComponentConditionCategory.Numeric,
     label: "quantity",
     description: "Item quantity",
   },
-  [ConditionSubject.GROUP_TOTAL_QTY]: {
-    category: ConditionCategory.NUMERIC,
+  [ProductComponentConditionSubject.GroupTotalQty]: {
+    category: ProductComponentConditionCategory.Numeric,
     label: "total quantity",
     description: "Sum of quantities across all items in group",
   },
