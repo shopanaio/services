@@ -1,0 +1,206 @@
+mutation ProductComponentUpdate(
+  $productId: ID!
+  $expectedRevision: Int
+  $operations: ProductUpdateInput
+) {
+  catalogMutation {
+    productUpdate(
+      productId: $productId
+      expectedRevision: $expectedRevision
+      operations: $operations
+    ) {
+      product {
+        id
+        revision
+        productComponent {
+          ...ProductComponentFields
+        }
+      }
+      operationResults {
+        type
+        applied
+        clientMutationId
+        entityId
+        errors {
+          message
+          code
+          field
+        }
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}
+
+fragment ProductComponentFields on ProductComponent {
+  id
+  product {
+    id
+    handle
+    title
+  }
+  displayStyle
+  configurations {
+    id
+    product {
+      id
+      handle
+      title
+    }
+    name
+    variants {
+      id
+      handle
+      title
+    }
+    groups {
+      id
+      sortIndex
+      title
+      minSelection
+      maxSelection
+      items {
+        id
+        group {
+          id
+        }
+        itemType
+        sortIndex
+        refProduct {
+          id
+          handle
+          title
+        }
+        refVariant {
+          id
+          handle
+          title
+        }
+        featuredImage {
+          id
+          originalName
+          url
+        }
+        minQty
+        maxQty
+        defaultQty
+        priceRule {
+          ...ProductComponentPriceRuleFields
+        }
+        pricingTemplate {
+          id
+          name
+          sortIndex
+          priceRule {
+            ...ProductComponentPriceRuleFields
+          }
+        }
+        optionSelections {
+          id
+          option {
+            id
+            name
+            slug
+          }
+          parentOption {
+            id
+            name
+            slug
+          }
+          values {
+            id
+            optionValue {
+              id
+              name
+              slug
+            }
+            value
+            status
+            sortIndex
+          }
+          sortIndex
+        }
+        title
+        visible
+        selected
+        createdAt
+        updatedAt
+      }
+      createdAt
+      updatedAt
+    }
+    pricingTemplates {
+      id
+      name
+      priceRule {
+        ...ProductComponentPriceRuleFields
+      }
+      sortIndex
+    }
+    dependencyRules {
+      id
+      name
+      enabled
+      priority
+      logicOperator
+      conditionGroups {
+        id
+        logicOperator
+        conditions {
+          id
+          category
+          subject
+          operator
+          targetType
+          targetId
+          value
+          sortIndex
+        }
+        sortIndex
+      }
+      actions {
+        id
+        actionType
+        targetType
+        targetId
+        requiredValue
+        priceRule {
+          ...ProductComponentPriceRuleFields
+        }
+        stackable
+        sortIndex
+      }
+      createdAt
+      updatedAt
+    }
+    createdAt
+    updatedAt
+  }
+  createdAt
+  updatedAt
+}
+
+fragment ProductComponentPriceRuleFields on ProductComponentPriceRule {
+  __typename
+  id
+  strategy
+  ... on ProductComponentAdjustmentPriceRule {
+    operation
+    valueType
+    amounts {
+      currency
+      amountMinor
+    }
+    percentageBps
+  }
+  ... on ProductComponentOverridePriceRule {
+    amounts {
+      currency
+      amountMinor
+    }
+  }
+}

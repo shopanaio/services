@@ -135,6 +135,8 @@ export type GraphQLFileName =
   | 'inventory-api/ProductBulkUpdateJobs'
   | 'inventory-api/ProductCreate'
   | 'inventory-api/ProductCreateSimple'
+  | 'inventory-api/ProductComponentFindOne'
+  | 'inventory-api/ProductComponentUpdate'
   | 'inventory-api/ProductDelete'
   | 'inventory-api/ProductFindMany'
   | 'inventory-api/ProductFindOne'
