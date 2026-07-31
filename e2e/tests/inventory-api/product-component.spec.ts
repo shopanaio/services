@@ -1020,7 +1020,7 @@ test.describe('Product Component API', () => {
         expectedRevision: previousRevision,
         operations: {
           components: [
-            { action: 'SETTINGS_UPDATE', displayStyle: 'LIST' },
+            { action: 'SETTINGS_UPDATE', displayStyle: 'FLAT' },
             {
               action: 'GROUPS_SYNC',
               configurationId: configuration.id,
@@ -1055,7 +1055,7 @@ test.describe('Product Component API', () => {
     });
     expect(result.product?.revision).toBe(previousRevision + 1);
     expect(result.product?.productComponent).toMatchObject({
-      displayStyle: 'LIST',
+      displayStyle: 'FLAT',
       configurations: [
         expect.objectContaining({
           id: configuration.id,
