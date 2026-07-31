@@ -33,7 +33,7 @@ export class ResolverError extends Error {
 
   constructor(
     message: string,
-    options: { cause?: unknown; field: string; type: string }
+    options: { cause?: unknown; field: string; type: string },
   ) {
     super(message);
     this.name = "ResolverError";
@@ -65,7 +65,7 @@ export class Executor<TContext = unknown> {
    * Returns null if any middleware returns null (short-circuit).
    */
   private async runAfterCreate(
-    ctx: AfterCreateContext<TContext>
+    ctx: AfterCreateContext<TContext>,
   ): Promise<MiddlewareResult> {
     for (const mw of this.middleware) {
       if (mw.afterCreate) {
@@ -82,7 +82,7 @@ export class Executor<TContext = unknown> {
    * Returns null if any middleware returns null (short-circuit).
    */
   private async runAfterLoad(
-    ctx: AfterLoadContext<TContext>
+    ctx: AfterLoadContext<TContext>,
   ): Promise<MiddlewareResult> {
     for (const mw of this.middleware) {
       if (mw.afterLoad) {
@@ -105,7 +105,7 @@ export class Executor<TContext = unknown> {
    */
   async load<T extends BaseType<unknown, unknown, TContext>>(
     instance: T,
-    query?: QueryArgs
+    query?: QueryArgs,
   ): Promise<InstanceResult<T>> {
     try {
       return await this.loadInstance(instance, query);
@@ -120,7 +120,7 @@ export class Executor<TContext = unknown> {
 
   private async loadInstance<T extends BaseType<unknown, unknown, TContext>>(
     instance: T,
-    query?: QueryArgs
+    query?: QueryArgs,
   ): Promise<InstanceResult<T>> {
     const Type = instance.constructor as TypeClass;
     const value = (instance as any).$props;
@@ -140,7 +140,11 @@ export class Executor<TContext = unknown> {
       return null as unknown as InstanceResult<T>;
     }
 
-    const result: Record<string, unknown> = {};
+    const instanceTypeName = (instance as { __typename?: unknown }).__typename;
+    const result: Record<string, unknown> =
+      typeof instanceTypeName === "string"
+        ? { __typename: instanceTypeName }
+        : {};
 
     // Collect all fields to resolve
     const fieldsToResolve = new Set<string>();
@@ -162,7 +166,7 @@ export class Executor<TContext = unknown> {
     // 3. If query is not specified - resolve ALL methods (backwards compat)
     if (!query) {
       throw new Error(
-        `[type-resolver] QueryArgs must be provided to resolve all fields on ${Type.name}.`
+        `[type-resolver] QueryArgs must be provided to resolve all fields on ${Type.name}.`,
       );
     }
 
@@ -171,7 +175,7 @@ export class Executor<TContext = unknown> {
       console.warn(
         `[type-resolver] No fields to resolve for ${Type.name}. ` +
           `Query was provided but fields/populate are empty. ` +
-          `Check parseGraphqlInfo fieldName parameter - it should match the field path in your GraphQL query.`
+          `Check parseGraphqlInfo fieldName parameter - it should match the field path in your GraphQL query.`,
       );
     }
 
@@ -202,7 +206,7 @@ export class Executor<TContext = unknown> {
           ) {
             // Array of BaseType instances - recursively resolve each
             result[key] = await Promise.all(
-              resolved.map((item) => this.load(item, fieldQuery))
+              resolved.map((item) => this.load(item, fieldQuery)),
             );
           } else if (resolved instanceof BaseType && fieldQuery) {
             // Single BaseType instance - recursively resolve
@@ -229,11 +233,11 @@ export class Executor<TContext = unknown> {
             default:
               throw new ResolverError(
                 `Failed to resolve field "${key}" on ${Type.name}`,
-                { cause: error, field: key, type: Type.name }
+                { cause: error, field: key, type: Type.name },
               );
           }
         }
-      })
+      }),
     );
 
     // A root preload failure takes precedence over any concurrently resolved
@@ -242,7 +246,7 @@ export class Executor<TContext = unknown> {
     const preloadNotFound = fieldResults.find(
       (fieldResult) =>
         fieldResult.status === "rejected" &&
-        getPreloadFailureKind(fieldResult.reason) === "not-found"
+        getPreloadFailureKind(fieldResult.reason) === "not-found",
     );
     if (preloadNotFound?.status === "rejected") {
       throw preloadNotFound.reason;
@@ -251,14 +255,14 @@ export class Executor<TContext = unknown> {
     const preloadError = fieldResults.find(
       (fieldResult) =>
         fieldResult.status === "rejected" &&
-        getPreloadFailureKind(fieldResult.reason) === "error"
+        getPreloadFailureKind(fieldResult.reason) === "error",
     );
     if (preloadError?.status === "rejected") {
       throw preloadError.reason;
     }
 
     const fieldFailure = fieldResults.find(
-      (fieldResult) => fieldResult.status === "rejected"
+      (fieldResult) => fieldResult.status === "rejected",
     );
     if (fieldFailure?.status === "rejected") {
       throw fieldFailure.reason;
@@ -285,7 +289,7 @@ export class Executor<TContext = unknown> {
    */
   async loadMany<T extends BaseType<unknown, unknown, TContext>>(
     instances: T[],
-    query?: QueryArgs
+    query?: QueryArgs,
   ): Promise<InstanceResult<T>[]> {
     return Promise.all(instances.map((instance) => this.load(instance, query)));
   }
@@ -317,9 +321,7 @@ export class Executor<TContext = unknown> {
 
       // 2b. Array of objects → resolve each element
       if (typeof value[0] === "object" && value[0] !== null) {
-        return Promise.all(
-          value.map((item) => this.resolve(item, query))
-        );
+        return Promise.all(value.map((item) => this.resolve(item, query)));
       }
 
       // 2c. Array of scalars → return as is
@@ -349,7 +351,7 @@ export class Executor<TContext = unknown> {
    */
   private async resolveObject(
     obj: Record<string, unknown>,
-    query?: QueryArgs
+    query?: QueryArgs,
   ): Promise<Record<string, unknown>> {
     const result: Record<string, unknown> = {};
 
@@ -377,7 +379,7 @@ export class Executor<TContext = unknown> {
         const value = obj[key];
         const fieldQuery = query?.populate?.[key];
         result[key] = await this.resolve(value, fieldQuery);
-      })
+      }),
     );
 
     return result;
@@ -392,7 +394,7 @@ export class Executor<TContext = unknown> {
  * @returns A new Executor instance
  */
 export function createExecutor<TContext = unknown>(
-  options: ExecutorOptions<TContext>
+  options: ExecutorOptions<TContext>,
 ): Executor<TContext> {
   return new Executor(options);
 }
@@ -405,7 +407,7 @@ export function createExecutor<TContext = unknown>(
  */
 export function load<T extends BaseType<unknown, unknown, unknown>>(
   instance: T,
-  query?: QueryArgs
+  query?: QueryArgs,
 ): Promise<InstanceResult<T>> {
   const exec = new Executor({});
   return exec.load(instance, query);
@@ -419,7 +421,7 @@ export function load<T extends BaseType<unknown, unknown, unknown>>(
  */
 export function loadMany<T extends BaseType<unknown, unknown, unknown>>(
   instances: T[],
-  query?: QueryArgs
+  query?: QueryArgs,
 ): Promise<InstanceResult<T>[]> {
   const exec = new Executor({});
   return exec.loadMany(instances, query);

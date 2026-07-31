@@ -686,7 +686,14 @@ test.describe('Product Component API', () => {
     const overrideTemplate = completeConfiguration.pricingTemplates.find(
       (template) => template.name === 'Fixed price',
     );
-    const overrideRule = overrideTemplate?.priceRule as ApiProductComponentOverridePriceRule;
+    if (!overrideTemplate) {
+      throw new Error('Fixed price template was not returned');
+    }
+    const projectedOverrideTemplate = overrideTemplate as typeof overrideTemplate & {
+      priceRuleById: { id: string };
+      priceRuleByAlias: { kind: string };
+    };
+    const overrideRule = overrideTemplate.priceRule as ApiProductComponentOverridePriceRule;
     expect(overrideRule).toMatchObject({
       __typename: 'ProductComponentOverridePriceRule',
       strategy: 'OVERRIDE',
@@ -694,6 +701,8 @@ test.describe('Product Component API', () => {
     expect(overrideRule.amounts).toHaveLength(1);
     expect(overrideRule.amounts[0].currency).toBe('USD');
     expect(Number(overrideRule.amounts[0].amountMinor)).toBe(1999);
+    expect(projectedOverrideTemplate.priceRuleById.id).toBe(overrideRule.id);
+    expect(projectedOverrideTemplate.priceRuleByAlias.kind).toBe('OVERRIDE');
 
     const { data: readData } = await api.admin.query('inventory-api/ProductComponentFindOne', {
       variables: { id: owner.id },

@@ -113,6 +113,12 @@ fragment ProductComponentFields on ProductComponent {
       priceRule {
         ...ProductComponentPriceRuleFields
       }
+      priceRuleById: priceRule {
+        id
+      }
+      priceRuleByAlias: priceRule {
+        kind: strategy
+      }
       sortIndex
     }
     dependencyRules {

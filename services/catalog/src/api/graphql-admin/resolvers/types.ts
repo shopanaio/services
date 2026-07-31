@@ -95,7 +95,8 @@ export const typeResolvers: Partial<Resolvers> = {
       if ("unitCostMinor" in record) return "VariantCost";
       if ("isGroup" in record) return "ProductFeature";
       if ("featureId" in record) return "ProductFeatureValue";
-      if ("effectiveFrom" in record && "defaultSort" in record) return "Collection";
+      if ("effectiveFrom" in record && "defaultSort" in record)
+        return "Collection";
       if ("name" in record && !("handle" in record) && !("path" in record))
         return "Vendor";
       if ("handle" in record && "path" in record) return "Category";
@@ -111,15 +112,13 @@ export const typeResolvers: Partial<Resolvers> = {
 
   ProductComponentPriceRule: {
     __resolveType: (obj: unknown) => {
-      if (obj instanceof ProductComponentBasePriceRuleResolver)
-        return "ProductComponentBasePriceRule";
-      if (obj instanceof ProductComponentAdjustmentPriceRuleResolver)
-        return "ProductComponentAdjustmentPriceRule";
-      if (obj instanceof ProductComponentOverridePriceRuleResolver)
-        return "ProductComponentOverridePriceRule";
-      if (obj instanceof ProductComponentFreePriceRuleResolver)
-        return "ProductComponentFreePriceRule";
-      return null;
+      const typeName = (obj as { __typename?: unknown })?.__typename;
+      return typeName === "ProductComponentBasePriceRule" ||
+        typeName === "ProductComponentAdjustmentPriceRule" ||
+        typeName === "ProductComponentOverridePriceRule" ||
+        typeName === "ProductComponentFreePriceRule"
+        ? typeName
+        : null;
     },
   },
 

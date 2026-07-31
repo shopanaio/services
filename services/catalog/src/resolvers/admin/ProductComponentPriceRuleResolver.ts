@@ -22,10 +22,7 @@ abstract class ProductComponentPriceRuleResolver extends CatalogType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.ProductComponentPriceRule,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.ProductComponentPriceRule);
   }
 
   async strategy() {
@@ -33,9 +30,13 @@ abstract class ProductComponentPriceRuleResolver extends CatalogType<
   }
 }
 
-export class ProductComponentBasePriceRuleResolver extends ProductComponentPriceRuleResolver {}
+export class ProductComponentBasePriceRuleResolver extends ProductComponentPriceRuleResolver {
+  readonly __typename = "ProductComponentBasePriceRule" as const;
+}
 
 export class ProductComponentAdjustmentPriceRuleResolver extends ProductComponentPriceRuleResolver {
+  readonly __typename = "ProductComponentAdjustmentPriceRule" as const;
+
   async operation() {
     return this.$get("operation");
   }
@@ -49,19 +50,24 @@ export class ProductComponentAdjustmentPriceRuleResolver extends ProductComponen
   }
 
   async percentageBps() {
-    const percent =
-      await this.$ctx.loaders.componentPriceRulePercent.load(this.$props);
+    const percent = await this.$ctx.loaders.componentPriceRulePercent.load(
+      this.$props,
+    );
     return percent?.percentageBps ?? null;
   }
 }
 
 export class ProductComponentOverridePriceRuleResolver extends ProductComponentPriceRuleResolver {
+  readonly __typename = "ProductComponentOverridePriceRule" as const;
+
   async amounts() {
     return this.$ctx.loaders.componentPriceRuleAmounts.load(this.$props);
   }
 }
 
-export class ProductComponentFreePriceRuleResolver extends ProductComponentPriceRuleResolver {}
+export class ProductComponentFreePriceRuleResolver extends ProductComponentPriceRuleResolver {
+  readonly __typename = "ProductComponentFreePriceRule" as const;
+}
 
 export async function createProductComponentPriceRuleResolver(
   id: string,
@@ -95,8 +101,9 @@ export class ProductComponentPricingTemplateResolver extends CatalogType<
   ComponentPricingTemplate
 > {
   async $preload() {
-    const template =
-      await this.$ctx.loaders.componentPricingTemplate.load(this.$props);
+    const template = await this.$ctx.loaders.componentPricingTemplate.load(
+      this.$props,
+    );
     if (!template) {
       throw new PreloadNotFoundError(
         `Product component pricing template with ID ${this.$props} not found`,
