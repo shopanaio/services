@@ -88,6 +88,7 @@ export const ProductComponentPricingRulesModal = () => {
     if (!canSave || loading) return;
 
     const result = await syncDependencyRules({
+      productId: modalPayload.productId,
       configurationId: modalPayload.configuration.id,
       expectedRevision: modalPayload.expectedRevision,
       dependencyRules: rules.map(

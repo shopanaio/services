@@ -1849,66 +1849,156 @@ export type ApiBundle = ApiListing & ApiNode & {
 
 export type ApiCatalogMutation = {
   __typename?: 'CatalogMutation';
-  /** Create one component configuration. */
-  productComponentConfigurationCreate: ApiProductComponentConfigurationPayload;
-  /** Delete one component configuration with optimistic locking. */
-  productComponentConfigurationDelete: ApiProductComponentConfigurationDeletePayload;
-  /** Update configuration metadata. */
-  productComponentConfigurationUpdate: ApiProductComponentConfigurationPayload;
-  /** Sync all dependency rules for one component configuration. */
-  productComponentDependencyRulesSync: ApiProductComponentDependencyRulesSyncPayload;
-  /** Sync all groups/items for one component configuration. */
-  productComponentGroupsSync: ApiProductComponentGroupsSyncPayload;
-  /** Sync all reusable pricing templates for one component configuration. */
-  productComponentPricingTemplatesSync: ApiProductComponentPricingTemplatesSyncPayload;
+  /** Create a new category */
+  categoryCreate: ApiCategoryCreatePayload;
+  /** Delete a category */
+  categoryDelete: ApiCategoryDeletePayload;
+  /** Move a category to a new parent or position */
+  categoryMove: ApiCategoryMovePayload;
+  /** Rebalance category tree positions */
+  categoryRebalance: ApiCategoryRebalancePayload;
+  /** Unified category update with optimistic locking. */
+  categoryUpdate: ApiCategoryUpdatePayload;
+  /** Add products to a collection */
+  collectionAddProducts: ApiCollectionAddProductsPayload;
+  /** Create a new collection */
+  collectionCreate: ApiCollectionCreatePayload;
+  /** Delete a collection */
+  collectionDelete: ApiCollectionDeletePayload;
+  /** Move a product within a collection */
+  collectionMoveProduct: ApiCollectionMoveProductPayload;
+  /** Remove products from a collection */
+  collectionRemoveProducts: ApiCollectionRemoveProductsPayload;
+  /** Update an existing collection */
+  collectionUpdate: ApiCollectionUpdatePayload;
+  /** Update collection rules for automatic product inclusion */
+  collectionUpdateRules: ApiCollectionUpdateRulesPayload;
   /**
-   * Remove component data without deleting the product.
-   *
-   * Product deletion remains owned by catalogMutation.productDelete.
+   * Start async bulk update.
+   * Requires X-Idempotency-Key header.
    */
-  productComponentRemove: ApiProductComponentRemovePayload;
-  /** Create or update component settings for an ordinary product. */
-  productComponentSettingsUpdate: ApiProductComponentPayload;
+  productBulkUpdate: ApiProductBulkUpdatePayload;
+  /** Create a new product */
+  productCreate: ApiProductCreatePayload;
+  /** Delete an existing product */
+  productDelete: ApiProductDeletePayload;
+  /**
+   * Unified product update with optimistic locking.
+   * Supports product, component, and variant updates in a single request.
+   */
+  productUpdate: ApiProductUpdatePayload;
+  /** Create a new tag */
+  tagCreate: ApiTagCreatePayload;
+  /** Delete a tag */
+  tagDelete: ApiTagDeletePayload;
+  /** Update an existing tag */
+  tagUpdate: ApiTagUpdatePayload;
+  /** Create a new vendor */
+  vendorCreate: ApiVendorCreatePayload;
 };
 
 
-export type ApiCatalogMutationProductComponentConfigurationCreateArgs = {
-  input: ApiProductComponentConfigurationCreateInput;
+export type ApiCatalogMutationCategoryCreateArgs = {
+  input: ApiCategoryCreateInput;
 };
 
 
-export type ApiCatalogMutationProductComponentConfigurationDeleteArgs = {
-  input: ApiProductComponentConfigurationDeleteInput;
+export type ApiCatalogMutationCategoryDeleteArgs = {
+  input: ApiCategoryDeleteInput;
 };
 
 
-export type ApiCatalogMutationProductComponentConfigurationUpdateArgs = {
-  input: ApiProductComponentConfigurationUpdateInput;
+export type ApiCatalogMutationCategoryMoveArgs = {
+  input: ApiCategoryMoveInput;
 };
 
 
-export type ApiCatalogMutationProductComponentDependencyRulesSyncArgs = {
-  input: ApiProductComponentDependencyRulesSyncInput;
+export type ApiCatalogMutationCategoryRebalanceArgs = {
+  input: ApiCategoryRebalanceInput;
 };
 
 
-export type ApiCatalogMutationProductComponentGroupsSyncArgs = {
-  input: ApiProductComponentGroupsSyncInput;
+export type ApiCatalogMutationCategoryUpdateArgs = {
+  categoryId: Scalars['ID']['input'];
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations?: InputMaybe<ApiCategoryUpdateInput>;
 };
 
 
-export type ApiCatalogMutationProductComponentPricingTemplatesSyncArgs = {
-  input: ApiProductComponentPricingTemplatesSyncInput;
+export type ApiCatalogMutationCollectionAddProductsArgs = {
+  input: ApiCollectionAddProductsInput;
 };
 
 
-export type ApiCatalogMutationProductComponentRemoveArgs = {
-  input: ApiProductComponentRemoveInput;
+export type ApiCatalogMutationCollectionCreateArgs = {
+  input: ApiCollectionCreateInput;
 };
 
 
-export type ApiCatalogMutationProductComponentSettingsUpdateArgs = {
-  input: ApiProductComponentSettingsUpdateInput;
+export type ApiCatalogMutationCollectionDeleteArgs = {
+  input: ApiCollectionDeleteInput;
+};
+
+
+export type ApiCatalogMutationCollectionMoveProductArgs = {
+  input: ApiCollectionMoveProductInput;
+};
+
+
+export type ApiCatalogMutationCollectionRemoveProductsArgs = {
+  input: ApiCollectionRemoveProductsInput;
+};
+
+
+export type ApiCatalogMutationCollectionUpdateArgs = {
+  input: ApiCollectionUpdateInput;
+};
+
+
+export type ApiCatalogMutationCollectionUpdateRulesArgs = {
+  input: ApiCollectionUpdateRulesInput;
+};
+
+
+export type ApiCatalogMutationProductBulkUpdateArgs = {
+  input: ApiProductBulkUpdateInput;
+};
+
+
+export type ApiCatalogMutationProductCreateArgs = {
+  input: ApiProductCreateInput;
+};
+
+
+export type ApiCatalogMutationProductDeleteArgs = {
+  input: ApiProductDeleteInput;
+};
+
+
+export type ApiCatalogMutationProductUpdateArgs = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations?: InputMaybe<ApiProductUpdateInput>;
+  productId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogMutationTagCreateArgs = {
+  input: ApiTagCreateInput;
+};
+
+
+export type ApiCatalogMutationTagDeleteArgs = {
+  input: ApiTagDeleteInput;
+};
+
+
+export type ApiCatalogMutationTagUpdateArgs = {
+  input: ApiTagUpdateInput;
+};
+
+
+export type ApiCatalogMutationVendorCreateArgs = {
+  input: ApiVendorCreateInput;
 };
 
 export type ApiCatalogQuery = {
@@ -9793,6 +9883,14 @@ export type ApiOperationResult = {
 export enum OperationType {
   CategoryUpdate = 'CATEGORY_UPDATE',
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
+  ProductComponentConfigurationCreate = 'PRODUCT_COMPONENT_CONFIGURATION_CREATE',
+  ProductComponentConfigurationDelete = 'PRODUCT_COMPONENT_CONFIGURATION_DELETE',
+  ProductComponentConfigurationUpdate = 'PRODUCT_COMPONENT_CONFIGURATION_UPDATE',
+  ProductComponentDependencyRulesSync = 'PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC',
+  ProductComponentGroupsSync = 'PRODUCT_COMPONENT_GROUPS_SYNC',
+  ProductComponentPricingTemplatesSync = 'PRODUCT_COMPONENT_PRICING_TEMPLATES_SYNC',
+  ProductComponentRemove = 'PRODUCT_COMPONENT_REMOVE',
+  ProductComponentSettingsUpdate = 'PRODUCT_COMPONENT_SETTINGS_UPDATE',
   ProductFeaturesSync = 'PRODUCT_FEATURES_SYNC',
   ProductOptionsSync = 'PRODUCT_OPTIONS_SYNC',
   ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
@@ -10805,41 +10903,6 @@ export type ApiProductComponentConfiguration = ApiNode & {
   variants: Array<ApiVariant>;
 };
 
-export type ApiProductComponentConfigurationCreateInput = {
-  /** Expected product revision for optimistic locking. */
-  expectedRevision: Scalars['Int']['input'];
-  /** Configuration name. */
-  name: Scalars['String']['input'];
-  /** Global ID of the Catalog Product. */
-  productId: Scalars['ID']['input'];
-};
-
-export type ApiProductComponentConfigurationDeleteInput = {
-  expectedRevision: Scalars['Int']['input'];
-  id: Scalars['ID']['input'];
-};
-
-export type ApiProductComponentConfigurationDeletePayload = {
-  __typename?: 'ProductComponentConfigurationDeletePayload';
-  deletedConfigurationId?: Maybe<Scalars['ID']['output']>;
-  product?: Maybe<ApiProduct>;
-  productComponent?: Maybe<ApiProductComponent>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiProductComponentConfigurationPayload = {
-  __typename?: 'ProductComponentConfigurationPayload';
-  configuration?: Maybe<ApiProductComponentConfiguration>;
-  productComponent?: Maybe<ApiProductComponent>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiProductComponentConfigurationUpdateInput = {
-  expectedRevision: Scalars['Int']['input'];
-  id: Scalars['ID']['input'];
-  name?: InputMaybe<Scalars['String']['input']>;
-};
-
 export type ApiProductComponentDependencyAction = ApiNode & {
   __typename?: 'ProductComponentDependencyAction';
   /** Action type. */
@@ -10918,7 +10981,7 @@ export type ApiProductComponentDependencyRuleSyncItemInput = {
   /**
    * Existing dependency rule ID. Null creates a new rule.
    * Existing rules in this configuration but missing from
-   * ProductComponentDependencyRulesSyncInput.dependencyRules are deleted.
+   * ProductComponentOperationInput.dependencyRules are deleted.
    */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** How condition groups are combined. */
@@ -10927,24 +10990,6 @@ export type ApiProductComponentDependencyRuleSyncItemInput = {
   name: Scalars['String']['input'];
   /** Rule priority. */
   priority: Scalars['Int']['input'];
-};
-
-export type ApiProductComponentDependencyRulesSyncInput = {
-  configurationId: Scalars['ID']['input'];
-  /**
-   * Complete list of dependency rules for this configuration.
-   * Rules not present in this list are deleted.
-   */
-  dependencyRules: Array<ApiProductComponentDependencyRuleSyncItemInput>;
-  expectedRevision: Scalars['Int']['input'];
-};
-
-export type ApiProductComponentDependencyRulesSyncPayload = {
-  __typename?: 'ProductComponentDependencyRulesSyncPayload';
-  configuration?: Maybe<ApiProductComponentConfiguration>;
-  dependencyRules: Array<ApiProductComponentDependencyRule>;
-  productComponent?: Maybe<ApiProductComponent>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 export enum ProductComponentDependencyTargetType {
@@ -10991,7 +11036,8 @@ export type ApiProductComponentGroup = ApiNode & {
 export type ApiProductComponentGroupSyncItemInput = {
   /**
    * Existing group ID. Null creates a new group.
-   * Existing groups in this configuration but missing from ProductComponentGroupsSyncInput.groups are deleted.
+   * Existing groups in this configuration but missing from
+   * ProductComponentOperationInput.groups are deleted.
    */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Complete list of items inside this group. */
@@ -11002,24 +11048,6 @@ export type ApiProductComponentGroupSyncItemInput = {
   sortIndex: Scalars['Int']['input'];
   /** Localized title for current locale. */
   title: Scalars['String']['input'];
-};
-
-export type ApiProductComponentGroupsSyncInput = {
-  configurationId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
-  /**
-   * Complete list of groups for this configuration.
-   * Groups not present in this list are deleted.
-   */
-  groups: Array<ApiProductComponentGroupSyncItemInput>;
-};
-
-export type ApiProductComponentGroupsSyncPayload = {
-  __typename?: 'ProductComponentGroupsSyncPayload';
-  configuration?: Maybe<ApiProductComponentConfiguration>;
-  groups: Array<ApiProductComponentGroup>;
-  productComponent?: Maybe<ApiProductComponent>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiProductComponentItem = ApiNode & {
@@ -11181,6 +11209,55 @@ export enum ProductComponentLogicOperator {
   Or = 'OR'
 }
 
+/**
+ * Product component operation in the unified product update.
+ *
+ * The owning product and expected revision are provided by productUpdate.
+ * Fields that are not used by the selected action must be omitted.
+ */
+export enum ProductComponentOperationAction {
+  ConfigurationCreate = 'CONFIGURATION_CREATE',
+  ConfigurationDelete = 'CONFIGURATION_DELETE',
+  ConfigurationUpdate = 'CONFIGURATION_UPDATE',
+  DependencyRulesSync = 'DEPENDENCY_RULES_SYNC',
+  GroupsSync = 'GROUPS_SYNC',
+  PricingTemplatesSync = 'PRICING_TEMPLATES_SYNC',
+  Remove = 'REMOVE',
+  SettingsUpdate = 'SETTINGS_UPDATE'
+}
+
+/** A single product component operation. */
+export type ApiProductComponentOperationInput = {
+  /** The operation to apply. */
+  action: ProductComponentOperationAction;
+  /** Per-request correlation key. Required for CONFIGURATION_CREATE. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Existing configuration ID.
+   * Required for configuration update/delete and all configuration sync actions.
+   */
+  configurationId?: InputMaybe<Scalars['ID']['input']>;
+  /**
+   * Complete list of dependency rules for DEPENDENCY_RULES_SYNC.
+   * Rules not present in this list are deleted.
+   */
+  dependencyRules?: InputMaybe<Array<ApiProductComponentDependencyRuleSyncItemInput>>;
+  /** Updated configurator display style. Used by SETTINGS_UPDATE. */
+  displayStyle?: InputMaybe<ProductComponentDisplayStyle>;
+  /**
+   * Complete list of groups for GROUPS_SYNC.
+   * Groups not present in this list are deleted.
+   */
+  groups?: InputMaybe<Array<ApiProductComponentGroupSyncItemInput>>;
+  /** Configuration name. Required for CONFIGURATION_CREATE. */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Complete list of pricing templates for PRICING_TEMPLATES_SYNC.
+   * Templates not present in this list are deleted.
+   */
+  pricingTemplates?: InputMaybe<Array<ApiProductComponentPricingTemplateSyncItemInput>>;
+};
+
 export type ApiProductComponentOverridePriceRule = ApiNode & ApiProductComponentPriceRule & {
   __typename?: 'ProductComponentOverridePriceRule';
   /** Currency-specific absolute prices. */
@@ -11189,13 +11266,6 @@ export type ApiProductComponentOverridePriceRule = ApiNode & ApiProductComponent
   id: Scalars['ID']['output'];
   /** Replace the base price with a currency-specific absolute price. */
   strategy: ProductComponentPriceStrategy;
-};
-
-export type ApiProductComponentPayload = {
-  __typename?: 'ProductComponentPayload';
-  product?: Maybe<ApiProduct>;
-  productComponent?: Maybe<ApiProductComponent>;
-  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiProductComponentPriceRule = {
@@ -11258,7 +11328,7 @@ export type ApiProductComponentPricingTemplateSyncItemInput = {
   /**
    * Existing pricing template ID. Null creates a new template.
    * Existing templates in this configuration but missing from
-   * ProductComponentPricingTemplatesSyncInput.pricingTemplates are deleted.
+   * ProductComponentOperationInput.pricingTemplates are deleted.
    */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Template name. */
@@ -11267,47 +11337,6 @@ export type ApiProductComponentPricingTemplateSyncItemInput = {
   priceRule: ApiProductComponentPriceRuleInput;
   /** Sort order within configuration. */
   sortIndex: Scalars['Int']['input'];
-};
-
-export type ApiProductComponentPricingTemplatesSyncInput = {
-  configurationId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
-  /**
-   * Complete list of pricing templates for this configuration.
-   * Templates not present in this list are deleted.
-   */
-  pricingTemplates: Array<ApiProductComponentPricingTemplateSyncItemInput>;
-};
-
-export type ApiProductComponentPricingTemplatesSyncPayload = {
-  __typename?: 'ProductComponentPricingTemplatesSyncPayload';
-  configuration?: Maybe<ApiProductComponentConfiguration>;
-  pricingTemplates: Array<ApiProductComponentPricingTemplate>;
-  productComponent?: Maybe<ApiProductComponent>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiProductComponentRemoveInput = {
-  /** Expected product revision for optimistic locking. */
-  expectedRevision: Scalars['Int']['input'];
-  /** Global ID of the product. */
-  productId: Scalars['ID']['input'];
-};
-
-export type ApiProductComponentRemovePayload = {
-  __typename?: 'ProductComponentRemovePayload';
-  product?: Maybe<ApiProduct>;
-  removed: Scalars['Boolean']['output'];
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiProductComponentSettingsUpdateInput = {
-  /** Updated configurator display style. */
-  displayStyle?: InputMaybe<ProductComponentDisplayStyle>;
-  /** Expected product revision for optimistic locking. */
-  expectedRevision: Scalars['Int']['input'];
-  /** Global ID of the product. */
-  productId: Scalars['ID']['input'];
 };
 
 /** A connection to a list of Product items. */
@@ -12547,6 +12576,8 @@ export type ApiProductTagOperationInput = {
 export type ApiProductUpdateInput = {
   /** Product category assignment operations. */
   categories?: InputMaybe<Array<ApiProductCategoryOperationInput>>;
+  /** Product component operations. */
+  components?: InputMaybe<Array<ApiProductComponentOperationInput>>;
   /** Product content (description, excerpt). */
   content?: InputMaybe<ApiProductContentInput>;
   /** Complete feature definition replacement. Empty removes all features. */

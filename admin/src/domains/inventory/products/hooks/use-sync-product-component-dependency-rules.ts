@@ -2,18 +2,19 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
+import { ProductComponentOperationAction } from "@/graphql/types";
 import type {
   ApiGenericUserError,
   ApiProductComponentDependencyRule,
-  ApiProductComponentDependencyRulesSyncInput,
+  ApiProductComponentDependencyRuleSyncItemInput,
 } from "@/graphql/types";
 import {
-  PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC_MUTATION,
   PRODUCT_DETAILS_QUERY,
+  PRODUCT_UPDATE_MUTATION,
 } from "../graphql";
 import type {
-  ProductComponentDependencyRulesSyncMutationData,
-  ProductComponentDependencyRulesSyncMutationVariables,
+  ProductUpdateMutationData,
+  ProductUpdateMutationVariables,
 } from "../graphql/operation-types";
 
 interface SyncProductComponentDependencyRulesResult {
@@ -21,27 +22,50 @@ interface SyncProductComponentDependencyRulesResult {
   userErrors: ApiGenericUserError[];
 }
 
+interface SyncProductComponentDependencyRulesInput {
+  productId: string;
+  configurationId: string;
+  expectedRevision: number;
+  dependencyRules: ApiProductComponentDependencyRuleSyncItemInput[];
+}
+
 export function useSyncProductComponentDependencyRules() {
   const [mutation, { loading, error, reset }] = useMutation<
-    ProductComponentDependencyRulesSyncMutationData,
-    ProductComponentDependencyRulesSyncMutationVariables
-  >(PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC_MUTATION);
+    ProductUpdateMutationData,
+    ProductUpdateMutationVariables
+  >(PRODUCT_UPDATE_MUTATION);
 
   const syncDependencyRules = useCallback(
     async (
-      input: ApiProductComponentDependencyRulesSyncInput,
+      input: SyncProductComponentDependencyRulesInput,
     ): Promise<SyncProductComponentDependencyRulesResult> => {
       try {
         const result = await mutation({
-          variables: { input },
+          variables: {
+            productId: input.productId,
+            expectedRevision: input.expectedRevision,
+            operations: {
+              components: [
+                {
+                  action:
+                    ProductComponentOperationAction.DependencyRulesSync,
+                  configurationId: input.configurationId,
+                  dependencyRules: input.dependencyRules,
+                },
+              ],
+            },
+          },
           refetchQueries: [PRODUCT_DETAILS_QUERY],
           awaitRefetchQueries: true,
         });
-        const payload =
-          result.data?.catalogMutation.productComponentDependencyRulesSync;
+        const payload = result.data?.catalogMutation.productUpdate;
+        const configuration =
+          payload?.product?.productComponent?.configurations.find(
+            (item) => item.id === input.configurationId,
+          );
 
         return {
-          dependencyRules: payload?.dependencyRules ?? [],
+          dependencyRules: configuration?.dependencyRules ?? [],
           userErrors: payload?.userErrors ?? [],
         };
       } catch (mutationError) {

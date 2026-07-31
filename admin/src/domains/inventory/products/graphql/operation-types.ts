@@ -9,13 +9,6 @@ import type {
   ApiPricingWidgetPayload,
   ApiProduct,
   ApiProductConnection,
-  ApiProductComponentConfigurationCreateInput,
-  ApiProductComponentConfigurationDeleteInput,
-  ApiProductComponentConfigurationDeletePayload,
-  ApiProductComponentConfigurationPayload,
-  ApiProductComponentConfigurationUpdateInput,
-  ApiProductComponentDependencyRulesSyncInput,
-  ApiProductComponentDependencyRulesSyncPayload,
   ApiProductCreateInput,
   ApiProductDeleteInput,
   ApiProductFeature,
@@ -203,58 +196,6 @@ export interface ProductDeleteMutationData {
 
 export interface ProductDeleteMutationVariables {
   input: ApiProductDeleteInput;
-}
-
-export interface ProductComponentConfigurationCreateMutationData {
-  catalogMutation: Pick<
-    ApiCatalogMutation,
-    "productComponentConfigurationCreate"
-  > & {
-    productComponentConfigurationCreate: ApiProductComponentConfigurationPayload;
-  };
-}
-
-export interface ProductComponentConfigurationCreateMutationVariables {
-  input: ApiProductComponentConfigurationCreateInput;
-}
-
-export interface ProductComponentConfigurationUpdateMutationData {
-  catalogMutation: Pick<
-    ApiCatalogMutation,
-    "productComponentConfigurationUpdate"
-  > & {
-    productComponentConfigurationUpdate: ApiProductComponentConfigurationPayload;
-  };
-}
-
-export interface ProductComponentConfigurationUpdateMutationVariables {
-  input: ApiProductComponentConfigurationUpdateInput;
-}
-
-export interface ProductComponentConfigurationDeleteMutationData {
-  catalogMutation: Pick<
-    ApiCatalogMutation,
-    "productComponentConfigurationDelete"
-  > & {
-    productComponentConfigurationDelete: ApiProductComponentConfigurationDeletePayload;
-  };
-}
-
-export interface ProductComponentConfigurationDeleteMutationVariables {
-  input: ApiProductComponentConfigurationDeleteInput;
-}
-
-export interface ProductComponentDependencyRulesSyncMutationData {
-  catalogMutation: Pick<
-    ApiCatalogMutation,
-    "productComponentDependencyRulesSync"
-  > & {
-    productComponentDependencyRulesSync: ApiProductComponentDependencyRulesSyncPayload;
-  };
-}
-
-export interface ProductComponentDependencyRulesSyncMutationVariables {
-  input: ApiProductComponentDependencyRulesSyncInput;
 }
 
 export type ProductFeaturesSyncProduct = Pick<ApiProduct, "id" | "features"> & {

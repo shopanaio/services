@@ -263,6 +263,7 @@ export interface IProductComponentConfigurationModalPayload
 
 export interface IProductComponentPricingRulesModalPayload
   extends IModalStackPayload {
+  productId: string;
   configuration: ApiProductComponentConfiguration;
   expectedRevision: number;
 }

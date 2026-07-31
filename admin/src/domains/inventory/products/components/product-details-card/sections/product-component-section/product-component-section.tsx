@@ -115,6 +115,7 @@ export const ProductComponentSection = ({
       modalTitle: "Edit component configuration",
       onSave: async ({ name }) => {
         const result = await updateConfiguration({
+          productId: product.id,
           id: configuration.id,
           expectedRevision: product.revision,
           name,
@@ -144,6 +145,7 @@ export const ProductComponentSection = ({
       cancelText: "Cancel",
       onOk: async () => {
         const result = await deleteConfiguration({
+          productId: product.id,
           id: configuration.id,
           expectedRevision: product.revision,
         });
@@ -276,6 +278,7 @@ export const ProductComponentSection = ({
                       size="small"
                       onClick={() =>
                         openPricingRulesModal({
+                          productId: product.id,
                           configuration,
                           expectedRevision: product.revision,
                         })

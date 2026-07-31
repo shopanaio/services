@@ -71,9 +71,6 @@ type ProductComponent {
   """The product that owns this component configuration."""
   product: Product!
 
-  """Global ID of the owning product."""
-  productId: ID!
-
   """Configurator display style."""
   displayStyle: ProductComponentDisplayStyle!
 
@@ -93,9 +90,6 @@ type ProductComponentConfiguration implements Node @key(fields: "id") {
 
   """The Catalog Product this configuration belongs to."""
   product: Product!
-
-  """The global ID of the Catalog Product."""
-  productId: ID!
 
   """Configuration name."""
   name: String!
@@ -152,9 +146,6 @@ type ProductComponentItem implements Node @key(fields: "id") {
   """The group this item belongs to."""
   group: ProductComponentGroup!
 
-  """The group ID."""
-  groupId: ID!
-
   """Whether the item references a product or a concrete variant."""
   itemType: ProductComponentItemType!
 
@@ -164,14 +155,8 @@ type ProductComponentItem implements Node @key(fields: "id") {
   """Referenced product for PRODUCT items."""
   refProduct: Product
 
-  """Referenced product ID for PRODUCT items."""
-  refProductId: ID
-
   """Referenced variant for VARIANT items."""
   refVariant: Variant
-
-  """Referenced variant ID for VARIANT items."""
-  refVariantId: ID
 
   """Featured image override."""
   featuredImage: File
@@ -217,14 +202,8 @@ type ProductComponentItemOptionSelection implements Node @key(fields: "id") {
   """Referenced product option."""
   option: ProductOption!
 
-  """Referenced product option ID."""
-  optionId: ID!
-
   """Parent option for dependent option trees."""
   parentOption: ProductOption
-
-  """Parent option ID."""
-  parentOptionId: ID
 
   """Allowed values for this option."""
   values: [ProductComponentItemOptionValueSelection!]!
@@ -239,9 +218,6 @@ type ProductComponentItemOptionValueSelection implements Node @key(fields: "id")
 
   """Referenced product option value. Null when the value is unavailable."""
   optionValue: ProductOptionValue
-
-  """Referenced product option value ID."""
-  optionValueId: ID
 
   """Stable value copy for displaying stale/unavailable values."""
   value: String!
@@ -425,112 +401,71 @@ type ProductComponentDependencyAction implements Node @key(fields: "id") {
   sortIndex: Int!
 }
 
-# ---- ProductComponent Mutation Payloads ----
+# ---- ProductComponent ProductUpdate Operations ----
 
-type ProductComponentPayload {
-  product: Product
-  productComponent: ProductComponent
-  userErrors: [GenericUserError!]!
+"""
+Product component operation in the unified product update.
+
+The owning product and expected revision are provided by productUpdate.
+Fields that are not used by the selected action must be omitted.
+"""
+enum ProductComponentOperationAction {
+  SETTINGS_UPDATE
+  REMOVE
+  CONFIGURATION_CREATE
+  CONFIGURATION_UPDATE
+  CONFIGURATION_DELETE
+  GROUPS_SYNC
+  PRICING_TEMPLATES_SYNC
+  DEPENDENCY_RULES_SYNC
 }
 
-type ProductComponentRemovePayload {
-  product: Product
-  removed: Boolean!
-  userErrors: [GenericUserError!]!
-}
-
-type ProductComponentConfigurationPayload {
-  productComponent: ProductComponent
-  configuration: ProductComponentConfiguration
-  userErrors: [GenericUserError!]!
-}
-
-type ProductComponentConfigurationDeletePayload {
-  productComponent: ProductComponent
-  deletedConfigurationId: ID
-  product: Product
-  userErrors: [GenericUserError!]!
-}
-
-type ProductComponentGroupsSyncPayload {
-  productComponent: ProductComponent
-  configuration: ProductComponentConfiguration
-  groups: [ProductComponentGroup!]!
-  userErrors: [GenericUserError!]!
-}
-
-type ProductComponentPricingTemplatesSyncPayload {
-  productComponent: ProductComponent
-  configuration: ProductComponentConfiguration
-  pricingTemplates: [ProductComponentPricingTemplate!]!
-  userErrors: [GenericUserError!]!
-}
-
-type ProductComponentDependencyRulesSyncPayload {
-  productComponent: ProductComponent
-  configuration: ProductComponentConfiguration
-  dependencyRules: [ProductComponentDependencyRule!]!
-  userErrors: [GenericUserError!]!
-}
-
-# ---- ProductComponent Mutation Inputs ----
-
-input ProductComponentSettingsUpdateInput {
-  """Global ID of the product."""
-  productId: ID!
-
-  """Expected product revision for optimistic locking."""
-  expectedRevision: Int!
-
-  """Updated configurator display style."""
-  displayStyle: ProductComponentDisplayStyle
-}
-
-input ProductComponentRemoveInput {
-  """Global ID of the product."""
-  productId: ID!
-
-  """Expected product revision for optimistic locking."""
-  expectedRevision: Int!
-}
-
-input ProductComponentConfigurationCreateInput {
-  """Global ID of the Catalog Product."""
-  productId: ID!
-
-  """Expected product revision for optimistic locking."""
-  expectedRevision: Int!
-
-  """Configuration name."""
-  name: String!
-}
-
-input ProductComponentConfigurationUpdateInput {
-  id: ID!
-  expectedRevision: Int!
-  name: String
-}
-
-input ProductComponentConfigurationDeleteInput {
-  id: ID!
-  expectedRevision: Int!
-}
-
-input ProductComponentGroupsSyncInput {
-  configurationId: ID!
-  expectedRevision: Int!
+"""
+A single product component operation.
+"""
+input ProductComponentOperationInput {
+  """The operation to apply."""
+  action: ProductComponentOperationAction!
 
   """
-  Complete list of groups for this configuration.
+  Existing configuration ID.
+  Required for configuration update/delete and all configuration sync actions.
+  """
+  configurationId: ID
+
+  """Per-request correlation key. Required for CONFIGURATION_CREATE."""
+  clientMutationId: String
+
+  """Updated configurator display style. Used by SETTINGS_UPDATE."""
+  displayStyle: ProductComponentDisplayStyle
+
+  """Configuration name. Required for CONFIGURATION_CREATE."""
+  name: String
+
+  """
+  Complete list of groups for GROUPS_SYNC.
   Groups not present in this list are deleted.
   """
-  groups: [ProductComponentGroupSyncItemInput!]!
+  groups: [ProductComponentGroupSyncItemInput!]
+
+  """
+  Complete list of pricing templates for PRICING_TEMPLATES_SYNC.
+  Templates not present in this list are deleted.
+  """
+  pricingTemplates: [ProductComponentPricingTemplateSyncItemInput!]
+
+  """
+  Complete list of dependency rules for DEPENDENCY_RULES_SYNC.
+  Rules not present in this list are deleted.
+  """
+  dependencyRules: [ProductComponentDependencyRuleSyncItemInput!]
 }
 
 input ProductComponentGroupSyncItemInput {
   """
   Existing group ID. Null creates a new group.
-  Existing groups in this configuration but missing from ProductComponentGroupsSyncInput.groups are deleted.
+  Existing groups in this configuration but missing from
+  ProductComponentOperationInput.groups are deleted.
   """
   id: ID
 
@@ -659,22 +594,11 @@ input ProductComponentPriceRuleAmountInput {
   amountMinor: BigInt!
 }
 
-input ProductComponentPricingTemplatesSyncInput {
-  configurationId: ID!
-  expectedRevision: Int!
-
-  """
-  Complete list of pricing templates for this configuration.
-  Templates not present in this list are deleted.
-  """
-  pricingTemplates: [ProductComponentPricingTemplateSyncItemInput!]!
-}
-
 input ProductComponentPricingTemplateSyncItemInput {
   """
   Existing pricing template ID. Null creates a new template.
   Existing templates in this configuration but missing from
-  ProductComponentPricingTemplatesSyncInput.pricingTemplates are deleted.
+  ProductComponentOperationInput.pricingTemplates are deleted.
   """
   id: ID
 
@@ -688,22 +612,11 @@ input ProductComponentPricingTemplateSyncItemInput {
   sortIndex: Int!
 }
 
-input ProductComponentDependencyRulesSyncInput {
-  configurationId: ID!
-  expectedRevision: Int!
-
-  """
-  Complete list of dependency rules for this configuration.
-  Rules not present in this list are deleted.
-  """
-  dependencyRules: [ProductComponentDependencyRuleSyncItemInput!]!
-}
-
 input ProductComponentDependencyRuleSyncItemInput {
   """
   Existing dependency rule ID. Null creates a new rule.
   Existing rules in this configuration but missing from
-  ProductComponentDependencyRulesSyncInput.dependencyRules are deleted.
+  ProductComponentOperationInput.dependencyRules are deleted.
   """
   id: ID
 
@@ -790,52 +703,4 @@ input ProductComponentDependencyActionSyncItemInput {
 
   """Sort order within the rule."""
   sortIndex: Int!
-}
-
-# ---- Catalog ProductComponent Mutations ----
-
-extend type CatalogMutation {
-  """Create or update component settings for an ordinary product."""
-  productComponentSettingsUpdate(
-    input: ProductComponentSettingsUpdateInput!
-  ): ProductComponentPayload!
-
-  """
-  Remove component data without deleting the product.
-
-  Product deletion remains owned by catalogMutation.productDelete.
-  """
-  productComponentRemove(
-    input: ProductComponentRemoveInput!
-  ): ProductComponentRemovePayload!
-
-  """Create one component configuration."""
-  productComponentConfigurationCreate(
-    input: ProductComponentConfigurationCreateInput!
-  ): ProductComponentConfigurationPayload!
-
-  """Update configuration metadata."""
-  productComponentConfigurationUpdate(
-    input: ProductComponentConfigurationUpdateInput!
-  ): ProductComponentConfigurationPayload!
-
-  """Delete one component configuration with optimistic locking."""
-  productComponentConfigurationDelete(
-    input: ProductComponentConfigurationDeleteInput!
-  ): ProductComponentConfigurationDeletePayload!
-
-  """Sync all groups/items for one component configuration."""
-  productComponentGroupsSync(
-    input: ProductComponentGroupsSyncInput!
-  ): ProductComponentGroupsSyncPayload!
-
-  """Sync all reusable pricing templates for one component configuration."""
-  productComponentPricingTemplatesSync(
-    input: ProductComponentPricingTemplatesSyncInput!
-  ): ProductComponentPricingTemplatesSyncPayload!
-
-  """Sync all dependency rules for one component configuration."""
-  productComponentDependencyRulesSync(
-    input: ProductComponentDependencyRulesSyncInput!
-  ): ProductComponentDependencyRulesSyncPayload!
 }

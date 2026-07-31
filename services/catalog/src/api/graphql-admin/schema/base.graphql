@@ -370,7 +370,7 @@ type CatalogMutation {
 
   """
   Unified product update with optimistic locking.
-  Supports product and variant updates in a single request.
+  Supports product, component, and variant updates in a single request.
   """
   productUpdate(
     """The product ID to update."""

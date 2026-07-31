@@ -457,6 +457,9 @@ input ProductUpdateInput {
   """Complete feature definition replacement. Empty removes all features."""
   features: [ProductFeatureSyncItemInput!]
 
+  """Product component operations."""
+  components: [ProductComponentOperationInput!]
+
   """Variant create, update, and delete operations."""
   variants: [VariantOperationInput!]
 }
@@ -587,6 +590,14 @@ enum OperationType {
   VARIANT_DELETE
   PRODUCT_CATEGORY_UPDATE
   PRODUCT_TAG_UPDATE
+  PRODUCT_COMPONENT_SETTINGS_UPDATE
+  PRODUCT_COMPONENT_REMOVE
+  PRODUCT_COMPONENT_CONFIGURATION_CREATE
+  PRODUCT_COMPONENT_CONFIGURATION_UPDATE
+  PRODUCT_COMPONENT_CONFIGURATION_DELETE
+  PRODUCT_COMPONENT_GROUPS_SYNC
+  PRODUCT_COMPONENT_PRICING_TEMPLATES_SYNC
+  PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC
   CATEGORY_UPDATE
 }
 

@@ -2,24 +2,19 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
+import { ProductComponentOperationAction } from "@/graphql/types";
 import type {
   ApiGenericUserError,
   ApiProductComponent,
   ApiProductComponentConfiguration,
 } from "@/graphql/types";
 import {
-  PRODUCT_COMPONENT_CONFIGURATION_CREATE_MUTATION,
-  PRODUCT_COMPONENT_CONFIGURATION_DELETE_MUTATION,
-  PRODUCT_COMPONENT_CONFIGURATION_UPDATE_MUTATION,
   PRODUCT_DETAILS_QUERY,
+  PRODUCT_UPDATE_MUTATION,
 } from "../graphql";
 import type {
-  ProductComponentConfigurationCreateMutationData,
-  ProductComponentConfigurationCreateMutationVariables,
-  ProductComponentConfigurationDeleteMutationData,
-  ProductComponentConfigurationDeleteMutationVariables,
-  ProductComponentConfigurationUpdateMutationData,
-  ProductComponentConfigurationUpdateMutationVariables,
+  ProductUpdateMutationData,
+  ProductUpdateMutationVariables,
 } from "../graphql/operation-types";
 
 interface ProductComponentConfigurationMutationResult {
@@ -36,11 +31,13 @@ interface UseProductComponentConfigurationsReturn {
     name: string;
   }) => Promise<ProductComponentConfigurationMutationResult>;
   updateConfiguration: (input: {
+    productId: string;
     id: string;
     expectedRevision: number;
     name: string;
   }) => Promise<ProductComponentConfigurationMutationResult>;
   deleteConfiguration: (input: {
+    productId: string;
     id: string;
     expectedRevision: number;
   }) => Promise<ProductComponentConfigurationMutationResult>;
@@ -66,18 +63,10 @@ function unexpectedResult(error: unknown) {
 }
 
 export function useProductComponentConfigurations(): UseProductComponentConfigurationsReturn {
-  const [createMutation, createState] = useMutation<
-    ProductComponentConfigurationCreateMutationData,
-    ProductComponentConfigurationCreateMutationVariables
-  >(PRODUCT_COMPONENT_CONFIGURATION_CREATE_MUTATION);
-  const [updateMutation, updateState] = useMutation<
-    ProductComponentConfigurationUpdateMutationData,
-    ProductComponentConfigurationUpdateMutationVariables
-  >(PRODUCT_COMPONENT_CONFIGURATION_UPDATE_MUTATION);
-  const [deleteMutation, deleteState] = useMutation<
-    ProductComponentConfigurationDeleteMutationData,
-    ProductComponentConfigurationDeleteMutationVariables
-  >(PRODUCT_COMPONENT_CONFIGURATION_DELETE_MUTATION);
+  const [mutation, mutationState] = useMutation<
+    ProductUpdateMutationData,
+    ProductUpdateMutationVariables
+  >(PRODUCT_UPDATE_MUTATION);
 
   const createConfiguration = useCallback(
     async (input: {
@@ -86,17 +75,37 @@ export function useProductComponentConfigurations(): UseProductComponentConfigur
       name: string;
     }) => {
       try {
-        const result = await createMutation({
-          variables: { input },
+        const clientMutationId = crypto.randomUUID();
+        const result = await mutation({
+          variables: {
+            productId: input.productId,
+            expectedRevision: input.expectedRevision,
+            operations: {
+              components: [
+                {
+                  action:
+                    ProductComponentOperationAction.ConfigurationCreate,
+                  clientMutationId,
+                  name: input.name,
+                },
+              ],
+            },
+          },
           refetchQueries: [PRODUCT_DETAILS_QUERY],
           awaitRefetchQueries: true,
         });
-        const payload =
-          result.data?.catalogMutation.productComponentConfigurationCreate;
+        const payload = result.data?.catalogMutation.productUpdate;
+        const configurationId = payload?.operationResults.find(
+          (operation) => operation.clientMutationId === clientMutationId,
+        )?.entityId;
+        const productComponent = payload?.product?.productComponent ?? null;
 
         return {
-          productComponent: payload?.productComponent ?? null,
-          configuration: payload?.configuration ?? null,
+          productComponent,
+          configuration:
+            productComponent?.configurations.find(
+              (configuration) => configuration.id === configurationId,
+            ) ?? null,
           deletedConfigurationId: null,
           userErrors: payload?.userErrors ?? [],
         };
@@ -104,27 +113,44 @@ export function useProductComponentConfigurations(): UseProductComponentConfigur
         return unexpectedResult(error);
       }
     },
-    [createMutation],
+    [mutation],
   );
 
   const updateConfiguration = useCallback(
     async (input: {
+      productId: string;
       id: string;
       expectedRevision: number;
       name: string;
     }) => {
       try {
-        const result = await updateMutation({
-          variables: { input },
+        const result = await mutation({
+          variables: {
+            productId: input.productId,
+            expectedRevision: input.expectedRevision,
+            operations: {
+              components: [
+                {
+                  action:
+                    ProductComponentOperationAction.ConfigurationUpdate,
+                  configurationId: input.id,
+                  name: input.name,
+                },
+              ],
+            },
+          },
           refetchQueries: [PRODUCT_DETAILS_QUERY],
           awaitRefetchQueries: true,
         });
-        const payload =
-          result.data?.catalogMutation.productComponentConfigurationUpdate;
+        const payload = result.data?.catalogMutation.productUpdate;
+        const productComponent = payload?.product?.productComponent ?? null;
 
         return {
-          productComponent: payload?.productComponent ?? null,
-          configuration: payload?.configuration ?? null,
+          productComponent,
+          configuration:
+            productComponent?.configurations.find(
+              (configuration) => configuration.id === input.id,
+            ) ?? null,
           deletedConfigurationId: null,
           userErrors: payload?.userErrors ?? [],
         };
@@ -132,40 +158,54 @@ export function useProductComponentConfigurations(): UseProductComponentConfigur
         return unexpectedResult(error);
       }
     },
-    [updateMutation],
+    [mutation],
   );
 
   const deleteConfiguration = useCallback(
-    async (input: { id: string; expectedRevision: number }) => {
+    async (input: {
+      productId: string;
+      id: string;
+      expectedRevision: number;
+    }) => {
       try {
-        const result = await deleteMutation({
-          variables: { input },
+        const result = await mutation({
+          variables: {
+            productId: input.productId,
+            expectedRevision: input.expectedRevision,
+            operations: {
+              components: [
+                {
+                  action:
+                    ProductComponentOperationAction.ConfigurationDelete,
+                  configurationId: input.id,
+                },
+              ],
+            },
+          },
           refetchQueries: [PRODUCT_DETAILS_QUERY],
           awaitRefetchQueries: true,
         });
-        const payload =
-          result.data?.catalogMutation.productComponentConfigurationDelete;
+        const payload = result.data?.catalogMutation.productUpdate;
 
         return {
-          productComponent: payload?.productComponent ?? null,
+          productComponent: payload?.product?.productComponent ?? null,
           configuration: null,
-          deletedConfigurationId: payload?.deletedConfigurationId ?? null,
+          deletedConfigurationId:
+            payload && payload.userErrors.length === 0 ? input.id : null,
           userErrors: payload?.userErrors ?? [],
         };
       } catch (error) {
         return unexpectedResult(error);
       }
     },
-    [deleteMutation],
+    [mutation],
   );
 
   return {
     createConfiguration,
     updateConfiguration,
     deleteConfiguration,
-    loading:
-      createState.loading || updateState.loading || deleteState.loading,
-    error:
-      createState.error ?? updateState.error ?? deleteState.error ?? null,
+    loading: mutationState.loading,
+    error: mutationState.error ?? null,
   };
 }
