@@ -2,9 +2,6 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { ComponentConfiguration } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { ProductComponentDependencyRuleResolver } from "./ProductComponentDependencyRuleResolver.js";
-import { ProductComponentGroupResolver } from "./ProductComponentGroupResolver.js";
-import { ProductComponentPricingTemplateResolver } from "./ProductComponentPriceRuleResolver.js";
 
 export class ProductComponentConfigurationResolver extends CatalogType<
   string,
@@ -58,8 +55,8 @@ export class ProductComponentConfigurationResolver extends CatalogType<
       await this.$ctx.loaders.componentGroupIdsByConfigurationId.load(
         this.$props,
       );
-    return ids.map(
-      (id: string) => new ProductComponentGroupResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) => this.resolvers.productComponentGroup(id)),
     );
   }
 
@@ -68,9 +65,10 @@ export class ProductComponentConfigurationResolver extends CatalogType<
       await this.$ctx.loaders.componentPricingTemplateIdsByConfigurationId.load(
         this.$props,
       );
-    return ids.map(
-      (id: string) =>
-        new ProductComponentPricingTemplateResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) =>
+        this.resolvers.productComponentPricingTemplate(id)
+      ),
     );
   }
 
@@ -79,9 +77,10 @@ export class ProductComponentConfigurationResolver extends CatalogType<
       await this.$ctx.loaders.componentDependencyRuleIdsByConfigurationId.load(
         this.$props,
       );
-    return ids.map(
-      (id: string) =>
-        new ProductComponentDependencyRuleResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) =>
+        this.resolvers.productComponentDependencyRule(id)
+      ),
     );
   }
 

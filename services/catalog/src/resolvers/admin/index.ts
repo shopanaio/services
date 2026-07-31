@@ -1,5 +1,6 @@
 // Base type
 export { CatalogType, Cache } from "./CatalogType.js";
+export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";
 
 // Root resolvers
 export {

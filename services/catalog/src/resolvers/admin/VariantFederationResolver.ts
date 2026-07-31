@@ -1,7 +1,5 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
-import { InventoryItemResolver } from "./InventoryItemResolver.js";
-import { StockResolver } from "./StockResolver.js";
 
 /**
  * VariantFederationResolver - Federation resolver for Variant.
@@ -33,7 +31,7 @@ export class VariantFederationResolver extends CatalogType<string, Record<string
   async inventoryItem() {
     const item = await this.$ctx.loaders.inventoryItemByVariant.load(this.$props);
     if (!item) return null;
-    return new InventoryItemResolver(item.id, this.$ctx);
+    return this.resolvers.inventoryItem(item.id);
   }
 
   /**
@@ -111,7 +109,7 @@ export class VariantFederationResolver extends CatalogType<string, Record<string
       .getServices()
       .repository.stock.getByVariantId(this.$props);
 
-    return stocks.map((s) => new StockResolver(s.id, this.$ctx));
+    return Promise.all(stocks.map((stock) => this.resolvers.stock(stock.id)));
   }
 
   /**

@@ -7,7 +7,6 @@ import type {
   DependencyRule,
 } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { createProductComponentPriceRuleResolver } from "./ProductComponentPriceRuleResolver.js";
 
 function targetEntity(targetType: string) {
   switch (targetType) {
@@ -65,9 +64,10 @@ export class ProductComponentDependencyRuleResolver extends CatalogType<
       await this.$ctx.loaders.componentConditionGroupIdsByRuleId.load(
         this.$props,
       );
-    return ids.map(
-      (id: string) =>
-        new ProductComponentConditionGroupResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) =>
+        this.resolvers.productComponentConditionGroup(id)
+      ),
     );
   }
 
@@ -76,9 +76,10 @@ export class ProductComponentDependencyRuleResolver extends CatalogType<
       await this.$ctx.loaders.componentDependencyActionIdsByRuleId.load(
         this.$props,
       );
-    return ids.map(
-      (id: string) =>
-        new ProductComponentDependencyActionResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) =>
+        this.resolvers.productComponentDependencyAction(id)
+      ),
     );
   }
 
@@ -121,8 +122,10 @@ export class ProductComponentConditionGroupResolver extends CatalogType<
     const ids = await this.$ctx.loaders.componentConditionIdsByGroupId.load(
       this.$props,
     );
-    return ids.map(
-      (id: string) => new ProductComponentConditionResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) =>
+        this.resolvers.productComponentCondition(id)
+      ),
     );
   }
 
@@ -231,7 +234,7 @@ export class ProductComponentDependencyActionResolver extends CatalogType<
   async priceRule() {
     const id = await this.$get("priceRuleId");
     return id
-      ? createProductComponentPriceRuleResolver(id, this.$ctx)
+      ? this.resolvers.productComponentPriceRule(id)
       : null;
   }
 

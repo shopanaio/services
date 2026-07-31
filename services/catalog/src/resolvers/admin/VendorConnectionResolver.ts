@@ -1,5 +1,4 @@
 import type { VendorRelayInput } from "../../repositories/vendor/VendorRepository.js";
-import { VendorResolver } from "./VendorResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -19,6 +18,6 @@ export class VendorConnectionResolver extends BaseConnectionResolver<VendorRelay
   }
 
   protected createNodeResolver(nodeId: string) {
-    return new VendorResolver(nodeId, this.$ctx);
+    return this.resolvers.vendor(nodeId);
   }
 }

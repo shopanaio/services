@@ -13,9 +13,7 @@ import type {
 import type { Variant } from "../../repositories/models/index.js";
 import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
 import { CatalogType } from "./CatalogType.js";
-import { VariantPriceResolver } from "./VariantPriceResolver.js";
 import type { CurrencyCode } from "@shopana/shared-references";
-import { ProductComponentConfigurationResolver } from "./ProductComponentConfigurationResolver.js";
 
 /**
  * Variant resolver for Catalog Service.
@@ -121,7 +119,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
       this.$props,
       args
     );
-    return ids.map((id: string) => new VariantPriceResolver(id, this.$ctx));
+    return Promise.all(ids.map((id: string) => this.resolvers.variantPrice(id)));
   }
 
   async selectedOptions(): Promise<SelectedOption[]> {
@@ -192,10 +190,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
         this.$props,
       );
     return configurationId
-      ? new ProductComponentConfigurationResolver(
-          configurationId,
-          this.$ctx,
-        )
+      ? this.resolvers.productComponentConfiguration(configurationId)
       : null;
   }
 }

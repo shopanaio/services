@@ -1,5 +1,4 @@
 import type { TagRelayInput } from "../../repositories/tag/TagRepository.js";
-import { TagResolver } from "./TagResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -19,6 +18,6 @@ export class TagConnectionResolver extends BaseConnectionResolver<TagConnectionI
   }
 
   protected createNodeResolver(nodeId: string) {
-    return new TagResolver(nodeId, this.$ctx);
+    return this.resolvers.tag(nodeId);
   }
 }

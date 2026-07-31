@@ -6,56 +6,18 @@ import { ApolloQuery } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
 import type { CurrencyCode } from "@shopana/shared-references";
 import { CatalogType } from "./CatalogType.js";
-import { ProductResolver } from "./ProductResolver.js";
-
-import {
-  ProductConnectionResolver,
-  type ProductQueryProductsArgs,
-} from "./ProductConnectionResolver.js";
-import { VariantResolver } from "./VariantResolver.js";
-import { CategoryResolver } from "./CategoryResolver.js";
-import { VendorResolver } from "./VendorResolver.js";
-import {
-  VendorConnectionResolver,
-  type VendorConnectionInput,
-} from "./VendorConnectionResolver.js";
-import { TagResolver } from "./TagResolver.js";
-import { CollectionResolver } from "./CollectionResolver.js";
-import {
-  CategoryConnectionResolver,
-  type CategoryQueryCategoriesArgs,
-} from "./CategoryConnectionResolver.js";
-import {
-  TagConnectionResolver,
-  type TagConnectionInput,
-} from "./TagConnectionResolver.js";
-import {
-  VariantConnectionResolver,
-  type VariantConnectionInput,
-  WarehouseAssignableVariantConnectionResolver,
-  type WarehouseAssignableVariantConnectionInput,
+import type { ProductQueryProductsArgs } from "./ProductConnectionResolver.js";
+import type { VendorConnectionInput } from "./VendorConnectionResolver.js";
+import type { CategoryQueryCategoriesArgs } from "./CategoryConnectionResolver.js";
+import type { TagConnectionInput } from "./TagConnectionResolver.js";
+import type {
+  VariantConnectionInput,
+  WarehouseAssignableVariantConnectionInput,
 } from "./VariantConnectionResolver.js";
-import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
-import {
-  ProductBulkUpdateJobConnectionResolver,
-  type ProductBulkUpdateJobConnectionInput,
-} from "./ProductBulkUpdateJobConnectionResolver.js";
-import {
-  PricingWidgetResolver,
-  type PricingWidgetInput,
-} from "./PricingWidgetResolver.js";
-import { InventoryWidgetResolver } from "./InventoryWidgetResolver.js";
-import { WarehouseResolver } from "./WarehouseResolver.js";
-import { InventoryItemResolver } from "./InventoryItemResolver.js";
-import { StockResolver } from "./StockResolver.js";
-import {
-  WarehouseConnectionResolver,
-  type WarehouseConnectionResolverInput,
-} from "./WarehouseConnectionResolver.js";
-import {
-  InventoryItemConnectionResolver,
-  type InventoryItemConnectionResolverInput,
-} from "./InventoryItemConnectionResolver.js";
+import type { ProductBulkUpdateJobConnectionInput } from "./ProductBulkUpdateJobConnectionResolver.js";
+import type { PricingWidgetInput } from "./PricingWidgetResolver.js";
+import type { WarehouseConnectionResolverInput } from "./WarehouseConnectionResolver.js";
+import type { InventoryItemConnectionResolverInput } from "./InventoryItemConnectionResolver.js";
 import type { NormalizedInventoryItemWarehouseScope } from "../../repositories/inventory-item/InventoryItemRepository.js";
 import {
   normalizeCategoryHierarchyScopeInput,
@@ -91,18 +53,18 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
    * Returns namespace resolver that handles all catalog queries.
    */
   catalogQuery() {
-    return new CatalogQueryResolver({}, this.$ctx);
+    return this.resolvers.catalogQuery();
   }
 
   /**
    * Entry point for widget-related queries.
    */
   widgetQuery() {
-    return new WidgetQueryResolver({}, this.$ctx);
+    return this.resolvers.widgetQuery();
   }
 
   inventoryQuery() {
-    return new InventoryQueryResolver({}, this.$ctx);
+    return this.resolvers.inventoryQuery();
   }
 }
 
@@ -115,7 +77,7 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
       args.productId,
       GlobalIdEntity.Product
     );
-    return new InventoryWidgetResolver(productId, this.$ctx);
+    return this.resolvers.inventoryWidget(productId);
   }
 
   pricing(args: { input: PricingWidgetInput }) {
@@ -124,17 +86,14 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
       GlobalIdEntity.Variant
     );
 
-    return new PricingWidgetResolver(
-      {
-        variantId,
-        currency: args.input.currency as CurrencyCode,
-        from: args.input.from,
-        to: args.input.to,
-        first: args.input.first,
-        after: args.input.after,
-      },
-      this.$ctx
-    );
+    return this.resolvers.pricingWidget({
+      variantId,
+      currency: args.input.currency as CurrencyCode,
+      from: args.input.from,
+      to: args.input.to,
+      first: args.input.first,
+      after: args.input.after,
+    });
   }
 }
 
@@ -165,7 +124,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!productId) return null;
     const product = await this.$ctx.loaders.product.load(productId);
     if (!product) return null;
-    return new ProductResolver(productId, this.$ctx);
+    return this.resolvers.product(productId);
   }
 
   /**
@@ -188,24 +147,21 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!product) {
       return null;
     }
-    return new ProductResolver(productId, this.$ctx);
+    return this.resolvers.product(productId);
   }
 
   /**
    * Get a paginated list of products.
    */
   products(args: ProductQueryProductsArgs) {
-    return new ProductConnectionResolver(
-      {
-        ...args,
-        meta: {
-          categoriesScope: normalizeProductCategoriesScopeInput(
-            args.meta?.categoriesScope
-          ),
-        },
+    return this.resolvers.productConnection({
+      ...args,
+      meta: {
+        categoriesScope: normalizeProductCategoriesScopeInput(
+          args.meta?.categoriesScope
+        ),
       },
-      this.$ctx
-    );
+    });
   }
 
   // ---- Variant Queries ----
@@ -220,14 +176,14 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!variant) {
       return null;
     }
-    return new VariantResolver(variantId, this.$ctx);
+    return this.resolvers.variant(variantId);
   }
 
   /**
    * Get a paginated list of variants.
    */
   variants(args: VariantConnectionInput) {
-    return new VariantConnectionResolver(args, this.$ctx);
+    return this.resolvers.variantConnection(args);
   }
 
   // ---- Vendor Queries ----
@@ -243,14 +199,14 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!vendor) {
       return null;
     }
-    return new VendorResolver(vendorId, this.$ctx);
+    return this.resolvers.vendor(vendorId);
   }
 
   /**
    * Get a paginated list of vendors.
    */
   vendors(args: VendorConnectionInput) {
-    return new VendorConnectionResolver(args, this.$ctx);
+    return this.resolvers.vendorConnection(args);
   }
 
   // ---- Category Queries ----
@@ -266,27 +222,24 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!cat) {
       return null;
     }
-    return new CategoryResolver(categoryId, this.$ctx);
+    return this.resolvers.category(categoryId);
   }
 
   /**
    * Get a paginated list of categories.
    */
   categories(args: CategoryQueryCategoriesArgs) {
-    return new CategoryConnectionResolver(
-      {
-        ...args,
-        meta: {
-          hierarchyScope: normalizeCategoryHierarchyScopeInput(
-            args.meta?.hierarchyScope
-          ),
-          productsScope: normalizeCategoryProductsScopeInput(
-            args.meta?.productsScope
-          ),
-        },
+    return this.resolvers.categoryConnection({
+      ...args,
+      meta: {
+        hierarchyScope: normalizeCategoryHierarchyScopeInput(
+          args.meta?.hierarchyScope
+        ),
+        productsScope: normalizeCategoryProductsScopeInput(
+          args.meta?.productsScope
+        ),
       },
-      this.$ctx
-    );
+    });
   }
 
   async collection(args: { id: string }) {
@@ -294,13 +247,13 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!id) return null;
     const item = await this.$ctx.kernel.repository.collection.findById(id);
     if (!item) return null;
-    return new CollectionResolver(item.id, this.$ctx);
+    return this.resolvers.collection(item.id);
   }
 
   async collectionByHandle(args: { handle: string }) {
     const item = await this.$ctx.kernel.repository.collection.findByHandle(args.handle);
     if (!item) return null;
-    return new CollectionResolver(item.id, this.$ctx);
+    return this.resolvers.collection(item.id);
   }
 
   // TODO: Implement collections() with keyset pagination
@@ -317,14 +270,14 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!t) {
       return null;
     }
-    return new TagResolver(tagId, this.$ctx);
+    return this.resolvers.tag(tagId);
   }
 
   /**
    * Get a paginated list of tags.
    */
   tags(args: TagConnectionInput) {
-    return new TagConnectionResolver(args, this.$ctx);
+    return this.resolvers.tagConnection(args);
   }
 
   /**
@@ -338,11 +291,11 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
 
     const job = await this.$ctx.kernel.repository.bulkEditJob.findById(jobId);
     if (!job) return null;
-    return new ProductBulkUpdateJobResolver(job.id, this.$ctx);
+    return this.resolvers.productBulkUpdateJob(job.id);
   }
 
   productBulkUpdateJobs(args: ProductBulkUpdateJobConnectionInput) {
-    return new ProductBulkUpdateJobConnectionResolver(args, this.$ctx);
+    return this.resolvers.productBulkUpdateJobConnection(args);
   }
 }
 
@@ -355,7 +308,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
       );
       const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
       if (warehouse) {
-        return new WarehouseResolver(warehouseId, this.$ctx);
+        return this.resolvers.warehouse(warehouseId);
       }
     } catch {
       // Not a Warehouse ID
@@ -368,7 +321,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
       );
       const item = await this.$ctx.loaders.inventoryItem.load(inventoryItemId);
       if (item) {
-        return new InventoryItemResolver(item.id, this.$ctx);
+        return this.resolvers.inventoryItem(item.id);
       }
     } catch {
       // Not an InventoryItem ID
@@ -381,7 +334,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
       );
       const stock = await this.$ctx.kernel.repository.stock.findById(stockId);
       if (stock) {
-        return new StockResolver(stock.id, this.$ctx);
+        return this.resolvers.stock(stock.id);
       }
     } catch {
       // Not a WarehouseStock ID
@@ -400,24 +353,21 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
     if (!warehouse) {
       return null;
     }
-    return new WarehouseResolver(warehouseId, this.$ctx);
+    return this.resolvers.warehouse(warehouseId);
   }
 
   warehouses(args: WarehouseConnectionResolverInput) {
-    return new WarehouseConnectionResolver(
-      {
-        ...args,
-        where: normalizeWarehouseWhereInput(args.where),
-      },
-      this.$ctx
-    );
+    return this.resolvers.warehouseConnection({
+      ...args,
+      where: normalizeWarehouseWhereInput(args.where),
+    });
   }
 
   async inventoryItem(args: { id: string }) {
     const itemId = this.decodeId(args.id, GlobalIdEntity.InventoryItem);
     const item = await this.$ctx.loaders.inventoryItem.load(itemId);
     if (!item) return null;
-    return new InventoryItemResolver(item.id, this.$ctx);
+    return this.resolvers.inventoryItem(item.id);
   }
 
   async inventoryItemByVariant(args: { variantId: string }) {
@@ -427,7 +377,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
     );
     const item = await this.$ctx.loaders.inventoryItemByVariant.load(variantUuid);
     if (!item) return null;
-    return new InventoryItemResolver(item.id, this.$ctx);
+    return this.resolvers.inventoryItem(item.id);
   }
 
   async inventoryItems(args: InventoryItemsArgs) {
@@ -441,12 +391,11 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
       });
     }
 
-    return new InventoryItemConnectionResolver(
+    return this.resolvers.inventoryItemConnection(
       {
         ...args,
         meta: { warehouseScope },
-      } as InventoryItemConnectionResolverInput,
-      this.$ctx
+      } as InventoryItemConnectionResolverInput
     );
   }
 
@@ -461,14 +410,11 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
       warehouseId
     );
 
-    return new WarehouseAssignableVariantConnectionResolver(
-      {
-        ...args,
-        warehouseId,
-        empty: !warehouse,
-      },
-      this.$ctx
-    );
+    return this.resolvers.warehouseAssignableVariantConnection({
+      ...args,
+      warehouseId,
+      empty: !warehouse,
+    });
   }
 
   private async normalizeInventoryItemWarehouseScopeInput(

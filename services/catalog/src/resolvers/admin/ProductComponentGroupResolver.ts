@@ -2,7 +2,6 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { ComponentGroup } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { ProductComponentItemResolver } from "./ProductComponentItemResolver.js";
 
 export class ProductComponentGroupResolver extends CatalogType<
   string,
@@ -44,8 +43,8 @@ export class ProductComponentGroupResolver extends CatalogType<
     const ids = await this.$ctx.loaders.componentItemIdsByGroupId.load(
       this.$props,
     );
-    return ids.map(
-      (id: string) => new ProductComponentItemResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) => this.resolvers.productComponentItem(id)),
     );
   }
 

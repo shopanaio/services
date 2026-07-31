@@ -94,6 +94,7 @@ export async function startServer(serverConfig: ServerConfig) {
   const schemaFiles = [
     "shared-currency.graphql",
     "shared-locale.graphql",
+    "shared-price-adjustment.graphql",
     "shared-units.graphql",
     "scalars.graphql",
     "base.graphql",

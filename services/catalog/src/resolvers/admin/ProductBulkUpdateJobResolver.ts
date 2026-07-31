@@ -5,7 +5,6 @@ import {
 import type { BulkEditJob } from "../../repositories/models/index.js";
 import type { BulkEditItemConnectionInput } from "../../repositories/BulkEditItemRepository.js";
 import { CatalogType } from "./CatalogType.js";
-import { BulkUpdateItemResolver } from "./BulkUpdateItemResolver.js";
 
 export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJob> {
   async $preload() {
@@ -56,10 +55,12 @@ export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJo
 
     const result = await this.$ctx.kernel.repository.bulkEditItem.getConnection(input);
 
-    const edges = result.edges.map((edge) => ({
-      cursor: edge.cursor,
-      node: new BulkUpdateItemResolver(edge.nodeId, this.$ctx),
-    }));
+    const edges = await Promise.all(
+      result.edges.map(async (edge) => ({
+        cursor: edge.cursor,
+        node: await this.resolvers.bulkUpdateItem(edge.nodeId),
+      }))
+    );
 
     return {
       edges,

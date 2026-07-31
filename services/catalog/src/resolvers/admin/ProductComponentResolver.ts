@@ -1,7 +1,6 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { Component } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { ProductComponentConfigurationResolver } from "./ProductComponentConfigurationResolver.js";
 
 export class ProductComponentResolver extends CatalogType<string, Component> {
   async $preload() {
@@ -31,9 +30,10 @@ export class ProductComponentResolver extends CatalogType<string, Component> {
       await this.$ctx.loaders.componentConfigurationIdsByComponentId.load(
         this.$props,
       );
-    return ids.map(
-      (id: string) =>
-        new ProductComponentConfigurationResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) =>
+        this.resolvers.productComponentConfiguration(id)
+      ),
     );
   }
 

@@ -1,6 +1,6 @@
 import type { CatalogProductOptionValueRef } from "@shopana/broker-types";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import { CatalogProductOptionValueRefResolver } from "./CatalogProductOptionValueRefResolver.js";
+import type { CatalogProductOptionValueRefResolver } from "./CatalogProductOptionValueRefResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
 export type CatalogProductVariantOptionSelectionSnapshotInput = {
@@ -30,9 +30,11 @@ export class CatalogProductVariantOptionSelectionSnapshotResolver extends Servic
 
     const valueIds = await this.getSelectedValueIds();
     const values = await Promise.all(
-      valueIds.map(async (valueId) =>
-        new CatalogProductOptionValueRefResolver(valueId, this.$ctx).$snapshot()
-      )
+      valueIds.map(async (valueId) => {
+        const resolver =
+          await this.resolvers.catalogProductOptionValueRef(valueId);
+        return resolver.$snapshot();
+      })
     );
 
     return {
@@ -52,8 +54,10 @@ export class CatalogProductVariantOptionSelectionSnapshotResolver extends Servic
 
   async values(): Promise<CatalogProductOptionValueRefResolver[]> {
     const valueIds = await this.getSelectedValueIds();
-    return valueIds.map(
-      (valueId) => new CatalogProductOptionValueRefResolver(valueId, this.$ctx)
+    return Promise.all(
+      valueIds.map((valueId) =>
+        this.resolvers.catalogProductOptionValueRef(valueId)
+      )
     );
   }
 

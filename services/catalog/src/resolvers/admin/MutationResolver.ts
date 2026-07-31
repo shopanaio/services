@@ -7,10 +7,6 @@ import {
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import { z } from "zod";
 import { CatalogType } from "./CatalogType.js";
-import { ProductResolver } from "./ProductResolver.js";
-import { VendorResolver } from "./VendorResolver.js";
-import { WarehouseResolver } from "./WarehouseResolver.js";
-import { StockResolver } from "./StockResolver.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 
 /**
@@ -70,10 +66,6 @@ function WarehouseStockMutationInputSchema() {
     ),
   });
 }
-import { CategoryResolver } from "./CategoryResolver.js";
-import { TagResolver } from "./TagResolver.js";
-import { CollectionResolver } from "./CollectionResolver.js";
-import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
 import { ProductDeleteScript } from "../../scripts/product/index.js";
 import {
   CategoryCreateScript,
@@ -163,11 +155,11 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
    * Returns namespace resolver that handles all catalog mutations.
    */
   catalogMutation() {
-    return new CatalogMutationResolver({}, this.$ctx);
+    return this.resolvers.catalogMutation();
   }
 
   inventoryMutation() {
-    return new InventoryMutationResolver({}, this.$ctx);
+    return this.resolvers.inventoryMutation();
   }
 }
 
@@ -189,7 +181,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       warehouse: result.warehouse
-        ? new WarehouseResolver(result.warehouse.id, this.$ctx)
+        ? await this.resolvers.warehouse(result.warehouse.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -212,7 +204,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       warehouse: result.warehouse
-        ? new WarehouseResolver(result.warehouse.id, this.$ctx)
+        ? await this.resolvers.warehouse(result.warehouse.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -288,8 +280,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
 
     return {
-      warehouseStocks: result.warehouseStocks.map(
-        (stock) => new StockResolver(stock.id, this.$ctx)
+      warehouseStocks: await Promise.all(
+        result.warehouseStocks.map((stock) => this.resolvers.stock(stock.id))
       ),
       userErrors: result.userErrors,
     };
@@ -604,7 +596,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       vendor: result.vendor
-        ? new VendorResolver(result.vendor.id, this.$ctx)
+        ? await this.resolvers.vendor(result.vendor.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -681,7 +673,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       product: result.product
-        ? new ProductResolver(result.product.id, this.$ctx)
+        ? await this.resolvers.product(result.product.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -792,7 +784,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       product: result.product
-        ? new ProductResolver(result.product.id, this.$ctx)
+        ? await this.resolvers.product(result.product.id)
         : null,
       operationResults: result.operationResults.map((r) => ({
         type: toGraphqlOperationType(r.type),
@@ -895,7 +887,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       category: result.category
-        ? new CategoryResolver(result.category.id, this.$ctx)
+        ? await this.resolvers.category(result.category.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -958,7 +950,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       category: result.category
-        ? new CategoryResolver(result.category.id, this.$ctx)
+        ? await this.resolvers.category(result.category.id)
         : null,
       operationResults: result.operationResults.map((item) => ({
         type: "CATEGORY_UPDATE",
@@ -997,7 +989,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       category: result.category
-        ? new CategoryResolver(result.category.id, this.$ctx)
+        ? await this.resolvers.category(result.category.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1031,7 +1023,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       category: result.category
-        ? new CategoryResolver(result.category.id, this.$ctx)
+        ? await this.resolvers.category(result.category.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1137,7 +1129,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       collection: result.collection
-        ? new CollectionResolver(result.collection.id, this.$ctx)
+        ? await this.resolvers.collection(result.collection.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1234,7 +1226,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       collection: result.collection
-        ? new CollectionResolver(result.collection.id, this.$ctx)
+        ? await this.resolvers.collection(result.collection.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1279,7 +1271,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
     return {
       collection: result.collection
-        ? new CollectionResolver(result.collection.id, this.$ctx)
+        ? await this.resolvers.collection(result.collection.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1307,7 +1299,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
     return {
       collection: result.collection
-        ? new CollectionResolver(result.collection.id, this.$ctx)
+        ? await this.resolvers.collection(result.collection.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1348,7 +1340,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
     return {
       collection: result.collection
-        ? new CollectionResolver(result.collection.id, this.$ctx)
+        ? await this.resolvers.collection(result.collection.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1366,7 +1358,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
     return {
       collection: result.collection
-        ? new CollectionResolver(result.collection.id, this.$ctx)
+        ? await this.resolvers.collection(result.collection.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1392,7 +1384,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       tag: result.tag
-        ? new TagResolver(result.tag.id, this.$ctx)
+        ? await this.resolvers.tag(result.tag.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1431,7 +1423,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       tag: result.tag
-        ? new TagResolver(result.tag.id, this.$ctx)
+        ? await this.resolvers.tag(result.tag.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -1548,7 +1540,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       job: result.jobId
-        ? new ProductBulkUpdateJobResolver(result.jobId, this.$ctx)
+        ? await this.resolvers.productBulkUpdateJob(result.jobId)
         : null,
       userErrors: [],
     };

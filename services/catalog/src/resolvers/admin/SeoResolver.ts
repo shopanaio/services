@@ -3,7 +3,7 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 
-interface SeoShape {
+export interface SeoShape {
   seoTitle: string | null;
   seoDescription: string | null;
   ogTitle: string | null;

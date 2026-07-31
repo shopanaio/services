@@ -6,14 +6,14 @@ import type {
 } from "@shopana/broker-types";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { Product } from "../../repositories/models/index.js";
-import { CatalogProductAvailabilitySnapshotResolver } from "./CatalogProductAvailabilitySnapshotResolver.js";
-import { CatalogProductCategorySnapshotResolver } from "./CatalogProductCategorySnapshotResolver.js";
-import { CatalogProductFeatureSelectionSnapshotResolver } from "./CatalogProductFeatureSelectionSnapshotResolver.js";
-import { CatalogProductLocalizedContentSnapshotResolver } from "./CatalogProductLocalizedContentSnapshotResolver.js";
-import { CatalogProductSeoSnapshotResolver } from "./CatalogProductSeoSnapshotResolver.js";
-import { CatalogProductTagSnapshotResolver } from "./CatalogProductTagSnapshotResolver.js";
-import { CatalogProductVariantSnapshotResolver } from "./CatalogProductVariantSnapshotResolver.js";
-import { CatalogProductVendorSnapshotResolver } from "./CatalogProductVendorSnapshotResolver.js";
+import type { CatalogProductAvailabilitySnapshotResolver } from "./CatalogProductAvailabilitySnapshotResolver.js";
+import type { CatalogProductCategorySnapshotResolver } from "./CatalogProductCategorySnapshotResolver.js";
+import type { CatalogProductFeatureSelectionSnapshotResolver } from "./CatalogProductFeatureSelectionSnapshotResolver.js";
+import type { CatalogProductLocalizedContentSnapshotResolver } from "./CatalogProductLocalizedContentSnapshotResolver.js";
+import type { CatalogProductSeoSnapshotResolver } from "./CatalogProductSeoSnapshotResolver.js";
+import type { CatalogProductTagSnapshotResolver } from "./CatalogProductTagSnapshotResolver.js";
+import type { CatalogProductVariantSnapshotResolver } from "./CatalogProductVariantSnapshotResolver.js";
+import type { CatalogProductVendorSnapshotResolver } from "./CatalogProductVendorSnapshotResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
 export class ProductSnapshotResolver extends ServiceType<string, Product> {
@@ -82,15 +82,14 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
   async vendor(): Promise<CatalogProductVendorSnapshotResolver | null> {
     const vendorId = await this.$get("vendorId");
     return vendorId
-      ? new CatalogProductVendorSnapshotResolver(vendorId, this.$ctx)
+      ? this.resolvers.catalogProductVendorSnapshot(vendorId)
       : null;
   }
 
-  availability(): CatalogProductAvailabilitySnapshotResolver {
-    return new CatalogProductAvailabilitySnapshotResolver(
-      { productId: this.$props },
-      this.$ctx
-    );
+  availability(): Promise<CatalogProductAvailabilitySnapshotResolver> {
+    return this.resolvers.catalogProductAvailabilitySnapshot({
+      productId: this.$props,
+    });
   }
 
   async primaryCategory(): Promise<CatalogProductCategorySnapshotResolver | null> {
@@ -99,14 +98,11 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     );
     const primary = links.find((link) => link.isPrimary);
     return primary
-      ? new CatalogProductCategorySnapshotResolver(
-          {
-            categoryId: primary.categoryId,
-            primary: true,
-            manualRank: primary.lexoRank,
-          },
-          this.$ctx
-        )
+      ? this.resolvers.catalogProductCategorySnapshot({
+          categoryId: primary.categoryId,
+          primary: true,
+          manualRank: primary.lexoRank,
+        })
       : null;
   }
 
@@ -114,43 +110,48 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
       this.$props
     );
-    return [...links]
-      .sort((a, b) => {
-        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
-        const rank = a.lexoRank.localeCompare(b.lexoRank);
-        if (rank !== 0) return rank;
-        return a.categoryId.localeCompare(b.categoryId);
-      })
-      .map(
-        (link) =>
-          new CatalogProductCategorySnapshotResolver(
-            {
-              categoryId: link.categoryId,
-              primary: link.isPrimary,
-              manualRank: link.lexoRank,
-            },
-            this.$ctx
-          )
-      );
+    return Promise.all(
+      [...links]
+        .sort((a, b) => {
+          if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+          const rank = a.lexoRank.localeCompare(b.lexoRank);
+          if (rank !== 0) return rank;
+          return a.categoryId.localeCompare(b.categoryId);
+        })
+        .map((link) =>
+          this.resolvers.catalogProductCategorySnapshot({
+            categoryId: link.categoryId,
+            primary: link.isPrimary,
+            manualRank: link.lexoRank,
+          })
+        )
+    );
   }
 
   async tags(): Promise<CatalogProductTagSnapshotResolver[]> {
     const tagIds = await this.$ctx.loaders.productTagIds.load(this.$props);
-    return tagIds.map((tagId) => new CatalogProductTagSnapshotResolver(tagId, this.$ctx));
+    return Promise.all(
+      tagIds.map((tagId) =>
+        this.resolvers.catalogProductTagSnapshot(tagId)
+      )
+    );
   }
 
   async features(): Promise<CatalogProductFeatureSelectionSnapshotResolver[]> {
     const featureIds = await this.$ctx.loaders.productFeatureIds.load(this.$props);
-    return featureIds.map(
-      (featureId) =>
-        new CatalogProductFeatureSelectionSnapshotResolver(featureId, this.$ctx)
+    return Promise.all(
+      featureIds.map((featureId) =>
+        this.resolvers.catalogProductFeatureSelectionSnapshot(featureId)
+      )
     );
   }
 
   async variants(): Promise<CatalogProductVariantSnapshotResolver[]> {
     const variantIds = await this.$ctx.loaders.variantIds.load(this.$props);
-    return variantIds.map(
-      (variantId) => new CatalogProductVariantSnapshotResolver(variantId, this.$ctx)
+    return Promise.all(
+      variantIds.map((variantId) =>
+        this.resolvers.catalogProductVariantSnapshot(variantId)
+      )
     );
   }
 
@@ -170,7 +171,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
       this.contentSnapshot(),
       this.seoSnapshot(),
       this.vendorSnapshot(),
-      this.availability().$snapshot(),
+      this.availabilitySnapshot(),
       this.primaryCategorySnapshot(),
       this.categorySnapshots(),
       this.tagSnapshots(),
@@ -229,24 +230,31 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     const translations = await this.$ctx.loaders.productTranslations.load(
       this.$props
     );
-    return translations.map(
-      (translation) =>
-        new CatalogProductLocalizedContentSnapshotResolver(
-          { productId: this.$props, locale: translation.locale },
-          this.$ctx
-        )
+    return Promise.all(
+      translations.map((translation) =>
+        this.resolvers.catalogProductLocalizedContentSnapshot({
+          productId: this.$props,
+          locale: translation.locale,
+        })
+      )
     );
   }
 
   private async seoResolvers(): Promise<CatalogProductSeoSnapshotResolver[]> {
     const seoRows = await this.$ctx.loaders.productSeos.load(this.$props);
-    return seoRows.map(
-      (seo) =>
-        new CatalogProductSeoSnapshotResolver(
-          { productId: this.$props, locale: seo.locale },
-          this.$ctx
-        )
+    return Promise.all(
+      seoRows.map((seo) =>
+        this.resolvers.catalogProductSeoSnapshot({
+          productId: this.$props,
+          locale: seo.locale,
+        })
+      )
     );
+  }
+
+  private async availabilitySnapshot() {
+    const resolver = await this.availability();
+    return resolver.$snapshot();
   }
 
   private async primaryCategorySnapshot() {

@@ -5,8 +5,6 @@ import type {
   ComponentItemOptionValueSelection,
 } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { OptionResolver } from "./OptionResolver.js";
-import { OptionValueResolver } from "./OptionValueResolver.js";
 
 export class ProductComponentItemOptionSelectionResolver extends CatalogType<
   string,
@@ -31,12 +29,12 @@ export class ProductComponentItemOptionSelectionResolver extends CatalogType<
   }
 
   async option() {
-    return new OptionResolver(await this.$get("refOptionId"), this.$ctx);
+    return this.resolvers.option(await this.$get("refOptionId"));
   }
 
   async parentOption() {
     const id = await this.$get("parentOptionId");
-    return id ? new OptionResolver(id, this.$ctx) : null;
+    return id ? this.resolvers.option(id) : null;
   }
 
   async values() {
@@ -44,9 +42,10 @@ export class ProductComponentItemOptionSelectionResolver extends CatalogType<
       await this.$ctx.loaders.componentOptionValueSelectionIdsBySelectionId.load(
         this.$props,
       );
-    return ids.map(
-      (id: string) =>
-        new ProductComponentItemOptionValueSelectionResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) =>
+        this.resolvers.productComponentItemOptionValueSelection(id)
+      ),
     );
   }
 
@@ -79,7 +78,7 @@ export class ProductComponentItemOptionValueSelectionResolver extends CatalogTyp
 
   async optionValue() {
     const id = await this.$get("refOptionValueId");
-    return id ? new OptionValueResolver(id, this.$ctx) : null;
+    return id ? this.resolvers.optionValue(id) : null;
   }
 
   async value() {

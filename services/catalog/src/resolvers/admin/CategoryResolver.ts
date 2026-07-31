@@ -8,7 +8,6 @@ import {
 import type { RichText } from "./interfaces/index.js";
 import type { Category } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { SeoResolver } from "./SeoResolver.js";
 import { toRichText } from "./helpers/richText.js";
 import type { CategoryProductConnectionInput } from "./CategoryProductConnectionResolver.js";
 
@@ -121,7 +120,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
   async parent(): Promise<CategoryResolver | null> {
     const parentId = await this.$get("parentId");
     if (!parentId) return null;
-    return new CategoryResolver(parentId, this.$ctx);
+    return this.resolvers.category(parentId);
   }
 
   /**
@@ -129,7 +128,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
    */
   async children(): Promise<CategoryResolver[]> {
     const ids = await this.$ctx.loaders.categoryChildrenIds.load(this.$props);
-    return ids.map((id) => new CategoryResolver(id, this.$ctx));
+    return Promise.all(ids.map((id) => this.resolvers.category(id)));
   }
 
   /**
@@ -137,7 +136,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
    */
   async ancestors(): Promise<CategoryResolver[]> {
     const ids = await this.$ctx.loaders.categoryAncestorIds.load(this.$props);
-    return ids.map((id) => new CategoryResolver(id, this.$ctx));
+    return Promise.all(ids.map((id) => this.resolvers.category(id)));
   }
 
   /**
@@ -157,7 +156,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
   async seo() {
     const seoData = await this.$ctx.loaders.categorySeo.load(this.$props);
     if (!seoData) return null;
-    return new SeoResolver(seoData, this.$ctx);
+    return this.resolvers.seo(seoData);
   }
 
   /**

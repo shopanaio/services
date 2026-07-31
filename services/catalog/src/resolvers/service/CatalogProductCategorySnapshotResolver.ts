@@ -3,7 +3,7 @@ import type {
   CatalogProductCategorySnapshot,
 } from "@shopana/broker-types";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import { CatalogCategoryLocalizedContentSnapshotResolver } from "./CatalogCategoryLocalizedContentSnapshotResolver.js";
+import type { CatalogCategoryLocalizedContentSnapshotResolver } from "./CatalogCategoryLocalizedContentSnapshotResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
 export type CatalogProductCategorySnapshotInput =
@@ -54,15 +54,16 @@ export class CatalogProductCategorySnapshotResolver extends ServiceType<
     const translations = await this.$ctx.loaders.categoryTranslations.load(
       this.categoryId()
     );
-    return [...translations]
-      .sort((left, right) => left.locale.localeCompare(right.locale))
-      .map(
-        (translation) =>
-          new CatalogCategoryLocalizedContentSnapshotResolver(
-            { categoryId: this.categoryId(), locale: translation.locale },
-            this.$ctx
-          )
-      );
+    return Promise.all(
+      [...translations]
+        .sort((left, right) => left.locale.localeCompare(right.locale))
+        .map((translation) =>
+          this.resolvers.catalogCategoryLocalizedContentSnapshot({
+            categoryId: this.categoryId(),
+            locale: translation.locale,
+          })
+        )
+    );
   }
 
   async $snapshot(): Promise<CatalogProductCategorySnapshot> {

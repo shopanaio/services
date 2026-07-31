@@ -1,5 +1,4 @@
 import { CatalogType } from "./CatalogType.js";
-import { VariantPriceResolver } from "./VariantPriceResolver.js";
 import type { CurrencyCode, VariantCost } from "./interfaces/index.js";
 
 export interface PricingWidgetInput {
@@ -33,7 +32,7 @@ export class PricingWidgetResolver extends CatalogType<PricingWidgetInput> {
       currency: this.$props.currency,
     });
 
-    return price ? new VariantPriceResolver(price.id, this.$ctx) : null;
+    return price ? this.resolvers.variantPrice(price.id) : null;
   }
 
   async currentCostPrice(): Promise<VariantCost | null> {
@@ -65,10 +64,12 @@ export class PricingWidgetResolver extends CatalogType<PricingWidgetInput> {
       after: this.$props.after,
     });
 
-    const edges = result.edges.map((edge) => ({
-      node: new VariantPriceResolver(edge.node.id, this.$ctx),
-      cursor: edge.cursor,
-    }));
+    const edges = await Promise.all(
+      result.edges.map(async (edge) => ({
+        node: await this.resolvers.variantPrice(edge.node.id),
+        cursor: edge.cursor,
+      }))
+    );
 
     return {
       edges,

@@ -1,8 +1,6 @@
 import type { CatalogProductLocalizedContentSnapshot } from "@shopana/broker-types";
-import {
-  CatalogRichTextSnapshotResolver,
-  toCatalogRichTextSnapshot,
-} from "./CatalogRichTextSnapshotResolver.js";
+import type { CatalogRichTextSnapshotResolver } from "./CatalogRichTextSnapshotResolver.js";
+import { toRichTextValue } from "../shared/richText.js";
 import { ServiceType } from "./ServiceType.js";
 
 export type CatalogProductLocalizedContentSnapshotInput = {
@@ -45,27 +43,21 @@ export class CatalogProductLocalizedContentSnapshotResolver extends ServiceType<
 
   async excerpt(): Promise<CatalogRichTextSnapshotResolver | null> {
     return (await this.$get("excerpt"))
-      ? new CatalogRichTextSnapshotResolver(
-          {
-            productId: this.$props.productId,
-            locale: this.$props.locale,
-            field: "excerpt",
-          },
-          this.$ctx
-        )
+      ? this.resolvers.catalogRichTextSnapshot({
+          productId: this.$props.productId,
+          locale: this.$props.locale,
+          field: "excerpt",
+        })
       : null;
   }
 
   async description(): Promise<CatalogRichTextSnapshotResolver | null> {
     return (await this.$get("description"))
-      ? new CatalogRichTextSnapshotResolver(
-          {
-            productId: this.$props.productId,
-            locale: this.$props.locale,
-            field: "description",
-          },
-          this.$ctx
-        )
+      ? this.resolvers.catalogRichTextSnapshot({
+          productId: this.$props.productId,
+          locale: this.$props.locale,
+          field: "description",
+        })
       : null;
   }
 
@@ -84,7 +76,7 @@ export class CatalogProductLocalizedContentSnapshotResolver extends ServiceType<
     );
     const prefix = field === "excerpt" ? "excerpt" : "description";
 
-    return toCatalogRichTextSnapshot({
+    return toRichTextValue({
       text: translation?.[`${prefix}Text`],
       html: translation?.[`${prefix}Html`],
       json: translation?.[`${prefix}Json`],

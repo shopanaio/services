@@ -2,12 +2,6 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { ComponentItem } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { ProductComponentGroupResolver } from "./ProductComponentGroupResolver.js";
-import { ProductComponentItemOptionSelectionResolver } from "./ProductComponentOptionResolver.js";
-import {
-  createProductComponentPriceRuleResolver,
-  ProductComponentPricingTemplateResolver,
-} from "./ProductComponentPriceRuleResolver.js";
 
 export class ProductComponentItemResolver extends CatalogType<
   string,
@@ -28,10 +22,7 @@ export class ProductComponentItemResolver extends CatalogType<
   }
 
   async group() {
-    return new ProductComponentGroupResolver(
-      await this.$get("groupId"),
-      this.$ctx,
-    );
+    return this.resolvers.productComponentGroup(await this.$get("groupId"));
   }
 
   async itemType() {
@@ -81,14 +72,14 @@ export class ProductComponentItemResolver extends CatalogType<
   async priceRule() {
     const id = await this.$get("priceRuleId");
     return id
-      ? createProductComponentPriceRuleResolver(id, this.$ctx)
+      ? this.resolvers.productComponentPriceRule(id)
       : null;
   }
 
   async pricingTemplate() {
     const id = await this.$get("pricingTemplateId");
     return id
-      ? new ProductComponentPricingTemplateResolver(id, this.$ctx)
+      ? this.resolvers.productComponentPricingTemplate(id)
       : null;
   }
 
@@ -97,9 +88,10 @@ export class ProductComponentItemResolver extends CatalogType<
       await this.$ctx.loaders.componentOptionSelectionIdsByItemId.load(
         this.$props,
       );
-    return ids.map(
-      (id: string) =>
-        new ProductComponentItemOptionSelectionResolver(id, this.$ctx),
+    return Promise.all(
+      ids.map((id: string) =>
+        this.resolvers.productComponentItemOptionSelection(id)
+      ),
     );
   }
 

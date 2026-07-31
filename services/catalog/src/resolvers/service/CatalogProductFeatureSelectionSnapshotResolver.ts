@@ -1,6 +1,6 @@
 import type { CatalogProductFeatureValueRef } from "@shopana/broker-types";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import { CatalogProductFeatureValueRefResolver } from "./CatalogProductFeatureValueRefResolver.js";
+import type { CatalogProductFeatureValueRefResolver } from "./CatalogProductFeatureValueRefResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
 type CatalogProductFeatureSelectionSnapshotData = {
@@ -23,9 +23,11 @@ export class CatalogProductFeatureSelectionSnapshotResolver extends ServiceType<
 
     const valueIds = await this.$ctx.loaders.featureValueIds.load(feature.id);
     const values = await Promise.all(
-      valueIds.map(async (valueId) =>
-        new CatalogProductFeatureValueRefResolver(valueId, this.$ctx).$snapshot()
-      )
+      valueIds.map(async (valueId) => {
+        const resolver =
+          await this.resolvers.catalogProductFeatureValueRef(valueId);
+        return resolver.$snapshot();
+      })
     );
 
     return {
@@ -45,8 +47,10 @@ export class CatalogProductFeatureSelectionSnapshotResolver extends ServiceType<
 
   async values(): Promise<CatalogProductFeatureValueRefResolver[]> {
     const valueIds = await this.$ctx.loaders.featureValueIds.load(this.$props);
-    return valueIds.map(
-      (valueId) => new CatalogProductFeatureValueRefResolver(valueId, this.$ctx)
+    return Promise.all(
+      valueIds.map((valueId) =>
+        this.resolvers.catalogProductFeatureValueRef(valueId)
+      )
     );
   }
 

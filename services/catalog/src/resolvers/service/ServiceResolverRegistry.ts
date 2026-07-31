@@ -1,8 +1,12 @@
 import type { ServiceContext } from "../../context/types.js";
+import type { ProductConnectionInput } from "../../repositories/product/ProductRepository.js";
+import type { CatalogCategoryLocalizedContentSnapshotInput } from "./CatalogCategoryLocalizedContentSnapshotResolver.js";
 import type { CatalogProductAvailabilitySnapshotInput } from "./CatalogProductAvailabilitySnapshotResolver.js";
+import type { CatalogProductCategorySnapshotInput } from "./CatalogProductCategorySnapshotResolver.js";
 import type { CatalogProductLocalizedContentSnapshotInput } from "./CatalogProductLocalizedContentSnapshotResolver.js";
 import type { CatalogProductSeoSnapshotInput } from "./CatalogProductSeoSnapshotResolver.js";
 import type { CatalogProductVariantOptionSelectionSnapshotInput } from "./CatalogProductVariantOptionSelectionSnapshotResolver.js";
+import type { CatalogVariantLocalizedContentSnapshotInput } from "./CatalogVariantLocalizedContentSnapshotResolver.js";
 import type { CatalogRichTextSnapshotInput } from "./CatalogRichTextSnapshotResolver.js";
 
 const registries = new WeakMap<ServiceContext, ServiceResolverRegistry>();
@@ -24,6 +28,13 @@ export class ServiceResolverRegistry {
       "./ProductSnapshotResolver.js"
     );
     return new ProductSnapshotResolver(id, this.ctx);
+  }
+
+  async productConnection(input: ProductConnectionInput) {
+    const { ServiceProductConnectionResolver } = await import(
+      "./ProductConnectionResolver.js"
+    );
+    return new ServiceProductConnectionResolver(input, this.ctx);
   }
 
   async catalogProductLocalizedContentSnapshot(
@@ -58,11 +69,22 @@ export class ServiceResolverRegistry {
     return new CatalogProductAvailabilitySnapshotResolver(input, this.ctx);
   }
 
-  async catalogProductCategorySnapshot(categoryId: string) {
+  async catalogProductCategorySnapshot(
+    input: CatalogProductCategorySnapshotInput
+  ) {
     const { CatalogProductCategorySnapshotResolver } = await import(
       "./CatalogProductCategorySnapshotResolver.js"
     );
-    return new CatalogProductCategorySnapshotResolver(categoryId, this.ctx);
+    return new CatalogProductCategorySnapshotResolver(input, this.ctx);
+  }
+
+  async catalogCategoryLocalizedContentSnapshot(
+    input: CatalogCategoryLocalizedContentSnapshotInput
+  ) {
+    const { CatalogCategoryLocalizedContentSnapshotResolver } = await import(
+      "./CatalogCategoryLocalizedContentSnapshotResolver.js"
+    );
+    return new CatalogCategoryLocalizedContentSnapshotResolver(input, this.ctx);
   }
 
   async catalogProductTagSnapshot(tagId: string) {
@@ -103,6 +125,26 @@ export class ServiceResolverRegistry {
     return new CatalogProductVariantPriceSnapshotResolver(priceId, this.ctx);
   }
 
+  async catalogVariantLocalizedContentSnapshot(
+    input: CatalogVariantLocalizedContentSnapshotInput
+  ) {
+    const { CatalogVariantLocalizedContentSnapshotResolver } = await import(
+      "./CatalogVariantLocalizedContentSnapshotResolver.js"
+    );
+    return new CatalogVariantLocalizedContentSnapshotResolver(input, this.ctx);
+  }
+
+  async catalogProductVariantInventoryItemSnapshot(variantId: string) {
+    const { CatalogProductVariantInventoryItemSnapshotResolver } =
+      await import(
+        "./CatalogProductVariantInventoryItemSnapshotResolver.js"
+      );
+    return new CatalogProductVariantInventoryItemSnapshotResolver(
+      variantId,
+      this.ctx
+    );
+  }
+
   async catalogProductVariantOptionSelectionSnapshot(
     input: CatalogProductVariantOptionSelectionSnapshotInput
   ) {
@@ -119,5 +161,12 @@ export class ServiceResolverRegistry {
       "./CatalogProductOptionValueRefResolver.js"
     );
     return new CatalogProductOptionValueRefResolver(valueId, this.ctx);
+  }
+
+  async catalogProductVendorSnapshot(vendorId: string) {
+    const { CatalogProductVendorSnapshotResolver } = await import(
+      "./CatalogProductVendorSnapshotResolver.js"
+    );
+    return new CatalogProductVendorSnapshotResolver(vendorId, this.ctx);
   }
 }

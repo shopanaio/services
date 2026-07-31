@@ -5,7 +5,6 @@ import {
 import type { ProductOption } from "../../repositories/models/index.js";
 import type { OptionDisplayType } from "./interfaces/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { OptionValueResolver } from "./OptionValueResolver.js";
 
 /**
  * Option view - resolves Option domain interface
@@ -51,6 +50,6 @@ export class OptionResolver extends CatalogType<string, ProductOption> {
    */
   async values() {
     const ids = await this.$ctx.loaders.optionValueIds.load(this.$props);
-    return ids.map((id) => new OptionValueResolver(id, this.$ctx));
+    return Promise.all(ids.map((id) => this.resolvers.optionValue(id)));
   }
 }

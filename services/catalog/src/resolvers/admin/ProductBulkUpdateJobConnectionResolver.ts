@@ -1,5 +1,4 @@
 import type { BulkEditJobConnectionInput } from "../../repositories/BulkEditJobRepository.js";
-import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -13,6 +12,6 @@ export class ProductBulkUpdateJobConnectionResolver extends BaseConnectionResolv
   }
 
   protected createNodeResolver(nodeId: string) {
-    return new ProductBulkUpdateJobResolver(nodeId, this.$ctx);
+    return this.resolvers.productBulkUpdateJob(nodeId);
   }
 }

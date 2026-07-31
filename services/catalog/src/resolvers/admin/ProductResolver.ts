@@ -13,13 +13,9 @@ import type {
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 import { CatalogType } from "./CatalogType.js";
-import { FeatureResolver } from "./FeatureResolver.js";
-import { OptionResolver } from "./OptionResolver.js";
-import { ProductSeoResolver } from "./ProductSeoResolver.js";
-import { TagResolver } from "./TagResolver.js";
-import { VendorResolver } from "./VendorResolver.js";
+import type { TagResolver } from "./TagResolver.js";
+import type { VendorResolver } from "./VendorResolver.js";
 import { toRichText } from "./helpers/richText.js";
-import { ProductComponentResolver } from "./ProductComponentResolver.js";
 
 /**
  * Product resolver - resolves Product domain interface.
@@ -76,7 +72,7 @@ export class ProductResolver extends CatalogType<string, Product> {
 
   async vendor(): Promise<VendorResolver | null> {
     const vendorId = await this.$get("vendorId");
-    return vendorId ? new VendorResolver(vendorId, this.$ctx) : null;
+    return vendorId ? this.resolvers.vendor(vendorId) : null;
   }
 
   async title() {
@@ -114,7 +110,7 @@ export class ProductResolver extends CatalogType<string, Product> {
   async seo() {
     const seoData = await this.$ctx.loaders.productSeo.load(this.$props);
     if (!seoData) return null;
-    return new ProductSeoResolver(seoData, this.$ctx);
+    return this.resolvers.productSeo(seoData);
   }
 
   async priceRange(): Promise<ProductPriceRange | null> {
@@ -155,7 +151,7 @@ export class ProductResolver extends CatalogType<string, Product> {
    */
   async options() {
     const ids = await this.$ctx.loaders.productOptionIds.load(this.$props);
-    return ids.map((id) => new OptionResolver(id, this.$ctx));
+    return Promise.all(ids.map((id) => this.resolvers.option(id)));
   }
 
   /**
@@ -163,7 +159,7 @@ export class ProductResolver extends CatalogType<string, Product> {
    */
   async features() {
     const ids = await this.$ctx.loaders.productFeatureIds.load(this.$props);
-    return ids.map((id) => new FeatureResolver(id, this.$ctx));
+    return Promise.all(ids.map((id) => this.resolvers.feature(id)));
   }
 
   /**
@@ -171,7 +167,7 @@ export class ProductResolver extends CatalogType<string, Product> {
    */
   async rootFeatures() {
     const ids = await this.$ctx.loaders.productRootFeatureIds.load(this.$props);
-    return ids.map((id) => new FeatureResolver(id, this.$ctx));
+    return Promise.all(ids.map((id) => this.resolvers.feature(id)));
   }
 
   /**
@@ -213,14 +209,14 @@ export class ProductResolver extends CatalogType<string, Product> {
    */
   async tags(): Promise<TagResolver[]> {
     const ids = await this.$ctx.loaders.productTagIds.load(this.$props);
-    return ids.map((id) => new TagResolver(id, this.$ctx));
+    return Promise.all(ids.map((id) => this.resolvers.tag(id)));
   }
 
   async productComponent() {
     const component =
       await this.$ctx.loaders.componentByProductId.load(this.$props);
     return component
-      ? new ProductComponentResolver(component.id, this.$ctx)
+      ? this.resolvers.productComponent(component.id)
       : null;
   }
 }

@@ -5,7 +5,6 @@ import {
 import { CatalogType } from "./CatalogType.js";
 import type { RichText } from "./interfaces/index.js";
 import type { Collection } from "../../repositories/models/index.js";
-import { SeoResolver } from "./SeoResolver.js";
 import { toRichText } from "./helpers/richText.js";
 
 export class CollectionResolver extends CatalogType<string, Collection> {
@@ -65,7 +64,7 @@ export class CollectionResolver extends CatalogType<string, Collection> {
   async seo() {
     const seo = await this.$ctx.loaders.collectionSeo.load(this.$props);
     if (!seo) return null;
-    return new SeoResolver(seo, this.$ctx);
+    return this.resolvers.seo(seo);
   }
 
   async defaultSort() {

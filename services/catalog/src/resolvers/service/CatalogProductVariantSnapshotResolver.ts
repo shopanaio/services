@@ -5,11 +5,11 @@ import type {
   CatalogVariantLocalizedContentSnapshot,
 } from "@shopana/broker-types";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import { CatalogProductAvailabilitySnapshotResolver } from "./CatalogProductAvailabilitySnapshotResolver.js";
-import { CatalogProductVariantOptionSelectionSnapshotResolver } from "./CatalogProductVariantOptionSelectionSnapshotResolver.js";
-import { CatalogProductVariantInventoryItemSnapshotResolver } from "./CatalogProductVariantInventoryItemSnapshotResolver.js";
-import { CatalogProductVariantPriceSnapshotResolver } from "./CatalogProductVariantPriceSnapshotResolver.js";
-import { CatalogVariantLocalizedContentSnapshotResolver } from "./CatalogVariantLocalizedContentSnapshotResolver.js";
+import type { CatalogProductAvailabilitySnapshotResolver } from "./CatalogProductAvailabilitySnapshotResolver.js";
+import type { CatalogProductVariantOptionSelectionSnapshotResolver } from "./CatalogProductVariantOptionSelectionSnapshotResolver.js";
+import type { CatalogProductVariantInventoryItemSnapshotResolver } from "./CatalogProductVariantInventoryItemSnapshotResolver.js";
+import type { CatalogProductVariantPriceSnapshotResolver } from "./CatalogProductVariantPriceSnapshotResolver.js";
+import type { CatalogVariantLocalizedContentSnapshotResolver } from "./CatalogVariantLocalizedContentSnapshotResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
 export class CatalogProductVariantSnapshotResolver extends ServiceType<
@@ -55,9 +55,10 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
       isDefault: variant.isDefault,
       createdAt: variant.createdAt,
       updatedAt: variant.updatedAt,
-      availability: await new CatalogProductAvailabilitySnapshotResolver(
-        { variantId: variant.id },
-        this.$ctx
+      availability: await (
+        await this.resolvers.catalogProductAvailabilitySnapshot({
+          variantId: variant.id,
+        })
       ).$snapshot(),
       prices,
       options: optionSelections,
@@ -87,10 +88,9 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
   }
 
   async availability(): Promise<CatalogProductAvailabilitySnapshotResolver> {
-    return new CatalogProductAvailabilitySnapshotResolver(
-      { variantId: this.$props },
-      this.$ctx
-    );
+    return this.resolvers.catalogProductAvailabilitySnapshot({
+      variantId: this.$props,
+    });
   }
 
   async prices(): Promise<CatalogProductVariantPriceSnapshotResolver[]> {
@@ -99,8 +99,10 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
       ? prices.filter((price) => price.currency === this.$ctx.currency)
       : prices;
 
-    return filtered.map(
-      (price) => new CatalogProductVariantPriceSnapshotResolver(price.id, this.$ctx)
+    return Promise.all(
+      filtered.map((price) =>
+        this.resolvers.catalogProductVariantPriceSnapshot(price.id)
+      )
     );
   }
 
@@ -109,12 +111,13 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
   > {
     const links = await this.$ctx.loaders.variantSelectedOptions.load(this.$props);
     const optionIds = [...new Set(links.map((link) => link.optionId))];
-    return optionIds.map(
-      (optionId) =>
-        new CatalogProductVariantOptionSelectionSnapshotResolver(
-          { variantId: this.$props, optionId },
-          this.$ctx
-        )
+    return Promise.all(
+      optionIds.map((optionId) =>
+        this.resolvers.catalogProductVariantOptionSelectionSnapshot({
+          variantId: this.$props,
+          optionId,
+        })
+      )
     );
   }
 
@@ -122,20 +125,21 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
     const translations = await this.$ctx.loaders.variantTranslations.load(
       this.$props
     );
-    return translations
-      .filter(
-        (translation) =>
-          typeof translation.title === "string" &&
-          translation.title.trim().length > 0
-      )
-      .sort((left, right) => left.locale.localeCompare(right.locale))
-      .map(
-        (translation) =>
-          new CatalogVariantLocalizedContentSnapshotResolver(
-            { variantId: this.$props, locale: translation.locale },
-            this.$ctx
-          )
-      );
+    return Promise.all(
+      translations
+        .filter(
+          (translation) =>
+            typeof translation.title === "string" &&
+            translation.title.trim().length > 0
+        )
+        .sort((left, right) => left.locale.localeCompare(right.locale))
+        .map((translation) =>
+          this.resolvers.catalogVariantLocalizedContentSnapshot({
+            variantId: this.$props,
+            locale: translation.locale,
+          })
+        )
+    );
   }
 
   async inventoryItem(): Promise<CatalogProductVariantInventoryItemSnapshotResolver | null> {
@@ -143,10 +147,7 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
       this.$props
     );
     return inventoryItem
-      ? new CatalogProductVariantInventoryItemSnapshotResolver(
-          this.$props,
-          this.$ctx
-        )
+      ? this.resolvers.catalogProductVariantInventoryItemSnapshot(this.$props)
       : null;
   }
 

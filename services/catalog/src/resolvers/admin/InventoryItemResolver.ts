@@ -7,7 +7,6 @@ import {
 } from "@shopana/shared-graphql-guid";
 import type { InventoryItem } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { StockResolver } from "./StockResolver.js";
 
 /**
  * InventoryItemResolver - resolves InventoryItem GraphQL type.
@@ -93,7 +92,7 @@ export class InventoryItemResolver extends CatalogType<string, InventoryItem> {
     const variantId = await this.$get("variantId");
     const stocks = await this.$ctx.loaders.stockByVariant.load(variantId);
 
-    return stocks.map((s) => new StockResolver(s.id, this.$ctx));
+    return Promise.all(stocks.map((stock) => this.resolvers.stock(stock.id)));
   }
 
   /**

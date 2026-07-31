@@ -37,7 +37,7 @@ export interface ConnectionData {
  *   }
  *
  *   protected createNodeResolver(nodeId: string) {
- *     return new WarehouseResolver(nodeId, this.$ctx);
+ *     return this.resolvers.warehouse(nodeId);
  *   }
  * }
  */

@@ -5,11 +5,11 @@ import {
   type ConnectionData,
   type EdgeData,
 } from "./connection/BaseConnectionResolver.js";
-import { ProductSnapshotResolver } from "./ProductSnapshotResolver.js";
+import type { ProductSnapshotResolver } from "./ProductSnapshotResolver.js";
 
 class ServiceProductEdgeResolver extends BaseConnectionEdgeResolver<ProductSnapshotResolver> {
-  node(): ProductSnapshotResolver {
-    return new ProductSnapshotResolver(this.$props.nodeId, this.$ctx);
+  node(): Promise<ProductSnapshotResolver> {
+    return this.resolvers.productSnapshot(this.$props.nodeId);
   }
 }
 

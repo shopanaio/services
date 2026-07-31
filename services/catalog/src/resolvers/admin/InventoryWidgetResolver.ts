@@ -21,7 +21,7 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
       args.productId,
       GlobalIdEntity.Product,
     );
-    return new InventoryWidgetResolver(productId, this.$ctx);
+    return this.resolvers.inventoryWidget(productId);
   }
 }
 

@@ -117,9 +117,8 @@ export class ProductComponentPricingTemplateResolver extends CatalogType<
   }
 
   async priceRule() {
-    return createProductComponentPriceRuleResolver(
+    return this.resolvers.productComponentPriceRule(
       await this.$get("priceRuleId"),
-      this.$ctx,
     );
   }
 

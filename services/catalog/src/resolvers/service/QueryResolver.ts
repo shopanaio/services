@@ -1,6 +1,5 @@
 import { ServiceType } from "./ServiceType.js";
 import type { ProductConnectionInput } from "../../repositories/product/ProductRepository.js";
-import { ServiceProductConnectionResolver } from "./ProductConnectionResolver.js";
 
 export type ServiceQueryProductsArgs = Omit<
   ProductConnectionInput,
@@ -13,6 +12,6 @@ export class ServiceQueryResolver extends ServiceType<Record<string, never>> {
   }
 
   products(args: ServiceQueryProductsArgs) {
-    return new ServiceProductConnectionResolver(args, this.$ctx);
+    return this.resolvers.productConnection(args);
   }
 }
