@@ -27,13 +27,18 @@ export interface IMenuLevel {
 interface INavigableDropdownProps {
   levels: IMenuLevel[];
   children: ReactNode;
+  testId?: string;
 }
 
 // ============================================================================
 // Component
 // ============================================================================
 
-export const NavigableDropdown = ({ levels, children }: INavigableDropdownProps) => {
+export const NavigableDropdown = ({
+  levels,
+  children,
+  testId,
+}: INavigableDropdownProps) => {
   const { styles } = useStyles();
   const [open, setOpen] = useState(false);
   const [activeParent, setActiveParent] = useState<string | null>(null);
@@ -59,6 +64,7 @@ export const NavigableDropdown = ({ levels, children }: INavigableDropdownProps)
     return {
       key: level.key,
       icon: level.icon,
+      "data-testid": testId ? `${testId}-option-${level.key}` : undefined,
       label: (
         <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span>{level.label}</span>
@@ -83,7 +89,10 @@ export const NavigableDropdown = ({ levels, children }: INavigableDropdownProps)
       }}
       popupRender={(menu) =>
         activeParent && activeLevel && activeLevel.children?.length ? (
-          <div className={styles.panel}>
+          <div
+            className={styles.panel}
+            data-testid={testId ? `${testId}-children` : undefined}
+          >
             <div
               className={styles.back}
               onClick={() => {
@@ -99,6 +108,7 @@ export const NavigableDropdown = ({ levels, children }: INavigableDropdownProps)
                 <div
                   key={child.key}
                   className={styles.listItem}
+                  data-testid={testId ? `${testId}-child-${child.key}` : undefined}
                   onClick={() => {
                     child.onClick();
                     setOpen(false);

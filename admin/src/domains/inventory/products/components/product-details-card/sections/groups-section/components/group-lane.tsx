@@ -5,7 +5,7 @@ import { LuLockKeyhole as LockOutlined, LuLockOpen as UnlockOutlined, LuCircleCh
 import type { ApiProductComponentGroup } from "@/graphql/types";
 import { getSelectionLabel } from "../helpers";
 import { useStyles } from "../styles";
-import { BundleItemRow } from "./bundle-item-row";
+import { ComponentItemRow } from "./component-item-row";
 
 interface IGroupLaneProps {
   group: ApiProductComponentGroup;
@@ -50,7 +50,7 @@ export const GroupLane = ({ group, onClick }: IGroupLaneProps) => {
       </div>
       <div className={styles.laneBody}>
         {group.items?.map((item) => (
-          <BundleItemRow key={item.id} item={item} />
+          <ComponentItemRow key={item.id} item={item} />
         ))}
       </div>
     </div>

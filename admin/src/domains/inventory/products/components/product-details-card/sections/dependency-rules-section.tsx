@@ -18,7 +18,7 @@ import {
   formatAction,
   TARGET_TYPE_COLORS,
   CHART_NODE_ICONS,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
+} from "@/domains/inventory/products/components/product-details-card/components-ui/dependency-rules";
 
 // ============================================================================
 // Styles
@@ -193,6 +193,7 @@ export const DependencyRulesSection = ({
               <div
                 key={rule.id}
                 className={styles.ruleCard}
+                data-testid="product-components-pricing-rule"
                 onClick={() => onEditRule(rule.id)}
               >
                 <div className={styles.ruleHeader}>

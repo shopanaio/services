@@ -451,6 +451,9 @@ export const PRODUCT_EDITOR_BASE_FRAGMENT = gql`
     options {
       ...ProductOptionFields
     }
+    productComponent {
+      ...ProductComponentFields
+    }
   }
   ${RICH_TEXT_FRAGMENT}
   ${FILE_FRAGMENT}
@@ -459,6 +462,7 @@ export const PRODUCT_EDITOR_BASE_FRAGMENT = gql`
   ${PRODUCT_TAG_FRAGMENT}
   ${PRODUCT_FEATURE_FRAGMENT}
   ${PRODUCT_OPTION_FRAGMENT}
+  ${PRODUCT_COMPONENT_FRAGMENT}
 `;
 
 export const PRODUCT_DETAILS_FRAGMENT = gql`

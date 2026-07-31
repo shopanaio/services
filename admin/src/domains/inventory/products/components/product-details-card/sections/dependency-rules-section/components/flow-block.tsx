@@ -7,7 +7,7 @@ import type { ProductComponentDependencyTargetType } from "@/graphql/types";
 import {
   TARGET_TYPE_COLORS,
   CHART_NODE_ICONS,
-} from "@/domains/inventory/products/components/product-details-card/bundle-ui/dependency-rules";
+} from "@/domains/inventory/products/components/product-details-card/components-ui/dependency-rules";
 import { useStyles } from "../styles";
 
 export interface IFlowBlockItem {

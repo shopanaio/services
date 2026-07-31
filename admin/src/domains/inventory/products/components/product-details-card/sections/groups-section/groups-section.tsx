@@ -20,7 +20,7 @@ export const GroupsSection = ({
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="No bundle groups configured"
+        description="No component groups configured"
       />
     );
   }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { Flex } from "antd";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { App, Flex } from "antd";
 import { ProductInfoHeader } from "../product-info-header";
 import { ProductContentTabs } from "../product-content-tabs";
 import { PricingBlock } from "../pricing/pricing-block";
@@ -19,16 +19,20 @@ import {
   OptionsSection,
   InventorySection,
   VariantsTableSection,
-  BundleSection,
+  ComponentsSection,
 } from "./sections";
 import { useProductModals } from "./hooks";
 import type {
   ApiProduct,
-  ApiProductComponentConfiguration,
   ApiProductComponentDependencyRule,
   ApiProductComponentGroup,
+  ApiProductComponentOperationInput,
+  ApiProductComponentPricingTemplate,
 } from "@/graphql/types";
-import { ProductComponentLogicOperator } from "@/graphql/types";
+import {
+  ProductComponentLogicOperator,
+  ProductComponentOperationAction,
+} from "@/graphql/types";
 import type { IVariantsTableData } from "./types";
 import {
   getProductCategories,
@@ -37,10 +41,16 @@ import {
 } from "../../utils/api-product-display";
 import {
   useDependencyChartModal,
-  useEditBundleConfigurationModal,
-  useEditBundleGroupsModal,
+  useEditComponentConfigurationModal,
+  useEditComponentGroupsModal,
+  useEditComponentTemplatesModal,
 } from "@/domains/inventory/products/modals";
-import { createProductComponentMockData } from "@/mocks/products/product-component";
+import { useUpdateProduct } from "../../hooks";
+import {
+  toProductComponentDependencyRulesInput,
+  toProductComponentGroupsInput,
+  toProductComponentPricingTemplatesInput,
+} from "../../mappers";
 
 // ============================================================================
 // Main Component
@@ -63,29 +73,22 @@ export const ProductDetailsCard = ({
   isVariantsPageLoading = false,
   onProductRefresh,
 }: IProductDetailsCardProps) => {
+  const { message } = App.useApp();
   const defaultCurrency = useDefaultCurrency();
+  const { updateProduct } = useUpdateProduct();
   const modals = useProductModals(product, {
     onProductRefresh,
     defaultCurrency,
   });
   const reviewsWidget = useProductReviewsWidget(product.id);
   const { push: openProductInsights } = useProductInsightsModal();
-  const { push: openEditGroupsModal } = useEditBundleGroupsModal();
+  const { push: openEditGroupsModal } = useEditComponentGroupsModal();
   const { push: openEditConfigurationModal } =
-    useEditBundleConfigurationModal();
+    useEditComponentConfigurationModal();
+  const { push: openEditTemplatesModal } = useEditComponentTemplatesModal();
   const { push: openDependencyChartModal } = useDependencyChartModal();
-  const productComponentMockData = useMemo(
-    () => createProductComponentMockData(product),
-    [product],
-  );
-  const [activeConfigurationId, setActiveConfigurationId] = useState(
-    productComponentMockData.configurations[0]?.id ?? "",
-  );
-  const [configurations, setConfigurations] = useState<
-    ApiProductComponentConfiguration[]
-  >(
-    productComponentMockData.configurations,
-  );
+  const configurations = product.productComponent?.configurations ?? [];
+  const [activeConfigurationId, setActiveConfigurationId] = useState("");
   const activeConfiguration = useMemo(
     () =>
       configurations.find(
@@ -101,57 +104,77 @@ export const ProductDetailsCard = ({
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
-  const updateActiveConfiguration = useCallback(
-    (updater: (
-      configuration: ApiProductComponentConfiguration,
-    ) => ApiProductComponentConfiguration) => {
-      setConfigurations((currentConfigurations) =>
-        currentConfigurations.map((configuration) =>
-          configuration.id === activeConfiguration?.id
-            ? updater(configuration)
-            : configuration,
-        ),
-      );
+  useEffect(() => {
+    if (
+      configurations.length > 0 &&
+      !configurations.some(({ id }) => id === activeConfigurationId)
+    ) {
+      setActiveConfigurationId(configurations[0].id);
+    }
+    if (configurations.length === 0 && activeConfigurationId) {
+      setActiveConfigurationId("");
+    }
+  }, [activeConfigurationId, configurations]);
+
+  const saveComponentOperation = useCallback(
+    async (
+      operation: ApiProductComponentOperationInput,
+      successMessage: string,
+    ) => {
+      const result = await updateProduct({
+        productId: product.id,
+        expectedRevision: product.revision,
+        operations: { components: [operation] },
+      });
+
+      if (result.errors.length > 0) {
+        message.error(result.errors[0].message);
+        return null;
+      }
+
+      if (onProductRefresh) {
+        try {
+          await onProductRefresh();
+        } catch {
+          message.warning(`${successMessage}, but refresh failed`);
+          return result;
+        }
+      }
+
+      message.success(successMessage);
+      return result;
     },
-    [activeConfiguration?.id],
+    [message, onProductRefresh, product.id, product.revision, updateProduct],
   );
 
   const handleCreateConfiguration = useCallback(
-    (sourceConfigurationId?: string) => {
+    () => {
       openEditConfigurationModal({
         title: `Configuration ${configurations.length + 1}`,
-        modalTitle: "New Bundle Configuration",
+        modalTitle: "New Component Configuration",
         submitLabel: "Create",
-        onSave: ({ title }: { title: string }) => {
-          const newConfigurationId = `bundle-config-${Date.now()}`;
-
-          setConfigurations((currentConfigurations) => {
-            const sourceConfiguration =
-              currentConfigurations.find(
-                (configuration) => configuration.id === sourceConfigurationId,
-              ) ??
-              currentConfigurations.find(
-                (configuration) =>
-                  configuration.id === activeConfigurationId,
-              ) ??
-              currentConfigurations[0];
-
-            if (!sourceConfiguration) return currentConfigurations;
-
-            return [
-              ...currentConfigurations,
-              { ...sourceConfiguration, id: newConfigurationId, name: title },
-            ];
-          });
-          setActiveConfigurationId(newConfigurationId);
+        onSave: async ({ title }: { title: string }) => {
+          const clientMutationId = crypto.randomUUID();
+          const result = await saveComponentOperation(
+            {
+              action: ProductComponentOperationAction.ConfigurationCreate,
+              clientMutationId,
+              name: title,
+            },
+            "Component configuration created",
+          );
+          const createdConfigurationId = result?.operationResults.find(
+            (operationResult) =>
+              operationResult.clientMutationId === clientMutationId,
+          )?.entityId;
+          if (createdConfigurationId) {
+            setActiveConfigurationId(createdConfigurationId);
+          }
+          return !!result;
         },
       });
     },
-    [
-      activeConfigurationId,
-      configurations.length,
-      openEditConfigurationModal,
-    ],
+    [configurations.length, openEditConfigurationModal, saveComponentOperation],
   );
 
   const handleEditConfiguration = useCallback(
@@ -164,53 +187,58 @@ export const ProductDetailsCard = ({
 
       openEditConfigurationModal({
         title: configuration.name,
-        modalTitle: "Edit Bundle Configuration",
-        onSave: ({ title }: { title: string }) => {
-          setConfigurations((currentConfigurations) =>
-            currentConfigurations.map((item) =>
-              item.id === configurationId ? { ...item, name: title } : item,
-            ),
+        modalTitle: "Edit Component Configuration",
+        onSave: async ({ title }: { title: string }) => {
+          const result = await saveComponentOperation(
+            {
+              action: ProductComponentOperationAction.ConfigurationUpdate,
+              configurationId,
+              name: title,
+            },
+            "Component configuration updated",
           );
+          return !!result;
         },
       });
     },
-    [configurations, openEditConfigurationModal],
+    [configurations, openEditConfigurationModal, saveComponentOperation],
   );
 
   const handleDeleteConfiguration = useCallback(
-    (configurationId: string) => {
-      setConfigurations((currentConfigurations) => {
-        if (currentConfigurations.length <= 1) return currentConfigurations;
-
-        const configurationIndex = currentConfigurations.findIndex(
-          (configuration) => configuration.id === configurationId,
-        );
-        const nextConfigurations = currentConfigurations.filter(
-          (configuration) => configuration.id !== configurationId,
-        );
-
-        if (configurationId === activeConfigurationId) {
-          const nextActiveConfiguration =
-            nextConfigurations[Math.max(0, configurationIndex - 1)] ??
-            nextConfigurations[0];
-          setActiveConfigurationId(nextActiveConfiguration?.id ?? "");
-        }
-
-        return nextConfigurations;
-      });
+    async (configurationId: string) => {
+      const result = await saveComponentOperation(
+        {
+          action: ProductComponentOperationAction.ConfigurationDelete,
+          configurationId,
+        },
+        "Component configuration deleted",
+      );
+      return !!result;
     },
-    [activeConfigurationId],
+    [saveComponentOperation],
   );
 
   const handleEditGroups = useCallback(() => {
     openEditGroupsModal({
       groups,
       pricingTemplates: activeConfiguration?.pricingTemplates ?? [],
-      onSave: (updatedGroups: ApiProductComponentGroup[]) => {
-        updateActiveConfiguration((configuration) => ({
-          ...configuration,
-          groups: updatedGroups,
-        }));
+      onSave: async (updatedGroups: ApiProductComponentGroup[]) => {
+        if (!activeConfiguration || !defaultCurrency) {
+          message.error("Store currency is unavailable");
+          return false;
+        }
+        const result = await saveComponentOperation(
+          {
+            action: ProductComponentOperationAction.GroupsSync,
+            configurationId: activeConfiguration.id,
+            groups: toProductComponentGroupsInput(
+              updatedGroups,
+              defaultCurrency,
+            ),
+          },
+          "Component items updated",
+        );
+        return !!result;
       },
     });
   }, [
@@ -218,25 +246,78 @@ export const ProductDetailsCard = ({
     groups,
     openEditGroupsModal,
     activeConfiguration?.pricingTemplates,
-    updateActiveConfiguration,
+    defaultCurrency,
+    message,
+    saveComponentOperation,
+  ]);
+
+  const handleEditTemplates = useCallback(() => {
+    if (!activeConfiguration) return;
+    openEditTemplatesModal({
+      pricingTemplates: activeConfiguration.pricingTemplates,
+      onSave: async ({
+        pricingTemplates,
+      }: {
+        pricingTemplates: ApiProductComponentPricingTemplate[];
+      }) => {
+        if (!defaultCurrency) {
+          message.error("Store currency is unavailable");
+          return false;
+        }
+        const result = await saveComponentOperation(
+          {
+            action: ProductComponentOperationAction.PricingTemplatesSync,
+            configurationId: activeConfiguration.id,
+            pricingTemplates: toProductComponentPricingTemplatesInput(
+              pricingTemplates,
+              defaultCurrency,
+            ),
+          },
+          "Component pricing templates updated",
+        );
+        return !!result;
+      },
+    });
+  }, [
+    activeConfiguration,
+    defaultCurrency,
+    message,
+    openEditTemplatesModal,
+    saveComponentOperation,
   ]);
 
   const handleOpenChart = useCallback(() => {
     openDependencyChartModal({
       groups,
       rules: dependencyRules,
-      onSave: (updatedRules: ApiProductComponentDependencyRule[]) => {
-        updateActiveConfiguration((configuration) => ({
-          ...configuration,
-          dependencyRules: updatedRules,
-        }));
+      onSave: async (updatedRules: ApiProductComponentDependencyRule[]) => {
+        if (!activeConfiguration || !defaultCurrency) {
+          message.error("Store currency is unavailable");
+          return false;
+        }
+        const result = await saveComponentOperation(
+          {
+            action: ProductComponentOperationAction.DependencyRulesSync,
+            configurationId: activeConfiguration.id,
+            dependencyRules: toProductComponentDependencyRulesInput(
+              updatedRules,
+              activeConfiguration.id,
+              defaultCurrency,
+            ),
+          },
+          "Component dependency rules updated",
+        );
+        return !!result;
       },
     });
   }, [
     dependencyRules,
     groups,
     openDependencyChartModal,
-    updateActiveConfiguration,
+    activeConfiguration,
+    defaultCurrency,
+    message,
+    saveComponentOperation,
   ]);
 
   const handleAddRule = useCallback(() => {
@@ -262,18 +343,34 @@ export const ProductDetailsCard = ({
       groups,
       rules: [...dependencyRules, newRule],
       selectedRuleId: newRule.id,
-      onSave: (updatedRules: ApiProductComponentDependencyRule[]) => {
-        updateActiveConfiguration((configuration) => ({
-          ...configuration,
-          dependencyRules: updatedRules,
-        }));
+      onSave: async (updatedRules: ApiProductComponentDependencyRule[]) => {
+        if (!activeConfiguration || !defaultCurrency) {
+          message.error("Store currency is unavailable");
+          return false;
+        }
+        const result = await saveComponentOperation(
+          {
+            action: ProductComponentOperationAction.DependencyRulesSync,
+            configurationId: activeConfiguration.id,
+            dependencyRules: toProductComponentDependencyRulesInput(
+              updatedRules,
+              activeConfiguration.id,
+              defaultCurrency,
+            ),
+          },
+          "Component dependency rules updated",
+        );
+        return !!result;
       },
     });
   }, [
     dependencyRules,
     groups,
     openDependencyChartModal,
-    updateActiveConfiguration,
+    activeConfiguration,
+    defaultCurrency,
+    message,
+    saveComponentOperation,
   ]);
 
   const handleEditRule = useCallback(
@@ -282,11 +379,24 @@ export const ProductDetailsCard = ({
         groups,
         rules: dependencyRules,
         selectedRuleId: ruleId,
-        onSave: (updatedRules: ApiProductComponentDependencyRule[]) => {
-          updateActiveConfiguration((configuration) => ({
-            ...configuration,
-            dependencyRules: updatedRules,
-          }));
+        onSave: async (updatedRules: ApiProductComponentDependencyRule[]) => {
+          if (!activeConfiguration || !defaultCurrency) {
+            message.error("Store currency is unavailable");
+            return false;
+          }
+          const result = await saveComponentOperation(
+            {
+              action: ProductComponentOperationAction.DependencyRulesSync,
+              configurationId: activeConfiguration.id,
+              dependencyRules: toProductComponentDependencyRulesInput(
+                updatedRules,
+                activeConfiguration.id,
+                defaultCurrency,
+              ),
+            },
+            "Component dependency rules updated",
+          );
+          return !!result;
         },
       });
     },
@@ -294,7 +404,10 @@ export const ProductDetailsCard = ({
       dependencyRules,
       groups,
       openDependencyChartModal,
-      updateActiveConfiguration,
+      activeConfiguration,
+      defaultCurrency,
+      message,
+      saveComponentOperation,
     ],
   );
 
@@ -329,8 +442,8 @@ export const ProductDetailsCard = ({
         onProductRefresh={onProductRefresh}
       />
 
-      {/* BUNDLE CONFIGURATIONS */}
-      <BundleSection
+      {/* COMPONENT CONFIGURATIONS */}
+      <ComponentsSection
         configurations={configurations}
         activeConfigurationId={activeConfiguration?.id ?? ""}
         onConfigurationChange={setActiveConfigurationId}
@@ -338,6 +451,7 @@ export const ProductDetailsCard = ({
         onEditConfiguration={handleEditConfiguration}
         onDeleteConfiguration={handleDeleteConfiguration}
         onEditGroups={handleEditGroups}
+        onEditTemplates={handleEditTemplates}
         onOpenChart={handleOpenChart}
         onAddRule={handleAddRule}
         onEditRule={handleEditRule}

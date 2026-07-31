@@ -112,13 +112,37 @@ export const typeResolvers: Partial<Resolvers> = {
 
   ProductComponentPriceRule: {
     __resolveType: (obj: unknown) => {
+      if (obj instanceof ProductComponentBasePriceRuleResolver)
+        return "ProductComponentBasePriceRule";
+      if (obj instanceof ProductComponentAdjustmentPriceRuleResolver)
+        return "ProductComponentAdjustmentPriceRule";
+      if (obj instanceof ProductComponentOverridePriceRuleResolver)
+        return "ProductComponentOverridePriceRule";
+      if (obj instanceof ProductComponentFreePriceRuleResolver)
+        return "ProductComponentFreePriceRule";
+
       const typeName = (obj as { __typename?: unknown })?.__typename;
-      return typeName === "ProductComponentBasePriceRule" ||
+      if (
+        typeName === "ProductComponentBasePriceRule" ||
         typeName === "ProductComponentAdjustmentPriceRule" ||
         typeName === "ProductComponentOverridePriceRule" ||
         typeName === "ProductComponentFreePriceRule"
-        ? typeName
-        : null;
+      ) {
+        return typeName;
+      }
+
+      switch ((obj as { strategy?: unknown })?.strategy) {
+        case "BASE":
+          return "ProductComponentBasePriceRule";
+        case "ADJUSTMENT":
+          return "ProductComponentAdjustmentPriceRule";
+        case "OVERRIDE":
+          return "ProductComponentOverridePriceRule";
+        case "FREE":
+          return "ProductComponentFreePriceRule";
+        default:
+          return null;
+      }
     },
   },
 

@@ -4,7 +4,7 @@ import { App, Avatar, Button, Dropdown, Flex, Table, Typography } from "antd";
 import { LuEllipsis as MoreOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
 import { useProductPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
-import { OrderPaper, OrderPaperHeader } from "../legacy/order-paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { OrderPrice } from "../money/price";
 import { useAddOrderItem, useDeleteOrderItem } from "../../hooks";
 import type { ApiOrder, ApiOrderItem } from "../../graphql/operation-types";
@@ -36,5 +36,5 @@ export function DraftFulfillment({ order, refetch }: { order: ApiOrder; refetch:
     { title: "Total", key: "total", width: 115, render: (_: unknown, item: ApiOrderItem) => <Typography.Text strong><OrderPrice amount={item.totalAmount} /></Typography.Text> },
     { title: "", key: "actions", width: 50, align: "right" as const, render: (_: unknown, item: ApiOrderItem) => <Dropdown trigger={["click"]} placement="bottomRight" menu={{ items: [{ key: "delete", label: "Delete", danger: true, onClick: () => void remove(item) }] }}><Button type="text" loading={loading || deleteMutation.loading} icon={<MoreOutlined />} /></Dropdown> },
   ];
-  return <OrderPaper><OrderPaperHeader name="order-items" title="Products" extra={<Button loading={loading} icon={<PlusOutlined />} onClick={openPicker}>Add products</Button>} /><Table<ApiOrderItem> tableLayout="fixed" rowKey="id" pagination={false} columns={columns} dataSource={order.orderItems} locale={{ emptyText: <Typography.Text type="secondary">No products</Typography.Text> }} /></OrderPaper>;
+  return <Paper><PaperHeader title="Products" actions={<Button loading={loading} icon={<PlusOutlined />} onClick={openPicker}>Add products</Button>} /><Table<ApiOrderItem> tableLayout="fixed" rowKey="id" pagination={false} columns={columns} dataSource={order.orderItems} locale={{ emptyText: <Typography.Text type="secondary">No products</Typography.Text> }} /></Paper>;
 }

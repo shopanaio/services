@@ -352,9 +352,9 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     {
-      type: 'product-bundle-item-variant-settings',
+      type: 'product-component-item-variant-settings',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/bundle-ui/variant-settings-modal').then(
+        import('@/domains/inventory/products/modals/components-ui/variant-settings-modal').then(
           (m) => m.VariantSettingsModal
         )
       ),
@@ -362,31 +362,31 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-dependency-chart',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/bundle-ui/dependency-chart-modal').then(
+        import('@/domains/inventory/products/modals/components-ui/dependency-chart-modal').then(
           (m) => m.DependencyChartModal
         )
       ),
     },
     {
-      type: 'product-bundle-edit-groups',
+      type: 'product-component-edit-groups',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/bundle-ui/edit-groups-modal').then(
+        import('@/domains/inventory/products/modals/components-ui/edit-groups-modal').then(
           (m) => m.EditGroupsModal
         )
       ),
     },
     {
-      type: 'product-bundle-edit-configuration',
+      type: 'product-component-edit-configuration',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/bundle-ui/edit-configuration-modal').then(
+        import('@/domains/inventory/products/modals/components-ui/edit-configuration-modal').then(
           (m) => m.EditConfigurationModal
         )
       ),
     },
     {
-      type: 'product-bundle-edit-templates',
+      type: 'product-component-edit-templates',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/bundle-ui/edit-templates-modal').then(
+        import('@/domains/inventory/products/modals/components-ui/edit-templates-modal').then(
           (m) => m.EditTemplatesModal
         )
       ),

@@ -11,10 +11,10 @@ import {
   PriceAdjustmentValueType,
   ProductComponentPriceStrategy,
 } from "@/graphql/types";
-import { BundlePriceType } from "../components/product-details-card/bundle-ui/types";
+import { ComponentPriceType } from "../components/product-details-card/components-ui/types";
 
 export interface EditorPriceRule {
-  priceType: BundlePriceType;
+  priceType: ComponentPriceType;
   priceValue: number | null;
 }
 
@@ -29,14 +29,14 @@ export const toEditorPriceRule = (
   rule: ApiProductComponentPriceRule | null | undefined,
 ): EditorPriceRule => {
   if (!rule || rule.strategy === ProductComponentPriceStrategy.Base) {
-    return { priceType: BundlePriceType.Base, priceValue: null };
+    return { priceType: ComponentPriceType.Base, priceValue: null };
   }
   if (rule.strategy === ProductComponentPriceStrategy.Free) {
-    return { priceType: BundlePriceType.Free, priceValue: null };
+    return { priceType: ComponentPriceType.Free, priceValue: null };
   }
   if (rule.strategy === ProductComponentPriceStrategy.Override) {
     return {
-      priceType: BundlePriceType.Fixed,
+      priceType: ComponentPriceType.Fixed,
       priceValue: Number(getRuleAmounts(rule)[0]?.amountMinor ?? 0),
     };
   }
@@ -46,8 +46,8 @@ export const toEditorPriceRule = (
     return {
       priceType:
         adjustmentRule.operation === PriceAdjustmentOperation.Decrease
-          ? BundlePriceType.DiscountPercent
-          : BundlePriceType.MarkupPercent,
+          ? ComponentPriceType.DiscountPercent
+          : ComponentPriceType.MarkupPercent,
       priceValue: Number(adjustmentRule.percentageBps ?? 0) / 100,
     };
   }
@@ -56,8 +56,8 @@ export const toEditorPriceRule = (
   return {
     priceType:
       adjustmentRule.operation === PriceAdjustmentOperation.Decrease
-        ? BundlePriceType.DiscountFixed
-        : BundlePriceType.MarkupFixed,
+        ? ComponentPriceType.DiscountFixed
+        : ComponentPriceType.MarkupFixed,
     priceValue: amount,
   };
 };
@@ -70,13 +70,13 @@ export const toApiPriceRule = (
   | ApiProductComponentFreePriceRule
   | ApiProductComponentOverridePriceRule
   | ApiProductComponentAdjustmentPriceRule => {
-  if (value.priceType === BundlePriceType.Base) {
+  if (value.priceType === ComponentPriceType.Base) {
     return { __typename: "ProductComponentBasePriceRule", id, strategy: ProductComponentPriceStrategy.Base };
   }
-  if (value.priceType === BundlePriceType.Free) {
+  if (value.priceType === ComponentPriceType.Free) {
     return { __typename: "ProductComponentFreePriceRule", id, strategy: ProductComponentPriceStrategy.Free };
   }
-  if (value.priceType === BundlePriceType.Fixed) {
+  if (value.priceType === ComponentPriceType.Fixed) {
     return {
       __typename: "ProductComponentOverridePriceRule",
       id,
@@ -85,11 +85,11 @@ export const toApiPriceRule = (
     };
   }
   const percentage =
-    value.priceType === BundlePriceType.DiscountPercent ||
-    value.priceType === BundlePriceType.MarkupPercent;
+    value.priceType === ComponentPriceType.DiscountPercent ||
+    value.priceType === ComponentPriceType.MarkupPercent;
   const decrease =
-    value.priceType === BundlePriceType.DiscountPercent ||
-    value.priceType === BundlePriceType.DiscountFixed;
+    value.priceType === ComponentPriceType.DiscountPercent ||
+    value.priceType === ComponentPriceType.DiscountFixed;
   return {
     __typename: "ProductComponentAdjustmentPriceRule",
     id,

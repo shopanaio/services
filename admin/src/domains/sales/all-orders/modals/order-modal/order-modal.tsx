@@ -11,7 +11,7 @@ import { LuX as CloseOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutli
 import { createStyles } from "antd-style";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { AdminAppExtensionPoint } from "@/domains/apps";
-import { OrderPaper as Paper, OrderPaperHeader as PaperHeader } from "../../components/legacy/order-paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { OrderModalPayload } from "../../modals";
 import {
   useOrderFulfillmentStatusModal, useOrderPaymentDetailsModal,
@@ -40,15 +40,6 @@ import { PaymentSummary } from "../../components/payment/payment-summary";
 import { orderFormSchema, type OrderFormValues } from "./schema";
 
 const useStyles = createStyles(({ token }) => ({
-  columns: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) 356px",
-    gap: token.padding,
-    padding: `0 ${token.paddingLG}px ${token.paddingLG}px`,
-    alignItems: "start",
-    "@media (max-width: 960px)": { gridTemplateColumns: "1fr" },
-  },
-  column: { display: "flex", flexDirection: "column", gap: token.padding },
   row: { display: "flex", justifyContent: "space-between", gap: token.paddingSM },
   label: { color: token.colorTextSecondary },
   fields: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: token.paddingSM },
@@ -198,7 +189,6 @@ export function OrderModal() {
 
   return <FormProvider {...methods}>
     <ModalLayout
-      fullWidth
       name="order-editor"
       header={<ModalHeader
         name="order-editor"
@@ -210,8 +200,7 @@ export function OrderModal() {
     >
       {(query.error || createMutation.error || updateMutation.error) ? <Alert type="error" showIcon message={(query.error ?? createMutation.error ?? updateMutation.error)?.message} /> : null}
       {globalErrors.length ? <Alert type="error" showIcon message="Could not update order" description={globalErrors.join(" ")} /> : null}
-      <div className={styles.columns}>
-        <div className={styles.column}>
+      <Flex vertical gap={12} style={{ width: "100%" }}>
           {order
             ? order.status === OrderStatus.Draft
               ? <DraftFulfillment order={order} refetch={refresh} />
@@ -226,13 +215,6 @@ export function OrderModal() {
           </Paper>
           {order ? <AdminAppExtensionPoint point="orders.details.primary.after" context={{ orderId: order.id }} /> : null}
 
-          <section className={styles.timelineSection}>
-            <Typography.Title level={5} className={styles.timelineTitle}>Timeline</Typography.Title>
-            {order ? <><Paper className={styles.commentPaper}><Avatar shape="square">A</Avatar><Input.TextArea variant="borderless" autoSize={{ minRows: 1, maxRows: 10 }} value={comment} onChange={(event) => setComment(event.target.value)} maxLength={500} placeholder="Leave a comment..." /><Button type="primary" size="large" loading={commentMutation.loading} disabled={!comment.trim()} onClick={saveComment}>Send</Button></Paper><Timeline style={{ marginTop: 24, paddingLeft: 72 }} items={order.events.map((event) => ({ children: <div style={{ width: "100%" }}><Flex justify="space-between"><Flex gap="small"><Typography.Text strong>{event.type === "COMMENT" ? "Comment added" : event.message}</Typography.Text>{event.actorName ? <Typography.Text type="secondary" code>{event.actorName}</Typography.Text> : null}</Flex><Typography.Text type="secondary">{new Date(event.createdAt).toLocaleString()}</Typography.Text></Flex>{event.type === "COMMENT" ? <Typography.Text italic>{event.message}</Typography.Text> : null}</div> }))} /></> : <Typography.Text type="secondary">Activity appears after the order is created.</Typography.Text>}
-          </section>
-        </div>
-
-        <div className={styles.column}>
           <Paper>
             <PaperHeader title="Order info" />
             <div className={styles.row}><Typography.Text>Status</Typography.Text>{order ? <Tag color={orderStatusConfig[order.status].color}>{orderStatusConfig[order.status].label}</Tag> : <Tag>Draft</Tag>}</div>
@@ -274,8 +256,12 @@ export function OrderModal() {
             <Controller name="tags" control={control} render={({ field }) => <Select {...field} mode="tags" open={false} style={{ width: "100%" }} onBlur={async () => { field.onBlur(); if (!order) return; const result = await tagsMutation.updateOrderTags({ id: order.id, expectedVersion: order.version, tags: field.value }); if (result.order) await refresh(); }} />} />
           </Paper>
           {order ? <AdminAppExtensionPoint point="orders.details.sidebar.after" context={{ orderId: order.id }} /> : null}
-        </div>
-      </div>
+
+          <section className={styles.timelineSection}>
+            <Typography.Title level={5} className={styles.timelineTitle}>Timeline</Typography.Title>
+            {order ? <><Paper className={styles.commentPaper}><Avatar shape="square">A</Avatar><Input.TextArea variant="borderless" autoSize={{ minRows: 1, maxRows: 10 }} value={comment} onChange={(event) => setComment(event.target.value)} maxLength={500} placeholder="Leave a comment..." /><Button type="primary" size="large" loading={commentMutation.loading} disabled={!comment.trim()} onClick={saveComment}>Send</Button></Paper><Timeline style={{ marginTop: 24, paddingLeft: 72 }} items={order.events.map((event) => ({ children: <div style={{ width: "100%" }}><Flex justify="space-between"><Flex gap="small"><Typography.Text strong>{event.type === "COMMENT" ? "Comment added" : event.message}</Typography.Text>{event.actorName ? <Typography.Text type="secondary" code>{event.actorName}</Typography.Text> : null}</Flex><Typography.Text type="secondary">{new Date(event.createdAt).toLocaleString()}</Typography.Text></Flex>{event.type === "COMMENT" ? <Typography.Text italic>{event.message}</Typography.Text> : null}</div> }))} /></> : <Typography.Text type="secondary">Activity appears after the order is created.</Typography.Text>}
+          </section>
+      </Flex>
     </ModalLayout>
   </FormProvider>;
 }

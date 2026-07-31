@@ -20,7 +20,7 @@ import type {
 } from "@/graphql/types";
 import type { VariantColumnField } from './components/variants/config/types';
 import type { VariantEditorSaveRow } from "./mappers/product-variant-editor.mapper";
-import type { BundlePriceType } from "@/domains/inventory/products/components/product-details-card/bundle-ui/types";
+import type { ComponentPriceType } from "@/domains/inventory/products/components/product-details-card/components-ui/types";
 
 // ============================================================================
 // Modal Types
@@ -41,10 +41,10 @@ export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-sh
 export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
 export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
 export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
-export const PRODUCT_BUNDLE_EDIT_GROUPS_MODAL_TYPE = 'product-bundle-edit-groups';
-export const PRODUCT_BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE = 'product-bundle-edit-configuration';
-export const PRODUCT_BUNDLE_EDIT_TEMPLATES_MODAL_TYPE = 'product-bundle-edit-templates';
-export const PRODUCT_BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE = 'product-bundle-item-variant-settings';
+export const PRODUCT_COMPONENT_EDIT_GROUPS_MODAL_TYPE = 'product-component-edit-groups';
+export const PRODUCT_COMPONENT_EDIT_CONFIGURATION_MODAL_TYPE = 'product-component-edit-configuration';
+export const PRODUCT_COMPONENT_EDIT_TEMPLATES_MODAL_TYPE = 'product-component-edit-templates';
+export const PRODUCT_COMPONENT_ITEM_VARIANT_SETTINGS_MODAL_TYPE = 'product-component-item-variant-settings';
 export const PRODUCT_DEPENDENCY_CHART_MODAL_TYPE = 'product-dependency-chart';
 
 // ============================================================================
@@ -261,39 +261,51 @@ export interface IBulkEditorModalPayload extends IModalStackPayload {
   productIds: string[];
 }
 
-export interface IBundleEditGroupsModalPayload extends IModalStackPayload {
+export interface IComponentEditGroupsModalPayload extends IModalStackPayload {
   groups: ApiProductComponentGroup[];
   pricingTemplates: ApiProductComponentPricingTemplate[];
-  onSave?: (groups: ApiProductComponentGroup[]) => void;
+  onSave?: (groups: ApiProductComponentGroup[]) =>
+    | boolean
+    | void
+    | Promise<boolean | void>;
 }
 
-export interface IBundleEditConfigurationModalPayload
+export interface IComponentEditConfigurationModalPayload
   extends IModalStackPayload {
   title: string;
   modalTitle?: string;
   submitLabel?: string;
-  onSave?: (data: { title: string }) => void;
+  onSave?: (data: { title: string }) =>
+    | boolean
+    | void
+    | Promise<boolean | void>;
 }
 
-export interface IBundleEditTemplatesModalPayload extends IModalStackPayload {
+export interface IComponentEditTemplatesModalPayload extends IModalStackPayload {
   pricingTemplates: ApiProductComponentPricingTemplate[];
-  onSave?: (data: { pricingTemplates: ApiProductComponentPricingTemplate[] }) => void;
+  onSave?: (data: { pricingTemplates: ApiProductComponentPricingTemplate[] }) =>
+    | boolean
+    | void
+    | Promise<boolean | void>;
 }
 
 export interface IDependencyChartModalPayload extends IModalStackPayload {
   groups: ApiProductComponentGroup[];
   rules: ApiProductComponentDependencyRule[];
   selectedRuleId?: string;
-  onSave?: (rules: ApiProductComponentDependencyRule[]) => void;
+  onSave?: (rules: ApiProductComponentDependencyRule[]) =>
+    | boolean
+    | void
+    | Promise<boolean | void>;
 }
 
-export interface IBundleItemVariantSettingsModalPayload
+export interface IComponentItemVariantSettingsModalPayload
   extends IModalStackPayload {
   itemId: string;
   productId: string;
   productTitle: string;
   availableVariantIds: string[] | null;
-  priceType: BundlePriceType;
+  priceType: ComponentPriceType;
   priceValue: number | null;
   variants: Array<{
     id: string;
@@ -341,10 +353,10 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_VARIANTS_MODAL_TYPE]: IEditVariantsModalPayload;
     [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
     [BULK_EDITOR_MODAL_TYPE]: IBulkEditorModalPayload;
-    [PRODUCT_BUNDLE_EDIT_GROUPS_MODAL_TYPE]: IBundleEditGroupsModalPayload;
-    [PRODUCT_BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE]: IBundleEditConfigurationModalPayload;
-    [PRODUCT_BUNDLE_EDIT_TEMPLATES_MODAL_TYPE]: IBundleEditTemplatesModalPayload;
-    [PRODUCT_BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE]: IBundleItemVariantSettingsModalPayload;
+    [PRODUCT_COMPONENT_EDIT_GROUPS_MODAL_TYPE]: IComponentEditGroupsModalPayload;
+    [PRODUCT_COMPONENT_EDIT_CONFIGURATION_MODAL_TYPE]: IComponentEditConfigurationModalPayload;
+    [PRODUCT_COMPONENT_EDIT_TEMPLATES_MODAL_TYPE]: IComponentEditTemplatesModalPayload;
+    [PRODUCT_COMPONENT_ITEM_VARIANT_SETTINGS_MODAL_TYPE]: IComponentItemVariantSettingsModalPayload;
     [PRODUCT_DEPENDENCY_CHART_MODAL_TYPE]: IDependencyChartModalPayload;
   }
 }
@@ -530,17 +542,17 @@ export const useEditTagsModal = createModalStackHook(PRODUCT_EDIT_TAGS_MODAL_TYP
  */
 export const useBulkEditorModal = createModalStackHook(BULK_EDITOR_MODAL_TYPE);
 
-export const useEditBundleGroupsModal = createModalStackHook(
-  PRODUCT_BUNDLE_EDIT_GROUPS_MODAL_TYPE,
+export const useEditComponentGroupsModal = createModalStackHook(
+  PRODUCT_COMPONENT_EDIT_GROUPS_MODAL_TYPE,
 );
-export const useEditBundleConfigurationModal = createModalStackHook(
-  PRODUCT_BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE,
+export const useEditComponentConfigurationModal = createModalStackHook(
+  PRODUCT_COMPONENT_EDIT_CONFIGURATION_MODAL_TYPE,
 );
-export const useEditBundleTemplatesModal = createModalStackHook(
-  PRODUCT_BUNDLE_EDIT_TEMPLATES_MODAL_TYPE,
+export const useEditComponentTemplatesModal = createModalStackHook(
+  PRODUCT_COMPONENT_EDIT_TEMPLATES_MODAL_TYPE,
 );
-export const useBundleItemVariantSettingsModal = createModalStackHook(
-  PRODUCT_BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE,
+export const useComponentItemVariantSettingsModal = createModalStackHook(
+  PRODUCT_COMPONENT_ITEM_VARIANT_SETTINGS_MODAL_TYPE,
 );
 export const useDependencyChartModal = createModalStackHook(
   PRODUCT_DEPENDENCY_CHART_MODAL_TYPE,

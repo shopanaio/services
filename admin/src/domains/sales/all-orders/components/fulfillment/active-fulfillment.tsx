@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { App, Avatar, Button, Dropdown, Flex, Input, Space, Table, Tag, Typography } from "antd";
 import { LuMinus as MinusOutlined, LuEllipsis as MoreOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
-import { OrderPaper, OrderPaperHeader } from "../legacy/order-paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { OrderPrice } from "../money/price";
 import { CostPricePopover } from "../items/item-edit-popover";
 import { fulfillmentStatusConfig } from "../status/status-config";
@@ -48,12 +48,12 @@ export function ActiveFulfillment({ order, fulfillment, parent, refetch }: { ord
     { title: "Unit price", key: "price", width: 115, render: (_: unknown, item: ApiOrderItem) => <OrderPrice amount={item.price} /> },
     { title: "Total", key: "total", width: 115, render: (_: unknown, item: ApiOrderItem) => <Typography.Text strong><OrderPrice amount={(item.fulfillmentQuantity ?? item.quantity) * item.price} /></Typography.Text> },
   ];
-  return <OrderPaper>
-    <OrderPaperHeader name="order-items" title={<Flex gap="small" align="center"><Typography.Text strong style={{ fontSize: 16 }}>Products</Typography.Text><Tag color={status.color}>{status.label}</Tag></Flex>} extra={!splitting && fulfillment.status !== OrderFulfillmentStatus.Pending && menuItems.length ? <Dropdown trigger={["click"]} placement="bottomRight" menu={{ items: menuItems }}><Button type="text" icon={<MoreOutlined />} /></Dropdown> : null} />
+  return <Paper>
+    <PaperHeader title={<Flex gap="small" align="center"><Typography.Text strong style={{ fontSize: 16 }}>Products</Typography.Text><Tag color={status.color}>{status.label}</Tag></Flex>} actions={!splitting && fulfillment.status !== OrderFulfillmentStatus.Pending && menuItems.length ? <Dropdown trigger={["click"]} placement="bottomRight" menu={{ items: menuItems }}><Button type="text" icon={<MoreOutlined />} /></Dropdown> : null} />
     {splitting ? <Typography.Text type="secondary">Select items, then adjust the quantity moved to the new fulfillment.</Typography.Text> : null}
     <Table<ApiOrderItem> tableLayout="fixed" rowKey="id" pagination={false} rowSelection={splitting ? { selectedRowKeys: selectedIds, columnWidth: 50, onChange: (keys) => { const ids = keys.map(String); setSelectedIds(ids); setQuantities((current) => Object.fromEntries(ids.map((id) => [id, current[id] ?? (fulfillment.orderItems.find((item) => item.id === id)?.fulfillmentQuantity ?? fulfillment.orderItems.find((item) => item.id === id)?.quantity ?? 1)]))); } } : undefined} columns={columns} dataSource={fulfillment.orderItems} />
     {splitting ? <Flex gap="middle" style={{ marginTop: 16 }}><Button onClick={() => setSplitting(false)}>Cancel</Button><Button disabled={!selectedIds.length || (selectedIds.length === fulfillment.orderItems.length && selectedIds.every((id) => quantities[id] === (fulfillment.orderItems.find((item) => item.id === id)?.fulfillmentQuantity ?? fulfillment.orderItems.find((item) => item.id === id)?.quantity)))} loading={splitMutation.loading} onClick={finishSplit}>Split fulfillment</Button></Flex> : null}
     {!splitting && fulfillment.status === OrderFulfillmentStatus.Pending ? <Flex style={{ marginTop: 16 }}><Space.Compact><Button onClick={openShipping}>Ship products</Button><Dropdown trigger={["click"]} placement="bottomRight" menu={{ items: [...nextMenu[fulfillment.status].map((next) => ({ key: next, label: next === OrderFulfillmentStatus.Fulfilled ? "Mark as fulfilled" : next === OrderFulfillmentStatus.OnHold ? "Hold fulfillment" : "Cancel", danger: next === OrderFulfillmentStatus.Cancelled, onClick: () => changeStatus(next) })), ...(canSplit ? [{ key: "split", label: "Split fulfillment", onClick: () => setSplitting(true) }] : []), ...(parent?.status === OrderFulfillmentStatus.Pending ? [{ key: "undo", label: "Undo splitting", onClick: () => void undoSplit() }] : [])] }}><Button icon={<MoreOutlined />} /></Dropdown></Space.Compact></Flex> : null}
     {fulfillment.shippingItem ? <><div style={{ borderTop: "1px solid rgba(5,5,5,.06)", margin: "16px 0" }} /><Flex gap="large"><Flex gap="small"><Typography.Text type="secondary">Shipping method</Typography.Text><Typography.Text>{fulfillment.shippingItem.shippingMethod.name}</Typography.Text></Flex><Flex gap="small"><Typography.Text type="secondary">Tracking code</Typography.Text><Typography.Text strong={Boolean(fulfillment.shippingItem.trackingCode)} copyable={Boolean(fulfillment.shippingItem.trackingCode)}>{fulfillment.shippingItem.trackingCode ?? "No tracking code"}</Typography.Text></Flex></Flex></> : null}
-  </OrderPaper>;
+  </Paper>;
 }
