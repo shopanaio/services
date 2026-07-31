@@ -2,7 +2,7 @@ import {
   Inject,
   Injectable,
   Logger,
-  OnApplicationBootstrap,
+  OnModuleInit,
   OnApplicationShutdown,
 } from "@nestjs/common";
 import {
@@ -37,7 +37,7 @@ interface AppsServiceConfig {
 
 @Injectable()
 export class AppsRuntimeHost
-  implements OnApplicationBootstrap, OnApplicationShutdown
+  implements OnModuleInit, OnApplicationShutdown
 {
   private readonly logger = new Logger(AppsRuntimeHost.name);
   private readonly contextRunners = new Map<string, AppContextRunner>();
@@ -61,7 +61,7 @@ export class AppsRuntimeHost
     private readonly installations: AppInstallationContextProvider,
   ) {}
 
-  async onApplicationBootstrap(): Promise<void> {
+  async onModuleInit(): Promise<void> {
     await this.start();
   }
 
@@ -191,7 +191,6 @@ export class AppsRuntimeHost
     await app.start();
     await this.subgraphHost.start(hosted, hostContext);
     runtime.status = "READY";
-    this.logger.log(`App "${appCode}" is ready`);
   }
 
   private async failDefinition(

@@ -85,7 +85,6 @@ export class HeadlessApp implements ShopanaApp {
 
   async start(): Promise<void> {
     await this.internalServer.start();
-    this.host.logger.log("Headless App started");
   }
 
   async stop(): Promise<void> {

@@ -65,9 +65,7 @@ export class SmtpApp implements ShopanaApp {
     >("deliver", (input) => this.deliver(input));
   }
 
-  start(): void {
-    this.host.logger.log("SMTP App started");
-  }
+  start(): void {}
 
   stop(): void {
     this.host.logger.log("SMTP App stopped");

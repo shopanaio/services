@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { AppHostContext } from "@shopana/app-sdk";
 import { AppGraphQLServerFactory } from "./AppGraphQLServerFactory.js";
 import { AppSubgraphRegistry } from "./AppSubgraphRegistry.js";
@@ -11,8 +11,6 @@ const surfaces = ["admin", "storefront"] as const;
 
 @Injectable()
 export class AppSubgraphHost {
-  private readonly logger = new Logger(AppSubgraphHost.name);
-
   constructor(
     @Inject(AppSubgraphRegistry)
     private readonly registry: AppSubgraphRegistry,
@@ -46,9 +44,6 @@ export class AppSubgraphHost {
           server,
         });
         started.push(surface);
-        this.logger.log(
-          `App "${hosted.definition.manifest.code}" ${surface} subgraph started at ${origin}`,
-        );
       }
     } catch (error) {
       for (const surface of started.reverse()) {

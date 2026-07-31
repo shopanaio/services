@@ -74,6 +74,7 @@ export async function startServer(serverConfig: ServerConfig) {
     // Shared types first (copied from packages/shared-references during build)
     "shared-currency.graphql",
     "shared-locale.graphql",
+    "shared-price-adjustment.graphql",
     "shared-units.graphql",
     // Scalars must come before types that use them
     "scalars.graphql",
@@ -89,6 +90,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "options.graphql",
     "physical.graphql",
     "pricing.graphql",
+    "product-component.graphql",
     "product.graphql",
     "relay.graphql",
     "seo.graphql",

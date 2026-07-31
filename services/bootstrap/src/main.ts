@@ -8,11 +8,21 @@ import { BootstrapModule, BootstrapModuleOptions } from './bootstrap.module';
 import { getConfig } from '@shopana/shared-service-config';
 
 const logger = new Logger('Bootstrap');
+const PROCESS_LISTENER_HEADROOM = 10;
 
 async function bootstrap() {
   // Load configuration synchronously before NestFactory
   const config = getConfig();
   const services = Object.keys(config.services);
+
+  // The modular monolith hosts multiple HTTP and GraphQL runtimes in one
+  // process. Each runtime may install bounded SIGINT/SIGTERM cleanup hooks.
+  process.setMaxListeners(
+    Math.max(
+      process.getMaxListeners(),
+      services.length + PROCESS_LISTENER_HEADROOM,
+    ),
+  );
 
   // Get database config from first service that has it
   const dbConfig = Object.values(config.services).find((s) => s.db)?.db;

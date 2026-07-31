@@ -7,7 +7,7 @@ import {
   DynamicModule,
   Global,
   Module,
-  OnModuleInit,
+  OnApplicationBootstrap,
   OnModuleDestroy,
   Inject,
 } from "@nestjs/common";
@@ -37,7 +37,9 @@ import type { WorkflowModuleConfig } from "../core/types.js";
  */
 @Global()
 @Module({})
-export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
+export class WorkflowModule
+  implements OnApplicationBootstrap, OnModuleDestroy
+{
   constructor(
     @Inject(WORKFLOW_CONFIG) private readonly config: WorkflowModuleConfig,
   ) {}
@@ -64,7 +66,7 @@ export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async onModuleInit(): Promise<void> {
+  async onApplicationBootstrap(): Promise<void> {
     DBOS.setConfig({
       systemDatabaseUrl: this.config.databaseUrl,
       name: this.config.name ?? "shopana",

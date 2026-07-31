@@ -1,7 +1,6 @@
 import {
   Inject,
   Injectable,
-  Logger,
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
@@ -30,7 +29,6 @@ interface AppsServiceConfig {
 
 @Injectable()
 export class AppsNestService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(AppsNestService.name);
   private graphqlServer: FastifyInstance | null = null;
 
   constructor(
@@ -65,7 +63,6 @@ export class AppsNestService implements OnModuleInit, OnModuleDestroy {
       admin: service.ports?.app_admin_graphql,
       storefront: service.ports?.app_storefront_graphql,
     });
-    this.logger.log("Apps service started");
   }
 
   async onModuleDestroy() {

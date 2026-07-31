@@ -24,9 +24,7 @@ export class OnlineStoreApp implements ShopanaApp {
     }));
   }
 
-  start(): void {
-    this.host.logger.log("Online Store App started");
-  }
+  start(): void {}
 
   stop(): void {
     this.host.logger.log("Online Store App stopped");

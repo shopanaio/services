@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { ADMIN_CONTEXT_HEADER } from "@shopana/shared-context";
 import fastify, {
   type FastifyInstance,
@@ -49,7 +49,6 @@ const storefrontForwardHeaders = new Set([
 
 @Injectable()
 export class AppsGraphQLIngress {
-  private readonly logger = new Logger(AppsGraphQLIngress.name);
   private readonly servers = new Map<AppGraphQLSurface, FastifyInstance>();
 
   constructor(
@@ -114,7 +113,6 @@ export class AppsGraphQLIngress {
 
     await app.listen({ host: "0.0.0.0", port });
     this.servers.set(surface, app);
-    this.logger.log(`Apps ${surface} GraphQL ingress started on port ${port}`);
   }
 
   private buildHeaders(

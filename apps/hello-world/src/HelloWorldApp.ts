@@ -62,9 +62,7 @@ export class HelloWorldApp implements ShopanaApp {
     });
   }
 
-  start(): void {
-    this.host.logger.log("Hello World App started");
-  }
+  start(): void {}
 
   stop(): void {
     this.host.logger.log("Hello World App stopped");
