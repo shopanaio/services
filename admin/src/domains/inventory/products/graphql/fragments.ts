@@ -464,9 +464,6 @@ export const PRODUCT_EDITOR_BASE_FRAGMENT = gql`
 export const PRODUCT_DETAILS_FRAGMENT = gql`
   fragment ProductDetailsFields on Product {
     ...ProductEditorBaseFields
-    productComponent {
-      ...ProductComponentFields
-    }
     variants(first: $variantsFirst, after: $variantsAfter) {
       edges {
         cursor
@@ -484,16 +481,12 @@ export const PRODUCT_DETAILS_FRAGMENT = gql`
     }
   }
   ${PRODUCT_EDITOR_BASE_FRAGMENT}
-  ${PRODUCT_COMPONENT_FRAGMENT}
   ${VARIANT_FRAGMENT}
 `;
 
 export const PRODUCT_MUTATION_RESULT_FRAGMENT = gql`
   fragment ProductMutationResultFields on Product {
     ...ProductEditorBaseFields
-    productComponent {
-      ...ProductComponentFields
-    }
     variants(first: 100) {
       edges {
         cursor
@@ -511,7 +504,6 @@ export const PRODUCT_MUTATION_RESULT_FRAGMENT = gql`
     }
   }
   ${PRODUCT_EDITOR_BASE_FRAGMENT}
-  ${PRODUCT_COMPONENT_FRAGMENT}
   ${VARIANT_FRAGMENT}
 `;
 

@@ -352,22 +352,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     {
-      type: 'product-component-configuration',
-      component: dynamic(() =>
-        import('@/domains/inventory/products/modals/product-component-configuration-modal').then(
-          (m) => m.ProductComponentConfigurationModal
-        )
-      ),
-    },
-    {
-      type: 'product-component-pricing-rules',
-      component: dynamic(() =>
-        import('@/domains/inventory/products/modals/product-component-pricing-rules-modal').then(
-          (m) => m.ProductComponentPricingRulesModal
-        )
-      ),
-    },
-    {
       type: 'bundle-item-variant-settings',
       component: dynamic(() =>
         import('@/domains/inventory/bundles/modals/variant-settings-modal').then(

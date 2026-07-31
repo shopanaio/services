@@ -7,7 +7,6 @@ import type {
   ApiGenericUserError,
   ApiOperationResult,
   ApiProduct,
-  ApiProductComponentConfiguration,
   ApiProductFeature,
   ApiProductOption,
   ApiProductUpdateInput,
@@ -37,8 +36,6 @@ export const PRODUCT_EDIT_SEO_MODAL_TYPE = 'product-edit-seo';
 export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-shipping';
 export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
 export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
-export const PRODUCT_COMPONENT_CONFIGURATION_MODAL_TYPE = 'product-component-configuration';
-export const PRODUCT_COMPONENT_PRICING_RULES_MODAL_TYPE = 'product-component-pricing-rules';
 export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
 
 // ============================================================================
@@ -251,23 +248,6 @@ export interface IEditTagsModalPayload extends IModalStackPayload {
   onCreateTag?: (name: string) => Promise<ApiTag>;
 }
 
-export interface IProductComponentConfigurationModalPayload
-  extends IModalStackPayload {
-  name: string;
-  modalTitle: string;
-  submitLabel?: string;
-  onSave: (values: {
-    name: string;
-  }) => boolean | void | Promise<boolean | void>;
-}
-
-export interface IProductComponentPricingRulesModalPayload
-  extends IModalStackPayload {
-  productId: string;
-  configuration: ApiProductComponentConfiguration;
-  expectedRevision: number;
-}
-
 export interface IBulkEditorModalPayload extends IModalStackPayload {
   productIds: string[];
 }
@@ -293,8 +273,6 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE]: IEditVariantShippingModalPayload;
     [PRODUCT_EDIT_VARIANTS_MODAL_TYPE]: IEditVariantsModalPayload;
     [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
-    [PRODUCT_COMPONENT_CONFIGURATION_MODAL_TYPE]: IProductComponentConfigurationModalPayload;
-    [PRODUCT_COMPONENT_PRICING_RULES_MODAL_TYPE]: IProductComponentPricingRulesModalPayload;
     [BULK_EDITOR_MODAL_TYPE]: IBulkEditorModalPayload;
   }
 }
@@ -313,11 +291,6 @@ declare module '@/layouts/modals' {
  * ```
  */
 export const useProductModal = createModalStackHook(PRODUCT_MODAL_TYPE);
-
-export const useProductComponentConfigurationModal =
-  createModalStackHook(PRODUCT_COMPONENT_CONFIGURATION_MODAL_TYPE);
-export const useProductComponentPricingRulesModal =
-  createModalStackHook(PRODUCT_COMPONENT_PRICING_RULES_MODAL_TYPE);
 
 /**
  * Hook to open product create modal

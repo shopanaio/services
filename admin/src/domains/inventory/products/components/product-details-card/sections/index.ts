@@ -5,4 +5,3 @@ export { ReviewsSection } from "./reviews-section";
 export { OptionsSection } from "./options-section";
 export { InventorySection } from "./inventory-section";
 export { VariantsTableSection } from "./variants-table-section";
-export { ProductComponentSection } from "./product-component-section";

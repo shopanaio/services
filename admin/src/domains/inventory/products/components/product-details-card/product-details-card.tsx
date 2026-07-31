@@ -18,7 +18,6 @@ import {
   OptionsSection,
   InventorySection,
   VariantsTableSection,
-  ProductComponentSection,
 } from "./sections";
 import { useProductModals } from "./hooks";
 import type { ApiProduct } from "@/graphql/types";
@@ -143,9 +142,6 @@ export const ProductDetailsCard = ({
           onPageChange={onVariantsPageChange}
         />
       )}
-
-      {/* PRODUCT COMPONENT CONFIGURATIONS */}
-      <ProductComponentSection product={product} />
 
       <TagsSection
         productId={product.id}
