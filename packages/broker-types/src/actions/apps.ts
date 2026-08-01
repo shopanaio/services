@@ -17,6 +17,22 @@ import type {
   PaymentProviderRefundRequest,
   PaymentProviderVoidRequest,
 } from "./payments.js";
+import type {
+  DeliveryProviderCancelShipmentRequest,
+  DeliveryProviderConfigurationValidationRequest,
+  DeliveryProviderConfigurationValidationResult,
+  DeliveryProviderCreateShipmentRequest,
+  DeliveryProviderGetShipmentRequest,
+  DeliveryProviderLocationResolveRequest,
+  DeliveryProviderLocationResolveResult,
+  DeliveryProviderLocationSearchRequest,
+  DeliveryProviderLocationSearchResult,
+  DeliveryProviderRateRequest,
+  DeliveryProviderRateResult,
+  DeliveryProviderReconcileShipmentRequest,
+  DeliveryProviderReconcileShipmentResult,
+  DeliveryProviderShipmentOperationResult,
+} from "./delivery.js";
 
 export type AppInstallationStatus =
   | "PENDING_CONSENT"
@@ -202,6 +218,77 @@ export interface ListPaymentProviderRoutesParams {
     | "void"
     | "refund"
     | "reconcile";
+}
+
+export interface DeliveryProviderCapabilityInvocation<
+  TOperation extends string,
+  TInput,
+> extends Omit<
+    ExecuteCapabilityParams,
+    "capability" | "operation" | "installationId" | "input"
+  > {
+  capability: "delivery.provider";
+  operation: TOperation;
+  installationId: string;
+  input: TInput;
+}
+
+/** Typed Apps invocation envelope for every delivery provider operation. */
+export type ExecuteDeliveryProviderCapabilityParams =
+  | DeliveryProviderCapabilityInvocation<
+      "validateConfiguration",
+      DeliveryProviderConfigurationValidationRequest
+    >
+  | DeliveryProviderCapabilityInvocation<
+      "quoteRates",
+      DeliveryProviderRateRequest
+    >
+  | DeliveryProviderCapabilityInvocation<
+      "searchLocations",
+      DeliveryProviderLocationSearchRequest
+    >
+  | DeliveryProviderCapabilityInvocation<
+      "resolveLocation",
+      DeliveryProviderLocationResolveRequest
+    >
+  | DeliveryProviderCapabilityInvocation<
+      "createShipment",
+      DeliveryProviderCreateShipmentRequest
+    >
+  | DeliveryProviderCapabilityInvocation<
+      "cancelShipment",
+      DeliveryProviderCancelShipmentRequest
+    >
+  | DeliveryProviderCapabilityInvocation<
+      "getShipment",
+      DeliveryProviderGetShipmentRequest
+    >
+  | DeliveryProviderCapabilityInvocation<
+      "reconcileShipment",
+      DeliveryProviderReconcileShipmentRequest
+    >;
+
+export type ExecuteDeliveryProviderCapabilityResult = ExecuteCapabilityResult<
+  | DeliveryProviderConfigurationValidationResult
+  | DeliveryProviderRateResult
+  | DeliveryProviderLocationSearchResult
+  | DeliveryProviderLocationResolveResult
+  | DeliveryProviderShipmentOperationResult
+  | DeliveryProviderReconcileShipmentResult
+>;
+
+export interface ListDeliveryProviderRoutesParams {
+  storeId: string;
+  capability: "delivery.provider";
+  operation:
+    | "validateConfiguration"
+    | "quoteRates"
+    | "searchLocations"
+    | "resolveLocation"
+    | "createShipment"
+    | "cancelShipment"
+    | "getShipment"
+    | "reconcileShipment";
 }
 
 export interface AssignCapabilityParams {

@@ -8,6 +8,8 @@ const AppCapabilitySchema = z
   .object({
     key: z.string().min(1),
     assignmentMode: z.enum(["store", "resource"]).optional(),
+    /** Route cardinality contract. Runtime routing support is implemented separately. */
+    routingMode: z.enum(["single", "broadcast"]).optional(),
     operations: z.record(z.string().min(1)),
   })
   .strict();

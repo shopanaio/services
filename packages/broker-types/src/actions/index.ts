@@ -10,6 +10,9 @@ export * as Apps from "./apps.js";
 export type {
   AppInstallationStatus,
   AppLifecycleAcceptedResult,
+  DeliveryProviderCapabilityInvocation,
+  ExecuteDeliveryProviderCapabilityParams,
+  ExecuteDeliveryProviderCapabilityResult,
   InstallAppParams,
   UpdateAppParams,
   SuspendAppParams,
@@ -22,6 +25,7 @@ export type {
   PaymentProviderCapabilityInvocation,
   ListCapabilityRoutesParams,
   ListCapabilityRoutesResult,
+  ListDeliveryProviderRoutesParams,
   ListPaymentProviderRoutesParams,
   CapabilityRoute,
   CapabilityTarget,
@@ -112,23 +116,18 @@ export {
 // Delivery service checkout actions
 export * as Delivery from "./delivery.js";
 export {
+  DELIVERY_PROVIDER_APP_PERMISSIONS,
+  DELIVERY_PROVIDER_CAPABILITY,
+  DELIVERY_PROVIDER_PROTOCOL_VERSION,
+  DELIVERY_CUSTOMIZATION_FUNCTION_TARGET,
+  DeliveryActionNames,
+  DeliveryActions,
   DeliveryCheckoutActionNames,
   DeliveryCheckoutActions,
+  DeliveryProviderOperations,
+  DeliveryShipmentTransitions,
 } from "./delivery.js";
-export type {
-  CalculateCheckoutDeliveryOptionsParams,
-  CalculateCheckoutDeliveryOptionsResult,
-  DeliveryCheckoutAddress,
-  DeliveryCheckoutDestinationIntent,
-  DeliveryCheckoutEvaluationContext,
-  DeliveryCheckoutGroup,
-  DeliveryCheckoutMethodType,
-  DeliveryCheckoutOption,
-  DeliveryCheckoutOptionSelectionIntent,
-  DeliveryCheckoutOptionSelectionResolution,
-  DeliveryCheckoutOrphanedSelectionReset,
-  DeliveryCheckoutShippingPaymentModel,
-} from "./delivery.js";
+export type * from "./delivery.js";
 
 // Payments service checkout actions
 export * as Payments from "./payments.js";

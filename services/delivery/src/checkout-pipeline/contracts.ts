@@ -12,6 +12,37 @@ export interface DeliveryCheckoutOptionsPort {
   ): Promise<CalculateDeliveryOptionsResult>;
 }
 
+/** Provider-ready physical grouping produced before rate fan-out. */
+export interface DeliveryCheckoutRateGroupPlan {
+  groupId: string;
+  destinationId: string;
+  lineIds: readonly string[];
+  origin: Delivery.DeliveryProviderOrigin;
+  destination: Delivery.DeliveryProviderDestination;
+  packages: readonly Delivery.DeliveryProviderPackage[];
+  /** Hash of every provider-visible physical and monetary rating fact. */
+  ratedFactsHash: string;
+}
+
+export interface DeliveryCheckoutRatePlan {
+  revision: string;
+  basedOnPreliminaryRevision: string;
+  groups: readonly DeliveryCheckoutRateGroupPlan[];
+  issues: readonly Readonly<{
+    code: string;
+    message: string;
+    lineId: string | null;
+    destinationId: string | null;
+  }>[];
+}
+
+/** Catalog/fulfillment boundary responsible for origins, packages and measurements. */
+export interface DeliveryCheckoutPlanningPort {
+  plan(
+    params: CalculateDeliveryOptionsParams,
+  ): Promise<DeliveryCheckoutRatePlan>;
+}
+
 /**
  * Provider-side handler surface for DeliveryCheckoutActions.
  * Intentional scaffolding: do not register the broker action before a real

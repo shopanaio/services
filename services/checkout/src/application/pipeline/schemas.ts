@@ -737,8 +737,12 @@ export const calculatePreliminaryPricingResultSchema = z
 export const checkoutDeliveryOptionSchema = z
   .object({
     handle: identifierSchema,
+    source: z.enum(["STATIC", "PROVIDER"]),
+    profileId: identifierSchema,
+    methodDefinitionId: identifierSchema,
     code: identifierSchema,
     title: z.string().min(1),
+    description: z.string().min(1).nullable(),
     deliveryMethodType: z.union([
       z.literal("PICKUP"),
       z.literal("SHIPPING"),
@@ -753,6 +757,17 @@ export const checkoutDeliveryOptionSchema = z
     cost: checkoutPipelineNonNegativeMoneySchema,
     estimatedMinDeliveryAt: timestampSchema.nullable(),
     estimatedMaxDeliveryAt: timestampSchema.nullable(),
+    phoneRequired: z.boolean(),
+    customerInputContract: z
+      .object({
+        schemaDialect: z.literal(
+          "https://json-schema.org/draft/2020-12/schema",
+        ),
+        schema: checkoutPipelineJsonObjectSchema,
+        schemaHash: revisionSchema,
+      })
+      .strict()
+      .nullable(),
   })
   .strict();
 
@@ -845,9 +860,75 @@ export const calculateDeliveryOptionsResultSchema = z
     ...checkoutPipelineStageProvenanceSchema.shape,
     revision: revisionSchema,
     basedOnPreliminaryRevision: revisionSchema,
+    ratePlanRevision: revisionSchema,
+    eligibilityRevision: revisionSchema,
+    customizationRevision: revisionSchema,
     groups: collection(checkoutDeliveryGroupSchema),
     orphanedSelectionResets: collection(
       checkoutOrphanedDeliverySelectionResetSchema,
+    ),
+    providerExecutions: collection(
+      z
+        .object({
+          groupId: identifierSchema,
+          providerAccountId: identifierSchema,
+          route: z
+            .object({
+              protocolVersion: z.literal(1),
+              capabilityRouteId: identifierSchema,
+              installationId: identifierSchema,
+              appCode: identifierSchema,
+              appVersion: identifierSchema,
+              operation: z.literal("quoteRates"),
+              routeRevision: revisionSchema,
+            })
+            .strict(),
+          status: z.enum([
+            "SUCCEEDED",
+            "NO_SERVICE",
+            "FAILED",
+            "TIMED_OUT",
+            "FALLBACK_APPLIED",
+          ]),
+          rateCount: z.number().int().nonnegative(),
+          durationMs: z.number().int().nonnegative(),
+          failure: z
+            .object({
+              category: z.enum([
+                "INVALID_REQUEST",
+                "NOT_SUPPORTED",
+                "NO_SERVICE",
+                "CONFIGURATION",
+                "AUTHENTICATION",
+                "PROVIDER_UNAVAILABLE",
+                "TIMEOUT",
+                "RATE_LIMITED",
+                "CONFLICT",
+                "REJECTED",
+                "UNKNOWN",
+              ]),
+              code: identifierSchema,
+              message: z.string().min(1),
+              retryable: z.boolean(),
+              acceptedByProvider: z.boolean(),
+              providerCode: identifierSchema.nullable(),
+            })
+            .strict()
+            .nullable(),
+        })
+        .strict(),
+    ),
+    issues: collection(
+      z
+        .object({
+          severity: z.enum(["WARNING", "ERROR"]),
+          code: identifierSchema,
+          message: z.string().min(1),
+          groupId: identifierSchema.nullable(),
+          providerAccountId: identifierSchema.nullable(),
+          retryable: z.boolean(),
+        })
+        .strict(),
     ),
   })
   .strict();

@@ -4,3 +4,4 @@ import { Module } from '@nestjs/common';
 export class DeliveryModule {}
 
 export type * from "./checkout-pipeline/index.js";
+export * from "./contracts/index.js";

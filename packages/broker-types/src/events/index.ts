@@ -18,6 +18,15 @@ import type {
   PaymentSettlementConfirmation,
 } from "../actions/payments.js";
 import type { PricingCheckoutMoney } from "../actions/pricing.js";
+import type {
+  DeliveryLabelSnapshot,
+  DeliveryParcelSnapshot,
+  DeliveryProviderFailure,
+  DeliveryProviderRouteSnapshot,
+  DeliveryShipmentOperationType,
+  DeliveryShipmentState,
+  DeliveryTrackingEventSnapshot,
+} from "../actions/delivery.js";
 
 // ============================================================================
 // Media Events
@@ -244,5 +253,63 @@ export namespace PaymentEvents {
     responseDueAt: string | null;
     disputeRevision: number;
     occurredAt: string;
+  }
+}
+
+// ============================================================================
+// Delivery Events
+// ============================================================================
+
+export const DeliveryEventTypes = {
+  shipmentCreated: "delivery.shipment.created",
+  shipmentStateChanged: "delivery.shipment.state_changed",
+  trackingUpdated: "delivery.shipment.tracking_updated",
+  labelAvailable: "delivery.shipment.label_available",
+  operationFailed: "delivery.shipment.operation_failed",
+} as const;
+
+export namespace DeliveryEvents {
+  export interface Base {
+    eventId: string;
+    causationId: string;
+    correlationId: string;
+    shipmentId: string;
+    operationId: string | null;
+    organizationId: string;
+    storeId: string;
+    checkoutId: string;
+    orderId: string;
+    fulfillmentId: string;
+    providerCode: string;
+    providerAccountId: string;
+    providerShipmentReference: string | null;
+    route: DeliveryProviderRouteSnapshot;
+    operationType: DeliveryShipmentOperationType | null;
+    shipmentState: DeliveryShipmentState;
+    shipmentRevision: number;
+    occurredAt: string;
+  }
+
+  export interface ShipmentCreated extends Base {
+    parcels: readonly DeliveryParcelSnapshot[];
+  }
+
+  export interface ShipmentStateChanged extends Base {
+    previousState: DeliveryShipmentState;
+    state: DeliveryShipmentState;
+  }
+
+  export interface TrackingUpdated extends Base {
+    event: DeliveryTrackingEventSnapshot;
+  }
+
+  export interface LabelAvailable extends Base {
+    parcelId: string;
+    providerParcelReference: string | null;
+    label: DeliveryLabelSnapshot;
+  }
+
+  export interface OperationFailed extends Base {
+    failure: DeliveryProviderFailure;
   }
 }

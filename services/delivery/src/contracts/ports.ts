@@ -1,0 +1,317 @@
+import type {
+  Apps,
+  Delivery,
+  DeliveryEvents,
+  Pricing,
+} from "@shopana/broker-types";
+import type { DeliveryProviderCompletionContext } from "./actions.js";
+
+/** Apps routing and invocation boundary used by Delivery Core. */
+export interface DeliveryProviderAppsPort {
+  listRoutes(
+    params: Apps.ListDeliveryProviderRoutesParams,
+  ): Promise<readonly Delivery.DeliveryProviderRouteSnapshot[]>;
+  resolveRoute(input: Readonly<{
+    storeId: string;
+    installationId: string;
+    operation: Delivery.DeliveryProviderOperation;
+  }>): Promise<Delivery.DeliveryProviderRouteSnapshot | null>;
+  resolvePinnedRoute(input: Readonly<{
+    storeId: string;
+    pinned: Delivery.DeliveryProviderRouteSnapshot;
+    /** Long-lived shipments may move only within the same protocol version. */
+    allowCompatibleAppUpgrade: boolean;
+  }>): Promise<
+    | Readonly<{
+        status: "EXACT";
+        route: Delivery.DeliveryProviderRouteSnapshot;
+      }>
+    | Readonly<{
+        status: "COMPATIBLE_UPGRADE";
+        route: Delivery.DeliveryProviderRouteSnapshot;
+        previous: Delivery.DeliveryProviderRouteSnapshot;
+      }>
+    | Readonly<{
+        status: "UNAVAILABLE";
+        code: "APP_UNINSTALLED" | "ROUTE_REMOVED" | "PROTOCOL_INCOMPATIBLE";
+      }>
+  >;
+  validateConfiguration(
+    route: Delivery.DeliveryProviderRouteSnapshot,
+    request: Delivery.DeliveryProviderConfigurationValidationRequest,
+  ): Promise<Delivery.DeliveryProviderConfigurationValidationResult>;
+  quoteRates(
+    route: Delivery.DeliveryProviderRouteSnapshot,
+    request: Delivery.DeliveryProviderRateRequest,
+  ): Promise<Delivery.DeliveryProviderRateResult>;
+  searchLocations(
+    route: Delivery.DeliveryProviderRouteSnapshot,
+    request: Delivery.DeliveryProviderLocationSearchRequest,
+  ): Promise<Delivery.DeliveryProviderLocationSearchResult>;
+  resolveLocation(
+    route: Delivery.DeliveryProviderRouteSnapshot,
+    request: Delivery.DeliveryProviderLocationResolveRequest,
+  ): Promise<Delivery.DeliveryProviderLocationResolveResult>;
+  createShipment(
+    route: Delivery.DeliveryProviderRouteSnapshot,
+    request: Delivery.DeliveryProviderCreateShipmentRequest,
+  ): Promise<Delivery.DeliveryProviderShipmentOperationResult<"CREATE">>;
+  cancelShipment(
+    route: Delivery.DeliveryProviderRouteSnapshot,
+    request: Delivery.DeliveryProviderCancelShipmentRequest,
+  ): Promise<Delivery.DeliveryProviderShipmentOperationResult<"CANCEL">>;
+  getShipment(
+    route: Delivery.DeliveryProviderRouteSnapshot,
+    request: Delivery.DeliveryProviderGetShipmentRequest,
+  ): Promise<Delivery.DeliveryProviderReconcileShipmentResult>;
+  reconcileShipment(
+    route: Delivery.DeliveryProviderRouteSnapshot,
+    request: Delivery.DeliveryProviderReconcileShipmentRequest,
+  ): Promise<Delivery.DeliveryProviderReconcileShipmentResult>;
+}
+
+export interface DeliveryProviderAccountsPort {
+  listActiveForStore(
+    storeId: string,
+  ): Promise<readonly Delivery.DeliveryProviderAccountSnapshot[]>;
+  getById(
+    storeId: string,
+    providerAccountId: string,
+  ): Promise<Delivery.DeliveryProviderAccountSnapshot | null>;
+  getByInstallation(
+    storeId: string,
+    installationId: string,
+  ): Promise<Delivery.DeliveryProviderAccountSnapshot | null>;
+  save(
+    account: Delivery.DeliveryProviderAccountSnapshot,
+    expectedAccountRevision: number | null,
+  ): Promise<
+    | Readonly<{
+        status: "SAVED";
+        account: Delivery.DeliveryProviderAccountSnapshot;
+      }>
+    | Readonly<{
+        status: "REVISION_CONFLICT";
+        current: Delivery.DeliveryProviderAccountSnapshot;
+      }>
+  >;
+}
+
+export interface DeliveryOptionBindingCandidate {
+  option: Delivery.DeliveryCheckoutOption;
+  binding: Delivery.DeliveryOptionBindingSnapshot;
+}
+
+export type DeliveryOptionBindingResolution =
+  | Readonly<{
+      status: "FOUND";
+      binding: Delivery.DeliveryOptionBindingSnapshot;
+    }>
+  | Readonly<{
+      status: "NOT_FOUND" | "EXPIRED" | "DELIVERY_REVISION_MISMATCH";
+    }>;
+
+/** Draft 2020-12 validation and canonicalization boundary for shopper input. */
+export interface DeliveryCustomerInputValidationPort {
+  validate(input: Readonly<{
+    contract: Delivery.DeliveryCustomerInputContract | null;
+    value: Pricing.PricingCheckoutJsonObject | null;
+  }>):
+    | Readonly<{
+        valid: true;
+        normalized: Pricing.PricingCheckoutJsonObject | null;
+        valueHash: string;
+      }>
+    | Readonly<{
+        valid: false;
+        issues: readonly Readonly<{
+          path: string;
+          code: string;
+          message: string;
+        }>[];
+      }>;
+}
+
+/** Provider-backed semantic resolution for tokens such as pickup locations. */
+export interface DeliveryCustomerInputResolutionPort {
+  resolve(input: Readonly<{
+    binding: Delivery.DeliveryOptionBindingSnapshot;
+    value: Pricing.PricingCheckoutJsonObject | null;
+    effectiveAt: string;
+  }>): Promise<
+    | Readonly<{
+        valid: true;
+        normalized: Pricing.PricingCheckoutJsonObject | null;
+        valueHash: string;
+        semanticRevision: string;
+      }>
+    | Readonly<{
+        valid: false;
+        issues: readonly Readonly<{
+          path: string;
+          code: string;
+          message: string;
+        }>[];
+      }>
+  >;
+}
+
+/** Persistence boundary for expiring checkout quote handles. */
+export interface DeliveryOptionBindingsPort {
+  replaceCheckoutSnapshot(input: Readonly<{
+    storeId: string;
+    checkoutId: string;
+    checkoutVersion: number;
+    preliminaryRevision: string;
+    deliveryRevision: string;
+    options: readonly DeliveryOptionBindingCandidate[];
+    expiresAt: string;
+  }>): Promise<
+    | Readonly<{ status: "REPLACED" }>
+    | Readonly<{
+        status: "STALE_CHECKOUT_VERSION";
+        currentCheckoutVersion: number;
+      }>
+    | Readonly<{
+        status: "REVISION_CONFLICT";
+        currentDeliveryRevision: string;
+      }>
+  >;
+  resolve(input: Readonly<{
+    storeId: string;
+    checkoutId: string;
+    groupId: string;
+    optionHandle: string;
+    deliveryRevision: string;
+    effectiveAt: string;
+  }>): Promise<DeliveryOptionBindingResolution>;
+}
+
+export interface DeliveryIdempotencyPort {
+  createSnapshot(input: Readonly<{
+    scope: string;
+    key: string;
+    normalizedRequest: unknown;
+  }>): Delivery.DeliveryIdempotencySnapshot;
+}
+
+/** Owns legal transitions and stale/out-of-order provider observation policy. */
+export interface DeliveryShipmentTransitionPolicyPort {
+  evaluate(input: Readonly<{
+    current: Delivery.DeliveryShipmentSnapshot;
+    observedState: Delivery.DeliveryShipmentState;
+    occurredAt: string;
+    providerEventId: string;
+  }>):
+    | Readonly<{ status: "APPLY"; nextState: Delivery.DeliveryShipmentState }>
+    | Readonly<{ status: "IGNORE_STALE"; currentState: Delivery.DeliveryShipmentState }>
+    | Readonly<{
+        status: "REJECT_INVALID";
+        currentState: Delivery.DeliveryShipmentState;
+        code: string;
+      }>;
+}
+
+export interface DeliveryProviderInboxRecord {
+  storeId: string;
+  providerAccountId: string;
+  providerEventId: string;
+  eventHash: string;
+  occurredAt: string;
+}
+
+export interface DeliveryAtomicMutationRecord {
+  mutationId: string;
+  cause:
+    | "COMMAND"
+    | "PROVIDER_COMPLETION"
+    | "PROVIDER_EVENT"
+    | "RECONCILIATION";
+  storeId: string;
+  expectedShipmentRevision: number | null;
+  idempotency: Delivery.DeliveryIdempotencySnapshot;
+  shipment: Delivery.DeliveryShipmentSnapshot;
+  operation: Delivery.DeliveryShipmentOperationSnapshot | null;
+  trackingEvents: readonly Delivery.DeliveryTrackingEventSnapshot[];
+  providerInbox: DeliveryProviderInboxRecord | null;
+  domainEvents: readonly DeliveryDomainEvent[];
+}
+
+export type DeliveryAtomicMutationResult =
+  | Readonly<{ status: "APPLIED"; shipmentRevision: number }>
+  | Readonly<{ status: "DUPLICATE"; shipmentRevision: number }>
+  | Readonly<{ status: "IDEMPOTENCY_CONFLICT"; shipmentRevision: number }>
+  | Readonly<{ status: "REVISION_CONFLICT"; shipmentRevision: number }>;
+
+/** Persistence port must enforce idempotency and optimistic shipment revisions. */
+export interface DeliveryShipmentsPort {
+  get(
+    storeId: string,
+    shipmentId: string,
+  ): Promise<Delivery.DeliveryShipmentSnapshot | null>;
+  findByProviderReference(
+    storeId: string,
+    providerAccountId: string,
+    providerShipmentReference: string,
+  ): Promise<Delivery.DeliveryShipmentSnapshot | null>;
+  listOperations(
+    storeId: string,
+    shipmentId: string,
+  ): Promise<readonly Delivery.DeliveryShipmentOperationSnapshot[]>;
+  listTrackingEvents(
+    storeId: string,
+    shipmentId: string,
+  ): Promise<readonly Delivery.DeliveryTrackingEventSnapshot[]>;
+}
+
+/** One transaction: inbox dedupe, aggregate CAS, tracking append and outbox append. */
+export interface DeliveryUnitOfWorkPort {
+  commit(
+    record: DeliveryAtomicMutationRecord,
+  ): Promise<DeliveryAtomicMutationResult>;
+}
+
+export type DeliveryDomainEvent =
+  | Readonly<{
+      type: "delivery.shipment.created";
+      payload: DeliveryEvents.ShipmentCreated;
+    }>
+  | Readonly<{
+      type: "delivery.shipment.state_changed";
+      payload: DeliveryEvents.ShipmentStateChanged;
+    }>
+  | Readonly<{
+      type: "delivery.shipment.tracking_updated";
+      payload: DeliveryEvents.TrackingUpdated;
+    }>
+  | Readonly<{
+      type: "delivery.shipment.label_available";
+      payload: DeliveryEvents.LabelAvailable;
+    }>
+  | Readonly<{
+      type: "delivery.shipment.operation_failed";
+      payload: DeliveryEvents.OperationFailed;
+    }>;
+
+export interface DeliveryWorkflowPort {
+  startConfigureProviderAccount(
+    params: Delivery.ConfigureDeliveryProviderAccountParams,
+  ): Promise<Delivery.ConfigureDeliveryProviderAccountResult>;
+  startCreateShipment(
+    params: Delivery.CreateDeliveryShipmentParams,
+  ): Promise<Delivery.CreateDeliveryShipmentResult>;
+  startCancelShipment(
+    params: Delivery.CancelDeliveryShipmentParams,
+  ): Promise<Delivery.DeliveryOperationAcceptedResult>;
+  startReconcileShipment(
+    params: Delivery.ReconcileDeliveryShipmentParams,
+  ): Promise<Delivery.DeliveryOperationAcceptedResult>;
+  startProviderCompletion(
+    params: Delivery.CompleteDeliveryProviderOperationParams,
+    context: DeliveryProviderCompletionContext,
+  ): Promise<Delivery.CompleteDeliveryProviderOperationResult>;
+  startProviderEvent(
+    params: Delivery.ReportDeliveryProviderEventParams,
+    context: DeliveryProviderCompletionContext,
+  ): Promise<Delivery.ReportDeliveryProviderEventResult>;
+}
