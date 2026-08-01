@@ -1,4 +1,3 @@
-import { App } from "@src/ioc/container";
 import type { ApiCheckoutDeliveryGroup } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 
@@ -58,26 +57,9 @@ export const deliveryMethods = async (
     return parent.deliveryMethods;
   }
 
-  // Strategy 2: Fallback to runtime API call if read model is empty
-  const { serviceApi, logger } = App.getInstance();
-  try {
-    const methods = await serviceApi.shipping.getProjectMethods({
-      storeId: ctx.store.id,
-    });
-
-    return (methods || []).map((method: any) => ({
-      code: method.code,
-      deliveryMethodType: method.deliveryMethodType || "SHIPPING",
-      provider: {
-        code: method.provider ?? "unknown",
-      },
-      data: method.providerData || {},
-    }));
-  } catch (error) {
-    logger.error(
-      { error, deliveryGroupId: parent.id },
-      "Failed to fetch delivery methods from runtime API"
-    );
-    return [];
-  }
+  void ctx;
+  // TODO(checkout-rewrite): remove the runtime fallback and project delivery
+  // options from the typed delivery.calculateOptions snapshot.
+  const methods: any[] = [];
+  return methods;
 };

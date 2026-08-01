@@ -609,8 +609,7 @@ Translation data не синхронизируется: index содержит �
 1. Load variant + parent product_id
 2. Load variant option values -> build `option.slug + ':' + optionValue.slug` composites -> `option_slugs`
 3. Load variant price in store base currency (`price_currency`, `price_minor`)
-4. Broker call `inventory.getOffers` для stock, scoped by variant
-5. UPSERT into `variant_search_index`, 1 row per variant
+4. UPSERT into `variant_search_index`, 1 row per variant
 
 ---
 
@@ -1494,21 +1493,7 @@ WHERE psi.store_id = :storeId
 
 ---
 
-## 10. Broker-зависимости
-
-Один внешний call:
-
-```typescript
-broker.call<Inventory.GetOffersResult, Inventory.GetOffersParams>(
-  "inventory.getOffers", { storeId, variantIds }
-);
-```
-
-Все остальное локально для catalog.
-
----
-
-## 11. Порядок реализации
+## 10. Порядок реализации
 
 ### Rollout contract (обязательно)
 

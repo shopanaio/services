@@ -7,7 +7,6 @@ import type { CheckoutLinesAddedDto } from "@src/domain/checkout/dto";
 import { Money } from "@shopana/shared-money";
 import { v7 as uuidv7 } from "uuid";
 import { CheckoutLineItemState, ChildPriceType } from "@src/domain/checkout/types";
-import type { GetOffersItem, GetOffersChildItem } from "@src/application/services/checkoutService";
 
 export interface AddCheckoutLinesUseCaseDependencies
   extends UseCaseDependencies {}
@@ -117,18 +116,18 @@ export class AddCheckoutLinesUseCase extends UseCase<
     });
 
     // Build nested items structure for inventory
-    const inventoryItems: GetOffersItem[] = [];
+    const inventoryItems: any[] = [];
 
     // Add new lines with nested children
     for (const line of addedLines) {
-      const item: GetOffersItem = {
+      const item: any = {
         lineId: line.lineId,
         purchasableId: line.purchasableId,
         quantity: line.quantity,
       };
 
       if (line.children && line.children.length > 0) {
-        item.children = line.children.map((child): GetOffersChildItem => ({
+        item.children = line.children.map((child) => ({
           lineId: child.lineId,
           purchasableId: child.purchasableId,
           quantity: child.quantity,
@@ -150,14 +149,10 @@ export class AddCheckoutLinesUseCase extends UseCase<
       }
     }
 
-    // Get product information from inventory
-    const ctx = context;
-    const { offers } = await this.checkoutService.getOffers({
-      apiKey: ctx.apiKey,
-      currency: state.currencyCode,
-      storeId: ctx.store.id,
-      items: inventoryItems,
-    });
+    void inventoryItems;
+    // TODO(checkout-rewrite): resolve merchandise, availability and quoted
+    // lines through the new typed checkout recalculation pipeline.
+    const offers = new Map<string, any>();
 
     const newLines: CheckoutLineItemState[] = [];
 

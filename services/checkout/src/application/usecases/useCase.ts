@@ -1,7 +1,6 @@
 import type { Logger } from "pino";
 import { type CheckoutContext } from "@src/context/index.js";
 import type { CheckoutState, CheckoutLineItemState } from "@src/domain/checkout/types";
-import type { ShippingApiClient, PaymentApiClient, PricingApiClient, InventoryApiClient } from "@shopana/shared-service-api";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import { CheckoutReadRepository as AppCheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
 import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
@@ -13,14 +12,6 @@ import type { CheckoutLinesAddedLine } from "@src/domain/checkout/dto";
 export interface UseCaseDependencies {
   /** Optional logger instance for debugging and monitoring */
   logger?: Logger;
-  /** Shipping API client for interacting with the shipping service */
-  shippingApiClient: ShippingApiClient;
-  /** Payment API client for interacting with the payment service */
-  paymentApiClient: PaymentApiClient;
-  /** Pricing API client for interacting with the pricing service */
-  pricingApiClient: PricingApiClient;
-  /** Inventory API client for interacting with the inventory service */
-  inventory: InventoryApiClient;
   /** Checkout service for professional totals computation and pricing validation */
   checkoutService: CheckoutService;
   /** Read repository as single source of truth for checkout data */
@@ -40,14 +31,6 @@ export interface UseCaseDependencies {
 export abstract class UseCase<TInput = any, TOutput = any> {
   /** Logger instance for debugging and monitoring */
   protected readonly logger: Pick<Logger, "info" | "warn" | "error" | "debug">;
-  /** Shipping API client for interacting with the shipping service */
-  protected readonly shippingApi: ShippingApiClient;
-  /** Payment API client for interacting with the payment service */
-  protected readonly paymentApi: PaymentApiClient;
-  /** Pricing API client for interacting with the pricing service */
-  protected readonly pricingApi: PricingApiClient;
-  /** Inventory API client for interacting with the inventory service */
-  protected readonly inventory: InventoryApiClient;
   /** Checkout service for totals/pricing */
   protected readonly checkoutService: CheckoutService;
   /** Read repository for checkouts */
@@ -62,10 +45,6 @@ export abstract class UseCase<TInput = any, TOutput = any> {
    */
   constructor(deps: UseCaseDependencies) {
     this.logger = deps.logger ?? console;
-    this.shippingApi = deps.shippingApiClient;
-    this.paymentApi = deps.paymentApiClient;
-    this.pricingApi = deps.pricingApiClient;
-    this.inventory = deps.inventory;
     this.checkoutService = deps.checkoutService;
     this.checkoutReadRepository = deps.checkoutReadRepository;
     this.checkoutWriteRepository = deps.checkoutWriteRepository;

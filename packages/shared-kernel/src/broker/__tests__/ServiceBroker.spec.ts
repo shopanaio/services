@@ -68,20 +68,20 @@ describe('ServiceBroker', () => {
     const broker = createBroker({ registry });
     const handler: ActionHandler = jest.fn();
 
-    broker.register('getPaymentMethods', handler);
+    broker.register('listMethods', handler);
 
-    expect(registry.list()).toEqual(['payments.getPaymentMethods']);
+    expect(registry.list()).toEqual(['payments.listMethods']);
   });
 
   it('calls handlers via ActionRegistry', async () => {
     const registry = new ActionRegistry();
     const broker = createBroker({ registry });
 
-    broker.register('getPaymentMethods', async (params?: { currency: string }) => {
+    broker.register('listMethods', async (params?: { currency: string }) => {
       return { ok: params?.currency ?? 'n/a' };
     });
 
-    await expect(broker.call('payments.getPaymentMethods', { currency: 'USD' })).resolves.toEqual({
+    await expect(broker.call('payments.listMethods', { currency: 'USD' })).resolves.toEqual({
       ok: 'USD',
     });
   });
@@ -385,8 +385,8 @@ describe('ServiceBroker', () => {
   it('throws when call action lacks prefix', async () => {
     const broker = createBroker();
 
-    await expect(broker.call('getPaymentMethods')).rejects.toThrow(
-      'Action "getPaymentMethods" must include service prefix',
+    await expect(broker.call('listMethods')).rejects.toThrow(
+      'Action "listMethods" must include service prefix',
     );
   });
 

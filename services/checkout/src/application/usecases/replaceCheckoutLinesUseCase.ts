@@ -29,7 +29,6 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
   async execute(input: CheckoutLinesReplaceInput): Promise<string> {
     const { apiKey, store, customer, user, ...businessInput } = input;
     const context = { apiKey, store, customer, user };
-    const ctx = context;
     const state = await this.getCheckoutState(businessInput.checkoutId);
 
     this.assertCheckoutExists(state);
@@ -99,17 +98,9 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
 
     const mergedLines: CheckoutLineItemState[] = Array.from(linesMap.values());
 
-    // Fetch fresh offer data for merged lines
-    const { offers } = await this.checkoutService.getOffers({
-      apiKey: ctx.apiKey,
-      currency: state.currencyCode,
-      storeId: ctx.store.id,
-      items: mergedLines.map((l) => ({
-        lineId: l.lineId,
-        purchasableId: l.unit.id,
-        quantity: l.quantity,
-      })),
-    });
+    // TODO(checkout-rewrite): replace this placeholder with quoted lines from
+    // the new typed checkout recalculation pipeline.
+    const offers = new Map<string, any>();
 
     const checkoutLines: CheckoutLineItemState[] = mergedLines.map((line) => {
       const offer = offers.get(line.lineId);

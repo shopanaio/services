@@ -64,17 +64,9 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
 
     // If lines remain - get current data and recalculate
     if (remainingLines.length > 0) {
-      const ctx = context;
-      const { offers } = await this.checkoutService.getOffers({
-        apiKey: ctx.apiKey,
-        currency: state.currencyCode,
-        storeId: ctx.store.id,
-        items: remainingLines.map((l) => ({
-          lineId: l.lineId,
-          purchasableId: l.unit.id,
-          quantity: l.quantity,
-        })),
-      });
+      // TODO(checkout-rewrite): replace this placeholder with quoted lines
+      // from the new typed checkout recalculation pipeline.
+      const offers = new Map<string, any>();
 
       checkoutLines = remainingLines.map((line) => {
         const offer = offers.get(line.lineId);

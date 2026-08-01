@@ -31,11 +31,12 @@ export class AddPromoCodeUseCase extends UseCase<
       return businessInput.checkoutId;
     }
 
-    // Validate promo code through pricing service
-    const promo = await this.pricingApi.validateDiscount({
+    // TODO(checkout-rewrite): pass discount codes to pricing.calculateQuote
+    // and replace this temporary unknown result with the typed quote response.
+    const promo: any = {
       code: businessInput.code,
-      storeId: context.store.id,
-    });
+      valid: false,
+    };
 
     if (!promo.valid) {
       throw new Error(`Invalid promo code: ${businessInput.code}`);

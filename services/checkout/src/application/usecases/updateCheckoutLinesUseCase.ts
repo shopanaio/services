@@ -21,7 +21,6 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
   async execute(input: CheckoutLinesUpdateInput): Promise<string> {
     const { apiKey, store, customer, user, ...businessInput } = input;
     const context = { apiKey, store, customer, user };
-    const ctx = context;
     const state = await this.getCheckoutState(businessInput.checkoutId);
 
     this.assertCheckoutExists(state);
@@ -70,17 +69,9 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
           : line;
       });
 
-    // Get current product information
-    const { offers } = await this.checkoutService.getOffers({
-      apiKey: ctx.apiKey,
-      currency: state.currencyCode,
-      storeId: ctx.store.id,
-      items: updatedLines.map((l) => ({
-        lineId: l.lineId,
-        purchasableId: l.unit.id,
-        quantity: l.quantity,
-      })),
-    });
+    // TODO(checkout-rewrite): replace this placeholder with quoted lines from
+    // the new typed checkout recalculation pipeline.
+    const offers = new Map<string, any>();
 
     // Update lines with current product data
     const checkoutLines: CheckoutLineItemState[] = updatedLines.map((line) => {

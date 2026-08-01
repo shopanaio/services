@@ -1,8 +1,3 @@
-import type {
-  PricingApiClient,
-  PricingEvaluateDiscountsResult,
-  PricingEvaluateDiscountsInput,
-} from "@shopana/shared-service-api";
 import { Money } from "@shopana/shared-money";
 import type { Discount } from "@shopana/shared-service-api";
 import { DiscountType } from "@shopana/shared-service-api";
@@ -51,8 +46,6 @@ type ComputeTotalsResult = {
  * - Calculating final totals
  */
 export class CheckoutCostService {
-  constructor(private readonly pricingApi: PricingApiClient) {}
-
   /**
    * Calculates the full cost of the cart taking into account all discounts.
    *
@@ -131,69 +124,13 @@ export class CheckoutCostService {
     aggregatedDiscounts: Discount[];
     lineDiscounts: Record<string, Discount[]>;
   }> {
-    try {
-      const pricingInput = this.buildPricingInput(input);
-      const pricingResult = await this.evaluateDiscounts(pricingInput);
-
-      const aggregatedDiscounts = pricingResult.aggregatedDiscounts;
-      const lineDiscounts: Record<string, Discount[]> = {};
-      Object.entries(pricingResult.lineDiscounts).forEach(
-        ([lineId, discounts]) => {
-          lineDiscounts[lineId] = discounts;
-        }
-      );
-
-      return {
-        aggregatedDiscounts,
-        lineDiscounts,
-      };
-    } catch {
-      return {
-        aggregatedDiscounts: input.appliedDiscounts ?? [],
-        lineDiscounts: {},
-      };
-    }
-  }
-
-  /**
-   * Converts cart data to pricing service format.
-   *
-   * Converts internal cart item structures to format expected by pricing service API.
-   * Prices are converted to minor units (kopecks) for calculation accuracy.
-   * Extracts discount codes from appliedDiscounts for transmission to pricing service.
-   *
-   * @param input - Input data with items, currency and applied discounts
-   * @returns Object in format expected by pricing service with discount codes
-   * @private
-   */
-  private buildPricingInput(
-    input: ComputeTotalsInput
-  ): PricingEvaluateDiscountsInput {
-    // Check for required storeId presence
-    if (!input.storeId || input.storeId.trim() === "") {
-      throw new Error("storeId is required for pricing evaluation");
-    }
-
-    // Extract discount codes from appliedDiscounts
-    const appliedDiscountCodes =
-      input.appliedDiscounts?.map((discount) => discount.code) || [];
-
+    void input;
+    // TODO(checkout-rewrite): use pricing.calculateQuote and its immutable
+    // discount allocations instead of this temporary placeholder.
     return {
-      storeId: input.storeId,
-      currency: input.currency,
-      appliedDiscountCodes,
-      lines: input.checkoutLines.map((line) => ({
-        lineId: line.lineId,
-        quantity: line.quantity,
-        unit: {
-          id: line.unit.id,
-          price: line.unit.price,
-          compareAtPrice: line.unit.compareAtPrice,
-          sku: line.unit.sku ?? null,
-          snapshot: line.unit.snapshot ?? null,
-        },
-      })),
-    } as PricingEvaluateDiscountsInput;
+      aggregatedDiscounts: [],
+      lineDiscounts: {},
+    };
   }
 
   /**
@@ -305,26 +242,4 @@ export class CheckoutCostService {
     );
   }
 
-  /**
-   * Gets discounts from pricing service.
-   *
-   * Delegates call to external pricing service to get current discounts.
-   * Checks availability of evaluateDiscounts method in API client before calling.
-   * Throws exception if method is not available.
-   *
-   * @param input - Data for discount evaluation in API format
-   * @returns Discount evaluation result with separation by cart and item levels
-   * @throws {Error} If evaluateDiscounts method is not available in API client
-   * @private
-   */
-  private async evaluateDiscounts(
-    input: PricingEvaluateDiscountsInput
-  ): Promise<PricingEvaluateDiscountsResult> {
-    if (!this.pricingApi.evaluateDiscounts) {
-      throw new Error(
-        "evaluateDiscounts method is not available on pricingApi client"
-      );
-    }
-    return await this.pricingApi.evaluateDiscounts(input);
-  }
 }

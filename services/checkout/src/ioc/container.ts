@@ -65,16 +65,9 @@ export class App {
       app.lineItemsReadRepository
     );
     app.checkoutWriteRepository = new CheckoutWriteRepository();
-    app.checkoutService = new CheckoutService(
-      app.serviceApi.pricing,
-      app.serviceApi.inventory
-    );
+    app.checkoutService = new CheckoutService();
     app.checkoutUsecase = new CheckoutUsecase({
       logger: app.logger,
-      inventory: app.serviceApi.inventory,
-      shippingApiClient: app.serviceApi.shipping,
-      paymentApiClient: app.serviceApi.payment,
-      pricingApiClient: app.serviceApi.pricing,
       checkoutService: app.checkoutService,
       checkoutReadRepository: app.checkoutReadRepository,
       checkoutWriteRepository: app.checkoutWriteRepository,

@@ -75,31 +75,11 @@ export class CreateCheckoutUseCase extends UseCase<
       }>;
     }>
   > {
-    try {
-      const deliveryGroups = await this.shippingApi.createDeliveryGroups({
-        storeId: context.store.id,
-        items: [],
-      });
-
-      return deliveryGroups.map((g, index) => ({
-        id: uuidv7(), // Generate unique ID for each delivery group
-        deliveryMethods: g.methods.map((method) => ({
-          code: method.code,
-          provider: method.provider,
-          deliveryMethodType: method.deliveryMethodType,
-          shippingPaymentModel: method.shippingPaymentModel,
-        })),
-      }));
-    } catch (error) {
-      this.logger.error({ error }, "Failed to create delivery groups");
-
-      // For shipping API errors, create a clear message
-      throw new Error(
-        `Failed to create delivery groups: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
+    void context;
+    // TODO(checkout-rewrite): calculate delivery groups from the new
+    // delivery.calculateOptions action after merchandise lines are known.
+    const deliveryGroups: any[] = [];
+    return deliveryGroups;
   }
 
   /**
@@ -118,37 +98,12 @@ export class CreateCheckoutUseCase extends UseCase<
       constraints: Record<string, unknown> | null;
     }>
   > {
-    try {
-      const paymentMethods = await this.paymentApi.getPaymentMethods({
-        storeId: context.store.id,
-        currencyCode,
-        apiKey: context.apiKey,
-      });
-
-      console.log(paymentMethods, "paymentMethods");
-
-      // Deduplicate by provider+code pair
-      const seen = new Set<string>();
-      const unique = paymentMethods.filter((method: any) => {
-        const key = `${method.provider}:${method.code}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-
-      return unique.map((method: any) => ({
-        code: method.code,
-        provider: method.provider,
-        flow: method.flow,
-        metadata: method.metadata ?? null,
-        constraints: method.constraints ?? null,
-      }));
-    } catch (error) {
-      this.logger.error({ error }, "Failed to get payment methods");
-
-      // For payment API errors, return empty array instead of failing checkout creation
-      this.logger.warn("Returning empty payment methods due to API error");
-      return [];
-    }
+    void context;
+    void checkoutId;
+    void currencyCode;
+    // TODO(checkout-rewrite): populate this from the new
+    // payments.getAvailableMethods action and payment customization pipeline.
+    const paymentMethods: any[] = [];
+    return paymentMethods;
   }
 }

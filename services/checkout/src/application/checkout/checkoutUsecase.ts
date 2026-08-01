@@ -1,5 +1,4 @@
 import type { Logger } from "pino";
-import type { ShippingApiClient, PaymentApiClient, PricingApiClient, InventoryApiClient } from "@shopana/shared-service-api";
 
 import { AddCheckoutLinesUseCase } from "@src/application/usecases/addCheckoutLinesUseCase";
 import { AddDeliveryAddressUseCase } from "@src/application/usecases/addDeliveryAddressUseCase";
@@ -62,20 +61,12 @@ export class CheckoutUsecase {
 
   constructor(deps: {
     logger?: Logger;
-    inventory: InventoryApiClient;
-    shippingApiClient: ShippingApiClient;
-    paymentApiClient: PaymentApiClient;
-    pricingApiClient: PricingApiClient;
     checkoutService: CheckoutService;
     checkoutReadRepository: CheckoutReadRepository;
     checkoutWriteRepository: CheckoutWriteRepository;
   }) {
     const baseDeps = {
       logger: deps.logger,
-      inventory: deps.inventory,
-      shippingApiClient: deps.shippingApiClient,
-      paymentApiClient: deps.paymentApiClient,
-      pricingApiClient: deps.pricingApiClient,
       checkoutService: deps.checkoutService,
       checkoutReadRepository: deps.checkoutReadRepository,
       checkoutWriteRepository: deps.checkoutWriteRepository,
