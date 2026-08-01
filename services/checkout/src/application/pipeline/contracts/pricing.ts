@@ -1,12 +1,15 @@
-import type { CheckoutCartIntent } from "./cartIntent.js";
 import type {
-  CheckoutPipelineAddress,
-  CheckoutPipelineExecutionContext,
+  DeliveryMethodType,
+  ShippingPaymentModel,
+} from "@shopana/shared-service-api";
+
+import type { CheckoutCartLineIntent } from "./cartIntent.js";
+import type {
   CheckoutPipelineJsonObject,
+  CheckoutPipelineEligibilityContext,
   CheckoutPipelineMoney,
   CheckoutPipelineStageProvenance,
 } from "./common.js";
-import type { CalculateDeliveryOptionsResult } from "./delivery.js";
 
 export type CheckoutMerchandiseSnapshot = Readonly<{
   merchandiseId: string;
@@ -36,6 +39,8 @@ export type CheckoutDiscountApplication = Readonly<{
 
 export type CheckoutQuotedLine = Readonly<{
   lineId: string;
+  /** Exactly the lines marked true are included in checkout monetary totals. */
+  contributesToTotals: boolean;
   quantity: number;
   merchandise: CheckoutMerchandiseSnapshot;
   availability: CheckoutLineAvailability;
@@ -53,11 +58,33 @@ export type CheckoutTransformedLineLineage = Readonly<{
   sourceLineIds: readonly string[];
 }>;
 
+/**
+ * Explicit pricing disposition for every source cart line. Pricing may split or
+ * merge lines, but it must never omit a source line without a reason.
+ */
+export type CheckoutSourceLineResolution =
+  | Readonly<{
+      sourceLineId: string;
+      status: "TRANSFORMED";
+      transformedLineIds: readonly string[];
+    }>
+  | Readonly<{
+      sourceLineId: string;
+      status: "REMOVED";
+      reason: Readonly<{
+        code: string;
+        message: string;
+      }>;
+    }>;
+
 export type CheckoutCanonicalDeliveryDestination = Readonly<{
   destinationId: string;
-  address: CheckoutPipelineAddress;
+  location: Readonly<{
+    countryCode: string;
+    provinceCode: string | null;
+    postalCode: string | null;
+  }>;
   transformedLineIds: readonly string[];
-  selectedDeliveryOptionHandle: string | null;
 }>;
 
 /**
@@ -68,7 +95,48 @@ export type CheckoutCanonicalDeliveryIntent = Readonly<{
   revision: string;
   lineage: readonly CheckoutTransformedLineLineage[];
   destinations: readonly CheckoutCanonicalDeliveryDestination[];
+  /** Physical transformed lines awaiting a complete delivery destination. */
+  unassignedPhysicalLineIds: readonly string[];
 }>;
+
+export type CheckoutPricingCartIntent = Readonly<{
+  lines: readonly CheckoutCartLineIntent[];
+  discountCodes: readonly string[];
+  destinations: readonly Readonly<{
+    destinationId: string;
+    location: Readonly<{
+      countryCode: string;
+      provinceCode: string | null;
+      postalCode: string | null;
+    }>;
+    lineIds: readonly string[];
+  }>[];
+  attributes: CheckoutPipelineJsonObject;
+}>;
+
+export type CheckoutPricingDeliveryOption = Readonly<{
+  handle: string;
+  code: string;
+  providerCode: string;
+  deliveryMethodType:
+    | DeliveryMethodType.PICKUP
+    | DeliveryMethodType.SHIPPING;
+  shippingPaymentModel: ShippingPaymentModel;
+  cost: CheckoutPipelineMoney;
+}>;
+
+export type CheckoutPricingDeliverySnapshot = Readonly<
+  CheckoutPipelineStageProvenance & {
+    revision: string;
+    basedOnPreliminaryRevision: string;
+    groups: readonly Readonly<{
+      groupId: string;
+      lineIds: readonly string[];
+      options: readonly CheckoutPricingDeliveryOption[];
+      selectedOptionHandle: string | null;
+    }>[];
+  }
+>;
 
 export type CheckoutPreliminaryPricingTotals = Readonly<{
   merchandiseSubtotal: CheckoutPipelineMoney;
@@ -77,16 +145,19 @@ export type CheckoutPreliminaryPricingTotals = Readonly<{
 }>;
 
 export type CheckoutPricingTotals = Readonly<{
-  subtotal: CheckoutPipelineMoney;
-  discountTotal: CheckoutPipelineMoney;
+  merchandiseSubtotal: CheckoutPipelineMoney;
+  merchandiseDiscountTotal: CheckoutPipelineMoney;
+  merchandiseTotal: CheckoutPipelineMoney;
   taxTotal: CheckoutPipelineMoney;
+  deliverySubtotal: CheckoutPipelineMoney;
+  deliveryDiscountTotal: CheckoutPipelineMoney;
   deliveryTotal: CheckoutPipelineMoney;
   payableTotal: CheckoutPipelineMoney;
 }>;
 
 export type CalculatePreliminaryPricingRequest = Readonly<{
-  context: CheckoutPipelineExecutionContext;
-  cartIntent: CheckoutCartIntent;
+  context: CheckoutPipelineEligibilityContext;
+  cartIntent: CheckoutPricingCartIntent;
 }>;
 
 export type CalculatePreliminaryPricingResult = Readonly<
@@ -94,6 +165,7 @@ export type CalculatePreliminaryPricingResult = Readonly<
     preliminaryQuoteId: string;
     revision: string;
     transformedLines: readonly CheckoutQuotedLine[];
+    sourceLineResolutions: readonly CheckoutSourceLineResolution[];
     deliveryIntent: CheckoutCanonicalDeliveryIntent;
     merchandiseRevision: string;
     availabilityRevision: string;
@@ -104,9 +176,9 @@ export type CalculatePreliminaryPricingResult = Readonly<
 >;
 
 export type FinalizePricingQuoteRequest = Readonly<{
-  context: CheckoutPipelineExecutionContext;
+  context: CheckoutPipelineEligibilityContext;
   preliminary: CalculatePreliminaryPricingResult;
-  delivery: CalculateDeliveryOptionsResult;
+  delivery: CheckoutPricingDeliverySnapshot;
 }>;
 
 export type FinalizePricingQuoteResult = Readonly<

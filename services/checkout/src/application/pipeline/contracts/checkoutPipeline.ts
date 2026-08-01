@@ -62,6 +62,7 @@ export type CheckoutRecalculationResult = Readonly<{
     ValidateCheckoutResult,
     "VALIDATION"
   >;
+  /** Exact concatenation of all stage issues in pipeline execution order. */
   issues: readonly CheckoutPipelineIssue[];
   trace: CheckoutPipelineExecutionTrace;
 }>;

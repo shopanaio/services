@@ -116,6 +116,15 @@ export const checkoutPipelineBuyerSchema = z
   })
   .strict();
 
+export const checkoutBuyerEligibilityContextSchema = z
+  .object({
+    customerId: identifierSchema.nullable(),
+    countryCode: countryCodeSchema.nullable(),
+    marketId: identifierSchema.nullable(),
+    companyId: identifierSchema.nullable(),
+  })
+  .strict();
+
 export const checkoutPipelineAddressSchema = z
   .object({
     id: identifierSchema,
@@ -171,29 +180,51 @@ export const checkoutPipelineExecutionTraceSchema = z
   })
   .strict();
 
+const checkoutPipelineStageContextShape = {
+  executionId: identifierSchema,
+  correlationId: identifierSchema,
+  deadlineAt: timestampSchema,
+  requestedAt: timestampSchema,
+  checkoutId: identifierSchema,
+  expectedCheckoutVersion: checkoutVersionSchema,
+  storeId: identifierSchema,
+  currencyCode: currencyCodeSchema,
+  localeCode: z.string().trim().min(1).nullable(),
+} as const;
+
+function refineDeadline(
+  context: { deadlineAt: string; requestedAt: string },
+  refinementContext: z.RefinementCtx,
+): void {
+  if (Date.parse(context.deadlineAt) <= Date.parse(context.requestedAt)) {
+    refinementContext.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "deadlineAt must be later than requestedAt",
+      path: ["deadlineAt"],
+    });
+  }
+}
+
+export const checkoutPipelineStageContextSchema = z
+  .object(checkoutPipelineStageContextShape)
+  .strict()
+  .superRefine(refineDeadline);
+
+export const checkoutPipelineEligibilityContextSchema = z
+  .object({
+    ...checkoutPipelineStageContextShape,
+    buyerEligibility: checkoutBuyerEligibilityContextSchema.nullable(),
+  })
+  .strict()
+  .superRefine(refineDeadline);
+
 export const checkoutPipelineExecutionContextSchema = z
   .object({
-    executionId: identifierSchema,
-    correlationId: identifierSchema,
-    deadlineAt: timestampSchema,
-    requestedAt: timestampSchema,
-    checkoutId: identifierSchema,
-    expectedCheckoutVersion: checkoutVersionSchema,
-    storeId: identifierSchema,
-    currencyCode: currencyCodeSchema,
-    localeCode: z.string().trim().min(1).nullable(),
+    ...checkoutPipelineStageContextShape,
     buyer: checkoutPipelineBuyerSchema.nullable(),
   })
   .strict()
-  .superRefine((context, refinementContext) => {
-    if (Date.parse(context.deadlineAt) <= Date.parse(context.requestedAt)) {
-      refinementContext.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "deadlineAt must be later than requestedAt",
-        path: ["deadlineAt"],
-      });
-    }
-  });
+  .superRefine(refineDeadline);
 
 function createCartLineIntentSchema(
   remainingDepth: number,
@@ -225,24 +256,56 @@ export const checkoutDeliveryDestinationIntentSchema = z
   })
   .strict();
 
+export const checkoutDeliveryOptionSelectionIntentSchema = z
+  .object({
+    groupId: identifierSchema,
+    optionHandle: identifierSchema,
+    customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+  })
+  .strict();
+
+export const checkoutPaymentMethodSelectionIntentSchema = z
+  .object({
+    methodHandle: identifierSchema,
+    customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+  })
+  .strict();
+
 export const checkoutCartIntentSchema = z
   .object({
     lines: collection(checkoutCartLineIntentSchema),
     discountCodes: collection(z.string().trim().min(1).max(256)),
     destinations: collection(checkoutDeliveryDestinationIntentSchema),
-    selectedDeliveryOptionHandles: z
-      .record(identifierSchema)
-      .superRefine((value, context) => {
-        if (
-          Object.keys(value).length > CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS
-        ) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Too many selected delivery option handles",
-          });
-        }
-      }),
-    selectedPaymentMethodHandle: identifierSchema.nullable(),
+    selectedDeliveryOptions: collection(
+      checkoutDeliveryOptionSelectionIntentSchema,
+    ),
+    selectedPaymentMethod:
+      checkoutPaymentMethodSelectionIntentSchema.nullable(),
+    attributes: checkoutPipelineJsonObjectSchema,
+  })
+  .strict();
+
+export const checkoutPricingLocationSchema = z
+  .object({
+    countryCode: countryCodeSchema,
+    provinceCode: z.string().trim().min(1).nullable(),
+    postalCode: z.string().trim().min(1).nullable(),
+  })
+  .strict();
+
+export const checkoutPricingDestinationIntentSchema = z
+  .object({
+    destinationId: identifierSchema,
+    location: checkoutPricingLocationSchema,
+    lineIds: collection(identifierSchema),
+  })
+  .strict();
+
+export const checkoutPricingCartIntentSchema = z
+  .object({
+    lines: collection(checkoutCartLineIntentSchema),
+    discountCodes: collection(z.string().trim().min(1).max(256)),
+    destinations: collection(checkoutPricingDestinationIntentSchema),
     attributes: checkoutPipelineJsonObjectSchema,
   })
   .strict();
@@ -274,7 +337,7 @@ export const checkoutDiscountApplicationSchema = z
     code: identifierSchema.nullable(),
     source: identifierSchema,
     title: z.string().min(1),
-    amount: checkoutPipelineMoneySchema,
+    amount: checkoutPipelineNonNegativeMoneySchema,
     metadata: checkoutPipelineJsonObjectSchema.nullable(),
   })
   .strict();
@@ -289,14 +352,15 @@ function createQuotedLineSchema(
   return z
     .object({
       lineId: identifierSchema,
+      contributesToTotals: z.boolean(),
       quantity: positiveIntegerSchema,
       merchandise: checkoutMerchandiseSnapshotSchema,
       availability: checkoutLineAvailabilitySchema,
-      unitPrice: checkoutPipelineMoneySchema,
-      originalUnitPrice: checkoutPipelineMoneySchema,
-      compareAtUnitPrice: checkoutPipelineMoneySchema.nullable(),
-      subtotal: checkoutPipelineMoneySchema,
-      total: checkoutPipelineMoneySchema,
+      unitPrice: checkoutPipelineNonNegativeMoneySchema,
+      originalUnitPrice: checkoutPipelineNonNegativeMoneySchema,
+      compareAtUnitPrice: checkoutPipelineNonNegativeMoneySchema.nullable(),
+      subtotal: checkoutPipelineNonNegativeMoneySchema,
+      total: checkoutPipelineNonNegativeMoneySchema,
       discounts: collection(checkoutDiscountApplicationSchema),
       children: childrenSchema,
     })
@@ -314,12 +378,36 @@ export const checkoutTransformedLineLineageSchema = z
   })
   .strict();
 
+export const checkoutSourceLineResolutionSchema = z.discriminatedUnion(
+  "status",
+  [
+    z
+      .object({
+        sourceLineId: identifierSchema,
+        status: z.literal("TRANSFORMED"),
+        transformedLineIds: collection(identifierSchema).min(1),
+      })
+      .strict(),
+    z
+      .object({
+        sourceLineId: identifierSchema,
+        status: z.literal("REMOVED"),
+        reason: z
+          .object({
+            code: identifierSchema,
+            message: z.string().min(1),
+          })
+          .strict(),
+      })
+      .strict(),
+  ],
+);
+
 export const checkoutCanonicalDeliveryDestinationSchema = z
   .object({
     destinationId: identifierSchema,
-    address: checkoutPipelineAddressSchema,
+    location: checkoutPricingLocationSchema,
     transformedLineIds: collection(identifierSchema),
-    selectedDeliveryOptionHandle: identifierSchema.nullable(),
   })
   .strict();
 
@@ -328,31 +416,35 @@ export const checkoutCanonicalDeliveryIntentSchema = z
     revision: revisionSchema,
     lineage: collection(checkoutTransformedLineLineageSchema),
     destinations: collection(checkoutCanonicalDeliveryDestinationSchema),
+    unassignedPhysicalLineIds: collection(identifierSchema),
   })
   .strict();
 
 export const checkoutPreliminaryPricingTotalsSchema = z
   .object({
-    merchandiseSubtotal: checkoutPipelineMoneySchema,
-    merchandiseDiscountTotal: checkoutPipelineMoneySchema,
-    merchandiseTotal: checkoutPipelineMoneySchema,
+    merchandiseSubtotal: checkoutPipelineNonNegativeMoneySchema,
+    merchandiseDiscountTotal: checkoutPipelineNonNegativeMoneySchema,
+    merchandiseTotal: checkoutPipelineNonNegativeMoneySchema,
   })
   .strict();
 
 export const checkoutPricingTotalsSchema = z
   .object({
-    subtotal: checkoutPipelineMoneySchema,
-    discountTotal: checkoutPipelineMoneySchema,
-    taxTotal: checkoutPipelineMoneySchema,
-    deliveryTotal: checkoutPipelineMoneySchema,
-    payableTotal: checkoutPipelineMoneySchema,
+    merchandiseSubtotal: checkoutPipelineNonNegativeMoneySchema,
+    merchandiseDiscountTotal: checkoutPipelineNonNegativeMoneySchema,
+    merchandiseTotal: checkoutPipelineNonNegativeMoneySchema,
+    taxTotal: checkoutPipelineNonNegativeMoneySchema,
+    deliverySubtotal: checkoutPipelineNonNegativeMoneySchema,
+    deliveryDiscountTotal: checkoutPipelineNonNegativeMoneySchema,
+    deliveryTotal: checkoutPipelineNonNegativeMoneySchema,
+    payableTotal: checkoutPipelineNonNegativeMoneySchema,
   })
   .strict();
 
 export const calculatePreliminaryPricingRequestSchema = z
   .object({
-    context: checkoutPipelineExecutionContextSchema,
-    cartIntent: checkoutCartIntentSchema,
+    context: checkoutPipelineEligibilityContextSchema,
+    cartIntent: checkoutPricingCartIntentSchema,
   })
   .strict();
 
@@ -362,6 +454,7 @@ export const calculatePreliminaryPricingResultSchema = z
     preliminaryQuoteId: identifierSchema,
     revision: revisionSchema,
     transformedLines: collection(checkoutQuotedLineSchema),
+    sourceLineResolutions: collection(checkoutSourceLineResolutionSchema),
     deliveryIntent: checkoutCanonicalDeliveryIntentSchema,
     merchandiseRevision: revisionSchema,
     availabilityRevision: revisionSchema,
@@ -390,9 +483,30 @@ export const checkoutDeliveryOptionSchema = z
     cost: checkoutPipelineNonNegativeMoneySchema,
     estimatedMinDeliveryAt: timestampSchema.nullable(),
     estimatedMaxDeliveryAt: timestampSchema.nullable(),
-    customerInput: checkoutPipelineJsonObjectSchema.nullable(),
   })
   .strict();
+
+export const checkoutDeliveryOptionSelectionResolutionSchema =
+  z.discriminatedUnion("status", [
+    z.object({ status: z.literal("NONE") }).strict(),
+    z
+      .object({
+        status: z.literal("SELECTED"),
+        optionHandle: identifierSchema,
+        customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+      })
+      .strict(),
+    z
+      .object({
+        status: z.literal("RESET"),
+        previousOptionHandle: identifierSchema,
+        customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+        reason: z
+          .object({ code: identifierSchema, message: z.string().min(1) })
+          .strict(),
+      })
+      .strict(),
+  ]);
 
 export const checkoutDeliveryGroupSchema = z
   .object({
@@ -400,14 +514,59 @@ export const checkoutDeliveryGroupSchema = z
     destinationId: identifierSchema,
     lineIds: collection(identifierSchema),
     options: collection(checkoutDeliveryOptionSchema),
-    selectedOptionHandle: identifierSchema.nullable(),
+    selection: checkoutDeliveryOptionSelectionResolutionSchema,
+  })
+  .strict();
+
+export const checkoutOrphanedDeliverySelectionResetSchema = z
+  .object({
+    groupId: identifierSchema,
+    previousOptionHandle: identifierSchema,
+    customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+    reason: z
+      .object({ code: identifierSchema, message: z.string().min(1) })
+      .strict(),
   })
   .strict();
 
 export const calculateDeliveryOptionsRequestSchema = z
   .object({
-    context: checkoutPipelineExecutionContextSchema,
+    context: checkoutPipelineStageContextSchema,
     preliminary: calculatePreliminaryPricingResultSchema,
+    destinations: collection(checkoutDeliveryDestinationIntentSchema),
+    selections: collection(checkoutDeliveryOptionSelectionIntentSchema),
+  })
+  .strict();
+
+export const checkoutPricingDeliveryOptionSchema = z
+  .object({
+    handle: identifierSchema,
+    code: identifierSchema,
+    providerCode: identifierSchema,
+    deliveryMethodType: z.union([
+      z.literal(DeliveryMethodType.PICKUP),
+      z.literal(DeliveryMethodType.SHIPPING),
+    ]),
+    shippingPaymentModel: z.nativeEnum(ShippingPaymentModel),
+    cost: checkoutPipelineNonNegativeMoneySchema,
+  })
+  .strict();
+
+export const checkoutPricingDeliveryGroupSchema = z
+  .object({
+    groupId: identifierSchema,
+    lineIds: collection(identifierSchema),
+    options: collection(checkoutPricingDeliveryOptionSchema),
+    selectedOptionHandle: identifierSchema.nullable(),
+  })
+  .strict();
+
+export const checkoutPricingDeliverySnapshotSchema = z
+  .object({
+    ...checkoutPipelineStageProvenanceSchema.shape,
+    revision: revisionSchema,
+    basedOnPreliminaryRevision: revisionSchema,
+    groups: collection(checkoutPricingDeliveryGroupSchema),
   })
   .strict();
 
@@ -417,14 +576,17 @@ export const calculateDeliveryOptionsResultSchema = z
     revision: revisionSchema,
     basedOnPreliminaryRevision: revisionSchema,
     groups: collection(checkoutDeliveryGroupSchema),
+    orphanedSelectionResets: collection(
+      checkoutOrphanedDeliverySelectionResetSchema,
+    ),
   })
   .strict();
 
 export const finalizePricingQuoteRequestSchema = z
   .object({
-    context: checkoutPipelineExecutionContextSchema,
+    context: checkoutPipelineEligibilityContextSchema,
     preliminary: calculatePreliminaryPricingResultSchema,
-    delivery: calculateDeliveryOptionsResultSchema,
+    delivery: checkoutPricingDeliverySnapshotSchema,
   })
   .strict();
 
@@ -453,12 +615,34 @@ export const checkoutPaymentMethodSchema = z
   })
   .strict();
 
+export const checkoutPaymentMethodSelectionResolutionSchema =
+  z.discriminatedUnion("status", [
+    z.object({ status: z.literal("NONE") }).strict(),
+    z
+      .object({
+        status: z.literal("SELECTED"),
+        methodHandle: identifierSchema,
+        customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+      })
+      .strict(),
+    z
+      .object({
+        status: z.literal("RESET"),
+        previousMethodHandle: identifierSchema,
+        customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+        reason: z
+          .object({ code: identifierSchema, message: z.string().min(1) })
+          .strict(),
+      })
+      .strict(),
+  ]);
+
 export const getAvailablePaymentMethodsRequestSchema = z
   .object({
-    context: checkoutPipelineExecutionContextSchema,
-    cartIntent: checkoutCartIntentSchema,
+    context: checkoutPipelineEligibilityContextSchema,
+    selection: checkoutPaymentMethodSelectionIntentSchema.nullable(),
     finalQuote: finalizePricingQuoteResultSchema,
-    delivery: calculateDeliveryOptionsResultSchema,
+    delivery: checkoutPricingDeliverySnapshotSchema,
   })
   .strict();
 
@@ -469,7 +653,7 @@ export const getAvailablePaymentMethodsResultSchema = z
     basedOnFinalQuoteRevision: revisionSchema,
     basedOnDeliveryRevision: revisionSchema,
     methods: collection(checkoutPaymentMethodSchema),
-    selectedMethodHandle: identifierSchema.nullable(),
+    selection: checkoutPaymentMethodSelectionResolutionSchema,
   })
   .strict();
 

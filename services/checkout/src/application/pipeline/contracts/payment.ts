@@ -1,11 +1,13 @@
-import type { CheckoutCartIntent } from "./cartIntent.js";
+import type { CheckoutPaymentMethodSelectionIntent } from "./cartIntent.js";
 import type {
-  CheckoutPipelineExecutionContext,
   CheckoutPipelineJsonObject,
+  CheckoutPipelineEligibilityContext,
   CheckoutPipelineStageProvenance,
 } from "./common.js";
-import type { CalculateDeliveryOptionsResult } from "./delivery.js";
-import type { FinalizePricingQuoteResult } from "./pricing.js";
+import type {
+  CheckoutPricingDeliverySnapshot,
+  FinalizePricingQuoteResult,
+} from "./pricing.js";
 
 export type CheckoutPaymentMethod = Readonly<{
   handle: string;
@@ -16,11 +18,25 @@ export type CheckoutPaymentMethod = Readonly<{
   metadata: CheckoutPipelineJsonObject | null;
 }>;
 
+export type CheckoutPaymentMethodSelectionResolution =
+  | Readonly<{ status: "NONE" }>
+  | Readonly<{
+      status: "SELECTED";
+      methodHandle: string;
+      customerInput: CheckoutPipelineJsonObject | null;
+    }>
+  | Readonly<{
+      status: "RESET";
+      previousMethodHandle: string;
+      customerInput: CheckoutPipelineJsonObject | null;
+      reason: Readonly<{ code: string; message: string }>;
+    }>;
+
 export type GetAvailablePaymentMethodsRequest = Readonly<{
-  context: CheckoutPipelineExecutionContext;
-  cartIntent: CheckoutCartIntent;
+  context: CheckoutPipelineEligibilityContext;
+  selection: CheckoutPaymentMethodSelectionIntent | null;
   finalQuote: FinalizePricingQuoteResult;
-  delivery: CalculateDeliveryOptionsResult;
+  delivery: CheckoutPricingDeliverySnapshot;
 }>;
 
 export type GetAvailablePaymentMethodsResult = Readonly<
@@ -29,6 +45,6 @@ export type GetAvailablePaymentMethodsResult = Readonly<
     basedOnFinalQuoteRevision: string;
     basedOnDeliveryRevision: string;
     methods: readonly CheckoutPaymentMethod[];
-    selectedMethodHandle: string | null;
+    selection: CheckoutPaymentMethodSelectionResolution;
   }
 >;

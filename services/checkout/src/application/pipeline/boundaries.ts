@@ -6,7 +6,15 @@ import type {
   CalculatePreliminaryPricingRequest,
   CalculatePreliminaryPricingResult,
   CheckoutPipelineExecutionContext,
+  CheckoutPipelineEligibilityContext,
+  CheckoutPipelineStageContext,
   CheckoutPipelineStageProvenance,
+  CheckoutDeliveryOptionSelectionIntent,
+  CheckoutDeliveryOptionSelectionResolution,
+  CheckoutPaymentMethodSelectionIntent,
+  CheckoutPaymentMethodSelectionResolution,
+  CheckoutPricingCartIntent,
+  CheckoutPricingDeliverySnapshot,
   CheckoutQuotedLine,
   CheckoutRecalculationRequest,
   CheckoutRecalculationResult,
@@ -43,6 +51,87 @@ export class CheckoutPipelineBoundaryError extends Error {
   }
 }
 
+export function toCheckoutPipelineStageContext(
+  context: CheckoutPipelineExecutionContext,
+): CheckoutPipelineStageContext {
+  return {
+    executionId: context.executionId,
+    correlationId: context.correlationId,
+    deadlineAt: context.deadlineAt,
+    requestedAt: context.requestedAt,
+    checkoutId: context.checkoutId,
+    expectedCheckoutVersion: context.expectedCheckoutVersion,
+    storeId: context.storeId,
+    currencyCode: context.currencyCode,
+    localeCode: context.localeCode,
+  };
+}
+
+export function toCheckoutPipelineEligibilityContext(
+  context: CheckoutPipelineExecutionContext,
+): CheckoutPipelineEligibilityContext {
+  return {
+    ...toCheckoutPipelineStageContext(context),
+    buyerEligibility:
+      context.buyer === null
+        ? null
+        : {
+            customerId: context.buyer.customerId,
+            countryCode: context.buyer.countryCode,
+            marketId: context.buyer.marketId,
+            companyId: context.buyer.companyId,
+          },
+  };
+}
+
+export function toCheckoutPricingCartIntent(
+  cartIntent: CheckoutRecalculationRequest["cartIntent"],
+): CheckoutPricingCartIntent {
+  return {
+    lines: cartIntent.lines,
+    discountCodes: cartIntent.discountCodes,
+    destinations: cartIntent.destinations.map((destination) => ({
+      destinationId: destination.destinationId,
+      location: {
+        countryCode: destination.address.countryCode,
+        provinceCode: destination.address.provinceCode,
+        postalCode: destination.address.postalCode,
+      },
+      lineIds: destination.lineIds,
+    })),
+    attributes: cartIntent.attributes,
+  };
+}
+
+export function toCheckoutPricingDeliverySnapshot(
+  delivery: CalculateDeliveryOptionsResult,
+): CheckoutPricingDeliverySnapshot {
+  return {
+    executionId: delivery.executionId,
+    checkoutId: delivery.checkoutId,
+    basedOnCheckoutVersion: delivery.basedOnCheckoutVersion,
+    currencyCode: delivery.currencyCode,
+    revision: delivery.revision,
+    basedOnPreliminaryRevision: delivery.basedOnPreliminaryRevision,
+    groups: delivery.groups.map((group) => ({
+      groupId: group.groupId,
+      lineIds: group.lineIds,
+      options: group.options.map((option) => ({
+        handle: option.handle,
+        code: option.code,
+        providerCode: option.provider.code,
+        deliveryMethodType: option.deliveryMethodType,
+        shippingPaymentModel: option.shippingPaymentModel,
+        cost: option.cost,
+      })),
+      selectedOptionHandle:
+        group.selection.status === "SELECTED"
+          ? group.selection.optionHandle
+          : null,
+    })),
+  };
+}
+
 export function parseCheckoutRecalculationRequest(
   value: unknown,
 ): CheckoutRecalculationRequest {
@@ -59,7 +148,7 @@ export function parseCalculatePreliminaryPricingRequest(
   assertPayloadSize(value, "preliminary pricing request");
   const request = calculatePreliminaryPricingRequestSchema.parse(value);
   assertLineLimit(request.cartIntent.lines, "cart intent");
-  assertCartIntent(request.cartIntent);
+  assertPricingCartIntent(request.cartIntent);
   return request;
 }
 
@@ -69,13 +158,10 @@ export function parseCalculateDeliveryOptionsRequest(
   assertPayloadSize(value, "delivery options request");
   const request = calculateDeliveryOptionsRequestSchema.parse(value);
   assertProvenance(request.context, request.preliminary);
-  assertCurrency(
-    request.preliminary,
-    request.context.currencyCode,
-    "preliminary pricing",
-  );
+  assertPreliminaryCurrencies(request.preliminary, request.context.currencyCode);
   assertPreliminaryPricingArithmetic(request.preliminary);
   assertLineLimit(request.preliminary.transformedLines, "transformed pricing lines");
+  assertDeliveryRequest(request);
   return request;
 }
 
@@ -91,12 +177,10 @@ export function parseFinalizePricingQuoteRequest(
     request.preliminary.revision,
     "Final pricing request contains mismatched preliminary and delivery revisions",
   );
-  assertCurrency(request, request.context.currencyCode, "final pricing request");
+  assertPreliminaryCurrencies(request.preliminary, request.context.currencyCode);
+  assertPricingDeliveryCurrencies(request.delivery, request.context.currencyCode);
   assertPreliminaryPricingArithmetic(request.preliminary);
-  assertDeliveryGroups(
-    { context: request.context, preliminary: request.preliminary },
-    request.delivery,
-  );
+  assertPricingDeliverySnapshot(request.delivery, request.preliminary);
   return request;
 }
 
@@ -112,11 +196,11 @@ export function parseGetAvailablePaymentMethodsRequest(
     request.delivery.revision,
     "Payment request contains mismatched final quote and delivery revisions",
   );
-  assertCurrency(request, request.context.currencyCode, "payment methods request");
+  assertFinalCurrencies(request.finalQuote, request.context.currencyCode);
+  assertPricingDeliveryCurrencies(request.delivery, request.context.currencyCode);
+  assertPricingDeliverySnapshot(request.delivery);
   assertFinalPricingArithmetic(request.finalQuote);
   assertDeliveryTotal(request.delivery, request.finalQuote);
-  assertLineLimit(request.cartIntent.lines, "cart intent");
-  assertCartIntent(request.cartIntent);
   return request;
 }
 
@@ -154,10 +238,15 @@ export function parseValidateCheckoutRequest(
     request.delivery.revision,
     "Validation request contains a stale payment delivery revision",
   );
-  assertCurrency(request, request.context.currencyCode, "validation request");
+  assertPreliminaryCurrencies(request.preliminary, request.context.currencyCode);
+  assertDeliveryCurrencies(request.delivery, request.context.currencyCode);
+  assertFinalCurrencies(request.finalQuote, request.context.currencyCode);
   assertPreliminaryPricingArithmetic(request.preliminary);
   assertFinalPricingArithmetic(request.finalQuote);
-  assertDeliveryTotal(request.delivery, request.finalQuote);
+  assertDeliveryTotal(
+    toCheckoutPricingDeliverySnapshot(request.delivery),
+    request.finalQuote,
+  );
   assertLineLimit(request.cartIntent.lines, "cart intent");
   assertCartIntent(request.cartIntent);
   return request;
@@ -170,7 +259,7 @@ export function parseCalculatePreliminaryPricingResult(
   assertPayloadSize(value, "preliminary pricing result");
   const result = calculatePreliminaryPricingResultSchema.parse(value);
   assertProvenance(request.context, result);
-  assertCurrency(result, request.context.currencyCode, "preliminary pricing");
+  assertPreliminaryCurrencies(result, request.context.currencyCode);
   assertPreliminaryPricingArithmetic(result);
   assertLineLimit(result.transformedLines, "transformed pricing lines");
   assertDeliveryIntent(request, result);
@@ -189,7 +278,7 @@ export function parseCalculateDeliveryOptionsResult(
     request.preliminary.revision,
     "Delivery result has stale preliminary revision",
   );
-  assertCurrency(result, request.context.currencyCode, "delivery options");
+  assertDeliveryCurrencies(result, request.context.currencyCode);
   assertDeliveryGroups(request, result);
   return result;
 }
@@ -211,22 +300,29 @@ export function parseFinalizePricingQuoteResult(
     request.delivery.revision,
     "Final pricing result has stale delivery revision",
   );
-  assertCurrency(result, request.context.currencyCode, "final pricing");
+  assertFinalCurrencies(result, request.context.currencyCode);
   assertFinalPricingArithmetic(result);
   assertDeliveryTotal(request.delivery, result);
   assertLineLimit(result.lines, "final pricing lines");
-  assertSameIds(
-    flattenQuotedLines(request.preliminary.transformedLines).map(
-      ({ lineId }) => lineId,
-    ),
-    flattenQuotedLines(result.lines).map(({ lineId }) => lineId),
-    "Final pricing changed transformed line identity",
+  assertJsonEqual(
+    result.lines,
+    request.preliminary.transformedLines,
+    "Final pricing changed immutable merchandise lines",
+  );
+  assertJsonEqual(
+    {
+      merchandiseSubtotal: result.totals.merchandiseSubtotal,
+      merchandiseDiscountTotal: result.totals.merchandiseDiscountTotal,
+      merchandiseTotal: result.totals.merchandiseTotal,
+    },
+    request.preliminary.preliminaryTotals,
+    "Final pricing changed immutable merchandise totals",
   );
   return result;
 }
 
 function assertDeliveryTotal(
-  delivery: CalculateDeliveryOptionsResult,
+  delivery: CheckoutPricingDeliverySnapshot,
   result: FinalizePricingQuoteResult,
 ): void {
   let maximumMerchantCollectedTotal = 0n;
@@ -241,12 +337,18 @@ function assertDeliveryTotal(
     }
   }
   const deliveryTotal = BigInt(result.totals.deliveryTotal.amountMinor);
+  const deliverySubtotal = BigInt(
+    result.totals.deliverySubtotal.amountMinor,
+  );
+  const deliveryDiscount = BigInt(
+    result.totals.deliveryDiscountTotal.amountMinor,
+  );
   if (
-    deliveryTotal < 0n ||
-    deliveryTotal > maximumMerchantCollectedTotal
+    deliverySubtotal !== maximumMerchantCollectedTotal ||
+    deliveryTotal !== deliverySubtotal - deliveryDiscount
   ) {
     throw new CheckoutPipelineBoundaryError(
-      "Final deliveryTotal includes carrier-direct cost or exceeds selected merchant-collected costs",
+      "Final delivery totals do not match selected merchant-collected options",
     );
   }
 }
@@ -261,7 +363,16 @@ function assertPreliminaryPricingArithmetic(
     result.preliminaryTotals.merchandiseDiscountTotal.amountMinor,
   );
   const total = BigInt(result.preliminaryTotals.merchandiseTotal.amountMinor);
-  if (subtotal < 0n || discount < 0n || total !== subtotal - discount) {
+  const lineTotals = calculateContributingLineTotals(result.transformedLines);
+  if (
+    subtotal < 0n ||
+    discount < 0n ||
+    total < 0n ||
+    total !== subtotal - discount ||
+    subtotal !== lineTotals.subtotal ||
+    discount !== lineTotals.discount ||
+    total !== lineTotals.total
+  ) {
     throw new CheckoutPipelineBoundaryError(
       "Preliminary merchandise totals are arithmetically inconsistent",
     );
@@ -269,22 +380,70 @@ function assertPreliminaryPricingArithmetic(
 }
 
 function assertFinalPricingArithmetic(result: FinalizePricingQuoteResult): void {
-  const subtotal = BigInt(result.totals.subtotal.amountMinor);
-  const discount = BigInt(result.totals.discountTotal.amountMinor);
+  const subtotal = BigInt(result.totals.merchandiseSubtotal.amountMinor);
+  const discount = BigInt(
+    result.totals.merchandiseDiscountTotal.amountMinor,
+  );
+  const merchandiseTotal = BigInt(
+    result.totals.merchandiseTotal.amountMinor,
+  );
   const tax = BigInt(result.totals.taxTotal.amountMinor);
   const delivery = BigInt(result.totals.deliveryTotal.amountMinor);
   const payable = BigInt(result.totals.payableTotal.amountMinor);
+  const lineTotals = calculateContributingLineTotals(result.lines);
   if (
     subtotal < 0n ||
     discount < 0n ||
+    merchandiseTotal < 0n ||
     tax < 0n ||
     delivery < 0n ||
-    payable !== subtotal - discount + tax + delivery
+    payable < 0n ||
+    merchandiseTotal !== subtotal - discount ||
+    subtotal !== lineTotals.subtotal ||
+    discount !== lineTotals.discount ||
+    merchandiseTotal !== lineTotals.total ||
+    payable !== merchandiseTotal + tax + delivery
   ) {
     throw new CheckoutPipelineBoundaryError(
       "Final pricing totals are arithmetically inconsistent",
     );
   }
+}
+
+function calculateContributingLineTotals(
+  lines: readonly CheckoutQuotedLine[],
+): Readonly<{ subtotal: bigint; discount: bigint; total: bigint }> {
+  let subtotal = 0n;
+  let discount = 0n;
+  let total = 0n;
+  for (const line of flattenQuotedLines(lines)) {
+    const lineSubtotal = BigInt(line.subtotal.amountMinor);
+    const lineDiscount = line.discounts.reduce(
+      (sum, application) => sum + BigInt(application.amount.amountMinor),
+      0n,
+    );
+    const lineTotal = BigInt(line.total.amountMinor);
+    const expectedSubtotal =
+      BigInt(line.unitPrice.amountMinor) * BigInt(line.quantity);
+    if (
+      lineSubtotal < 0n ||
+      lineDiscount < 0n ||
+      lineTotal < 0n ||
+      lineSubtotal !== expectedSubtotal ||
+      lineTotal !== lineSubtotal - lineDiscount
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Quoted line ${line.lineId} has inconsistent monetary totals`,
+      );
+    }
+    if (!line.contributesToTotals) {
+      continue;
+    }
+    subtotal += lineSubtotal;
+    discount += lineDiscount;
+    total += lineTotal;
+  }
+  return { subtotal, discount, total };
 }
 
 export function parseGetAvailablePaymentMethodsResult(
@@ -304,10 +463,10 @@ export function parseGetAvailablePaymentMethodsResult(
     request.delivery.revision,
     "Payment result has stale delivery revision",
   );
-  assertSelectedHandle(
-    result.selectedMethodHandle,
+  assertPaymentSelectionSource(
+    request.selection,
+    result.selection,
     result.methods.map(({ handle }) => handle),
-    "payment method",
   );
   assertUnique(
     result.methods.map(({ handle }) => handle),
@@ -369,6 +528,7 @@ export function parseCheckoutRecalculationResult(
   );
   assertTrace(result);
   assertOutcomeSequence(result);
+  assertAggregateIssues(result);
   assertSuccessfulStages(request, result);
   if (Date.parse(result.trace.completedAt) > Date.parse(request.context.deadlineAt)) {
     throw new CheckoutPipelineBoundaryError(
@@ -385,22 +545,38 @@ function assertSuccessfulStages(
   if (result.preliminaryPricing.status !== "SUCCESS") {
     return;
   }
+  const stageContext = toCheckoutPipelineStageContext(request.context);
+  const eligibilityContext = toCheckoutPipelineEligibilityContext(
+    request.context,
+  );
   const preliminary = parseCalculatePreliminaryPricingResult(
-    { context: request.context, cartIntent: request.cartIntent },
+    {
+      context: eligibilityContext,
+      cartIntent: toCheckoutPricingCartIntent(request.cartIntent),
+    },
     result.preliminaryPricing.data,
   );
   if (result.delivery.status !== "SUCCESS") {
     return;
   }
   const delivery = parseCalculateDeliveryOptionsResult(
-    { context: request.context, preliminary },
+    {
+      context: stageContext,
+      preliminary,
+      destinations: request.cartIntent.destinations,
+      selections: request.cartIntent.selectedDeliveryOptions,
+    },
     result.delivery.data,
   );
   if (result.finalPricing.status !== "SUCCESS") {
     return;
   }
   const finalQuote = parseFinalizePricingQuoteResult(
-    { context: request.context, preliminary, delivery },
+    {
+      context: eligibilityContext,
+      preliminary,
+      delivery: toCheckoutPricingDeliverySnapshot(delivery),
+    },
     result.finalPricing.data,
   );
   if (result.payment.status !== "SUCCESS") {
@@ -408,10 +584,10 @@ function assertSuccessfulStages(
   }
   const payment = parseGetAvailablePaymentMethodsResult(
     {
-      context: request.context,
-      cartIntent: request.cartIntent,
+      context: eligibilityContext,
+      selection: request.cartIntent.selectedPaymentMethod,
       finalQuote,
-      delivery,
+      delivery: toCheckoutPricingDeliverySnapshot(delivery),
     },
     result.payment.data,
   );
@@ -458,13 +634,27 @@ function assertOutcomeSequence(result: CheckoutRecalculationResult): void {
   }
 }
 
+function assertAggregateIssues(result: CheckoutRecalculationResult): void {
+  const expectedIssues = [
+    ...result.preliminaryPricing.issues,
+    ...result.delivery.issues,
+    ...result.finalPricing.issues,
+    ...result.payment.issues,
+    ...result.validation.issues,
+  ];
+  assertJsonEqual(
+    result.issues,
+    expectedIssues,
+    "Aggregate pipeline issues must equal stage issues in execution order",
+  );
+}
+
 function assertDeliveryIntent(
   request: CalculatePreliminaryPricingRequest,
   result: CalculatePreliminaryPricingResult,
 ): void {
-  const sourceLineIds = new Set(
-    flattenCartLineIds(request.cartIntent.lines),
-  );
+  const sourceLineIdList = flattenCartLineIds(request.cartIntent.lines);
+  const sourceLineIds = new Set(sourceLineIdList);
   const sourceDestinations = new Map<string, string>();
   const destinationIntents = new Map(
     request.cartIntent.destinations.map((destination) => [
@@ -481,6 +671,37 @@ function assertDeliveryIntent(
   const transformedLineIds = transformedLines.map(({ lineId }) => lineId);
   assertUnique(transformedLineIds, "transformed line IDs");
 
+  assertUnique(
+    result.sourceLineResolutions.map(({ sourceLineId }) => sourceLineId),
+    "source line resolution IDs",
+  );
+  assertSameIds(
+    sourceLineIdList,
+    result.sourceLineResolutions.map(({ sourceLineId }) => sourceLineId),
+    "Every source line must have an explicit pricing resolution",
+  );
+
+  const resolutionPairs: string[] = [];
+  for (const resolution of result.sourceLineResolutions) {
+    if (resolution.status === "REMOVED") {
+      continue;
+    }
+    assertUnique(
+      resolution.transformedLineIds,
+      `transformed line IDs for source line ${resolution.sourceLineId}`,
+    );
+    for (const transformedLineId of resolution.transformedLineIds) {
+      if (!transformedLineIds.includes(transformedLineId)) {
+        throw new CheckoutPipelineBoundaryError(
+          `Source line ${resolution.sourceLineId} references unknown transformed line ${transformedLineId}`,
+        );
+      }
+      resolutionPairs.push(
+        JSON.stringify([resolution.sourceLineId, transformedLineId]),
+      );
+    }
+  }
+
   const lineageLineIds = result.deliveryIntent.lineage.map(({ lineId }) => lineId);
   assertUnique(lineageLineIds, "lineage line IDs");
   assertSameIds(
@@ -488,15 +709,26 @@ function assertDeliveryIntent(
     lineageLineIds,
     "Lineage does not cover every transformed line exactly once",
   );
+  const lineagePairs: string[] = [];
   for (const lineage of result.deliveryIntent.lineage) {
+    assertUnique(
+      lineage.sourceLineIds,
+      `source line IDs for transformed line ${lineage.lineId}`,
+    );
     for (const sourceLineId of lineage.sourceLineIds) {
       if (!sourceLineIds.has(sourceLineId)) {
         throw new CheckoutPipelineBoundaryError(
           `Lineage references unknown source line ${sourceLineId}`,
         );
       }
+      lineagePairs.push(JSON.stringify([sourceLineId, lineage.lineId]));
     }
   }
+  assertSameIds(
+    resolutionPairs,
+    lineagePairs,
+    "Source line resolutions do not match transformed line lineage",
+  );
 
   const physicalLineIds = new Set(
     transformedLines
@@ -516,20 +748,13 @@ function assertDeliveryIntent(
       );
     }
     if (
-      JSON.stringify(destination.address) !==
-      JSON.stringify(sourceDestination.address)
+      JSON.stringify(destination.location) !==
+      JSON.stringify(sourceDestination.location)
     ) {
       throw new CheckoutPipelineBoundaryError(
-        `Canonical destination ${destination.destinationId} changed its address snapshot`,
+        `Canonical destination ${destination.destinationId} changed its pricing location`,
       );
     }
-    assertEqual(
-      destination.selectedDeliveryOptionHandle,
-      request.cartIntent.selectedDeliveryOptionHandles[
-        destination.destinationId
-      ] ?? null,
-      `Canonical destination ${destination.destinationId} changed its selected option`,
-    );
     for (const lineId of destination.transformedLineIds) {
       if (!physicalLineIds.has(lineId)) {
         throw new CheckoutPipelineBoundaryError(
@@ -553,10 +778,32 @@ function assertDeliveryIntent(
       assignedLineIds.push(lineId);
     }
   }
+  const unassignedLineIds = result.deliveryIntent.unassignedPhysicalLineIds;
+  assertUnique(unassignedLineIds, "unassigned physical line IDs");
+  for (const lineId of unassignedLineIds) {
+    if (!physicalLineIds.has(lineId)) {
+      throw new CheckoutPipelineBoundaryError(
+        `Unassigned physical line list references non-physical or unknown line ${lineId}`,
+      );
+    }
+    const lineage = result.deliveryIntent.lineage.find(
+      (entry) => entry.lineId === lineId,
+    );
+    if (
+      lineage === undefined ||
+      lineage.sourceLineIds.some((sourceLineId) =>
+        sourceDestinations.has(sourceLineId),
+      )
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Unassigned physical line ${lineId} has a source destination`,
+      );
+    }
+  }
   assertSameIds(
     [...physicalLineIds],
-    assignedLineIds,
-    "Canonical destinations must assign every physical line exactly once",
+    [...assignedLineIds, ...unassignedLineIds],
+    "Every physical line must be assigned or explicitly marked unassigned",
   );
 }
 
@@ -586,25 +833,47 @@ function assertCartIntent(
     }
   }
   assertUnique(assignedLineIds, "cart destination line assignments");
-  for (const destinationId of Object.keys(
-    cartIntent.selectedDeliveryOptionHandles,
-  )) {
-    if (
-      !cartIntent.destinations.some(
-        (destination) => destination.destinationId === destinationId,
-      )
-    ) {
-      throw new CheckoutPipelineBoundaryError(
-        `Selected delivery option references unknown destination ${destinationId}`,
-      );
+  assertUnique(
+    cartIntent.selectedDeliveryOptions.map(({ groupId }) => groupId),
+    "selected delivery group IDs",
+  );
+}
+
+function assertPricingCartIntent(cartIntent: CheckoutPricingCartIntent): void {
+  const lineIds = flattenCartLineIds(cartIntent.lines);
+  const knownLineIds = new Set(lineIds);
+  assertUnique(lineIds, "pricing cart line IDs");
+  assertUnique(
+    cartIntent.destinations.map(({ destinationId }) => destinationId),
+    "pricing destination IDs",
+  );
+  const assignedLineIds: string[] = [];
+  for (const destination of cartIntent.destinations) {
+    assertUnique(
+      destination.lineIds,
+      `pricing destination ${destination.destinationId} line IDs`,
+    );
+    for (const lineId of destination.lineIds) {
+      if (!knownLineIds.has(lineId)) {
+        throw new CheckoutPipelineBoundaryError(
+          `Pricing destination ${destination.destinationId} references unknown line ${lineId}`,
+        );
+      }
+      assignedLineIds.push(lineId);
     }
   }
+  assertUnique(assignedLineIds, "pricing destination line assignments");
 }
 
 function assertDeliveryGroups(
   request: CalculateDeliveryOptionsRequest,
   result: CalculateDeliveryOptionsResult,
 ): void {
+  const canonicalDestinationIds = request.preliminary.deliveryIntent.destinations.map(
+    ({ destinationId }) => destinationId,
+  );
+  assertUnique(canonicalDestinationIds, "canonical delivery destination IDs");
+  const canonicalDestinations = new Set(canonicalDestinationIds);
   const assignments = new Map<string, string>();
   for (const destination of request.preliminary.deliveryIntent.destinations) {
     for (const lineId of destination.transformedLineIds) {
@@ -616,16 +885,33 @@ function assertDeliveryGroups(
     result.groups.map(({ groupId }) => groupId),
     "delivery group IDs",
   );
+  assertUnique(
+    result.orphanedSelectionResets.map(({ groupId }) => groupId),
+    "orphaned delivery selection reset group IDs",
+  );
   for (const group of result.groups) {
+    if (group.lineIds.length === 0) {
+      throw new CheckoutPipelineBoundaryError(
+        `Delivery group ${group.groupId} must contain at least one canonical physical line`,
+      );
+    }
+    if (!canonicalDestinations.has(group.destinationId)) {
+      throw new CheckoutPipelineBoundaryError(
+        `Delivery group ${group.groupId} references unknown canonical destination ${group.destinationId}`,
+      );
+    }
     assertUnique(group.lineIds, `line IDs in delivery group ${group.groupId}`);
     assertUnique(
       group.options.map(({ handle }) => handle),
       `option handles in delivery group ${group.groupId}`,
     );
-    assertSelectedHandle(
-      group.selectedOptionHandle,
+    assertDeliverySelectionSource(
+      request.selections.find(
+        ({ groupId }) => groupId === group.groupId,
+      ) ?? null,
+      group.selection,
       group.options.map(({ handle }) => handle),
-      `delivery option in group ${group.groupId}`,
+      group.groupId,
     );
     for (const lineId of group.lineIds) {
       if (assignments.get(lineId) !== group.destinationId) {
@@ -641,6 +927,109 @@ function assertDeliveryGroups(
     groupedLineIds,
     "Delivery groups must cover every assigned physical line exactly once",
   );
+  for (const reset of result.orphanedSelectionResets) {
+    const source = request.selections.find(
+      ({ groupId }) => groupId === reset.groupId,
+    );
+    if (
+      source === undefined ||
+      result.groups.some(({ groupId }) => groupId === reset.groupId)
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Delivery returned an invalid orphaned selection reset for group ${reset.groupId}`,
+      );
+    }
+    assertJsonEqual(
+      {
+        optionHandle: reset.previousOptionHandle,
+        customerInput: reset.customerInput,
+      },
+      {
+        optionHandle: source.optionHandle,
+        customerInput: source.customerInput,
+      },
+      `Delivery changed orphaned shopper input for group ${reset.groupId}`,
+    );
+  }
+  for (const source of request.selections) {
+    if (
+      !result.groups.some(({ groupId }) => groupId === source.groupId) &&
+      !result.orphanedSelectionResets.some(
+        ({ groupId }) => groupId === source.groupId,
+      )
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Delivery omitted reset reason for removed group ${source.groupId}`,
+      );
+    }
+  }
+}
+
+function assertDeliveryRequest(request: CalculateDeliveryOptionsRequest): void {
+  assertUnique(
+    request.destinations.map(({ destinationId }) => destinationId),
+    "delivery request destination IDs",
+  );
+  assertUnique(
+    request.selections.map(({ groupId }) => groupId),
+    "delivery request selection group IDs",
+  );
+  for (const canonical of request.preliminary.deliveryIntent.destinations) {
+    const destination = request.destinations.find(
+      ({ destinationId }) => destinationId === canonical.destinationId,
+    );
+    if (destination === undefined) {
+      throw new CheckoutPipelineBoundaryError(
+        `Delivery request is missing destination ${canonical.destinationId}`,
+      );
+    }
+    assertJsonEqual(
+      canonical.location,
+      {
+        countryCode: destination.address.countryCode,
+        provinceCode: destination.address.provinceCode,
+        postalCode: destination.address.postalCode,
+      },
+      `Delivery destination ${canonical.destinationId} does not match its pricing location`,
+    );
+  }
+}
+
+function assertPricingDeliverySnapshot(
+  delivery: CheckoutPricingDeliverySnapshot,
+  preliminary?: CalculatePreliminaryPricingResult,
+): void {
+  assertUnique(
+    delivery.groups.map(({ groupId }) => groupId),
+    "pricing delivery group IDs",
+  );
+  const knownLineIds = preliminary
+    ? new Set(
+        flattenQuotedLines(preliminary.transformedLines).map(
+          ({ lineId }) => lineId,
+        ),
+      )
+    : null;
+  for (const group of delivery.groups) {
+    assertUnique(group.lineIds, `pricing delivery group ${group.groupId} lines`);
+    assertUnique(
+      group.options.map(({ handle }) => handle),
+      `pricing delivery group ${group.groupId} option handles`,
+    );
+    assertSelectedHandle(
+      group.selectedOptionHandle,
+      group.options.map(({ handle }) => handle),
+      `pricing delivery option in group ${group.groupId}`,
+    );
+    if (
+      knownLineIds !== null &&
+      group.lineIds.some((lineId) => !knownLineIds.has(lineId))
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Pricing delivery group ${group.groupId} references an unknown transformed line`,
+      );
+    }
+  }
 }
 
 function assertTrace(result: CheckoutRecalculationResult): void {
@@ -712,7 +1101,7 @@ function assertTrace(result: CheckoutRecalculationResult): void {
 }
 
 function assertProvenance(
-  context: CheckoutPipelineExecutionContext,
+  context: CheckoutPipelineStageContext,
   result: CheckoutPipelineStageProvenance,
 ): void {
   assertEqual(
@@ -737,28 +1126,93 @@ function assertProvenance(
   );
 }
 
-function assertCurrency(value: unknown, expected: string, path: string): void {
-  if (Array.isArray(value)) {
-    value.forEach((entry, index) =>
-      assertCurrency(entry, expected, `${path}[${index}]`),
+function assertPreliminaryCurrencies(
+  result: CalculatePreliminaryPricingResult,
+  expected: string,
+): void {
+  assertQuotedLineCurrencies(result.transformedLines, expected);
+  result.appliedDiscounts.forEach((discount) =>
+    assertMoneyCurrency(discount.amount, expected, "applied discount"),
+  );
+  Object.entries(result.preliminaryTotals).forEach(([field, money]) =>
+    assertMoneyCurrency(money, expected, `preliminaryTotals.${field}`),
+  );
+}
+
+function assertDeliveryCurrencies(
+  result: CalculateDeliveryOptionsResult,
+  expected: string,
+): void {
+  result.groups.forEach((group) =>
+    group.options.forEach((option) =>
+      assertMoneyCurrency(option.cost, expected, "delivery option cost"),
+    ),
+  );
+}
+
+function assertPricingDeliveryCurrencies(
+  delivery: CheckoutPricingDeliverySnapshot,
+  expected: string,
+): void {
+  delivery.groups.forEach((group) =>
+    group.options.forEach((option) =>
+      assertMoneyCurrency(option.cost, expected, "pricing delivery cost"),
+    ),
+  );
+}
+
+function assertFinalCurrencies(
+  result: FinalizePricingQuoteResult,
+  expected: string,
+): void {
+  assertQuotedLineCurrencies(result.lines, expected);
+  result.appliedDiscounts.forEach((discount) =>
+    assertMoneyCurrency(discount.amount, expected, "applied discount"),
+  );
+  Object.entries(result.totals).forEach(([field, money]) =>
+    assertMoneyCurrency(money, expected, `totals.${field}`),
+  );
+}
+
+function assertQuotedLineCurrencies(
+  lines: readonly CheckoutQuotedLine[],
+  expected: string,
+): void {
+  for (const line of flattenQuotedLines(lines)) {
+    assertMoneyCurrency(line.unitPrice, expected, `line ${line.lineId}.unitPrice`);
+    assertMoneyCurrency(
+      line.originalUnitPrice,
+      expected,
+      `line ${line.lineId}.originalUnitPrice`,
     );
-    return;
+    if (line.compareAtUnitPrice !== null) {
+      assertMoneyCurrency(
+        line.compareAtUnitPrice,
+        expected,
+        `line ${line.lineId}.compareAtUnitPrice`,
+      );
+    }
+    assertMoneyCurrency(line.subtotal, expected, `line ${line.lineId}.subtotal`);
+    assertMoneyCurrency(line.total, expected, `line ${line.lineId}.total`);
+    line.discounts.forEach((discount) =>
+      assertMoneyCurrency(
+        discount.amount,
+        expected,
+        `line ${line.lineId} discount`,
+      ),
+    );
   }
-  if (value === null || typeof value !== "object") {
-    return;
-  }
-  const record = value as Record<string, unknown>;
-  if (
-    typeof record.amountMinor === "string" &&
-    typeof record.currencyCode === "string" &&
-    record.currencyCode !== expected
-  ) {
+}
+
+function assertMoneyCurrency(
+  money: Readonly<{ currencyCode: string }>,
+  expected: string,
+  field: string,
+): void {
+  if (money.currencyCode !== expected) {
     throw new CheckoutPipelineBoundaryError(
-      `${path} contains money in ${record.currencyCode}; expected ${expected}`,
+      `${field} uses ${money.currencyCode}; expected ${expected}`,
     );
-  }
-  for (const [key, entry] of Object.entries(record)) {
-    assertCurrency(entry, expected, `${path}.${key}`);
   }
 }
 
@@ -828,6 +1282,99 @@ function assertSelectedHandle(
     throw new CheckoutPipelineBoundaryError(
       `Selected ${label} ${selected} is not available`,
     );
+  }
+}
+
+function assertDeliverySelectionSource(
+  source: CheckoutDeliveryOptionSelectionIntent | null,
+  result: CheckoutDeliveryOptionSelectionResolution,
+  availableHandles: readonly string[],
+  groupId: string,
+): void {
+  if (source === null) {
+    if (result.status !== "NONE") {
+      throw new CheckoutPipelineBoundaryError(
+        `Delivery fabricated a selection for group ${groupId}`,
+      );
+    }
+    return;
+  }
+  if (result.status === "RESET") {
+    if (
+      result.previousOptionHandle !== source.optionHandle ||
+      JSON.stringify(result.customerInput) !==
+        JSON.stringify(source.customerInput)
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Delivery must explicitly reset the unavailable selection for group ${groupId}`,
+      );
+    }
+    return;
+  }
+  if (!availableHandles.includes(source.optionHandle)) {
+    throw new CheckoutPipelineBoundaryError(
+      `Delivery must explicitly reset the unavailable selection for group ${groupId}`,
+    );
+  }
+  assertJsonEqual(
+    result,
+    {
+      status: "SELECTED",
+      optionHandle: source.optionHandle,
+      customerInput: source.customerInput,
+    },
+    `Delivery changed shopper input for group ${groupId}`,
+  );
+}
+
+function assertPaymentSelectionSource(
+  source: CheckoutPaymentMethodSelectionIntent | null,
+  result: CheckoutPaymentMethodSelectionResolution,
+  availableHandles: readonly string[],
+): void {
+  if (source === null) {
+    if (result.status !== "NONE") {
+      throw new CheckoutPipelineBoundaryError(
+        "Payments fabricated a method selection",
+      );
+    }
+    return;
+  }
+  if (result.status === "RESET") {
+    if (
+      result.previousMethodHandle !== source.methodHandle ||
+      JSON.stringify(result.customerInput) !==
+        JSON.stringify(source.customerInput)
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        "Payments must explicitly reset the unavailable method selection",
+      );
+    }
+    return;
+  }
+  if (!availableHandles.includes(source.methodHandle)) {
+    throw new CheckoutPipelineBoundaryError(
+      "Payments must explicitly reset the unavailable method selection",
+    );
+  }
+  assertJsonEqual(
+    result,
+    {
+      status: "SELECTED",
+      methodHandle: source.methodHandle,
+      customerInput: source.customerInput,
+    },
+    "Payments changed shopper payment input",
+  );
+}
+
+function assertJsonEqual(
+  actual: unknown,
+  expected: unknown,
+  message: string,
+): void {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new CheckoutPipelineBoundaryError(message);
   }
 }
 

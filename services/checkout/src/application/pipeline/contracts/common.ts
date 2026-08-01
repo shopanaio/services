@@ -41,6 +41,14 @@ export type CheckoutPipelineBuyer = Readonly<{
   data: CheckoutPipelineJsonObject | null;
 }>;
 
+/** Non-contact buyer facts used for pricing and payment eligibility rules. */
+export type CheckoutBuyerEligibilityContext = Readonly<{
+  customerId: string | null;
+  countryCode: string | null;
+  marketId: string | null;
+  companyId: string | null;
+}>;
+
 /**
  * Canonical PII snapshot passed only to stages that explicitly require
  * delivery identity/contact data. Implementations must not log this payload.
@@ -145,7 +153,7 @@ export type CheckoutPipelineStageOutcome<
   | CheckoutPipelineStageFailure<TStage>
   | CheckoutPipelineStageSkipped<TStage>;
 
-export type CheckoutPipelineExecutionContext = Readonly<{
+export type CheckoutPipelineStageContext = Readonly<{
   executionId: string;
   correlationId: string;
   deadlineAt: string;
@@ -155,5 +163,17 @@ export type CheckoutPipelineExecutionContext = Readonly<{
   storeId: string;
   currencyCode: string;
   localeCode: string | null;
-  buyer: CheckoutPipelineBuyer | null;
 }>;
+
+export type CheckoutPipelineEligibilityContext = Readonly<
+  CheckoutPipelineStageContext & {
+    buyerEligibility: CheckoutBuyerEligibilityContext | null;
+  }
+>;
+
+/** Full checkout context. Only Checkout validation may receive buyer PII. */
+export type CheckoutPipelineExecutionContext = Readonly<
+  CheckoutPipelineStageContext & {
+    buyer: CheckoutPipelineBuyer | null;
+  }
+>;

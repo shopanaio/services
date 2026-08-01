@@ -1,10 +1,15 @@
 import type {
   CalculateDeliveryOptionsResult,
+  CalculateDeliveryOptionsRequest,
+  CalculatePreliminaryPricingRequest,
   CalculatePreliminaryPricingResult,
   CheckoutRecalculationRequest,
   CheckoutRecalculationResult,
+  FinalizePricingQuoteRequest,
   FinalizePricingQuoteResult,
+  GetAvailablePaymentMethodsRequest,
   GetAvailablePaymentMethodsResult,
+  ValidateCheckoutRequest,
   ValidateCheckoutResult,
 } from "./contracts/index.js";
 import type {
@@ -48,39 +53,30 @@ export abstract class BaseCheckoutPipeline implements CheckoutPipeline {
   // TODO(checkout-pipeline): ask Pricing to resolve canonical merchandise,
   // availability, cart transforms, line discounts and preliminary totals.
   protected abstract calculatePreliminaryPricing(
-    request: CheckoutRecalculationRequest,
+    request: CalculatePreliminaryPricingRequest,
   ): Promise<CalculatePreliminaryPricingResult>;
 
   // TODO(checkout-pipeline): calculate carrier/provider options from canonical
   // transformed physical lines and complete delivery destinations.
   protected abstract calculateDelivery(
-    request: CheckoutRecalculationRequest,
-    preliminary: CalculatePreliminaryPricingResult,
+    request: CalculateDeliveryOptionsRequest,
   ): Promise<CalculateDeliveryOptionsResult>;
 
   // TODO(checkout-pipeline): finalize delivery discounts, taxes and payable
   // total after Delivery returns the selected option costs.
   protected abstract finalizePricing(
-    request: CheckoutRecalculationRequest,
-    preliminary: CalculatePreliminaryPricingResult,
-    delivery: CalculateDeliveryOptionsResult,
+    request: FinalizePricingQuoteRequest,
   ): Promise<FinalizePricingQuoteResult>;
 
   // TODO(checkout-pipeline): resolve payment methods only from the final quote
   // so payment customization observes the final payable amount.
   protected abstract calculatePayments(
-    request: CheckoutRecalculationRequest,
-    finalQuote: FinalizePricingQuoteResult,
-    delivery: CalculateDeliveryOptionsResult,
+    request: GetAvailablePaymentMethodsRequest,
   ): Promise<GetAvailablePaymentMethodsResult>;
 
   // TODO(checkout-pipeline): validate the complete immutable snapshot including
   // cart intent and every successful upstream stage.
   protected abstract validateCheckout(
-    request: CheckoutRecalculationRequest,
-    preliminary: CalculatePreliminaryPricingResult,
-    delivery: CalculateDeliveryOptionsResult,
-    finalQuote: FinalizePricingQuoteResult,
-    payment: GetAvailablePaymentMethodsResult,
+    request: ValidateCheckoutRequest,
   ): Promise<ValidateCheckoutResult>;
 }
