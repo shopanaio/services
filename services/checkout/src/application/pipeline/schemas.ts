@@ -739,6 +739,7 @@ const checkoutDeliveryCustomerInputContractSchema = z
     schemaDialect: z.literal("https://json-schema.org/draft/2020-12/schema"),
     schema: checkoutPipelineJsonObjectSchema,
     schemaHash: revisionSchema,
+    schemaPolicyRevision: revisionSchema,
   })
   .strict()
   .superRefine((value, context) => {
@@ -775,11 +776,14 @@ const checkoutDeliveryOptionBaseShape = {
   code: identifierSchema,
   title: z.string().min(1),
   description: z.string().min(1).nullable(),
-  deliveryMethodType: z.union([
-    z.literal("PICKUP"),
-    z.literal("SHIPPING"),
+  deliveryMethodType: z.enum([
+    "LOCAL",
+    "NONE",
+    "PICK_UP",
+    "PICKUP_POINT",
+    "RETAIL",
+    "SHIPPING",
   ]),
-  shippingPaymentModel: z.enum(["MERCHANT_COLLECTED", "CARRIER_DIRECT"]),
   cost: checkoutPipelineNonNegativeMoneySchema,
   estimatedMinDeliveryAt: timestampSchema.nullable(),
   estimatedMaxDeliveryAt: timestampSchema.nullable(),
@@ -792,15 +796,15 @@ export const checkoutDeliveryOptionSchema = z.discriminatedUnion("source", [
   z
     .object({
       ...checkoutDeliveryOptionBaseShape,
-      source: z.literal("STATIC"),
-      provider: z.null(),
+      source: z.literal("MANUAL"),
+      carrier: z.null(),
     })
     .strict(),
   z
     .object({
       ...checkoutDeliveryOptionBaseShape,
-      source: z.literal("PROVIDER"),
-      provider: z
+      source: z.literal("CARRIER_SERVICE"),
+      carrier: z
         .object({
           code: identifierSchema,
         })
@@ -865,12 +869,15 @@ export const checkoutPricingDeliveryOptionSchema = z
   .object({
     handle: identifierSchema,
     code: identifierSchema,
-    providerCode: identifierSchema.nullable(),
-    deliveryMethodType: z.union([
-      z.literal("PICKUP"),
-      z.literal("SHIPPING"),
+    carrierCode: identifierSchema.nullable(),
+    deliveryMethodType: z.enum([
+      "LOCAL",
+      "NONE",
+      "PICK_UP",
+      "PICKUP_POINT",
+      "RETAIL",
+      "SHIPPING",
     ]),
-    shippingPaymentModel: z.enum(["MERCHANT_COLLECTED", "CARRIER_DIRECT"]),
     cost: checkoutPipelineNonNegativeMoneySchema,
   })
   .strict();
@@ -906,15 +913,16 @@ export const calculateDeliveryOptionsResultSchema = z
     orphanedSelectionResets: collection(
       checkoutOrphanedDeliverySelectionResetSchema,
     ),
-    providerExecutions: collection(
+    carrierServiceExecutions: collection(
       z
         .object({
           groupId: identifierSchema,
-          providerAccountId: identifierSchema,
+          carrierServiceAccountId: identifierSchema,
           executionPolicyRevision: revisionSchema,
           route: z
             .object({
               protocolVersion: z.literal(1),
+              capability: z.literal("delivery.carrier-service"),
               capabilityRouteId: identifierSchema,
               installationId: identifierSchema,
               appCode: identifierSchema,
@@ -928,15 +936,15 @@ export const calculateDeliveryOptionsResultSchema = z
             "NO_SERVICE",
             "FAILED",
             "TIMED_OUT",
-            "FALLBACK_APPLIED",
+            "BACKUP_RATE_APPLIED",
           ]),
           rateCount: z.number().int().nonnegative(),
           durationMs: z.number().int().nonnegative(),
-          attemptCount: z.number().int().nonnegative(),
+          attemptCount: z.number().int().nonnegative().max(1),
           rateSource: z.enum([
-            "PROVIDER_LIVE",
-            "PROVIDER_CACHE",
-            "METHOD_FALLBACK",
+            "CARRIER_SERVICE_LIVE",
+            "CARRIER_SERVICE_CACHE",
+            "BACKUP_RATE",
           ]),
           startedAt: timestampSchema,
           completedAt: timestampSchema,
@@ -959,7 +967,7 @@ export const calculateDeliveryOptionsResultSchema = z
               message: z.string().min(1),
               retryable: z.boolean(),
               acceptedByProvider: z.boolean(),
-              providerCode: identifierSchema.nullable(),
+              carrierCode: identifierSchema.nullable(),
             })
             .strict()
             .nullable(),
@@ -973,7 +981,7 @@ export const calculateDeliveryOptionsResultSchema = z
           code: identifierSchema,
           message: z.string().min(1),
           groupId: identifierSchema.nullable(),
-          providerAccountId: identifierSchema.nullable(),
+          carrierServiceAccountId: identifierSchema.nullable(),
           retryable: z.boolean(),
         })
         .strict(),
@@ -984,25 +992,25 @@ export const calculateDeliveryOptionsResultSchema = z
     const groupIds = new Set(value.groups.map(({ groupId }) => groupId));
     const executionKeys = new Set<string>();
 
-    value.providerExecutions.forEach((execution, index) => {
+    value.carrierServiceExecutions.forEach((execution, index) => {
       if (!groupIds.has(execution.groupId)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "groupId"],
+          path: ["carrierServiceExecutions", index, "groupId"],
           message: "Provider execution references an unknown delivery group",
         });
       }
 
       const executionKey = [
         execution.groupId,
-        execution.providerAccountId,
+        execution.carrierServiceAccountId,
         execution.route.capabilityRouteId,
         execution.route.routeRevision,
       ].join(":");
       if (executionKeys.has(executionKey)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index],
+          path: ["carrierServiceExecutions", index],
           message: "Provider execution must be unique within one delivery result",
         });
       }
@@ -1011,7 +1019,7 @@ export const calculateDeliveryOptionsResultSchema = z
       if (Date.parse(execution.completedAt) < Date.parse(execution.startedAt)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "completedAt"],
+          path: ["carrierServiceExecutions", index, "completedAt"],
           message: "Provider execution cannot complete before it starts",
         });
       }
@@ -1020,38 +1028,38 @@ export const calculateDeliveryOptionsResultSchema = z
       if (Math.abs(measuredDuration - execution.durationMs) > 1_000) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "durationMs"],
+          path: ["carrierServiceExecutions", index, "durationMs"],
           message: "Provider execution duration disagrees with its timestamps",
         });
       }
       if (
-        execution.rateSource === "PROVIDER_CACHE" &&
+        execution.rateSource === "CARRIER_SERVICE_CACHE" &&
         execution.attemptCount !== 0
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "attemptCount"],
+          path: ["carrierServiceExecutions", index, "attemptCount"],
           message: "A cache hit cannot report a provider attempt",
         });
       }
       if (
-        execution.rateSource === "PROVIDER_CACHE" &&
+        execution.rateSource === "CARRIER_SERVICE_CACHE" &&
         execution.status !== "SUCCEEDED" &&
         execution.status !== "NO_SERVICE"
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "rateSource"],
+          path: ["carrierServiceExecutions", index, "rateSource"],
           message: "Cached provider data can only produce success or no-service",
         });
       }
       if (
-        execution.rateSource === "PROVIDER_LIVE" &&
+        execution.rateSource === "CARRIER_SERVICE_LIVE" &&
         execution.attemptCount === 0
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "attemptCount"],
+          path: ["carrierServiceExecutions", index, "attemptCount"],
           message: "A live provider result requires at least one attempt",
         });
       }
@@ -1060,40 +1068,45 @@ export const calculateDeliveryOptionsResultSchema = z
         if (execution.failure !== null || execution.rateCount === 0) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["providerExecutions", index],
+            path: ["carrierServiceExecutions", index],
             message: "A successful provider execution requires rates and forbids failure",
           });
         }
         return;
       }
 
-      if (execution.status === "FALLBACK_APPLIED") {
+      if (execution.status === "BACKUP_RATE_APPLIED") {
         if (
           execution.failure === null ||
           execution.rateCount === 0 ||
-          execution.rateSource !== "METHOD_FALLBACK"
+          execution.rateSource !== "BACKUP_RATE" ||
+          !new Set<string>([
+            "PROVIDER_UNAVAILABLE",
+            "TIMEOUT",
+            "RATE_LIMITED",
+          ]).has(execution.failure.category)
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["providerExecutions", index],
-            message: "A fallback execution requires its triggering failure and fallback rates",
+            path: ["carrierServiceExecutions", index],
+            message: "A backup rate requires an eligible carrier-service failure",
           });
         }
         return;
       }
 
-      if (execution.rateSource === "METHOD_FALLBACK") {
+      if (execution.rateSource === "BACKUP_RATE") {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "rateSource"],
-          message: "Method fallback source requires FALLBACK_APPLIED status",
+          path: ["carrierServiceExecutions", index, "rateSource"],
+          message: "Backup rate source requires BACKUP_RATE_APPLIED status",
         });
       }
 
       if (execution.rateCount !== 0) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "rateCount"],
+          path: ["carrierServiceExecutions", index, "rateCount"],
           message: "An unsuccessful provider execution cannot report rates",
         });
       }
@@ -1104,7 +1117,7 @@ export const calculateDeliveryOptionsResultSchema = z
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "failure", "category"],
+          path: ["carrierServiceExecutions", index, "failure", "category"],
           message: "NO_SERVICE status requires a matching failure category",
         });
       }
@@ -1114,7 +1127,7 @@ export const calculateDeliveryOptionsResultSchema = z
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "failure"],
+          path: ["carrierServiceExecutions", index, "failure"],
           message: "Failed and timed-out executions require failure details",
         });
       }
@@ -1124,7 +1137,7 @@ export const calculateDeliveryOptionsResultSchema = z
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["providerExecutions", index, "failure", "category"],
+          path: ["carrierServiceExecutions", index, "failure", "category"],
           message: "TIMED_OUT status requires the TIMEOUT failure category",
         });
       }

@@ -23,12 +23,8 @@ import type {
   DeliveryProviderConfigurationValidationResult,
   DeliveryProviderCreateShipmentRequest,
   DeliveryProviderGetShipmentRequest,
-  DeliveryProviderLocationResolveRequest,
-  DeliveryProviderLocationResolveResult,
-  DeliveryProviderLocationSearchRequest,
-  DeliveryProviderLocationSearchResult,
-  DeliveryProviderRateRequest,
-  DeliveryProviderRateResult,
+  DeliveryCarrierServiceRateRequest,
+  DeliveryCarrierServiceRateResult,
   DeliveryProviderReconcileShipmentRequest,
   DeliveryProviderReconcileShipmentResult,
   DeliveryProviderShipmentOperationResult,
@@ -226,7 +222,7 @@ export interface DeliveryProviderCapabilityInvocation<
     ExecuteCapabilityParams,
     "capability" | "operation" | "installationId" | "input"
   > {
-  capability: "delivery.provider";
+  capability: DeliveryProviderOperationContractMap[TOperation]["capability"];
   operation: TOperation;
   installationId: string;
   input: DeliveryProviderOperationContractMap[TOperation]["input"];
@@ -234,35 +230,46 @@ export interface DeliveryProviderCapabilityInvocation<
 
 /** Keeps every delivery provider operation coupled to its exact input and output. */
 export interface DeliveryProviderOperationContractMap {
-  validateConfiguration: {
-    input: DeliveryProviderConfigurationValidationRequest;
-    output: DeliveryProviderConfigurationValidationResult;
+  validateCarrierServiceConfiguration: {
+    capability: "delivery.carrier-service";
+    input: DeliveryProviderConfigurationValidationRequest<
+      "delivery.carrier-service"
+    >;
+    output: DeliveryProviderConfigurationValidationResult<
+      "delivery.carrier-service"
+    >;
+  };
+  validateShipmentConfiguration: {
+    capability: "delivery.shipment-provider";
+    input: DeliveryProviderConfigurationValidationRequest<
+      "delivery.shipment-provider"
+    >;
+    output: DeliveryProviderConfigurationValidationResult<
+      "delivery.shipment-provider"
+    >;
   };
   quoteRates: {
-    input: DeliveryProviderRateRequest;
-    output: DeliveryProviderRateResult;
-  };
-  searchLocations: {
-    input: DeliveryProviderLocationSearchRequest;
-    output: DeliveryProviderLocationSearchResult;
-  };
-  resolveLocation: {
-    input: DeliveryProviderLocationResolveRequest;
-    output: DeliveryProviderLocationResolveResult;
+    capability: "delivery.carrier-service";
+    input: DeliveryCarrierServiceRateRequest;
+    output: DeliveryCarrierServiceRateResult;
   };
   createShipment: {
+    capability: "delivery.shipment-provider";
     input: DeliveryProviderCreateShipmentRequest;
     output: DeliveryProviderShipmentOperationResult<"CREATE">;
   };
   cancelShipment: {
+    capability: "delivery.shipment-provider";
     input: DeliveryProviderCancelShipmentRequest;
     output: DeliveryProviderShipmentOperationResult<"CANCEL">;
   };
   getShipment: {
+    capability: "delivery.shipment-provider";
     input: DeliveryProviderGetShipmentRequest;
     output: DeliveryProviderReconcileShipmentResult;
   };
   reconcileShipment: {
+    capability: "delivery.shipment-provider";
     input: DeliveryProviderReconcileShipmentRequest;
     output: DeliveryProviderReconcileShipmentResult;
   };
@@ -281,19 +288,24 @@ export type ExecuteDeliveryProviderCapabilityResult<
   DeliveryProviderOperationContractMap[TOperation]["output"]
 >;
 
-export interface ListDeliveryProviderRoutesParams {
-  storeId: string;
-  capability: "delivery.provider";
-  operation:
-    | "validateConfiguration"
-    | "quoteRates"
-    | "searchLocations"
-    | "resolveLocation"
-    | "createShipment"
-    | "cancelShipment"
-    | "getShipment"
-    | "reconcileShipment";
-}
+export type ListDeliveryProviderRoutesParams =
+  | Readonly<{
+      storeId: string;
+      capability: "delivery.carrier-service";
+      operation:
+        | "validateCarrierServiceConfiguration"
+        | "quoteRates";
+    }>
+  | Readonly<{
+      storeId: string;
+      capability: "delivery.shipment-provider";
+      operation:
+        | "validateShipmentConfiguration"
+        | "createShipment"
+        | "cancelShipment"
+        | "getShipment"
+        | "reconcileShipment";
+    }>;
 
 export interface AssignCapabilityParams {
   storeId: string;

@@ -2,10 +2,7 @@ import type {
   PricingCheckoutJsonObject,
   PricingCheckoutMoney,
 } from "./pricing.js";
-import type {
-  DeliveryCheckoutMethodType,
-  DeliveryCheckoutShippingPaymentModel,
-} from "./delivery.js";
+import type { DeliveryCheckoutMethodType } from "./delivery.js";
 
 /** Merchant-owned configuration deciding which delivery methods are eligible. */
 export type DeliveryProfileStatus = "ACTIVE" | "INACTIVE";
@@ -19,22 +16,52 @@ export type DeliveryProfileAssignment =
   | Readonly<{
       /** The default profile covers every variant not assigned elsewhere. */
       scope: "ALL_UNASSIGNED";
-      variantIds: readonly [];
-      sellingPlanGroupIds: readonly string[];
+      assignmentSetId: null;
+      assignmentRevision: null;
+      variantCount: 0;
+      sellingPlanGroupCount: 0;
     }>
   | Readonly<{
-      scope: "VARIANTS";
-      variantIds: readonly [string, ...string[]];
-      sellingPlanGroupIds: readonly string[];
+      scope: "ASSIGNED";
+      /** Immutable, indexed membership set stored outside the configuration snapshot. */
+      assignmentSetId: string;
+      assignmentRevision: string;
+      variantCount: number;
+      sellingPlanGroupCount: number;
     }>;
 
-export interface DeliveryZoneTerritory {
-  countryCode: string;
-  /** Empty means the whole country. */
-  provinceCodes: readonly string[];
-  /** Provider-independent postal patterns owned and validated by Delivery. */
-  postalCodePatterns: readonly string[];
+export type DeliveryPostalCodeRule =
+  | Readonly<{
+      effect: "INCLUDE" | "EXCLUDE";
+      match: "EXACT" | "PREFIX";
+      value: string;
+    }>
+  | Readonly<{
+      effect: "INCLUDE" | "EXCLUDE";
+      match: "NUMERIC_RANGE";
+      start: string;
+      end: string;
+    }>;
+
+export interface DeliveryPostalCodeRuleSet {
+  schemaVersion: 1;
+  normalization: "UPPERCASE_REMOVE_ASCII_WHITESPACE";
+  /** Exclusions win; when no INCLUDE exists, the remaining territory is included. */
+  rules: readonly DeliveryPostalCodeRule[];
 }
+
+export type DeliveryZoneTerritory =
+  | Readonly<{
+      scope: "COUNTRY";
+      countryCode: string;
+      /** Empty means the whole country. */
+      provinceCodes: readonly string[];
+      postalCodeRuleSet: DeliveryPostalCodeRuleSet;
+    }>
+  | Readonly<{
+      /** Matches countries not explicitly claimed by a higher-priority zone. */
+      scope: "REST_OF_WORLD";
+    }>;
 
 export interface DeliveryZoneSnapshot {
   zoneId: string;
@@ -81,16 +108,16 @@ export interface DeliveryRateConditionSet {
 
 export type DeliveryMethodRateSource =
   | Readonly<{
-      type: "STATIC";
+      type: "MANUAL";
       price: PricingCheckoutMoney;
     }>
   | Readonly<{
-      type: "PROVIDER";
-      providerAccountIds: readonly [string, ...string[]];
+      type: "CARRIER_SERVICE";
+      carrierServiceAccountIds: readonly [string, ...string[]];
       /** Empty means every service returned by an eligible account. */
       allowedServiceCodes: readonly string[];
       /** Optional merchant-owned rate used only under the declared failure policy. */
-      fallbackRate: PricingCheckoutMoney | null;
+      backupRate: PricingCheckoutMoney | null;
     }>;
 
 export interface DeliveryMethodDefinitionSnapshot {
@@ -100,7 +127,6 @@ export interface DeliveryMethodDefinitionSnapshot {
   description: string | null;
   active: boolean;
   deliveryMethodType: DeliveryCheckoutMethodType;
-  shippingPaymentModel: DeliveryCheckoutShippingPaymentModel;
   rateSource: DeliveryMethodRateSource;
   conditions: DeliveryRateConditionSet;
   /** Merchant-visible method metadata; never forwarded to a provider implicitly. */
@@ -131,7 +157,6 @@ export interface DeliveryProfileSnapshotBase {
   storeId: string;
   name: string;
   status: DeliveryProfileStatus;
-  priority: number;
   locationGroups: readonly [
     DeliveryLocationGroupSnapshot,
     ...DeliveryLocationGroupSnapshot[],
@@ -157,7 +182,7 @@ export type DeliveryProfileSnapshot =
         isDefault: false;
         assignment: Extract<
           DeliveryProfileAssignment,
-          Readonly<{ scope: "VARIANTS" }>
+          Readonly<{ scope: "ASSIGNED" }>
         >;
       }
     >;
@@ -166,8 +191,14 @@ export type DeliveryProfileSnapshot =
 export interface DeliveryProfileSetSnapshot {
   organizationId: string;
   storeId: string;
+  /** Canonical store currency for every monetary field in the profile set. */
+  currencyCode: string;
+  assignmentResolution: "SELLING_PLAN_THEN_VARIANT_THEN_DEFAULT";
   revision: string;
-  profiles: readonly [DeliveryProfileSnapshot, ...DeliveryProfileSnapshot[]];
+  profiles: readonly [
+    DeliveryProfileSnapshot & Readonly<{ status: "ACTIVE" }>,
+    ...(DeliveryProfileSnapshot & Readonly<{ status: "ACTIVE" }>)[],
+  ];
 }
 
 export type DeliveryRateFallbackCategory =
@@ -179,7 +210,7 @@ export type DeliveryRateFailurePolicy =
   | Readonly<{ mode: "OMIT_PROVIDER_RATES" }>
   | Readonly<{ mode: "FAIL_GROUP" }>
   | Readonly<{
-      mode: "USE_METHOD_FALLBACK";
+      mode: "USE_BACKUP_RATE";
       categories: readonly [
         DeliveryRateFallbackCategory,
         ...DeliveryRateFallbackCategory[],
@@ -191,9 +222,21 @@ export interface DeliveryEligibilitySnapshot {
   eligibilityRevision: string;
   organizationId: string;
   storeId: string;
+  currencyCode: string;
   profileSetRevision: string;
   profileId: string;
   profileRevision: number;
+  assignmentMatch:
+    | Readonly<{
+        matchedBy: "DEFAULT";
+        assignmentSetId: null;
+        assignmentRevision: null;
+      }>
+    | Readonly<{
+        matchedBy: "SELLING_PLAN" | "VARIANT";
+        assignmentSetId: string;
+        assignmentRevision: string;
+      }>;
   locationGroupId: string;
   locationGroupRevision: number;
   zoneId: string;

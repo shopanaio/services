@@ -6,18 +6,12 @@ export interface DeliveryLifecyclePort {
   configureProviderAccount(
     params: Delivery.ConfigureDeliveryProviderAccountParams,
   ): Promise<Delivery.ConfigureDeliveryProviderAccountResult>;
-  setProviderAccountStatus(
-    params: Delivery.SetDeliveryProviderAccountStatusParams,
-  ): Promise<Delivery.SetDeliveryProviderAccountStatusResult>;
+  setProviderCapabilityStatus(
+    params: Delivery.SetDeliveryProviderCapabilityStatusParams,
+  ): Promise<Delivery.SetDeliveryProviderCapabilityStatusResult>;
   getProviderAccount(
     params: Delivery.GetDeliveryProviderAccountParams,
   ): Promise<Delivery.GetDeliveryProviderAccountResult>;
-  searchPickupLocations(
-    params: Delivery.SearchDeliveryPickupLocationsParams,
-  ): Promise<Delivery.SearchDeliveryPickupLocationsResult>;
-  resolvePickupLocation(
-    params: Delivery.ResolveDeliveryPickupLocationParams,
-  ): Promise<Delivery.ResolveDeliveryPickupLocationResult>;
   createShipment(
     params: Delivery.CreateDeliveryShipmentParams,
   ): Promise<Delivery.CreateDeliveryShipmentResult>;
@@ -59,18 +53,12 @@ export interface DeliveryLifecycleActionsContract {
   configureDeliveryProviderAccount(
     params: Delivery.ConfigureDeliveryProviderAccountParams,
   ): Promise<Delivery.ConfigureDeliveryProviderAccountResult>;
-  setDeliveryProviderAccountStatus(
-    params: Delivery.SetDeliveryProviderAccountStatusParams,
-  ): Promise<Delivery.SetDeliveryProviderAccountStatusResult>;
+  setDeliveryProviderCapabilityStatus(
+    params: Delivery.SetDeliveryProviderCapabilityStatusParams,
+  ): Promise<Delivery.SetDeliveryProviderCapabilityStatusResult>;
   getDeliveryProviderAccount(
     params: Delivery.GetDeliveryProviderAccountParams,
   ): Promise<Delivery.GetDeliveryProviderAccountResult>;
-  searchDeliveryPickupLocations(
-    params: Delivery.SearchDeliveryPickupLocationsParams,
-  ): Promise<Delivery.SearchDeliveryPickupLocationsResult>;
-  resolveDeliveryPickupLocation(
-    params: Delivery.ResolveDeliveryPickupLocationParams,
-  ): Promise<Delivery.ResolveDeliveryPickupLocationResult>;
   createDeliveryShipment(
     params: Delivery.CreateDeliveryShipmentParams,
   ): Promise<Delivery.CreateDeliveryShipmentResult>;

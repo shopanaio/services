@@ -5,16 +5,12 @@ import type { DeliveryOptionBindingCandidate } from "./ports.js";
 export interface DeliveryProviderExecutionPolicySnapshot {
   revision: string;
   timeoutMs: number;
-  maxAttempts: number;
+  /** Shopify Carrier Service semantics: one callback attempt, no retries. */
+  maxAttempts: 1;
   maxConcurrentRequests: number;
-  retryableCategories: readonly (
-    | "PROVIDER_UNAVAILABLE"
-    | "TIMEOUT"
-    | "RATE_LIMITED"
-    | "UNKNOWN"
-  )[];
+  retryableCategories: readonly [];
   cache: Readonly<{
-    /** Provider quote tokens are never reused across checkout/request identities. */
+    /** Successful snapshots are reused only for the identical checkout request. */
     mode: "NONE" | "IDEMPOTENT_REQUEST";
     maxAgeSeconds: number;
   }>;
@@ -23,7 +19,7 @@ export interface DeliveryProviderExecutionPolicySnapshot {
 export interface DeliveryProviderExecutionPolicyPort {
   resolve(input: Readonly<{
     storeId: string;
-    providerAccountId: string;
+    carrierServiceAccountId: string;
     operation: "quoteRates";
   }>): Promise<DeliveryProviderExecutionPolicySnapshot>;
 }
@@ -34,16 +30,18 @@ export interface DeliveryRateCachePort {
     checkoutId: string;
     checkoutVersion: number;
     quoteRequestId: string;
-    providerAccountId: string;
+    carrierServiceAccountId: string;
     routeRevision: string;
-    configurationRevision: string;
+    carrierServiceConfigurationRevision: string;
+    executionPolicyRevision: string;
     eligibilityRevision: string;
     ratedFactsHash: string;
     effectiveAt: string;
   }>): Promise<
     | Readonly<{
         status: "HIT";
-        result: Delivery.DeliveryProviderRateResult;
+        /** Only successful provider responses, including an empty no-service result, are cacheable. */
+        result: Delivery.DeliveryCarrierServiceRateResult;
         cachedAt: string;
         expiresAt: string;
       }>
@@ -54,14 +52,16 @@ export interface DeliveryRateCachePort {
     checkoutId: string;
     checkoutVersion: number;
     quoteRequestId: string;
-    providerAccountId: string;
+    carrierServiceAccountId: string;
     routeRevision: string;
-    configurationRevision: string;
+    carrierServiceConfigurationRevision: string;
+    executionPolicyRevision: string;
     eligibilityRevision: string;
     ratedFactsHash: string;
     effectiveAt: string;
-    result: Delivery.DeliveryProviderRateResult;
+    result: Delivery.DeliveryCarrierServiceRateResult;
     cachedAt: string;
+    /** Must not exceed the execution policy maxAge. */
     expiresAt: string;
   }>): Promise<void>;
 }
@@ -71,15 +71,15 @@ export interface DeliveryRateOptionsResult {
   groupId: string;
   eligibilityRevision: string;
   options: readonly DeliveryOptionBindingCandidate[];
-  providerExecutions: readonly Delivery.DeliveryCheckoutProviderExecution[];
+  carrierServiceExecutions: readonly Delivery.DeliveryCheckoutCarrierServiceExecution[];
   issues: readonly Delivery.DeliveryCheckoutIssue[];
 }
 
-/** Aggregates static methods and eligible provider rates for exactly one group. */
+/** Aggregates manual methods and eligible carrier-service rates for one group. */
 export interface DeliveryRateAggregationPort {
   calculate(input: Readonly<{
     request: CalculateDeliveryOptionsParams;
-    group: Delivery.DeliveryProviderRateRequest;
+    group: Delivery.DeliveryCarrierServiceRateRequest;
     eligibility: Delivery.DeliveryEligibilitySnapshot;
     executionPolicy: DeliveryProviderExecutionPolicySnapshot;
   }>): Promise<DeliveryRateOptionsResult>;

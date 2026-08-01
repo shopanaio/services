@@ -149,6 +149,7 @@ export namespace PaymentEvents {
   }
 
   export interface CollectionStateChanged {
+    schemaVersion: 1;
     paymentCollectionId: string;
     organizationId: string;
     storeId: string;
@@ -238,6 +239,7 @@ export namespace PaymentEvents {
   }
 
   export interface DisputeChanged {
+    schemaVersion: 1;
     paymentDisputeId: string;
     paymentCollectionId: string;
     paymentSessionId: string;
@@ -271,6 +273,7 @@ export const DeliveryEventTypes = {
 
 export namespace DeliveryEvents {
   export interface Base {
+    schemaVersion: 1;
     eventId: string;
     causationId: string;
     correlationId: string;
@@ -280,11 +283,14 @@ export namespace DeliveryEvents {
     storeId: string;
     checkoutId: string;
     orderId: string;
-    fulfillmentId: string;
+    fulfillmentOrderId: string;
     providerCode: string;
     providerAccountId: string;
     providerShipmentReference: string | null;
-    route: DeliveryProviderRouteSnapshot;
+    route: Extract<
+      DeliveryProviderRouteSnapshot,
+      Readonly<{ capability: "delivery.shipment-provider" }>
+    >;
     operationType: DeliveryShipmentOperationType | null;
     shipmentRevision: number;
     occurredAt: string;

@@ -297,17 +297,19 @@ export interface PricingCheckoutCanonicalDeliveryIntent {
   unassignedPhysicalLineIds: readonly string[];
 }
 
-export type PricingCheckoutDeliveryMethodType = "PICKUP" | "SHIPPING";
-export type PricingCheckoutShippingPaymentModel =
-  | "MERCHANT_COLLECTED"
-  | "CARRIER_DIRECT";
+export type PricingCheckoutDeliveryMethodType =
+  | "LOCAL"
+  | "NONE"
+  | "PICK_UP"
+  | "PICKUP_POINT"
+  | "RETAIL"
+  | "SHIPPING";
 
 export interface PricingCheckoutDeliveryOption {
   handle: string;
   code: string;
-  providerCode: string | null;
+  carrierCode: string | null;
   deliveryMethodType: PricingCheckoutDeliveryMethodType;
-  shippingPaymentModel: PricingCheckoutShippingPaymentModel;
   cost: PricingCheckoutMoney;
 }
 

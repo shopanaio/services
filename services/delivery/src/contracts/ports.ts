@@ -11,11 +11,10 @@ export interface DeliveryProviderAppsPort {
   listRoutes(
     params: Apps.ListDeliveryProviderRoutesParams,
   ): Promise<readonly Delivery.DeliveryProviderRouteSnapshot[]>;
-  resolveRoute(input: Readonly<{
-    storeId: string;
-    installationId: string;
-    operation: Delivery.DeliveryProviderOperation;
-  }>): Promise<Delivery.DeliveryProviderRouteSnapshot | null>;
+  resolveRoute(
+    input: Apps.ListDeliveryProviderRoutesParams &
+      Readonly<{ installationId: string }>,
+  ): Promise<Delivery.DeliveryProviderRouteSnapshot | null>;
   resolvePinnedRoute(input: Readonly<{
     storeId: string;
     pinned: Delivery.DeliveryProviderRouteSnapshot;
@@ -36,36 +35,72 @@ export interface DeliveryProviderAppsPort {
         code: "APP_UNINSTALLED" | "ROUTE_REMOVED" | "PROTOCOL_INCOMPATIBLE";
       }>
   >;
-  validateConfiguration(
-    route: Delivery.DeliveryProviderRouteSnapshot,
-    request: Delivery.DeliveryProviderConfigurationValidationRequest,
-  ): Promise<Delivery.DeliveryProviderConfigurationValidationResult>;
+  validateCarrierServiceConfiguration(
+    route: Extract<
+      Delivery.DeliveryProviderRouteSnapshot,
+      Readonly<{
+        capability: "delivery.carrier-service";
+        operation: "validateCarrierServiceConfiguration";
+      }>
+    >,
+    request: Delivery.DeliveryProviderConfigurationValidationRequest<
+      "delivery.carrier-service"
+    >,
+  ): Promise<
+    Delivery.DeliveryProviderConfigurationValidationResult<"delivery.carrier-service">
+  >;
+  validateShipmentConfiguration(
+    route: Extract<
+      Delivery.DeliveryProviderRouteSnapshot,
+      Readonly<{
+        capability: "delivery.shipment-provider";
+        operation: "validateShipmentConfiguration";
+      }>
+    >,
+    request: Delivery.DeliveryProviderConfigurationValidationRequest<
+      "delivery.shipment-provider"
+    >,
+  ): Promise<
+    Delivery.DeliveryProviderConfigurationValidationResult<"delivery.shipment-provider">
+  >;
   quoteRates(
-    route: Delivery.DeliveryProviderRouteSnapshot,
-    request: Delivery.DeliveryProviderRateRequest,
-  ): Promise<Delivery.DeliveryProviderRateResult>;
-  searchLocations(
-    route: Delivery.DeliveryProviderRouteSnapshot,
-    request: Delivery.DeliveryProviderLocationSearchRequest,
-  ): Promise<Delivery.DeliveryProviderLocationSearchResult>;
-  resolveLocation(
-    route: Delivery.DeliveryProviderRouteSnapshot,
-    request: Delivery.DeliveryProviderLocationResolveRequest,
-  ): Promise<Delivery.DeliveryProviderLocationResolveResult>;
+    route: Delivery.DeliveryProviderRouteSnapshot &
+      Readonly<{
+        capability: "delivery.carrier-service";
+        operation: "quoteRates";
+      }>,
+    request: Delivery.DeliveryCarrierServiceRateRequest,
+  ): Promise<Delivery.DeliveryCarrierServiceRateResult>;
   createShipment(
-    route: Delivery.DeliveryProviderRouteSnapshot,
+    route: Delivery.DeliveryProviderRouteSnapshot &
+      Readonly<{
+        capability: "delivery.shipment-provider";
+        operation: "createShipment";
+      }>,
     request: Delivery.DeliveryProviderCreateShipmentRequest,
   ): Promise<Delivery.DeliveryProviderShipmentOperationResult<"CREATE">>;
   cancelShipment(
-    route: Delivery.DeliveryProviderRouteSnapshot,
+    route: Delivery.DeliveryProviderRouteSnapshot &
+      Readonly<{
+        capability: "delivery.shipment-provider";
+        operation: "cancelShipment";
+      }>,
     request: Delivery.DeliveryProviderCancelShipmentRequest,
   ): Promise<Delivery.DeliveryProviderShipmentOperationResult<"CANCEL">>;
   getShipment(
-    route: Delivery.DeliveryProviderRouteSnapshot,
+    route: Delivery.DeliveryProviderRouteSnapshot &
+      Readonly<{
+        capability: "delivery.shipment-provider";
+        operation: "getShipment";
+      }>,
     request: Delivery.DeliveryProviderGetShipmentRequest,
   ): Promise<Delivery.DeliveryProviderReconcileShipmentResult>;
   reconcileShipment(
-    route: Delivery.DeliveryProviderRouteSnapshot,
+    route: Delivery.DeliveryProviderRouteSnapshot &
+      Readonly<{
+        capability: "delivery.shipment-provider";
+        operation: "reconcileShipment";
+      }>,
     request: Delivery.DeliveryProviderReconcileShipmentRequest,
   ): Promise<Delivery.DeliveryProviderReconcileShipmentResult>;
 }
@@ -79,13 +114,20 @@ export interface DeliveryProviderAssetPolicySnapshot {
     | "image/png"
     | "application/zpl"
   )[];
+  allowedPorts: readonly number[];
+  /** Redirects are disabled so every fetched authority is policy-checked once. */
+  maxRedirects: 0;
+  networkPolicy: "PUBLIC_IPS_ONLY_DNS_PINNED";
   maxBytes: number;
   fetchTimeoutMs: number;
 }
 
 export interface DeliveryProviderAssetPolicyPort {
   resolve(
-    route: Delivery.DeliveryProviderRouteSnapshot,
+    route: Extract<
+      Delivery.DeliveryProviderRouteSnapshot,
+      Readonly<{ capability: "delivery.shipment-provider" }>
+    >,
   ): Promise<DeliveryProviderAssetPolicySnapshot>;
 }
 
@@ -93,7 +135,10 @@ export interface DeliveryProviderAssetPolicyPort {
 export interface DeliveryProviderAssetsPort {
   ingestLabel(input: Readonly<{
     policy: DeliveryProviderAssetPolicySnapshot;
-    route: Delivery.DeliveryProviderRouteSnapshot;
+    route: Extract<
+      Delivery.DeliveryProviderRouteSnapshot,
+      Readonly<{ capability: "delivery.shipment-provider" }>
+    >;
     providerAccountId: string;
     shipmentId: string;
     providerParcelReference: string;
@@ -101,7 +146,7 @@ export interface DeliveryProviderAssetsPort {
   }>): Promise<
     | Readonly<{
         status: "INGESTED";
-        label: Delivery.DeliveryLabelSnapshot & Readonly<{ mediaId: string }>;
+        label: Delivery.DeliveryLabelSnapshot;
       }>
     | Readonly<{
         status: "REJECTED";
@@ -116,7 +161,10 @@ export interface DeliveryProviderAssetsPort {
 export interface DeliveryProviderObservationNormalizerPort {
   normalize(input: Readonly<{
     current: Delivery.DeliveryShipmentSnapshot;
-    route: Delivery.DeliveryProviderRouteSnapshot;
+    route: Extract<
+      Delivery.DeliveryProviderRouteSnapshot,
+      Readonly<{ capability: "delivery.shipment-provider" }>
+    >;
     parcels: readonly Delivery.DeliveryProviderParcelObservation[];
     events: readonly Delivery.DeliveryProviderTrackingEvent[];
     observedAt: string;
@@ -135,9 +183,38 @@ export interface DeliveryProviderObservationNormalizerPort {
   >;
 }
 
+export interface DeliveryProviderPublicDataPolicySnapshot {
+  revision: string;
+  allowedTopLevelKeys: readonly string[];
+  maxBytes: number;
+}
+
+/** Projects untrusted provider metadata into the only Storefront-safe representation. */
+export interface DeliveryProviderPublicDataPort {
+  resolvePolicy(input: Readonly<{
+    storeId: string;
+    providerAccountId: string;
+  }>): Promise<DeliveryProviderPublicDataPolicySnapshot>;
+  project(input: Readonly<{
+    policy: DeliveryProviderPublicDataPolicySnapshot;
+    providerAccountId: string;
+    data: Pricing.PricingCheckoutJsonObject;
+  }>):
+    | Readonly<{
+        accepted: true;
+        publicData: Pricing.PricingCheckoutJsonObject;
+      }>
+    | Readonly<{
+        accepted: false;
+        code: string;
+        message: string;
+      }>;
+}
+
 export interface DeliveryProviderAccountsPort {
   listActiveForStore(
     storeId: string,
+    capability: "delivery.carrier-service" | "delivery.shipment-provider",
   ): Promise<readonly Delivery.DeliveryProviderAccountSnapshot[]>;
   getById(
     storeId: string,
@@ -165,7 +242,8 @@ export interface DeliveryProviderAccountsPort {
 export interface DeliveryProviderAccountTransitionPolicyPort {
   evaluate(input: Readonly<{
     current: Delivery.DeliveryProviderAccountSnapshot;
-    target: Delivery.DeliveryProviderAccountStatus;
+    capability: "delivery.carrier-service" | "delivery.shipment-provider";
+    target: Delivery.DeliveryProviderCapabilityStatus;
   }>):
     | Readonly<{ allowed: true }>
     | Readonly<{ allowed: false; code: string; message: string }>;
@@ -175,16 +253,16 @@ export type DeliveryOptionBindingCandidate =
   | Readonly<{
       option: Extract<
         Delivery.DeliveryCheckoutOption,
-        Readonly<{ source: "PROVIDER" }>
+        Readonly<{ source: "CARRIER_SERVICE" }>
       >;
-      binding: Delivery.DeliveryProviderOptionBindingSnapshot;
+      binding: Delivery.DeliveryCarrierServiceOptionBindingSnapshot;
     }>
   | Readonly<{
       option: Extract<
         Delivery.DeliveryCheckoutOption,
-        Readonly<{ source: "STATIC" }>
+        Readonly<{ source: "MANUAL" }>
       >;
-      binding: Delivery.DeliveryStaticOptionBindingSnapshot;
+      binding: Delivery.DeliveryManualRateOptionBindingSnapshot;
     }>;
 
 export type DeliveryOptionBindingResolution =
@@ -196,9 +274,46 @@ export type DeliveryOptionBindingResolution =
       status: "NOT_FOUND" | "EXPIRED" | "DELIVERY_REVISION_MISMATCH";
     }>;
 
+export type DeliveryCommittedSelectionResolution =
+  | Readonly<{
+      status: "COMMITTED";
+      deliveryMethod: Delivery.DeliveryCommittedMethodSnapshot;
+      duplicate: boolean;
+    }>
+  | Readonly<{
+      status:
+        | "NOT_FOUND"
+        | "EXPIRED"
+        | "CHECKOUT_VERSION_MISMATCH"
+        | "DELIVERY_REVISION_MISMATCH"
+        | "CUSTOMER_INPUT_INVALID";
+      code: string;
+      message: string;
+    }>;
+
+export interface DeliveryCustomerInputSchemaPolicySnapshot {
+  revision: string;
+  maxSchemaBytes: number;
+  maxInputBytes: number;
+  maxReferenceDepth: number;
+  maxEvaluationSteps: number;
+  /** Regex-bearing JSON Schema keywords are forbidden at the provider boundary. */
+  allowRegexKeywords: false;
+}
+
+export interface DeliveryCustomerInputSchemaPolicyPort {
+  resolve(input: Readonly<{
+    storeId: string;
+    providerAccountId: string;
+  }>): Promise<DeliveryCustomerInputSchemaPolicySnapshot>;
+}
+
 /** Draft 2020-12 validation and canonicalization boundary for shopper input. */
 export interface DeliveryCustomerInputValidationPort {
-  normalizeContract(input: Delivery.DeliveryCustomerInputContract):
+  normalizeContract(input: Readonly<{
+    policy: DeliveryCustomerInputSchemaPolicySnapshot;
+    contract: Delivery.DeliveryProviderCustomerInputContract;
+  }>):
     | Readonly<{
         valid: true;
         contract: Delivery.DeliveryCustomerInputContract;
@@ -214,6 +329,7 @@ export interface DeliveryCustomerInputValidationPort {
         }>[];
       }>;
   validate(input: Readonly<{
+    policy: DeliveryCustomerInputSchemaPolicySnapshot;
     contract: Delivery.DeliveryCustomerInputContract | null;
     value: Pricing.PricingCheckoutJsonObject | null;
   }>):
@@ -286,6 +402,22 @@ export interface DeliveryOptionBindingsPort {
     deliveryRevision: string;
     effectiveAt: string;
   }>): Promise<DeliveryOptionBindingResolution>;
+
+  /**
+   * Resolves and validates an expiring checkout option exactly once at checkout
+   * completion, then returns the immutable Orders-owned delivery method snapshot.
+   */
+  commitSelection(input: Readonly<{
+    storeId: string;
+    checkoutId: string;
+    checkoutVersion: number;
+    groupId: string;
+    optionHandle: string;
+    deliveryRevision: string;
+    customerInput: Pricing.PricingCheckoutJsonObject | null;
+    effectiveAt: string;
+    idempotencyKey: string;
+  }>): Promise<DeliveryCommittedSelectionResolution>;
 }
 
 export interface DeliveryIdempotencyPort {
@@ -303,7 +435,7 @@ export interface DeliveryShipmentTransitionPolicyPort {
     observedState: Delivery.DeliveryProviderObservedShipmentState;
     occurredAt: string;
     providerEventId: string;
-    providerSequence: string | null;
+    providerShipmentSequence: string | null;
   }>):
     | Readonly<{ status: "APPLY"; nextState: Delivery.DeliveryShipmentState }>
     | Readonly<{ status: "IGNORE_STALE"; currentState: Delivery.DeliveryShipmentState }>
@@ -318,7 +450,7 @@ export interface DeliveryProviderInboxRecord {
   storeId: string;
   providerAccountId: string;
   providerEventId: string;
-  providerSequence: string | null;
+  providerShipmentSequence: string | null;
   eventHash: string;
   occurredAt: string;
 }

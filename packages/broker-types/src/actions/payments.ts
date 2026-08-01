@@ -1,7 +1,4 @@
-import type {
-  DeliveryCheckoutMethodType,
-  DeliveryCheckoutShippingPaymentModel,
-} from "./delivery.js";
+import type { DeliveryCheckoutMethodType } from "./delivery.js";
 import type {
   FinalizeCheckoutPricingQuoteResult,
   PricingCheckoutEvaluationContext,
@@ -118,9 +115,8 @@ export interface PaymentsCheckoutDestinationSnapshot {
 export interface PaymentsCheckoutSelectedDeliveryOption {
   handle: string;
   code: string;
-  providerCode: string | null;
+  carrierCode: string | null;
   deliveryMethodType: DeliveryCheckoutMethodType;
-  shippingPaymentModel: DeliveryCheckoutShippingPaymentModel;
   cost: PricingCheckoutMoney;
 }
 
@@ -734,8 +730,7 @@ export interface PaymentProviderMethodDiscoveryRequest {
   channelCode: string;
   buyerCountryCode: string | null;
   deliveryCountryCodes: readonly string[];
-  selectedDeliveryProviderCodes: readonly string[];
-  shippingPaymentModels: readonly DeliveryCheckoutShippingPaymentModel[];
+  selectedDeliveryCarrierCodes: readonly string[];
 }
 
 export interface PaymentProviderMethodDefinition {

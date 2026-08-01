@@ -5,18 +5,9 @@ export const DeliveryProviderExecutionPolicySnapshotSchema = z
   .object({
     revision: z.string().trim().min(1).max(512),
     timeoutMs: z.number().int().safe().min(50).max(30_000),
-    maxAttempts: z.number().int().safe().min(1).max(5),
+    maxAttempts: z.literal(1),
     maxConcurrentRequests: z.number().int().safe().min(1).max(100),
-    retryableCategories: z
-      .array(
-        z.enum([
-          "PROVIDER_UNAVAILABLE",
-          "TIMEOUT",
-          "RATE_LIMITED",
-          "UNKNOWN",
-        ]),
-      )
-      .max(4),
+    retryableCategories: z.tuple([]),
     cache: z
       .object({
         mode: z.enum(["NONE", "IDEMPOTENT_REQUEST"]),
@@ -26,16 +17,6 @@ export const DeliveryProviderExecutionPolicySnapshotSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (
-      new Set(value.retryableCategories).size !==
-      value.retryableCategories.length
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["retryableCategories"],
-        message: "Retryable failure categories must be unique",
-      });
-    }
     if (value.cache.mode === "NONE" && value.cache.maxAgeSeconds !== 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

@@ -153,9 +153,8 @@ export function toCheckoutPricingDeliverySnapshot(
       options: group.options.map((option) => ({
         handle: option.handle,
         code: option.code,
-        providerCode: option.provider?.code ?? null,
+        carrierCode: option.carrier?.code ?? null,
         deliveryMethodType: option.deliveryMethodType,
-        shippingPaymentModel: option.shippingPaymentModel,
         cost: option.cost,
       })),
       selectedOptionHandle:
@@ -222,9 +221,8 @@ function toPaymentSelectedOption(
     : {
         handle: option.handle,
         code: option.code,
-        providerCode: option.provider?.code ?? null,
+        carrierCode: option.carrier?.code ?? null,
         deliveryMethodType: option.deliveryMethodType,
-        shippingPaymentModel: option.shippingPaymentModel,
         cost: option.cost,
       };
 }
@@ -474,9 +472,7 @@ function assertDeliveryTotal(
     const selected = group.options.find(
       ({ handle }) => handle === group.selectedOptionHandle,
     );
-    if (
-      selected?.shippingPaymentModel === "MERCHANT_COLLECTED"
-    ) {
+    if (selected !== undefined) {
       maximumMerchantCollectedTotal += BigInt(selected.cost.amountMinor);
     }
   }

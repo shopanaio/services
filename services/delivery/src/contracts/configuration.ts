@@ -13,22 +13,58 @@ export interface DeliveryProfilesPort {
     storeId: string,
     profileId: string,
   ): Promise<Delivery.DeliveryProfileSnapshot | null>;
-  save(input: Readonly<{
-    profile: Delivery.DeliveryProfileSnapshot;
+  saveInactiveProfile(input: Readonly<{
+    profile: Delivery.DeliveryProfileSnapshot &
+      Readonly<{ status: "INACTIVE" }>;
     expectedProfileRevision: number | null;
-    expectedProfileSetRevision: string;
   }>): Promise<
     | Readonly<{
         status: "SAVED";
-        profile: Delivery.DeliveryProfileSnapshot;
-        profileSetRevision: string;
+        profile: Delivery.DeliveryProfileSnapshot &
+          Readonly<{ status: "INACTIVE" }>;
       }>
     | Readonly<{
         status: "PROFILE_REVISION_CONFLICT";
         current: Delivery.DeliveryProfileSnapshot;
       }>
+  >;
+  /**
+   * Replaces the complete active graph in one CAS-protected transaction.
+   * The transaction must verify every referenced assignment set revision and reject
+   * variant or selling-plan membership shared by multiple active profiles.
+   */
+  replaceActiveProfileSet(input: Readonly<{
+    profileSet: Delivery.DeliveryProfileSetSnapshot;
+    expectedProfileSetRevision: string | null;
+  }>): Promise<
+    | Readonly<{
+        status: "SAVED";
+        profileSet: Delivery.DeliveryProfileSetSnapshot;
+      }>
     | Readonly<{
         status: "PROFILE_SET_REVISION_CONFLICT";
+        current: Delivery.DeliveryProfileSetSnapshot;
+      }>
+  >;
+}
+
+/** Indexed lookup boundary for assignment sets that may contain millions of variants. */
+export interface DeliveryProfileAssignmentsPort {
+  resolve(input: Readonly<{
+    storeId: string;
+    variantId: string;
+    sellingPlanGroupId: string | null;
+    activeProfileSetRevision: string;
+  }>): Promise<
+    | Readonly<{
+        status: "MATCHED";
+        profileId: string;
+        assignmentSetId: string | null;
+        assignmentRevision: string | null;
+        matchedBy: "SELLING_PLAN" | "VARIANT" | "DEFAULT";
+      }>
+    | Readonly<{
+        status: "PROFILE_SET_REVISION_MISMATCH";
         currentProfileSetRevision: string;
       }>
   >;

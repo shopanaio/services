@@ -118,8 +118,9 @@ export {
 export * as Delivery from "./delivery.js";
 export {
   DELIVERY_PROVIDER_APP_PERMISSIONS,
-  DELIVERY_PROVIDER_CAPABILITY,
+  DELIVERY_SHIPMENT_PROVIDER_CAPABILITY,
   DELIVERY_PROVIDER_PROTOCOL_VERSION,
+  DELIVERY_CARRIER_SERVICE_CAPABILITY,
   DELIVERY_CUSTOMIZATION_MAX_EXECUTIONS,
   DELIVERY_CUSTOMIZATION_MAX_OPERATIONS,
   DELIVERY_CUSTOMIZATION_FUNCTION_TARGET,
@@ -128,7 +129,7 @@ export {
   DeliveryCheckoutActionNames,
   DeliveryCheckoutActions,
   DeliveryProviderOperations,
-  DeliveryProviderAccountTransitions,
+  DeliveryProviderCapabilityTransitions,
   DeliveryShipmentTransitions,
 } from "./delivery.js";
 export type * from "./delivery.js";
@@ -266,7 +267,6 @@ export type {
   PricingCheckoutPreliminaryTotals,
   PricingCheckoutPurchaseType,
   PricingCheckoutQuotedLine,
-  PricingCheckoutShippingPaymentModel,
   PricingCheckoutSourceLineResolution,
   PricingCheckoutStageProvenance,
   PricingCheckoutTotals,
