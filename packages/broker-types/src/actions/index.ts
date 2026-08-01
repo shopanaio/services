@@ -79,10 +79,22 @@ export type {
 // Catalog service actions
 export * as Catalog from "./catalog.js";
 export {
+  CATALOG_CHECKOUT_MERCHANDISE_MAX_LINES,
+  CATALOG_CHECKOUT_MERCHANDISE_MAX_NESTING_DEPTH,
+  CatalogCheckoutActionNames,
+  CatalogCheckoutActions,
   CatalogFacetCandidateActionNames,
   CatalogFacetCandidateActions,
 } from "./catalog.js";
 export type {
+  CheckoutComponentPriceRuleSnapshot,
+  CheckoutMerchandiseAvailabilitySnapshot,
+  CheckoutMerchandiseComponentConfigurationSnapshot,
+  CheckoutMerchandiseComponentSelectionSnapshot,
+  CheckoutMerchandiseLineRejectionCode,
+  CheckoutMerchandiseMoney,
+  CheckoutMerchandisePriceSnapshot,
+  CheckoutMerchandiseTargetingSnapshot,
   CatalogProductAvailabilitySnapshot,
   CatalogProductAvailabilitySnapshotField,
   CatalogProductAvailabilitySnapshotSelection,
@@ -159,6 +171,12 @@ export type {
   ProductSnapshotField,
   ProductSnapshotPopulate,
   ProductSnapshotSelection,
+  ResolvedCheckoutMerchandiseLine,
+  ResolveCheckoutMerchandiseErrorCode,
+  ResolveCheckoutMerchandiseLineInput,
+  ResolveCheckoutMerchandiseLineResolution,
+  ResolveCheckoutMerchandiseParams,
+  ResolveCheckoutMerchandiseResult,
 } from "./catalog.js";
 
 // Listing service actions

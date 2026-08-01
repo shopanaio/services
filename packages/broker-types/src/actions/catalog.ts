@@ -24,6 +24,180 @@ export type CatalogQueryErrorCode =
   | "CATALOG_STORE_NOT_FOUND"
   | "CATALOG_PRODUCT_READ_QUERY_FAILED";
 
+/** Checkout-oriented Catalog reads. These actions never calculate discounts. */
+export const CATALOG_CHECKOUT_MERCHANDISE_MAX_LINES = 250;
+export const CATALOG_CHECKOUT_MERCHANDISE_MAX_NESTING_DEPTH = 8;
+
+export const CatalogCheckoutActionNames = {
+  resolveMerchandise: "resolveCheckoutMerchandise",
+} as const;
+
+export const CatalogCheckoutActions = {
+  resolveMerchandise: `catalog.${CatalogCheckoutActionNames.resolveMerchandise}`,
+} as const;
+
+/**
+ * One cart line to resolve. `variantId` is intentionally explicit: checkout
+ * merchandise is a purchasable variant, not an ambiguous product/variant ID.
+ */
+export interface ResolveCheckoutMerchandiseLineInput {
+  lineId: string;
+  variantId: string;
+  /** Null for roots; required for nested lines to identify the exact item. */
+  componentSelection: { componentItemId: string } | null;
+  /**
+   * Root quantity is the absolute cart quantity. Nested quantity is the number
+   * of component units required per one unit of its parent.
+   */
+  quantity: number;
+  children: ResolveCheckoutMerchandiseLineInput[];
+}
+
+export interface ResolveCheckoutMerchandiseParams {
+  storeId: string;
+  currencyCode: string;
+  localeCode: string | null;
+  /** Immutable business-time boundary for publication and effective prices. */
+  effectiveAt: string;
+  lines: ResolveCheckoutMerchandiseLineInput[];
+}
+
+export interface CheckoutMerchandiseMoney {
+  amountMinor: string;
+  currencyCode: string;
+}
+
+export interface CheckoutMerchandisePriceSnapshot {
+  price: CheckoutMerchandiseMoney;
+  compareAtPrice: CheckoutMerchandiseMoney | null;
+  /** Stable revision of every Catalog row used to resolve this price. */
+  revision: string;
+}
+
+export interface CheckoutMerchandiseAvailabilitySnapshot {
+  /**
+   * True when the full effective requested quantity can be sold, or when
+   * inventory is untracked / selling past available stock is allowed.
+   */
+  available: boolean;
+  tracked: boolean;
+  /** Null exactly when inventory is not tracked; otherwise non-negative. */
+  availableQuantity: number | null;
+  continueSellingWhenOutOfStock: boolean;
+  /** Null iff available; OUT_OF_STOCK means zero sellable units. */
+  unavailabilityReason: "OUT_OF_STOCK" | "INSUFFICIENT_STOCK" | null;
+  /** Stable revision of inventory settings and stock rows used by the read. */
+  revision: string;
+}
+
+/** Catalog identities required by native discounts and Commerce Functions. */
+export interface CheckoutMerchandiseTargetingSnapshot {
+  categoryIds: string[];
+  tagIds: string[];
+  featureIds: string[];
+  optionValueIds: string[];
+}
+
+/**
+ * Catalog-owned component pricing instruction. Pricing applies this instruction
+ * when it builds canonical transformed lines; Catalog does not calculate cart
+ * totals or discount allocations.
+ */
+export type CheckoutComponentPriceRuleSnapshot =
+  | { strategy: "BASE" }
+  | { strategy: "FREE" }
+  | {
+      strategy: "OVERRIDE";
+      amount: CheckoutMerchandiseMoney;
+    }
+  | {
+      strategy: "ADJUSTMENT";
+      operation: "DECREASE" | "INCREASE";
+      value:
+        | { type: "FIXED_AMOUNT"; amount: CheckoutMerchandiseMoney }
+        | { type: "PERCENTAGE"; percentageBps: number };
+    };
+
+/** Component configuration owned by the resolved parent variant. */
+export interface CheckoutMerchandiseComponentConfigurationSnapshot {
+  configurationId: string;
+  revision: string;
+}
+
+/** Exact component item selected for a nested resolved variant. */
+export interface CheckoutMerchandiseComponentSelectionSnapshot {
+  configurationId: string;
+  groupId: string;
+  componentItemId: string;
+  revision: string;
+  priceRule: CheckoutComponentPriceRuleSnapshot;
+}
+
+export interface ResolvedCheckoutMerchandiseLine {
+  lineId: string;
+  parentLineId: string | null;
+  variantId: string;
+  productId: string;
+  quantity: number;
+  /** Revision of all non-price merchandise fields in this snapshot. */
+  revision: string;
+  title: string;
+  sku: string | null;
+  imageUrl: string | null;
+  requiresShipping: boolean;
+  requiresComponents: boolean;
+  price: CheckoutMerchandisePriceSnapshot;
+  availability: CheckoutMerchandiseAvailabilitySnapshot;
+  targeting: CheckoutMerchandiseTargetingSnapshot;
+  componentConfiguration: CheckoutMerchandiseComponentConfigurationSnapshot | null;
+  componentSelection: CheckoutMerchandiseComponentSelectionSnapshot | null;
+}
+
+export type CheckoutMerchandiseLineRejectionCode =
+  | "VARIANT_NOT_FOUND"
+  | "PRODUCT_NOT_FOUND"
+  | "PRODUCT_NOT_PUBLISHED"
+  | "PRICE_NOT_FOUND"
+  | "CURRENCY_NOT_SUPPORTED"
+  | "INVALID_COMPONENT_SELECTION";
+
+/** Every requested source line must have exactly one explicit disposition. */
+export type ResolveCheckoutMerchandiseLineResolution =
+  | {
+      status: "RESOLVED";
+      line: ResolvedCheckoutMerchandiseLine;
+    }
+  | {
+      status: "REJECTED";
+      lineId: string;
+      parentLineId: string | null;
+      variantId: string;
+      componentItemId: string | null;
+      code: CheckoutMerchandiseLineRejectionCode;
+      message: string;
+    };
+
+export type ResolveCheckoutMerchandiseErrorCode =
+  | "CATALOG_STORE_NOT_FOUND"
+  | "CHECKOUT_MERCHANDISE_RESOLUTION_FAILED";
+
+export type ResolveCheckoutMerchandiseResult =
+  | {
+      ok: true;
+      /** Includes identity, content, media, physical, component and price rows. */
+      merchandiseRevision: string;
+      /** Includes inventory settings and every stock row used by the batch. */
+      availabilityRevision: string;
+      /** Flat pre-order traversal; every requested line appears exactly once. */
+      lines: ResolveCheckoutMerchandiseLineResolution[];
+    }
+  | {
+      ok: false;
+      code: ResolveCheckoutMerchandiseErrorCode;
+      message: string;
+      retryable: boolean;
+    };
+
 export const CatalogFacetCandidateActionNames = {
   sourceCandidates: "facetSourceCandidates",
   valueCandidates: "facetValueCandidates",

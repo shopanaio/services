@@ -4,7 +4,9 @@ import {
   InjectBroker,
   ServiceBroker,
   Action,
+  ZodSchema,
 } from "@shopana/shared-kernel";
+import { CatalogCheckoutActionNames } from "@shopana/broker-types";
 import type { Catalog } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
 import type { QueryArgs } from "@shopana/type-resolver";
@@ -12,6 +14,7 @@ import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { ServiceQueryResolver } from "../resolvers/service/index.js";
+import { resolveCheckoutMerchandiseParamsSchema } from "./resolveCheckoutMerchandise.schema.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -145,6 +148,36 @@ export class CatalogBrokerActions extends BrokerActions {
         retryable: true,
       };
     }
+  }
+
+  /**
+   * Resolves purchasable variants for Pricing's preliminary checkout quote.
+   *
+   * TODO(checkout-pipeline): batch-load variants and their owning products,
+   * localized content, current price/compare-at price, media, physical flags,
+   * inventory settings and stock, discount targeting identities, and component
+   * configuration. Validate component children and return one explicit
+   * RESOLVED/REJECTED disposition for every input line (including children).
+   * Build deterministic merchandise, price, availability and batch revisions
+   * from the source rows used by the read.
+   *
+   * This action is a Catalog read boundary. It must not apply discounts, run
+   * Commerce Functions, calculate checkout totals, choose delivery/payment
+   * options, or persist checkout state.
+   */
+  @Action(CatalogCheckoutActionNames.resolveMerchandise)
+  @ZodSchema(resolveCheckoutMerchandiseParamsSchema)
+  async resolveCheckoutMerchandise(
+    params: Catalog.ResolveCheckoutMerchandiseParams
+  ): Promise<Catalog.ResolveCheckoutMerchandiseResult> {
+    void params;
+
+    return {
+      ok: false,
+      code: "CHECKOUT_MERCHANDISE_RESOLUTION_FAILED",
+      message: "Checkout merchandise resolution is not implemented",
+      retryable: false,
+    };
   }
 
   @Action("findListingFacetAffectedProducts")
