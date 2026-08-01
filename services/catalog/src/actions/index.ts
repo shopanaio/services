@@ -12,11 +12,6 @@ import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { ServiceQueryResolver } from "../resolvers/service/index.js";
-import {
-  GetOffersScript,
-  type GetOffersParams,
-  type GetOffersResult,
-} from "../scripts/GetOffersScript.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -102,14 +97,6 @@ export class CatalogBrokerActions extends BrokerActions {
     }
 
     return null;
-  }
-
-  /**
-   * Action: getOffers - retrieves inventory offers through an App capability.
-   */
-  @Action("getOffers")
-  async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
-    return this.kernel.runScript(GetOffersScript, params);
   }
 
   @Action("query")

@@ -12,7 +12,7 @@
  *   Apps.ExecuteCapabilityParams
  * >(
  *   "apps.executeCapability",
- *   { storeId, capability: "inventory", operation: "getOffers", input }
+ *   { storeId, capability: "commerce.function", operation: target, input }
  * );
  * ```
  */

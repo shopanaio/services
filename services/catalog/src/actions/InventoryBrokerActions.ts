@@ -10,11 +10,6 @@ import type { Inventory } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Loader } from "../loaders/Loader.js";
-import {
-  GetOffersScript,
-  type GetOffersParams,
-  type GetOffersResult,
-} from "../scripts/GetOffersScript.js";
 import type { VariantCost, CurrencyCode } from "../resolvers/admin/interfaces/index.js";
 import { InventoryItemUpdateScript } from "../scripts/inventory-item/InventoryItemUpdateScript.js";
 import { InventoryItemUpdateDimensionsScript } from "../scripts/inventory-item/InventoryItemUpdateDimensionsScript.js";
@@ -75,14 +70,6 @@ export class InventoryBrokerActions extends BrokerActions {
       store,
     });
     return runWithContext(ctx, fn);
-  }
-
-  /**
-   * Action: getOffers - retrieves inventory offers through an App capability.
-   */
-  @Action("getOffers")
-  async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
-    return this.kernel.runScript(GetOffersScript, params);
   }
 
   /**

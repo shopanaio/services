@@ -15,29 +15,6 @@ export interface FileHardDeletedResult {
 }
 
 // ============================================================================
-// Get Offers Action
-// ============================================================================
-
-export interface GetOffersParams {
-  storeId: string;
-  variantIds: string[];
-}
-
-export interface OfferItem {
-  variantId: string;
-  available: boolean;
-  quantity?: number;
-  price?: {
-    amount: string;
-    currencyCode: string;
-  };
-}
-
-export interface GetOffersResult {
-  offers: OfferItem[];
-}
-
-// ============================================================================
 // Create Item Action
 // ============================================================================
 

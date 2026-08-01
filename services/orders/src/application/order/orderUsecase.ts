@@ -1,11 +1,10 @@
 import type { EventStorePort } from "@src/application/ports/eventStorePort";
 import type { StreamNamePolicyPort } from "@src/application/ports/streamNamePort";
 import type { Logger } from "pino";
-import type { ShippingApiClient, PricingApiClient, InventoryApiClient, CheckoutApiClient } from "@shopana/shared-service-api";
+import type { CheckoutApiClient } from "@shopana/shared-service-api";
 
 import { CreateOrderUseCase } from "@src/application/usecases/orderCreate";
 import { GetOrderByIdUseCase } from "@src/application/usecases/orderGetById";
-import { OrderService } from "@src/application/services/orderService";
 import { OrderReadRepository } from "@src/application/read/orderReadRepository";
 import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
 import type { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
@@ -19,11 +18,7 @@ export class OrderUsecase {
     eventStore: EventStorePort;
     streamNames: StreamNamePolicyPort;
     logger?: Logger;
-    inventory: InventoryApiClient;
-    shippingApiClient: ShippingApiClient;
-    pricingApiClient: PricingApiClient;
     checkoutApiClient: CheckoutApiClient;
-    orderService: OrderService;
     orderReadRepository: OrderReadRepository;
     ordersPiiRepository: OrdersPiiRepository;
     idempotencyRepository: IdempotencyRepository;
@@ -32,11 +27,7 @@ export class OrderUsecase {
       eventStore: deps.eventStore,
       streamNames: deps.streamNames,
       logger: deps.logger,
-      inventory: deps.inventory,
-      shippingApiClient: deps.shippingApiClient,
-      pricingApiClient: deps.pricingApiClient,
       checkoutApiClient: deps.checkoutApiClient,
-      orderService: deps.orderService,
       ordersPiiRepository: deps.ordersPiiRepository,
       idempotencyRepository: deps.idempotencyRepository,
     };

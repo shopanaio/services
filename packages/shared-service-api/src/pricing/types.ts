@@ -28,23 +28,9 @@ export type ValidateDiscountResponse = Readonly<{
 }>;
 
 /**
- * Response for getting all discounts
- */
-export type GetAllDiscountsResponse = Readonly<{
-  discounts: Discount[];
-  warnings?: { [code: string]: string }[];
-}>;
-
-/**
  * High-level client interface for the pricing service.
  */
 export interface PricingApiClient {
-  /**
-   * Fetch all available discounts for a project (tenant).
-   * Store ID and API key are obtained from correlation context.
-   */
-  getProjectDiscounts(): Promise<Discount[]>;
-
   /**
    * Validate a discount code and get discount details.
    * Store ID and API key are obtained from correlation context.

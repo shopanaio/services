@@ -1,11 +1,9 @@
 import type { BrokerLike } from "../broker";
 import type {
   PricingApiClient,
-  GetAllDiscountsResponse,
   ValidateDiscountResponse,
   PricingEvaluateDiscountsInput,
   PricingEvaluateDiscountsResult,
-  Discount,
 } from "./types";
 
 export class PricingClient implements PricingApiClient {
@@ -13,14 +11,6 @@ export class PricingClient implements PricingApiClient {
 
   constructor(broker: BrokerLike) {
     this.broker = broker;
-  }
-
-  /** @inheritdoc */
-  async getProjectDiscounts(): Promise<Discount[]> {
-    const data = (await this.broker.call(
-      "pricing.getProjectDiscounts"
-    )) as GetAllDiscountsResponse;
-    return data.discounts ?? [];
   }
 
   /** @inheritdoc */

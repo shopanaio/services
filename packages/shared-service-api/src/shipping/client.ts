@@ -5,11 +5,8 @@ import type {
   CreateDeliveryGroupsInput,
   CreateDeliveryGroupsResponse,
   DeliveryGroup,
-  GetPaymentMethodsInput,
-  GetPaymentMethodsResponse,
   ShippingMethod,
 } from "./types";
-import type { PaymentMethod } from "../payment/types.js";
 
 export class ShippingClient implements ShippingApiClient {
   private readonly broker: BrokerLike;
@@ -43,13 +40,4 @@ export class ShippingClient implements ShippingApiClient {
     return data.groups ?? [];
   }
 
-  /** @inheritdoc */
-  async getPaymentMethods(input: GetPaymentMethodsInput): Promise<PaymentMethod[]> {
-    const data = (await this.broker.call(
-      "shipping.paymentMethods",
-      input
-    )) as GetPaymentMethodsResponse;
-
-    return data.methods ?? [];
-  }
 }

@@ -10,8 +10,7 @@ import {
 import type { OrderEvent } from "@src/domain/order/events";
 import { OrderEventsContractVersion } from "@src/domain/order/events";
 import { Order } from "@src/domain/order/model";
-import type { ShippingApiClient, PricingApiClient, InventoryApiClient, CheckoutApiClient } from "@shopana/shared-service-api";
-import { OrderService } from "@src/application/services/orderService";
+import type { CheckoutApiClient } from "@shopana/shared-service-api";
 import {
   ConcurrencyError,
   ValidationError,
@@ -31,16 +30,8 @@ export interface UseCaseDependencies {
   streamNames: StreamNamePolicyPort;
   /** Optional logger instance for debugging and monitoring */
   logger?: Logger;
-  /** Shipping API client for interacting with the shipping service */
-  shippingApiClient: ShippingApiClient;
-  /** Pricing API client for interacting with the pricing service */
-  pricingApiClient: PricingApiClient;
-  /** Inventory API client for interacting with the inventory service */
-  inventory: InventoryApiClient;
   /** Checkout API client for interacting with the checkout service */
   checkoutApiClient: CheckoutApiClient;
-  /** Order service for professional totals computation and pricing validation */
-  orderService: OrderService;
   /** Repository for persisting Order PII in dedicated tables */
   ordersPiiRepository: OrdersPiiRepository;
   /** Idempotency repository for API-level deduplication */
@@ -62,16 +53,8 @@ export abstract class UseCase<TInput = any, TOutput = any> {
   protected readonly streamNames: StreamNamePolicyPort;
   /** Logger instance for debugging and monitoring */
   protected readonly logger: Pick<Logger, "info" | "warn" | "error" | "debug">;
-  /** Shipping API client for interacting with the shipping service */
-  protected readonly shippingApi: ShippingApiClient;
-  /** Pricing API client for interacting with the pricing service */
-  protected readonly pricingApi: PricingApiClient;
-  /** Inventory API client for interacting with the inventory service */
-  protected readonly inventory: InventoryApiClient;
   /** Checkout API client */
   protected readonly checkoutApi: CheckoutApiClient;
-  /** Order service for totals/pricing */
-  protected readonly orderService: OrderService;
   /** PII repository */
   protected readonly ordersPiiRepository: OrdersPiiRepository;
   /** Idempotency repository */
@@ -85,11 +68,7 @@ export abstract class UseCase<TInput = any, TOutput = any> {
     this.store = deps.eventStore;
     this.streamNames = deps.streamNames;
     this.logger = deps.logger ?? console;
-    this.shippingApi = deps.shippingApiClient;
-    this.pricingApi = deps.pricingApiClient;
-    this.inventory = deps.inventory;
     this.checkoutApi = deps.checkoutApiClient;
-    this.orderService = deps.orderService;
     this.ordersPiiRepository = deps.ordersPiiRepository;
     this.idempotencyRepository = deps.idempotencyRepository;
   }

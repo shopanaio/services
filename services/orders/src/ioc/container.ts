@@ -12,7 +12,6 @@ import { OrderLineItemsReadRepository } from "@src/application/read/orderLineIte
 import { OrderReadRepository as AppOrderReadRepository } from "@src/application/read/orderReadRepository";
 import { createServiceApi } from "@shopana/shared-service-api";
 import type { ServiceApi } from "@shopana/shared-service-api";
-import { OrderService } from "@src/application/services/orderService";
 import type { ServiceBroker } from "@shopana/shared-kernel";
 import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
 import { OrderNumberRepository } from "@src/infrastructure/orderNumber/orderNumberRepository";
@@ -31,7 +30,6 @@ export class App {
   public readModelRepository!: InfraOrderReadRepository;
   public lineItemsReadRepository!: OrderLineItemsReadRepository;
   public orderReadRepository!: AppOrderReadRepository;
-  public orderService!: OrderService;
   public orderUsecase!: OrderUsecase;
   public ordersPiiRepository!: OrdersPiiRepository;
   public orderNumberRepository!: OrderNumberRepository;
@@ -71,21 +69,13 @@ export class App {
       app.readModelRepository,
       app.lineItemsReadRepository
     );
-    app.orderService = new OrderService(
-      app.serviceApi.pricing,
-      app.serviceApi.inventory
-    );
     app.ordersPiiRepository = new OrdersPiiRepository();
     app.orderNumberRepository = new OrderNumberRepository();
     app.orderUsecase = new OrderUsecase({
       eventStore: app.eventStore,
       streamNames: app.streamNames,
       logger: app.logger,
-      inventory: app.serviceApi.inventory,
-      shippingApiClient: app.serviceApi.shipping,
-      pricingApiClient: app.serviceApi.pricing,
       checkoutApiClient: app.serviceApi.checkout,
-      orderService: app.orderService,
       orderReadRepository: app.orderReadRepository,
       ordersPiiRepository: app.ordersPiiRepository,
       idempotencyRepository: app.idempotencyRepository,

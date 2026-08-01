@@ -1,5 +1,3 @@
-// GetOffers script
-export * from './GetOffersScript.js';
 
 // Product scripts
 export * from './product/index.js';

@@ -254,9 +254,6 @@ export * as Inventory from "./inventory.js";
 export type {
   FileHardDeletedParams,
   FileHardDeletedResult,
-  GetOffersParams,
-  OfferItem,
-  GetOffersResult,
   CreateItemParams,
   CreateItemResult,
   DeleteItemByVariantIdParams,

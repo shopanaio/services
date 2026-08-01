@@ -2,7 +2,6 @@ import {
   DeliveryMethodType,
   ShippingPaymentModel,
 } from "@shopana/checkout-sdk";
-import type { PaymentMethod } from "../payment/types.js";
 
 export { DeliveryMethodType, ShippingPaymentModel };
 
@@ -47,10 +46,6 @@ export interface ShippingApiClient {
     input: CreateDeliveryGroupsInput
   ): Promise<DeliveryGroup[]>;
 
-  /**
-   * Fetch payment methods exposed by the shipping service.
-   */
-  getPaymentMethods(input: GetPaymentMethodsInput): Promise<PaymentMethod[]>;
 }
 
 /**
@@ -95,21 +90,4 @@ export type CreateDeliveryGroupsResponse = Readonly<{
   groups: DeliveryGroup[];
   /** Optional warnings describing non-critical issues. */
   warnings?: Array<{ code: string; message: string }>;
-}>;
-
-/**
- * Raw response shape returned by the shipping service for payment methods endpoint.
- */
-export type GetPaymentMethodsResponse = Readonly<{
-  methods: PaymentMethod[];
-  warnings?: Array<{ code: string; message: string }>;
-}>;
-
-/**
- * Input for getting payment methods from the shipping service.
- */
-export type GetPaymentMethodsInput = Readonly<{
-  storeId: string;
-  currency: string;
-  apiKey: string;
 }>;
