@@ -11,6 +11,7 @@ import type {
   CheckoutPipelineStageProvenance,
   CheckoutDeliveryOptionSelectionIntent,
   CheckoutDeliveryOptionSelectionResolution,
+  CheckoutDiscountApplication,
   CheckoutPaymentMethodSelectionIntent,
   CheckoutPaymentMethodSelectionResolution,
   CheckoutPricingCartIntent,
@@ -64,6 +65,8 @@ export function toCheckoutPipelineStageContext(
     storeId: context.storeId,
     currencyCode: context.currencyCode,
     localeCode: context.localeCode,
+    channelCode: context.channelCode,
+    effectiveAt: context.effectiveAt,
   };
 }
 
@@ -80,6 +83,9 @@ export function toCheckoutPipelineEligibilityContext(
             countryCode: context.buyer.countryCode,
             marketId: context.buyer.marketId,
             companyId: context.buyer.companyId,
+            segmentIds: context.buyer.segmentIds,
+            segmentMembershipRevision:
+              context.buyer.segmentMembershipRevision,
           },
   };
 }
@@ -261,6 +267,12 @@ export function parseCalculatePreliminaryPricingResult(
   assertProvenance(request.context, result);
   assertPreliminaryCurrencies(result, request.context.currencyCode);
   assertPreliminaryPricingArithmetic(result);
+  assertDiscountContract(
+    result,
+    request.cartIntent.discountCodes,
+    "PRELIMINARY",
+    [],
+  );
   assertLineLimit(result.transformedLines, "transformed pricing lines");
   assertDeliveryIntent(request, result);
   return result;
@@ -300,14 +312,32 @@ export function parseFinalizePricingQuoteResult(
     request.delivery.revision,
     "Final pricing result has stale delivery revision",
   );
+  assertEqual(
+    result.basedOnPreliminaryDiscountEvaluationRevision,
+    request.preliminary.discountEvaluationRevision,
+    "Final pricing result has stale preliminary discount evaluation revision",
+  );
   assertFinalCurrencies(result, request.context.currencyCode);
   assertFinalPricingArithmetic(result);
   assertDeliveryTotal(request.delivery, result);
+  assertDiscountContract(
+    result,
+    request.preliminary.discountCodeResolutions.map(({ inputCode }) => inputCode),
+    "FINAL",
+    request.delivery.groups.map(({ groupId }) => groupId),
+  );
   assertLineLimit(result.lines, "final pricing lines");
   assertJsonEqual(
     result.lines,
     request.preliminary.transformedLines,
     "Final pricing changed immutable merchandise lines",
+  );
+  assertJsonEqual(
+    result.appliedDiscounts.filter(
+      ({ discountClass }) => discountClass !== "SHIPPING",
+    ),
+    request.preliminary.appliedDiscounts,
+    "Final pricing changed immutable merchandise discount applications",
   );
   assertJsonEqual(
     {
@@ -418,8 +448,8 @@ function calculateContributingLineTotals(
   let total = 0n;
   for (const line of flattenQuotedLines(lines)) {
     const lineSubtotal = BigInt(line.subtotal.amountMinor);
-    const lineDiscount = line.discounts.reduce(
-      (sum, application) => sum + BigInt(application.amount.amountMinor),
+    const lineDiscount = line.discountAllocations.reduce(
+      (sum, allocation) => sum + BigInt(allocation.amount.amountMinor),
       0n,
     );
     const lineTotal = BigInt(line.total.amountMinor);
@@ -444,6 +474,289 @@ function calculateContributingLineTotals(
     total += lineTotal;
   }
   return { subtotal, discount, total };
+}
+
+function assertDiscountContract(
+  result: CalculatePreliminaryPricingResult | FinalizePricingQuoteResult,
+  inputCodes: readonly string[],
+  stage: "PRELIMINARY" | "FINAL",
+  deliveryGroupIds: readonly string[],
+): void {
+  const applications = result.appliedDiscounts;
+  assertUnique(
+    applications.map(({ applicationId }) => applicationId),
+    "discount application IDs",
+  );
+  const sortedApplicationIds = [...applications]
+    .sort(
+      (left, right) =>
+        right.priority - left.priority ||
+        left.discountId.localeCompare(right.discountId) ||
+        left.applicationId.localeCompare(right.applicationId),
+    )
+    .map(({ applicationId }) => applicationId);
+  assertJsonEqual(
+    applications.map(({ applicationId }) => applicationId),
+    sortedApplicationIds,
+    "Discount applications must use stable priority/discount/application order",
+  );
+  const applicationById = new Map(
+    applications.map((application) => [application.applicationId, application]),
+  );
+  const quotedLines = flattenQuotedLines(
+    "transformedLines" in result ? result.transformedLines : result.lines,
+  );
+  const lineIds = new Set(quotedLines.map(({ lineId }) => lineId));
+  const deliveryGroups = new Set(deliveryGroupIds);
+
+  for (const application of applications) {
+    assertDiscountApplication(
+      application,
+      lineIds,
+      deliveryGroups,
+      result.currencyCode,
+      stage,
+    );
+  }
+
+  const mirroredLineAllocations = new Map<string, bigint>();
+  for (const line of quotedLines) {
+    const localIds = line.discountAllocations.map(
+      ({ applicationId }) => applicationId,
+    );
+    assertUnique(localIds, `discount allocations for line ${line.lineId}`);
+    for (const allocation of line.discountAllocations) {
+      const application = applicationById.get(allocation.applicationId);
+      if (!application) {
+        throw new CheckoutPipelineBoundaryError(
+          `Line ${line.lineId} references unknown discount application ${allocation.applicationId}`,
+        );
+      }
+      const matching = application.allocations.filter(
+        (entry) =>
+          entry.targetType === "LINE" &&
+          entry.lineId === line.lineId &&
+          entry.quantity === allocation.quantity &&
+          entry.amount.amountMinor === allocation.amount.amountMinor &&
+          entry.amount.currencyCode === allocation.amount.currencyCode,
+      );
+      if (matching.length !== 1) {
+        throw new CheckoutPipelineBoundaryError(
+          `Line ${line.lineId} discount allocation is not mirrored exactly once by its application`,
+        );
+      }
+      mirroredLineAllocations.set(
+        allocation.applicationId,
+        (mirroredLineAllocations.get(allocation.applicationId) ?? 0n) +
+          BigInt(allocation.amount.amountMinor),
+      );
+    }
+  }
+
+  for (const application of applications) {
+    const lineAmount = application.allocations
+      .filter((allocation) => allocation.targetType === "LINE")
+      .reduce((sum, allocation) => sum + BigInt(allocation.amount.amountMinor), 0n);
+    if ((mirroredLineAllocations.get(application.applicationId) ?? 0n) !== lineAmount) {
+      throw new CheckoutPipelineBoundaryError(
+        `Discount application ${application.applicationId} has an unmirrored line allocation`,
+      );
+    }
+  }
+
+  const merchandiseApplicationTotal = applications
+    .flatMap(({ allocations }) => allocations)
+    .filter((allocation) => allocation.targetType === "LINE")
+    .reduce((sum, allocation) => sum + BigInt(allocation.amount.amountMinor), 0n);
+  const expectedMerchandiseDiscount = BigInt(
+    "preliminaryTotals" in result
+      ? result.preliminaryTotals.merchandiseDiscountTotal.amountMinor
+      : result.totals.merchandiseDiscountTotal.amountMinor,
+  );
+  if (merchandiseApplicationTotal !== expectedMerchandiseDiscount) {
+    throw new CheckoutPipelineBoundaryError(
+      "Merchandise discount applications do not equal the quote merchandise discount total",
+    );
+  }
+  const deliveryApplicationTotal = applications
+    .flatMap(({ allocations }) => allocations)
+    .filter((allocation) => allocation.targetType === "DELIVERY_GROUP")
+    .reduce((sum, allocation) => sum + BigInt(allocation.amount.amountMinor), 0n);
+  const expectedDeliveryDiscount =
+    "totals" in result
+      ? BigInt(result.totals.deliveryDiscountTotal.amountMinor)
+      : 0n;
+  if (deliveryApplicationTotal !== expectedDeliveryDiscount) {
+    throw new CheckoutPipelineBoundaryError(
+      "Delivery discount applications do not equal the quote delivery discount total",
+    );
+  }
+
+  assertUnique(
+    result.usageRequirements.map(({ applicationId }) => applicationId),
+    "discount usage requirement application IDs",
+  );
+  for (const requirement of result.usageRequirements) {
+    const application = applicationById.get(requirement.applicationId);
+    if (
+      !application ||
+      application.discountId !== requirement.discountId ||
+      application.configurationRevision !== requirement.configurationRevision ||
+      (application.code?.codeId ?? null) !== requirement.codeId
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Usage requirement for ${requirement.applicationId} does not match its discount application`,
+      );
+    }
+  }
+
+  if (result.discountCodeResolutions.length !== inputCodes.length) {
+    throw new CheckoutPipelineBoundaryError(
+      "Every submitted discount code must have exactly one resolution",
+    );
+  }
+  result.discountCodeResolutions.forEach((resolution, index) => {
+    if (resolution.inputCode !== inputCodes[index]) {
+      throw new CheckoutPipelineBoundaryError(
+        "Discount code resolutions must preserve input order and spelling",
+      );
+    }
+    if (resolution.status === "APPLIED") {
+      assertUnique(
+        resolution.applicationIds,
+        `discount applications for code ${resolution.inputCode}`,
+      );
+      for (const applicationId of resolution.applicationIds) {
+        const application = applicationById.get(applicationId);
+        if (
+          !application ||
+          application.discountId !== resolution.discountId ||
+          application.code?.codeId !== resolution.codeId
+        ) {
+          throw new CheckoutPipelineBoundaryError(
+            `Applied code ${resolution.inputCode} references an inconsistent application`,
+          );
+        }
+      }
+    }
+    if (stage === "FINAL" && resolution.status === "PENDING") {
+      throw new CheckoutPipelineBoundaryError(
+        `Final quote left discount code ${resolution.inputCode} pending`,
+      );
+    }
+    if (resolution.normalizedCode !== resolution.inputCode.trim().toUpperCase()) {
+      throw new CheckoutPipelineBoundaryError(
+        `Discount code ${resolution.inputCode} has an invalid normalized representation`,
+      );
+    }
+  });
+
+  for (const application of applications) {
+    if (application.method !== "CODE") {
+      continue;
+    }
+    const matchingResolutions = result.discountCodeResolutions.filter(
+      (resolution) =>
+        resolution.status === "APPLIED" &&
+        resolution.applicationIds.includes(application.applicationId),
+    );
+    if (matchingResolutions.length !== 1 || application.code === null) {
+      throw new CheckoutPipelineBoundaryError(
+        `Code discount application ${application.applicationId} must have exactly one applied code resolution`,
+      );
+    }
+    const resolution = matchingResolutions[0];
+    if (
+      !resolution ||
+      resolution.discountId !== application.discountId ||
+      resolution.codeId !== application.code.codeId ||
+      resolution.inputCode !== application.code.inputCode ||
+      resolution.normalizedCode !== application.code.normalizedCode
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Code discount application ${application.applicationId} does not match its applied code resolution`,
+      );
+    }
+  }
+}
+
+function assertDiscountApplication(
+  application: CheckoutDiscountApplication,
+  lineIds: ReadonlySet<string>,
+  deliveryGroupIds: ReadonlySet<string>,
+  currencyCode: string,
+  stage: "PRELIMINARY" | "FINAL",
+): void {
+  if (
+    (application.method === "CODE") !== (application.code !== null)
+  ) {
+    throw new CheckoutPipelineBoundaryError(
+      `Discount application ${application.applicationId} has inconsistent method and code provenance`,
+    );
+  }
+  if (
+    BigInt(application.amount.amountMinor) <= 0n ||
+    application.allocations.length === 0
+  ) {
+    throw new CheckoutPipelineBoundaryError(
+      `Discount application ${application.applicationId} must have a positive allocated amount`,
+    );
+  }
+  if (stage === "PRELIMINARY" && application.discountClass === "SHIPPING") {
+    throw new CheckoutPipelineBoundaryError(
+      "Preliminary pricing cannot apply shipping discounts",
+    );
+  }
+  const allocationTotal = application.allocations.reduce(
+    (sum, allocation) => sum + BigInt(allocation.amount.amountMinor),
+    0n,
+  );
+  if (allocationTotal !== BigInt(application.amount.amountMinor)) {
+    throw new CheckoutPipelineBoundaryError(
+      `Discount application ${application.applicationId} amount does not equal its allocations`,
+    );
+  }
+  for (const allocation of application.allocations) {
+    if (allocation.amount.currencyCode !== currencyCode) {
+      throw new CheckoutPipelineBoundaryError(
+        `Discount application ${application.applicationId} has an allocation in another currency`,
+      );
+    }
+    if (allocation.targetType === "LINE" && !lineIds.has(allocation.lineId)) {
+      throw new CheckoutPipelineBoundaryError(
+        `Discount application ${application.applicationId} targets unknown line ${allocation.lineId}`,
+      );
+    }
+    if (
+      allocation.targetType === "DELIVERY_GROUP" &&
+      !deliveryGroupIds.has(allocation.groupId)
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Discount application ${application.applicationId} targets unknown delivery group ${allocation.groupId}`,
+      );
+    }
+    if (stage === "PRELIMINARY" && allocation.targetType !== "LINE") {
+      throw new CheckoutPipelineBoundaryError(
+        "Preliminary pricing cannot contain delivery discount allocations",
+      );
+    }
+    if (
+      allocation.targetType === "DELIVERY_GROUP" &&
+      application.discountClass !== "SHIPPING"
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Non-shipping discount ${application.applicationId} targets a delivery group`,
+      );
+    }
+    if (
+      allocation.targetType === "LINE" &&
+      application.discountClass === "SHIPPING"
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Shipping discount ${application.applicationId} targets a merchandise line`,
+      );
+    }
+  }
 }
 
 export function parseGetAvailablePaymentMethodsResult(
@@ -813,6 +1126,8 @@ function assertCartIntent(
   const lineIds = flattenCartLineIds(cartIntent.lines);
   const knownLineIds = new Set(lineIds);
   assertUnique(lineIds, "cart line IDs");
+  assertNormalizedDiscountCodes(cartIntent.discountCodes);
+  assertPurchaseIntents(cartIntent.lines);
   assertUnique(
     cartIntent.destinations.map(({ destinationId }) => destinationId),
     "cart destination IDs",
@@ -843,6 +1158,8 @@ function assertPricingCartIntent(cartIntent: CheckoutPricingCartIntent): void {
   const lineIds = flattenCartLineIds(cartIntent.lines);
   const knownLineIds = new Set(lineIds);
   assertUnique(lineIds, "pricing cart line IDs");
+  assertNormalizedDiscountCodes(cartIntent.discountCodes);
+  assertPurchaseIntents(cartIntent.lines);
   assertUnique(
     cartIntent.destinations.map(({ destinationId }) => destinationId),
     "pricing destination IDs",
@@ -1194,9 +1511,9 @@ function assertQuotedLineCurrencies(
     }
     assertMoneyCurrency(line.subtotal, expected, `line ${line.lineId}.subtotal`);
     assertMoneyCurrency(line.total, expected, `line ${line.lineId}.total`);
-    line.discounts.forEach((discount) =>
+    line.discountAllocations.forEach((allocation) =>
       assertMoneyCurrency(
-        discount.amount,
+        allocation.amount,
         expected,
         `line ${line.lineId} discount`,
       ),
@@ -1271,6 +1588,31 @@ function flattenCartLineIds(
     line.lineId,
     ...flattenCartLineIds(line.children),
   ]);
+}
+
+function assertNormalizedDiscountCodes(codes: readonly string[]): void {
+  assertUnique(
+    codes.map((code) => code.trim().toUpperCase()),
+    "normalized discount codes",
+  );
+}
+
+function assertPurchaseIntents(
+  lines: CheckoutRecalculationRequest["cartIntent"]["lines"],
+): void {
+  for (const line of lines) {
+    if (
+      (line.purchase.type === "ONE_TIME" &&
+        line.purchase.sellingPlanId !== null) ||
+      (line.purchase.type === "SUBSCRIPTION" &&
+        line.purchase.sellingPlanId === null)
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Cart line ${line.lineId} has an inconsistent purchase type and selling plan`,
+      );
+    }
+    assertPurchaseIntents(line.children);
+  }
 }
 
 function assertSelectedHandle(

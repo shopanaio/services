@@ -16,6 +16,7 @@
     "@apollo/subgraph": "^2.9.0",
     "@as-integrations/fastify": "^2.1.1",
     "@nestjs/common": "^10.0.0",
+    "@shopana/broker-types": "*",
     "@shopana/drizzle-query": "*",
     "@shopana/events": "*",
     "@shopana/shared-context": "*",

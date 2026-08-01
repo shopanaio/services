@@ -7,6 +7,15 @@ export type CheckoutCartLineIntent = Readonly<{
   lineId: string;
   merchandiseId: string;
   quantity: number;
+  purchase:
+    | Readonly<{
+        type: "ONE_TIME";
+        sellingPlanId: null;
+      }>
+    | Readonly<{
+        type: "SUBSCRIPTION";
+        sellingPlanId: string;
+      }>;
   attributes: CheckoutPipelineJsonObject;
   children: readonly CheckoutCartLineIntent[];
 }>;

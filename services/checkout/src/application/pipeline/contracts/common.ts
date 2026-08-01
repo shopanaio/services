@@ -38,6 +38,8 @@ export type CheckoutPipelineBuyer = Readonly<{
   countryCode: string | null;
   marketId: string | null;
   companyId: string | null;
+  segmentIds: readonly string[];
+  segmentMembershipRevision: string | null;
   data: CheckoutPipelineJsonObject | null;
 }>;
 
@@ -47,6 +49,8 @@ export type CheckoutBuyerEligibilityContext = Readonly<{
   countryCode: string | null;
   marketId: string | null;
   companyId: string | null;
+  segmentIds: readonly string[];
+  segmentMembershipRevision: string | null;
 }>;
 
 /**
@@ -163,6 +167,9 @@ export type CheckoutPipelineStageContext = Readonly<{
   storeId: string;
   currencyCode: string;
   localeCode: string | null;
+  channelCode: string;
+  /** Immutable business-time boundary for schedules and catalog pricing. */
+  effectiveAt: string;
 }>;
 
 export type CheckoutPipelineEligibilityContext = Readonly<
