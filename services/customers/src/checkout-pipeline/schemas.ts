@@ -21,19 +21,20 @@ export const resolveBuyerEligibilityResultSchema: z.ZodType<Customers.ResolveChe
         storeId: identifierSchema,
         customerId: identifierSchema,
         effectiveAt: timestampSchema,
-        segmentIds: z.array(identifierSchema).max(500),
+        segmentIds: z
+          .array(identifierSchema)
+          .max(500)
+          .superRefine((segmentIds, context) => {
+            if (new Set(segmentIds).size !== segmentIds.length) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Customer segment IDs must be unique",
+              });
+            }
+          }),
         segmentMembershipRevision: identifierSchema,
       })
-      .strict()
-      .superRefine((result, context) => {
-        if (new Set(result.segmentIds).size !== result.segmentIds.length) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["segmentIds"],
-            message: "Customer segment IDs must be unique",
-          });
-        }
-      }),
+      .strict(),
     z
       .object({
         ok: z.literal(false),
