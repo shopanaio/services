@@ -1,8 +1,5 @@
-import {
-  DeliveryMethodType,
-  ShippingPaymentModel,
-} from "@shopana/shared-service-api";
 import { z } from "zod";
+import { CURRENCY_CODES, LOCALE_CODES } from "@shopana/shared-references";
 
 import type {
   CheckoutCartLineIntent,
@@ -19,7 +16,8 @@ export const CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS = 500;
 const identifierSchema = z.string().trim().min(1).max(256);
 const revisionSchema = z.string().trim().min(1).max(256);
 const checkoutVersionSchema = z.number().int().safe().nonnegative();
-const currencyCodeSchema = z.string().regex(/^[A-Z]{3}$/);
+const currencyCodeSchema = z.enum(CURRENCY_CODES as [string, ...string[]]);
+const localeCodeSchema = z.enum(LOCALE_CODES as [string, ...string[]]);
 const countryCodeSchema = z.string().regex(/^[A-Z]{2}$/);
 const timestampSchema = z.string().datetime({ offset: true });
 const nonNegativeIntegerSchema = z.number().int().safe().nonnegative();
@@ -131,7 +129,29 @@ export const checkoutPipelineBuyerSchema = z
     segmentMembershipRevision: revisionSchema.nullable(),
     data: checkoutPipelineJsonObjectSchema.nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((buyer, context) => {
+    if (
+      buyer.customerId === null &&
+      (buyer.segmentIds.length > 0 || buyer.segmentMembershipRevision !== null)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["segmentIds"],
+        message: "Guest buyer cannot have customer segment membership",
+      });
+    }
+    if (
+      buyer.customerId !== null &&
+      buyer.segmentMembershipRevision === null
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["segmentMembershipRevision"],
+        message: "Customer buyer requires a segment membership revision",
+      });
+    }
+  });
 
 export const checkoutBuyerEligibilityContextSchema = z
   .object({
@@ -142,7 +162,29 @@ export const checkoutBuyerEligibilityContextSchema = z
     segmentIds: collection(identifierSchema),
     segmentMembershipRevision: revisionSchema.nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((buyer, context) => {
+    if (
+      buyer.customerId === null &&
+      (buyer.segmentIds.length > 0 || buyer.segmentMembershipRevision !== null)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["segmentIds"],
+        message: "Guest buyer cannot have customer segment membership",
+      });
+    }
+    if (
+      buyer.customerId !== null &&
+      buyer.segmentMembershipRevision === null
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["segmentMembershipRevision"],
+        message: "Customer buyer requires a segment membership revision",
+      });
+    }
+  });
 
 export const checkoutPipelineAddressSchema = z
   .object({
@@ -208,7 +250,7 @@ const checkoutPipelineStageContextShape = {
   expectedCheckoutVersion: checkoutVersionSchema,
   storeId: identifierSchema,
   currencyCode: currencyCodeSchema,
-  localeCode: z.string().trim().min(1).nullable(),
+  localeCode: localeCodeSchema.nullable(),
   channelCode: identifierSchema,
   effectiveAt: timestampSchema,
 } as const;
@@ -257,7 +299,11 @@ function createCartLineIntentSchema(
   return z
     .object({
       lineId: identifierSchema,
-      merchandiseId: identifierSchema,
+      variantId: identifierSchema,
+      componentSelection: z
+        .object({ componentItemId: identifierSchema })
+        .strict()
+        .nullable(),
       quantity: positiveIntegerSchema,
       purchase: checkoutLinePurchaseIntentSchema,
       attributes: checkoutPipelineJsonObjectSchema,
@@ -305,7 +351,27 @@ export const checkoutCartIntentSchema = z
       checkoutPaymentMethodSelectionIntentSchema.nullable(),
     attributes: checkoutPipelineJsonObjectSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((intent, context) => {
+    const visit = (
+      lines: readonly CheckoutCartLineIntent[],
+      nested: boolean,
+    ): void => {
+      for (const line of lines) {
+        if (nested !== (line.componentSelection !== null)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["lines"],
+            message: nested
+              ? `Nested checkout line ${line.lineId} requires componentSelection`
+              : `Root checkout line ${line.lineId} cannot have componentSelection`,
+          });
+        }
+        visit(line.children, true);
+      }
+    };
+    visit(intent.lines, false);
+  });
 
 export const checkoutPricingLocationSchema = z
   .object({
@@ -330,11 +396,31 @@ export const checkoutPricingCartIntentSchema = z
     destinations: collection(checkoutPricingDestinationIntentSchema),
     attributes: checkoutPipelineJsonObjectSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((intent, context) => {
+    const visit = (
+      lines: readonly CheckoutCartLineIntent[],
+      nested: boolean,
+    ): void => {
+      for (const line of lines) {
+        if (nested !== (line.componentSelection !== null)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["lines"],
+            message: nested
+              ? `Nested pricing line ${line.lineId} requires componentSelection`
+              : `Root pricing line ${line.lineId} cannot have componentSelection`,
+          });
+        }
+        visit(line.children, true);
+      }
+    };
+    visit(intent.lines, false);
+  });
 
 export const checkoutMerchandiseSnapshotSchema = z
   .object({
-    merchandiseId: identifierSchema,
+    variantId: identifierSchema,
     revision: revisionSchema,
     title: z.string().min(1),
     sku: z.string().nullable(),
@@ -342,7 +428,6 @@ export const checkoutMerchandiseSnapshotSchema = z
     isPhysical: z.boolean(),
     targeting: z
       .object({
-        variantId: identifierSchema,
         productId: identifierSchema,
         categoryIds: collection(identifierSchema),
         tagIds: collection(identifierSchema),
@@ -362,7 +447,34 @@ export const checkoutLineAvailabilitySchema = z
     reasonCode: identifierSchema.nullable(),
     revision: revisionSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((availability, context) => {
+    if (availability.available === (availability.reasonCode !== null)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reasonCode"],
+        message: "reasonCode must be present exactly when a line is unavailable",
+      });
+    }
+    if (
+      availability.continueSellingWhenOutOfStock &&
+      (!availability.available || availability.maxQuantity !== null)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["continueSellingWhenOutOfStock"],
+        message:
+          "Continue-selling availability must be available and unbounded",
+      });
+    }
+    if (!availability.available && availability.maxQuantity === null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["maxQuantity"],
+        message: "Unavailable tracked line must expose its maximum quantity",
+      });
+    }
+  });
 
 export const checkoutDiscountSourceSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("NATIVE") }).strict(),
@@ -628,10 +740,10 @@ export const checkoutDeliveryOptionSchema = z
     code: identifierSchema,
     title: z.string().min(1),
     deliveryMethodType: z.union([
-      z.literal(DeliveryMethodType.PICKUP),
-      z.literal(DeliveryMethodType.SHIPPING),
+      z.literal("PICKUP"),
+      z.literal("SHIPPING"),
     ]),
-    shippingPaymentModel: z.nativeEnum(ShippingPaymentModel),
+    shippingPaymentModel: z.enum(["MERCHANT_COLLECTED", "CARRIER_DIRECT"]),
     provider: z
       .object({
         code: identifierSchema,
@@ -702,10 +814,10 @@ export const checkoutPricingDeliveryOptionSchema = z
     code: identifierSchema,
     providerCode: identifierSchema,
     deliveryMethodType: z.union([
-      z.literal(DeliveryMethodType.PICKUP),
-      z.literal(DeliveryMethodType.SHIPPING),
+      z.literal("PICKUP"),
+      z.literal("SHIPPING"),
     ]),
-    shippingPaymentModel: z.nativeEnum(ShippingPaymentModel),
+    shippingPaymentModel: z.enum(["MERCHANT_COLLECTED", "CARRIER_DIRECT"]),
     cost: checkoutPipelineNonNegativeMoneySchema,
   })
   .strict();
@@ -798,12 +910,38 @@ export const checkoutPaymentMethodSelectionResolutionSchema =
       .strict(),
   ]);
 
+export const checkoutPaymentDestinationSnapshotSchema = z
+  .object({
+    destinationId: identifierSchema,
+    location: checkoutPricingLocationSchema,
+  })
+  .strict();
+
+export const checkoutPaymentDeliveryGroupSnapshotSchema = z
+  .object({
+    groupId: identifierSchema,
+    destinationId: identifierSchema,
+    lineIds: collection(identifierSchema),
+    selectedOption: checkoutPricingDeliveryOptionSchema.nullable(),
+  })
+  .strict();
+
+export const checkoutPaymentDeliverySnapshotSchema = z
+  .object({
+    ...checkoutPipelineStageProvenanceSchema.shape,
+    revision: revisionSchema,
+    basedOnPreliminaryRevision: revisionSchema,
+    destinations: collection(checkoutPaymentDestinationSnapshotSchema),
+    groups: collection(checkoutPaymentDeliveryGroupSnapshotSchema),
+  })
+  .strict();
+
 export const getAvailablePaymentMethodsRequestSchema = z
   .object({
     context: checkoutPipelineEligibilityContextSchema,
     selection: checkoutPaymentMethodSelectionIntentSchema.nullable(),
     finalQuote: finalizePricingQuoteResultSchema,
-    delivery: checkoutPricingDeliverySnapshotSchema,
+    delivery: checkoutPaymentDeliverySnapshotSchema,
   })
   .strict();
 
@@ -822,6 +960,7 @@ export const checkoutValidationOperationSchema = z
   .object({
     code: identifierSchema,
     message: z.string().min(1),
+    severity: z.enum(["WARNING", "ERROR"]),
     field: collection(z.string().min(1).max(256)),
     lineId: identifierSchema.nullable(),
   })
@@ -847,7 +986,19 @@ export const validateCheckoutResultSchema = z
     valid: z.boolean(),
     operations: collection(checkoutValidationOperationSchema),
   })
-  .strict();
+  .strict()
+  .superRefine((result, context) => {
+    const expectedValid = !result.operations.some(
+      ({ severity }) => severity === "ERROR",
+    );
+    if (result.valid !== expectedValid) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["valid"],
+        message: "valid must be true iff validation has no ERROR operations",
+      });
+    }
+  });
 
 export const checkoutPipelineChangeSchema = z.enum([
   "CREATE",

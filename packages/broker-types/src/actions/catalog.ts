@@ -45,6 +45,10 @@ export interface ResolveCheckoutMerchandiseLineInput {
   variantId: string;
   /** Null for roots; required for nested lines to identify the exact item. */
   componentSelection: { componentItemId: string } | null;
+  /** Purchase intent is preserved for Pricing eligibility and future plans. */
+  purchase:
+    | { type: "ONE_TIME"; sellingPlanId: null }
+    | { type: "SUBSCRIPTION"; sellingPlanId: string };
   /**
    * Root quantity is the absolute cart quantity. Nested quantity is the number
    * of component units required per one unit of its parent.
@@ -139,6 +143,9 @@ export interface ResolvedCheckoutMerchandiseLine {
   variantId: string;
   productId: string;
   quantity: number;
+  purchase:
+    | { type: "ONE_TIME"; sellingPlanId: null }
+    | { type: "SUBSCRIPTION"; sellingPlanId: string };
   /** Revision of all non-price merchandise fields in this snapshot. */
   revision: string;
   title: string;

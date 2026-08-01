@@ -102,6 +102,8 @@ export type CheckoutLine = Readonly<{
   tag?: CheckoutLineTag | null;
   /** Parent line ID for child items */
   parentLineId?: string | null;
+  /** Exact Catalog component item for child lines. */
+  componentItemId?: string | null;
 }>;
 
 export type CheckoutDeliveryMethodType = DeliveryMethodType;

@@ -43,6 +43,10 @@ export class PurchasableSnapshotInputDto {
  */
 export class CheckoutChildLineInputDto {
   @Expose()
+  @IsGlobalId({ message: "Invalid component item ID format" })
+  componentItemId!: string;
+
+  @Expose()
   @IsGlobalId({ message: "Invalid purchasable ID format" })
   purchasableId!: string;
 

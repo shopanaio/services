@@ -29,6 +29,7 @@ export class CheckoutLineItemsReadRepositoryPort
         "cli.store_id",
         "cli.checkout_id",
         "cli.parent_line_item_id",
+        "cli.component_item_id",
         "cli.quantity",
         // Price config columns
         "cli.price_type",

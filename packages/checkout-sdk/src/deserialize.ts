@@ -82,6 +82,7 @@ const deserializeLine = (dto: CheckoutLineDto): CheckoutLine => ({
   priceConfig: deserializePriceConfig(dto.priceConfig),
   tag: deserializeLineTag(dto.tag),
   parentLineId: dto.parentLineId ?? null,
+  componentItemId: dto.componentItemId ?? null,
 });
 
 const deserializeDeliveryProvider = (

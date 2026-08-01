@@ -57,6 +57,13 @@ export const checkoutCreate = async (
           quantity: item.quantity,
           purchasableSnapshot: item.purchasableSnapshot ?? null,
           tagSlug: item.tagSlug ?? null,
+          children:
+            item.children?.map((child) => ({
+              componentItemId: child.componentItemId,
+              purchasableId: child.purchasableId,
+              quantity: child.quantity,
+              purchasableSnapshot: child.purchasableSnapshot ?? null,
+            })) ?? null,
         })),
         apiKey: ctx.apiKey,
         store: ctx.store,

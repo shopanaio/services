@@ -28,6 +28,7 @@ export const checkoutLinesAdd = async (
       purchasableSnapshot: line.purchasableSnapshot ?? null,
       tagSlug: line.tagSlug ?? null,
       children: line.children?.map((child) => ({
+        componentItemId: child.componentItemId,
         purchasableId: child.purchasableId,
         quantity: child.quantity,
         purchasableSnapshot: child.purchasableSnapshot ?? null,

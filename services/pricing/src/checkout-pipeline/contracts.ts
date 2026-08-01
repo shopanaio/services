@@ -1,4 +1,4 @@
-import type { Pricing } from "@shopana/broker-types";
+import type { Catalog, Pricing } from "@shopana/broker-types";
 
 export type CalculatePreliminaryQuoteParams =
   Pricing.CalculateCheckoutPreliminaryQuoteParams;
@@ -19,10 +19,22 @@ export interface PricingCheckoutQuotePort {
     params: CalculatePreliminaryQuoteParams,
   ): Promise<CalculatePreliminaryQuoteResult>;
 
-  // TODO(pricing-checkout-pipeline): evaluate delivery discounts and taxes from
-  // selected delivery options without changing preliminary merchandise results.
+  // TODO(pricing-checkout-pipeline): evaluate delivery discounts from selected
+  // options without changing preliminary merchandise results. V1 emits zero tax.
   finalizeQuote(params: FinalizeQuoteParams): Promise<FinalizeQuoteResult>;
 }
+
+/** Catalog merchandise boundary used by preliminary Pricing. */
+export interface PricingCatalogMerchandisePort {
+  resolve(
+    params: PricingCatalogMerchandiseParams,
+  ): Promise<PricingCatalogMerchandiseResult>;
+}
+
+export type PricingCatalogMerchandiseParams =
+  Catalog.ResolveCheckoutMerchandiseParams;
+export type PricingCatalogMerchandiseResult =
+  Catalog.ResolveCheckoutMerchandiseResult;
 
 /** Broker handler surface. No handler is registered until the quote engine exists. */
 export interface PricingCheckoutActionsContract {

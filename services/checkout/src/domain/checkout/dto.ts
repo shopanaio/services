@@ -81,6 +81,8 @@ export type CheckoutLinesAddedLine = Readonly<{
   lineId: string;
   /** Parent line ID for child items (null for parent/standalone items) */
   parentLineId: string | null;
+  /** Exact Catalog component item for child lines; null for root lines. */
+  componentItemId: string | null;
   /** Price adjustment type for child items */
   priceType: ChildPriceType | null;
   /** Amount in minor units for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE (always positive) */

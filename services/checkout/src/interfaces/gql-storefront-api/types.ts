@@ -58,6 +58,8 @@ export type ApiCheckout = ApiNode & {
  * Price configuration is automatically taken from ProductGroup in the database.
  */
 export type ApiCheckoutChildLineInput = {
+  /** ID of the exact component item selected in the parent configuration. */
+  componentItemId: Scalars['ID']['input'];
   /**
    * ID of the purchasable for child item.
    * Must be a variant that exists in parent product's groups.
@@ -374,6 +376,8 @@ export type ApiCheckoutLine = ApiNode & {
   __typename?: 'CheckoutLine';
   /** A list of components that make up this checkout line, such as individual products in a bundle. */
   children: Array<ApiCheckoutLine>;
+  /** Exact component item selected for this child line. Null for root lines. */
+  componentItemId: Maybe<Scalars['ID']['output']>;
   /** Cost calculations for this checkout item. */
   cost: ApiCheckoutLineCost;
   /** Global unique identifier for the checkout line. */
@@ -2401,6 +2405,7 @@ export type ApiCheckoutFieldErrorResolvers<ContextType = GraphQLContext, ParentT
 
 export type ApiCheckoutLineResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLine'] = ApiResolversParentTypes['CheckoutLine']> = {
   children: Resolver<Array<ApiResolversTypes['CheckoutLine']>, ParentType, ContextType>;
+  componentItemId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   cost: Resolver<ApiResolversTypes['CheckoutLineCost'], ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   imageSrc: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
@@ -2641,4 +2646,3 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   Query: ApiQueryResolvers<ContextType>;
   User: ApiUserResolvers<ContextType>;
 };
-

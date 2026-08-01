@@ -45,6 +45,8 @@ export type CheckoutLineItemState = {
   lineId: string;
   /** Parent line ID for child items (null for parent/standalone items) */
   parentLineId: string | null;
+  /** Exact Catalog component item for child lines; null for root lines. */
+  componentItemId: string | null;
   /** Price configuration for child items (null for parent/standalone items) */
   priceConfig: ChildPriceConfig | null;
   quantity: number;

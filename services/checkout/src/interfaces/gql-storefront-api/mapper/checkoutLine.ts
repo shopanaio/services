@@ -33,6 +33,13 @@ export function mapCheckoutLineReadToApi(
     id: encodeGlobalIdByType(read.id, GlobalIdEntity.CheckoutLine),
     quantity: read.quantity,
     children: read.children.map(mapCheckoutLineReadToApi),
+    componentItemId:
+      read.componentItemId === null
+        ? null
+        : encodeGlobalIdByType(
+            read.componentItemId,
+            GlobalIdEntity.ProductComponentItem,
+          ),
     imageSrc: read.unit.imageUrl,
     sku: read.unit.sku,
     title: read.unit.title,

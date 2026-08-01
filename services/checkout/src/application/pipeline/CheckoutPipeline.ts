@@ -57,13 +57,14 @@ export abstract class BaseCheckoutPipeline implements CheckoutPipeline {
   ): Promise<CalculatePreliminaryPricingResult>;
 
   // TODO(checkout-pipeline): calculate carrier/provider options from canonical
-  // transformed physical lines and complete delivery destinations.
+  // transformed physical lines. Build destinations with the exported
+  // toCheckoutDeliveryDestinations helper; source cart line IDs are invalid.
   protected abstract calculateDelivery(
     request: CalculateDeliveryOptionsRequest,
   ): Promise<CalculateDeliveryOptionsResult>;
 
-  // TODO(checkout-pipeline): finalize delivery discounts, taxes and payable
-  // total after Delivery returns the selected option costs.
+  // TODO(checkout-pipeline): finalize delivery discounts and payable total after
+  // Delivery returns selected option costs. V1 emits explicit zero tax totals.
   protected abstract finalizePricing(
     request: FinalizePricingQuoteRequest,
   ): Promise<FinalizePricingQuoteResult>;

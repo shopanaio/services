@@ -20,6 +20,7 @@
     "@shopana/shared-context": "*",
     "@shopana/shared-graphql-guid": "0.0.1",
     "@shopana/shared-money": "0.0.1",
+    "@shopana/shared-references": "*",
     "@shopana/shared-service-api": "*",
     "@shopana/shared-service-config": "0.0.1",
     "@types/uuid": "^10.0.0",

@@ -23,6 +23,7 @@ export type CheckoutTagInput = {
  * The purchasableId must be a variant that exists in parent product's groups.
  */
 export type CheckoutChildLineInput = {
+  componentItemId: string;
   purchasableId: string;
   quantity: number;
   purchasableSnapshot?: {

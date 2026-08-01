@@ -84,6 +84,8 @@ export type CheckoutLineDto = Readonly<{
   tag?: CheckoutLineTagDto | null;
   /** Parent line ID for child items */
   parentLineId?: string | null;
+  /** Exact Catalog component item for child lines. */
+  componentItemId?: string | null;
 }>;
 
 export type CheckoutDeliveryProviderDto = Readonly<{

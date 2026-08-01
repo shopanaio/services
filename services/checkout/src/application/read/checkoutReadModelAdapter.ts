@@ -77,6 +77,7 @@ export class CheckoutReadModelAdapter {
       linesRecord[item.id] = {
         lineId: item.id,
         parentLineId: item.parentLineId,
+        componentItemId: item.componentItemId,
         priceConfig: item.priceConfig
           ? {
               type: item.priceConfig.type,

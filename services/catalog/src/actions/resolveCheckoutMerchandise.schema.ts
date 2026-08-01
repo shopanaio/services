@@ -13,6 +13,16 @@ const componentSelectionSchema = z
   .object({ componentItemId: identifierSchema })
   .strict();
 
+const purchaseSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("ONE_TIME"), sellingPlanId: z.null() }).strict(),
+  z
+    .object({
+      type: z.literal("SUBSCRIPTION"),
+      sellingPlanId: identifierSchema,
+    })
+    .strict(),
+]);
+
 function createLineSchema(
   remainingChildDepth: number,
 ): z.ZodType<Catalog.ResolveCheckoutMerchandiseLineInput> {
@@ -28,6 +38,7 @@ function createLineSchema(
       lineId: identifierSchema,
       variantId: identifierSchema,
       componentSelection: componentSelectionSchema.nullable(),
+      purchase: purchaseSchema,
       quantity: quantitySchema,
       children: childrenSchema,
     })

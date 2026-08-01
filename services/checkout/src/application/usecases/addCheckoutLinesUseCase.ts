@@ -2,7 +2,10 @@ import {
   UseCase,
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
-import type { CheckoutLinesAddInput } from "@src/application/checkout/types";
+import type {
+  CheckoutChildLineInput,
+  CheckoutLinesAddInput,
+} from "@src/application/checkout/types";
 import type { CheckoutLinesAddedDto } from "@src/domain/checkout/dto";
 import { Money } from "@shopana/shared-money";
 import { v7 as uuidv7 } from "uuid";
@@ -21,7 +24,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
 
   /**
    * Adding lines to checkout.
-   * Duplicates by purchasable id in request are summed up.
+   * Duplicates by purchasable ID, tag and component selection are summed up.
    * Even if a line with such purchasable id already exists, we add a new line.
    * Supports parent/child relationships for bundles.
    * Children are validated against product groups and prices come from DB.
@@ -46,6 +49,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
       tag: CheckoutLineItemState["tag"];
       children?: Array<{
         lineId: string;
+        componentItemId: string;
         purchasableId: string;
         quantity: number;
       }>;
@@ -72,7 +76,8 @@ export class AddCheckoutLinesUseCase extends UseCase<
 
       const key = AddCheckoutLinesUseCase.makeAggregationKey(
         line.purchasableId,
-        tag
+        tag,
+        line.children,
       );
       const existing = aggregatedLines.get(key);
 
@@ -89,6 +94,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
       // Process children - no priceConfig from client, it comes from DB
       const children = line.children?.map((child) => ({
         lineId: uuidv7(),
+        componentItemId: child.componentItemId,
         purchasableId: child.purchasableId,
         quantity: child.quantity,
       }));
@@ -129,6 +135,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
       if (line.children && line.children.length > 0) {
         item.children = line.children.map((child) => ({
           lineId: child.lineId,
+          componentItemId: child.componentItemId,
           purchasableId: child.purchasableId,
           quantity: child.quantity,
         }));
@@ -171,6 +178,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
       newLines.push({
         lineId: line.lineId,
         parentLineId: null,
+        componentItemId: null,
         priceConfig: null,
         quantity: line.quantity,
         tag: line.tag,
@@ -230,6 +238,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
           newLines.push({
             lineId: childInput.lineId,
             parentLineId: line.lineId,
+            componentItemId: childInput.componentItemId,
             priceConfig,
             quantity: childInput.quantity,
             tag: null, // Children don't have tags
@@ -275,16 +284,24 @@ export class AddCheckoutLinesUseCase extends UseCase<
 
   private static makeAggregationKey(
     purchasableId: string,
-    tag: CheckoutLineItemState["tag"]
+    tag: CheckoutLineItemState["tag"],
+    children: readonly CheckoutChildLineInput[] | null | undefined,
   ): string {
+    const componentSignature = JSON.stringify(
+      (children ?? []).map(({ componentItemId, purchasableId, quantity }) => ({
+        componentItemId,
+        purchasableId,
+        quantity,
+      })),
+    );
     if (!tag) {
-      return `purchasable:${purchasableId}`;
+      return `purchasable:${purchasableId}:${componentSignature}`;
     }
 
     if (tag.isUnique) {
       return `unique:${tag.slug}`;
     }
 
-    return `tagged:${purchasableId}:${tag.slug}`;
+    return `tagged:${purchasableId}:${tag.slug}:${componentSignature}`;
   }
 }

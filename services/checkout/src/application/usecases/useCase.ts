@@ -141,15 +141,23 @@ export abstract class UseCase<TInput = any, TOutput = any> {
   protected mapLinesToDtoLines(
     lines: CheckoutLineItemState[]
   ): CheckoutLinesAddedLine[] {
-    return lines.map((line) => ({
-      lineId: line.lineId,
-      parentLineId: line.parentLineId ?? null,
-      priceType: line.priceConfig?.type ?? null,
-      priceAmount: line.priceConfig?.amount ?? null,
-      pricePercent: line.priceConfig?.percent ?? null,
-      quantity: line.quantity,
-      tagId: line.tag?.id ?? null,
-      unit: line.unit,
-    }));
+    return lines.map((line) => {
+      if ((line.parentLineId === null) !== (line.componentItemId === null)) {
+        throw new Error(
+          `Checkout line ${line.lineId} has inconsistent component identity`,
+        );
+      }
+      return {
+        lineId: line.lineId,
+        parentLineId: line.parentLineId ?? null,
+        componentItemId: line.componentItemId,
+        priceType: line.priceConfig?.type ?? null,
+        priceAmount: line.priceConfig?.amount ?? null,
+        pricePercent: line.priceConfig?.percent ?? null,
+        quantity: line.quantity,
+        tagId: line.tag?.id ?? null,
+        unit: line.unit,
+      };
+    });
   }
 }

@@ -822,6 +822,7 @@ export class CheckoutWriteRepository {
       checkoutLines: Array<{
         lineId: string;
         parentLineId?: string | null;
+        componentItemId: string | null;
         priceType?: string | null;
         priceAmount?: number | null;
         pricePercent?: number | null;
@@ -880,6 +881,7 @@ export class CheckoutWriteRepository {
           store_id: storeId as any,
           checkout_id: checkoutId,
           parent_line_item_id: l.parentLineId ?? null,
+          component_item_id: l.componentItemId,
           tag_id: l.tagId ?? null,
           quantity: l.quantity,
           // Price config fields

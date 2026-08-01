@@ -1,4 +1,5 @@
 import type { Pricing } from "@shopana/broker-types";
+import { CURRENCY_CODES, LOCALE_CODES } from "@shopana/shared-references";
 import { z } from "zod";
 
 export const PricingDiscountFunctionTargets = {
@@ -75,10 +76,12 @@ export interface PricingDiscountOwnerResolutionPort {
 
 const identifierSchema = z.string().trim().min(1).max(256);
 const revisionSchema = z.string().trim().min(1).max(256);
+const currencyCodeSchema = z.enum(CURRENCY_CODES as [string, ...string[]]);
+const localeCodeSchema = z.enum(LOCALE_CODES as [string, ...string[]]);
 const moneySchema = z
   .object({
     amountMinor: z.string().regex(/^\d+$/),
-    currencyCode: z.string().regex(/^[A-Z]{3}$/),
+    currencyCode: currencyCodeSchema,
   })
   .strict();
 const identifiersSchema = z.array(identifierSchema).max(500);
@@ -87,8 +90,8 @@ export const pricingDiscountFunctionContextSchema = z
   .object({
     storeId: identifierSchema,
     checkoutId: identifierSchema,
-    currencyCode: z.string().regex(/^[A-Z]{3}$/),
-    localeCode: z.string().trim().min(1).nullable(),
+    currencyCode: currencyCodeSchema,
+    localeCode: localeCodeSchema.nullable(),
     channelCode: identifierSchema,
     effectiveAt: z.string().datetime({ offset: true }),
     buyer: z
@@ -103,7 +106,31 @@ export const pricingDiscountFunctionContextSchema = z
       .strict()
       .nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine(({ buyer }, context) => {
+    if (
+      buyer !== null &&
+      buyer.customerId === null &&
+      (buyer.segmentIds.length > 0 || buyer.segmentMembershipRevision !== null)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["buyer", "segmentIds"],
+        message: "Guest buyer cannot have customer segment membership",
+      });
+    }
+    if (
+      buyer !== null &&
+      buyer.customerId !== null &&
+      buyer.segmentMembershipRevision === null
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["buyer", "segmentMembershipRevision"],
+        message: "Customer buyer requires a segment membership revision",
+      });
+    }
+  });
 
 export const pricingDiscountFunctionLineSchema = z
   .object({

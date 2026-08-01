@@ -87,6 +87,12 @@ type CheckoutLine implements Node @key(fields: "id") {
   A list of components that make up this checkout line, such as individual products in a bundle.
   """
   children: [CheckoutLine!]!
+
+  """
+  Exact component item selected for this child line. Null for root lines.
+  """
+  componentItemId: ID
+
   """
   ID of the purchasable.
   """
@@ -141,6 +147,11 @@ Input data for a child item in a bundle.
 Price configuration is automatically taken from ProductGroup in the database.
 """
 input CheckoutChildLineInput {
+  """
+  ID of the exact component item selected in the parent configuration.
+  """
+  componentItemId: ID!
+
   """
   Quantity of the child item.
   """

@@ -22,6 +22,7 @@ export type ValidateCheckoutRequest = Readonly<{
 export type CheckoutValidationOperation = Readonly<{
   code: string;
   message: string;
+  severity: "WARNING" | "ERROR";
   field: readonly string[];
   lineId: string | null;
 }>;
@@ -31,6 +32,7 @@ export type ValidateCheckoutResult = Readonly<
     revision: string;
     basedOnFinalQuoteRevision: string;
     basedOnPaymentRevision: string;
+    /** True iff operations contain no ERROR entries. */
     valid: boolean;
     operations: readonly CheckoutValidationOperation[];
   }

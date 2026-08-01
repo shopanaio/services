@@ -2,23 +2,10 @@ import type {
   CheckoutPipelineAddress,
   CheckoutPipelineJsonObject,
 } from "./common.js";
+import type { PricingCheckoutCartLineIntent } from "@shopana/broker-types";
 
-export type CheckoutCartLineIntent = Readonly<{
-  lineId: string;
-  merchandiseId: string;
-  quantity: number;
-  purchase:
-    | Readonly<{
-        type: "ONE_TIME";
-        sellingPlanId: null;
-      }>
-    | Readonly<{
-        type: "SUBSCRIPTION";
-        sellingPlanId: string;
-      }>;
-  attributes: CheckoutPipelineJsonObject;
-  children: readonly CheckoutCartLineIntent[];
-}>;
+/** Shared verbatim with Pricing to prevent merchandise/component drift. */
+export type CheckoutCartLineIntent = PricingCheckoutCartLineIntent;
 
 export type CheckoutDeliveryDestinationIntent = Readonly<{
   destinationId: string;

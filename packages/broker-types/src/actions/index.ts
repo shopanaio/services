@@ -48,6 +48,17 @@ export * as Notifications from "./notifications.js";
 export {
   NOTIFICATION_DEFINITION_KEYS,
 } from "./notifications.js";
+
+// Customers service checkout actions
+export * as Customers from "./customers.js";
+export {
+  CustomersCheckoutActionNames,
+  CustomersCheckoutActions,
+} from "./customers.js";
+export type {
+  ResolveCheckoutBuyerEligibilityParams,
+  ResolveCheckoutBuyerEligibilityResult,
+} from "./customers.js";
 export type {
   NotificationDefinitionKey,
   NotificationChannel,
@@ -93,6 +104,45 @@ export {
   PricingCheckoutActionNames,
   PricingCheckoutActions,
 } from "./pricing.js";
+
+// Delivery service checkout actions
+export * as Delivery from "./delivery.js";
+export {
+  DeliveryCheckoutActionNames,
+  DeliveryCheckoutActions,
+} from "./delivery.js";
+export type {
+  CalculateCheckoutDeliveryOptionsParams,
+  CalculateCheckoutDeliveryOptionsResult,
+  DeliveryCheckoutAddress,
+  DeliveryCheckoutDestinationIntent,
+  DeliveryCheckoutEvaluationContext,
+  DeliveryCheckoutGroup,
+  DeliveryCheckoutMethodType,
+  DeliveryCheckoutOption,
+  DeliveryCheckoutOptionSelectionIntent,
+  DeliveryCheckoutOptionSelectionResolution,
+  DeliveryCheckoutOrphanedSelectionReset,
+  DeliveryCheckoutShippingPaymentModel,
+} from "./delivery.js";
+
+// Payments service checkout actions
+export * as Payments from "./payments.js";
+export {
+  PaymentsCheckoutActionNames,
+  PaymentsCheckoutActions,
+} from "./payments.js";
+export type {
+  GetCheckoutAvailablePaymentMethodsParams,
+  GetCheckoutAvailablePaymentMethodsResult,
+  PaymentsCheckoutDeliveryGroupSnapshot,
+  PaymentsCheckoutDeliverySnapshot,
+  PaymentsCheckoutDestinationSnapshot,
+  PaymentsCheckoutMethod,
+  PaymentsCheckoutMethodSelectionIntent,
+  PaymentsCheckoutMethodSelectionResolution,
+  PaymentsCheckoutSelectedDeliveryOption,
+} from "./payments.js";
 export type {
   CalculateCheckoutPreliminaryQuoteParams,
   CalculateCheckoutPreliminaryQuoteResult,

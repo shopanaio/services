@@ -1,5 +1,3 @@
-import { ShippingPaymentModel } from "@shopana/shared-service-api";
-
 import type {
   CalculateDeliveryOptionsRequest,
   CalculateDeliveryOptionsResult,
@@ -14,6 +12,7 @@ import type {
   CheckoutDiscountApplication,
   CheckoutPaymentMethodSelectionIntent,
   CheckoutPaymentMethodSelectionResolution,
+  CheckoutPaymentDeliverySnapshot,
   CheckoutPricingCartIntent,
   CheckoutPricingDeliverySnapshot,
   CheckoutQuotedLine,
@@ -109,6 +108,35 @@ export function toCheckoutPricingCartIntent(
   };
 }
 
+/**
+ * Preserve Checkout-owned addresses while replacing source line IDs with the
+ * canonical transformed assignments produced by Pricing.
+ */
+export function toCheckoutDeliveryDestinations(
+  cartDestinations: CheckoutRecalculationRequest["cartIntent"]["destinations"],
+  preliminary: CalculatePreliminaryPricingResult,
+): CalculateDeliveryOptionsRequest["destinations"] {
+  assertUnique(
+    cartDestinations.map(({ destinationId }) => destinationId),
+    "cart delivery destination IDs",
+  );
+  return preliminary.deliveryIntent.destinations.map((canonical) => {
+    const source = cartDestinations.find(
+      ({ destinationId }) => destinationId === canonical.destinationId,
+    );
+    if (source === undefined) {
+      throw new CheckoutPipelineBoundaryError(
+        `Missing checkout address for destination ${canonical.destinationId}`,
+      );
+    }
+    return {
+      destinationId: canonical.destinationId,
+      address: source.address,
+      lineIds: canonical.transformedLineIds,
+    };
+  });
+}
+
 export function toCheckoutPricingDeliverySnapshot(
   delivery: CalculateDeliveryOptionsResult,
 ): CheckoutPricingDeliverySnapshot {
@@ -134,6 +162,88 @@ export function toCheckoutPricingDeliverySnapshot(
         group.selection.status === "SELECTED"
           ? group.selection.optionHandle
           : null,
+    })),
+  };
+}
+
+export function toCheckoutPaymentDeliverySnapshot(
+  delivery: CalculateDeliveryOptionsResult,
+  preliminary: CalculatePreliminaryPricingResult,
+): CheckoutPaymentDeliverySnapshot {
+  const referencedDestinationIds = new Set(
+    delivery.groups.map(({ destinationId }) => destinationId),
+  );
+  const destinations = preliminary.deliveryIntent.destinations
+    .filter(({ destinationId }) => referencedDestinationIds.has(destinationId))
+    .map(({ destinationId, location }) => ({ destinationId, location }));
+  assertPaymentDeliverySnapshot(
+    {
+      executionId: delivery.executionId,
+      checkoutId: delivery.checkoutId,
+      basedOnCheckoutVersion: delivery.basedOnCheckoutVersion,
+      currencyCode: delivery.currencyCode,
+      revision: delivery.revision,
+      basedOnPreliminaryRevision: delivery.basedOnPreliminaryRevision,
+      destinations,
+      groups: delivery.groups.map((group) => ({
+        groupId: group.groupId,
+        destinationId: group.destinationId,
+        lineIds: group.lineIds,
+        selectedOption: toPaymentSelectedOption(group),
+      })),
+    },
+    delivery,
+  );
+  return {
+    executionId: delivery.executionId,
+    checkoutId: delivery.checkoutId,
+    basedOnCheckoutVersion: delivery.basedOnCheckoutVersion,
+    currencyCode: delivery.currencyCode,
+    revision: delivery.revision,
+    basedOnPreliminaryRevision: delivery.basedOnPreliminaryRevision,
+    destinations,
+    groups: delivery.groups.map((group) => ({
+      groupId: group.groupId,
+      destinationId: group.destinationId,
+      lineIds: group.lineIds,
+      selectedOption: toPaymentSelectedOption(group),
+    })),
+  };
+}
+
+function toPaymentSelectedOption(
+  group: CalculateDeliveryOptionsResult["groups"][number],
+): CheckoutPaymentDeliverySnapshot["groups"][number]["selectedOption"] {
+  if (group.selection.status !== "SELECTED") return null;
+  const selectedHandle = group.selection.optionHandle;
+  const option = group.options.find(({ handle }) => handle === selectedHandle);
+  return option === undefined
+    ? null
+    : {
+        handle: option.handle,
+        code: option.code,
+        providerCode: option.provider.code,
+        deliveryMethodType: option.deliveryMethodType,
+        shippingPaymentModel: option.shippingPaymentModel,
+        cost: option.cost,
+      };
+}
+
+function toPricingDeliverySnapshot(
+  delivery: CheckoutPaymentDeliverySnapshot,
+): CheckoutPricingDeliverySnapshot {
+  return {
+    executionId: delivery.executionId,
+    checkoutId: delivery.checkoutId,
+    basedOnCheckoutVersion: delivery.basedOnCheckoutVersion,
+    currencyCode: delivery.currencyCode,
+    revision: delivery.revision,
+    basedOnPreliminaryRevision: delivery.basedOnPreliminaryRevision,
+    groups: delivery.groups.map((group) => ({
+      groupId: group.groupId,
+      lineIds: group.lineIds,
+      options: group.selectedOption === null ? [] : [group.selectedOption],
+      selectedOptionHandle: group.selectedOption?.handle ?? null,
     })),
   };
 }
@@ -202,11 +312,15 @@ export function parseGetAvailablePaymentMethodsRequest(
     request.delivery.revision,
     "Payment request contains mismatched final quote and delivery revisions",
   );
+  assertEqual(
+    request.delivery.basedOnPreliminaryRevision,
+    request.finalQuote.basedOnPreliminaryRevision,
+    "Payment request delivery snapshot is based on a stale preliminary quote",
+  );
   assertFinalCurrencies(request.finalQuote, request.context.currencyCode);
-  assertPricingDeliveryCurrencies(request.delivery, request.context.currencyCode);
-  assertPricingDeliverySnapshot(request.delivery);
+  assertPaymentDeliveryCurrencies(request.delivery, request.context.currencyCode);
   assertFinalPricingArithmetic(request.finalQuote);
-  assertDeliveryTotal(request.delivery, request.finalQuote);
+  assertDeliveryTotal(toPricingDeliverySnapshot(request.delivery), request.finalQuote);
   return request;
 }
 
@@ -361,7 +475,7 @@ function assertDeliveryTotal(
       ({ handle }) => handle === group.selectedOptionHandle,
     );
     if (
-      selected?.shippingPaymentModel === ShippingPaymentModel.MERCHANT_COLLECTED
+      selected?.shippingPaymentModel === "MERCHANT_COLLECTED"
     ) {
       maximumMerchantCollectedTotal += BigInt(selected.cost.amountMinor);
     }
@@ -425,7 +539,7 @@ function assertFinalPricingArithmetic(result: FinalizePricingQuoteResult): void 
     subtotal < 0n ||
     discount < 0n ||
     merchandiseTotal < 0n ||
-    tax < 0n ||
+    tax !== 0n ||
     delivery < 0n ||
     payable < 0n ||
     merchandiseTotal !== subtotal - discount ||
@@ -435,7 +549,7 @@ function assertFinalPricingArithmetic(result: FinalizePricingQuoteResult): void 
     payable !== merchandiseTotal + tax + delivery
   ) {
     throw new CheckoutPipelineBoundaryError(
-      "Final pricing totals are arithmetically inconsistent",
+      "Final pricing totals are arithmetically inconsistent or violate the V1 zero-tax policy",
     );
   }
 }
@@ -876,7 +990,10 @@ function assertSuccessfulStages(
     {
       context: stageContext,
       preliminary,
-      destinations: request.cartIntent.destinations,
+      destinations: toCheckoutDeliveryDestinations(
+        request.cartIntent.destinations,
+        preliminary,
+      ),
       selections: request.cartIntent.selectedDeliveryOptions,
     },
     result.delivery.data,
@@ -900,7 +1017,7 @@ function assertSuccessfulStages(
       context: eligibilityContext,
       selection: request.cartIntent.selectedPaymentMethod,
       finalQuote,
-      delivery: toCheckoutPricingDeliverySnapshot(delivery),
+      delivery: toCheckoutPaymentDeliverySnapshot(delivery, preliminary),
     },
     result.payment.data,
   );
@@ -1222,6 +1339,18 @@ function assertDeliveryGroups(
       group.options.map(({ handle }) => handle),
       `option handles in delivery group ${group.groupId}`,
     );
+    for (const option of group.options) {
+      if (
+        option.estimatedMinDeliveryAt !== null &&
+        option.estimatedMaxDeliveryAt !== null &&
+        Date.parse(option.estimatedMaxDeliveryAt) <
+          Date.parse(option.estimatedMinDeliveryAt)
+      ) {
+        throw new CheckoutPipelineBoundaryError(
+          `Delivery option ${option.handle} has an inverted estimate window`,
+        );
+      }
+    }
     assertDeliverySelectionSource(
       request.selections.find(
         ({ groupId }) => groupId === group.groupId,
@@ -1291,6 +1420,13 @@ function assertDeliveryRequest(request: CalculateDeliveryOptionsRequest): void {
     request.selections.map(({ groupId }) => groupId),
     "delivery request selection group IDs",
   );
+  assertSameIds(
+    request.preliminary.deliveryIntent.destinations.map(
+      ({ destinationId }) => destinationId,
+    ),
+    request.destinations.map(({ destinationId }) => destinationId),
+    "Delivery request must contain exactly the canonical destinations",
+  );
   for (const canonical of request.preliminary.deliveryIntent.destinations) {
     const destination = request.destinations.find(
       ({ destinationId }) => destinationId === canonical.destinationId,
@@ -1308,6 +1444,11 @@ function assertDeliveryRequest(request: CalculateDeliveryOptionsRequest): void {
         postalCode: destination.address.postalCode,
       },
       `Delivery destination ${canonical.destinationId} does not match its pricing location`,
+    );
+    assertSameIds(
+      canonical.transformedLineIds,
+      destination.lineIds,
+      `Delivery destination ${canonical.destinationId} line assignment changed after pricing`,
     );
   }
 }
@@ -1327,6 +1468,7 @@ function assertPricingDeliverySnapshot(
         ),
       )
     : null;
+  const groupedLineIds: string[] = [];
   for (const group of delivery.groups) {
     assertUnique(group.lineIds, `pricing delivery group ${group.groupId} lines`);
     assertUnique(
@@ -1346,6 +1488,66 @@ function assertPricingDeliverySnapshot(
         `Pricing delivery group ${group.groupId} references an unknown transformed line`,
       );
     }
+    groupedLineIds.push(...group.lineIds);
+  }
+  assertUnique(groupedLineIds, "pricing delivery group line assignments");
+  if (preliminary !== undefined) {
+    assertSameIds(
+      preliminary.deliveryIntent.destinations.flatMap(
+        ({ transformedLineIds }) => transformedLineIds,
+      ),
+      groupedLineIds,
+      "Pricing delivery snapshot must cover every assigned physical line",
+    );
+  }
+}
+
+function assertPaymentDeliverySnapshot(
+  snapshot: CheckoutPaymentDeliverySnapshot,
+  result: CalculateDeliveryOptionsResult,
+): void {
+  assertUnique(
+    snapshot.destinations.map(({ destinationId }) => destinationId),
+    "payment delivery destination IDs",
+  );
+  assertUnique(
+    snapshot.groups.map(({ groupId }) => groupId),
+    "payment delivery group IDs",
+  );
+  const destinationIds = new Set(
+    snapshot.destinations.map(({ destinationId }) => destinationId),
+  );
+  assertSameIds(
+    [...new Set(result.groups.map(({ destinationId }) => destinationId))],
+    [...destinationIds],
+    "Payment delivery snapshot must contain exactly the referenced destinations",
+  );
+  assertSameIds(
+    result.groups.map(({ groupId }) => groupId),
+    snapshot.groups.map(({ groupId }) => groupId),
+    "Payment delivery snapshot must cover every delivery group",
+  );
+  for (const group of snapshot.groups) {
+    const source = result.groups.find(({ groupId }) => groupId === group.groupId);
+    if (source === undefined || !destinationIds.has(group.destinationId)) {
+      throw new CheckoutPipelineBoundaryError(
+        `Payment delivery group ${group.groupId} has an invalid destination`,
+      );
+    }
+    const expectedSelectedOption = toPaymentSelectedOption(source);
+    assertJsonEqual(
+      {
+        destinationId: group.destinationId,
+        lineIds: group.lineIds,
+        selectedOption: group.selectedOption,
+      },
+      {
+        destinationId: source.destinationId,
+        lineIds: source.lineIds,
+        selectedOption: expectedSelectedOption,
+      },
+      `Payment delivery group ${group.groupId} changed delivery facts`,
+    );
   }
 }
 
@@ -1476,6 +1678,21 @@ function assertPricingDeliveryCurrencies(
       assertMoneyCurrency(option.cost, expected, "pricing delivery cost"),
     ),
   );
+}
+
+function assertPaymentDeliveryCurrencies(
+  delivery: CheckoutPaymentDeliverySnapshot,
+  expected: string,
+): void {
+  delivery.groups.forEach(({ selectedOption }) => {
+    if (selectedOption !== null) {
+      assertMoneyCurrency(
+        selectedOption.cost,
+        expected,
+        "payment delivery option cost",
+      );
+    }
+  });
 }
 
 function assertFinalCurrencies(

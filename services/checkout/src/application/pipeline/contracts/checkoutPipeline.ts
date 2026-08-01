@@ -29,6 +29,10 @@ export type CheckoutPipelineChange =
   | "PAYMENT_METHOD_UPDATE";
 
 export type CheckoutRecalculationRequest = Readonly<{
+  /**
+   * Authenticated buyer segment facts must come from the Customers eligibility
+   * action at context.effectiveAt; callers must not derive membership locally.
+   */
   context: CheckoutPipelineExecutionContext;
   change: CheckoutPipelineChange;
   cartIntent: CheckoutCartIntent;
@@ -43,6 +47,7 @@ export type CheckoutRecalculationResult = Readonly<{
   executionId: string;
   checkoutId: string;
   basedOnCheckoutVersion: number;
+  /** Stable hash/revision of stage outcomes and issues; execution timing omitted. */
   resultRevision: string;
   preliminaryPricing: CheckoutPipelineStageOutcome<
     CalculatePreliminaryPricingResult,

@@ -55,7 +55,14 @@ export type PricingCheckoutLinePurchaseIntent =
 
 export interface PricingCheckoutCartLineIntent {
   lineId: string;
-  merchandiseId: string;
+  /** Catalog variant identity. Checkout merchandise is never a product ID. */
+  variantId: string;
+  /** Null for roots; required for nested component selections. */
+  componentSelection: Readonly<{ componentItemId: string }> | null;
+  /**
+   * Root quantity is absolute. Nested source quantity is per one unit of its
+   * parent; Pricing must materialize absolute quantities in transformed lines.
+   */
   quantity: number;
   purchase: PricingCheckoutLinePurchaseIntent;
   attributes: PricingCheckoutJsonObject;
@@ -109,7 +116,6 @@ export interface PricingCheckoutCartIntent {
 }
 
 export interface PricingCheckoutMerchandiseTargetingSnapshot {
-  variantId: string;
   productId: string;
   categoryIds: readonly string[];
   tagIds: readonly string[];
@@ -118,7 +124,8 @@ export interface PricingCheckoutMerchandiseTargetingSnapshot {
 }
 
 export interface PricingCheckoutMerchandiseSnapshot {
-  merchandiseId: string;
+  /** Exact Catalog variant identity; product IDs are never purchasable IDs. */
+  variantId: string;
   revision: string;
   title: string;
   sku: string | null;
@@ -246,6 +253,7 @@ export interface PricingCheckoutDiscountUsageRequirement {
 export interface PricingCheckoutQuotedLine {
   lineId: string;
   contributesToTotals: boolean;
+  /** Absolute quantity after all ancestor component quantities are applied. */
   quantity: number;
   purchase: PricingCheckoutLinePurchaseIntent;
   merchandise: PricingCheckoutMerchandiseSnapshot;
@@ -325,6 +333,7 @@ export interface PricingCheckoutTotals {
   merchandiseSubtotal: PricingCheckoutMoney;
   merchandiseDiscountTotal: PricingCheckoutMoney;
   merchandiseTotal: PricingCheckoutMoney;
+  /** V1 tax policy: always zero until line-level tax allocations are added. */
   taxTotal: PricingCheckoutMoney;
   deliverySubtotal: PricingCheckoutMoney;
   deliveryDiscountTotal: PricingCheckoutMoney;

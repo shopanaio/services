@@ -15,3 +15,6 @@ import { ApplicationUserEventHandlers } from "./handlers/ApplicationUserEventHan
   ],
 })
 export class CustomersModule {}
+
+export type * from "./checkout-pipeline/contracts.js";
+export * from "./checkout-pipeline/schemas.js";

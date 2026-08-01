@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@event-driven-io/dumbo": "^0.13.0-alpha.6",
+    "@shopana/broker-types": "*",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-api": "*",
     "@types/uuid": "^10.0.0",

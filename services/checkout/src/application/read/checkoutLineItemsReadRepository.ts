@@ -6,6 +6,7 @@ export type CheckoutLineItemReadPortRow = {
   store_id: string;
   checkout_id: string;
   parent_line_item_id: string | null;
+  component_item_id: string | null;
   tag_id: string | null;
   tag_slug: string | null;
   tag_is_unique: boolean | null;
@@ -52,6 +53,7 @@ export type CheckoutLineItemReadView = {
   storeId: string;
   checkoutId: string;
   parentLineId: string | null;
+  componentItemId: string | null;
   priceConfig: CheckoutLinePriceConfigView | null;
   quantity: number;
   tag: {
@@ -109,6 +111,7 @@ export class CheckoutLineItemsReadRepository {
       storeId: row.store_id,
       checkoutId: row.checkout_id,
       parentLineId: row.parent_line_item_id,
+      componentItemId: row.component_item_id,
       priceConfig: row.price_type
         ? {
             type: row.price_type as ChildPriceType,

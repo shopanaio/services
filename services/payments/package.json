@@ -10,6 +10,7 @@
     }
   },
   "dependencies": {
+    "@shopana/broker-types": "*",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-api": "*",
     "dotenv": "^16.4.5",

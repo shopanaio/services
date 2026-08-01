@@ -171,6 +171,7 @@ export class CheckoutSerializer {
           }
         : null,
       parentLineId: line.parentLineId ?? null,
+      componentItemId: line.componentItemId,
     };
   }
 
