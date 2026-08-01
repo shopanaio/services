@@ -5,6 +5,19 @@
  */
 
 import type { EntityRef } from "../shared.js";
+import type {
+  PaymentCustomerAction,
+  PaymentCollectionState,
+  PaymentDisputeState,
+  PaymentFailure,
+  PaymentOperationType,
+  PaymentPendingReason,
+  PaymentProviderRouteSnapshot,
+  PaymentSessionKind,
+  PaymentSessionState,
+  PaymentSettlementConfirmation,
+} from "../actions/payments.js";
+import type { PricingCheckoutMoney } from "../actions/pricing.js";
 
 // ============================================================================
 // Media Events
@@ -83,5 +96,153 @@ export namespace ProjectEvents {
   export interface StoreDeleted {
     storeId: string;
     organizationId: string;
+  }
+}
+
+// ============================================================================
+// Payments Events
+// ============================================================================
+
+export const PaymentEventTypes = {
+  collectionStateChanged: "payment.collection.state_changed",
+  sessionCreated: "payment.session.created",
+  requiresAction: "payment.requires_action",
+  requiresConfirmation: "payment.requires_confirmation",
+  confirmationCompleted: "payment.confirmation.completed",
+  pending: "payment.pending",
+  cancelled: "payment.cancelled",
+  authorized: "payment.authorized",
+  captured: "payment.captured",
+  failed: "payment.failed",
+  voided: "payment.voided",
+  refunded: "payment.refunded",
+  expired: "payment.expired",
+  disputeChanged: "payment.dispute.changed",
+} as const;
+
+export namespace PaymentEvents {
+  export interface Base {
+    paymentCollectionId: string;
+    paymentSessionId: string;
+    operationId: string;
+    organizationId: string;
+    storeId: string;
+    checkoutId: string;
+    orderId: string;
+    operationType: PaymentOperationType;
+    providerCode: string;
+    route: PaymentProviderRouteSnapshot;
+    occurredAt: string;
+    sessionRevision: number;
+    sessionState: PaymentSessionState;
+    sessionAmount: PricingCheckoutMoney;
+  }
+
+  export interface CollectionStateChanged {
+    paymentCollectionId: string;
+    organizationId: string;
+    storeId: string;
+    checkoutId: string;
+    orderId: string;
+    previousState: PaymentCollectionState;
+    state: PaymentCollectionState;
+    targetAmount: PricingCheckoutMoney;
+    authorizedAmount: PricingCheckoutMoney;
+    capturedAmount: PricingCheckoutMoney;
+    refundedAmount: PricingCheckoutMoney;
+    outstandingAmount: PricingCheckoutMoney;
+    collectionRevision: number;
+    occurredAt: string;
+  }
+
+  export interface SessionCreated extends Base {
+    kind: PaymentSessionKind;
+    amount: PricingCheckoutMoney;
+    attemptSequence: number;
+  }
+
+  export interface RequiresAction extends Base {
+    customerAction: PaymentCustomerAction;
+    providerReference: string;
+  }
+
+  export interface Pending extends Base {
+    providerReference: string;
+    reason: PaymentPendingReason;
+    expiresAt: string;
+    nextReconcileAt: string | null;
+  }
+
+  export interface RequiresConfirmation extends Base {
+    providerReference: string;
+    confirmationExpiresAt: string;
+  }
+
+  export interface ConfirmationCompleted extends Base {
+    providerReference: string;
+    confirmation: PaymentSettlementConfirmation;
+  }
+
+  export interface Cancelled extends Base {
+    providerReference: string | null;
+    reason: string | null;
+  }
+
+  export interface Authorized extends Base {
+    amount: PricingCheckoutMoney;
+    providerReference: string;
+    networkTransactionId: string | null;
+  }
+
+  export interface Captured extends Base {
+    amount: PricingCheckoutMoney;
+    capturedTotal: PricingCheckoutMoney;
+    providerReference: string;
+    networkTransactionId: string | null;
+    resultingState: "PARTIALLY_CAPTURED" | "CAPTURED";
+    remainingCapturableAmount: PricingCheckoutMoney;
+  }
+
+  export interface Failed extends Base {
+    failure: PaymentFailure;
+  }
+
+  export interface Voided extends Base {
+    voidedTotal: PricingCheckoutMoney;
+    capturedTotal: PricingCheckoutMoney;
+    providerReference: string;
+    resultingState: "VOIDED" | "PARTIALLY_CAPTURED";
+  }
+
+  export interface Refunded extends Base {
+    amount: PricingCheckoutMoney;
+    refundedTotal: PricingCheckoutMoney;
+    providerReference: string;
+    resultingState: "PARTIALLY_REFUNDED" | "REFUNDED";
+    remainingRefundableAmount: PricingCheckoutMoney;
+  }
+
+  export interface Expired extends Base {
+    previousState: "PENDING" | "REQUIRES_ACTION" | "REQUIRES_CONFIRMATION";
+    reason: string;
+  }
+
+  export interface DisputeChanged {
+    paymentDisputeId: string;
+    paymentCollectionId: string;
+    paymentSessionId: string;
+    organizationId: string;
+    storeId: string;
+    orderId: string;
+    providerCode: string;
+    providerDisputeReference: string;
+    providerReference: string;
+    amount: PricingCheckoutMoney;
+    reasonCode: string;
+    previousState: PaymentDisputeState | null;
+    state: PaymentDisputeState;
+    responseDueAt: string | null;
+    disputeRevision: number;
+    occurredAt: string;
   }
 }
