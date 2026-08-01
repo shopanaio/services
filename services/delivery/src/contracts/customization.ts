@@ -11,6 +11,7 @@ export interface DeliveryCustomizationPort {
 /** Validates function output against existing group/handle identities and policy. */
 export interface DeliveryCustomizationPolicyPort {
   apply(input: Readonly<{
+    policy: Delivery.DeliveryCustomizationPolicySnapshot;
     functionInput: Delivery.DeliveryCustomizationFunctionInput;
     results: readonly Readonly<{
       execution: Delivery.DeliveryCustomizationExecutionSnapshot;

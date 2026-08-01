@@ -8,7 +8,7 @@ const AppCapabilitySchema = z
   .object({
     key: z.string().min(1),
     assignmentMode: z.enum(["store", "resource"]).optional(),
-    /** Route cardinality contract. Runtime routing support is implemented separately. */
+    /** Discovery cardinality; broadcast callers enumerate routes and invoke each target explicitly. */
     routingMode: z.enum(["single", "broadcast"]).optional(),
     operations: z.record(z.string().min(1)),
   })

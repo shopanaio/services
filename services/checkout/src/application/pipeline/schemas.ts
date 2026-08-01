@@ -98,7 +98,7 @@ export const checkoutPipelineJsonObjectSchema = z
 
 export const checkoutPipelineMoneySchema = z
   .object({
-    amountMinor: z.string().regex(/^-?\d+$/),
+    amountMinor: z.string().max(128).regex(/^-?\d+$/),
     currencyCode: currencyCodeSchema,
   })
   .strict();
@@ -734,42 +734,80 @@ export const calculatePreliminaryPricingResultSchema = z
   })
   .strict();
 
-export const checkoutDeliveryOptionSchema = z
+const checkoutDeliveryCustomerInputContractSchema = z
   .object({
-    handle: identifierSchema,
-    source: z.enum(["STATIC", "PROVIDER"]),
-    profileId: identifierSchema,
-    methodDefinitionId: identifierSchema,
-    code: identifierSchema,
-    title: z.string().min(1),
-    description: z.string().min(1).nullable(),
-    deliveryMethodType: z.union([
-      z.literal("PICKUP"),
-      z.literal("SHIPPING"),
-    ]),
-    shippingPaymentModel: z.enum(["MERCHANT_COLLECTED", "CARRIER_DIRECT"]),
-    provider: z
-      .object({
-        code: identifierSchema,
-        data: checkoutPipelineJsonObjectSchema,
-      })
-      .strict(),
-    cost: checkoutPipelineNonNegativeMoneySchema,
-    estimatedMinDeliveryAt: timestampSchema.nullable(),
-    estimatedMaxDeliveryAt: timestampSchema.nullable(),
-    phoneRequired: z.boolean(),
-    customerInputContract: z
-      .object({
-        schemaDialect: z.literal(
-          "https://json-schema.org/draft/2020-12/schema",
-        ),
-        schema: checkoutPipelineJsonObjectSchema,
-        schemaHash: revisionSchema,
-      })
-      .strict()
-      .nullable(),
+    schemaDialect: z.literal("https://json-schema.org/draft/2020-12/schema"),
+    schema: checkoutPipelineJsonObjectSchema,
+    schemaHash: revisionSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    const visit = (entry: unknown, path: (string | number)[]): void => {
+      if (Array.isArray(entry)) {
+        entry.forEach((child, index) => visit(child, [...path, index]));
+        return;
+      }
+      if (entry === null || typeof entry !== "object") {
+        return;
+      }
+      Object.entries(entry).forEach(([key, child]) => {
+        if (
+          (key === "$ref" || key === "$dynamicRef") &&
+          typeof child === "string" &&
+          !child.startsWith("#")
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["schema", ...path, key],
+            message: "Customer input schemas may use only local references",
+          });
+        }
+        visit(child, [...path, key]);
+      });
+    };
+    visit(value.schema, []);
+  });
+
+const checkoutDeliveryOptionBaseShape = {
+  handle: identifierSchema,
+  profileId: identifierSchema,
+  methodDefinitionId: identifierSchema,
+  code: identifierSchema,
+  title: z.string().min(1),
+  description: z.string().min(1).nullable(),
+  deliveryMethodType: z.union([
+    z.literal("PICKUP"),
+    z.literal("SHIPPING"),
+  ]),
+  shippingPaymentModel: z.enum(["MERCHANT_COLLECTED", "CARRIER_DIRECT"]),
+  cost: checkoutPipelineNonNegativeMoneySchema,
+  estimatedMinDeliveryAt: timestampSchema.nullable(),
+  estimatedMaxDeliveryAt: timestampSchema.nullable(),
+  phoneRequired: z.boolean(),
+  customerInputContract: checkoutDeliveryCustomerInputContractSchema.nullable(),
+  publicData: checkoutPipelineJsonObjectSchema,
+};
+
+export const checkoutDeliveryOptionSchema = z.discriminatedUnion("source", [
+  z
+    .object({
+      ...checkoutDeliveryOptionBaseShape,
+      source: z.literal("STATIC"),
+      provider: z.null(),
+    })
+    .strict(),
+  z
+    .object({
+      ...checkoutDeliveryOptionBaseShape,
+      source: z.literal("PROVIDER"),
+      provider: z
+        .object({
+          code: identifierSchema,
+        })
+        .strict(),
+    })
+    .strict(),
+]);
 
 export const checkoutDeliveryOptionSelectionResolutionSchema =
   z.discriminatedUnion("status", [
@@ -827,7 +865,7 @@ export const checkoutPricingDeliveryOptionSchema = z
   .object({
     handle: identifierSchema,
     code: identifierSchema,
-    providerCode: identifierSchema,
+    providerCode: identifierSchema.nullable(),
     deliveryMethodType: z.union([
       z.literal("PICKUP"),
       z.literal("SHIPPING"),
@@ -863,6 +901,7 @@ export const calculateDeliveryOptionsResultSchema = z
     ratePlanRevision: revisionSchema,
     eligibilityRevision: revisionSchema,
     customizationRevision: revisionSchema,
+    customizationPolicyRevision: revisionSchema,
     groups: collection(checkoutDeliveryGroupSchema),
     orphanedSelectionResets: collection(
       checkoutOrphanedDeliverySelectionResetSchema,
@@ -872,6 +911,7 @@ export const calculateDeliveryOptionsResultSchema = z
         .object({
           groupId: identifierSchema,
           providerAccountId: identifierSchema,
+          executionPolicyRevision: revisionSchema,
           route: z
             .object({
               protocolVersion: z.literal(1),
@@ -892,6 +932,14 @@ export const calculateDeliveryOptionsResultSchema = z
           ]),
           rateCount: z.number().int().nonnegative(),
           durationMs: z.number().int().nonnegative(),
+          attemptCount: z.number().int().nonnegative(),
+          rateSource: z.enum([
+            "PROVIDER_LIVE",
+            "PROVIDER_CACHE",
+            "METHOD_FALLBACK",
+          ]),
+          startedAt: timestampSchema,
+          completedAt: timestampSchema,
           failure: z
             .object({
               category: z.enum([
@@ -931,7 +979,167 @@ export const calculateDeliveryOptionsResultSchema = z
         .strict(),
     ),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    const groupIds = new Set(value.groups.map(({ groupId }) => groupId));
+    const executionKeys = new Set<string>();
+
+    value.providerExecutions.forEach((execution, index) => {
+      if (!groupIds.has(execution.groupId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "groupId"],
+          message: "Provider execution references an unknown delivery group",
+        });
+      }
+
+      const executionKey = [
+        execution.groupId,
+        execution.providerAccountId,
+        execution.route.capabilityRouteId,
+        execution.route.routeRevision,
+      ].join(":");
+      if (executionKeys.has(executionKey)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index],
+          message: "Provider execution must be unique within one delivery result",
+        });
+      }
+      executionKeys.add(executionKey);
+
+      if (Date.parse(execution.completedAt) < Date.parse(execution.startedAt)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "completedAt"],
+          message: "Provider execution cannot complete before it starts",
+        });
+      }
+      const measuredDuration =
+        Date.parse(execution.completedAt) - Date.parse(execution.startedAt);
+      if (Math.abs(measuredDuration - execution.durationMs) > 1_000) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "durationMs"],
+          message: "Provider execution duration disagrees with its timestamps",
+        });
+      }
+      if (
+        execution.rateSource === "PROVIDER_CACHE" &&
+        execution.attemptCount !== 0
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "attemptCount"],
+          message: "A cache hit cannot report a provider attempt",
+        });
+      }
+      if (
+        execution.rateSource === "PROVIDER_CACHE" &&
+        execution.status !== "SUCCEEDED" &&
+        execution.status !== "NO_SERVICE"
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "rateSource"],
+          message: "Cached provider data can only produce success or no-service",
+        });
+      }
+      if (
+        execution.rateSource === "PROVIDER_LIVE" &&
+        execution.attemptCount === 0
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "attemptCount"],
+          message: "A live provider result requires at least one attempt",
+        });
+      }
+
+      if (execution.status === "SUCCEEDED") {
+        if (execution.failure !== null || execution.rateCount === 0) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["providerExecutions", index],
+            message: "A successful provider execution requires rates and forbids failure",
+          });
+        }
+        return;
+      }
+
+      if (execution.status === "FALLBACK_APPLIED") {
+        if (
+          execution.failure === null ||
+          execution.rateCount === 0 ||
+          execution.rateSource !== "METHOD_FALLBACK"
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["providerExecutions", index],
+            message: "A fallback execution requires its triggering failure and fallback rates",
+          });
+        }
+        return;
+      }
+
+      if (execution.rateSource === "METHOD_FALLBACK") {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "rateSource"],
+          message: "Method fallback source requires FALLBACK_APPLIED status",
+        });
+      }
+
+      if (execution.rateCount !== 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "rateCount"],
+          message: "An unsuccessful provider execution cannot report rates",
+        });
+      }
+      if (
+        execution.status === "NO_SERVICE" &&
+        execution.failure !== null &&
+        execution.failure.category !== "NO_SERVICE"
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "failure", "category"],
+          message: "NO_SERVICE status requires a matching failure category",
+        });
+      }
+      if (
+        (execution.status === "FAILED" || execution.status === "TIMED_OUT") &&
+        execution.failure === null
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "failure"],
+          message: "Failed and timed-out executions require failure details",
+        });
+      }
+      if (
+        execution.status === "TIMED_OUT" &&
+        execution.failure?.category !== "TIMEOUT"
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["providerExecutions", index, "failure", "category"],
+          message: "TIMED_OUT status requires the TIMEOUT failure category",
+        });
+      }
+    });
+
+    value.issues.forEach((issue, index) => {
+      if (issue.groupId !== null && !groupIds.has(issue.groupId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["issues", index, "groupId"],
+          message: "Delivery issue references an unknown delivery group",
+        });
+      }
+    });
+  });
 
 export const finalizePricingQuoteRequestSchema = z
   .object({

@@ -221,8 +221,7 @@ export interface ListPaymentProviderRoutesParams {
 }
 
 export interface DeliveryProviderCapabilityInvocation<
-  TOperation extends string,
-  TInput,
+  TOperation extends keyof DeliveryProviderOperationContractMap,
 > extends Omit<
     ExecuteCapabilityParams,
     "capability" | "operation" | "installationId" | "input"
@@ -230,51 +229,56 @@ export interface DeliveryProviderCapabilityInvocation<
   capability: "delivery.provider";
   operation: TOperation;
   installationId: string;
-  input: TInput;
+  input: DeliveryProviderOperationContractMap[TOperation]["input"];
+}
+
+/** Keeps every delivery provider operation coupled to its exact input and output. */
+export interface DeliveryProviderOperationContractMap {
+  validateConfiguration: {
+    input: DeliveryProviderConfigurationValidationRequest;
+    output: DeliveryProviderConfigurationValidationResult;
+  };
+  quoteRates: {
+    input: DeliveryProviderRateRequest;
+    output: DeliveryProviderRateResult;
+  };
+  searchLocations: {
+    input: DeliveryProviderLocationSearchRequest;
+    output: DeliveryProviderLocationSearchResult;
+  };
+  resolveLocation: {
+    input: DeliveryProviderLocationResolveRequest;
+    output: DeliveryProviderLocationResolveResult;
+  };
+  createShipment: {
+    input: DeliveryProviderCreateShipmentRequest;
+    output: DeliveryProviderShipmentOperationResult<"CREATE">;
+  };
+  cancelShipment: {
+    input: DeliveryProviderCancelShipmentRequest;
+    output: DeliveryProviderShipmentOperationResult<"CANCEL">;
+  };
+  getShipment: {
+    input: DeliveryProviderGetShipmentRequest;
+    output: DeliveryProviderReconcileShipmentResult;
+  };
+  reconcileShipment: {
+    input: DeliveryProviderReconcileShipmentRequest;
+    output: DeliveryProviderReconcileShipmentResult;
+  };
 }
 
 /** Typed Apps invocation envelope for every delivery provider operation. */
-export type ExecuteDeliveryProviderCapabilityParams =
-  | DeliveryProviderCapabilityInvocation<
-      "validateConfiguration",
-      DeliveryProviderConfigurationValidationRequest
-    >
-  | DeliveryProviderCapabilityInvocation<
-      "quoteRates",
-      DeliveryProviderRateRequest
-    >
-  | DeliveryProviderCapabilityInvocation<
-      "searchLocations",
-      DeliveryProviderLocationSearchRequest
-    >
-  | DeliveryProviderCapabilityInvocation<
-      "resolveLocation",
-      DeliveryProviderLocationResolveRequest
-    >
-  | DeliveryProviderCapabilityInvocation<
-      "createShipment",
-      DeliveryProviderCreateShipmentRequest
-    >
-  | DeliveryProviderCapabilityInvocation<
-      "cancelShipment",
-      DeliveryProviderCancelShipmentRequest
-    >
-  | DeliveryProviderCapabilityInvocation<
-      "getShipment",
-      DeliveryProviderGetShipmentRequest
-    >
-  | DeliveryProviderCapabilityInvocation<
-      "reconcileShipment",
-      DeliveryProviderReconcileShipmentRequest
-    >;
+export type ExecuteDeliveryProviderCapabilityParams<
+  TOperation extends keyof DeliveryProviderOperationContractMap = keyof DeliveryProviderOperationContractMap,
+> = {
+  [K in TOperation]: DeliveryProviderCapabilityInvocation<K>;
+}[TOperation];
 
-export type ExecuteDeliveryProviderCapabilityResult = ExecuteCapabilityResult<
-  | DeliveryProviderConfigurationValidationResult
-  | DeliveryProviderRateResult
-  | DeliveryProviderLocationSearchResult
-  | DeliveryProviderLocationResolveResult
-  | DeliveryProviderShipmentOperationResult
-  | DeliveryProviderReconcileShipmentResult
+export type ExecuteDeliveryProviderCapabilityResult<
+  TOperation extends keyof DeliveryProviderOperationContractMap = keyof DeliveryProviderOperationContractMap,
+> = ExecuteCapabilityResult<
+  DeliveryProviderOperationContractMap[TOperation]["output"]
 >;
 
 export interface ListDeliveryProviderRoutesParams {

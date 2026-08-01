@@ -23,12 +23,16 @@ export interface DeliveryFulfillmentPlanSnapshot {
   orderId: string;
   checkoutId: string;
   deliveryGroupId: string;
+  shipmentManagement: "DELIVERY_PROVIDER" | "MERCHANT";
   origin: DeliveryProviderOrigin;
   destination: DeliveryProviderDestination;
   sender: DeliveryProviderContact;
   recipient: DeliveryProviderContact;
-  allocations: readonly DeliveryFulfillmentLineAllocation[];
-  packages: readonly DeliveryProviderPackage[];
+  allocations: readonly [
+    DeliveryFulfillmentLineAllocation,
+    ...DeliveryFulfillmentLineAllocation[],
+  ];
+  packages: readonly [DeliveryProviderPackage, ...DeliveryProviderPackage[]];
   planHash: string;
   fulfillAt: string | null;
   fulfillBy: string | null;

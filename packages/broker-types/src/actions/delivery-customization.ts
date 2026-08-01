@@ -7,6 +7,9 @@ import type {
 export const DELIVERY_CUSTOMIZATION_FUNCTION_TARGET =
   "cart.delivery-options.transform.run" as const;
 
+export const DELIVERY_CUSTOMIZATION_MAX_EXECUTIONS = 25 as const;
+export const DELIVERY_CUSTOMIZATION_MAX_OPERATIONS = 250 as const;
+
 export interface DeliveryCustomizationAppManifestCapability {
   key: "commerce.function";
   assignmentMode: "store";
@@ -99,17 +102,29 @@ export interface DeliveryCustomizationExecutionSnapshot {
   failureCode: string | null;
 }
 
+/** Platform policy prevents function ordering from silently selecting a costly rate. */
+export interface DeliveryCustomizationPolicySnapshot {
+  revision: string;
+  maxExecutions: number;
+  maxOperationsPerExecution: number;
+  allowHideAllOptions: boolean;
+  implicitSelectionPolicy: "NONE";
+}
+
 export interface DeliveryCustomizationResult {
   revision: string;
   basedOnRateOptionsRevision: string;
+  policyRevision: string;
   groups: readonly Readonly<{
     groupId: string;
     options: readonly DeliveryCheckoutOption[];
   }>[];
   executions: readonly DeliveryCustomizationExecutionSnapshot[];
   issues: readonly Readonly<{
+    severity: "WARNING" | "ERROR";
     code: string;
     message: string;
     functionBindingId: string | null;
+    retryable: boolean;
   }>[];
 }

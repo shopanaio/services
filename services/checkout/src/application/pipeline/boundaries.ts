@@ -153,7 +153,7 @@ export function toCheckoutPricingDeliverySnapshot(
       options: group.options.map((option) => ({
         handle: option.handle,
         code: option.code,
-        providerCode: option.provider.code,
+        providerCode: option.provider?.code ?? null,
         deliveryMethodType: option.deliveryMethodType,
         shippingPaymentModel: option.shippingPaymentModel,
         cost: option.cost,
@@ -222,7 +222,7 @@ function toPaymentSelectedOption(
     : {
         handle: option.handle,
         code: option.code,
-        providerCode: option.provider.code,
+        providerCode: option.provider?.code ?? null,
         deliveryMethodType: option.deliveryMethodType,
         shippingPaymentModel: option.shippingPaymentModel,
         cost: option.cost,

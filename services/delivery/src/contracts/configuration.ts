@@ -8,19 +8,28 @@ import type {
 export interface DeliveryProfilesPort {
   listActiveForStore(
     storeId: string,
-  ): Promise<readonly Delivery.DeliveryProfileSnapshot[]>;
+  ): Promise<Delivery.DeliveryProfileSetSnapshot>;
   getById(
     storeId: string,
     profileId: string,
   ): Promise<Delivery.DeliveryProfileSnapshot | null>;
-  save(
-    profile: Delivery.DeliveryProfileSnapshot,
-    expectedRevision: number | null,
-  ): Promise<
-    | Readonly<{ status: "SAVED"; profile: Delivery.DeliveryProfileSnapshot }>
+  save(input: Readonly<{
+    profile: Delivery.DeliveryProfileSnapshot;
+    expectedProfileRevision: number | null;
+    expectedProfileSetRevision: string;
+  }>): Promise<
     | Readonly<{
-        status: "REVISION_CONFLICT";
+        status: "SAVED";
+        profile: Delivery.DeliveryProfileSnapshot;
+        profileSetRevision: string;
+      }>
+    | Readonly<{
+        status: "PROFILE_REVISION_CONFLICT";
         current: Delivery.DeliveryProfileSnapshot;
+      }>
+    | Readonly<{
+        status: "PROFILE_SET_REVISION_CONFLICT";
+        currentProfileSetRevision: string;
       }>
   >;
 }

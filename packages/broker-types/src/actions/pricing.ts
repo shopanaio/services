@@ -305,7 +305,7 @@ export type PricingCheckoutShippingPaymentModel =
 export interface PricingCheckoutDeliveryOption {
   handle: string;
   code: string;
-  providerCode: string;
+  providerCode: string | null;
   deliveryMethodType: PricingCheckoutDeliveryMethodType;
   shippingPaymentModel: PricingCheckoutShippingPaymentModel;
   cost: PricingCheckoutMoney;

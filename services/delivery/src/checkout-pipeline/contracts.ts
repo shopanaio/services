@@ -19,7 +19,10 @@ export interface DeliveryCheckoutRateGroupPlan {
   lineIds: readonly string[];
   origin: Delivery.DeliveryProviderOrigin;
   destination: Delivery.DeliveryProviderDestination;
-  packages: readonly Delivery.DeliveryProviderPackage[];
+  packages: readonly [
+    Delivery.DeliveryProviderPackage,
+    ...Delivery.DeliveryProviderPackage[],
+  ];
   /** Hash of every provider-visible physical and monetary rating fact. */
   ratedFactsHash: string;
 }
@@ -29,10 +32,12 @@ export interface DeliveryCheckoutRatePlan {
   basedOnPreliminaryRevision: string;
   groups: readonly DeliveryCheckoutRateGroupPlan[];
   issues: readonly Readonly<{
+    severity: "WARNING" | "ERROR";
     code: string;
     message: string;
     lineId: string | null;
     destinationId: string | null;
+    retryable: boolean;
   }>[];
 }
 

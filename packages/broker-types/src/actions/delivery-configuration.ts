@@ -15,12 +15,18 @@ export type DeliveryPurchaseType =
   | "SUBSCRIPTION"
   | "PRE_ORDER";
 
-export interface DeliveryProfileAssignment {
-  /** The default profile covers every variant not assigned elsewhere. */
-  scope: "ALL_UNASSIGNED" | "VARIANTS";
-  variantIds: readonly string[];
-  sellingPlanGroupIds: readonly string[];
-}
+export type DeliveryProfileAssignment =
+  | Readonly<{
+      /** The default profile covers every variant not assigned elsewhere. */
+      scope: "ALL_UNASSIGNED";
+      variantIds: readonly [];
+      sellingPlanGroupIds: readonly string[];
+    }>
+  | Readonly<{
+      scope: "VARIANTS";
+      variantIds: readonly [string, ...string[]];
+      sellingPlanGroupIds: readonly string[];
+    }>;
 
 export interface DeliveryZoneTerritory {
   countryCode: string;
@@ -33,7 +39,9 @@ export interface DeliveryZoneTerritory {
 export interface DeliveryZoneSnapshot {
   zoneId: string;
   name: string;
-  territories: readonly DeliveryZoneTerritory[];
+  /** Lower values win when territories overlap. */
+  priority: number;
+  territories: readonly [DeliveryZoneTerritory, ...DeliveryZoneTerritory[]];
   revision: number;
 }
 
@@ -78,7 +86,7 @@ export type DeliveryMethodRateSource =
     }>
   | Readonly<{
       type: "PROVIDER";
-      providerAccountIds: readonly string[];
+      providerAccountIds: readonly [string, ...string[]];
       /** Empty means every service returned by an eligible account. */
       allowedServiceCodes: readonly string[];
       /** Optional merchant-owned rate used only under the declared failure policy. */
@@ -103,45 +111,87 @@ export interface DeliveryMethodDefinitionSnapshot {
 export interface DeliveryLocationGroupSnapshot {
   locationGroupId: string;
   name: string;
-  fulfillmentLocationIds: readonly string[];
-  zones: readonly Readonly<{
-    zone: DeliveryZoneSnapshot;
-    methods: readonly DeliveryMethodDefinitionSnapshot[];
-  }>[];
+  fulfillmentLocationIds: readonly [string, ...string[]];
+  zones: readonly [
+    Readonly<{
+      zone: DeliveryZoneSnapshot;
+      methods: readonly DeliveryMethodDefinitionSnapshot[];
+    }>,
+    ...Readonly<{
+      zone: DeliveryZoneSnapshot;
+      methods: readonly DeliveryMethodDefinitionSnapshot[];
+    }>[],
+  ];
   revision: number;
 }
 
-export interface DeliveryProfileSnapshot {
+export interface DeliveryProfileSnapshotBase {
   profileId: string;
   organizationId: string;
   storeId: string;
   name: string;
   status: DeliveryProfileStatus;
-  isDefault: boolean;
   priority: number;
-  assignment: DeliveryProfileAssignment;
-  locationGroups: readonly DeliveryLocationGroupSnapshot[];
+  locationGroups: readonly [
+    DeliveryLocationGroupSnapshot,
+    ...DeliveryLocationGroupSnapshot[],
+  ];
   failurePolicy: DeliveryRateFailurePolicy;
   revision: number;
   createdAt: string;
   updatedAt: string;
 }
 
+export type DeliveryProfileSnapshot =
+  | Readonly<
+      DeliveryProfileSnapshotBase & {
+        isDefault: true;
+        assignment: Extract<
+          DeliveryProfileAssignment,
+          Readonly<{ scope: "ALL_UNASSIGNED" }>
+        >;
+      }
+    >
+  | Readonly<
+      DeliveryProfileSnapshotBase & {
+        isDefault: false;
+        assignment: Extract<
+          DeliveryProfileAssignment,
+          Readonly<{ scope: "VARIANTS" }>
+        >;
+      }
+    >;
+
+/** Atomic store configuration used to derive one checkout eligibility revision. */
+export interface DeliveryProfileSetSnapshot {
+  organizationId: string;
+  storeId: string;
+  revision: string;
+  profiles: readonly [DeliveryProfileSnapshot, ...DeliveryProfileSnapshot[]];
+}
+
+export type DeliveryRateFallbackCategory =
+  | "PROVIDER_UNAVAILABLE"
+  | "TIMEOUT"
+  | "RATE_LIMITED";
+
 export type DeliveryRateFailurePolicy =
   | Readonly<{ mode: "OMIT_PROVIDER_RATES" }>
   | Readonly<{ mode: "FAIL_GROUP" }>
   | Readonly<{
       mode: "USE_METHOD_FALLBACK";
-      categories: readonly (
-        | "PROVIDER_UNAVAILABLE"
-        | "TIMEOUT"
-        | "RATE_LIMITED"
-      )[];
+      categories: readonly [
+        DeliveryRateFallbackCategory,
+        ...DeliveryRateFallbackCategory[],
+      ];
     }>;
 
 /** Immutable configuration selected before provider fan-out. */
 export interface DeliveryEligibilitySnapshot {
   eligibilityRevision: string;
+  organizationId: string;
+  storeId: string;
+  profileSetRevision: string;
   profileId: string;
   profileRevision: number;
   locationGroupId: string;

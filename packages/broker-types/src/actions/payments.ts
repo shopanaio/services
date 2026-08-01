@@ -118,7 +118,7 @@ export interface PaymentsCheckoutDestinationSnapshot {
 export interface PaymentsCheckoutSelectedDeliveryOption {
   handle: string;
   code: string;
-  providerCode: string;
+  providerCode: string | null;
   deliveryMethodType: DeliveryCheckoutMethodType;
   shippingPaymentModel: DeliveryCheckoutShippingPaymentModel;
   cost: PricingCheckoutMoney;

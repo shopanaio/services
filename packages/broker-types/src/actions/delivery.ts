@@ -7,6 +7,8 @@ import type {
 
 export type * from "./delivery-configuration.js";
 export {
+  DELIVERY_CUSTOMIZATION_MAX_EXECUTIONS,
+  DELIVERY_CUSTOMIZATION_MAX_OPERATIONS,
   DELIVERY_CUSTOMIZATION_FUNCTION_TARGET,
 } from "./delivery-customization.js";
 export type * from "./delivery-customization.js";
@@ -149,9 +151,8 @@ export type DeliveryCheckoutShippingPaymentModel =
   | "MERCHANT_COLLECTED"
   | "CARRIER_DIRECT";
 
-export interface DeliveryCheckoutOption {
+export interface DeliveryCheckoutOptionBase {
   handle: string;
-  source: "STATIC" | "PROVIDER";
   profileId: string;
   methodDefinitionId: string;
   code: string;
@@ -159,16 +160,30 @@ export interface DeliveryCheckoutOption {
   description: string | null;
   deliveryMethodType: DeliveryCheckoutMethodType;
   shippingPaymentModel: DeliveryCheckoutShippingPaymentModel;
-  provider: Readonly<{
-    code: string;
-    data: PricingCheckoutJsonObject;
-  }>;
   cost: PricingCheckoutMoney;
   estimatedMinDeliveryAt: string | null;
   estimatedMaxDeliveryAt: string | null;
   phoneRequired: boolean;
   customerInputContract: DeliveryCustomerInputContract | null;
+  /** Storefront-safe metadata independent of the option source. */
+  publicData: PricingCheckoutJsonObject;
 }
+
+export type DeliveryCheckoutOption =
+  | Readonly<
+      DeliveryCheckoutOptionBase & {
+        source: "STATIC";
+        provider: null;
+      }
+    >
+  | Readonly<
+      DeliveryCheckoutOptionBase & {
+        source: "PROVIDER";
+        provider: Readonly<{
+          code: string;
+        }>;
+      }
+    >;
 
 export type DeliveryCheckoutOptionSelectionResolution =
   | Readonly<{ status: "NONE" }>
@@ -199,20 +214,52 @@ export interface DeliveryCheckoutOrphanedSelectionReset {
   reason: Readonly<{ code: string; message: string }>;
 }
 
-export interface DeliveryCheckoutProviderExecution {
+export interface DeliveryCheckoutProviderExecutionBase {
   groupId: string;
   providerAccountId: string;
   route: DeliveryProviderRouteSnapshot & Readonly<{ operation: "quoteRates" }>;
-  status:
-    | "SUCCEEDED"
-    | "NO_SERVICE"
-    | "FAILED"
-    | "TIMED_OUT"
-    | "FALLBACK_APPLIED";
+  executionPolicyRevision: string;
   rateCount: number;
   durationMs: number;
-  failure: DeliveryProviderFailure | null;
+  attemptCount: number;
+  rateSource: "PROVIDER_LIVE" | "PROVIDER_CACHE" | "METHOD_FALLBACK";
+  startedAt: string;
+  completedAt: string;
 }
+
+export type DeliveryCheckoutProviderExecution =
+  | Readonly<
+      DeliveryCheckoutProviderExecutionBase & {
+        status: "SUCCEEDED";
+        failure: null;
+      }
+    >
+  | Readonly<
+      DeliveryCheckoutProviderExecutionBase & {
+        status: "NO_SERVICE";
+        failure:
+          | (DeliveryProviderFailure & Readonly<{ category: "NO_SERVICE" }>)
+          | null;
+      }
+    >
+  | Readonly<
+      DeliveryCheckoutProviderExecutionBase & {
+        status: "FAILED";
+        failure: DeliveryProviderFailure;
+      }
+    >
+  | Readonly<
+      DeliveryCheckoutProviderExecutionBase & {
+        status: "TIMED_OUT";
+        failure: DeliveryProviderFailure & Readonly<{ category: "TIMEOUT" }>;
+      }
+    >
+  | Readonly<
+      DeliveryCheckoutProviderExecutionBase & {
+        status: "FALLBACK_APPLIED";
+        failure: DeliveryProviderFailure;
+      }
+    >;
 
 export interface DeliveryCheckoutIssue {
   severity: "WARNING" | "ERROR";
@@ -237,6 +284,7 @@ export interface CalculateCheckoutDeliveryOptionsResult
   ratePlanRevision: string;
   eligibilityRevision: string;
   customizationRevision: string;
+  customizationPolicyRevision: string;
   groups: readonly DeliveryCheckoutGroup[];
   orphanedSelectionResets: readonly DeliveryCheckoutOrphanedSelectionReset[];
   providerExecutions: readonly DeliveryCheckoutProviderExecution[];
@@ -254,6 +302,17 @@ export type DeliveryProviderAccountStatus =
   | "INACTIVE"
   | "DEGRADED"
   | "SUSPENDED";
+
+export const DeliveryProviderAccountTransitions = {
+  CONFIGURING: ["READY", "DEGRADED", "SUSPENDED"],
+  READY: ["ACTIVE", "INACTIVE", "DEGRADED", "SUSPENDED"],
+  ACTIVE: ["INACTIVE", "DEGRADED", "SUSPENDED"],
+  INACTIVE: ["ACTIVE", "DEGRADED", "SUSPENDED"],
+  DEGRADED: ["READY", "ACTIVE", "INACTIVE", "SUSPENDED"],
+  SUSPENDED: ["CONFIGURING", "INACTIVE"],
+} as const satisfies Readonly<
+  Record<DeliveryProviderAccountStatus, readonly DeliveryProviderAccountStatus[]>
+>;
 
 export type DeliveryProviderMode = "TEST" | "LIVE";
 
@@ -316,6 +375,7 @@ export interface DeliveryOptionBindingSnapshotBase {
   ratePlanRevision: string;
   eligibilityRevision: string;
   customizationRevision: string;
+  customizationPolicyRevision: string;
   /** Hash of origin, destination, packages, currency and checkout version. */
   ratedFactsHash: string;
   customerInputContract: DeliveryCustomerInputContract | null;
@@ -333,6 +393,7 @@ export interface DeliveryProviderOptionBindingSnapshot
   quoteRoute: DeliveryProviderRouteSnapshot &
     Readonly<{ operation: "quoteRates" }>;
   configurationRevision: string;
+  executionPolicyRevision: string;
   quoteRevision: string;
 }
 
@@ -475,17 +536,29 @@ export interface DeliveryProviderConfigurationValidationRequest {
   mode: DeliveryProviderMode;
 }
 
-export interface DeliveryProviderConfigurationValidationResult {
-  status: "READY" | "DEGRADED" | "INVALID";
+export interface DeliveryProviderConfigurationValidationResultBase {
   providerCode: string;
   displayName: string;
   supportedCountryCodes: readonly string[];
   supportedCurrencyCodes: readonly string[];
   supportedOperations: readonly DeliveryProviderOperation[];
   capabilities: DeliveryProviderCapabilities;
-  failure: DeliveryProviderFailure | null;
   configurationRevision: string;
 }
+
+export type DeliveryProviderConfigurationValidationResult =
+  | Readonly<
+      DeliveryProviderConfigurationValidationResultBase & {
+        status: "READY";
+        failure: null;
+      }
+    >
+  | Readonly<
+      DeliveryProviderConfigurationValidationResultBase & {
+        status: "DEGRADED" | "INVALID";
+        failure: DeliveryProviderFailure;
+      }
+    >;
 
 export interface DeliveryProviderRateRequest {
   protocolVersion: typeof DELIVERY_PROVIDER_PROTOCOL_VERSION;
@@ -494,6 +567,8 @@ export interface DeliveryProviderRateRequest {
   correlationId: string;
   deadlineAt: string;
   effectiveAt: string;
+  /** Provider rates expiring before this instant are rejected. */
+  minimumQuoteExpiresAt: string;
   storeId: string;
   checkoutId: string;
   checkoutVersion: number;
@@ -507,7 +582,7 @@ export interface DeliveryProviderRateRequest {
   channelCode: string;
   origin: DeliveryProviderOrigin;
   destination: DeliveryProviderDestination;
-  packages: readonly DeliveryProviderPackage[];
+  packages: readonly [DeliveryProviderPackage, ...DeliveryProviderPackage[]];
 }
 
 export interface DeliveryProviderRateDefinition {
@@ -529,13 +604,21 @@ export interface DeliveryProviderRateDefinition {
   publicData: PricingCheckoutJsonObject;
 }
 
-export interface DeliveryProviderRateResult {
-  quoteRequestId: string;
-  revision: string;
-  rates: readonly DeliveryProviderRateDefinition[];
-  warnings: readonly Readonly<{ code: string; message: string }>[];
-  failure: DeliveryProviderFailure | null;
-}
+export type DeliveryProviderRateResult =
+  | Readonly<{
+      quoteRequestId: string;
+      revision: string;
+      rates: readonly DeliveryProviderRateDefinition[];
+      warnings: readonly Readonly<{ code: string; message: string }>[];
+      failure: null;
+    }>
+  | Readonly<{
+      quoteRequestId: string;
+      revision: string;
+      rates: readonly [];
+      warnings: readonly Readonly<{ code: string; message: string }>[];
+      failure: DeliveryProviderFailure;
+    }>;
 
 // ---------------------------------------------------------------------------
 // Provider App protocol: pickup locations
@@ -552,6 +635,7 @@ export interface DeliveryProviderLocationSearchRequest {
   requestId: string;
   correlationId: string;
   deadlineAt: string;
+  minimumTokenExpiresAt: string;
   localeCode: string | null;
   countryCode: string;
   provinceCode: string | null;
@@ -576,30 +660,47 @@ export interface DeliveryProviderPickupLocation {
   publicData: PricingCheckoutJsonObject;
 }
 
-export interface DeliveryProviderLocationSearchResult {
-  requestId: string;
-  locations: readonly DeliveryProviderPickupLocation[];
-  pageInfo: Readonly<{
-    hasNextPage: boolean;
-    endCursor: string | null;
-  }>;
-  failure: DeliveryProviderFailure | null;
-}
+export type DeliveryProviderLocationSearchResult =
+  | Readonly<{
+      requestId: string;
+      locations: readonly DeliveryProviderPickupLocation[];
+      pageInfo: Readonly<{
+        hasNextPage: boolean;
+        endCursor: string | null;
+      }>;
+      failure: null;
+    }>
+  | Readonly<{
+      requestId: string;
+      locations: readonly [];
+      pageInfo: Readonly<{
+        hasNextPage: false;
+        endCursor: null;
+      }>;
+      failure: DeliveryProviderFailure;
+    }>;
 
 export interface DeliveryProviderLocationResolveRequest {
   protocolVersion: typeof DELIVERY_PROVIDER_PROTOCOL_VERSION;
   requestId: string;
   correlationId: string;
   deadlineAt: string;
+  minimumTokenExpiresAt: string;
   localeCode: string | null;
   locationToken: string;
 }
 
-export interface DeliveryProviderLocationResolveResult {
-  requestId: string;
-  location: DeliveryProviderPickupLocation | null;
-  failure: DeliveryProviderFailure | null;
-}
+export type DeliveryProviderLocationResolveResult =
+  | Readonly<{
+      requestId: string;
+      location: DeliveryProviderPickupLocation | null;
+      failure: null;
+    }>
+  | Readonly<{
+      requestId: string;
+      location: null;
+      failure: DeliveryProviderFailure;
+    }>;
 
 // ---------------------------------------------------------------------------
 // Canonical shipment state and platform actions
@@ -619,6 +720,18 @@ export type DeliveryShipmentState =
   | "CANCELLING"
   | "CANCELLED"
   | "FAILED";
+
+/** Provider-observable states exclude platform-owned command and failure states. */
+export type DeliveryProviderObservedShipmentState =
+  | "PENDING"
+  | "ACCEPTED"
+  | "IN_TRANSIT"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "DELIVERY_FAILED"
+  | "RETURNING"
+  | "RETURNED"
+  | "CANCELLED";
 
 /** Platform-owned monotonic state machine; providers report observations only. */
 export const DeliveryShipmentTransitions = {
@@ -672,10 +785,11 @@ export interface DeliveryLabelSnapshot {
 
 export interface DeliveryTrackingEventSnapshot {
   providerEventId: string;
+  providerSequence: string | null;
   parcelId: string | null;
   providerParcelReference: string | null;
   statusCode: string;
-  state: DeliveryShipmentState;
+  state: DeliveryProviderObservedShipmentState;
   message: string | null;
   location: DeliveryProviderLocationAddress | null;
   occurredAt: string;
@@ -694,6 +808,36 @@ export interface DeliveryParcelSnapshot {
   state: DeliveryShipmentState;
   tracking: readonly DeliveryTrackingSnapshot[];
   labels: readonly DeliveryLabelSnapshot[];
+  estimatedDeliveryAt: string | null;
+  deliveredAt: string | null;
+}
+
+/** Untrusted label reference returned by a provider; mediaId is assigned by Delivery Core. */
+export interface DeliveryProviderLabel {
+  format: "PDF" | "PNG" | "ZPL";
+  downloadUrl: string;
+  expiresAt: string | null;
+}
+
+export interface DeliveryProviderTrackingEvent {
+  providerEventId: string;
+  /** Optional monotonic provider sequence encoded as an unsigned decimal string. */
+  providerSequence: string | null;
+  providerParcelReference: string | null;
+  statusCode: string;
+  state: DeliveryProviderObservedShipmentState;
+  message: string | null;
+  location: DeliveryProviderLocationAddress | null;
+  occurredAt: string;
+}
+
+/** Provider-owned parcel observation normalized into a platform snapshot by Delivery Core. */
+export interface DeliveryProviderParcelObservation {
+  providerParcelReference: string;
+  packageIds: readonly [string, ...string[]];
+  state: DeliveryProviderObservedShipmentState;
+  tracking: readonly DeliveryTrackingSnapshot[];
+  labels: readonly DeliveryProviderLabel[];
   estimatedDeliveryAt: string | null;
   deliveredAt: string | null;
 }
@@ -733,8 +877,9 @@ export interface DeliveryShipmentSnapshot {
   customerInputHash: string | null;
   origin: DeliveryProviderOrigin;
   destination: DeliveryProviderDestination;
-  packages: readonly DeliveryProviderPackage[];
+  packages: readonly [DeliveryProviderPackage, ...DeliveryProviderPackage[]];
   lastTrackingEvent: DeliveryTrackingEventSnapshot | null;
+  lastProviderSequence: string | null;
   lastFailure: DeliveryProviderFailure | null;
   revision: number;
   createdAt: string;
@@ -815,14 +960,22 @@ export interface CreateDeliveryShipmentParams {
 }
 
 export interface DeliveryOperationAcceptedResult {
+  status: "ACCEPTED";
   shipmentId: string;
   operationId: string;
   workflowId: string;
   duplicate: boolean;
 }
 
-export interface CreateDeliveryShipmentResult
-  extends DeliveryOperationAcceptedResult {}
+export type CreateDeliveryShipmentResult =
+  | DeliveryOperationAcceptedResult
+  | Readonly<{
+      status: "MANUAL_FULFILLMENT_REQUIRED";
+      fulfillmentId: string;
+      optionHandle: string;
+      workflowId: string;
+      duplicate: boolean;
+    }>;
 
 export interface CancelDeliveryShipmentParams {
   storeId: string;
@@ -880,7 +1033,7 @@ export interface DeliveryProviderCreateShipmentRequest
   destination: DeliveryProviderDestination;
   sender: DeliveryProviderContact;
   recipient: DeliveryProviderContact;
-  packages: readonly DeliveryProviderPackage[];
+  packages: readonly [DeliveryProviderPackage, ...DeliveryProviderPackage[]];
   customerInput: PricingCheckoutJsonObject | null;
   customerInputHash: string | null;
 }
@@ -910,30 +1063,40 @@ export type DeliveryProviderShipmentRequest =
   | DeliveryProviderGetShipmentRequest
   | DeliveryProviderReconcileShipmentRequest;
 
-export type DeliveryProviderShipmentOperationResult<
-  TOperation extends "CREATE" | "CANCEL" = "CREATE" | "CANCEL",
-> =
+export type DeliveryProviderCreateShipmentOperationResult =
   | Readonly<{
-      operation: TOperation;
+      operation: "CREATE";
       status: "SUCCEEDED";
       providerShipmentReference: string;
-      shipmentState: DeliveryShipmentState;
-      parcels: readonly DeliveryParcelSnapshot[];
-      events: readonly DeliveryTrackingEventSnapshot[];
+      shipmentState:
+        | "PENDING"
+        | "ACCEPTED"
+        | "IN_TRANSIT"
+        | "OUT_FOR_DELIVERY"
+        | "DELIVERED"
+        | "DELIVERY_FAILED"
+        | "RETURNING"
+        | "RETURNED"
+        | "CANCELLED";
+      parcels: readonly [
+        DeliveryProviderParcelObservation,
+        ...DeliveryProviderParcelObservation[],
+      ];
+      events: readonly DeliveryProviderTrackingEvent[];
       processedAt: string;
       metadata: PricingCheckoutJsonObject | null;
     }>
   | Readonly<{
-      operation: TOperation;
+      operation: "CREATE";
       status: "PENDING";
       providerShipmentReference: string;
-      shipmentState: DeliveryShipmentState;
+      shipmentState: "PENDING";
       nextReconcileAt: string | null;
       observedAt: string;
       metadata: PricingCheckoutJsonObject | null;
     }>
   | Readonly<{
-      operation: TOperation;
+      operation: "CREATE";
       status: "FAILED";
       providerShipmentReference: string | null;
       failure: DeliveryProviderFailure;
@@ -941,12 +1104,47 @@ export type DeliveryProviderShipmentOperationResult<
       metadata: PricingCheckoutJsonObject | null;
     }>;
 
+export type DeliveryProviderCancelShipmentOperationResult =
+  | Readonly<{
+      operation: "CANCEL";
+      status: "SUCCEEDED";
+      providerShipmentReference: string;
+      shipmentState: "CANCELLED";
+      parcels: readonly DeliveryProviderParcelObservation[];
+      events: readonly DeliveryProviderTrackingEvent[];
+      processedAt: string;
+      metadata: PricingCheckoutJsonObject | null;
+    }>
+  | Readonly<{
+      operation: "CANCEL";
+      status: "PENDING";
+      providerShipmentReference: string;
+      shipmentState: "CANCELLING";
+      nextReconcileAt: string | null;
+      observedAt: string;
+      metadata: PricingCheckoutJsonObject | null;
+    }>
+  | Readonly<{
+      operation: "CANCEL";
+      status: "FAILED";
+      providerShipmentReference: string;
+      failure: DeliveryProviderFailure;
+      failedAt: string;
+      metadata: PricingCheckoutJsonObject | null;
+    }>;
+
+export type DeliveryProviderShipmentOperationResult<
+  TOperation extends "CREATE" | "CANCEL" = "CREATE" | "CANCEL",
+> = TOperation extends "CREATE"
+  ? DeliveryProviderCreateShipmentOperationResult
+  : DeliveryProviderCancelShipmentOperationResult;
+
 export interface DeliveryProviderReconcileShipmentResult {
   status: "RECONCILED";
   providerShipmentReference: string;
-  shipmentState: DeliveryShipmentState;
-  parcels: readonly DeliveryParcelSnapshot[];
-  events: readonly DeliveryTrackingEventSnapshot[];
+  shipmentState: DeliveryProviderObservedShipmentState;
+  parcels: readonly DeliveryProviderParcelObservation[];
+  events: readonly DeliveryProviderTrackingEvent[];
   observedAt: string;
   metadata: PricingCheckoutJsonObject | null;
 }
@@ -955,17 +1153,16 @@ export type DeliveryProviderExternalEvent =
   | Readonly<{
       type: "SHIPMENT_STATUS_CHANGED";
       providerShipmentReference: string;
-      shipmentState: DeliveryShipmentState;
-      parcel: DeliveryParcelSnapshot | null;
-      event: DeliveryTrackingEventSnapshot;
+      shipmentState: DeliveryProviderObservedShipmentState;
+      parcel: DeliveryProviderParcelObservation | null;
+      event: DeliveryProviderTrackingEvent;
       metadata: PricingCheckoutJsonObject | null;
     }>
   | Readonly<{
       type: "SHIPMENT_LABEL_AVAILABLE";
       providerShipmentReference: string;
-      parcelId: string;
-      providerParcelReference: string | null;
-      label: DeliveryLabelSnapshot;
+      providerParcelReference: string;
+      label: DeliveryProviderLabel;
       metadata: PricingCheckoutJsonObject | null;
     }>;
 
@@ -1040,6 +1237,7 @@ export interface ReportDeliveryProviderEventParams {
   protocolVersion: typeof DELIVERY_PROVIDER_PROTOCOL_VERSION;
   providerAccountId: string;
   providerEventId: string;
+  providerSequence: string | null;
   occurredAt: string;
   event: DeliveryProviderExternalEvent;
 }

@@ -1,7 +1,31 @@
-import type { Delivery } from "@shopana/broker-types";
+import {
+  DELIVERY_CUSTOMIZATION_MAX_EXECUTIONS,
+  DELIVERY_CUSTOMIZATION_MAX_OPERATIONS,
+  type Delivery,
+} from "@shopana/broker-types";
 import { z } from "zod";
 
 const identifierSchema = z.string().trim().min(1).max(512);
+
+export const DeliveryCustomizationPolicySnapshotSchema = z
+  .object({
+    revision: identifierSchema,
+    maxExecutions: z
+      .number()
+      .int()
+      .safe()
+      .min(1)
+      .max(DELIVERY_CUSTOMIZATION_MAX_EXECUTIONS),
+    maxOperationsPerExecution: z
+      .number()
+      .int()
+      .safe()
+      .min(1)
+      .max(DELIVERY_CUSTOMIZATION_MAX_OPERATIONS),
+    allowHideAllOptions: z.boolean(),
+    implicitSelectionPolicy: z.literal("NONE"),
+  })
+  .strict();
 
 export const DeliveryCustomizationOperationSchema = z.discriminatedUnion(
   "type",
@@ -35,7 +59,9 @@ export const DeliveryCustomizationOperationSchema = z.discriminatedUnion(
 
 export const DeliveryCustomizationFunctionResultSchema = z
   .object({
-    operations: z.array(DeliveryCustomizationOperationSchema).max(10_000),
+    operations: z
+      .array(DeliveryCustomizationOperationSchema)
+      .max(DELIVERY_CUSTOMIZATION_MAX_OPERATIONS),
   })
   .strict()
   .superRefine((value, context) => {
@@ -58,4 +84,12 @@ export function parseDeliveryCustomizationFunctionResult(
   return DeliveryCustomizationFunctionResultSchema.parse(
     value,
   ) as Delivery.DeliveryCustomizationFunctionResult;
+}
+
+export function parseDeliveryCustomizationPolicySnapshot(
+  value: unknown,
+): Delivery.DeliveryCustomizationPolicySnapshot {
+  return DeliveryCustomizationPolicySnapshotSchema.parse(
+    value,
+  ) as Delivery.DeliveryCustomizationPolicySnapshot;
 }

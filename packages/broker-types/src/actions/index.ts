@@ -11,6 +11,7 @@ export type {
   AppInstallationStatus,
   AppLifecycleAcceptedResult,
   DeliveryProviderCapabilityInvocation,
+  DeliveryProviderOperationContractMap,
   ExecuteDeliveryProviderCapabilityParams,
   ExecuteDeliveryProviderCapabilityResult,
   InstallAppParams,
@@ -119,12 +120,15 @@ export {
   DELIVERY_PROVIDER_APP_PERMISSIONS,
   DELIVERY_PROVIDER_CAPABILITY,
   DELIVERY_PROVIDER_PROTOCOL_VERSION,
+  DELIVERY_CUSTOMIZATION_MAX_EXECUTIONS,
+  DELIVERY_CUSTOMIZATION_MAX_OPERATIONS,
   DELIVERY_CUSTOMIZATION_FUNCTION_TARGET,
   DeliveryActionNames,
   DeliveryActions,
   DeliveryCheckoutActionNames,
   DeliveryCheckoutActions,
   DeliveryProviderOperations,
+  DeliveryProviderAccountTransitions,
   DeliveryShipmentTransitions,
 } from "./delivery.js";
 export type * from "./delivery.js";

@@ -131,6 +131,7 @@ export const PaymentEventTypes = {
 
 export namespace PaymentEvents {
   export interface Base {
+    schemaVersion: 1;
     paymentCollectionId: string;
     paymentSessionId: string;
     operationId: string;
@@ -285,12 +286,12 @@ export namespace DeliveryEvents {
     providerShipmentReference: string | null;
     route: DeliveryProviderRouteSnapshot;
     operationType: DeliveryShipmentOperationType | null;
-    shipmentState: DeliveryShipmentState;
     shipmentRevision: number;
     occurredAt: string;
   }
 
   export interface ShipmentCreated extends Base {
+    shipmentState: DeliveryShipmentState;
     parcels: readonly DeliveryParcelSnapshot[];
   }
 
@@ -300,16 +301,19 @@ export namespace DeliveryEvents {
   }
 
   export interface TrackingUpdated extends Base {
+    shipmentState: DeliveryShipmentState;
     event: DeliveryTrackingEventSnapshot;
   }
 
   export interface LabelAvailable extends Base {
+    shipmentState: DeliveryShipmentState;
     parcelId: string;
     providerParcelReference: string | null;
     label: DeliveryLabelSnapshot;
   }
 
   export interface OperationFailed extends Base {
+    shipmentState: DeliveryShipmentState;
     failure: DeliveryProviderFailure;
   }
 }
