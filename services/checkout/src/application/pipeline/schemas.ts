@@ -1,0 +1,613 @@
+import {
+  DeliveryMethodType,
+  ShippingPaymentModel,
+} from "@shopana/shared-service-api";
+import { z } from "zod";
+
+import type {
+  CheckoutCartLineIntent,
+  CheckoutPipelineJsonValue,
+  CheckoutQuotedLine,
+} from "./contracts/index.js";
+
+export const CHECKOUT_PIPELINE_MAX_PAYLOAD_BYTES = 1_048_576;
+export const CHECKOUT_PIPELINE_MAX_LINES = 250;
+export const CHECKOUT_PIPELINE_MAX_LINE_NESTING_DEPTH = 8;
+export const CHECKOUT_PIPELINE_MAX_JSON_DEPTH = 32;
+export const CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS = 500;
+
+const identifierSchema = z.string().trim().min(1).max(256);
+const revisionSchema = z.string().trim().min(1).max(256);
+const checkoutVersionSchema = z.number().int().safe().nonnegative();
+const currencyCodeSchema = z.string().regex(/^[A-Z]{3}$/);
+const countryCodeSchema = z.string().regex(/^[A-Z]{2}$/);
+const timestampSchema = z.string().datetime({ offset: true });
+const nonNegativeIntegerSchema = z.number().int().safe().nonnegative();
+const positiveIntegerSchema = z.number().int().safe().positive();
+const collection = <T extends z.ZodTypeAny>(schema: T) =>
+  z.array(schema).max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS);
+
+export const checkoutPipelineStageSchema = z.enum([
+  "PRICING_PRELIMINARY",
+  "DELIVERY",
+  "PRICING_FINAL",
+  "PAYMENT",
+  "VALIDATION",
+]);
+
+export const checkoutPipelineStageStatusSchema = z.enum([
+  "SUCCESS",
+  "FAILED",
+  "SKIPPED",
+]);
+
+function createJsonValueSchema(
+  remainingDepth: number,
+): z.ZodType<CheckoutPipelineJsonValue> {
+  const primitiveSchema = z.union([
+    z.null(),
+    z.boolean(),
+    z.number().finite(),
+    z.string().max(CHECKOUT_PIPELINE_MAX_PAYLOAD_BYTES),
+  ]);
+  if (remainingDepth === 0) {
+    return primitiveSchema;
+  }
+  const childSchema = createJsonValueSchema(remainingDepth - 1);
+  return z.union([
+    primitiveSchema,
+    collection(childSchema),
+    z.record(childSchema).superRefine((value, context) => {
+      if (Object.keys(value).length > CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "JSON object has too many properties",
+        });
+      }
+    }),
+  ]);
+}
+
+export const checkoutPipelineJsonValueSchema = createJsonValueSchema(
+  CHECKOUT_PIPELINE_MAX_JSON_DEPTH,
+);
+
+export const checkoutPipelineJsonObjectSchema = z
+  .record(checkoutPipelineJsonValueSchema)
+  .superRefine((value, context) => {
+    if (Object.keys(value).length > CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "JSON object has too many properties",
+      });
+    }
+  });
+
+export const checkoutPipelineMoneySchema = z
+  .object({
+    amountMinor: z.string().regex(/^-?\d+$/),
+    currencyCode: currencyCodeSchema,
+  })
+  .strict();
+
+const checkoutPipelineNonNegativeMoneySchema = checkoutPipelineMoneySchema.refine(
+  ({ amountMinor }) => BigInt(amountMinor) >= 0n,
+  "Money amount must not be negative",
+);
+
+export const checkoutPipelineStageProvenanceSchema = z
+  .object({
+    executionId: identifierSchema,
+    checkoutId: identifierSchema,
+    basedOnCheckoutVersion: checkoutVersionSchema,
+    currencyCode: currencyCodeSchema,
+  })
+  .strict();
+
+export const checkoutPipelineBuyerSchema = z
+  .object({
+    customerId: identifierSchema.nullable(),
+    email: z.string().email().nullable(),
+    phone: z.string().trim().min(1).nullable(),
+    countryCode: countryCodeSchema.nullable(),
+    marketId: identifierSchema.nullable(),
+    companyId: identifierSchema.nullable(),
+    data: checkoutPipelineJsonObjectSchema.nullable(),
+  })
+  .strict();
+
+export const checkoutPipelineAddressSchema = z
+  .object({
+    id: identifierSchema,
+    address1: z.string().trim().min(1),
+    address2: z.string().trim().min(1).nullable(),
+    city: z.string().trim().min(1),
+    countryCode: countryCodeSchema,
+    provinceCode: z.string().trim().min(1).nullable(),
+    provinceName: z.string().trim().min(1).nullable(),
+    postalCode: z.string().trim().min(1).nullable(),
+    firstName: z.string().trim().min(1).nullable(),
+    middleName: z.string().trim().min(1).nullable(),
+    lastName: z.string().trim().min(1).nullable(),
+    company: z.string().trim().min(1).nullable(),
+    email: z.string().email().nullable(),
+    phone: z.string().trim().min(1).nullable(),
+    providerData: checkoutPipelineJsonObjectSchema.nullable(),
+  })
+  .strict();
+
+export const checkoutPipelineIssueSchema = z
+  .object({
+    stage: checkoutPipelineStageSchema,
+    code: identifierSchema,
+    message: z.string().min(1),
+    severity: z.enum(["WARNING", "ERROR"]),
+    effect: z.enum(["CONTINUE", "STOP"]),
+    field: collection(z.string().min(1).max(256)).optional(),
+    lineId: identifierSchema.optional(),
+    retryable: z.boolean(),
+  })
+  .strict();
+
+export const checkoutPipelineStageTraceSchema = z
+  .object({
+    stage: checkoutPipelineStageSchema,
+    status: checkoutPipelineStageStatusSchema,
+    startedAt: timestampSchema,
+    completedAt: timestampSchema,
+    durationMs: nonNegativeIntegerSchema,
+    inputRevision: revisionSchema.optional(),
+    outputRevision: revisionSchema.optional(),
+  })
+  .strict();
+
+export const checkoutPipelineExecutionTraceSchema = z
+  .object({
+    executionId: identifierSchema,
+    correlationId: identifierSchema,
+    startedAt: timestampSchema,
+    completedAt: timestampSchema,
+    stages: collection(checkoutPipelineStageTraceSchema),
+  })
+  .strict();
+
+export const checkoutPipelineExecutionContextSchema = z
+  .object({
+    executionId: identifierSchema,
+    correlationId: identifierSchema,
+    deadlineAt: timestampSchema,
+    requestedAt: timestampSchema,
+    checkoutId: identifierSchema,
+    expectedCheckoutVersion: checkoutVersionSchema,
+    storeId: identifierSchema,
+    currencyCode: currencyCodeSchema,
+    localeCode: z.string().trim().min(1).nullable(),
+    buyer: checkoutPipelineBuyerSchema.nullable(),
+  })
+  .strict()
+  .superRefine((context, refinementContext) => {
+    if (Date.parse(context.deadlineAt) <= Date.parse(context.requestedAt)) {
+      refinementContext.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "deadlineAt must be later than requestedAt",
+        path: ["deadlineAt"],
+      });
+    }
+  });
+
+function createCartLineIntentSchema(
+  remainingDepth: number,
+): z.ZodType<CheckoutCartLineIntent> {
+  const childrenSchema =
+    remainingDepth === 1
+      ? z.array(z.never()).max(0)
+      : collection(createCartLineIntentSchema(remainingDepth - 1));
+  return z
+    .object({
+      lineId: identifierSchema,
+      merchandiseId: identifierSchema,
+      quantity: positiveIntegerSchema,
+      attributes: checkoutPipelineJsonObjectSchema,
+      children: childrenSchema,
+    })
+    .strict();
+}
+
+export const checkoutCartLineIntentSchema = createCartLineIntentSchema(
+  CHECKOUT_PIPELINE_MAX_LINE_NESTING_DEPTH,
+);
+
+export const checkoutDeliveryDestinationIntentSchema = z
+  .object({
+    destinationId: identifierSchema,
+    address: checkoutPipelineAddressSchema,
+    lineIds: collection(identifierSchema),
+  })
+  .strict();
+
+export const checkoutCartIntentSchema = z
+  .object({
+    lines: collection(checkoutCartLineIntentSchema),
+    discountCodes: collection(z.string().trim().min(1).max(256)),
+    destinations: collection(checkoutDeliveryDestinationIntentSchema),
+    selectedDeliveryOptionHandles: z
+      .record(identifierSchema)
+      .superRefine((value, context) => {
+        if (
+          Object.keys(value).length > CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Too many selected delivery option handles",
+          });
+        }
+      }),
+    selectedPaymentMethodHandle: identifierSchema.nullable(),
+    attributes: checkoutPipelineJsonObjectSchema,
+  })
+  .strict();
+
+export const checkoutMerchandiseSnapshotSchema = z
+  .object({
+    merchandiseId: identifierSchema,
+    revision: revisionSchema,
+    title: z.string().min(1),
+    sku: z.string().nullable(),
+    imageUrl: z.string().url().nullable(),
+    isPhysical: z.boolean(),
+    data: checkoutPipelineJsonObjectSchema.nullable(),
+  })
+  .strict();
+
+export const checkoutLineAvailabilitySchema = z
+  .object({
+    available: z.boolean(),
+    maxQuantity: nonNegativeIntegerSchema.nullable(),
+    continueSellingWhenOutOfStock: z.boolean(),
+    reasonCode: identifierSchema.nullable(),
+    revision: revisionSchema,
+  })
+  .strict();
+
+export const checkoutDiscountApplicationSchema = z
+  .object({
+    code: identifierSchema.nullable(),
+    source: identifierSchema,
+    title: z.string().min(1),
+    amount: checkoutPipelineMoneySchema,
+    metadata: checkoutPipelineJsonObjectSchema.nullable(),
+  })
+  .strict();
+
+function createQuotedLineSchema(
+  remainingDepth: number,
+): z.ZodType<CheckoutQuotedLine> {
+  const childrenSchema =
+    remainingDepth === 1
+      ? z.array(z.never()).max(0)
+      : collection(createQuotedLineSchema(remainingDepth - 1));
+  return z
+    .object({
+      lineId: identifierSchema,
+      quantity: positiveIntegerSchema,
+      merchandise: checkoutMerchandiseSnapshotSchema,
+      availability: checkoutLineAvailabilitySchema,
+      unitPrice: checkoutPipelineMoneySchema,
+      originalUnitPrice: checkoutPipelineMoneySchema,
+      compareAtUnitPrice: checkoutPipelineMoneySchema.nullable(),
+      subtotal: checkoutPipelineMoneySchema,
+      total: checkoutPipelineMoneySchema,
+      discounts: collection(checkoutDiscountApplicationSchema),
+      children: childrenSchema,
+    })
+    .strict();
+}
+
+export const checkoutQuotedLineSchema = createQuotedLineSchema(
+  CHECKOUT_PIPELINE_MAX_LINE_NESTING_DEPTH,
+);
+
+export const checkoutTransformedLineLineageSchema = z
+  .object({
+    lineId: identifierSchema,
+    sourceLineIds: collection(identifierSchema).min(1),
+  })
+  .strict();
+
+export const checkoutCanonicalDeliveryDestinationSchema = z
+  .object({
+    destinationId: identifierSchema,
+    address: checkoutPipelineAddressSchema,
+    transformedLineIds: collection(identifierSchema),
+    selectedDeliveryOptionHandle: identifierSchema.nullable(),
+  })
+  .strict();
+
+export const checkoutCanonicalDeliveryIntentSchema = z
+  .object({
+    revision: revisionSchema,
+    lineage: collection(checkoutTransformedLineLineageSchema),
+    destinations: collection(checkoutCanonicalDeliveryDestinationSchema),
+  })
+  .strict();
+
+export const checkoutPreliminaryPricingTotalsSchema = z
+  .object({
+    merchandiseSubtotal: checkoutPipelineMoneySchema,
+    merchandiseDiscountTotal: checkoutPipelineMoneySchema,
+    merchandiseTotal: checkoutPipelineMoneySchema,
+  })
+  .strict();
+
+export const checkoutPricingTotalsSchema = z
+  .object({
+    subtotal: checkoutPipelineMoneySchema,
+    discountTotal: checkoutPipelineMoneySchema,
+    taxTotal: checkoutPipelineMoneySchema,
+    deliveryTotal: checkoutPipelineMoneySchema,
+    payableTotal: checkoutPipelineMoneySchema,
+  })
+  .strict();
+
+export const calculatePreliminaryPricingRequestSchema = z
+  .object({
+    context: checkoutPipelineExecutionContextSchema,
+    cartIntent: checkoutCartIntentSchema,
+  })
+  .strict();
+
+export const calculatePreliminaryPricingResultSchema = z
+  .object({
+    ...checkoutPipelineStageProvenanceSchema.shape,
+    preliminaryQuoteId: identifierSchema,
+    revision: revisionSchema,
+    transformedLines: collection(checkoutQuotedLineSchema),
+    deliveryIntent: checkoutCanonicalDeliveryIntentSchema,
+    merchandiseRevision: revisionSchema,
+    availabilityRevision: revisionSchema,
+    appliedDiscounts: collection(checkoutDiscountApplicationSchema),
+    rejectedDiscountCodes: collection(z.string().trim().min(1).max(256)),
+    preliminaryTotals: checkoutPreliminaryPricingTotalsSchema,
+  })
+  .strict();
+
+export const checkoutDeliveryOptionSchema = z
+  .object({
+    handle: identifierSchema,
+    code: identifierSchema,
+    title: z.string().min(1),
+    deliveryMethodType: z.union([
+      z.literal(DeliveryMethodType.PICKUP),
+      z.literal(DeliveryMethodType.SHIPPING),
+    ]),
+    shippingPaymentModel: z.nativeEnum(ShippingPaymentModel),
+    provider: z
+      .object({
+        code: identifierSchema,
+        data: checkoutPipelineJsonObjectSchema,
+      })
+      .strict(),
+    cost: checkoutPipelineNonNegativeMoneySchema,
+    estimatedMinDeliveryAt: timestampSchema.nullable(),
+    estimatedMaxDeliveryAt: timestampSchema.nullable(),
+    customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+  })
+  .strict();
+
+export const checkoutDeliveryGroupSchema = z
+  .object({
+    groupId: identifierSchema,
+    destinationId: identifierSchema,
+    lineIds: collection(identifierSchema),
+    options: collection(checkoutDeliveryOptionSchema),
+    selectedOptionHandle: identifierSchema.nullable(),
+  })
+  .strict();
+
+export const calculateDeliveryOptionsRequestSchema = z
+  .object({
+    context: checkoutPipelineExecutionContextSchema,
+    preliminary: calculatePreliminaryPricingResultSchema,
+  })
+  .strict();
+
+export const calculateDeliveryOptionsResultSchema = z
+  .object({
+    ...checkoutPipelineStageProvenanceSchema.shape,
+    revision: revisionSchema,
+    basedOnPreliminaryRevision: revisionSchema,
+    groups: collection(checkoutDeliveryGroupSchema),
+  })
+  .strict();
+
+export const finalizePricingQuoteRequestSchema = z
+  .object({
+    context: checkoutPipelineExecutionContextSchema,
+    preliminary: calculatePreliminaryPricingResultSchema,
+    delivery: calculateDeliveryOptionsResultSchema,
+  })
+  .strict();
+
+export const finalizePricingQuoteResultSchema = z
+  .object({
+    ...checkoutPipelineStageProvenanceSchema.shape,
+    quoteId: identifierSchema,
+    revision: revisionSchema,
+    basedOnPreliminaryRevision: revisionSchema,
+    basedOnDeliveryRevision: revisionSchema,
+    lines: collection(checkoutQuotedLineSchema),
+    appliedDiscounts: collection(checkoutDiscountApplicationSchema),
+    rejectedDiscountCodes: collection(z.string().trim().min(1).max(256)),
+    totals: checkoutPricingTotalsSchema,
+  })
+  .strict();
+
+export const checkoutPaymentMethodSchema = z
+  .object({
+    handle: identifierSchema,
+    code: identifierSchema,
+    title: z.string().min(1),
+    provider: identifierSchema,
+    flow: z.enum(["ONLINE", "OFFLINE", "ON_DELIVERY"]),
+    metadata: checkoutPipelineJsonObjectSchema.nullable(),
+  })
+  .strict();
+
+export const getAvailablePaymentMethodsRequestSchema = z
+  .object({
+    context: checkoutPipelineExecutionContextSchema,
+    cartIntent: checkoutCartIntentSchema,
+    finalQuote: finalizePricingQuoteResultSchema,
+    delivery: calculateDeliveryOptionsResultSchema,
+  })
+  .strict();
+
+export const getAvailablePaymentMethodsResultSchema = z
+  .object({
+    ...checkoutPipelineStageProvenanceSchema.shape,
+    revision: revisionSchema,
+    basedOnFinalQuoteRevision: revisionSchema,
+    basedOnDeliveryRevision: revisionSchema,
+    methods: collection(checkoutPaymentMethodSchema),
+    selectedMethodHandle: identifierSchema.nullable(),
+  })
+  .strict();
+
+export const checkoutValidationOperationSchema = z
+  .object({
+    code: identifierSchema,
+    message: z.string().min(1),
+    field: collection(z.string().min(1).max(256)),
+    lineId: identifierSchema.nullable(),
+  })
+  .strict();
+
+export const validateCheckoutRequestSchema = z
+  .object({
+    context: checkoutPipelineExecutionContextSchema,
+    cartIntent: checkoutCartIntentSchema,
+    preliminary: calculatePreliminaryPricingResultSchema,
+    delivery: calculateDeliveryOptionsResultSchema,
+    finalQuote: finalizePricingQuoteResultSchema,
+    payment: getAvailablePaymentMethodsResultSchema,
+  })
+  .strict();
+
+export const validateCheckoutResultSchema = z
+  .object({
+    ...checkoutPipelineStageProvenanceSchema.shape,
+    revision: revisionSchema,
+    basedOnFinalQuoteRevision: revisionSchema,
+    basedOnPaymentRevision: revisionSchema,
+    valid: z.boolean(),
+    operations: collection(checkoutValidationOperationSchema),
+  })
+  .strict();
+
+export const checkoutPipelineChangeSchema = z.enum([
+  "CREATE",
+  "LINES_ADD",
+  "LINES_UPDATE",
+  "LINES_DELETE",
+  "LINES_REPLACE",
+  "DISCOUNT_CODES_UPDATE",
+  "BUYER_UPDATE",
+  "CURRENCY_UPDATE",
+  "DELIVERY_ADDRESS_UPDATE",
+  "DELIVERY_OPTION_UPDATE",
+  "PAYMENT_METHOD_UPDATE",
+]);
+
+export const checkoutRecalculationRequestSchema = z
+  .object({
+    context: checkoutPipelineExecutionContextSchema,
+    change: checkoutPipelineChangeSchema,
+    cartIntent: checkoutCartIntentSchema,
+  })
+  .strict();
+
+export const checkoutPipelineStageOutcomeSchema = <
+  TStage extends z.infer<typeof checkoutPipelineStageSchema>,
+  T extends z.ZodTypeAny,
+>(
+  stage: TStage,
+  dataSchema: T,
+) =>
+  z.discriminatedUnion("status", [
+    z
+      .object({
+        status: z.literal("SUCCESS"),
+        data: dataSchema,
+        issues: collection(checkoutPipelineIssueSchema),
+        trace: checkoutPipelineStageTraceSchema.extend({
+          stage: z.literal(stage),
+          status: z.literal("SUCCESS"),
+        }),
+      })
+      .strict(),
+    z
+      .object({
+        status: z.literal("FAILED"),
+        failure: z
+          .object({
+            code: identifierSchema,
+            message: z.string().min(1),
+            retryable: z.boolean(),
+          })
+          .strict(),
+        issues: collection(checkoutPipelineIssueSchema),
+        trace: checkoutPipelineStageTraceSchema.extend({
+          stage: z.literal(stage),
+          status: z.literal("FAILED"),
+        }),
+      })
+      .strict(),
+    z
+      .object({
+        status: z.literal("SKIPPED"),
+        reason: z
+          .object({
+            code: identifierSchema,
+            message: z.string().min(1),
+            upstreamStage: checkoutPipelineStageSchema.optional(),
+          })
+          .strict(),
+        issues: collection(checkoutPipelineIssueSchema),
+        trace: checkoutPipelineStageTraceSchema.extend({
+          stage: z.literal(stage),
+          status: z.literal("SKIPPED"),
+        }),
+      })
+      .strict(),
+  ]);
+
+export const checkoutRecalculationResultSchema = z
+  .object({
+    executionId: identifierSchema,
+    checkoutId: identifierSchema,
+    basedOnCheckoutVersion: checkoutVersionSchema,
+    resultRevision: revisionSchema,
+    preliminaryPricing: checkoutPipelineStageOutcomeSchema(
+      "PRICING_PRELIMINARY",
+      calculatePreliminaryPricingResultSchema,
+    ),
+    delivery: checkoutPipelineStageOutcomeSchema(
+      "DELIVERY",
+      calculateDeliveryOptionsResultSchema,
+    ),
+    finalPricing: checkoutPipelineStageOutcomeSchema(
+      "PRICING_FINAL",
+      finalizePricingQuoteResultSchema,
+    ),
+    payment: checkoutPipelineStageOutcomeSchema(
+      "PAYMENT",
+      getAvailablePaymentMethodsResultSchema,
+    ),
+    validation: checkoutPipelineStageOutcomeSchema(
+      "VALIDATION",
+      validateCheckoutResultSchema,
+    ),
+    issues: collection(checkoutPipelineIssueSchema),
+    trace: checkoutPipelineExecutionTraceSchema,
+  })
+  .strict();
