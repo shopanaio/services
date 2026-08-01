@@ -25,7 +25,8 @@ new CheckoutPipeline({
 });
 ```
 
-- `CommerceFunctionRunnerPort` — узкий структурный интерфейс над generic `CommerceFunctionRunner.run()`. Он принимает checkout-owned `CommerceFunctionRunRequest` shape и возвращает только необходимые runner fields: `target`, ordered `outputs` (`planIndex`, `implementationId`, `implementationType`, `functionBindingId`, `data`) и trace (`bindingSetRevision`, `status`, ordered implementations с identity, failureMode, status и optional errorClass/errorCode). REQUIRED throw распознаётся только как trusted runner error при наличии валидного trace; произвольный duck-typed exception таким не считается.
+- `CommerceFunctionRunnerPort` — узкий структурный интерфейс над generic `CommerceFunctionRunner.run()`. Он принимает checkout-owned `CommerceFunctionRunRequest` shape и возвращает только необходимые runner fields: `target`, ordered `outputs` (`planIndex`, `implementationId`, `implementationType`, `functionBindingId`, `data`) и trace (`executionId`, optional `correlationId`, `storeId`, `target`, `owningService`, `bindingSetRevision`, `deadlineAt`, `status`, ordered implementations с `planIndex`, identity, owner, configuration revision, precedence, activation sequence, failureMode, status и optional errorClass/errorCode).
+- Checkout package получает runtime dependency на `@shopana/function-runner` только для nominal `CommerceFunctionExecutionError`. REQUIRED throw распознаётся исключительно когда `error instanceof CommerceFunctionExecutionError` и его trace прошёл полную request-relative проверку ниже. Ошибка с похожими публичными полями, другой `Error` или malformed trace считается unknown runner failure; structural fake в unit tests для throw-path обязан выбрасывать настоящий `CommerceFunctionExecutionError`.
 - `CheckoutPipelineRuntime` предоставляет wall clock и timer scheduling с точным контрактом:
 
 ```ts
@@ -36,12 +37,23 @@ interface CheckoutPipelineRuntime {
 }
 ```
 
-Default runtime использует `Date.now`, `setTimeout` и `clearTimeout`. Все pipeline timestamps и решения settlement guard используют только этот runtime; отрицательный `delayMs` нормализуется в `0`.
+`schedule` не может вызвать callback синхронно до возврата handle. Default runtime использует `Date.now`, `setTimeout` и `clearTimeout`. Все pipeline timestamps и решения settlement guard используют только этот runtime; отрицательный `delayMs` нормализуется в `0`.
 - `CheckoutPipelinePorts` содержит только Pricing, Delivery и Payments; validation runner передаётся отдельной checkout-owned зависимостью.
 - Удалить abstract `BaseCheckoutPipeline` и незавершённый `CheckoutValidationPort`.
 - Экспортировать concrete class, factory, validation runner, binding contracts, target contracts и schemas.
 
-Validation runner проверяет runner result как недоверенную boundary: target и binding revision должны совпасть с request; `planIndex` должен быть уникальным и возрастающим; каждый output должен соответствовать `SUCCEEDED` APP trace item с теми же `implementationId` и non-null `functionBindingId`; trace identity должна ссылаться на переданный active binding. Несогласованный envelope превращается в `CHECKOUT_VALIDATION_FUNCTION_OUTPUT_INVALID`, а не используется для provenance.
+Validation runner проверяет runner result и trace из nominal runner error как недоверенную request-relative boundary:
+
+- top-level `target`, а также trace `executionId`, optional `correlationId`, `storeId`, `target`, `owningService` и `bindingSetRevision` должны точно совпасть с run request и target definition; trace `deadlineAt` должен быть валидным timestamp не позже request `deadlineAt`, поскольку generic runner вправе сократить его до target `defaultTimeoutMs`;
+- `trace.implementations` должен содержать ровно один APP item на каждый active binding, без NATIVE items, пропусков и дубликатов, в exact sorted binding order;
+- trace `planIndex` должен быть точной последовательностью `0..activeBindings.length - 1`;
+- каждый trace item должен иметь `implementationId === "app:<functionBindingId>"`, non-null `functionBindingId` и owner, `configurationRevision`, `precedence`, `activationSequence`, `failureMode`, совпадающие с соответствующим active binding;
+- каждый `SUCCEEDED` trace item должен иметь ровно один output с теми же `planIndex`, `implementationId`, `implementationType` и `functionBindingId`; для `FAILED`, `TIMED_OUT` и `SKIPPED` output запрещён; посторонние или повторные outputs запрещены;
+- outputs находятся в строго возрастающем `planIndex` order, а каждый `data` проходит source-less function output parser;
+- returned result не может содержать REQUIRED `FAILED`/`TIMED_OUT`; `trace.status` обязан быть `SUCCEEDED`, если failures нет, и `PARTIAL`, если есть только OPTIONAL failures; nominal thrown error обязан иметь хотя бы один REQUIRED `FAILED`/`TIMED_OUT`, `trace.status === "FAILED"`, а его `errorClass` должен совпасть с `errorClass` первого такого item в plan order;
+- `SKIPPED` допустим только после первого REQUIRED failure в thrown trace; до него каждый item должен иметь terminal `SUCCEEDED`, `FAILED` или `TIMED_OUT` status.
+
+Любое несоответствие envelope превращается в `CHECKOUT_VALIDATION_FUNCTION_OUTPUT_INVALID`, а данные envelope не используются для operations или provenance.
 
 ## Pipeline Execution
 
@@ -52,6 +64,7 @@ Validation runner проверяет runner result как недоверенну
   - выполнить port/runner через deadline settlement guard;
   - проверить response request-relative parser;
   - сформировать `SUCCESS`, `FAILED` или `SKIPPED`.
+- Validation stage вызывает `validationRunner.validate()` один раз через тот же deadline settlement guard. Этот один guarded promise включает `bindings.loadForTarget()`, проверку/sorting bindings и optional `functions.run()`; отдельный новый deadline для внутренних шагов не создаётся. Поэтому зависший binding source, route resolution или function execution не может удерживать pipeline после общего cutoff.
 - Data exposure:
   - Pricing получает eligibility context без contact PII и сокращённую location;
   - Delivery получает canonical transformed physical lines и необходимые адрес/contact fields;
@@ -126,6 +139,8 @@ Rules вычисляются только из уже проверенного `
 | `PAYMENT_METHOD_INVALID` | payable total больше нуля и `selection.status === "RESET"` | `The selected payment method is no longer valid.` | `["payment", "selectedMethod"]` / `null` |
 
 `SELECTED` handles дополнительно не перепроверяются native rules: request-relative Delivery/Payments parsers уже гарантируют, что выбранный handle принадлежит возвращённому набору. Все native operations имеют `severity: "ERROR"` и trusted `source.type: "NATIVE"` с соответствующим rule.
+
+Native `ERROR/STOP` operations не short-circuit-ят Commerce Functions внутри Validation stage: validation работает как collect-all и всё равно вызывает active App functions, чтобы вернуть полный ordered набор native и function operations. `STOP` влияет на итоговый `valid`, stage issues и только на последующие pipeline stages; после Validation stages в v1 нет.
 
 ### Target definition
 
@@ -218,6 +233,18 @@ interface CheckoutValidationBindingSource {
   })),
 }
 ```
+
+Вызов source является частью guarded Validation stage call и использует исходный pipeline `deadlineAt`. Unknown rejection source преобразуется validation runner в typed failure:
+
+```ts
+{
+  code: "CHECKOUT_VALIDATION_BINDINGS_UNAVAILABLE",
+  message: "Checkout validation configuration is unavailable.",
+  retryable: true,
+}
+```
+
+Malformed returned bindings являются boundary violation, а не availability failure.
 
 Пустой набор использует экспортированную константу:
 
@@ -367,9 +394,9 @@ class CheckoutPipelineStageError extends Error {
 }
 ```
 
-- Typed errors разрешены port adapters, validation runner и deadline guard.
-- Typed `code/message/retryable` сохраняются после schema validation.
-- Stage boundary errors становятся non-retryable `CHECKOUT_PIPELINE_BOUNDARY_VIOLATION`.
+- Typed errors разрешены port adapters, validation runner и deadline guard. Они распознаются только через `instanceof CheckoutPipelineStageError`; duck-typed exception не является typed error.
+- Constructor проверяет `code` через checkout identifier schema, непустой `message` через ограниченную public-message schema и `retryable` как boolean. Только после этой проверки typed `code/message/retryable` сохраняются.
+- Stage boundary errors становятся non-retryable `CHECKOUT_PIPELINE_BOUNDARY_VIOLATION` с public message `Checkout pipeline received an invalid boundary payload.`; исходная parser/boundary error доступна только как internal `cause`.
 - Function errors получают checkout-owned sanitized codes по фиксированной таблице:
 
 | Generic `FunctionErrorClass` | Checkout code | retryable | public message |
@@ -383,8 +410,19 @@ class CheckoutPipelineStageError extends Error {
 | `OUTPUT_SIZE_LIMIT` | `CHECKOUT_VALIDATION_FUNCTION_OUTPUT_TOO_LARGE` | `false` | `A required checkout validation function returned too much data.` |
 | `DOMAIN_REJECTION` | `CHECKOUT_VALIDATION_FUNCTION_REJECTED` | `false` | `A required checkout validation function rejected the request.` |
 
-Unknown/malformed generic runner errors используют `CHECKOUT_VALIDATION_FUNCTION_FAILED`, generic message и `retryable: false`. Для OPTIONAL trace failures используется единая warning operation из раздела выше независимо от generic error class; исходные codes/messages наружу не копируются.
-- Unknown exception получает stage-specific code, generic безопасное message и `retryable: false`.
+Unknown/malformed generic runner errors используют `code: "CHECKOUT_VALIDATION_FUNCTION_FAILED"`, `message: "A required checkout validation function failed."` и `retryable: false`. Для OPTIONAL trace failures используется единая warning operation из раздела выше независимо от generic error class; исходные codes/messages наружу не копируются.
+- Unknown exception получает stage-specific code/message из фиксированной таблицы и `retryable: false`:
+
+| Stage | code | public message |
+| --- | --- | --- |
+| `PRICING_PRELIMINARY` | `CHECKOUT_PRELIMINARY_PRICING_FAILED` | `Checkout preliminary pricing could not be calculated.` |
+| `DELIVERY` | `CHECKOUT_DELIVERY_FAILED` | `Checkout delivery options could not be calculated.` |
+| `PRICING_FINAL` | `CHECKOUT_FINAL_PRICING_FAILED` | `Checkout final pricing could not be calculated.` |
+| `PAYMENT` | `CHECKOUT_PAYMENT_FAILED` | `Checkout payment methods could not be calculated.` |
+| `VALIDATION` | `CHECKOUT_VALIDATION_FAILED` | `Checkout validation could not be completed.` |
+
+- Deadline guard failure для любой стадии имеет `code: "CHECKOUT_PIPELINE_DEADLINE_EXCEEDED"`, `message: "Checkout recalculation exceeded its deadline."`, `retryable: true`.
+- Каждый downstream `SKIPPED` получает exact reason `code: "CHECKOUT_PIPELINE_UPSTREAM_BLOCKED"`, `message: "Checkout stage was skipped because an upstream stage blocked execution."` и `upstreamStage` первого blocking stage. Это одинаково применяется после `FAILED` outcome и после `SUCCESS` outcome со `STOP` issue.
 - `cause` доступен только внутреннему logging и никогда не входит в result, issue, revision или public trace.
 - Каждый stage failure создаёт одно эквивалентное `ERROR/STOP` issue.
 
@@ -394,19 +432,28 @@ Unknown/malformed generic runner errors используют `CHECKOUT_VALIDATIO
 
 ### Settlement guard
 
-Для каждого port/runner call:
+Для Pricing, Delivery, Payments и единого `validationRunner.validate()` call:
 
 - до запуска проверить, что текущее время меньше deadline;
-- подключить fulfillment и rejection handlers до запуска timer race;
+- вызвать thunk и подключить fulfillment/rejection handlers до создания timer;
 - сохранить внутренний `resultObservedAt` при наблюдении settlement;
 - принять fulfillment/rejection только если `resultObservedAt <= deadlineAt`;
-- при settlement очистить timer;
-- если timer выигрывает, сформировать deadline failure;
+- если timer уже создан, при первом observed settlement очистить его ровно один раз;
+- timer callback формирует deadline failure только когда `runtime.now() > deadlineAt`; если callback наблюдает `now <= deadlineAt`, он повторно schedule-ит проверку на первый millisecond строго после deadline;
 - late fulfillment игнорировать;
 - late rejection поглотить уже установленным rejection handler, исключая unhandled rejection;
 - физическую отмену не обещать, поскольку порты не принимают `AbortSignal`.
 
-Guard получает thunk `() => Promise<T>`, а не уже созданный Promise, поэтому deadline check действительно происходит до port call. Синхронный throw из thunk обрабатывается как observed rejection с `resultObservedAt = runtime.now()`. Timer создаётся только после установки handlers; при любом observed settlement вызывается `runtime.cancel(handle)` ровно один раз. Если settlement и timer наблюдаются на одинаковом millisecond, accepted settlement с `resultObservedAt <= deadlineAt` имеет приоритет.
+Guard получает thunk `() => Promise<T>`, а не уже созданный Promise, поэтому deadline check действительно происходит до call. State machine имеет terminal states `SETTLED` и `TIMED_OUT`; только первый переход из `PENDING` публикует outcome. Алгоритм фиксирован:
+
+1. Получить `beforeCall = runtime.now()`; если `beforeCall >= deadlineAt`, не вызывать thunk и сразу вернуть deadline failure с `deadlineObservedAt = beforeCall`.
+2. Вызвать thunk. Синхронный throw обработать как observed rejection с новым `runtime.now()`; timer в этой ветке не создаётся и `cancel` не вызывается.
+3. Для возвращённого Promise сразу установить fulfillment и rejection handlers.
+4. Создать timer с `delayMs = Math.max(0, deadlineAt - runtime.now() + 1)`. Так timer не объявляет timeout внутри допустимого `deadlineAt` millisecond.
+5. Settlement handler фиксирует `resultObservedAt = runtime.now()`. При `resultObservedAt <= deadlineAt` он переводит `PENDING → SETTLED`; при более позднем времени переводит `PENDING → TIMED_OUT` с `deadlineObservedAt = resultObservedAt`. В обеих ветках он отменяет существующий timer ровно один раз.
+6. Timer callback читает `observedAt = runtime.now()`. При `observedAt <= deadlineAt` он заменяет handle новым timer на `Math.max(0, deadlineAt - observedAt + 1)`; при `observedAt > deadlineAt` переводит `PENDING → TIMED_OUT` с `deadlineObservedAt = observedAt`. После terminal transition последующие handlers только поглощают settlement.
+
+Следовательно, settlement, наблюдённый в точности при `deadlineAt`, всегда принимается независимо от порядка timer microtask/macrotask; settlement после deadline никогда не принимается. `runtime.cancel` вызывается ровно один раз только для фактически созданного и ещё активного handle; pre-call timeout и synchronous throw ничего не отменяют.
 
 ### Trace
 
@@ -488,6 +535,7 @@ Stage `inputRevision`/`outputRevision` имеют формат `sha256:<64 lower
 
 В checkout package добавить:
 
+- runtime dependency `@shopana/function-runner: "workspace:*"` для nominal error identity; concrete runner по-прежнему передаётся через structural port и не создаётся внутри checkout;
 - `jest`;
 - `ts-jest`;
 - `@types/jest`;
@@ -504,19 +552,23 @@ Stage `inputRevision`/`outputRevision` имеют формат `sha256:<64 lower
 - `maxQuantity: null`, `0` и positive limit;
 - одновременные unavailable/quantity operations;
 - zero-total payment;
+- collect-all App execution даже при native `ERROR/STOP` и canonical native-before-function operation order;
 - binding validation, cross-store/owner rejection, uniqueness, sorting, disabled filtering, exact non-empty revision payload и empty revision;
-- source-less output, output/trace identity mismatch rejection и trusted provenance;
+- source-less output, полную trace/binding биекцию, contiguous plan indexes, exact binding policy identity, output/SUCCEEDED биекцию, overall status coherence, missing/duplicate/foreign trace/output rejection и trusted provenance;
+- nominal `CommerceFunctionExecutionError` acceptance и отклонение duck-typed/malformed runner errors;
 - REQUIRED/OPTIONAL failures;
+- binding source rejection, malformed bindings и binding source timeout в рамках общего Validation deadline;
 - typed, boundary и unknown error sanitization;
 - отсутствие `cause` во всех публичных artifacts;
 - STOP/CONTINUE и downstream short-circuit;
-- timeout before call, timer win, fulfilled-after-deadline, rejected-after-deadline;
-- timer cleanup и отсутствие unhandled late rejection;
+- timeout before call, timer win, fulfilled-at-deadline, fulfilled-after-deadline, rejected-after-deadline и early timer callback reschedule;
+- synchronous throw без timer/cancel, timer cleanup ровно один раз, запрет synchronous schedule callback и отсутствие unhandled late rejection;
 - успешный последний settlement до deadline с execution completion после deadline;
 - skipped timestamps;
 - canonical JSON key ordering, `-0`, invalid JSON shapes, validation/result revision payloads и timing independence;
 - malformed root request без port calls;
-- финальные success/failure results через parser.
+- финальные success/failure results через parser;
+- exact stage-specific unknown failures, boundary public failure, global deadline failure и canonical downstream skip reasons, включая их участие в `resultRevision`.
 
 Test/build/tsc не запускать согласно `AGENTS.md`. Итог реализации обозначить: **tests authored, execution deferred**.
 
