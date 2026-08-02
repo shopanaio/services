@@ -21,6 +21,6 @@ type Money {
   currencyCode: CurrencyCode! @shareable
 }
 
-extend type User @key(fields: "id") {
-  id: ID! @external
+type User @key(fields: "id", resolvable: false) {
+  id: ID!
 }

@@ -73,28 +73,6 @@ input CheckoutPaymentMethodUpdateInput {
   customerInput: JSON
 }
 
-extend type Checkout {
-  """
-  Payment aggregate for this checkout.
-  """
-  payment: CheckoutPayment!
-}
-
-extend type CheckoutMutation {
-  """
-  Selects or changes the payment method for the checkout.
-  """
-  checkoutPaymentMethodUpdate(
-    input: CheckoutPaymentMethodUpdateInput!
-  ): Checkout!
-
-  """
-  Places a committed checkout through the durable order placement workflow.
-  Repeating the same request with the same idempotency key returns the same result.
-  """
-  placeOrder(input: PlaceOrderInput!): PlaceOrderPayload!
-}
-
 """Input used to place one immutable checkout snapshot."""
 input PlaceOrderInput {
   """Checkout identifier."""

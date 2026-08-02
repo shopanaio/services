@@ -139,6 +139,11 @@ type Checkout implements Node @key(fields: "id") {
   Tags that can be used to organize checkout lines.
   """
   tags: [CheckoutTag!]!
+
+  """
+  Payment aggregate for this checkout.
+  """
+  payment: CheckoutPayment!
 }
 
 """
@@ -388,13 +393,26 @@ type CheckoutMutation {
   Deletes a checkout tag.
   """
   checkoutTagDelete(input: CheckoutTagDeleteInput!): Checkout!
+
+  """
+  Selects or changes the payment method for the checkout.
+  """
+  checkoutPaymentMethodUpdate(
+    input: CheckoutPaymentMethodUpdateInput!
+  ): Checkout!
+
+  """
+  Places a committed checkout through the durable order placement workflow.
+  Repeating the same request with the same idempotency key returns the same result.
+  """
+  placeOrder(input: PlaceOrderInput!): PlaceOrderPayload!
 }
 
-extend type Query {
+type Query {
   checkoutQuery: CheckoutQuery!
 }
 
-extend type Mutation {
+type Mutation {
   checkoutMutation: CheckoutMutation!
 }
 
