@@ -21,6 +21,19 @@ export function mapDiscountCreateInput(
   return {
     input: {
       ...input,
+      functionBinding:
+        input.functionBinding == null
+          ? input.functionBinding
+          : {
+              ...input.functionBinding,
+              installationId:
+                decodeId(
+                  input.functionBinding.installationId,
+                  GlobalIdEntity.AppInstallation,
+                  ["input", "functionBinding", "installationId"],
+                  errors,
+                ) ?? input.functionBinding.installationId,
+            },
       targetSelections: input.targetSelections?.map((selection, index) => ({
         ...selection,
         targetIds: selection.targetIds.map(

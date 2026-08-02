@@ -1530,6 +1530,8 @@ export type InventoryItem = Node & {
   createdAt: Scalars['DateTime']['output'];
   /** Global ID (Relay) */
   id: Scalars['ID']['output'];
+  /** Whether this item requires physical delivery. */
+  requiresShipping: Scalars['Boolean']['output'];
   /** SKU code */
   sku: Maybe<Scalars['String']['output']>;
   /** Stock levels across warehouses */
@@ -1580,6 +1582,8 @@ export type InventoryItemEdge = {
 export type InventoryItemInput = {
   /** Allow sales when stock is zero. */
   continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Whether variants created for this product require physical delivery. */
+  requiresShipping: Scalars['Boolean']['input'];
   /** Stock Keeping Unit. */
   sku?: InputMaybe<Scalars['String']['input']>;
   /** Whether to track inventory for this product. */
@@ -1618,6 +1622,8 @@ export type InventoryItemUpdateInput = {
   continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
   /** The inventory item ID to update */
   id: Scalars['ID']['input'];
+  /** Whether this item requires physical delivery. */
+  requiresShipping?: InputMaybe<Scalars['Boolean']['input']>;
   /** New SKU value */
   sku?: InputMaybe<Scalars['String']['input']>;
   /** Stock update for a specific warehouse */
@@ -4128,6 +4134,8 @@ export type VariantInventoryOpInput = {
   costCurrency?: InputMaybe<CurrencyCode>;
   /** Quantity on hand. Required together with warehouseId for a stock update. */
   onHand?: InputMaybe<Scalars['Int']['input']>;
+  /** Whether this variant requires physical delivery. */
+  requiresShipping?: InputMaybe<Scalars['Boolean']['input']>;
   /** SKU code. */
   sku?: InputMaybe<Scalars['String']['input']>;
   /** Whether inventory quantities control availability. */
@@ -5896,6 +5904,7 @@ export type InventoryItemResolvers<ContextType = ServiceContext, ParentType exte
   continueSellingWhenOutOfStock?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  requiresShipping?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   sku?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   stock?: Resolver<Array<ResolversTypes['WarehouseStock']>, ParentType, ContextType>;
   totalAvailable?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;

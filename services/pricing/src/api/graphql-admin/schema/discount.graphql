@@ -1,9 +1,11 @@
-"""A store-scoped native discount aggregate owned by Pricing."""
+"""A store-scoped native or Commerce Function discount aggregate owned by Pricing."""
 type Discount implements Node @key(fields: "id") {
   id: ID!
   method: DiscountMethod!
-  kind: DiscountKind!
+  calculationStrategy: DiscountCalculationStrategy!
+  kind: DiscountKind
   discountClass: DiscountClass!
+  functionBinding: DiscountFunctionBinding
   state: DiscountState!
   effectiveStatus: DiscountEffectiveStatus!
   title: String
@@ -80,6 +82,23 @@ type Discount implements Node @key(fields: "id") {
     where: DiscountExternalReferenceWhereInput
     orderBy: [DiscountExternalReferenceOrderByInput!]
   ): DiscountExternalReferenceConnection!
+}
+
+type DiscountFunctionBinding {
+  id: ID!
+  target: String!
+  contractVersion: Int!
+  installationId: ID!
+  functionKey: String!
+  precedence: Int!
+  activationSequence: BigInt!
+  status: DiscountFunctionBindingStatus!
+  failureMode: DiscountFunctionFailureMode!
+  configurationSnapshot: JSON!
+  configurationRevision: String!
+  routeRevision: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 union DiscountRule =
@@ -311,7 +330,11 @@ input DiscountCodesUpdateInput {
 
 input DiscountCreateInput {
   method: DiscountMethod!
-  kind: DiscountKind!
+  calculationStrategy: DiscountCalculationStrategy = NATIVE
+  kind: DiscountKind
+  """Required for FUNCTION; derived from kind for NATIVE."""
+  discountClass: DiscountClass
+  functionBinding: DiscountFunctionBindingInput
   """Defaults to DRAFT when omitted."""
   state: DiscountState
   title: String
@@ -331,6 +354,18 @@ input DiscountCreateInput {
   metadata: JSON
 }
 
+input DiscountFunctionBindingInput {
+  installationId: ID!
+  functionKey: String!
+  precedence: Int = 0
+  activationSequence: BigInt!
+  status: DiscountFunctionBindingStatus = ACTIVE
+  failureMode: DiscountFunctionFailureMode = OPTIONAL
+  configurationSnapshot: JSON!
+  configurationRevision: String!
+  routeRevision: String!
+}
+
 input DiscountDefinitionUpdateInput {
   title: String
   priority: Int
@@ -346,6 +381,7 @@ input DiscountLifecycleUpdateInput {
 """Discount-level sections executed by the unified discountUpdate workflow."""
 input DiscountUpdateInput {
   definition: DiscountDefinitionUpdateInput
+  functionBinding: DiscountFunctionBindingInput
   rule: DiscountRuleInput
   minimumRequirement: DiscountMinimumRequirementSyncInput
   """Complete qualifier/benefit target replacement when supplied."""

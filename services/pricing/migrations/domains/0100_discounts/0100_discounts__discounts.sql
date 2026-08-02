@@ -4,7 +4,8 @@ CREATE TABLE "pricing"."discount" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "method" "pricing"."discount_method" NOT NULL,
-  "kind" "pricing"."discount_kind" NOT NULL,
+  "calculation_strategy" "pricing"."discount_calculation_strategy" NOT NULL,
+  "kind" "pricing"."discount_kind",
   "discount_class" "pricing"."discount_class" NOT NULL,
   "state" "pricing"."discount_state" NOT NULL DEFAULT 'DRAFT',
   "title" varchar(255),
@@ -36,9 +37,12 @@ CREATE TABLE "pricing"."discount" (
     ),
   CONSTRAINT "discount_kind_class_check"
     CHECK (
-      ("kind" IN ('AMOUNT_OFF_PRODUCTS', 'BUY_X_GET_Y') AND "discount_class" = 'PRODUCT')
-      OR ("kind" = 'AMOUNT_OFF_ORDER' AND "discount_class" = 'ORDER')
-      OR ("kind" = 'FREE_SHIPPING' AND "discount_class" = 'SHIPPING')
+      ("calculation_strategy" = 'FUNCTION' AND "kind" IS NULL)
+      OR ("calculation_strategy" = 'NATIVE' AND (
+        ("kind" IN ('AMOUNT_OFF_PRODUCTS', 'BUY_X_GET_Y') AND "discount_class" = 'PRODUCT')
+        OR ("kind" = 'AMOUNT_OFF_ORDER' AND "discount_class" = 'ORDER')
+        OR ("kind" = 'FREE_SHIPPING' AND "discount_class" = 'SHIPPING')
+      ))
     ),
   CONSTRAINT "discount_priority_check"
     CHECK ("priority" >= 0),

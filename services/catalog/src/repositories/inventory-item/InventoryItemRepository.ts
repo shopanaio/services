@@ -99,6 +99,7 @@ const inventoryItemSelectColumns = {
   variantId: inventoryItem.variantId,
   sku: inventoryItem.sku,
   trackInventory: inventoryItem.trackInventory,
+  requiresShipping: inventoryItem.requiresShipping,
   continueSellingWhenOutOfStock: inventoryItem.continueSellingWhenOutOfStock,
   createdAt: inventoryItem.createdAt,
   updatedAt: inventoryItem.updatedAt,
@@ -124,6 +125,7 @@ export class InventoryItemRepository extends BaseRepository {
     variantId: string;
     sku?: string | null;
     trackInventory?: boolean;
+    requiresShipping: boolean;
     continueSellingWhenOutOfStock?: boolean;
   }): Promise<InventoryItem> {
     const id = await this.generateUuidV7();
@@ -135,6 +137,7 @@ export class InventoryItemRepository extends BaseRepository {
       variantId: data.variantId,
       sku: data.sku ?? null,
       trackInventory: data.trackInventory ?? true,
+      requiresShipping: data.requiresShipping,
       continueSellingWhenOutOfStock: data.continueSellingWhenOutOfStock ?? false,
       createdAt: now,
       updatedAt: now,
@@ -153,6 +156,7 @@ export class InventoryItemRepository extends BaseRepository {
     data: {
       sku?: string | null;
       trackInventory?: boolean;
+      requiresShipping?: boolean;
       continueSellingWhenOutOfStock?: boolean;
     }
   ): Promise<InventoryItem | null> {
@@ -162,6 +166,7 @@ export class InventoryItemRepository extends BaseRepository {
 
     if (data.sku !== undefined) updateData.sku = data.sku;
     if (data.trackInventory !== undefined) updateData.trackInventory = data.trackInventory;
+    if (data.requiresShipping !== undefined) updateData.requiresShipping = data.requiresShipping;
     if (data.continueSellingWhenOutOfStock !== undefined) {
       updateData.continueSellingWhenOutOfStock = data.continueSellingWhenOutOfStock;
     }
@@ -496,6 +501,7 @@ export class InventoryItemRepository extends BaseRepository {
     data: {
       sku?: string | null;
       trackInventory?: boolean;
+      requiresShipping: boolean;
       continueSellingWhenOutOfStock?: boolean;
     }
   ): Promise<InventoryItem> {

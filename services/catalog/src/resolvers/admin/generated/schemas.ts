@@ -440,6 +440,7 @@ export function InventoryItemCostInputSchema(): z.ZodObject<Properties<Inventory
 export function InventoryItemInputSchema(): z.ZodObject<Properties<InventoryItemInput>> {
   return z.object({
     continueSellingWhenOutOfStock: z.boolean().nullish(),
+    requiresShipping: z.boolean(),
     sku: z.string().nullish(),
     tracked: z.boolean()
   })
@@ -470,6 +471,7 @@ export function InventoryItemUpdateInputSchema(): z.ZodObject<Properties<Invento
   return z.object({
     continueSellingWhenOutOfStock: z.boolean().nullish(),
     id: z.string(),
+    requiresShipping: z.boolean().nullish(),
     sku: z.string().nullish(),
     stock: z.lazy(() => InventoryItemStockInputSchema().nullish()),
     trackInventory: z.boolean().nullish(),
@@ -1116,6 +1118,7 @@ export function VariantInventoryOpInputSchema(): z.ZodObject<Properties<VariantI
     continueSellingWhenOutOfStock: z.boolean().nullish(),
     costCurrency: CurrencyCodeSchema.nullish(),
     onHand: z.number().nullish(),
+    requiresShipping: z.boolean().nullish(),
     sku: z.string().nullish(),
     trackInventory: z.boolean().nullish(),
     unavailable: z.number().nullish(),

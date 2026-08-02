@@ -407,7 +407,7 @@ export enum DimensionUnit {
   Mm = 'mm'
 }
 
-/** A store-scoped native discount aggregate owned by Pricing. */
+/** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type Discount = Node & {
   __typename?: 'Discount';
   appliesOnOneTimePurchase: Scalars['Boolean']['output'];
@@ -416,6 +416,7 @@ export type Discount = Node & {
   archivedAt: Maybe<Scalars['DateTime']['output']>;
   /** Buyer eligibility is absent until it is configured on an incomplete draft. */
   buyerContext: Maybe<DiscountBuyerContext>;
+  calculationStrategy: DiscountCalculationStrategy;
   channelCodes: Array<Scalars['String']['output']>;
   channels: Array<DiscountChannel>;
   codes: DiscountCodeConnection;
@@ -432,8 +433,9 @@ export type Discount = Node & {
   endsAt: Maybe<Scalars['DateTime']['output']>;
   externalReferences: DiscountExternalReferenceConnection;
   featuredChannelCodes: Array<Scalars['String']['output']>;
+  functionBinding: Maybe<DiscountFunctionBinding>;
   id: Scalars['ID']['output'];
-  kind: DiscountKind;
+  kind: Maybe<DiscountKind>;
   metadata: Scalars['JSON']['output'];
   method: DiscountMethod;
   minimumRequirement: Maybe<DiscountMinimumRequirement>;
@@ -455,6 +457,24 @@ export type Discount = Node & {
   usageCount: Scalars['BigInt']['output'];
   usageLimit: Maybe<Scalars['BigInt']['output']>;
   usageReservations: DiscountUsageReservationConnection;
+};
+
+export type DiscountFunctionBinding = {
+  __typename?: 'DiscountFunctionBinding';
+  activationSequence: Scalars['BigInt']['output'];
+  configurationRevision: Scalars['String']['output'];
+  configurationSnapshot: Scalars['JSON']['output'];
+  contractVersion: Scalars['Int']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  failureMode: DiscountFunctionFailureMode;
+  functionKey: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  installationId: Scalars['ID']['output'];
+  precedence: Scalars['Int']['output'];
+  routeRevision: Scalars['String']['output'];
+  status: DiscountFunctionBindingStatus;
+  target: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
 };
 
 
@@ -617,6 +637,21 @@ export enum DiscountClass {
   Shipping = 'SHIPPING'
 }
 
+export enum DiscountCalculationStrategy {
+  Function = 'FUNCTION',
+  Native = 'NATIVE'
+}
+
+export enum DiscountFunctionBindingStatus {
+  Active = 'ACTIVE',
+  Disabled = 'DISABLED'
+}
+
+export enum DiscountFunctionFailureMode {
+  Optional = 'OPTIONAL',
+  Required = 'REQUIRED'
+}
+
 export type DiscountClassFilter = {
   _eq?: InputMaybe<DiscountClass>;
   _in?: InputMaybe<Array<DiscountClass>>;
@@ -749,11 +784,14 @@ export type DiscountConnection = {
 
 export type DiscountCreateInput = {
   buyerContext?: InputMaybe<DiscountBuyerContextInput>;
+  calculationStrategy?: InputMaybe<DiscountCalculationStrategy>;
   channels?: InputMaybe<Array<DiscountChannelInput>>;
   codes?: InputMaybe<Array<DiscountCodeCreateOperationInput>>;
   combinesWith?: InputMaybe<Array<DiscountClass>>;
   currency: CurrencyCode;
-  kind: DiscountKind;
+  discountClass?: InputMaybe<DiscountClass>;
+  functionBinding?: InputMaybe<DiscountFunctionBindingInput>;
+  kind?: InputMaybe<DiscountKind>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   method: DiscountMethod;
   minimumRequirement?: InputMaybe<DiscountMinimumRequirementInput>;
@@ -767,6 +805,18 @@ export type DiscountCreateInput = {
   targetSelections?: InputMaybe<Array<DiscountTargetSelectionInput>>;
   title?: InputMaybe<Scalars['String']['input']>;
   usage?: InputMaybe<DiscountUsageLimitsInput>;
+};
+
+export type DiscountFunctionBindingInput = {
+  activationSequence: Scalars['BigInt']['input'];
+  configurationRevision: Scalars['String']['input'];
+  configurationSnapshot: Scalars['JSON']['input'];
+  failureMode?: InputMaybe<DiscountFunctionFailureMode>;
+  functionKey: Scalars['String']['input'];
+  installationId: Scalars['ID']['input'];
+  precedence?: InputMaybe<Scalars['Int']['input']>;
+  routeRevision: Scalars['String']['input'];
+  status?: InputMaybe<DiscountFunctionBindingStatus>;
 };
 
 export type DiscountCreatePayload = {
@@ -1068,6 +1118,7 @@ export enum DiscountOperationType {
   DefinitionUpdate = 'DEFINITION_UPDATE',
   EligibilityUpdate = 'ELIGIBILITY_UPDATE',
   ExternalReferenceUpdate = 'EXTERNAL_REFERENCE_UPDATE',
+  FunctionBindingUpdate = 'FUNCTION_BINDING_UPDATE',
   LifecycleUpdate = 'LIFECYCLE_UPDATE',
   MetadataUpdate = 'METADATA_UPDATE',
   MinimumRequirementUpdate = 'MINIMUM_REQUIREMENT_UPDATE',
@@ -1308,6 +1359,7 @@ export type DiscountUpdateInput = {
   combinesWith?: InputMaybe<Array<DiscountClass>>;
   definition?: InputMaybe<DiscountDefinitionUpdateInput>;
   eligibility?: InputMaybe<DiscountBuyerContextInput>;
+  functionBinding?: InputMaybe<DiscountFunctionBindingInput>;
   lifecycle?: InputMaybe<DiscountLifecycleUpdateInput>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   minimumRequirement?: InputMaybe<DiscountMinimumRequirementSyncInput>;
@@ -2419,7 +2471,7 @@ export type DiscountResolvers<ContextType = ServiceContext, ParentType extends R
   externalReferences?: Resolver<ResolversTypes['DiscountExternalReferenceConnection'], ParentType, ContextType, Partial<DiscountExternalReferencesArgs>>;
   featuredChannelCodes?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  kind?: Resolver<ResolversTypes['DiscountKind'], ParentType, ContextType>;
+  kind?: Resolver<Maybe<ResolversTypes['DiscountKind']>, ParentType, ContextType>;
   metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   method?: Resolver<ResolversTypes['DiscountMethod'], ParentType, ContextType>;
   minimumRequirement?: Resolver<Maybe<ResolversTypes['DiscountMinimumRequirement']>, ParentType, ContextType>;
@@ -2899,4 +2951,3 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   UserError?: UserErrorResolvers<ContextType>;
   Variant?: VariantResolvers<ContextType>;
 }>;
-

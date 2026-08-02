@@ -9,12 +9,22 @@
 export const PricingCheckoutActionNames = {
   calculatePreliminaryQuote: "calculateCheckoutPreliminaryQuote",
   finalizeQuote: "finalizeCheckoutPricingQuote",
+  reserveUsage: "reserveCheckoutDiscountUsage",
+  commitUsage: "commitCheckoutDiscountUsage",
+  releaseUsage: "releaseCheckoutDiscountUsage",
+  expireUsage: "expireCheckoutDiscountUsage",
+  reverseUsage: "reverseCheckoutDiscountUsage",
 } as const;
 
 export const PricingCheckoutActions = {
   calculatePreliminaryQuote:
     `pricing.${PricingCheckoutActionNames.calculatePreliminaryQuote}`,
   finalizeQuote: `pricing.${PricingCheckoutActionNames.finalizeQuote}`,
+  reserveUsage: `pricing.${PricingCheckoutActionNames.reserveUsage}`,
+  commitUsage: `pricing.${PricingCheckoutActionNames.commitUsage}`,
+  releaseUsage: `pricing.${PricingCheckoutActionNames.releaseUsage}`,
+  expireUsage: `pricing.${PricingCheckoutActionNames.expireUsage}`,
+  reverseUsage: `pricing.${PricingCheckoutActionNames.reverseUsage}`,
 } as const;
 
 export type PricingCheckoutJsonValue =
@@ -384,3 +394,26 @@ export interface FinalizeCheckoutPricingQuoteResult
   usageRequirements: readonly PricingCheckoutDiscountUsageRequirement[];
   totals: PricingCheckoutTotals;
 }
+
+export interface ReserveCheckoutDiscountUsageParams {
+  storeId: string;
+  checkoutId: string;
+  quoteId: string;
+  quoteRevision: string;
+  idempotencyKey: string;
+  expiresAt: string;
+  requirements: readonly PricingCheckoutDiscountUsageRequirement[];
+}
+
+export interface ReserveCheckoutDiscountUsageResult {
+  reservations: readonly Readonly<{ applicationId: string; reservationId: string }>[];
+}
+
+export interface CommitCheckoutDiscountUsageParams { storeId: string; checkoutId: string; quoteId: string; quoteRevision: string; orderId: string; idempotencyKey: string; reservationIds: readonly string[]; }
+export interface CommitCheckoutDiscountUsageResult { redemptions: readonly Readonly<{ reservationId: string; redemptionId: string }>[]; }
+export interface ReleaseCheckoutDiscountUsageParams { storeId: string; reservationIds: readonly string[]; }
+export interface ReleaseCheckoutDiscountUsageResult { releasedReservationIds: readonly string[]; }
+export interface ExpireCheckoutDiscountUsageParams { storeId: string; effectiveAt: string; limit?: number; }
+export interface ExpireCheckoutDiscountUsageResult { expiredReservationIds: readonly string[]; }
+export interface ReverseCheckoutDiscountUsageParams { storeId: string; redemptionIds: readonly string[]; reason: string; }
+export interface ReverseCheckoutDiscountUsageResult { reversedRedemptionIds: readonly string[]; }

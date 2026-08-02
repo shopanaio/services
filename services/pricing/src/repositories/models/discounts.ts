@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   currencyCodeEnum,
+  discountCalculationStrategyEnum,
   discountClassEnum,
   discountCodeStatusEnum,
   discountKindEnum,
@@ -30,7 +31,8 @@ export const discount = pricingSchema.table(
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     method: discountMethodEnum("method").notNull(),
-    kind: discountKindEnum("kind").notNull(),
+    calculationStrategy: discountCalculationStrategyEnum("calculation_strategy").notNull(),
+    kind: discountKindEnum("kind"),
     discountClass: discountClassEnum("discount_class").notNull(),
     state: discountStateEnum("state").notNull().default("DRAFT"),
     title: varchar("title", { length: 255 }),
@@ -76,9 +78,10 @@ export const discount = pricingSchema.table(
     ),
     check(
       "discount_kind_class_check",
-      sql`(${table.kind} IN ('AMOUNT_OFF_PRODUCTS', 'BUY_X_GET_Y') AND ${table.discountClass} = 'PRODUCT')
+      sql`(${table.calculationStrategy} = 'FUNCTION' AND ${table.kind} IS NULL)
+        OR (${table.calculationStrategy} = 'NATIVE' AND ((${table.kind} IN ('AMOUNT_OFF_PRODUCTS', 'BUY_X_GET_Y') AND ${table.discountClass} = 'PRODUCT')
         OR (${table.kind} = 'AMOUNT_OFF_ORDER' AND ${table.discountClass} = 'ORDER')
-        OR (${table.kind} = 'FREE_SHIPPING' AND ${table.discountClass} = 'SHIPPING')`,
+        OR (${table.kind} = 'FREE_SHIPPING' AND ${table.discountClass} = 'SHIPPING')))`,
     ),
     check("discount_priority_check", sql`${table.priority} >= 0`),
     check(

@@ -17,6 +17,7 @@ import { DiscountUpdateCodesScript } from "../scripts/discount/DiscountUpdateCod
 import { DiscountUpdateCombinationsScript } from "../scripts/discount/DiscountUpdateCombinationsScript.js";
 import { DiscountUpdateDefinitionScript } from "../scripts/discount/DiscountUpdateDefinitionScript.js";
 import { DiscountUpdateEligibilityScript } from "../scripts/discount/DiscountUpdateEligibilityScript.js";
+import { DiscountUpdateFunctionBindingScript } from "../scripts/discount/DiscountUpdateFunctionBindingScript.js";
 import { DiscountUpdateLifecycleScript } from "../scripts/discount/DiscountUpdateLifecycleScript.js";
 import { DiscountUpdateMetadataScript } from "../scripts/discount/DiscountUpdateMetadataScript.js";
 import { DiscountUpdateMinimumRequirementScript } from "../scripts/discount/DiscountUpdateMinimumRequirementScript.js";
@@ -29,6 +30,7 @@ import type {
   DiscountUpdateCombinationsParams,
   DiscountUpdateDefinitionParams,
   DiscountUpdateEligibilityParams,
+  DiscountUpdateFunctionBindingParams,
   DiscountUpdateLifecycleParams,
   DiscountUpdateMetadataParams,
   DiscountUpdateMinimumRequirementParams,
@@ -103,6 +105,14 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
           {
             discountId: input.discountId,
             definition: operation.params,
+          },
+          scriptContext,
+        );
+      } else if (operation.type === "discountFunctionBindingUpdate") {
+        result = await this.stepDiscountFunctionBindingUpdate(
+          {
+            discountId: input.discountId,
+            functionBinding: operation.params,
           },
           scriptContext,
         );
@@ -243,6 +253,19 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
       context,
     );
     return operationResult("discountRuleUpdate", result);
+  }
+
+  @WorkflowStep()
+  private async stepDiscountFunctionBindingUpdate(
+    params: DiscountUpdateFunctionBindingParams,
+    context: RunScriptContext,
+  ): Promise<DiscountUpdateOperationResult> {
+    const result = await this.kernel.runScript(
+      DiscountUpdateFunctionBindingScript,
+      params,
+      context,
+    );
+    return operationResult("discountFunctionBindingUpdate", result);
   }
 
   @WorkflowStep()

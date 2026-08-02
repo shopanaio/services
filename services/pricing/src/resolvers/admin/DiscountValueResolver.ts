@@ -9,6 +9,7 @@ import type {
   DiscountCombinationClass,
   DiscountEligibleCustomer,
   DiscountEligibleSegment,
+  DiscountFunctionBinding,
   DiscountMinimumRequirement,
   DiscountTarget,
   DiscountTargetSelection,
@@ -158,6 +159,23 @@ export class DiscountChannelResolver extends PricingType<DiscountChannel> {
 export class DiscountCombinationResolver extends PricingType<DiscountCombinationClass> {
   discountClass() { return this.$props.combinesWithClass; }
   createdAt() { return this.$props.createdAt; }
+}
+
+export class DiscountFunctionBindingResolver extends PricingType<DiscountFunctionBinding> {
+  id() { return encodeGlobalIdByType(this.$props.id, GlobalIdEntity.DiscountFunctionBinding); }
+  target() { return this.$props.target; }
+  contractVersion() { return this.$props.contractVersion; }
+  installationId() { return encodeGlobalIdByType(this.$props.installationId, GlobalIdEntity.AppInstallation); }
+  functionKey() { return this.$props.functionKey; }
+  precedence() { return this.$props.precedence; }
+  activationSequence() { return toGraphqlBigInt(BigInt(this.$props.activationSequence)); }
+  status() { return this.$props.status; }
+  failureMode() { return this.$props.failureMode; }
+  configurationSnapshot() { return this.$props.configurationSnapshot; }
+  configurationRevision() { return this.$props.configurationRevision; }
+  routeRevision() { return this.$props.routeRevision; }
+  createdAt() { return this.$props.createdAt; }
+  updatedAt() { return this.$props.updatedAt; }
 }
 
 export class DiscountUsageSummaryResolver extends PricingType<DiscountUsageSummaryView> {

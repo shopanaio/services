@@ -3,6 +3,21 @@ enum DiscountMethod {
   AUTOMATIC
 }
 
+enum DiscountCalculationStrategy {
+  NATIVE
+  FUNCTION
+}
+
+enum DiscountFunctionBindingStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum DiscountFunctionFailureMode {
+  REQUIRED
+  OPTIONAL
+}
+
 enum DiscountKind {
   AMOUNT_OFF_PRODUCTS
   BUY_X_GET_Y
@@ -110,6 +125,7 @@ enum DiscountExternalSyncStatus {
 """Sections executed by the unified discountUpdate workflow."""
 enum DiscountOperationType {
   DEFINITION_UPDATE
+  FUNCTION_BINDING_UPDATE
   RULE_UPDATE
   MINIMUM_REQUIREMENT_UPDATE
   TARGETS_UPDATE

@@ -19,6 +19,10 @@ export const discountKindEnum = pricingSchema.enum("discount_kind", [
   "AMOUNT_OFF_ORDER",
   "FREE_SHIPPING",
 ]);
+export const discountCalculationStrategyEnum = pricingSchema.enum("discount_calculation_strategy", ["NATIVE", "FUNCTION"]);
+export const discountFunctionTargetEnum = pricingSchema.enum("discount_function_target", ["cart.lines.discounts.generate.run", "cart.delivery-options.discounts.generate.run"]);
+export const discountFunctionBindingStatusEnum = pricingSchema.enum("discount_function_binding_status", ["ACTIVE", "DISABLED"]);
+export const discountFunctionFailureModeEnum = pricingSchema.enum("discount_function_failure_mode", ["REQUIRED", "OPTIONAL"]);
 
 export const discountClassEnum = pricingSchema.enum("discount_class", [
   "PRODUCT",

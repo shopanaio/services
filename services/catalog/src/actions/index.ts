@@ -15,6 +15,13 @@ import { Loader } from "../loaders/Loader.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { ServiceQueryResolver } from "../resolvers/service/index.js";
 import { resolveCheckoutMerchandiseParamsSchema } from "./resolveCheckoutMerchandise.schema.js";
+import {
+  CheckoutMerchandiseError,
+  CheckoutMerchandiseInfrastructureError,
+  CheckoutMerchandiseRepository,
+  CheckoutMerchandiseService,
+  toCheckoutMerchandiseFailure,
+} from "../checkout-pipeline/index.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -150,34 +157,41 @@ export class CatalogBrokerActions extends BrokerActions {
     }
   }
 
-  /**
-   * Resolves purchasable variants for Pricing's preliminary checkout quote.
-   *
-   * TODO(checkout-pipeline): batch-load variants and their owning products,
-   * localized content, current price/compare-at price, media, physical flags,
-   * inventory settings and stock, discount targeting identities, and component
-   * configuration. Validate component children and return one explicit
-   * RESOLVED/REJECTED disposition for every input line (including children).
-   * Build deterministic merchandise, price, availability and batch revisions
-   * from the source rows used by the read.
-   *
-   * This action is a Catalog read boundary. It must not apply discounts, run
-   * Commerce Functions, calculate checkout totals, choose delivery/payment
-   * options, or persist checkout state.
-   */
+  /** Resolves an immutable, ordered merchandise snapshot for Pricing. */
   @Action(CatalogCheckoutActionNames.resolveMerchandise)
   @ZodSchema(resolveCheckoutMerchandiseParamsSchema)
   async resolveCheckoutMerchandise(
     params: Catalog.ResolveCheckoutMerchandiseParams
   ): Promise<Catalog.ResolveCheckoutMerchandiseResult> {
-    void params;
-
-    return {
-      ok: false,
-      code: "CHECKOUT_MERCHANDISE_RESOLUTION_FAILED",
-      message: "Checkout merchandise resolution is not implemented",
-      retryable: false,
-    };
+    try {
+      let store: ContextStore | null;
+      try {
+        store = await this.getStoreContext(params.storeId);
+      } catch (cause) {
+        throw new CheckoutMerchandiseInfrastructureError(
+          "Catalog checkout store context could not be loaded",
+          cause,
+        );
+      }
+      if (!store) return { ok: false, code: "CATALOG_STORE_NOT_FOUND", message: `Store with id "${params.storeId}" not found`, retryable: false };
+      const ctx = this.createServiceContext(store);
+      return await runWithContext(ctx, () => new CheckoutMerchandiseService(new CheckoutMerchandiseRepository(this.kernel.db)).resolve(params, store));
+    } catch (error) {
+      this.logger.error(
+        {
+          error,
+          errorCode:
+            error instanceof CheckoutMerchandiseError ? error.code : "UNKNOWN",
+          retryable:
+            error instanceof CheckoutMerchandiseError
+              ? error.retryable
+              : false,
+          storeId: params.storeId,
+        },
+        "Checkout merchandise resolution failed",
+      );
+      return toCheckoutMerchandiseFailure(error);
+    }
   }
 
   @Action("findListingFacetAffectedProducts")

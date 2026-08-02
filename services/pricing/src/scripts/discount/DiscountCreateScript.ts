@@ -65,6 +65,28 @@ export class DiscountCreateScript extends BaseScript<
     }
 
     const { discountId, input } = params;
+    if (input.functionBinding != null) {
+      const activationSequence = parseNonNegativeBigInt(
+        input.functionBinding.activationSequence,
+      );
+      if (activationSequence === null) {
+        throw new DiscountCreateValidationError([{ message: "Activation sequence must be a non-negative integer", code: "INVALID_ACTIVATION_SEQUENCE", field: ["input", "functionBinding", "activationSequence"] }]);
+      }
+      await this.repository.discount.createFunctionBinding({
+        discountId,
+        target: mappedRoot.value.discountClass === "SHIPPING" ? "cart.delivery-options.discounts.generate.run" : "cart.lines.discounts.generate.run",
+        contractVersion: 1,
+        installationId: input.functionBinding.installationId,
+        functionKey: input.functionBinding.functionKey.trim(),
+        precedence: input.functionBinding.precedence ?? 0,
+        activationSequence: Number(activationSequence),
+        status: input.functionBinding.status ?? "ACTIVE",
+        failureMode: input.functionBinding.failureMode ?? "OPTIONAL",
+        configurationSnapshot: input.functionBinding.configurationSnapshot,
+        configurationRevision: input.functionBinding.configurationRevision.trim(),
+        routeRevision: input.functionBinding.routeRevision.trim(),
+      });
+    }
     if (input.rule != null) {
       this.assertSection(
         await this.executeScript(DiscountUpdateRuleScript, {
@@ -289,6 +311,23 @@ export class DiscountCreateScript extends BaseScript<
       });
     }
 
+    const calculationStrategy = input.calculationStrategy ?? "NATIVE";
+    if (calculationStrategy === "NATIVE" && input.kind == null) {
+      errors.push({ message: "Native discounts require a kind", code: "KIND_REQUIRED", field: ["input", "kind"] });
+    }
+    if (calculationStrategy === "FUNCTION" && (!input.discountClass || !input.functionBinding)) {
+      errors.push({ message: "Function discounts require discountClass and functionBinding", code: "FUNCTION_BINDING_REQUIRED", field: ["input", "functionBinding"] });
+    }
+    if (calculationStrategy === "FUNCTION" && (input.kind != null || input.rule != null)) {
+      errors.push({ message: "Function discounts cannot define a native kind or rule", code: "INVALID_FUNCTION_DISCOUNT", field: ["input"] });
+    }
+    if (input.functionBinding && (!input.functionBinding.functionKey.trim() || !input.functionBinding.configurationRevision.trim() || !input.functionBinding.routeRevision.trim() || !isRecord(input.functionBinding.configurationSnapshot))) {
+      errors.push({ message: "Function binding identifiers and configuration must be valid", code: "INVALID_FUNCTION_BINDING", field: ["input", "functionBinding"] });
+    }
+    if (input.functionBinding && (!Number.isSafeInteger(input.functionBinding.precedence ?? 0) || (input.functionBinding.precedence ?? 0) < 0)) {
+      errors.push({ message: "Function binding precedence must be a non-negative integer", code: "INVALID_FUNCTION_BINDING", field: ["input", "functionBinding", "precedence"] });
+    }
+
     if (errors.length > 0 || (input.schedule && !startsAt)) {
       return { errors };
     }
@@ -296,8 +335,9 @@ export class DiscountCreateScript extends BaseScript<
       value: {
         id: params.discountId,
         method: input.method,
-        kind: input.kind,
-        discountClass: discountClassForKind(input.kind),
+        calculationStrategy,
+        kind: calculationStrategy === "NATIVE" ? input.kind! : null,
+        discountClass: calculationStrategy === "NATIVE" ? discountClassForKind(input.kind!) : input.discountClass!,
         title,
         currency: input.currency,
         priority,
@@ -313,6 +353,14 @@ export class DiscountCreateScript extends BaseScript<
       errors,
     };
   }
+}
+
+function parseNonNegativeBigInt(value: string): bigint | null {
+  if (!/^\d+$/.test(value)) return null;
+  try {
+    const parsed = BigInt(value);
+    return parsed <= BigInt(Number.MAX_SAFE_INTEGER) ? parsed : null;
+  } catch { return null; }
 }
 
 function discountClassForKind(

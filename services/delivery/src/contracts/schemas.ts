@@ -33,8 +33,8 @@ const httpsUrlSchema = z
     },
     {
       message: "Provider asset URLs cannot contain credentials or fragments",
-    },
-  });
+    }
+  );
 
 export const DELIVERY_PROVIDER_MAX_PAYLOAD_BYTES = 1_048_576;
 export const DELIVERY_PROVIDER_MAX_JSON_DEPTH = 16;
@@ -916,7 +916,10 @@ export const DeliveryProviderTrackingEventSchema = z
 export const DeliveryProviderParcelObservationSchema = z
   .object({
     providerParcelReference: identifierSchema,
-    packageIds: z.array(identifierSchema).min(1).max(DELIVERY_PROVIDER_MAX_PACKAGES),
+    packageIds: z
+      .array(identifierSchema)
+      .max(DELIVERY_PROVIDER_MAX_PACKAGES)
+      .nonempty(),
     state: providerObservedShipmentStateSchema,
     tracking: z.array(DeliveryTrackingSnapshotSchema).max(100),
     labels: z.array(DeliveryProviderLabelSchema).max(100),
@@ -1643,9 +1646,7 @@ export function parseDeliveryProviderReconcileShipmentResult(
     value,
     "Delivery provider reconcile result",
   );
-  return DeliveryProviderReconcileShipmentResultSchema.parse(
-    value,
-  ) as Delivery.DeliveryProviderReconcileShipmentResult;
+  return DeliveryProviderReconcileShipmentResultSchema.parse(value);
 }
 
 export function parseCompleteDeliveryProviderOperationParams(

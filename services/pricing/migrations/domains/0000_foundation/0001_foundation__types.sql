@@ -14,6 +14,11 @@ CREATE TYPE "pricing"."discount_kind" AS ENUM (
   'FREE_SHIPPING'
 );
 
+CREATE TYPE "pricing"."discount_calculation_strategy" AS ENUM ('NATIVE', 'FUNCTION');
+CREATE TYPE "pricing"."discount_function_target" AS ENUM ('cart.lines.discounts.generate.run', 'cart.delivery-options.discounts.generate.run');
+CREATE TYPE "pricing"."discount_function_binding_status" AS ENUM ('ACTIVE', 'DISABLED');
+CREATE TYPE "pricing"."discount_function_failure_mode" AS ENUM ('REQUIRED', 'OPTIONAL');
+
 CREATE TYPE "pricing"."discount_class" AS ENUM (
   'PRODUCT',
   'ORDER',

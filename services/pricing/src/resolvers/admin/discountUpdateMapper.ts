@@ -37,6 +37,24 @@ export function mapDiscountUpdateInput(
       }),
     );
   }
+  if (input.functionBinding != null) {
+    const errors: UserError[] = [];
+    const fieldPrefix = ["operations", "functionBinding"];
+    entries.push(mappedEntry({
+      type: "discountFunctionBindingUpdate",
+      params: {
+        ...input.functionBinding,
+        installationId:
+          decodeId(
+            input.functionBinding.installationId,
+            GlobalIdEntity.AppInstallation,
+            [...fieldPrefix, "installationId"],
+            errors,
+          ) ?? input.functionBinding.installationId,
+      },
+      meta: { fieldPrefix },
+    }, errors));
+  }
   if (input.rule != null) {
     entries.push(
       validEntry({
@@ -145,6 +163,8 @@ export function toGraphqlDiscountOperationType(
     DiscountOperationType
   > = {
     discountDefinitionUpdate: "DEFINITION_UPDATE" as DiscountOperationType,
+    discountFunctionBindingUpdate:
+      "FUNCTION_BINDING_UPDATE" as DiscountOperationType,
     discountRuleUpdate: "RULE_UPDATE" as DiscountOperationType,
     discountMinimumRequirementUpdate:
       "MINIMUM_REQUIREMENT_UPDATE" as DiscountOperationType,

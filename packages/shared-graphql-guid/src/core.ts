@@ -165,6 +165,7 @@ export enum GlobalIdEntity {
   DiscountRedemption = "DiscountRedemption",
   DiscountRedemptionAllocation = "DiscountRedemptionAllocation",
   DiscountExternalReference = "DiscountExternalReference",
+  DiscountFunctionBinding = "DiscountFunctionBinding",
   // Media
   File = "File",
   MediaAssetGroup = "MediaAssetGroup",

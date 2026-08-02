@@ -7,6 +7,7 @@ export * from "./DiscountUpdateCodesScript.js";
 export * from "./DiscountUpdateCombinationsScript.js";
 export * from "./DiscountUpdateDefinitionScript.js";
 export * from "./DiscountUpdateEligibilityScript.js";
+export * from "./DiscountUpdateFunctionBindingScript.js";
 export * from "./DiscountUpdateLifecycleScript.js";
 export * from "./DiscountUpdateMetadataScript.js";
 export * from "./DiscountUpdateMinimumRequirementScript.js";

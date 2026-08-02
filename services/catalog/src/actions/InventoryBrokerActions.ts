@@ -80,6 +80,7 @@ export class InventoryBrokerActions extends BrokerActions {
     return this.runWithStoreContext(params.storeId, async () => {
       const item = await this.kernel.repository.inventoryItem.upsertByVariantId(params.variantId, {
         trackInventory: params.trackInventory,
+        requiresShipping: params.requiresShipping,
         sku: params.sku ?? undefined,
         continueSellingWhenOutOfStock: params.continueSellingWhenOutOfStock,
       });
@@ -140,6 +141,7 @@ export class InventoryBrokerActions extends BrokerActions {
         unavailable: params.unavailable,
         sku: params.sku,
         trackInventory: params.trackInventory,
+        requiresShipping: params.requiresShipping,
         continueSellingWhenOutOfStock: params.continueSellingWhenOutOfStock,
         weight: params.weight,
         unitCostMinor: params.unitCostMinor != null ? Number(params.unitCostMinor) : undefined,

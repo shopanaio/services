@@ -6,6 +6,7 @@ export * from "./DiscountUpdateCodesDto.js";
 export * from "./DiscountUpdateCombinationsDto.js";
 export * from "./DiscountUpdateDefinitionDto.js";
 export * from "./DiscountUpdateEligibilityDto.js";
+export * from "./DiscountUpdateFunctionBindingDto.js";
 export * from "./DiscountUpdateLifecycleDto.js";
 export * from "./DiscountUpdateMetadataDto.js";
 export * from "./DiscountUpdateMinimumRequirementDto.js";

@@ -1,0 +1,16 @@
+import type { Catalog, Pricing } from "@shopana/broker-types";
+import { componentUnitPrice, money } from "./componentPricing.js";
+import { toPricingLineAvailability } from "../catalog-merchandise.js";
+
+export function transformLines(input: Pricing.PricingCheckoutCartIntent, catalog: Extract<Catalog.ResolveCheckoutMerchandiseResult, { ok: true }>, currencyCode: string): { lines: Pricing.PricingCheckoutQuotedLine[]; resolutions: Pricing.PricingCheckoutSourceLineResolution[]; flat: Pricing.PricingCheckoutQuotedLine[] } {
+  const dispositions = new Map(catalog.lines.map((row) => [row.status === "RESOLVED" ? row.line.lineId : row.lineId, row]));
+  const resolutions: Pricing.PricingCheckoutSourceLineResolution[] = []; const flat: Pricing.PricingCheckoutQuotedLine[] = [];
+  const visit = (source: readonly Pricing.PricingCheckoutCartLineIntent[], multiplier: number, parentRemoved: boolean): Pricing.PricingCheckoutQuotedLine[] => source.flatMap((intent) => {
+    const disposition = dispositions.get(intent.lineId); const removed = parentRemoved || !disposition || disposition.status === "REJECTED";
+    if (removed) { const rejected = disposition?.status === "REJECTED" ? disposition : null; resolutions.push({ sourceLineId: intent.lineId, status: "REMOVED", reason: { code: rejected?.code ?? "PARENT_REMOVED", message: rejected?.message ?? "Parent merchandise was removed" } }); visit(intent.children, multiplier * intent.quantity, true); return []; }
+    const resolved = disposition.line; const quantity = multiplier * intent.quantity; const base = BigInt(resolved.price.price.amountMinor); const rule = resolved.componentSelection?.priceRule ?? null; const unit = componentUnitPrice(base, rule); const contributes = resolved.parentLineId === null || rule?.strategy !== "FREE"; const subtotal = contributes ? unit * BigInt(quantity) : 0n;
+    const line: Pricing.PricingCheckoutQuotedLine = { lineId: intent.lineId, contributesToTotals: contributes, quantity, purchase: intent.purchase, merchandise: { variantId: resolved.variantId, revision: resolved.revision, title: resolved.title, sku: resolved.sku, imageUrl: resolved.imageUrl, isPhysical: resolved.requiresShipping, targeting: { productId: resolved.productId, ...resolved.targeting }, data: resolved.componentSelection ? { componentConfigurationId: resolved.componentSelection.configurationId, componentItemId: resolved.componentSelection.componentItemId, componentRevision: resolved.componentSelection.revision } : null }, availability: toPricingLineAvailability(resolved.availability), unitPrice: money(unit, currencyCode), originalUnitPrice: money(base, currencyCode), compareAtUnitPrice: resolved.price.compareAtPrice && BigInt(resolved.price.compareAtPrice.amountMinor) >= unit ? resolved.price.compareAtPrice : null, subtotal: money(subtotal, currencyCode), total: money(subtotal, currencyCode), discountAllocations: [], children: [] };
+    resolutions.push({ sourceLineId: intent.lineId, status: "TRANSFORMED", transformedLineIds: [intent.lineId] }); flat.push(line); const children = visit(intent.children, quantity, false); return [{ ...line, children }];
+  });
+  return { lines: visit(input.lines, 1, false), resolutions, flat };
+}

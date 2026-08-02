@@ -646,6 +646,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             tracked: input.inventoryItem.tracked,
             sku: input.inventoryItem.sku ?? undefined,
             continueSellingWhenOutOfStock: input.inventoryItem.continueSellingWhenOutOfStock ?? undefined,
+            requiresShipping: input.inventoryItem.requiresShipping,
           }
         : undefined,
       organizationId: this.$ctx.store.organizationId,
@@ -2680,6 +2681,7 @@ function mapVariantPayloadParams(
         unavailable: input.inventory.unavailable ?? undefined,
         sku: input.inventory.sku,
         trackInventory: input.inventory.trackInventory ?? undefined,
+        requiresShipping: input.inventory.requiresShipping ?? undefined,
         continueSellingWhenOutOfStock:
           input.inventory.continueSellingWhenOutOfStock ?? undefined,
         unitCostMinor:

@@ -41,6 +41,7 @@ import {
   discountEligibleSegment,
   discountExternalReference,
   discountFreeShipping,
+  discountFunctionBinding,
   discountListView,
   discountMinimumRequirement,
   discountRedemption,
@@ -65,6 +66,8 @@ import {
   type DiscountExternalReference,
   type NewDiscountExternalReference,
   type DiscountFreeShipping,
+  type DiscountFunctionBinding,
+  type NewDiscountFunctionBinding,
   type DiscountListView,
   type DiscountMinimumRequirement,
   type DiscountRedemption,
@@ -202,6 +205,7 @@ export interface DiscountAggregate {
   tags: DiscountTag[];
   channels: DiscountChannel[];
   combinations: DiscountCombinationClass[];
+  functionBinding: DiscountFunctionBinding | null;
 }
 
 export type DiscountRootPatch = Partial<
@@ -224,6 +228,7 @@ export type DiscountRootPatch = Partial<
 export interface DiscountCreateWriteInput {
   id: string;
   method: Discount["method"];
+  calculationStrategy: Discount["calculationStrategy"];
   kind: Discount["kind"];
   discountClass: Discount["discountClass"];
   title: string | null;
@@ -394,6 +399,7 @@ export class DiscountRepository extends BaseRepository {
       tags,
       channels,
       combinations,
+      functionBindingRows,
     ] = await Promise.all([
       this.connection
         .select()
@@ -530,6 +536,15 @@ export class DiscountRepository extends BaseRepository {
             eq(discountCombinationClass.discountId, id),
           ),
         ),
+      this.connection
+        .select()
+        .from(discountFunctionBinding)
+        .where(
+          and(
+            eq(discountFunctionBinding.storeId, this.storeId),
+            eq(discountFunctionBinding.discountId, id),
+          ),
+        ),
     ]);
 
     return {
@@ -549,6 +564,7 @@ export class DiscountRepository extends BaseRepository {
       tags,
       channels,
       combinations,
+      functionBinding: functionBindingRows[0] ?? null,
     };
   }
 
@@ -587,6 +603,47 @@ export class DiscountRepository extends BaseRepository {
       throw new Error("Discount ID conflict belongs to another store");
     }
     return { discount: existing, created: false };
+  }
+
+  async createFunctionBinding(
+    input: Omit<NewDiscountFunctionBinding, "id" | "storeId" | "createdAt" | "updatedAt">,
+  ): Promise<DiscountFunctionBinding> {
+    const [row] = await this.connection
+      .insert(discountFunctionBinding)
+      .values({ ...input, storeId: this.storeId })
+      .returning();
+    if (!row) throw new Error("Failed to create discount function binding");
+    return row;
+  }
+
+  async updateFunctionBinding(
+    discountId: string,
+    patch: Pick<
+      NewDiscountFunctionBinding,
+      | "installationId"
+      | "functionKey"
+      | "precedence"
+      | "activationSequence"
+      | "status"
+      | "failureMode"
+      | "configurationSnapshot"
+      | "configurationRevision"
+      | "routeRevision"
+    >,
+  ): Promise<void> {
+    const rows = await this.connection
+      .update(discountFunctionBinding)
+      .set({ ...patch, updatedAt: new Date().toISOString() })
+      .where(
+        and(
+          eq(discountFunctionBinding.storeId, this.storeId),
+          eq(discountFunctionBinding.discountId, discountId),
+        ),
+      )
+      .returning({ id: discountFunctionBinding.id });
+    if (rows.length !== 1) {
+      throw new Error("Failed to update discount function binding");
+    }
   }
 
   async hasUsageHistory(id: string): Promise<boolean> {

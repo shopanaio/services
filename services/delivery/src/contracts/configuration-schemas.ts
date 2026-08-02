@@ -23,8 +23,7 @@ function unique(values: readonly string[]): boolean {
   return new Set(values).size === values.length;
 }
 
-export const DeliveryProfileAssignmentSchema = z.discriminatedUnion("scope", [
-  z
+const DeliveryDefaultProfileAssignmentSchema = z
     .object({
       scope: z.literal("ALL_UNASSIGNED"),
       assignmentSetId: z.null(),
@@ -32,8 +31,9 @@ export const DeliveryProfileAssignmentSchema = z.discriminatedUnion("scope", [
       variantCount: z.literal(0),
       sellingPlanGroupCount: z.literal(0),
     })
-    .strict(),
-  z
+    .strict();
+
+const DeliveryAssignedProfileAssignmentSchema = z
     .object({
       scope: z.literal("ASSIGNED"),
       assignmentSetId: identifierSchema,
@@ -41,8 +41,14 @@ export const DeliveryProfileAssignmentSchema = z.discriminatedUnion("scope", [
       variantCount: z.number().int().safe().nonnegative(),
       sellingPlanGroupCount: z.number().int().safe().nonnegative(),
     })
-    .strict(),
-]).superRefine((value, context) => {
+    .strict();
+
+export const DeliveryProfileAssignmentSchema = z
+  .discriminatedUnion("scope", [
+    DeliveryDefaultProfileAssignmentSchema,
+    DeliveryAssignedProfileAssignmentSchema,
+  ])
+  .superRefine((value, context) => {
   if (
     value.scope === "ASSIGNED" &&
     value.variantCount === 0 &&
@@ -54,7 +60,7 @@ export const DeliveryProfileAssignmentSchema = z.discriminatedUnion("scope", [
       message: "An assigned profile requires variants or selling plan groups",
     });
   }
-});
+  });
 
 const normalizedPostalCodeSchema = z
   .string()
@@ -145,7 +151,7 @@ export const DeliveryZoneSnapshotSchema = z
     zoneId: identifierSchema,
     name: z.string().trim().min(1).max(255),
     priority: z.number().int().safe().nonnegative(),
-    territories: z.array(DeliveryZoneTerritorySchema).min(1).max(249),
+    territories: z.array(DeliveryZoneTerritorySchema).max(249).nonempty(),
     revision: revisionSchema,
   })
   .strict()
@@ -226,8 +232,8 @@ export const DeliveryRateFailurePolicySchema = z
         mode: z.literal("USE_BACKUP_RATE"),
         categories: z
           .array(z.enum(["PROVIDER_UNAVAILABLE", "TIMEOUT", "RATE_LIMITED"]))
-          .min(1)
-          .max(3),
+          .max(3)
+          .nonempty(),
       })
       .strict(),
   ])
@@ -261,7 +267,10 @@ export const DeliveryMethodDefinitionSnapshotSchema = z
       z
         .object({
           type: z.literal("CARRIER_SERVICE"),
-          carrierServiceAccountIds: z.array(identifierSchema).min(1).max(250),
+          carrierServiceAccountIds: z
+            .array(identifierSchema)
+            .max(250)
+            .nonempty(),
           allowedServiceCodes: z.array(codeSchema).max(250),
           backupRate: moneySchema.nullable(),
         })
@@ -304,7 +313,7 @@ export const DeliveryLocationGroupSnapshotSchema = z
   .object({
     locationGroupId: identifierSchema,
     name: z.string().trim().min(1).max(255),
-    fulfillmentLocationIds: z.array(identifierSchema).min(1).max(250),
+    fulfillmentLocationIds: z.array(identifierSchema).max(250).nonempty(),
     zones: z
       .array(
         z
@@ -314,8 +323,8 @@ export const DeliveryLocationGroupSnapshotSchema = z
           })
           .strict(),
       )
-      .min(1)
-      .max(250),
+      .max(250)
+      .nonempty(),
     revision: revisionSchema,
   })
   .strict()
@@ -370,28 +379,49 @@ export const DeliveryLocationGroupSnapshotSchema = z
     });
   });
 
+const deliveryProfileSnapshotBaseShape = {
+  profileId: identifierSchema,
+  organizationId: identifierSchema,
+  storeId: identifierSchema,
+  name: z.string().trim().min(1).max(255),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
+  locationGroups: z
+    .array(DeliveryLocationGroupSnapshotSchema)
+    .max(250)
+    .nonempty(),
+  failurePolicy: DeliveryRateFailurePolicySchema,
+  revision: revisionSchema,
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+};
+
 export const DeliveryProfileSnapshotSchema = z
-  .object({
-    profileId: identifierSchema,
-    organizationId: identifierSchema,
-    storeId: identifierSchema,
-    name: z.string().trim().min(1).max(255),
-    status: z.enum(["ACTIVE", "INACTIVE"]),
-    isDefault: z.boolean(),
-    assignment: DeliveryProfileAssignmentSchema,
-    locationGroups: z.array(DeliveryLocationGroupSnapshotSchema).min(1).max(250),
-    failurePolicy: DeliveryRateFailurePolicySchema,
-    revision: revisionSchema,
-    createdAt: timestampSchema,
-    updatedAt: timestampSchema,
-  })
-  .strict()
+  .union([
+    z
+      .object({
+        ...deliveryProfileSnapshotBaseShape,
+        isDefault: z.literal(true),
+        assignment: DeliveryDefaultProfileAssignmentSchema,
+      })
+      .strict(),
+    z
+      .object({
+        ...deliveryProfileSnapshotBaseShape,
+        isDefault: z.literal(false),
+        assignment: DeliveryAssignedProfileAssignmentSchema,
+      })
+      .strict(),
+  ])
   .superRefine((value, context) => {
-    if (value.isDefault !== (value.assignment.scope === "ALL_UNASSIGNED")) {
+    if (
+      value.assignment.scope === "ASSIGNED" &&
+      value.assignment.variantCount === 0 &&
+      value.assignment.sellingPlanGroupCount === 0
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["assignment", "scope"],
-        message: "Only the default profile may cover all unassigned variants",
+        path: ["assignment", "variantCount"],
+        message: "An assigned profile requires variants or selling plan groups",
       });
     }
     if (!unique(value.locationGroups.map(({ locationGroupId }) => locationGroupId))) {
@@ -438,6 +468,21 @@ export const DeliveryProfileSnapshotSchema = z
     }
   });
 
+type DeliveryProfileSnapshotValue = z.infer<
+  typeof DeliveryProfileSnapshotSchema
+>;
+
+const DeliveryActiveProfileSnapshotSchema = DeliveryProfileSnapshotSchema.refine(
+  (
+    value,
+  ): value is DeliveryProfileSnapshotValue & Readonly<{ status: "ACTIVE" }> =>
+    value.status === "ACTIVE",
+  {
+    path: ["status"],
+    message: "An active profile set cannot contain inactive profiles",
+  },
+);
+
 export const DeliveryProfileSetSnapshotSchema = z
   .object({
     organizationId: identifierSchema,
@@ -447,7 +492,7 @@ export const DeliveryProfileSetSnapshotSchema = z
       "SELLING_PLAN_THEN_VARIANT_THEN_DEFAULT",
     ),
     revision: z.string().trim().min(1).max(512),
-    profiles: z.array(DeliveryProfileSnapshotSchema).min(1).max(250),
+    profiles: z.array(DeliveryActiveProfileSnapshotSchema).max(250).nonempty(),
   })
   .strict()
   .superRefine((value, context) => {
@@ -484,13 +529,6 @@ export const DeliveryProfileSetSnapshotSchema = z
           code: z.ZodIssueCode.custom,
           path: ["profiles", index],
           message: "Every profile must belong to the profile set tenant",
-        });
-      }
-      if (profile.status !== "ACTIVE") {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["profiles", index, "status"],
-          message: "An active profile set cannot contain inactive profiles",
         });
       }
       const fulfillmentLocationIds = profile.locationGroups.flatMap(
@@ -616,9 +654,7 @@ export function parseDeliveryProfileSnapshot(
     "Delivery profile snapshot",
     DELIVERY_CONFIGURATION_MAX_PAYLOAD_BYTES,
   );
-  return DeliveryProfileSnapshotSchema.parse(
-    value,
-  ) as Delivery.DeliveryProfileSnapshot;
+  return DeliveryProfileSnapshotSchema.parse(value);
 }
 
 export function parseDeliveryProfileSetSnapshot(
@@ -629,9 +665,7 @@ export function parseDeliveryProfileSetSnapshot(
     "Delivery profile set snapshot",
     DELIVERY_CONFIGURATION_MAX_PAYLOAD_BYTES,
   );
-  return DeliveryProfileSetSnapshotSchema.parse(
-    value,
-  ) as Delivery.DeliveryProfileSetSnapshot;
+  return DeliveryProfileSetSnapshotSchema.parse(value);
 }
 
 export function parseDeliveryEligibilitySnapshot(

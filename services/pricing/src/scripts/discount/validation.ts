@@ -11,6 +11,38 @@ export function validateDiscountAggregate(
     aggregate.buyXGetY,
     aggregate.freeShipping,
   ].filter(Boolean);
+  const isFunction = root.calculationStrategy === "FUNCTION";
+
+  if (isFunction && (root.kind !== null || rules.length > 0)) {
+    errors.push({
+      message: "Function discounts cannot contain a native rule or kind",
+      code: "INVALID_AGGREGATE",
+    });
+  }
+  if (!isFunction && root.kind === null) {
+    errors.push({
+      message: "Native discounts require a kind",
+      code: "INVALID_AGGREGATE",
+    });
+  }
+  if (!isFunction && aggregate.functionBinding) {
+    errors.push({
+      message: "Native discounts cannot have a function binding",
+      code: "INVALID_AGGREGATE",
+    });
+  }
+  if (aggregate.functionBinding) {
+    const expectedTarget =
+      root.discountClass === "SHIPPING"
+        ? "cart.delivery-options.discounts.generate.run"
+        : "cart.lines.discounts.generate.run";
+    if (aggregate.functionBinding.target !== expectedTarget) {
+      errors.push({
+        message: "Function binding target does not match discount class",
+        code: "FUNCTION_TARGET_MISMATCH",
+      });
+    }
+  }
 
   if (rules.length > 1) {
     errors.push({
@@ -155,10 +187,16 @@ export function validateDiscountAggregate(
   }
 
   if (root.state !== "DRAFT") {
-    if (rules.length !== 1) {
+    if (!isFunction && rules.length !== 1) {
       errors.push({
         message: "A non-draft discount requires a complete rule",
         code: "RULE_REQUIRED",
+      });
+    }
+    if (isFunction && !aggregate.functionBinding) {
+      errors.push({
+        message: "A non-draft function discount requires a binding",
+        code: "FUNCTION_BINDING_REQUIRED",
       });
     }
     if (!aggregate.buyerContext) {

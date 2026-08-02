@@ -55,6 +55,10 @@ export class InventoryItemResolver extends CatalogType<string, InventoryItem> {
     return (await this.$get("trackInventory")) ?? true;
   }
 
+  async requiresShipping() {
+    return (await this.$get("requiresShipping")) ?? false;
+  }
+
   async continueSellingWhenOutOfStock() {
     return (await this.$get("continueSellingWhenOutOfStock")) ?? false;
   }

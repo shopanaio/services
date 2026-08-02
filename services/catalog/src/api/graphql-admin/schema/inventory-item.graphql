@@ -22,6 +22,9 @@ type InventoryItem implements Node @key(fields: "id") {
   """Whether to track inventory for this item"""
   trackInventory: Boolean!
 
+  """Whether this item requires physical delivery."""
+  requiresShipping: Boolean!
+
   """Whether to continue selling when out of stock"""
   continueSellingWhenOutOfStock: Boolean!
 
@@ -138,6 +141,9 @@ input InventoryItemUpdateInput {
 
   """Whether to track inventory"""
   trackInventory: Boolean
+
+  """Whether this item requires physical delivery."""
+  requiresShipping: Boolean
 
   """Whether to continue selling when out of stock"""
   continueSellingWhenOutOfStock: Boolean

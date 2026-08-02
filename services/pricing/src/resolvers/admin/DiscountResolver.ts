@@ -22,6 +22,7 @@ import {
   DiscountChannelResolver,
   DiscountCombinationResolver,
   DiscountFreeShippingRuleResolver,
+  DiscountFunctionBindingResolver,
   DiscountMinimumRequirementResolver,
   DiscountTargetSelectionResolver,
   DiscountUsageSummaryResolver,
@@ -44,6 +45,7 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
   }
 
   method() { return this.$get("method"); }
+  calculationStrategy() { return this.$get("calculationStrategy"); }
   kind() { return this.$get("kind"); }
   discountClass() { return this.$get("discountClass"); }
   state() { return this.$get("state"); }
@@ -87,6 +89,11 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
   createdAt() { return this.$get("createdAt"); }
   updatedAt() { return this.$get("updatedAt"); }
   archivedAt() { return this.$get("archivedAt"); }
+
+  async functionBinding() {
+    const aggregate = await this.$ctx.kernel.repository.discount.findAggregateById(this.$props);
+    return aggregate?.functionBinding ? new DiscountFunctionBindingResolver(aggregate.functionBinding, this.$ctx) : null;
+  }
 
   async rule() {
     const rule = await this.$ctx.loaders.discountRule.load(this.$props);

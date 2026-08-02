@@ -49,8 +49,7 @@ export type PricingDiscountCalculationStrategy =
     }>;
 
 export interface PricingDiscountFunctionBindingPort {
-  // TODO(pricing-functions): load active Pricing-owned bindings in stable
-  // precedence/activationSequence/id order and calculate bindingSetRevision.
+  /** Load active Pricing-owned bindings in stable execution order. */
   listActive(input: Readonly<{
     storeId: string;
     target: PricingDiscountFunctionTarget;
@@ -62,13 +61,10 @@ export interface PricingDiscountFunctionBindingPort {
 }
 
 export interface PricingDiscountOwnerResolutionPort {
-  // TODO(pricing-discounts): resolve active native/function discount owners,
-  // code identities, schedules, channel/purchase/buyer eligibility and usage.
   resolveLineOwners(input: PricingLineDiscountFunctionInput): Promise<
     readonly PricingResolvedDiscountOwnerSnapshot[]
   >;
 
-  // TODO(pricing-discounts): resolve shipping owners after delivery selection.
   resolveDeliveryOwners(input: PricingDeliveryDiscountFunctionInput): Promise<
     readonly PricingResolvedDiscountOwnerSnapshot[]
   >;
@@ -301,29 +297,21 @@ export type PricingDeliveryDiscountFunctionOutput = z.infer<
 >;
 
 export interface PricingDiscountFunctionRunnerPort {
-  // TODO(pricing-functions): run all active native/App line discount bindings,
-  // validate outputs with pricingLineDiscountFunctionOutputSchema, and return
-  // candidates in immutable execution-plan order.
   runLineDiscounts(
     input: PricingLineDiscountFunctionInput,
   ): Promise<readonly PricingLineDiscountCandidateEnvelope[]>;
 
-  // TODO(pricing-functions): run and validate delivery discount bindings after
-  // Delivery has resolved the selected options.
   runDeliveryDiscounts(
     input: PricingDeliveryDiscountFunctionInput,
   ): Promise<readonly PricingDeliveryDiscountCandidateEnvelope[]>;
 }
 
 export interface PricingDiscountApplicatorPort {
-  // TODO(pricing-discounts): apply eligibility, combination, caps, deterministic
-  // allocation and rounding; only this port may create trusted applications.
   applyLineCandidates(input: Readonly<{
     functionInput: PricingLineDiscountFunctionInput;
     candidates: readonly PricingLineDiscountCandidateEnvelope[];
   }>): Promise<PricingLineDiscountApplicationResult>;
 
-  // TODO(pricing-discounts): allocate validated shipping candidates by group.
   applyDeliveryCandidates(input: Readonly<{
     functionInput: PricingDeliveryDiscountFunctionInput;
     candidates: readonly PricingDeliveryDiscountCandidateEnvelope[];

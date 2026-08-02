@@ -1216,6 +1216,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           storeId: ctx.storeId,
           variantId,
           trackInventory: false,
+          requiresShipping: params.inventory?.requiresShipping ?? false,
         },
       );
     }

@@ -22,6 +22,7 @@ export interface CreateItemParams {
   storeId: string;
   variantId: string;
   trackInventory: boolean;
+  requiresShipping: boolean;
   sku?: string | null;
   continueSellingWhenOutOfStock?: boolean;
 }
@@ -55,6 +56,7 @@ export interface UpdateItemParams {
   unavailable?: number;
   sku?: string | null;
   trackInventory?: boolean;
+  requiresShipping?: boolean;
   continueSellingWhenOutOfStock?: boolean;
   weight?: number | null;
   unitCostMinor?: number | null;

@@ -48,6 +48,7 @@ export interface InventoryItemUpdateParams {
   /** Inventory item fields. */
   readonly sku?: string | null;
   readonly trackInventory?: boolean | null;
+  readonly requiresShipping?: boolean | null;
   readonly continueSellingWhenOutOfStock?: boolean | null;
   /** Physical fields. */
   readonly dimensions?: DimensionsUpdateParams | null;
@@ -65,6 +66,7 @@ export interface InventoryItemUpdateChanges {
   unavailable?: number;
   sku?: string | null;
   trackInventory?: boolean;
+  requiresShipping?: boolean;
   continueSellingWhenOutOfStock?: boolean;
   dimensions?: DimensionsUpdateParams;
   weight?: number;
@@ -136,6 +138,7 @@ export class InventoryItemUpdateScript extends BaseScript<
     const itemUpdateData: {
       sku?: string | null;
       trackInventory?: boolean;
+      requiresShipping?: boolean;
       continueSellingWhenOutOfStock?: boolean;
     } = {};
     const changes: InventoryItemUpdateChanges = {};
@@ -153,6 +156,14 @@ export class InventoryItemUpdateScript extends BaseScript<
     if (trackInventoryChanged) {
       itemUpdateData.trackInventory = params.trackInventory;
       changes.trackInventory = params.trackInventory;
+    }
+
+    const requiresShippingChanged =
+      params.requiresShipping != null &&
+      params.requiresShipping !== existingItem.requiresShipping;
+    if (requiresShippingChanged) {
+      itemUpdateData.requiresShipping = params.requiresShipping;
+      changes.requiresShipping = params.requiresShipping;
     }
 
     const continueSellingChanged =

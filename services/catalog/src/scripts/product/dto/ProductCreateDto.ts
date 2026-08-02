@@ -33,6 +33,7 @@ export interface ProductCreateVariantInput {
  */
 export interface InventoryItemCreateInput {
   readonly tracked: boolean;
+  readonly requiresShipping: boolean;
   readonly sku?: string | null;
   readonly continueSellingWhenOutOfStock?: boolean | null;
 }

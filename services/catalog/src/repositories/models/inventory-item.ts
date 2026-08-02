@@ -34,6 +34,7 @@ export const inventoryItem = catalogSchema.table(
 
     // Tracking settings
     trackInventory: boolean("track_inventory").notNull().default(true),
+    requiresShipping: boolean("requires_shipping").notNull(),
     continueSellingWhenOutOfStock: boolean("continue_selling_when_out_of_stock")
       .notNull()
       .default(false),

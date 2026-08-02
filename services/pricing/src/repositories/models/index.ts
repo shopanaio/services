@@ -8,3 +8,5 @@ export * from "./combinations.js";
 export * from "./usage.js";
 export * from "./integrations.js";
 export * from "./readModels.js";
+export * from "./checkout.js";
+export * from "./functionBindings.js";

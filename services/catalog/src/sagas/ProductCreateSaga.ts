@@ -24,6 +24,7 @@ export type { ProductCreateParams, ProductCreateResult };
 
 const InventoryItemInputSchema = z.object({
   tracked: z.boolean(),
+  requiresShipping: z.boolean(),
   sku: z.string().nullish(),
   continueSellingWhenOutOfStock: z.boolean().nullish(),
 }).refine(
@@ -159,6 +160,7 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
           storeId,
           variantId,
           trackInventory: inventoryItem?.tracked ?? false,
+          requiresShipping: inventoryItem?.requiresShipping ?? false,
           sku: inventoryItem?.sku ?? undefined,
           continueSellingWhenOutOfStock: inventoryItem?.continueSellingWhenOutOfStock ?? undefined,
         },

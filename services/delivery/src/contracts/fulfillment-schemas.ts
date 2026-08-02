@@ -340,8 +340,8 @@ export const DeliveryShipmentPlanSnapshotSchema = z
     fulfillmentOrder: DeliveryFulfillmentOrderSnapshotSchema,
     lineItems: z
       .array(fulfillmentLineItemInputSchema)
-      .min(1)
-      .max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
+      .max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS)
+      .nonempty(),
     shipmentProvider: z
       .object({
         providerAccountId: identifierSchema,
@@ -541,8 +541,8 @@ export const DeliveryFulfillmentShipmentUpdateSchema = z
     shipmentRevision: revisionSchema,
     lineItems: z
       .array(fulfillmentLineItemInputSchema)
-      .min(1)
-      .max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
+      .max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS)
+      .nonempty(),
     state: z.enum([
       "SHIPMENT_CREATED",
       "IN_TRANSIT",
@@ -591,7 +591,5 @@ export function parseDeliveryFulfillmentShipmentUpdate(
     value,
     "Delivery fulfillment shipment update",
   );
-  return DeliveryFulfillmentShipmentUpdateSchema.parse(
-    value,
-  ) as Delivery.DeliveryFulfillmentShipmentUpdate;
+  return DeliveryFulfillmentShipmentUpdateSchema.parse(value);
 }

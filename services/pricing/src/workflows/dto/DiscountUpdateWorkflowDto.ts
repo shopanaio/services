@@ -5,6 +5,7 @@ import type {
   DiscountClass,
   DiscountCodesUpdateInput,
   DiscountDefinitionUpdateInput,
+  DiscountFunctionBindingInput,
   DiscountLifecycleUpdateInput,
   DiscountMinimumRequirementSyncInput,
   DiscountRuleInput,
@@ -36,6 +37,11 @@ export type DiscountUpdateOperation =
   | {
       type: "discountRuleUpdate";
       params: DiscountRuleInput;
+      meta: DiscountUpdateOperationMeta;
+    }
+  | {
+      type: "discountFunctionBindingUpdate";
+      params: DiscountFunctionBindingInput;
       meta: DiscountUpdateOperationMeta;
     }
   | {

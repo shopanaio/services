@@ -6,6 +6,7 @@ CREATE TABLE "catalog"."inventory_item" (
   "variant_id" uuid NOT NULL,
   "sku" varchar(255),
   "track_inventory" boolean NOT NULL DEFAULT true,
+  "requires_shipping" boolean NOT NULL,
   "continue_selling_when_out_of_stock" boolean NOT NULL DEFAULT false,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),

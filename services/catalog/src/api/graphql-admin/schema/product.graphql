@@ -287,6 +287,9 @@ input InventoryItemInput {
   """Whether to track inventory for this product."""
   tracked: Boolean!
 
+  """Whether variants created for this product require physical delivery."""
+  requiresShipping: Boolean!
+
   """Stock Keeping Unit."""
   sku: String
 
@@ -491,6 +494,8 @@ input VariantPricingOpInput {
 Input for variant inventory in the unified update.
 """
 input VariantInventoryOpInput {
+  """Whether this variant requires physical delivery."""
+  requiresShipping: Boolean
   """The warehouse ID. Required together with onHand for a stock update."""
   warehouseId: ID
 

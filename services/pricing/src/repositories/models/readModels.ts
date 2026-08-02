@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   currencyCodeEnum,
+  discountCalculationStrategyEnum,
   discountAllocationMethodEnum,
   discountBenefitStrategyEnum,
   discountBuyerContextTypeEnum,
@@ -48,7 +49,8 @@ const discountListColumns = {
   storeId: uuid("store_id").notNull(),
   id: uuid("id").notNull(),
   method: discountMethodEnum("method").notNull(),
-  kind: discountKindEnum("kind").notNull(),
+  calculationStrategy: discountCalculationStrategyEnum("calculation_strategy").notNull(),
+  kind: discountKindEnum("kind"),
   discountClass: discountClassEnum("discount_class").notNull(),
   state: discountStateEnum("state").notNull(),
   effectiveStatus: discountEffectiveStatusEnum("effective_status").notNull(),

@@ -114,6 +114,7 @@ export interface InventoryChanges {
   unavailable?: number;
   sku?: string | null;
   trackInventory?: boolean;
+  requiresShipping?: boolean;
   continueSellingWhenOutOfStock?: boolean;
   unitCostMinor?: number | null;
   costCurrency?: string | null;

@@ -5,6 +5,7 @@ SELECT
   discount.store_id,
   discount.id,
   discount.method,
+  discount.calculation_strategy,
   discount.kind,
   discount.discount_class,
   discount.state,
