@@ -7,6 +7,7 @@ import { PaymentsCheckoutError } from "../../checkout-pipeline/errors.js";
 import { PaymentsCheckoutMethodsService } from "../../checkout-pipeline/PaymentsCheckoutMethodsService.js";
 import { deterministicProviderAccountId, PaymentProviderAccountService } from "../../application/PaymentProviderAccountService.js";
 import { PaymentMethodCustomizationService } from "../../application/PaymentMethodCustomizationService.js";
+import { PaymentLifecycleService } from "../../application/PaymentLifecycleService.js";
 
 @Injectable()
 export class PaymentsActions extends BrokerActions {
@@ -15,6 +16,7 @@ export class PaymentsActions extends BrokerActions {
     private readonly checkout: PaymentsCheckoutMethodsService,
     private readonly accounts: PaymentProviderAccountService,
     private readonly customizations: PaymentMethodCustomizationService,
+    private readonly lifecycle: PaymentLifecycleService,
   ) { super(broker); }
 
   @Action(PaymentsCheckoutActionNames.getAvailableMethods)
@@ -55,5 +57,83 @@ export class PaymentsActions extends BrokerActions {
     params: Payments.SetPaymentMethodCustomizationStatusParams,
   ) {
     return this.customizations.setStatus(params);
+  }
+
+  @Action(PaymentsActionNames.createCollection)
+  @ZodSchema(PaymentLifecycleActionSchemas.createCollection)
+  createPaymentCollection(params: Payments.CreatePaymentCollectionParams) {
+    return this.broker.runWorkflow<Payments.CreatePaymentCollectionResult>(
+      "payments.createCollection",
+      params,
+      {
+        source: "content",
+        organizationId: params.organizationId,
+        resourceId: params.orderId,
+        operation: "payments.createCollection",
+        content: {
+          checkoutId: params.checkoutId,
+          checkoutVersion: params.expectedCheckoutVersion,
+          finalQuoteRevision: params.finalQuoteRevision,
+          targetAmount: params.targetAmount,
+          idempotencyKey: params.idempotencyKey,
+        },
+      },
+    );
+  }
+
+  @Action(PaymentsActionNames.getCollection)
+  getPaymentCollection(params: Payments.GetPaymentCollectionParams) {
+    return this.lifecycle.getCollection(params);
+  }
+
+  @Action(PaymentsActionNames.createSession)
+  @ZodSchema(PaymentLifecycleActionSchemas.createSession)
+  createPaymentSession(params: Payments.CreatePaymentSessionParams) {
+    return this.broker.runWorkflow<Payments.CreatePaymentSessionResult>(
+      "payments.createSession",
+      params,
+      {
+        source: "content",
+        organizationId: params.organizationId,
+        resourceId: params.paymentCollectionId,
+        operation: "payments.createSession",
+        content: {
+          checkoutId: params.checkoutId,
+          checkoutVersion: params.expectedCheckoutVersion,
+          finalQuoteRevision: params.finalQuoteRevision,
+          paymentMethodsRevision: params.paymentMethodsRevision,
+          methodHandle: params.methodHandle,
+          kind: params.kind,
+          amount: params.amount,
+          expiresAt: params.expiresAt,
+          idempotencyKey: params.idempotencyKey,
+        },
+      },
+    );
+  }
+
+  @Action(PaymentsActionNames.getSession)
+  getPaymentSession(params: Payments.GetPaymentSessionParams) {
+    return this.lifecycle.getSession(params);
+  }
+
+  @Action(PaymentsActionNames.expire)
+  @ZodSchema(PaymentLifecycleActionSchemas.expire)
+  expirePayment(params: Payments.ExpirePaymentParams) {
+    return this.broker.runWorkflow<Payments.PaymentOperationAcceptedResult>(
+      "payments.expireSession",
+      params,
+      {
+        source: "content",
+        organizationId: params.organizationId,
+        resourceId: params.paymentSessionId,
+        operation: "payments.expireSession",
+        content: {
+          expectedSessionRevision: params.expectedSessionRevision,
+          reason: params.reason,
+          idempotencyKey: params.idempotencyKey,
+        },
+      },
+    );
   }
 }

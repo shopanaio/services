@@ -6,13 +6,17 @@ import {
   Action,
 } from "@shopana/shared-kernel";
 import type { ContextStore } from "@shopana/shared-context";
-import type { Inventory } from "@shopana/broker-types";
+import {
+  InventoryCheckoutActionNames,
+  type Inventory,
+} from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Loader } from "../loaders/Loader.js";
 import type { VariantCost, CurrencyCode } from "../resolvers/admin/interfaces/index.js";
 import { InventoryItemUpdateScript } from "../scripts/inventory-item/InventoryItemUpdateScript.js";
 import { InventoryItemUpdateDimensionsScript } from "../scripts/inventory-item/InventoryItemUpdateDimensionsScript.js";
+import { CheckoutInventoryReservationService } from "../application/CheckoutInventoryReservationService.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -42,6 +46,42 @@ export class InventoryBrokerActions extends BrokerActions {
 
   private get kernel(): Kernel {
     return Kernel.getInstance();
+  }
+
+  @Action(InventoryCheckoutActionNames.reserve)
+  reserveCheckoutInventory(
+    params: Inventory.ReserveCheckoutInventoryParams,
+  ): Promise<Inventory.ReserveCheckoutInventoryResult> {
+    return this.runWithStoreContext(params.storeId, () =>
+      new CheckoutInventoryReservationService(this.kernel).reserve(params),
+    );
+  }
+
+  @Action(InventoryCheckoutActionNames.release)
+  releaseCheckoutInventory(
+    params: Inventory.ReleaseCheckoutInventoryParams,
+  ): Promise<Inventory.ReleaseCheckoutInventoryResult> {
+    return this.runWithStoreContext(params.storeId, () =>
+      new CheckoutInventoryReservationService(this.kernel).release(params),
+    );
+  }
+
+  @Action(InventoryCheckoutActionNames.renew)
+  renewCheckoutInventory(
+    params: Inventory.RenewCheckoutInventoryParams,
+  ): Promise<Inventory.RenewCheckoutInventoryResult> {
+    return this.runWithStoreContext(params.storeId, () =>
+      new CheckoutInventoryReservationService(this.kernel).renew(params),
+    );
+  }
+
+  @Action(InventoryCheckoutActionNames.confirm)
+  confirmCheckoutInventory(
+    params: Inventory.ConfirmCheckoutInventoryParams,
+  ): Promise<Inventory.ConfirmCheckoutInventoryResult> {
+    return this.runWithStoreContext(params.storeId, () =>
+      new CheckoutInventoryReservationService(this.kernel).confirm(params),
+    );
   }
 
   private async getStoreContext(storeId: string): Promise<ContextStore> {

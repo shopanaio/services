@@ -6,12 +6,16 @@ import type { CreateOrderInput } from "@src/application/order/types";
 import type { CreateOrderCommand } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import type { CheckoutApiClient } from "@shopana/shared-service-api";
-import type { OrderCreated } from "@src/domain/order/events";
+import {
+  OrderEventsContractVersion,
+  type OrderCreated,
+} from "@src/domain/order/events";
 import type {
   AppliedDiscount,
   OrderUnitSnapshot,
 } from "@src/domain/order/evolve";
 import { Money } from "@shopana/shared-money";
+import { deserializeCheckout, type CheckoutDto } from "@shopana/checkout-sdk";
 import { v7 as uuidv7 } from "uuid";
 import { orderDecider } from "@src/domain/order/decider";
 import {
@@ -45,51 +49,101 @@ function toMoneyOrNumber(value: number | { amountMinor(): bigint; currency(): { 
 
 export interface CreateOrderUseCaseDependencies extends UseCaseDependencies {}
 
+export interface CreateOrderFromCheckoutPlacementInput {
+  orderId: string;
+  storeId: string;
+  checkoutId: string;
+  credentialId: string;
+  userId: string | null;
+  idempotencyKey: string;
+  checkout: CheckoutDto;
+}
+
+interface OrderCreationIdentity {
+  orderId: string;
+  storeId: string;
+  credentialId: string;
+  userId: string | null;
+  idempotencyKey: string;
+  requireOrderIdMatch: boolean;
+}
+
 export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
   constructor(deps: CreateOrderUseCaseDependencies) {
     super(deps);
   }
 
   async execute(input: CreateOrderInput): Promise<string> {
+    const checkout = await this.checkoutApi.getById(
+      input.checkoutId,
+      input.store.id,
+    );
     return runOrderCreateProjectionContext(async () => {
-      return this.executeWithProjectionContext(input);
+      return this.executeWithProjectionContext(checkout, {
+        orderId: uuidv7(),
+        storeId: input.store.id,
+        credentialId: input.apiKey,
+        userId: input.user?.id ?? null,
+        idempotencyKey: checkout.idempotencyKey ?? input.checkoutId,
+        requireOrderIdMatch: false,
+      });
+    });
+  }
+
+  async executeFromCheckoutPlacement(
+    input: CreateOrderFromCheckoutPlacementInput,
+  ): Promise<string> {
+    const checkout = deserializeCheckout(input.checkout);
+    if (checkout.id !== input.checkoutId || checkout.storeId !== input.storeId) {
+      throw new Error("Checkout placement snapshot does not belong to the requested store");
+    }
+    return runOrderCreateProjectionContext(async () => {
+      return this.executeWithProjectionContext(checkout, {
+        orderId: input.orderId,
+        storeId: input.storeId,
+        credentialId: input.credentialId,
+        userId: input.userId,
+        idempotencyKey: input.idempotencyKey,
+        requireOrderIdMatch: true,
+      });
     });
   }
 
   private async executeWithProjectionContext(
-    input: CreateOrderInput
+    checkoutAggregate: Checkout,
+    identity: OrderCreationIdentity,
   ): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const id = uuidv7();
+    const id = identity.orderId;
     const streamId = this.streamNames.buildOrderStreamNameFromId(id);
 
-    // Get full checkout aggregate through checkout-api and convert to snapshot
-    const checkoutAggregate = await this.checkoutApi.getById(
-      businessInput.checkoutId,
-      store.id
-    );
-
-    // Validate checkout readiness before creating order (mock implementation)
     this.validateCheckout(checkoutAggregate);
-
-    // Resolve idempotency key from checkout aggregate or fallback
-    const idempotencyKey =
-      checkoutAggregate.idempotencyKey ?? businessInput.checkoutId;
 
     // Idempotency: return existing order if key previously used
     const idemHit = await this.idempotencyRepository.get(
-      store.id,
-      idempotencyKey
+      identity.storeId,
+      identity.idempotencyKey,
     );
     if (idemHit?.id) {
+      if (identity.requireOrderIdMatch && idemHit.id !== id) {
+        throw new Error("Order placement idempotency key belongs to another order");
+      }
       return idemHit.id;
+    }
+
+    const { state } = await this.loadOrderState(id);
+    if (state.exists) {
+      if (
+        state.storeId === identity.storeId &&
+        state.idempotencyKey === identity.idempotencyKey
+      ) {
+        return id;
+      }
+      throw new Error("Order placement identifier belongs to another order");
     }
 
     const checkoutSnapshot: CheckoutSnapshot = this.toSnapshotFromCheckout(
       checkoutAggregate,
-      input
+      identity.storeId,
     );
 
     // Build order business data (independent from audit snapshot)
@@ -98,7 +152,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
 
     const deliveryAddressRefs = this.populateProjectionContext(
       id,
-      store.id,
+      identity.storeId,
       checkoutAggregate
     );
 
@@ -132,8 +186,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         // Core context
         currencyCode:
           checkoutAggregate.currencyCode ?? checkoutSnapshot.currencyCode,
-        idempotencyKey:
-          checkoutAggregate.idempotencyKey ?? businessInput.checkoutId,
+        idempotencyKey: identity.idempotencyKey,
         salesChannel: checkoutAggregate.salesChannel ?? null,
         externalSource: checkoutAggregate.externalSource ?? null,
         externalId: checkoutAggregate.externalId ?? null,
@@ -158,10 +211,16 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         // Snapshot for audit
         checkoutSnapshot,
       },
-      metadata: this.createCommandMetadata(id, context, idempotencyKey),
+      metadata: {
+        aggregateId: id,
+        apiKey: identity.credentialId,
+        contractVersion: OrderEventsContractVersion,
+        now: new Date(),
+        storeId: identity.storeId,
+        userId: identity.userId ?? undefined,
+        idempotencyKey: identity.idempotencyKey,
+      },
     };
-
-    const { state } = await this.loadOrderState(id);
 
     const events = orderDecider.decide(command, state);
     const eventsToAppend = (
@@ -292,11 +351,11 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
    */
   private toSnapshotFromCheckout(
     aggregate: Checkout,
-    input: CreateOrderInput
+    storeId: string,
   ): CheckoutSnapshot {
     const snapshot: CheckoutSnapshot = {
       checkoutId: aggregate.id,
-      storeId: input.store.id,
+      storeId,
       currencyCode:
         aggregate.currencyCode ?? aggregate.cost.totalAmount.currency().code,
       externalSource: aggregate.externalSource ?? null,

@@ -1,9 +1,19 @@
 import { Module } from '@nestjs/common';
 import { BrokerModule } from '@shopana/shared-kernel';
 import { CheckoutNestService } from './checkout.nest-service';
+import { CheckoutMutationRepository } from './infrastructure/mutations/CheckoutMutationRepository.js';
+import { CheckoutPlacementRepository } from './infrastructure/mutations/CheckoutPlacementRepository.js';
+import { PlaceOrderWorkflow } from './workflows/PlaceOrderWorkflow.js';
+import { MonitorPlacedPaymentWorkflow } from './workflows/MonitorPlacedPaymentWorkflow.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'checkout' })],
-  providers: [CheckoutNestService],
+  providers: [
+    CheckoutNestService,
+    CheckoutMutationRepository,
+    CheckoutPlacementRepository,
+    PlaceOrderWorkflow,
+    MonitorPlacedPaymentWorkflow,
+  ],
 })
 export class CheckoutModule {}

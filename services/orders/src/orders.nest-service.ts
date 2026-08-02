@@ -6,6 +6,7 @@ import {
 import 'reflect-metadata';
 import { App } from './ioc/container';
 import { startServer } from './interfaces/server/server';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
@@ -21,6 +22,12 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
     this.broker.register('createOrder', async (params: any) => {
       return this.app.orderUsecase.createOrder.execute(params);
     });
+
+    this.broker.register('createOrderFromCheckoutPlacement', async (params: any) => {
+      return this.app.orderUsecase.createOrder.executeFromCheckoutPlacement(params);
+    });
+
+    this.broker.register('generateOrderId', async () => ({ id: uuidv7() }));
 
     this.broker.register('getOrderById', async (params: any) => {
       return this.app.orderUsecase.getOrderById.execute(params);

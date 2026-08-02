@@ -7,6 +7,11 @@ export const providerMode = paymentsSchema.enum("provider_mode", ["TEST", "LIVE"
 export const captureMode = paymentsSchema.enum("capture_mode", ["AUTOMATIC", "MANUAL"]);
 export const customizationStatus = paymentsSchema.enum("customization_status", ["ACTIVE", "DISABLED"]);
 export const customizationFailureMode = paymentsSchema.enum("customization_failure_mode", ["REQUIRED", "OPTIONAL"]);
+export const paymentCollectionState = paymentsSchema.enum("payment_collection_state", ["OPEN", "PENDING", "PARTIALLY_AUTHORIZED", "AUTHORIZED", "PARTIALLY_PAID", "PAID", "PARTIALLY_REFUNDED", "REFUNDED", "CANCELLED"]);
+export const paymentSessionKind = paymentsSchema.enum("payment_session_kind", ["SALE", "AUTHORIZATION"]);
+export const paymentSessionState = paymentsSchema.enum("payment_session_state", ["CREATED", "PROCESSING", "REQUIRES_ACTION", "REQUIRES_CONFIRMATION", "PENDING", "AUTHORIZED", "PARTIALLY_CAPTURED", "CAPTURED", "VOIDED", "PARTIALLY_REFUNDED", "REFUNDED", "FAILED", "EXPIRED", "CANCELLED"]);
+export const paymentOperationType = paymentsSchema.enum("payment_operation_type", ["SALE", "AUTHORIZE", "CONFIRM", "CANCEL", "CAPTURE", "VOID", "REFUND", "RECONCILE"]);
+export const paymentOperationState = paymentsSchema.enum("payment_operation_state", ["REQUESTED", "PROCESSING", "REQUIRES_ACTION", "REQUIRES_CONFIRMATION", "PENDING", "SUCCEEDED", "FAILED", "EXPIRED"]);
 
 export const paymentProviderAccount = paymentsSchema.table("provider_account", {
   id: uuid("id").primaryKey().default(sql`uuidv7()`), organizationId: uuid("organization_id").notNull(), storeId: uuid("store_id").notNull(), installationId: uuid("installation_id").notNull(),
@@ -48,3 +53,20 @@ export const checkoutMethodBinding = paymentsSchema.table("checkout_method_bindi
 export const checkoutMethodExecution = paymentsSchema.table("checkout_method_execution", {
   id: uuid("id").primaryKey().default(sql`uuidv7()`), snapshotId: uuid("snapshot_id").notNull(), storeId: uuid("store_id").notNull(), sequence: integer("sequence").notNull(), kind: text("kind").notNull(), ownerId: text("owner_id").notNull(), status: text("status").notNull(), classification: text("classification"), revision: text("revision"), audit: jsonb("audit").notNull(), createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
+
+export const paymentCollection = paymentsSchema.table("payment_collection", {
+  id: uuid("id").primaryKey().default(sql`uuidv7()`), organizationId: uuid("organization_id").notNull(), storeId: uuid("store_id").notNull(), checkoutId: uuid("checkout_id").notNull(), orderId: uuid("order_id").notNull(),
+  state: paymentCollectionState("state").notNull(), revision: integer("revision").notNull(), idempotencyKey: text("idempotency_key").notNull(), requestHash: text("request_hash").notNull(), payload: jsonb("payload").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, (table) => [unique("payment_collection_store_id_unique").on(table.storeId, table.id), unique("payment_collection_order_unique").on(table.storeId, table.orderId), unique("payment_collection_idempotency_unique").on(table.storeId, table.idempotencyKey), index("payment_collection_checkout_idx").on(table.storeId, table.checkoutId)]);
+
+export const paymentSession = paymentsSchema.table("payment_session", {
+  id: uuid("id").primaryKey().default(sql`uuidv7()`), paymentCollectionId: uuid("payment_collection_id").notNull(), organizationId: uuid("organization_id").notNull(), storeId: uuid("store_id").notNull(), checkoutId: uuid("checkout_id").notNull(), orderId: uuid("order_id").notNull(),
+  attemptSequence: integer("attempt_sequence").notNull(), kind: paymentSessionKind("kind").notNull(), state: paymentSessionState("state").notNull(), providerAccountId: uuid("provider_account_id").notNull(), methodHandle: text("method_handle").notNull(), providerReference: text("provider_reference"), revision: integer("revision").notNull(), idempotencyKey: text("idempotency_key").notNull(), requestHash: text("request_hash").notNull(), payload: jsonb("payload").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, (table) => [unique("payment_session_store_id_unique").on(table.storeId, table.id), unique("payment_session_attempt_unique").on(table.paymentCollectionId, table.attemptSequence), unique("payment_session_idempotency_unique").on(table.paymentCollectionId, table.idempotencyKey), index("payment_session_collection_idx").on(table.storeId, table.paymentCollectionId, table.attemptSequence)]);
+
+export const paymentOperation = paymentsSchema.table("payment_operation", {
+  id: uuid("id").primaryKey().default(sql`uuidv7()`), paymentSessionId: uuid("payment_session_id").notNull(), storeId: uuid("store_id").notNull(), type: paymentOperationType("type").notNull(), state: paymentOperationState("state").notNull(), revision: integer("revision").notNull(), idempotencyKey: text("idempotency_key").notNull(), requestHash: text("request_hash").notNull(), payload: jsonb("payload").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, (table) => [unique("payment_operation_store_id_unique").on(table.storeId, table.id), unique("payment_operation_idempotency_unique").on(table.paymentSessionId, table.idempotencyKey), index("payment_operation_session_idx").on(table.storeId, table.paymentSessionId, table.createdAt)]);

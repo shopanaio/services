@@ -208,6 +208,7 @@ export const PaymentLifecycleActionSchemas = {
       methodHandle: identifierSchema,
       kind: z.enum(["SALE", "AUTHORIZATION"]),
       amount: PaymentMoneySchema,
+      expiresAt: timestampSchema,
       returnUrl: z.string().url().startsWith("https://").max(2_048).nullable(),
       customer: paymentProviderCustomerSchema.nullable(),
       customerInput: jsonObjectSchema.nullable(),
@@ -267,6 +268,7 @@ export const PaymentLifecycleActionSchemas = {
     .strict(),
   expire: z
     .object({
+      organizationId: identifierSchema,
       storeId: identifierSchema,
       paymentSessionId: identifierSchema,
       expectedSessionRevision: expectedRevisionSchema,

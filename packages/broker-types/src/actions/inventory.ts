@@ -2,6 +2,76 @@
  * Inventory service broker action types
  */
 
+export const InventoryCheckoutActionNames = {
+  reserve: "reserveCheckoutInventory",
+  renew: "renewCheckoutInventory",
+  confirm: "confirmCheckoutInventory",
+  release: "releaseCheckoutInventory",
+} as const;
+
+export const InventoryCheckoutActions = {
+  reserve: `inventory.${InventoryCheckoutActionNames.reserve}`,
+  renew: `inventory.${InventoryCheckoutActionNames.renew}`,
+  confirm: `inventory.${InventoryCheckoutActionNames.confirm}`,
+  release: `inventory.${InventoryCheckoutActionNames.release}`,
+} as const;
+
+export interface ReserveCheckoutInventoryParams {
+  storeId: string;
+  orderId: string;
+  idempotencyKey: string;
+  correlationId: string;
+  expiresAt: string;
+  lines: readonly Readonly<{
+    lineId: string;
+    variantId: string;
+    quantity: number;
+  }>[];
+}
+
+export interface CheckoutInventoryReservationAllocation {
+  reservationId: string;
+  lineId: string;
+  variantId: string;
+  warehouseId: string;
+  quantity: number;
+}
+
+export interface ReserveCheckoutInventoryResult {
+  revision: string;
+  allocations: readonly CheckoutInventoryReservationAllocation[];
+}
+
+export interface RenewCheckoutInventoryParams {
+  storeId: string;
+  orderId: string;
+  expiresAt: string;
+}
+
+export interface RenewCheckoutInventoryResult {
+  renewedReservationIds: readonly string[];
+}
+
+export interface ConfirmCheckoutInventoryParams {
+  storeId: string;
+  orderId: string;
+}
+
+export interface ConfirmCheckoutInventoryResult {
+  confirmedReservationIds: readonly string[];
+}
+
+export interface ReleaseCheckoutInventoryParams {
+  storeId: string;
+  orderId: string;
+  idempotencyKey: string;
+  correlationId: string;
+}
+
+export interface ReleaseCheckoutInventoryResult {
+  releasedReservationIds: readonly string[];
+}
+
 // ============================================================================
 // File Hard Deleted Action
 // ============================================================================

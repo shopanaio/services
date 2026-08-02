@@ -149,6 +149,11 @@ export class CheckoutMutationRepository
                 result_revision = ?, checkout_valid = ?, pipeline_issues = ?::jsonb,
                 updated_at = ?
           WHERE id = ? AND store_id = ? AND version = ?
+            AND NOT EXISTS (
+              SELECT 1 FROM platform.checkout_placements
+               WHERE store_id = ? AND checkout_id = ?
+                 AND status IN ('IN_PROGRESS', 'PLACED')
+            )
             AND EXISTS (
               SELECT 1 FROM platform.checkout_current_snapshots
                WHERE checkout_id = ? AND store_id = ? AND checkout_version = ?
@@ -182,6 +187,8 @@ export class CheckoutMutationRepository
         input.checkoutId,
         input.storeId,
         input.expectedVersion,
+        input.storeId,
+        input.checkoutId,
         input.checkoutId,
         input.storeId,
         input.expectedVersion,

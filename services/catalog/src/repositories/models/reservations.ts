@@ -30,6 +30,7 @@ export const reservations = catalogSchema.table(
     quantity: integer("quantity").notNull(),
     status: reservationStatusEnum("status").notNull().default("ACTIVE"),
     reservedAt: timestamp("reserved_at", { withTimezone: true, mode: "string" }).defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
     releasedAt: timestamp("released_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [

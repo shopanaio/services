@@ -19,6 +19,7 @@
     "@event-driven-io/emmett-postgresql": "^0.38.5",
     "@event-driven-io/pongo": "^0.17.0-alpha.6",
     "@shopana/broker-types": "workspace:*",
+    "@shopana/checkout-sdk": "workspace:*",
     "@shopana/platform-api": "0.0.1",
     "@shopana/shared-async-context": "0.0.1",
     "@shopana/shared-context": "*",

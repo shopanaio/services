@@ -4,6 +4,7 @@ import type { ServiceBroker } from "@shopana/shared-kernel";
 import type { PaymentsProviderAppsPort } from "../../contracts/ports.js";
 import { providerConfigurationResultSchema, providerDiscoveryResultSchema } from "../../checkout-pipeline/schemas.js";
 import { PaymentsCheckoutError } from "../../checkout-pipeline/errors.js";
+import { parseProviderOperationResult } from "../../contracts/schemas.js";
 
 export class BrokerPaymentsProviderAppsAdapter implements PaymentsProviderAppsPort {
   private readonly routeStores = new Map<string, string>();
@@ -26,7 +27,7 @@ export class BrokerPaymentsProviderAppsAdapter implements PaymentsProviderAppsPo
     return providerConfigurationResultSchema.parse((await this.execute(route, request)).data) as Payments.PaymentProviderConfigurationValidationResult;
   }
   async getMethods(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderMethodDiscoveryRequest) { return providerDiscoveryResultSchema.parse((await this.execute(route, request)).data) as Payments.PaymentProviderMethodDiscoveryResult; }
-  async createPayment(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderCreatePaymentRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderOperationResult; }
+  async createPayment(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderCreatePaymentRequest) { return parseProviderOperationResult((await this.execute(route, request)).data); }
   async confirmPayment(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderConfirmRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderOperationResult; }
   async cancel(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderCancelRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderOperationResult; }
   async capture(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderCaptureRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderOperationResult; }

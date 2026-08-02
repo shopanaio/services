@@ -10,6 +10,11 @@ import { PaymentProviderAccountService } from "./application/PaymentProviderAcco
 import { PaymentMethodCustomizationService } from "./application/PaymentMethodCustomizationService.js";
 import { PaymentsActions } from "./infrastructure/broker/PaymentsActions.js";
 import { ConfigurePaymentProviderAccountWorkflow } from "./workflows/ConfigurePaymentProviderAccountWorkflow.js";
+import { PaymentLifecycleService } from "./application/PaymentLifecycleService.js";
+import { PaymentLifecycleRepository } from "./infrastructure/db/PaymentLifecycleRepository.js";
+import { CreatePaymentCollectionWorkflow } from "./workflows/CreatePaymentCollectionWorkflow.js";
+import { CreatePaymentSessionWorkflow } from "./workflows/CreatePaymentSessionWorkflow.js";
+import { ExpirePaymentSessionWorkflow } from "./workflows/ExpirePaymentSessionWorkflow.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "payments" })],
@@ -21,8 +26,13 @@ import { ConfigurePaymentProviderAccountWorkflow } from "./workflows/ConfigurePa
     { provide: PaymentsCheckoutMethodsService, inject: [PaymentsRepository, BrokerPaymentsProviderAppsAdapter, PaymentMethodCustomizationRunner], useFactory: (repository: PaymentsRepository, apps: BrokerPaymentsProviderAppsAdapter, customization: PaymentMethodCustomizationRunner) => new PaymentsCheckoutMethodsService({ accounts: repository.providerAccounts, bindings: repository.methodBindings, apps, customizationBindings: repository.customizationBindings, customization }) },
     { provide: PaymentProviderAccountService, inject: [PaymentsRepository, BrokerPaymentsProviderAppsAdapter], useFactory: (repository: PaymentsRepository, apps: BrokerPaymentsProviderAppsAdapter) => new PaymentProviderAccountService(repository.providerAccounts, apps) },
     { provide: PaymentMethodCustomizationService, inject: [PaymentsRepository, BrokerPaymentFunctionRouteResolver], useFactory: (repository: PaymentsRepository, routes: BrokerPaymentFunctionRouteResolver) => new PaymentMethodCustomizationService({ bindings: repository.customizationBindings, routes }) },
+    { provide: PaymentLifecycleRepository, inject: [DATABASE_CLIENT], useFactory: (client: DatabaseClient) => new PaymentLifecycleRepository(createPaymentsDatabase(client)) },
+    { provide: PaymentLifecycleService, inject: [PaymentLifecycleRepository, PaymentsRepository, BrokerPaymentsProviderAppsAdapter], useFactory: (repository: PaymentLifecycleRepository, payments: PaymentsRepository, apps: BrokerPaymentsProviderAppsAdapter) => new PaymentLifecycleService({ repository, bindings: payments.methodBindings, accounts: payments.providerAccounts, apps }) },
     PaymentsActions,
     ConfigurePaymentProviderAccountWorkflow,
+    CreatePaymentCollectionWorkflow,
+    CreatePaymentSessionWorkflow,
+    ExpirePaymentSessionWorkflow,
   ],
 })
 export class PaymentsModule {}

@@ -130,6 +130,18 @@ export interface PaymentMethodBindingsPort {
   }>): Promise<Readonly<{ result: Payments.GetCheckoutAvailablePaymentMethodsResult; reused: boolean }>>;
 }
 
+export interface PaymentLifecycleMethodBindingsPort {
+  resolvePaymentSelection(input: Readonly<{
+    storeId: string;
+    checkoutId: string;
+    checkoutVersion: number;
+    finalQuoteRevision: string;
+    paymentMethodsRevision: string;
+    methodHandle: string;
+    effectiveAt: string;
+  }>): Promise<Payments.PaymentMethodBindingSnapshot | null>;
+}
+
 export interface CreatePaymentSessionRecord {
   collection: Payments.PaymentCollectionSnapshot;
   session: Payments.PaymentSessionSnapshot;

@@ -6,6 +6,7 @@ import type {
   PaymentCustomizationBindingsPort,
   PaymentMethodBindingCandidate,
   PaymentMethodBindingsPort,
+  PaymentLifecycleMethodBindingsPort,
   PaymentProviderAccountsPort,
 } from "../../contracts/ports.js";
 import { canonicalJson, contentRevision } from "../../checkout-pipeline/canonicalJson.js";
@@ -236,11 +237,18 @@ function binding(row: typeof checkoutMethodBinding.$inferSelect): Payments.Payme
   return { methodHandle: row.methodHandle, providerAccountId: row.providerAccountId, providerCode: row.providerCode, providerMethodKey: row.providerMethodKey, discoveryRoute: row.discoveryRoute as Payments.PaymentProviderRouteSnapshot, configurationRevision: row.configurationRevision, providerDiscoveryRevision: row.providerDiscoveryRevision };
 }
 
-export class PaymentMethodBindingRepository extends BaseRepository implements PaymentMethodBindingsPort {
+export class PaymentMethodBindingRepository extends BaseRepository implements PaymentMethodBindingsPort, PaymentLifecycleMethodBindingsPort {
   async resolveCommittedSelection(input: { storeId: string; checkoutId: string; checkoutVersion: number; methodHandle: string; effectiveAt: string }) {
     const row = (await this.connection.select({ binding: checkoutMethodBinding }).from(checkoutMethodBinding)
       .innerJoin(checkoutMethodSnapshot, and(eq(checkoutMethodSnapshot.storeId, checkoutMethodBinding.storeId), eq(checkoutMethodSnapshot.id, checkoutMethodBinding.snapshotId)))
       .where(and(eq(checkoutMethodBinding.storeId, input.storeId), eq(checkoutMethodBinding.checkoutId, input.checkoutId), eq(checkoutMethodBinding.targetCheckoutVersion, input.checkoutVersion), eq(checkoutMethodBinding.methodHandle, input.methodHandle), gt(checkoutMethodSnapshot.retainUntil, input.effectiveAt))).limit(1))[0];
+    return row ? binding(row.binding) : null;
+  }
+
+  async resolvePaymentSelection(input: { storeId: string; checkoutId: string; checkoutVersion: number; finalQuoteRevision: string; paymentMethodsRevision: string; methodHandle: string; effectiveAt: string }) {
+    const row = (await this.connection.select({ binding: checkoutMethodBinding }).from(checkoutMethodBinding)
+      .innerJoin(checkoutMethodSnapshot, and(eq(checkoutMethodSnapshot.storeId, checkoutMethodBinding.storeId), eq(checkoutMethodSnapshot.id, checkoutMethodBinding.snapshotId)))
+      .where(and(eq(checkoutMethodBinding.storeId, input.storeId), eq(checkoutMethodBinding.checkoutId, input.checkoutId), eq(checkoutMethodBinding.targetCheckoutVersion, input.checkoutVersion), eq(checkoutMethodSnapshot.finalQuoteRevision, input.finalQuoteRevision), eq(checkoutMethodSnapshot.paymentRevision, input.paymentMethodsRevision), eq(checkoutMethodBinding.methodHandle, input.methodHandle), gt(checkoutMethodSnapshot.retainUntil, input.effectiveAt))).limit(1))[0];
     return row ? binding(row.binding) : null;
   }
 

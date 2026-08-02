@@ -495,7 +495,20 @@ export type {
 
 // Inventory service actions
 export * as Inventory from "./inventory.js";
+export {
+  InventoryCheckoutActionNames,
+  InventoryCheckoutActions,
+} from "./inventory.js";
 export type {
+  ReserveCheckoutInventoryParams,
+  CheckoutInventoryReservationAllocation,
+  ReserveCheckoutInventoryResult,
+  RenewCheckoutInventoryParams,
+  RenewCheckoutInventoryResult,
+  ConfirmCheckoutInventoryParams,
+  ConfirmCheckoutInventoryResult,
+  ReleaseCheckoutInventoryParams,
+  ReleaseCheckoutInventoryResult,
   FileHardDeletedParams,
   FileHardDeletedResult,
   CreateItemParams,

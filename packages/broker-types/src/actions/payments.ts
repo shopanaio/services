@@ -552,6 +552,7 @@ export interface PaymentOperationSnapshot {
   pendingReason: PaymentPendingReason | null;
   pendingExpiresAt: string | null;
   nextReconcileAt: string | null;
+  confirmationExpiresAt: string | null;
   confirmation: PaymentSettlementConfirmation | null;
   failure: PaymentFailure | null;
   revision: number;
@@ -602,9 +603,12 @@ export interface PaymentSessionSnapshot {
   authorizationExpiresAt: string | null;
   instrument: PaymentInstrumentSummary | null;
   customerAction: PaymentCustomerAction | null;
+  /** Platform deadline for a checkout-owned, non-terminal payment attempt. */
+  expiresAt: string;
   pendingReason: PaymentPendingReason | null;
   pendingExpiresAt: string | null;
   nextReconcileAt: string | null;
+  confirmationExpiresAt: string | null;
   confirmation: PaymentSettlementConfirmation | null;
   lastFailure: PaymentFailure | null;
   revision: number;
@@ -749,6 +753,7 @@ export interface CreatePaymentSessionParams {
   methodHandle: string;
   kind: PaymentSessionKind;
   amount: PricingCheckoutMoney;
+  expiresAt: string;
   returnUrl: string | null;
   customer: PaymentProviderCustomerSnapshot | null;
   /** Must never contain PAN, CVV, provider credentials or other secrets. */
@@ -824,6 +829,7 @@ export interface ReconcilePaymentParams {
 }
 
 export interface ExpirePaymentParams {
+  organizationId: string;
   storeId: string;
   paymentSessionId: string;
   expectedSessionRevision: number;

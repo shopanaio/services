@@ -14,6 +14,7 @@ export type {
   PaymentIdempotencyPort,
   PaymentMethodBindingCandidate,
   PaymentMethodBindingsPort,
+  PaymentLifecycleMethodBindingsPort,
   PaymentCustomizationBindingsPort,
   PaymentFunctionRoutesPort,
   PaymentProviderAccountsPort,
